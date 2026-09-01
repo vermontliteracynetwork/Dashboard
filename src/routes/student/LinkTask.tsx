@@ -18,17 +18,19 @@ export default function LinkTask({ student, task, onDone }: Props) {
         <ReadAloud text={task.title} settings={student.ttsSettings} />
       </div>
       <p>This activity opens in a new tab. Come back here when you're finished!</p>
-      <button
-        className="btn btn-blue btn-lg"
-        onClick={() => {
-          window.open(task.link?.url, '_blank', 'noopener,noreferrer');
-          setOpened(true);
-        }}
-      >
-        🚀 Open Activity
-      </button>
+      {!opened && (
+        <button
+          className="btn btn-blue btn-lg pulse-cta"
+          onClick={() => {
+            window.open(task.link?.url, '_blank', 'noopener,noreferrer');
+            setOpened(true);
+          }}
+        >
+          🚀 Open Activity
+        </button>
+      )}
       {opened && (
-        <button className="btn btn-primary btn-lg" onClick={onDone}>
+        <button className="btn btn-primary btn-lg pulse-cta" onClick={onDone}>
           ✅ I did it!
         </button>
       )}

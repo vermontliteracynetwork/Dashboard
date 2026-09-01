@@ -9,6 +9,7 @@ import RotationBuilder from './routes/teacher/RotationBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
 import BreakApprovals from './routes/teacher/BreakApprovals';
 import BadgeManager from './routes/teacher/BadgeManager';
+import QuestionSets from './routes/teacher/QuestionSets';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/teacher/inbox" element={<ReviewInbox />} />
           <Route path="/teacher/breaks" element={<BreakApprovals />} />
           <Route path="/teacher/badges" element={<BadgeManager />} />
+          <Route path="/teacher/question-sets" element={<QuestionSets />} />
         </Routes>
       </div>
     </HashRouter>

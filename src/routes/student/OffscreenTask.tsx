@@ -16,7 +16,7 @@ export default function OffscreenTask({ student, task, onDone }: Props) {
       </div>
       <p>{task.offscreen?.instructions}</p>
       <p style={{ fontSize: '0.9rem', opacity: 0.75 }}>Do this away from the screen, then come back and tap done.</p>
-      <button className="btn btn-primary btn-lg" onClick={onDone}>
+      <button className="btn btn-primary btn-lg pulse-cta" onClick={onDone}>
         ✅ I did it!
       </button>
     </div>

@@ -34,7 +34,8 @@ export function StartRitual({ student, subject, tasks, onStart }: StartProps) {
           ))}
         </div>
       </div>
-      <button className="btn btn-primary btn-lg" onClick={onStart}>
+      <span className="point-arrow">👇</span>
+      <button className="btn btn-primary btn-lg pulse-cta" onClick={onStart}>
         Let's begin! ✨
       </button>
     </div>
@@ -54,7 +55,7 @@ export function SubjectCompleteScreen({ subject, onHome }: CompleteProps) {
         <span style={{ fontSize: '3rem' }}>🎉</span>
         <h2>{meta.label} complete!</h2>
         <p>Awesome work today.</p>
-        <button className="btn btn-primary btn-lg" onClick={onHome}>
+        <button className="btn btn-primary btn-lg pulse-cta" onClick={onHome}>
           Back to Home
         </button>
       </div>

@@ -18,7 +18,9 @@ export default function ProgressPath({ tasks, activeIndex }: Props) {
               className={`stone ${state}`}
               title={t.title}
               aria-current={state === 'active' ? 'step' : undefined}
+              style={{ position: 'relative' }}
             >
+              <span className="stone-num">{i + 1}</span>
               {state === 'done' ? '✓' : t.icon}
             </span>
           </span>

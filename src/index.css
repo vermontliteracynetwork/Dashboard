@@ -66,17 +66,17 @@ button {
   background: var(--content-bg);
   border: 2px solid var(--content-border);
   border-radius: 12px;
-  padding: 20px;
+  padding: 26px;
   color: #14101f;
 }
 
 .btn {
   font-family: 'Baloo 2', sans-serif;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   border: var(--chunk) solid var(--ink);
   border-radius: 14px;
-  padding: 12px 22px;
+  padding: 14px 26px;
   background: var(--yellow);
   color: var(--ink);
   box-shadow: 4px 4px 0 var(--ink);
@@ -94,7 +94,7 @@ button {
 .btn-success { background: var(--success); color: white; }
 .btn-danger { background: var(--danger); color: white; }
 .btn-ghost { background: white; }
-.btn-lg { padding: 18px 32px; font-size: 1.3rem; border-radius: 18px; }
+.btn-lg { padding: 22px 38px; font-size: 1.35rem; border-radius: 18px; }
 .btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 10px; box-shadow: 2px 2px 0 var(--ink); }
 .btn-icon { padding: 10px 14px; font-size: 1.4rem; line-height: 1; }
 
@@ -109,10 +109,10 @@ button {
 }
 
 /* ---------- Layout helpers ---------- */
-.container { max-width: 980px; margin: 0 auto; padding: 24px; width: 100%; }
-.stack { display: flex; flex-direction: column; gap: 16px; }
-.row { display: flex; align-items: center; gap: 12px; }
-.row-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.container { max-width: 1040px; margin: 0 auto; padding: 32px 28px; width: 100%; }
+.stack { display: flex; flex-direction: column; gap: 22px; }
+.row { display: flex; align-items: center; gap: 14px; }
+.row-wrap { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .space-between { display: flex; align-items: center; justify-content: space-between; }
 .grow { flex: 1; }
 .center-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
@@ -131,20 +131,20 @@ label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px;
 .path-track {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 12px 4px;
+  padding: 14px 6px;
 }
 .stone {
   flex: 0 0 auto;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   border: 3px solid var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   background: white;
   position: relative;
 }
@@ -156,6 +156,21 @@ label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px;
 }
 .stone.upcoming { opacity: 0.55; }
 .stone-connector { width: 20px; height: 4px; background: var(--ink); opacity: 0.3; flex: 0 0 auto; }
+.stone-num {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ---------- Ticket stub sub-step ---------- */
 .ticket-stub {
@@ -297,3 +312,175 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 
 ::-webkit-scrollbar { height: 10px; width: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--content-border); border-radius: 6px; }
+
+/* ---------- Visual step-by-step guide ---------- */
+.step-guide-title { font-weight: 800; margin-bottom: 10px; font-size: 1rem; }
+.step-guide-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 4px 14px;
+}
+.step-guide-item { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.step-guide-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 128px;
+  padding: 16px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  background: white;
+  box-shadow: 3px 3px 0 var(--ink);
+  text-align: center;
+  position: relative;
+}
+.step-guide-num {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--purple);
+  color: white;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ink);
+  font-size: 0.85rem;
+}
+.step-guide-icon { font-size: 2.2rem; }
+.step-guide-img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; }
+.step-guide-text { font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
+.step-guide-arrow { font-size: 1.5rem; color: var(--purple); flex: 0 0 auto; }
+.step-guide-compact .step-guide-card { width: 92px; padding: 10px 8px; }
+.step-guide-compact .step-guide-icon { font-size: 1.5rem; }
+.step-guide-compact .step-guide-img { width: 40px; height: 40px; }
+.step-guide-compact .step-guide-text { font-size: 0.68rem; }
+.step-guide-compact .step-guide-arrow { font-size: 1.1rem; }
+
+/* ---------- Attention: pulse + pointer arrow for "click here" ---------- */
+.pulse-cta { animation: pulseGlow 2.4s ease-in-out infinite; }
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 4px 4px 0 var(--ink), 0 0 0 0 rgba(124, 58, 237, 0.35); }
+  50% { box-shadow: 4px 4px 0 var(--ink), 0 0 0 12px rgba(124, 58, 237, 0); }
+}
+.point-arrow {
+  font-size: 2.2rem;
+  display: inline-block;
+  animation: bounceDown 1.6s ease-in-out infinite;
+}
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+/* ---------- Persistent progress bar ---------- */
+.progress-bar-label { font-weight: 800; font-size: 0.9rem; margin-bottom: 6px; }
+.progress-bar-track {
+  width: 100%;
+  height: 26px;
+  background: white;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--success));
+  transition: width 0.4s ease;
+}
+
+/* ---------- "What do I do?" checklist ---------- */
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--content-border);
+  background: white;
+}
+.checklist-item.done { background: #eafaf0; border-color: var(--success); }
+.checklist-item.done .checklist-label { text-decoration: line-through; opacity: 0.7; }
+.checklist-item.current { background: #fff8e1; border-color: var(--yellow); border-width: 3px; }
+.checklist-item.current .checklist-label { font-weight: 800; }
+.checklist-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.8rem;
+  flex: 0 0 auto;
+}
+.whatnow-fab {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: var(--chunk) solid var(--ink);
+  background: var(--blue);
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 900;
+  box-shadow: 5px 5px 0 var(--ink);
+  cursor: pointer;
+  z-index: 50;
+}
+
+/* ---------- Choice board ---------- */
+.choice-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 20px;
+}
+.choice-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 14px;
+  border: var(--chunk) solid var(--ink);
+  border-radius: 20px;
+  background: white;
+  box-shadow: 5px 5px 0 var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+  text-align: center;
+}
+.choice-tile:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
+.choice-tile .choice-icon { font-size: 2.8rem; }
+.choice-tile.done { opacity: 0.5; cursor: default; }
+.choice-tile.done:hover { transform: none; box-shadow: 5px 5px 0 var(--ink); }
+
+/* ---------- Flashcard drill ---------- */
+.flashcard {
+  width: 100%;
+  max-width: 440px;
+  min-height: 220px;
+  border: var(--chunk) solid var(--ink);
+  border-radius: 22px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  box-shadow: 6px 6px 0 var(--ink);
+  margin: 0 auto;
+  cursor: pointer;
+}
+.flashcard-hint { text-align: center; font-size: 0.85rem; opacity: 0.7; margin-top: 8px; }

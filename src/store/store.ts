@@ -18,6 +18,8 @@ import type {
   ToolKey,
   QuizRuntimeState,
   StudentStatus,
+  RotationMode,
+  QuestionSet,
 } from '../types';
 
 const emptyProgress = (): SubjectProgress => ({
@@ -44,6 +46,8 @@ interface AppState {
   correctionsCount: Record<string, number>; // studentId -> total recycle-corrections
   onboardedIds: string[]; // students who've seen the one-time first-login walkthrough
   scratchText: Record<string, string>; // studentId -> word processor autosave text
+  rotationModes: Record<string, Record<Subject, RotationMode>>; // studentId -> subject -> sequence|choiceboard
+  questionSets: QuestionSet[]; // reusable saved quiz/drill question sets
 
   currentStudentId: string | null;
   role: 'none' | 'teacher' | 'student';
@@ -110,6 +114,15 @@ interface AppState {
 
   markOnboarded: (studentId: string) => void;
   setScratchText: (studentId: string, text: string) => void;
+
+  // rotation display mode (numbered/required vs choice board)
+  getRotationMode: (studentId: string, subject: Subject) => RotationMode;
+  setRotationMode: (studentId: string, subject: Subject, mode: RotationMode) => void;
+
+  // reusable question/drill sets ("Google Sheet" CSV import lands here too)
+  addQuestionSet: (set: Omit<QuestionSet, 'id' | 'createdAt'>) => string;
+  updateQuestionSet: (id: string, patch: Partial<QuestionSet>) => void;
+  deleteQuestionSet: (id: string) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -129,6 +142,8 @@ export const useStore = create<AppState>()(
       correctionsCount: {},
       onboardedIds: [],
       scratchText: {},
+      rotationModes: {},
+      questionSets: [],
 
       currentStudentId: null,
       role: 'none',
@@ -493,6 +508,28 @@ export const useStore = create<AppState>()(
         set((s) => (s.onboardedIds.includes(studentId) ? {} : { onboardedIds: [...s.onboardedIds, studentId] })),
 
       setScratchText: (studentId, text) => set((s) => ({ scratchText: { ...s.scratchText, [studentId]: text } })),
+
+      getRotationMode: (studentId, subject) => get().rotationModes[studentId]?.[subject] ?? 'sequence',
+
+      setRotationMode: (studentId, subject, mode) =>
+        set((s) => ({
+          rotationModes: {
+            ...s.rotationModes,
+            [studentId]: { ...(s.rotationModes[studentId] ?? {}), [subject]: mode } as Record<Subject, RotationMode>,
+          },
+        })),
+
+      addQuestionSet: (set_) => {
+        const id = makeId();
+        const full: QuestionSet = { ...set_, id, createdAt: new Date().toISOString() };
+        set((s) => ({ questionSets: [full, ...s.questionSets] }));
+        return id;
+      },
+
+      updateQuestionSet: (id, patch) =>
+        set((s) => ({ questionSets: s.questionSets.map((qs) => (qs.id === id ? { ...qs, ...patch } : qs)) })),
+
+      deleteQuestionSet: (id) => set((s) => ({ questionSets: s.questionSets.filter((qs) => qs.id !== id) })),
     }),
     { name: 'iwd-store' },
   ),

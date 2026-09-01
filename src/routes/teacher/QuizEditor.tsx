@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { makeId } from '../../lib/id';
-import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion } from '../../types';
+import SetLibraryControls from './SetLibraryControls';
+import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion, Subject } from '../../types';
 
 interface Props {
+  subject: Subject;
   questions: QuizQuestion[];
   onChange: (questions: QuizQuestion[]) => void;
 }
@@ -131,7 +133,7 @@ function QuestionRow({ q, onUpdate, onDelete }: { q: QuizQuestion; onUpdate: (q:
   );
 }
 
-export default function QuizEditor({ questions, onChange }: Props) {
+export default function QuizEditor({ subject, questions, onChange }: Props) {
   const [addingKind, setAddingKind] = useState<'mc' | 'matching' | 'fill'>('mc');
 
   const update = (id: string, q: QuizQuestion) => onChange(questions.map((existing) => (existing.id === id ? q : existing)));
@@ -143,6 +145,7 @@ export default function QuizEditor({ questions, onChange }: Props) {
 
   return (
     <div className="stack">
+      <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} />
       {questions.map((q) => (
         <QuestionRow key={q.id} q={q} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)} />
       ))}

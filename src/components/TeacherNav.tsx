@@ -25,6 +25,7 @@ export default function TeacherNav() {
           📥 Inbox{inboxCount > 0 ? ` (${inboxCount})` : ''}
         </NavLink>
         <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏅 Badges</NavLink>
+        <NavLink to="/teacher/question-sets" className={({ isActive }) => (isActive ? 'active' : '')}>📚 Question Sets</NavLink>
       </div>
       <button
         className="btn btn-sm"

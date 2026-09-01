@@ -61,7 +61,18 @@ export interface Student {
   createdAt: string;
 }
 
-export type TaskType = 'quiz' | 'link' | 'offscreen';
+export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit';
+
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  quiz: 'Quiz (practice or checkpoint)',
+  link: 'External link (review game, website)',
+  offscreen: 'Off-screen / paper',
+  video: 'Video (YouTube)',
+  passage: 'Reading passage + questions',
+  drill: 'Flashcard drill (facts, grapheme/morpheme, vocab)',
+  wordchain: 'Word chain (word ladder)',
+  sentenceEdit: 'Editing sentences',
+};
 
 export interface MCQuestion {
   id: string;
@@ -103,14 +114,79 @@ export interface OffscreenContent {
   instructions: string;
 }
 
+export interface VideoContent {
+  youtubeUrl: string;
+  note?: string;
+}
+
+export interface PassageContent {
+  title: string;
+  text: string;
+  imageUrl?: string;
+}
+
+export interface DrillCard {
+  id: string;
+  front: string;
+  back: string;
+  imageUrl?: string;
+}
+
+export interface DrillContent {
+  cards: DrillCard[];
+}
+
+export interface WordChainStep {
+  id: string;
+  hint: string;
+  answer: string;
+}
+
+export interface WordChainContent {
+  startWord: string;
+  steps: WordChainStep[];
+}
+
+export interface SentenceEditContent {
+  original: string;
+  corrected: string;
+  hint?: string;
+}
+
+// A single card in a teacher-authored (or auto-generated) visual "how to do this" guide.
+export interface StepDef {
+  id: string;
+  icon: string; // emoji shown big
+  imageUrl?: string;
+  text: string;
+}
+
 export interface Task {
   id: string;
   title: string;
   icon: string;
   type: TaskType;
-  quiz?: QuizContent;
+  quiz?: QuizContent; // used by 'quiz', and as the attached comprehension questions on 'passage'
   link?: LinkContent;
   offscreen?: OffscreenContent;
+  video?: VideoContent;
+  passage?: PassageContent;
+  drill?: DrillContent;
+  wordchain?: WordChainContent;
+  sentenceEdit?: SentenceEditContent;
+  customSteps?: StepDef[]; // teacher override of the auto-generated visual step guide
+}
+
+export type RotationMode = 'sequence' | 'choiceboard';
+
+export interface QuestionSet {
+  id: string;
+  name: string;
+  subject: Subject;
+  kind: 'quiz' | 'drill';
+  questions: QuizQuestion[]; // kind === 'quiz'
+  cards: DrillCard[]; // kind === 'drill'
+  createdAt: string;
 }
 
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks

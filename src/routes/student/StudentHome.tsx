@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import Onboarding from '../../components/Onboarding';
 import HelpOverlay from '../../components/HelpOverlay';
+import StepGuide from '../../components/StepGuide';
 import { todayISO } from '../../lib/dates';
 
 export default function StudentHome() {
@@ -14,6 +15,7 @@ export default function StudentHome() {
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const [showHelp, setShowHelp] = useState(false);
+  const [showWhatNow, setShowWhatNow] = useState(false);
 
   const student = students.find((s) => s.id === currentStudentId);
 
@@ -38,6 +40,25 @@ export default function StudentHome() {
     <div className="container stack">
       <Onboarding studentId={student.id} />
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
+      {showWhatNow && (
+        <div className="overlay-backdrop" onClick={() => setShowWhatNow(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <h2 style={{ margin: 0 }}>❓ What do I do?</h2>
+              <StepGuide
+                steps={[
+                  { id: '1', icon: '👉', text: 'Pick Math or Literacy' },
+                  { id: '2', icon: '✅', text: 'Do your tasks, one at a time' },
+                  { id: '3', icon: '🏠', text: 'Come back here when both are done' },
+                ]}
+              />
+              <button className="btn btn-primary btn-lg pulse-cta" style={{ alignSelf: 'center' }} onClick={() => setShowWhatNow(false)}>
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="chrome-frame space-between" style={{ padding: '18px 24px' }}>
         <div className="row">
@@ -105,6 +126,9 @@ export default function StudentHome() {
         <p style={{ textAlign: 'center' }}>Ask your teacher to set up your tasks!</p>
       )}
 
+      <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
+        ❓
+      </button>
       <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">
         🧘
       </button>
