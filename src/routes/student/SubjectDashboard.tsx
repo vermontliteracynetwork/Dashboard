@@ -14,7 +14,7 @@ import SentenceEditTask from './SentenceEditTask';
 import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import WhatNowOverlay from '../../components/WhatNowOverlay';
-import ProgressPath from '../../components/ProgressPath';
+import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import StepGuide from '../../components/StepGuide';
 import { getTaskSteps } from '../../lib/steps';
@@ -89,12 +89,16 @@ export default function SubjectDashboard() {
 
   const activeTask: Task | null = mode === 'sequence' ? (tasks[prog.activeIndex] ?? null) : tasks.find((t) => t.id === selectedTaskId) ?? null;
 
-  const handleDone = () => {
-    if (!activeTask) return;
-    if (activeTask.type === 'offscreen') markOffscreenDone(student.id, subj, activeTask);
-    else completeTask(student.id, subj, activeTask.id);
+  const checkOff = (task: Task) => {
+    if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task);
+    else completeTask(student.id, subj, task.id);
     setSelectedTaskId(null);
     setPhase('break-check');
+  };
+
+  const handleDone = () => {
+    if (!activeTask) return;
+    checkOff(activeTask);
   };
 
   const renderTask = (task: Task) => {
@@ -130,31 +134,41 @@ export default function SubjectDashboard() {
 
       <SubjectProgressBar done={prog.completedTaskIds.length} total={tasks.length} />
 
-      {mode === 'sequence' && <ProgressPath tasks={tasks} activeIndex={prog.activeIndex} />}
-
       {mode === 'choiceboard' && !activeTask && (
-        <div className="stack" style={{ alignItems: 'center' }}>
-          <p style={{ fontWeight: 800, fontSize: '1.1rem' }}>✨ Pick any task to start! <span className="point-arrow">👇</span></p>
-          <div className="choice-board" style={{ width: '100%' }}>
-            {tasks.map((t) => {
-              const done = prog.completedTaskIds.includes(t.id);
-              return (
-                <button
-                  key={t.id}
-                  className={`choice-tile ${done ? 'done' : ''}`}
-                  disabled={done}
-                  onClick={() => setSelectedTaskId(t.id)}
-                >
-                  <span className="choice-icon">{done ? '✅' : t.icon}</span>
-                  <span>{t.title}</span>
-                </button>
-              );
-            })}
-          </div>
+        <p style={{ fontWeight: 800, fontSize: '1.1rem', textAlign: 'center' }}>
+          ✨ Pick any activity to start! <span className="point-arrow">👇</span>
+        </p>
+      )}
+
+      <TaskChecklist
+        student={student}
+        tasks={tasks}
+        completedIds={prog.completedTaskIds}
+        mode={mode}
+        activeIndex={prog.activeIndex}
+        onOpen={(taskId) => setSelectedTaskId(taskId)}
+        onCheck={checkOff}
+      />
+
+      {activeTask && <StepGuide steps={getTaskSteps(activeTask)} compact />}
+
+      {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (
+        <div className="content-well stack" style={{ alignItems: 'center' }}>
+          {activeTask.referenceImageUrl && (
+            <img
+              src={activeTask.referenceImageUrl}
+              alt="Reference"
+              style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 12, border: '2px solid var(--content-border)' }}
+            />
+          )}
+          {activeTask.referenceLinkUrl && (
+            <a className="btn btn-blue" href={activeTask.referenceLinkUrl} target="_blank" rel="noopener noreferrer">
+              🔗 {activeTask.referenceLinkLabel || 'Open reference link'}
+            </a>
+          )}
         </div>
       )}
 
-      {activeTask && <StepGuide steps={getTaskSteps(activeTask)} compact />}
       {activeTask && renderTask(activeTask)}
 
       <ToolsPanel student={student} subject={subj} />

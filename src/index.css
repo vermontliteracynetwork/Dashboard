@@ -35,7 +35,7 @@ html, body, #root {
 
 body {
   margin: 0;
-  background: repeating-linear-gradient(135deg, #f4effe, #f4effe 22px, #ece3fb 22px, #ece3fb 44px);
+  background: #f4effe;
   color: var(--ink);
 }
 
@@ -463,6 +463,149 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .choice-tile .choice-icon { font-size: 2.8rem; }
 .choice-tile.done { opacity: 0.5; cursor: default; }
 .choice-tile.done:hover { transform: none; box-shadow: 5px 5px 0 var(--ink); }
+
+/* ---------- Content library card gallery ---------- */
+.set-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 16px;
+}
+.set-card {
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 4px 4px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+.set-card-cover {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+}
+.set-card-cover-fallback {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.6rem;
+  background: linear-gradient(135deg, var(--purple), var(--teal));
+}
+.set-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.set-card-title {
+  font-weight: 800;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+.set-card-meta {
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+.set-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ---------- Tabs ---------- */
+.subject-tabs { display: flex; gap: 8px; }
+.subject-tab-btn {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  padding: 10px 22px;
+  border: 3px solid var(--ink);
+  border-radius: 14px 14px 0 0;
+  background: white;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.subject-tab-btn.active { opacity: 1; box-shadow: 3px -3px 0 var(--ink); }
+.subject-tab-btn.tab-math.active { background: var(--math-a); color: white; }
+.subject-tab-btn.tab-literacy.active { background: var(--lit-a); color: white; }
+
+/* ---------- Interactive task checklist (student view) ---------- */
+.task-checklist { display: flex; flex-direction: column; gap: 10px; }
+.checklist-row2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 2px solid var(--content-border);
+  border-radius: 14px;
+  background: white;
+}
+.checklist-row2.done { background: #eafaf0; border-color: var(--success); }
+.checklist-row2.current { border-color: var(--yellow); border-width: 3px; background: #fff8e1; }
+.checklist-row2.locked { opacity: 0.55; }
+.checklist-check-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 3px solid var(--ink);
+  background: white;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+.checklist-check-btn.checked { background: var(--success); color: white; cursor: default; }
+.checklist-check-btn:disabled:not(.checked) { cursor: not-allowed; opacity: 0.6; }
+.checklist-thumb-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  border: 2px solid var(--content-border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  background: #faf8ff;
+  flex: 0 0 auto;
+  padding: 0;
+  cursor: pointer;
+}
+.checklist-thumb-btn img { width: 100%; height: 100%; object-fit: cover; }
+.checklist-title-btn2 {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  font-weight: 800;
+  font-size: 1.02rem;
+  cursor: pointer;
+  padding: 6px;
+  font-family: 'Baloo 2', sans-serif;
+  color: var(--ink);
+}
+.checklist-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  border: 2px solid var(--ink);
+  background: white;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 1.05rem;
+}
+
+/* ---------- Internal in-app browser (Playground links) ---------- */
+.internal-browser-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+}
 
 /* ---------- Flashcard drill ---------- */
 .flashcard {

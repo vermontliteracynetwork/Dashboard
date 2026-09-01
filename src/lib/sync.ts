@@ -33,6 +33,7 @@ const rowToStudent = (r: Row): Student => ({
   breakMinutes: r.break_minutes,
   ttsSettings: r.tts_settings ?? { rate: 1, voiceURI: null },
   createdAt: r.created_at,
+  playgroundThreshold: r.playground_threshold ?? 4,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -47,6 +48,7 @@ const studentToRow = (s: Student): Row => ({
   break_minutes: s.breakMinutes,
   tts_settings: s.ttsSettings,
   created_at: s.createdAt,
+  playground_threshold: s.playgroundThreshold,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -112,6 +114,7 @@ const rowToQuestionSet = (r: Row): QuestionSet => ({
   kind: r.kind,
   questions: r.questions ?? [],
   cards: r.cards ?? [],
+  coverImageUrl: r.cover_image_url ?? undefined,
   createdAt: r.created_at,
 });
 
@@ -276,6 +279,7 @@ export const pushQuestionSet = (q: QuestionSet) =>
     kind: q.kind,
     questions: q.questions,
     cards: q.cards,
+    cover_image_url: q.coverImageUrl ?? null,
     created_at: q.createdAt,
   });
 export const deleteQuestionSetRemote = (id: string) => remove('question_sets', { id });

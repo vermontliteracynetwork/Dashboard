@@ -20,7 +20,8 @@ export default function StudentLogin() {
             {students.map((st) => (
               <button
                 key={st.id}
-                className="avatar-btn"
+                className="avatar-btn stack"
+                style={{ width: 'auto', minWidth: 110, height: 'auto', gap: 6, padding: '16px 18px' }}
                 onClick={() => {
                   loginStudent(st.id);
                   navigate('/student/home');
@@ -28,7 +29,8 @@ export default function StudentLogin() {
                 aria-label={st.name}
                 title={st.name}
               >
-                {st.avatar}
+                <span>{st.avatar}</span>
+                <span style={{ fontSize: '1rem', fontFamily: "'Baloo 2', sans-serif" }}>{st.name}</span>
               </button>
             ))}
           </div>

@@ -61,6 +61,13 @@ settings, then redeploy. On Vercel: **Project → Settings → Environment
 Variables**, add each one, and trigger a new deployment (or just push a
 commit).
 
+## Keeping the database up to date
+
+`supabase/schema.sql` changes as the app grows (new columns, new tables). Whenever
+you pull an update, re-run the whole file in the SQL Editor — it's written to be
+safe to re-run any number of times (existing data is untouched; it only adds
+what's missing).
+
 ## 6. Try it
 
 - Open the app → **I'm the Teacher** → sign in with the password from step 3.

@@ -19,6 +19,7 @@ export default function TeacherNav() {
       <div className="row-wrap">
         <NavLink to="/teacher" end className={({ isActive }) => (isActive ? 'active' : '')}>🏠 Overview</NavLink>
         <NavLink to="/teacher/students" className={({ isActive }) => (isActive ? 'active' : '')}>🧒 Students</NavLink>
+        <NavLink to="/teacher/assignments" className={({ isActive }) => (isActive ? 'active' : '')}>📋 Assignments</NavLink>
         <NavLink to="/teacher/breaks" className={({ isActive }) => (isActive ? 'active' : '')}>
           ☕ Breaks{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
         </NavLink>
@@ -26,7 +27,6 @@ export default function TeacherNav() {
           📥 Inbox{inboxCount > 0 ? ` (${inboxCount})` : ''}
         </NavLink>
         <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏅 Badges</NavLink>
-        <NavLink to="/teacher/question-sets" className={({ isActive }) => (isActive ? 'active' : '')}>📚 Question Sets</NavLink>
       </div>
       <button
         className="btn btn-sm"

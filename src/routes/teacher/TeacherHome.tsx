@@ -65,11 +65,8 @@ export default function TeacherHome() {
                       Approve break
                     </button>
                   )}
-                  <button className="btn btn-sm" onClick={() => navigate(`/teacher/rotation/${st.id}/math`)}>
-                    🔢 Math rotation
-                  </button>
-                  <button className="btn btn-sm" onClick={() => navigate(`/teacher/rotation/${st.id}/literacy`)}>
-                    📚 Literacy rotation
+                  <button className="btn btn-sm" onClick={() => navigate(`/teacher/lesson-plan/${st.id}`)}>
+                    📋 Lesson Plan
                   </button>
                 </div>
               </div>

@@ -8,14 +8,15 @@ import RoleSelect from './routes/RoleSelect';
 import StudentLogin from './routes/student/StudentLogin';
 import StudentHome from './routes/student/StudentHome';
 import SubjectDashboard from './routes/student/SubjectDashboard';
+import PlaygroundView from './routes/student/PlaygroundView';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
 import StudentManager from './routes/teacher/StudentManager';
-import RotationBuilder from './routes/teacher/RotationBuilder';
+import AssignmentsIndex from './routes/teacher/AssignmentsIndex';
+import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
 import BreakApprovals from './routes/teacher/BreakApprovals';
 import BadgeManager from './routes/teacher/BadgeManager';
-import QuestionSets from './routes/teacher/QuestionSets';
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated);
@@ -65,15 +66,16 @@ export default function App() {
           <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/student/home" element={<StudentHome />} />
           <Route path="/student/:subject" element={<SubjectDashboard />} />
+          <Route path="/student/playground/view" element={<PlaygroundView />} />
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>
             <Route path="/teacher" element={<TeacherHome />} />
             <Route path="/teacher/students" element={<StudentManager />} />
-            <Route path="/teacher/rotation/:studentId/:subject" element={<RotationBuilder />} />
+            <Route path="/teacher/assignments" element={<AssignmentsIndex />} />
+            <Route path="/teacher/lesson-plan/:studentId" element={<LessonPlanBuilder />} />
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
             <Route path="/teacher/breaks" element={<BreakApprovals />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />
-            <Route path="/teacher/question-sets" element={<QuestionSets />} />
           </Route>
         </Routes>
       </div>

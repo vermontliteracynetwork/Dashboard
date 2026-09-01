@@ -106,6 +106,16 @@ export default function StudentManager() {
                       onChange={(e) => updateStudent(st.id, { breakMinutes: parseInt(e.target.value) || 1 })}
                     />
                   </div>
+                  <div>
+                    <label>🎪 Activities to unlock Playground</label>
+                    <input
+                      type="number"
+                      style={{ width: 80 }}
+                      min={1}
+                      value={st.playgroundThreshold}
+                      onChange={(e) => updateStudent(st.id, { playgroundThreshold: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
                 </div>
                 <label>
                   <input

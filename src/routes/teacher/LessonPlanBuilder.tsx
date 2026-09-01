@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
@@ -6,7 +6,9 @@ import QuizEditor from './QuizEditor';
 import DrillEditor from './DrillEditor';
 import StepsEditor from './StepsEditor';
 import { makeId } from '../../lib/id';
-import type { Subject, Task, TaskType } from '../../types';
+import { parseCSV, downloadCSV } from '../../lib/csv';
+import { rowsToQuizQuestions, rowsToDrillCards, QUIZ_TEMPLATE_ROWS, DRILL_TEMPLATE_ROWS } from '../../lib/importQuestions';
+import type { Subject, Task, TaskType, QuizQuestion, DrillCard } from '../../types';
 import { TASK_TYPE_LABELS } from '../../types';
 
 const ICON_CHOICES = ['📘', '✏️', '🔤', '🔢', '➗', '🧩', '🎧', '🌍', '🖐️', '🎯', '🧠', '📐', '🗣️', '🎨', '▶️', '📖', '⛓️', '🩹'];
@@ -25,6 +27,10 @@ const blankTask = (): Task => ({
   wordchain: { startWord: '', steps: [] },
   sentenceEdit: { original: '', corrected: '' },
   customSteps: [],
+  referenceImageUrl: '',
+  referenceLinkUrl: '',
+  referenceLinkLabel: '',
+  inPlayground: false,
 });
 
 function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; subject: Subject; onSave: (t: Task) => void; onCancel: () => void }) {
@@ -245,6 +251,48 @@ function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; sub
       )}
 
       <hr className="divider" />
+      <strong>Extras</strong>
+      <div className="row-wrap">
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <label>🖼️ Reference image for the student (optional)</label>
+          <input
+            style={{ width: '100%' }}
+            placeholder="https://..."
+            value={task.referenceImageUrl ?? ''}
+            onChange={(e) => setTask({ ...task, referenceImageUrl: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="row-wrap">
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <label>🔗 Reference link (optional — a helper link shown alongside the activity)</label>
+          <input
+            style={{ width: '100%' }}
+            placeholder="https://..."
+            value={task.referenceLinkUrl ?? ''}
+            onChange={(e) => setTask({ ...task, referenceLinkUrl: e.target.value })}
+          />
+        </div>
+        <div>
+          <label>Link button text</label>
+          <input
+            placeholder="e.g. Open worksheet"
+            value={task.referenceLinkLabel ?? ''}
+            onChange={(e) => setTask({ ...task, referenceLinkLabel: e.target.value })}
+          />
+        </div>
+      </div>
+      <label>
+        <input
+          type="checkbox"
+          checked={task.inPlayground ?? false}
+          onChange={(e) => setTask({ ...task, inPlayground: e.target.checked })}
+          style={{ marginRight: 6 }}
+        />
+        🎪 Also add this activity to the Playground (bonus pool)
+      </label>
+
+      <hr className="divider" />
       <label>
         <input type="checkbox" checked={showSteps} onChange={(e) => setShowSteps(e.target.checked)} style={{ marginRight: 6 }} />
         Customize the visual "how to do this" step guide for this task
@@ -263,8 +311,202 @@ function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; sub
   );
 }
 
-export default function RotationBuilder() {
-  const { studentId, subject } = useParams<{ studentId: string; subject: string }>();
+function SetCard({ subject }: { subject: Subject }) {
+  const questionSets = useStore((s) => s.questionSets);
+  const updateQuestionSet = useStore((s) => s.updateQuestionSet);
+  const deleteQuestionSet = useStore((s) => s.deleteQuestionSet);
+  const [editingCoverId, setEditingCoverId] = useState<string | null>(null);
+  const [coverDraft, setCoverDraft] = useState('');
+
+  const sets = questionSets.filter((s) => s.subject === subject);
+
+  if (sets.length === 0) return <p style={{ opacity: 0.7 }}>No saved sets for this subject yet.</p>;
+
+  return (
+    <div className="set-card-grid">
+      {sets.map((set) => (
+        <div className="set-card" key={set.id}>
+          {set.coverImageUrl ? (
+            <img className="set-card-cover" src={set.coverImageUrl} alt="" />
+          ) : (
+            <div className="set-card-cover-fallback">{set.kind === 'quiz' ? '🧠' : '🗂️'}</div>
+          )}
+          <div className="set-card-body">
+            <div className="set-card-title">{set.name}</div>
+            <div className="set-card-meta">
+              {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
+            </div>
+            {editingCoverId === set.id ? (
+              <div className="row-wrap">
+                <input
+                  style={{ flex: 1, minWidth: 0 }}
+                  placeholder="Cover image URL"
+                  value={coverDraft}
+                  onChange={(e) => setCoverDraft(e.target.value)}
+                />
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => {
+                    updateQuestionSet(set.id, { coverImageUrl: coverDraft.trim() || undefined });
+                    setEditingCoverId(null);
+                  }}
+                >
+                  ✓
+                </button>
+              </div>
+            ) : (
+              <div className="set-card-actions">
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setEditingCoverId(set.id);
+                    setCoverDraft(set.coverImageUrl ?? '');
+                  }}
+                >
+                  🖼️ Cover
+                </button>
+                <button className="btn btn-sm btn-danger" onClick={() => deleteQuestionSet(set.id)}>Delete</button>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' }) {
+  const addQuestionSet = useStore((s) => s.addQuestionSet);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [parsed, setParsed] = useState<{ questions: QuizQuestion[]; cards: DrillCard[] } | null>(null);
+  const [fileName, setFileName] = useState('');
+
+  const handleFile = (file: File) => {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result ?? '');
+      const rows = parseCSV(text);
+      if (kind === 'quiz') setParsed({ questions: rowsToQuizQuestions(rows), cards: [] });
+      else setParsed({ cards: rowsToDrillCards(rows), questions: [] });
+    };
+    reader.readAsText(file);
+  };
+
+  const save = () => {
+    if (!parsed || !name.trim()) return;
+    addQuestionSet({
+      name: name.trim(),
+      subject,
+      kind,
+      questions: parsed.questions,
+      cards: parsed.cards,
+      coverImageUrl: coverImageUrl.trim() || undefined,
+    });
+    setParsed(null);
+    setName('');
+    setCoverImageUrl('');
+    setFileName('');
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const count = kind === 'quiz' ? parsed?.questions.length ?? 0 : parsed?.cards.length ?? 0;
+
+  return (
+    <div className="content-well stack">
+      <strong>{kind === 'quiz' ? '🧠 Import quiz questions' : '🗂️ Import flashcards'}</strong>
+      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+        {kind === 'quiz'
+          ? 'Columns: Question, ChoiceA, ChoiceB, ChoiceC, ChoiceD, CorrectAnswer, ImageURL. Build it in Google Sheets, then File → Download → CSV.'
+          : 'Columns: Front, Back, ImageURL. Good for math facts, grapheme/morpheme review, or vocabulary & etymology.'}
+      </p>
+      <div className="row-wrap">
+        <button
+          className="btn btn-sm"
+          onClick={() => downloadCSV(kind === 'quiz' ? 'question-set-template.csv' : 'drill-set-template.csv', kind === 'quiz' ? QUIZ_TEMPLATE_ROWS : DRILL_TEMPLATE_ROWS)}
+        >
+          ⬇️ Download template CSV
+        </button>
+        <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      </div>
+      {fileName && <p style={{ fontSize: '0.85rem', opacity: 0.75 }}>Loaded: {fileName} — found {count} {kind === 'quiz' ? 'question(s)' : 'card(s)'}</p>}
+
+      {parsed && (
+        <div className="row-wrap">
+          <input placeholder="Set name" value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder="Cover image URL (optional)" value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} style={{ minWidth: 200 }} />
+          <button className="btn btn-sm btn-primary" disabled={!name.trim() || count === 0} onClick={save}>
+            💾 Save Set
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ContentLibrary({ subject }: { subject: Subject }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen((o) => !o)}>
+        {open ? '▾' : '▸'} 📚 Content Library (reusable question sets & drills)
+      </button>
+      {open && (
+        <div className="stack">
+          <SetCard subject={subject} />
+          <div className="row-wrap" style={{ alignItems: 'stretch' }}>
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <Importer subject={subject} kind="quiz" />
+            </div>
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <Importer subject={subject} kind="drill" />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlaygroundPool({ studentId }: { studentId: string }) {
+  const [open, setOpen] = useState(false);
+  const rotations = useStore((s) => s.rotations);
+  const updateTask = useStore((s) => s.updateTask);
+
+  const entries: { task: Task; subject: Subject }[] = [
+    ...(rotations[studentId]?.math ?? []).filter((t) => t.inPlayground).map((task) => ({ task, subject: 'math' as Subject })),
+    ...(rotations[studentId]?.literacy ?? []).filter((t) => t.inPlayground).map((task) => ({ task, subject: 'literacy' as Subject })),
+  ];
+
+  return (
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen((o) => !o)}>
+        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length})
+      </button>
+      {open && (
+        entries.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>Nothing in the Playground yet — check "Add to Playground" on any activity below.</p>
+        ) : (
+          <div className="stack">
+            {entries.map(({ task, subject }) => (
+              <div key={`${subject}-${task.id}`} className="content-well space-between">
+                <span>{task.icon} <strong>{task.title}</strong> <span className="tag-pill">{subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span></span>
+                <button className="btn btn-sm btn-danger" onClick={() => updateTask(studentId, subject, task.id, { inPlayground: false })}>
+                  Remove from Playground
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+export default function LessonPlanBuilder() {
+  const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const students = useStore((s) => s.students);
   const rotations = useStore((s) => s.rotations);
@@ -275,12 +517,12 @@ export default function RotationBuilder() {
   const deleteTask = useStore((s) => s.deleteTask);
   const reorderTasks = useStore((s) => s.reorderTasks);
 
+  const [subj, setSubj] = useState<Subject>('math');
   const [editing, setEditing] = useState<Task | 'new' | null>(null);
 
   const student = students.find((s) => s.id === studentId);
-  const subj = subject === 'math' || subject === 'literacy' ? (subject as Subject) : null;
 
-  if (!student || !subj) {
+  if (!student) {
     return (
       <div className="app-shell">
         <TeacherNav />
@@ -295,17 +537,27 @@ export default function RotationBuilder() {
   const tasks = rotations[student.id]?.[subj] ?? [];
   const mode = rotationModes[student.id]?.[subj] ?? 'sequence';
 
+  const switchSubject = (s: Subject) => {
+    setSubj(s);
+    setEditing(null);
+  };
+
   return (
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
         <div className="space-between">
-          <h1>{student.avatar} {student.name} — {subj === 'math' ? '🔢 Math' : '📚 Literacy'} Rotation</h1>
+          <h1>{student.avatar} {student.name} — Daily Lesson Plan</h1>
           <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
         </div>
         <p style={{ opacity: 0.75 }}>
-          This rotation repeats every day until you change it. Add, edit, reorder, or remove tasks any time.
+          This plan repeats every day until you change it. Add, edit, reorder, or remove activities any time.
         </p>
+
+        <div className="subject-tabs">
+          <button className={`subject-tab-btn tab-math ${subj === 'math' ? 'active' : ''}`} onClick={() => switchSubject('math')}>🔢 Math</button>
+          <button className={`subject-tab-btn tab-literacy ${subj === 'literacy' ? 'active' : ''}`} onClick={() => switchSubject('literacy')}>📚 Literacy</button>
+        </div>
 
         <div className="chrome-frame row-wrap" style={{ padding: 14 }}>
           <strong>Order for the student:</strong>
@@ -313,7 +565,7 @@ export default function RotationBuilder() {
             className={`btn btn-sm ${mode === 'sequence' ? 'btn-primary' : ''}`}
             onClick={() => setRotationMode(student.id, subj, 'sequence')}
           >
-            🔢 Numbered order (required)
+            🔢 Specific order (required)
           </button>
           <button
             className={`btn btn-sm ${mode === 'choiceboard' ? 'btn-primary' : ''}`}
@@ -322,9 +574,12 @@ export default function RotationBuilder() {
             🧩 Choice board (any order)
           </button>
           <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-            {mode === 'sequence' ? 'Student does tasks 1, 2, 3… in order.' : 'Student picks any remaining task from a board.'}
+            {mode === 'sequence' ? 'Student does activities 1, 2, 3… in this order.' : 'Student picks any remaining activity from a board.'}
           </span>
         </div>
+
+        <ContentLibrary subject={subj} />
+        <PlaygroundPool studentId={student.id} />
 
         <div className="stack">
           {tasks.map((t, i) => (
@@ -343,6 +598,9 @@ export default function RotationBuilder() {
                       {t.type === 'drill' && `Flashcard drill · ${t.drill?.cards.length ?? 0} card(s)`}
                       {t.type === 'wordchain' && `Word chain · ${t.wordchain?.steps.length ?? 0} step(s)`}
                       {t.type === 'sentenceEdit' && `Editing sentences`}
+                      {t.referenceImageUrl && ' · 🖼️'}
+                      {t.referenceLinkUrl && ' · 🔗'}
+                      {t.inPlayground && ' · 🎪 Playground'}
                     </div>
                   </div>
                 </div>
@@ -382,7 +640,7 @@ export default function RotationBuilder() {
           </div>
         ) : (
           <button className="btn btn-primary btn-lg" onClick={() => setEditing('new')}>
-            ➕ Add Task
+            ➕ Add Activity
           </button>
         )}
       </div>

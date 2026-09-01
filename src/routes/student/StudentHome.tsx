@@ -5,6 +5,7 @@ import Onboarding from '../../components/Onboarding';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import { todayISO } from '../../lib/dates';
+import { AVATAR_OPTIONS } from '../../store/badges';
 
 export default function StudentHome() {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ export default function StudentHome() {
   const progress = useStore((s) => s.progress);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const updateStudent = useStore((s) => s.updateStudent);
 
   const student = students.find((s) => s.id === currentStudentId);
 
@@ -35,6 +38,13 @@ export default function StudentHome() {
   const bothDone = mathDone && litDone && (mathTasks.length > 0 || litTasks.length > 0);
 
   const earnedBadges = badges.filter((b) => student.badgeIds.includes(b.id));
+
+  const todayCompletedCount =
+    (mathProg?.date === today ? mathProg.completedTaskIds.length : 0) +
+    (litProg?.date === today ? litProg.completedTaskIds.length : 0);
+  const hasPlaygroundItems = [...mathTasks, ...litTasks].some((t) => t.inPlayground);
+  const playgroundUnlocked = todayCompletedCount >= student.playgroundThreshold;
+  const stillNeeded = Math.max(0, student.playgroundThreshold - todayCompletedCount);
 
   return (
     <div className="container stack">
@@ -60,11 +70,48 @@ export default function StudentHome() {
         </div>
       )}
 
+      {showAvatarPicker && (
+        <div className="overlay-backdrop" onClick={() => setShowAvatarPicker(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h2 style={{ margin: 0 }}>Pick your avatar!</h2>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                {AVATAR_OPTIONS.map((a) => (
+                  <button
+                    key={a}
+                    className="avatar-btn"
+                    style={{
+                      width: 66,
+                      height: 66,
+                      fontSize: '2rem',
+                      outline: a === student.avatar ? '4px solid var(--purple)' : 'none',
+                    }}
+                    onClick={() => {
+                      updateStudent(student.id, { avatar: a });
+                      setShowAvatarPicker(false);
+                    }}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+              <button className="btn btn-sm" onClick={() => setShowAvatarPicker(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="chrome-frame space-between" style={{ padding: '18px 24px' }}>
         <div className="row">
-          <span className="avatar-btn" style={{ width: 70, height: 70, fontSize: '2.2rem', cursor: 'default' }}>
+          <button
+            className="avatar-btn"
+            style={{ width: 70, height: 70, fontSize: '2.2rem' }}
+            onClick={() => setShowAvatarPicker(true)}
+            title="Tap to change your avatar"
+            aria-label="Change your avatar"
+          >
             {student.avatar}
-          </span>
+          </button>
           <div>
             <h2 style={{ margin: 0 }}>Hi, {student.name}! 👋</h2>
             {!student.streakHidden && (
@@ -90,6 +137,27 @@ export default function StudentHome() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {hasPlaygroundItems && (
+        <div className="chrome-frame stack" style={{ padding: 16, alignItems: 'center', textAlign: 'center' }}>
+          {playgroundUnlocked ? (
+            <>
+              <p style={{ fontWeight: 800, margin: 0 }}>🎉 The Playground is unlocked!</p>
+              <button
+                className="btn btn-lg pulse-cta"
+                style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', color: 'white' }}
+                onClick={() => navigate('/student/playground/view')}
+              >
+                🎪 Go to the Playground
+              </button>
+            </>
+          ) : (
+            <p style={{ opacity: 0.75, margin: 0 }}>
+              🔒 Finish {stillNeeded} more {stillNeeded === 1 ? 'activity' : 'activities'} to unlock the Playground!
+            </p>
+          )}
         </div>
       )}
 

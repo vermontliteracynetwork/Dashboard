@@ -59,6 +59,7 @@ export interface Student {
   breakMinutes: number; // teacher-set default micro-break length (informational, not shown as a countdown to the student)
   ttsSettings: TTSSettings;
   createdAt: string;
+  playgroundThreshold: number; // activities completed today needed to unlock the Playground (repeatable)
 }
 
 export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit';
@@ -175,6 +176,10 @@ export interface Task {
   wordchain?: WordChainContent;
   sentenceEdit?: SentenceEditContent;
   customSteps?: StepDef[]; // teacher override of the auto-generated visual step guide
+  referenceImageUrl?: string; // shown to the student throughout this activity, any task type
+  referenceLinkUrl?: string; // an extra reference link, any task type (distinct from the 'link' task type itself)
+  referenceLinkLabel?: string;
+  inPlayground?: boolean; // teacher-curated: this activity is also available in the Playground bonus pool
 }
 
 export type RotationMode = 'sequence' | 'choiceboard';
@@ -186,6 +191,7 @@ export interface QuestionSet {
   kind: 'quiz' | 'drill';
   questions: QuizQuestion[]; // kind === 'quiz'
   cards: DrillCard[]; // kind === 'drill'
+  coverImageUrl?: string; // shown on the library card; falls back to a kind icon when unset
   createdAt: string;
 }
 

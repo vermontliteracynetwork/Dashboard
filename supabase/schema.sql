@@ -30,7 +30,8 @@ create table if not exists students (
   feature_toggles jsonb not null default '{}',
   break_minutes int not null default 4,
   tts_settings jsonb not null default '{"rate":1,"voiceURI":null}',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  playground_threshold int not null default 4
 );
 
 create table if not exists rotations (
@@ -105,6 +106,7 @@ create table if not exists question_sets (
   kind text not null check (kind in ('quiz', 'drill')),
   questions jsonb not null default '[]',
   cards jsonb not null default '[]',
+  cover_image_url text,
   created_at timestamptz not null default now()
 );
 
@@ -127,6 +129,12 @@ create table if not exists student_meta (
   scratch_text text not null default '',
   onboarded boolean not null default false
 );
+
+-- Columns added after the initial release — safe no-ops if already present,
+-- and the only step needed to bring an existing project's database up to
+-- date (re-running this whole file is also fine).
+alter table students add column if not exists playground_threshold int not null default 4;
+alter table question_sets add column if not exists cover_image_url text;
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security
