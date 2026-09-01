@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
+import { signOutTeacher } from '../lib/teacherAuth';
 
 export default function TeacherNav() {
   const navigate = useNavigate();
@@ -29,8 +30,9 @@ export default function TeacherNav() {
       </div>
       <button
         className="btn btn-sm"
-        onClick={() => {
+        onClick={async () => {
           setRole('none');
+          await signOutTeacher();
           navigate('/');
         }}
       >

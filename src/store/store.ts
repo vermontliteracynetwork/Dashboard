@@ -3,6 +3,40 @@ import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
 import { todayISO, streakContinues } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
+import { isSupabaseConfigured } from '../lib/supabaseClient';
+import {
+  fetchAll,
+  subscribeRealtime,
+  applyArrayRow,
+  applyNestedRow,
+  applyStudentMetaRow,
+  rowToStudent,
+  rowToProgress,
+  rowToBreakRequest,
+  rowToHelpPing,
+  rowToOffscreenReview,
+  rowToBadge,
+  rowToBadgeEarn,
+  rowToBreakPoolItem,
+  rowToQuestionSet,
+  pushStudent,
+  deleteStudentRemote,
+  pushRotation,
+  pushProgress,
+  pushBreakRequest,
+  deleteBreakRequestRemote,
+  pushHelpPing,
+  pushOffscreenReview,
+  pushBadge,
+  deleteBadgeRemote,
+  pushBadgeEarn,
+  pushBreakPoolItem,
+  deleteBreakPoolItemRemote,
+  pushQuestionSet,
+  deleteQuestionSetRemote,
+  pushRotationMode,
+  pushStudentMeta,
+} from '../lib/sync';
 import type {
   Student,
   Subject,
@@ -21,6 +55,12 @@ import type {
   RotationMode,
   QuestionSet,
 } from '../types';
+
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object' && 'message' in err) return String((err as { message: unknown }).message);
+  return String(err);
+}
 
 const emptyProgress = (): SubjectProgress => ({
   date: todayISO(),
@@ -48,6 +88,10 @@ interface AppState {
   scratchText: Record<string, string>; // studentId -> word processor autosave text
   rotationModes: Record<string, Record<Subject, RotationMode>>; // studentId -> subject -> sequence|choiceboard
   questionSets: QuestionSet[]; // reusable saved quiz/drill question sets
+
+  hydrated: boolean; // initial fetch from Supabase has completed (or failed)
+  hydrationError: string | null;
+  initSync: () => Promise<void>;
 
   currentStudentId: string | null;
   role: 'none' | 'teacher' | 'student';
@@ -125,6 +169,26 @@ interface AppState {
   deleteQuestionSet: (id: string) => void;
 }
 
+// Pushes the full consolidated student_meta row for a student, reading the
+// current values straight out of the store — used any time one of the five
+// pieces it bundles (task completion counts, tool usage, corrections count,
+// scratch text, onboarded) changes.
+function pushMetaFor(get: () => AppState, studentId: string) {
+  const s = get();
+  const prefix = `${studentId}:`;
+  const taskCompletionCounts: Record<string, number> = {};
+  for (const [k, v] of Object.entries(s.taskCompletionCounts)) {
+    if (k.startsWith(prefix)) taskCompletionCounts[k.slice(prefix.length)] = v;
+  }
+  pushStudentMeta(studentId, {
+    taskCompletionCounts,
+    toolUsage: s.toolUsage[studentId] ?? [],
+    correctionsCount: s.correctionsCount[studentId] ?? 0,
+    scratchText: s.scratchText[studentId] ?? '',
+    onboarded: s.onboardedIds.includes(studentId),
+  });
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -144,6 +208,42 @@ export const useStore = create<AppState>()(
       scratchText: {},
       rotationModes: {},
       questionSets: [],
+
+      hydrated: !isSupabaseConfigured,
+      hydrationError: null,
+      initSync: async () => {
+        if (!isSupabaseConfigured) {
+          set({ hydrated: true });
+          return;
+        }
+        try {
+          const data = await fetchAll();
+          set({ ...data, hydrated: true, hydrationError: null });
+        } catch (err) {
+          set({ hydrated: true, hydrationError: extractErrorMessage(err) });
+          return;
+        }
+        subscribeRealtime({
+          onStudent: (e, n, o) => set((s) => ({ students: applyArrayRow(s.students, e, rowToStudent, n, o) })),
+          onRotation: (e, n, o) =>
+            set((s) => ({ rotations: applyNestedRow(s.rotations, e, (r) => r.tasks ?? [], n, o) })),
+          onProgress: (e, n, o) => set((s) => ({ progress: applyNestedRow(s.progress, e, rowToProgress, n, o) })),
+          onBreakRequest: (e, n, o) =>
+            set((s) => ({ breakRequests: applyArrayRow(s.breakRequests, e, rowToBreakRequest, n, o) })),
+          onHelpPing: (e, n, o) => set((s) => ({ helpPings: applyArrayRow(s.helpPings, e, rowToHelpPing, n, o) })),
+          onOffscreenReview: (e, n, o) =>
+            set((s) => ({ offscreenReviews: applyArrayRow(s.offscreenReviews, e, rowToOffscreenReview, n, o) })),
+          onBadge: (e, n, o) => set((s) => ({ badges: applyArrayRow(s.badges, e, rowToBadge, n, o) })),
+          onBadgeEarn: (e, n, o) => set((s) => ({ badgeEarns: applyArrayRow(s.badgeEarns, e, rowToBadgeEarn, n, o) })),
+          onBreakPoolItem: (e, n, o) =>
+            set((s) => ({ breakPool: applyArrayRow(s.breakPool, e, rowToBreakPoolItem, n, o) })),
+          onQuestionSet: (e, n, o) =>
+            set((s) => ({ questionSets: applyArrayRow(s.questionSets, e, rowToQuestionSet, n, o) })),
+          onRotationMode: (e, n, o) =>
+            set((s) => ({ rotationModes: applyNestedRow(s.rotationModes, e, (r) => r.mode, n, o) })),
+          onStudentMeta: (e, n, o) => set((s) => applyStudentMetaRow(s, e, n, o)),
+        });
+      },
 
       currentStudentId: null,
       role: 'none',
@@ -171,13 +271,17 @@ export const useStore = create<AppState>()(
           students: [...s.students, student],
           rotations: { ...s.rotations, [id]: { math: [], literacy: [] } },
         }));
+        pushStudent(student);
         return id;
       },
 
-      updateStudent: (id, patch) =>
-        set((s) => ({ students: s.students.map((st) => (st.id === id ? { ...st, ...patch } : st)) })),
+      updateStudent: (id, patch) => {
+        set((s) => ({ students: s.students.map((st) => (st.id === id ? { ...st, ...patch } : st)) }));
+        const updated = get().students.find((st) => st.id === id);
+        if (updated) pushStudent(updated);
+      },
 
-      deleteStudent: (id) =>
+      deleteStudent: (id) => {
         set((s) => {
           const rotations = { ...s.rotations };
           delete rotations[id];
@@ -189,21 +293,29 @@ export const useStore = create<AppState>()(
             progress,
             currentStudentId: s.currentStudentId === id ? null : s.currentStudentId,
           };
-        }),
+        });
+        deleteStudentRemote(id);
+      },
 
-      setFeatureToggle: (studentId, tool, enabled) =>
+      setFeatureToggle: (studentId, tool, enabled) => {
         set((s) => ({
           students: s.students.map((st) =>
             st.id === studentId ? { ...st, featureToggles: { ...st.featureToggles, [tool]: enabled } } : st,
           ),
-        })),
+        }));
+        const updated = get().students.find((st) => st.id === studentId);
+        if (updated) pushStudent(updated);
+      },
 
-      setStreak: (studentId, streak) =>
-        set((s) => ({ students: s.students.map((st) => (st.id === studentId ? { ...st, streak } : st)) })),
+      setStreak: (studentId, streak) => {
+        set((s) => ({ students: s.students.map((st) => (st.id === studentId ? { ...st, streak } : st)) }));
+        const updated = get().students.find((st) => st.id === studentId);
+        if (updated) pushStudent(updated);
+      },
 
       getTasks: (studentId, subject) => get().rotations[studentId]?.[subject] ?? [],
 
-      addTask: (studentId, subject, task) =>
+      addTask: (studentId, subject, task) => {
         set((s) => {
           const studentRot = s.rotations[studentId] ?? { math: [], literacy: [] };
           return {
@@ -212,9 +324,11 @@ export const useStore = create<AppState>()(
               [studentId]: { ...studentRot, [subject]: [...studentRot[subject], task] },
             },
           };
-        }),
+        });
+        pushRotation(studentId, subject, get().rotations[studentId][subject]);
+      },
 
-      updateTask: (studentId, subject, taskId, patch) =>
+      updateTask: (studentId, subject, taskId, patch) => {
         set((s) => {
           const studentRot = s.rotations[studentId];
           if (!studentRot) return {};
@@ -227,9 +341,12 @@ export const useStore = create<AppState>()(
               },
             },
           };
-        }),
+        });
+        const tasks = get().rotations[studentId]?.[subject];
+        if (tasks) pushRotation(studentId, subject, tasks);
+      },
 
-      deleteTask: (studentId, subject, taskId) =>
+      deleteTask: (studentId, subject, taskId) => {
         set((s) => {
           const studentRot = s.rotations[studentId];
           if (!studentRot) return {};
@@ -242,9 +359,12 @@ export const useStore = create<AppState>()(
               },
             },
           };
-        }),
+        });
+        const tasks = get().rotations[studentId]?.[subject];
+        if (tasks) pushRotation(studentId, subject, tasks);
+      },
 
-      reorderTasks: (studentId, subject, fromIndex, toIndex) =>
+      reorderTasks: (studentId, subject, fromIndex, toIndex) => {
         set((s) => {
           const studentRot = s.rotations[studentId];
           if (!studentRot) return {};
@@ -254,7 +374,10 @@ export const useStore = create<AppState>()(
           return {
             rotations: { ...s.rotations, [studentId]: { ...studentRot, [subject]: list } },
           };
-        }),
+        });
+        const tasks = get().rotations[studentId]?.[subject];
+        if (tasks) pushRotation(studentId, subject, tasks);
+      },
 
       ensureProgress: (studentId, subject) => {
         const s = get();
@@ -268,6 +391,7 @@ export const useStore = create<AppState>()(
             [studentId]: { ...(st.progress[studentId] ?? {}), [subject]: fresh } as ProgressMap[string],
           },
         }));
+        pushProgress(studentId, subject, fresh);
         return fresh;
       },
 
@@ -282,6 +406,7 @@ export const useStore = create<AppState>()(
             },
           };
         });
+        pushProgress(studentId, subject, get().progress[studentId][subject]);
       },
 
       getActiveTask: (studentId, subject) => {
@@ -294,6 +419,7 @@ export const useStore = create<AppState>()(
         const used = get().toolUsage[studentId] ?? [];
         if (used.includes(tool)) return;
         set((s) => ({ toolUsage: { ...s.toolUsage, [studentId]: [...used, tool] } }));
+        pushMetaFor(get, studentId);
         get().awardBadge(studentId, 'explorer');
       },
 
@@ -318,11 +444,13 @@ export const useStore = create<AppState>()(
             },
           };
         });
+        pushProgress(studentId, subject, get().progress[studentId][subject]);
 
         // lifetime completion count -> practice-makes-progress badge
         const key = `${studentId}:${taskId}`;
         const count = (get().taskCompletionCounts[key] ?? 0) + 1;
         set((s) => ({ taskCompletionCounts: { ...s.taskCompletionCounts, [key]: count } }));
+        pushMetaFor(get, studentId);
         if (count === 3) get().awardBadge(studentId, 'practice-progress');
 
         const student = get().students.find((st) => st.id === studentId);
@@ -352,6 +480,7 @@ export const useStore = create<AppState>()(
           verified: false,
         };
         set((s) => ({ offscreenReviews: [review, ...s.offscreenReviews] }));
+        pushOffscreenReview(review);
         get().completeTask(studentId, subject, task.id);
       },
 
@@ -375,6 +504,7 @@ export const useStore = create<AppState>()(
             },
           };
         });
+        pushProgress(studentId, subject, get().progress[studentId][subject]);
         return fresh;
       },
 
@@ -389,6 +519,7 @@ export const useStore = create<AppState>()(
           if (wasMissedBefore) {
             const n = (get().correctionsCount[studentId] ?? 0) + 1;
             set((s) => ({ correctionsCount: { ...s.correctionsCount, [studentId]: n } }));
+            pushMetaFor(get, studentId);
             if (n === 3) get().awardBadge(studentId, 'great-correction');
           }
         } else {
@@ -409,36 +540,41 @@ export const useStore = create<AppState>()(
             },
           };
         });
+        pushProgress(studentId, subject, get().progress[studentId][subject]);
       },
 
-      requestBreak: (studentId) =>
-        set((s) => ({
-          breakRequests: [
-            { id: makeId(), studentId, timestamp: new Date().toISOString(), status: 'pending' },
-            ...s.breakRequests,
-          ],
-        })),
+      requestBreak: (studentId) => {
+        const req: BreakRequest = { id: makeId(), studentId, timestamp: new Date().toISOString(), status: 'pending' };
+        set((s) => ({ breakRequests: [req, ...s.breakRequests] }));
+        pushBreakRequest(req);
+      },
 
-      grantBreak: (studentId) =>
-        set((s) => ({
-          breakRequests: [
-            { id: makeId(), studentId, timestamp: new Date().toISOString(), status: 'granted' },
-            ...s.breakRequests,
-          ],
-        })),
+      grantBreak: (studentId) => {
+        const req: BreakRequest = { id: makeId(), studentId, timestamp: new Date().toISOString(), status: 'granted' };
+        set((s) => ({ breakRequests: [req, ...s.breakRequests] }));
+        pushBreakRequest(req);
+      },
 
-      approveBreak: (requestId) =>
+      approveBreak: (requestId) => {
         set((s) => ({
           breakRequests: s.breakRequests.map((b) => (b.id === requestId ? { ...b, status: 'approved' } : b)),
-        })),
+        }));
+        const updated = get().breakRequests.find((b) => b.id === requestId);
+        if (updated) pushBreakRequest(updated);
+      },
 
-      denyBreak: (requestId) =>
+      denyBreak: (requestId) => {
         set((s) => ({
           breakRequests: s.breakRequests.map((b) => (b.id === requestId ? { ...b, status: 'denied' } : b)),
-        })),
+        }));
+        const updated = get().breakRequests.find((b) => b.id === requestId);
+        if (updated) pushBreakRequest(updated);
+      },
 
-      finishBreak: (requestId) =>
-        set((s) => ({ breakRequests: s.breakRequests.filter((b) => b.id !== requestId) })),
+      finishBreak: (requestId) => {
+        set((s) => ({ breakRequests: s.breakRequests.filter((b) => b.id !== requestId) }));
+        deleteBreakRequestRemote(requestId);
+      },
 
       getStudentBreakState: (studentId) => {
         const mine = get()
@@ -457,33 +593,61 @@ export const useStore = create<AppState>()(
         ).length;
       },
 
-      pingHelp: (studentId) =>
-        set((s) => ({
-          helpPings: [{ id: makeId(), studentId, timestamp: new Date().toISOString(), resolved: false }, ...s.helpPings],
-        })),
+      pingHelp: (studentId) => {
+        const ping: HelpPing = { id: makeId(), studentId, timestamp: new Date().toISOString(), resolved: false };
+        set((s) => ({ helpPings: [ping, ...s.helpPings] }));
+        pushHelpPing(ping);
+      },
 
-      resolveHelp: (id) =>
-        set((s) => ({ helpPings: s.helpPings.map((h) => (h.id === id ? { ...h, resolved: true } : h)) })),
+      resolveHelp: (id) => {
+        set((s) => ({ helpPings: s.helpPings.map((h) => (h.id === id ? { ...h, resolved: true } : h)) }));
+        const updated = get().helpPings.find((h) => h.id === id);
+        if (updated) pushHelpPing(updated);
+      },
 
-      verifyOffscreen: (id) =>
-        set((s) => ({ offscreenReviews: s.offscreenReviews.map((o) => (o.id === id ? { ...o, verified: true } : o)) })),
+      verifyOffscreen: (id) => {
+        set((s) => ({ offscreenReviews: s.offscreenReviews.map((o) => (o.id === id ? { ...o, verified: true } : o)) }));
+        const updated = get().offscreenReviews.find((o) => o.id === id);
+        if (updated) pushOffscreenReview(updated);
+      },
 
-      addBadge: (badge) => set((s) => ({ badges: [...s.badges, { ...badge, id: makeId() }] })),
-      updateBadge: (id, patch) =>
-        set((s) => ({ badges: s.badges.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
-      deleteBadge: (id) => set((s) => ({ badges: s.badges.filter((b) => b.id !== id) })),
+      addBadge: (badge) => {
+        const full: BadgeDef = { ...badge, id: makeId() };
+        set((s) => ({ badges: [...s.badges, full] }));
+        pushBadge(full);
+      },
+
+      updateBadge: (id, patch) => {
+        set((s) => ({ badges: s.badges.map((b) => (b.id === id ? { ...b, ...patch } : b)) }));
+        const updated = get().badges.find((b) => b.id === id);
+        if (updated) pushBadge(updated);
+      },
+
+      deleteBadge: (id) => {
+        set((s) => ({ badges: s.badges.filter((b) => b.id !== id) }));
+        deleteBadgeRemote(id);
+      },
 
       awardBadge: (studentId, badgeId) => {
         const earn: BadgeEarn = { id: makeId(), studentId, badgeId, date: new Date().toISOString() };
         set((s) => ({ badgeEarns: [earn, ...s.badgeEarns] }));
+        pushBadgeEarn(earn);
         const student = get().students.find((st) => st.id === studentId);
         if (student && !student.badgeIds.includes(badgeId)) {
           get().updateStudent(studentId, { badgeIds: [...student.badgeIds, badgeId] });
         }
       },
 
-      addBreakPoolItem: (item) => set((s) => ({ breakPool: [...s.breakPool, { ...item, id: makeId() }] })),
-      deleteBreakPoolItem: (id) => set((s) => ({ breakPool: s.breakPool.filter((b) => b.id !== id) })),
+      addBreakPoolItem: (item) => {
+        const full: BreakPoolItem = { ...item, id: makeId() };
+        set((s) => ({ breakPool: [...s.breakPool, full] }));
+        pushBreakPoolItem(full);
+      },
+
+      deleteBreakPoolItem: (id) => {
+        set((s) => ({ breakPool: s.breakPool.filter((b) => b.id !== id) }));
+        deleteBreakPoolItemRemote(id);
+      },
 
       studentStatus: (studentId) => {
         const s = get();
@@ -504,33 +668,48 @@ export const useStore = create<AppState>()(
         return started ? 'working' : 'not-started';
       },
 
-      markOnboarded: (studentId) =>
-        set((s) => (s.onboardedIds.includes(studentId) ? {} : { onboardedIds: [...s.onboardedIds, studentId] })),
+      markOnboarded: (studentId) => {
+        if (get().onboardedIds.includes(studentId)) return;
+        set((s) => ({ onboardedIds: [...s.onboardedIds, studentId] }));
+        pushMetaFor(get, studentId);
+      },
 
-      setScratchText: (studentId, text) => set((s) => ({ scratchText: { ...s.scratchText, [studentId]: text } })),
+      setScratchText: (studentId, text) => {
+        set((s) => ({ scratchText: { ...s.scratchText, [studentId]: text } }));
+        pushMetaFor(get, studentId);
+      },
 
       getRotationMode: (studentId, subject) => get().rotationModes[studentId]?.[subject] ?? 'sequence',
 
-      setRotationMode: (studentId, subject, mode) =>
+      setRotationMode: (studentId, subject, mode) => {
         set((s) => ({
           rotationModes: {
             ...s.rotationModes,
             [studentId]: { ...(s.rotationModes[studentId] ?? {}), [subject]: mode } as Record<Subject, RotationMode>,
           },
-        })),
+        }));
+        pushRotationMode(studentId, subject, mode);
+      },
 
       addQuestionSet: (set_) => {
         const id = makeId();
         const full: QuestionSet = { ...set_, id, createdAt: new Date().toISOString() };
         set((s) => ({ questionSets: [full, ...s.questionSets] }));
+        pushQuestionSet(full);
         return id;
       },
 
-      updateQuestionSet: (id, patch) =>
-        set((s) => ({ questionSets: s.questionSets.map((qs) => (qs.id === id ? { ...qs, ...patch } : qs)) })),
+      updateQuestionSet: (id, patch) => {
+        set((s) => ({ questionSets: s.questionSets.map((qs) => (qs.id === id ? { ...qs, ...patch } : qs)) }));
+        const updated = get().questionSets.find((qs) => qs.id === id);
+        if (updated) pushQuestionSet(updated);
+      },
 
-      deleteQuestionSet: (id) => set((s) => ({ questionSets: s.questionSets.filter((qs) => qs.id !== id) })),
+      deleteQuestionSet: (id) => {
+        set((s) => ({ questionSets: s.questionSets.filter((qs) => qs.id !== id) }));
+        deleteQuestionSetRemote(id);
+      },
     }),
-    { name: 'iwd-store' },
+    { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },
   ),
 );
