@@ -1,0 +1,299 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap');
+
+:root {
+  --purple: #7c3aed;
+  --purple-dark: #5b21b6;
+  --pink: #ec4899;
+  --teal: #14b8a6;
+  --yellow: #fbbf24;
+  --orange: #fb923c;
+  --blue: #3b82f6;
+  --ink: #1f1147;
+  --paper: #fffdf7;
+  --content-bg: #ffffff;
+  --content-border: #d8d3ea;
+  --success: #22c55e;
+  --danger: #ef4444;
+
+  --math-a: var(--blue);
+  --math-b: #60a5fa;
+  --lit-a: var(--pink);
+  --lit-b: #f472b6;
+
+  --radius: 18px;
+  --chunk: 4px;
+
+  font-family: 'Nunito', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: repeating-linear-gradient(135deg, #f4effe, #f4effe 22px, #ece3fb 22px, #ece3fb 44px);
+  color: var(--ink);
+}
+
+h1, h2, h3, .display {
+  font-family: 'Baloo 2', 'Nunito', sans-serif;
+}
+
+button {
+  font-family: inherit;
+}
+
+.app-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Zoned intensity: "chrome" is loud, content wells are clean ---------- */
+
+.chrome-frame {
+  border: var(--chunk) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 6px 6px 0 var(--ink);
+  background: var(--paper);
+}
+
+.content-well {
+  background: var(--content-bg);
+  border: 2px solid var(--content-border);
+  border-radius: 12px;
+  padding: 20px;
+  color: #14101f;
+}
+
+.btn {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border: var(--chunk) solid var(--ink);
+  border-radius: 14px;
+  padding: 12px 22px;
+  background: var(--yellow);
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.btn:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--ink); }
+
+.btn-primary { background: var(--purple); color: white; }
+.btn-teal { background: var(--teal); color: white; }
+.btn-pink { background: var(--pink); color: white; }
+.btn-blue { background: var(--blue); color: white; }
+.btn-success { background: var(--success); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-ghost { background: white; }
+.btn-lg { padding: 18px 32px; font-size: 1.3rem; border-radius: 18px; }
+.btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 10px; box-shadow: 2px 2px 0 var(--ink); }
+.btn-icon { padding: 10px 14px; font-size: 1.4rem; line-height: 1; }
+
+.tag-pill {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: white;
+}
+
+/* ---------- Layout helpers ---------- */
+.container { max-width: 980px; margin: 0 auto; padding: 24px; width: 100%; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; align-items: center; gap: 12px; }
+.row-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.space-between { display: flex; align-items: center; justify-content: space-between; }
+.grow { flex: 1; }
+.center-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid var(--ink);
+  background: white;
+}
+label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px; }
+
+/* ---------- Stepping stone progress path ---------- */
+.path-track {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px 4px;
+}
+.stone {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  background: white;
+  position: relative;
+}
+.stone.done { background: var(--success); color: white; }
+.stone.active {
+  background: var(--yellow);
+  box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.4);
+  transform: scale(1.12);
+}
+.stone.upcoming { opacity: 0.55; }
+.stone-connector { width: 20px; height: 4px; background: var(--ink); opacity: 0.3; flex: 0 0 auto; }
+
+/* ---------- Ticket stub sub-step ---------- */
+.ticket-stub {
+  border: 3px dashed var(--ink);
+  border-radius: 12px;
+  padding: 10px 16px;
+  background: #fffaeb;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Avatar buttons ---------- */
+.avatar-btn {
+  width: 110px;
+  height: 110px;
+  border-radius: 24px;
+  border: var(--chunk) solid var(--ink);
+  background: white;
+  font-size: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.avatar-btn:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
+.avatar-sm {
+  width: 46px; height: 46px; border-radius: 12px; font-size: 1.6rem;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--ink); background: white;
+}
+
+/* subject theming */
+.subject-math { --subj-a: var(--math-a); --subj-b: var(--math-b); }
+.subject-literacy { --subj-a: var(--lit-a); --subj-b: var(--lit-b); }
+.subject-header {
+  background: linear-gradient(120deg, var(--subj-a), var(--subj-b));
+  color: white;
+  border: var(--chunk) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 18px 22px;
+}
+
+.badge-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px;
+  width: 90px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.help-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: var(--chunk) solid var(--ink);
+  background: var(--orange);
+  color: white;
+  font-size: 1.8rem;
+  box-shadow: 5px 5px 0 var(--ink);
+  cursor: pointer;
+  z-index: 50;
+}
+
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 17, 71, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.overlay-panel {
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.breathe-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--teal), var(--purple));
+  margin: 20px auto;
+  animation: breathe 8s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(0.8); }
+  50% { transform: scale(1.15); }
+}
+
+.status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.status-working { background: var(--success); }
+.status-break { background: var(--yellow); }
+.status-waiting { background: var(--orange); }
+.status-done { background: var(--purple); }
+.status-idle { background: #9ca3af; }
+
+table.grid-table { border-collapse: collapse; }
+table.grid-table td, table.grid-table th {
+  border: 1px solid var(--content-border);
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.divider { height: 2px; background: var(--content-border); border: none; margin: 6px 0; }
+
+nav.teacher-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px 24px;
+  background: var(--ink);
+}
+nav.teacher-nav a {
+  color: white;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
+
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: var(--content-border); border-radius: 6px; }
