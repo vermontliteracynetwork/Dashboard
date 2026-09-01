@@ -15,7 +15,7 @@ export default function PlaygroundView() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
-  const rotations = useStore((s) => s.rotations);
+  const activityLibrary = useStore((s) => s.activityLibrary);
 
   const [openEntry, setOpenEntry] = useState<{ task: Task; subject: Subject } | null>(null);
 
@@ -27,10 +27,9 @@ export default function PlaygroundView() {
 
   if (!student) return null;
 
-  const entries: { task: Task; subject: Subject }[] = [
-    ...(rotations[student.id]?.math ?? []).filter((t) => t.inPlayground).map((task) => ({ task, subject: 'math' as Subject })),
-    ...(rotations[student.id]?.literacy ?? []).filter((t) => t.inPlayground).map((task) => ({ task, subject: 'literacy' as Subject })),
-  ];
+  const entries: { task: Task; subject: Subject }[] = activityLibrary
+    .filter((a) => a.inPlayground)
+    .map((a) => ({ task: a, subject: a.subject }));
 
   const close = () => setOpenEntry(null);
 

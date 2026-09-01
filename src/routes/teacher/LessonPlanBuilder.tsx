@@ -30,7 +30,6 @@ const blankTask = (): Task => ({
   referenceImageUrl: '',
   referenceLinkUrl: '',
   referenceLinkLabel: '',
-  inPlayground: false,
 });
 
 function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; subject: Subject; onSave: (t: Task) => void; onCancel: () => void }) {
@@ -282,16 +281,6 @@ function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; sub
           />
         </div>
       </div>
-      <label>
-        <input
-          type="checkbox"
-          checked={task.inPlayground ?? false}
-          onChange={(e) => setTask({ ...task, inPlayground: e.target.checked })}
-          style={{ marginRight: 6 }}
-        />
-        🎪 Also add this activity to the Playground (bonus pool)
-      </label>
-
       <hr className="divider" />
       <label>
         <input type="checkbox" checked={showSteps} onChange={(e) => setShowSteps(e.target.checked)} style={{ marginRight: 6 }} />
@@ -470,32 +459,203 @@ function ContentLibrary({ subject }: { subject: Subject }) {
   );
 }
 
-function PlaygroundPool({ studentId }: { studentId: string }) {
+function PlaygroundPool() {
   const [open, setOpen] = useState(false);
-  const rotations = useStore((s) => s.rotations);
-  const updateTask = useStore((s) => s.updateTask);
+  const activityLibrary = useStore((s) => s.activityLibrary);
+  const updateLibraryActivity = useStore((s) => s.updateLibraryActivity);
 
-  const entries: { task: Task; subject: Subject }[] = [
-    ...(rotations[studentId]?.math ?? []).filter((t) => t.inPlayground).map((task) => ({ task, subject: 'math' as Subject })),
-    ...(rotations[studentId]?.literacy ?? []).filter((t) => t.inPlayground).map((task) => ({ task, subject: 'literacy' as Subject })),
-  ];
+  const entries = activityLibrary.filter((a) => a.inPlayground);
 
   return (
     <div className="chrome-frame stack" style={{ padding: 14 }}>
       <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length})
+        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length}) — shared across all students
       </button>
       {open && (
         entries.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>Nothing in the Playground yet — check "Add to Playground" on any activity below.</p>
+          <p style={{ opacity: 0.7 }}>Nothing in the Playground yet — tap the 🎪 on any activity in the library below.</p>
         ) : (
           <div className="stack">
-            {entries.map(({ task, subject }) => (
-              <div key={`${subject}-${task.id}`} className="content-well space-between">
-                <span>{task.icon} <strong>{task.title}</strong> <span className="tag-pill">{subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span></span>
-                <button className="btn btn-sm btn-danger" onClick={() => updateTask(studentId, subject, task.id, { inPlayground: false })}>
+            {entries.map((a) => (
+              <div key={a.id} className="content-well space-between">
+                <span>{a.icon} <strong>{a.title}</strong> <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span></span>
+                <button className="btn btn-sm btn-danger" onClick={() => updateLibraryActivity(a.id, { inPlayground: false })}>
                   Remove from Playground
                 </button>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+function ActivityLibraryPanel({ subject, onDragActivity }: { subject: Subject; onDragActivity?: () => void }) {
+  const activityLibrary = useStore((s) => s.activityLibrary);
+  const addLibraryActivity = useStore((s) => s.addLibraryActivity);
+  const updateLibraryActivity = useStore((s) => s.updateLibraryActivity);
+  const deleteLibraryActivity = useStore((s) => s.deleteLibraryActivity);
+  const addActivityToPlan = useStore((s) => s.addActivityToPlan);
+  const { studentId } = useParams<{ studentId: string }>();
+
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const activities = activityLibrary.filter((a) => a.subject === subject);
+  const editingActivity = activities.find((a) => a.id === editingId);
+
+  return (
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <div className="space-between">
+        <strong>🗂️ Activity Library</strong>
+        {!creating && <button className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>➕ New Activity</button>}
+      </div>
+      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+        Create an activity once, then drag its card into today's plan below — or tap "Add to plan." Tap 🎪 to add it
+        to the shared Playground pool.
+      </p>
+
+      {creating && (
+        <TaskEditor
+          initial={blankTask()}
+          subject={subject}
+          onSave={(t) => {
+            addLibraryActivity({ ...t, subject, inPlayground: false });
+            setCreating(false);
+          }}
+          onCancel={() => setCreating(false)}
+        />
+      )}
+
+      {activities.length === 0 ? (
+        <p style={{ opacity: 0.7 }}>No activities in the library for this subject yet.</p>
+      ) : (
+        <div className="library-card-grid">
+          {activities.map((a) => (
+            <div
+              key={a.id}
+              className="library-card"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', a.id);
+                e.dataTransfer.effectAllowed = 'copy';
+                onDragActivity?.();
+              }}
+            >
+              {editingId === a.id && editingActivity ? (
+                <div style={{ padding: 10 }}>
+                  <TaskEditor
+                    initial={editingActivity}
+                    subject={subject}
+                    onSave={(t) => {
+                      updateLibraryActivity(a.id, t);
+                      setEditingId(null);
+                    }}
+                    onCancel={() => setEditingId(null)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="library-card-thumb">
+                    {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span>{a.icon}</span>}
+                  </div>
+                  <div className="library-card-body">
+                    <div className="set-card-title">{a.title || '(untitled)'}</div>
+                    <div className="set-card-meta">{TASK_TYPE_LABELS[a.type]}</div>
+                    <div className="row-wrap">
+                      <button
+                        className={`btn btn-sm ${a.inPlayground ? 'btn-primary' : ''}`}
+                        onClick={() => updateLibraryActivity(a.id, { inPlayground: !a.inPlayground })}
+                        title="Add to / remove from the Playground"
+                      >
+                        🎪
+                      </button>
+                      {studentId && (
+                        <button className="btn btn-sm btn-success" onClick={() => addActivityToPlan(studentId, subject, a.id)}>
+                          ➕ Add to plan
+                        </button>
+                      )}
+                      <button className="btn btn-sm" onClick={() => setEditingId(a.id)}>Edit</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => deleteLibraryActivity(a.id)}>Delete</button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TemplatesPanel({ studentId, subject, currentTasks }: { studentId: string; subject: Subject; currentTasks: Task[] }) {
+  const [open, setOpen] = useState(false);
+  const [savingName, setSavingName] = useState<string | null>(null);
+  const planTemplates = useStore((s) => s.planTemplates);
+  const addTemplate = useStore((s) => s.addTemplate);
+  const deleteTemplate = useStore((s) => s.deleteTemplate);
+  const applyTemplateToStudent = useStore((s) => s.applyTemplateToStudent);
+  const [confirmApplyId, setConfirmApplyId] = useState<string | null>(null);
+
+  const templates = planTemplates.filter((t) => t.subject === subject);
+
+  return (
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <div className="space-between">
+        <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen((o) => !o)}>
+          {open ? '▾' : '▸'} 📑 Templates ({templates.length})
+        </button>
+        {savingName === null ? (
+          <button className="btn btn-sm" disabled={currentTasks.length === 0} onClick={() => setSavingName('')}>
+            💾 Save current plan as template
+          </button>
+        ) : (
+          <div className="row-wrap">
+            <input placeholder="Template name" value={savingName} onChange={(e) => setSavingName(e.target.value)} />
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!savingName.trim()}
+              onClick={() => {
+                addTemplate(savingName.trim(), subject, currentTasks);
+                setSavingName(null);
+              }}
+            >
+              Save
+            </button>
+            <button className="btn btn-sm" onClick={() => setSavingName(null)}>Cancel</button>
+          </div>
+        )}
+      </div>
+      {open && (
+        templates.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>No saved templates for this subject yet.</p>
+        ) : (
+          <div className="stack">
+            {templates.map((t) => (
+              <div key={t.id} className="content-well space-between">
+                <span><strong>{t.name}</strong> — {t.activities.length} activities</span>
+                {confirmApplyId === t.id ? (
+                  <div className="row-wrap">
+                    <span style={{ fontSize: '0.85rem' }}>Replace this student's current {subject} plan?</span>
+                    <button
+                      className="btn btn-sm btn-success"
+                      onClick={() => {
+                        applyTemplateToStudent(studentId, t.id);
+                        setConfirmApplyId(null);
+                      }}
+                    >
+                      Yes, apply
+                    </button>
+                    <button className="btn btn-sm" onClick={() => setConfirmApplyId(null)}>Cancel</button>
+                  </div>
+                ) : (
+                  <div className="row-wrap">
+                    <button className="btn btn-sm btn-primary" onClick={() => setConfirmApplyId(t.id)}>Apply to this student</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => deleteTemplate(t.id)}>Delete</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -516,9 +676,11 @@ export default function LessonPlanBuilder() {
   const updateTask = useStore((s) => s.updateTask);
   const deleteTask = useStore((s) => s.deleteTask);
   const reorderTasks = useStore((s) => s.reorderTasks);
+  const addActivityToPlan = useStore((s) => s.addActivityToPlan);
 
   const [subj, setSubj] = useState<Subject>('math');
   const [editing, setEditing] = useState<Task | 'new' | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const student = students.find((s) => s.id === studentId);
 
@@ -578,10 +740,31 @@ export default function LessonPlanBuilder() {
           </span>
         </div>
 
+        <ActivityLibraryPanel subject={subj} />
+        <TemplatesPanel studentId={student.id} subject={subj} currentTasks={tasks} />
+        <PlaygroundPool />
         <ContentLibrary subject={subj} />
-        <PlaygroundPool studentId={student.id} />
 
-        <div className="stack">
+        <div
+          className={`stack drop-zone ${dragOver ? 'drop-zone-active' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const activityId = e.dataTransfer.getData('text/plain');
+            if (activityId) addActivityToPlan(student.id, subj, activityId);
+          }}
+        >
+          {tasks.length === 0 && (
+            <p className="chrome-frame" style={{ padding: 14, opacity: 0.7, textAlign: 'center' }}>
+              No activities yet. Drag one in from the Activity Library above, or tap "➕ Add Activity" below.
+            </p>
+          )}
           {tasks.map((t, i) => (
             <div key={t.id} className="chrome-frame stack" style={{ padding: 14 }}>
               <div className="space-between">
@@ -600,7 +783,6 @@ export default function LessonPlanBuilder() {
                       {t.type === 'sentenceEdit' && `Editing sentences`}
                       {t.referenceImageUrl && ' · 🖼️'}
                       {t.referenceLinkUrl && ' · 🔗'}
-                      {t.inPlayground && ' · 🎪 Playground'}
                     </div>
                   </div>
                 </div>

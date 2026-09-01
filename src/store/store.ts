@@ -19,6 +19,8 @@ import {
   rowToBadgeEarn,
   rowToBreakPoolItem,
   rowToQuestionSet,
+  rowToActivity,
+  rowToTemplate,
   pushStudent,
   deleteStudentRemote,
   pushRotation,
@@ -36,6 +38,10 @@ import {
   deleteQuestionSetRemote,
   pushRotationMode,
   pushStudentMeta,
+  pushActivity,
+  deleteActivityRemote,
+  pushTemplate,
+  deleteTemplateRemote,
 } from '../lib/sync';
 import type {
   Student,
@@ -54,6 +60,8 @@ import type {
   StudentStatus,
   RotationMode,
   QuestionSet,
+  ActivityLibraryItem,
+  PlanTemplate,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -88,6 +96,8 @@ interface AppState {
   scratchText: Record<string, string>; // studentId -> word processor autosave text
   rotationModes: Record<string, Record<Subject, RotationMode>>; // studentId -> subject -> sequence|choiceboard
   questionSets: QuestionSet[]; // reusable saved quiz/drill question sets
+  activityLibrary: ActivityLibraryItem[]; // reusable whole activities, drag into any student's plan
+  planTemplates: PlanTemplate[]; // saved, reusable daily plans
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -167,6 +177,18 @@ interface AppState {
   addQuestionSet: (set: Omit<QuestionSet, 'id' | 'createdAt'>) => string;
   updateQuestionSet: (id: string, patch: Partial<QuestionSet>) => void;
   deleteQuestionSet: (id: string) => void;
+
+  // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
+  addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
+  updateLibraryActivity: (id: string, patch: Partial<ActivityLibraryItem>) => void;
+  deleteLibraryActivity: (id: string) => void;
+  addActivityToPlan: (studentId: string, subject: Subject, activityId: string) => void;
+
+  // reusable daily-plan templates
+  addTemplate: (name: string, subject: Subject, activities: Task[]) => string;
+  deleteTemplate: (id: string) => void;
+  saveCurrentPlanAsTemplate: (studentId: string, subject: Subject, name: string) => void;
+  applyTemplateToStudent: (studentId: string, templateId: string) => void;
 }
 
 // Pushes the full consolidated student_meta row for a student, reading the
@@ -208,6 +230,8 @@ export const useStore = create<AppState>()(
       scratchText: {},
       rotationModes: {},
       questionSets: [],
+      activityLibrary: [],
+      planTemplates: [],
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -242,6 +266,8 @@ export const useStore = create<AppState>()(
           onRotationMode: (e, n, o) =>
             set((s) => ({ rotationModes: applyNestedRow(s.rotationModes, e, (r) => r.mode, n, o) })),
           onStudentMeta: (e, n, o) => set((s) => applyStudentMetaRow(s, e, n, o)),
+          onActivity: (e, n, o) => set((s) => ({ activityLibrary: applyArrayRow(s.activityLibrary, e, rowToActivity, n, o) })),
+          onTemplate: (e, n, o) => set((s) => ({ planTemplates: applyArrayRow(s.planTemplates, e, rowToTemplate, n, o) })),
         });
       },
 
@@ -709,6 +735,80 @@ export const useStore = create<AppState>()(
       deleteQuestionSet: (id) => {
         set((s) => ({ questionSets: s.questionSets.filter((qs) => qs.id !== id) }));
         deleteQuestionSetRemote(id);
+      },
+
+      addLibraryActivity: (activity) => {
+        const id = makeId();
+        const full: ActivityLibraryItem = { ...activity, id, createdAt: new Date().toISOString() };
+        set((s) => ({ activityLibrary: [full, ...s.activityLibrary] }));
+        pushActivity(full);
+        return id;
+      },
+
+      updateLibraryActivity: (id, patch) => {
+        set((s) => ({ activityLibrary: s.activityLibrary.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
+        const updated = get().activityLibrary.find((a) => a.id === id);
+        if (updated) pushActivity(updated);
+      },
+
+      deleteLibraryActivity: (id) => {
+        set((s) => ({ activityLibrary: s.activityLibrary.filter((a) => a.id !== id) }));
+        deleteActivityRemote(id);
+      },
+
+      addActivityToPlan: (studentId, subject, activityId) => {
+        const activity = get().activityLibrary.find((a) => a.id === activityId);
+        if (!activity) return;
+        const task: Task = {
+          id: makeId(),
+          title: activity.title,
+          icon: activity.icon,
+          type: activity.type,
+          quiz: activity.quiz,
+          link: activity.link,
+          offscreen: activity.offscreen,
+          video: activity.video,
+          passage: activity.passage,
+          drill: activity.drill,
+          wordchain: activity.wordchain,
+          sentenceEdit: activity.sentenceEdit,
+          customSteps: activity.customSteps,
+          referenceImageUrl: activity.referenceImageUrl,
+          referenceLinkUrl: activity.referenceLinkUrl,
+          referenceLinkLabel: activity.referenceLinkLabel,
+        };
+        get().addTask(studentId, subject, task);
+      },
+
+      addTemplate: (name, subject, activities) => {
+        const id = makeId();
+        const full: PlanTemplate = { id, name, subject, activities, createdAt: new Date().toISOString() };
+        set((s) => ({ planTemplates: [full, ...s.planTemplates] }));
+        pushTemplate(full);
+        return id;
+      },
+
+      deleteTemplate: (id) => {
+        set((s) => ({ planTemplates: s.planTemplates.filter((t) => t.id !== id) }));
+        deleteTemplateRemote(id);
+      },
+
+      saveCurrentPlanAsTemplate: (studentId, subject, name) => {
+        const tasks = get().rotations[studentId]?.[subject] ?? [];
+        get().addTemplate(name, subject, tasks);
+      },
+
+      applyTemplateToStudent: (studentId, templateId) => {
+        const template = get().planTemplates.find((t) => t.id === templateId);
+        if (!template) return;
+        const freshTasks = template.activities.map((t) => ({ ...t, id: makeId() }));
+        set((s) => {
+          const studentRot = s.rotations[studentId] ?? { math: [], literacy: [] };
+          return {
+            rotations: { ...s.rotations, [studentId]: { ...studentRot, [template.subject]: freshTasks } },
+          };
+        });
+        pushRotation(studentId, template.subject, freshTasks);
       },
     }),
     { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },

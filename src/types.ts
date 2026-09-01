@@ -179,7 +179,6 @@ export interface Task {
   referenceImageUrl?: string; // shown to the student throughout this activity, any task type
   referenceLinkUrl?: string; // an extra reference link, any task type (distinct from the 'link' task type itself)
   referenceLinkLabel?: string;
-  inPlayground?: boolean; // teacher-curated: this activity is also available in the Playground bonus pool
 }
 
 export type RotationMode = 'sequence' | 'choiceboard';
@@ -196,6 +195,26 @@ export interface QuestionSet {
 }
 
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks
+
+// A reusable activity, created once and dragged into any student's daily
+// plan (which copies it into a fresh Task instance) or flagged for the
+// shared Playground pool — the "create once, reuse everywhere" library.
+export interface ActivityLibraryItem extends Task {
+  subject: Subject;
+  inPlayground: boolean;
+  createdAt: string;
+}
+
+// A saved, named daily plan — a frozen snapshot of activities (not live
+// references) so editing or deleting a library item later never breaks an
+// existing template. Apply it to a student to instantiate fresh copies.
+export interface PlanTemplate {
+  id: string;
+  name: string;
+  subject: Subject;
+  activities: Task[];
+  createdAt: string;
+}
 
 export interface QuestionAttemptLog {
   questionId: string;

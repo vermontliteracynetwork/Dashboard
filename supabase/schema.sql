@@ -110,6 +110,43 @@ create table if not exists question_sets (
   created_at timestamptz not null default now()
 );
 
+-- Reusable activities: created once, dragged into any student's daily plan
+-- (which copies it into that student's `rotations.tasks`) and/or flagged
+-- for the shared Playground pool. Same content shape as a Task, plus a
+-- subject tag and the Playground flag.
+create table if not exists activity_library (
+  id text primary key,
+  subject text not null check (subject in ('math', 'literacy')),
+  title text not null,
+  icon text not null default '📘',
+  type text not null,
+  quiz jsonb,
+  link jsonb,
+  offscreen jsonb,
+  video jsonb,
+  passage jsonb,
+  drill jsonb,
+  wordchain jsonb,
+  sentence_edit jsonb,
+  custom_steps jsonb,
+  reference_image_url text,
+  reference_link_url text,
+  reference_link_label text,
+  in_playground boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- A named, reusable daily plan — a frozen snapshot of activities (not
+-- references to activity_library, so editing/deleting a library item never
+-- breaks a saved template). "Apply" copies these into a student's rotation.
+create table if not exists plan_templates (
+  id text primary key,
+  name text not null,
+  subject text not null check (subject in ('math', 'literacy')),
+  activities jsonb not null default '[]',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists rotation_modes (
   student_id text not null references students(id) on delete cascade,
   subject text not null check (subject in ('math', 'literacy')),
@@ -146,7 +183,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates'
   ];
 begin
   foreach t in array tables loop
@@ -188,7 +225,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates'
   ];
 begin
   foreach t in array tables loop

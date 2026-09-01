@@ -14,6 +14,8 @@ import type {
   RotationMode,
   ToolKey,
   ProgressMap,
+  ActivityLibraryItem,
+  PlanTemplate,
 } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -118,6 +120,58 @@ const rowToQuestionSet = (r: Row): QuestionSet => ({
   createdAt: r.created_at,
 });
 
+const rowToActivity = (r: Row): ActivityLibraryItem => ({
+  id: r.id,
+  subject: r.subject,
+  title: r.title,
+  icon: r.icon,
+  type: r.type,
+  quiz: r.quiz ?? undefined,
+  link: r.link ?? undefined,
+  offscreen: r.offscreen ?? undefined,
+  video: r.video ?? undefined,
+  passage: r.passage ?? undefined,
+  drill: r.drill ?? undefined,
+  wordchain: r.wordchain ?? undefined,
+  sentenceEdit: r.sentence_edit ?? undefined,
+  customSteps: r.custom_steps ?? undefined,
+  referenceImageUrl: r.reference_image_url ?? undefined,
+  referenceLinkUrl: r.reference_link_url ?? undefined,
+  referenceLinkLabel: r.reference_link_label ?? undefined,
+  inPlayground: r.in_playground ?? false,
+  createdAt: r.created_at,
+});
+
+const activityToRow = (a: ActivityLibraryItem): Row => ({
+  id: a.id,
+  subject: a.subject,
+  title: a.title,
+  icon: a.icon,
+  type: a.type,
+  quiz: a.quiz ?? null,
+  link: a.link ?? null,
+  offscreen: a.offscreen ?? null,
+  video: a.video ?? null,
+  passage: a.passage ?? null,
+  drill: a.drill ?? null,
+  wordchain: a.wordchain ?? null,
+  sentence_edit: a.sentenceEdit ?? null,
+  custom_steps: a.customSteps ?? null,
+  reference_image_url: a.referenceImageUrl ?? null,
+  reference_link_url: a.referenceLinkUrl ?? null,
+  reference_link_label: a.referenceLinkLabel ?? null,
+  in_playground: a.inPlayground,
+  created_at: a.createdAt,
+});
+
+const rowToTemplate = (r: Row): PlanTemplate => ({
+  id: r.id,
+  name: r.name,
+  subject: r.subject,
+  activities: r.activities ?? [],
+  createdAt: r.created_at,
+});
+
 // ---------------------------------------------------------------------------
 // Fetch everything once, folded into the shapes the store keeps in memory
 // ---------------------------------------------------------------------------
@@ -133,6 +187,8 @@ export interface HydratedState {
   badgeEarns: BadgeEarn[];
   breakPool: BreakPoolItem[];
   questionSets: QuestionSet[];
+  activityLibrary: ActivityLibraryItem[];
+  planTemplates: PlanTemplate[];
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -144,7 +200,7 @@ export interface HydratedState {
 export async function fetchAll(): Promise<HydratedState> {
   const [
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
-    badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes,
+    badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -158,9 +214,11 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('question_sets').select('*'),
     supabase.from('rotation_modes').select('*'),
     supabase.from('student_meta').select('*'),
+    supabase.from('activity_library').select('*'),
+    supabase.from('plan_templates').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes]) {
     if (res.error) throw res.error;
   }
 
@@ -205,6 +263,8 @@ export async function fetchAll(): Promise<HydratedState> {
     badgeEarns: (earnsRes.data ?? []).map(rowToBadgeEarn),
     breakPool: (poolRes.data ?? []).map(rowToBreakPoolItem),
     questionSets: (setsRes.data ?? []).map(rowToQuestionSet),
+    activityLibrary: (activitiesRes.data ?? []).map(rowToActivity),
+    planTemplates: (templatesRes.data ?? []).map(rowToTemplate),
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -286,6 +346,13 @@ export const deleteQuestionSetRemote = (id: string) => remove('question_sets', {
 
 export const pushRotationMode = (studentId: string, subject: Subject, mode: RotationMode) =>
   upsert('rotation_modes', { student_id: studentId, subject, mode });
+
+export const pushActivity = (a: ActivityLibraryItem) => upsert('activity_library', activityToRow(a));
+export const deleteActivityRemote = (id: string) => remove('activity_library', { id });
+
+export const pushTemplate = (t: PlanTemplate) =>
+  upsert('plan_templates', { id: t.id, name: t.name, subject: t.subject, activities: t.activities, created_at: t.createdAt });
+export const deleteTemplateRemote = (id: string) => remove('plan_templates', { id });
 
 export interface StudentMetaSlice {
   taskCompletionCounts: Record<string, number>; // just this student's, keyed by taskId (not the composite key)
@@ -408,7 +475,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -423,6 +490,8 @@ export interface RealtimeHandlers {
   onQuestionSet: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onRotationMode: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onStudentMeta: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onActivity: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onTemplate: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -450,6 +519,8 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'question_sets' }, wire(handlers.onQuestionSet))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rotation_modes' }, wire(handlers.onRotationMode))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_meta' }, wire(handlers.onStudentMeta))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_library' }, wire(handlers.onActivity))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_templates' }, wire(handlers.onTemplate))
     .subscribe();
 
   return () => {

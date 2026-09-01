@@ -514,6 +514,52 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   gap: 6px;
 }
 
+/* ---------- Activity library (drag source) ---------- */
+.library-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+.library-card {
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 4px 4px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  cursor: grab;
+}
+.library-card:active { cursor: grabbing; }
+.library-card-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.6rem;
+  background: linear-gradient(135deg, var(--purple), var(--teal));
+  overflow: hidden;
+}
+.library-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.library-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---------- Daily plan drop zone ---------- */
+.drop-zone {
+  border-radius: 16px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.drop-zone-active {
+  background-color: rgba(94, 92, 230, 0.08);
+  box-shadow: inset 0 0 0 3px var(--purple);
+  border-radius: 16px;
+}
+
 /* ---------- Tabs ---------- */
 .subject-tabs { display: flex; gap: 8px; }
 .subject-tab-btn {

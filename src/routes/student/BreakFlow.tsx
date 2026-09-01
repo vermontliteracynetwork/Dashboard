@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
+import InternalBrowser from '../../components/InternalBrowser';
 import type { Student } from '../../types';
 
 interface PromptProps {
@@ -62,18 +63,22 @@ export function BreakScreen({ student }: { student: Student }) {
     [breakPool, student.id],
   );
   const [item] = useState(() => (pool.length ? pool[Math.floor(Math.random() * pool.length)] : null));
+  const [browsing, setBrowsing] = useState(false);
 
   return (
     <div className="chrome-frame stack" style={{ padding: 28, alignItems: 'center', textAlign: 'center' }}>
+      {browsing && item && item.kind === 'link' && (
+        <InternalBrowser url={item.value} title={item.title} onClose={() => setBrowsing(false)} />
+      )}
       <h2 style={{ color: 'var(--teal)' }}>🌴 Break Time!</h2>
       <div className="content-well" style={{ width: '100%', maxWidth: 480 }}>
         {item ? (
           item.kind === 'link' ? (
             <div className="stack" style={{ alignItems: 'center' }}>
               <p>{item.title}</p>
-              <a className="btn btn-blue" href={item.value} target="_blank" rel="noopener noreferrer">
+              <button className="btn btn-blue" onClick={() => setBrowsing(true)}>
                 Open {item.title}
-              </a>
+              </button>
             </div>
           ) : (
             <p style={{ fontSize: '1.2rem' }}>{item.value}</p>

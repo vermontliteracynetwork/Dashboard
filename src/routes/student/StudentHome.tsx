@@ -15,6 +15,7 @@ export default function StudentHome() {
   const logoutStudent = useStore((s) => s.logoutStudent);
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
+  const activityLibrary = useStore((s) => s.activityLibrary);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -42,7 +43,7 @@ export default function StudentHome() {
   const todayCompletedCount =
     (mathProg?.date === today ? mathProg.completedTaskIds.length : 0) +
     (litProg?.date === today ? litProg.completedTaskIds.length : 0);
-  const hasPlaygroundItems = [...mathTasks, ...litTasks].some((t) => t.inPlayground);
+  const hasPlaygroundItems = activityLibrary.some((a) => a.inPlayground);
   const playgroundUnlocked = todayCompletedCount >= student.playgroundThreshold;
   const stillNeeded = Math.max(0, student.playgroundThreshold - todayCompletedCount);
 
