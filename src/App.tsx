@@ -15,7 +15,7 @@ import StudentManager from './routes/teacher/StudentManager';
 import AssignmentsIndex from './routes/teacher/AssignmentsIndex';
 import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
-import BreakApprovals from './routes/teacher/BreakApprovals';
+import PlaygroundManager from './routes/teacher/PlaygroundManager';
 import BadgeManager from './routes/teacher/BadgeManager';
 
 export default function App() {
@@ -74,7 +74,7 @@ export default function App() {
             <Route path="/teacher/assignments" element={<AssignmentsIndex />} />
             <Route path="/teacher/lesson-plan/:studentId" element={<LessonPlanBuilder />} />
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
-            <Route path="/teacher/breaks" element={<BreakApprovals />} />
+            <Route path="/teacher/playground" element={<PlaygroundManager />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />
           </Route>
         </Routes>

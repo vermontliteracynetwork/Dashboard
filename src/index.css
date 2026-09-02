@@ -708,16 +708,16 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .zone-playground { background: linear-gradient(120deg, var(--purple), var(--pink)); }
 .zone-playground > *:not(.zone-header-btn) { background: transparent; }
 .zone-week .zone-header-bar { background: linear-gradient(90deg, var(--teal), var(--blue)); }
-.zone-templates .zone-header-bar { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+.zone-backlog .zone-header-bar { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
 .zone-today .zone-header-bar { background: linear-gradient(90deg, var(--success), var(--teal)); }
 
-/* ---------- Weekly schedule grid ---------- */
-.week-grid {
+/* ---------- This Week: Mon-Fri calendar ---------- */
+.week-calendar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
-.week-cell {
+.week-day-card {
   border: 2px solid var(--content-border);
   border-radius: 12px;
   padding: 10px;
@@ -725,10 +725,14 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 120px;
 }
-.week-cell-today { border-color: var(--teal); border-width: 3px; background: #e6fffb; }
-.week-cell-label { font-weight: 800; font-size: 0.85rem; }
-.week-cell select { width: 100%; }
+.week-day-card-today { border-color: var(--teal); border-width: 3px; background: #e6fffb; }
+.week-day-card-header { font-weight: 800; font-size: 0.85rem; }
+.week-day-card select { width: 100%; }
+.week-day-preview { font-size: 1.3rem; line-height: 1; }
+.week-day-name { font-size: 0.78rem; font-weight: 700; opacity: 0.85; flex: 1; }
+.week-day-empty { font-size: 0.78rem; opacity: 0.6; margin: 0; flex: 1; }
 
 /* ---------- Playground strip (horizontal gallery) ---------- */
 .playground-strip {
@@ -764,6 +768,7 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 }
 .badge-playground { background: var(--pink); }
 .badge-onplan { background: var(--success); }
+.badge-daily { background: var(--yellow); color: var(--ink); }
 
 /* ---------- Image upload field (replaces pasting a URL) ---------- */
 .image-upload-drop {

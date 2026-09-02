@@ -187,6 +187,8 @@ create table if not exists student_meta (
 alter table students add column if not exists playground_threshold int not null default 4;
 alter table question_sets add column if not exists cover_image_url text;
 alter table student_meta add column if not exists weekly_plan_applied jsonb not null default '{}';
+alter table subject_progress add column if not exists completed_at timestamptz;
+alter table activity_library add column if not exists is_daily boolean not null default false;
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { StartRitual, SubjectCompleteScreen } from './Rituals';
-import { BreakPrompt, BreakScreen } from './BreakFlow';
 import QuizTask from './QuizTask';
 import LinkTask from './LinkTask';
 import OffscreenTask from './OffscreenTask';
@@ -18,6 +17,7 @@ import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import StepGuide from '../../components/StepGuide';
 import { getTaskSteps } from '../../lib/steps';
+import { nextRequiredTaskId } from '../../lib/taskOrder';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -27,23 +27,20 @@ export default function SubjectDashboard() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const rotations = useStore((s) => s.rotations);
-  const rotationModes = useStore((s) => s.rotationModes);
   const ensureProgress = useStore((s) => s.ensureProgress);
   const markRitualSeen = useStore((s) => s.markRitualSeen);
   const progress = useStore((s) => s.progress);
-  const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
   const completeTask = useStore((s) => s.completeTask);
   const markOffscreenDone = useStore((s) => s.markOffscreenDone);
 
-  const [phase, setPhase] = useState<'idle' | 'break-check'>('idle');
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const [openedTaskIds, setOpenedTaskIds] = useState<Set<string>>(new Set());
 
   const student = students.find((s) => s.id === currentStudentId);
   const subj = subject === 'math' || subject === 'literacy' ? (subject as Subject) : null;
-  const onBreak = !!breakState && (breakState.status === 'approved' || breakState.status === 'granted');
 
   useEffect(() => {
     if (!currentStudentId) navigate('/student/login');
@@ -56,37 +53,17 @@ export default function SubjectDashboard() {
   useEffect(() => {
     setReviewing(false);
     setSelectedTaskId(null);
+    setOpenedTaskIds(new Set());
   }, [subj]);
-
-  useEffect(() => {
-    if (onBreak) setPhase('idle');
-  }, [onBreak]);
 
   if (!student || !subj) return null;
 
   const tasks = rotations[student.id]?.[subj] ?? [];
   const prog = progress[student.id]?.[subj];
   if (!prog) return null;
-  const mode = rotationModes[student.id]?.[subj] ?? 'sequence';
-
-  if (onBreak) {
-    return (
-      <div className="container">
-        <BreakScreen student={student} />
-      </div>
-    );
-  }
 
   if (!prog.sessionRitualSeen) {
     return <StartRitual student={student} subject={subj} tasks={tasks} onStart={() => markRitualSeen(student.id, subj)} />;
-  }
-
-  if (phase === 'break-check') {
-    return (
-      <div className="container">
-        <BreakPrompt student={student} onSkip={() => setPhase('idle')} />
-      </div>
-    );
   }
 
   if ((prog.subjectComplete || tasks.length === 0) && !reviewing) {
@@ -100,18 +77,18 @@ export default function SubjectDashboard() {
   }
 
   // A tapped row (including an already-completed one, for review) always wins over
-  // the sequence-mode "current" task, so finished work stays reopenable to redo.
+  // the next required numbered task, so finished work stays reopenable to redo.
+  const requiredId = nextRequiredTaskId(tasks, prog.completedTaskIds);
   const activeTask: Task | null = selectedTaskId
     ? tasks.find((t) => t.id === selectedTaskId) ?? null
-    : mode === 'sequence'
-      ? (tasks[prog.activeIndex] ?? null)
+    : requiredId
+      ? tasks.find((t) => t.id === requiredId) ?? null
       : null;
 
   const checkOff = (task: Task) => {
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task);
     else completeTask(student.id, subj, task.id);
     setSelectedTaskId(null);
-    if (!reviewing) setPhase('break-check');
   };
 
   const handleDone = () => {
@@ -159,7 +136,7 @@ export default function SubjectDashboard() {
 
       <SubjectProgressBar done={prog.completedTaskIds.length} total={tasks.length} />
 
-      {mode === 'choiceboard' && !activeTask && (
+      {!activeTask && !reviewing && (
         <p style={{ fontWeight: 800, fontSize: '1.1rem', textAlign: 'center' }}>
           ✨ Pick any activity to start! <span className="point-arrow">👇</span>
         </p>
@@ -169,9 +146,11 @@ export default function SubjectDashboard() {
         student={student}
         tasks={tasks}
         completedIds={prog.completedTaskIds}
-        mode={mode}
-        activeIndex={prog.activeIndex}
-        onOpen={(taskId) => setSelectedTaskId(taskId)}
+        openedIds={openedTaskIds}
+        onOpen={(taskId) => {
+          setSelectedTaskId(taskId);
+          setOpenedTaskIds((prev) => (prev.has(taskId) ? prev : new Set(prev).add(taskId)));
+        }}
         onCheck={checkOff}
       />
 

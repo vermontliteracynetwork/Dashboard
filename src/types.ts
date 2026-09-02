@@ -179,6 +179,8 @@ export interface Task {
   referenceImageUrl?: string; // shown to the student throughout this activity, any task type
   referenceLinkUrl?: string; // an extra reference link, any task type (distinct from the 'link' task type itself)
   referenceLinkLabel?: string;
+  order?: number; // set = must be done in ascending order before any unordered task unlocks; unset = free-choice once all ordered tasks are done
+  isDaily?: boolean; // teacher-marked "this repeats every day" — shown with a star in the library
 }
 
 export type RotationMode = 'sequence' | 'choiceboard';
@@ -266,6 +268,7 @@ export interface SubjectProgress {
   quizState: Record<string, QuizRuntimeState>; // taskId -> state
   sessionRitualSeen: boolean;
   subjectComplete: boolean;
+  completedAt?: string; // ISO timestamp when subjectComplete first became true today — drives the timed Playground unlock
 }
 
 export type ProgressMap = Record<string, Record<Subject, SubjectProgress>>; // studentId -> subject -> progress

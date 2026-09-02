@@ -61,6 +61,7 @@ const rowToProgress = (r: Row): SubjectProgress => ({
   quizState: r.quiz_state ?? {},
   sessionRitualSeen: r.session_ritual_seen,
   subjectComplete: r.subject_complete,
+  completedAt: r.completed_at ?? undefined,
 });
 
 const progressToRow = (studentId: string, subject: Subject, p: SubjectProgress): Row => ({
@@ -72,6 +73,7 @@ const progressToRow = (studentId: string, subject: Subject, p: SubjectProgress):
   quiz_state: p.quizState,
   session_ritual_seen: p.sessionRitualSeen,
   subject_complete: p.subjectComplete,
+  completed_at: p.completedAt ?? null,
 });
 
 const rowToBreakRequest = (r: Row): BreakRequest => ({
@@ -140,6 +142,7 @@ const rowToActivity = (r: Row): ActivityLibraryItem => ({
   referenceLinkUrl: r.reference_link_url ?? undefined,
   referenceLinkLabel: r.reference_link_label ?? undefined,
   inPlayground: r.in_playground ?? false,
+  isDaily: r.is_daily ?? false,
   createdAt: r.created_at,
 });
 
@@ -162,6 +165,7 @@ const activityToRow = (a: ActivityLibraryItem): Row => ({
   reference_link_url: a.referenceLinkUrl ?? null,
   reference_link_label: a.referenceLinkLabel ?? null,
   in_playground: a.inPlayground,
+  is_daily: a.isDaily ?? false,
   created_at: a.createdAt,
 });
 

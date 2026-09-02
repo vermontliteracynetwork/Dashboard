@@ -9,15 +9,22 @@ import PassageTask from './PassageTask';
 import DrillTask from './DrillTask';
 import WordChainTask from './WordChainTask';
 import SentenceEditTask from './SentenceEditTask';
+import { todayISO } from '../../lib/dates';
+import { getPlaygroundAccess } from '../../lib/playgroundAccess';
 import type { Subject, Task } from '../../types';
 
 export default function PlaygroundView() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
+  const rotations = useStore((s) => s.rotations);
+  const progress = useStore((s) => s.progress);
   const activityLibrary = useStore((s) => s.activityLibrary);
+  const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
+  const requestBreak = useStore((s) => s.requestBreak);
 
   const [openEntry, setOpenEntry] = useState<{ task: Task; subject: Subject } | null>(null);
+  const [, setTick] = useState(0);
 
   const student = students.find((s) => s.id === currentStudentId);
 
@@ -25,13 +32,50 @@ export default function PlaygroundView() {
     if (!currentStudentId) navigate('/student/login');
   }, [currentStudentId, navigate]);
 
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   if (!student) return null;
+
+  const today = todayISO();
+  const mathTasks = rotations[student.id]?.math ?? [];
+  const litTasks = rotations[student.id]?.literacy ?? [];
+  const mathProg = progress[student.id]?.math;
+  const litProg = progress[student.id]?.literacy;
+  const mathDone = mathTasks.length === 0 || (mathProg?.date === today && mathProg.subjectComplete);
+  const litDone = litTasks.length === 0 || (litProg?.date === today && litProg.subjectComplete);
+  const access = getPlaygroundAccess(mathDone, litDone, mathProg, litProg, today, student, breakState);
+  const askedForEarlyAccess = breakState?.status === 'pending';
 
   const entries: { task: Task; subject: Subject }[] = activityLibrary
     .filter((a) => a.inPlayground)
     .map((a) => ({ task: a, subject: a.subject }));
 
   const close = () => setOpenEntry(null);
+
+  if (!access.unlocked) {
+    return (
+      <div className="container stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+        <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', width: '100%' }}>
+          <h2 style={{ margin: 0 }}>🎪 The Playground</h2>
+          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+        </div>
+        <div className="chrome-frame stack" style={{ padding: 32, alignItems: 'center', maxWidth: 480 }}>
+          <span style={{ fontSize: '3rem' }}>🔒</span>
+          <h3 style={{ margin: 0 }}>Locked for now</h3>
+          <p>Finish Math or Literacy to unlock the Playground for 20 minutes — finish both for the rest of the day!</p>
+          {askedForEarlyAccess ? (
+            <p style={{ fontSize: '0.9rem', opacity: 0.75 }}>Asking your teacher... hang tight! 💭</p>
+          ) : (
+            <button className="btn btn-teal" onClick={() => requestBreak(student.id)}>🙋 Ask my teacher for early access</button>
+          )}
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}>🏠 Back to Home</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container stack">
@@ -61,7 +105,12 @@ export default function PlaygroundView() {
         <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
       </div>
 
-      <p style={{ textAlign: 'center', fontWeight: 700 }}>Pick anything you want — just for fun! ✨</p>
+      <p style={{ textAlign: 'center', fontWeight: 700 }}>
+        Pick anything you want — just for fun! ✨{' '}
+        {!access.unlimited && access.minutesRemaining !== null && (
+          <span style={{ opacity: 0.7 }}>({access.minutesRemaining} min left)</span>
+        )}
+      </p>
 
       {entries.length === 0 ? (
         <p style={{ textAlign: 'center', opacity: 0.75 }}>Nothing here yet — ask your teacher to add some Playground fun!</p>

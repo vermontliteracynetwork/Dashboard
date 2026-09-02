@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
+import { ActivityLibraryPanel } from './ActivityLibrary';
 
 export default function AssignmentsIndex() {
   const navigate = useNavigate();
@@ -12,9 +13,14 @@ export default function AssignmentsIndex() {
       <div className="container stack">
         <h1>📋 Assignments</h1>
         <p style={{ opacity: 0.75 }}>
-          Pick a student to build their daily lesson plan — activities, order, reference images/links, and what
-          goes in the Playground all live together here.
+          Build activities here anytime — no need to pick a student first. Pick a student below to manage their
+          daily plan, weekly schedule, and backlog.
         </p>
+
+        <ActivityLibraryPanel subject="math" />
+        <ActivityLibraryPanel subject="literacy" />
+
+        <h2>Students</h2>
         {students.length === 0 ? (
           <div className="chrome-frame" style={{ padding: 24 }}>
             <p>No students yet.</p>

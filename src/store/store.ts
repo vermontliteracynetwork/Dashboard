@@ -190,6 +190,7 @@ interface AppState {
   updateLibraryActivity: (id: string, patch: Partial<ActivityLibraryItem>) => void;
   deleteLibraryActivity: (id: string) => void;
   addActivityToPlan: (studentId: string, subject: Subject, activityId: string) => void;
+  addActivityToPlanForStudents: (studentIds: string[], subject: Subject, activityId: string) => void;
 
   // reusable daily-plan templates
   addTemplate: (name: string, subject: Subject, activities: Task[]) => string;
@@ -481,12 +482,13 @@ export const useStore = create<AppState>()(
           const completedTaskIds = [...sp.completedTaskIds, taskId];
           const nextIndex = sp.activeIndex + 1;
           const subjectComplete = nextIndex >= tasks.length;
+          const completedAt = subjectComplete ? (sp.completedAt ?? new Date().toISOString()) : sp.completedAt;
           return {
             progress: {
               ...s.progress,
               [studentId]: {
                 ...s.progress[studentId],
-                [subject]: { ...sp, completedTaskIds, activeIndex: nextIndex, subjectComplete },
+                [subject]: { ...sp, completedTaskIds, activeIndex: nextIndex, subjectComplete, completedAt },
               },
             },
           };
@@ -798,6 +800,10 @@ export const useStore = create<AppState>()(
           referenceLinkLabel: activity.referenceLinkLabel,
         };
         get().addTask(studentId, subject, task);
+      },
+
+      addActivityToPlanForStudents: (studentIds, subject, activityId) => {
+        studentIds.forEach((id) => get().addActivityToPlan(id, subject, activityId));
       },
 
       addTemplate: (name, subject, activities) => {

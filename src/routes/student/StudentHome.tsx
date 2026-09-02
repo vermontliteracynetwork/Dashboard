@@ -5,6 +5,7 @@ import Onboarding from '../../components/Onboarding';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import { todayISO } from '../../lib/dates';
+import { getPlaygroundAccess } from '../../lib/playgroundAccess';
 import { AVATAR_OPTIONS } from '../../store/badges';
 
 export default function StudentHome() {
@@ -18,10 +19,13 @@ export default function StudentHome() {
   const activityLibrary = useStore((s) => s.activityLibrary);
   const hydrated = useStore((s) => s.hydrated);
   const applyTodaysScheduleIfNeeded = useStore((s) => s.applyTodaysScheduleIfNeeded);
+  const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
+  const requestBreak = useStore((s) => s.requestBreak);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const updateStudent = useStore((s) => s.updateStudent);
+  const [, setTick] = useState(0);
 
   const student = students.find((s) => s.id === currentStudentId);
 
@@ -34,6 +38,12 @@ export default function StudentHome() {
   useEffect(() => {
     if (hydrated && currentStudentId) applyTodaysScheduleIfNeeded(currentStudentId);
   }, [hydrated, currentStudentId, applyTodaysScheduleIfNeeded]);
+
+  // Keeps the Playground unlock countdown (if any) accurate without a hard refresh.
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   if (!student) return null;
 
@@ -48,12 +58,9 @@ export default function StudentHome() {
 
   const earnedBadges = badges.filter((b) => student.badgeIds.includes(b.id));
 
-  const todayCompletedCount =
-    (mathProg?.date === today ? mathProg.completedTaskIds.length : 0) +
-    (litProg?.date === today ? litProg.completedTaskIds.length : 0);
   const hasPlaygroundItems = activityLibrary.some((a) => a.inPlayground);
-  const playgroundUnlocked = todayCompletedCount >= student.playgroundThreshold;
-  const stillNeeded = Math.max(0, student.playgroundThreshold - todayCompletedCount);
+  const access = getPlaygroundAccess(mathDone, litDone, mathProg, litProg, today, student, breakState);
+  const askedForEarlyAccess = breakState?.status === 'pending';
 
   return (
     <div className="container stack">
@@ -151,9 +158,11 @@ export default function StudentHome() {
 
       {hasPlaygroundItems && (
         <div className="chrome-frame stack" style={{ padding: 16, alignItems: 'center', textAlign: 'center' }}>
-          {playgroundUnlocked ? (
+          {access.unlocked ? (
             <>
-              <p style={{ fontWeight: 800, margin: 0 }}>🎉 The Playground is unlocked!</p>
+              <p style={{ fontWeight: 800, margin: 0 }}>
+                🎉 The Playground is unlocked{access.unlimited ? '' : ` for ${access.minutesRemaining} more minute${access.minutesRemaining === 1 ? '' : 's'}`}!
+              </p>
               <button
                 className="btn btn-lg pulse-cta"
                 style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', color: 'white' }}
@@ -163,9 +172,18 @@ export default function StudentHome() {
               </button>
             </>
           ) : (
-            <p style={{ opacity: 0.75, margin: 0 }}>
-              🔒 Finish {stillNeeded} more {stillNeeded === 1 ? 'activity' : 'activities'} to unlock the Playground!
-            </p>
+            <>
+              <p style={{ opacity: 0.75, margin: 0 }}>
+                🔒 Finish Math or Literacy to unlock the Playground for 20 minutes — finish both for the rest of the day!
+              </p>
+              {askedForEarlyAccess ? (
+                <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>Asking your teacher... hang tight! 💭</p>
+              ) : (
+                <button className="btn btn-sm" onClick={() => requestBreak(student.id)}>
+                  🙋 Ask my teacher for early access
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
