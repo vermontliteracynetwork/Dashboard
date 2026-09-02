@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { ActivityLibraryPanel } from './ActivityLibrary';
+import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { sortForDisplay } from '../../lib/taskOrder';
 import type { Subject, Task } from '../../types';
 
@@ -47,6 +48,8 @@ export default function AssignmentsIndex() {
 
         <ActivityLibraryPanel subject="math" />
         <ActivityLibraryPanel subject="literacy" />
+
+        <NewDailyPlanBuilder />
 
         <h2>📅 All Active Daily Plans</h2>
         {students.length === 0 ? (

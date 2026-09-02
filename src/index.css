@@ -710,6 +710,7 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .zone-week .zone-header-bar { background: linear-gradient(90deg, var(--teal), var(--blue)); }
 .zone-backlog .zone-header-bar { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
 .zone-today .zone-header-bar { background: linear-gradient(90deg, var(--success), var(--teal)); }
+.zone-newplan .zone-header-bar { background: linear-gradient(90deg, var(--pink), var(--orange)); }
 
 /* ---------- This Week: Mon-Fri calendar ---------- */
 .week-calendar {
