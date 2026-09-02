@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
-import { todayISO, streakContinues } from '../lib/dates';
+import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import {
@@ -42,6 +42,9 @@ import {
   deleteActivityRemote,
   pushTemplate,
   deleteTemplateRemote,
+  rowToWeeklyScheduleEntry,
+  pushWeeklyScheduleEntry,
+  deleteWeeklyScheduleEntryRemote,
 } from '../lib/sync';
 import type {
   Student,
@@ -62,6 +65,8 @@ import type {
   QuestionSet,
   ActivityLibraryItem,
   PlanTemplate,
+  WeeklyScheduleEntry,
+  DayOfWeek,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -98,6 +103,8 @@ interface AppState {
   questionSets: QuestionSet[]; // reusable saved quiz/drill question sets
   activityLibrary: ActivityLibraryItem[]; // reusable whole activities, drag into any student's plan
   planTemplates: PlanTemplate[]; // saved, reusable daily plans
+  weeklySchedule: WeeklyScheduleEntry[]; // which template auto-loads on which weekday, per student+subject
+  weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>; // studentId -> subject -> ISO date last auto-applied
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -186,9 +193,16 @@ interface AppState {
 
   // reusable daily-plan templates
   addTemplate: (name: string, subject: Subject, activities: Task[]) => string;
+  updateTemplate: (id: string, patch: Partial<PlanTemplate>) => void;
+  duplicateTemplate: (id: string) => void;
   deleteTemplate: (id: string) => void;
   saveCurrentPlanAsTemplate: (studentId: string, subject: Subject, name: string) => void;
   applyTemplateToStudent: (studentId: string, templateId: string) => void;
+
+  // weekly schedule: which template auto-loads on which weekday
+  getScheduledTemplateId: (studentId: string, subject: Subject, day: DayOfWeek) => string | null;
+  setWeeklyScheduleDay: (studentId: string, subject: Subject, day: DayOfWeek, templateId: string | null) => void;
+  applyTodaysScheduleIfNeeded: (studentId: string) => void;
 }
 
 // Pushes the full consolidated student_meta row for a student, reading the
@@ -208,6 +222,7 @@ function pushMetaFor(get: () => AppState, studentId: string) {
     correctionsCount: s.correctionsCount[studentId] ?? 0,
     scratchText: s.scratchText[studentId] ?? '',
     onboarded: s.onboardedIds.includes(studentId),
+    weeklyPlanApplied: s.weeklyPlanApplied[studentId] ?? {},
   });
 }
 
@@ -232,6 +247,8 @@ export const useStore = create<AppState>()(
       questionSets: [],
       activityLibrary: [],
       planTemplates: [],
+      weeklySchedule: [],
+      weeklyPlanApplied: {},
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -268,6 +285,8 @@ export const useStore = create<AppState>()(
           onStudentMeta: (e, n, o) => set((s) => applyStudentMetaRow(s, e, n, o)),
           onActivity: (e, n, o) => set((s) => ({ activityLibrary: applyArrayRow(s.activityLibrary, e, rowToActivity, n, o) })),
           onTemplate: (e, n, o) => set((s) => ({ planTemplates: applyArrayRow(s.planTemplates, e, rowToTemplate, n, o) })),
+          onWeeklySchedule: (e, n, o) =>
+            set((s) => ({ weeklySchedule: applyArrayRow(s.weeklySchedule, e, rowToWeeklyScheduleEntry, n, o) })),
         });
       },
 
@@ -788,9 +807,22 @@ export const useStore = create<AppState>()(
         return id;
       },
 
+      updateTemplate: (id, patch) => {
+        set((s) => ({ planTemplates: s.planTemplates.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
+        const updated = get().planTemplates.find((t) => t.id === id);
+        if (updated) pushTemplate(updated);
+      },
+
+      duplicateTemplate: (id) => {
+        const t = get().planTemplates.find((x) => x.id === id);
+        if (!t) return;
+        get().addTemplate(`${t.name} (copy)`, t.subject, t.activities.map((a) => ({ ...a, id: makeId() })));
+      },
+
       deleteTemplate: (id) => {
         set((s) => ({ planTemplates: s.planTemplates.filter((t) => t.id !== id) }));
         deleteTemplateRemote(id);
+        set((s) => ({ weeklySchedule: s.weeklySchedule.filter((w) => w.templateId !== id) }));
       },
 
       saveCurrentPlanAsTemplate: (studentId, subject, name) => {
@@ -809,6 +841,44 @@ export const useStore = create<AppState>()(
           };
         });
         pushRotation(studentId, template.subject, freshTasks);
+      },
+
+      getScheduledTemplateId: (studentId, subject, day) =>
+        get().weeklySchedule.find((w) => w.studentId === studentId && w.subject === subject && w.day === day)
+          ?.templateId ?? null,
+
+      setWeeklyScheduleDay: (studentId, subject, day, templateId) => {
+        const id = `${studentId}:${subject}:${day}`;
+        if (!templateId) {
+          set((s) => ({ weeklySchedule: s.weeklySchedule.filter((w) => w.id !== id) }));
+          deleteWeeklyScheduleEntryRemote(id);
+          return;
+        }
+        const entry: WeeklyScheduleEntry = { id, studentId, subject, day, templateId };
+        set((s) => ({ weeklySchedule: [...s.weeklySchedule.filter((w) => w.id !== id), entry] }));
+        pushWeeklyScheduleEntry(entry);
+      },
+
+      // Once per calendar day (first time this runs after midnight), refresh
+      // each subject's live plan from whatever template that weekday is
+      // scheduled to. A teacher's same-day hand edit is never clobbered,
+      // since this is a no-op once today's date is already recorded.
+      applyTodaysScheduleIfNeeded: (studentId) => {
+        const day = currentDayOfWeek();
+        if (!day) return;
+        const today = todayISO();
+        (['math', 'literacy'] as Subject[]).forEach((subject) => {
+          if (get().weeklyPlanApplied[studentId]?.[subject] === today) return;
+          const templateId = get().getScheduledTemplateId(studentId, subject, day);
+          set((s) => ({
+            weeklyPlanApplied: {
+              ...s.weeklyPlanApplied,
+              [studentId]: { ...(s.weeklyPlanApplied[studentId] ?? {}), [subject]: today },
+            },
+          }));
+          if (templateId) get().applyTemplateToStudent(studentId, templateId);
+          pushMetaFor(get, studentId);
+        });
       },
     }),
     { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },

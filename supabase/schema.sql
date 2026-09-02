@@ -147,6 +147,20 @@ create table if not exists plan_templates (
   created_at timestamptz not null default now()
 );
 
+-- Which template auto-loads into a student's live daily plan (the
+-- `rotations` row above) for a given subject + weekday. A row here means
+-- "on this weekday, refresh the plan from this template" — applied once per
+-- day (see student_meta.weekly_plan_applied) the first time the student
+-- logs in that day, so a teacher's same-day hand edit to that day's copy
+-- never gets clobbered until the next calendar day.
+create table if not exists weekly_schedule (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  subject text not null check (subject in ('math', 'literacy')),
+  day text not null check (day in ('mon', 'tue', 'wed', 'thu', 'fri')),
+  template_id text not null references plan_templates(id) on delete cascade
+);
+
 create table if not exists rotation_modes (
   student_id text not null references students(id) on delete cascade,
   subject text not null check (subject in ('math', 'literacy')),
@@ -172,6 +186,34 @@ create table if not exists student_meta (
 -- date (re-running this whole file is also fine).
 alter table students add column if not exists playground_threshold int not null default 4;
 alter table question_sets add column if not exists cover_image_url text;
+alter table student_meta add column if not exists weekly_plan_applied jsonb not null default '{}';
+
+-- ---------------------------------------------------------------------------
+-- Storage: an "images" bucket for teacher-uploaded pictures (reference
+-- images, question/drill/step images, cover images) — replaces asking the
+-- teacher to paste image URLs. Public read (images are shown in the app
+-- with a plain <img src>), open upload for the same reason the table RLS
+-- above is open (see the scope note at the top of this file).
+-- ---------------------------------------------------------------------------
+
+insert into storage.buckets (id, name, public)
+values ('images', 'images', true)
+on conflict (id) do nothing;
+
+drop policy if exists images_public_read on storage.objects;
+create policy images_public_read on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'images');
+
+drop policy if exists images_upload on storage.objects;
+create policy images_upload on storage.objects
+  for insert to anon, authenticated
+  with check (bucket_id = 'images');
+
+drop policy if exists images_delete on storage.objects;
+create policy images_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'images');
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security
@@ -183,7 +225,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule'
   ];
 begin
   foreach t in array tables loop
@@ -225,7 +267,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule'
   ];
 begin
   foreach t in array tables loop

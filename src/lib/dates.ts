@@ -9,6 +9,14 @@ export const isWeekend = (isoDate: string): boolean => {
   return day === 0 || day === 6;
 };
 
+const JS_DAY_TO_WEEKDAY = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+// Today's weekday key for the weekly schedule, or null on a weekend (no school day to auto-load).
+export const currentDayOfWeek = (): 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | null => {
+  const key = JS_DAY_TO_WEEKDAY[new Date().getDay()];
+  return key === 'sun' || key === 'sat' ? null : key;
+};
+
 // Count the number of "school days" (Mon-Fri) strictly between two ISO dates (exclusive of both ends).
 const schoolDaysBetween = (fromISO: string, toISO: string): number => {
   const from = new Date(`${fromISO}T00:00:00`);

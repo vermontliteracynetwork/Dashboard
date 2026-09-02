@@ -16,6 +16,8 @@ export default function StudentHome() {
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const activityLibrary = useStore((s) => s.activityLibrary);
+  const hydrated = useStore((s) => s.hydrated);
+  const applyTodaysScheduleIfNeeded = useStore((s) => s.applyTodaysScheduleIfNeeded);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -26,6 +28,12 @@ export default function StudentHome() {
   useEffect(() => {
     if (!currentStudentId) navigate('/student/login');
   }, [currentStudentId, navigate]);
+
+  // Refreshes today's plan from the weekly schedule (if any template is
+  // assigned to today) the first time this student is seen on a new day.
+  useEffect(() => {
+    if (hydrated && currentStudentId) applyTodaysScheduleIfNeeded(currentStudentId);
+  }, [hydrated, currentStudentId, applyTodaysScheduleIfNeeded]);
 
   if (!student) return null;
 

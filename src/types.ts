@@ -216,6 +216,37 @@ export interface PlanTemplate {
   createdAt: string;
 }
 
+export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+
+export const WEEKDAYS: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+export const WEEKDAY_LABELS: Record<DayOfWeek, string> = {
+  mon: 'Monday',
+  tue: 'Tuesday',
+  wed: 'Wednesday',
+  thu: 'Thursday',
+  fri: 'Friday',
+};
+
+export const WEEKDAY_SHORT: Record<DayOfWeek, string> = {
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+};
+
+// Which template (if any) auto-loads into a student's live daily plan for a
+// given subject + weekday. Absence of an entry = no auto-plan that day (the
+// teacher manages that day's plan by hand instead).
+export interface WeeklyScheduleEntry {
+  id: string; // `${studentId}:${subject}:${day}`
+  studentId: string;
+  subject: Subject;
+  day: DayOfWeek;
+  templateId: string;
+}
+
 export interface QuestionAttemptLog {
   questionId: string;
   timestamp: string;

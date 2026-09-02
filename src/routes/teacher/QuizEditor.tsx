@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { makeId } from '../../lib/id';
 import SetLibraryControls from './SetLibraryControls';
+import ImageUploadField from '../../components/ImageUploadField';
 import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion, Subject } from '../../types';
 
 interface Props {
@@ -29,10 +30,7 @@ function QuestionRow({ q, onUpdate, onDelete }: { q: QuizQuestion; onUpdate: (q:
           placeholder="Type the question here"
         />
       </div>
-      <div>
-        <label>Image URL (optional)</label>
-        <input value={q.imageUrl ?? ''} onChange={(e) => onUpdate({ ...q, imageUrl: e.target.value })} style={{ width: '100%' }} />
-      </div>
+      <ImageUploadField label="Image (optional)" value={q.imageUrl} onChange={(imageUrl) => onUpdate({ ...q, imageUrl: imageUrl || undefined })} />
 
       {q.kind === 'mc' && (
         <div className="stack">

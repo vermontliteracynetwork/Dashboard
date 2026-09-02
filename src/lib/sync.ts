@@ -16,6 +16,7 @@ import type {
   ProgressMap,
   ActivityLibraryItem,
   PlanTemplate,
+  WeeklyScheduleEntry,
 } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -172,6 +173,22 @@ const rowToTemplate = (r: Row): PlanTemplate => ({
   createdAt: r.created_at,
 });
 
+const rowToWeeklyScheduleEntry = (r: Row): WeeklyScheduleEntry => ({
+  id: r.id,
+  studentId: r.student_id,
+  subject: r.subject,
+  day: r.day,
+  templateId: r.template_id,
+});
+
+const weeklyScheduleEntryToRow = (w: WeeklyScheduleEntry): Row => ({
+  id: w.id,
+  student_id: w.studentId,
+  subject: w.subject,
+  day: w.day,
+  template_id: w.templateId,
+});
+
 // ---------------------------------------------------------------------------
 // Fetch everything once, folded into the shapes the store keeps in memory
 // ---------------------------------------------------------------------------
@@ -189,18 +206,20 @@ export interface HydratedState {
   questionSets: QuestionSet[];
   activityLibrary: ActivityLibraryItem[];
   planTemplates: PlanTemplate[];
+  weeklySchedule: WeeklyScheduleEntry[];
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
   correctionsCount: Record<string, number>;
   scratchText: Record<string, string>;
   onboardedIds: string[];
+  weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>;
 }
 
 export async function fetchAll(): Promise<HydratedState> {
   const [
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
-    badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes,
+    badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -216,9 +235,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('student_meta').select('*'),
     supabase.from('activity_library').select('*'),
     supabase.from('plan_templates').select('*'),
+    supabase.from('weekly_schedule').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes]) {
     if (res.error) throw res.error;
   }
 
@@ -242,6 +262,7 @@ export async function fetchAll(): Promise<HydratedState> {
   const correctionsCount: Record<string, number> = {};
   const scratchText: Record<string, string> = {};
   const onboardedIds: string[] = [];
+  const weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>> = {};
   for (const r of metaRes.data ?? []) {
     for (const [taskId, count] of Object.entries(r.task_completion_counts ?? {})) {
       taskCompletionCounts[`${r.student_id}:${taskId}`] = count as number;
@@ -250,6 +271,7 @@ export async function fetchAll(): Promise<HydratedState> {
     correctionsCount[r.student_id] = r.corrections_count ?? 0;
     scratchText[r.student_id] = r.scratch_text ?? '';
     if (r.onboarded) onboardedIds.push(r.student_id);
+    weeklyPlanApplied[r.student_id] = r.weekly_plan_applied ?? {};
   }
 
   return {
@@ -265,12 +287,14 @@ export async function fetchAll(): Promise<HydratedState> {
     questionSets: (setsRes.data ?? []).map(rowToQuestionSet),
     activityLibrary: (activitiesRes.data ?? []).map(rowToActivity),
     planTemplates: (templatesRes.data ?? []).map(rowToTemplate),
+    weeklySchedule: (scheduleRes.data ?? []).map(rowToWeeklyScheduleEntry),
     rotationModes,
     taskCompletionCounts,
     toolUsage,
     correctionsCount,
     scratchText,
     onboardedIds,
+    weeklyPlanApplied,
   };
 }
 
@@ -354,12 +378,16 @@ export const pushTemplate = (t: PlanTemplate) =>
   upsert('plan_templates', { id: t.id, name: t.name, subject: t.subject, activities: t.activities, created_at: t.createdAt });
 export const deleteTemplateRemote = (id: string) => remove('plan_templates', { id });
 
+export const pushWeeklyScheduleEntry = (w: WeeklyScheduleEntry) => upsert('weekly_schedule', weeklyScheduleEntryToRow(w));
+export const deleteWeeklyScheduleEntryRemote = (id: string) => remove('weekly_schedule', { id });
+
 export interface StudentMetaSlice {
   taskCompletionCounts: Record<string, number>; // just this student's, keyed by taskId (not the composite key)
   toolUsage: ToolKey[];
   correctionsCount: number;
   scratchText: string;
   onboarded: boolean;
+  weeklyPlanApplied: Partial<Record<Subject, string>>; // subject -> last ISO date its weekly schedule was auto-applied
 }
 
 export const pushStudentMeta = (studentId: string, data: StudentMetaSlice) =>
@@ -370,6 +398,7 @@ export const pushStudentMeta = (studentId: string, data: StudentMetaSlice) =>
     corrections_count: data.correctionsCount,
     scratch_text: data.scratchText,
     onboarded: data.onboarded,
+    weekly_plan_applied: data.weeklyPlanApplied,
   });
 
 // ---------------------------------------------------------------------------
@@ -424,6 +453,7 @@ export interface StudentMetaState {
   correctionsCount: Record<string, number>;
   scratchText: Record<string, string>;
   onboardedIds: string[];
+  weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>;
 }
 
 export function applyStudentMetaRow(
@@ -447,12 +477,15 @@ export function applyStudentMetaRow(
     delete correctionsCount[studentId];
     const scratchText = { ...current.scratchText };
     delete scratchText[studentId];
+    const weeklyPlanApplied = { ...current.weeklyPlanApplied };
+    delete weeklyPlanApplied[studentId];
     return {
       taskCompletionCounts,
       toolUsage,
       correctionsCount,
       scratchText,
       onboardedIds: current.onboardedIds.filter((id) => id !== studentId),
+      weeklyPlanApplied,
     };
   }
 
@@ -472,10 +505,11 @@ export function applyStudentMetaRow(
     correctionsCount: { ...current.correctionsCount, [studentId]: newRow.corrections_count ?? 0 },
     scratchText: { ...current.scratchText, [studentId]: newRow.scratch_text ?? '' },
     onboardedIds,
+    weeklyPlanApplied: { ...current.weeklyPlanApplied, [studentId]: newRow.weekly_plan_applied ?? {} },
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -492,6 +526,7 @@ export interface RealtimeHandlers {
   onStudentMeta: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onActivity: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onTemplate: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onWeeklySchedule: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -521,6 +556,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_meta' }, wire(handlers.onStudentMeta))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_library' }, wire(handlers.onActivity))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_templates' }, wire(handlers.onTemplate))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_schedule' }, wire(handlers.onWeeklySchedule))
     .subscribe();
 
   return () => {

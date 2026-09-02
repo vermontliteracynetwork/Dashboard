@@ -1,5 +1,6 @@
 import { makeId } from '../../lib/id';
 import StepGuide from '../../components/StepGuide';
+import ImageUploadField from '../../components/ImageUploadField';
 import type { StepDef } from '../../types';
 
 interface Props {
@@ -39,9 +40,8 @@ export default function StepsEditor({ steps, onChange }: Props) {
             <label>Step text</label>
             <input style={{ width: '100%' }} value={s.text} onChange={(e) => update(s.id, { text: e.target.value })} placeholder="e.g. Tap the play button" />
           </div>
-          <div>
-            <label>Image URL (optional)</label>
-            <input value={s.imageUrl ?? ''} onChange={(e) => update(s.id, { imageUrl: e.target.value })} />
+          <div style={{ minWidth: 160 }}>
+            <ImageUploadField label="Image (optional)" value={s.imageUrl} onChange={(imageUrl) => update(s.id, { imageUrl: imageUrl || undefined })} />
           </div>
           <button className="btn btn-sm" disabled={i === 0} onClick={() => move(i, -1)}>⬆️</button>
           <button className="btn btn-sm" disabled={i === steps.length - 1} onClick={() => move(i, 1)}>⬇️</button>

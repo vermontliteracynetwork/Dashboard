@@ -1,5 +1,6 @@
 import { makeId } from '../../lib/id';
 import SetLibraryControls from './SetLibraryControls';
+import ImageUploadField from '../../components/ImageUploadField';
 import type { DrillCard, Subject } from '../../types';
 
 interface Props {
@@ -28,9 +29,8 @@ export default function DrillEditor({ subject, cards, onChange }: Props) {
             <label>Back</label>
             <input value={c.back} onChange={(e) => update(c.id, { back: e.target.value })} placeholder="e.g. again (redo, replay)" />
           </div>
-          <div>
-            <label>Image URL (optional)</label>
-            <input value={c.imageUrl ?? ''} onChange={(e) => update(c.id, { imageUrl: e.target.value })} />
+          <div style={{ minWidth: 160 }}>
+            <ImageUploadField label="Image (optional)" value={c.imageUrl} onChange={(imageUrl) => update(c.id, { imageUrl: imageUrl || undefined })} />
           </div>
           <button className="btn btn-sm btn-danger" onClick={() => remove(c.id)}>✕</button>
         </div>

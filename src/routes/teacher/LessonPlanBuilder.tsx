@@ -5,11 +5,13 @@ import TeacherNav from '../../components/TeacherNav';
 import QuizEditor from './QuizEditor';
 import DrillEditor from './DrillEditor';
 import StepsEditor from './StepsEditor';
+import ImageUploadField from '../../components/ImageUploadField';
 import { makeId } from '../../lib/id';
+import { currentDayOfWeek } from '../../lib/dates';
 import { parseCSV, downloadCSV } from '../../lib/csv';
 import { rowsToQuizQuestions, rowsToDrillCards, QUIZ_TEMPLATE_ROWS, DRILL_TEMPLATE_ROWS } from '../../lib/importQuestions';
-import type { Subject, Task, TaskType, QuizQuestion, DrillCard } from '../../types';
-import { TASK_TYPE_LABELS } from '../../types';
+import type { Subject, Task, TaskType, QuizQuestion, DrillCard, ActivityLibraryItem, DayOfWeek } from '../../types';
+import { TASK_TYPE_LABELS, WEEKDAYS, WEEKDAY_SHORT, WEEKDAY_LABELS } from '../../types';
 
 const ICON_CHOICES = ['📘', '✏️', '🔤', '🔢', '➗', '🧩', '🎧', '🌍', '🖐️', '🎯', '🧠', '📐', '🗣️', '🎨', '▶️', '📖', '⛓️', '🩹'];
 
@@ -32,9 +34,44 @@ const blankTask = (): Task => ({
   referenceLinkLabel: '',
 });
 
-function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; subject: Subject; onSave: (t: Task) => void; onCancel: () => void }) {
+// Turns a library item into a fresh, independent Task snapshot — used
+// anywhere an activity is copied into a plan/template so later edits or
+// deletes in the library never reach back into what was already handed out.
+const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
+  id: makeId(),
+  title: a.title,
+  icon: a.icon,
+  type: a.type,
+  quiz: a.quiz,
+  link: a.link,
+  offscreen: a.offscreen,
+  video: a.video,
+  passage: a.passage,
+  drill: a.drill,
+  wordchain: a.wordchain,
+  sentenceEdit: a.sentenceEdit,
+  customSteps: a.customSteps,
+  referenceImageUrl: a.referenceImageUrl,
+  referenceLinkUrl: a.referenceLinkUrl,
+  referenceLinkLabel: a.referenceLinkLabel,
+});
+
+function TaskEditor({
+  initial,
+  subject,
+  onSave,
+  onCancel,
+  matchExisting,
+}: {
+  initial: Task;
+  subject: Subject;
+  onSave: (t: Task) => void;
+  onCancel: () => void;
+  matchExisting?: (title: string) => Task | undefined;
+}) {
   const [task, setTask] = useState<Task>(initial);
   const [showSteps, setShowSteps] = useState((initial.customSteps?.length ?? 0) > 0);
+  const [matchedNotice, setMatchedNotice] = useState<string | null>(null);
 
   return (
     <div className="content-well stack">
@@ -51,8 +88,22 @@ function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; sub
             style={{ width: '100%' }}
             value={task.title}
             onChange={(e) => setTask({ ...task, title: e.target.value })}
+            onBlur={() => {
+              if (!matchExisting) return;
+              const trimmed = task.title.trim();
+              if (!trimmed) return;
+              const match = matchExisting(trimmed);
+              if (match && match.id !== initial.id) {
+                setTask({ ...match, id: task.id, title: trimmed });
+                setShowSteps((match.customSteps?.length ?? 0) > 0);
+                setMatchedNotice(`Filled in from your existing "${trimmed}" activity — directions, links, and settings all matched. Change anything you need for this one.`);
+              }
+            }}
             placeholder="e.g. Sound Drill Review"
           />
+          {matchedNotice && (
+            <p style={{ fontSize: '0.78rem', color: 'var(--purple-dark)', margin: '4px 0 0' }}>↩️ {matchedNotice}</p>
+          )}
         </div>
         <div>
           <label>Type</label>
@@ -138,14 +189,11 @@ function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; sub
               onChange={(e) => setTask({ ...task, passage: { ...task.passage!, text: e.target.value } })}
             />
           </div>
-          <div>
-            <label>Image URL (optional)</label>
-            <input
-              style={{ width: '100%' }}
-              value={task.passage?.imageUrl ?? ''}
-              onChange={(e) => setTask({ ...task, passage: { ...task.passage!, imageUrl: e.target.value } })}
-            />
-          </div>
+          <ImageUploadField
+            label="Image (optional)"
+            value={task.passage?.imageUrl}
+            onChange={(imageUrl) => setTask({ ...task, passage: { ...task.passage!, imageUrl: imageUrl || undefined } })}
+          />
           <hr className="divider" />
           <strong>Comprehension questions (optional)</strong>
           <QuizEditor
@@ -253,12 +301,10 @@ function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; sub
       <strong>Extras</strong>
       <div className="row-wrap">
         <div style={{ flex: 1, minWidth: 220 }}>
-          <label>🖼️ Reference image for the student (optional)</label>
-          <input
-            style={{ width: '100%' }}
-            placeholder="https://..."
-            value={task.referenceImageUrl ?? ''}
-            onChange={(e) => setTask({ ...task, referenceImageUrl: e.target.value })}
+          <ImageUploadField
+            label="🖼️ Reference image for the student (optional)"
+            value={task.referenceImageUrl}
+            onChange={(url) => setTask({ ...task, referenceImageUrl: url })}
           />
         </div>
       </div>
@@ -292,7 +338,7 @@ function TaskEditor({ initial, subject, onSave, onCancel }: { initial: Task; sub
 
       <div className="row">
         <button className="btn btn-primary" disabled={!task.title.trim()} onClick={() => onSave(showSteps ? task : { ...task, customSteps: [] })}>
-          💾 Save Task
+          💾 Save Activity
         </button>
         <button className="btn" onClick={onCancel}>Cancel</button>
       </div>
@@ -305,7 +351,6 @@ function SetCard({ subject }: { subject: Subject }) {
   const updateQuestionSet = useStore((s) => s.updateQuestionSet);
   const deleteQuestionSet = useStore((s) => s.deleteQuestionSet);
   const [editingCoverId, setEditingCoverId] = useState<string | null>(null);
-  const [coverDraft, setCoverDraft] = useState('');
 
   const sets = questionSets.filter((s) => s.subject === subject);
 
@@ -326,34 +371,20 @@ function SetCard({ subject }: { subject: Subject }) {
               {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
             </div>
             {editingCoverId === set.id ? (
-              <div className="row-wrap">
-                <input
-                  style={{ flex: 1, minWidth: 0 }}
-                  placeholder="Cover image URL"
-                  value={coverDraft}
-                  onChange={(e) => setCoverDraft(e.target.value)}
-                />
-                <button
-                  className="btn btn-sm btn-primary"
-                  onClick={() => {
-                    updateQuestionSet(set.id, { coverImageUrl: coverDraft.trim() || undefined });
-                    setEditingCoverId(null);
+              <div className="stack">
+                <ImageUploadField
+                  label="Cover image"
+                  value={set.coverImageUrl}
+                  onChange={(url) => {
+                    updateQuestionSet(set.id, { coverImageUrl: url || undefined });
+                    if (url) setEditingCoverId(null);
                   }}
-                >
-                  ✓
-                </button>
+                />
+                <button className="btn btn-sm" onClick={() => setEditingCoverId(null)}>Done</button>
               </div>
             ) : (
               <div className="set-card-actions">
-                <button
-                  className="btn btn-sm"
-                  onClick={() => {
-                    setEditingCoverId(set.id);
-                    setCoverDraft(set.coverImageUrl ?? '');
-                  }}
-                >
-                  🖼️ Cover
-                </button>
+                <button className="btn btn-sm" onClick={() => setEditingCoverId(set.id)}>🖼️ Cover</button>
                 <button className="btn btn-sm btn-danger" onClick={() => deleteQuestionSet(set.id)}>Delete</button>
               </div>
             )}
@@ -368,7 +399,6 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
   const addQuestionSet = useStore((s) => s.addQuestionSet);
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
-  const [coverImageUrl, setCoverImageUrl] = useState('');
   const [parsed, setParsed] = useState<{ questions: QuizQuestion[]; cards: DrillCard[] } | null>(null);
   const [fileName, setFileName] = useState('');
 
@@ -386,17 +416,9 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
 
   const save = () => {
     if (!parsed || !name.trim()) return;
-    addQuestionSet({
-      name: name.trim(),
-      subject,
-      kind,
-      questions: parsed.questions,
-      cards: parsed.cards,
-      coverImageUrl: coverImageUrl.trim() || undefined,
-    });
+    addQuestionSet({ name: name.trim(), subject, kind, questions: parsed.questions, cards: parsed.cards });
     setParsed(null);
     setName('');
-    setCoverImageUrl('');
     setFileName('');
     if (fileRef.current) fileRef.current.value = '';
   };
@@ -425,7 +447,6 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
       {parsed && (
         <div className="row-wrap">
           <input placeholder="Set name" value={name} onChange={(e) => setName(e.target.value)} />
-          <input placeholder="Cover image URL (optional)" value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} style={{ minWidth: 200 }} />
           <button className="btn btn-sm btn-primary" disabled={!name.trim() || count === 0} onClick={save}>
             💾 Save Set
           </button>
@@ -440,7 +461,7 @@ function ContentLibrary({ subject }: { subject: Subject }) {
   return (
     <div className="chrome-frame stack" style={{ padding: 14 }}>
       <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} 📚 Content Library (reusable question sets & drills)
+        {open ? '▾' : '▸'} 📚 Question & Drill Sets (reusable content you can insert into any quiz/drill activity)
       </button>
       {open && (
         <div className="stack">
@@ -460,27 +481,29 @@ function ContentLibrary({ subject }: { subject: Subject }) {
 }
 
 function PlaygroundPool() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const updateLibraryActivity = useStore((s) => s.updateLibraryActivity);
 
   const entries = activityLibrary.filter((a) => a.inPlayground);
 
   return (
-    <div className="chrome-frame stack" style={{ padding: 14 }}>
-      <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length}) — shared across all students
+    <div className="zone zone-playground stack">
+      <button className="zone-header-btn" onClick={() => setOpen((o) => !o)}>
+        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length}) — shared across all students, unlocked after finishing today's work
       </button>
       {open && (
         entries.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>Nothing in the Playground yet — tap the 🎪 on any activity in the library below.</p>
+          <p className="zone-empty-note">Nothing here yet — tap the 🎪 button on any card in the Activity Library below.</p>
         ) : (
-          <div className="stack">
+          <div className="playground-strip">
             {entries.map((a) => (
-              <div key={a.id} className="content-well space-between">
-                <span>{a.icon} <strong>{a.title}</strong> <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span></span>
+              <div key={a.id} className="playground-chip">
+                {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span className="playground-chip-icon">{a.icon}</span>}
+                <strong>{a.title}</strong>
+                <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
                 <button className="btn btn-sm btn-danger" onClick={() => updateLibraryActivity(a.id, { inPlayground: false })}>
-                  Remove from Playground
+                  ✕ Remove
                 </button>
               </div>
             ))}
@@ -491,7 +514,7 @@ function PlaygroundPool() {
   );
 }
 
-function ActivityLibraryPanel({ subject, onDragActivity }: { subject: Subject; onDragActivity?: () => void }) {
+function ActivityLibraryPanel({ subject, tasks }: { subject: Subject; tasks: Task[] }) {
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addLibraryActivity = useStore((s) => s.addLibraryActivity);
   const updateLibraryActivity = useStore((s) => s.updateLibraryActivity);
@@ -501,166 +524,350 @@ function ActivityLibraryPanel({ subject, onDragActivity }: { subject: Subject; o
 
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
-  const activities = activityLibrary.filter((a) => a.subject === subject);
+  const allForSubject = activityLibrary.filter((a) => a.subject === subject);
+  const activities = allForSubject.filter(
+    (a) => !search.trim() || a.title.toLowerCase().includes(search.trim().toLowerCase()),
+  );
   const editingActivity = activities.find((a) => a.id === editingId);
+  const titlesOnTodaysPlan = new Set(tasks.map((t) => t.title.trim().toLowerCase()));
 
   return (
-    <div className="chrome-frame stack" style={{ padding: 14 }}>
-      <div className="space-between">
-        <strong>🗂️ Activity Library</strong>
-        {!creating && <button className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>➕ New Activity</button>}
-      </div>
-      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        Create an activity once, then drag its card into today's plan below — or tap "Add to plan." Tap 🎪 to add it
-        to the shared Playground pool.
-      </p>
-
-      {creating && (
-        <TaskEditor
-          initial={blankTask()}
-          subject={subject}
-          onSave={(t) => {
-            addLibraryActivity({ ...t, subject, inPlayground: false });
-            setCreating(false);
-          }}
-          onCancel={() => setCreating(false)}
-        />
-      )}
-
-      {activities.length === 0 ? (
-        <p style={{ opacity: 0.7 }}>No activities in the library for this subject yet.</p>
-      ) : (
-        <div className="library-card-grid">
-          {activities.map((a) => (
-            <div
-              key={a.id}
-              className="library-card"
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', a.id);
-                e.dataTransfer.effectAllowed = 'copy';
-                onDragActivity?.();
-              }}
-            >
-              {editingId === a.id && editingActivity ? (
-                <div style={{ padding: 10 }}>
-                  <TaskEditor
-                    initial={editingActivity}
-                    subject={subject}
-                    onSave={(t) => {
-                      updateLibraryActivity(a.id, t);
-                      setEditingId(null);
-                    }}
-                    onCancel={() => setEditingId(null)}
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="library-card-thumb">
-                    {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span>{a.icon}</span>}
-                  </div>
-                  <div className="library-card-body">
-                    <div className="set-card-title">{a.title || '(untitled)'}</div>
-                    <div className="set-card-meta">{TASK_TYPE_LABELS[a.type]}</div>
-                    <div className="row-wrap">
-                      <button
-                        className={`btn btn-sm ${a.inPlayground ? 'btn-primary' : ''}`}
-                        onClick={() => updateLibraryActivity(a.id, { inPlayground: !a.inPlayground })}
-                        title="Add to / remove from the Playground"
-                      >
-                        🎪
-                      </button>
-                      {studentId && (
-                        <button className="btn btn-sm btn-success" onClick={() => addActivityToPlan(studentId, subject, a.id)}>
-                          ➕ Add to plan
-                        </button>
-                      )}
-                      <button className="btn btn-sm" onClick={() => setEditingId(a.id)}>Edit</button>
-                      <button className="btn btn-sm btn-danger" onClick={() => deleteLibraryActivity(a.id)}>Delete</button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+    <div className="zone zone-library stack">
+      <div className="zone-header-bar">🗂️ Activity Library — build it once, use it everywhere</div>
+      <div style={{ padding: 14 }} className="stack">
+        <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+          Create an activity here, then drag its card down into "Today's Plan," tap "➕ Add to plan," or tap 🎪 to put
+          it in the shared Playground. Typing a title that matches an existing activity auto-fills the rest for you.
+        </p>
+        <div className="row-wrap">
+          <input
+            placeholder="🔍 Search this subject's activities…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: 1, minWidth: 200 }}
+          />
+          {!creating && <button className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>➕ New Activity</button>}
         </div>
-      )}
+
+        {creating && (
+          <TaskEditor
+            initial={blankTask()}
+            subject={subject}
+            matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
+            onSave={(t) => {
+              addLibraryActivity({ ...t, subject, inPlayground: false });
+              setCreating(false);
+            }}
+            onCancel={() => setCreating(false)}
+          />
+        )}
+
+        {activities.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>{search ? 'No activities match your search.' : 'No activities in the library for this subject yet.'}</p>
+        ) : (
+          <div className="library-card-grid">
+            {activities.map((a) => {
+              const onTodaysPlan = titlesOnTodaysPlan.has(a.title.trim().toLowerCase());
+              return (
+                <div
+                  key={a.id}
+                  className="library-card"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', a.id);
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
+                >
+                  {editingId === a.id && editingActivity ? (
+                    <div style={{ padding: 10 }}>
+                      <TaskEditor
+                        initial={editingActivity}
+                        subject={subject}
+                        matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
+                        onSave={(t) => {
+                          updateLibraryActivity(a.id, t);
+                          setEditingId(null);
+                        }}
+                        onCancel={() => setEditingId(null)}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="library-card-thumb">
+                        {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span>{a.icon}</span>}
+                      </div>
+                      <div className="library-card-body">
+                        <div className="row-wrap" style={{ gap: 4 }}>
+                          {a.inPlayground && <span className="badge-pill badge-playground">🎪 Playground</span>}
+                          {onTodaysPlan && <span className="badge-pill badge-onplan">📌 On today's plan</span>}
+                        </div>
+                        <div className="set-card-title">{a.title || '(untitled)'}</div>
+                        <div className="set-card-meta">{TASK_TYPE_LABELS[a.type]}</div>
+                        <div className="row-wrap">
+                          <button
+                            className={`btn btn-sm ${a.inPlayground ? 'btn-primary' : ''}`}
+                            onClick={() => updateLibraryActivity(a.id, { inPlayground: !a.inPlayground })}
+                            title="Add to / remove from the Playground"
+                          >
+                            🎪
+                          </button>
+                          {studentId && (
+                            <button className="btn btn-sm btn-success" onClick={() => addActivityToPlan(studentId, subject, a.id)}>
+                              ➕ Add to plan
+                            </button>
+                          )}
+                          <button className="btn btn-sm" onClick={() => setEditingId(a.id)}>Edit</button>
+                          <button className="btn btn-sm btn-danger" onClick={() => deleteLibraryActivity(a.id)}>Delete</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WeeklyScheduleGrid({ studentId, subject, studentName }: { studentId: string; subject: Subject; studentName: string }) {
+  const planTemplates = useStore((s) => s.planTemplates);
+  const weeklySchedule = useStore((s) => s.weeklySchedule);
+  const setWeeklyScheduleDay = useStore((s) => s.setWeeklyScheduleDay);
+  const applyTemplateToStudent = useStore((s) => s.applyTemplateToStudent);
+
+  const templates = planTemplates.filter((t) => t.subject === subject);
+  const today = currentDayOfWeek();
+
+  const assignedFor = (day: DayOfWeek) =>
+    weeklySchedule.find((w) => w.studentId === studentId && w.subject === subject && w.day === day)?.templateId ?? '';
+
+  const todaysTemplateId = today ? assignedFor(today) : '';
+
+  return (
+    <div className="zone zone-week stack">
+      <div className="zone-header-bar">📅 This Week — {studentName}'s recurring plan</div>
+      <div style={{ padding: 14 }} className="stack">
+        <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+          Assign a template to each weekday — it loads automatically into "Today's Plan" below the first time{' '}
+          {studentName} logs in that day. Leave a day set to "— manual —" to keep managing it by hand. After a
+          template loads, you can still tweak that one day's copy (like swapping a link) without changing the
+          template or any other day.
+        </p>
+        {templates.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>Save a template in "📑 Templates" below first, then come back here to assign it to days.</p>
+        ) : (
+          <div className="week-grid">
+            {WEEKDAYS.map((day) => (
+              <div key={day} className={`week-cell ${today === day ? 'week-cell-today' : ''}`}>
+                <div className="week-cell-label">{WEEKDAY_SHORT[day]}{today === day ? ' • today' : ''}</div>
+                <select value={assignedFor(day)} onChange={(e) => setWeeklyScheduleDay(studentId, subject, day, e.target.value || null)}>
+                  <option value="">— manual —</option>
+                  {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+        {today && (
+          <button
+            className="btn btn-sm"
+            disabled={!todaysTemplateId}
+            onClick={() => todaysTemplateId && applyTemplateToStudent(studentId, todaysTemplateId)}
+          >
+            ▶️ Load {WEEKDAY_LABELS[today]}'s plan now
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
 function TemplatesPanel({ studentId, subject, currentTasks }: { studentId: string; subject: Subject; currentTasks: Task[] }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [savingName, setSavingName] = useState<string | null>(null);
   const planTemplates = useStore((s) => s.planTemplates);
+  const activityLibrary = useStore((s) => s.activityLibrary);
   const addTemplate = useStore((s) => s.addTemplate);
+  const updateTemplate = useStore((s) => s.updateTemplate);
+  const duplicateTemplate = useStore((s) => s.duplicateTemplate);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
   const applyTemplateToStudent = useStore((s) => s.applyTemplateToStudent);
   const [confirmApplyId, setConfirmApplyId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [addFromLibraryId, setAddFromLibraryId] = useState('');
 
   const templates = planTemplates.filter((t) => t.subject === subject);
+  const libraryForSubject = activityLibrary.filter((a) => a.subject === subject);
 
   return (
-    <div className="chrome-frame stack" style={{ padding: 14 }}>
-      <div className="space-between">
-        <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen((o) => !o)}>
-          {open ? '▾' : '▸'} 📑 Templates ({templates.length})
-        </button>
-        {savingName === null ? (
-          <button className="btn btn-sm" disabled={currentTasks.length === 0} onClick={() => setSavingName('')}>
-            💾 Save current plan as template
-          </button>
-        ) : (
-          <div className="row-wrap">
-            <input placeholder="Template name" value={savingName} onChange={(e) => setSavingName(e.target.value)} />
-            <button
-              className="btn btn-sm btn-primary"
-              disabled={!savingName.trim()}
-              onClick={() => {
-                addTemplate(savingName.trim(), subject, currentTasks);
-                setSavingName(null);
-              }}
-            >
-              Save
+    <div className="zone zone-templates stack">
+      <button className="zone-header-btn zone-header-bar" onClick={() => setOpen((o) => !o)}>
+        {open ? '▾' : '▸'} 📑 Templates ({templates.length}) — reusable daily plans
+      </button>
+      <div style={{ padding: 14 }} className="stack">
+        <div className="row-wrap">
+          {savingName === null ? (
+            <button className="btn btn-sm" disabled={currentTasks.length === 0} onClick={() => setSavingName('')}>
+              💾 Save today's plan as a new template
             </button>
-            <button className="btn btn-sm" onClick={() => setSavingName(null)}>Cancel</button>
-          </div>
+          ) : (
+            <>
+              <input placeholder="Template name" value={savingName} onChange={(e) => setSavingName(e.target.value)} />
+              <button
+                className="btn btn-sm btn-primary"
+                disabled={!savingName.trim()}
+                onClick={() => {
+                  addTemplate(savingName.trim(), subject, currentTasks);
+                  setSavingName(null);
+                }}
+              >
+                Save
+              </button>
+              <button className="btn btn-sm" onClick={() => setSavingName(null)}>Cancel</button>
+            </>
+          )}
+        </div>
+        {open && (
+          templates.length === 0 ? (
+            <p style={{ opacity: 0.7 }}>No saved templates for this subject yet.</p>
+          ) : (
+            <div className="stack">
+              {templates.map((t) => {
+                const expanded = expandedId === t.id;
+                return (
+                  <div key={t.id} className="content-well stack">
+                    <div className="space-between">
+                      {renamingId === t.id ? (
+                        <div className="row-wrap">
+                          <input value={renameDraft} onChange={(e) => setRenameDraft(e.target.value)} />
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => {
+                              updateTemplate(t.id, { name: renameDraft.trim() || t.name });
+                              setRenamingId(null);
+                            }}
+                          >
+                            ✓
+                          </button>
+                          <button className="btn btn-sm" onClick={() => setRenamingId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <span><strong>{t.name}</strong> — {t.activities.length} activities</span>
+                      )}
+                      {confirmApplyId === t.id ? (
+                        <div className="row-wrap">
+                          <span style={{ fontSize: '0.85rem' }}>Replace this student's Today's Plan?</span>
+                          <button
+                            className="btn btn-sm btn-success"
+                            onClick={() => {
+                              applyTemplateToStudent(studentId, t.id);
+                              setConfirmApplyId(null);
+                            }}
+                          >
+                            Yes, load it
+                          </button>
+                          <button className="btn btn-sm" onClick={() => setConfirmApplyId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <div className="row-wrap">
+                          <button className="btn btn-sm" onClick={() => { setRenamingId(t.id); setRenameDraft(t.name); }}>✏️ Rename</button>
+                          <button className="btn btn-sm" onClick={() => setExpandedId(expanded ? null : t.id)}>
+                            {expanded ? '▾ Hide activities' : '▸ Edit activities'}
+                          </button>
+                          <button className="btn btn-sm" onClick={() => duplicateTemplate(t.id)}>⧉ Duplicate</button>
+                          <button className="btn btn-sm btn-primary" onClick={() => setConfirmApplyId(t.id)}>▶️ Load into Today's Plan</button>
+                          <button className="btn btn-sm btn-danger" onClick={() => deleteTemplate(t.id)}>Delete</button>
+                        </div>
+                      )}
+                    </div>
+
+                    {expanded && (
+                      <div className="stack" style={{ paddingLeft: 8, borderLeft: '3px solid var(--content-border)' }}>
+                        {t.activities.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No activities in this template yet.</p>}
+                        {t.activities.map((a, i) => (
+                          <div key={a.id} className="content-well stack">
+                            <div className="space-between">
+                              <span>{a.icon} {a.title || '(untitled)'}</span>
+                              <div className="row-wrap">
+                                <button
+                                  className="btn btn-sm"
+                                  disabled={i === 0}
+                                  onClick={() => {
+                                    const next = [...t.activities];
+                                    [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                                    updateTemplate(t.id, { activities: next });
+                                  }}
+                                >
+                                  ⬆️
+                                </button>
+                                <button
+                                  className="btn btn-sm"
+                                  disabled={i === t.activities.length - 1}
+                                  onClick={() => {
+                                    const next = [...t.activities];
+                                    [next[i + 1], next[i]] = [next[i], next[i + 1]];
+                                    updateTemplate(t.id, { activities: next });
+                                  }}
+                                >
+                                  ⬇️
+                                </button>
+                                <button className="btn btn-sm" onClick={() => setEditingActivityId(editingActivityId === a.id ? null : a.id)}>Edit</button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => updateTemplate(t.id, { activities: t.activities.filter((x) => x.id !== a.id) })}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                            {editingActivityId === a.id && (
+                              <TaskEditor
+                                initial={a}
+                                subject={subject}
+                                onSave={(nt) => {
+                                  updateTemplate(t.id, { activities: t.activities.map((x) => (x.id === a.id ? nt : x)) });
+                                  setEditingActivityId(null);
+                                }}
+                                onCancel={() => setEditingActivityId(null)}
+                              />
+                            )}
+                          </div>
+                        ))}
+                        <div className="row-wrap">
+                          <select value={addFromLibraryId} onChange={(e) => setAddFromLibraryId(e.target.value)}>
+                            <option value="">+ Add activity from the Library…</option>
+                            {libraryForSubject.map((a) => <option key={a.id} value={a.id}>{a.title || '(untitled)'}</option>)}
+                          </select>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            disabled={!addFromLibraryId}
+                            onClick={() => {
+                              const lib = libraryForSubject.find((a) => a.id === addFromLibraryId);
+                              if (!lib) return;
+                              updateTemplate(t.id, { activities: [...t.activities, activityToTaskSnapshot(lib)] });
+                              setAddFromLibraryId('');
+                            }}
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
-      {open && (
-        templates.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>No saved templates for this subject yet.</p>
-        ) : (
-          <div className="stack">
-            {templates.map((t) => (
-              <div key={t.id} className="content-well space-between">
-                <span><strong>{t.name}</strong> — {t.activities.length} activities</span>
-                {confirmApplyId === t.id ? (
-                  <div className="row-wrap">
-                    <span style={{ fontSize: '0.85rem' }}>Replace this student's current {subject} plan?</span>
-                    <button
-                      className="btn btn-sm btn-success"
-                      onClick={() => {
-                        applyTemplateToStudent(studentId, t.id);
-                        setConfirmApplyId(null);
-                      }}
-                    >
-                      Yes, apply
-                    </button>
-                    <button className="btn btn-sm" onClick={() => setConfirmApplyId(null)}>Cancel</button>
-                  </div>
-                ) : (
-                  <div className="row-wrap">
-                    <button className="btn btn-sm btn-primary" onClick={() => setConfirmApplyId(t.id)}>Apply to this student</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => deleteTemplate(t.id)}>Delete</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )
-      )}
     </div>
   );
 }
@@ -672,14 +879,13 @@ export default function LessonPlanBuilder() {
   const rotations = useStore((s) => s.rotations);
   const rotationModes = useStore((s) => s.rotationModes);
   const setRotationMode = useStore((s) => s.setRotationMode);
-  const addTask = useStore((s) => s.addTask);
   const updateTask = useStore((s) => s.updateTask);
   const deleteTask = useStore((s) => s.deleteTask);
   const reorderTasks = useStore((s) => s.reorderTasks);
   const addActivityToPlan = useStore((s) => s.addActivityToPlan);
 
   const [subj, setSubj] = useState<Subject>('math');
-  const [editing, setEditing] = useState<Task | 'new' | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const student = students.find((s) => s.id === studentId);
@@ -701,7 +907,7 @@ export default function LessonPlanBuilder() {
 
   const switchSubject = (s: Subject) => {
     setSubj(s);
-    setEditing(null);
+    setEditingTaskId(null);
   };
 
   return (
@@ -709,12 +915,9 @@ export default function LessonPlanBuilder() {
       <TeacherNav />
       <div className="container stack">
         <div className="space-between">
-          <h1>{student.avatar} {student.name} — Daily Lesson Plan</h1>
+          <h1>{student.avatar} {student.name} — Assignments</h1>
           <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
         </div>
-        <p style={{ opacity: 0.75 }}>
-          This plan repeats every day until you change it. Add, edit, reorder, or remove activities any time.
-        </p>
 
         <div className="subject-tabs">
           <button className={`subject-tab-btn tab-math ${subj === 'math' ? 'active' : ''}`} onClick={() => switchSubject('math')}>🔢 Math</button>
@@ -740,91 +943,82 @@ export default function LessonPlanBuilder() {
           </span>
         </div>
 
-        <ActivityLibraryPanel subject={subj} />
-        <TemplatesPanel studentId={student.id} subject={subj} currentTasks={tasks} />
+        <ActivityLibraryPanel subject={subj} tasks={tasks} />
         <PlaygroundPool />
-        <ContentLibrary subject={subj} />
+        <WeeklyScheduleGrid studentId={student.id} subject={subj} studentName={student.name} />
+        <TemplatesPanel studentId={student.id} subject={subj} currentTasks={tasks} />
 
-        <div
-          className={`stack drop-zone ${dragOver ? 'drop-zone-active' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragOver(false);
-            const activityId = e.dataTransfer.getData('text/plain');
-            if (activityId) addActivityToPlan(student.id, subj, activityId);
-          }}
-        >
-          {tasks.length === 0 && (
-            <p className="chrome-frame" style={{ padding: 14, opacity: 0.7, textAlign: 'center' }}>
-              No activities yet. Drag one in from the Activity Library above, or tap "➕ Add Activity" below.
-            </p>
-          )}
-          {tasks.map((t, i) => (
-            <div key={t.id} className="chrome-frame stack" style={{ padding: 14 }}>
-              <div className="space-between">
-                <div className="row">
-                  <span style={{ fontSize: '1.6rem' }}>{t.icon}</span>
-                  <div>
-                    <strong>{t.title || '(untitled)'}</strong>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                      {t.type === 'quiz' && `Quiz · ${t.quiz?.questions.length ?? 0} question(s)`}
-                      {t.type === 'link' && `External link`}
-                      {t.type === 'offscreen' && `Off-screen / paper`}
-                      {t.type === 'video' && `Video`}
-                      {t.type === 'passage' && `Passage · ${t.quiz?.questions.length ?? 0} question(s)`}
-                      {t.type === 'drill' && `Flashcard drill · ${t.drill?.cards.length ?? 0} card(s)`}
-                      {t.type === 'wordchain' && `Word chain · ${t.wordchain?.steps.length ?? 0} step(s)`}
-                      {t.type === 'sentenceEdit' && `Editing sentences`}
-                      {t.referenceImageUrl && ' · 🖼️'}
-                      {t.referenceLinkUrl && ' · 🔗'}
+        <div className="zone zone-today stack">
+          <div className="zone-header-bar">✅ Today's Plan — exactly what {student.name} sees right now</div>
+          <div
+            className={`stack drop-zone ${dragOver ? 'drop-zone-active' : ''}`}
+            style={{ padding: 14 }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'copy';
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const activityId = e.dataTransfer.getData('text/plain');
+              if (activityId) addActivityToPlan(student.id, subj, activityId);
+            }}
+          >
+            {tasks.length === 0 && (
+              <p className="chrome-frame" style={{ padding: 14, opacity: 0.7, textAlign: 'center' }}>
+                No activities yet. Drag one in from the Activity Library above, assign a Template in "This Week," or
+                tap "➕ Add to plan" on any library card.
+              </p>
+            )}
+            {tasks.map((t, i) => (
+              <div key={t.id} className="chrome-frame stack" style={{ padding: 14 }}>
+                <div className="space-between">
+                  <div className="row">
+                    <span style={{ fontSize: '1.6rem' }}>{t.icon}</span>
+                    <div>
+                      <strong>{t.title || '(untitled)'}</strong>
+                      <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                        {t.type === 'quiz' && `Quiz · ${t.quiz?.questions.length ?? 0} question(s)`}
+                        {t.type === 'link' && `External link`}
+                        {t.type === 'offscreen' && `Off-screen / paper`}
+                        {t.type === 'video' && `Video`}
+                        {t.type === 'passage' && `Passage · ${t.quiz?.questions.length ?? 0} question(s)`}
+                        {t.type === 'drill' && `Flashcard drill · ${t.drill?.cards.length ?? 0} card(s)`}
+                        {t.type === 'wordchain' && `Word chain · ${t.wordchain?.steps.length ?? 0} step(s)`}
+                        {t.type === 'sentenceEdit' && `Editing sentences`}
+                        {t.referenceImageUrl && ' · 🖼️'}
+                        {t.referenceLinkUrl && ' · 🔗'}
+                      </div>
                     </div>
                   </div>
+                  <div className="row-wrap">
+                    <button className="btn btn-sm" disabled={i === 0} onClick={() => reorderTasks(student.id, subj, i, i - 1)}>⬆️</button>
+                    <button className="btn btn-sm" disabled={i === tasks.length - 1} onClick={() => reorderTasks(student.id, subj, i, i + 1)}>⬇️</button>
+                    <button className="btn btn-sm" onClick={() => setEditingTaskId(editingTaskId === t.id ? null : t.id)}>
+                      {editingTaskId === t.id ? 'Close' : 'Edit'}
+                    </button>
+                    <button className="btn btn-sm btn-danger" onClick={() => deleteTask(student.id, subj, t.id)}>Delete</button>
+                  </div>
                 </div>
-                <div className="row-wrap">
-                  <button className="btn btn-sm" disabled={i === 0} onClick={() => reorderTasks(student.id, subj, i, i - 1)}>⬆️</button>
-                  <button className="btn btn-sm" disabled={i === tasks.length - 1} onClick={() => reorderTasks(student.id, subj, i, i + 1)}>⬇️</button>
-                  <button className="btn btn-sm" onClick={() => setEditing(t)}>Edit</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => deleteTask(student.id, subj, t.id)}>Delete</button>
-                </div>
+                {editingTaskId === t.id && (
+                  <TaskEditor
+                    initial={t}
+                    subject={subj}
+                    onSave={(nt) => {
+                      updateTask(student.id, subj, nt.id, nt);
+                      setEditingTaskId(null);
+                    }}
+                    onCancel={() => setEditingTaskId(null)}
+                  />
+                )}
               </div>
-              {editing !== 'new' && editing?.id === t.id && (
-                <TaskEditor
-                  initial={editing}
-                  subject={subj}
-                  onSave={(nt) => {
-                    updateTask(student.id, subj, nt.id, nt);
-                    setEditing(null);
-                  }}
-                  onCancel={() => setEditing(null)}
-                />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {editing === 'new' ? (
-          <div className="chrome-frame" style={{ padding: 14 }}>
-            <TaskEditor
-              initial={blankTask()}
-              subject={subj}
-              onSave={(nt) => {
-                addTask(student.id, subj, nt);
-                setEditing(null);
-              }}
-              onCancel={() => setEditing(null)}
-            />
-          </div>
-        ) : (
-          <button className="btn btn-primary btn-lg" onClick={() => setEditing('new')}>
-            ➕ Add Activity
-          </button>
-        )}
+        <ContentLibrary subject={subj} />
       </div>
     </div>
   );
