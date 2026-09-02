@@ -1,6 +1,10 @@
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 
+type InboxItem =
+  | { kind: 'help'; id: string; studentId: string; timestamp: string; done: boolean }
+  | { kind: 'offscreen'; id: string; studentId: string; timestamp: string; done: boolean; taskTitle: string; subject: string };
+
 export default function ReviewInbox() {
   const students = useStore((s) => s.students);
   const offscreenReviews = useStore((s) => s.offscreenReviews);
@@ -11,57 +15,54 @@ export default function ReviewInbox() {
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const avatarFor = (id: string) => students.find((s) => s.id === id)?.avatar ?? '❓';
 
-  const openPings = helpPings.filter((h) => !h.resolved);
-  const resolvedPings = helpPings.filter((h) => h.resolved).slice(0, 10);
-  const unverified = offscreenReviews.filter((o) => !o.verified);
-  const verified = offscreenReviews.filter((o) => o.verified).slice(0, 10);
+  const items: InboxItem[] = [
+    ...helpPings.map((h): InboxItem => ({ kind: 'help', id: h.id, studentId: h.studentId, timestamp: h.timestamp, done: h.resolved })),
+    ...offscreenReviews.map((o): InboxItem => ({
+      kind: 'offscreen',
+      id: o.id,
+      studentId: o.studentId,
+      timestamp: o.timestamp,
+      done: o.verified,
+      taskTitle: o.taskTitle,
+      subject: o.subject,
+    })),
+  ].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
 
   return (
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <h1>Review Inbox</h1>
-
-        <section className="stack">
-          <h3>🙋 Help Pings</h3>
-          {openPings.length === 0 && <p style={{ opacity: 0.7 }}>Nothing needs attention right now.</p>}
-          {openPings.map((h) => (
-            <div key={h.id} className="chrome-frame space-between" style={{ padding: 14 }}>
-              <span>{avatarFor(h.studentId)} <strong>{nameFor(h.studentId)}</strong> asked for you — {new Date(h.timestamp).toLocaleTimeString()}</span>
-              <button className="btn btn-sm btn-success" onClick={() => resolveHelp(h.id)}>Got it ✓</button>
-            </div>
-          ))}
-        </section>
-
-        <section className="stack">
-          <h3>✅ Off-Screen / Paper Tasks to Check</h3>
-          {unverified.length === 0 && <p style={{ opacity: 0.7 }}>Nothing waiting for review.</p>}
-          {unverified.map((o) => (
-            <div key={o.id} className="chrome-frame space-between" style={{ padding: 14 }}>
-              <span>
-                {avatarFor(o.studentId)} <strong>{nameFor(o.studentId)}</strong> marked "{o.taskTitle}" ({o.subject}) done — {new Date(o.timestamp).toLocaleTimeString()}
-              </span>
-              <button className="btn btn-sm btn-success" onClick={() => verifyOffscreen(o.id)}>Verify ✓</button>
-            </div>
-          ))}
-        </section>
-
-        {(resolvedPings.length > 0 || verified.length > 0) && (
-          <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Recently handled</summary>
-            <div className="stack" style={{ marginTop: 10 }}>
-              {resolvedPings.map((h) => (
-                <div key={h.id} style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                  {avatarFor(h.studentId)} {nameFor(h.studentId)} — help resolved
+        <h1>📥 Inbox</h1>
+        {items.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>Nothing here yet.</p>
+        ) : (
+          <div className="inbox-list">
+            {items.map((item) => (
+              <div key={`${item.kind}-${item.id}`} className={`inbox-row ${item.done ? 'inbox-row-done' : ''}`}>
+                <span className="inbox-avatar">{avatarFor(item.studentId)}</span>
+                <div className="inbox-body">
+                  <div className="inbox-subject">
+                    {item.kind === 'help' ? (
+                      <>{nameFor(item.studentId)} asked for help</>
+                    ) : (
+                      <>{nameFor(item.studentId)} marked "{item.taskTitle}" done ({item.subject})</>
+                    )}
+                  </div>
+                  <div className="inbox-time">{new Date(item.timestamp).toLocaleString()}</div>
                 </div>
-              ))}
-              {verified.map((o) => (
-                <div key={o.id} style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                  {avatarFor(o.studentId)} {nameFor(o.studentId)} — "{o.taskTitle}" verified
-                </div>
-              ))}
-            </div>
-          </details>
+                {item.done ? (
+                  <span className="inbox-check">✓</span>
+                ) : (
+                  <button
+                    className="btn btn-sm btn-success"
+                    onClick={() => (item.kind === 'help' ? resolveHelp(item.id) : verifyOffscreen(item.id))}
+                  >
+                    {item.kind === 'help' ? 'Got it' : 'Verify'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

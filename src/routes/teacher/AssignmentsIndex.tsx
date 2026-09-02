@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { ActivityLibraryBrowse, CreateActivityForm } from './ActivityLibrary';
+import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { sortForDisplay } from '../../lib/taskOrder';
 import type { Subject, Task } from '../../types';
@@ -36,7 +36,13 @@ export default function AssignmentsIndex() {
   const navigate = useNavigate();
   const students = useStore((s) => s.students);
   const rotations = useStore((s) => s.rotations);
+  const activityLibrary = useStore((s) => s.activityLibrary);
   const [subject, setSubject] = useState<Subject>('math');
+  const [planTasks, setPlanTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    setPlanTasks([]);
+  }, [subject]);
 
   return (
     <div className="app-shell">
@@ -55,10 +61,17 @@ export default function AssignmentsIndex() {
 
         <div className="assignments-split">
           <div className="assignments-split-main">
-            <NewDailyPlanBuilder subject={subject} />
+            <NewDailyPlanBuilder subject={subject} tasks={planTasks} onTasksChange={setPlanTasks} />
           </div>
           <div className="assignments-split-side">
-            <ActivityLibraryBrowse subject={subject} />
+            <ActivityLibraryBrowse
+              subject={subject}
+              compact
+              onAddActivity={(activityId) => {
+                const lib = activityLibrary.find((a) => a.id === activityId);
+                if (lib) setPlanTasks((prev) => [...prev, activityToTaskSnapshot(lib)]);
+              }}
+            />
           </div>
         </div>
 

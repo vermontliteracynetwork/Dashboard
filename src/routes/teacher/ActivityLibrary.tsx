@@ -420,15 +420,21 @@ export function CreateActivityForm({ subject }: { subject: Subject }) {
 }
 
 // The searchable grid of existing activities — browse, edit, delete,
-// toggle Playground/daily, and add to any student(s)' plan.
+// toggle Playground/daily, and add to any student(s)' plan (or, when
+// onAddActivity is given, to the in-progress plan builder as well — that's
+// the default/top choice there, students are the secondary option below it).
 export function ActivityLibraryBrowse({
   subject,
   tasks,
   defaultStudentId,
+  onAddActivity,
+  compact,
 }: {
   subject: Subject;
   tasks?: Task[];
   defaultStudentId?: string;
+  onAddActivity?: (activityId: string) => void;
+  compact?: boolean;
 }) {
   const students = useStore((s) => s.students);
   const activityLibrary = useStore((s) => s.activityLibrary);
@@ -439,6 +445,7 @@ export function ActivityLibraryBrowse({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
+  const [addToBuilder, setAddToBuilder] = useState(true);
   const [addToIds, setAddToIds] = useState<string[]>([]);
 
   const allForSubject = activityLibrary.filter((a) => a.subject === subject);
@@ -456,8 +463,8 @@ export function ActivityLibraryBrowse({
       <div className="zone-header-bar">🗂️ Activity Library — build it once, use it everywhere</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Drag a card down into "Today's Plan," tap "➕ Add to plan" to send it to any student(s), or tap 🎪 to put
-          it in the shared Playground. ⭐ marks activities you use every day.
+          Drag a card into a plan, tap "➕ Add to plan" to send it somewhere, or tap 🎪 to put it in the shared
+          Playground. ⭐ marks activities you use every day.
         </p>
         <input
           placeholder="🔍 Search this subject's activities…"
@@ -469,13 +476,13 @@ export function ActivityLibraryBrowse({
         {activities.length === 0 ? (
           <p style={{ opacity: 0.7 }}>{search ? 'No activities match your search.' : 'No activities in the library for this subject yet.'}</p>
         ) : (
-          <div className="library-card-grid">
+          <div className={`library-card-grid ${compact ? 'library-card-grid-compact' : ''}`}>
             {activities.map((a) => {
               const onTodaysPlan = titlesOnTodaysPlan.has(a.title.trim().toLowerCase());
               return (
                 <div
                   key={a.id}
-                  className="library-card"
+                  className={`library-card ${compact ? 'library-card-compact' : ''}`}
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('text/plain', a.id);
@@ -507,29 +514,42 @@ export function ActivityLibraryBrowse({
                           {onTodaysPlan && <span className="badge-pill badge-onplan">📌 On today's plan</span>}
                         </div>
                         <div className="set-card-title">{a.title || '(untitled)'}</div>
-                        <div className="set-card-meta">{TASK_TYPE_LABELS[a.type]}</div>
+                        {!compact && <div className="set-card-meta">{TASK_TYPE_LABELS[a.type]}</div>}
 
                         {addTargetId === a.id ? (
                           <div className="content-well stack" style={{ background: '#faf9ff' }}>
-                            <strong style={{ fontSize: '0.8rem' }}>Add to plan for:</strong>
-                            <div className="row-wrap">
-                              {students.map((st) => (
-                                <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
-                                  <input type="checkbox" checked={addToIds.includes(st.id)} onChange={() => toggleAddTarget(st.id)} />
-                                  {st.avatar} {st.name}
-                                </label>
-                              ))}
-                            </div>
+                            <strong style={{ fontSize: '0.8rem' }}>Add to:</strong>
+                            {onAddActivity && (
+                              <label className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
+                                <input type="checkbox" checked={addToBuilder} onChange={(e) => setAddToBuilder(e.target.checked)} />
+                                🗓️ The plan I'm building
+                              </label>
+                            )}
+                            {students.length > 0 && (
+                              <>
+                                {onAddActivity && <hr className="divider" style={{ margin: '2px 0' }} />}
+                                <span style={{ fontSize: '0.78rem', opacity: 0.75 }}>Or a student's live plan:</span>
+                                <div className="row-wrap">
+                                  {students.map((st) => (
+                                    <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
+                                      <input type="checkbox" checked={addToIds.includes(st.id)} onChange={() => toggleAddTarget(st.id)} />
+                                      {st.avatar} {st.name}
+                                    </label>
+                                  ))}
+                                </div>
+                              </>
+                            )}
                             <div className="row-wrap">
                               <button
                                 className="btn btn-sm btn-success"
-                                disabled={addToIds.length === 0}
+                                disabled={!(onAddActivity && addToBuilder) && addToIds.length === 0}
                                 onClick={() => {
-                                  addActivityToPlanForStudents(addToIds, subject, a.id);
+                                  if (onAddActivity && addToBuilder) onAddActivity(a.id);
+                                  if (addToIds.length > 0) addActivityToPlanForStudents(addToIds, subject, a.id);
                                   setAddTargetId(null);
                                 }}
                               >
-                                Add for {addToIds.length}
+                                Add
                               </button>
                               <button className="btn btn-sm" onClick={() => setAddTargetId(null)}>Cancel</button>
                             </div>
@@ -554,6 +574,7 @@ export function ActivityLibraryBrowse({
                               className="btn btn-sm btn-success"
                               onClick={() => {
                                 setAddTargetId(a.id);
+                                setAddToBuilder(true);
                                 setAddToIds(defaultStudentId ? [defaultStudentId] : []);
                               }}
                             >

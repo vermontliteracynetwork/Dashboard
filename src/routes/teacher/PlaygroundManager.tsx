@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { PlaygroundPool } from './ActivityLibrary';
+import { ActivityLibraryBrowse, CreateActivityForm, PlaygroundPool } from './ActivityLibrary';
+import type { Subject } from '../../types';
 
 export default function PlaygroundManager() {
   const students = useStore((s) => s.students);
@@ -9,6 +11,7 @@ export default function PlaygroundManager() {
   const denyBreak = useStore((s) => s.denyBreak);
   const grantBreak = useStore((s) => s.grantBreak);
   const breakCountToday = useStore((s) => s.breakCountToday);
+  const [subject, setSubject] = useState<Subject>('math');
 
   const pending = breakRequests.filter((b) => b.status === 'pending');
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
@@ -50,6 +53,14 @@ export default function PlaygroundManager() {
             ))}
           </div>
         </section>
+
+        <h2>Add Activities</h2>
+        <div className="subject-tabs">
+          <button className={`subject-tab-btn tab-math ${subject === 'math' ? 'active' : ''}`} onClick={() => setSubject('math')}>🔢 Math</button>
+          <button className={`subject-tab-btn tab-literacy ${subject === 'literacy' ? 'active' : ''}`} onClick={() => setSubject('literacy')}>📚 Literacy</button>
+        </div>
+        <CreateActivityForm subject={subject} />
+        <ActivityLibraryBrowse subject={subject} />
 
         <PlaygroundPool />
       </div>
