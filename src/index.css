@@ -539,7 +539,26 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .library-card-compact .library-card-body { padding: 8px; gap: 4px; }
 .library-card-compact .set-card-title { font-size: 0.8rem; }
 .library-card-compact .badge-pill { font-size: 0.6rem; padding: 2px 6px; }
-.library-card-compact .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+.library-card-actions-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.library-card-actions-compact .btn-sm {
+  padding: 4px 0;
+  font-size: 0.78rem;
+  width: 28px;
+  min-width: 28px;
+  flex: 0 0 auto;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.library-card-actions-compact .library-card-add-btn {
+  flex: 1 1 100%;
+  width: auto;
+  padding: 5px 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
 .library-card-thumb {
   width: 100%;
   aspect-ratio: 16 / 10;
@@ -792,6 +811,57 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .badge-playground { background: var(--pink); }
 .badge-onplan { background: var(--success); }
 .badge-daily { background: var(--yellow); color: var(--ink); }
+
+/* ---------- Search-to-add dropdown (plan builder) ---------- */
+.search-add-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: white;
+  border: 2px solid var(--content-border);
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 var(--ink);
+  overflow: hidden;
+}
+.search-add-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--content-border);
+  background: white;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+}
+.search-add-row:last-child { border-bottom: none; }
+.search-add-row:hover { background: #f5f0ff; }
+
+/* ---------- Daily plan list (always a list, not cards) ---------- */
+.plan-list {
+  border: 2px solid var(--content-border);
+  border-radius: 12px;
+  background: white;
+  overflow: hidden;
+}
+.plan-list-drag-active { border-color: var(--purple); box-shadow: inset 0 0 0 2px var(--purple); }
+.plan-list-empty { padding: 20px 14px; margin: 0; text-align: center; opacity: 0.6; font-size: 0.9rem; }
+.plan-list-item { border-bottom: 1px solid var(--content-border); }
+.plan-list-item:last-child { border-bottom: none; }
+.plan-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+.plan-order-input { width: 44px; text-align: center; flex: 0 0 auto; }
+.plan-list-icon { font-size: 1.3rem; flex: 0 0 auto; }
+.plan-list-title { flex: 1; font-weight: 700; min-width: 0; }
 
 /* ---------- Inbox: flat email-style list ---------- */
 .inbox-list {

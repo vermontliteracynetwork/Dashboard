@@ -445,7 +445,6 @@ export function ActivityLibraryBrowse({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
-  const [addToBuilder, setAddToBuilder] = useState(true);
   const [addToIds, setAddToIds] = useState<string[]>([]);
 
   const allForSubject = activityLibrary.filter((a) => a.subject === subject);
@@ -518,34 +517,21 @@ export function ActivityLibraryBrowse({
 
                         {addTargetId === a.id ? (
                           <div className="content-well stack" style={{ background: '#faf9ff' }}>
-                            <strong style={{ fontSize: '0.8rem' }}>Add to:</strong>
-                            {onAddActivity && (
-                              <label className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
-                                <input type="checkbox" checked={addToBuilder} onChange={(e) => setAddToBuilder(e.target.checked)} />
-                                🗓️ The plan I'm building
-                              </label>
-                            )}
-                            {students.length > 0 && (
-                              <>
-                                {onAddActivity && <hr className="divider" style={{ margin: '2px 0' }} />}
-                                <span style={{ fontSize: '0.78rem', opacity: 0.75 }}>Or a student's live plan:</span>
-                                <div className="row-wrap">
-                                  {students.map((st) => (
-                                    <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
-                                      <input type="checkbox" checked={addToIds.includes(st.id)} onChange={() => toggleAddTarget(st.id)} />
-                                      {st.avatar} {st.name}
-                                    </label>
-                                  ))}
-                                </div>
-                              </>
-                            )}
+                            <strong style={{ fontSize: '0.8rem' }}>Add to a student's live plan:</strong>
+                            <div className="row-wrap">
+                              {students.map((st) => (
+                                <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
+                                  <input type="checkbox" checked={addToIds.includes(st.id)} onChange={() => toggleAddTarget(st.id)} />
+                                  {st.avatar} {st.name}
+                                </label>
+                              ))}
+                            </div>
                             <div className="row-wrap">
                               <button
                                 className="btn btn-sm btn-success"
-                                disabled={!(onAddActivity && addToBuilder) && addToIds.length === 0}
+                                disabled={addToIds.length === 0}
                                 onClick={() => {
-                                  if (onAddActivity && addToBuilder) onAddActivity(a.id);
-                                  if (addToIds.length > 0) addActivityToPlanForStudents(addToIds, subject, a.id);
+                                  addActivityToPlanForStudents(addToIds, subject, a.id);
                                   setAddTargetId(null);
                                 }}
                               >
@@ -555,7 +541,7 @@ export function ActivityLibraryBrowse({
                             </div>
                           </div>
                         ) : (
-                          <div className="row-wrap">
+                          <div className={compact ? 'library-card-actions-compact' : 'row-wrap'}>
                             <button
                               className={`btn btn-sm ${a.isDaily ? 'btn-primary' : ''}`}
                               onClick={() => updateLibraryActivity(a.id, { isDaily: !a.isDaily })}
@@ -570,18 +556,25 @@ export function ActivityLibraryBrowse({
                             >
                               🎪
                             </button>
+                            <button className="btn btn-sm" onClick={() => setEditingId(a.id)} title="Edit">
+                              {compact ? '✏️' : 'Edit'}
+                            </button>
+                            <button className="btn btn-sm btn-danger" onClick={() => deleteLibraryActivity(a.id)} title="Delete">
+                              {compact ? '🗑️' : 'Delete'}
+                            </button>
                             <button
-                              className="btn btn-sm btn-success"
+                              className="btn btn-sm btn-success library-card-add-btn"
                               onClick={() => {
+                                if (onAddActivity) {
+                                  onAddActivity(a.id);
+                                  return;
+                                }
                                 setAddTargetId(a.id);
-                                setAddToBuilder(true);
                                 setAddToIds(defaultStudentId ? [defaultStudentId] : []);
                               }}
                             >
-                              ➕ Add to plan
+                              ➕ Add
                             </button>
-                            <button className="btn btn-sm" onClick={() => setEditingId(a.id)}>Edit</button>
-                            <button className="btn btn-sm btn-danger" onClick={() => deleteLibraryActivity(a.id)}>Delete</button>
                           </div>
                         )}
                       </div>
