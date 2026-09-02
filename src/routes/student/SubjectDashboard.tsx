@@ -39,6 +39,7 @@ export default function SubjectDashboard() {
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
 
   const student = students.find((s) => s.id === currentStudentId);
   const subj = subject === 'math' || subject === 'literacy' ? (subject as Subject) : null;
@@ -51,6 +52,11 @@ export default function SubjectDashboard() {
   useEffect(() => {
     if (student && subj) ensureProgress(student.id, subj);
   }, [student?.id, subj, ensureProgress]);
+
+  useEffect(() => {
+    setReviewing(false);
+    setSelectedTaskId(null);
+  }, [subj]);
 
   useEffect(() => {
     if (onBreak) setPhase('idle');
@@ -83,17 +89,29 @@ export default function SubjectDashboard() {
     );
   }
 
-  if (prog.subjectComplete || tasks.length === 0) {
-    return <SubjectCompleteScreen subject={subj} onHome={() => navigate('/student/home')} />;
+  if ((prog.subjectComplete || tasks.length === 0) && !reviewing) {
+    return (
+      <SubjectCompleteScreen
+        subject={subj}
+        onHome={() => navigate('/student/home')}
+        onReview={tasks.length > 0 ? () => setReviewing(true) : undefined}
+      />
+    );
   }
 
-  const activeTask: Task | null = mode === 'sequence' ? (tasks[prog.activeIndex] ?? null) : tasks.find((t) => t.id === selectedTaskId) ?? null;
+  // A tapped row (including an already-completed one, for review) always wins over
+  // the sequence-mode "current" task, so finished work stays reopenable to redo.
+  const activeTask: Task | null = selectedTaskId
+    ? tasks.find((t) => t.id === selectedTaskId) ?? null
+    : mode === 'sequence'
+      ? (tasks[prog.activeIndex] ?? null)
+      : null;
 
   const checkOff = (task: Task) => {
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task);
     else completeTask(student.id, subj, task.id);
     setSelectedTaskId(null);
-    setPhase('break-check');
+    if (!reviewing) setPhase('break-check');
   };
 
   const handleDone = () => {
@@ -131,6 +149,13 @@ export default function SubjectDashboard() {
         <h2 style={{ margin: 0 }}>{subj === 'math' ? '🔢 Math' : '📚 Literacy'}</h2>
         <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
       </div>
+
+      {reviewing && (
+        <div className="content-well space-between" style={{ background: '#fff8e1' }}>
+          <strong>📚 Reviewing your completed work — tap anything to do it again. Nothing here changes your progress.</strong>
+          <button className="btn btn-sm" onClick={() => setReviewing(false)}>✕ Exit review</button>
+        </div>
+      )}
 
       <SubjectProgressBar done={prog.completedTaskIds.length} total={tasks.length} />
 

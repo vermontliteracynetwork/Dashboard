@@ -198,6 +198,7 @@ interface AppState {
   deleteTemplate: (id: string) => void;
   saveCurrentPlanAsTemplate: (studentId: string, subject: Subject, name: string) => void;
   applyTemplateToStudent: (studentId: string, templateId: string) => void;
+  applyTemplateToStudents: (studentIds: string[], templateId: string) => void;
 
   // weekly schedule: which template auto-loads on which weekday
   getScheduledTemplateId: (studentId: string, subject: Subject, day: DayOfWeek) => string | null;
@@ -841,6 +842,10 @@ export const useStore = create<AppState>()(
           };
         });
         pushRotation(studentId, template.subject, freshTasks);
+      },
+
+      applyTemplateToStudents: (studentIds, templateId) => {
+        studentIds.forEach((id) => get().applyTemplateToStudent(id, templateId));
       },
 
       getScheduledTemplateId: (studentId, subject, day) =>

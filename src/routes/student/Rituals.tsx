@@ -45,9 +45,10 @@ export function StartRitual({ student, subject, tasks, onStart }: StartProps) {
 interface CompleteProps {
   subject: Subject;
   onHome: () => void;
+  onReview?: () => void;
 }
 
-export function SubjectCompleteScreen({ subject, onHome }: CompleteProps) {
+export function SubjectCompleteScreen({ subject, onHome, onReview }: CompleteProps) {
   const meta = SUBJECT_META[subject];
   return (
     <div className="center-screen">
@@ -55,9 +56,16 @@ export function SubjectCompleteScreen({ subject, onHome }: CompleteProps) {
         <span style={{ fontSize: '3rem' }}>🎉</span>
         <h2>{meta.label} complete!</h2>
         <p>Awesome work today.</p>
-        <button className="btn btn-primary btn-lg pulse-cta" onClick={onHome}>
-          Back to Home
-        </button>
+        <div className="row-wrap" style={{ justifyContent: 'center' }}>
+          <button className="btn btn-primary btn-lg pulse-cta" onClick={onHome}>
+            Back to Home
+          </button>
+          {onReview && (
+            <button className="btn btn-teal btn-lg" onClick={onReview}>
+              📚 Review my work
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

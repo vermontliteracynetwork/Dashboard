@@ -690,14 +690,16 @@ function WeeklyScheduleGrid({ studentId, subject, studentName }: { studentId: st
 function TemplatesPanel({ studentId, subject, currentTasks }: { studentId: string; subject: Subject; currentTasks: Task[] }) {
   const [open, setOpen] = useState(true);
   const [savingName, setSavingName] = useState<string | null>(null);
+  const students = useStore((s) => s.students);
   const planTemplates = useStore((s) => s.planTemplates);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addTemplate = useStore((s) => s.addTemplate);
   const updateTemplate = useStore((s) => s.updateTemplate);
   const duplicateTemplate = useStore((s) => s.duplicateTemplate);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
-  const applyTemplateToStudent = useStore((s) => s.applyTemplateToStudent);
-  const [confirmApplyId, setConfirmApplyId] = useState<string | null>(null);
+  const applyTemplateToStudents = useStore((s) => s.applyTemplateToStudents);
+  const [applyTargetId, setApplyTargetId] = useState<string | null>(null);
+  const [applyToIds, setApplyToIds] = useState<string[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -706,6 +708,9 @@ function TemplatesPanel({ studentId, subject, currentTasks }: { studentId: strin
 
   const templates = planTemplates.filter((t) => t.subject === subject);
   const libraryForSubject = activityLibrary.filter((a) => a.subject === subject);
+
+  const toggleApplyTarget = (id: string) =>
+    setApplyToIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   return (
     <div className="zone zone-templates stack">
@@ -762,32 +767,60 @@ function TemplatesPanel({ studentId, subject, currentTasks }: { studentId: strin
                       ) : (
                         <span><strong>{t.name}</strong> — {t.activities.length} activities</span>
                       )}
-                      {confirmApplyId === t.id ? (
-                        <div className="row-wrap">
-                          <span style={{ fontSize: '0.85rem' }}>Replace this student's Today's Plan?</span>
-                          <button
-                            className="btn btn-sm btn-success"
-                            onClick={() => {
-                              applyTemplateToStudent(studentId, t.id);
-                              setConfirmApplyId(null);
-                            }}
-                          >
-                            Yes, load it
-                          </button>
-                          <button className="btn btn-sm" onClick={() => setConfirmApplyId(null)}>Cancel</button>
-                        </div>
-                      ) : (
+                      {applyTargetId !== t.id && (
                         <div className="row-wrap">
                           <button className="btn btn-sm" onClick={() => { setRenamingId(t.id); setRenameDraft(t.name); }}>✏️ Rename</button>
                           <button className="btn btn-sm" onClick={() => setExpandedId(expanded ? null : t.id)}>
                             {expanded ? '▾ Hide activities' : '▸ Edit activities'}
                           </button>
                           <button className="btn btn-sm" onClick={() => duplicateTemplate(t.id)}>⧉ Duplicate</button>
-                          <button className="btn btn-sm btn-primary" onClick={() => setConfirmApplyId(t.id)}>▶️ Load into Today's Plan</button>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => {
+                              setApplyTargetId(t.id);
+                              setApplyToIds([studentId]);
+                            }}
+                          >
+                            ▶️ Load into Today's Plan
+                          </button>
                           <button className="btn btn-sm btn-danger" onClick={() => deleteTemplate(t.id)}>Delete</button>
                         </div>
                       )}
                     </div>
+
+                    {applyTargetId === t.id && (
+                      <div className="content-well stack" style={{ background: '#faf9ff' }}>
+                        <strong style={{ fontSize: '0.85rem' }}>Load "{t.name}" into Today's Plan for:</strong>
+                        <div className="row-wrap">
+                          {students.map((st) => (
+                            <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700 }}>
+                              <input
+                                type="checkbox"
+                                checked={applyToIds.includes(st.id)}
+                                onChange={() => toggleApplyTarget(st.id)}
+                              />
+                              {st.avatar} {st.name}
+                            </label>
+                          ))}
+                        </div>
+                        <p style={{ fontSize: '0.78rem', opacity: 0.75, margin: 0 }}>
+                          This replaces the selected student(s)' current {subject} plan for today.
+                        </p>
+                        <div className="row-wrap">
+                          <button
+                            className="btn btn-sm btn-success"
+                            disabled={applyToIds.length === 0}
+                            onClick={() => {
+                              applyTemplateToStudents(applyToIds, t.id);
+                              setApplyTargetId(null);
+                            }}
+                          >
+                            Yes, load it for {applyToIds.length} student{applyToIds.length === 1 ? '' : 's'}
+                          </button>
+                          <button className="btn btn-sm" onClick={() => setApplyTargetId(null)}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
 
                     {expanded && (
                       <div className="stack" style={{ paddingLeft: 8, borderLeft: '3px solid var(--content-border)' }}>
