@@ -45,6 +45,8 @@ import {
   rowToWeeklyScheduleEntry,
   pushWeeklyScheduleEntry,
   deleteWeeklyScheduleEntryRemote,
+  rowToAssignment,
+  pushAssignment,
 } from '../lib/sync';
 import type {
   Student,
@@ -67,6 +69,7 @@ import type {
   PlanTemplate,
   WeeklyScheduleEntry,
   DayOfWeek,
+  Assignment,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -105,6 +108,7 @@ interface AppState {
   planTemplates: PlanTemplate[]; // saved, reusable daily plans
   weeklySchedule: WeeklyScheduleEntry[]; // which template auto-loads on which weekday, per student+subject
   weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>; // studentId -> subject -> ISO date last auto-applied
+  assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -205,6 +209,17 @@ interface AppState {
   getScheduledTemplateId: (studentId: string, subject: Subject, day: DayOfWeek) => string | null;
   setWeeklyScheduleDay: (studentId: string, subject: Subject, day: DayOfWeek, templateId: string | null) => void;
   applyTodaysScheduleIfNeeded: (studentId: string) => void;
+
+  // published plans with a date window (see Assignment)
+  publishAssignment: (
+    studentIds: string[],
+    subject: Subject,
+    tasks: Task[],
+    name: string,
+    startDate: string,
+    endDate: string,
+    mode: 'repeat' | 'span',
+  ) => void;
 }
 
 // Pushes the full consolidated student_meta row for a student, reading the
@@ -251,6 +266,7 @@ export const useStore = create<AppState>()(
       planTemplates: [],
       weeklySchedule: [],
       weeklyPlanApplied: {},
+      assignments: [],
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -289,6 +305,7 @@ export const useStore = create<AppState>()(
           onTemplate: (e, n, o) => set((s) => ({ planTemplates: applyArrayRow(s.planTemplates, e, rowToTemplate, n, o) })),
           onWeeklySchedule: (e, n, o) =>
             set((s) => ({ weeklySchedule: applyArrayRow(s.weeklySchedule, e, rowToWeeklyScheduleEntry, n, o) })),
+          onAssignment: (e, n, o) => set((s) => ({ assignments: applyArrayRow(s.assignments, e, rowToAssignment, n, o) })),
         });
       },
 
@@ -374,6 +391,18 @@ export const useStore = create<AppState>()(
           };
         });
         pushRotation(studentId, subject, get().rotations[studentId][subject]);
+
+        // A new task added after the student already finished today would
+        // otherwise stay hidden behind a stale "all done" screen.
+        const today = todayISO();
+        const prog = get().progress[studentId]?.[subject];
+        if (prog && prog.date === today && prog.subjectComplete) {
+          const updated: SubjectProgress = { ...prog, subjectComplete: false };
+          set((s) => ({
+            progress: { ...s.progress, [studentId]: { ...s.progress[studentId], [subject]: updated } },
+          }));
+          pushProgress(studentId, subject, updated);
+        }
       },
 
       updateTask: (studentId, subject, taskId, patch) => {
@@ -432,7 +461,15 @@ export const useStore = create<AppState>()(
         const today = todayISO();
         const existing = s.progress[studentId]?.[subject];
         if (existing && existing.date === today) return existing;
-        const fresh = emptyProgress();
+
+        // A 'span' assignment currently in its window keeps the student's
+        // progress instead of resetting it fresh each day, so a multi-day
+        // assignment doesn't lose completed work overnight.
+        const activeSpan = s.assignments.find(
+          (a) => a.studentId === studentId && a.subject === subject && a.mode === 'span' && a.startDate <= today && today <= a.endDate,
+        );
+        const fresh: SubjectProgress = activeSpan && existing ? { ...existing, date: today } : emptyProgress();
+
         set((st) => ({
           progress: {
             ...st.progress,
@@ -848,6 +885,19 @@ export const useStore = create<AppState>()(
           };
         });
         pushRotation(studentId, template.subject, freshTasks);
+
+        // The whole task list just changed out from under any existing
+        // progress — old completedTaskIds point at tasks that no longer
+        // exist, and a stale subjectComplete would hide the new plan
+        // behind an "all done" screen. Start that subject's progress over.
+        const fresh: SubjectProgress = { ...emptyProgress() };
+        set((s) => ({
+          progress: {
+            ...s.progress,
+            [studentId]: { ...(s.progress[studentId] ?? {}), [template.subject]: fresh } as ProgressMap[string],
+          },
+        }));
+        pushProgress(studentId, template.subject, fresh);
       },
 
       applyTemplateToStudents: (studentIds, templateId) => {
@@ -871,24 +921,72 @@ export const useStore = create<AppState>()(
       },
 
       // Once per calendar day (first time this runs after midnight), refresh
-      // each subject's live plan from whatever template that weekday is
-      // scheduled to. A teacher's same-day hand edit is never clobbered,
-      // since this is a no-op once today's date is already recorded.
+      // each subject's live plan from whatever's scheduled for today: a
+      // dated assignment (if one's window covers today) takes priority,
+      // otherwise the weekday-based weekly schedule. A teacher's same-day
+      // hand edit is never clobbered, since this is a no-op once today's
+      // date is already recorded.
       applyTodaysScheduleIfNeeded: (studentId) => {
         const day = currentDayOfWeek();
-        if (!day) return;
         const today = todayISO();
         (['math', 'literacy'] as Subject[]).forEach((subject) => {
           if (get().weeklyPlanApplied[studentId]?.[subject] === today) return;
-          const templateId = get().getScheduledTemplateId(studentId, subject, day);
+
+          const activeAssignment = get().assignments.find(
+            (a) => a.studentId === studentId && a.subject === subject && a.startDate <= today && today <= a.endDate,
+          );
+
+          if (activeAssignment) {
+            if (activeAssignment.mode === 'repeat' || !activeAssignment.applied) {
+              get().applyTemplateToStudent(studentId, activeAssignment.templateId);
+            }
+            if (!activeAssignment.applied) {
+              const updated: Assignment = { ...activeAssignment, applied: true };
+              set((s) => ({ assignments: s.assignments.map((a) => (a.id === activeAssignment.id ? updated : a)) }));
+              pushAssignment(updated);
+            }
+          } else if (day) {
+            const templateId = get().getScheduledTemplateId(studentId, subject, day);
+            if (templateId) get().applyTemplateToStudent(studentId, templateId);
+          }
+
           set((s) => ({
             weeklyPlanApplied: {
               ...s.weeklyPlanApplied,
               [studentId]: { ...(s.weeklyPlanApplied[studentId] ?? {}), [subject]: today },
             },
           }));
-          if (templateId) get().applyTemplateToStudent(studentId, templateId);
           pushMetaFor(get, studentId);
+        });
+      },
+
+      publishAssignment: (studentIds, subject, tasks, name, startDate, endDate, mode) => {
+        const templateId = get().addTemplate(name, subject, tasks);
+        const today = todayISO();
+        studentIds.forEach((studentId) => {
+          const isActiveNow = startDate <= today && today <= endDate;
+          const assignment: Assignment = {
+            id: makeId(),
+            studentId,
+            subject,
+            templateId,
+            startDate,
+            endDate,
+            mode,
+            applied: isActiveNow,
+          };
+          set((s) => ({ assignments: [...s.assignments, assignment] }));
+          pushAssignment(assignment);
+          if (isActiveNow) {
+            get().applyTemplateToStudent(studentId, templateId);
+            set((s) => ({
+              weeklyPlanApplied: {
+                ...s.weeklyPlanApplied,
+                [studentId]: { ...(s.weeklyPlanApplied[studentId] ?? {}), [subject]: today },
+              },
+            }));
+            pushMetaFor(get, studentId);
+          }
         });
       },
     }),

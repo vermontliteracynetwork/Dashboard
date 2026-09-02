@@ -161,6 +161,22 @@ create table if not exists weekly_schedule (
   template_id text not null references plan_templates(id) on delete cascade
 );
 
+-- A published plan with a date window, independent of the weekday-based
+-- weekly_schedule above. 'repeat' reloads a fresh copy of the template
+-- into the student's live plan every day in the window; 'span' loads it
+-- once (on start_date) and the student's progress carries forward day to
+-- day until end_date, instead of resetting like a normal daily checklist.
+create table if not exists assignments (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  subject text not null check (subject in ('math', 'literacy')),
+  template_id text not null references plan_templates(id) on delete cascade,
+  start_date date not null,
+  end_date date not null,
+  mode text not null check (mode in ('repeat', 'span')),
+  applied boolean not null default false
+);
+
 create table if not exists rotation_modes (
   student_id text not null references students(id) on delete cascade,
   subject text not null check (subject in ('math', 'literacy')),
@@ -227,7 +243,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments'
   ];
 begin
   foreach t in array tables loop
@@ -269,7 +285,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments'
   ];
 begin
   foreach t in array tables loop

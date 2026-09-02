@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { TaskEditor, activityToTaskSnapshot } from './ActivityLibrary';
+import { todayISO } from '../../lib/dates';
 import type { Subject, Task } from '../../types';
 
 function defaultPlanName(tasks: Task[]): string {
@@ -24,7 +25,7 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
   const students = useStore((s) => s.students);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addTemplate = useStore((s) => s.addTemplate);
-  const applyTemplateToStudents = useStore((s) => s.applyTemplateToStudents);
+  const publishAssignment = useStore((s) => s.publishAssignment);
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -32,6 +33,9 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
   const [name, setName] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [startDate, setStartDate] = useState(todayISO());
+  const [endDate, setEndDate] = useState(todayISO());
+  const [mode, setMode] = useState<'repeat' | 'span'>('repeat');
 
   const toggleStudent = (id: string) =>
     setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -45,16 +49,36 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
     ? activityLibrary.filter((a) => a.subject === subject && a.title.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 8)
     : [];
 
-  const save = () => {
-    if (tasks.length === 0) return;
-    const finalName = name.trim() || defaultPlanName(tasks);
-    const id = addTemplate(finalName, subject, tasks);
-    if (selectedIds.length > 0) applyTemplateToStudents(selectedIds, id);
-    setSaved(`Saved "${finalName}" to the Backlog${selectedIds.length > 0 ? ` and assigned to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'}.` : '.'}`);
+  const resetForm = () => {
     onTasksChange([]);
     setName('');
     setSelectedIds([]);
     setEditingTaskId(null);
+    setStartDate(todayISO());
+    setEndDate(todayISO());
+    setMode('repeat');
+  };
+
+  const saveToBacklogOnly = () => {
+    if (tasks.length === 0) return;
+    const finalName = name.trim() || defaultPlanName(tasks);
+    addTemplate(finalName, subject, tasks);
+    setSaved(`Saved "${finalName}" to the Backlog.`);
+    resetForm();
+  };
+
+  const publish = () => {
+    if (tasks.length === 0 || selectedIds.length === 0) return;
+    const finalName = name.trim() || defaultPlanName(tasks);
+    const today = todayISO();
+    const activeNow = startDate <= today && today <= endDate;
+    publishAssignment(selectedIds, subject, tasks, finalName, startDate, endDate, mode);
+    const range = startDate === endDate ? `on ${startDate}` : `from ${startDate} to ${endDate}`;
+    setSaved(
+      `Published "${finalName}" to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
+        (activeNow ? ' — it\'s live now.' : ' — it will load automatically when the window opens.'),
+    );
+    resetForm();
   };
 
   return (
@@ -177,9 +201,42 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
               <label>Plan name (optional — auto-named if left blank)</label>
               <input style={{ width: '100%' }} value={name} onChange={(e) => setName(e.target.value)} placeholder={defaultPlanName(tasks)} />
             </div>
+
+            <div className="row-wrap">
+              <div>
+                <label>Start date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (e.target.value > endDate) setEndDate(e.target.value);
+                  }}
+                />
+              </div>
+              <div>
+                <label>End date</label>
+                <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+            </div>
+
+            {endDate > startDate && (
+              <div className="stack" style={{ gap: 4 }}>
+                <strong style={{ fontSize: '0.85rem' }}>Over this range:</strong>
+                <label className="row" style={{ gap: 6 }}>
+                  <input type="radio" checked={mode === 'repeat'} onChange={() => setMode('repeat')} />
+                  🔁 Repeats every day — fresh checklist each day in the range
+                </label>
+                <label className="row" style={{ gap: 6 }}>
+                  <input type="radio" checked={mode === 'span'} onChange={() => setMode('span')} />
+                  📌 One assignment — they have until the end date to finish it
+                </label>
+              </div>
+            )}
+
             <strong style={{ fontSize: '0.85rem' }}>Assign to:</strong>
             {students.length === 0 ? (
-              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No students yet — this will just save to the Backlog.</p>
+              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No students yet — you can still save this to the Backlog.</p>
             ) : (
               <div className="row-wrap">
                 {students.map((st) => (
@@ -190,9 +247,13 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
                 ))}
               </div>
             )}
-            <button className="btn btn-primary" onClick={save}>
-              💾 Save to Backlog{selectedIds.length > 0 ? ` & assign to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'}` : ''}
-            </button>
+
+            <div className="row-wrap">
+              <button className="btn" onClick={saveToBacklogOnly}>💾 Save to Backlog only</button>
+              <button className="btn btn-primary" disabled={selectedIds.length === 0} onClick={publish}>
+                🚀 Publish Plan
+              </button>
+            </div>
           </div>
         )}
 

@@ -249,6 +249,22 @@ export interface WeeklyScheduleEntry {
   templateId: string;
 }
 
+// A published plan with a date window. 'repeat' reloads a fresh copy of
+// the template into the student's live plan every day in the window
+// (like a recurring daily checklist); 'span' loads it once, on the first
+// day, and the student keeps working the same list — with progress
+// carried forward day to day — until the window ends.
+export interface Assignment {
+  id: string;
+  studentId: string;
+  subject: Subject;
+  templateId: string;
+  startDate: string; // ISO date
+  endDate: string; // ISO date; equals startDate for a single day
+  mode: 'repeat' | 'span';
+  applied: boolean; // 'span' only: whether the one-time copy into the live plan has happened yet
+}
+
 export interface QuestionAttemptLog {
   questionId: string;
   timestamp: string;
