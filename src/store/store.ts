@@ -310,7 +310,7 @@ export const useStore = create<AppState>()(
           streakHidden: false,
           badgeIds: [],
           featureToggles: { ...DEFAULT_FEATURE_TOGGLES },
-          breakMinutes: 4,
+          breakMinutes: 3,
           playgroundThreshold: 4,
           ttsSettings: { rate: 1, voiceURI: null },
           createdAt: new Date().toISOString(),

@@ -32,12 +32,14 @@ export default function SubjectDashboard() {
   const progress = useStore((s) => s.progress);
   const completeTask = useStore((s) => s.completeTask);
   const markOffscreenDone = useStore((s) => s.markOffscreenDone);
+  const grantBreak = useStore((s) => s.grantBreak);
 
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [openedTaskIds, setOpenedTaskIds] = useState<Set<string>>(new Set());
+  const [showBreakOffer, setShowBreakOffer] = useState(false);
 
   const student = students.find((s) => s.id === currentStudentId);
   const subj = subject === 'math' || subject === 'literacy' ? (subject as Subject) : null;
@@ -54,6 +56,7 @@ export default function SubjectDashboard() {
     setReviewing(false);
     setSelectedTaskId(null);
     setOpenedTaskIds(new Set());
+    setShowBreakOffer(false);
   }, [subj]);
 
   if (!student || !subj) return null;
@@ -89,6 +92,7 @@ export default function SubjectDashboard() {
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task);
     else completeTask(student.id, subj, task.id);
     setSelectedTaskId(null);
+    if (!reviewing) setShowBreakOffer(true);
   };
 
   const handleDone = () => {
@@ -112,6 +116,32 @@ export default function SubjectDashboard() {
 
   return (
     <div className={`container subject-${subj} stack`}>
+      {showBreakOffer && (
+        <div className="overlay-backdrop" onClick={() => setShowBreakOffer(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h3 style={{ margin: 0 }}>Nice job! 🎉</h3>
+              <p style={{ margin: 0 }}>Take a 3-minute break?</p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button
+                  className="btn btn-teal btn-lg"
+                  onClick={() => {
+                    grantBreak(student.id);
+                    setShowBreakOffer(false);
+                    navigate('/student/playground/view');
+                  }}
+                >
+                  🌤️ Yes please
+                </button>
+                <button className="btn btn-primary btn-lg" onClick={() => setShowBreakOffer(false)}>
+                  ➡️ Keep going
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
       {showWhatNow && (
         <WhatNowOverlay
