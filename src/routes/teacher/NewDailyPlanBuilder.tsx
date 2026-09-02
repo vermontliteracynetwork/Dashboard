@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../../store/store';
 import { TaskEditor, activityToTaskSnapshot } from './ActivityLibrary';
 import type { Subject, Task } from '../../types';
@@ -12,13 +12,12 @@ function defaultPlanName(tasks: Task[]): string {
 // Build a whole daily plan from scratch (not tied to any one student's
 // existing plan) and assign the finished result to as many students as
 // needed in one action — saves to the Backlog either way.
-export default function NewDailyPlanBuilder() {
+export default function NewDailyPlanBuilder({ subject }: { subject: Subject }) {
   const students = useStore((s) => s.students);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addTemplate = useStore((s) => s.addTemplate);
   const applyTemplateToStudents = useStore((s) => s.applyTemplateToStudents);
 
-  const [subject, setSubject] = useState<Subject>('math');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -26,15 +25,14 @@ export default function NewDailyPlanBuilder() {
   const [name, setName] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
 
-  const toggleStudent = (id: string) =>
-    setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
-
-  const switchSubject = (s: Subject) => {
-    setSubject(s);
+  useEffect(() => {
     setTasks([]);
     setEditingTaskId(null);
     setSaved(null);
-  };
+  }, [subject]);
+
+  const toggleStudent = (id: string) =>
+    setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const save = () => {
     if (tasks.length === 0) return;
@@ -53,13 +51,9 @@ export default function NewDailyPlanBuilder() {
       <div className="zone-header-bar">🗓️ Build a New Daily Plan</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Drag activities in from the Activity Library above, then assign the finished plan to any student(s) at once.
+          Drag {subject === 'math' ? 'Math' : 'Literacy'} activities in from the Library on the right, then assign
+          the finished plan to any student(s) at once.
         </p>
-
-        <div className="subject-tabs">
-          <button className={`subject-tab-btn tab-math ${subject === 'math' ? 'active' : ''}`} onClick={() => switchSubject('math')}>🔢 Math</button>
-          <button className={`subject-tab-btn tab-literacy ${subject === 'literacy' ? 'active' : ''}`} onClick={() => switchSubject('literacy')}>📚 Literacy</button>
-        </div>
 
         <div
           className={`stack drop-zone ${dragOver ? 'drop-zone-active' : ''}`}

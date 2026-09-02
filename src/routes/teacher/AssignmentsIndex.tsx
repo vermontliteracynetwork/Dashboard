@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { ActivityLibraryPanel } from './ActivityLibrary';
+import { ActivityLibraryBrowse, CreateActivityForm } from './ActivityLibrary';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { sortForDisplay } from '../../lib/taskOrder';
 import type { Subject, Task } from '../../types';
@@ -35,6 +36,7 @@ export default function AssignmentsIndex() {
   const navigate = useNavigate();
   const students = useStore((s) => s.students);
   const rotations = useStore((s) => s.rotations);
+  const [subject, setSubject] = useState<Subject>('math');
 
   return (
     <div className="app-shell">
@@ -46,10 +48,21 @@ export default function AssignmentsIndex() {
           daily plan, weekly schedule, and backlog.
         </p>
 
-        <ActivityLibraryPanel subject="math" />
-        <ActivityLibraryPanel subject="literacy" />
+        <div className="subject-tabs">
+          <button className={`subject-tab-btn tab-math ${subject === 'math' ? 'active' : ''}`} onClick={() => setSubject('math')}>🔢 Math</button>
+          <button className={`subject-tab-btn tab-literacy ${subject === 'literacy' ? 'active' : ''}`} onClick={() => setSubject('literacy')}>📚 Literacy</button>
+        </div>
 
-        <NewDailyPlanBuilder />
+        <div className="assignments-split">
+          <div className="assignments-split-main">
+            <NewDailyPlanBuilder subject={subject} />
+          </div>
+          <div className="assignments-split-side">
+            <ActivityLibraryBrowse subject={subject} />
+          </div>
+        </div>
+
+        <CreateActivityForm subject={subject} />
 
         <h2>📅 All Active Daily Plans</h2>
         {students.length === 0 ? (

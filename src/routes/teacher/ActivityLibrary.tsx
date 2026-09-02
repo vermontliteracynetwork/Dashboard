@@ -385,7 +385,43 @@ export function PlaygroundPool() {
   );
 }
 
-export function ActivityLibraryPanel({
+// Just the "make a brand-new activity" form — its own standalone, full-width section.
+export function CreateActivityForm({ subject }: { subject: Subject }) {
+  const activityLibrary = useStore((s) => s.activityLibrary);
+  const addLibraryActivity = useStore((s) => s.addLibraryActivity);
+  const [creating, setCreating] = useState(false);
+
+  const allForSubject = activityLibrary.filter((a) => a.subject === subject);
+
+  return (
+    <div className="zone zone-create stack">
+      <div className="zone-header-bar">➕ Create an Activity</div>
+      <div style={{ padding: 14 }} className="stack">
+        <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+          Build a {subject === 'math' ? 'Math' : 'Literacy'} activity here — it lands in the Activity Library for
+          every student. Typing a title that matches an existing activity auto-fills the rest for you.
+        </p>
+        {!creating && <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setCreating(true)}>➕ New Activity</button>}
+        {creating && (
+          <TaskEditor
+            initial={blankTask()}
+            subject={subject}
+            matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
+            onSave={(t) => {
+              addLibraryActivity({ ...t, subject, inPlayground: false });
+              setCreating(false);
+            }}
+            onCancel={() => setCreating(false)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// The searchable grid of existing activities — browse, edit, delete,
+// toggle Playground/daily, and add to any student(s)' plan.
+export function ActivityLibraryBrowse({
   subject,
   tasks,
   defaultStudentId,
@@ -396,12 +432,10 @@ export function ActivityLibraryPanel({
 }) {
   const students = useStore((s) => s.students);
   const activityLibrary = useStore((s) => s.activityLibrary);
-  const addLibraryActivity = useStore((s) => s.addLibraryActivity);
   const updateLibraryActivity = useStore((s) => s.updateLibraryActivity);
   const deleteLibraryActivity = useStore((s) => s.deleteLibraryActivity);
   const addActivityToPlanForStudents = useStore((s) => s.addActivityToPlanForStudents);
 
-  const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
@@ -422,32 +456,15 @@ export function ActivityLibraryPanel({
       <div className="zone-header-bar">🗂️ Activity Library — build it once, use it everywhere</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Create an activity here, then drag its card down into "Today's Plan," tap "➕ Add to plan" to send it to
-          any student(s), or tap 🎪 to put it in the shared Playground. ⭐ marks activities you use every day.
-          Typing a title that matches an existing activity auto-fills the rest for you.
+          Drag a card down into "Today's Plan," tap "➕ Add to plan" to send it to any student(s), or tap 🎪 to put
+          it in the shared Playground. ⭐ marks activities you use every day.
         </p>
-        <div className="row-wrap">
-          <input
-            placeholder="🔍 Search this subject's activities…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: 1, minWidth: 200 }}
-          />
-          {!creating && <button className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>➕ New Activity</button>}
-        </div>
-
-        {creating && (
-          <TaskEditor
-            initial={blankTask()}
-            subject={subject}
-            matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
-            onSave={(t) => {
-              addLibraryActivity({ ...t, subject, inPlayground: false });
-              setCreating(false);
-            }}
-            onCancel={() => setCreating(false)}
-          />
-        )}
+        <input
+          placeholder="🔍 Search this subject's activities…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: '100%' }}
+        />
 
         {activities.length === 0 ? (
           <p style={{ opacity: 0.7 }}>{search ? 'No activities match your search.' : 'No activities in the library for this subject yet.'}</p>
@@ -555,6 +572,25 @@ export function ActivityLibraryPanel({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Convenience wrapper: create-form + browse grid stacked together, for
+// pages that show one subject at a time in a single column.
+export function ActivityLibraryPanel({
+  subject,
+  tasks,
+  defaultStudentId,
+}: {
+  subject: Subject;
+  tasks?: Task[];
+  defaultStudentId?: string;
+}) {
+  return (
+    <div className="stack">
+      <CreateActivityForm subject={subject} />
+      <ActivityLibraryBrowse subject={subject} tasks={tasks} defaultStudentId={defaultStudentId} />
     </div>
   );
 }
