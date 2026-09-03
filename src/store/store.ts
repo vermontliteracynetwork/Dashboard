@@ -222,6 +222,15 @@ interface AppState {
     mode: 'repeat' | 'span',
   ) => void;
   deleteAssignment: (id: string) => void;
+  updateAssignment: (id: string, patch: Partial<Assignment>) => void;
+  addStudentToAssignment: (
+    studentId: string,
+    subject: Subject,
+    templateId: string,
+    startDate: string,
+    endDate: string,
+    mode: 'repeat' | 'span',
+  ) => void;
 }
 
 // Pushes the full consolidated student_meta row for a student, reading the
@@ -997,6 +1006,30 @@ export const useStore = create<AppState>()(
       deleteAssignment: (id) => {
         set((s) => ({ assignments: s.assignments.filter((a) => a.id !== id) }));
         deleteAssignmentRemote(id);
+      },
+
+      updateAssignment: (id, patch) => {
+        set((s) => ({ assignments: s.assignments.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
+        const updated = get().assignments.find((a) => a.id === id);
+        if (updated) pushAssignment(updated);
+      },
+
+      addStudentToAssignment: (studentId, subject, templateId, startDate, endDate, mode) => {
+        const today = todayISO();
+        const isActiveNow = startDate <= today && today <= endDate;
+        const assignment: Assignment = { id: makeId(), studentId, subject, templateId, startDate, endDate, mode, applied: isActiveNow };
+        set((s) => ({ assignments: [...s.assignments, assignment] }));
+        pushAssignment(assignment);
+        if (isActiveNow) {
+          get().applyTemplateToStudent(studentId, templateId);
+          set((s) => ({
+            weeklyPlanApplied: {
+              ...s.weeklyPlanApplied,
+              [studentId]: { ...(s.weeklyPlanApplied[studentId] ?? {}), [subject]: today },
+            },
+          }));
+          pushMetaFor(get, studentId);
+        }
       },
     }),
     { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },
