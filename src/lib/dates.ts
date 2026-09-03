@@ -3,6 +3,16 @@ export const todayISO = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+// Human-readable form of an ISO date for anywhere a teacher needs to know
+// exactly which day they're looking at (e.g. "Monday, September 8, 2026").
+export const formatDateLong = (isoDate: string): string =>
+  new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
 export const isWeekend = (isoDate: string): boolean => {
   const d = new Date(`${isoDate}T00:00:00`);
   const day = d.getDay();

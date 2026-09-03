@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { TaskEditor, activityToTaskSnapshot } from './ActivityLibrary';
-import { todayISO } from '../../lib/dates';
+import { todayISO, formatDateLong } from '../../lib/dates';
 import type { Subject, Task } from '../../types';
 
 function defaultPlanName(tasks: Task[]): string {
@@ -75,7 +75,7 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
     const today = todayISO();
     const activeNow = startDate <= today && today <= endDate;
     publishAssignment(selectedIds, subject, tasks, finalName, startDate, endDate, mode);
-    const range = startDate === endDate ? `on ${startDate}` : `from ${startDate} to ${endDate}`;
+    const range = startDate === endDate ? `on ${formatDateLong(startDate)}` : `from ${formatDateLong(startDate)} to ${formatDateLong(endDate)}`;
     setSaved(
       `Published "${finalName}" to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
         (activeNow ? ' — it\'s live now.' : ' — it will load automatically when the window opens.'),
@@ -204,9 +204,14 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
               <input style={{ width: '100%' }} value={name} onChange={(e) => setName(e.target.value)} placeholder={defaultPlanName(tasks)} />
             </div>
 
-            <div className="row-wrap">
+            <div className="content-well" style={{ background: 'var(--yellow)', textAlign: 'center', fontWeight: 800 }}>
+              📅 Planning for: {startDate === endDate ? formatDateLong(startDate) : `${formatDateLong(startDate)} → ${formatDateLong(endDate)}`}
+              {startDate === todayISO() && endDate === todayISO() && ' (today)'}
+            </div>
+
+            <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
               <div>
-                <label>Start date</label>
+                <label>Start date (first day this plan is active)</label>
                 <input
                   type="date"
                   value={startDate}
@@ -217,9 +222,20 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
                 />
               </div>
               <div>
-                <label>End date</label>
+                <label>End date (last day — same as start for a single day)</label>
                 <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
+              {(startDate !== todayISO() || endDate !== todayISO()) && (
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setStartDate(todayISO());
+                    setEndDate(todayISO());
+                  }}
+                >
+                  ↺ Reset to today ({formatDateLong(todayISO())})
+                </button>
+              )}
             </div>
 
             {endDate > startDate && (

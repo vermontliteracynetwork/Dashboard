@@ -758,6 +758,26 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .zone-newplan .zone-header-bar { background: linear-gradient(90deg, var(--pink), var(--orange)); }
 .zone-create .zone-header-bar { background: linear-gradient(90deg, var(--purple), var(--pink)); }
 
+/* ---------- Per-student assignment page: view switcher ---------- */
+.lp-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.lp-tab-btn {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 9px 18px;
+  border: 2px solid var(--content-border);
+  border-radius: 999px;
+  background: white;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.lp-tab-btn.active {
+  opacity: 1;
+  background: var(--purple);
+  color: white;
+  border-color: var(--purple);
+}
+
 /* ---------- Assignments page: plan builder (2/3) + library (1/3) side by side ---------- */
 .assignments-split {
   display: flex;

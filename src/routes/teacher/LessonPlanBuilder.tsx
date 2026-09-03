@@ -432,19 +432,155 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
   );
 }
 
-export default function LessonPlanBuilder() {
-  const { studentId } = useParams<{ studentId: string }>();
-  const navigate = useNavigate();
-  const students = useStore((s) => s.students);
+type ViewTab = 'today' | 'library' | 'week' | 'backlog' | 'sets';
+
+// The daily-driver view: exactly what the student's plan looks like right
+// now, with a quick search-to-add so the common case (put an existing
+// activity on today's plan) never requires leaving this tab.
+function TodaysPlanView({ studentId, subject, studentName }: { studentId: string; subject: Subject; studentName: string }) {
   const rotations = useStore((s) => s.rotations);
+  const activityLibrary = useStore((s) => s.activityLibrary);
   const updateTask = useStore((s) => s.updateTask);
   const deleteTask = useStore((s) => s.deleteTask);
   const reorderTasks = useStore((s) => s.reorderTasks);
   const addActivityToPlan = useStore((s) => s.addActivityToPlan);
 
-  const [subj, setSubj] = useState<Subject>('math');
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const tasks = rotations[studentId]?.[subject] ?? [];
+  const searchMatches = search.trim()
+    ? activityLibrary.filter((a) => a.subject === subject && a.title.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 8)
+    : [];
+
+  return (
+    <div className="zone zone-today stack">
+      <div className="zone-header-bar">✅ Today's Plan — exactly what {studentName} sees right now</div>
+      <div style={{ padding: 14 }} className="stack">
+        <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+          Give an activity a number to require that order (1, 2, 3…). Leave the number blank and it becomes a free
+          choice the student can do anytime after every numbered activity is finished.
+        </p>
+
+        <div style={{ position: 'relative' }}>
+          <input
+            placeholder={`🔍 Search ${subject === 'math' ? 'Math' : 'Literacy'} activities to add to today's plan…`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%' }}
+          />
+          {searchMatches.length > 0 && (
+            <div className="search-add-dropdown">
+              {searchMatches.map((a) => (
+                <button
+                  key={a.id}
+                  className="search-add-row"
+                  onClick={() => {
+                    addActivityToPlan(studentId, subject, a.id);
+                    setSearch('');
+                  }}
+                >
+                  <span>{a.icon}</span>
+                  <span style={{ flex: 1, textAlign: 'left' }}>{a.title || '(untitled)'}</span>
+                  <span className="tag-pill" style={{ fontSize: '0.65rem' }}>➕ Add</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div
+          className={`stack drop-zone ${dragOver ? 'drop-zone-active' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const activityId = e.dataTransfer.getData('text/plain');
+            if (activityId) addActivityToPlan(studentId, subject, activityId);
+          }}
+        >
+          {tasks.length === 0 && (
+            <p className="chrome-frame" style={{ padding: 14, opacity: 0.7, textAlign: 'center' }}>
+              No activities yet. Search above, or head to the 🗂️ Activity Library or 🗃️ Backlog tabs to add a full set at once.
+            </p>
+          )}
+          {tasks.map((t, i) => (
+            <div key={t.id} className="chrome-frame stack" style={{ padding: 14 }}>
+              <div className="space-between">
+                <div className="row">
+                  <div className="stack" style={{ gap: 2, alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.65rem', opacity: 0.7 }}>Order</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={t.order ?? ''}
+                      placeholder="—"
+                      style={{ width: 54 }}
+                      onChange={(e) =>
+                        updateTask(studentId, subject, t.id, { order: e.target.value ? parseInt(e.target.value) : undefined })
+                      }
+                    />
+                  </div>
+                  <span style={{ fontSize: '1.6rem' }}>{t.icon}</span>
+                  <div>
+                    <strong>{t.title || '(untitled)'}</strong>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                      {t.type === 'quiz' && `Quiz · ${t.quiz?.questions.length ?? 0} question(s)`}
+                      {t.type === 'link' && `External link`}
+                      {t.type === 'offscreen' && `Off-screen / paper`}
+                      {t.type === 'video' && `Video`}
+                      {t.type === 'passage' && `Passage · ${t.quiz?.questions.length ?? 0} question(s)`}
+                      {t.type === 'drill' && `Flashcard drill · ${t.drill?.cards.length ?? 0} card(s)`}
+                      {t.type === 'wordchain' && `Word chain · ${t.wordchain?.steps.length ?? 0} step(s)`}
+                      {t.type === 'sentenceEdit' && `Editing sentences`}
+                      {t.referenceImageUrl && ' · 🖼️'}
+                      {t.referenceLinkUrl && ' · 🔗'}
+                      {t.isDaily && ' · ⭐'}
+                    </div>
+                  </div>
+                </div>
+                <div className="row-wrap">
+                  <button className="btn btn-sm" disabled={i === 0} onClick={() => reorderTasks(studentId, subject, i, i - 1)}>⬆️</button>
+                  <button className="btn btn-sm" disabled={i === tasks.length - 1} onClick={() => reorderTasks(studentId, subject, i, i + 1)}>⬇️</button>
+                  <button className="btn btn-sm" onClick={() => setEditingTaskId(editingTaskId === t.id ? null : t.id)}>
+                    {editingTaskId === t.id ? 'Close' : 'Edit'}
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => deleteTask(studentId, subject, t.id)}>Delete</button>
+                </div>
+              </div>
+              {editingTaskId === t.id && (
+                <TaskEditor
+                  initial={t}
+                  subject={subject}
+                  onSave={(nt) => {
+                    updateTask(studentId, subject, nt.id, nt);
+                    setEditingTaskId(null);
+                  }}
+                  onCancel={() => setEditingTaskId(null)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LessonPlanBuilder() {
+  const { studentId } = useParams<{ studentId: string }>();
+  const navigate = useNavigate();
+  const students = useStore((s) => s.students);
+  const rotations = useStore((s) => s.rotations);
+
+  const [subj, setSubj] = useState<Subject>('math');
+  const [view, setView] = useState<ViewTab>('today');
 
   const student = students.find((s) => s.id === studentId);
 
@@ -462,10 +598,13 @@ export default function LessonPlanBuilder() {
 
   const tasks = rotations[student.id]?.[subj] ?? [];
 
-  const switchSubject = (s: Subject) => {
-    setSubj(s);
-    setEditingTaskId(null);
-  };
+  const TABS: { id: ViewTab; label: string }[] = [
+    { id: 'today', label: `✅ Today's Plan${tasks.length ? ` (${tasks.length})` : ''}` },
+    { id: 'week', label: '📅 Weekly Schedule' },
+    { id: 'backlog', label: '🗃️ Backlog' },
+    { id: 'library', label: '🗂️ Activity Library' },
+    { id: 'sets', label: '📚 Content Sets' },
+  ];
 
   return (
     <div className="app-shell">
@@ -477,104 +616,23 @@ export default function LessonPlanBuilder() {
         </div>
 
         <div className="subject-tabs">
-          <button className={`subject-tab-btn tab-math ${subj === 'math' ? 'active' : ''}`} onClick={() => switchSubject('math')}>🔢 Math</button>
-          <button className={`subject-tab-btn tab-literacy ${subj === 'literacy' ? 'active' : ''}`} onClick={() => switchSubject('literacy')}>📚 Literacy</button>
+          <button className={`subject-tab-btn tab-math ${subj === 'math' ? 'active' : ''}`} onClick={() => setSubj('math')}>🔢 Math</button>
+          <button className={`subject-tab-btn tab-literacy ${subj === 'literacy' ? 'active' : ''}`} onClick={() => setSubj('literacy')}>📚 Literacy</button>
         </div>
 
-        <ActivityLibraryPanel subject={subj} tasks={tasks} defaultStudentId={student.id} />
-
-        <div className="zone zone-today stack">
-          <div className="zone-header-bar">✅ Today's Plan — exactly what {student.name} sees right now</div>
-          <div style={{ padding: 14 }} className="stack">
-            <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-              Give an activity a number to require that order (1, 2, 3…). Leave the number blank and it becomes a
-              free choice the student can do anytime after every numbered activity is finished.
-            </p>
-            <div
-              className={`stack drop-zone ${dragOver ? 'drop-zone-active' : ''}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'copy';
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-                const activityId = e.dataTransfer.getData('text/plain');
-                if (activityId) addActivityToPlan(student.id, subj, activityId);
-              }}
-            >
-              {tasks.length === 0 && (
-                <p className="chrome-frame" style={{ padding: 14, opacity: 0.7, textAlign: 'center' }}>
-                  No activities yet. Drag one in from the Activity Library above, assign a Backlog entry in "This
-                  Week," or tap "➕ Add to plan" on any library card.
-                </p>
-              )}
-              {tasks.map((t, i) => (
-                <div key={t.id} className="chrome-frame stack" style={{ padding: 14 }}>
-                  <div className="space-between">
-                    <div className="row">
-                      <div className="stack" style={{ gap: 2, alignItems: 'center' }}>
-                        <label style={{ fontSize: '0.65rem', opacity: 0.7 }}>Order</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={t.order ?? ''}
-                          placeholder="—"
-                          style={{ width: 54 }}
-                          onChange={(e) =>
-                            updateTask(student.id, subj, t.id, { order: e.target.value ? parseInt(e.target.value) : undefined })
-                          }
-                        />
-                      </div>
-                      <span style={{ fontSize: '1.6rem' }}>{t.icon}</span>
-                      <div>
-                        <strong>{t.title || '(untitled)'}</strong>
-                        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                          {t.type === 'quiz' && `Quiz · ${t.quiz?.questions.length ?? 0} question(s)`}
-                          {t.type === 'link' && `External link`}
-                          {t.type === 'offscreen' && `Off-screen / paper`}
-                          {t.type === 'video' && `Video`}
-                          {t.type === 'passage' && `Passage · ${t.quiz?.questions.length ?? 0} question(s)`}
-                          {t.type === 'drill' && `Flashcard drill · ${t.drill?.cards.length ?? 0} card(s)`}
-                          {t.type === 'wordchain' && `Word chain · ${t.wordchain?.steps.length ?? 0} step(s)`}
-                          {t.type === 'sentenceEdit' && `Editing sentences`}
-                          {t.referenceImageUrl && ' · 🖼️'}
-                          {t.referenceLinkUrl && ' · 🔗'}
-                          {t.isDaily && ' · ⭐'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="row-wrap">
-                      <button className="btn btn-sm" disabled={i === 0} onClick={() => reorderTasks(student.id, subj, i, i - 1)}>⬆️</button>
-                      <button className="btn btn-sm" disabled={i === tasks.length - 1} onClick={() => reorderTasks(student.id, subj, i, i + 1)}>⬇️</button>
-                      <button className="btn btn-sm" onClick={() => setEditingTaskId(editingTaskId === t.id ? null : t.id)}>
-                        {editingTaskId === t.id ? 'Close' : 'Edit'}
-                      </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => deleteTask(student.id, subj, t.id)}>Delete</button>
-                    </div>
-                  </div>
-                  {editingTaskId === t.id && (
-                    <TaskEditor
-                      initial={t}
-                      subject={subj}
-                      onSave={(nt) => {
-                        updateTask(student.id, subj, nt.id, nt);
-                        setEditingTaskId(null);
-                      }}
-                      onCancel={() => setEditingTaskId(null)}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="lp-tabs">
+          {TABS.map((t) => (
+            <button key={t.id} className={`lp-tab-btn ${view === t.id ? 'active' : ''}`} onClick={() => setView(t.id)}>
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        <WeeklyCalendar studentId={student.id} subject={subj} studentName={student.name} />
-        <BacklogPanel studentId={student.id} subject={subj} currentTasks={tasks} />
-        <ContentLibrary subject={subj} />
+        {view === 'today' && <TodaysPlanView studentId={student.id} subject={subj} studentName={student.name} />}
+        {view === 'week' && <WeeklyCalendar studentId={student.id} subject={subj} studentName={student.name} />}
+        {view === 'backlog' && <BacklogPanel studentId={student.id} subject={subj} currentTasks={tasks} />}
+        {view === 'library' && <ActivityLibraryPanel subject={subj} tasks={tasks} defaultStudentId={student.id} />}
+        {view === 'sets' && <ContentLibrary subject={subj} />}
       </div>
     </div>
   );
