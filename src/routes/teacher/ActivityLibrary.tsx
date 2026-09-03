@@ -453,29 +453,42 @@ export function PlaygroundPool() {
 }
 
 // Just the "make a brand-new activity" form — its own standalone, full-width section.
-export function CreateActivityForm({ subject }: { subject: Subject }) {
+// When `subject` is omitted (the Playground manager, which covers both
+// subjects at once), a small inline picker lets the teacher choose it per
+// activity instead of the whole page being locked to one subject.
+export function CreateActivityForm({ subject }: { subject?: Subject }) {
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addLibraryActivity = useStore((s) => s.addLibraryActivity);
   const [creating, setCreating] = useState(false);
+  const [pickedSubject, setPickedSubject] = useState<Subject>(subject ?? 'math');
+  const effectiveSubject = subject ?? pickedSubject;
 
-  const allForSubject = activityLibrary.filter((a) => a.subject === subject);
+  const allForSubject = activityLibrary.filter((a) => a.subject === effectiveSubject);
 
   return (
     <div className="zone zone-create stack">
       <div className="zone-header-bar">➕ Create an Activity</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Build a {subject === 'math' ? 'Math' : 'Literacy'} activity here — it lands in the Activity Library for
-          every student. Typing a title that matches an existing activity auto-fills the rest for you.
+          {subject
+            ? `Build a ${subject === 'math' ? 'Math' : 'Literacy'} activity here — it lands in the Activity Library for every student.`
+            : 'Build an activity here — it lands in the Activity Library for every student.'}
+          {' '}Typing a title that matches an existing activity auto-fills the rest for you.
         </p>
+        {!subject && creating && (
+          <div className="subject-tabs">
+            <button className={`subject-tab-btn tab-math ${pickedSubject === 'math' ? 'active' : ''}`} onClick={() => setPickedSubject('math')}>🔢 Math</button>
+            <button className={`subject-tab-btn tab-literacy ${pickedSubject === 'literacy' ? 'active' : ''}`} onClick={() => setPickedSubject('literacy')}>📚 Literacy</button>
+          </div>
+        )}
         {!creating && <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setCreating(true)}>➕ New Activity</button>}
         {creating && (
           <TaskEditor
             initial={blankTask()}
-            subject={subject}
+            subject={effectiveSubject}
             matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
             onSave={(t) => {
-              addLibraryActivity({ ...t, subject, inPlayground: false });
+              addLibraryActivity({ ...t, subject: effectiveSubject, inPlayground: false });
               setCreating(false);
             }}
             onCancel={() => setCreating(false)}
@@ -497,7 +510,7 @@ export function ActivityLibraryBrowse({
   onAddActivity,
   compact,
 }: {
-  subject: Subject;
+  subject?: Subject; // omit to browse every subject at once (the Playground manager)
   tasks?: Task[];
   defaultStudentId?: string;
   onAddActivity?: (activityId: string) => void;
@@ -514,7 +527,7 @@ export function ActivityLibraryBrowse({
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
   const [addToIds, setAddToIds] = useState<string[]>([]);
 
-  const allForSubject = activityLibrary.filter((a) => a.subject === subject);
+  const allForSubject = subject ? activityLibrary.filter((a) => a.subject === subject) : activityLibrary;
   const activities = allForSubject.filter(
     (a) => !search.trim() || a.title.toLowerCase().includes(search.trim().toLowerCase()),
   );
@@ -533,14 +546,14 @@ export function ActivityLibraryBrowse({
           Playground. ⭐ marks activities you use every day.
         </p>
         <input
-          placeholder="🔍 Search this subject's activities…"
+          placeholder={subject ? "🔍 Search this subject's activities…" : '🔍 Search activities…'}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: '100%' }}
         />
 
         {activities.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>{search ? 'No activities match your search.' : 'No activities in the library for this subject yet.'}</p>
+          <p style={{ opacity: 0.7 }}>{search ? 'No activities match your search.' : 'No activities in the library yet.'}</p>
         ) : (
           <div className={`library-card-grid ${compact ? 'library-card-grid-compact' : ''}`}>
             {activities.map((a) => {
@@ -559,7 +572,7 @@ export function ActivityLibraryBrowse({
                     <div style={{ padding: 10 }}>
                       <TaskEditor
                         initial={editingActivity}
-                        subject={subject}
+                        subject={a.subject}
                         matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
                         onSave={(t) => {
                           updateLibraryActivity(a.id, t);
@@ -575,6 +588,7 @@ export function ActivityLibraryBrowse({
                       </div>
                       <div className="library-card-body">
                         <div className="row-wrap" style={{ gap: 4 }}>
+                          {!subject && <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>}
                           {a.isDaily && <span className="badge-pill badge-daily">⭐ Daily</span>}
                           {a.inPlayground && <span className="badge-pill badge-playground">🎪 Playground</span>}
                           {onTodaysPlan && <span className="badge-pill badge-onplan">📌 On today's plan</span>}
@@ -598,7 +612,7 @@ export function ActivityLibraryBrowse({
                                 className="btn btn-sm btn-success"
                                 disabled={addToIds.length === 0}
                                 onClick={() => {
-                                  addActivityToPlanForStudents(addToIds, subject, a.id);
+                                  addActivityToPlanForStudents(addToIds, a.subject, a.id);
                                   setAddTargetId(null);
                                 }}
                               >

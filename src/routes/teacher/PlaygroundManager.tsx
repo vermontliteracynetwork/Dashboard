@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { ActivityLibraryBrowse, CreateActivityForm, PlaygroundPool } from './ActivityLibrary';
 import TeacherNav from '../../components/TeacherNav';
-import type { Subject } from '../../types';
 
+// One comprehensive Playground, covering both subjects at once — students
+// see everything here together regardless of subject, so managing it that
+// way too (rather than behind Math/Literacy tabs) matches what they get.
 export default function PlaygroundManager() {
-  const [subject, setSubject] = useState<Subject>('math');
-
   return (
     <div className="app-shell">
       <TeacherNav />
@@ -13,12 +12,8 @@ export default function PlaygroundManager() {
         <h1>🎪 Playground</h1>
 
         <h2>Add Activities</h2>
-        <div className="subject-tabs">
-          <button className={`subject-tab-btn tab-math ${subject === 'math' ? 'active' : ''}`} onClick={() => setSubject('math')}>🔢 Math</button>
-          <button className={`subject-tab-btn tab-literacy ${subject === 'literacy' ? 'active' : ''}`} onClick={() => setSubject('literacy')}>📚 Literacy</button>
-        </div>
-        <CreateActivityForm subject={subject} />
-        <ActivityLibraryBrowse subject={subject} />
+        <CreateActivityForm />
+        <ActivityLibraryBrowse />
 
         <PlaygroundPool />
       </div>
