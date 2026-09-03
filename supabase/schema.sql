@@ -207,6 +207,8 @@ alter table subject_progress add column if not exists completed_at timestamptz;
 alter table activity_library add column if not exists is_daily boolean not null default false;
 alter table students add column if not exists custom_tools jsonb not null default '[]';
 alter table offscreen_reviews add column if not exists photo_url text;
+alter table badges add column if not exists rule jsonb;
+alter table student_meta add column if not exists badge_counters jsonb not null default '{}';
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference

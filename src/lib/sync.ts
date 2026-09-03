@@ -104,7 +104,8 @@ const rowToOffscreenReview = (r: Row): OffscreenReview => ({
   photoUrl: r.photo_url ?? undefined,
 });
 
-const rowToBadge = (r: Row): BadgeDef => ({ id: r.id, name: r.name, description: r.description, icon: r.icon });
+const rowToBadge = (r: Row): BadgeDef => ({ id: r.id, name: r.name, description: r.description, icon: r.icon, rule: r.rule ?? undefined });
+const badgeToRow = (b: BadgeDef): Row => ({ id: b.id, name: b.name, description: b.description, icon: b.icon, rule: b.rule ?? null });
 
 const rowToBadgeEarn = (r: Row): BadgeEarn => ({ id: r.id, studentId: r.student_id, badgeId: r.badge_id, date: r.earned_at });
 
@@ -223,6 +224,12 @@ const assignmentToRow = (a: Assignment): Row => ({
 // Fetch everything once, folded into the shapes the store keeps in memory
 // ---------------------------------------------------------------------------
 
+export interface BadgeCounters {
+  subjectsCompletedCount: Partial<Record<Subject, number>>;
+  finalChecksPassed: Partial<Record<Subject, number>>;
+}
+const emptyBadgeCounters = (): BadgeCounters => ({ subjectsCompletedCount: {}, finalChecksPassed: {} });
+
 export interface HydratedState {
   students: Student[];
   rotations: Record<string, Record<Subject, Task[]>>;
@@ -245,6 +252,7 @@ export interface HydratedState {
   scratchText: Record<string, string>;
   onboardedIds: string[];
   weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>;
+  badgeCounters: Record<string, BadgeCounters>;
 }
 
 export async function fetchAll(): Promise<HydratedState> {
@@ -295,6 +303,7 @@ export async function fetchAll(): Promise<HydratedState> {
   const scratchText: Record<string, string> = {};
   const onboardedIds: string[] = [];
   const weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>> = {};
+  const badgeCounters: Record<string, BadgeCounters> = {};
   for (const r of metaRes.data ?? []) {
     for (const [taskId, count] of Object.entries(r.task_completion_counts ?? {})) {
       taskCompletionCounts[`${r.student_id}:${taskId}`] = count as number;
@@ -304,6 +313,7 @@ export async function fetchAll(): Promise<HydratedState> {
     scratchText[r.student_id] = r.scratch_text ?? '';
     if (r.onboarded) onboardedIds.push(r.student_id);
     weeklyPlanApplied[r.student_id] = r.weekly_plan_applied ?? {};
+    badgeCounters[r.student_id] = r.badge_counters ?? emptyBadgeCounters();
   }
 
   return {
@@ -328,6 +338,7 @@ export async function fetchAll(): Promise<HydratedState> {
     scratchText,
     onboardedIds,
     weeklyPlanApplied,
+    badgeCounters,
   };
 }
 
@@ -379,7 +390,7 @@ export const pushOffscreenReview = (o: OffscreenReview) =>
     photo_url: o.photoUrl ?? null,
   });
 
-export const pushBadge = (b: BadgeDef) => upsert('badges', b);
+export const pushBadge = (b: BadgeDef) => upsert('badges', badgeToRow(b));
 export const deleteBadgeRemote = (id: string) => remove('badges', { id });
 
 export const pushBadgeEarn = (e: BadgeEarn) =>
@@ -425,6 +436,7 @@ export interface StudentMetaSlice {
   scratchText: string;
   onboarded: boolean;
   weeklyPlanApplied: Partial<Record<Subject, string>>; // subject -> last ISO date its weekly schedule was auto-applied
+  badgeCounters: BadgeCounters;
 }
 
 export const pushStudentMeta = (studentId: string, data: StudentMetaSlice) =>
@@ -436,6 +448,7 @@ export const pushStudentMeta = (studentId: string, data: StudentMetaSlice) =>
     scratch_text: data.scratchText,
     onboarded: data.onboarded,
     weekly_plan_applied: data.weeklyPlanApplied,
+    badge_counters: data.badgeCounters,
   });
 
 // ---------------------------------------------------------------------------
@@ -491,6 +504,7 @@ export interface StudentMetaState {
   scratchText: Record<string, string>;
   onboardedIds: string[];
   weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>;
+  badgeCounters: Record<string, BadgeCounters>;
 }
 
 export function applyStudentMetaRow(
@@ -516,6 +530,8 @@ export function applyStudentMetaRow(
     delete scratchText[studentId];
     const weeklyPlanApplied = { ...current.weeklyPlanApplied };
     delete weeklyPlanApplied[studentId];
+    const badgeCounters = { ...current.badgeCounters };
+    delete badgeCounters[studentId];
     return {
       taskCompletionCounts,
       toolUsage,
@@ -523,6 +539,7 @@ export function applyStudentMetaRow(
       scratchText,
       onboardedIds: current.onboardedIds.filter((id) => id !== studentId),
       weeklyPlanApplied,
+      badgeCounters,
     };
   }
 
@@ -543,6 +560,7 @@ export function applyStudentMetaRow(
     scratchText: { ...current.scratchText, [studentId]: newRow.scratch_text ?? '' },
     onboardedIds,
     weeklyPlanApplied: { ...current.weeklyPlanApplied, [studentId]: newRow.weekly_plan_applied ?? {} },
+    badgeCounters: { ...current.badgeCounters, [studentId]: newRow.badge_counters ?? emptyBadgeCounters() },
   };
 }
 

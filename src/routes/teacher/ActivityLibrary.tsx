@@ -389,6 +389,16 @@ export function TaskEditor({
         />
         ⭐ This is a daily/recurring activity
       </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={task.isFinalCheck ?? false}
+          onChange={(e) => setTask({ ...task, isFinalCheck: e.target.checked })}
+          style={{ marginRight: 6 }}
+        />
+        🏁 Final Check — completing this marks the whole assignment done (unlocks Playground, updates the streak),
+        even if other activities are still unchecked. Only mark one activity per plan.
+      </label>
       <hr className="divider" />
       <label>
         <input type="checkbox" checked={showSteps} onChange={(e) => setShowSteps(e.target.checked)} style={{ marginRight: 6 }} />

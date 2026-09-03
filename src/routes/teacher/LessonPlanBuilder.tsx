@@ -593,6 +593,7 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
                       {t.referenceImageUrl && ' · 🖼️'}
                       {t.referenceLinkUrl && ' · 🔗'}
                       {t.isDaily && ' · ⭐'}
+                      {t.isFinalCheck && ' · 🏁 Final Check'}
                     </div>
                   </div>
                 </div>

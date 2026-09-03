@@ -120,6 +120,7 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
 
             <button className="checklist-title-btn2" disabled={locked} onClick={() => !locked && onOpen(t.id)}>
               {t.title || '(untitled)'}
+              {t.isFinalCheck && <span title="Final Check"> 🏁</span>}
             </button>
 
             <button

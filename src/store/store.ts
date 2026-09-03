@@ -49,6 +49,8 @@ import {
   pushAssignment,
   deleteAssignmentRemote,
 } from '../lib/sync';
+import type { BadgeCounters } from '../lib/sync';
+import { ruleMet } from '../lib/badgeRules';
 import type {
   Student,
   Subject,
@@ -109,6 +111,7 @@ interface AppState {
   planTemplates: PlanTemplate[]; // saved, reusable daily plans
   weeklySchedule: WeeklyScheduleEntry[]; // which template auto-loads on which weekday, per student+subject
   weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>; // studentId -> subject -> ISO date last auto-applied
+  badgeCounters: Record<string, BadgeCounters>; // studentId -> lifetime counters used by badge rules
   assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
@@ -170,6 +173,7 @@ interface AppState {
   updateBadge: (id: string, patch: Partial<BadgeDef>) => void;
   deleteBadge: (id: string) => void;
   awardBadge: (studentId: string, badgeId: string) => void;
+  evaluateBadgeRules: (studentId: string) => void;
 
   // break pool
   addBreakPoolItem: (item: Omit<BreakPoolItem, 'id'>) => void;
@@ -251,6 +255,7 @@ function pushMetaFor(get: () => AppState, studentId: string) {
     scratchText: s.scratchText[studentId] ?? '',
     onboarded: s.onboardedIds.includes(studentId),
     weeklyPlanApplied: s.weeklyPlanApplied[studentId] ?? {},
+    badgeCounters: s.badgeCounters[studentId] ?? { subjectsCompletedCount: {}, finalChecksPassed: {} },
   });
 }
 
@@ -277,6 +282,7 @@ export const useStore = create<AppState>()(
       planTemplates: [],
       weeklySchedule: [],
       weeklyPlanApplied: {},
+      badgeCounters: {},
       assignments: [],
 
       hydrated: !isSupabaseConfigured,
@@ -518,19 +524,25 @@ export const useStore = create<AppState>()(
         set((s) => ({ toolUsage: { ...s.toolUsage, [studentId]: [...used, tool] } }));
         pushMetaFor(get, studentId);
         get().awardBadge(studentId, 'explorer');
+        get().evaluateBadgeRules(studentId);
       },
 
       completeTask: (studentId, subject, taskId) => {
         get().ensureProgress(studentId, subject);
         const tasks = get().getTasks(studentId, subject);
         const today = todayISO();
+        // A teacher can designate one activity (typically a quiz) as the
+        // Final Check — completing it is what marks the subject done,
+        // instead of requiring every single activity to be checked off.
+        const finalCheckTask = tasks.find((t) => t.isFinalCheck);
+        const wasComplete = get().progress[studentId]?.[subject]?.subjectComplete ?? false;
 
         set((s) => {
           const sp = s.progress[studentId][subject];
           if (sp.completedTaskIds.includes(taskId)) return {};
           const completedTaskIds = [...sp.completedTaskIds, taskId];
           const nextIndex = sp.activeIndex + 1;
-          const subjectComplete = nextIndex >= tasks.length;
+          const subjectComplete = finalCheckTask ? completedTaskIds.includes(finalCheckTask.id) : nextIndex >= tasks.length;
           const completedAt = subjectComplete ? (sp.completedAt ?? new Date().toISOString()) : sp.completedAt;
           return {
             progress: {
@@ -548,8 +560,21 @@ export const useStore = create<AppState>()(
         const key = `${studentId}:${taskId}`;
         const count = (get().taskCompletionCounts[key] ?? 0) + 1;
         set((s) => ({ taskCompletionCounts: { ...s.taskCompletionCounts, [key]: count } }));
-        pushMetaFor(get, studentId);
         if (count === 3) get().awardBadge(studentId, 'practice-progress');
+
+        const nowComplete = get().progress[studentId][subject].subjectComplete;
+        const completedTask = tasks.find((t) => t.id === taskId);
+        if (!wasComplete && nowComplete) {
+          const counters = get().badgeCounters[studentId] ?? { subjectsCompletedCount: {}, finalChecksPassed: {} };
+          const subjectsCompletedCount = { ...counters.subjectsCompletedCount, [subject]: (counters.subjectsCompletedCount[subject] ?? 0) + 1 };
+          set((s) => ({ badgeCounters: { ...s.badgeCounters, [studentId]: { ...counters, subjectsCompletedCount } } }));
+        }
+        if (completedTask?.isFinalCheck) {
+          const counters = get().badgeCounters[studentId] ?? { subjectsCompletedCount: {}, finalChecksPassed: {} };
+          const finalChecksPassed = { ...counters.finalChecksPassed, [subject]: (counters.finalChecksPassed[subject] ?? 0) + 1 };
+          set((s) => ({ badgeCounters: { ...s.badgeCounters, [studentId]: { ...counters, finalChecksPassed } } }));
+        }
+        pushMetaFor(get, studentId);
 
         const student = get().students.find((st) => st.id === studentId);
 
@@ -558,13 +583,13 @@ export const useStore = create<AppState>()(
         const otherTasks = get().getTasks(studentId, other);
         const otherProg = get().progress[studentId]?.[other];
         const otherDone = otherTasks.length === 0 || (otherProg && otherProg.date === today && otherProg.subjectComplete);
-        const thisNowComplete = get().progress[studentId][subject].subjectComplete;
-        if (thisNowComplete && otherDone && student && student.lastCompletedDate !== today) {
+        if (nowComplete && otherDone && student && student.lastCompletedDate !== today) {
           const continued = streakContinues(student.lastCompletedDate, today);
           const newStreak = continued ? student.streak + 1 : 1;
           get().updateStudent(studentId, { streak: newStreak, lastCompletedDate: today });
           get().awardBadge(studentId, 'showed-up');
         }
+        get().evaluateBadgeRules(studentId);
       },
 
       markOffscreenDone: (studentId, subject, task, photoUrl) => {
@@ -621,6 +646,7 @@ export const useStore = create<AppState>()(
             set((s) => ({ correctionsCount: { ...s.correctionsCount, [studentId]: n } }));
             pushMetaFor(get, studentId);
             if (n === 3) get().awardBadge(studentId, 'great-correction');
+            get().evaluateBadgeRules(studentId);
           }
         } else {
           // reinsert at a random spot further back so it isn't asked again immediately
@@ -736,6 +762,50 @@ export const useStore = create<AppState>()(
         if (student && !student.badgeIds.includes(badgeId)) {
           get().updateStudent(studentId, { badgeIds: [...student.badgeIds, badgeId] });
         }
+      },
+
+      // Checked after anything that could satisfy a badge rule (a task
+      // completed, a tool opened, a correction made, a streak updated) —
+      // awards any rule-based badge whose condition is now true and that
+      // this student doesn't already have.
+      evaluateBadgeRules: (studentId) => {
+        const s = get();
+        const student = s.students.find((st) => st.id === studentId);
+        if (!student) return;
+
+        const prefix = `${studentId}:`;
+        let totalTasksCompleted = 0;
+        for (const [k, v] of Object.entries(s.taskCompletionCounts)) {
+          if (k.startsWith(prefix)) totalTasksCompleted += v;
+        }
+
+        const today = todayISO();
+        const tasksCompletedTodayBySubject: Partial<Record<Subject, number>> = {};
+        (['math', 'literacy'] as Subject[]).forEach((subj) => {
+          const p = s.progress[studentId]?.[subj];
+          if (p?.date === today) tasksCompletedTodayBySubject[subj] = p.completedTaskIds.length;
+        });
+
+        const counters = s.badgeCounters[studentId] ?? { subjectsCompletedCount: {}, finalChecksPassed: {} };
+        const sumValues = (rec: Partial<Record<Subject, number>>) => Object.values(rec).reduce((sum: number, v) => sum + (v ?? 0), 0);
+
+        const ctx = {
+          student,
+          totalTasksCompleted,
+          tasksCompletedTodayBySubject,
+          subjectsCompletedCount: sumValues(counters.subjectsCompletedCount),
+          subjectsCompletedCountBySubject: counters.subjectsCompletedCount,
+          finalChecksPassed: sumValues(counters.finalChecksPassed),
+          finalChecksPassedBySubject: counters.finalChecksPassed,
+          toolsUsedCount: (s.toolUsage[studentId] ?? []).length,
+          correctionsCount: s.correctionsCount[studentId] ?? 0,
+        };
+
+        s.badges.forEach((b) => {
+          if (!b.rule) return;
+          if (student.badgeIds.includes(b.id)) return;
+          if (ruleMet(b.rule, ctx)) get().awardBadge(studentId, b.id);
+        });
       },
 
       addBreakPoolItem: (item) => {

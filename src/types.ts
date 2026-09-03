@@ -201,6 +201,7 @@ export interface Task {
   referenceLinkLabel?: string;
   order?: number; // set = must be done in ascending order before any unordered task unlocks; unset = free-choice once all ordered tasks are done
   isDaily?: boolean; // teacher-marked "this repeats every day" — shown with a star in the library
+  isFinalCheck?: boolean; // teacher-marked "completing this marks the whole subject done" — unlocks Playground and updates the streak, instead of requiring every other activity to be checked off too. Typically a quiz.
 }
 
 export type RotationMode = 'sequence' | 'choiceboard';
@@ -334,11 +335,43 @@ export interface OffscreenReview {
   photoUrl?: string; // student-uploaded photo evidence, if the task required one
 }
 
+// A condition that auto-awards a badge once true and not already earned.
+// "constraint" (an optional subject filter) narrows what counts toward the
+// threshold — e.g. only Math activities, only Literacy final checks.
+export type BadgeRuleType =
+  | 'streak' // current streak reaches N days
+  | 'tasksCompletedTotal' // lifetime activities completed (any subject) reaches N
+  | 'tasksCompletedToday' // activities completed today reaches N
+  | 'subjectsCompletedTotal' // lifetime count of "fully finished a subject for the day" reaches N
+  | 'finalChecksPassed' // lifetime count of Final Check activities passed reaches N
+  | 'toolsUsed' // distinct tools ever opened reaches N
+  | 'correctionsMade'; // missed-then-corrected quiz questions, lifetime, reaches N
+
+export const BADGE_RULE_LABELS: Record<BadgeRuleType, string> = {
+  streak: 'Streak reaches (days)',
+  tasksCompletedTotal: 'Lifetime activities completed reaches',
+  tasksCompletedToday: 'Activities completed today reaches',
+  subjectsCompletedTotal: 'Times a subject was fully finished (lifetime) reaches',
+  finalChecksPassed: 'Final Checks passed (lifetime) reaches',
+  toolsUsed: 'Distinct tools used reaches',
+  correctionsMade: 'Missed-then-corrected questions (lifetime) reaches',
+};
+
+// Rule types where a subject constraint is meaningful.
+export const BADGE_RULE_SUBJECT_AWARE: BadgeRuleType[] = ['tasksCompletedToday', 'subjectsCompletedTotal', 'finalChecksPassed'];
+
+export interface BadgeRule {
+  type: BadgeRuleType;
+  threshold: number; // the "N" — if [metric] >= threshold, then award
+  subject?: Subject; // constraint: only count this subject (ignored for rule types that aren't subject-aware)
+}
+
 export interface BadgeDef {
   id: string;
   name: string;
   description: string;
   icon: string;
+  rule?: BadgeRule; // present = auto-awarded when the condition is met; absent = teacher awards it by hand (unchanged existing behavior)
 }
 
 export interface BadgeEarn {
