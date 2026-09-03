@@ -5,7 +5,8 @@ import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } fro
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { formatDateLong, todayISO } from '../../lib/dates';
 import { sortForDisplay } from '../../lib/taskOrder';
-import type { Assignment, Student, Subject, Task } from '../../types';
+import { makeId } from '../../lib/id';
+import type { Assignment, PlanTemplate, Student, Subject, Task } from '../../types';
 
 interface AssignmentGroup {
   key: string;
@@ -31,7 +32,44 @@ function groupAssignments(assignments: Assignment[]): AssignmentGroup[] {
   return [...map.values()].sort((a, b) => (a.startDate < b.startDate ? 1 : a.startDate > b.startDate ? -1 : 0));
 }
 
-type Filter = 'active' | 'upcoming' | 'past' | 'all';
+type Filter = 'active' | 'upcoming' | 'past' | 'drafts' | 'all';
+
+function DraftCard({
+  template,
+  onPublish,
+}: {
+  template: PlanTemplate;
+  onPublish: () => void;
+}) {
+  const duplicateTemplate = useStore((s) => s.duplicateTemplate);
+  const deleteTemplate = useStore((s) => s.deleteTemplate);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <div className="assignment-card" style={{ cursor: 'default' }}>
+      <div className={`assignment-card-banner ${template.subject === 'math' ? 'banner-math' : 'banner-literacy'}`}>
+        <span>{template.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
+        <span className="tag-pill">📝 Draft</span>
+      </div>
+      <div className="assignment-card-body">
+        <strong className="assignment-card-title">{template.name}</strong>
+        <div className="assignment-card-meta">{template.activities.length} activities</div>
+        <div className="row-wrap" style={{ marginTop: 8 }}>
+          <button className="btn btn-sm btn-primary" onClick={onPublish}>🚀 Publish</button>
+          <button className="btn btn-sm" onClick={() => duplicateTemplate(template.id)}>⧉ Duplicate</button>
+          {confirmDelete ? (
+            <>
+              <button className="btn btn-sm btn-danger" onClick={() => deleteTemplate(template.id)}>Confirm delete</button>
+              <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
+            </>
+          ) : (
+            <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(true)}>🗑️</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () => void }) {
   const planTemplates = useStore((s) => s.planTemplates);
@@ -166,6 +204,7 @@ function AssignmentDetailModal({
 export default function AssignmentsIndex() {
   const assignments = useStore((s) => s.assignments);
   const activityLibrary = useStore((s) => s.activityLibrary);
+  const planTemplates = useStore((s) => s.planTemplates);
   const deleteAssignment = useStore((s) => s.deleteAssignment);
 
   const [subject, setSubject] = useState<Subject>('math');
@@ -177,11 +216,17 @@ export default function AssignmentsIndex() {
   const groups = useMemo(() => groupAssignments(assignments), [assignments]);
   const today = todayISO();
   const filteredGroups = groups.filter((g) => {
-    if (filter === 'all') return true;
+    if (filter === 'all' || filter === 'drafts') return filter === 'all';
     if (filter === 'active') return g.startDate <= today && today <= g.endDate;
     if (filter === 'upcoming') return g.startDate > today;
     return g.endDate < today;
   });
+
+  const startFromDraft = (template: PlanTemplate) => {
+    setSubject(template.subject);
+    setPlanTasks(template.activities.map((a) => ({ ...a, id: makeId() })));
+    setCreating(true);
+  };
 
   if (creating) {
     return (
@@ -235,9 +280,17 @@ export default function AssignmentsIndex() {
         <h1>📋 Assignments</h1>
 
         <div className="lp-tabs">
-          {(['active', 'upcoming', 'past', 'all'] as Filter[]).map((f) => (
+          {(['active', 'upcoming', 'past', 'drafts', 'all'] as Filter[]).map((f) => (
             <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-              {f === 'active' ? '🟢 Active' : f === 'upcoming' ? '🔜 Upcoming' : f === 'past' ? '⏪ Past' : 'All'}
+              {f === 'active'
+                ? '🟢 Active'
+                : f === 'upcoming'
+                  ? '🔜 Upcoming'
+                  : f === 'past'
+                    ? '⏪ Past / Completed'
+                    : f === 'drafts'
+                      ? `📝 Drafts (${planTemplates.length})`
+                      : 'All'}
             </button>
           ))}
         </div>
@@ -247,12 +300,18 @@ export default function AssignmentsIndex() {
             <span style={{ fontSize: '2rem' }}>➕</span>
             <strong>Create Assignment</strong>
           </button>
-          {filteredGroups.map((g) => (
-            <AssignmentCard key={g.key} group={g} onOpen={() => setDetailGroup(g)} />
-          ))}
+          {filter === 'drafts'
+            ? planTemplates.map((t) => <DraftCard key={t.id} template={t} onPublish={() => startFromDraft(t)} />)
+            : filteredGroups.map((g) => <AssignmentCard key={g.key} group={g} onOpen={() => setDetailGroup(g)} />)}
         </div>
 
-        {filteredGroups.length === 0 && (
+        {filter === 'drafts' && planTemplates.length === 0 && (
+          <p style={{ opacity: 0.7 }}>
+            No drafts yet — save a plan as a draft from any student's Assignments page ("📜 History &amp; Drafts"),
+            or build one here and use "💾 Save as Draft only" instead of publishing.
+          </p>
+        )}
+        {filter !== 'drafts' && filteredGroups.length === 0 && (
           <p style={{ opacity: 0.7 }}>
             No {filter === 'all' ? '' : filter} assignments yet. Tap "➕ Create Assignment" to build one.
           </p>

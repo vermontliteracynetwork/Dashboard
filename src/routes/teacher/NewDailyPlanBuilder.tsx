@@ -65,7 +65,7 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
     if (tasks.length === 0) return;
     const finalName = name.trim() || defaultPlanName(tasks);
     addTemplate(finalName, subject, tasks);
-    setSaved(`Saved "${finalName}" to the Backlog.`);
+    setSaved(`Saved "${finalName}" as a draft.`);
     resetForm();
   };
 
@@ -254,7 +254,7 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
 
             <strong style={{ fontSize: '0.85rem' }}>Assign to:</strong>
             {students.length === 0 ? (
-              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No students yet — you can still save this to the Backlog.</p>
+              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No students yet — you can still save this as a draft.</p>
             ) : (
               <div className="row-wrap">
                 {students.map((st) => (
@@ -267,7 +267,7 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
             )}
 
             <div className="row-wrap">
-              <button className="btn" onClick={saveToBacklogOnly}>💾 Save to Backlog only</button>
+              <button className="btn" onClick={saveToBacklogOnly}>💾 Save as Draft only</button>
               <button className="btn btn-primary" disabled={selectedIds.length === 0} onClick={publish}>
                 🚀 Publish Plan
               </button>

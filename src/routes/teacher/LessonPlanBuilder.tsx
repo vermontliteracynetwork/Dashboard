@@ -94,9 +94,15 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
       <strong>{kind === 'quiz' ? '🧠 Import quiz questions' : '🗂️ Import flashcards'}</strong>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
         {kind === 'quiz'
-          ? 'Columns: Question, ChoiceA, ChoiceB, ChoiceC, ChoiceD, CorrectAnswer, ImageURL. Build it in Google Sheets, then File → Download → CSV.'
+          ? 'Columns: Question, ChoiceA, ChoiceB, ChoiceC, ChoiceD, CorrectAnswer, ImageURL.'
           : 'Columns: Front, Back, ImageURL. Good for math facts, grapheme/morpheme review, or vocabulary & etymology.'}
       </p>
+      {kind === 'quiz' && (
+        <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+          1️⃣ Copy the template and fill in your questions → 2️⃣ In Google Sheets: File → Download → Comma-separated
+          values (.csv) → 3️⃣ Upload that CSV file below.
+        </p>
+      )}
       <div className="row-wrap">
         {kind === 'quiz' && (
           <a
@@ -112,8 +118,11 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
           className="btn btn-sm"
           onClick={() => downloadCSV(kind === 'quiz' ? 'question-set-template.csv' : 'drill-set-template.csv', kind === 'quiz' ? QUIZ_TEMPLATE_ROWS : DRILL_TEMPLATE_ROWS)}
         >
-          ⬇️ Download template CSV
+          ⬇️ Or download a blank CSV instead
         </button>
+      </div>
+      <div>
+        <label style={{ fontSize: '0.8rem' }}>4️⃣ Upload your filled-in CSV here</label>
         <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
       </div>
       {fileName && <p style={{ fontSize: '0.85rem', opacity: 0.75 }}>Loaded: {fileName} — found {count} {kind === 'quiz' ? 'question(s)' : 'card(s)'}</p>}
