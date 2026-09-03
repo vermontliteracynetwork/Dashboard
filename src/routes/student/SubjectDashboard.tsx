@@ -166,41 +166,49 @@ export default function SubjectDashboard() {
 
       <SubjectProgressBar done={prog.completedTaskIds.length} total={tasks.length} />
 
-      {!activeTask && !reviewing && (
-        <p style={{ fontWeight: 800, fontSize: '1.1rem', textAlign: 'center' }}>
-          ✨ Pick any activity to start! <span className="point-arrow">👇</span>
-        </p>
-      )}
-
-      <TaskChecklist
-        student={student}
-        tasks={tasks}
-        completedIds={prog.completedTaskIds}
-        openedIds={openedTaskIds}
-        onOpen={(taskId) => {
-          setSelectedTaskId(taskId);
-          setOpenedTaskIds((prev) => (prev.has(taskId) ? prev : new Set(prev).add(taskId)));
-        }}
-        onCheck={checkOff}
-      />
-
-      {activeTask && <StepGuide steps={getTaskSteps(activeTask)} compact />}
-
-      {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (
-        <div className="content-well stack" style={{ alignItems: 'center' }}>
-          {activeTask.referenceImageUrl && (
-            <img
-              src={activeTask.referenceImageUrl}
-              alt="Reference"
-              style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 12, border: '2px solid var(--content-border)' }}
-            />
+      {/* A link task opens in its own overlay, so the checklist stays visible
+          underneath. Every other activity type renders right here inline —
+          once one of those is active, it's the only thing shown besides the
+          progress bar, so there's nothing else competing for attention. */}
+      {(!activeTask || activeTask.type === 'link') && (
+        <>
+          {!activeTask && !reviewing && (
+            <p style={{ fontWeight: 800, fontSize: '1.1rem', textAlign: 'center' }}>
+              ✨ Pick any activity to start! <span className="point-arrow">👇</span>
+            </p>
           )}
-          {activeTask.referenceLinkUrl && (
-            <a className="btn btn-blue" href={activeTask.referenceLinkUrl} target="_blank" rel="noopener noreferrer">
-              🔗 {activeTask.referenceLinkLabel || 'Open reference link'}
-            </a>
+
+          <TaskChecklist
+            student={student}
+            tasks={tasks}
+            completedIds={prog.completedTaskIds}
+            openedIds={openedTaskIds}
+            onOpen={(taskId) => {
+              setSelectedTaskId(taskId);
+              setOpenedTaskIds((prev) => (prev.has(taskId) ? prev : new Set(prev).add(taskId)));
+            }}
+            onCheck={checkOff}
+          />
+
+          {activeTask && <StepGuide steps={getTaskSteps(activeTask)} compact />}
+
+          {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (
+            <div className="content-well stack" style={{ alignItems: 'center' }}>
+              {activeTask.referenceImageUrl && (
+                <img
+                  src={activeTask.referenceImageUrl}
+                  alt="Reference"
+                  style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 12, border: '2px solid var(--content-border)' }}
+                />
+              )}
+              {activeTask.referenceLinkUrl && (
+                <a className="btn btn-blue" href={activeTask.referenceLinkUrl} target="_blank" rel="noopener noreferrer">
+                  🔗 {activeTask.referenceLinkLabel || 'Open reference link'}
+                </a>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       {activeTask && renderTask(activeTask)}

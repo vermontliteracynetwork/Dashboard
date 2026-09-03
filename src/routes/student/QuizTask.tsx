@@ -65,15 +65,20 @@ function MatchingBoard({ q, onSolved }: { q: MatchingQuestion; onSolved: () => v
   );
 }
 
+// Full-screen, one-question-at-a-time quiz player. Picking an answer never
+// silently jumps to the next question — it freezes on the current one,
+// shows a clear right/wrong result, and waits for the student to tap the
+// arrow. Only then is the answer actually recorded (a wrong one gets
+// reinserted later in the queue so it comes back around to try again).
 export default function QuizTask({ student, subject, task, onDone }: Props) {
   const ensureQuizState = useStore((s) => s.ensureQuizState);
   const submitQuizAnswer = useStore((s) => s.submitQuizAnswer);
   const progress = useStore((s) => s.progress);
 
-  const [feedback, setFeedback] = useState<'correct' | 'retry' | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const [fillValue, setFillValue] = useState('');
   const [usedWords, setUsedWords] = useState<string[]>([]);
+  const [pendingCorrect, setPendingCorrect] = useState<boolean | null>(null); // null = this question not yet answered
 
   useEffect(() => {
     ensureQuizState(student.id, subject, task);
@@ -88,7 +93,7 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
 
   // A fresh random answer order each time a new question comes up, when
   // the teacher has turned that on — memoized so it doesn't reshuffle
-  // out from under the student mid-question (e.g. on a retry re-render).
+  // out from under the student mid-question.
   const shuffleAnswers = task.quiz?.shuffleAnswers ?? false;
   const mcOrder = useMemo(() => {
     if (!activeQ || activeQ.kind !== 'mc') return null;
@@ -102,116 +107,123 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeQ?.id, shuffleAnswers]);
 
-  useEffect(() => {
-    setFeedback(null);
-    setPicked(null);
-    setFillValue('');
-    setUsedWords([]);
-  }, [activeId]);
-
   if (!state) return null;
 
   if (!activeQ) {
     // no questions configured
     return (
-      <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-        <p>This quiz has no questions yet. Ask your teacher!</p>
-        <button className="btn btn-primary btn-lg" onClick={onDone}>I'm done!</button>
+      <div className="quiz-fullview">
+        <div className="quiz-fullview-card content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+          <p>This quiz has no questions yet. Ask your teacher!</p>
+          <button className="btn btn-primary btn-lg" onClick={onDone}>I'm done!</button>
+        </div>
       </div>
     );
   }
 
-  const answer = (correct: boolean) => {
-    submitQuizAnswer(student.id, subject, task, activeQ.id, correct);
-    if (correct) {
-      setFeedback('correct');
-      setTimeout(() => {
-        const remaining = useStore.getState().progress[student.id][subject].quizState[task.id].remainingIds;
-        if (remaining.length === 0) onDone();
-      }, 700);
-    } else {
-      setFeedback('retry');
-      setTimeout(() => setFeedback(null), 1200);
-    }
+  const submitAnswer = (correct: boolean) => setPendingCorrect(correct);
+
+  const goNext = () => {
+    if (pendingCorrect === null) return;
+    submitQuizAnswer(student.id, subject, task, activeQ.id, pendingCorrect);
+    setPendingCorrect(null);
+    setPicked(null);
+    setFillValue('');
+    setUsedWords([]);
+    const remaining = useStore.getState().progress[student.id][subject].quizState[task.id].remainingIds;
+    if (remaining.length === 0) onDone();
   };
 
   const remainingCount = state.remainingIds.length;
+  const answered = pendingCorrect !== null;
 
   return (
-    <div className="stack">
-      <TicketStub remaining={remainingCount} total={total} label="questions left" />
-      <div className="content-well stack">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>{activeQ.prompt}</h3>
-          <ReadAloud text={activeQ.prompt} settings={student.ttsSettings} />
-        </div>
-        {activeQ.imageUrl && (
-          <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
-        )}
-
-        {feedback === 'correct' && <div className="tag-pill" style={{ background: 'var(--success)', color: 'white' }}>✅ Nice work!</div>}
-        {feedback === 'retry' && <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white' }}>💛 Let's try that one again!</div>}
-
-        {activeQ.kind === 'mc' && mcOrder && (
-          <div className="row-wrap">
-            {mcOrder.map((origIdx) => (
-              <button
-                key={origIdx}
-                className={`btn ${picked === origIdx ? (origIdx === activeQ.correctIndex ? 'btn-success' : '') : ''}`}
-                disabled={feedback !== null}
-                onClick={() => {
-                  setPicked(origIdx);
-                  answer(origIdx === activeQ.correctIndex);
-                }}
-              >
-                {activeQ.choices[origIdx]}
-              </button>
-            ))}
+    <div className="quiz-fullview">
+      <div className="quiz-fullview-card stack">
+        <TicketStub remaining={remainingCount} total={total} label="questions left" />
+        <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+          <div className="row" style={{ justifyContent: 'center' }}>
+            <h2 style={{ margin: 0 }}>{activeQ.prompt}</h2>
+            <ReadAloud text={activeQ.prompt} settings={student.ttsSettings} />
           </div>
-        )}
+          {activeQ.imageUrl && (
+            <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
+          )}
 
-        {activeQ.kind === 'matching' && feedback === null && (
-          <MatchingBoard q={activeQ} onSolved={() => answer(true)} />
-        )}
+          {pendingCorrect === true && (
+            <div className="tag-pill" style={{ background: 'var(--success)', color: 'white', fontSize: '1rem' }}>✅ Correct!</div>
+          )}
+          {pendingCorrect === false && (
+            <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white', fontSize: '1rem' }}>💛 Not quite — you'll see this one again</div>
+          )}
 
-        {activeQ.kind === 'fill' && (
-          <div className="stack">
-            {activeQ.wordBank && activeQ.wordBank.length > 0 ? (
-              <div className="row-wrap">
-                {activeQ.wordBank.map((w) => (
-                  <button
-                    key={w}
-                    className={`btn btn-sm ${usedWords.includes(w) ? 'btn-primary' : ''}`}
-                    disabled={feedback !== null}
-                    onClick={() => {
-                      setUsedWords([w]);
-                      setFillValue(w);
-                      answer(w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase());
-                    }}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="row">
-                <input
-                  value={fillValue}
-                  onChange={(e) => setFillValue(e.target.value)}
-                  placeholder="Type your answer"
-                  disabled={feedback !== null}
-                />
+          {activeQ.kind === 'mc' && mcOrder && (
+            <div className="row-wrap" style={{ justifyContent: 'center' }}>
+              {mcOrder.map((origIdx) => (
                 <button
-                  className="btn btn-primary"
-                  disabled={feedback !== null || !fillValue.trim()}
-                  onClick={() => answer(fillValue.trim().toLowerCase() === activeQ.answer.trim().toLowerCase())}
+                  key={origIdx}
+                  className={`btn btn-lg ${picked === origIdx ? (origIdx === activeQ.correctIndex ? 'btn-success' : 'btn-danger') : ''}`}
+                  disabled={answered}
+                  onClick={() => {
+                    setPicked(origIdx);
+                    submitAnswer(origIdx === activeQ.correctIndex);
+                  }}
                 >
-                  Check
+                  {activeQ.choices[origIdx]}
                 </button>
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+
+          {activeQ.kind === 'matching' && !answered && (
+            <MatchingBoard q={activeQ} onSolved={() => submitAnswer(true)} />
+          )}
+
+          {activeQ.kind === 'fill' && (
+            <div className="stack" style={{ alignItems: 'center' }}>
+              {activeQ.wordBank && activeQ.wordBank.length > 0 ? (
+                <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                  {activeQ.wordBank.map((w) => (
+                    <button
+                      key={w}
+                      className={`btn btn-lg ${usedWords.includes(w) ? (w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase() ? 'btn-success' : 'btn-danger') : ''}`}
+                      disabled={answered}
+                      onClick={() => {
+                        setUsedWords([w]);
+                        setFillValue(w);
+                        submitAnswer(w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase());
+                      }}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="row">
+                  <input
+                    value={fillValue}
+                    onChange={(e) => setFillValue(e.target.value)}
+                    placeholder="Type your answer"
+                    disabled={answered}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    disabled={answered || !fillValue.trim()}
+                    onClick={() => submitAnswer(fillValue.trim().toLowerCase() === activeQ.answer.trim().toLowerCase())}
+                  >
+                    Check
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {answered && (
+            <button className="btn btn-primary btn-lg pulse-cta" onClick={goNext} style={{ marginTop: 8 }}>
+              {remainingCount <= 1 ? '✅ Finish' : '➡️ Next Question'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

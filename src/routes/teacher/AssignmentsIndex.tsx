@@ -33,6 +33,14 @@ function groupAssignments(assignments: Assignment[]): AssignmentGroup[] {
   return [...map.values()].sort((a, b) => (a.startDate < b.startDate ? 1 : a.startDate > b.startDate ? -1 : 0));
 }
 
+// A student should only ever have one row in a given group — this is a
+// display-time safety net (the write path is idempotent, but this also
+// protects against any duplicate rows already sitting in the database).
+function uniqueRowsByStudent(rows: Assignment[]): Assignment[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => (seen.has(r.studentId) ? false : (seen.add(r.studentId), true)));
+}
+
 type Filter = 'active' | 'upcoming' | 'past' | 'drafts' | 'all';
 
 // What the full builder needs to reopen editing an existing draft or
@@ -111,7 +119,7 @@ function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () 
   const isActiveToday = group.startDate <= today && today <= group.endDate;
   const isUpcoming = group.startDate > today;
 
-  const studentList = group.rows
+  const studentList = uniqueRowsByStudent(group.rows)
     .map((r) => students.find((s) => s.id === r.studentId))
     .filter((s): s is Student => !!s);
 
@@ -153,7 +161,7 @@ function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () 
             <span>{doneToday}/{studentList.length} done today</span>
           </div>
         )}
-        {isUpcoming && <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: '4px 0 0' }}>Tap to edit — dates, students, and activities</p>}
+        {group.endDate >= today && <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: '4px 0 0' }}>Tap to edit — dates, students, and activities</p>}
       </div>
     </button>
   );
@@ -173,7 +181,7 @@ function AssignmentDetailModal({
   const template = planTemplates.find((t) => t.id === group.templateId);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const studentList = group.rows
+  const studentList = uniqueRowsByStudent(group.rows)
     .map((r) => students.find((s) => s.id === r.studentId))
     .filter((s): s is Student => !!s);
   const ordered = template ? sortForDisplay(template.activities) : [];
@@ -258,6 +266,15 @@ export default function AssignmentsIndex() {
     return g.endDate < today;
   });
 
+  // A draft that's been published (has an active or upcoming assignment)
+  // moves out of Drafts into Active/Upcoming — it's no longer just a draft.
+  // It comes back to Drafts once that window ends, since it's a reusable
+  // plan again at that point.
+  const livePublishedTemplateIds = new Set(
+    groups.filter((g) => g.endDate >= today).map((g) => g.templateId),
+  );
+  const draftTemplates = planTemplates.filter((t) => !livePublishedTemplateIds.has(t.id));
+
   const closeBuilder = () => {
     setCreating(false);
     setEditRequest(null);
@@ -286,15 +303,23 @@ export default function AssignmentsIndex() {
 
   const startEditGroup = (group: AssignmentGroup) => {
     const template = planTemplates.find((t) => t.id === group.templateId);
+    // Self-heals any duplicate rows for the same student found on this
+    // group (e.g. from before addStudentToAssignment was made idempotent)
+    // by deleting the extras now, so editing never re-creates them.
+    const uniqueRows = uniqueRowsByStudent(group.rows);
+    if (uniqueRows.length !== group.rows.length) {
+      const keepIds = new Set(uniqueRows.map((r) => r.id));
+      group.rows.filter((r) => !keepIds.has(r.id)).forEach((r) => deleteAssignment(r.id));
+    }
     setSubject(group.subject);
     setPlanTasks((template?.activities ?? []).map((a) => ({ ...a, id: makeId() })));
     setEditRequest({
-      editing: { templateId: group.templateId, rows: group.rows },
+      editing: { templateId: group.templateId, rows: uniqueRows },
       name: template?.name ?? '',
       startDate: group.startDate,
       endDate: group.endDate,
       mode: group.mode,
-      selectedIds: group.rows.map((r) => r.studentId),
+      selectedIds: uniqueRows.map((r) => r.studentId),
     });
     setCreating(true);
   };
@@ -376,7 +401,7 @@ export default function AssignmentsIndex() {
                   : f === 'past'
                     ? '⏪ Past / Completed'
                     : f === 'drafts'
-                      ? `📝 Drafts (${planTemplates.length})`
+                      ? `📝 Drafts (${draftTemplates.length})`
                       : 'All'}
             </button>
           ))}
@@ -388,12 +413,12 @@ export default function AssignmentsIndex() {
             <strong>Create Assignment</strong>
           </button>
           {filter === 'drafts'
-            ? planTemplates.map((t) => <DraftCard key={t.id} template={t} onEdit={() => startEditDraft(t)} />)
+            ? draftTemplates.map((t) => <DraftCard key={t.id} template={t} onEdit={() => startEditDraft(t)} />)
             : filteredGroups.map((g) => (
                 <AssignmentCard
                   key={g.key}
                   group={g}
-                  onOpen={() => (g.startDate > today ? startEditGroup(g) : setDetailKey(g.key))}
+                  onOpen={() => (g.endDate >= today ? startEditGroup(g) : setDetailKey(g.key))}
                 />
               ))}
         </div>

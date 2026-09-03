@@ -1085,12 +1085,25 @@ export const useStore = create<AppState>()(
         if (updated) pushAssignment(updated);
       },
 
+      // Idempotent by design: a student can only ever have one live
+      // assignment for a given plan+subject. If they already have one that
+      // hasn't ended yet, this updates its dates/mode in place instead of
+      // creating a second, duplicate assignment.
       addStudentToAssignment: (studentId, subject, templateId, startDate, endDate, mode) => {
         const today = todayISO();
         const isActiveNow = startDate <= today && today <= endDate;
-        const assignment: Assignment = { id: makeId(), studentId, subject, templateId, startDate, endDate, mode, applied: isActiveNow };
-        set((s) => ({ assignments: [...s.assignments, assignment] }));
-        pushAssignment(assignment);
+
+        const existing = get().assignments.find(
+          (a) => a.studentId === studentId && a.templateId === templateId && a.subject === subject && a.endDate >= today,
+        );
+        if (existing) {
+          get().updateAssignment(existing.id, { startDate, endDate, mode });
+        } else {
+          const assignment: Assignment = { id: makeId(), studentId, subject, templateId, startDate, endDate, mode, applied: isActiveNow };
+          set((s) => ({ assignments: [...s.assignments, assignment] }));
+          pushAssignment(assignment);
+        }
+
         if (isActiveNow) {
           get().applyTemplateToStudent(studentId, templateId);
           set((s) => ({

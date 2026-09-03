@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { TaskEditor, activityToTaskSnapshot } from './ActivityLibrary';
 import { todayISO, formatDateLong } from '../../lib/dates';
+import { enforceFinalCheckLast } from '../../lib/taskOrder';
 import type { Assignment, Subject, Task } from '../../types';
 
 function defaultPlanName(tasks: Task[]): string {
@@ -78,9 +79,13 @@ export default function NewDailyPlanBuilder({
   const toggleStudent = (id: string) =>
     setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
+  // A Final Check must stay the last thing in the plan — enforced on every
+  // change so a teacher never has to place it last by hand.
+  const setTasks = (next: Task[]) => onTasksChange(enforceFinalCheckLast(next));
+
   const addFromLibrary = (activityId: string) => {
     const lib = activityLibrary.find((a) => a.id === activityId && a.subject === subject);
-    if (lib) onTasksChange([...tasks, activityToTaskSnapshot(lib)]);
+    if (lib) setTasks([...tasks, activityToTaskSnapshot(lib)]);
   };
 
   const searchMatches = search.trim()
@@ -207,15 +212,17 @@ export default function NewDailyPlanBuilder({
               <div key={t.id} className="plan-list-item">
                 <div className="plan-list-row">
                   <input
-                    type="number"
-                    min={1}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={t.order ?? ''}
                     placeholder="—"
                     title="Order (blank = free choice)"
                     className="plan-order-input"
                     onChange={(e) => {
-                      const order = e.target.value ? parseInt(e.target.value) : undefined;
-                      onTasksChange(tasks.map((x) => (x.id === t.id ? { ...x, order } : x)));
+                      const digits = e.target.value.replace(/[^0-9]/g, '');
+                      const order = digits ? parseInt(digits, 10) : undefined;
+                      setTasks(tasks.map((x) => (x.id === t.id ? { ...x, order } : x)));
                     }}
                   />
                   <span className="plan-list-icon">{t.icon}</span>
@@ -224,21 +231,21 @@ export default function NewDailyPlanBuilder({
                     <button className="btn btn-sm" disabled={i === 0} onClick={() => {
                       const next = [...tasks];
                       [next[i - 1], next[i]] = [next[i], next[i - 1]];
-                      onTasksChange(next);
+                      setTasks(next);
                     }}>
                       ⬆️
                     </button>
                     <button className="btn btn-sm" disabled={i === tasks.length - 1} onClick={() => {
                       const next = [...tasks];
                       [next[i + 1], next[i]] = [next[i], next[i + 1]];
-                      onTasksChange(next);
+                      setTasks(next);
                     }}>
                       ⬇️
                     </button>
                     <button className="btn btn-sm" onClick={() => setEditingTaskId(editingTaskId === t.id ? null : t.id)}>
                       {editingTaskId === t.id ? '✕' : '✏️'}
                     </button>
-                    <button className="btn btn-sm btn-danger" onClick={() => onTasksChange(tasks.filter((x) => x.id !== t.id))}>
+                    <button className="btn btn-sm btn-danger" onClick={() => setTasks(tasks.filter((x) => x.id !== t.id))}>
                       🗑️
                     </button>
                   </div>
@@ -249,7 +256,7 @@ export default function NewDailyPlanBuilder({
                       initial={t}
                       subject={subject}
                       onSave={(nt) => {
-                        onTasksChange(tasks.map((x) => (x.id === t.id ? nt : x)));
+                        setTasks(tasks.map((x) => (x.id === t.id ? nt : x)));
                         setEditingTaskId(null);
                       }}
                       onCancel={() => setEditingTaskId(null)}

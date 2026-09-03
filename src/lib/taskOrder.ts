@@ -23,3 +23,15 @@ export function sortForDisplay(tasks: Task[]): Task[] {
   const unordered = tasks.filter((t) => t.order == null);
   return [...ordered, ...unordered];
 }
+
+// A Final Check must always be the very last thing in the day's plan — bump
+// its order above every other numbered task and move it to the end of the
+// list, so a teacher never has to remember to place it last by hand.
+export function enforceFinalCheckLast(tasks: Task[]): Task[] {
+  const idx = tasks.findIndex((t) => t.isFinalCheck);
+  if (idx === -1) return tasks;
+  const maxOrder = tasks.reduce((max, t) => (t.isFinalCheck ? max : Math.max(max, t.order ?? 0)), 0);
+  const finalCheckTask = { ...tasks[idx], order: maxOrder + 1 };
+  const rest = tasks.filter((_, i) => i !== idx);
+  return [...rest, finalCheckTask];
+}

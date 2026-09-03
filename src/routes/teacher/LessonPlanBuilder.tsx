@@ -7,6 +7,7 @@ import { ActivityLibraryPanel, activityToTaskSnapshot, TaskEditor } from './Acti
 import { parseCSV, downloadCSV } from '../../lib/csv';
 import { rowsToQuizQuestions, rowsToDrillCards, QUIZ_TEMPLATE_ROWS, DRILL_TEMPLATE_ROWS } from '../../lib/importQuestions';
 import { currentDayOfWeek, formatDateLong, todayISO } from '../../lib/dates';
+import { enforceFinalCheckLast } from '../../lib/taskOrder';
 import type { Subject, Task, QuizQuestion, DrillCard, DayOfWeek } from '../../types';
 import { WEEKDAYS, WEEKDAY_SHORT, WEEKDAY_LABELS } from '../../types';
 
@@ -444,7 +445,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
                                 initial={a}
                                 subject={subject}
                                 onSave={(nt) => {
-                                  updateTemplate(t.id, { activities: t.activities.map((x) => (x.id === a.id ? nt : x)) });
+                                  updateTemplate(t.id, { activities: enforceFinalCheckLast(t.activities.map((x) => (x.id === a.id ? nt : x))) });
                                   setEditingActivityId(null);
                                 }}
                                 onCancel={() => setEditingActivityId(null)}
@@ -504,6 +505,19 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
   const searchMatches = search.trim()
     ? activityLibrary.filter((a) => a.subject === subject && a.title.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 8)
     : [];
+
+  // A Final Check must always be the last thing in the plan — bump its
+  // order above every other task and move it to the end whenever it's
+  // saved as (or already was) the Final Check.
+  const saveTask = (taskId: string, patch: Partial<Task>) => {
+    updateTask(studentId, subject, taskId, patch);
+    const isFinalCheck = patch.isFinalCheck ?? tasks.find((t) => t.id === taskId)?.isFinalCheck;
+    if (!isFinalCheck) return;
+    const maxOrder = tasks.reduce((max, t) => (t.id === taskId || t.isFinalCheck ? max : Math.max(max, t.order ?? 0)), 0);
+    updateTask(studentId, subject, taskId, { order: maxOrder + 1 });
+    const idx = tasks.findIndex((t) => t.id === taskId);
+    if (idx !== -1 && idx !== tasks.length - 1) reorderTasks(studentId, subject, idx, tasks.length - 1);
+  };
 
   return (
     <div className="zone zone-today stack">
@@ -568,14 +582,18 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
                   <div className="stack" style={{ gap: 2, alignItems: 'center' }}>
                     <label style={{ fontSize: '0.65rem', opacity: 0.7 }}>Order</label>
                     <input
-                      type="number"
-                      min={1}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={t.order ?? ''}
                       placeholder="—"
                       style={{ width: 54 }}
-                      onChange={(e) =>
-                        updateTask(studentId, subject, t.id, { order: e.target.value ? parseInt(e.target.value) : undefined })
-                      }
+                      disabled={t.isFinalCheck}
+                      title={t.isFinalCheck ? 'Final Check — always last' : undefined}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/[^0-9]/g, '');
+                        updateTask(studentId, subject, t.id, { order: digits ? parseInt(digits, 10) : undefined });
+                      }}
                     />
                   </div>
                   <span style={{ fontSize: '1.6rem' }}>{t.icon}</span>
@@ -611,7 +629,7 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
                   initial={t}
                   subject={subject}
                   onSave={(nt) => {
-                    updateTask(studentId, subject, nt.id, nt);
+                    saveTask(nt.id, nt);
                     setEditingTaskId(null);
                   }}
                   onCancel={() => setEditingTaskId(null)}

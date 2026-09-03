@@ -22,7 +22,6 @@ export default function StudentHome() {
   const hydrated = useStore((s) => s.hydrated);
   const applyTodaysScheduleIfNeeded = useStore((s) => s.applyTodaysScheduleIfNeeded);
   const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
-  const requestBreak = useStore((s) => s.requestBreak);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -62,7 +61,6 @@ export default function StudentHome() {
 
   const hasPlaygroundItems = activityLibrary.some((a) => a.inPlayground);
   const access = getPlaygroundAccess(mathDone, litDone, mathProg, litProg, today, student, breakState);
-  const askedForEarlyAccess = breakState?.status === 'pending';
 
   return (
     <div className="container stack">
@@ -180,18 +178,9 @@ export default function StudentHome() {
               </button>
             </>
           ) : (
-            <>
-              <p style={{ opacity: 0.75, margin: 0 }}>
-                🔒 Finish Math or Literacy to unlock the Playground for 20 minutes — finish both for the rest of the day!
-              </p>
-              {askedForEarlyAccess ? (
-                <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>Asking your teacher... hang tight! 💭</p>
-              ) : (
-                <button className="btn btn-sm" onClick={() => requestBreak(student.id)}>
-                  🙋 Ask my teacher for early access
-                </button>
-              )}
-            </>
+            <p style={{ opacity: 0.75, margin: 0 }}>
+              🔒 Finish Math or Literacy to unlock the Playground for 20 minutes — finish both for the rest of the day!
+            </p>
           )}
         </div>
       )}

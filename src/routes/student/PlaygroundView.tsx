@@ -24,7 +24,6 @@ export default function PlaygroundView() {
   const progress = useStore((s) => s.progress);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
-  const requestBreak = useStore((s) => s.requestBreak);
 
   const [openEntry, setOpenEntry] = useState<{ task: Task; subject: Subject } | null>(null);
   const [, setTick] = useState(0);
@@ -50,7 +49,6 @@ export default function PlaygroundView() {
   const mathDone = mathTasks.length === 0 || (mathProg?.date === today && mathProg.subjectComplete);
   const litDone = litTasks.length === 0 || (litProg?.date === today && litProg.subjectComplete);
   const access = getPlaygroundAccess(mathDone, litDone, mathProg, litProg, today, student, breakState);
-  const askedForEarlyAccess = breakState?.status === 'pending';
 
   const entries: { task: Task; subject: Subject }[] = activityLibrary
     .filter((a) => a.inPlayground)
@@ -69,11 +67,6 @@ export default function PlaygroundView() {
           <span style={{ fontSize: '3rem' }}>🔒</span>
           <h3 style={{ margin: 0 }}>Locked for now</h3>
           <p>Finish Math or Literacy to unlock the Playground for 20 minutes — finish both for the rest of the day!</p>
-          {askedForEarlyAccess ? (
-            <p style={{ fontSize: '0.9rem', opacity: 0.75 }}>Asking your teacher... hang tight! 💭</p>
-          ) : (
-            <button className="btn btn-teal" onClick={() => requestBreak(student.id)}>🙋 Ask my teacher for early access</button>
-          )}
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}>🏠 Back to Home</button>
         </div>
       </div>

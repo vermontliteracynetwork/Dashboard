@@ -758,6 +758,23 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .zone-newplan .zone-header-bar { background: linear-gradient(90deg, var(--pink), var(--orange)); }
 .zone-create .zone-header-bar { background: linear-gradient(90deg, var(--purple), var(--pink)); }
 
+/* ---------- Full-screen quiz player ---------- */
+.quiz-fullview {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 40; /* below the tools/whatnow/help fabs (z-index 50-60) so they stay reachable during a quiz */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+.quiz-fullview-card {
+  width: 100%;
+  max-width: 640px;
+}
+
 /* ---------- Break / Playground countdown timer ---------- */
 .break-timer {
   border: var(--chunk) solid var(--ink);
