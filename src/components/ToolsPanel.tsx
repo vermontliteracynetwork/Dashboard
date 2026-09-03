@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
@@ -17,7 +18,12 @@ const TOOL_ICONS: Record<ToolKey, string> = {
   thesaurus: '🔄',
   dictionary: '📖',
   soundWall: '🔤',
+  whiteboard: '🎨',
 };
+
+// Tools that need real room to work — shown in a much larger overlay
+// instead of the default small popup.
+const WIDE_TOOLS: ToolKey[] = ['wordProcessor', 'whiteboard'];
 
 function Calculator() {
   const [display, setDisplay] = useState('0');
@@ -149,43 +155,128 @@ function HundredsChart() {
   );
 }
 
+const NUMBER_LINE_RANGES: { label: string; min: number; max: number }[] = [
+  { label: '0–10', min: 0, max: 10 },
+  { label: '0–20', min: 0, max: 20 },
+  { label: '0–50', min: 0, max: 50 },
+  { label: '0–100', min: 0, max: 100 },
+  { label: '-10–10', min: -10, max: 10 },
+];
+
+const NL_TICK_W = 34;
+
 function NumberLine() {
-  const [sel, setSel] = useState<number | null>(null);
-  const [jumpFrom, setJumpFrom] = useState<number | null>(null);
-  const nums = Array.from({ length: 21 }, (_, i) => i);
+  const [rangeIdx, setRangeIdx] = useState(1);
+  const [start, setStart] = useState<number | null>(null);
+  const [end, setEnd] = useState<number | null>(null);
+  const range = NUMBER_LINE_RANGES[rangeIdx];
+  const nums = Array.from({ length: range.max - range.min + 1 }, (_, i) => range.min + i);
 
   const pick = (n: number) => {
-    if (jumpFrom === null) {
-      setJumpFrom(n);
-      setSel(n);
+    if (start === null || end !== null) {
+      setStart(n);
+      setEnd(null);
     } else {
-      setSel(n);
+      setEnd(n);
     }
   };
 
+  const reset = () => {
+    setStart(null);
+    setEnd(null);
+  };
+
+  const startIdx = start !== null ? start - range.min : null;
+  const endIdx = end !== null ? end - range.min : null;
+  const lineWidth = nums.length * NL_TICK_W;
+
   return (
     <div className="stack">
-      <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
-        Tap a number to start, tap another to see the jump between them.
-      </p>
-      {jumpFrom !== null && sel !== null && sel !== jumpFrom && (
-        <div className="content-well" style={{ textAlign: 'center', fontSize: '1.2rem' }}>
-          {jumpFrom} → {sel} is a jump of <strong>{Math.abs(sel - jumpFrom)}</strong>
-        </div>
-      )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
-        {nums.map((n) => (
+      <div className="row-wrap">
+        <span style={{ fontSize: '0.85rem', alignSelf: 'center' }}>Range:</span>
+        {NUMBER_LINE_RANGES.map((r, i) => (
           <button
-            key={n}
-            className={`btn btn-sm ${n === jumpFrom || n === sel ? 'btn-primary' : ''}`}
-            style={{ minWidth: 34, padding: '6px 4px' }}
-            onClick={() => pick(n)}
+            key={r.label}
+            className={`btn btn-sm ${rangeIdx === i ? 'btn-primary' : ''}`}
+            onClick={() => {
+              setRangeIdx(i);
+              reset();
+            }}
           >
-            {n}
+            {r.label}
           </button>
         ))}
       </div>
-      <button className="btn btn-sm" style={{ alignSelf: 'center' }} onClick={() => { setSel(null); setJumpFrom(null); }}>
+      <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+        Tap a number to start, tap another to see the jump between them.
+      </p>
+      {start !== null && end !== null && (
+        <div className="content-well" style={{ textAlign: 'center', fontSize: '1.15rem' }}>
+          {start} → {end} is a jump of <strong>{Math.abs(end - start)}</strong> {end > start ? '➡️ forward' : '⬅️ backward'}
+        </div>
+      )}
+      <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+        <div style={{ position: 'relative', width: lineWidth, paddingTop: 32 }}>
+          {startIdx !== null && endIdx !== null && startIdx !== endIdx && (
+            <svg
+              width={lineWidth}
+              height={32}
+              style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', pointerEvents: 'none' }}
+            >
+              <defs>
+                <marker id="nl-arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="var(--purple)" />
+                </marker>
+              </defs>
+              <path
+                d={`M ${startIdx * NL_TICK_W + NL_TICK_W / 2} 30 Q ${((startIdx + endIdx) / 2) * NL_TICK_W + NL_TICK_W / 2} 0 ${endIdx * NL_TICK_W + NL_TICK_W / 2} 30`}
+                fill="none"
+                stroke="var(--purple)"
+                strokeWidth={3}
+                markerEnd="url(#nl-arrow)"
+              />
+            </svg>
+          )}
+          <div style={{ position: 'relative', height: 3, background: 'var(--ink)', width: lineWidth }} />
+          <div style={{ display: 'flex' }}>
+            {nums.map((n) => {
+              const isStart = n === start;
+              const isEnd = n === end;
+              return (
+                <button
+                  key={n}
+                  onClick={() => pick(n)}
+                  style={{
+                    width: NL_TICK_W,
+                    flex: '0 0 auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    marginTop: -3,
+                  }}
+                >
+                  <div style={{ width: 3, height: 14, background: isStart || isEnd ? 'var(--purple)' : 'var(--ink)' }} />
+                  <span
+                    style={{
+                      marginTop: 4,
+                      fontSize: '0.72rem',
+                      fontWeight: isStart || isEnd ? 800 : 500,
+                      color: isStart ? 'var(--blue)' : isEnd ? 'var(--pink)' : 'inherit',
+                    }}
+                  >
+                    {n}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <button className="btn btn-sm" style={{ alignSelf: 'center' }} onClick={reset}>
         🔄 Reset
       </button>
     </div>
@@ -260,13 +351,32 @@ function SoundWall({ student }: { student: Student }) {
 function WordProcessor({ student }: { student: Student }) {
   const scratchText = useStore((s) => s.scratchText[student.id] ?? '');
   const setScratchText = useStore((s) => s.setScratchText);
+  const [fontSize, setFontSize] = useState(1.15);
+  const wordCount = scratchText.trim() ? scratchText.trim().split(/\s+/).length : 0;
+
   return (
-    <div className="stack">
+    <div className="stack" style={{ height: '100%', minHeight: 0 }}>
+      <div className="row-wrap" style={{ justifyContent: 'space-between' }}>
+        <div className="row" style={{ gap: 4 }}>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7, marginRight: 4 }}>Text size:</span>
+          <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.max(0.85, +(f - 0.15).toFixed(2)))} aria-label="Smaller text">A-</button>
+          <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.min(2, +(f + 0.15).toFixed(2)))} aria-label="Larger text">A+</button>
+        </div>
+        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{wordCount} word{wordCount === 1 ? '' : 's'}</span>
+      </div>
       <textarea
         value={scratchText}
         onChange={(e) => setScratchText(student.id, e.target.value)}
-        rows={10}
-        style={{ width: '100%', resize: 'vertical' }}
+        style={{
+          width: '100%',
+          flex: 1,
+          minHeight: 340,
+          resize: 'vertical',
+          fontSize: `${fontSize}rem`,
+          lineHeight: 1.6,
+          padding: 14,
+          fontFamily: "'Nunito', sans-serif",
+        }}
         placeholder="Start writing..."
       />
       <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -275,6 +385,129 @@ function WordProcessor({ student }: { student: Student }) {
           🔈 Read it back
         </button>
       </div>
+    </div>
+  );
+}
+
+const WHITEBOARD_COLORS = ['#1f1147', '#e63946', '#2a6df4', '#2fae5d', '#f4a300', '#8b5cf6'];
+const WHITEBOARD_SIZES: { size: number; label: string }[] = [
+  { size: 3, label: '· Thin' },
+  { size: 6, label: '● Medium' },
+  { size: 11, label: '⬤ Thick' },
+];
+
+function Whiteboard() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const last = useRef<{ x: number; y: number } | null>(null);
+  const [color, setColor] = useState(WHITEBOARD_COLORS[0]);
+  const [size, setSize] = useState(6);
+  const [erasing, setErasing] = useState(false);
+
+  const posFor = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((e.clientY - rect.top) / rect.height) * canvas.height,
+    };
+  };
+
+  const startDraw = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    drawing.current = true;
+    last.current = posFor(e);
+  };
+
+  const moveDraw = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current) return;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx || !last.current) return;
+    const p = posFor(e);
+    ctx.strokeStyle = erasing ? '#ffffff' : color;
+    ctx.lineWidth = erasing ? size * 5 : size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(last.current.x, last.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last.current = p;
+  };
+
+  const endDraw = () => {
+    drawing.current = false;
+    last.current = null;
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  return (
+    <div className="stack" style={{ height: '100%', minHeight: 0 }}>
+      <div className="row-wrap" style={{ alignItems: 'center' }}>
+        {WHITEBOARD_COLORS.map((c) => (
+          <button
+            key={c}
+            onClick={() => {
+              setColor(c);
+              setErasing(false);
+            }}
+            aria-label={`Color ${c}`}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: '50%',
+              background: c,
+              cursor: 'pointer',
+              padding: 0,
+              border: !erasing && color === c ? '3px solid var(--ink)' : '2px solid var(--content-border)',
+            }}
+          />
+        ))}
+        <span style={{ width: 1, height: 24, background: 'var(--content-border)', margin: '0 4px' }} />
+        {WHITEBOARD_SIZES.map((s) => (
+          <button
+            key={s.size}
+            className={`btn btn-sm ${!erasing && size === s.size ? 'btn-primary' : ''}`}
+            onClick={() => {
+              setSize(s.size);
+              setErasing(false);
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+        <button className={`btn btn-sm ${erasing ? 'btn-primary' : ''}`} onClick={() => setErasing((v) => !v)}>
+          🧽 Eraser
+        </button>
+        <button className="btn btn-sm btn-danger" onClick={clear}>
+          🗑️ Clear
+        </button>
+      </div>
+      <canvas
+        ref={canvasRef}
+        width={900}
+        height={500}
+        style={{
+          width: '100%',
+          flex: 1,
+          minHeight: 300,
+          background: 'white',
+          border: '2px solid var(--content-border)',
+          borderRadius: 12,
+          touchAction: 'none',
+          cursor: 'crosshair',
+        }}
+        onPointerDown={startDraw}
+        onPointerMove={moveDraw}
+        onPointerUp={endDraw}
+        onPointerLeave={endDraw}
+      />
+      <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: 0 }}>🔒 Just for scratch work — not saved.</p>
     </div>
   );
 }
@@ -366,6 +599,7 @@ export default function ToolsPanel({ student, subject, variant = 'fab' }: Props)
       case 'dictionary': return <Dictionary student={student} />;
       case 'soundWall': return <SoundWall student={student} />;
       case 'wordProcessor': return <WordProcessor student={student} />;
+      case 'whiteboard': return <Whiteboard />;
       case 'tts': return <TTSSettingsPanel student={student} />;
       case 'breakVisual': return <QuietTool />;
       default: return null;
@@ -434,12 +668,23 @@ export default function ToolsPanel({ student, subject, variant = 'fab' }: Props)
 
       {open && (
         <div className="overlay-backdrop" onClick={() => setOpen(null)}>
-          <div className="overlay-panel chrome-frame" style={{ padding: 20 }} onClick={(e) => e.stopPropagation()}>
-            <div className="space-between" style={{ marginBottom: 12 }}>
+          <div
+            className="overlay-panel chrome-frame"
+            style={{
+              padding: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              ...(WIDE_TOOLS.includes(open) ? { maxWidth: 900, width: '95vw', height: '85vh' } : {}),
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="space-between" style={{ marginBottom: 12, flex: '0 0 auto' }}>
               <h3 style={{ margin: 0 }}>{TOOL_ICONS[open]} {TOOL_LABELS[open]}</h3>
               <button className="btn btn-sm" onClick={() => setOpen(null)}>✕</button>
             </div>
-            <div className="content-well">{renderTool(open)}</div>
+            <div className="content-well" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              {renderTool(open)}
+            </div>
           </div>
         </div>
       )}

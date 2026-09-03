@@ -10,19 +10,21 @@ export type ToolKey =
   | 'numberLine'
   | 'thesaurus'
   | 'dictionary'
-  | 'soundWall';
+  | 'soundWall'
+  | 'whiteboard';
 
 export const SUBJECT_TOOLS: Record<Subject, ToolKey[]> = {
   math: ['multiplicationTable', 'hundredsChart', 'numberLine'],
   literacy: ['thesaurus', 'dictionary', 'soundWall'],
 };
 
-export const ACCESSIBILITY_TOOLS: ToolKey[] = ['calculator', 'tts', 'wordProcessor', 'breakVisual'];
+export const ACCESSIBILITY_TOOLS: ToolKey[] = ['calculator', 'tts', 'wordProcessor', 'whiteboard', 'breakVisual'];
 
 export const ALL_TOOL_KEYS: ToolKey[] = [
   'calculator',
   'tts',
   'wordProcessor',
+  'whiteboard',
   'breakVisual',
   'multiplicationTable',
   'hundredsChart',
@@ -36,6 +38,7 @@ export const TOOL_LABELS: Record<ToolKey, string> = {
   calculator: 'Calculator',
   tts: 'Text-to-Speech',
   wordProcessor: 'Word Processor',
+  whiteboard: 'Whiteboard',
   breakVisual: 'Quiet/Break Tool',
   multiplicationTable: 'Multiplication Table',
   hundredsChart: 'Hundreds Chart',

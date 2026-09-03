@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 interface Props {
@@ -8,33 +9,47 @@ interface Props {
   toolsButton?: ReactNode; // keeps the student's tools one tap away without leaving this view
 }
 
+// Most real external sites (Amplify, Polypad, Khan Academy, YouTube, etc.)
+// block being shown inside an iframe at all (X-Frame-Options / CSP), so an
+// embedded "internal browser" just shows a blank, broken frame for almost
+// everything a teacher actually links to. Instead: open the activity in its
+// own browser tab (as directly as possible, so popup blockers allow it) and
+// show this panel as a simple "you're on it — come back and check off when
+// you're done" control strip, with tools and completion still one tap away.
 export default function InternalBrowser({ url, title, onClose, onMarkDone, toolsButton }: Props) {
+  useEffect(() => {
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <div className="overlay-backdrop" style={{ padding: 0 }} onClick={onClose}>
+    <div className="overlay-backdrop" onClick={onClose}>
       <div
         className="chrome-frame stack"
-        style={{ width: '95vw', height: '92vh', padding: 0, gap: 0, overflow: 'hidden' }}
+        style={{ width: '95vw', maxWidth: 480, padding: 0, gap: 0, overflow: 'hidden' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-between" style={{ padding: '10px 16px', background: 'var(--ink)' }}>
           <strong style={{ color: 'white' }}>{title}</strong>
-          <div className="row-wrap">
-            {toolsButton}
+          {toolsButton}
+        </div>
+        <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center', padding: 24 }}>
+          <span style={{ fontSize: '2.5rem' }}>🔗</span>
+          <p style={{ margin: 0 }}>This activity opens in its own tab.</p>
+          <a className="btn btn-blue btn-lg pulse-cta" href={url} target="_blank" rel="noopener noreferrer">
+            🚀 Open the activity
+          </a>
+          <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0 }}>
+            Do the activity there, then come back to this tab and check it off below.
+          </p>
+          <div className="row-wrap" style={{ justifyContent: 'center' }}>
             {onMarkDone && (
-              <button className="btn btn-sm btn-success" onClick={onMarkDone}>
+              <button className="btn btn-success btn-lg" onClick={onMarkDone}>
                 ✅ I did it!
               </button>
             )}
-            <a className="btn btn-sm btn-teal" href={url} target="_blank" rel="noopener noreferrer">
-              🔗 Open in new tab
-            </a>
-            <button className="btn btn-sm" onClick={onClose}>✕ Close</button>
+            <button className="btn" onClick={onClose}>✕ Close</button>
           </div>
-        </div>
-        <iframe src={url} title={title} className="internal-browser-frame" />
-        <div style={{ padding: '6px 16px', fontSize: '0.75rem', opacity: 0.65, background: '#f4effe' }}>
-          You can click around inside this page just like a normal website. Not loading? Some sites don't allow
-          being shown inside another page — tap "Open in new tab" above instead.
         </div>
       </div>
     </div>

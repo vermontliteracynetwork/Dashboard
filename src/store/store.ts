@@ -47,6 +47,7 @@ import {
   deleteWeeklyScheduleEntryRemote,
   rowToAssignment,
   pushAssignment,
+  deleteAssignmentRemote,
 } from '../lib/sync';
 import type {
   Student,
@@ -220,6 +221,7 @@ interface AppState {
     endDate: string,
     mode: 'repeat' | 'span',
   ) => void;
+  deleteAssignment: (id: string) => void;
 }
 
 // Pushes the full consolidated student_meta row for a student, reading the
@@ -990,6 +992,11 @@ export const useStore = create<AppState>()(
             pushMetaFor(get, studentId);
           }
         });
+      },
+
+      deleteAssignment: (id) => {
+        set((s) => ({ assignments: s.assignments.filter((a) => a.id !== id) }));
+        deleteAssignmentRemote(id);
       },
     }),
     { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },

@@ -12,6 +12,7 @@ export const DEFAULT_FEATURE_TOGGLES: Record<ToolKey, boolean> = {
   calculator: true,
   tts: true,
   wordProcessor: true,
+  whiteboard: true,
   breakVisual: true,
   multiplicationTable: true,
   hundredsChart: true,

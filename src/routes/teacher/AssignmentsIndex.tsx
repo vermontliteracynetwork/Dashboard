@@ -1,114 +1,274 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
+import { formatDateLong, todayISO } from '../../lib/dates';
 import { sortForDisplay } from '../../lib/taskOrder';
-import type { Subject, Task } from '../../types';
+import type { Assignment, Student, Subject, Task } from '../../types';
 
-function PlanColumn({ subject, tasks }: { subject: Subject; tasks: Task[] }) {
-  const ordered = sortForDisplay(tasks);
+interface AssignmentGroup {
+  key: string;
+  templateId: string;
+  subject: Subject;
+  startDate: string;
+  endDate: string;
+  mode: 'repeat' | 'span';
+  rows: Assignment[]; // one row per assigned student
+}
+
+// One "Publish Plan" click creates one Assignment row per student — group
+// those back together here so a plan shared with 5 students reads as one
+// card, the way a real classroom LMS shows one assignment card per plan.
+function groupAssignments(assignments: Assignment[]): AssignmentGroup[] {
+  const map = new Map<string, AssignmentGroup>();
+  for (const a of assignments) {
+    const key = `${a.templateId}:${a.subject}:${a.startDate}:${a.endDate}:${a.mode}`;
+    const existing = map.get(key);
+    if (existing) existing.rows.push(a);
+    else map.set(key, { key, templateId: a.templateId, subject: a.subject, startDate: a.startDate, endDate: a.endDate, mode: a.mode, rows: [a] });
+  }
+  return [...map.values()].sort((a, b) => (a.startDate < b.startDate ? 1 : a.startDate > b.startDate ? -1 : 0));
+}
+
+type Filter = 'active' | 'upcoming' | 'past' | 'all';
+
+function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () => void }) {
+  const planTemplates = useStore((s) => s.planTemplates);
+  const students = useStore((s) => s.students);
+  const progress = useStore((s) => s.progress);
+  const template = planTemplates.find((t) => t.id === group.templateId);
+  const today = todayISO();
+  const isActiveToday = group.startDate <= today && today <= group.endDate;
+
+  const studentList = group.rows
+    .map((r) => students.find((s) => s.id === r.studentId))
+    .filter((s): s is Student => !!s);
+
+  const doneToday = studentList.filter((st) => {
+    const p = progress[st.id]?.[group.subject];
+    return p?.date === today && p.subjectComplete;
+  }).length;
+
   return (
-    <div style={{ flex: 1, minWidth: 200 }}>
-      <strong style={{ fontSize: '0.85rem' }}>{subject === 'math' ? '🔢 Math' : '📚 Literacy'}</strong>
-      {ordered.length === 0 ? (
-        <p style={{ fontSize: '0.8rem', opacity: 0.6, margin: '4px 0 0' }}>Nothing assigned.</p>
-      ) : (
-        <div className="stack" style={{ gap: 4, marginTop: 4 }}>
-          {ordered.map((t) => (
-            <div key={t.id} className="row" style={{ gap: 6, fontSize: '0.85rem' }}>
-              <span className="tag-pill" style={{ fontSize: '0.65rem', minWidth: 22, textAlign: 'center' }}>
-                {t.order != null ? `#${t.order}` : '⇄'}
-              </span>
-              <span>{t.icon}</span>
-              <span>{t.title || '(untitled)'}</span>
-              {t.isDaily && <span title="Daily/recurring">⭐</span>}
-            </div>
-          ))}
+    <button className="assignment-card" onClick={onOpen}>
+      <div className={`assignment-card-banner ${group.subject === 'math' ? 'banner-math' : 'banner-literacy'}`}>
+        <span>{group.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
+        {group.endDate < today && <span className="tag-pill">Past</span>}
+        {group.startDate > today && <span className="tag-pill">Upcoming</span>}
+      </div>
+      <div className="assignment-card-body">
+        <strong className="assignment-card-title">{template?.name ?? '(deleted plan)'}</strong>
+        <div className="assignment-card-meta">
+          {template?.activities.length ?? 0} activities · {group.mode === 'repeat' ? '🔁 Repeats daily' : '📌 One span'}
         </div>
-      )}
+        <div className="assignment-card-meta">
+          {group.startDate === group.endDate
+            ? formatDateLong(group.startDate)
+            : `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`}
+        </div>
+        <div className="assignment-card-students">
+          {studentList.map((st) => (
+            <span key={st.id} title={st.name}>{st.avatar}</span>
+          ))}
+          <span className="assignment-card-count">
+            {studentList.length} student{studentList.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        {isActiveToday && studentList.length > 0 && (
+          <div className="assignment-card-progress">
+            <div className="assignment-card-progress-bar">
+              <div style={{ width: `${(doneToday / studentList.length) * 100}%` }} />
+            </div>
+            <span>{doneToday}/{studentList.length} done today</span>
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function AssignmentDetailModal({
+  group,
+  onClose,
+  onDelete,
+}: {
+  group: AssignmentGroup;
+  onClose: () => void;
+  onDelete: () => void;
+}) {
+  const planTemplates = useStore((s) => s.planTemplates);
+  const students = useStore((s) => s.students);
+  const template = planTemplates.find((t) => t.id === group.templateId);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const studentList = group.rows
+    .map((r) => students.find((s) => s.id === r.studentId))
+    .filter((s): s is Student => !!s);
+  const ordered = template ? sortForDisplay(template.activities) : [];
+
+  return (
+    <div className="overlay-backdrop" onClick={onClose}>
+      <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+        <div className="space-between" style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>{group.subject === 'math' ? '🔢' : '📚'} {template?.name ?? '(deleted plan)'}</h3>
+          <button className="btn btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="stack">
+          <div className="content-well">
+            📅{' '}
+            {group.startDate === group.endDate
+              ? formatDateLong(group.startDate)
+              : `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`}
+            {' · '}
+            {group.mode === 'repeat' ? '🔁 Repeats every day in this range' : '📌 One assignment — progress carries forward'}
+          </div>
+
+          <strong>Activities ({ordered.length})</strong>
+          <div className="stack" style={{ gap: 4 }}>
+            {ordered.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No activities.</p>}
+            {ordered.map((t) => (
+              <div key={t.id} className="row" style={{ gap: 6, fontSize: '0.9rem' }}>
+                <span className="tag-pill" style={{ fontSize: '0.65rem', minWidth: 22, textAlign: 'center' }}>
+                  {t.order != null ? `#${t.order}` : '⇄'}
+                </span>
+                <span>{t.icon}</span>
+                <span>{t.title || '(untitled)'}</span>
+              </div>
+            ))}
+          </div>
+
+          <strong>Assigned to</strong>
+          <div className="row-wrap">
+            {studentList.map((st) => (
+              <span key={st.id} className="tag-pill">{st.avatar} {st.name}</span>
+            ))}
+          </div>
+
+          <hr className="divider" />
+          {confirmDelete ? (
+            <div className="row-wrap">
+              <span style={{ fontSize: '0.85rem' }}>Remove this assignment for everyone?</span>
+              <button className="btn btn-sm btn-danger" onClick={onDelete}>Yes, remove it</button>
+              <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
+            </div>
+          ) : (
+            <button className="btn btn-sm btn-danger" style={{ alignSelf: 'flex-start' }} onClick={() => setConfirmDelete(true)}>
+              🗑️ Delete this assignment
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function AssignmentsIndex() {
-  const navigate = useNavigate();
-  const students = useStore((s) => s.students);
-  const rotations = useStore((s) => s.rotations);
+  const assignments = useStore((s) => s.assignments);
   const activityLibrary = useStore((s) => s.activityLibrary);
-  const [subject, setSubject] = useState<Subject>('math');
-  const [planTasks, setPlanTasks] = useState<Task[]>([]);
+  const deleteAssignment = useStore((s) => s.deleteAssignment);
 
-  useEffect(() => {
-    setPlanTasks([]);
-  }, [subject]);
+  const [subject, setSubject] = useState<Subject>('math');
+  const [creating, setCreating] = useState(false);
+  const [planTasks, setPlanTasks] = useState<Task[]>([]);
+  const [detailGroup, setDetailGroup] = useState<AssignmentGroup | null>(null);
+  const [filter, setFilter] = useState<Filter>('active');
+
+  const groups = useMemo(() => groupAssignments(assignments), [assignments]);
+  const today = todayISO();
+  const filteredGroups = groups.filter((g) => {
+    if (filter === 'all') return true;
+    if (filter === 'active') return g.startDate <= today && today <= g.endDate;
+    if (filter === 'upcoming') return g.startDate > today;
+    return g.endDate < today;
+  });
+
+  if (creating) {
+    return (
+      <div className="app-shell">
+        <TeacherNav />
+        <div className="container stack">
+          <div className="space-between">
+            <h1>🗓️ Create an Assignment</h1>
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                setCreating(false);
+                setPlanTasks([]);
+              }}
+            >
+              ← Back to Assignments
+            </button>
+          </div>
+
+          <div className="subject-tabs">
+            <button className={`subject-tab-btn tab-math ${subject === 'math' ? 'active' : ''}`} onClick={() => setSubject('math')}>🔢 Math</button>
+            <button className={`subject-tab-btn tab-literacy ${subject === 'literacy' ? 'active' : ''}`} onClick={() => setSubject('literacy')}>📚 Literacy</button>
+          </div>
+
+          <div className="assignments-split">
+            <div className="assignments-split-main">
+              <NewDailyPlanBuilder subject={subject} tasks={planTasks} onTasksChange={setPlanTasks} />
+            </div>
+            <div className="assignments-split-side">
+              <ActivityLibraryBrowse
+                subject={subject}
+                compact
+                onAddActivity={(activityId) => {
+                  const lib = activityLibrary.find((a) => a.id === activityId);
+                  if (lib) setPlanTasks((prev) => [...prev, activityToTaskSnapshot(lib)]);
+                }}
+              />
+            </div>
+          </div>
+
+          <CreateActivityForm subject={subject} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
         <h1>📋 Assignments</h1>
-        <p style={{ opacity: 0.75 }}>
-          Build activities here anytime — no need to pick a student first. Pick a student below to manage their
-          daily plan, weekly schedule, and backlog.
-        </p>
 
-        <div className="subject-tabs">
-          <button className={`subject-tab-btn tab-math ${subject === 'math' ? 'active' : ''}`} onClick={() => setSubject('math')}>🔢 Math</button>
-          <button className={`subject-tab-btn tab-literacy ${subject === 'literacy' ? 'active' : ''}`} onClick={() => setSubject('literacy')}>📚 Literacy</button>
+        <div className="lp-tabs">
+          {(['active', 'upcoming', 'past', 'all'] as Filter[]).map((f) => (
+            <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+              {f === 'active' ? '🟢 Active' : f === 'upcoming' ? '🔜 Upcoming' : f === 'past' ? '⏪ Past' : 'All'}
+            </button>
+          ))}
         </div>
 
-        <div className="assignments-split">
-          <div className="assignments-split-main">
-            <NewDailyPlanBuilder subject={subject} tasks={planTasks} onTasksChange={setPlanTasks} />
-          </div>
-          <div className="assignments-split-side">
-            <ActivityLibraryBrowse
-              subject={subject}
-              compact
-              onAddActivity={(activityId) => {
-                const lib = activityLibrary.find((a) => a.id === activityId);
-                if (lib) setPlanTasks((prev) => [...prev, activityToTaskSnapshot(lib)]);
-              }}
-            />
-          </div>
+        <div className="assignment-card-grid">
+          <button className="assignment-card assignment-card-create" onClick={() => setCreating(true)}>
+            <span style={{ fontSize: '2rem' }}>➕</span>
+            <strong>Create Assignment</strong>
+          </button>
+          {filteredGroups.map((g) => (
+            <AssignmentCard key={g.key} group={g} onOpen={() => setDetailGroup(g)} />
+          ))}
         </div>
 
-        <CreateActivityForm subject={subject} />
-
-        <h2>📅 All Active Daily Plans</h2>
-        {students.length === 0 ? (
-          <div className="chrome-frame" style={{ padding: 24 }}>
-            <p>No students yet.</p>
-            <button className="btn btn-primary" onClick={() => navigate('/teacher/students')}>➕ Add your first student</button>
-          </div>
-        ) : (
-          <div className="stack">
-            {students.map((st) => {
-              const mathTasks = rotations[st.id]?.math ?? [];
-              const litTasks = rotations[st.id]?.literacy ?? [];
-              return (
-                <div key={st.id} className="chrome-frame stack" style={{ padding: 16 }}>
-                  <div className="space-between">
-                    <div className="row">
-                      <span className="avatar-sm" style={{ width: 44, height: 44, fontSize: '1.5rem' }}>{st.avatar}</span>
-                      <strong>{st.name}</strong>
-                    </div>
-                    <button className="btn btn-sm btn-primary" onClick={() => navigate(`/teacher/lesson-plan/${st.id}`)}>
-                      ✏️ Manage plan
-                    </button>
-                  </div>
-                  <div className="row-wrap" style={{ alignItems: 'flex-start' }}>
-                    <PlanColumn subject="math" tasks={mathTasks} />
-                    <PlanColumn subject="literacy" tasks={litTasks} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {filteredGroups.length === 0 && (
+          <p style={{ opacity: 0.7 }}>
+            No {filter === 'all' ? '' : filter} assignments yet. Tap "➕ Create Assignment" to build one.
+          </p>
         )}
       </div>
+
+      {detailGroup && (
+        <AssignmentDetailModal
+          group={detailGroup}
+          onClose={() => setDetailGroup(null)}
+          onDelete={() => {
+            detailGroup.rows.forEach((r) => deleteAssignment(r.id));
+            setDetailGroup(null);
+          }}
+        />
+      )}
     </div>
   );
 }

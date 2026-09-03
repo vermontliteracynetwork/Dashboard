@@ -33,7 +33,7 @@ export default function LinkTask({ student, subject, task, onDone }: Props) {
         <h3 style={{ margin: 0 }}>{task.title}</h3>
         <ReadAloud text={task.title} settings={student.ttsSettings} />
       </div>
-      <p>You can click around inside the activity. When you're finished, check off "I did it!"</p>
+      <p>This opens in its own tab. When you're finished, come back here and check off "I did it!"</p>
       {!opened && (
         <button
           className="btn btn-blue btn-lg pulse-cta"

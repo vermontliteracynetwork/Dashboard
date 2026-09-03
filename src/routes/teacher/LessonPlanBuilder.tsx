@@ -6,7 +6,7 @@ import ImageUploadField from '../../components/ImageUploadField';
 import { ActivityLibraryPanel, activityToTaskSnapshot, TaskEditor } from './ActivityLibrary';
 import { parseCSV, downloadCSV } from '../../lib/csv';
 import { rowsToQuizQuestions, rowsToDrillCards, QUIZ_TEMPLATE_ROWS, DRILL_TEMPLATE_ROWS } from '../../lib/importQuestions';
-import { currentDayOfWeek } from '../../lib/dates';
+import { currentDayOfWeek, formatDateLong, todayISO } from '../../lib/dates';
 import type { Subject, Task, QuizQuestion, DrillCard, DayOfWeek } from '../../types';
 import { WEEKDAYS, WEEKDAY_SHORT, WEEKDAY_LABELS } from '../../types';
 
@@ -170,9 +170,9 @@ function WeeklyCalendar({ studentId, subject, studentName }: { studentId: string
       <div className="zone-header-bar">📅 This Week — {studentName}'s recurring plan</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Assign a backlog entry to each weekday — it loads into "Today's Plan" below automatically the first time{' '}
+          Assign a draft to each weekday — it loads into "Today's Plan" below automatically the first time{' '}
           {studentName} logs in that day. A day left blank stays whatever you set it to by hand. You can still tweak
-          a single day's copy afterward (like swapping a link) without changing the backlog entry or any other day.
+          a single day's copy afterward (like swapping a link) without changing the draft or any other day.
         </p>
         <div className="week-calendar">
           {WEEKDAYS.map((day) => {
@@ -218,7 +218,7 @@ function WeeklyCalendar({ studentId, subject, studentName }: { studentId: string
           })}
         </div>
         {backlog.length === 0 && (
-          <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>Save today's plan to the Backlog below first, then assign it to days here.</p>
+          <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>Save today's plan as a draft below first, then assign it to days here.</p>
         )}
         {today && (
           <button
@@ -242,6 +242,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
   const students = useStore((s) => s.students);
   const planTemplates = useStore((s) => s.planTemplates);
   const activityLibrary = useStore((s) => s.activityLibrary);
+  const assignments = useStore((s) => s.assignments);
   const addTemplate = useStore((s) => s.addTemplate);
   const updateTemplate = useStore((s) => s.updateTemplate);
   const duplicateTemplate = useStore((s) => s.duplicateTemplate);
@@ -258,25 +259,56 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
   const backlog = planTemplates.filter((t) => t.subject === subject);
   const libraryForSubject = activityLibrary.filter((a) => a.subject === subject);
 
+  const today = todayISO();
+  const pastAssignments = assignments
+    .filter((a) => a.studentId === studentId && a.subject === subject && a.endDate < today)
+    .sort((a, b) => (a.endDate < b.endDate ? 1 : -1));
+
   const toggleApplyTarget = (id: string) =>
     setApplyToIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   return (
     <div className="zone zone-backlog stack">
       <button className="zone-header-btn zone-header-bar" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} 🗃️ Backlog ({backlog.length}) — previous assignments you can reuse
+        {open ? '▾' : '▸'} 📜 History &amp; Drafts ({pastAssignments.length + backlog.length}) — past assignments and reusable plans
       </button>
       <div style={{ padding: 14 }} className="stack">
+        {pastAssignments.length > 0 && (
+          <div className="stack">
+            <strong>⏪ Past Assignments</strong>
+            {pastAssignments.map((a) => {
+              const t = planTemplates.find((pt) => pt.id === a.templateId);
+              return (
+                <div key={a.id} className="content-well space-between">
+                  <span>
+                    {t?.name ?? '(deleted plan)'} — {formatDateLong(a.startDate)}
+                    {a.endDate !== a.startDate ? ` → ${formatDateLong(a.endDate)}` : ''}
+                    {' · '}{t?.activities.length ?? 0} activities
+                  </span>
+                  <button
+                    className="btn btn-sm"
+                    disabled={!t}
+                    onClick={() => t && duplicateTemplate(t.id)}
+                  >
+                    ↺ Duplicate as a draft
+                  </button>
+                </div>
+              );
+            })}
+            <hr className="divider" />
+          </div>
+        )}
+        <strong>📝 Drafts — reusable plans not currently scheduled</strong>
         <button
           className="btn btn-sm"
           disabled={currentTasks.length === 0}
           onClick={() => addTemplate(defaultBacklogName(currentTasks), subject, currentTasks)}
         >
-          💾 Save today's plan to backlog
+          💾 Save today's plan as a draft
         </button>
         {open && (
           backlog.length === 0 ? (
-            <p style={{ opacity: 0.7 }}>Nothing saved yet — save today's plan above to start your backlog.</p>
+            <p style={{ opacity: 0.7 }}>No drafts saved yet — save today's plan above to start one.</p>
           ) : (
             <div className="stack">
               {backlog.map((t) => {
@@ -507,7 +539,7 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
         >
           {tasks.length === 0 && (
             <p className="chrome-frame" style={{ padding: 14, opacity: 0.7, textAlign: 'center' }}>
-              No activities yet. Search above, or head to the 🗂️ Activity Library or 🗃️ Backlog tabs to add a full set at once.
+              No activities yet. Search above, or head to the 🗂️ Activity Library or 📜 History & Drafts tabs to add a full set at once.
             </p>
           )}
           {tasks.map((t, i) => (
@@ -601,7 +633,7 @@ export default function LessonPlanBuilder() {
   const TABS: { id: ViewTab; label: string }[] = [
     { id: 'today', label: `✅ Today's Plan${tasks.length ? ` (${tasks.length})` : ''}` },
     { id: 'week', label: '📅 Weekly Schedule' },
-    { id: 'backlog', label: '🗃️ Backlog' },
+    { id: 'backlog', label: '📜 History & Drafts' },
     { id: 'library', label: '🗂️ Activity Library' },
     { id: 'sets', label: '📚 Content Sets' },
   ];
@@ -612,7 +644,10 @@ export default function LessonPlanBuilder() {
       <div className="container stack">
         <div className="space-between">
           <h1>{student.avatar} {student.name} — Assignments</h1>
-          <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
+          <div className="row-wrap">
+            <button className="btn btn-sm btn-primary" onClick={() => navigate('/teacher/assignments')}>📋 All Assignments</button>
+            <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
+          </div>
         </div>
 
         <div className="subject-tabs">

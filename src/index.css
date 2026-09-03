@@ -758,6 +758,58 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .zone-newplan .zone-header-bar { background: linear-gradient(90deg, var(--pink), var(--orange)); }
 .zone-create .zone-header-bar { background: linear-gradient(90deg, var(--purple), var(--pink)); }
 
+/* ---------- Assignments tab: card grid (like a classroom LMS) ---------- */
+.assignment-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.assignment-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  border: var(--chunk) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 6px 6px 0 var(--ink);
+  background: white;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  font-family: inherit;
+}
+.assignment-card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--ink); }
+.assignment-card-create {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #faf9ff;
+  border-style: dashed;
+  min-height: 190px;
+  color: var(--purple);
+}
+.assignment-card-banner {
+  padding: 10px 14px;
+  font-weight: 800;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.assignment-card-banner.banner-math { background: linear-gradient(90deg, var(--math-a), var(--blue)); }
+.assignment-card-banner.banner-literacy { background: linear-gradient(90deg, var(--lit-a), var(--pink)); }
+.assignment-card-body { padding: 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.assignment-card-title { font-size: 1.1rem; }
+.assignment-card-meta { font-size: 0.8rem; opacity: 0.75; }
+.assignment-card-students { display: flex; align-items: center; gap: 4px; font-size: 1.1rem; flex-wrap: wrap; margin-top: 4px; }
+.assignment-card-count { font-size: 0.75rem; opacity: 0.7; margin-left: 4px; }
+.assignment-card-progress { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.assignment-card-progress-bar { height: 8px; border-radius: 5px; background: #eee; overflow: hidden; }
+.assignment-card-progress-bar > div { height: 100%; background: var(--success); }
+.assignment-card-progress span { font-size: 0.72rem; opacity: 0.7; }
+
 /* ---------- Per-student assignment page: view switcher ---------- */
 .lp-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
 .lp-tab-btn {
