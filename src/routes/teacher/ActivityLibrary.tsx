@@ -112,11 +112,35 @@ export function TaskEditor({
       </div>
 
       {task.type === 'quiz' && (
-        <QuizEditor
-          subject={subject}
-          questions={task.quiz?.questions ?? []}
-          onChange={(questions) => setTask({ ...task, quiz: { questions } })}
-        />
+        <div className="stack">
+          <QuizEditor
+            subject={subject}
+            questions={task.quiz?.questions ?? []}
+            onChange={(questions) => setTask({ ...task, quiz: { ...task.quiz, questions } })}
+          />
+          <div className="row-wrap">
+            <label className="row" style={{ gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={task.quiz?.shuffleQuestions ?? true}
+                onChange={(e) =>
+                  setTask({ ...task, quiz: { questions: task.quiz?.questions ?? [], shuffleAnswers: task.quiz?.shuffleAnswers, shuffleQuestions: e.target.checked } })
+                }
+              />
+              🔀 Shuffle question order each time
+            </label>
+            <label className="row" style={{ gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={task.quiz?.shuffleAnswers ?? false}
+                onChange={(e) =>
+                  setTask({ ...task, quiz: { questions: task.quiz?.questions ?? [], shuffleQuestions: task.quiz?.shuffleQuestions, shuffleAnswers: e.target.checked } })
+                }
+              />
+              🔀 Shuffle multiple-choice answer order
+            </label>
+          </div>
+        </div>
       )}
 
       {task.type === 'link' && (
@@ -206,8 +230,30 @@ export function TaskEditor({
           <QuizEditor
             subject={subject}
             questions={task.quiz?.questions ?? []}
-            onChange={(questions) => setTask({ ...task, quiz: { questions } })}
+            onChange={(questions) => setTask({ ...task, quiz: { ...task.quiz, questions } })}
           />
+          <div className="row-wrap">
+            <label className="row" style={{ gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={task.quiz?.shuffleQuestions ?? true}
+                onChange={(e) =>
+                  setTask({ ...task, quiz: { questions: task.quiz?.questions ?? [], shuffleAnswers: task.quiz?.shuffleAnswers, shuffleQuestions: e.target.checked } })
+                }
+              />
+              🔀 Shuffle question order each time
+            </label>
+            <label className="row" style={{ gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={task.quiz?.shuffleAnswers ?? false}
+                onChange={(e) =>
+                  setTask({ ...task, quiz: { questions: task.quiz?.questions ?? [], shuffleQuestions: task.quiz?.shuffleQuestions, shuffleAnswers: e.target.checked } })
+                }
+              />
+              🔀 Shuffle multiple-choice answer order
+            </label>
+          </div>
         </div>
       )}
 

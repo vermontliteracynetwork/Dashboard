@@ -122,6 +122,8 @@ export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion;
 
 export interface QuizContent {
   questions: QuizQuestion[];
+  shuffleQuestions?: boolean; // default true — a fresh random order each time the student starts this quiz
+  shuffleAnswers?: boolean; // default false — randomize multiple-choice answer order each time a question is shown
 }
 
 export interface LinkContent {

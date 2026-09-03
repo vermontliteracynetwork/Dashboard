@@ -589,8 +589,9 @@ export const useStore = create<AppState>()(
         const existing = sp.quizState[task.id];
         if (existing) return existing;
         const ids = (task.quiz?.questions ?? []).map((q) => q.id);
-        const shuffled = [...ids].sort(() => Math.random() - 0.5);
-        const fresh: QuizRuntimeState = { remainingIds: shuffled, masteredIds: [], log: [] };
+        const shuffleQuestions = task.quiz?.shuffleQuestions ?? true;
+        const orderedIds = shuffleQuestions ? [...ids].sort(() => Math.random() - 0.5) : ids;
+        const fresh: QuizRuntimeState = { remainingIds: orderedIds, masteredIds: [], log: [] };
         set((s) => {
           const cur = s.progress[studentId][subject];
           return {

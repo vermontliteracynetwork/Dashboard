@@ -86,6 +86,22 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
   const activeId = state?.remainingIds[0];
   const activeQ = questions.find((q) => q.id === activeId);
 
+  // A fresh random answer order each time a new question comes up, when
+  // the teacher has turned that on — memoized so it doesn't reshuffle
+  // out from under the student mid-question (e.g. on a retry re-render).
+  const shuffleAnswers = task.quiz?.shuffleAnswers ?? false;
+  const mcOrder = useMemo(() => {
+    if (!activeQ || activeQ.kind !== 'mc') return null;
+    const order = activeQ.choices.map((_, i) => i);
+    if (!shuffleAnswers) return order;
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    return order;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeQ?.id, shuffleAnswers]);
+
   useEffect(() => {
     setFeedback(null);
     setPicked(null);
@@ -136,19 +152,19 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
         {feedback === 'correct' && <div className="tag-pill" style={{ background: 'var(--success)', color: 'white' }}>✅ Nice work!</div>}
         {feedback === 'retry' && <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white' }}>💛 Let's try that one again!</div>}
 
-        {activeQ.kind === 'mc' && (
+        {activeQ.kind === 'mc' && mcOrder && (
           <div className="row-wrap">
-            {activeQ.choices.map((c, i) => (
+            {mcOrder.map((origIdx) => (
               <button
-                key={i}
-                className={`btn ${picked === i ? (i === activeQ.correctIndex ? 'btn-success' : '') : ''}`}
+                key={origIdx}
+                className={`btn ${picked === origIdx ? (origIdx === activeQ.correctIndex ? 'btn-success' : '') : ''}`}
                 disabled={feedback !== null}
                 onClick={() => {
-                  setPicked(i);
-                  answer(i === activeQ.correctIndex);
+                  setPicked(origIdx);
+                  answer(origIdx === activeQ.correctIndex);
                 }}
               >
-                {c}
+                {activeQ.choices[origIdx]}
               </button>
             ))}
           </div>
