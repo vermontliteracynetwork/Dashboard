@@ -612,10 +612,52 @@ export const useStore = create<AppState>()(
         get().ensureProgress(studentId, subject);
         const sp = get().progress[studentId][subject];
         const existing = sp.quizState[task.id];
-        if (existing) return existing;
-        const ids = (task.quiz?.questions ?? []).map((q) => q.id);
+        // De-duplicated so a question that accidentally got inserted twice
+        // (e.g. a set added into the same task more than once) never leaves
+        // a phantom second copy sitting in the queue.
+        const liveIds = Array.from(new Set((task.quiz?.questions ?? []).map((q) => q.id)));
+
+        if (existing) {
+          // Self-heal against a queue that references a question the
+          // teacher has since removed/replaced — without this, that
+          // question stays stuck at the front of remainingIds forever
+          // (submitQuizAnswer can only remove an id it's told about, and
+          // the id from an edited quiz will never come from the student
+          // again), and any brand-new question the teacher added never
+          // gets picked up either. This runs on every quiz open/refresh.
+          const knownIds = new Set([...existing.remainingIds, ...existing.masteredIds]);
+          const cleanRemaining = existing.remainingIds.filter((id) => liveIds.includes(id));
+          const cleanMastered = existing.masteredIds.filter((id) => liveIds.includes(id));
+          const newIds = liveIds.filter((id) => !knownIds.has(id));
+          const changed =
+            cleanRemaining.length !== existing.remainingIds.length ||
+            cleanMastered.length !== existing.masteredIds.length ||
+            newIds.length > 0;
+          if (!changed) return existing;
+
+          const fresh: QuizRuntimeState = {
+            remainingIds: [...cleanRemaining, ...newIds],
+            masteredIds: cleanMastered,
+            log: existing.log,
+          };
+          set((s) => {
+            const cur = s.progress[studentId][subject];
+            return {
+              progress: {
+                ...s.progress,
+                [studentId]: {
+                  ...s.progress[studentId],
+                  [subject]: { ...cur, quizState: { ...cur.quizState, [task.id]: fresh } },
+                },
+              },
+            };
+          });
+          pushProgress(studentId, subject, get().progress[studentId][subject]);
+          return fresh;
+        }
+
         const shuffleQuestions = task.quiz?.shuffleQuestions ?? true;
-        const orderedIds = shuffleQuestions ? [...ids].sort(() => Math.random() - 0.5) : ids;
+        const orderedIds = shuffleQuestions ? [...liveIds].sort(() => Math.random() - 0.5) : liveIds;
         const fresh: QuizRuntimeState = { remainingIds: orderedIds, masteredIds: [], log: [] };
         set((s) => {
           const cur = s.progress[studentId][subject];

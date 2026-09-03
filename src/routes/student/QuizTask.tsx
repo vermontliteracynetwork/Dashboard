@@ -110,12 +110,28 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
   if (!state) return null;
 
   if (!activeQ) {
-    // no questions configured
+    // Either there are truly no questions configured, or the queue points
+    // at a question the teacher has since removed — either way, the
+    // student must never be left staring at a dead end with no way out.
+    const stuckOnStaleQuestion = state.remainingIds.length > 0;
     return (
       <div className="quiz-fullview">
         <div className="quiz-fullview-card content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-          <p>This quiz has no questions yet. Ask your teacher!</p>
-          <button className="btn btn-primary btn-lg" onClick={onDone}>I'm done!</button>
+          <p>
+            {stuckOnStaleQuestion
+              ? "This question isn't available anymore. Let's skip it."
+              : 'This quiz has no questions yet. Ask your teacher!'}
+          </p>
+          {stuckOnStaleQuestion ? (
+            <button
+              className="btn btn-primary btn-lg"
+              onClick={() => submitQuizAnswer(student.id, subject, task, state.remainingIds[0], true)}
+            >
+              ➡️ Skip and continue
+            </button>
+          ) : (
+            <button className="btn btn-primary btn-lg" onClick={onDone}>I'm done!</button>
+          )}
         </div>
       </div>
     );
