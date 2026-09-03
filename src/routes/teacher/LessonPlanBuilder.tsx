@@ -98,6 +98,16 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
           : 'Columns: Front, Back, ImageURL. Good for math facts, grapheme/morpheme review, or vocabulary & etymology.'}
       </p>
       <div className="row-wrap">
+        {kind === 'quiz' && (
+          <a
+            className="btn btn-sm btn-blue"
+            href="https://docs.google.com/spreadsheets/d/1pCzJ-M00kcz4yfJ45Ma04f1I0GQV4tUiDtH03OYmoGw/copy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            📋 Copy the Google Sheet template
+          </a>
+        )}
         <button
           className="btn btn-sm"
           onClick={() => downloadCSV(kind === 'quiz' ? 'question-set-template.csv' : 'drill-set-template.csv', kind === 'quiz' ? QUIZ_TEMPLATE_ROWS : DRILL_TEMPLATE_ROWS)}

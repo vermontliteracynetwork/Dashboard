@@ -14,15 +14,30 @@ const blankMC = (): MCQuestion => ({ id: makeId(), kind: 'mc', prompt: '', choic
 const blankMatching = (): MatchingQuestion => ({ id: makeId(), kind: 'matching', prompt: '', pairs: [{ left: '', right: '' }, { left: '', right: '' }] });
 const blankFill = (): FillBlankQuestion => ({ id: makeId(), kind: 'fill', prompt: '', answer: '', wordBank: [] });
 
-function QuestionRow({ q, onUpdate, onDelete }: { q: QuizQuestion; onUpdate: (q: QuizQuestion) => void; onDelete: () => void }) {
+const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+function QuestionRow({
+  index,
+  q,
+  onUpdate,
+  onDelete,
+}: {
+  index: number;
+  q: QuizQuestion;
+  onUpdate: (q: QuizQuestion) => void;
+  onDelete: () => void;
+}) {
   return (
-    <div className="content-well stack">
+    <div className="content-well stack quiz-question-row">
       <div className="space-between">
-        <span className="tag-pill">{q.kind === 'mc' ? 'Multiple choice' : q.kind === 'matching' ? 'Matching' : 'Fill in the blank'}</span>
+        <div className="row" style={{ gap: 10 }}>
+          <span className="quiz-question-number">{index + 1}.</span>
+          <span className="tag-pill">{q.kind === 'mc' ? 'Multiple choice' : q.kind === 'matching' ? 'Matching' : 'Fill in the blank'}</span>
+        </div>
         <button className="btn btn-sm btn-danger" onClick={onDelete}>Delete question</button>
       </div>
       <div>
-        <label>Question / prompt</label>
+        <label>Question</label>
         <input
           value={q.prompt}
           onChange={(e) => onUpdate({ ...q, prompt: e.target.value })}
@@ -34,40 +49,49 @@ function QuestionRow({ q, onUpdate, onDelete }: { q: QuizQuestion; onUpdate: (q:
 
       {q.kind === 'mc' && (
         <div className="stack">
-          <label>Choices — pick the correct one</label>
-          {q.choices.map((c, i) => (
-            <div className="row" key={i}>
-              <input
-                type="radio"
-                name={`correct-${q.id}`}
-                checked={q.correctIndex === i}
-                onChange={() => onUpdate({ ...q, correctIndex: i })}
-              />
-              <input
-                value={c}
-                onChange={(e) => {
-                  const choices = [...q.choices];
-                  choices[i] = e.target.value;
-                  onUpdate({ ...q, choices });
-                }}
-                style={{ flex: 1 }}
-                placeholder={`Choice ${i + 1}`}
-              />
-              <button
-                className="btn btn-sm btn-danger"
-                disabled={q.choices.length <= 2}
-                onClick={() => {
-                  const choices = q.choices.filter((_, idx) => idx !== i);
-                  const correctIndex = q.correctIndex >= choices.length ? 0 : q.correctIndex;
-                  onUpdate({ ...q, choices, correctIndex });
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button className="btn btn-sm" onClick={() => onUpdate({ ...q, choices: [...q.choices, ''] })}>
-            ➕ Add choice
+          <label>Answers — tap the letter to mark the correct one</label>
+          <div className="quiz-answers-grid">
+            {q.choices.map((c, i) => (
+              <div className="quiz-answer-cell" key={i}>
+                <button
+                  type="button"
+                  className={`quiz-answer-letter ${q.correctIndex === i ? 'correct' : ''}`}
+                  onClick={() => onUpdate({ ...q, correctIndex: i })}
+                  title="Mark as the correct answer"
+                >
+                  {ANSWER_LETTERS[i] ?? i + 1}
+                </button>
+                <input
+                  value={c}
+                  onChange={(e) => {
+                    const choices = [...q.choices];
+                    choices[i] = e.target.value;
+                    onUpdate({ ...q, choices });
+                  }}
+                  style={{ flex: 1 }}
+                  placeholder={i < 2 ? `Answer ${ANSWER_LETTERS[i]}` : `(Optional)`}
+                />
+                <button
+                  className="btn btn-sm btn-danger"
+                  disabled={q.choices.length <= 2}
+                  onClick={() => {
+                    const choices = q.choices.filter((_, idx) => idx !== i);
+                    const correctIndex = q.correctIndex >= choices.length ? 0 : q.correctIndex;
+                    onUpdate({ ...q, choices, correctIndex });
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            className="btn btn-sm"
+            style={{ alignSelf: 'flex-start' }}
+            disabled={q.choices.length >= ANSWER_LETTERS.length}
+            onClick={() => onUpdate({ ...q, choices: [...q.choices, ''] })}
+          >
+            ➕ Add more answers
           </button>
         </div>
       )}
@@ -144,8 +168,8 @@ export default function QuizEditor({ subject, questions, onChange }: Props) {
   return (
     <div className="stack">
       <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} />
-      {questions.map((q) => (
-        <QuestionRow key={q.id} q={q} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)} />
+      {questions.map((q, i) => (
+        <QuestionRow key={q.id} index={i} q={q} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)} />
       ))}
       <div className="row">
         <select value={addingKind} onChange={(e) => setAddingKind(e.target.value as typeof addingKind)}>

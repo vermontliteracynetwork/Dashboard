@@ -6,6 +6,8 @@ import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import { todayISO } from '../../lib/dates';
 import { getPlaygroundAccess } from '../../lib/playgroundAccess';
+import BreakTimer from '../../components/BreakTimer';
+import { playCalmChime } from '../../lib/chime';
 import { AVATAR_OPTIONS } from '../../store/badges';
 
 export default function StudentHome() {
@@ -41,7 +43,7 @@ export default function StudentHome() {
 
   // Keeps the Playground unlock countdown (if any) accurate without a hard refresh.
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -160,9 +162,15 @@ export default function StudentHome() {
         <div className="chrome-frame stack" style={{ padding: 16, alignItems: 'center', textAlign: 'center' }}>
           {access.unlocked ? (
             <>
-              <p style={{ fontWeight: 800, margin: 0 }}>
-                🎉 The Playground is unlocked{access.unlimited ? '' : ` for ${access.minutesRemaining} more minute${access.minutesRemaining === 1 ? '' : 's'}`}!
-              </p>
+              <p style={{ fontWeight: 800, margin: 0 }}>🎉 The Playground is unlocked!</p>
+              {!access.unlimited && access.remainingMs !== null && (
+                <BreakTimer
+                  remainingMs={access.remainingMs}
+                  totalMinutes={access.totalMinutes}
+                  label={access.source === 'granted' ? 'Break time left' : 'Playground time left'}
+                  onExpire={playCalmChime}
+                />
+              )}
               <button
                 className="btn btn-lg pulse-cta"
                 style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', color: 'white' }}

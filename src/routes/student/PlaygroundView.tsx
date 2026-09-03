@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import InternalBrowser from '../../components/InternalBrowser';
 import ToolsPanel from '../../components/ToolsPanel';
+import BreakTimer from '../../components/BreakTimer';
+import { playCalmChime } from '../../lib/chime';
 import QuizTask from './QuizTask';
 import OffscreenTask from './OffscreenTask';
 import VideoTask from './VideoTask';
@@ -34,7 +36,7 @@ export default function PlaygroundView() {
   }, [currentStudentId, navigate]);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -111,12 +113,16 @@ export default function PlaygroundView() {
         <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
       </div>
 
-      <p style={{ textAlign: 'center', fontWeight: 700 }}>
-        Pick anything you want — just for fun! ✨{' '}
-        {!access.unlimited && access.minutesRemaining !== null && (
-          <span style={{ opacity: 0.7 }}>({access.minutesRemaining} min left)</span>
-        )}
-      </p>
+      {!access.unlimited && access.remainingMs !== null && (
+        <BreakTimer
+          remainingMs={access.remainingMs}
+          totalMinutes={access.totalMinutes}
+          label={access.source === 'granted' ? 'Break time left' : 'Playground time left'}
+          onExpire={playCalmChime}
+        />
+      )}
+
+      <p style={{ textAlign: 'center', fontWeight: 700 }}>Pick anything you want — just for fun! ✨</p>
 
       {entries.length === 0 ? (
         <p style={{ textAlign: 'center', opacity: 0.75 }}>Nothing here yet — ask your teacher to add some Playground fun!</p>

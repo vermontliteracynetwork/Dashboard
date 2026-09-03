@@ -758,6 +758,73 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .zone-newplan .zone-header-bar { background: linear-gradient(90deg, var(--pink), var(--orange)); }
 .zone-create .zone-header-bar { background: linear-gradient(90deg, var(--purple), var(--pink)); }
 
+/* ---------- Break / Playground countdown timer ---------- */
+.break-timer {
+  border: var(--chunk) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 6px 6px 0 var(--ink);
+  background: linear-gradient(120deg, var(--teal), var(--blue));
+  color: white;
+  padding: 16px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.break-timer-label { font-weight: 800; font-size: 1rem; opacity: 0.9; }
+.break-timer-clock {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 3rem;
+  line-height: 1;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.break-timer-bar {
+  width: 100%;
+  max-width: 320px;
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+.break-timer-bar > div { height: 100%; background: white; transition: width 1s linear; }
+.break-timer-urgent {
+  background: linear-gradient(120deg, var(--orange), var(--pink));
+  animation: break-timer-pulse 1s ease-in-out infinite;
+}
+@keyframes break-timer-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* ---------- Quiz editor: numbered question + A/B/C/D answer grid ---------- */
+.quiz-question-row { position: relative; }
+.quiz-question-number { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--purple); }
+.quiz-answers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 10px 16px;
+}
+.quiz-answer-cell { display: flex; align-items: center; gap: 8px; }
+.quiz-answer-letter {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+  cursor: pointer;
+  padding: 0;
+}
+.quiz-answer-letter.correct { background: var(--success); color: white; border-color: var(--success); }
+
 /* ---------- Assignments tab: card grid (like a classroom LMS) ---------- */
 .assignment-card-grid {
   display: grid;
