@@ -7,12 +7,13 @@ export type ToolKey =
   | 'breakVisual'
   | 'multiplicationTable'
   | 'hundredsChart'
+  | 'numberLine'
   | 'thesaurus'
   | 'dictionary'
   | 'soundWall';
 
 export const SUBJECT_TOOLS: Record<Subject, ToolKey[]> = {
-  math: ['multiplicationTable', 'hundredsChart'],
+  math: ['multiplicationTable', 'hundredsChart', 'numberLine'],
   literacy: ['thesaurus', 'dictionary', 'soundWall'],
 };
 
@@ -25,6 +26,7 @@ export const ALL_TOOL_KEYS: ToolKey[] = [
   'breakVisual',
   'multiplicationTable',
   'hundredsChart',
+  'numberLine',
   'thesaurus',
   'dictionary',
   'soundWall',
@@ -37,6 +39,7 @@ export const TOOL_LABELS: Record<ToolKey, string> = {
   breakVisual: 'Quiet/Break Tool',
   multiplicationTable: 'Multiplication Table',
   hundredsChart: 'Hundreds Chart',
+  numberLine: 'Number Line',
   thesaurus: 'Thesaurus',
   dictionary: 'Dictionary',
   soundWall: 'Sound Wall',
@@ -45,6 +48,16 @@ export const TOOL_LABELS: Record<ToolKey, string> = {
 export interface TTSSettings {
   rate: number; // 0.5 - 1.5
   voiceURI: string | null;
+}
+
+// A teacher-added external link shown as its own tool button (e.g. Amplify,
+// Polypad, or a curated research link) — opens in the internal browser like
+// any other external activity.
+export interface CustomTool {
+  id: string;
+  label: string;
+  url: string;
+  subject: Subject | 'both';
 }
 
 export interface Student {
@@ -60,6 +73,7 @@ export interface Student {
   ttsSettings: TTSSettings;
   createdAt: string;
   playgroundThreshold: number; // activities completed today needed to unlock the Playground (repeatable)
+  customTools: CustomTool[]; // teacher-added external link tools (e.g. Amplify, Polypad, research links)
 }
 
 export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit';
@@ -113,6 +127,7 @@ export interface LinkContent {
 
 export interface OffscreenContent {
   instructions: string;
+  photoRequired?: boolean; // student must upload a photo of their work before checking this off
 }
 
 export interface VideoContent {
@@ -311,6 +326,7 @@ export interface OffscreenReview {
   taskTitle: string;
   timestamp: string;
   verified: boolean;
+  photoUrl?: string; // student-uploaded photo evidence, if the task required one
 }
 
 export interface BadgeDef {

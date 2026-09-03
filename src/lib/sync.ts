@@ -38,6 +38,7 @@ const rowToStudent = (r: Row): Student => ({
   ttsSettings: r.tts_settings ?? { rate: 1, voiceURI: null },
   createdAt: r.created_at,
   playgroundThreshold: r.playground_threshold ?? 4,
+  customTools: r.custom_tools ?? [],
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -53,6 +54,7 @@ const studentToRow = (s: Student): Row => ({
   tts_settings: s.ttsSettings,
   created_at: s.createdAt,
   playground_threshold: s.playgroundThreshold,
+  custom_tools: s.customTools,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -99,6 +101,7 @@ const rowToOffscreenReview = (r: Row): OffscreenReview => ({
   taskTitle: r.task_title,
   timestamp: r.occurred_at,
   verified: r.verified,
+  photoUrl: r.photo_url ?? undefined,
 });
 
 const rowToBadge = (r: Row): BadgeDef => ({ id: r.id, name: r.name, description: r.description, icon: r.icon });
@@ -373,6 +376,7 @@ export const pushOffscreenReview = (o: OffscreenReview) =>
     task_title: o.taskTitle,
     occurred_at: o.timestamp,
     verified: o.verified,
+    photo_url: o.photoUrl ?? null,
   });
 
 export const pushBadge = (b: BadgeDef) => upsert('badges', b);

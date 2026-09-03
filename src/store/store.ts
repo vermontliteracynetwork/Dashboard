@@ -141,7 +141,7 @@ interface AppState {
   markRitualSeen: (studentId: string, subject: Subject) => void;
   getActiveTask: (studentId: string, subject: Subject) => Task | null;
   completeTask: (studentId: string, subject: Subject, taskId: string) => void;
-  markOffscreenDone: (studentId: string, subject: Subject, task: Task) => void;
+  markOffscreenDone: (studentId: string, subject: Subject, task: Task, photoUrl?: string) => void;
   recordToolUsage: (studentId: string, tool: ToolKey) => void;
 
   // quiz
@@ -331,6 +331,7 @@ export const useStore = create<AppState>()(
           playgroundThreshold: 4,
           ttsSettings: { rate: 1, voiceURI: null },
           createdAt: new Date().toISOString(),
+          customTools: [],
         };
         set((s) => ({
           students: [...s.students, student],
@@ -555,7 +556,7 @@ export const useStore = create<AppState>()(
         }
       },
 
-      markOffscreenDone: (studentId, subject, task) => {
+      markOffscreenDone: (studentId, subject, task, photoUrl) => {
         const review: OffscreenReview = {
           id: makeId(),
           studentId,
@@ -564,6 +565,7 @@ export const useStore = create<AppState>()(
           taskTitle: task.title,
           timestamp: new Date().toISOString(),
           verified: false,
+          photoUrl,
         };
         set((s) => ({ offscreenReviews: [review, ...s.offscreenReviews] }));
         pushOffscreenReview(review);

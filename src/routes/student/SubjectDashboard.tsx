@@ -88,22 +88,22 @@ export default function SubjectDashboard() {
       ? tasks.find((t) => t.id === requiredId) ?? null
       : null;
 
-  const checkOff = (task: Task) => {
-    if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task);
+  const checkOff = (task: Task, photoUrl?: string) => {
+    if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task, photoUrl);
     else completeTask(student.id, subj, task.id);
     setSelectedTaskId(null);
     if (!reviewing) setShowBreakOffer(true);
   };
 
-  const handleDone = () => {
+  const handleDone = (photoUrl?: string) => {
     if (!activeTask) return;
-    checkOff(activeTask);
+    checkOff(activeTask, photoUrl);
   };
 
   const renderTask = (task: Task) => {
     switch (task.type) {
       case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} />;
-      case 'link': return <LinkTask student={student} task={task} onDone={handleDone} />;
+      case 'link': return <LinkTask student={student} subject={subj} task={task} onDone={handleDone} />;
       case 'offscreen': return <OffscreenTask student={student} task={task} onDone={handleDone} />;
       case 'video': return <VideoTask student={student} task={task} onDone={handleDone} />;
       case 'passage': return <PassageTask student={student} subject={subj} task={task} onDone={handleDone} />;

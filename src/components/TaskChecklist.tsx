@@ -16,7 +16,9 @@ interface Props {
 
 export default function TaskChecklist({ student, tasks, completedIds, openedIds, onOpen, onCheck }: Props) {
   const [stepsForTaskId, setStepsForTaskId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const stepsTask = tasks.find((t) => t.id === stepsForTaskId) ?? null;
+  const confirmingTask = tasks.find((t) => t.id === confirmingId) ?? null;
   const nextRequiredId = nextRequiredTaskId(tasks, completedIds);
   const ordered = sortForDisplay(tasks);
 
@@ -35,6 +37,37 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
         </div>
       )}
 
+      {confirmingTask && (
+        <div className="overlay-backdrop" onClick={() => setConfirmingId(null)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h3 style={{ margin: 0 }}>Are you sure you completed this?</h3>
+              <p style={{ margin: 0 }}>{confirmingTask.icon} {confirmingTask.title}</p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={() => {
+                    onCheck(confirmingTask);
+                    setConfirmingId(null);
+                  }}
+                >
+                  ✓ Yes, I did it
+                </button>
+                <button
+                  className="btn btn-lg"
+                  onClick={() => {
+                    setConfirmingId(null);
+                    onOpen(confirmingTask.id);
+                  }}
+                >
+                  ✕ Not yet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {ordered.map((t) => {
         const done = completedIds.includes(t.id);
         const locked = isTaskLocked(t, tasks, completedIds);
@@ -45,7 +78,7 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
             <button
               className={`checklist-check-btn ${done ? 'checked' : ''}`}
               disabled={done || locked || !opened}
-              onClick={() => onCheck(t)}
+              onClick={() => (t.type === 'link' ? setConfirmingId(t.id) : onCheck(t))}
               aria-label={done ? 'Completed' : opened ? 'Mark as complete' : 'Open this activity first'}
               title={done ? 'Completed' : locked ? 'Not unlocked yet' : opened ? 'Tap when finished' : '👈 Open this activity first'}
             >

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import InternalBrowser from '../../components/InternalBrowser';
+import ToolsPanel from '../../components/ToolsPanel';
 import QuizTask from './QuizTask';
 import OffscreenTask from './OffscreenTask';
 import VideoTask from './VideoTask';
@@ -80,7 +81,12 @@ export default function PlaygroundView() {
   return (
     <div className="container stack">
       {openEntry && openEntry.task.type === 'link' && (
-        <InternalBrowser url={openEntry.task.link?.url ?? ''} title={openEntry.task.title} onClose={close} />
+        <InternalBrowser
+          url={openEntry.task.link?.url ?? ''}
+          title={openEntry.task.title}
+          onClose={close}
+          toolsButton={<ToolsPanel student={student} subject={openEntry.subject} variant="inline" />}
+        />
       )}
       {openEntry && openEntry.task.type !== 'link' && (
         <div className="overlay-backdrop" onClick={close}>

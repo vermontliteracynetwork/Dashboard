@@ -29,7 +29,9 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Sharing a plan with everyone is the standard case; a teacher un-checks
+  // a student here only when adding something differentiated for the rest.
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => students.map((st) => st.id));
   const [name, setName] = useState('');
   const [saved, setSaved] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -52,7 +54,7 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
   const resetForm = () => {
     onTasksChange([]);
     setName('');
-    setSelectedIds([]);
+    setSelectedIds(students.map((st) => st.id));
     setEditingTaskId(null);
     setStartDate(todayISO());
     setEndDate(todayISO());

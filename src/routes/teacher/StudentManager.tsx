@@ -2,7 +2,56 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { AVATAR_OPTIONS } from '../../store/badges';
+import { makeId } from '../../lib/id';
 import { ALL_TOOL_KEYS, TOOL_LABELS } from '../../types';
+import type { CustomTool, Subject, Student } from '../../types';
+
+function CustomToolsEditor({ student }: { student: Student }) {
+  const updateStudent = useStore((s) => s.updateStudent);
+  const [label, setLabel] = useState('');
+  const [url, setUrl] = useState('');
+  const [subject, setSubject] = useState<Subject | 'both'>('both');
+
+  const add = () => {
+    if (!label.trim() || !url.trim()) return;
+    const tool: CustomTool = { id: makeId(), label: label.trim(), url: url.trim(), subject };
+    updateStudent(student.id, { customTools: [...student.customTools, tool] });
+    setLabel('');
+    setUrl('');
+  };
+
+  const remove = (id: string) => updateStudent(student.id, { customTools: student.customTools.filter((t) => t.id !== id) });
+
+  return (
+    <div className="stack">
+      <strong>More Tools (custom links)</strong>
+      <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+        Add any external link — Amplify, Polypad, a research article — as its own button in this student's Tools
+        menu. It opens in the internal browser, same as an activity.
+      </p>
+      {student.customTools.length > 0 && (
+        <div className="stack">
+          {student.customTools.map((t) => (
+            <div key={t.id} className="content-well space-between">
+              <span>🔗 <strong>{t.label}</strong> <span className="tag-pill">{t.subject === 'both' ? 'Math + Literacy' : t.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span></span>
+              <button className="btn btn-sm btn-danger" onClick={() => remove(t.id)}>Delete</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="row-wrap">
+        <input placeholder="Label (e.g. Polypad)" value={label} onChange={(e) => setLabel(e.target.value)} />
+        <input placeholder="https://..." value={url} onChange={(e) => setUrl(e.target.value)} style={{ minWidth: 220 }} />
+        <select value={subject} onChange={(e) => setSubject(e.target.value as Subject | 'both')}>
+          <option value="both">Math + Literacy</option>
+          <option value="math">Math only</option>
+          <option value="literacy">Literacy only</option>
+        </select>
+        <button className="btn btn-sm btn-primary" disabled={!label.trim() || !url.trim()} onClick={add}>➕ Add</button>
+      </div>
+    </div>
+  );
+}
 
 function AddStudentForm() {
   const addStudent = useStore((s) => s.addStudent);
@@ -126,7 +175,7 @@ export default function StudentManager() {
                     <label key={tool} className="tag-pill" style={{ cursor: 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={st.featureToggles[tool]}
+                        checked={st.featureToggles[tool] !== false}
                         onChange={(e) => setFeatureToggle(st.id, tool, e.target.checked)}
                         style={{ marginRight: 6 }}
                       />
@@ -134,6 +183,9 @@ export default function StudentManager() {
                     </label>
                   ))}
                 </div>
+
+                <hr className="divider" />
+                <CustomToolsEditor student={st} />
               </div>
             )}
           </div>

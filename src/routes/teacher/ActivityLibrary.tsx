@@ -132,15 +132,26 @@ export function TaskEditor({
       )}
 
       {task.type === 'offscreen' && (
-        <div>
-          <label>Instructions for the student</label>
-          <textarea
-            style={{ width: '100%' }}
-            rows={3}
-            value={task.offscreen?.instructions ?? ''}
-            onChange={(e) => setTask({ ...task, offscreen: { instructions: e.target.value } })}
-            placeholder="What should the student do?"
-          />
+        <div className="stack">
+          <div>
+            <label>Instructions for the student</label>
+            <textarea
+              style={{ width: '100%' }}
+              rows={3}
+              value={task.offscreen?.instructions ?? ''}
+              onChange={(e) => setTask({ ...task, offscreen: { ...task.offscreen, instructions: e.target.value } })}
+              placeholder="What should the student do?"
+            />
+          </div>
+          <label>
+            <input
+              type="checkbox"
+              checked={task.offscreen?.photoRequired ?? false}
+              onChange={(e) => setTask({ ...task, offscreen: { instructions: task.offscreen?.instructions ?? '', photoRequired: e.target.checked } })}
+              style={{ marginRight: 6 }}
+            />
+            📸 Require a photo of their work before they can check this off
+          </label>
         </div>
       )}
 

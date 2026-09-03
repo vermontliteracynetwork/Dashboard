@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
+import InternalBrowser from './InternalBrowser';
 import { THESAURUS, DICTIONARY, SOUND_WALL } from '../lib/wordData';
-import type { Student, ToolKey, Subject } from '../types';
+import type { Student, ToolKey, Subject, CustomTool } from '../types';
 import { ACCESSIBILITY_TOOLS, SUBJECT_TOOLS, TOOL_LABELS } from '../types';
 
 const TOOL_ICONS: Record<ToolKey, string> = {
@@ -12,6 +13,7 @@ const TOOL_ICONS: Record<ToolKey, string> = {
   breakVisual: '🧘',
   multiplicationTable: '✖️',
   hundredsChart: '💯',
+  numberLine: '📏',
   thesaurus: '🔄',
   dictionary: '📖',
   soundWall: '🔤',
@@ -147,6 +149,49 @@ function HundredsChart() {
   );
 }
 
+function NumberLine() {
+  const [sel, setSel] = useState<number | null>(null);
+  const [jumpFrom, setJumpFrom] = useState<number | null>(null);
+  const nums = Array.from({ length: 21 }, (_, i) => i);
+
+  const pick = (n: number) => {
+    if (jumpFrom === null) {
+      setJumpFrom(n);
+      setSel(n);
+    } else {
+      setSel(n);
+    }
+  };
+
+  return (
+    <div className="stack">
+      <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+        Tap a number to start, tap another to see the jump between them.
+      </p>
+      {jumpFrom !== null && sel !== null && sel !== jumpFrom && (
+        <div className="content-well" style={{ textAlign: 'center', fontSize: '1.2rem' }}>
+          {jumpFrom} → {sel} is a jump of <strong>{Math.abs(sel - jumpFrom)}</strong>
+        </div>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
+        {nums.map((n) => (
+          <button
+            key={n}
+            className={`btn btn-sm ${n === jumpFrom || n === sel ? 'btn-primary' : ''}`}
+            style={{ minWidth: 34, padding: '6px 4px' }}
+            onClick={() => pick(n)}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <button className="btn btn-sm" style={{ alignSelf: 'center' }} onClick={() => { setSel(null); setJumpFrom(null); }}>
+        🔄 Reset
+      </button>
+    </div>
+  );
+}
+
 function Thesaurus({ student }: { student: Student }) {
   const [q, setQ] = useState('');
   const key = q.trim().toLowerCase();
@@ -225,7 +270,7 @@ function WordProcessor({ student }: { student: Student }) {
         placeholder="Start writing..."
       />
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>✅ Saved automatically</span>
+        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>🔒 Private, saved automatically</span>
         <button className="btn btn-sm btn-blue" onClick={() => speak(scratchText || 'Nothing written yet', student.ttsSettings)}>
           🔈 Read it back
         </button>
@@ -288,17 +333,26 @@ function QuietTool() {
 interface Props {
   student: Student;
   subject: Subject;
+  variant?: 'fab' | 'inline';
 }
 
-export default function ToolsPanel({ student, subject }: Props) {
+// Always-available tools menu: a floating button on the normal page
+// (variant="fab"), or a small header button when rendered inside the
+// internal browser (variant="inline") so tools stay one tap away even
+// while a student is inside an embedded external activity.
+export default function ToolsPanel({ student, subject, variant = 'fab' }: Props) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [open, setOpen] = useState<ToolKey | null>(null);
+  const [customOpen, setCustomOpen] = useState<CustomTool | null>(null);
   const recordToolUsage = useStore((s) => s.recordToolUsage);
 
-  const subjectTools = SUBJECT_TOOLS[subject].filter((t) => student.featureToggles[t]);
-  const accessTools = ACCESSIBILITY_TOOLS.filter((t) => student.featureToggles[t]);
+  const subjectTools = SUBJECT_TOOLS[subject].filter((t) => student.featureToggles[t] !== false);
+  const accessTools = ACCESSIBILITY_TOOLS.filter((t) => student.featureToggles[t] !== false);
+  const customTools = student.customTools.filter((c) => c.subject === subject || c.subject === 'both');
 
   const openTool = (tool: ToolKey) => {
     setOpen(tool);
+    setMenuOpen(false);
     recordToolUsage(student.id, tool);
   };
 
@@ -307,6 +361,7 @@ export default function ToolsPanel({ student, subject }: Props) {
       case 'calculator': return <Calculator />;
       case 'multiplicationTable': return <MultiplicationTable />;
       case 'hundredsChart': return <HundredsChart />;
+      case 'numberLine': return <NumberLine />;
       case 'thesaurus': return <Thesaurus student={student} />;
       case 'dictionary': return <Dictionary student={student} />;
       case 'soundWall': return <SoundWall student={student} />;
@@ -332,9 +387,50 @@ export default function ToolsPanel({ student, subject }: Props) {
     );
 
   return (
-    <div className="chrome-frame stack" style={{ padding: 16 }}>
-      <ToolRow tools={subjectTools} label="Subject Tools" />
-      <ToolRow tools={accessTools} label="Accessibility Toolbar" />
+    <>
+      <button
+        className={variant === 'fab' ? 'tools-fab' : 'btn btn-sm btn-teal'}
+        onClick={() => setMenuOpen(true)}
+        aria-label="My Tools"
+        title="My Tools"
+      >
+        🧰{variant === 'inline' ? ' Tools' : ''}
+      </button>
+
+      {menuOpen && (
+        <div className="overlay-backdrop" onClick={() => setMenuOpen(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 20 }} onClick={(e) => e.stopPropagation()}>
+            <div className="space-between" style={{ marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>🧰 My Tools</h3>
+              <button className="btn btn-sm" onClick={() => setMenuOpen(false)}>✕</button>
+            </div>
+            <div className="stack">
+              <ToolRow tools={subjectTools} label="Subject Tools" />
+              <ToolRow tools={accessTools} label="Accessibility Toolbar" />
+              {customTools.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.75, marginBottom: 6 }}>More Tools</div>
+                  <div className="row-wrap">
+                    {customTools.map((c) => (
+                      <button
+                        key={c.id}
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => {
+                          setCustomOpen(c);
+                          setMenuOpen(false);
+                        }}
+                        title={c.label}
+                      >
+                        🔗 {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div className="overlay-backdrop" onClick={() => setOpen(null)}>
@@ -347,6 +443,10 @@ export default function ToolsPanel({ student, subject }: Props) {
           </div>
         </div>
       )}
-    </div>
+
+      {customOpen && (
+        <InternalBrowser url={customOpen.url} title={customOpen.label} onClose={() => setCustomOpen(null)} />
+      )}
+    </>
   );
 }

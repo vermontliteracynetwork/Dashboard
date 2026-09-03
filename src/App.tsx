@@ -17,6 +17,7 @@ import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
 import PlaygroundManager from './routes/teacher/PlaygroundManager';
 import BadgeManager from './routes/teacher/BadgeManager';
+import StudentLiveView from './routes/teacher/StudentLiveView';
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated);
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/teacher/students" element={<StudentManager />} />
             <Route path="/teacher/assignments" element={<AssignmentsIndex />} />
             <Route path="/teacher/lesson-plan/:studentId" element={<LessonPlanBuilder />} />
+            <Route path="/teacher/live/:studentId" element={<StudentLiveView />} />
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
             <Route path="/teacher/playground" element={<PlaygroundManager />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />

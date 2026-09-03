@@ -1,11 +1,14 @@
+import type { ReactNode } from 'react';
+
 interface Props {
   url: string;
   title: string;
   onClose: () => void;
   onMarkDone?: () => void;
+  toolsButton?: ReactNode; // keeps the student's tools one tap away without leaving this view
 }
 
-export default function InternalBrowser({ url, title, onClose, onMarkDone }: Props) {
+export default function InternalBrowser({ url, title, onClose, onMarkDone, toolsButton }: Props) {
   return (
     <div className="overlay-backdrop" style={{ padding: 0 }} onClick={onClose}>
       <div
@@ -16,6 +19,7 @@ export default function InternalBrowser({ url, title, onClose, onMarkDone }: Pro
         <div className="space-between" style={{ padding: '10px 16px', background: 'var(--ink)' }}>
           <strong style={{ color: 'white' }}>{title}</strong>
           <div className="row-wrap">
+            {toolsButton}
             {onMarkDone && (
               <button className="btn btn-sm btn-success" onClick={onMarkDone}>
                 ✅ I did it!

@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import ReadAloud from '../../components/ReadAloud';
 import InternalBrowser from '../../components/InternalBrowser';
-import type { Student, Task } from '../../types';
+import ToolsPanel from '../../components/ToolsPanel';
+import type { Student, Subject, Task } from '../../types';
 
 interface Props {
   student: Student;
+  subject: Subject;
   task: Task;
   onDone: () => void;
 }
 
-export default function LinkTask({ student, task, onDone }: Props) {
+export default function LinkTask({ student, subject, task, onDone }: Props) {
   const [opened, setOpened] = useState(false);
   const [browsing, setBrowsing] = useState(false);
 
@@ -24,6 +26,7 @@ export default function LinkTask({ student, task, onDone }: Props) {
             setBrowsing(false);
             onDone();
           }}
+          toolsButton={<ToolsPanel student={student} subject={subject} variant="inline" />}
         />
       )}
       <div className="row">

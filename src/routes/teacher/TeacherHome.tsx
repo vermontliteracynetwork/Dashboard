@@ -68,6 +68,9 @@ export default function TeacherHome() {
                   <button className="btn btn-sm" onClick={() => navigate(`/teacher/lesson-plan/${st.id}`)}>
                     📋 Lesson Plan
                   </button>
+                  <button className="btn btn-sm" onClick={() => navigate(`/teacher/live/${st.id}`)}>
+                    👁️ Live View
+                  </button>
                 </div>
               </div>
             );
