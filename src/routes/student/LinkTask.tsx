@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import ReadAloud from '../../components/ReadAloud';
 import InternalBrowser from '../../components/InternalBrowser';
 import ToolsPanel from '../../components/ToolsPanel';
 import type { Student, Subject, Task } from '../../types';
@@ -13,7 +12,9 @@ interface Props {
 
 // Opening a link activity is never itself completion — only the checklist
 // checkbox (with its own "are you sure?" confirmation) marks it done, so
-// this view has no "I did it!" button of its own.
+// this view has no "I did it!" button of its own. Dismissing the open-it
+// panel leaves nothing behind — tapping the checklist row again is what
+// reopens it, so there's no redundant "reopen" card sitting underneath.
 export default function LinkTask({ student, subject, task, openToken }: Props) {
   const [browsing, setBrowsing] = useState(true);
 
@@ -23,23 +24,15 @@ export default function LinkTask({ student, subject, task, openToken }: Props) {
     setBrowsing(true);
   }, [task.id, openToken]);
 
+  if (!browsing) return null;
+
   return (
-    <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-      {browsing && (
-        <InternalBrowser
-          key={`${task.id}-${openToken}`}
-          url={task.link?.url ?? ''}
-          title={task.title}
-          onClose={() => setBrowsing(false)}
-          toolsButton={<ToolsPanel student={student} subject={subject} variant="inline" />}
-        />
-      )}
-      <div className="row">
-        <h3 style={{ margin: 0 }}>{task.title}</h3>
-        <ReadAloud text={task.title} settings={student.ttsSettings} />
-      </div>
-      <p>This opens in its own tab. When you're finished, check it off on your list above.</p>
-      <button className="btn btn-blue btn-lg" onClick={() => setBrowsing(true)}>↩️ Reopen activity</button>
-    </div>
+    <InternalBrowser
+      key={`${task.id}-${openToken}`}
+      url={task.link?.url ?? ''}
+      title={task.title}
+      onClose={() => setBrowsing(false)}
+      toolsButton={<ToolsPanel student={student} subject={subject} variant="inline" />}
+    />
   );
 }

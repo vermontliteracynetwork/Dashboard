@@ -15,7 +15,6 @@ import HelpOverlay from '../../components/HelpOverlay';
 import WhatNowOverlay from '../../components/WhatNowOverlay';
 import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
-import { nextRequiredTaskId } from '../../lib/taskOrder';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -84,16 +83,11 @@ export default function SubjectDashboard() {
     );
   }
 
-  // A tapped row (including an already-completed one, for review) always wins over
-  // the next required numbered task, so finished work stays reopenable to redo.
-  // Link activities are never auto-selected as a default — opening a new tab
-  // must always come from an explicit tap on the checklist row.
-  const requiredId = nextRequiredTaskId(tasks, prog.completedTaskIds);
-  const requiredTask = requiredId ? tasks.find((t) => t.id === requiredId) ?? null : null;
-  const defaultTask = requiredTask && requiredTask.type !== 'link' ? requiredTask : null;
-  const activeTask: Task | null = selectedTaskId
-    ? tasks.find((t) => t.id === selectedTaskId) ?? null
-    : defaultTask;
+  // No activity is ever active by default — only an explicit tap on a
+  // checklist row selects one, and finishing (or backing out of) an
+  // activity always drops the student back on the checklist rather than
+  // auto-advancing into whatever's next.
+  const activeTask: Task | null = selectedTaskId ? tasks.find((t) => t.id === selectedTaskId) ?? null : null;
 
   const checkOff = (task: Task, photoUrl?: string) => {
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task, photoUrl);
