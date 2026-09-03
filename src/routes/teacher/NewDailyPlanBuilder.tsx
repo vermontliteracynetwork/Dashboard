@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { TaskEditor, activityToTaskSnapshot } from './ActivityLibrary';
 import { todayISO, formatDateLong } from '../../lib/dates';
-import type { Subject, Task } from '../../types';
+import type { Assignment, Subject, Task } from '../../types';
 
 function defaultPlanName(tasks: Task[]): string {
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -10,34 +10,70 @@ function defaultPlanName(tasks: Task[]): string {
   return preview ? `${date} — ${preview}${tasks.length > 2 ? '…' : ''}` : date;
 }
 
+// Passed in when this builder is editing an existing plan (a draft, or a
+// not-yet-started assignment) instead of starting fresh — `rows` is that
+// plan's current published Assignment rows (empty for a still-unpublished
+// draft), used to reconcile the student roster and dates on save rather
+// than always creating new ones.
+export interface EditingPlan {
+  templateId: string;
+  rows: Assignment[];
+}
+
 interface Props {
   subject: Subject;
   tasks: Task[];
   onTasksChange: (tasks: Task[]) => void;
+  editing?: EditingPlan;
+  initialName?: string;
+  initialStartDate?: string;
+  initialEndDate?: string;
+  initialMode?: 'repeat' | 'span';
+  initialSelectedIds?: string[];
+  onSaved?: () => void;
 }
 
 // Build a whole daily plan from scratch (not tied to any one student's
 // existing plan) and assign the finished result to as many students as
-// needed in one action — saves to the Backlog either way. The scratch
-// `tasks` list is owned by the parent so the Activity Library's "Add to
-// plan" flow can drop activities straight in here too.
-export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: Props) {
+// needed in one action — saves as a draft either way. The scratch `tasks`
+// list is owned by the parent so the Activity Library's "Add to plan" flow
+// can drop activities straight in here too. When `editing` is set, this is
+// the SAME view used to edit an existing draft or upcoming assignment in
+// place (full search/drag-drop/ordering/dates/audience), instead of a
+// stripped-down editor — saving reconciles the existing plan/rows rather
+// than creating duplicates.
+export default function NewDailyPlanBuilder({
+  subject,
+  tasks,
+  onTasksChange,
+  editing,
+  initialName,
+  initialStartDate,
+  initialEndDate,
+  initialMode,
+  initialSelectedIds,
+  onSaved,
+}: Props) {
   const students = useStore((s) => s.students);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addTemplate = useStore((s) => s.addTemplate);
+  const updateTemplate = useStore((s) => s.updateTemplate);
   const publishAssignment = useStore((s) => s.publishAssignment);
+  const updateAssignment = useStore((s) => s.updateAssignment);
+  const addStudentToAssignment = useStore((s) => s.addStudentToAssignment);
+  const deleteAssignment = useStore((s) => s.deleteAssignment);
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   // Sharing a plan with everyone is the standard case; a teacher un-checks
   // a student here only when adding something differentiated for the rest.
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => students.map((st) => st.id));
-  const [name, setName] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => initialSelectedIds ?? students.map((st) => st.id));
+  const [name, setName] = useState(() => initialName ?? '');
   const [saved, setSaved] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [startDate, setStartDate] = useState(todayISO());
-  const [endDate, setEndDate] = useState(todayISO());
-  const [mode, setMode] = useState<'repeat' | 'span'>('repeat');
+  const [startDate, setStartDate] = useState(() => initialStartDate ?? todayISO());
+  const [endDate, setEndDate] = useState(() => initialEndDate ?? todayISO());
+  const [mode, setMode] = useState<'repeat' | 'span'>(() => initialMode ?? 'repeat');
 
   const toggleStudent = (id: string) =>
     setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -64,6 +100,12 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
   const saveToBacklogOnly = () => {
     if (tasks.length === 0) return;
     const finalName = name.trim() || defaultPlanName(tasks);
+    if (editing) {
+      updateTemplate(editing.templateId, { name: finalName, subject, activities: tasks });
+      setSaved(`Saved changes to "${finalName}".`);
+      onSaved?.();
+      return;
+    }
     addTemplate(finalName, subject, tasks);
     setSaved(`Saved "${finalName}" as a draft.`);
     resetForm();
@@ -74,8 +116,30 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
     const finalName = name.trim() || defaultPlanName(tasks);
     const today = todayISO();
     const activeNow = startDate <= today && today <= endDate;
-    publishAssignment(selectedIds, subject, tasks, finalName, startDate, endDate, mode);
     const range = startDate === endDate ? `on ${formatDateLong(startDate)}` : `from ${formatDateLong(startDate)} to ${formatDateLong(endDate)}`;
+
+    if (editing) {
+      updateTemplate(editing.templateId, { name: finalName, subject, activities: tasks });
+      const remaining = new Map(editing.rows.map((r) => [r.studentId, r]));
+      selectedIds.forEach((studentId) => {
+        const existingRow = remaining.get(studentId);
+        if (existingRow) {
+          updateAssignment(existingRow.id, { startDate, endDate, mode });
+          remaining.delete(studentId);
+        } else {
+          addStudentToAssignment(studentId, subject, editing.templateId, startDate, endDate, mode);
+        }
+      });
+      remaining.forEach((row) => deleteAssignment(row.id));
+      setSaved(
+        `Saved changes to "${finalName}" — assigned to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
+          (activeNow ? ' — it\'s live now.' : ' — it will load automatically when the window opens.'),
+      );
+      onSaved?.();
+      return;
+    }
+
+    publishAssignment(selectedIds, subject, tasks, finalName, startDate, endDate, mode);
     setSaved(
       `Published "${finalName}" to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
         (activeNow ? ' — it\'s live now.' : ' — it will load automatically when the window opens.'),
@@ -85,7 +149,7 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
 
   return (
     <div className="zone zone-newplan stack">
-      <div className="zone-header-bar">🗓️ Build a New Daily Plan</div>
+      <div className="zone-header-bar">{editing ? '✏️ Edit Assignment' : '🗓️ Build a New Daily Plan'}</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
           Search and add {subject === 'math' ? 'Math' : 'Literacy'} activities below, or drag them in from the
@@ -267,9 +331,11 @@ export default function NewDailyPlanBuilder({ subject, tasks, onTasksChange }: P
             )}
 
             <div className="row-wrap">
-              <button className="btn" onClick={saveToBacklogOnly}>💾 Save as Draft only</button>
+              <button className="btn" onClick={saveToBacklogOnly}>
+                {editing ? '💾 Save activities only' : '💾 Save as Draft only'}
+              </button>
               <button className="btn btn-primary" disabled={selectedIds.length === 0} onClick={publish}>
-                🚀 Publish Plan
+                {editing ? '💾 Save Changes' : '🚀 Publish Plan'}
               </button>
             </div>
           </div>
