@@ -72,15 +72,39 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
         const done = completedIds.includes(t.id);
         const locked = isTaskLocked(t, tasks, completedIds);
         const isCurrent = !locked && !done && t.order != null && t.id === nextRequiredId;
-        const opened = isCurrent || openedIds.has(t.id);
+        // Must have actually opened the activity — being "current" pulses the
+        // row for attention but does not itself count as opened, or a numbered
+        // link/offscreen task could be checked off sight-unseen.
+        const opened = openedIds.has(t.id);
+        // Only a plain external link is a manual, self-reported completion
+        // (confirmed via the dialog below). Every other type must be finished
+        // through its own activity screen — a quiz mastered, a drill flipped
+        // through, a required photo attached — so tapping the checkbox for
+        // those opens/reopens the activity instead of silently checking it off.
+        const directComplete = t.type === 'link';
+        const handleClick = () => {
+          if (done || locked || !opened) return;
+          if (directComplete) setConfirmingId(t.id);
+          else onOpen(t.id);
+        };
         return (
           <div key={t.id} className={`checklist-row2 ${done ? 'done' : ''} ${isCurrent ? 'current' : ''} ${locked ? 'locked' : ''}`}>
             <button
               className={`checklist-check-btn ${done ? 'checked' : ''}`}
               disabled={done || locked || !opened}
-              onClick={() => (t.type === 'link' ? setConfirmingId(t.id) : onCheck(t))}
-              aria-label={done ? 'Completed' : opened ? 'Mark as complete' : 'Open this activity first'}
-              title={done ? 'Completed' : locked ? 'Not unlocked yet' : opened ? 'Tap when finished' : '👈 Open this activity first'}
+              onClick={handleClick}
+              aria-label={done ? 'Completed' : opened ? (directComplete ? 'Mark as complete' : 'Finish the activity below') : 'Open this activity first'}
+              title={
+                done
+                  ? 'Completed'
+                  : locked
+                    ? 'Not unlocked yet'
+                    : !opened
+                      ? '👈 Open this activity first'
+                      : directComplete
+                        ? 'Tap when finished'
+                        : 'Finish the activity below to check this off'
+              }
             >
               {done ? '✓' : locked ? '🔒' : ''}
             </button>
