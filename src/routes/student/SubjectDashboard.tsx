@@ -38,6 +38,9 @@ export default function SubjectDashboard() {
   const [reviewing, setReviewing] = useState(false);
   const [openedTaskIds, setOpenedTaskIds] = useState<Set<string>>(new Set());
   const [showBreakOffer, setShowBreakOffer] = useState(false);
+  // "I'm done" from any task view never completes it immediately — it
+  // always asks "are you sure?" first, same as the checklist checkbox does.
+  const [confirmDone, setConfirmDone] = useState<{ photoUrl?: string } | null>(null);
   // Bumped on every checklist-row tap, even re-taps of the already-selected
   // row, so a link activity's popup reliably reopens every single time.
   const [openToken, setOpenToken] = useState(0);
@@ -58,6 +61,7 @@ export default function SubjectDashboard() {
     setSelectedTaskId(null);
     setOpenedTaskIds(new Set());
     setShowBreakOffer(false);
+    setConfirmDone(null);
   }, [subj]);
 
   if (!student || !subj) return null;
@@ -82,12 +86,14 @@ export default function SubjectDashboard() {
 
   // A tapped row (including an already-completed one, for review) always wins over
   // the next required numbered task, so finished work stays reopenable to redo.
+  // Link activities are never auto-selected as a default — opening a new tab
+  // must always come from an explicit tap on the checklist row.
   const requiredId = nextRequiredTaskId(tasks, prog.completedTaskIds);
+  const requiredTask = requiredId ? tasks.find((t) => t.id === requiredId) ?? null : null;
+  const defaultTask = requiredTask && requiredTask.type !== 'link' ? requiredTask : null;
   const activeTask: Task | null = selectedTaskId
     ? tasks.find((t) => t.id === selectedTaskId) ?? null
-    : requiredId
-      ? tasks.find((t) => t.id === requiredId) ?? null
-      : null;
+    : defaultTask;
 
   const checkOff = (task: Task, photoUrl?: string) => {
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task, photoUrl);
@@ -98,7 +104,7 @@ export default function SubjectDashboard() {
 
   const handleDone = (photoUrl?: string) => {
     if (!activeTask) return;
-    checkOff(activeTask, photoUrl);
+    setConfirmDone({ photoUrl });
   };
 
   const renderTask = (task: Task) => {
@@ -137,6 +143,29 @@ export default function SubjectDashboard() {
                 <button className="btn btn-primary btn-lg" onClick={() => setShowBreakOffer(false)}>
                   ➡️ Keep going
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDone && activeTask && (
+        <div className="overlay-backdrop" onClick={() => setConfirmDone(null)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h3 style={{ margin: 0 }}>Are you sure you completed this?</h3>
+              <p style={{ margin: 0 }}>{activeTask.icon} {activeTask.title}</p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={() => {
+                    checkOff(activeTask, confirmDone.photoUrl);
+                    setConfirmDone(null);
+                  }}
+                >
+                  ✓ Yes, I did it
+                </button>
+                <button className="btn btn-lg" onClick={() => setConfirmDone(null)}>✕ Not yet</button>
               </div>
             </div>
           </div>

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 interface Props {
@@ -12,16 +11,11 @@ interface Props {
 // Most real external sites (Amplify, Polypad, Khan Academy, YouTube, etc.)
 // block being shown inside an iframe at all (X-Frame-Options / CSP), so an
 // embedded "internal browser" just shows a blank, broken frame for almost
-// everything a teacher actually links to. Instead: open the activity in its
-// own browser tab (as directly as possible, so popup blockers allow it) and
-// show this panel as a simple "you're on it — come back and check off when
-// you're done" control strip, with tools and completion still one tap away.
+// everything a teacher actually links to. Instead: this panel shows a simple
+// "here's where you're headed" confirmation — the new tab only opens when
+// the student actually taps the button below, never automatically, since a
+// leaving-the-app action always needs a real, explicit tap to trigger it.
 export default function InternalBrowser({ url, title, onClose, onMarkDone, toolsButton }: Props) {
-  useEffect(() => {
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div className="overlay-backdrop" onClick={onClose}>
       <div
