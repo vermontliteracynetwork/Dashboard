@@ -8,19 +8,18 @@ interface Props {
   student: Student;
   subject: Subject;
   task: Task;
-  onDone: () => void;
 }
 
-export default function LinkTask({ student, subject, task, onDone }: Props) {
-  const [opened, setOpened] = useState(false);
-  const [browsing, setBrowsing] = useState(false);
+// Opening a link activity is never itself completion — only the checklist
+// checkbox (with its own "are you sure?" confirmation) marks it done, so
+// this view has no "I did it!" button of its own.
+export default function LinkTask({ student, subject, task }: Props) {
+  const [browsing, setBrowsing] = useState(true);
 
-  // Tapping this activity on the checklist is what selects it as active —
-  // that tap should be the same thing as opening it, not a separate step.
+  // Selecting this activity opens it right away; re-selecting a different
+  // link activity later re-opens fresh for that one.
   useEffect(() => {
-    setOpened(true);
     setBrowsing(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task.id]);
 
   return (
@@ -31,10 +30,6 @@ export default function LinkTask({ student, subject, task, onDone }: Props) {
           url={task.link?.url ?? ''}
           title={task.title}
           onClose={() => setBrowsing(false)}
-          onMarkDone={() => {
-            setBrowsing(false);
-            onDone();
-          }}
           toolsButton={<ToolsPanel student={student} subject={subject} variant="inline" />}
         />
       )}
@@ -42,26 +37,8 @@ export default function LinkTask({ student, subject, task, onDone }: Props) {
         <h3 style={{ margin: 0 }}>{task.title}</h3>
         <ReadAloud text={task.title} settings={student.ttsSettings} />
       </div>
-      <p>This opens in its own tab. When you're finished, come back here and check off "I did it!"</p>
-      {!opened && (
-        <button
-          className="btn btn-blue btn-lg pulse-cta"
-          onClick={() => {
-            setBrowsing(true);
-            setOpened(true);
-          }}
-        >
-          🚀 Open Activity
-        </button>
-      )}
-      {opened && (
-        <div className="row-wrap" style={{ justifyContent: 'center' }}>
-          <button className="btn" onClick={() => setBrowsing(true)}>↩️ Reopen activity</button>
-          <button className="btn btn-primary btn-lg pulse-cta" onClick={onDone}>
-            ✅ I did it!
-          </button>
-        </div>
-      )}
+      <p>This opens in its own tab. When you're finished, check it off on your list above.</p>
+      <button className="btn btn-blue btn-lg" onClick={() => setBrowsing(true)}>↩️ Reopen activity</button>
     </div>
   );
 }

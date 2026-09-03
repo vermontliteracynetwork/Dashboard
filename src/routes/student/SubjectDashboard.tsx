@@ -101,7 +101,7 @@ export default function SubjectDashboard() {
   const renderTask = (task: Task) => {
     switch (task.type) {
       case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} />;
-      case 'link': return <LinkTask student={student} subject={subj} task={task} onDone={handleDone} />;
+      case 'link': return <LinkTask student={student} subject={subj} task={task} />;
       case 'offscreen': return <OffscreenTask student={student} task={task} onDone={handleDone} />;
       case 'video': return <VideoTask student={student} task={task} onDone={handleDone} />;
       case 'passage': return <PassageTask student={student} subject={subj} task={task} onDone={handleDone} />;
