@@ -261,8 +261,7 @@ export default function NewDailyPlanBuilder({
           )}
         </div>
 
-        {tasks.length > 0 && (
-          <div className="content-well stack" style={{ background: '#faf9ff' }}>
+        <div className="content-well stack" style={{ background: '#faf9ff' }}>
             <div>
               <label>Plan name (optional — auto-named if left blank)</label>
               <input style={{ width: '100%' }} value={name} onChange={(e) => setName(e.target.value)} placeholder={defaultPlanName(tasks)} />
@@ -330,16 +329,21 @@ export default function NewDailyPlanBuilder({
               </div>
             )}
 
-            <div className="row-wrap">
-              <button className="btn" onClick={saveToBacklogOnly}>
+            <div className="row-wrap" style={{ alignItems: 'center' }}>
+              <button className="btn" disabled={tasks.length === 0} onClick={saveToBacklogOnly}>
                 {editing ? '💾 Save activities only' : '💾 Save as Draft only'}
               </button>
-              <button className="btn btn-primary" disabled={selectedIds.length === 0} onClick={publish}>
+              <button className="btn btn-primary btn-lg" disabled={tasks.length === 0 || selectedIds.length === 0} onClick={publish}>
                 {editing ? '💾 Save Changes' : '🚀 Publish Plan'}
               </button>
+              {tasks.length === 0 && (
+                <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Add at least one activity above to publish</span>
+              )}
+              {tasks.length > 0 && selectedIds.length === 0 && (
+                <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Pick at least one student above to publish</span>
+              )}
             </div>
-          </div>
-        )}
+        </div>
 
         {saved && <p style={{ fontSize: '0.85rem', color: 'var(--success)', fontWeight: 700 }}>✅ {saved}</p>}
       </div>
