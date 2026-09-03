@@ -94,7 +94,7 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
       <strong>{kind === 'quiz' ? '🧠 Import quiz questions' : '🗂️ Import flashcards'}</strong>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
         {kind === 'quiz'
-          ? 'Columns: Question, ChoiceA, ChoiceB, ChoiceC, ChoiceD, CorrectAnswer, ImageURL.'
+          ? 'Columns: Question, ChoiceA, ChoiceB, ChoiceC, ChoiceD, CorrectAnswer, ImageURL. CorrectAnswer can be a letter (A–D) or a number (1–4, meaning ChoiceA–D).'
           : 'Columns: Front, Back, ImageURL. Good for math facts, grapheme/morpheme review, or vocabulary & etymology.'}
       </p>
       {kind === 'quiz' && (

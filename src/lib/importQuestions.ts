@@ -12,8 +12,12 @@ export function rowsToQuizQuestions(rows: string[][]): QuizQuestion[] {
     if (!question) continue;
     const choices = [a, b, c, d].filter(Boolean);
     const letterMatch = /^[A-Da-d]$/.test(correct);
-    if (choices.length >= 2 && letterMatch) {
-      const idx = correct.toUpperCase().charCodeAt(0) - 65;
+    // Some spreadsheets (e.g. exported from other quiz tools) use a 1-based
+    // position instead of a letter — "1" meaning ChoiceA, "2" meaning
+    // ChoiceB, etc. Accept both.
+    const numMatch = /^[1-9]\d*$/.test(correct) && parseInt(correct, 10) >= 1 && parseInt(correct, 10) <= choices.length;
+    if (choices.length >= 2 && (letterMatch || numMatch)) {
+      const idx = letterMatch ? correct.toUpperCase().charCodeAt(0) - 65 : parseInt(correct, 10) - 1;
       if (idx >= 0 && idx < choices.length) {
         questions.push({ id: makeId(), kind: 'mc', prompt: question, choices, correctIndex: idx, imageUrl: imageUrl || undefined });
         continue;
