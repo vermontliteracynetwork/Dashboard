@@ -53,9 +53,22 @@ function DraftCard({
   template: PlanTemplate;
   onEdit: () => void;
 }) {
+  const students = useStore((s) => s.students);
   const duplicateTemplate = useStore((s) => s.duplicateTemplate);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
+  const addStudentToAssignment = useStore((s) => s.addStudentToAssignment);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [published, setPublished] = useState(false);
+
+  // One-click publish with sensible defaults (today, every student,
+  // repeats daily) — reuses this same template rather than duplicating
+  // it. For anything more specific (a date range, only some students),
+  // use Edit instead.
+  const quickPublish = () => {
+    const today = todayISO();
+    students.forEach((st) => addStudentToAssignment(st.id, template.subject, template.id, today, today, 'repeat'));
+    setPublished(true);
+  };
 
   return (
     <div className="assignment-card" style={{ cursor: 'default' }}>
@@ -67,7 +80,8 @@ function DraftCard({
         <strong className="assignment-card-title">{template.name}</strong>
         <div className="assignment-card-meta">{template.activities.length} activities</div>
         <div className="row-wrap" style={{ marginTop: 8 }}>
-          <button className="btn btn-sm btn-primary" onClick={onEdit}>✏️ Edit &amp; Publish</button>
+          <button className="btn btn-sm" onClick={onEdit}>✏️ Edit</button>
+          <button className="btn btn-sm btn-primary" disabled={students.length === 0} onClick={quickPublish}>🚀 Publish</button>
           <button className="btn btn-sm" onClick={() => duplicateTemplate(template.id)}>⧉ Duplicate</button>
           {confirmDelete ? (
             <>
@@ -78,6 +92,11 @@ function DraftCard({
             <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(true)}>🗑️</button>
           )}
         </div>
+        {published && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 700, margin: '6px 0 0' }}>
+            ✅ Published to {students.length} student{students.length === 1 ? '' : 's'} today.
+          </p>
+        )}
       </div>
     </div>
   );

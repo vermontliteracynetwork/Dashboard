@@ -331,10 +331,10 @@ export default function NewDailyPlanBuilder({
 
             <div className="row-wrap" style={{ alignItems: 'center' }}>
               <button className="btn" disabled={tasks.length === 0} onClick={saveToBacklogOnly}>
-                {editing ? '💾 Save activities only' : '💾 Save as Draft only'}
+                💾 Save
               </button>
               <button className="btn btn-primary btn-lg" disabled={tasks.length === 0 || selectedIds.length === 0} onClick={publish}>
-                {editing ? '💾 Save Changes' : '🚀 Publish Plan'}
+                🚀 Publish
               </button>
               {tasks.length === 0 && (
                 <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Add at least one activity above to publish</span>
