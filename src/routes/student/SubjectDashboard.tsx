@@ -15,8 +15,6 @@ import HelpOverlay from '../../components/HelpOverlay';
 import WhatNowOverlay from '../../components/WhatNowOverlay';
 import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
-import StepGuide from '../../components/StepGuide';
-import { getTaskSteps } from '../../lib/steps';
 import { nextRequiredTaskId } from '../../lib/taskOrder';
 import type { Subject, Task } from '../../types';
 
@@ -190,8 +188,6 @@ export default function SubjectDashboard() {
             onCheck={checkOff}
           />
 
-          {activeTask && <StepGuide steps={getTaskSteps(activeTask)} compact />}
-
           {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (
             <div className="content-well stack" style={{ alignItems: 'center' }}>
               {activeTask.referenceImageUrl && (
@@ -213,7 +209,7 @@ export default function SubjectDashboard() {
 
       {activeTask && renderTask(activeTask)}
 
-      <ToolsPanel student={student} subject={subj} />
+      <ToolsPanel student={student} subject={subj} hideCalculator={activeTask?.type === 'quiz'} />
 
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
         ❓

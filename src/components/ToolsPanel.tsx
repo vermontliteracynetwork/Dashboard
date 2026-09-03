@@ -567,20 +567,21 @@ interface Props {
   student: Student;
   subject: Subject;
   variant?: 'fab' | 'inline';
+  hideCalculator?: boolean; // quiz activities hide it — the point is fact fluency, not calculating the answer
 }
 
 // Always-available tools menu: a floating button on the normal page
 // (variant="fab"), or a small header button when rendered inside the
 // internal browser (variant="inline") so tools stay one tap away even
 // while a student is inside an embedded external activity.
-export default function ToolsPanel({ student, subject, variant = 'fab' }: Props) {
+export default function ToolsPanel({ student, subject, variant = 'fab', hideCalculator = false }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [open, setOpen] = useState<ToolKey | null>(null);
   const [customOpen, setCustomOpen] = useState<CustomTool | null>(null);
   const recordToolUsage = useStore((s) => s.recordToolUsage);
 
   const subjectTools = SUBJECT_TOOLS[subject].filter((t) => student.featureToggles[t] !== false);
-  const accessTools = ACCESSIBILITY_TOOLS.filter((t) => student.featureToggles[t] !== false);
+  const accessTools = ACCESSIBILITY_TOOLS.filter((t) => student.featureToggles[t] !== false && (!hideCalculator || t !== 'calculator'));
   const customTools = student.customTools.filter((c) => c.subject === subject || c.subject === 'both');
 
   const openTool = (tool: ToolKey) => {

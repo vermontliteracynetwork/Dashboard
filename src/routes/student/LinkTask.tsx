@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ReadAloud from '../../components/ReadAloud';
 import InternalBrowser from '../../components/InternalBrowser';
 import ToolsPanel from '../../components/ToolsPanel';
@@ -15,10 +15,19 @@ export default function LinkTask({ student, subject, task, onDone }: Props) {
   const [opened, setOpened] = useState(false);
   const [browsing, setBrowsing] = useState(false);
 
+  // Tapping this activity on the checklist is what selects it as active —
+  // that tap should be the same thing as opening it, not a separate step.
+  useEffect(() => {
+    setOpened(true);
+    setBrowsing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id]);
+
   return (
     <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
       {browsing && (
         <InternalBrowser
+          key={task.id}
           url={task.link?.url ?? ''}
           title={task.title}
           onClose={() => setBrowsing(false)}
