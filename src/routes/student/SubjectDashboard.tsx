@@ -38,6 +38,9 @@ export default function SubjectDashboard() {
   const [reviewing, setReviewing] = useState(false);
   const [openedTaskIds, setOpenedTaskIds] = useState<Set<string>>(new Set());
   const [showBreakOffer, setShowBreakOffer] = useState(false);
+  // Bumped on every checklist-row tap, even re-taps of the already-selected
+  // row, so a link activity's popup reliably reopens every single time.
+  const [openToken, setOpenToken] = useState(0);
 
   const student = students.find((s) => s.id === currentStudentId);
   const subj = subject === 'math' || subject === 'literacy' ? (subject as Subject) : null;
@@ -101,7 +104,7 @@ export default function SubjectDashboard() {
   const renderTask = (task: Task) => {
     switch (task.type) {
       case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} />;
-      case 'link': return <LinkTask student={student} subject={subj} task={task} />;
+      case 'link': return <LinkTask student={student} subject={subj} task={task} openToken={openToken} />;
       case 'offscreen': return <OffscreenTask student={student} task={task} onDone={handleDone} />;
       case 'video': return <VideoTask student={student} task={task} onDone={handleDone} />;
       case 'passage': return <PassageTask student={student} subject={subj} task={task} onDone={handleDone} />;
@@ -183,6 +186,7 @@ export default function SubjectDashboard() {
             openedIds={openedTaskIds}
             onOpen={(taskId) => {
               setSelectedTaskId(taskId);
+              setOpenToken((n) => n + 1);
               setOpenedTaskIds((prev) => (prev.has(taskId) ? prev : new Set(prev).add(taskId)));
             }}
             onCheck={checkOff}

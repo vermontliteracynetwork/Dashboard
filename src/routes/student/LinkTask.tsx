@@ -8,25 +8,26 @@ interface Props {
   student: Student;
   subject: Subject;
   task: Task;
+  openToken: number; // bumped on every tap of this row, even a re-tap, so it reliably reopens
 }
 
 // Opening a link activity is never itself completion — only the checklist
 // checkbox (with its own "are you sure?" confirmation) marks it done, so
 // this view has no "I did it!" button of its own.
-export default function LinkTask({ student, subject, task }: Props) {
+export default function LinkTask({ student, subject, task, openToken }: Props) {
   const [browsing, setBrowsing] = useState(true);
 
-  // Selecting this activity opens it right away; re-selecting a different
-  // link activity later re-opens fresh for that one.
+  // Tapping this activity's row always (re)opens it, whether it's a fresh
+  // selection or a re-tap of the same one already showing.
   useEffect(() => {
     setBrowsing(true);
-  }, [task.id]);
+  }, [task.id, openToken]);
 
   return (
     <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
       {browsing && (
         <InternalBrowser
-          key={task.id}
+          key={`${task.id}-${openToken}`}
           url={task.link?.url ?? ''}
           title={task.title}
           onClose={() => setBrowsing(false)}
