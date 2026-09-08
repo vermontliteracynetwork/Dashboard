@@ -158,9 +158,12 @@ export default function SubjectDashboard() {
                 <button
                   className="btn btn-teal btn-lg"
                   onClick={() => {
-                    grantBreak(student.id);
-                    setShowBreakOffer(false);
-                    navigate('/student/playground/view');
+                    try {
+                      grantBreak(student.id);
+                    } finally {
+                      setShowBreakOffer(false);
+                      navigate('/student/playground/view');
+                    }
                   }}
                 >
                   🌤️ Yes please
@@ -184,8 +187,14 @@ export default function SubjectDashboard() {
                 <button
                   className="btn btn-primary btn-lg"
                   onClick={() => {
-                    checkOff(activeTask, confirmDone.photoUrl);
-                    setConfirmDone(null);
+                    // Closing this dialog must never depend on checkOff
+                    // succeeding — a hiccup completing the task shouldn't
+                    // leave the student stuck looking at a stale popup.
+                    try {
+                      checkOff(activeTask, confirmDone.photoUrl);
+                    } finally {
+                      setConfirmDone(null);
+                    }
                   }}
                 >
                   ✓ Yes, I did it

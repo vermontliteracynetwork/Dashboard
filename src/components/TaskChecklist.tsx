@@ -48,8 +48,14 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
                 <button
                   className="btn btn-primary btn-lg"
                   onClick={() => {
-                    onCheck(confirmingTask);
-                    setConfirmingId(null);
+                    // Always close, even if completing the task throws —
+                    // a stuck popup is worse than a completion that needs
+                    // a retry.
+                    try {
+                      onCheck(confirmingTask);
+                    } finally {
+                      setConfirmingId(null);
+                    }
                   }}
                 >
                   ✓ Yes, I did it

@@ -125,7 +125,13 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
           {stuckOnStaleQuestion ? (
             <button
               className="btn btn-primary btn-lg"
-              onClick={() => submitQuizAnswer(student.id, subject, task, state.remainingIds[0], true)}
+              onClick={() => {
+                try {
+                  submitQuizAnswer(student.id, subject, task, state.remainingIds[0], true);
+                } catch (err) {
+                  console.error('submitQuizAnswer failed', err);
+                }
+              }}
             >
               ➡️ Skip and continue
             </button>
@@ -141,13 +147,21 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
 
   const goNext = () => {
     if (pendingCorrect === null) return;
-    submitQuizAnswer(student.id, subject, task, activeQ.id, pendingCorrect);
+    // The local "move to the next question" reset must never get skipped —
+    // if recording the answer throws for any reason, the student would
+    // otherwise be stuck staring at an already-answered question with a
+    // button that looks like it does nothing.
+    try {
+      submitQuizAnswer(student.id, subject, task, activeQ.id, pendingCorrect);
+    } catch (err) {
+      console.error('submitQuizAnswer failed', err);
+    }
     setPendingCorrect(null);
     setPicked(null);
     setFillValue('');
     setUsedWords([]);
-    const remaining = useStore.getState().progress[student.id][subject].quizState[task.id].remainingIds;
-    if (remaining.length === 0) onDone();
+    const remaining = useStore.getState().progress[student.id]?.[subject]?.quizState?.[task.id]?.remainingIds;
+    if (remaining && remaining.length === 0) onDone();
   };
 
   const remainingCount = state.remainingIds.length;
@@ -192,7 +206,12 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
           )}
 
           {activeQ.kind === 'matching' && !answered && (
-            <MatchingBoard q={activeQ} onSolved={() => submitAnswer(true)} />
+            // Keyed on the question id so a fresh matching question always
+            // gets fresh local state — without this, moving from one
+            // matching question to the next reused the same component
+            // instance and could carry over an already-"solved" state,
+            // silently skipping the new question.
+            <MatchingBoard key={activeQ.id} q={activeQ} onSolved={() => submitAnswer(true)} />
           )}
 
           {activeQ.kind === 'fill' && (

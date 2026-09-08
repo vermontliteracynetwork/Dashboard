@@ -303,7 +303,19 @@ export const useStore = create<AppState>()(
           onStudent: (e, n, o) => set((s) => ({ students: applyArrayRow(s.students, e, rowToStudent, n, o) })),
           onRotation: (e, n, o) =>
             set((s) => ({ rotations: applyNestedRow(s.rotations, e, (r) => r.tasks ?? [], n, o) })),
-          onProgress: (e, n, o) => set((s) => ({ progress: applyNestedRow(s.progress, e, rowToProgress, n, o) })),
+          // A student's own device is the source of truth for its own live
+          // progress — this realtime stream exists for OTHER observers
+          // (the teacher's live view). Re-applying an echo of our own just-
+          // pushed write here raced against every write since, so a
+          // student answering quiz questions quickly could see "Next
+          // Question" silently un-advance them back to an older, already-
+          // superseded queue. Skip it for whichever student is actively
+          // using this device; anyone else's progress still applies.
+          onProgress: (e, n, o) => {
+            const studentId = n?.student_id ?? o?.student_id;
+            if (studentId && studentId === get().currentStudentId) return;
+            set((s) => ({ progress: applyNestedRow(s.progress, e, rowToProgress, n, o) }));
+          },
           onBreakRequest: (e, n, o) =>
             set((s) => ({ breakRequests: applyArrayRow(s.breakRequests, e, rowToBreakRequest, n, o) })),
           onHelpPing: (e, n, o) => set((s) => ({ helpPings: applyArrayRow(s.helpPings, e, rowToHelpPing, n, o) })),
@@ -317,7 +329,15 @@ export const useStore = create<AppState>()(
             set((s) => ({ questionSets: applyArrayRow(s.questionSets, e, rowToQuestionSet, n, o) })),
           onRotationMode: (e, n, o) =>
             set((s) => ({ rotationModes: applyNestedRow(s.rotationModes, e, (r) => r.mode, n, o) })),
-          onStudentMeta: (e, n, o) => set((s) => applyStudentMetaRow(s, e, n, o)),
+          // Same self-echo risk as onProgress above — task-completion
+          // counts, corrections, and tool usage are only ever written by a
+          // student's own device, so it never needs to re-apply an echo of
+          // its own write back onto itself.
+          onStudentMeta: (e, n, o) => {
+            const studentId = n?.student_id ?? o?.student_id;
+            if (studentId && studentId === get().currentStudentId) return;
+            set((s) => applyStudentMetaRow(s, e, n, o));
+          },
           onActivity: (e, n, o) => set((s) => ({ activityLibrary: applyArrayRow(s.activityLibrary, e, rowToActivity, n, o) })),
           onTemplate: (e, n, o) => set((s) => ({ planTemplates: applyArrayRow(s.planTemplates, e, rowToTemplate, n, o) })),
           onWeeklySchedule: (e, n, o) =>
