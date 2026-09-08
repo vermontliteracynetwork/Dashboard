@@ -552,6 +552,25 @@ export function ActivityLibraryBrowse({
           style={{ width: '100%' }}
         />
 
+        {editingActivity && (
+          <div className="content-well stack" style={{ background: '#faf9ff' }}>
+            <div className="space-between">
+              <strong>✏️ Editing "{editingActivity.title || '(untitled)'}"</strong>
+              <button className="btn btn-sm" onClick={() => setEditingId(null)}>✕ Cancel</button>
+            </div>
+            <TaskEditor
+              initial={editingActivity}
+              subject={editingActivity.subject}
+              matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
+              onSave={(t) => {
+                updateLibraryActivity(editingActivity.id, t);
+                setEditingId(null);
+              }}
+              onCancel={() => setEditingId(null)}
+            />
+          </div>
+        )}
+
         {activities.length === 0 ? (
           <p style={{ opacity: 0.7 }}>{search ? 'No activities match your search.' : 'No activities in the library yet.'}</p>
         ) : (
@@ -568,25 +587,10 @@ export function ActivityLibraryBrowse({
                     e.dataTransfer.effectAllowed = 'copy';
                   }}
                 >
-                  {editingId === a.id && editingActivity ? (
-                    <div style={{ padding: 10 }}>
-                      <TaskEditor
-                        initial={editingActivity}
-                        subject={a.subject}
-                        matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
-                        onSave={(t) => {
-                          updateLibraryActivity(a.id, t);
-                          setEditingId(null);
-                        }}
-                        onCancel={() => setEditingId(null)}
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="library-card-thumb">
-                        {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span>{a.icon}</span>}
-                      </div>
-                      <div className="library-card-body">
+                  <div className="library-card-thumb">
+                    {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span>{a.icon}</span>}
+                  </div>
+                  <div className="library-card-body">
                         <div className="row-wrap" style={{ gap: 4 }}>
                           {!subject && <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>}
                           {a.isDaily && <span className="badge-pill badge-daily">⭐ Daily</span>}
@@ -658,9 +662,7 @@ export function ActivityLibraryBrowse({
                             </button>
                           </div>
                         )}
-                      </div>
-                    </>
-                  )}
+                  </div>
                 </div>
               );
             })}
