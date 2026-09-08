@@ -30,14 +30,12 @@ export default function SubjectDashboard() {
   const completeTask = useStore((s) => s.completeTask);
   const uncompleteTask = useStore((s) => s.uncompleteTask);
   const markOffscreenDone = useStore((s) => s.markOffscreenDone);
-  const grantBreak = useStore((s) => s.grantBreak);
 
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [openedTaskIds, setOpenedTaskIds] = useState<Set<string>>(new Set());
-  const [showBreakOffer, setShowBreakOffer] = useState(false);
   // "I'm done" from any task view never completes it immediately — it
   // always asks "are you sure?" first, same as the checklist checkbox does.
   const [confirmDone, setConfirmDone] = useState<{ photoUrl?: string } | null>(null);
@@ -64,7 +62,6 @@ export default function SubjectDashboard() {
     setReviewing(false);
     setSelectedTaskId(null);
     setOpenedTaskIds(new Set());
-    setShowBreakOffer(false);
     setConfirmDone(null);
   }, [subj]);
 
@@ -115,8 +112,10 @@ export default function SubjectDashboard() {
     if (task.type === 'link') closeOpenedWindow(task.id);
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task, photoUrl);
     else completeTask(student.id, subj, task.id);
+    // Confirming a task always drops straight back to the checklist — never
+    // chained into another popup, which from a student's seat looked
+    // exactly like the confirmation itself failing to close.
     setSelectedTaskId(null);
-    if (!reviewing) setShowBreakOffer(true);
   };
 
   // Unchecking a completed row never opens its activity — it only ever
@@ -153,35 +152,6 @@ export default function SubjectDashboard() {
 
   return (
     <div className={`container subject-${subj} stack`}>
-      {showBreakOffer && (
-        <div className="overlay-backdrop" onClick={() => setShowBreakOffer(false)}>
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h3 style={{ margin: 0 }}>Nice job! 🎉</h3>
-              <p style={{ margin: 0 }}>Take a 3-minute break?</p>
-              <div className="row-wrap" style={{ justifyContent: 'center' }}>
-                <button
-                  className="btn btn-teal btn-lg"
-                  onClick={() => {
-                    try {
-                      grantBreak(student.id);
-                    } finally {
-                      setShowBreakOffer(false);
-                      navigate('/student/playground/view');
-                    }
-                  }}
-                >
-                  🌤️ Yes please
-                </button>
-                <button className="btn btn-primary btn-lg" onClick={() => setShowBreakOffer(false)}>
-                  ➡️ Keep going
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {confirmDone && activeTask && (
         <div className="overlay-backdrop" onClick={() => setConfirmDone(null)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
