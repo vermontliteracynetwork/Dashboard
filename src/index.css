@@ -456,6 +456,40 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   z-index: 50;
 }
 
+/* ---------- Subject tiles (student home) ---------- */
+.subject-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 20px;
+  max-width: 480px;
+  width: 100%;
+  margin: 4px auto 0;
+}
+.subject-tile {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: var(--chunk) solid var(--ink);
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 var(--ink);
+  cursor: pointer;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: white;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.subject-tile:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--ink); }
+.subject-tile:active { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--ink); }
+.subject-tile:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 6px 6px 0 var(--ink); }
+.subject-tile .subject-tile-icon { font-size: 3.4rem; }
+.subject-tile.tile-math { background: var(--blue); }
+.subject-tile.tile-literacy { background: var(--pink); }
+.subject-tile.tile-done { opacity: 0.65; }
+
 /* ---------- Choice board ---------- */
 .choice-board {
   display: grid;

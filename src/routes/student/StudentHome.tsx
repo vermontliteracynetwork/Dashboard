@@ -25,6 +25,7 @@ export default function StudentHome() {
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showBadges, setShowBadges] = useState(false);
   const updateStudent = useStore((s) => s.updateStudent);
   const [, setTick] = useState(0);
 
@@ -60,7 +61,7 @@ export default function StudentHome() {
   const earnedBadges = badges.filter((b) => student.badgeIds.includes(b.id));
 
   const hasPlaygroundItems = activityLibrary.some((a) => a.inPlayground);
-  const access = getPlaygroundAccess(mathDone, litDone, mathProg, litProg, today, student, breakState);
+  const access = getPlaygroundAccess(mathDone, litDone, student, breakState);
 
   return (
     <div className="container stack">
@@ -79,6 +80,31 @@ export default function StudentHome() {
                 ]}
               />
               <button className="btn btn-primary btn-lg pulse-cta" style={{ alignSelf: 'center' }} onClick={() => setShowWhatNow(false)}>
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBadges && (
+        <div className="overlay-backdrop" onClick={() => setShowBadges(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <h2 style={{ margin: 0 }}>🏅 Your Badges</h2>
+              {earnedBadges.length === 0 ? (
+                <p style={{ opacity: 0.75 }}>No badges yet — keep going!</p>
+              ) : (
+                <div className="row-wrap">
+                  {earnedBadges.map((b) => (
+                    <div className="badge-chip" key={b.id}>
+                      <span style={{ fontSize: '1.8rem' }}>{b.icon}</span>
+                      {b.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button className="btn btn-primary btn-lg" style={{ alignSelf: 'center' }} onClick={() => setShowBadges(false)}>
                 Got it!
               </button>
             </div>
@@ -131,8 +157,19 @@ export default function StudentHome() {
           <div>
             <h2 style={{ margin: 0 }}>Hi, {student.name}! 👋</h2>
             {!student.streakHidden && (
-              <div className="tag-pill" style={{ background: 'var(--yellow)' }}>
-                🔥 {student.streak}-day streak
+              <div className="row" style={{ gap: 6 }}>
+                <div className="tag-pill" style={{ background: 'var(--yellow)' }}>
+                  🔥 {student.streak}-day streak
+                </div>
+                <button
+                  className="btn btn-sm"
+                  style={{ padding: '4px 8px' }}
+                  onClick={() => setShowBadges(true)}
+                  aria-label="Your badges"
+                  title="Your badges"
+                >
+                  🏅
+                </button>
               </div>
             )}
           </div>
@@ -141,49 +178,6 @@ export default function StudentHome() {
           Log out
         </button>
       </div>
-
-      {earnedBadges.length > 0 && (
-        <div className="chrome-frame" style={{ padding: 16 }}>
-          <h3 style={{ marginTop: 0 }}>🏅 Your Badges</h3>
-          <div className="row-wrap">
-            {earnedBadges.map((b) => (
-              <div className="badge-chip" key={b.id}>
-                <span style={{ fontSize: '1.8rem' }}>{b.icon}</span>
-                {b.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {hasPlaygroundItems && (
-        <div className="chrome-frame stack" style={{ padding: 16, alignItems: 'center', textAlign: 'center' }}>
-          {access.unlocked ? (
-            <>
-              <p style={{ fontWeight: 800, margin: 0 }}>🎉 The Playground is unlocked!</p>
-              {!access.unlimited && access.remainingMs !== null && (
-                <BreakTimer
-                  remainingMs={access.remainingMs}
-                  totalMinutes={access.totalMinutes}
-                  label={access.source === 'granted' ? 'Break time left' : 'Playground time left'}
-                  onExpire={playCalmChime}
-                />
-              )}
-              <button
-                className="btn btn-lg pulse-cta"
-                style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', color: 'white' }}
-                onClick={() => navigate('/student/playground/view')}
-              >
-                🎪 Go to the Playground
-              </button>
-            </>
-          ) : (
-            <p style={{ opacity: 0.75, margin: 0 }}>
-              🔒 Finish Math or Literacy to unlock the Playground for 20 minutes — finish both for the rest of the day!
-            </p>
-          )}
-        </div>
-      )}
 
       {bothDone ? (
         <div className="chrome-frame stack" style={{ padding: 28, alignItems: 'center', textAlign: 'center' }}>
@@ -195,27 +189,48 @@ export default function StudentHome() {
           </button>
         </div>
       ) : (
-        <div className="row-wrap" style={{ justifyContent: 'center', marginTop: 12 }}>
+        <div className="subject-tile-grid">
           <button
-            className="btn btn-blue btn-lg"
+            className={`subject-tile tile-math ${mathDone && mathTasks.length > 0 ? 'tile-done' : ''}`}
             disabled={mathTasks.length === 0}
             onClick={() => navigate('/student/math')}
-            style={{ minWidth: 220, opacity: mathDone ? 0.6 : 1 }}
           >
-            🔢 Math {mathDone && mathTasks.length > 0 ? '✓' : ''}
+            <span className="subject-tile-icon">🔢</span>
+            <span>Math {mathDone && mathTasks.length > 0 ? '✓' : ''}</span>
           </button>
           <button
-            className="btn btn-pink btn-lg"
+            className={`subject-tile tile-literacy ${litDone && litTasks.length > 0 ? 'tile-done' : ''}`}
             disabled={litTasks.length === 0}
             onClick={() => navigate('/student/literacy')}
-            style={{ minWidth: 220, opacity: litDone ? 0.6 : 1 }}
           >
-            📚 Literacy {litDone && litTasks.length > 0 ? '✓' : ''}
+            <span className="subject-tile-icon">📚</span>
+            <span>Literacy {litDone && litTasks.length > 0 ? '✓' : ''}</span>
           </button>
         </div>
       )}
       {mathTasks.length === 0 && litTasks.length === 0 && (
         <p style={{ textAlign: 'center' }}>Ask your teacher to set up your tasks!</p>
+      )}
+
+      {hasPlaygroundItems && access.unlocked && (
+        <div className="chrome-frame stack" style={{ padding: 16, alignItems: 'center', textAlign: 'center' }}>
+          <p style={{ fontWeight: 800, margin: 0 }}>🎉 The Playground is unlocked!</p>
+          {!access.unlimited && access.remainingMs !== null && (
+            <BreakTimer
+              remainingMs={access.remainingMs}
+              totalMinutes={access.totalMinutes}
+              label={access.source === 'granted' ? 'Break time left' : 'Playground time left'}
+              onExpire={playCalmChime}
+            />
+          )}
+          <button
+            className="btn btn-lg pulse-cta"
+            style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', color: 'white' }}
+            onClick={() => navigate('/student/playground/view')}
+          >
+            🎪 Go to the Playground
+          </button>
+        </div>
       )}
 
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">

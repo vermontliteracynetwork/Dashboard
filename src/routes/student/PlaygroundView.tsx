@@ -48,7 +48,7 @@ export default function PlaygroundView() {
   const litProg = progress[student.id]?.literacy;
   const mathDone = mathTasks.length === 0 || (mathProg?.date === today && mathProg.subjectComplete);
   const litDone = litTasks.length === 0 || (litProg?.date === today && litProg.subjectComplete);
-  const access = getPlaygroundAccess(mathDone, litDone, mathProg, litProg, today, student, breakState);
+  const access = getPlaygroundAccess(mathDone, litDone, student, breakState);
 
   const entries: { task: Task; subject: Subject }[] = activityLibrary
     .filter((a) => a.inPlayground)
@@ -66,7 +66,7 @@ export default function PlaygroundView() {
         <div className="chrome-frame stack" style={{ padding: 32, alignItems: 'center', maxWidth: 480 }}>
           <span style={{ fontSize: '3rem' }}>🔒</span>
           <h3 style={{ margin: 0 }}>Locked for now</h3>
-          <p>Finish Math or Literacy to unlock the Playground for 20 minutes — finish both for the rest of the day!</p>
+          <p>Finish today's assignment (Math and Literacy) to unlock the Playground!</p>
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}>🏠 Back to Home</button>
         </div>
       </div>
