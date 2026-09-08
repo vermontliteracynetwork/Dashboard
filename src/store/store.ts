@@ -1225,12 +1225,18 @@ export const useStore = create<AppState>()(
           (a) => a.studentId === studentId && a.templateId === templateId && a.subject === subject && a.endDate >= today,
         );
         if (existing) {
+          // Already assigned — this is an edit/republish, not a new
+          // assignment. Only the window/mode changes; never re-apply the
+          // template here, since that would wipe whatever progress,
+          // completions, or in-progress quiz state this student already
+          // has for the subject.
           get().updateAssignment(existing.id, { startDate, endDate, mode });
-        } else {
-          const assignment: Assignment = { id: makeId(), studentId, subject, templateId, startDate, endDate, mode, applied: isActiveNow };
-          set((s) => ({ assignments: [...s.assignments, assignment] }));
-          pushAssignment(assignment);
+          return;
         }
+
+        const assignment: Assignment = { id: makeId(), studentId, subject, templateId, startDate, endDate, mode, applied: isActiveNow };
+        set((s) => ({ assignments: [...s.assignments, assignment] }));
+        pushAssignment(assignment);
 
         if (isActiveNow) {
           get().applyTemplateToStudent(studentId, templateId);
