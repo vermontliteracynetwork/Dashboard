@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
+import { StudentPlanTabs } from './LessonPlanBuilder';
 import type { EditingPlan } from './NewDailyPlanBuilder';
 import { formatDateLong, todayISO } from '../../lib/dates';
 import { sortForDisplay } from '../../lib/taskOrder';
@@ -41,7 +42,7 @@ function uniqueRowsByStudent(rows: Assignment[]): Assignment[] {
   return rows.filter((r) => (seen.has(r.studentId) ? false : (seen.add(r.studentId), true)));
 }
 
-type Filter = 'active' | 'upcoming' | 'past' | 'drafts' | 'all';
+type Filter = 'active' | 'upcoming' | 'past' | 'drafts' | 'all' | 'by-student';
 
 // What the full builder needs to reopen editing an existing draft or
 // upcoming assignment, pre-filled exactly as it was.
@@ -255,16 +256,18 @@ export default function AssignmentsIndex() {
   const [editRequest, setEditRequest] = useState<EditRequest | null>(null);
   const [detailKey, setDetailKey] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('active');
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const groups = useMemo(() => groupAssignments(assignments), [assignments]);
   const detailGroup = groups.find((g) => g.key === detailKey) ?? null;
   const today = todayISO();
   const filteredGroups = groups.filter((g) => {
-    if (filter === 'all' || filter === 'drafts') return filter === 'all';
+    if (filter === 'all' || filter === 'drafts' || filter === 'by-student') return filter === 'all';
     if (filter === 'active') return g.startDate <= today && today <= g.endDate;
     if (filter === 'upcoming') return g.startDate > today;
     return g.endDate < today;
   });
+  const selectedStudent = students.find((st) => st.id === selectedStudentId) ?? null;
 
   // A draft that's been published (has an active or upcoming assignment)
   // moves out of Drafts into Active/Upcoming — it's no longer just a draft.
@@ -392,7 +395,7 @@ export default function AssignmentsIndex() {
         <h1>📋 Assignments</h1>
 
         <div className="lp-tabs">
-          {(['active', 'upcoming', 'past', 'drafts', 'all'] as Filter[]).map((f) => (
+          {(['active', 'upcoming', 'past', 'drafts', 'all', 'by-student'] as Filter[]).map((f) => (
             <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
               {f === 'active'
                 ? '🟢 Active'
@@ -402,37 +405,66 @@ export default function AssignmentsIndex() {
                     ? '⏪ Past / Completed'
                     : f === 'drafts'
                       ? `📝 Drafts (${draftTemplates.length})`
-                      : 'All'}
+                      : f === 'by-student'
+                        ? '🧑 By Student'
+                        : 'All'}
             </button>
           ))}
         </div>
 
-        <div className="assignment-card-grid">
-          <button className="assignment-card assignment-card-create" onClick={startCreateNew}>
-            <span style={{ fontSize: '2rem' }}>➕</span>
-            <strong>Create Assignment</strong>
-          </button>
-          {filter === 'drafts'
-            ? draftTemplates.map((t) => <DraftCard key={t.id} template={t} onEdit={() => startEditDraft(t)} />)
-            : filteredGroups.map((g) => (
-                <AssignmentCard
-                  key={g.key}
-                  group={g}
-                  onOpen={() => (g.endDate >= today ? startEditGroup(g) : setDetailKey(g.key))}
-                />
-              ))}
-        </div>
+        {filter === 'by-student' ? (
+          <>
+            {students.length === 0 ? (
+              <p style={{ opacity: 0.7 }}>No students yet — add one from the Students page first.</p>
+            ) : (
+              <div className="row-wrap">
+                {students.map((st) => (
+                  <button
+                    key={st.id}
+                    className={`btn btn-sm ${selectedStudentId === st.id ? 'btn-primary' : ''}`}
+                    onClick={() => setSelectedStudentId(st.id)}
+                  >
+                    {st.avatar} {st.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedStudent ? (
+              <StudentPlanTabs studentId={selectedStudent.id} studentName={selectedStudent.name} />
+            ) : (
+              students.length > 0 && <p style={{ opacity: 0.7 }}>Pick a student above to see their plan.</p>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="assignment-card-grid">
+              <button className="assignment-card assignment-card-create" onClick={startCreateNew}>
+                <span style={{ fontSize: '2rem' }}>➕</span>
+                <strong>Create Assignment</strong>
+              </button>
+              {filter === 'drafts'
+                ? draftTemplates.map((t) => <DraftCard key={t.id} template={t} onEdit={() => startEditDraft(t)} />)
+                : filteredGroups.map((g) => (
+                    <AssignmentCard
+                      key={g.key}
+                      group={g}
+                      onOpen={() => (g.endDate >= today ? startEditGroup(g) : setDetailKey(g.key))}
+                    />
+                  ))}
+            </div>
 
-        {filter === 'drafts' && planTemplates.length === 0 && (
-          <p style={{ opacity: 0.7 }}>
-            No drafts yet — save a plan as a draft from any student's Assignments page ("📜 History &amp; Drafts"),
-            or build one here and use "💾 Save as Draft only" instead of publishing.
-          </p>
-        )}
-        {filter !== 'drafts' && filteredGroups.length === 0 && (
-          <p style={{ opacity: 0.7 }}>
-            No {filter === 'all' ? '' : filter} assignments yet. Tap "➕ Create Assignment" to build one.
-          </p>
+            {filter === 'drafts' && planTemplates.length === 0 && (
+              <p style={{ opacity: 0.7 }}>
+                No drafts yet — save a plan as a draft from any student's Assignments page ("📜 History &amp; Drafts"),
+                or build one here and use "💾 Save as Draft only" instead of publishing.
+              </p>
+            )}
+            {filter !== 'drafts' && filteredGroups.length === 0 && (
+              <p style={{ opacity: 0.7 }}>
+                No {filter === 'all' ? '' : filter} assignments yet. Tap "➕ Create Assignment" to build one.
+              </p>
+            )}
+          </>
         )}
       </div>
 

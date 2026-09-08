@@ -643,14 +643,53 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
   );
 }
 
+// The subject + view tabs and their content — everything a teacher needs
+// to manage one student's plan, minus the page chrome around it. Shared by
+// the standalone per-student page below and by the Assignments page's own
+// "By Student" tab, so the two never drift apart.
+export function StudentPlanTabs({ studentId, studentName }: { studentId: string; studentName: string }) {
+  const rotations = useStore((s) => s.rotations);
+  const [subj, setSubj] = useState<Subject>('math');
+  const [view, setView] = useState<ViewTab>('today');
+
+  const tasks = rotations[studentId]?.[subj] ?? [];
+
+  const TABS: { id: ViewTab; label: string }[] = [
+    { id: 'today', label: `✅ Today's Plan${tasks.length ? ` (${tasks.length})` : ''}` },
+    { id: 'week', label: '📅 Weekly Schedule' },
+    { id: 'backlog', label: '📜 History & Drafts' },
+    { id: 'library', label: '🗂️ Activity Library' },
+    { id: 'sets', label: '📚 Content Sets' },
+  ];
+
+  return (
+    <div className="stack">
+      <div className="subject-tabs">
+        <button className={`subject-tab-btn tab-math ${subj === 'math' ? 'active' : ''}`} onClick={() => setSubj('math')}>🔢 Math</button>
+        <button className={`subject-tab-btn tab-literacy ${subj === 'literacy' ? 'active' : ''}`} onClick={() => setSubj('literacy')}>📚 Literacy</button>
+      </div>
+
+      <div className="lp-tabs">
+        {TABS.map((t) => (
+          <button key={t.id} className={`lp-tab-btn ${view === t.id ? 'active' : ''}`} onClick={() => setView(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'today' && <TodaysPlanView studentId={studentId} subject={subj} studentName={studentName} />}
+      {view === 'week' && <WeeklyCalendar studentId={studentId} subject={subj} studentName={studentName} />}
+      {view === 'backlog' && <BacklogPanel studentId={studentId} subject={subj} currentTasks={tasks} />}
+      {view === 'library' && <ActivityLibraryPanel subject={subj} tasks={tasks} defaultStudentId={studentId} />}
+      {view === 'sets' && <ContentLibrary subject={subj} />}
+    </div>
+  );
+}
+
 export default function LessonPlanBuilder() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const students = useStore((s) => s.students);
-  const rotations = useStore((s) => s.rotations);
-
-  const [subj, setSubj] = useState<Subject>('math');
-  const [view, setView] = useState<ViewTab>('today');
 
   const student = students.find((s) => s.id === studentId);
 
@@ -666,16 +705,6 @@ export default function LessonPlanBuilder() {
     );
   }
 
-  const tasks = rotations[student.id]?.[subj] ?? [];
-
-  const TABS: { id: ViewTab; label: string }[] = [
-    { id: 'today', label: `✅ Today's Plan${tasks.length ? ` (${tasks.length})` : ''}` },
-    { id: 'week', label: '📅 Weekly Schedule' },
-    { id: 'backlog', label: '📜 History & Drafts' },
-    { id: 'library', label: '🗂️ Activity Library' },
-    { id: 'sets', label: '📚 Content Sets' },
-  ];
-
   return (
     <div className="app-shell">
       <TeacherNav />
@@ -688,24 +717,7 @@ export default function LessonPlanBuilder() {
           </div>
         </div>
 
-        <div className="subject-tabs">
-          <button className={`subject-tab-btn tab-math ${subj === 'math' ? 'active' : ''}`} onClick={() => setSubj('math')}>🔢 Math</button>
-          <button className={`subject-tab-btn tab-literacy ${subj === 'literacy' ? 'active' : ''}`} onClick={() => setSubj('literacy')}>📚 Literacy</button>
-        </div>
-
-        <div className="lp-tabs">
-          {TABS.map((t) => (
-            <button key={t.id} className={`lp-tab-btn ${view === t.id ? 'active' : ''}`} onClick={() => setView(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {view === 'today' && <TodaysPlanView studentId={student.id} subject={subj} studentName={student.name} />}
-        {view === 'week' && <WeeklyCalendar studentId={student.id} subject={subj} studentName={student.name} />}
-        {view === 'backlog' && <BacklogPanel studentId={student.id} subject={subj} currentTasks={tasks} />}
-        {view === 'library' && <ActivityLibraryPanel subject={subj} tasks={tasks} defaultStudentId={student.id} />}
-        {view === 'sets' && <ContentLibrary subject={subj} />}
+        <StudentPlanTabs studentId={student.id} studentName={student.name} />
       </div>
     </div>
   );
