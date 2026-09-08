@@ -84,6 +84,7 @@ export default function StudentLiveView() {
                 onOpen={() => {}}
                 onCheck={() => {}}
                 onReopenLink={() => {}}
+                onUncheck={() => {}}
               />
             </div>
           </>

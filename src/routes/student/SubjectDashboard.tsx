@@ -28,6 +28,7 @@ export default function SubjectDashboard() {
   const markRitualSeen = useStore((s) => s.markRitualSeen);
   const progress = useStore((s) => s.progress);
   const completeTask = useStore((s) => s.completeTask);
+  const uncompleteTask = useStore((s) => s.uncompleteTask);
   const markOffscreenDone = useStore((s) => s.markOffscreenDone);
   const grantBreak = useStore((s) => s.grantBreak);
 
@@ -117,6 +118,10 @@ export default function SubjectDashboard() {
     setSelectedTaskId(null);
     if (!reviewing) setShowBreakOffer(true);
   };
+
+  // Unchecking a completed row never opens its activity — it only ever
+  // toggles the checkbox back off, exactly like tapping "No" was asked to do.
+  const uncheckTask = (task: Task) => uncompleteTask(student.id, subj, task.id);
 
   const handleDone = (photoUrl?: string) => {
     if (!activeTask) return;
@@ -254,6 +259,7 @@ export default function SubjectDashboard() {
             }}
             onCheck={checkOff}
             onReopenLink={reopenActivityLink}
+            onUncheck={uncheckTask}
           />
 
           {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (

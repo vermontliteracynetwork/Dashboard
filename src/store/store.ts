@@ -145,6 +145,7 @@ interface AppState {
   markRitualSeen: (studentId: string, subject: Subject) => void;
   getActiveTask: (studentId: string, subject: Subject) => Task | null;
   completeTask: (studentId: string, subject: Subject, taskId: string) => void;
+  uncompleteTask: (studentId: string, subject: Subject, taskId: string) => void;
   markOffscreenDone: (studentId: string, subject: Subject, task: Task, photoUrl?: string) => void;
   recordToolUsage: (studentId: string, tool: ToolKey) => void;
 
@@ -610,6 +611,34 @@ export const useStore = create<AppState>()(
           get().awardBadge(studentId, 'showed-up');
         }
         get().evaluateBadgeRules(studentId);
+      },
+
+      // A student unchecking a mistaken tap — just removes it from today's
+      // completed list (and un-completes the subject if that was the task
+      // that finished it). Badges, streaks, and counters already earned
+      // from it stay earned; those aren't undone by a single unchecked box.
+      uncompleteTask: (studentId, subject, taskId) => {
+        get().ensureProgress(studentId, subject);
+        const tasks = get().getTasks(studentId, subject);
+        const finalCheckTask = tasks.find((t) => t.isFinalCheck);
+        set((s) => {
+          const sp = s.progress[studentId][subject];
+          if (!sp.completedTaskIds.includes(taskId)) return {};
+          const completedTaskIds = sp.completedTaskIds.filter((id) => id !== taskId);
+          const subjectComplete = finalCheckTask
+            ? completedTaskIds.includes(finalCheckTask.id)
+            : completedTaskIds.length >= tasks.length;
+          return {
+            progress: {
+              ...s.progress,
+              [studentId]: {
+                ...s.progress[studentId],
+                [subject]: { ...sp, completedTaskIds, subjectComplete, completedAt: subjectComplete ? sp.completedAt : undefined },
+              },
+            },
+          };
+        });
+        pushProgress(studentId, subject, get().progress[studentId][subject]);
       },
 
       markOffscreenDone: (studentId, subject, task, photoUrl) => {

@@ -13,13 +13,16 @@ interface Props {
   onOpen: (taskId: string) => void;
   onCheck: (task: Task) => void;
   onReopenLink: (task: Task) => void; // "Not yet" on a link's confirm dialog: close the old tab, open a fresh one
+  onUncheck: (task: Task) => void;
 }
 
-export default function TaskChecklist({ student, tasks, completedIds, openedIds, onOpen, onCheck, onReopenLink }: Props) {
+export default function TaskChecklist({ student, tasks, completedIds, openedIds, onOpen, onCheck, onReopenLink, onUncheck }: Props) {
   const [stepsForTaskId, setStepsForTaskId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [uncheckingId, setUncheckingId] = useState<string | null>(null);
   const stepsTask = tasks.find((t) => t.id === stepsForTaskId) ?? null;
   const confirmingTask = tasks.find((t) => t.id === confirmingId) ?? null;
+  const uncheckingTask = tasks.find((t) => t.id === uncheckingId) ?? null;
   const nextRequiredId = nextRequiredTaskId(tasks, completedIds);
   const ordered = sortForDisplay(tasks);
 
@@ -75,6 +78,37 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
         </div>
       )}
 
+      {uncheckingTask && (
+        <div className="overlay-backdrop" onClick={() => setUncheckingId(null)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h3 style={{ margin: 0 }}>Did you do this?</h3>
+              <p style={{ margin: 0 }}>{uncheckingTask.icon} {uncheckingTask.title}</p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-lg" onClick={() => setUncheckingId(null)}>
+                  ✓ Yes
+                </button>
+                <button
+                  className="btn btn-lg"
+                  onClick={() => {
+                    // Unchecking never reopens the activity itself — that
+                    // only ever happens from an explicit tap on the row,
+                    // same as any other selection.
+                    try {
+                      onUncheck(uncheckingTask);
+                    } finally {
+                      setUncheckingId(null);
+                    }
+                  }}
+                >
+                  ✕ No, uncheck it
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {ordered.map((t) => {
         const done = completedIds.includes(t.id);
         const locked = isTaskLocked(t, tasks, completedIds);
@@ -90,7 +124,10 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
         // those opens/reopens the activity instead of silently checking it off.
         const directComplete = t.type === 'link';
         const handleClick = () => {
-          if (done || locked || !opened) return;
+          // A completed row stays clickable — tapping it double-checks
+          // before undoing anything, rather than being locked out entirely.
+          if (done) { setUncheckingId(t.id); return; }
+          if (locked || !opened) return;
           if (directComplete) setConfirmingId(t.id);
           else onOpen(t.id);
         };
@@ -98,12 +135,12 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
           <div key={t.id} className={`checklist-row2 ${done ? 'done' : ''} ${isCurrent ? 'current' : ''} ${locked ? 'locked' : ''}`}>
             <button
               className={`checklist-check-btn ${done ? 'checked' : ''}`}
-              disabled={done || locked || !opened}
+              disabled={locked || (!done && !opened)}
               onClick={handleClick}
-              aria-label={done ? 'Completed' : opened ? (directComplete ? 'Mark as complete' : 'Finish the activity below') : 'Open this activity first'}
+              aria-label={done ? 'Completed — tap to unmark' : opened ? (directComplete ? 'Mark as complete' : 'Finish the activity below') : 'Open this activity first'}
               title={
                 done
-                  ? 'Completed'
+                  ? 'Completed — tap to unmark'
                   : locked
                     ? 'Not unlocked yet'
                     : !opened
