@@ -251,7 +251,17 @@ export default function SubjectDashboard() {
         </>
       )}
 
-      {activeTask && renderTask(activeTask)}
+      {activeTask && (
+        // A video task embeds a real YouTube iframe, which — unlike every
+        // other activity type — sits underneath the "are you sure?" dialog
+        // as a live element rather than inert content. Some browsers let an
+        // iframe swallow a click that lands on top of it even when a
+        // higher z-index overlay is visually covering it, so "Yes, I did
+        // it" can silently miss and leave the student stuck looking at the
+        // video. Cutting the whole activity out of hit-testing while that
+        // dialog is up guarantees the click can only ever reach the dialog.
+        <div style={confirmDone ? { pointerEvents: 'none' } : undefined}>{renderTask(activeTask)}</div>
+      )}
 
       <ToolsPanel student={student} subject={subj} hideCalculator={activeTask?.type === 'quiz'} />
 
