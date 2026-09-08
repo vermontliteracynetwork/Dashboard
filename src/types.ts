@@ -296,6 +296,23 @@ export interface QuizRuntimeState {
   remainingIds: string[]; // question ids still needing a correct answer, shuffled order
   masteredIds: string[];
   log: QuestionAttemptLog[];
+  attemptStartedAt?: string; // ISO — when the CURRENT run through the queue began, for duration on the score record
+}
+
+// One finished run through a quiz — a student can retake a quiz any number
+// of times, and each full pass (every question answered correctly at least
+// once) logs its own record here for the teacher to see.
+export interface QuizAttemptRecord {
+  id: string;
+  studentId: string;
+  subject: Subject;
+  taskId: string;
+  taskTitle: string;
+  startedAt: string; // ISO
+  completedAt: string; // ISO
+  durationMs: number;
+  correctCount: number; // questions answered correctly on the first try this attempt
+  totalCount: number;
 }
 
 export interface SubjectProgress {

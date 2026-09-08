@@ -77,6 +77,21 @@ create table if not exists offscreen_reviews (
   verified boolean not null default false
 );
 
+-- One row per finished pass through a quiz — a student can retake a quiz
+-- any number of times, and each full run logs its own score record here.
+create table if not exists quiz_attempts (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  subject text not null check (subject in ('math', 'literacy')),
+  task_id text not null,
+  task_title text not null default '',
+  started_at timestamptz not null,
+  completed_at timestamptz not null default now(),
+  duration_ms bigint not null default 0,
+  correct_count int not null default 0,
+  total_count int not null default 0
+);
+
 create table if not exists badges (
   id text primary key,
   name text not null,
@@ -246,7 +261,7 @@ declare
   t text;
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
-    'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
+    'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments'
   ];
 begin
@@ -288,7 +303,7 @@ declare
   t text;
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
-    'offscreen_reviews', 'badges', 'badge_earns', 'break_pool_items',
+    'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments'
   ];
 begin

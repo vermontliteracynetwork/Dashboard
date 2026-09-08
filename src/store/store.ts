@@ -15,6 +15,7 @@ import {
   rowToBreakRequest,
   rowToHelpPing,
   rowToOffscreenReview,
+  rowToQuizAttempt,
   rowToBadge,
   rowToBadgeEarn,
   rowToBreakPoolItem,
@@ -29,6 +30,7 @@ import {
   deleteBreakRequestRemote,
   pushHelpPing,
   pushOffscreenReview,
+  pushQuizAttempt,
   pushBadge,
   deleteBadgeRemote,
   pushBadgeEarn,
@@ -60,6 +62,7 @@ import type {
   BreakRequest,
   HelpPing,
   OffscreenReview,
+  QuizAttemptRecord,
   BadgeDef,
   BadgeEarn,
   BreakPoolItem,
@@ -97,6 +100,7 @@ interface AppState {
   breakRequests: BreakRequest[];
   helpPings: HelpPing[];
   offscreenReviews: OffscreenReview[];
+  quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
   badgeEarns: BadgeEarn[];
   breakPool: BreakPoolItem[];
@@ -269,6 +273,7 @@ export const useStore = create<AppState>()(
       breakRequests: [],
       helpPings: [],
       offscreenReviews: [],
+      quizAttempts: [],
       badges: DEFAULT_BADGES,
       badgeEarns: [],
       breakPool: [],
@@ -322,6 +327,8 @@ export const useStore = create<AppState>()(
           onHelpPing: (e, n, o) => set((s) => ({ helpPings: applyArrayRow(s.helpPings, e, rowToHelpPing, n, o) })),
           onOffscreenReview: (e, n, o) =>
             set((s) => ({ offscreenReviews: applyArrayRow(s.offscreenReviews, e, rowToOffscreenReview, n, o) })),
+          onQuizAttempt: (e, n, o) =>
+            set((s) => ({ quizAttempts: applyArrayRow(s.quizAttempts, e, rowToQuizAttempt, n, o) })),
           onBadge: (e, n, o) => set((s) => ({ badges: applyArrayRow(s.badges, e, rowToBadge, n, o) })),
           onBadgeEarn: (e, n, o) => set((s) => ({ badgeEarns: applyArrayRow(s.badgeEarns, e, rowToBadgeEarn, n, o) })),
           onBreakPoolItem: (e, n, o) =>
@@ -666,7 +673,34 @@ export const useStore = create<AppState>()(
         // a phantom second copy sitting in the queue.
         const liveIds = Array.from(new Set((task.quiz?.questions ?? []).map((q) => q.id)));
 
+        const applyState = (fresh: QuizRuntimeState) => {
+          set((s) => {
+            const cur = s.progress[studentId][subject];
+            return {
+              progress: {
+                ...s.progress,
+                [studentId]: {
+                  ...s.progress[studentId],
+                  [subject]: { ...cur, quizState: { ...cur.quizState, [task.id]: fresh } },
+                },
+              },
+            };
+          });
+          pushProgress(studentId, subject, get().progress[studentId][subject]);
+          return fresh;
+        };
+
         if (existing) {
+          // A fully-mastered queue reopened means the student is retaking
+          // this quiz — start a brand new attempt (fresh shuffle, empty
+          // log) instead of reusing the finished one, so this run gets its
+          // own score record and a real "questions left" count.
+          if (liveIds.length > 0 && existing.remainingIds.length === 0 && existing.masteredIds.length > 0) {
+            const shuffleQuestions = task.quiz?.shuffleQuestions ?? true;
+            const orderedIds = shuffleQuestions ? [...liveIds].sort(() => Math.random() - 0.5) : liveIds;
+            return applyState({ remainingIds: orderedIds, masteredIds: [], log: [], attemptStartedAt: new Date().toISOString() });
+          }
+
           // Self-heal against a queue that references a question the
           // teacher has since removed/replaced — without this, that
           // question stays stuck at the front of remainingIds forever
@@ -684,44 +718,17 @@ export const useStore = create<AppState>()(
             newIds.length > 0;
           if (!changed) return existing;
 
-          const fresh: QuizRuntimeState = {
+          return applyState({
             remainingIds: [...cleanRemaining, ...newIds],
             masteredIds: cleanMastered,
             log: existing.log,
-          };
-          set((s) => {
-            const cur = s.progress[studentId][subject];
-            return {
-              progress: {
-                ...s.progress,
-                [studentId]: {
-                  ...s.progress[studentId],
-                  [subject]: { ...cur, quizState: { ...cur.quizState, [task.id]: fresh } },
-                },
-              },
-            };
+            attemptStartedAt: existing.attemptStartedAt,
           });
-          pushProgress(studentId, subject, get().progress[studentId][subject]);
-          return fresh;
         }
 
         const shuffleQuestions = task.quiz?.shuffleQuestions ?? true;
         const orderedIds = shuffleQuestions ? [...liveIds].sort(() => Math.random() - 0.5) : liveIds;
-        const fresh: QuizRuntimeState = { remainingIds: orderedIds, masteredIds: [], log: [] };
-        set((s) => {
-          const cur = s.progress[studentId][subject];
-          return {
-            progress: {
-              ...s.progress,
-              [studentId]: {
-                ...s.progress[studentId],
-                [subject]: { ...cur, quizState: { ...cur.quizState, [task.id]: fresh } },
-              },
-            },
-          };
-        });
-        pushProgress(studentId, subject, get().progress[studentId][subject]);
-        return fresh;
+        return applyState({ remainingIds: orderedIds, masteredIds: [], log: [], attemptStartedAt: new Date().toISOString() });
       },
 
       submitQuizAnswer: (studentId, subject, task, questionId, correct) => {
@@ -744,7 +751,7 @@ export const useStore = create<AppState>()(
           const insertAt = remainingIds.length === 0 ? 0 : Math.floor(Math.random() * remainingIds.length) + 1;
           remainingIds = [...remainingIds.slice(0, insertAt), questionId, ...remainingIds.slice(insertAt)];
         }
-        const next: QuizRuntimeState = { remainingIds, masteredIds, log };
+        const next: QuizRuntimeState = { remainingIds, masteredIds, log, attemptStartedAt: state.attemptStartedAt };
         set((s) => {
           const cur = s.progress[studentId][subject];
           return {
@@ -758,6 +765,36 @@ export const useStore = create<AppState>()(
           };
         });
         pushProgress(studentId, subject, get().progress[studentId][subject]);
+
+        // Every question answered correctly at least once — this attempt is
+        // done. Score it off the first result logged for each question
+        // (so a corrected retry doesn't inflate the raw score) and record
+        // it for the teacher, independent of the live quizState above so a
+        // student retaking the quiz later doesn't erase this run's result.
+        if (remainingIds.length === 0) {
+          const totalCount = (task.quiz?.questions ?? []).length;
+          const firstResultByQuestion = new Map<string, boolean>();
+          for (const entry of log) {
+            if (!firstResultByQuestion.has(entry.questionId)) firstResultByQuestion.set(entry.questionId, entry.correct);
+          }
+          const correctCount = [...firstResultByQuestion.values()].filter(Boolean).length;
+          const completedAt = new Date().toISOString();
+          const startedAt = state.attemptStartedAt ?? log[0]?.timestamp ?? completedAt;
+          const record: QuizAttemptRecord = {
+            id: makeId(),
+            studentId,
+            subject,
+            taskId: task.id,
+            taskTitle: task.title,
+            startedAt,
+            completedAt,
+            durationMs: Math.max(0, new Date(completedAt).getTime() - new Date(startedAt).getTime()),
+            correctCount,
+            totalCount,
+          };
+          set((s) => ({ quizAttempts: [record, ...s.quizAttempts] }));
+          pushQuizAttempt(record);
+        }
       },
 
       requestBreak: (studentId) => {

@@ -7,6 +7,7 @@ import type {
   BreakRequest,
   HelpPing,
   OffscreenReview,
+  QuizAttemptRecord,
   BadgeDef,
   BadgeEarn,
   BreakPoolItem,
@@ -102,6 +103,31 @@ const rowToOffscreenReview = (r: Row): OffscreenReview => ({
   timestamp: r.occurred_at,
   verified: r.verified,
   photoUrl: r.photo_url ?? undefined,
+});
+
+const rowToQuizAttempt = (r: Row): QuizAttemptRecord => ({
+  id: r.id,
+  studentId: r.student_id,
+  subject: r.subject,
+  taskId: r.task_id,
+  taskTitle: r.task_title,
+  startedAt: r.started_at,
+  completedAt: r.completed_at,
+  durationMs: r.duration_ms,
+  correctCount: r.correct_count,
+  totalCount: r.total_count,
+});
+const quizAttemptToRow = (a: QuizAttemptRecord): Row => ({
+  id: a.id,
+  student_id: a.studentId,
+  subject: a.subject,
+  task_id: a.taskId,
+  task_title: a.taskTitle,
+  started_at: a.startedAt,
+  completed_at: a.completedAt,
+  duration_ms: a.durationMs,
+  correct_count: a.correctCount,
+  total_count: a.totalCount,
 });
 
 const rowToBadge = (r: Row): BadgeDef => ({ id: r.id, name: r.name, description: r.description, icon: r.icon, rule: r.rule ?? undefined });
@@ -237,6 +263,7 @@ export interface HydratedState {
   breakRequests: BreakRequest[];
   helpPings: HelpPing[];
   offscreenReviews: OffscreenReview[];
+  quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
   badgeEarns: BadgeEarn[];
   breakPool: BreakPoolItem[];
@@ -259,6 +286,7 @@ export async function fetchAll(): Promise<HydratedState> {
   const [
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
+    quizAttemptsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -276,9 +304,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('plan_templates').select('*'),
     supabase.from('weekly_schedule').select('*'),
     supabase.from('assignments').select('*'),
+    supabase.from('quiz_attempts').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -323,6 +352,7 @@ export async function fetchAll(): Promise<HydratedState> {
     breakRequests: (breaksRes.data ?? []).map(rowToBreakRequest),
     helpPings: (pingsRes.data ?? []).map(rowToHelpPing),
     offscreenReviews: (reviewsRes.data ?? []).map(rowToOffscreenReview),
+    quizAttempts: (quizAttemptsRes.data ?? []).map(rowToQuizAttempt),
     badges: (badgesRes.data ?? []).map(rowToBadge),
     badgeEarns: (earnsRes.data ?? []).map(rowToBadgeEarn),
     breakPool: (poolRes.data ?? []).map(rowToBreakPoolItem),
@@ -389,6 +419,8 @@ export const pushOffscreenReview = (o: OffscreenReview) =>
     verified: o.verified,
     photo_url: o.photoUrl ?? null,
   });
+
+export const pushQuizAttempt = (a: QuizAttemptRecord) => upsert('quiz_attempts', quizAttemptToRow(a));
 
 export const pushBadge = (b: BadgeDef) => upsert('badges', badgeToRow(b));
 export const deleteBadgeRemote = (id: string) => remove('badges', { id });
@@ -564,7 +596,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -573,6 +605,7 @@ export interface RealtimeHandlers {
   onBreakRequest: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onHelpPing: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onOffscreenReview: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onQuizAttempt: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onBadge: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onBadgeEarn: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onBreakPoolItem: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -604,6 +637,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'break_requests' }, wire(handlers.onBreakRequest))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'help_pings' }, wire(handlers.onHelpPing))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'offscreen_reviews' }, wire(handlers.onOffscreenReview))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_attempts' }, wire(handlers.onQuizAttempt))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'badges' }, wire(handlers.onBadge))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'badge_earns' }, wire(handlers.onBadgeEarn))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'break_pool_items' }, wire(handlers.onBreakPoolItem))
