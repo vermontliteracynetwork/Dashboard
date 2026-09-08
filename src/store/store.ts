@@ -219,6 +219,11 @@ interface AppState {
   getScheduledTemplateId: (studentId: string, subject: Subject, day: DayOfWeek) => string | null;
   setWeeklyScheduleDay: (studentId: string, subject: Subject, day: DayOfWeek, templateId: string | null) => void;
   applyTodaysScheduleIfNeeded: (studentId: string) => void;
+  // Wipes a student's live plan for a subject if nothing (no active
+  // assignment, no weekday schedule) currently accounts for it — used so an
+  // assignment that just ended or got deleted stops showing, instead of
+  // its last-applied copy lingering forever.
+  clearRotationIfNoLongerAssigned: (studentId: string, subject: Subject) => void;
 
   // published plans with a date window (see Assignment)
   publishAssignment: (
@@ -1142,7 +1147,8 @@ export const useStore = create<AppState>()(
         const day = currentDayOfWeek();
         const today = todayISO();
         (['math', 'literacy'] as Subject[]).forEach((subject) => {
-          if (get().weeklyPlanApplied[studentId]?.[subject] === today) return;
+          const lastApplied = get().weeklyPlanApplied[studentId]?.[subject];
+          if (lastApplied === today) return;
 
           const activeAssignment = get().assignments.find(
             (a) => a.studentId === studentId && a.subject === subject && a.startDate <= today && today <= a.endDate,
@@ -1157,9 +1163,23 @@ export const useStore = create<AppState>()(
               set((s) => ({ assignments: s.assignments.map((a) => (a.id === activeAssignment.id ? updated : a)) }));
               pushAssignment(updated);
             }
-          } else if (day) {
-            const templateId = get().getScheduledTemplateId(studentId, subject, day);
-            if (templateId) get().applyTemplateToStudent(studentId, templateId);
+          } else {
+            const templateId = day ? get().getScheduledTemplateId(studentId, subject, day) : null;
+            if (templateId) {
+              get().applyTemplateToStudent(studentId, templateId);
+            } else if (lastApplied) {
+              // Nothing scheduled for today. If the plan that was showing
+              // as of the last day this ran was itself put there by a dated
+              // assignment (not a manual edit), that assignment's window has
+              // now ended — clear it out rather than leave an expired
+              // assignment's tasks sitting there indefinitely. A plan set
+              // by hand and never touched by the assignment system is left
+              // alone either way.
+              const wasAssignmentDriven = get().assignments.some(
+                (a) => a.studentId === studentId && a.subject === subject && a.startDate <= lastApplied && lastApplied <= a.endDate,
+              );
+              if (wasAssignmentDriven) get().clearRotationIfNoLongerAssigned(studentId, subject);
+            }
           }
 
           set((s) => ({
@@ -1170,6 +1190,24 @@ export const useStore = create<AppState>()(
           }));
           pushMetaFor(get, studentId);
         });
+      },
+
+      clearRotationIfNoLongerAssigned: (studentId, subject) => {
+        const today = todayISO();
+        const stillActive = get().assignments.some(
+          (a) => a.studentId === studentId && a.subject === subject && a.startDate <= today && today <= a.endDate,
+        );
+        if (stillActive) return;
+        const day = currentDayOfWeek();
+        const scheduledTemplateId = day ? get().getScheduledTemplateId(studentId, subject, day) : null;
+        if (scheduledTemplateId) return;
+        const current = get().rotations[studentId]?.[subject] ?? [];
+        if (current.length === 0) return;
+        set((s) => {
+          const studentRot = s.rotations[studentId] ?? { math: [], literacy: [] };
+          return { rotations: { ...s.rotations, [studentId]: { ...studentRot, [subject]: [] } } };
+        });
+        pushRotation(studentId, subject, []);
       },
 
       publishAssignment: (studentIds, subject, tasks, name, startDate, endDate, mode) => {
@@ -1203,8 +1241,17 @@ export const useStore = create<AppState>()(
       },
 
       deleteAssignment: (id) => {
+        const removed = get().assignments.find((a) => a.id === id);
         set((s) => ({ assignments: s.assignments.filter((a) => a.id !== id) }));
         deleteAssignmentRemote(id);
+        // Removing an assignment that was live today should stop showing
+        // its tasks right away, not wait for tomorrow's daily refresh.
+        if (removed) {
+          const today = todayISO();
+          if (removed.startDate <= today && today <= removed.endDate) {
+            get().clearRotationIfNoLongerAssigned(removed.studentId, removed.subject);
+          }
+        }
       },
 
       updateAssignment: (id, patch) => {
