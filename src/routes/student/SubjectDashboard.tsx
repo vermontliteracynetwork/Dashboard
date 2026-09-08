@@ -193,7 +193,21 @@ export default function SubjectDashboard() {
 
       <div className="subject-header space-between">
         <h2 style={{ margin: 0 }}>{subj === 'math' ? '🔢 Math' : '📚 Literacy'}</h2>
-        <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+        <div className="row-wrap">
+          {activeTask && (
+            <button
+              className="btn btn-sm btn-primary"
+              // Always clickable, even over the "are you sure?" dialog
+              // (which covers the whole screen) — this is the guaranteed
+              // way back to the checklist no matter what else is going on.
+              style={{ position: 'relative', zIndex: 200 }}
+              onClick={() => { setConfirmDone(null); setSelectedTaskId(null); }}
+            >
+              📋 To-Do List
+            </button>
+          )}
+          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+        </div>
       </div>
 
       {reviewing && (
@@ -251,17 +265,13 @@ export default function SubjectDashboard() {
         </>
       )}
 
-      {activeTask && (
-        // A video task embeds a real YouTube iframe, which — unlike every
-        // other activity type — sits underneath the "are you sure?" dialog
-        // as a live element rather than inert content. Some browsers let an
-        // iframe swallow a click that lands on top of it even when a
-        // higher z-index overlay is visually covering it, so "Yes, I did
-        // it" can silently miss and leave the student stuck looking at the
-        // video. Cutting the whole activity out of hit-testing while that
-        // dialog is up guarantees the click can only ever reach the dialog.
-        <div style={confirmDone ? { pointerEvents: 'none' } : undefined}>{renderTask(activeTask)}</div>
-      )}
+      {/* A video task embeds a real YouTube iframe underneath the "are you
+          sure?" dialog. pointer-events alone wasn't reliable enough to stop
+          a click meant for the dialog from landing on the iframe instead in
+          some browsers, so the whole activity is unmounted outright while
+          that dialog is open — the dialog's own translucent backdrop is all
+          that needs to show behind it at that point anyway. */}
+      {activeTask && !confirmDone && renderTask(activeTask)}
 
       <ToolsPanel student={student} subject={subj} hideCalculator={activeTask?.type === 'quiz'} />
 
