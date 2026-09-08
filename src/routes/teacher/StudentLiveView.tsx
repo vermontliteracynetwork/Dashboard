@@ -83,6 +83,7 @@ export default function StudentLiveView() {
                 openedIds={new Set(tasks.map((t) => t.id))}
                 onOpen={() => {}}
                 onCheck={() => {}}
+                onReopenLink={() => {}}
               />
             </div>
           </>

@@ -8,6 +8,7 @@ interface Props {
   subject: Subject;
   task: Task;
   openToken: number; // bumped on every tap of this row, even a re-tap, so it reliably reopens
+  onWindowOpened?: (win: Window | null) => void;
 }
 
 // Opening a link activity is never itself completion — only the checklist
@@ -15,7 +16,7 @@ interface Props {
 // this view has no "I did it!" button of its own. Dismissing the open-it
 // panel leaves nothing behind — tapping the checklist row again is what
 // reopens it, so there's no redundant "reopen" card sitting underneath.
-export default function LinkTask({ student, subject, task, openToken }: Props) {
+export default function LinkTask({ student, subject, task, openToken, onWindowOpened }: Props) {
   const [browsing, setBrowsing] = useState(true);
 
   // Tapping this activity's row always (re)opens it, whether it's a fresh
@@ -32,6 +33,7 @@ export default function LinkTask({ student, subject, task, openToken }: Props) {
       url={task.link?.url ?? ''}
       title={task.title}
       onClose={() => setBrowsing(false)}
+      onWindowOpened={onWindowOpened}
       toolsButton={<ToolsPanel student={student} subject={subject} variant="inline" />}
     />
   );

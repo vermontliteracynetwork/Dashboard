@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { StartRitual, SubjectCompleteScreen } from './Rituals';
@@ -43,6 +43,10 @@ export default function SubjectDashboard() {
   // Bumped on every checklist-row tap, even re-taps of the already-selected
   // row, so a link activity's popup reliably reopens every single time.
   const [openToken, setOpenToken] = useState(0);
+  // The actual browser tab a link activity opened, keyed by task id, so it
+  // can be closed again from the "are you sure?" dialog instead of piling
+  // up abandoned tabs.
+  const openedWindowsRef = useRef<Record<string, Window | null>>({});
 
   const student = students.find((s) => s.id === currentStudentId);
   const subj = subject === 'math' || subject === 'literacy' ? (subject as Subject) : null;
@@ -89,7 +93,25 @@ export default function SubjectDashboard() {
   // auto-advancing into whatever's next.
   const activeTask: Task | null = selectedTaskId ? tasks.find((t) => t.id === selectedTaskId) ?? null : null;
 
+  const closeOpenedWindow = (taskId: string) => {
+    const win = openedWindowsRef.current[taskId];
+    if (win && !win.closed) win.close();
+    openedWindowsRef.current[taskId] = null;
+  };
+
+  // "Not yet" on a link activity's confirm dialog means "I'm still working
+  // on it" — close the old tab (it may be stale/finished) and open a fresh
+  // one immediately, since that click is itself the explicit action needed.
+  const reopenActivityLink = (task: Task) => {
+    closeOpenedWindow(task.id);
+    if (task.link?.url) openedWindowsRef.current[task.id] = window.open(task.link.url, '_blank');
+    setSelectedTaskId(task.id);
+    setOpenToken((n) => n + 1);
+    setOpenedTaskIds((prev) => (prev.has(task.id) ? prev : new Set(prev).add(task.id)));
+  };
+
   const checkOff = (task: Task, photoUrl?: string) => {
+    if (task.type === 'link') closeOpenedWindow(task.id);
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task, photoUrl);
     else completeTask(student.id, subj, task.id);
     setSelectedTaskId(null);
@@ -104,7 +126,16 @@ export default function SubjectDashboard() {
   const renderTask = (task: Task) => {
     switch (task.type) {
       case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} />;
-      case 'link': return <LinkTask student={student} subject={subj} task={task} openToken={openToken} />;
+      case 'link':
+        return (
+          <LinkTask
+            student={student}
+            subject={subj}
+            task={task}
+            openToken={openToken}
+            onWindowOpened={(win) => { openedWindowsRef.current[task.id] = win; }}
+          />
+        );
       case 'offscreen': return <OffscreenTask student={student} task={task} onDone={handleDone} />;
       case 'video': return <VideoTask student={student} task={task} onDone={handleDone} />;
       case 'passage': return <PassageTask student={student} subject={subj} task={task} onDone={handleDone} />;
@@ -213,6 +244,7 @@ export default function SubjectDashboard() {
               setOpenedTaskIds((prev) => (prev.has(taskId) ? prev : new Set(prev).add(taskId)));
             }}
             onCheck={checkOff}
+            onReopenLink={reopenActivityLink}
           />
 
           {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (

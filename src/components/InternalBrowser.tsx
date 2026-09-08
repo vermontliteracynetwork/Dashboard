@@ -5,6 +5,7 @@ interface Props {
   title: string;
   onClose: () => void;
   onMarkDone?: () => void;
+  onWindowOpened?: (win: Window | null) => void; // lets a parent close this exact tab later
   toolsButton?: ReactNode; // keeps the student's tools one tap away without leaving this view
 }
 
@@ -15,7 +16,15 @@ interface Props {
 // "here's where you're headed" confirmation — the new tab only opens when
 // the student actually taps the button below, never automatically, since a
 // leaving-the-app action always needs a real, explicit tap to trigger it.
-export default function InternalBrowser({ url, title, onClose, onMarkDone, toolsButton }: Props) {
+export default function InternalBrowser({ url, title, onClose, onMarkDone, onWindowOpened, toolsButton }: Props) {
+  const handleOpen = () => {
+    if (!url) return;
+    // No noopener here on purpose — it's the only way window.open hands back
+    // a reference this app can later call .close() on.
+    const win = window.open(url, '_blank');
+    onWindowOpened?.(win);
+  };
+
   return (
     <div className="overlay-backdrop" onClick={onClose}>
       <div
@@ -30,9 +39,9 @@ export default function InternalBrowser({ url, title, onClose, onMarkDone, tools
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center', padding: 24 }}>
           <span style={{ fontSize: '2.5rem' }}>🔗</span>
           <p style={{ margin: 0 }}>This activity opens in its own tab.</p>
-          <a className="btn btn-blue btn-lg pulse-cta" href={url} target="_blank" rel="noopener noreferrer">
+          <button className="btn btn-blue btn-lg pulse-cta" onClick={handleOpen}>
             🚀 Open the activity
-          </a>
+          </button>
           <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0 }}>
             Do the activity there, then come back to this tab and check it off below.
           </p>

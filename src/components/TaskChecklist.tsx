@@ -12,9 +12,10 @@ interface Props {
   openedIds: Set<string>; // tasks the student has actually opened — required before the check can be pressed
   onOpen: (taskId: string) => void;
   onCheck: (task: Task) => void;
+  onReopenLink: (task: Task) => void; // "Not yet" on a link's confirm dialog: close the old tab, open a fresh one
 }
 
-export default function TaskChecklist({ student, tasks, completedIds, openedIds, onOpen, onCheck }: Props) {
+export default function TaskChecklist({ student, tasks, completedIds, openedIds, onOpen, onCheck, onReopenLink }: Props) {
   const [stepsForTaskId, setStepsForTaskId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const stepsTask = tasks.find((t) => t.id === stepsForTaskId) ?? null;
@@ -57,7 +58,7 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
                   className="btn btn-lg"
                   onClick={() => {
                     setConfirmingId(null);
-                    onOpen(confirmingTask.id);
+                    onReopenLink(confirmingTask);
                   }}
                 >
                   ✕ Not yet
