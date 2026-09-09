@@ -9,6 +9,8 @@ import StudentLogin from './routes/student/StudentLogin';
 import StudentHome from './routes/student/StudentHome';
 import SubjectDashboard from './routes/student/SubjectDashboard';
 import PlaygroundView from './routes/student/PlaygroundView';
+import Marketplace from './components/Marketplace';
+import PiggyBank from './components/PiggyBank';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
 import StudentManager from './routes/teacher/StudentManager';
@@ -75,6 +77,8 @@ export default function App() {
           <Route path="/student/home" element={<StudentHome />} />
           <Route path="/student/:subject" element={<SubjectDashboard />} />
           <Route path="/student/playground/view" element={<PlaygroundView />} />
+          <Route path="/student/marketplace" element={<Marketplace />} />
+          <Route path="/student/piggy-bank" element={<PiggyBank />} />
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>
             <Route path="/teacher" element={<TeacherHome />} />

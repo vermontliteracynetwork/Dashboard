@@ -184,7 +184,11 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
             <div className="tag-pill" style={{ background: 'var(--success)', color: 'white', fontSize: '1rem' }}>✅ Correct!</div>
           )}
           {pendingCorrect === false && (
-            <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white', fontSize: '1rem' }}>💛 Not quite — you'll see this one again</div>
+            <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white', fontSize: '1rem' }}>
+              💛 {(state.log.filter((l) => l.questionId === activeQ.id && !l.correct).length >= 2)
+                ? "Not quite — that's okay, let's keep going!"
+                : "Not quite — you'll see this one again"}
+            </div>
           )}
 
           {activeQ.kind === 'mc' && mcOrder && (

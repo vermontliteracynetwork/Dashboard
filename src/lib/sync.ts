@@ -598,6 +598,7 @@ export const pushBadgeEarn = (e: BadgeEarn) =>
 export const deleteBadgeEarnRemote = (id: string) => remove('badge_earns', { id });
 
 export const pushTransaction = (t: Transaction) => upsert('transactions', transactionToRow(t));
+export const deleteTransactionRemote = (id: string) => remove('transactions', { id });
 export const pushAnnotation = (a: ArticleAnnotationSet) => upsert('article_annotations', annotationToRow(a));
 export const pushSbResponse = (a: SentenceBuilderResponse) => upsert('sentence_builder_responses', sbResponseToRow(a));
 export const pushChatMessage = (m: ChatMessage) => upsert('chat_messages', chatMessageToRow(m));

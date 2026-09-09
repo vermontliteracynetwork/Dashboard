@@ -95,6 +95,7 @@ import {
   pushAssignment,
   deleteAssignmentRemote,
   pushTransaction,
+  deleteTransactionRemote,
   pushChatMessage,
   rowToChatMessage,
   deleteBadgeEarnRemote,
@@ -203,6 +204,7 @@ interface AppState {
   addStudent: (name: string, avatar: string) => string;
   updateStudent: (id: string, patch: Partial<Student>) => void;
   recordTransaction: (studentId: string, amountCents: number, description: string, icon: string, kind: TransactionKind) => void;
+  deleteTransaction: (id: string) => void;
   addHighlight: (studentId: string, taskId: string, articleIndex: number, highlight: Highlight) => void;
   removeHighlight: (studentId: string, taskId: string, articleIndex: number, highlightId: string) => void;
   setHighlightNote: (studentId: string, taskId: string, articleIndex: number, highlightId: string, note: string) => void;
@@ -569,6 +571,20 @@ export const useStore = create<AppState>()(
         pushTransaction(tx);
         get().updateStudent(studentId, { coins: student.coins + amountCents });
         if (amountCents > 0) playChaChing();
+      },
+
+      // Removes a mistaken register entry entirely and reverses its effect
+      // on the balance — for a teacher fixing a fat-fingered bonus or a
+      // duplicate spin/purchase row, not for routine corrections (those
+      // should be a new adjustStudentBalance entry so the register still
+      // shows what happened).
+      deleteTransaction: (id) => {
+        const tx = get().transactions.find((t) => t.id === id);
+        if (!tx) return;
+        const student = get().students.find((st) => st.id === tx.studentId);
+        set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
+        deleteTransactionRemote(id);
+        if (student) get().updateStudent(student.id, { coins: student.coins - tx.amountCents });
       },
 
       // Marketplace: spend Class Cash to unlock an avatar or emote. Returns
@@ -1241,9 +1257,20 @@ export const useStore = create<AppState>()(
             get().evaluateBadgeRules(studentId);
           }
         } else {
-          // reinsert at a random spot further back so it isn't asked again immediately
-          const insertAt = remainingIds.length === 0 ? 0 : Math.floor(Math.random() * remainingIds.length) + 1;
-          remainingIds = [...remainingIds.slice(0, insertAt), questionId, ...remainingIds.slice(insertAt)];
+          // A missed question gets requeued so the student can try again —
+          // but only up to 2 more times. Looping forever on one question a
+          // student can't get is a dead end, not practice, so after the 2nd
+          // retry (3 wrong attempts total) it's let go and the quiz moves
+          // on; the score still reflects it as missed (see the first-result
+          // scoring below), so nothing is silently hidden from the teacher.
+          const priorWrongAttempts = state.log.filter((l) => l.questionId === questionId && !l.correct).length;
+          if (priorWrongAttempts >= 2) {
+            masteredIds = [...masteredIds, questionId];
+          } else {
+            // reinsert at a random spot further back so it isn't asked again immediately
+            const insertAt = remainingIds.length === 0 ? 0 : Math.floor(Math.random() * remainingIds.length) + 1;
+            remainingIds = [...remainingIds.slice(0, insertAt), questionId, ...remainingIds.slice(insertAt)];
+          }
         }
         const next: QuizRuntimeState = { remainingIds, masteredIds, log, attemptStartedAt: state.attemptStartedAt };
         set((s) => {

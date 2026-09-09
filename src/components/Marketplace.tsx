@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
 import { AvatarGlyph } from './AvatarGlyph';
@@ -8,16 +9,13 @@ import { COLOR_CATALOG } from '../lib/colorCatalog';
 import { VOICE_CATALOG } from '../lib/voiceCatalog';
 import { formatMoney } from '../lib/money';
 
-interface Props {
-  studentId: string;
-  onClose: () => void;
-}
-
 type Tab = 'characters' | 'emotes' | 'writing' | 'voices' | 'prizes' | 'powerups' | 'mystuff';
 
 const SKIP_TOKEN_PRICE_CENTS = 1500;
 
-export default function Marketplace({ studentId, onClose }: Props) {
+export default function Marketplace() {
+  const navigate = useNavigate();
+  const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const buyAvatar = useStore((s) => s.buyAvatar);
   const buyEmote = useStore((s) => s.buyEmote);
@@ -31,23 +29,23 @@ export default function Marketplace({ studentId, onClose }: Props) {
   const updateStudent = useStore((s) => s.updateStudent);
   const [tab, setTab] = useState<Tab>('characters');
 
-  const student = students.find((s) => s.id === studentId);
+  const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
+  const studentId = student.id;
 
   const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
 
   return (
-    <div className="overlay-backdrop" onClick={onClose}>
-      <div className="overlay-panel" style={{ maxWidth: 680, padding: 0, background: 'transparent', boxShadow: 'none', border: 'none' }} onClick={(e) => e.stopPropagation()}>
-        <div className="shop-panel">
+    <div className="container stack">
+      <div className="shop-panel">
           <div className="shop-header">
             <span className="shop-ribbon">🛍️ SHOP</span>
             <div className="row" style={{ gap: 8 }}>
               <span className="shop-balance-chip" title="Your Piggy Bank balance — spend it here!">
                 🐷 {formatMoney(student.coins)}
               </span>
-              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
             </div>
           </div>
 
@@ -372,7 +370,6 @@ export default function Marketplace({ studentId, onClose }: Props) {
               </div>
             )}
           </div>
-        </div>
       </div>
     </div>
   );
