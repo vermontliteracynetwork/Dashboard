@@ -1,6 +1,7 @@
 import { AVATAR_CATALOG } from '../store/badges';
 import { EMOTE_CATALOG } from './emoteCatalog';
 import { formatMoney } from './money';
+import { marketplaceItemDisplayName } from './marketplaceDisplay';
 import type { MarketplaceItem } from '../types';
 
 export type SpinItemKind = 'avatar' | 'emote' | 'font' | 'color' | 'voice' | 'prize';
@@ -76,7 +77,7 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
       .map((it) => ({
         kind: it.kind as SpinItemKind,
         itemId: it.id,
-        label: it.name,
+        label: marketplaceItemDisplayName(it),
         imageUrl: it.icon.startsWith('/') || it.icon.startsWith('http') ? it.icon : undefined,
       })),
   ];

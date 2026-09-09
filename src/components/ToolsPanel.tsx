@@ -542,13 +542,16 @@ function WordProcessor({ student }: { student: Student }) {
 
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const fontItems = marketplaceItems.filter((it) => it.kind === 'font');
-  const colorItems = marketplaceItems.filter((it) => it.kind === 'color');
+  const colorItems = marketplaceItems.filter((it) => it.kind === 'color' && (it.colorUse ?? 'text') === 'text');
+  const highlightItems = marketplaceItems.filter((it) => it.kind === 'color' && it.colorUse === 'highlight');
 
   const selected = myNotes.find((n) => n.id === selectedId) ?? null;
   const ownedFonts = fontItems.filter((f) => student.ownedFontIds.includes(f.id));
   const ownedColors = colorItems.filter((c) => student.ownedColorIds.includes(c.id));
+  const ownedHighlights = highlightItems.filter((c) => student.ownedColorIds.includes(c.id));
   const activeFont = fontItems.find((f) => f.id === (selected?.fontId ?? student.equippedFontId)) ?? fontItems[0];
   const activeColor = colorItems.find((c) => c.id === (selected?.colorId ?? student.equippedColorId)) ?? colorItems[0];
+  const activeHighlight = highlightItems.find((c) => c.id === (selected?.highlightColorId ?? student.equippedHighlightColorId));
   const wordCount = selected?.body.trim() ? selected.body.trim().split(/\s+/).length : 0;
 
   const handleNew = () => {
@@ -625,8 +628,8 @@ function WordProcessor({ student }: { student: Student }) {
                       <button
                         key={c.id}
                         onClick={() => updateNote(selected.id, { colorId: c.id })}
-                        aria-label={c.name}
-                        title={c.name}
+                        aria-label={`${c.name} Text Color`}
+                        title={`${c.name} Text Color`}
                         style={{
                           width: 40,
                           height: 40,
@@ -640,27 +643,65 @@ function WordProcessor({ student }: { student: Student }) {
                     ))}
                   </div>
                 )}
+                {ownedHighlights.length > 0 && (
+                  <div className="row-wrap" style={{ gap: 4, alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>🖍️</span>
+                    <button
+                      onClick={() => updateNote(selected.id, { highlightColorId: null })}
+                      aria-label="No highlight"
+                      title="No highlight"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        padding: 0,
+                        cursor: 'pointer',
+                        background: '#fff',
+                        border: !activeHighlight ? '3px solid var(--ink)' : '2px solid var(--content-border)',
+                      }}
+                    />
+                    {ownedHighlights.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => updateNote(selected.id, { highlightColorId: c.id })}
+                        aria-label={`${c.name} Highlight`}
+                        title={`${c.name} Highlight`}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          padding: 0,
+                          cursor: 'pointer',
+                          background: c.colorHex,
+                          border: activeHighlight?.id === c.id ? '3px solid var(--ink)' : '2px solid var(--content-border)',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{wordCount} word{wordCount === 1 ? '' : 's'}</span>
             </div>
-            <textarea
-              value={selected.body}
-              onChange={(e) => updateNote(selected.id, { body: e.target.value })}
-              style={{
-                width: '100%',
-                flex: 1,
-                minHeight: 260,
-                resize: 'vertical',
-                fontSize: `${fontSize}rem`,
-                lineHeight: 1.6,
-                padding: 14,
-                fontFamily: activeFont?.cssFontFamily,
-                ...(activeColor?.colorHex === 'rainbow'
-                  ? { background: 'conic-gradient(red, orange, yellow, green, blue, purple, red)', WebkitBackgroundClip: 'text', color: 'transparent' }
-                  : { color: activeColor?.colorHex }),
-              }}
-              placeholder="Start writing..."
-            />
+            <div style={{ background: activeHighlight?.colorHex ?? 'transparent', borderRadius: 12, padding: activeHighlight ? 6 : 0, flex: 1, minHeight: 0, display: 'flex' }}>
+              <textarea
+                value={selected.body}
+                onChange={(e) => updateNote(selected.id, { body: e.target.value })}
+                style={{
+                  width: '100%',
+                  flex: 1,
+                  minHeight: 260,
+                  resize: 'vertical',
+                  fontSize: `${fontSize}rem`,
+                  lineHeight: 1.6,
+                  padding: 14,
+                  fontFamily: activeFont?.cssFontFamily,
+                  ...(activeColor?.colorHex === 'rainbow'
+                    ? { background: 'conic-gradient(red, orange, yellow, green, blue, purple, red)', WebkitBackgroundClip: 'text', color: 'transparent' }
+                    : { background: activeHighlight ? 'transparent' : '#fff', color: activeColor?.colorHex }),
+                }}
+                placeholder="Start writing..."
+              />
+            </div>
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>🔒 Private, saved automatically</span>
               <button className="btn btn-sm btn-blue" onClick={() => speak(selected.body || 'Nothing written yet', student.ttsSettings, student.equippedVoiceId)}>
@@ -674,18 +715,25 @@ function WordProcessor({ student }: { student: Student }) {
   );
 }
 
-const WHITEBOARD_COLORS = ['#1f1147', '#e63946', '#2a6df4', '#2fae5d', '#f4a300', '#8b5cf6'];
 const WHITEBOARD_SIZES: { size: number; label: string }[] = [
   { size: 3, label: '· Thin' },
   { size: 6, label: '● Medium' },
   { size: 11, label: '⬤ Thick' },
 ];
 
-function Whiteboard() {
+// Marker colors are Marketplace items now (kind: 'color', colorUse:
+// 'marker') so a teacher can add seasonal/limited ones — but the app
+// still needs a color to draw with even before any are owned, so this
+// falls back to plain black rather than leaving the canvas colorless.
+function Whiteboard({ student }: { student: Student }) {
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const updateStudent = useStore((s) => s.updateStudent);
+  const markerColors = marketplaceItems.filter((it) => it.kind === 'color' && it.colorUse === 'marker' && student.ownedColorIds.includes(it.id));
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
-  const [color, setColor] = useState(WHITEBOARD_COLORS[0]);
+  const equipped = markerColors.find((c) => c.id === student.equippedMarkerColorId) ?? markerColors[0];
+  const color = equipped?.colorHex ?? '#1f1147';
   const [size, setSize] = useState(6);
   const [erasing, setErasing] = useState(false);
 
@@ -734,22 +782,24 @@ function Whiteboard() {
   return (
     <div className="stack" style={{ height: '100%', minHeight: 0 }}>
       <div className="row-wrap" style={{ alignItems: 'center' }}>
-        {WHITEBOARD_COLORS.map((c) => (
+        {markerColors.length === 0 && <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Get marker colors in the 🛍️ Marketplace!</span>}
+        {markerColors.map((c) => (
           <button
-            key={c}
+            key={c.id}
             onClick={() => {
-              setColor(c);
+              updateStudent(student.id, { equippedMarkerColorId: c.id });
               setErasing(false);
             }}
-            aria-label={`Color ${c}`}
+            aria-label={`${c.name} Marker`}
+            title={`${c.name} Marker`}
             style={{
-              width: 30,
-              height: 30,
+              width: 36,
+              height: 36,
               borderRadius: '50%',
-              background: c,
+              background: c.colorHex,
               cursor: 'pointer',
               padding: 0,
-              border: !erasing && color === c ? '3px solid var(--ink)' : '2px solid var(--content-border)',
+              border: !erasing && equipped?.id === c.id ? '3px solid var(--ink)' : '2px solid var(--content-border)',
             }}
           />
         ))}
@@ -902,7 +952,7 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
       case 'dictionary': return <Dictionary student={student} />;
       case 'soundWall': return <SoundWall student={student} />;
       case 'wordProcessor': return <WordProcessor student={student} />;
-      case 'whiteboard': return <Whiteboard />;
+      case 'whiteboard': return <Whiteboard student={student} />;
       case 'tts': return <TTSSettingsPanel student={student} />;
       case 'breakVisual': return <QuietTool />;
       default: return null;

@@ -969,9 +969,14 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   50% { transform: scale(1.02); }
 }
 
-/* ---------- Quiz editor: numbered question + A/B/C/D answer grid ---------- */
+/* ---------- Quiz editor: Blooket-style question card + answer tiles ---------- */
 .quiz-question-row { position: relative; }
-.quiz-question-number { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--purple); }
+.quiz-question-header {
+  background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+  color: #fff;
+  padding: 12px 16px;
+}
+.quiz-question-number { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.1rem; }
 .quiz-answers-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
@@ -994,6 +999,61 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   padding: 0;
 }
 .quiz-answer-letter.correct { background: var(--success); color: white; border-color: var(--success); }
+
+/* A 2x2 (wrapping) grid of bold colored answer tiles, Blooket-style — the
+   color itself carries the "these are the 4 choices" grouping, not just
+   the text, so a student scanning quickly can tell answers apart at a glance. */
+.quiz-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+  gap: 10px;
+}
+.quiz-answer-tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  min-height: 56px;
+}
+.quiz-tile-check {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+}
+.quiz-tile-check.correct { background: #fff; color: var(--success); border-color: #fff; }
+.quiz-tile-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.92);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 600;
+}
+.quiz-tile-remove {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0,0,0,0.15);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+.quiz-tile-remove:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---------- Assignments tab: card grid (like a classroom LMS) ---------- */
 .assignment-card-grid {

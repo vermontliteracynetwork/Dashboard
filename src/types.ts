@@ -85,8 +85,10 @@ export interface Student {
   lastSpinDate: string | null; // ISO date of the last daily-wheel spin, so it's once per day
   ownedFontIds: string[]; // font catalog ids unlocked for the Notes word processor
   equippedFontId: string | null;
-  ownedColorIds: string[]; // color catalog ids unlocked for Notes text color
-  equippedColorId: string | null;
+  ownedColorIds: string[]; // marketplace color-item ids unlocked, any use (text/highlight/marker share one owned pool)
+  equippedColorId: string | null; // active Notes TEXT color
+  equippedHighlightColorId: string | null; // active Notes HIGHLIGHT (note background) color
+  equippedMarkerColorId: string | null; // active Whiteboard marker color
   ownedVoiceIds: string[]; // voice catalog ids unlocked (read-aloud "voice skins")
   equippedVoiceId: string | null;
   ownedPrizeIds: string[]; // custom_prizes ids this student has redeemed (teacher-fulfilled real/in-game prizes)
@@ -507,7 +509,8 @@ export interface Note {
   title: string;
   body: string;
   fontId: string | null; // null = use whatever's currently equipped
-  colorId: string | null;
+  colorId: string | null; // text color
+  highlightColorId: string | null; // note background/highlight color
   updatedAt: string;
 }
 
@@ -535,6 +538,9 @@ export interface MarketplaceItem {
   cssFontFamily?: string;
   // kind: 'color' only — a CSS color, or the literal 'rainbow' for the animated swatch
   colorHex?: string;
+  // kind: 'color' only — which surface this color equips to; defaults to
+  // 'text' when absent (keeps older color items working unchanged)
+  colorUse?: 'text' | 'highlight' | 'marker';
   // kind: 'voice' only — layered on top of the student's TTS rate/voice settings
   voicePitch?: number;
   voiceRate?: number;

@@ -5,6 +5,7 @@ import { todayISO } from '../lib/dates';
 import { getDailySpinSegments, type DailySpinSegment } from '../lib/dailySpin';
 import { emoteById } from '../lib/emoteCatalog';
 import { avatarById } from '../lib/avatarCatalog';
+import { marketplaceItemDisplayName } from '../lib/marketplaceDisplay';
 import type { MarketplaceItem } from '../types';
 
 interface Props {
@@ -37,7 +38,7 @@ function itemDisplay(itemKind: string, itemId: string, marketplaceItems: Marketp
   if (itemKind === 'emote') { const e = emoteById(itemId); return e ? { name: e.name, imageUrl: e.src } : null; }
   const item = marketplaceItems.find((it) => it.id === itemId);
   if (!item) return null;
-  return { name: item.name, imageUrl: item.icon.startsWith('/') || item.icon.startsWith('http') ? item.icon : undefined };
+  return { name: marketplaceItemDisplayName(item), imageUrl: item.icon.startsWith('/') || item.icon.startsWith('http') ? item.icon : undefined };
 }
 
 export default function DailySpinWheel({ studentId, onClose }: Props) {

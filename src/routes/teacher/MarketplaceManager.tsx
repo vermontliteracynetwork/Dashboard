@@ -197,6 +197,14 @@ function ItemRow({ item }: { item: MarketplaceItem }) {
             <input type="checkbox" checked={item.colorHex === 'rainbow'} onChange={(e) => updateMarketplaceItem(item.id, { colorHex: e.target.checked ? 'rainbow' : '#000000' })} />
             Animated rainbow
           </label>
+          <label style={{ fontSize: '0.75rem' }}>
+            Used for{' '}
+            <select value={item.colorUse ?? 'text'} onChange={(e) => updateMarketplaceItem(item.id, { colorUse: e.target.value as 'text' | 'highlight' | 'marker' })}>
+              <option value="text">Notes text color</option>
+              <option value="highlight">Notes highlight color</option>
+              <option value="marker">Whiteboard marker color</option>
+            </select>
+          </label>
         </div>
       )}
       {item.kind === 'voice' && (
@@ -252,7 +260,7 @@ export default function MarketplaceManager() {
       availableFrom: availableFrom || null,
       availableUntil: availableUntil || null,
       ...(kind === 'font' ? { cssFontFamily: "'Nunito', sans-serif" } : {}),
-      ...(kind === 'color' ? { colorHex: '#7c3aed' } : {}),
+      ...(kind === 'color' ? { colorHex: '#7c3aed', colorUse: 'text' as const } : {}),
       ...(kind === 'voice' ? { voicePitch: 1, voiceRate: 1, voiceHints: [] } : {}),
     });
     setName('');

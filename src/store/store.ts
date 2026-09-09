@@ -210,7 +210,7 @@ interface AppState {
   setSentenceBuilderAnswer: (studentId: string, taskId: string, partId: string, text: string) => void;
   sendChatMessage: (studentId: string, sender: 'student' | 'teacher', text: string) => void;
   createNote: (studentId: string) => string;
-  updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'fontId' | 'colorId'>>) => void;
+  updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'fontId' | 'colorId' | 'highlightColorId'>>) => void;
   deleteNote: (id: string) => void;
   addMarketplaceItem: (item: Omit<MarketplaceItem, 'id' | 'createdAt'>) => void;
   updateMarketplaceItem: (id: string, patch: Partial<MarketplaceItem>) => void;
@@ -418,6 +418,17 @@ export const useStore = create<AppState>()(
             const seeded: MarketplaceItem[] = STARTER_MARKETPLACE_ITEMS.map((it) => ({ ...it, createdAt: now }));
             set({ marketplaceItems: seeded });
             seeded.forEach((it) => pushMarketplaceItem(it));
+          } else if (!data.marketplaceItems.some((it) => it.colorUse === 'marker')) {
+            // A smaller, one-time top-up for data seeded before Whiteboard
+            // marker colors and Notes highlight colors existed — adds just
+            // those new starter items without touching anything the
+            // teacher may have already edited.
+            const now = new Date().toISOString();
+            const topUp: MarketplaceItem[] = STARTER_MARKETPLACE_ITEMS
+              .filter((it) => it.colorUse === 'marker' || it.colorUse === 'highlight')
+              .map((it) => ({ ...it, createdAt: now }));
+            set((s) => ({ marketplaceItems: [...s.marketplaceItems, ...topUp] }));
+            topUp.forEach((it) => pushMarketplaceItem(it));
           }
         } catch (err) {
           set({ hydrated: true, hydrationError: extractErrorMessage(err) });
@@ -549,6 +560,8 @@ export const useStore = create<AppState>()(
           equippedFontId: null,
           ownedColorIds: [...STARTER_COLOR_IDS],
           equippedColorId: null,
+          equippedHighlightColorId: null,
+          equippedMarkerColorId: null,
           ownedVoiceIds: [...STARTER_VOICE_IDS],
           equippedVoiceId: null,
           ownedPrizeIds: [],
@@ -692,7 +705,7 @@ export const useStore = create<AppState>()(
 
       createNote: (studentId) => {
         const id = makeId();
-        const note: Note = { id, studentId, title: 'Untitled', body: '', fontId: null, colorId: null, updatedAt: new Date().toISOString() };
+        const note: Note = { id, studentId, title: 'Untitled', body: '', fontId: null, colorId: null, highlightColorId: null, updatedAt: new Date().toISOString() };
         set((s) => ({ notes: [...s.notes, note] }));
         pushNote(note);
         return id;

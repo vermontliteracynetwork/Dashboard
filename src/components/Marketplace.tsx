@@ -8,7 +8,7 @@ import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
-type Tab = 'characters' | 'emotes' | 'writing' | 'voices' | 'prizes' | 'powerups' | 'mystuff';
+type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'mystuff';
 
 function isAvailableToday(item: MarketplaceItem): boolean {
   const today = todayISO();
@@ -98,7 +98,10 @@ export default function Marketplace() {
 
   const byKind = (kind: MarketplaceItemKind) => marketplaceItems.filter((it) => it.kind === kind && isAvailableToday(it));
   const fontItems = byKind('font');
-  const colorItems = byKind('color');
+  const allColorItems = byKind('color');
+  const textColorItems = allColorItems.filter((it) => (it.colorUse ?? 'text') === 'text');
+  const highlightColorItems = allColorItems.filter((it) => it.colorUse === 'highlight');
+  const markerColorItems = allColorItems.filter((it) => it.colorUse === 'marker');
   const voiceItems = byKind('voice');
   const prizeItems = byKind('prize');
   const powerupItems = byKind('powerup');
@@ -178,6 +181,9 @@ export default function Marketplace() {
             </button>
             <button className={`shop-tab-btn ${tab === 'writing' ? 'active' : ''}`} onClick={() => setTab('writing')}>
               ✍️ Writing
+            </button>
+            <button className={`shop-tab-btn ${tab === 'whiteboard' ? 'active' : ''}`} onClick={() => setTab('whiteboard')}>
+              🖊️ Whiteboard
             </button>
             <button className={`shop-tab-btn ${tab === 'voices' ? 'active' : ''}`} onClick={() => setTab('voices')}>
               🔊 Voices
@@ -294,8 +300,29 @@ export default function Marketplace() {
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>🎨 Text Colors</strong>
                   <div className="shop-item-grid" style={{ marginTop: 8 }}>
-                    {colorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))}
+                    {textColorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))}
                   </div>
+                </div>
+                {highlightColorItems.length > 0 && (
+                  <div>
+                    <strong style={{ fontSize: '0.85rem' }}>🖍️ Highlight Colors</strong>
+                    <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                      {highlightColorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'whiteboard' && (
+              <div>
+                <strong style={{ fontSize: '0.85rem' }}>✏️ Marker Colors</strong>
+                <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                  {markerColorItems.length === 0 ? (
+                    <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No marker colors yet — ask your teacher to add some!</p>
+                  ) : (
+                    markerColorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))
+                  )}
                 </div>
               </div>
             )}

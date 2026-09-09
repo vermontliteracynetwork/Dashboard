@@ -15,6 +15,10 @@ const blankMatching = (): MatchingQuestion => ({ id: makeId(), kind: 'matching',
 const blankFill = (): FillBlankQuestion => ({ id: makeId(), kind: 'fill', prompt: '', answer: '', wordBank: [] });
 
 const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+// A Blooket-style quadrant palette for the answer tiles — bold, distinct
+// colors so a student scanning a live game/preview can tell answers apart
+// at a glance, not just by reading text.
+const ANSWER_TILE_COLORS = ['#f4a300', '#2a6df4', '#2fae5d', '#e63946', '#8b5cf6', '#14b8a6'];
 
 function QuestionRow({
   index,
@@ -28,14 +32,15 @@ function QuestionRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="content-well stack quiz-question-row">
-      <div className="space-between">
+    <div className="stack quiz-question-row" style={{ gap: 0, borderRadius: 16, overflow: 'hidden', border: '3px solid var(--content-border)' }}>
+      <div className="quiz-question-header space-between">
         <div className="row" style={{ gap: 10 }}>
-          <span className="quiz-question-number">{index + 1}.</span>
-          <span className="tag-pill">{q.kind === 'mc' ? 'Multiple choice' : q.kind === 'matching' ? 'Matching' : 'Fill in the blank'}</span>
+          <span className="quiz-question-number">Question {index + 1}</span>
+          <span className="tag-pill" style={{ background: '#fff' }}>{q.kind === 'mc' ? '☑️ Multiple choice' : q.kind === 'matching' ? '🔗 Matching' : '✏️ Fill in the blank'}</span>
         </div>
         <button className="btn btn-sm btn-danger" onClick={onDelete}>Delete question</button>
       </div>
+      <div className="stack" style={{ padding: 16, background: '#fff' }}>
       <div>
         <label>Question</label>
         <input
@@ -49,31 +54,37 @@ function QuestionRow({
 
       {q.kind === 'mc' && (
         <div className="stack">
-          <label>Answers — tap the letter to mark the correct one</label>
-          <div className="quiz-answers-grid">
+          <label>Answers — tap ✓ to mark the correct one</label>
+          <div className="quiz-tile-grid">
             {q.choices.map((c, i) => (
-              <div className="quiz-answer-cell" key={i}>
+              <div
+                key={i}
+                className="quiz-answer-tile"
+                style={{ background: ANSWER_TILE_COLORS[i % ANSWER_TILE_COLORS.length] }}
+              >
                 <button
                   type="button"
-                  className={`quiz-answer-letter ${q.correctIndex === i ? 'correct' : ''}`}
+                  className={`quiz-tile-check ${q.correctIndex === i ? 'correct' : ''}`}
                   onClick={() => onUpdate({ ...q, correctIndex: i })}
                   title="Mark as the correct answer"
+                  aria-label={q.correctIndex === i ? 'Correct answer' : 'Mark as the correct answer'}
                 >
-                  {ANSWER_LETTERS[i] ?? i + 1}
+                  {q.correctIndex === i ? '✓' : ANSWER_LETTERS[i] ?? i + 1}
                 </button>
                 <input
+                  className="quiz-tile-input"
                   value={c}
                   onChange={(e) => {
                     const choices = [...q.choices];
                     choices[i] = e.target.value;
                     onUpdate({ ...q, choices });
                   }}
-                  style={{ flex: 1 }}
                   placeholder={i < 2 ? `Answer ${ANSWER_LETTERS[i]}` : `(Optional)`}
                 />
                 <button
-                  className="btn btn-sm btn-danger"
+                  className="quiz-tile-remove"
                   disabled={q.choices.length <= 2}
+                  aria-label="Remove this answer"
                   onClick={() => {
                     const choices = q.choices.filter((_, idx) => idx !== i);
                     const correctIndex = q.correctIndex >= choices.length ? 0 : q.correctIndex;
@@ -151,6 +162,7 @@ function QuestionRow({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

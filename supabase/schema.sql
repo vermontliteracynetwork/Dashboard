@@ -286,6 +286,8 @@ alter table students add column if not exists owned_font_ids jsonb not null defa
 alter table students add column if not exists equipped_font_id text;
 alter table students add column if not exists owned_color_ids jsonb not null default '[]';
 alter table students add column if not exists equipped_color_id text;
+alter table students add column if not exists equipped_highlight_color_id text;
+alter table students add column if not exists equipped_marker_color_id text;
 alter table students add column if not exists owned_voice_ids jsonb not null default '[]';
 alter table students add column if not exists equipped_voice_id text;
 alter table students add column if not exists owned_prize_ids jsonb not null default '[]';
@@ -300,6 +302,7 @@ create table if not exists notes (
   body text not null default '',
   font_id text,
   color_id text,
+  highlight_color_id text,
   updated_at timestamptz not null default now()
 );
 
@@ -322,6 +325,7 @@ create table if not exists marketplace_items (
   created_at timestamptz not null default now(),
   css_font_family text,
   color_hex text,
+  color_use text,
   voice_pitch real,
   voice_rate real,
   voice_hints jsonb
