@@ -226,6 +226,8 @@ interface AppState {
   buySkipToken: (studentId: string) => boolean;
   skipTask: (studentId: string, subject: Subject, taskId: string) => boolean;
   spinDailyWheel: (studentId: string) => DailySpinResult | null;
+  resetDailySpin: (studentId: string) => void;
+  resetAllDailySpins: () => void;
   deleteStudent: (id: string) => void;
   setFeatureToggle: (studentId: string, tool: ToolKey, enabled: boolean) => void;
   setStreak: (studentId: string, streak: number) => void;
@@ -852,6 +854,21 @@ export const useStore = create<AppState>()(
         // happened on every spin, not just the ones that moved money.
         get().recordTransaction(studentId, 0, `🎡 Daily Spin: won ${segment.label}`, segment.imageUrl ?? '🎁', 'spin-cash');
         return { type: 'item', amountCents: 0, label: segment.label, segmentIndex, itemKind, itemId };
+      },
+
+      // Clears one student's "already spun today" flag so they can spin
+      // again — for a teacher who wants to let a student re-roll, or to
+      // undo a spin used for testing rather than a real prize.
+      resetDailySpin: (studentId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student || student.lastSpinDate === null) return;
+        get().updateStudent(studentId, { lastSpinDate: null });
+      },
+
+      resetAllDailySpins: () => {
+        get().students.forEach((st) => {
+          if (st.lastSpinDate !== null) get().updateStudent(st.id, { lastSpinDate: null });
+        });
       },
 
       deleteStudent: (id) => {

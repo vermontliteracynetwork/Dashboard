@@ -20,8 +20,9 @@ export default function TeacherHome() {
   // ANY student's break/help/progress state changes, not just when the
   // fields destructured here happen to change reference.
   const store = useStore();
-  const { role, setRole, students, studentStatus, breakCountToday, helpPings, approveBreak, getStudentBreakState } = store;
+  const { role, setRole, students, studentStatus, breakCountToday, helpPings, approveBreak, getStudentBreakState, resetDailySpin, resetAllDailySpins } = store;
   const [chatStudentId, setChatStudentId] = useState<string | null>(null);
+  const [spinFlash, setSpinFlash] = useState<string | null>(null);
 
   useEffect(() => {
     if (role !== 'teacher') setRole('teacher');
@@ -32,7 +33,26 @@ export default function TeacherHome() {
       <TeacherNav />
       {chatStudentId && <ChatPanel studentId={chatStudentId} role="teacher" onClose={() => setChatStudentId(null)} />}
       <div className="container stack">
-        <h1>Live Class Overview</h1>
+        <div className="space-between" style={{ alignItems: 'center' }}>
+          <h1 style={{ margin: 0 }}>Live Class Overview</h1>
+          {students.length > 0 && (
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                resetAllDailySpins();
+                setSpinFlash('Everyone can spin the daily wheel again today.');
+                window.setTimeout(() => setSpinFlash(null), 2500);
+              }}
+            >
+              🎡 Reset today's spins (all students)
+            </button>
+          )}
+        </div>
+        {spinFlash && (
+          <div className="content-well" style={{ background: '#e8fff0', textAlign: 'center', fontWeight: 700, color: 'var(--success)' }}>
+            ✅ {spinFlash}
+          </div>
+        )}
         {students.length === 0 && (
           <div className="chrome-frame" style={{ padding: 24 }}>
             <p>No students yet.</p>
@@ -72,6 +92,18 @@ export default function TeacherHome() {
                   <button className="btn btn-sm" onClick={() => setChatStudentId(st.id)}>
                     💬 Chat
                   </button>
+                  {st.lastSpinDate && (
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => {
+                        resetDailySpin(st.id);
+                        setSpinFlash(`${st.name} can spin the daily wheel again today.`);
+                        window.setTimeout(() => setSpinFlash(null), 2500);
+                      }}
+                    >
+                      🎡 Reset spin
+                    </button>
+                  )}
                   <button className="btn btn-sm" onClick={() => navigate(`/teacher/bank/${st.id}`)}>
                     🐷 Bank
                   </button>
