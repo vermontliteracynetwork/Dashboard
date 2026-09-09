@@ -3,6 +3,36 @@ import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
 import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
+import { STARTER_EMOTE_IDS, emoteById } from '../lib/emoteCatalog';
+import { avatarById } from '../lib/avatarCatalog';
+
+const COINS_PER_TASK = 2;
+
+// React StrictMode (and any other accidental re-invocation of initSync)
+// double-fires the mount effect that calls it. Without this guard, a second
+// subscribeRealtime() call reuses the same 'iwd-sync' channel name after the
+// first is already subscribed, which throws — and that throw was silently
+// leaving the app's realtime stream half-broken (this is the root cause of
+// live views not reliably updating without a manual refresh).
+let realtimeSubscribed = false;
+
+export interface DailySpinResult {
+  type: 'coins' | 'skip';
+  amount: number;
+  label: string;
+}
+
+const SKIP_TOKEN_PRICE = 15;
+
+// Every segment is a win — no empty/losing outcome — since this is a daily
+// mood-lift, not a chance-based reward loop a student could feel bad about
+// landing on.
+const DAILY_SPIN_OUTCOMES: DailySpinResult[] = [
+  { type: 'coins', amount: 5, label: '🪙 5 coins' },
+  { type: 'coins', amount: 10, label: '🪙 10 coins' },
+  { type: 'coins', amount: 15, label: '🪙 15 coins' },
+  { type: 'skip', amount: 1, label: '🎫 1 Skip Pass' },
+];
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   fetchAll,
@@ -88,6 +118,7 @@ const emptyProgress = (): SubjectProgress => ({
   date: todayISO(),
   activeIndex: 0,
   completedTaskIds: [],
+  skippedTaskIds: [],
   quizState: {},
   sessionRitualSeen: false,
   subjectComplete: false,
@@ -133,6 +164,12 @@ interface AppState {
   // students
   addStudent: (name: string, avatar: string) => string;
   updateStudent: (id: string, patch: Partial<Student>) => void;
+  buyAvatar: (studentId: string, avatarId: string) => boolean;
+  buyEmote: (studentId: string, emoteId: string) => boolean;
+  equipEmote: (studentId: string, emoteId: string | null) => void;
+  buySkipToken: (studentId: string) => boolean;
+  skipTask: (studentId: string, subject: Subject, taskId: string) => boolean;
+  spinDailyWheel: (studentId: string) => DailySpinResult | null;
   deleteStudent: (id: string) => void;
   setFeatureToggle: (studentId: string, tool: ToolKey, enabled: boolean) => void;
   setStreak: (studentId: string, streak: number) => void;
@@ -310,6 +347,8 @@ export const useStore = create<AppState>()(
           set({ hydrated: true, hydrationError: extractErrorMessage(err) });
           return;
         }
+        if (realtimeSubscribed) return;
+        realtimeSubscribed = true;
         subscribeRealtime({
           onStudent: (e, n, o) => set((s) => ({ students: applyArrayRow(s.students, e, rowToStudent, n, o) })),
           onRotation: (e, n, o) =>
@@ -382,6 +421,12 @@ export const useStore = create<AppState>()(
           ttsSettings: { rate: 1, voiceURI: null },
           createdAt: new Date().toISOString(),
           customTools: [],
+          coins: 0,
+          ownedAvatarIds: [avatar],
+          ownedEmoteIds: [...STARTER_EMOTE_IDS],
+          equippedEmoteId: null,
+          skipTokens: 0,
+          lastSpinDate: null,
         };
         set((s) => ({
           students: [...s.students, student],
@@ -395,6 +440,95 @@ export const useStore = create<AppState>()(
         set((s) => ({ students: s.students.map((st) => (st.id === id ? { ...st, ...patch } : st)) }));
         const updated = get().students.find((st) => st.id === id);
         if (updated) pushStudent(updated);
+      },
+
+      // Marketplace: spend coins to unlock an avatar or emote. Returns false
+      // (no-op) if already owned, unknown, or not enough coins, so callers
+      // can show "not enough coins" without duplicating the balance check.
+      buyAvatar: (studentId, avatarId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const item = avatarById(avatarId);
+        if (!student || !item) return false;
+        if (student.ownedAvatarIds.includes(avatarId)) return false;
+        if (student.coins < item.price) return false;
+        get().updateStudent(studentId, {
+          coins: student.coins - item.price,
+          ownedAvatarIds: [...student.ownedAvatarIds, avatarId],
+        });
+        return true;
+      },
+
+      buyEmote: (studentId, emoteId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const item = emoteById(emoteId);
+        if (!student || !item) return false;
+        if (student.ownedEmoteIds.includes(emoteId)) return false;
+        if (student.coins < item.price) return false;
+        get().updateStudent(studentId, {
+          coins: student.coins - item.price,
+          ownedEmoteIds: [...student.ownedEmoteIds, emoteId],
+        });
+        return true;
+      },
+
+      equipEmote: (studentId, emoteId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        if (emoteId && !student.ownedEmoteIds.includes(emoteId)) return;
+        get().updateStudent(studentId, { equippedEmoteId: emoteId });
+      },
+
+      buySkipToken: (studentId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student || student.coins < SKIP_TOKEN_PRICE) return false;
+        get().updateStudent(studentId, {
+          coins: student.coins - SKIP_TOKEN_PRICE,
+          skipTokens: student.skipTokens + 1,
+        });
+        return true;
+      },
+
+      // Crosses a task off using a Skip Pass instead of actually doing it.
+      // It still lands in completedTaskIds (so progress/unlock logic treats
+      // it the same as any other finished task), but also in
+      // skippedTaskIds, which the checklist renders distinctly (⏭️ not ✓)
+      // and the teacher's Live View shows the same way — a skip is always
+      // visible, never indistinguishable from real work. No coins are
+      // awarded for a skipped task.
+      skipTask: (studentId, subject, taskId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student || student.skipTokens <= 0) return false;
+        const prog = get().progress[studentId]?.[subject];
+        if (!prog || prog.completedTaskIds.includes(taskId)) return false;
+        get().updateStudent(studentId, { skipTokens: student.skipTokens - 1 });
+        set((s) => ({
+          progress: {
+            ...s.progress,
+            [studentId]: {
+              ...s.progress[studentId],
+              [subject]: {
+                ...prog,
+                completedTaskIds: [...prog.completedTaskIds, taskId],
+                skippedTaskIds: [...prog.skippedTaskIds, taskId],
+              },
+            },
+          },
+        }));
+        pushProgress(studentId, subject, get().progress[studentId][subject]);
+        return true;
+      },
+
+      spinDailyWheel: (studentId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return null;
+        const today = todayISO();
+        if (student.lastSpinDate === today) return null;
+        const outcome = DAILY_SPIN_OUTCOMES[Math.floor(Math.random() * DAILY_SPIN_OUTCOMES.length)];
+        const patch: Partial<Student> = { lastSpinDate: today };
+        if (outcome.type === 'coins') patch.coins = student.coins + outcome.amount;
+        else patch.skipTokens = student.skipTokens + outcome.amount;
+        get().updateStudent(studentId, patch);
+        return outcome;
       },
 
       deleteStudent: (id) => {
@@ -589,6 +723,9 @@ export const useStore = create<AppState>()(
         });
         pushProgress(studentId, subject, get().progress[studentId][subject]);
 
+        const coinEarner = get().students.find((st) => st.id === studentId);
+        if (coinEarner) get().updateStudent(studentId, { coins: coinEarner.coins + COINS_PER_TASK });
+
         // lifetime completion count -> practice-makes-progress badge
         const key = `${studentId}:${taskId}`;
         const count = (get().taskCompletionCounts[key] ?? 0) + 1;
@@ -637,6 +774,7 @@ export const useStore = create<AppState>()(
           const sp = s.progress[studentId][subject];
           if (!sp.completedTaskIds.includes(taskId)) return {};
           const completedTaskIds = sp.completedTaskIds.filter((id) => id !== taskId);
+          const skippedTaskIds = sp.skippedTaskIds.filter((id) => id !== taskId);
           const subjectComplete = finalCheckTask
             ? completedTaskIds.includes(finalCheckTask.id)
             : completedTaskIds.length >= tasks.length;
@@ -645,7 +783,7 @@ export const useStore = create<AppState>()(
               ...s.progress,
               [studentId]: {
                 ...s.progress[studentId],
-                [subject]: { ...sp, completedTaskIds, subjectComplete, completedAt: subjectComplete ? sp.completedAt : undefined },
+                [subject]: { ...sp, completedTaskIds, skippedTaskIds, subjectComplete, completedAt: subjectComplete ? sp.completedAt : undefined },
               },
             },
           };

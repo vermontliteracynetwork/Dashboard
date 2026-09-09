@@ -224,6 +224,13 @@ alter table students add column if not exists custom_tools jsonb not null defaul
 alter table offscreen_reviews add column if not exists photo_url text;
 alter table badges add column if not exists rule jsonb;
 alter table student_meta add column if not exists badge_counters jsonb not null default '{}';
+alter table students add column if not exists coins int not null default 0;
+alter table students add column if not exists owned_avatar_ids jsonb not null default '[]';
+alter table students add column if not exists owned_emote_ids jsonb not null default '[]';
+alter table students add column if not exists equipped_emote_id text;
+alter table students add column if not exists skip_tokens int not null default 0;
+alter table students add column if not exists last_spin_date date;
+alter table subject_progress add column if not exists skipped_task_ids jsonb not null default '[]';
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference

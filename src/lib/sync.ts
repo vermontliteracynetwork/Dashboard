@@ -20,6 +20,7 @@ import type {
   WeeklyScheduleEntry,
   Assignment,
 } from '../types';
+import { STARTER_EMOTE_IDS } from './emoteCatalog';
 
 // ---------------------------------------------------------------------------
 // Row <-> app-shape mapping
@@ -40,6 +41,15 @@ const rowToStudent = (r: Row): Student => ({
   createdAt: r.created_at,
   playgroundThreshold: r.playground_threshold ?? 4,
   customTools: r.custom_tools ?? [],
+  coins: r.coins ?? 0,
+  // Grandfather in whatever avatar a student already had before this
+  // marketplace system existed, so nobody who already picked an avatar
+  // loses access to it.
+  ownedAvatarIds: r.owned_avatar_ids && r.owned_avatar_ids.length > 0 ? r.owned_avatar_ids : [r.avatar],
+  ownedEmoteIds: r.owned_emote_ids && r.owned_emote_ids.length > 0 ? r.owned_emote_ids : [...STARTER_EMOTE_IDS],
+  equippedEmoteId: r.equipped_emote_id ?? null,
+  skipTokens: r.skip_tokens ?? 0,
+  lastSpinDate: r.last_spin_date ?? null,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -56,12 +66,19 @@ const studentToRow = (s: Student): Row => ({
   created_at: s.createdAt,
   playground_threshold: s.playgroundThreshold,
   custom_tools: s.customTools,
+  coins: s.coins,
+  owned_avatar_ids: s.ownedAvatarIds,
+  owned_emote_ids: s.ownedEmoteIds,
+  equipped_emote_id: s.equippedEmoteId,
+  skip_tokens: s.skipTokens,
+  last_spin_date: s.lastSpinDate,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
   date: r.date,
   activeIndex: r.active_index,
   completedTaskIds: r.completed_task_ids ?? [],
+  skippedTaskIds: r.skipped_task_ids ?? [],
   quizState: r.quiz_state ?? {},
   sessionRitualSeen: r.session_ritual_seen,
   subjectComplete: r.subject_complete,
@@ -74,6 +91,7 @@ const progressToRow = (studentId: string, subject: Subject, p: SubjectProgress):
   date: p.date,
   active_index: p.activeIndex,
   completed_task_ids: p.completedTaskIds,
+  skipped_task_ids: p.skippedTaskIds,
   quiz_state: p.quizState,
   session_ritual_seen: p.sessionRitualSeen,
   subject_complete: p.subjectComplete,

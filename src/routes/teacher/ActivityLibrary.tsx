@@ -4,6 +4,7 @@ import QuizEditor from './QuizEditor';
 import DrillEditor from './DrillEditor';
 import StepsEditor from './StepsEditor';
 import ImageUploadField from '../../components/ImageUploadField';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
 import type { Subject, Task, TaskType, ActivityLibraryItem } from '../../types';
 import { TASK_TYPE_LABELS } from '../../types';
@@ -607,7 +608,7 @@ export function ActivityLibraryBrowse({
                               {students.map((st) => (
                                 <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
                                   <input type="checkbox" checked={addToIds.includes(st.id)} onChange={() => toggleAddTarget(st.id)} />
-                                  {st.avatar} {st.name}
+                                  <AvatarGlyph value={st.avatar} size={18} /> {st.name}
                                 </label>
                               ))}
                             </div>

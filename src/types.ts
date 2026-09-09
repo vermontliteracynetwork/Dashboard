@@ -77,6 +77,12 @@ export interface Student {
   createdAt: string;
   playgroundThreshold: number; // activities completed today needed to unlock the Playground (repeatable)
   customTools: CustomTool[]; // teacher-added external link tools (e.g. Amplify, Polypad, research links)
+  coins: number; // marketplace currency, earned by completing tasks
+  ownedAvatarIds: string[]; // avatar catalog ids this student has unlocked/purchased
+  ownedEmoteIds: string[]; // emote catalog ids this student has unlocked/purchased
+  equippedEmoteId: string | null; // currently displayed emote, if any
+  skipTokens: number; // "skip pass" count, purchased in the marketplace; lets a student cross off one task without doing it
+  lastSpinDate: string | null; // ISO date of the last daily-wheel spin, so it's once per day
 }
 
 export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit';
@@ -323,6 +329,7 @@ export interface SubjectProgress {
   sessionRitualSeen: boolean;
   subjectComplete: boolean;
   completedAt?: string; // ISO timestamp when subjectComplete first became true today — drives the timed Playground unlock
+  skippedTaskIds: string[]; // subset of completedTaskIds crossed off with a Skip Pass instead of actually done — kept visible to the teacher, not hidden
 }
 
 export type ProgressMap = Record<string, Record<Subject, SubjectProgress>>; // studentId -> subject -> progress

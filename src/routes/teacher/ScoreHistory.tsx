@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import type { Subject } from '../../types';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.round(ms / 1000);
@@ -51,7 +52,7 @@ export default function ScoreHistory() {
           <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
             <option value="all">All students</option>
             {students.map((st) => (
-              <option key={st.id} value={st.id}>{st.avatar} {st.name}</option>
+              <option key={st.id} value={st.id}>{st.name}</option>
             ))}
           </select>
           <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value as 'all' | Subject)}>
@@ -69,7 +70,7 @@ export default function ScoreHistory() {
               const pct = a.totalCount > 0 ? Math.round((a.correctCount / a.totalCount) * 100) : 0;
               return (
                 <div key={a.id} className="score-row">
-                  <span className="score-avatar">{avatarFor(a.studentId)}</span>
+                  <span className="score-avatar"><AvatarGlyph value={avatarFor(a.studentId)} /></span>
                   <div className="score-body">
                     <div className="score-title">{nameFor(a.studentId)} — {a.taskTitle}</div>
                     <div className="score-meta">

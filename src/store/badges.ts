@@ -1,4 +1,5 @@
 import type { BadgeDef, ToolKey } from '../types';
+import { BLOCKY_AVATARS } from '../lib/avatarCatalog';
 
 // Starting badge taxonomy (doc section 12) — teacher-editable from here on.
 export const DEFAULT_BADGES: BadgeDef[] = [
@@ -22,7 +23,5 @@ export const DEFAULT_FEATURE_TOGGLES: Record<ToolKey, boolean> = {
   soundWall: true,
 };
 
-export const AVATAR_OPTIONS: string[] = [
-  '🦊', '🐨', '🐸', '🦁', '🐯', '🐼', '🐵', '🐰', '🐻', '🦄',
-  '🐙', '🐢', '🦋', '🐳', '🦖', '🐝', '🐧', '🦉', '🐶', '🐱',
-];
+export const AVATAR_CATALOG = BLOCKY_AVATARS;
+export const AVATAR_OPTIONS: string[] = BLOCKY_AVATARS.map((a) => a.id);

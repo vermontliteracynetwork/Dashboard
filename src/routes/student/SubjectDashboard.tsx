@@ -15,6 +15,7 @@ import HelpOverlay from '../../components/HelpOverlay';
 import WhatNowOverlay from '../../components/WhatNowOverlay';
 import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
+import AvatarWithEmote from '../../components/AvatarWithEmote';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -29,6 +30,7 @@ export default function SubjectDashboard() {
   const progress = useStore((s) => s.progress);
   const completeTask = useStore((s) => s.completeTask);
   const uncompleteTask = useStore((s) => s.uncompleteTask);
+  const skipTask = useStore((s) => s.skipTask);
   const markOffscreenDone = useStore((s) => s.markOffscreenDone);
 
   const [showHelp, setShowHelp] = useState(false);
@@ -192,7 +194,10 @@ export default function SubjectDashboard() {
       )}
 
       <div className="subject-header space-between">
-        <h2 style={{ margin: 0 }}>{subj === 'math' ? '🔢 Math' : '📚 Literacy'}</h2>
+        <div className="row">
+          <AvatarWithEmote student={student} size={48} />
+          <h2 style={{ margin: 0 }}>{subj === 'math' ? '🔢 Math' : '📚 Literacy'}</h2>
+        </div>
         <div className="row-wrap">
           {activeTask && (
             <button
@@ -244,6 +249,9 @@ export default function SubjectDashboard() {
             onCheck={checkOff}
             onReopenLink={reopenActivityLink}
             onUncheck={uncheckTask}
+            skippedIds={new Set(prog.skippedTaskIds)}
+            skipTokens={student.skipTokens}
+            onSkip={(task) => skipTask(student.id, subj, task.id)}
           />
 
           {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (

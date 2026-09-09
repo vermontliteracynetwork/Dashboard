@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 
 type InboxItem =
   | { kind: 'help'; id: string; studentId: string; timestamp: string; done: boolean }
@@ -51,7 +52,7 @@ export default function ReviewInbox() {
           <div className="inbox-list">
             {items.map((item) => (
               <div key={`${item.kind}-${item.id}`} className={`inbox-row ${item.done ? 'inbox-row-done' : ''}`}>
-                <span className="inbox-avatar">{avatarFor(item.studentId)}</span>
+                <span className="inbox-avatar"><AvatarGlyph value={avatarFor(item.studentId)} /></span>
                 {item.kind === 'offscreen' && item.photoUrl && (
                   <button
                     className="inbox-photo-thumb"

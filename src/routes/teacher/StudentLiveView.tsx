@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
+import AvatarWithEmote from '../../components/AvatarWithEmote';
 import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import { nextRequiredTaskId } from '../../lib/taskOrder';
@@ -47,7 +48,10 @@ export default function StudentLiveView() {
       <TeacherNav />
       <div className="container stack">
         <div className="space-between">
-          <h1>{student.avatar} {student.name} — Live View</h1>
+          <div className="row">
+            <AvatarWithEmote student={student} size={48} readOnly />
+            <h1 style={{ margin: 0 }}>{student.name} — Live View</h1>
+          </div>
           <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
         </div>
         <p style={{ opacity: 0.75, fontSize: '0.85rem' }}>
@@ -85,6 +89,7 @@ export default function StudentLiveView() {
                 onCheck={() => {}}
                 onReopenLink={() => {}}
                 onUncheck={() => {}}
+                skippedIds={new Set(prog.skippedTaskIds)}
               />
             </div>
           </>

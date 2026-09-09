@@ -8,6 +8,7 @@ import { parseCSV, downloadCSV } from '../../lib/csv';
 import { rowsToQuizQuestions, rowsToDrillCards, QUIZ_TEMPLATE_ROWS, DRILL_TEMPLATE_ROWS } from '../../lib/importQuestions';
 import { currentDayOfWeek, formatDateLong, todayISO } from '../../lib/dates';
 import { enforceFinalCheckLast } from '../../lib/taskOrder';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 import type { Subject, Task, QuizQuestion, DrillCard, DayOfWeek } from '../../types';
 import { WEEKDAYS, WEEKDAY_SHORT, WEEKDAY_LABELS } from '../../types';
 
@@ -381,7 +382,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
                           {students.map((st) => (
                             <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700 }}>
                               <input type="checkbox" checked={applyToIds.includes(st.id)} onChange={() => toggleApplyTarget(st.id)} />
-                              {st.avatar} {st.name}
+                              <AvatarGlyph value={st.avatar} size={18} /> {st.name}
                             </label>
                           ))}
                         </div>
@@ -710,7 +711,7 @@ export default function LessonPlanBuilder() {
       <TeacherNav />
       <div className="container stack">
         <div className="space-between">
-          <h1>{student.avatar} {student.name} — Assignments</h1>
+          <h1><AvatarGlyph value={student.avatar} size={32} /> {student.name} — Assignments</h1>
           <div className="row-wrap">
             <button className="btn btn-sm btn-primary" onClick={() => navigate('/teacher/assignments')}>📋 All Assignments</button>
             <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>

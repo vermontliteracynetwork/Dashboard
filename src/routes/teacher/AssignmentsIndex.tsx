@@ -4,6 +4,7 @@ import TeacherNav from '../../components/TeacherNav';
 import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { StudentPlanTabs } from './LessonPlanBuilder';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 import type { EditingPlan } from './NewDailyPlanBuilder';
 import { formatDateLong, todayISO } from '../../lib/dates';
 import { sortForDisplay } from '../../lib/taskOrder';
@@ -148,7 +149,7 @@ function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () 
         </div>
         <div className="assignment-card-students">
           {studentList.map((st) => (
-            <span key={st.id} title={st.name}>{st.avatar}</span>
+            <span key={st.id} title={st.name}><AvatarGlyph value={st.avatar} size={22} /></span>
           ))}
           <span className="assignment-card-count">
             {studentList.length} student{studentList.length === 1 ? '' : 's'}
@@ -221,7 +222,7 @@ function AssignmentDetailModal({
           <strong>Assigned to</strong>
           <div className="row-wrap">
             {studentList.map((st) => (
-              <span key={st.id} className="tag-pill">{st.avatar} {st.name}</span>
+              <span key={st.id} className="tag-pill"><AvatarGlyph value={st.avatar} size={18} /> {st.name}</span>
             ))}
           </div>
 
@@ -424,7 +425,7 @@ export default function AssignmentsIndex() {
                     className={`btn btn-sm ${selectedStudentId === st.id ? 'btn-primary' : ''}`}
                     onClick={() => setSelectedStudentId(st.id)}
                   >
-                    {st.avatar} {st.name}
+                    <AvatarGlyph value={st.avatar} size={18} /> {st.name}
                   </button>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 
 export default function StudentLogin() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export default function StudentLogin() {
                 aria-label={st.name}
                 title={st.name}
               >
-                <span>{st.avatar}</span>
+                <span><AvatarGlyph value={st.avatar} size={56} /></span>
                 <span style={{ fontSize: '1rem', fontFamily: "'Baloo 2', sans-serif" }}>{st.name}</span>
               </button>
             ))}

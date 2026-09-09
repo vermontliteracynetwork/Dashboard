@@ -8,7 +8,11 @@ import { todayISO } from '../../lib/dates';
 import { getPlaygroundAccess } from '../../lib/playgroundAccess';
 import BreakTimer from '../../components/BreakTimer';
 import { playCalmChime } from '../../lib/chime';
-import { AVATAR_OPTIONS } from '../../store/badges';
+import { AVATAR_CATALOG } from '../../store/badges';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
+import Marketplace from '../../components/Marketplace';
+import AvatarWithEmote from '../../components/AvatarWithEmote';
+import DailySpinWheel from '../../components/DailySpinWheel';
 
 export default function StudentHome() {
   const navigate = useNavigate();
@@ -26,6 +30,8 @@ export default function StudentHome() {
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
+  const [showMarketplace, setShowMarketplace] = useState(false);
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
   const updateStudent = useStore((s) => s.updateStudent);
   const [, setTick] = useState(0);
 
@@ -118,60 +124,89 @@ export default function StudentHome() {
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>Pick your avatar!</h2>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
-                {AVATAR_OPTIONS.map((a) => (
+                {AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id)).map((a) => (
                   <button
-                    key={a}
-                    className="avatar-btn"
+                    key={a.id}
+                    className="avatar-btn stack"
                     style={{
-                      width: 66,
-                      height: 66,
-                      fontSize: '2rem',
-                      outline: a === student.avatar ? '4px solid var(--purple)' : 'none',
+                      width: 76,
+                      height: 82,
+                      flexDirection: 'column',
+                      gap: 2,
+                      outline: a.id === student.avatar ? '4px solid var(--purple)' : 'none',
                     }}
+                    aria-label={a.name}
                     onClick={() => {
-                      updateStudent(student.id, { avatar: a });
+                      updateStudent(student.id, { avatar: a.id });
                       setShowAvatarPicker(false);
                     }}
                   >
-                    {a}
+                    <AvatarGlyph value={a.id} size={44} />
+                    <span style={{ fontSize: '0.64rem', fontWeight: 700, lineHeight: 1.1 }}>{a.name}</span>
                   </button>
                 ))}
               </div>
+              <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+                Want more characters? Visit the 🛍️ Marketplace!
+              </p>
               <button className="btn btn-sm" onClick={() => setShowAvatarPicker(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
+      {showMarketplace && <Marketplace studentId={student.id} onClose={() => setShowMarketplace(false)} />}
+      {showSpinWheel && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
+
       <div className="chrome-frame space-between" style={{ padding: '18px 24px' }}>
         <div className="row">
-          <button
-            className="avatar-btn"
-            style={{ width: 70, height: 70, fontSize: '2.2rem' }}
-            onClick={() => setShowAvatarPicker(true)}
-            title="Tap to change your avatar"
-            aria-label="Change your avatar"
-          >
-            {student.avatar}
-          </button>
+          <AvatarWithEmote student={student} size={70} onChangeAvatar={() => setShowAvatarPicker(true)} />
           <div>
             <h2 style={{ margin: 0 }}>Hi, {student.name}! 👋</h2>
-            {!student.streakHidden && (
-              <div className="row" style={{ gap: 6 }}>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {!student.streakHidden && (
                 <div className="tag-pill" style={{ background: 'var(--yellow)' }}>
                   🔥 {student.streak}-day streak
                 </div>
-                <button
-                  className="btn btn-sm"
-                  style={{ padding: '4px 8px' }}
-                  onClick={() => setShowBadges(true)}
-                  aria-label="Your badges"
-                  title="Your badges"
-                >
-                  🏅
-                </button>
-              </div>
-            )}
+              )}
+              <button
+                className="tag-pill"
+                style={{ background: 'var(--yellow)', border: 'none', cursor: 'pointer', minHeight: 44 }}
+                onClick={() => setShowMarketplace(true)}
+                aria-label={`${student.coins} coins — open Marketplace`}
+              >
+                🪙 {student.coins}
+              </button>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
+                onClick={() => setShowBadges(true)}
+                aria-label="Your badges"
+              >
+                🏅 Badges
+              </button>
+              <button
+                className="btn btn-sm"
+                style={{
+                  minHeight: 44,
+                  minWidth: 44,
+                  padding: '4px 10px',
+                  outline: student.lastSpinDate !== todayISO() ? '3px solid var(--purple)' : 'none',
+                }}
+                onClick={() => setShowSpinWheel(true)}
+                aria-label="Daily Spin"
+              >
+                🎡 Spin
+              </button>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
+                onClick={() => setShowMarketplace(true)}
+                aria-label="Marketplace"
+              >
+                🛍️ Shop
+              </button>
+            </div>
           </div>
         </div>
         <button className="btn btn-sm" onClick={() => { logoutStudent(); navigate('/'); }}>

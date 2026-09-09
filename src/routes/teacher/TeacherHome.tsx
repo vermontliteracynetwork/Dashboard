@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 import type { StudentStatus } from '../../types';
 
 const STATUS_META: Record<StudentStatus, { label: string; dot: string }> = {
@@ -46,7 +47,7 @@ export default function TeacherHome() {
             return (
               <div key={st.id} className="chrome-frame space-between" style={{ padding: 18 }}>
                 <div className="row">
-                  <span className="avatar-sm" style={{ width: 60, height: 60, fontSize: '2rem' }}>{st.avatar}</span>
+                  <span className="avatar-sm" style={{ width: 60, height: 60 }}><AvatarGlyph value={st.avatar} /></span>
                   <div>
                     <div className="row">
                       <strong>{st.name}</strong>

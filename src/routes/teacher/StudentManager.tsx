@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { AVATAR_OPTIONS } from '../../store/badges';
+import { AVATAR_CATALOG } from '../../store/badges';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
 import { ALL_TOOL_KEYS, TOOL_LABELS } from '../../types';
 import type { CustomTool, Subject, Student } from '../../types';
@@ -56,19 +57,13 @@ function CustomToolsEditor({ student }: { student: Student }) {
 function AddStudentForm() {
   const addStudent = useStore((s) => s.addStudent);
   const [name, setName] = useState('');
-  const [avatar, setAvatar] = useState(AVATAR_OPTIONS[0]);
+  const [avatar, setAvatar] = useState(AVATAR_CATALOG[0].id);
 
   return (
     <div className="chrome-frame stack" style={{ padding: 18 }}>
       <h3 style={{ marginTop: 0 }}>➕ Add a Student</h3>
       <div className="row-wrap">
         <input placeholder="Student's name" value={name} onChange={(e) => setName(e.target.value)} />
-        <select value={avatar} onChange={(e) => setAvatar(e.target.value)}>
-          {AVATAR_OPTIONS.map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
-        <span className="avatar-sm">{avatar}</span>
         <button
           className="btn btn-primary"
           disabled={!name.trim()}
@@ -79,6 +74,26 @@ function AddStudentForm() {
         >
           Add Student
         </button>
+      </div>
+      <div className="row-wrap">
+        {AVATAR_CATALOG.map((a) => (
+          <button
+            key={a.id}
+            className="avatar-sm stack"
+            style={{
+              width: 62,
+              height: 68,
+              flexDirection: 'column',
+              gap: 2,
+              outline: a.id === avatar ? '3px solid var(--purple)' : 'none',
+            }}
+            aria-label={a.name}
+            onClick={() => setAvatar(a.id)}
+          >
+            <AvatarGlyph value={a.id} size={36} />
+            <span style={{ fontSize: '0.58rem', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{a.name}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -103,7 +118,7 @@ export default function StudentManager() {
           <div key={st.id} className="chrome-frame stack" style={{ padding: 18 }}>
             <div className="space-between">
               <div className="row">
-                <span className="avatar-sm" style={{ width: 56, height: 56, fontSize: '1.8rem' }}>{st.avatar}</span>
+                <span className="avatar-sm" style={{ width: 56, height: 56 }}><AvatarGlyph value={st.avatar} /></span>
                 <strong>{st.name}</strong>
               </div>
               <div className="row-wrap">
@@ -131,11 +146,26 @@ export default function StudentManager() {
                   </div>
                   <div>
                     <label>Avatar</label>
-                    <select value={st.avatar} onChange={(e) => updateStudent(st.id, { avatar: e.target.value })}>
-                      {AVATAR_OPTIONS.map((a) => (
-                        <option key={a} value={a}>{a}</option>
+                    <div className="row-wrap">
+                      {AVATAR_CATALOG.map((a) => (
+                        <button
+                          key={a.id}
+                          className="avatar-sm stack"
+                          style={{
+                            width: 56,
+                            height: 62,
+                            flexDirection: 'column',
+                            gap: 2,
+                            outline: a.id === st.avatar ? '3px solid var(--purple)' : 'none',
+                          }}
+                          aria-label={a.name}
+                          onClick={() => updateStudent(st.id, { avatar: a.id })}
+                        >
+                          <AvatarGlyph value={a.id} size={32} />
+                          <span style={{ fontSize: '0.56rem', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{a.name}</span>
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
                   <div>
                     <label>Streak</label>

@@ -14,15 +14,36 @@ interface Props {
   onCheck: (task: Task) => void;
   onReopenLink: (task: Task) => void; // "Not yet" on a link's confirm dialog: close the old tab, open a fresh one
   onUncheck: (task: Task) => void;
+  // Skip Pass (all three optional — omit to hide the feature entirely, e.g.
+  // on the teacher's read-only Live View): which tasks were crossed off
+  // with a pass rather than actually done, how many the student has left,
+  // and what to call when they use one.
+  skippedIds?: Set<string>;
+  skipTokens?: number;
+  onSkip?: (task: Task) => void;
 }
 
-export default function TaskChecklist({ student, tasks, completedIds, openedIds, onOpen, onCheck, onReopenLink, onUncheck }: Props) {
+export default function TaskChecklist({
+  student,
+  tasks,
+  completedIds,
+  openedIds,
+  onOpen,
+  onCheck,
+  onReopenLink,
+  onUncheck,
+  skippedIds,
+  skipTokens,
+  onSkip,
+}: Props) {
   const [stepsForTaskId, setStepsForTaskId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [uncheckingId, setUncheckingId] = useState<string | null>(null);
+  const [skipConfirmId, setSkipConfirmId] = useState<string | null>(null);
   const stepsTask = tasks.find((t) => t.id === stepsForTaskId) ?? null;
   const confirmingTask = tasks.find((t) => t.id === confirmingId) ?? null;
   const uncheckingTask = tasks.find((t) => t.id === uncheckingId) ?? null;
+  const skipConfirmTask = tasks.find((t) => t.id === skipConfirmId) ?? null;
   const nextRequiredId = nextRequiredTaskId(tasks, completedIds);
   const ordered = sortForDisplay(tasks);
 
@@ -109,8 +130,39 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
         </div>
       )}
 
+      {skipConfirmTask && (
+        <div className="overlay-backdrop" onClick={() => setSkipConfirmId(null)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h3 style={{ margin: 0 }}>Use a Skip Pass?</h3>
+              <p style={{ margin: 0 }}>
+                🎫 This crosses off "{skipConfirmTask.title}" without doing it. Your teacher can still see it was skipped.
+              </p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={() => {
+                    try {
+                      onSkip?.(skipConfirmTask);
+                    } finally {
+                      setSkipConfirmId(null);
+                    }
+                  }}
+                >
+                  🎫 Yes, skip it
+                </button>
+                <button className="btn btn-lg" onClick={() => setSkipConfirmId(null)}>
+                  Never mind
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {ordered.map((t) => {
         const done = completedIds.includes(t.id);
+        const skipped = skippedIds?.has(t.id) ?? false;
         const locked = isTaskLocked(t, tasks, completedIds);
         const isCurrent = !locked && !done && t.order != null && t.id === nextRequiredId;
         // Must have actually opened the activity — being "current" pulses the
@@ -137,20 +189,32 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
               className={`checklist-check-btn ${done ? 'checked' : ''}`}
               disabled={locked || (!done && !opened)}
               onClick={handleClick}
-              aria-label={done ? 'Completed — tap to unmark' : opened ? (directComplete ? 'Mark as complete' : 'Finish the activity below') : 'Open this activity first'}
+              aria-label={
+                skipped
+                  ? 'Skipped — tap to undo'
+                  : done
+                    ? 'Completed — tap to unmark'
+                    : opened
+                      ? directComplete
+                        ? 'Mark as complete'
+                        : 'Finish the activity below'
+                      : 'Open this activity first'
+              }
               title={
-                done
-                  ? 'Completed — tap to unmark'
-                  : locked
-                    ? 'Not unlocked yet'
-                    : !opened
-                      ? '👈 Open this activity first'
-                      : directComplete
-                        ? 'Tap when finished'
-                        : 'Finish the activity below to check this off'
+                skipped
+                  ? 'Skipped with a Skip Pass — tap to undo'
+                  : done
+                    ? 'Completed — tap to unmark'
+                    : locked
+                      ? 'Not unlocked yet'
+                      : !opened
+                        ? '👈 Open this activity first'
+                        : directComplete
+                          ? 'Tap when finished'
+                          : 'Finish the activity below to check this off'
               }
             >
-              {done ? '✓' : locked ? '🔒' : ''}
+              {skipped ? '⏭️' : done ? '✓' : locked ? '🔒' : ''}
             </button>
 
             <button
@@ -165,7 +229,20 @@ export default function TaskChecklist({ student, tasks, completedIds, openedIds,
             <button className="checklist-title-btn2" disabled={locked} onClick={() => !locked && onOpen(t.id)}>
               {t.title || '(untitled)'}
               {t.isFinalCheck && <span title="Final Check"> 🏁</span>}
+              {skipped && <span className="tag-pill" style={{ marginLeft: 6, fontSize: '0.7rem', background: 'var(--orange)' }}>⏭️ Skipped</span>}
             </button>
+
+            {isCurrent && onSkip && (skipTokens ?? 0) > 0 && (
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44 }}
+                onClick={() => setSkipConfirmId(t.id)}
+                aria-label={`Use a Skip Pass on ${t.title}`}
+                title={`Skip Passes left: ${skipTokens}`}
+              >
+                🎫 Skip
+              </button>
+            )}
 
             <button
               className="checklist-icon-btn"
