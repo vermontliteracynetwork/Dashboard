@@ -17,6 +17,8 @@ import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
 import PlaygroundManager from './routes/teacher/PlaygroundManager';
 import BadgeManager from './routes/teacher/BadgeManager';
+import MarketplaceManager from './routes/teacher/MarketplaceManager';
+import TeacherStudentBank from './routes/teacher/TeacherStudentBank';
 import ScoreHistory from './routes/teacher/ScoreHistory';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
@@ -83,6 +85,8 @@ export default function App() {
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
             <Route path="/teacher/playground" element={<PlaygroundManager />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />
+            <Route path="/teacher/marketplace" element={<MarketplaceManager />} />
+            <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />
             <Route path="/teacher/scores" element={<ScoreHistory />} />
           </Route>
         </Routes>

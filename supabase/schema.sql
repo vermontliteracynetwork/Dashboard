@@ -282,6 +282,39 @@ alter table badges add column if not exists reward_cents int;
 alter table activity_library add column if not exists sentence_builder jsonb;
 alter table activity_library add column if not exists link_choice jsonb;
 alter table activity_library add column if not exists tags jsonb not null default '[]';
+alter table students add column if not exists owned_font_ids jsonb not null default '[]';
+alter table students add column if not exists equipped_font_id text;
+alter table students add column if not exists owned_color_ids jsonb not null default '[]';
+alter table students add column if not exists equipped_color_id text;
+alter table students add column if not exists owned_voice_ids jsonb not null default '[]';
+alter table students add column if not exists equipped_voice_id text;
+alter table students add column if not exists owned_prize_ids jsonb not null default '[]';
+
+-- Notes word processor: one row per saved note, replacing the old
+-- single-blob scratch_text (still present in student_meta, untouched, so
+-- nothing existing breaks — the Notes tool just no longer reads/writes it).
+create table if not exists notes (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  title text not null default '',
+  body text not null default '',
+  font_id text,
+  color_id text,
+  updated_at timestamptz not null default now()
+);
+
+-- Teacher-defined, open-ended marketplace prizes ("10 min free time," "a
+-- pet," a piece for a build). Buying one just deducts cost and logs a
+-- redemption for the teacher to fulfill — no further app logic needed.
+create table if not exists custom_prizes (
+  id text primary key,
+  category text not null,
+  name text not null,
+  icon text not null default '🎁',
+  price int not null default 0,
+  description text,
+  created_at timestamptz not null default now()
+);
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference
@@ -321,7 +354,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'custom_prizes'
   ];
 begin
   foreach t in array tables loop
@@ -364,7 +397,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'custom_prizes'
   ];
 begin
   foreach t in array tables loop

@@ -1,0 +1,186 @@
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useStore } from '../../store/store';
+import TeacherNav from '../../components/TeacherNav';
+import AvatarWithEmote from '../../components/AvatarWithEmote';
+import { formatMoney, dollarsToCents } from '../../lib/money';
+
+function isImagePath(icon: string): boolean {
+  return icon.startsWith('/');
+}
+
+export default function TeacherStudentBank() {
+  const { studentId } = useParams<{ studentId: string }>();
+  const navigate = useNavigate();
+  const students = useStore((s) => s.students);
+  const transactions = useStore((s) => s.transactions);
+  const adjustStudentBalance = useStore((s) => s.adjustStudentBalance);
+  const setStudentBalance = useStore((s) => s.setStudentBalance);
+
+  const [addAmount, setAddAmount] = useState('5.00');
+  const [addReason, setAddReason] = useState('');
+  const [subAmount, setSubAmount] = useState('5.00');
+  const [subReason, setSubReason] = useState('');
+  const [exactAmount, setExactAmount] = useState('');
+  const [exactReason, setExactReason] = useState('');
+  const [confirmSet, setConfirmSet] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
+
+  const student = students.find((s) => s.id === studentId);
+
+  if (!student) {
+    return (
+      <div className="app-shell">
+        <TeacherNav />
+        <div className="container">
+          <p>Student not found.</p>
+          <button className="btn" onClick={() => navigate('/teacher')}>← Back to Overview</button>
+        </div>
+      </div>
+    );
+  }
+
+  const register = transactions.filter((t) => t.studentId === student.id).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const showFlash = (msg: string) => {
+    setFlash(msg);
+    window.setTimeout(() => setFlash(null), 2000);
+  };
+
+  return (
+    <div className="app-shell">
+      <TeacherNav />
+      <div className="container stack">
+        <div className="space-between">
+          <div className="row">
+            <AvatarWithEmote student={student} size={48} readOnly />
+            <h1 style={{ margin: 0 }}>{student.name}'s Piggy Bank</h1>
+          </div>
+          <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
+        </div>
+
+        <div
+          className="stack"
+          style={{
+            alignItems: 'center',
+            gap: 4,
+            background: 'linear-gradient(180deg, var(--purple), var(--purple-dark))',
+            borderRadius: 18,
+            padding: '20px 16px',
+            color: '#fff',
+          }}
+        >
+          <span style={{ fontSize: '0.8rem', opacity: 0.85, fontWeight: 700, letterSpacing: 0.5 }}>CURRENT BALANCE</span>
+          <span style={{ fontSize: '2.4rem', fontWeight: 800 }}>{formatMoney(student.coins)}</span>
+        </div>
+
+        {flash && (
+          <div className="content-well" style={{ background: '#e8fff0', textAlign: 'center', fontWeight: 700, color: 'var(--success)' }}>
+            ✅ {flash}
+          </div>
+        )}
+
+        <div className="row-wrap" style={{ alignItems: 'flex-start' }}>
+          <div className="chrome-frame stack" style={{ padding: 16, flex: 1, minWidth: 240 }}>
+            <h3 style={{ marginTop: 0 }}>💰 Give a bonus</h3>
+            <div className="row" style={{ gap: 4 }}>
+              <span>$</span>
+              <input type="number" min={0} step={0.25} value={addAmount} onChange={(e) => setAddAmount(e.target.value)} style={{ width: 90 }} />
+            </div>
+            <input value={addReason} onChange={(e) => setAddReason(e.target.value)} placeholder="Reason (optional)" />
+            <button
+              className="btn btn-success"
+              onClick={() => {
+                const cents = dollarsToCents(parseFloat(addAmount) || 0);
+                if (cents <= 0) return;
+                adjustStudentBalance(student.id, cents, addReason.trim() || 'Bonus from your teacher');
+                setAddReason('');
+                showFlash(`Added ${formatMoney(cents)}`);
+              }}
+            >
+              ➕ Add to balance
+            </button>
+          </div>
+
+          <div className="chrome-frame stack" style={{ padding: 16, flex: 1, minWidth: 240 }}>
+            <h3 style={{ marginTop: 0 }}>➖ Subtract</h3>
+            <div className="row" style={{ gap: 4 }}>
+              <span>$</span>
+              <input type="number" min={0} step={0.25} value={subAmount} onChange={(e) => setSubAmount(e.target.value)} style={{ width: 90 }} />
+            </div>
+            <input value={subReason} onChange={(e) => setSubReason(e.target.value)} placeholder="Reason (optional)" />
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                const cents = dollarsToCents(parseFloat(subAmount) || 0);
+                if (cents <= 0) return;
+                adjustStudentBalance(student.id, -cents, subReason.trim() || 'Balance adjusted by your teacher');
+                setSubReason('');
+                showFlash(`Subtracted ${formatMoney(cents)}`);
+              }}
+            >
+              ➖ Subtract from balance
+            </button>
+          </div>
+
+          <div className="chrome-frame stack" style={{ padding: 16, flex: 1, minWidth: 240 }}>
+            <h3 style={{ marginTop: 0 }}>✏️ Set exact balance</h3>
+            <div className="row" style={{ gap: 4 }}>
+              <span>$</span>
+              <input type="number" min={0} step={0.25} value={exactAmount} onChange={(e) => setExactAmount(e.target.value)} placeholder={(student.coins / 100).toFixed(2)} style={{ width: 90 }} />
+            </div>
+            <input value={exactReason} onChange={(e) => setExactReason(e.target.value)} placeholder="Reason (optional)" />
+            {confirmSet ? (
+              <div className="row-wrap">
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={() => {
+                    const cents = dollarsToCents(parseFloat(exactAmount) || 0);
+                    setStudentBalance(student.id, cents, exactReason.trim() || 'Balance set by your teacher');
+                    setExactAmount('');
+                    setExactReason('');
+                    setConfirmSet(false);
+                    showFlash(`Balance set to ${formatMoney(cents)}`);
+                  }}
+                >
+                  Confirm — set to ${exactAmount || '0.00'}
+                </button>
+                <button className="btn btn-sm" onClick={() => setConfirmSet(false)}>Cancel</button>
+              </div>
+            ) : (
+              <button className="btn" disabled={!exactAmount} onClick={() => setConfirmSet(true)}>
+                Set balance
+              </button>
+            )}
+          </div>
+        </div>
+
+        <h3>📒 Full Register</h3>
+        {register.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>No transactions yet.</p>
+        ) : (
+          <div className="stack" style={{ gap: 6 }}>
+            {register.map((t) => {
+              const income = t.amountCents >= 0;
+              return (
+                <div key={t.id} className="row space-between chrome-frame" style={{ padding: '8px 12px' }}>
+                  <div className="row" style={{ gap: 8 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: '#f4f2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      {isImagePath(t.icon) ? <img src={t.icon} alt="" style={{ width: '80%', height: '80%', objectFit: 'contain' }} /> : <span>{t.icon}</span>}
+                    </div>
+                    <div className="stack" style={{ gap: 0 }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{t.description}</span>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{new Date(t.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                  <strong style={{ color: income ? 'var(--success)' : 'var(--danger)' }}>
+                    {income ? '+' : ''}{formatMoney(t.amountCents)}
+                  </strong>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

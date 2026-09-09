@@ -83,6 +83,13 @@ export interface Student {
   equippedEmoteId: string | null; // currently displayed emote, if any
   skipTokens: number; // "skip pass" count, purchased in the marketplace; lets a student cross off one task without doing it
   lastSpinDate: string | null; // ISO date of the last daily-wheel spin, so it's once per day
+  ownedFontIds: string[]; // font catalog ids unlocked for the Notes word processor
+  equippedFontId: string | null;
+  ownedColorIds: string[]; // color catalog ids unlocked for Notes text color
+  equippedColorId: string | null;
+  ownedVoiceIds: string[]; // voice catalog ids unlocked (read-aloud "voice skins")
+  equippedVoiceId: string | null;
+  ownedPrizeIds: string[]; // custom_prizes ids this student has redeemed (teacher-fulfilled real/in-game prizes)
 }
 
 export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice';
@@ -413,7 +420,20 @@ export interface QuizAttemptRecord {
   totalCount: number;
 }
 
-export type TransactionKind = 'task' | 'streak-interest' | 'spin-cashback' | 'spin-cash' | 'purchase-avatar' | 'purchase-emote' | 'purchase-skip' | 'achievement';
+export type TransactionKind =
+  | 'task'
+  | 'streak-interest'
+  | 'spin-cashback'
+  | 'spin-cash'
+  | 'purchase-avatar'
+  | 'purchase-emote'
+  | 'purchase-skip'
+  | 'achievement'
+  | 'purchase-font'
+  | 'purchase-color'
+  | 'purchase-voice'
+  | 'purchase-prize'
+  | 'teacher-adjustment';
 
 // One line in a student's bank register. amountCents is signed: positive
 // for income (task rewards, interest, spin winnings), negative for a
@@ -464,6 +484,33 @@ export interface ChatMessage {
   studentId: string;
   sender: 'student' | 'teacher';
   text: string;
+  createdAt: string;
+}
+
+// One saved document in a student's Notes word processor — replaces the
+// old single scratchText blob with real, named, independently
+// saved/edited/deleted notes, the way a simple native notes app works.
+export interface Note {
+  id: string;
+  studentId: string;
+  title: string;
+  body: string;
+  fontId: string | null; // null = use whatever's currently equipped
+  colorId: string | null;
+  updatedAt: string;
+}
+
+// A teacher-defined, open-ended prize: "10 minutes free time," "a pet,"
+// "a piece for your house," etc. Buying one just deducts the cost and logs
+// a redemption — the teacher fulfills it in real life or elsewhere in the
+// game, the same way a Webkinz-style prize counter works.
+export interface CustomPrize {
+  id: string;
+  category: string; // teacher-defined, free-form (e.g. "Free Time", "Pets", "Tools")
+  name: string;
+  icon: string; // emoji or an uploaded image URL
+  price: number; // Class Cash, in cents
+  description?: string;
   createdAt: string;
 }
 

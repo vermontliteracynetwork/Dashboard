@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { TTSSettings } from '../types';
+import { voiceOptionById, pickSystemVoice } from '../lib/voiceCatalog';
 
 interface Props {
   text: string;
@@ -7,12 +8,20 @@ interface Props {
   small?: boolean;
 }
 
-export const speak = (text: string, settings?: TTSSettings) => {
+// voiceSkinId, when given, layers a purchased "voice" (pitch/rate preset,
+// and a best-guess real system voice) on top of the student's own
+// accessibility rate — a fun cosmetic, not a replacement for it.
+export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null) => {
   if (!('speechSynthesis' in window) || !text) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = settings?.rate ?? 1;
-  if (settings?.voiceURI) {
+  const skin = voiceSkinId ? voiceOptionById(voiceSkinId) : undefined;
+  utter.rate = (settings?.rate ?? 1) * (skin?.rate ?? 1);
+  utter.pitch = skin?.pitch ?? 1;
+  const skinVoice = skin ? pickSystemVoice(skin.preferredVoiceNameHints) : null;
+  if (skinVoice) {
+    utter.voice = skinVoice;
+  } else if (settings?.voiceURI) {
     const voice = window.speechSynthesis.getVoices().find((v) => v.voiceURI === settings.voiceURI);
     if (voice) utter.voice = voice;
   }

@@ -23,8 +23,13 @@ import type {
   ArticleAnnotationSet,
   SentenceBuilderResponse,
   ChatMessage,
+  Note,
+  CustomPrize,
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
+import { STARTER_FONT_IDS } from './fontCatalog';
+import { STARTER_COLOR_IDS } from './colorCatalog';
+import { STARTER_VOICE_IDS } from './voiceCatalog';
 
 // ---------------------------------------------------------------------------
 // Row <-> app-shape mapping
@@ -54,6 +59,13 @@ const rowToStudent = (r: Row): Student => ({
   equippedEmoteId: r.equipped_emote_id ?? null,
   skipTokens: r.skip_tokens ?? 0,
   lastSpinDate: r.last_spin_date ?? null,
+  ownedFontIds: r.owned_font_ids && r.owned_font_ids.length > 0 ? r.owned_font_ids : [...STARTER_FONT_IDS],
+  equippedFontId: r.equipped_font_id ?? null,
+  ownedColorIds: r.owned_color_ids && r.owned_color_ids.length > 0 ? r.owned_color_ids : [...STARTER_COLOR_IDS],
+  equippedColorId: r.equipped_color_id ?? null,
+  ownedVoiceIds: r.owned_voice_ids && r.owned_voice_ids.length > 0 ? r.owned_voice_ids : [...STARTER_VOICE_IDS],
+  equippedVoiceId: r.equipped_voice_id ?? null,
+  ownedPrizeIds: r.owned_prize_ids ?? [],
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -76,6 +88,13 @@ const studentToRow = (s: Student): Row => ({
   equipped_emote_id: s.equippedEmoteId,
   skip_tokens: s.skipTokens,
   last_spin_date: s.lastSpinDate,
+  owned_font_ids: s.ownedFontIds,
+  equipped_font_id: s.equippedFontId,
+  owned_color_ids: s.ownedColorIds,
+  equipped_color_id: s.equippedColorId,
+  owned_voice_ids: s.ownedVoiceIds,
+  equipped_voice_id: s.equippedVoiceId,
+  owned_prize_ids: s.ownedPrizeIds,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -159,6 +178,44 @@ const rowToBadgeEarn = (r: Row): BadgeEarn => ({ id: r.id, studentId: r.student_
 
 const rowToChatMessage = (r: Row): ChatMessage => ({ id: r.id, studentId: r.student_id, sender: r.sender, text: r.text, createdAt: r.created_at });
 const chatMessageToRow = (m: ChatMessage): Row => ({ id: m.id, student_id: m.studentId, sender: m.sender, text: m.text, created_at: m.createdAt });
+
+const rowToNote = (r: Row): Note => ({
+  id: r.id,
+  studentId: r.student_id,
+  title: r.title,
+  body: r.body,
+  fontId: r.font_id ?? null,
+  colorId: r.color_id ?? null,
+  updatedAt: r.updated_at,
+});
+const noteToRow = (n: Note): Row => ({
+  id: n.id,
+  student_id: n.studentId,
+  title: n.title,
+  body: n.body,
+  font_id: n.fontId,
+  color_id: n.colorId,
+  updated_at: n.updatedAt,
+});
+
+const rowToCustomPrize = (r: Row): CustomPrize => ({
+  id: r.id,
+  category: r.category,
+  name: r.name,
+  icon: r.icon,
+  price: r.price,
+  description: r.description ?? undefined,
+  createdAt: r.created_at,
+});
+const customPrizeToRow = (p: CustomPrize): Row => ({
+  id: p.id,
+  category: p.category,
+  name: p.name,
+  icon: p.icon,
+  price: p.price,
+  description: p.description ?? null,
+  created_at: p.createdAt,
+});
 
 const rowToTransaction = (r: Row): Transaction => ({
   id: r.id,
@@ -365,6 +422,8 @@ export interface HydratedState {
   articleAnnotations: Record<string, ArticleAnnotationSet>;
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>;
   chatMessages: ChatMessage[];
+  notes: Note[];
+  customPrizes: CustomPrize[];
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -379,7 +438,7 @@ export async function fetchAll(): Promise<HydratedState> {
   const [
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
-    quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes,
+    quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, customPrizesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -402,9 +461,11 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('article_annotations').select('*'),
     supabase.from('sentence_builder_responses').select('*'),
     supabase.from('chat_messages').select('*'),
+    supabase.from('notes').select('*'),
+    supabase.from('custom_prizes').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, customPrizesRes]) {
     if (res.error) throw res.error;
   }
 
@@ -466,6 +527,8 @@ export async function fetchAll(): Promise<HydratedState> {
       (sbResponsesRes.data ?? []).map(rowToSbResponse).map((a) => [sbResponseKey(a.studentId, a.taskId), a]),
     ),
     chatMessages: (chatMessagesRes.data ?? []).map(rowToChatMessage),
+    notes: (notesRes.data ?? []).map(rowToNote),
+    customPrizes: (customPrizesRes.data ?? []).map(rowToCustomPrize),
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -538,6 +601,10 @@ export const pushTransaction = (t: Transaction) => upsert('transactions', transa
 export const pushAnnotation = (a: ArticleAnnotationSet) => upsert('article_annotations', annotationToRow(a));
 export const pushSbResponse = (a: SentenceBuilderResponse) => upsert('sentence_builder_responses', sbResponseToRow(a));
 export const pushChatMessage = (m: ChatMessage) => upsert('chat_messages', chatMessageToRow(m));
+export const pushNote = (n: Note) => upsert('notes', noteToRow(n));
+export const deleteNoteRemote = (id: string) => remove('notes', { id });
+export const pushCustomPrize = (p: CustomPrize) => upsert('custom_prizes', customPrizeToRow(p));
+export const deleteCustomPrizeRemote = (id: string) => remove('custom_prizes', { id });
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });
@@ -707,7 +774,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToCustomPrize };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -731,6 +798,8 @@ export interface RealtimeHandlers {
   onAnnotation: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onSbResponse: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onChatMessage: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onNote: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onCustomPrize: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -767,6 +836,8 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'article_annotations' }, wire(handlers.onAnnotation))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sentence_builder_responses' }, wire(handlers.onSbResponse))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, wire(handlers.onChatMessage))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, wire(handlers.onNote))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_prizes' }, wire(handlers.onCustomPrize))
     .subscribe();
 
   return () => {

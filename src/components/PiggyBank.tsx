@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useStore } from '../store/store';
 import { formatMoney } from '../lib/money';
+import PiggyBankCharts from './PiggyBankCharts';
 
 interface Props {
   studentId: string;
@@ -16,6 +18,7 @@ function isImagePath(icon: string): boolean {
 export default function PiggyBank({ studentId, onClose }: Props) {
   const students = useStore((s) => s.students);
   const transactions = useStore((s) => s.transactions);
+  const [view, setView] = useState<'register' | 'charts'>('register');
 
   const student = students.find((s) => s.id === studentId);
   if (!student) return null;
@@ -53,8 +56,14 @@ export default function PiggyBank({ studentId, onClose }: Props) {
             💡 You earn money for finishing activities, and a bonus for keeping your streak going. Spend it in the 🛍️ Marketplace!
           </p>
 
-          <strong style={{ fontSize: '0.9rem' }}>📒 Register</strong>
-          {register.length === 0 ? (
+          <div className="row-wrap">
+            <button className={`btn btn-sm ${view === 'register' ? 'btn-primary' : ''}`} onClick={() => setView('register')}>📒 Register</button>
+            <button className={`btn btn-sm ${view === 'charts' ? 'btn-primary' : ''}`} onClick={() => setView('charts')}>📊 Charts</button>
+          </div>
+
+          {view === 'charts' ? (
+            <PiggyBankCharts transactions={register} currentBalanceCents={student.coins} streak={student.streak} />
+          ) : register.length === 0 ? (
             <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>Nothing here yet — finish an activity to make your first deposit!</p>
           ) : (
             <div className="stack" style={{ gap: 6, maxHeight: 360, overflowY: 'auto' }}>

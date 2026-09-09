@@ -4,6 +4,9 @@ import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
 import { SOUND_WALL } from '../lib/wordData';
+import { FONT_CATALOG, fontById } from '../lib/fontCatalog';
+import { COLOR_CATALOG, colorById } from '../lib/colorCatalog';
+import { VOICE_CATALOG } from '../lib/voiceCatalog';
 import { fetchDefinition, fetchSynonyms, fetchAntonyms } from '../lib/wordLookup';
 import type { WordLookupResult } from '../lib/wordLookup';
 import { analyzeMorphology } from '../lib/morphology';
@@ -494,42 +497,146 @@ function SoundWall({ student }: { student: Student }) {
   );
 }
 
+// A small, Notes-app-style word processor: a list of independently saved
+// documents (not one shared scratch blob) with basic per-note formatting —
+// font and text color, both drawn only from what the student has unlocked
+// in the Marketplace, so the picker never shows anything they can't use.
 function WordProcessor({ student }: { student: Student }) {
-  const scratchText = useStore((s) => s.scratchText[student.id] ?? '');
-  const setScratchText = useStore((s) => s.setScratchText);
+  const notes = useStore((s) => s.notes);
+  const createNote = useStore((s) => s.createNote);
+  const updateNote = useStore((s) => s.updateNote);
+  const deleteNote = useStore((s) => s.deleteNote);
+
+  const myNotes = notes.filter((n) => n.studentId === student.id).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+  const [selectedId, setSelectedId] = useState<string | null>(myNotes[0]?.id ?? null);
   const [fontSize, setFontSize] = useState(1.15);
-  const wordCount = scratchText.trim() ? scratchText.trim().split(/\s+/).length : 0;
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const selected = myNotes.find((n) => n.id === selectedId) ?? null;
+  const ownedFonts = FONT_CATALOG.filter((f) => student.ownedFontIds.includes(f.id));
+  const ownedColors = COLOR_CATALOG.filter((c) => student.ownedColorIds.includes(c.id));
+  const activeFont = fontById(selected?.fontId ?? student.equippedFontId ?? '') ?? FONT_CATALOG[0];
+  const activeColor = colorById(selected?.colorId ?? student.equippedColorId ?? '') ?? COLOR_CATALOG[0];
+  const wordCount = selected?.body.trim() ? selected.body.trim().split(/\s+/).length : 0;
+
+  const handleNew = () => {
+    const id = createNote(student.id);
+    setSelectedId(id);
+  };
 
   return (
-    <div className="stack" style={{ height: '100%', minHeight: 0 }}>
-      <div className="row-wrap" style={{ justifyContent: 'space-between' }}>
-        <div className="row" style={{ gap: 4 }}>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7, marginRight: 4 }}>Text size:</span>
-          <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.max(0.85, +(f - 0.15).toFixed(2)))} aria-label="Smaller text">A-</button>
-          <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.min(2, +(f + 0.15).toFixed(2)))} aria-label="Larger text">A+</button>
-        </div>
-        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{wordCount} word{wordCount === 1 ? '' : 's'}</span>
+    <div className="row" style={{ height: '100%', minHeight: 0, gap: 12, alignItems: 'stretch' }}>
+      <div className="stack" style={{ width: 170, flex: '0 0 auto', gap: 6, overflowY: 'auto' }}>
+        <button className="btn btn-sm btn-primary" onClick={handleNew}>➕ New Note</button>
+        {myNotes.length === 0 && <p style={{ fontSize: '0.78rem', opacity: 0.65 }}>No notes yet!</p>}
+        {myNotes.map((n) => (
+          <div key={n.id} className="stack" style={{ gap: 2 }}>
+            <button
+              className={`btn btn-sm ${selectedId === n.id ? 'btn-primary' : ''}`}
+              style={{ textAlign: 'left', minHeight: 44 }}
+              onClick={() => setSelectedId(n.id)}
+            >
+              <div className="stack" style={{ gap: 0 }}>
+                <strong style={{ fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
+                  {n.title || 'Untitled'}
+                </strong>
+                <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+              </div>
+            </button>
+            {confirmDeleteId === n.id ? (
+              <div className="row" style={{ gap: 4 }}>
+                <button
+                  className="btn btn-sm btn-danger"
+                  style={{ fontSize: '0.7rem' }}
+                  onClick={() => {
+                    deleteNote(n.id);
+                    if (selectedId === n.id) setSelectedId(myNotes.find((x) => x.id !== n.id)?.id ?? null);
+                    setConfirmDeleteId(null);
+                  }}
+                >
+                  Delete it
+                </button>
+                <button className="btn btn-sm" style={{ fontSize: '0.7rem' }} onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+              </div>
+            ) : (
+              <button className="btn btn-sm" style={{ fontSize: '0.7rem', alignSelf: 'flex-end' }} onClick={() => setConfirmDeleteId(n.id)}>
+                🗑️
+              </button>
+            )}
+          </div>
+        ))}
       </div>
-      <textarea
-        value={scratchText}
-        onChange={(e) => setScratchText(student.id, e.target.value)}
-        style={{
-          width: '100%',
-          flex: 1,
-          minHeight: 340,
-          resize: 'vertical',
-          fontSize: `${fontSize}rem`,
-          lineHeight: 1.6,
-          padding: 14,
-          fontFamily: "'Nunito', sans-serif",
-        }}
-        placeholder="Start writing..."
-      />
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>🔒 Private, saved automatically</span>
-        <button className="btn btn-sm btn-blue" onClick={() => speak(scratchText || 'Nothing written yet', student.ttsSettings)}>
-          🔈 Read it back
-        </button>
+
+      <div className="stack" style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+        {!selected ? (
+          <p style={{ opacity: 0.7, margin: 'auto' }}>Tap "➕ New Note" to start writing!</p>
+        ) : (
+          <>
+            <input
+              value={selected.title}
+              onChange={(e) => updateNote(selected.id, { title: e.target.value })}
+              placeholder="Note title"
+              style={{ fontWeight: 800, fontSize: '1.1rem' }}
+            />
+            <div className="row-wrap" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="row-wrap" style={{ gap: 4 }}>
+                <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.max(0.85, +(f - 0.15).toFixed(2)))} aria-label="Smaller text">A-</button>
+                <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.min(2, +(f + 0.15).toFixed(2)))} aria-label="Larger text">A+</button>
+                {ownedFonts.length > 1 && (
+                  <select value={activeFont.id} onChange={(e) => updateNote(selected.id, { fontId: e.target.value })} style={{ fontSize: '0.8rem' }}>
+                    {ownedFonts.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                )}
+                {ownedColors.length > 1 && (
+                  <div className="row" style={{ gap: 3 }}>
+                    {ownedColors.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => updateNote(selected.id, { colorId: c.id })}
+                        aria-label={c.name}
+                        title={c.name}
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: '50%',
+                          padding: 0,
+                          cursor: 'pointer',
+                          border: activeColor.id === c.id ? '3px solid var(--ink)' : '2px solid var(--content-border)',
+                          background: c.hex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : c.hex,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{wordCount} word{wordCount === 1 ? '' : 's'}</span>
+            </div>
+            <textarea
+              value={selected.body}
+              onChange={(e) => updateNote(selected.id, { body: e.target.value })}
+              style={{
+                width: '100%',
+                flex: 1,
+                minHeight: 260,
+                resize: 'vertical',
+                fontSize: `${fontSize}rem`,
+                lineHeight: 1.6,
+                padding: 14,
+                fontFamily: activeFont.cssFontFamily,
+                ...(activeColor.hex === 'rainbow'
+                  ? { background: 'conic-gradient(red, orange, yellow, green, blue, purple, red)', WebkitBackgroundClip: 'text', color: 'transparent' }
+                  : { color: activeColor.hex }),
+              }}
+              placeholder="Start writing..."
+            />
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>🔒 Private, saved automatically</span>
+              <button className="btn btn-sm btn-blue" onClick={() => speak(selected.body || 'Nothing written yet', student.ttsSettings, student.equippedVoiceId)}>
+                🔈 Read it back
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -693,7 +800,23 @@ function TTSSettingsPanel({ student }: { student: Student }) {
           </select>
         </div>
       )}
-      <button className="btn btn-blue" onClick={() => speak('This is what I sound like!', student.ttsSettings)}>
+      {student.ownedVoiceIds.length > 1 && (
+        <div>
+          <label>🎭 Voice Skin (from the Marketplace)</label>
+          <div className="row-wrap">
+            {VOICE_CATALOG.filter((v) => student.ownedVoiceIds.includes(v.id)).map((v) => (
+              <button
+                key={v.id}
+                className={`btn btn-sm ${student.equippedVoiceId === v.id || (!student.equippedVoiceId && v.id === 'voice-default') ? 'btn-primary' : ''}`}
+                onClick={() => updateStudent(student.id, { equippedVoiceId: v.id === 'voice-default' ? null : v.id })}
+              >
+                {v.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <button className="btn btn-blue" onClick={() => speak('This is what I sound like!', student.ttsSettings, student.equippedVoiceId)}>
         🔈 Try it
       </button>
     </div>

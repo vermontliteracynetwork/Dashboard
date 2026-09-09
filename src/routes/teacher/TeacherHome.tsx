@@ -72,6 +72,9 @@ export default function TeacherHome() {
                   <button className="btn btn-sm" onClick={() => setChatStudentId(st.id)}>
                     💬 Chat
                   </button>
+                  <button className="btn btn-sm" onClick={() => navigate(`/teacher/bank/${st.id}`)}>
+                    🐷 Bank
+                  </button>
                   <button className="btn btn-sm" onClick={() => navigate(`/teacher/lesson-plan/${st.id}`)}>
                     📋 Lesson Plan
                   </button>

@@ -3,6 +3,9 @@ import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
 import { AvatarGlyph } from './AvatarGlyph';
 import { EMOTE_CATALOG } from '../lib/emoteCatalog';
+import { FONT_CATALOG } from '../lib/fontCatalog';
+import { COLOR_CATALOG } from '../lib/colorCatalog';
+import { VOICE_CATALOG } from '../lib/voiceCatalog';
 import { formatMoney } from '../lib/money';
 
 interface Props {
@@ -10,7 +13,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = 'characters' | 'emotes' | 'powerups' | 'mystuff';
+type Tab = 'characters' | 'emotes' | 'writing' | 'voices' | 'prizes' | 'powerups' | 'mystuff';
 
 const SKIP_TOKEN_PRICE_CENTS = 1500;
 
@@ -19,6 +22,11 @@ export default function Marketplace({ studentId, onClose }: Props) {
   const buyAvatar = useStore((s) => s.buyAvatar);
   const buyEmote = useStore((s) => s.buyEmote);
   const equipEmote = useStore((s) => s.equipEmote);
+  const buyFont = useStore((s) => s.buyFont);
+  const buyColor = useStore((s) => s.buyColor);
+  const buyVoice = useStore((s) => s.buyVoice);
+  const buyCustomPrize = useStore((s) => s.buyCustomPrize);
+  const customPrizes = useStore((s) => s.customPrizes);
   const buySkipToken = useStore((s) => s.buySkipToken);
   const updateStudent = useStore((s) => s.updateStudent);
   const [tab, setTab] = useState<Tab>('characters');
@@ -50,6 +58,17 @@ export default function Marketplace({ studentId, onClose }: Props) {
             <button className={`shop-tab-btn ${tab === 'emotes' ? 'active' : ''}`} onClick={() => setTab('emotes')}>
               😊 Emotes
             </button>
+            <button className={`shop-tab-btn ${tab === 'writing' ? 'active' : ''}`} onClick={() => setTab('writing')}>
+              ✍️ Writing
+            </button>
+            <button className={`shop-tab-btn ${tab === 'voices' ? 'active' : ''}`} onClick={() => setTab('voices')}>
+              🔊 Voices
+            </button>
+            {customPrizes.length > 0 && (
+              <button className={`shop-tab-btn ${tab === 'prizes' ? 'active' : ''}`} onClick={() => setTab('prizes')}>
+                🎁 Prizes
+              </button>
+            )}
             <button className={`shop-tab-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
               🎫 Power-Ups
             </button>
@@ -142,6 +161,132 @@ export default function Marketplace({ studentId, onClose }: Props) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {tab === 'writing' && (
+              <div className="stack" style={{ gap: 16 }}>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>🔤 Fonts for your Notes</strong>
+                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                    {FONT_CATALOG.map((f) => {
+                      const owned = student.ownedFontIds.includes(f.id);
+                      const affordable = student.coins >= f.price;
+                      return (
+                        <div key={f.id} className="shop-item-card" style={{ width: 140 }}>
+                          <div className="shop-item-icon-frame" style={{ width: '100%', fontFamily: f.cssFontFamily, fontSize: '1.6rem' }}>Aa</div>
+                          <strong style={{ fontSize: '0.72rem' }}>{f.name}</strong>
+                          {owned ? (
+                            <span className="tag-pill" style={{ fontSize: '0.65rem', background: 'var(--success)', color: '#fff' }}>✓ Unlocked</span>
+                          ) : (
+                            <button
+                              className="shop-price-chip"
+                              style={{ border: '2px solid var(--ink)', cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
+                              disabled={!affordable}
+                              onClick={() => buyFont(studentId, f.id)}
+                            >
+                              🪙 {formatMoney(f.price)}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>🎨 Text Colors</strong>
+                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                    {COLOR_CATALOG.map((c) => {
+                      const owned = student.ownedColorIds.includes(c.id);
+                      const affordable = student.coins >= c.price;
+                      return (
+                        <div key={c.id} className="shop-item-card" style={{ width: 110 }}>
+                          <div
+                            className="shop-item-icon-frame"
+                            style={{ width: 44, height: 44, borderRadius: '50%', background: c.hex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : c.hex }}
+                          />
+                          <strong style={{ fontSize: '0.7rem' }}>{c.name}</strong>
+                          {owned ? (
+                            <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}>✓ Unlocked</span>
+                          ) : (
+                            <button
+                              className="shop-price-chip"
+                              style={{ border: '2px solid var(--ink)', cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
+                              disabled={!affordable}
+                              onClick={() => buyColor(studentId, c.id)}
+                            >
+                              🪙 {formatMoney(c.price)}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'voices' && (
+              <div className="shop-item-grid">
+                {VOICE_CATALOG.map((v) => {
+                  const owned = student.ownedVoiceIds.includes(v.id);
+                  const affordable = student.coins >= v.price;
+                  return (
+                    <div key={v.id} className="shop-item-card" style={{ width: 130 }}>
+                      <div className="shop-item-icon-frame" style={{ fontSize: '1.8rem' }}>{v.name.split(' ')[0]}</div>
+                      <strong style={{ fontSize: '0.75rem' }}>{v.name.replace(/^\S+\s/, '')}</strong>
+                      {owned ? (
+                        <span className="tag-pill" style={{ fontSize: '0.65rem', background: 'var(--success)', color: '#fff' }}>✓ Unlocked</span>
+                      ) : (
+                        <button
+                          className="shop-price-chip"
+                          style={{ border: '2px solid var(--ink)', cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
+                          disabled={!affordable}
+                          onClick={() => buyVoice(studentId, v.id)}
+                        >
+                          🪙 {formatMoney(v.price)}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === 'prizes' && (
+              <div className="shop-item-grid">
+                {[...new Set(customPrizes.map((p) => p.category))].map((category) => (
+                  <div key={category} style={{ width: '100%' }}>
+                    <strong style={{ fontSize: '0.8rem' }}>{category}</strong>
+                    <div className="shop-item-grid" style={{ marginTop: 6, marginBottom: 10 }}>
+                      {customPrizes.filter((p) => p.category === category).map((p) => {
+                        const owned = student.ownedPrizeIds.includes(p.id);
+                        const affordable = student.coins >= p.price;
+                        return (
+                          <div key={p.id} className="shop-item-card" style={{ width: 140 }}>
+                            <div className="shop-item-icon-frame">
+                              {p.icon.startsWith('/') || p.icon.startsWith('http') ? <img src={p.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '1.8rem' }}>{p.icon}</span>}
+                            </div>
+                            <strong style={{ fontSize: '0.72rem' }}>{p.name}</strong>
+                            {p.description && <p style={{ fontSize: '0.6rem', opacity: 0.7, margin: 0 }}>{p.description}</p>}
+                            {owned && <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}>✓ Redeemed</span>}
+                            <button
+                              className="shop-price-chip"
+                              style={{ border: '2px solid var(--ink)', cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
+                              disabled={!affordable}
+                              onClick={() => buyCustomPrize(studentId, p.id)}
+                            >
+                              🪙 {formatMoney(p.price)}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: 0 }}>
+                  💡 Bought a prize? Show this screen to your teacher — they'll help you get it!
+                </p>
               </div>
             )}
 

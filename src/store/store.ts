@@ -4,9 +4,14 @@ import { makeId } from '../lib/id';
 import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById } from '../lib/emoteCatalog';
+import { STARTER_FONT_IDS, fontById } from '../lib/fontCatalog';
+import { STARTER_COLOR_IDS, colorById } from '../lib/colorCatalog';
+import { STARTER_VOICE_IDS, voiceOptionById } from '../lib/voiceCatalog';
 import { avatarById } from '../lib/avatarCatalog';
 import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
 import { playChaChing } from '../lib/chime';
+import { getDailySpinSegments } from '../lib/dailySpin';
+import type { SpinItemKind } from '../lib/dailySpin';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -17,34 +22,19 @@ import { playChaChing } from '../lib/chime';
 let realtimeSubscribed = false;
 
 export interface DailySpinResult {
-  type: 'cents' | 'skip' | 'cashback' | 'emote';
-  amountCents: number; // for 'cashback' this is the computed payout, not the percent; 0 for 'emote' unless it fell back to a cash consolation
+  type: 'cents' | 'skip' | 'cashback' | 'item';
+  amountCents: number; // for 'cashback' this is the computed payout, not the percent; 0 for 'item' unless it fell back to a cash consolation
   label: string;
-  segmentIndex: number; // which DAILY_SPIN_SEGMENTS entry won, so the wheel UI can land on the same one
-  emoteId?: string; // set when type is 'emote' and the student actually won it (not the consolation fallback)
+  segmentIndex: number; // which of today's 10 segments won, so the wheel UI can land on the same one
+  itemKind?: SpinItemKind; // set when type is 'item' and the student actually won it (not the consolation fallback)
+  itemId?: string;
 }
 
 const SKIP_TOKEN_PRICE_CENTS = 1500; // $15.00
 
-// Consolation prize when an 'emote' segment lands but the student already
-// owns that emote — keeps every spin a genuine win instead of a no-op.
-const EMOTE_ALREADY_OWNED_CONSOLATION_CENTS = 250; // $2.50
-
-// Every segment is a win — no empty/losing outcome — since this is a daily
-// mood-lift, not a chance-based reward loop a student could feel bad about
-// landing on. 'cashback' pays 5% of the student's current balance instead
-// of a fixed amount, computed at spin time. 'emote' segments give away one
-// specific emote for free (see EMOTE_CATALOG) — a real, named prize rather
-// than an abstract chance, with its actual artwork shown on the wheel.
-const DAILY_SPIN_SEGMENTS = [
-  { type: 'cents' as const, amountCents: 100, label: '$1.00' },
-  { type: 'cents' as const, amountCents: 250, label: '$2.50' },
-  { type: 'cents' as const, amountCents: 500, label: '$5.00' },
-  { type: 'skip' as const, amountCents: 0, label: '🎫 1 Skip Pass' },
-  { type: 'cashback' as const, amountCents: 0, label: '💰 5% Cashback' },
-  { type: 'emote' as const, amountCents: 0, label: 'LOL Emote', emoteId: 'emote-laugh' },
-  { type: 'emote' as const, amountCents: 0, label: 'Sparkle Emote', emoteId: 'emote-stars' },
-];
+// Consolation prize when an 'item' segment lands but the student already
+// owns that item — keeps every spin a genuine win instead of a no-op.
+const ITEM_ALREADY_OWNED_CONSOLATION_CENTS = 250; // $2.50
 
 // A streak bonus is capped so a very long streak can't compound into an
 // unrealistic percentage — 20% (a 20-day streak) is already a generous
@@ -108,6 +98,12 @@ import {
   pushChatMessage,
   rowToChatMessage,
   deleteBadgeEarnRemote,
+  pushNote,
+  deleteNoteRemote,
+  rowToNote,
+  pushCustomPrize,
+  deleteCustomPrizeRemote,
+  rowToCustomPrize,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -140,6 +136,8 @@ import type {
   Highlight,
   SentenceBuilderResponse,
   ChatMessage,
+  Note,
+  CustomPrize,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -186,6 +184,8 @@ interface AppState {
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
   chatMessages: ChatMessage[]; // teacher<->student chat, newest last
+  notes: Note[];
+  customPrizes: CustomPrize[];
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -208,6 +208,18 @@ interface AppState {
   setHighlightNote: (studentId: string, taskId: string, articleIndex: number, highlightId: string, note: string) => void;
   setSentenceBuilderAnswer: (studentId: string, taskId: string, partId: string, text: string) => void;
   sendChatMessage: (studentId: string, sender: 'student' | 'teacher', text: string) => void;
+  createNote: (studentId: string) => string;
+  updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'fontId' | 'colorId'>>) => void;
+  deleteNote: (id: string) => void;
+  addCustomPrize: (prize: Omit<CustomPrize, 'id' | 'createdAt'>) => void;
+  updateCustomPrize: (id: string, patch: Partial<CustomPrize>) => void;
+  deleteCustomPrize: (id: string) => void;
+  buyFont: (studentId: string, fontId: string) => boolean;
+  buyColor: (studentId: string, colorId: string) => boolean;
+  buyVoice: (studentId: string, voiceId: string) => boolean;
+  buyCustomPrize: (studentId: string, prizeId: string) => boolean;
+  adjustStudentBalance: (studentId: string, amountCents: number, reason: string) => void;
+  setStudentBalance: (studentId: string, newBalanceCents: number, reason: string) => void;
   buyAvatar: (studentId: string, avatarId: string) => boolean;
   buyEmote: (studentId: string, emoteId: string) => boolean;
   equipEmote: (studentId: string, emoteId: string | null) => void;
@@ -381,6 +393,8 @@ export const useStore = create<AppState>()(
       articleAnnotations: {},
       sentenceBuilderResponses: {},
       chatMessages: [],
+      notes: [],
+      customPrizes: [],
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -479,6 +493,8 @@ export const useStore = create<AppState>()(
           },
           onChatMessage: (e, n, o) =>
             set((s) => ({ chatMessages: applyArrayRow(s.chatMessages, e, rowToChatMessage, n, o) })),
+          onNote: (e, n, o) => set((s) => ({ notes: applyArrayRow(s.notes, e, rowToNote, n, o) })),
+          onCustomPrize: (e, n, o) => set((s) => ({ customPrizes: applyArrayRow(s.customPrizes, e, rowToCustomPrize, n, o) })),
         });
       },
 
@@ -511,6 +527,13 @@ export const useStore = create<AppState>()(
           equippedEmoteId: null,
           skipTokens: 0,
           lastSpinDate: null,
+          ownedFontIds: [...STARTER_FONT_IDS],
+          equippedFontId: null,
+          ownedColorIds: [...STARTER_COLOR_IDS],
+          equippedColorId: null,
+          ownedVoiceIds: [...STARTER_VOICE_IDS],
+          equippedVoiceId: null,
+          ownedPrizeIds: [],
         };
         set((s) => ({
           students: [...s.students, student],
@@ -576,6 +599,106 @@ export const useStore = create<AppState>()(
         if (!student) return;
         if (emoteId && !student.ownedEmoteIds.includes(emoteId)) return;
         get().updateStudent(studentId, { equippedEmoteId: emoteId });
+      },
+
+      buyFont: (studentId, fontId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const item = fontById(fontId);
+        if (!student || !item) return false;
+        if (student.ownedFontIds.includes(fontId)) return false;
+        if (student.coins < item.price) return false;
+        get().updateStudent(studentId, { ownedFontIds: [...student.ownedFontIds, fontId] });
+        get().recordTransaction(studentId, -item.price, `New font: ${item.name}`, '🔤', 'purchase-font');
+        return true;
+      },
+
+      buyColor: (studentId, colorId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const item = colorById(colorId);
+        if (!student || !item) return false;
+        if (student.ownedColorIds.includes(colorId)) return false;
+        if (student.coins < item.price) return false;
+        get().updateStudent(studentId, { ownedColorIds: [...student.ownedColorIds, colorId] });
+        get().recordTransaction(studentId, -item.price, `New color: ${item.name}`, '🎨', 'purchase-color');
+        return true;
+      },
+
+      buyVoice: (studentId, voiceId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const item = voiceOptionById(voiceId);
+        if (!student || !item) return false;
+        if (student.ownedVoiceIds.includes(voiceId)) return false;
+        if (student.coins < item.price) return false;
+        get().updateStudent(studentId, { ownedVoiceIds: [...student.ownedVoiceIds, voiceId] });
+        get().recordTransaction(studentId, -item.price, `New voice: ${item.name}`, '🔊', 'purchase-voice');
+        return true;
+      },
+
+      buyCustomPrize: (studentId, prizeId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const prize = get().customPrizes.find((p) => p.id === prizeId);
+        if (!student || !prize) return false;
+        if (student.coins < prize.price) return false;
+        get().updateStudent(studentId, { ownedPrizeIds: [...student.ownedPrizeIds, prizeId] });
+        get().recordTransaction(studentId, -prize.price, `Prize: ${prize.name}`, prize.icon, 'purchase-prize');
+        return true;
+      },
+
+      addCustomPrize: (prize) => {
+        const p: CustomPrize = { ...prize, id: makeId(), createdAt: new Date().toISOString() };
+        set((s) => ({ customPrizes: [...s.customPrizes, p] }));
+        pushCustomPrize(p);
+      },
+
+      updateCustomPrize: (id, patch) => {
+        const existing = get().customPrizes.find((p) => p.id === id);
+        if (!existing) return;
+        const updated = { ...existing, ...patch };
+        set((s) => ({ customPrizes: s.customPrizes.map((p) => (p.id === id ? updated : p)) }));
+        pushCustomPrize(updated);
+      },
+
+      deleteCustomPrize: (id) => {
+        set((s) => ({ customPrizes: s.customPrizes.filter((p) => p.id !== id) }));
+        deleteCustomPrizeRemote(id);
+      },
+
+      createNote: (studentId) => {
+        const id = makeId();
+        const note: Note = { id, studentId, title: 'Untitled', body: '', fontId: null, colorId: null, updatedAt: new Date().toISOString() };
+        set((s) => ({ notes: [...s.notes, note] }));
+        pushNote(note);
+        return id;
+      },
+
+      updateNote: (id, patch) => {
+        const existing = get().notes.find((n) => n.id === id);
+        if (!existing) return;
+        const updated: Note = { ...existing, ...patch, updatedAt: new Date().toISOString() };
+        set((s) => ({ notes: s.notes.map((n) => (n.id === id ? updated : n)) }));
+        pushNote(updated);
+      },
+
+      deleteNote: (id) => {
+        set((s) => ({ notes: s.notes.filter((n) => n.id !== id) }));
+        deleteNoteRemote(id);
+      },
+
+      // A teacher-initiated deposit or withdrawal — goes through the same
+      // recordTransaction choke point as everything else, so it shows up
+      // in the register (and plays the cha-ching for a deposit) exactly
+      // like a student-earned reward would.
+      adjustStudentBalance: (studentId, amountCents, reason) => {
+        if (amountCents === 0) return;
+        get().recordTransaction(studentId, amountCents, reason || (amountCents > 0 ? 'Bonus from your teacher' : 'Balance adjusted by your teacher'), '🏦', 'teacher-adjustment');
+      },
+
+      setStudentBalance: (studentId, newBalanceCents, reason) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        const delta = newBalanceCents - student.coins;
+        if (delta === 0) return;
+        get().recordTransaction(studentId, delta, reason || 'Balance set by your teacher', '🏦', 'teacher-adjustment');
       },
 
       addHighlight: (studentId, taskId, articleIndex, highlight) => {
@@ -678,42 +801,57 @@ export const useStore = create<AppState>()(
         if (!student) return null;
         const today = todayISO();
         if (student.lastSpinDate === today) return null;
-        const segmentIndex = Math.floor(Math.random() * DAILY_SPIN_SEGMENTS.length);
-        const segment = DAILY_SPIN_SEGMENTS[segmentIndex];
+        const segments = getDailySpinSegments(today, get().customPrizes);
+        const segmentIndex = Math.floor(Math.random() * segments.length);
+        const segment = segments[segmentIndex];
         get().updateStudent(studentId, { lastSpinDate: today });
 
-        if (segment.type === 'skip') {
+        if (segment.kind === 'skip') {
           get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
+          get().recordTransaction(studentId, 0, '🎡 Daily Spin: won a Skip Pass', '🎫', 'spin-cash');
           return { type: 'skip', amountCents: 0, label: segment.label, segmentIndex };
         }
-        if (segment.type === 'emote') {
-          const alreadyOwned = student.ownedEmoteIds.includes(segment.emoteId);
-          if (alreadyOwned) {
-            get().recordTransaction(
-              studentId,
-              EMOTE_ALREADY_OWNED_CONSOLATION_CENTS,
-              '🎡 Daily Spin (already had this emote)',
-              '🎡',
-              'spin-cash',
-            );
-            return {
-              type: 'emote',
-              amountCents: EMOTE_ALREADY_OWNED_CONSOLATION_CENTS,
-              label: `You already have that one — here's ${formatMoney(EMOTE_ALREADY_OWNED_CONSOLATION_CENTS)} instead!`,
-              segmentIndex,
-            };
-          }
-          get().updateStudent(studentId, { ownedEmoteIds: [...student.ownedEmoteIds, segment.emoteId] });
-          return { type: 'emote', amountCents: 0, label: segment.label, segmentIndex, emoteId: segment.emoteId };
+
+        if (segment.kind === 'cents' || segment.kind === 'cashback') {
+          const amountCents = segment.kind === 'cashback' ? Math.round(student.coins * ((segment.percent ?? 0) / 100)) : segment.amountCents ?? 0;
+          get().recordTransaction(studentId, amountCents, '🎡 Daily Spin winnings', '🎡', segment.kind === 'cashback' ? 'spin-cashback' : 'spin-cash');
+          return {
+            type: segment.kind,
+            amountCents,
+            label: segment.kind === 'cashback' ? `💰 ${formatMoney(amountCents)} Cashback` : `💵 ${segment.label}`,
+            segmentIndex,
+          };
         }
-        const amountCents = segment.type === 'cashback' ? Math.round(student.coins * 0.05) : segment.amountCents;
-        get().recordTransaction(studentId, amountCents, '🎡 Daily Spin winnings', '🎡', segment.type === 'cashback' ? 'spin-cashback' : 'spin-cash');
-        return {
-          type: segment.type,
-          amountCents,
-          label: segment.type === 'cashback' ? `💰 ${formatMoney(amountCents)} Cashback` : `💵 ${segment.label}`,
-          segmentIndex,
-        };
+
+        // Every remaining kind is a marketplace item (avatar/emote/font/color/voice/prize).
+        const itemKind = segment.kind as SpinItemKind;
+        const itemId = segment.itemId!;
+        const ownedField = (
+          {
+            avatar: 'ownedAvatarIds',
+            emote: 'ownedEmoteIds',
+            font: 'ownedFontIds',
+            color: 'ownedColorIds',
+            voice: 'ownedVoiceIds',
+            prize: 'ownedPrizeIds',
+          } as const
+        )[itemKind];
+        const alreadyOwned = student[ownedField].includes(itemId);
+        if (alreadyOwned) {
+          get().recordTransaction(studentId, ITEM_ALREADY_OWNED_CONSOLATION_CENTS, `🎡 Daily Spin (already had ${segment.label})`, '🎡', 'spin-cash');
+          return {
+            type: 'item',
+            amountCents: ITEM_ALREADY_OWNED_CONSOLATION_CENTS,
+            label: `You already have that one — here's ${formatMoney(ITEM_ALREADY_OWNED_CONSOLATION_CENTS)} instead!`,
+            segmentIndex,
+          };
+        }
+        get().updateStudent(studentId, { [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
+        // Every spin — including a free item win — leaves a $0 register
+        // row, so a student's bank history always shows exactly what
+        // happened on every spin, not just the ones that moved money.
+        get().recordTransaction(studentId, 0, `🎡 Daily Spin: won ${segment.label}`, segment.imageUrl ?? '🎁', 'spin-cash');
+        return { type: 'item', amountCents: 0, label: segment.label, segmentIndex, itemKind, itemId };
       },
 
       deleteStudent: (id) => {
