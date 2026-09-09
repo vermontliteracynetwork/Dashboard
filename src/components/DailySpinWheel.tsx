@@ -7,13 +7,14 @@ interface Props {
   onClose: () => void;
 }
 
-// Kept in the same order as DAILY_SPIN_OUTCOMES in store.ts so the wheel's
+// Kept in the same order as DAILY_SPIN_SEGMENTS in store.ts so the wheel's
 // visual segments line up with what spinDailyWheel() can actually return.
 const SEGMENTS = [
-  { icon: '🪙', label: '5 coins', color: '#f7c948' },
-  { icon: '🪙', label: '10 coins', color: '#4ade80' },
-  { icon: '🪙', label: '15 coins', color: '#60a5fa' },
+  { icon: '💵', label: '$1.00', color: '#f7c948' },
+  { icon: '💵', label: '$2.50', color: '#4ade80' },
+  { icon: '💵', label: '$5.00', color: '#60a5fa' },
   { icon: '🎫', label: 'Skip Pass', color: '#f472b6' },
+  { icon: '💰', label: '5% Cashback', color: '#c084fc' },
 ];
 
 export default function DailySpinWheel({ studentId, onClose }: Props) {
@@ -30,7 +31,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
   const doSpin = () => {
     const outcome = spinDailyWheel(studentId);
     if (!outcome) return;
-    const index = SEGMENTS.findIndex((seg) => outcome.label.includes(seg.label));
+    const index = outcome.segmentIndex;
     const segmentAngle = 360 / SEGMENTS.length;
     // Land the winning segment's center under the top pointer, plus several
     // full spins so it actually feels like a spin rather than a snap.
@@ -87,14 +88,15 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
                     height: '100%',
                     borderRadius: '50%',
                     border: '5px solid var(--ink)',
-                    background: `conic-gradient(${SEGMENTS.map((seg, i) => `${seg.color} ${i * 90}deg ${(i + 1) * 90}deg`).join(', ')})`,
+                    background: `conic-gradient(${SEGMENTS.map((seg, i) => `${seg.color} ${(i * 360) / SEGMENTS.length}deg ${((i + 1) * 360) / SEGMENTS.length}deg`).join(', ')})`,
                     transform: `rotate(${rotation}deg)`,
                     transition: spinning ? 'transform 2.2s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
                     position: 'relative',
                   }}
                 >
                   {SEGMENTS.map((seg, i) => {
-                    const angle = i * 90 + 45;
+                    const segmentAngle = 360 / SEGMENTS.length;
+                    const angle = i * segmentAngle + segmentAngle / 2;
                     return (
                       <div
                         key={seg.label}
@@ -103,15 +105,15 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
                           position: 'absolute',
                           top: '50%',
                           left: '50%',
-                          width: 70,
+                          width: 62,
                           textAlign: 'center',
-                          transform: `translate(-50%, -50%) rotate(${angle}deg) translate(0, -68px) rotate(${-angle}deg)`,
-                          fontSize: '0.68rem',
+                          transform: `translate(-50%, -50%) rotate(${angle}deg) translate(0, -72px) rotate(${-angle}deg)`,
+                          fontSize: '0.62rem',
                           fontWeight: 800,
                           color: '#1a1420',
                         }}
                       >
-                        <div style={{ fontSize: '1.3rem' }}>{seg.icon}</div>
+                        <div style={{ fontSize: '1.2rem' }}>{seg.icon}</div>
                         {seg.label}
                       </div>
                     );

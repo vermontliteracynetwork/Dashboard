@@ -208,6 +208,7 @@ export interface Task {
   order?: number; // set = must be done in ascending order before any unordered task unlocks; unset = free-choice once all ordered tasks are done
   isDaily?: boolean; // teacher-marked "this repeats every day" — shown with a star in the library
   isFinalCheck?: boolean; // teacher-marked "completing this marks the whole subject done" — unlocks Playground and updates the streak, instead of requiring every other activity to be checked off too. Typically a quiz.
+  rewardCents?: number; // Class Cash paid out on completion; falls back to DEFAULT_TASK_REWARD_CENTS when unset
 }
 
 export type RotationMode = 'sequence' | 'choiceboard';
@@ -319,6 +320,22 @@ export interface QuizAttemptRecord {
   durationMs: number;
   correctCount: number; // questions answered correctly on the first try this attempt
   totalCount: number;
+}
+
+export type TransactionKind = 'task' | 'streak-interest' | 'spin-cashback' | 'spin-cash' | 'purchase-avatar' | 'purchase-emote' | 'purchase-skip';
+
+// One line in a student's bank register. amountCents is signed: positive
+// for income (task rewards, interest, spin winnings), negative for a
+// purchase. icon is either an emoji or an image URL (e.g. the avatar/emote
+// art being bought), shown as the register-row thumbnail.
+export interface Transaction {
+  id: string;
+  studentId: string;
+  amountCents: number;
+  description: string;
+  icon: string;
+  kind: TransactionKind;
+  createdAt: string; // ISO
 }
 
 export interface SubjectProgress {

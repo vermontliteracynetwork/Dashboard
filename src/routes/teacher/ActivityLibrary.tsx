@@ -6,6 +6,7 @@ import StepsEditor from './StepsEditor';
 import ImageUploadField from '../../components/ImageUploadField';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
+import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import type { Subject, Task, TaskType, ActivityLibraryItem } from '../../types';
 import { TASK_TYPE_LABELS } from '../../types';
 
@@ -28,6 +29,7 @@ export const blankTask = (): Task => ({
   referenceImageUrl: '',
   referenceLinkUrl: '',
   referenceLinkLabel: '',
+  rewardCents: DEFAULT_TASK_REWARD_CENTS,
 });
 
 // Turns a library item into a fresh, independent Task snapshot — used
@@ -51,6 +53,7 @@ export const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
   referenceLinkUrl: a.referenceLinkUrl,
   referenceLinkLabel: a.referenceLinkLabel,
   isDaily: a.isDaily,
+  rewardCents: a.rewardCents,
 });
 
 export function TaskEditor({
@@ -109,6 +112,20 @@ export function TaskEditor({
               <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>
             ))}
           </select>
+        </div>
+        <div>
+          <label>💰 Reward</label>
+          <div className="row" style={{ gap: 4 }}>
+            <span>$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.25}
+              style={{ width: 72 }}
+              value={((task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS) / 100).toFixed(2)}
+              onChange={(e) => setTask({ ...task, rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
+            />
+          </div>
         </div>
       </div>
 

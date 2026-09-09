@@ -19,6 +19,7 @@ import type {
   PlanTemplate,
   WeeklyScheduleEntry,
   Assignment,
+  Transaction,
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
 
@@ -153,6 +154,26 @@ const badgeToRow = (b: BadgeDef): Row => ({ id: b.id, name: b.name, description:
 
 const rowToBadgeEarn = (r: Row): BadgeEarn => ({ id: r.id, studentId: r.student_id, badgeId: r.badge_id, date: r.earned_at });
 
+const rowToTransaction = (r: Row): Transaction => ({
+  id: r.id,
+  studentId: r.student_id,
+  amountCents: r.amount_cents,
+  description: r.description,
+  icon: r.icon,
+  kind: r.kind,
+  createdAt: r.created_at,
+});
+
+const transactionToRow = (t: Transaction): Row => ({
+  id: t.id,
+  student_id: t.studentId,
+  amount_cents: t.amountCents,
+  description: t.description,
+  icon: t.icon,
+  kind: t.kind,
+  created_at: t.createdAt,
+});
+
 const rowToBreakPoolItem = (r: Row): BreakPoolItem => ({
   id: r.id,
   title: r.title,
@@ -193,6 +214,7 @@ const rowToActivity = (r: Row): ActivityLibraryItem => ({
   inPlayground: r.in_playground ?? false,
   isDaily: r.is_daily ?? false,
   createdAt: r.created_at,
+  rewardCents: r.reward_cents ?? undefined,
 });
 
 const activityToRow = (a: ActivityLibraryItem): Row => ({
@@ -216,6 +238,7 @@ const activityToRow = (a: ActivityLibraryItem): Row => ({
   in_playground: a.inPlayground,
   is_daily: a.isDaily ?? false,
   created_at: a.createdAt,
+  reward_cents: a.rewardCents ?? null,
 });
 
 const rowToTemplate = (r: Row): PlanTemplate => ({
@@ -290,6 +313,7 @@ export interface HydratedState {
   planTemplates: PlanTemplate[];
   weeklySchedule: WeeklyScheduleEntry[];
   assignments: Assignment[];
+  transactions: Transaction[];
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -304,7 +328,7 @@ export async function fetchAll(): Promise<HydratedState> {
   const [
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
-    quizAttemptsRes,
+    quizAttemptsRes, transactionsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -323,9 +347,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('weekly_schedule').select('*'),
     supabase.from('assignments').select('*'),
     supabase.from('quiz_attempts').select('*'),
+    supabase.from('transactions').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -379,6 +404,7 @@ export async function fetchAll(): Promise<HydratedState> {
     planTemplates: (templatesRes.data ?? []).map(rowToTemplate),
     weeklySchedule: (scheduleRes.data ?? []).map(rowToWeeklyScheduleEntry),
     assignments: (assignmentsRes.data ?? []).map(rowToAssignment),
+    transactions: (transactionsRes.data ?? []).map(rowToTransaction),
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -445,6 +471,8 @@ export const deleteBadgeRemote = (id: string) => remove('badges', { id });
 
 export const pushBadgeEarn = (e: BadgeEarn) =>
   upsert('badge_earns', { id: e.id, student_id: e.studentId, badge_id: e.badgeId, earned_at: e.date });
+
+export const pushTransaction = (t: Transaction) => upsert('transactions', transactionToRow(t));
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });
@@ -614,7 +642,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -634,6 +662,7 @@ export interface RealtimeHandlers {
   onTemplate: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onWeeklySchedule: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onAssignment: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onTransaction: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -666,6 +695,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_templates' }, wire(handlers.onTemplate))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_schedule' }, wire(handlers.onWeeklySchedule))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, wire(handlers.onAssignment))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, wire(handlers.onTransaction))
     .subscribe();
 
   return () => {

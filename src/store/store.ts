@@ -5,8 +5,7 @@ import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById } from '../lib/emoteCatalog';
 import { avatarById } from '../lib/avatarCatalog';
-
-const COINS_PER_TASK = 2;
+import { DEFAULT_TASK_REWARD_CENTS, formatMoney } from '../lib/money';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -17,22 +16,30 @@ const COINS_PER_TASK = 2;
 let realtimeSubscribed = false;
 
 export interface DailySpinResult {
-  type: 'coins' | 'skip';
-  amount: number;
+  type: 'cents' | 'skip' | 'cashback';
+  amountCents: number; // for 'cashback' this is the computed payout, not the percent
   label: string;
+  segmentIndex: number; // which DAILY_SPIN_SEGMENTS entry won, so the wheel UI can land on the same one
 }
 
-const SKIP_TOKEN_PRICE = 15;
+const SKIP_TOKEN_PRICE_CENTS = 1500; // $15.00
 
 // Every segment is a win — no empty/losing outcome — since this is a daily
 // mood-lift, not a chance-based reward loop a student could feel bad about
-// landing on.
-const DAILY_SPIN_OUTCOMES: DailySpinResult[] = [
-  { type: 'coins', amount: 5, label: '🪙 5 coins' },
-  { type: 'coins', amount: 10, label: '🪙 10 coins' },
-  { type: 'coins', amount: 15, label: '🪙 15 coins' },
-  { type: 'skip', amount: 1, label: '🎫 1 Skip Pass' },
+// landing on. 'cashback' pays 5% of the student's current balance instead
+// of a fixed amount, computed at spin time.
+const DAILY_SPIN_SEGMENTS = [
+  { type: 'cents' as const, amountCents: 100, label: '💵 $1.00' },
+  { type: 'cents' as const, amountCents: 250, label: '💵 $2.50' },
+  { type: 'cents' as const, amountCents: 500, label: '💵 $5.00' },
+  { type: 'skip' as const, amountCents: 0, label: '🎫 1 Skip Pass' },
+  { type: 'cashback' as const, amountCents: 0, label: '💰 5% Cashback' },
 ];
+
+// A streak bonus is capped so a very long streak can't compound into an
+// unrealistic percentage — 20% (a 20-day streak) is already a generous
+// "keep showing up" reward.
+const MAX_STREAK_INTEREST_PCT = 20;
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   fetchAll,
@@ -52,6 +59,7 @@ import {
   rowToQuestionSet,
   rowToActivity,
   rowToTemplate,
+  rowToTransaction,
   pushStudent,
   deleteStudentRemote,
   pushRotation,
@@ -80,6 +88,7 @@ import {
   rowToAssignment,
   pushAssignment,
   deleteAssignmentRemote,
+  pushTransaction,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -106,6 +115,8 @@ import type {
   WeeklyScheduleEntry,
   DayOfWeek,
   Assignment,
+  Transaction,
+  TransactionKind,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -148,6 +159,7 @@ interface AppState {
   weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>; // studentId -> subject -> ISO date last auto-applied
   badgeCounters: Record<string, BadgeCounters>; // studentId -> lifetime counters used by badge rules
   assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
+  transactions: Transaction[]; // every student's bank register, newest first
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -164,6 +176,7 @@ interface AppState {
   // students
   addStudent: (name: string, avatar: string) => string;
   updateStudent: (id: string, patch: Partial<Student>) => void;
+  recordTransaction: (studentId: string, amountCents: number, description: string, icon: string, kind: TransactionKind) => void;
   buyAvatar: (studentId: string, avatarId: string) => boolean;
   buyEmote: (studentId: string, emoteId: string) => boolean;
   equipEmote: (studentId: string, emoteId: string | null) => void;
@@ -332,6 +345,7 @@ export const useStore = create<AppState>()(
       weeklyPlanApplied: {},
       badgeCounters: {},
       assignments: [],
+      transactions: [],
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -395,6 +409,7 @@ export const useStore = create<AppState>()(
           onWeeklySchedule: (e, n, o) =>
             set((s) => ({ weeklySchedule: applyArrayRow(s.weeklySchedule, e, rowToWeeklyScheduleEntry, n, o) })),
           onAssignment: (e, n, o) => set((s) => ({ assignments: applyArrayRow(s.assignments, e, rowToAssignment, n, o) })),
+          onTransaction: (e, n, o) => set((s) => ({ transactions: applyArrayRow(s.transactions, e, rowToTransaction, n, o) })),
         });
       },
 
@@ -442,19 +457,36 @@ export const useStore = create<AppState>()(
         if (updated) pushStudent(updated);
       },
 
-      // Marketplace: spend coins to unlock an avatar or emote. Returns false
-      // (no-op) if already owned, unknown, or not enough coins, so callers
-      // can show "not enough coins" without duplicating the balance check.
+      // Every earn/spend goes through here so the bank register always has
+      // a matching row — nothing changes a balance silently.
+      recordTransaction: (studentId, amountCents, description, icon, kind) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        const tx: Transaction = {
+          id: makeId(),
+          studentId,
+          amountCents,
+          description,
+          icon,
+          kind,
+          createdAt: new Date().toISOString(),
+        };
+        set((s) => ({ transactions: [tx, ...s.transactions] }));
+        pushTransaction(tx);
+        get().updateStudent(studentId, { coins: student.coins + amountCents });
+      },
+
+      // Marketplace: spend Class Cash to unlock an avatar or emote. Returns
+      // false (no-op) if already owned, unknown, or not enough money, so
+      // callers can show "not enough" without duplicating the balance check.
       buyAvatar: (studentId, avatarId) => {
         const student = get().students.find((st) => st.id === studentId);
         const item = avatarById(avatarId);
         if (!student || !item) return false;
         if (student.ownedAvatarIds.includes(avatarId)) return false;
         if (student.coins < item.price) return false;
-        get().updateStudent(studentId, {
-          coins: student.coins - item.price,
-          ownedAvatarIds: [...student.ownedAvatarIds, avatarId],
-        });
+        get().updateStudent(studentId, { ownedAvatarIds: [...student.ownedAvatarIds, avatarId] });
+        get().recordTransaction(studentId, -item.price, `New character: ${item.name}`, item.src, 'purchase-avatar');
         return true;
       },
 
@@ -464,10 +496,8 @@ export const useStore = create<AppState>()(
         if (!student || !item) return false;
         if (student.ownedEmoteIds.includes(emoteId)) return false;
         if (student.coins < item.price) return false;
-        get().updateStudent(studentId, {
-          coins: student.coins - item.price,
-          ownedEmoteIds: [...student.ownedEmoteIds, emoteId],
-        });
+        get().updateStudent(studentId, { ownedEmoteIds: [...student.ownedEmoteIds, emoteId] });
+        get().recordTransaction(studentId, -item.price, `New emote: ${item.name}`, item.src, 'purchase-emote');
         return true;
       },
 
@@ -480,11 +510,9 @@ export const useStore = create<AppState>()(
 
       buySkipToken: (studentId) => {
         const student = get().students.find((st) => st.id === studentId);
-        if (!student || student.coins < SKIP_TOKEN_PRICE) return false;
-        get().updateStudent(studentId, {
-          coins: student.coins - SKIP_TOKEN_PRICE,
-          skipTokens: student.skipTokens + 1,
-        });
+        if (!student || student.coins < SKIP_TOKEN_PRICE_CENTS) return false;
+        get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
+        get().recordTransaction(studentId, -SKIP_TOKEN_PRICE_CENTS, 'Skip Pass', '🎫', 'purchase-skip');
         return true;
       },
 
@@ -523,12 +551,22 @@ export const useStore = create<AppState>()(
         if (!student) return null;
         const today = todayISO();
         if (student.lastSpinDate === today) return null;
-        const outcome = DAILY_SPIN_OUTCOMES[Math.floor(Math.random() * DAILY_SPIN_OUTCOMES.length)];
-        const patch: Partial<Student> = { lastSpinDate: today };
-        if (outcome.type === 'coins') patch.coins = student.coins + outcome.amount;
-        else patch.skipTokens = student.skipTokens + outcome.amount;
-        get().updateStudent(studentId, patch);
-        return outcome;
+        const segmentIndex = Math.floor(Math.random() * DAILY_SPIN_SEGMENTS.length);
+        const segment = DAILY_SPIN_SEGMENTS[segmentIndex];
+        get().updateStudent(studentId, { lastSpinDate: today });
+
+        if (segment.type === 'skip') {
+          get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
+          return { type: 'skip', amountCents: 0, label: segment.label, segmentIndex };
+        }
+        const amountCents = segment.type === 'cashback' ? Math.round(student.coins * 0.05) : segment.amountCents;
+        get().recordTransaction(studentId, amountCents, '🎡 Daily Spin winnings', '🎡', segment.type === 'cashback' ? 'spin-cashback' : 'spin-cash');
+        return {
+          type: segment.type,
+          amountCents,
+          label: segment.type === 'cashback' ? `💰 ${formatMoney(amountCents)} Cashback` : segment.label,
+          segmentIndex,
+        };
       },
 
       deleteStudent: (id) => {
@@ -723,8 +761,9 @@ export const useStore = create<AppState>()(
         });
         pushProgress(studentId, subject, get().progress[studentId][subject]);
 
-        const coinEarner = get().students.find((st) => st.id === studentId);
-        if (coinEarner) get().updateStudent(studentId, { coins: coinEarner.coins + COINS_PER_TASK });
+        const rewardedTask = tasks.find((t) => t.id === taskId);
+        const rewardCents = rewardedTask?.rewardCents ?? DEFAULT_TASK_REWARD_CENTS;
+        get().recordTransaction(studentId, rewardCents, rewardedTask?.title || 'Activity completed', rewardedTask?.icon ?? '📝', 'task');
 
         // lifetime completion count -> practice-makes-progress badge
         const key = `${studentId}:${taskId}`;
@@ -758,6 +797,16 @@ export const useStore = create<AppState>()(
           const newStreak = continued ? student.streak + 1 : 1;
           get().updateStudent(studentId, { streak: newStreak, lastCompletedDate: today });
           get().awardBadge(studentId, 'showed-up');
+
+          // Streak interest: a 1% bonus of the current balance per day of
+          // streak (capped), paid the moment the streak ticks up — the same
+          // "money makes money" idea as a real savings account.
+          const pct = Math.min(newStreak, MAX_STREAK_INTEREST_PCT);
+          const balanceForInterest = get().students.find((st) => st.id === studentId)?.coins ?? 0;
+          const interest = Math.round(balanceForInterest * (pct / 100));
+          if (interest > 0) {
+            get().recordTransaction(studentId, interest, `🔥 ${newStreak}-day streak bonus (${pct}%)`, '🔥', 'streak-interest');
+          }
         }
         get().evaluateBadgeRules(studentId);
       },

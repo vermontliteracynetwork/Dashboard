@@ -106,6 +106,19 @@ create table if not exists badge_earns (
   earned_at timestamptz not null default now()
 );
 
+-- A student's bank register: one row per earn or spend. amount_cents is
+-- signed (positive = income, negative = expense) so the balance is always
+-- just the sum of a student's rows — the same shape a real ledger uses.
+create table if not exists transactions (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  amount_cents int not null,
+  description text not null,
+  icon text not null,
+  kind text not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists break_pool_items (
   id text primary key,
   title text not null,
@@ -231,6 +244,7 @@ alter table students add column if not exists equipped_emote_id text;
 alter table students add column if not exists skip_tokens int not null default 0;
 alter table students add column if not exists last_spin_date date;
 alter table subject_progress add column if not exists skipped_task_ids jsonb not null default '[]';
+alter table activity_library add column if not exists reward_cents int;
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference
@@ -269,7 +283,8 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
+    'transactions'
   ];
 begin
   foreach t in array tables loop
@@ -311,7 +326,8 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments'
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
+    'transactions'
   ];
 begin
   foreach t in array tables loop

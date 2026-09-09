@@ -13,6 +13,8 @@ import { AvatarGlyph } from '../../components/AvatarGlyph';
 import Marketplace from '../../components/Marketplace';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
 import DailySpinWheel from '../../components/DailySpinWheel';
+import PiggyBank from '../../components/PiggyBank';
+import { formatMoney } from '../../lib/money';
 
 export default function StudentHome() {
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ export default function StudentHome() {
   const [showBadges, setShowBadges] = useState(false);
   const [showMarketplace, setShowMarketplace] = useState(false);
   const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [showBank, setShowBank] = useState(false);
   const updateStudent = useStore((s) => s.updateStudent);
   const [, setTick] = useState(0);
 
@@ -155,8 +158,18 @@ export default function StudentHome() {
         </div>
       )}
 
-      {showMarketplace && <Marketplace studentId={student.id} onClose={() => setShowMarketplace(false)} />}
+      {showMarketplace && (
+        <Marketplace
+          studentId={student.id}
+          onClose={() => setShowMarketplace(false)}
+          onOpenBank={() => {
+            setShowMarketplace(false);
+            setShowBank(true);
+          }}
+        />
+      )}
       {showSpinWheel && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
+      {showBank && <PiggyBank studentId={student.id} onClose={() => setShowBank(false)} />}
 
       <div className="chrome-frame space-between" style={{ padding: '18px 24px' }}>
         <div className="row">
@@ -172,10 +185,10 @@ export default function StudentHome() {
               <button
                 className="tag-pill"
                 style={{ background: 'var(--yellow)', border: 'none', cursor: 'pointer', minHeight: 44 }}
-                onClick={() => setShowMarketplace(true)}
-                aria-label={`${student.coins} coins — open Marketplace`}
+                onClick={() => setShowBank(true)}
+                aria-label={`Balance ${formatMoney(student.coins)} — open My Bank`}
               >
-                🪙 {student.coins}
+                🐷 {formatMoney(student.coins)}
               </button>
               <button
                 className="btn btn-sm"

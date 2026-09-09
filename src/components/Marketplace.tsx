@@ -3,17 +3,19 @@ import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
 import { AvatarGlyph } from './AvatarGlyph';
 import { EMOTE_CATALOG } from '../lib/emoteCatalog';
+import { formatMoney } from '../lib/money';
 
 interface Props {
   studentId: string;
   onClose: () => void;
+  onOpenBank?: () => void;
 }
 
 type Tab = 'characters' | 'emotes' | 'powerups';
 
-const SKIP_TOKEN_PRICE = 15;
+const SKIP_TOKEN_PRICE_CENTS = 1500;
 
-export default function Marketplace({ studentId, onClose }: Props) {
+export default function Marketplace({ studentId, onClose, onOpenBank }: Props) {
   const students = useStore((s) => s.students);
   const buyAvatar = useStore((s) => s.buyAvatar);
   const buyEmote = useStore((s) => s.buyEmote);
@@ -31,11 +33,21 @@ export default function Marketplace({ studentId, onClose }: Props) {
         <div className="content-well stack">
           <div className="space-between">
             <h2 style={{ margin: 0 }}>🛍️ Marketplace</h2>
-            <div className="tag-pill" style={{ background: 'var(--yellow)', fontSize: '1rem' }}>
-              🪙 {student.coins} coins
-            </div>
+            {onOpenBank ? (
+              <button
+                className="tag-pill"
+                style={{ background: 'var(--yellow)', fontSize: '1rem', border: 'none', cursor: 'pointer', minHeight: 44 }}
+                onClick={onOpenBank}
+              >
+                🐷 {formatMoney(student.coins)}
+              </button>
+            ) : (
+              <div className="tag-pill" style={{ background: 'var(--yellow)', fontSize: '1rem' }}>
+                🐷 {formatMoney(student.coins)}
+              </div>
+            )}
           </div>
-          <p style={{ opacity: 0.75, marginTop: -8 }}>Earn coins by finishing your tasks. Spend them here!</p>
+          <p style={{ opacity: 0.75, marginTop: -8 }}>Earn Class Cash by finishing your tasks. Spend it here!</p>
 
           <div className="lp-tabs">
             <button className={`lp-tab-btn ${tab === 'characters' ? 'active' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('characters')}>
@@ -78,11 +90,11 @@ export default function Marketplace({ studentId, onClose }: Props) {
                             disabled={!affordable}
                             onClick={() => buyAvatar(studentId, a.id)}
                           >
-                            🪙 {a.price}
+                            {formatMoney(a.price)}
                           </button>
                           {!affordable && (
                             <span style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700 }}>
-                              🔒 Need {a.price - student.coins} more
+                              🔒 Need {formatMoney(a.price - student.coins)} more
                             </span>
                           )}
                         </div>
@@ -123,11 +135,11 @@ export default function Marketplace({ studentId, onClose }: Props) {
                             disabled={!affordable}
                             onClick={() => buyEmote(studentId, e.id)}
                           >
-                            🪙 {e.price}
+                            {formatMoney(e.price)}
                           </button>
                           {!affordable && (
                             <span style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700 }}>
-                              🔒 Need {e.price - student.coins} more
+                              🔒 Need {formatMoney(e.price - student.coins)} more
                             </span>
                           )}
                         </div>
@@ -152,14 +164,14 @@ export default function Marketplace({ studentId, onClose }: Props) {
                   <button
                     className="btn btn-sm"
                     style={{ minHeight: 44, minWidth: 44 }}
-                    disabled={student.coins < SKIP_TOKEN_PRICE}
+                    disabled={student.coins < SKIP_TOKEN_PRICE_CENTS}
                     onClick={() => buySkipToken(studentId)}
                   >
-                    🪙 {SKIP_TOKEN_PRICE}
+                    {formatMoney(SKIP_TOKEN_PRICE_CENTS)}
                   </button>
-                  {student.coins < SKIP_TOKEN_PRICE && (
+                  {student.coins < SKIP_TOKEN_PRICE_CENTS && (
                     <span style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700 }}>
-                      🔒 Need {SKIP_TOKEN_PRICE - student.coins} more
+                      🔒 Need {formatMoney(SKIP_TOKEN_PRICE_CENTS - student.coins)} more
                     </span>
                   )}
                 </div>
