@@ -16,6 +16,7 @@ import WhatNowOverlay from '../../components/WhatNowOverlay';
 import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
+import ArticleReader from '../../components/ArticleReader';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -148,6 +149,10 @@ export default function SubjectDashboard() {
       case 'drill': return <DrillTask student={student} task={task} onDone={handleDone} />;
       case 'wordchain': return <WordChainTask student={student} task={task} onDone={handleDone} />;
       case 'sentenceEdit': return <SentenceEditTask student={student} task={task} onDone={handleDone} />;
+      case 'article':
+        return task.article ? (
+          <ArticleReader studentId={student.id} taskId={task.id} content={task.article} ttsSettings={student.ttsSettings} onDone={handleDone} />
+        ) : null;
       default: return null;
     }
   };

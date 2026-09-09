@@ -7,8 +7,99 @@ import ImageUploadField from '../../components/ImageUploadField';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
-import type { Subject, Task, TaskType, ActivityLibraryItem } from '../../types';
+import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot } from '../../types';
 import { TASK_TYPE_LABELS } from '../../types';
+
+const MAX_ARTICLES_PER_TASK = 3;
+
+// Teacher-side: paste a URL, fetch the clean article text server-side
+// (Mozilla Readability strips ads/nav), and keep the result as a frozen
+// snapshot. Up to 3 slots so a task can hold multiple articles for a
+// student to compare in tabs.
+function ArticleEditor({ articles, onChange }: { articles: ArticleSnapshot[]; onChange: (articles: ArticleSnapshot[]) => void }) {
+  const [urls, setUrls] = useState<string[]>(articles.length ? articles.map((a) => a.sourceUrl) : ['']);
+  const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
+  const [errors, setErrors] = useState<Record<number, string>>({});
+
+  const fetchArticle = async (i: number) => {
+    const url = urls[i]?.trim();
+    if (!url) return;
+    setLoadingIndex(i);
+    setErrors((e) => ({ ...e, [i]: '' }));
+    try {
+      const res = await fetch(`/api/extract-article?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not fetch that article.');
+      const snapshot: ArticleSnapshot = {
+        id: makeId(),
+        sourceUrl: url,
+        title: data.title || url,
+        byline: data.byline,
+        siteName: data.siteName,
+        contentHtml: data.contentHtml,
+        textContent: data.textContent,
+        fetchedAt: new Date().toISOString(),
+      };
+      const next = [...articles];
+      next[i] = snapshot;
+      onChange(next.filter(Boolean));
+    } catch (err) {
+      setErrors((e) => ({ ...e, [i]: err instanceof Error ? err.message : 'Something went wrong.' }));
+    } finally {
+      setLoadingIndex(null);
+    }
+  };
+
+  return (
+    <div className="stack">
+      {urls.map((url, i) => {
+        const fetched = articles[i];
+        return (
+          <div key={i} className="content-well stack" style={{ gap: 6 }}>
+            <div className="row-wrap">
+              <input
+                style={{ flex: 1, minWidth: 220 }}
+                placeholder="https://kids.nationalgeographic.com/... or any article URL"
+                value={url}
+                onChange={(e) => setUrls((prev) => prev.map((u, idx) => (idx === i ? e.target.value : u)))}
+              />
+              <button className="btn btn-sm btn-primary" disabled={loadingIndex === i || !url.trim()} onClick={() => fetchArticle(i)}>
+                {loadingIndex === i ? 'Fetching…' : fetched ? '🔄 Re-fetch' : '📥 Fetch Article'}
+              </button>
+              {urls.length > 1 && (
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={() => {
+                    setUrls((prev) => prev.filter((_, idx) => idx !== i));
+                    onChange(articles.filter((_, idx) => idx !== i));
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            {errors[i] && <p style={{ color: 'var(--danger)', fontSize: '0.82rem', margin: 0 }}>⚠️ {errors[i]}</p>}
+            {fetched && (
+              <div className="row" style={{ gap: 8 }}>
+                <span className="tag-pill" style={{ background: 'var(--success)', color: '#fff' }}>✓ Ready</span>
+                <strong style={{ fontSize: '0.85rem' }}>{fetched.title}</strong>
+                {fetched.siteName && <span style={{ fontSize: '0.78rem', opacity: 0.7 }}>— {fetched.siteName}</span>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {urls.length < MAX_ARTICLES_PER_TASK && (
+        <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setUrls((prev) => [...prev, ''])}>
+          ➕ Add another article to compare
+        </button>
+      )}
+      <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
+        The student sees a clean, ad-free reader with adjustable text size/spacing, read-aloud, and highlighting — never the live website.
+      </p>
+    </div>
+  );
+}
 
 export const ICON_CHOICES = ['📘', '✏️', '🔤', '🔢', '➗', '🧩', '🎧', '🌍', '🖐️', '🎯', '🧠', '📐', '🗣️', '🎨', '▶️', '📖', '⛓️', '🩹'];
 
@@ -54,6 +145,7 @@ export const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
   referenceLinkLabel: a.referenceLinkLabel,
   isDaily: a.isDaily,
   rewardCents: a.rewardCents,
+  article: a.article,
 });
 
 export function TaskEditor({
@@ -171,6 +263,13 @@ export function TaskEditor({
             onChange={(e) => setTask({ ...task, link: { url: e.target.value } })}
           />
         </div>
+      )}
+
+      {task.type === 'article' && (
+        <ArticleEditor
+          articles={task.article?.articles ?? []}
+          onChange={(articles) => setTask({ ...task, article: { articles } })}
+        />
       )}
 
       {task.type === 'offscreen' && (

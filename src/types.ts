@@ -85,7 +85,7 @@ export interface Student {
   lastSpinDate: string | null; // ISO date of the last daily-wheel spin, so it's once per day
 }
 
-export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit';
+export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article';
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   quiz: 'Quiz (practice or checkpoint)',
@@ -96,6 +96,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   drill: 'Flashcard drill (facts, grapheme/morpheme, vocab)',
   wordchain: 'Word chain (word ladder)',
   sentenceEdit: 'Editing sentences',
+  article: 'Article Reader (real web article, in-app)',
 };
 
 export interface MCQuestion {
@@ -152,6 +153,44 @@ export interface PassageContent {
   imageUrl?: string;
 }
 
+// One extracted web article — clean text pulled server-side (Mozilla
+// Readability), stripped of ads/nav/site chrome. sourceUrl is kept for a
+// "view original" link and re-fetching; the rest is a frozen snapshot so a
+// student's reading experience never changes mid-assignment even if the
+// source page does.
+export interface ArticleSnapshot {
+  id: string;
+  sourceUrl: string;
+  title: string;
+  byline?: string | null;
+  siteName?: string | null;
+  contentHtml: string;
+  textContent: string;
+  fetchedAt: string; // ISO
+}
+
+export interface ArticleTaskContent {
+  articles: ArticleSnapshot[]; // 1 = single reader; 2+ = tabbed, one highlight color per tab
+}
+
+export interface Highlight {
+  id: string;
+  start: number; // character offset into textContent
+  end: number;
+  color: string;
+  note?: string;
+}
+
+// One student's highlights+notes on one article within one task. Keyed by
+// (studentId, taskId, articleIndex) rather than a synthetic id since a
+// student only ever has one annotation set per article.
+export interface ArticleAnnotationSet {
+  studentId: string;
+  taskId: string;
+  articleIndex: number;
+  highlights: Highlight[];
+}
+
 export interface DrillCard {
   id: string;
   front: string;
@@ -201,6 +240,7 @@ export interface Task {
   drill?: DrillContent;
   wordchain?: WordChainContent;
   sentenceEdit?: SentenceEditContent;
+  article?: ArticleTaskContent;
   customSteps?: StepDef[]; // teacher override of the auto-generated visual step guide
   referenceImageUrl?: string; // shown to the student throughout this activity, any task type
   referenceLinkUrl?: string; // an extra reference link, any task type (distinct from the 'link' task type itself)

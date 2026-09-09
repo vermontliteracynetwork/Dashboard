@@ -60,6 +60,9 @@ import {
   rowToActivity,
   rowToTemplate,
   rowToTransaction,
+  rowToAnnotation,
+  annotationKey,
+  pushAnnotation,
   pushStudent,
   deleteStudentRemote,
   pushRotation,
@@ -117,6 +120,8 @@ import type {
   Assignment,
   Transaction,
   TransactionKind,
+  ArticleAnnotationSet,
+  Highlight,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -160,6 +165,7 @@ interface AppState {
   badgeCounters: Record<string, BadgeCounters>; // studentId -> lifetime counters used by badge rules
   assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
   transactions: Transaction[]; // every student's bank register, newest first
+  articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -177,6 +183,9 @@ interface AppState {
   addStudent: (name: string, avatar: string) => string;
   updateStudent: (id: string, patch: Partial<Student>) => void;
   recordTransaction: (studentId: string, amountCents: number, description: string, icon: string, kind: TransactionKind) => void;
+  addHighlight: (studentId: string, taskId: string, articleIndex: number, highlight: Highlight) => void;
+  removeHighlight: (studentId: string, taskId: string, articleIndex: number, highlightId: string) => void;
+  setHighlightNote: (studentId: string, taskId: string, articleIndex: number, highlightId: string, note: string) => void;
   buyAvatar: (studentId: string, avatarId: string) => boolean;
   buyEmote: (studentId: string, emoteId: string) => boolean;
   equipEmote: (studentId: string, emoteId: string | null) => void;
@@ -346,6 +355,7 @@ export const useStore = create<AppState>()(
       badgeCounters: {},
       assignments: [],
       transactions: [],
+      articleAnnotations: {},
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -410,6 +420,22 @@ export const useStore = create<AppState>()(
             set((s) => ({ weeklySchedule: applyArrayRow(s.weeklySchedule, e, rowToWeeklyScheduleEntry, n, o) })),
           onAssignment: (e, n, o) => set((s) => ({ assignments: applyArrayRow(s.assignments, e, rowToAssignment, n, o) })),
           onTransaction: (e, n, o) => set((s) => ({ transactions: applyArrayRow(s.transactions, e, rowToTransaction, n, o) })),
+          onAnnotation: (e, n, o) => {
+            if (e === 'DELETE') {
+              if (!o) return;
+              const key = annotationKey(o.student_id, o.task_id, o.article_index);
+              set((s) => {
+                const next = { ...s.articleAnnotations };
+                delete next[key];
+                return { articleAnnotations: next };
+              });
+              return;
+            }
+            if (!n) return;
+            const parsed = rowToAnnotation(n);
+            const key = annotationKey(parsed.studentId, parsed.taskId, parsed.articleIndex);
+            set((s) => ({ articleAnnotations: { ...s.articleAnnotations, [key]: parsed } }));
+          },
         });
       },
 
@@ -506,6 +532,40 @@ export const useStore = create<AppState>()(
         if (!student) return;
         if (emoteId && !student.ownedEmoteIds.includes(emoteId)) return;
         get().updateStudent(studentId, { equippedEmoteId: emoteId });
+      },
+
+      addHighlight: (studentId, taskId, articleIndex, highlight) => {
+        const key = annotationKey(studentId, taskId, articleIndex);
+        const existing = get().articleAnnotations[key];
+        const updated: ArticleAnnotationSet = {
+          studentId,
+          taskId,
+          articleIndex,
+          highlights: [...(existing?.highlights ?? []), highlight],
+        };
+        set((s) => ({ articleAnnotations: { ...s.articleAnnotations, [key]: updated } }));
+        pushAnnotation(updated);
+      },
+
+      removeHighlight: (studentId, taskId, articleIndex, highlightId) => {
+        const key = annotationKey(studentId, taskId, articleIndex);
+        const existing = get().articleAnnotations[key];
+        if (!existing) return;
+        const updated: ArticleAnnotationSet = { ...existing, highlights: existing.highlights.filter((h) => h.id !== highlightId) };
+        set((s) => ({ articleAnnotations: { ...s.articleAnnotations, [key]: updated } }));
+        pushAnnotation(updated);
+      },
+
+      setHighlightNote: (studentId, taskId, articleIndex, highlightId, note) => {
+        const key = annotationKey(studentId, taskId, articleIndex);
+        const existing = get().articleAnnotations[key];
+        if (!existing) return;
+        const updated: ArticleAnnotationSet = {
+          ...existing,
+          highlights: existing.highlights.map((h) => (h.id === highlightId ? { ...h, note } : h)),
+        };
+        set((s) => ({ articleAnnotations: { ...s.articleAnnotations, [key]: updated } }));
+        pushAnnotation(updated);
       },
 
       buySkipToken: (studentId) => {

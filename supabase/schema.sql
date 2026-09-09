@@ -119,6 +119,17 @@ create table if not exists transactions (
   created_at timestamptz not null default now()
 );
 
+-- One row per student per article within a task: the full highlights (with
+-- their notes) array, replaced wholesale on every change rather than
+-- normalized into one row per highlight.
+create table if not exists article_annotations (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  task_id text not null,
+  article_index int not null,
+  highlights jsonb not null default '[]'
+);
+
 create table if not exists break_pool_items (
   id text primary key,
   title text not null,
@@ -245,6 +256,7 @@ alter table students add column if not exists skip_tokens int not null default 0
 alter table students add column if not exists last_spin_date date;
 alter table subject_progress add column if not exists skipped_task_ids jsonb not null default '[]';
 alter table activity_library add column if not exists reward_cents int;
+alter table activity_library add column if not exists article jsonb;
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference
@@ -284,7 +296,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions'
+    'transactions', 'article_annotations'
   ];
 begin
   foreach t in array tables loop
@@ -327,7 +339,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions'
+    'transactions', 'article_annotations'
   ];
 begin
   foreach t in array tables loop
