@@ -279,6 +279,9 @@ alter table subject_progress add column if not exists skipped_task_ids jsonb not
 alter table activity_library add column if not exists reward_cents int;
 alter table activity_library add column if not exists article jsonb;
 alter table badges add column if not exists reward_cents int;
+alter table activity_library add column if not exists sentence_builder jsonb;
+alter table activity_library add column if not exists link_choice jsonb;
+alter table activity_library add column if not exists tags jsonb not null default '[]';
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference

@@ -312,6 +312,52 @@ function LinkChoiceEditor({ content, onChange }: { content: LinkChoiceContent; o
   );
 }
 
+// A small tag-chip editor: type + Enter (or tap a suggestion) to add,
+// tap a chip to remove. `suggestions` is normally every tag already used
+// elsewhere in the library, so a teacher reuses "Baamboozle Game" instead
+// of accidentally typing a slightly different spelling each time.
+function TagsEditor({ tags, onChange, suggestions }: { tags: string[]; onChange: (tags: string[]) => void; suggestions: string[] }) {
+  const [draft, setDraft] = useState('');
+  const addTag = (raw: string) => {
+    const t = raw.trim();
+    if (!t || tags.includes(t)) return;
+    onChange([...tags, t]);
+    setDraft('');
+  };
+  const unused = suggestions.filter((s) => !tags.includes(s));
+
+  return (
+    <div className="stack" style={{ gap: 6 }}>
+      <label>🏷️ Tags (activity type — e.g. "YouTube Video", "Baamboozle Game")</label>
+      <div className="row-wrap">
+        {tags.map((t) => (
+          <button key={t} className="tag-pill" style={{ cursor: 'pointer' }} onClick={() => onChange(tags.filter((x) => x !== t))} title="Tap to remove">
+            {t} ✕
+          </button>
+        ))}
+        <input
+          style={{ minWidth: 160 }}
+          placeholder="Type a tag, press Enter"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); addTag(draft); }
+          }}
+        />
+      </div>
+      {unused.length > 0 && (
+        <div className="row-wrap">
+          {unused.slice(0, 10).map((s) => (
+            <button key={s} className="btn btn-sm" style={{ minHeight: 32, fontSize: '0.75rem' }} onClick={() => addTag(s)}>
+              ➕ {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const ICON_CHOICES = ['📘', '✏️', '🔤', '🔢', '➗', '🧩', '🎧', '🌍', '🖐️', '🎯', '🧠', '📐', '🗣️', '🎨', '▶️', '📖', '⛓️', '🩹'];
 
 export const blankTask = (): Task => ({
@@ -436,6 +482,17 @@ export function TaskEditor({
         </div>
       </div>
 
+      <div style={{ maxWidth: 320 }}>
+        <ImageUploadField
+          label="🖼️ Cover image — shown on the activity card and to the student"
+          value={task.referenceImageUrl}
+          onChange={(url) => setTask({ ...task, referenceImageUrl: url })}
+        />
+        <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: '4px 0 0' }}>
+          For a YouTube video, this fills in automatically. For a game or site (Baamboozle, etc.), take a screenshot and upload it here.
+        </p>
+      </div>
+
       {task.type === 'quiz' && (
         <div className="stack">
           <QuizEditor
@@ -497,7 +554,13 @@ export function TaskEditor({
       {task.type === 'linkChoice' && (
         <LinkChoiceEditor
           content={task.linkChoice ?? { options: [] }}
-          onChange={(linkChoice) => setTask({ ...task, linkChoice })}
+          onChange={(linkChoice) =>
+            setTask({
+              ...task,
+              linkChoice,
+              referenceImageUrl: task.referenceImageUrl || linkChoice.options.find((o) => o.thumbnailUrl)?.thumbnailUrl,
+            })
+          }
         />
       )}
 
@@ -534,6 +597,11 @@ export function TaskEditor({
               placeholder="https://www.youtube.com/watch?v=..."
               value={task.video?.youtubeUrl ?? ''}
               onChange={(e) => setTask({ ...task, video: { ...task.video, youtubeUrl: e.target.value } })}
+              onBlur={(e) => {
+                if (task.referenceImageUrl) return;
+                const videoId = extractYouTubeId(e.target.value);
+                if (videoId) setTask((t) => ({ ...t, referenceImageUrl: youtubeThumbnailUrl(videoId) }));
+              }}
             />
           </div>
           <div>
@@ -700,15 +768,6 @@ export function TaskEditor({
       <strong>Extras</strong>
       <div className="row-wrap">
         <div style={{ flex: 1, minWidth: 220 }}>
-          <ImageUploadField
-            label="🖼️ Reference image for the student (optional)"
-            value={task.referenceImageUrl}
-            onChange={(url) => setTask({ ...task, referenceImageUrl: url })}
-          />
-        </div>
-      </div>
-      <div className="row-wrap">
-        <div style={{ flex: 1, minWidth: 220 }}>
           <label>🔗 Reference link (optional — a helper link shown alongside the activity)</label>
           <input
             style={{ width: '100%' }}
@@ -807,9 +866,11 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
   const addLibraryActivity = useStore((s) => s.addLibraryActivity);
   const [creating, setCreating] = useState(false);
   const [pickedSubject, setPickedSubject] = useState<Subject>(subject ?? 'math');
+  const [tags, setTags] = useState<string[]>([]);
   const effectiveSubject = subject ?? pickedSubject;
 
   const allForSubject = activityLibrary.filter((a) => a.subject === effectiveSubject);
+  const allTags = [...new Set(activityLibrary.flatMap((a) => a.tags ?? []))].sort();
 
   return (
     <div className="zone zone-create stack">
@@ -829,16 +890,23 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
         )}
         {!creating && <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setCreating(true)}>➕ New Activity</button>}
         {creating && (
-          <TaskEditor
-            initial={blankTask()}
-            subject={effectiveSubject}
-            matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
-            onSave={(t) => {
-              addLibraryActivity({ ...t, subject: effectiveSubject, inPlayground: false });
-              setCreating(false);
-            }}
-            onCancel={() => setCreating(false)}
-          />
+          <>
+            <TagsEditor tags={tags} onChange={setTags} suggestions={allTags} />
+            <TaskEditor
+              initial={blankTask()}
+              subject={effectiveSubject}
+              matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
+              onSave={(t) => {
+                addLibraryActivity({ ...t, subject: effectiveSubject, inPlayground: false, tags });
+                setTags([]);
+                setCreating(false);
+              }}
+              onCancel={() => {
+                setTags([]);
+                setCreating(false);
+              }}
+            />
+          </>
         )}
       </div>
     </div>
@@ -869,14 +937,20 @@ export function ActivityLibraryBrowse({
   const addActivityToPlanForStudents = useStore((s) => s.addActivityToPlanForStudents);
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTags, setEditingTags] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+  const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
   const [addToIds, setAddToIds] = useState<string[]>([]);
 
   const allForSubject = subject ? activityLibrary.filter((a) => a.subject === subject) : activityLibrary;
-  const activities = allForSubject.filter(
-    (a) => !search.trim() || a.title.toLowerCase().includes(search.trim().toLowerCase()),
-  );
+  const allTags = [...new Set(allForSubject.flatMap((a) => a.tags ?? []))].sort();
+  const searchLower = search.trim().toLowerCase();
+  const activities = allForSubject.filter((a) => {
+    const matchesSearch = !searchLower || a.title.toLowerCase().includes(searchLower) || (a.tags ?? []).some((t) => t.toLowerCase().includes(searchLower));
+    const matchesTags = activeTagFilters.length === 0 || activeTagFilters.every((t) => (a.tags ?? []).includes(t));
+    return matchesSearch && matchesTags;
+  });
   const editingActivity = activities.find((a) => a.id === editingId);
   const titlesOnTodaysPlan = new Set((tasks ?? []).map((t) => t.title.trim().toLowerCase()));
 
@@ -897,6 +971,26 @@ export function ActivityLibraryBrowse({
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: '100%' }}
         />
+        {allTags.length > 0 && (
+          <div className="row-wrap" style={{ gap: 4 }}>
+            <span style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'center' }}>Filter:</span>
+            {allTags.map((t) => (
+              <button
+                key={t}
+                className={`btn btn-sm ${activeTagFilters.includes(t) ? 'btn-primary' : ''}`}
+                style={{ minHeight: 32, fontSize: '0.75rem' }}
+                onClick={() => setActiveTagFilters((f) => (f.includes(t) ? f.filter((x) => x !== t) : [...f, t]))}
+              >
+                🏷️ {t}
+              </button>
+            ))}
+            {activeTagFilters.length > 0 && (
+              <button className="btn btn-sm" style={{ minHeight: 32, fontSize: '0.75rem' }} onClick={() => setActiveTagFilters([])}>
+                ✕ Clear
+              </button>
+            )}
+          </div>
+        )}
 
         {editingActivity && (
           <div className="content-well stack" style={{ background: '#faf9ff' }}>
@@ -904,12 +998,13 @@ export function ActivityLibraryBrowse({
               <strong>✏️ Editing "{editingActivity.title || '(untitled)'}"</strong>
               <button className="btn btn-sm" onClick={() => setEditingId(null)}>✕ Cancel</button>
             </div>
+            <TagsEditor tags={editingTags} onChange={setEditingTags} suggestions={allTags} />
             <TaskEditor
               initial={editingActivity}
               subject={editingActivity.subject}
               matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
               onSave={(t) => {
-                updateLibraryActivity(editingActivity.id, t);
+                updateLibraryActivity(editingActivity.id, { ...t, tags: editingTags });
                 setEditingId(null);
               }}
               onCancel={() => setEditingId(null)}
@@ -945,6 +1040,13 @@ export function ActivityLibraryBrowse({
                         </div>
                         <div className="set-card-title">{a.title || '(untitled)'}</div>
                         {!compact && <div className="set-card-meta">{TASK_TYPE_LABELS[a.type]}</div>}
+                        {!compact && (a.tags?.length ?? 0) > 0 && (
+                          <div className="row-wrap" style={{ gap: 3 }}>
+                            {a.tags!.map((t) => (
+                              <span key={t} className="tag-pill" style={{ fontSize: '0.62rem', padding: '2px 8px' }}>🏷️ {t}</span>
+                            ))}
+                          </div>
+                        )}
 
                         {addTargetId === a.id ? (
                           <div className="content-well stack" style={{ background: '#faf9ff' }}>
@@ -987,7 +1089,7 @@ export function ActivityLibraryBrowse({
                             >
                               🎪
                             </button>
-                            <button className="btn btn-sm" onClick={() => setEditingId(a.id)} title="Edit">
+                            <button className="btn btn-sm" onClick={() => { setEditingId(a.id); setEditingTags(a.tags ?? []); }} title="Edit">
                               {compact ? '✏️' : 'Edit'}
                             </button>
                             <button className="btn btn-sm btn-danger" onClick={() => deleteLibraryActivity(a.id)} title="Delete">

@@ -107,6 +107,7 @@ import {
   pushTransaction,
   pushChatMessage,
   rowToChatMessage,
+  deleteBadgeEarnRemote,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -258,6 +259,7 @@ interface AppState {
   updateBadge: (id: string, patch: Partial<BadgeDef>) => void;
   deleteBadge: (id: string) => void;
   awardBadge: (studentId: string, badgeId: string) => void;
+  resetAllStudentAchievements: () => void;
   evaluateBadgeRules: (studentId: string) => void;
 
   // break pool
@@ -651,6 +653,8 @@ export const useStore = create<AppState>()(
         if (!student || student.skipTokens <= 0) return false;
         const prog = get().progress[studentId]?.[subject];
         if (!prog || prog.completedTaskIds.includes(taskId)) return false;
+        const task = get().rotations[studentId]?.[subject]?.find((t) => t.id === taskId);
+        if (task?.required) return false;
         get().updateStudent(studentId, { skipTokens: student.skipTokens - 1 });
         set((s) => ({
           progress: {
@@ -1232,6 +1236,21 @@ export const useStore = create<AppState>()(
         }
       },
 
+      // A one-time reset: clears every student's earned achievements (both
+      // the visible badgeIds list and the underlying earn-log rows) so a
+      // teacher can redesign the whole achievement set — new rules, new
+      // Class Cash rewards — and have students earn them fresh, without a
+      // pile of earns from the old, pre-currency badge system still showing.
+      // The BadgeDef catalog itself (the achievements' definitions) is untouched.
+      resetAllStudentAchievements: () => {
+        const s = get();
+        s.students.forEach((st) => {
+          if (st.badgeIds.length > 0) get().updateStudent(st.id, { badgeIds: [] });
+        });
+        s.badgeEarns.forEach((e) => deleteBadgeEarnRemote(e.id));
+        set({ badgeEarns: [] });
+      },
+
       // Checked after anything that could satisfy a badge rule (a task
       // completed, a tool opened, a correction made, a streak updated) —
       // awards any rule-based badge whose condition is now true and that
@@ -1300,9 +1319,13 @@ export const useStore = create<AppState>()(
         const mathDone = mathTasks.length === 0 || (mathProg?.date === today && mathProg.subjectComplete);
         const litDone = litTasks.length === 0 || (litProg?.date === today && litProg.subjectComplete);
         if (mathDone && litDone) return 'done-for-day';
-        const started =
-          (mathProg?.date === today && mathProg.completedTaskIds.length > 0) ||
-          (litProg?.date === today && litProg.completedTaskIds.length > 0);
+        // A progress record for today exists the moment a student opens a
+        // subject (see ensureProgress) — well before they finish their
+        // first task — so that alone is "working," not completedTaskIds
+        // being non-empty. Waiting for a completion made the Live View
+        // (and this status) read "not started" for a student who was
+        // visibly mid-task on their very first activity of the day.
+        const started = mathProg?.date === today || litProg?.date === today;
         return started ? 'working' : 'not-started';
       },
 

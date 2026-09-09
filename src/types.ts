@@ -298,6 +298,7 @@ export interface Task {
   isDaily?: boolean; // teacher-marked "this repeats every day" — shown with a star in the library
   isFinalCheck?: boolean; // teacher-marked "completing this marks the whole subject done" — unlocks Playground and updates the streak, instead of requiring every other activity to be checked off too. Typically a quiz.
   rewardCents?: number; // Class Cash paid out on completion; falls back to DEFAULT_TASK_REWARD_CENTS when unset
+  required?: boolean; // teacher-marked "cannot be skipped with a Skip Pass under any circumstances"
 }
 
 export type RotationMode = 'sequence' | 'choiceboard';
@@ -322,6 +323,7 @@ export interface ActivityLibraryItem extends Task {
   subject: Subject;
   inPlayground: boolean;
   createdAt: string;
+  tags: string[]; // teacher-defined, free-form (e.g. "YouTube Video", "Baamboozle Game") — for filtering/search in the library
 }
 
 // A saved, named daily plan — a frozen snapshot of activities (not live

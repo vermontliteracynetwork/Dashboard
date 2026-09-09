@@ -96,18 +96,41 @@ export default function BadgeManager() {
   const students = useStore((s) => s.students);
   const addBadge = useStore((s) => s.addBadge);
   const awardBadge = useStore((s) => s.awardBadge);
+  const resetAllStudentAchievements = useStore((s) => s.resetAllStudentAchievements);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('🌟');
   const [awardStudent, setAwardStudent] = useState('');
   const [awardBadgeId, setAwardBadgeId] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
 
   return (
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <h1>🏆 Achievements</h1>
+        <div className="space-between">
+          <h1 style={{ margin: 0 }}>🏆 Achievements</h1>
+          {confirmReset ? (
+            <div className="row-wrap" style={{ alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Clear every student's earned achievements?</span>
+              <button
+                className="btn btn-sm btn-danger"
+                onClick={() => {
+                  resetAllStudentAchievements();
+                  setConfirmReset(false);
+                }}
+              >
+                Yes, clear them all
+              </button>
+              <button className="btn btn-sm" onClick={() => setConfirmReset(false)}>Cancel</button>
+            </div>
+          ) : (
+            <button className="btn btn-sm btn-danger" onClick={() => setConfirmReset(true)}>
+              🔄 Reset all students' achievements
+            </button>
+          )}
+        </div>
 
         <div className="chrome-frame stack" style={{ padding: 16 }}>
           <h3 style={{ marginTop: 0 }}>➕ New Achievement</h3>

@@ -5,6 +5,7 @@ import TeacherNav from '../../components/TeacherNav';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
 import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
+import ChatPanel from '../../components/ChatPanel';
 import { nextRequiredTaskId } from '../../lib/taskOrder';
 import type { Subject } from '../../types';
 
@@ -21,6 +22,7 @@ export default function StudentLiveView() {
   const studentStatus = useStore((s) => s.studentStatus);
   const getStudentBreakState = useStore((s) => s.getStudentBreakState);
   const [subject, setSubject] = useState<Subject>('math');
+  const [showChat, setShowChat] = useState(false);
 
   const student = students.find((s) => s.id === studentId);
 
@@ -52,8 +54,12 @@ export default function StudentLiveView() {
             <AvatarWithEmote student={student} size={48} readOnly />
             <h1 style={{ margin: 0 }}>{student.name} — Live View</h1>
           </div>
-          <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
+          <div className="row-wrap">
+            <button className="btn btn-sm" onClick={() => setShowChat(true)}>💬 Chat</button>
+            <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
+          </div>
         </div>
+        {showChat && <ChatPanel studentId={student.id} role="teacher" onClose={() => setShowChat(false)} />}
         <p style={{ opacity: 0.75, fontSize: '0.85rem' }}>
           👁️ This mirrors {student.name}'s live checklist data as it updates — it isn't a video of their screen, so
           it won't show mouse movement or exactly what's on their tab, but progress here is real-time and accurate.

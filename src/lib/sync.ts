@@ -256,6 +256,9 @@ const rowToActivity = (r: Row): ActivityLibraryItem => ({
   createdAt: r.created_at,
   rewardCents: r.reward_cents ?? undefined,
   article: r.article ?? undefined,
+  sentenceBuilder: r.sentence_builder ?? undefined,
+  linkChoice: r.link_choice ?? undefined,
+  tags: r.tags ?? [],
 });
 
 const activityToRow = (a: ActivityLibraryItem): Row => ({
@@ -281,6 +284,9 @@ const activityToRow = (a: ActivityLibraryItem): Row => ({
   created_at: a.createdAt,
   reward_cents: a.rewardCents ?? null,
   article: a.article ?? null,
+  sentence_builder: a.sentenceBuilder ?? null,
+  link_choice: a.linkChoice ?? null,
+  tags: a.tags ?? [],
 });
 
 const rowToTemplate = (r: Row): PlanTemplate => ({
@@ -526,6 +532,7 @@ export const deleteBadgeRemote = (id: string) => remove('badges', { id });
 
 export const pushBadgeEarn = (e: BadgeEarn) =>
   upsert('badge_earns', { id: e.id, student_id: e.studentId, badge_id: e.badgeId, earned_at: e.date });
+export const deleteBadgeEarnRemote = (id: string) => remove('badge_earns', { id });
 
 export const pushTransaction = (t: Transaction) => upsert('transactions', transactionToRow(t));
 export const pushAnnotation = (a: ArticleAnnotationSet) => upsert('article_annotations', annotationToRow(a));

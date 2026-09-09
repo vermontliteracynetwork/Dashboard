@@ -229,6 +229,13 @@ export default function NewDailyPlanBuilder({
                   <span className="plan-list-icon">{t.icon}</span>
                   <span className="plan-list-title">{t.title || '(untitled)'}</span>
                   <div className="row-wrap" style={{ gap: 4 }}>
+                    <button
+                      className={`btn btn-sm ${t.required ? 'btn-danger' : ''}`}
+                      title={t.required ? 'Required — cannot be skipped with a Skip Pass' : 'Mark required (cannot be skipped)'}
+                      onClick={() => setTasks(tasks.map((x) => (x.id === t.id ? { ...x, required: !x.required } : x)))}
+                    >
+                      {t.required ? '🔒 Required' : '🔓 Optional'}
+                    </button>
                     <button className="btn btn-sm" disabled={i === 0} onClick={() => {
                       const next = [...tasks];
                       [next[i - 1], next[i]] = [next[i], next[i - 1]];
