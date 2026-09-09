@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
+import ChatPanel from './ChatPanel';
 
 interface Props {
   studentId: string;
@@ -9,6 +10,9 @@ interface Props {
 export default function HelpOverlay({ studentId, onClose }: Props) {
   const pingHelp = useStore((s) => s.pingHelp);
   const [pinged, setPinged] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+
+  if (showChat) return <ChatPanel studentId={studentId} role="student" onClose={() => setShowChat(false)} />;
 
   return (
     <div className="overlay-backdrop" onClick={onClose}>
@@ -20,7 +24,12 @@ export default function HelpOverlay({ studentId, onClose }: Props) {
           <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>No rush — stay here as long as you'd like.</p>
           <hr className="divider" style={{ width: '100%' }} />
           {pinged ? (
-            <p>🙋 Your teacher has been quietly let know. They'll come check on you.</p>
+            <>
+              <p>🙋 Your teacher has been quietly let know. They'll come check on you.</p>
+              <button className="btn btn-pink" onClick={() => setShowChat(true)}>
+                💬 Chat with your teacher
+              </button>
+            </>
           ) : (
             <button
               className="btn btn-pink"

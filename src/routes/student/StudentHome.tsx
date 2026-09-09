@@ -14,6 +14,7 @@ import Marketplace from '../../components/Marketplace';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
 import DailySpinWheel from '../../components/DailySpinWheel';
 import PiggyBank from '../../components/PiggyBank';
+import ChatPanel from '../../components/ChatPanel';
 import { formatMoney } from '../../lib/money';
 
 export default function StudentHome() {
@@ -35,6 +36,7 @@ export default function StudentHome() {
   const [showMarketplace, setShowMarketplace] = useState(false);
   const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showBank, setShowBank] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const updateStudent = useStore((s) => s.updateStudent);
   const [, setTick] = useState(0);
 
@@ -161,6 +163,7 @@ export default function StudentHome() {
       {showMarketplace && <Marketplace studentId={student.id} onClose={() => setShowMarketplace(false)} />}
       {showSpinWheel && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
       {showBank && <PiggyBank studentId={student.id} onClose={() => setShowBank(false)} />}
+      {showChat && <ChatPanel studentId={student.id} role="student" onClose={() => setShowChat(false)} />}
 
       <div className="chrome-frame space-between" style={{ padding: '18px 24px' }}>
         <div className="row">
@@ -209,6 +212,14 @@ export default function StudentHome() {
                 aria-label="Marketplace"
               >
                 🛍️ Shop
+              </button>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
+                onClick={() => setShowChat(true)}
+                aria-label="Chat with your teacher"
+              >
+                💬 Chat
               </button>
             </div>
           </div>

@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
+import ChatPanel from '../../components/ChatPanel';
 import type { StudentStatus } from '../../types';
 
 const STATUS_META: Record<StudentStatus, { label: string; dot: string }> = {
@@ -20,6 +21,7 @@ export default function TeacherHome() {
   // fields destructured here happen to change reference.
   const store = useStore();
   const { role, setRole, students, studentStatus, breakCountToday, helpPings, approveBreak, getStudentBreakState } = store;
+  const [chatStudentId, setChatStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (role !== 'teacher') setRole('teacher');
@@ -28,6 +30,7 @@ export default function TeacherHome() {
   return (
     <div className="app-shell">
       <TeacherNav />
+      {chatStudentId && <ChatPanel studentId={chatStudentId} role="teacher" onClose={() => setChatStudentId(null)} />}
       <div className="container stack">
         <h1>Live Class Overview</h1>
         {students.length === 0 && (
@@ -66,6 +69,9 @@ export default function TeacherHome() {
                       Approve break
                     </button>
                   )}
+                  <button className="btn btn-sm" onClick={() => setChatStudentId(st.id)}>
+                    💬 Chat
+                  </button>
                   <button className="btn btn-sm" onClick={() => navigate(`/teacher/lesson-plan/${st.id}`)}>
                     📋 Lesson Plan
                   </button>

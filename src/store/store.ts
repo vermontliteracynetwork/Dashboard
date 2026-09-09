@@ -105,6 +105,8 @@ import {
   pushAssignment,
   deleteAssignmentRemote,
   pushTransaction,
+  pushChatMessage,
+  rowToChatMessage,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -136,6 +138,7 @@ import type {
   ArticleAnnotationSet,
   Highlight,
   SentenceBuilderResponse,
+  ChatMessage,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -181,6 +184,7 @@ interface AppState {
   transactions: Transaction[]; // every student's bank register, newest first
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
+  chatMessages: ChatMessage[]; // teacher<->student chat, newest last
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -202,6 +206,7 @@ interface AppState {
   removeHighlight: (studentId: string, taskId: string, articleIndex: number, highlightId: string) => void;
   setHighlightNote: (studentId: string, taskId: string, articleIndex: number, highlightId: string, note: string) => void;
   setSentenceBuilderAnswer: (studentId: string, taskId: string, partId: string, text: string) => void;
+  sendChatMessage: (studentId: string, sender: 'student' | 'teacher', text: string) => void;
   buyAvatar: (studentId: string, avatarId: string) => boolean;
   buyEmote: (studentId: string, emoteId: string) => boolean;
   equipEmote: (studentId: string, emoteId: string | null) => void;
@@ -373,6 +378,7 @@ export const useStore = create<AppState>()(
       transactions: [],
       articleAnnotations: {},
       sentenceBuilderResponses: {},
+      chatMessages: [],
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -469,6 +475,8 @@ export const useStore = create<AppState>()(
             const key = sbResponseKey(parsed.studentId, parsed.taskId);
             set((s) => ({ sentenceBuilderResponses: { ...s.sentenceBuilderResponses, [key]: parsed } }));
           },
+          onChatMessage: (e, n, o) =>
+            set((s) => ({ chatMessages: applyArrayRow(s.chatMessages, e, rowToChatMessage, n, o) })),
         });
       },
 
@@ -613,6 +621,14 @@ export const useStore = create<AppState>()(
         };
         set((s) => ({ sentenceBuilderResponses: { ...s.sentenceBuilderResponses, [key]: updated } }));
         pushSbResponse(updated);
+      },
+
+      sendChatMessage: (studentId, sender, text) => {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        const msg: ChatMessage = { id: makeId(), studentId, sender, text: trimmed, createdAt: new Date().toISOString() };
+        set((s) => ({ chatMessages: [...s.chatMessages, msg] }));
+        pushChatMessage(msg);
       },
 
       buySkipToken: (studentId) => {

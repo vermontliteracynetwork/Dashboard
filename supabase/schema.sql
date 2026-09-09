@@ -141,6 +141,16 @@ create table if not exists sentence_builder_responses (
   updated_at timestamptz not null default now()
 );
 
+-- Teacher<->student chat, opened from a help ping or any time from either
+-- side. One flat, append-only list per student.
+create table if not exists chat_messages (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  sender text not null check (sender in ('student', 'teacher')),
+  text text not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists break_pool_items (
   id text primary key,
   title text not null,
@@ -308,7 +318,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations', 'sentence_builder_responses'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages'
   ];
 begin
   foreach t in array tables loop
@@ -351,7 +361,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations', 'sentence_builder_responses'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages'
   ];
 begin
   foreach t in array tables loop

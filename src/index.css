@@ -205,6 +205,125 @@ label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px;
   border: 2px solid var(--ink); background: white;
 }
 
+/* ---------- Marketplace: a toy-shop shelf, not a form ---------- */
+.shop-panel {
+  background: linear-gradient(180deg, #a9784f, #7a5233);
+  border: var(--chunk) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 22px;
+}
+.shop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.shop-ribbon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--purple);
+  color: white;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.3rem;
+  padding: 10px 26px;
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.shop-balance-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--yellow);
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.shop-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.shop-tab-btn {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 9px 20px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #fff8ec;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.shop-tab-btn.active { background: var(--pink); color: white; }
+.shop-shelf {
+  background: repeating-linear-gradient(
+    180deg,
+    #fff8ec 0,
+    #fff8ec 88px,
+    #e9dcc3 88px,
+    #e9dcc3 94px
+  );
+  border: 3px solid #5b3f27;
+  border-radius: 16px;
+  padding: 18px 16px 6px;
+}
+.shop-item-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+.shop-item-card {
+  background: white;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 116px;
+  text-align: center;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.shop-item-card:hover { transform: translateY(-4px); box-shadow: 4px 8px 0 var(--ink); }
+.shop-item-icon-frame {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: #f4effe;
+  border: 2px solid var(--content-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.shop-price-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 800;
+  font-size: 0.76rem;
+}
+
 /* subject theming */
 .subject-math { --subj-a: var(--math-a); --subj-b: var(--math-b); }
 .subject-literacy { --subj-a: var(--lit-a); --subj-b: var(--lit-b); }

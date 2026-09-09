@@ -454,6 +454,17 @@ export interface HelpPing {
   resolved: boolean;
 }
 
+// A single teacher<->student chat message, opened from a help ping (or any
+// time from either side). One flat list per student — small classrooms
+// don't need threading, just "everything said with this student."
+export interface ChatMessage {
+  id: string;
+  studentId: string;
+  sender: 'student' | 'teacher';
+  text: string;
+  createdAt: string;
+}
+
 export interface OffscreenReview {
   id: string;
   studentId: string;

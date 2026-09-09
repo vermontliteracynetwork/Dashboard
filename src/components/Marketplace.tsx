@@ -8,14 +8,13 @@ import { formatMoney } from '../lib/money';
 interface Props {
   studentId: string;
   onClose: () => void;
-  onOpenBank?: () => void;
 }
 
-type Tab = 'characters' | 'emotes' | 'powerups';
+type Tab = 'characters' | 'emotes' | 'powerups' | 'mystuff';
 
 const SKIP_TOKEN_PRICE_CENTS = 1500;
 
-export default function Marketplace({ studentId, onClose, onOpenBank }: Props) {
+export default function Marketplace({ studentId, onClose }: Props) {
   const students = useStore((s) => s.students);
   const buyAvatar = useStore((s) => s.buyAvatar);
   const buyEmote = useStore((s) => s.buyEmote);
@@ -27,73 +26,71 @@ export default function Marketplace({ studentId, onClose, onOpenBank }: Props) {
   const student = students.find((s) => s.id === studentId);
   if (!student) return null;
 
+  const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
+  const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
+
   return (
     <div className="overlay-backdrop" onClick={onClose}>
-      <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
-        <div className="content-well stack">
-          <div className="space-between">
-            <h2 style={{ margin: 0 }}>🛍️ Marketplace</h2>
-            {onOpenBank ? (
-              <button
-                className="tag-pill"
-                style={{ background: 'var(--yellow)', fontSize: '1rem', border: 'none', cursor: 'pointer', minHeight: 44 }}
-                onClick={onOpenBank}
-              >
+      <div className="overlay-panel" style={{ maxWidth: 680, padding: 0, background: 'transparent', boxShadow: 'none', border: 'none' }} onClick={(e) => e.stopPropagation()}>
+        <div className="shop-panel">
+          <div className="shop-header">
+            <span className="shop-ribbon">🛍️ SHOP</span>
+            <div className="row" style={{ gap: 8 }}>
+              <span className="shop-balance-chip" title="Your Piggy Bank balance — spend it here!">
                 🐷 {formatMoney(student.coins)}
-              </button>
-            ) : (
-              <div className="tag-pill" style={{ background: 'var(--yellow)', fontSize: '1rem' }}>
-                🐷 {formatMoney(student.coins)}
-              </div>
-            )}
+              </span>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+            </div>
           </div>
-          <p style={{ opacity: 0.75, marginTop: -8 }}>Earn Class Cash by finishing your tasks. Spend it here!</p>
 
-          <div className="lp-tabs">
-            <button className={`lp-tab-btn ${tab === 'characters' ? 'active' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('characters')}>
+          <div className="shop-tabs">
+            <button className={`shop-tab-btn ${tab === 'characters' ? 'active' : ''}`} onClick={() => setTab('characters')}>
               🧑 Characters
             </button>
-            <button className={`lp-tab-btn ${tab === 'emotes' ? 'active' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('emotes')}>
+            <button className={`shop-tab-btn ${tab === 'emotes' ? 'active' : ''}`} onClick={() => setTab('emotes')}>
               😊 Emotes
             </button>
-            <button className={`lp-tab-btn ${tab === 'powerups' ? 'active' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('powerups')}>
+            <button className={`shop-tab-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
               🎫 Power-Ups
+            </button>
+            <button className={`shop-tab-btn ${tab === 'mystuff' ? 'active' : ''}`} onClick={() => setTab('mystuff')}>
+              🎒 My Stuff
             </button>
           </div>
 
-          {tab === 'characters' && (
-            <div className="item-grid-wrap">
-              <div className="row-wrap">
+          <div className="shop-shelf">
+            {tab === 'characters' && (
+              <div className="shop-item-grid">
                 {AVATAR_CATALOG.map((a) => {
                   const owned = student.ownedAvatarIds.includes(a.id);
                   const equipped = student.avatar === a.id;
                   const affordable = student.coins >= a.price;
                   return (
-                    <div key={a.id} className="content-well stack" style={{ width: 108, alignItems: 'center', textAlign: 'center', gap: 6 }}>
-                      <div className="avatar-sm" style={{ width: 56, height: 56, outline: equipped ? '3px solid var(--purple)' : 'none' }}>
+                    <div key={a.id} className="shop-item-card">
+                      <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
                         <AvatarGlyph value={a.id} />
                       </div>
                       <strong style={{ fontSize: '0.75rem' }}>{a.name}</strong>
                       {equipped ? (
-                        <span className="tag-pill" style={{ fontSize: '0.7rem', background: 'var(--success)', color: '#fff' }}>
+                        <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--success)', color: '#fff' }}>
                           ✓ Wearing
                         </span>
                       ) : owned ? (
-                        <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => updateStudent(studentId, { avatar: a.id })}>
+                        <button className="btn btn-sm btn-primary" style={{ minHeight: 40, minWidth: 40 }} onClick={() => updateStudent(studentId, { avatar: a.id })}>
                           Wear
                         </button>
                       ) : (
                         <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
                           <button
-                            className="btn btn-sm"
-                            style={{ minHeight: 44, minWidth: 44 }}
+                            className="shop-price-chip"
+                            style={{ border: '2px solid var(--ink)', cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
                             disabled={!affordable}
                             onClick={() => buyAvatar(studentId, a.id)}
                           >
-                            {formatMoney(a.price)}
+                            🪙 {formatMoney(a.price)}
                           </button>
                           {!affordable && (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700 }}>
+                            <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
                               🔒 Need {formatMoney(a.price - student.coins)} more
                             </span>
                           )}
@@ -103,42 +100,40 @@ export default function Marketplace({ studentId, onClose, onOpenBank }: Props) {
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
 
-          {tab === 'emotes' && (
-            <div className="item-grid-wrap">
-              <div className="row-wrap">
+            {tab === 'emotes' && (
+              <div className="shop-item-grid">
                 {EMOTE_CATALOG.map((e) => {
                   const owned = student.ownedEmoteIds.includes(e.id);
                   const equipped = student.equippedEmoteId === e.id;
                   const affordable = student.coins >= e.price;
                   return (
-                    <div key={e.id} className="content-well stack" style={{ width: 96, alignItems: 'center', textAlign: 'center', gap: 6 }}>
-                      <div className="avatar-sm" style={{ width: 48, height: 48, outline: equipped ? '3px solid var(--purple)' : 'none' }}>
+                    <div key={e.id} className="shop-item-card">
+                      <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
                         <img src={e.src} alt="" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
                       </div>
                       <strong style={{ fontSize: '0.72rem' }}>{e.name}</strong>
                       {equipped ? (
-                        <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => equipEmote(studentId, null)}>
+                        <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40 }} onClick={() => equipEmote(studentId, null)}>
                           Unequip
                         </button>
                       ) : owned ? (
-                        <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => equipEmote(studentId, e.id)}>
+                        <button className="btn btn-sm btn-primary" style={{ minHeight: 40, minWidth: 40 }} onClick={() => equipEmote(studentId, e.id)}>
                           Show
                         </button>
                       ) : (
                         <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
                           <button
-                            className="btn btn-sm"
-                            style={{ minHeight: 44, minWidth: 44 }}
+                            className="shop-price-chip"
+                            style={{ border: '2px solid var(--ink)', cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
                             disabled={!affordable}
                             onClick={() => buyEmote(studentId, e.id)}
                           >
-                            {formatMoney(e.price)}
+                            🪙 {formatMoney(e.price)}
                           </button>
                           {!affordable && (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700 }}>
+                            <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
                               🔒 Need {formatMoney(e.price - student.coins)} more
                             </span>
                           )}
@@ -148,40 +143,90 @@ export default function Marketplace({ studentId, onClose, onOpenBank }: Props) {
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
 
-          {tab === 'powerups' && (
-            <div className="item-grid-wrap">
-              <div className="row-wrap">
-                <div className="content-well stack" style={{ width: 128, alignItems: 'center', textAlign: 'center', gap: 6 }}>
-                  <span style={{ fontSize: '2.2rem' }}>🎫</span>
+            {tab === 'powerups' && (
+              <div className="shop-item-grid">
+                <div className="shop-item-card" style={{ width: 156 }}>
+                  <div className="shop-item-icon-frame" style={{ width: 72, height: 72 }}>
+                    <span style={{ fontSize: '2rem' }}>🎫</span>
+                  </div>
                   <strong style={{ fontSize: '0.8rem' }}>Skip Pass</strong>
-                  <p style={{ fontSize: '0.68rem', opacity: 0.75, margin: 0 }}>
+                  <p style={{ fontSize: '0.66rem', opacity: 0.75, margin: 0 }}>
                     Cross off one to-do item without doing it. Your teacher can still see it was skipped.
                   </p>
-                  <div className="tag-pill" style={{ fontSize: '0.7rem' }}>You have: {student.skipTokens}</div>
+                  <div className="tag-pill" style={{ fontSize: '0.68rem' }}>You have: {student.skipTokens}</div>
                   <button
-                    className="btn btn-sm"
-                    style={{ minHeight: 44, minWidth: 44 }}
+                    className="shop-price-chip"
+                    style={{ border: '2px solid var(--ink)', cursor: student.coins >= SKIP_TOKEN_PRICE_CENTS ? 'pointer' : 'not-allowed', opacity: student.coins >= SKIP_TOKEN_PRICE_CENTS ? 1 : 0.5 }}
                     disabled={student.coins < SKIP_TOKEN_PRICE_CENTS}
                     onClick={() => buySkipToken(studentId)}
                   >
-                    {formatMoney(SKIP_TOKEN_PRICE_CENTS)}
+                    🪙 {formatMoney(SKIP_TOKEN_PRICE_CENTS)}
                   </button>
                   {student.coins < SKIP_TOKEN_PRICE_CENTS && (
-                    <span style={{ fontSize: '0.65rem', color: 'var(--danger)', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--danger)', fontWeight: 700 }}>
                       🔒 Need {formatMoney(SKIP_TOKEN_PRICE_CENTS - student.coins)} more
                     </span>
                   )}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={onClose}>
-            Close
-          </button>
+            {tab === 'mystuff' && (
+              <div className="stack" style={{ gap: 16 }}>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>🧑 Your Characters</strong>
+                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                    {ownedAvatars.map((a) => {
+                      const equipped = student.avatar === a.id;
+                      return (
+                        <div key={a.id} className="shop-item-card">
+                          <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
+                            <AvatarGlyph value={a.id} />
+                          </div>
+                          <strong style={{ fontSize: '0.75rem' }}>{a.name}</strong>
+                          {equipped ? (
+                            <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--success)', color: '#fff' }}>✓ Wearing</span>
+                          ) : (
+                            <button className="btn btn-sm btn-primary" style={{ minHeight: 40, minWidth: 40 }} onClick={() => updateStudent(studentId, { avatar: a.id })}>
+                              Wear
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>😊 Your Emotes</strong>
+                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                    {ownedEmotes.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No emotes yet — find some in the 😊 Emotes tab!</p>}
+                    {ownedEmotes.map((e) => {
+                      const equipped = student.equippedEmoteId === e.id;
+                      return (
+                        <div key={e.id} className="shop-item-card">
+                          <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
+                            <img src={e.src} alt="" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
+                          </div>
+                          <strong style={{ fontSize: '0.72rem' }}>{e.name}</strong>
+                          {equipped ? (
+                            <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40 }} onClick={() => equipEmote(studentId, null)}>
+                              Unequip
+                            </button>
+                          ) : (
+                            <button className="btn btn-sm btn-primary" style={{ minHeight: 40, minWidth: 40 }} onClick={() => equipEmote(studentId, e.id)}>
+                              Show
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

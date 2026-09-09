@@ -19,6 +19,7 @@ import PlaygroundManager from './routes/teacher/PlaygroundManager';
 import BadgeManager from './routes/teacher/BadgeManager';
 import ScoreHistory from './routes/teacher/ScoreHistory';
 import StudentLiveView from './routes/teacher/StudentLiveView';
+import TeacherHelpAlert from './components/TeacherHelpAlert';
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated);
@@ -63,6 +64,7 @@ export default function App() {
   return (
     <HashRouter>
       <div className="app-shell">
+        <TeacherHelpAlert />
         <Routes>
           <Route path="/" element={<RoleSelect />} />
           <Route path="/student/login" element={<StudentLogin />} />
