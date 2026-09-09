@@ -21,6 +21,7 @@ import type {
   Assignment,
   Transaction,
   ArticleAnnotationSet,
+  SentenceBuilderResponse,
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
 
@@ -192,6 +193,23 @@ const annotationToRow = (a: ArticleAnnotationSet): Row => ({
   highlights: a.highlights,
 });
 
+const sbResponseKey = (studentId: string, taskId: string) => `${studentId}:${taskId}`;
+
+const rowToSbResponse = (r: Row): SentenceBuilderResponse => ({
+  studentId: r.student_id,
+  taskId: r.task_id,
+  answers: r.answers ?? {},
+  updatedAt: r.updated_at,
+});
+
+const sbResponseToRow = (a: SentenceBuilderResponse): Row => ({
+  id: sbResponseKey(a.studentId, a.taskId),
+  student_id: a.studentId,
+  task_id: a.taskId,
+  answers: a.answers,
+  updated_at: a.updatedAt,
+});
+
 const rowToBreakPoolItem = (r: Row): BreakPoolItem => ({
   id: r.id,
   title: r.title,
@@ -335,6 +353,7 @@ export interface HydratedState {
   assignments: Assignment[];
   transactions: Transaction[];
   articleAnnotations: Record<string, ArticleAnnotationSet>;
+  sentenceBuilderResponses: Record<string, SentenceBuilderResponse>;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -349,7 +368,7 @@ export async function fetchAll(): Promise<HydratedState> {
   const [
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
-    quizAttemptsRes, transactionsRes, annotationsRes,
+    quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -370,9 +389,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('quiz_attempts').select('*'),
     supabase.from('transactions').select('*'),
     supabase.from('article_annotations').select('*'),
+    supabase.from('sentence_builder_responses').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes]) {
     if (res.error) throw res.error;
   }
 
@@ -429,6 +449,9 @@ export async function fetchAll(): Promise<HydratedState> {
     transactions: (transactionsRes.data ?? []).map(rowToTransaction),
     articleAnnotations: Object.fromEntries(
       (annotationsRes.data ?? []).map(rowToAnnotation).map((a) => [annotationKey(a.studentId, a.taskId, a.articleIndex), a]),
+    ),
+    sentenceBuilderResponses: Object.fromEntries(
+      (sbResponsesRes.data ?? []).map(rowToSbResponse).map((a) => [sbResponseKey(a.studentId, a.taskId), a]),
     ),
     rotationModes,
     taskCompletionCounts,
@@ -499,6 +522,7 @@ export const pushBadgeEarn = (e: BadgeEarn) =>
 
 export const pushTransaction = (t: Transaction) => upsert('transactions', transactionToRow(t));
 export const pushAnnotation = (a: ArticleAnnotationSet) => upsert('article_annotations', annotationToRow(a));
+export const pushSbResponse = (a: SentenceBuilderResponse) => upsert('sentence_builder_responses', sbResponseToRow(a));
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });
@@ -668,7 +692,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -690,6 +714,7 @@ export interface RealtimeHandlers {
   onAssignment: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onTransaction: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onAnnotation: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onSbResponse: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -724,6 +749,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, wire(handlers.onAssignment))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, wire(handlers.onTransaction))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'article_annotations' }, wire(handlers.onAnnotation))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sentence_builder_responses' }, wire(handlers.onSbResponse))
     .subscribe();
 
   return () => {

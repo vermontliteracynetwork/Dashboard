@@ -63,6 +63,9 @@ import {
   rowToAnnotation,
   annotationKey,
   pushAnnotation,
+  rowToSbResponse,
+  sbResponseKey,
+  pushSbResponse,
   pushStudent,
   deleteStudentRemote,
   pushRotation,
@@ -122,6 +125,7 @@ import type {
   TransactionKind,
   ArticleAnnotationSet,
   Highlight,
+  SentenceBuilderResponse,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -166,6 +170,7 @@ interface AppState {
   assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
   transactions: Transaction[]; // every student's bank register, newest first
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
+  sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -186,6 +191,7 @@ interface AppState {
   addHighlight: (studentId: string, taskId: string, articleIndex: number, highlight: Highlight) => void;
   removeHighlight: (studentId: string, taskId: string, articleIndex: number, highlightId: string) => void;
   setHighlightNote: (studentId: string, taskId: string, articleIndex: number, highlightId: string, note: string) => void;
+  setSentenceBuilderAnswer: (studentId: string, taskId: string, partId: string, text: string) => void;
   buyAvatar: (studentId: string, avatarId: string) => boolean;
   buyEmote: (studentId: string, emoteId: string) => boolean;
   equipEmote: (studentId: string, emoteId: string | null) => void;
@@ -356,6 +362,7 @@ export const useStore = create<AppState>()(
       assignments: [],
       transactions: [],
       articleAnnotations: {},
+      sentenceBuilderResponses: {},
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -435,6 +442,22 @@ export const useStore = create<AppState>()(
             const parsed = rowToAnnotation(n);
             const key = annotationKey(parsed.studentId, parsed.taskId, parsed.articleIndex);
             set((s) => ({ articleAnnotations: { ...s.articleAnnotations, [key]: parsed } }));
+          },
+          onSbResponse: (e, n, o) => {
+            if (e === 'DELETE') {
+              if (!o) return;
+              const key = sbResponseKey(o.student_id, o.task_id);
+              set((s) => {
+                const next = { ...s.sentenceBuilderResponses };
+                delete next[key];
+                return { sentenceBuilderResponses: next };
+              });
+              return;
+            }
+            if (!n) return;
+            const parsed = rowToSbResponse(n);
+            const key = sbResponseKey(parsed.studentId, parsed.taskId);
+            set((s) => ({ sentenceBuilderResponses: { ...s.sentenceBuilderResponses, [key]: parsed } }));
           },
         });
       },
@@ -566,6 +589,19 @@ export const useStore = create<AppState>()(
         };
         set((s) => ({ articleAnnotations: { ...s.articleAnnotations, [key]: updated } }));
         pushAnnotation(updated);
+      },
+
+      setSentenceBuilderAnswer: (studentId, taskId, partId, text) => {
+        const key = sbResponseKey(studentId, taskId);
+        const existing = get().sentenceBuilderResponses[key];
+        const updated: SentenceBuilderResponse = {
+          studentId,
+          taskId,
+          answers: { ...(existing?.answers ?? {}), [partId]: text },
+          updatedAt: new Date().toISOString(),
+        };
+        set((s) => ({ sentenceBuilderResponses: { ...s.sentenceBuilderResponses, [key]: updated } }));
+        pushSbResponse(updated);
       },
 
       buySkipToken: (studentId) => {

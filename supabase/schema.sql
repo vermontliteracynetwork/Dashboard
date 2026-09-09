@@ -130,6 +130,17 @@ create table if not exists article_annotations (
   highlights jsonb not null default '[]'
 );
 
+-- One row per student per sentence-builder task: the student's answers for
+-- each organizer part, replaced wholesale on every change (so a teacher can
+-- see the current filled-in sentence, not a history of edits).
+create table if not exists sentence_builder_responses (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  task_id text not null,
+  answers jsonb not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists break_pool_items (
   id text primary key,
   title text not null,
@@ -296,7 +307,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations'
+    'transactions', 'article_annotations', 'sentence_builder_responses'
   ];
 begin
   foreach t in array tables loop
@@ -339,7 +350,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations'
+    'transactions', 'article_annotations', 'sentence_builder_responses'
   ];
 begin
   foreach t in array tables loop

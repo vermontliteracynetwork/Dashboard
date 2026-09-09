@@ -7,7 +7,8 @@ import ImageUploadField from '../../components/ImageUploadField';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
-import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot } from '../../types';
+import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
+import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot, SentencePart } from '../../types';
 import { TASK_TYPE_LABELS } from '../../types';
 
 const MAX_ARTICLES_PER_TASK = 3;
@@ -101,6 +102,118 @@ function ArticleEditor({ articles, onChange }: { articles: ArticleSnapshot[]; on
   );
 }
 
+const MAX_ORGANIZER_PARTS = 5;
+
+// Teacher-side builder for a sentence-level graphic organizer: a row of
+// colored blanks (and optional fixed connector words, e.g. "because")
+// that the student fills in on the other end. Presets give a fast start
+// for the scaffolds that actually get used with early sentence writers;
+// everything stays fully editable after picking one.
+function SentenceBuilderEditor({ parts, onChange }: { parts: SentencePart[]; onChange: (parts: SentencePart[]) => void }) {
+  const updatePart = (id: string, patch: Partial<SentencePart>) => {
+    onChange(parts.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  };
+  const removePart = (id: string) => onChange(parts.filter((p) => p.id !== id));
+  const addBlank = () => {
+    if (parts.length >= MAX_ORGANIZER_PARTS) return;
+    const color = PART_COLORS[parts.filter((p) => p.kind === 'blank').length % PART_COLORS.length].value;
+    onChange([...parts, { id: makeId(), kind: 'blank', label: 'New part', color, placeholder: '' }]);
+  };
+  const addConnector = () => {
+    if (parts.length >= MAX_ORGANIZER_PARTS) return;
+    onChange([...parts, { id: makeId(), kind: 'connector', text: 'and' }]);
+  };
+
+  return (
+    <div className="stack">
+      <div>
+        <label>Start from a preset</label>
+        <div className="row-wrap">
+          {ORGANIZER_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              className="btn btn-sm"
+              title={preset.description}
+              onClick={() => onChange(preset.build())}
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="stack" style={{ gap: 8 }}>
+        {parts.map((part) => (
+          <div key={part.id} className="content-well row-wrap" style={{ gap: 8, alignItems: 'flex-end' }}>
+            {part.kind === 'blank' ? (
+              <>
+                <div>
+                  <label>Label</label>
+                  <input
+                    style={{ width: 130 }}
+                    value={part.label ?? ''}
+                    onChange={(e) => updatePart(part.id, { label: e.target.value })}
+                    placeholder="e.g. Who?"
+                  />
+                </div>
+                <div>
+                  <label>Color</label>
+                  <select value={part.color} onChange={(e) => updatePart(part.id, { color: e.target.value })}>
+                    {PART_COLORS.map((c) => <option key={c.value} value={c.value}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label>Example text (shown faded)</label>
+                  <input
+                    style={{ width: 160 }}
+                    value={part.placeholder ?? ''}
+                    onChange={(e) => updatePart(part.id, { placeholder: e.target.value })}
+                    placeholder="e.g. the dog"
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <label>Word bank (optional, comma-separated)</label>
+                  <input
+                    style={{ width: '100%' }}
+                    value={(part.wordBank ?? []).join(', ')}
+                    onChange={(e) =>
+                      updatePart(part.id, {
+                        wordBank: e.target.value.split(',').map((w) => w.trim()).filter(Boolean),
+                      })
+                    }
+                    placeholder="e.g. dog, cat, bird"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label>Connecting word</label>
+                <input
+                  style={{ width: 160 }}
+                  value={part.text ?? ''}
+                  onChange={(e) => updatePart(part.id, { text: e.target.value })}
+                  placeholder="e.g. because"
+                />
+              </div>
+            )}
+            <button className="btn btn-sm btn-danger" onClick={() => removePart(part.id)}>Remove</button>
+          </div>
+        ))}
+      </div>
+
+      {parts.length < MAX_ORGANIZER_PARTS && (
+        <div className="row-wrap">
+          <button className="btn btn-sm" onClick={addBlank}>➕ Add a colored blank</button>
+          <button className="btn btn-sm" onClick={addConnector}>➕ Add a connecting word</button>
+        </div>
+      )}
+      <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
+        The student sees these in order, left to right, as colored boxes they fill in — with a live sentence preview underneath.
+      </p>
+    </div>
+  );
+}
+
 export const ICON_CHOICES = ['📘', '✏️', '🔤', '🔢', '➗', '🧩', '🎧', '🌍', '🖐️', '🎯', '🧠', '📐', '🗣️', '🎨', '▶️', '📖', '⛓️', '🩹'];
 
 export const blankTask = (): Task => ({
@@ -116,6 +229,7 @@ export const blankTask = (): Task => ({
   drill: { cards: [] },
   wordchain: { startWord: '', steps: [] },
   sentenceEdit: { original: '', corrected: '' },
+  sentenceBuilder: { parts: ORGANIZER_PRESETS[0].build() },
   customSteps: [],
   referenceImageUrl: '',
   referenceLinkUrl: '',
@@ -146,6 +260,7 @@ export const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
   isDaily: a.isDaily,
   rewardCents: a.rewardCents,
   article: a.article,
+  sentenceBuilder: a.sentenceBuilder,
 });
 
 export function TaskEditor({
@@ -269,6 +384,13 @@ export function TaskEditor({
         <ArticleEditor
           articles={task.article?.articles ?? []}
           onChange={(articles) => setTask({ ...task, article: { articles } })}
+        />
+      )}
+
+      {task.type === 'sentenceBuilder' && (
+        <SentenceBuilderEditor
+          parts={task.sentenceBuilder?.parts ?? ORGANIZER_PRESETS[0].build()}
+          onChange={(parts) => setTask({ ...task, sentenceBuilder: { parts } })}
         />
       )}
 

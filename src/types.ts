@@ -85,7 +85,7 @@ export interface Student {
   lastSpinDate: string | null; // ISO date of the last daily-wheel spin, so it's once per day
 }
 
-export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article';
+export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder';
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   quiz: 'Quiz (practice or checkpoint)',
@@ -97,6 +97,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   wordchain: 'Word chain (word ladder)',
   sentenceEdit: 'Editing sentences',
   article: 'Article Reader (real web article, in-app)',
+  sentenceBuilder: 'Sentence Builder (graphic organizer)',
 };
 
 export interface MCQuestion {
@@ -191,6 +192,35 @@ export interface ArticleAnnotationSet {
   highlights: Highlight[];
 }
 
+// One slot in a sentence-building graphic organizer. 'blank' is a
+// student-filled part (colored, labeled, optionally with a tap-to-insert
+// word bank so a non-independent typer can still build the sentence);
+// 'connector' is a fixed joining word the teacher sets (e.g. "because",
+// "and") that always appears as-is between blanks.
+export interface SentencePart {
+  id: string;
+  kind: 'blank' | 'connector';
+  label?: string; // blank only, e.g. "Who?"
+  color?: string; // blank only
+  placeholder?: string; // blank only, example text shown faded
+  wordBank?: string[]; // blank only, optional tap-to-insert choices
+  text?: string; // connector only, the fixed word(s)
+}
+
+export interface SentenceBuilderContent {
+  parts: SentencePart[];
+}
+
+// One student's filled-in answers for one sentence-builder task, keyed by
+// (studentId, taskId) — a student only ever has one in-progress/finished
+// response per assignment of this task.
+export interface SentenceBuilderResponse {
+  studentId: string;
+  taskId: string;
+  answers: Record<string, string>; // SentencePart.id -> student's text
+  updatedAt: string; // ISO
+}
+
 export interface DrillCard {
   id: string;
   front: string;
@@ -241,6 +271,7 @@ export interface Task {
   wordchain?: WordChainContent;
   sentenceEdit?: SentenceEditContent;
   article?: ArticleTaskContent;
+  sentenceBuilder?: SentenceBuilderContent;
   customSteps?: StepDef[]; // teacher override of the auto-generated visual step guide
   referenceImageUrl?: string; // shown to the student throughout this activity, any task type
   referenceLinkUrl?: string; // an extra reference link, any task type (distinct from the 'link' task type itself)

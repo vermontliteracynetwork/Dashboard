@@ -17,6 +17,7 @@ import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
 import ArticleReader from '../../components/ArticleReader';
+import SentenceBuilder from '../../components/SentenceBuilder';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -152,6 +153,10 @@ export default function SubjectDashboard() {
       case 'article':
         return task.article ? (
           <ArticleReader studentId={student.id} taskId={task.id} content={task.article} ttsSettings={student.ttsSettings} onDone={handleDone} />
+        ) : null;
+      case 'sentenceBuilder':
+        return task.sentenceBuilder ? (
+          <SentenceBuilder studentId={student.id} taskId={task.id} content={task.sentenceBuilder} ttsSettings={student.ttsSettings} onDone={handleDone} />
         ) : null;
       default: return null;
     }
