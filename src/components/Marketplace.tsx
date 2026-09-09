@@ -10,6 +10,19 @@ import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
 type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'mystuff';
 
+interface CartEntry {
+  key: string; // `${source}-${id}`, unique per cart
+  source: 'avatar' | 'emote' | 'item';
+  id: string;
+  name: string;
+  icon: string; // emoji, or an image URL
+  price: number;
+}
+
+interface ReceiptLine extends CartEntry {
+  ok: boolean; // false if it failed at checkout (already owned/unaffordable by then)
+}
+
 function isAvailableToday(item: MarketplaceItem): boolean {
   const today = todayISO();
   if (item.availableFrom && today < item.availableFrom) return false;
@@ -81,13 +94,13 @@ export default function Marketplace() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
-  const buyAvatar = useStore((s) => s.buyAvatar);
-  const buyEmote = useStore((s) => s.buyEmote);
   const equipEmote = useStore((s) => s.equipEmote);
-  const buyMarketplaceItem = useStore((s) => s.buyMarketplaceItem);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const updateStudent = useStore((s) => s.updateStudent);
   const [tab, setTab] = useState<Tab>('characters');
+  const [cart, setCart] = useState<CartEntry[]>([]);
+  const [showCart, setShowCart] = useState(false);
+  const [receipt, setReceipt] = useState<ReceiptLine[] | null>(null);
 
   const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
@@ -118,11 +131,62 @@ export default function Marketplace() {
     return null;
   };
 
+  const cartTotal = cart.reduce((sum, c) => sum + c.price, 0);
+  const inCart = (key: string) => cart.some((c) => c.key === key);
+  const addToCart = (entry: CartEntry) => setCart((c) => [...c, entry]);
+  const removeFromCart = (key: string) => setCart((c) => c.filter((e) => e.key !== key));
+
+  // Every purchase — avatar, emote, or any marketplace item — is added to
+  // a cart first, just like a real online store, rather than buying the
+  // instant a student taps a price. Nothing is actually charged until
+  // Confirm Purchase in the cart drawer.
+  const checkout = () => {
+    const s = useStore.getState();
+    const lines: ReceiptLine[] = cart.map((entry) => {
+      let ok = false;
+      if (entry.source === 'avatar') ok = s.buyAvatar(studentId, entry.id);
+      else if (entry.source === 'emote') ok = s.buyEmote(studentId, entry.id);
+      else ok = s.buyMarketplaceItem(studentId, entry.id);
+      return { ...entry, ok };
+    });
+    setCart([]);
+    setShowCart(false);
+    setReceipt(lines);
+  };
+
+  const cartButtonFor = (entry: CartEntry, affordable: boolean) => {
+    if (inCart(entry.key)) {
+      return (
+        <button className="shop-price-chip" style={{ border: '2px solid var(--success)', background: 'var(--success)', color: '#fff', minHeight: 40 }} onClick={() => removeFromCart(entry.key)}>
+          ✓ In Cart
+        </button>
+      );
+    }
+    return (
+      <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
+        <button
+          className="shop-price-chip"
+          style={{ border: '2px solid var(--ink)', minHeight: 40, cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
+          disabled={!affordable}
+          onClick={() => addToCart(entry)}
+        >
+          🛒 {formatMoney(entry.price)}
+        </button>
+        {!affordable && (
+          <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
+            🔒 Need {formatMoney(entry.price - student.coins)} more
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const renderBuyableItem = (item: MarketplaceItem, opts?: { iconSize?: number }) => {
     const ownedField = ownedFieldFor(item.kind);
     const owned = ownedField ? (student[ownedField] as string[]).includes(item.id) : false;
     const affordable = student.coins >= item.price;
     const isImg = item.icon.startsWith('/') || item.icon.startsWith('http');
+    const cartKey = `item-${item.id}`;
     return (
       <div key={item.id} className="shop-item-card" style={{ width: 140 }}>
         <div className="shop-item-icon-frame" style={item.kind === 'color' ? { width: opts?.iconSize ?? 44, height: opts?.iconSize ?? 44, borderRadius: '50%', background: item.colorHex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : item.colorHex } : item.kind === 'font' ? { width: '100%', fontFamily: item.cssFontFamily, fontSize: '1.6rem' } : {}}>
@@ -139,21 +203,7 @@ export default function Marketplace() {
         {owned ? (
           <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}>✓ Unlocked</span>
         ) : (
-          <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
-            <button
-              className="shop-price-chip"
-              style={{ border: '2px solid var(--ink)', minHeight: 40, cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
-              disabled={!affordable}
-              onClick={() => buyMarketplaceItem(studentId, item.id)}
-            >
-              🪙 {formatMoney(item.price)}
-            </button>
-            {!affordable && (
-              <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
-                🔒 Need {formatMoney(item.price - student.coins)} more
-              </span>
-            )}
-          </div>
+          cartButtonFor({ key: cartKey, source: 'item', id: item.id, name: item.name, icon: item.icon, price: item.price }, affordable)
         )}
       </div>
     );
@@ -161,13 +211,120 @@ export default function Marketplace() {
 
   return (
     <div className="container stack">
+      {showCart && (
+        <div className="overlay-backdrop" onClick={() => setShowCart(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <div className="row space-between">
+                <h2 style={{ margin: 0 }}>🛒 Your Cart</h2>
+                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowCart(false)}>✕ Close</button>
+              </div>
+              {cart.length === 0 ? (
+                <p style={{ opacity: 0.7 }}>Nothing in your cart yet — tap 🛒 on anything you want!</p>
+              ) : (
+                <div className="stack" style={{ gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+                  {cart.map((entry) => (
+                    <div key={entry.key} className="row space-between" style={{ padding: '6px 8px', border: '2px solid var(--content-border)', borderRadius: 10 }}>
+                      <div className="row" style={{ gap: 8 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 8, background: '#f4effe', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                          {entry.icon.startsWith('/') || entry.icon.startsWith('http') ? <img src={entry.icon} alt="" style={{ width: '90%', height: '90%', objectFit: 'contain' }} /> : <span>{entry.icon}</span>}
+                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{entry.name}</span>
+                      </div>
+                      <div className="row" style={{ gap: 8 }}>
+                        <strong style={{ fontSize: '0.85rem' }}>{formatMoney(entry.price)}</strong>
+                        <button className="btn btn-sm btn-danger" style={{ minHeight: 36, minWidth: 36 }} aria-label={`Remove ${entry.name}`} onClick={() => removeFromCart(entry.key)}>✕</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="row space-between" style={{ fontWeight: 800, fontSize: '1.1rem' }}>
+                <span>Total</span>
+                <span>{formatMoney(cartTotal)}</span>
+              </div>
+              <div className="row space-between" style={{ fontSize: '0.8rem', opacity: 0.75 }}>
+                <span>Your balance</span>
+                <span>{formatMoney(student.coins)}</span>
+              </div>
+              <button
+                className="btn btn-primary btn-lg"
+                disabled={cart.length === 0 || cartTotal > student.coins}
+                onClick={checkout}
+              >
+                {cartTotal > student.coins ? '🔒 Not enough Class Cash' : '✅ Confirm Purchase'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {receipt && (
+        <div className="overlay-backdrop" onClick={() => setReceipt(null)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <span style={{ fontSize: '2.2rem' }}>🧾</span>
+              <h2 style={{ margin: 0 }}>Receipt</h2>
+              <div className="stack" style={{ width: '100%', gap: 4 }}>
+                {receipt.map((line) => (
+                  <div key={line.key} className="row space-between" style={{ fontSize: '0.85rem' }}>
+                    <span>{line.ok ? '✅' : '⚠️'} {line.name}</span>
+                    <span>{line.ok ? formatMoney(line.price) : 'not bought'}</span>
+                  </div>
+                ))}
+              </div>
+              <div
+                className="stack"
+                style={{
+                  alignItems: 'center',
+                  gap: 2,
+                  background: 'linear-gradient(180deg, var(--purple), var(--purple-dark))',
+                  borderRadius: 14,
+                  padding: '14px 20px',
+                  color: '#fff',
+                  width: '100%',
+                }}
+              >
+                <span style={{ fontSize: '0.75rem', opacity: 0.85, fontWeight: 700 }}>PIGGY BANK BALANCE</span>
+                <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{formatMoney(students.find((s) => s.id === studentId)?.coins ?? student.coins)}</span>
+              </div>
+              <button className="btn btn-primary btn-lg" onClick={() => setReceipt(null)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="shop-panel">
           <div className="shop-header">
-            <span className="shop-ribbon">🛍️ SHOP</span>
+            <span className="shop-ribbon">🛍️ MARKETPLACE</span>
             <div className="row" style={{ gap: 8 }}>
               <span className="shop-balance-chip" title="Your Piggy Bank balance — spend it here!">
                 🐷 {formatMoney(student.coins)}
               </span>
+              <button className="btn btn-sm" style={{ minHeight: 44, position: 'relative' }} onClick={() => setShowCart(true)} aria-label={`Cart, ${cart.length} items`}>
+                🛒 Cart
+                {cart.length > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      background: 'var(--danger)',
+                      color: '#fff',
+                      borderRadius: '50%',
+                      width: 20,
+                      height: 20,
+                      fontSize: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {cart.length}
+                  </span>
+                )}
+              </button>
               <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
             </div>
           </div>
@@ -223,21 +380,7 @@ export default function Marketplace() {
                           Wear
                         </button>
                       ) : (
-                        <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
-                          <button
-                            className="shop-price-chip"
-                            style={{ border: '2px solid var(--ink)', minHeight: 40, cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
-                            disabled={!affordable}
-                            onClick={() => buyAvatar(studentId, a.id)}
-                          >
-                            🪙 {formatMoney(a.price)}
-                          </button>
-                          {!affordable && (
-                            <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
-                              🔒 Need {formatMoney(a.price - student.coins)} more
-                            </span>
-                          )}
-                        </div>
+                        cartButtonFor({ key: `avatar-${a.id}`, source: 'avatar', id: a.id, name: a.name, icon: a.src, price: a.price }, affordable)
                       )}
                     </div>
                   );
@@ -252,11 +395,11 @@ export default function Marketplace() {
                   const equipped = student.equippedEmoteId === e.id;
                   const affordable = student.coins >= e.price;
                   return (
-                    <div key={e.id} className="shop-item-card">
-                      <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
-                        <img src={e.src} alt="" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
+                    <div key={e.id} className="shop-item-card" style={{ width: 150 }}>
+                      <div className="shop-item-icon-frame shop-item-icon-frame-lg" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
+                        <img src={e.src} alt="" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
                       </div>
-                      <strong style={{ fontSize: '0.72rem' }}>{e.name}</strong>
+                      <strong style={{ fontSize: '0.78rem' }}>{e.name}</strong>
                       {equipped ? (
                         <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => equipEmote(studentId, null)}>
                           Unequip
@@ -266,21 +409,7 @@ export default function Marketplace() {
                           Show
                         </button>
                       ) : (
-                        <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
-                          <button
-                            className="shop-price-chip"
-                            style={{ border: '2px solid var(--ink)', minHeight: 40, cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
-                            disabled={!affordable}
-                            onClick={() => buyEmote(studentId, e.id)}
-                          >
-                            🪙 {formatMoney(e.price)}
-                          </button>
-                          {!affordable && (
-                            <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
-                              🔒 Need {formatMoney(e.price - student.coins)} more
-                            </span>
-                          )}
-                        </div>
+                        cartButtonFor({ key: `emote-${e.id}`, source: 'emote', id: e.id, name: e.name, icon: e.src, price: e.price }, affordable)
                       )}
                     </div>
                   );
@@ -352,6 +481,7 @@ export default function Marketplace() {
               <div className="shop-item-grid">
                 {powerupItems.map((p) => {
                   const affordable = student.coins >= p.price;
+                  const owned = false; // power-ups always stay buyable (stacking), never "owned"
                   return (
                     <div key={p.id} className="shop-item-card" style={{ width: 156 }}>
                       <div className="shop-item-icon-frame" style={{ width: 72, height: 72 }}>
@@ -360,19 +490,7 @@ export default function Marketplace() {
                       <strong style={{ fontSize: '0.8rem' }}>{p.name}</strong>
                       {p.description && <p style={{ fontSize: '0.66rem', opacity: 0.75, margin: 0 }}>{p.description}</p>}
                       {p.id === 'powerup-skip' && <div className="tag-pill" style={{ fontSize: '0.68rem' }}>You have: {student.skipTokens}</div>}
-                      <button
-                        className="shop-price-chip"
-                        style={{ border: '2px solid var(--ink)', minHeight: 40, cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
-                        disabled={!affordable}
-                        onClick={() => buyMarketplaceItem(studentId, p.id)}
-                      >
-                        🪙 {formatMoney(p.price)}
-                      </button>
-                      {!affordable && (
-                        <span style={{ fontSize: '0.6rem', color: 'var(--danger)', fontWeight: 700 }}>
-                          🔒 Need {formatMoney(p.price - student.coins)} more
-                        </span>
-                      )}
+                      {!owned && cartButtonFor({ key: `item-${p.id}`, source: 'item', id: p.id, name: p.name, icon: p.icon, price: p.price }, affordable)}
                     </div>
                   );
                 })}
@@ -411,11 +529,11 @@ export default function Marketplace() {
                     {ownedEmotes.map((e) => {
                       const equipped = student.equippedEmoteId === e.id;
                       return (
-                        <div key={e.id} className="shop-item-card">
-                          <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
-                            <img src={e.src} alt="" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
+                        <div key={e.id} className="shop-item-card" style={{ width: 150 }}>
+                          <div className="shop-item-icon-frame shop-item-icon-frame-lg" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
+                            <img src={e.src} alt="" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
                           </div>
-                          <strong style={{ fontSize: '0.72rem' }}>{e.name}</strong>
+                          <strong style={{ fontSize: '0.78rem' }}>{e.name}</strong>
                           {equipped ? (
                             <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => equipEmote(studentId, null)}>
                               Unequip

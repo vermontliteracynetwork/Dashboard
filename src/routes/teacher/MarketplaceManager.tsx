@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import ImageUploadField from '../../components/ImageUploadField';
+import { STANDARD_PRICE_CENTS, specialtyPrice } from '../../lib/marketplaceSeed';
 import type { MarketplaceItem, MarketplaceItemKind } from '../../types';
 
 const KIND_LABELS: Record<MarketplaceItemKind, string> = {
@@ -234,6 +235,7 @@ export default function MarketplaceManager() {
   const [icon, setIcon] = useState('🎁');
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [price, setPrice] = useState('2.00');
+  const [specialty, setSpecialty] = useState(false);
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
   const [availableFrom, setAvailableFrom] = useState('');
@@ -289,7 +291,21 @@ export default function MarketplaceManager() {
           <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
             <div>
               <label>Type</label>
-              <select value={kind} onChange={(e) => setKind(e.target.value as MarketplaceItemKind)}>
+              <select
+                value={kind}
+                onChange={(e) => {
+                  const nextKind = e.target.value as MarketplaceItemKind;
+                  setKind(nextKind);
+                  // Auto-fill the standard price for the new type (prizes have
+                  // no standard — teacher sets those by hand). Specialty stays
+                  // applied if it was already checked.
+                  if (nextKind !== 'prize') {
+                    const base = STANDARD_PRICE_CENTS[nextKind as keyof typeof STANDARD_PRICE_CENTS];
+                    const cents = specialty ? specialtyPrice(nextKind as keyof typeof STANDARD_PRICE_CENTS) : base;
+                    setPrice((cents / 100).toFixed(2));
+                  }
+                }}
+              >
                 {(Object.keys(KIND_LABELS) as MarketplaceItemKind[]).map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
               </select>
             </div>
@@ -317,6 +333,21 @@ export default function MarketplaceManager() {
                 <span>$</span>
                 <input type="number" min={0} step={0.25} value={price} onChange={(e) => setPrice(e.target.value)} style={{ width: 72 }} />
               </div>
+              {kind !== 'prize' && (
+                <label className="row" style={{ gap: 4, fontSize: '0.78rem', fontWeight: 600, marginTop: 4, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={specialty}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSpecialty(checked);
+                      const k = kind as keyof typeof STANDARD_PRICE_CENTS;
+                      setPrice(((checked ? specialtyPrice(k) : STANDARD_PRICE_CENTS[k]) / 100).toFixed(2));
+                    }}
+                  />
+                  ✨ Specialty / seasonal (+25%)
+                </label>
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label>Description (optional)</label>

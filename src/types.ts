@@ -92,7 +92,17 @@ export interface Student {
   ownedVoiceIds: string[]; // voice catalog ids unlocked (read-aloud "voice skins")
   equippedVoiceId: string | null;
   ownedPrizeIds: string[]; // custom_prizes ids this student has redeemed (teacher-fulfilled real/in-game prizes)
+  quizTheme: QuizTheme; // student-picked visual skin for the quiz view
 }
+
+export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';
+
+export const QUIZ_THEME_LABELS: Record<QuizTheme, string> = {
+  standard: 'Standard',
+  pixel: 'Pixel',
+  adventure: 'Adventure',
+  fantasy: 'Fantasy',
+};
 
 export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice';
 

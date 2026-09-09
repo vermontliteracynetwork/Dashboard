@@ -205,7 +205,7 @@ export default function StudentHome() {
                 onClick={() => navigate('/student/marketplace')}
                 aria-label="Marketplace"
               >
-                🛍️ Shop
+                🛍️ Marketplace
               </button>
               <button
                 className="btn btn-sm"

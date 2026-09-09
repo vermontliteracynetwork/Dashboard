@@ -25,7 +25,9 @@ export default function AvatarWithEmote({ student, size = 70, readOnly = false, 
   const [showMoodPicker, setShowMoodPicker] = useState(false);
   const equipEmote = useStore((s) => s.equipEmote);
   const equipped = student.equippedEmoteId ? emoteById(student.equippedEmoteId) : null;
-  const bubbleSize = Math.round(size * 0.46);
+  // Sized up from the original 0.46 — a mood emote is meant to be read at
+  // a glance by both the student and the teacher's Live View, not squinted at.
+  const bubbleSize = Math.round(size * 0.62);
   const showBubble = equipped || !readOnly;
 
   return (
@@ -98,7 +100,7 @@ export default function AvatarWithEmote({ student, size = 70, readOnly = false, 
             }}
           >
             {equipped ? (
-              <img src={equipped.src} alt="" style={{ width: '68%', height: '68%' }} />
+              <img src={equipped.src} alt="" style={{ width: '78%', height: '78%' }} />
             ) : (
               <span style={{ fontSize: bubbleSize * 0.5 }}>💭</span>
             )}
@@ -120,8 +122,8 @@ export default function AvatarWithEmote({ student, size = 70, readOnly = false, 
                       key={e.id}
                       className="avatar-btn stack"
                       style={{
-                        width: 76,
-                        height: 76,
+                        width: 92,
+                        height: 92,
                         flexDirection: 'column',
                         gap: 2,
                         outline: e.id === student.equippedEmoteId ? '4px solid var(--purple)' : 'none',
@@ -132,8 +134,8 @@ export default function AvatarWithEmote({ student, size = 70, readOnly = false, 
                         setShowMoodPicker(false);
                       }}
                     >
-                      <img src={e.src} alt="" style={{ width: 32, height: 32 }} />
-                      <span style={{ fontSize: '0.62rem', fontWeight: 700 }}>{e.name}</span>
+                      <img src={e.src} alt="" style={{ width: 48, height: 48 }} />
+                      <span style={{ fontSize: '0.66rem', fontWeight: 700 }}>{e.name}</span>
                     </button>
                   ))}
                 </div>

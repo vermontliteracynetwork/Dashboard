@@ -312,6 +312,10 @@ label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px;
   justify-content: center;
   overflow: hidden;
 }
+/* Emotes are small emotional-expression cues a student reads at a
+   glance — sized up from the standard shop icon so they're actually
+   legible, not a generic marketplace item. */
+.shop-item-icon-frame-lg { width: 92px; height: 92px; }
 .shop-price-chip {
   display: inline-flex;
   align-items: center;
@@ -927,6 +931,70 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   width: 100%;
   max-width: 640px;
 }
+
+/* ---------- Quiz themes ---------- */
+/* Student-picked visual skin for the quiz view, built from Kenney UI kits.
+   "Standard" is the app's normal look (no overrides below apply). Each
+   themed skin reframes the question card and buttons with that pack's
+   9-slice panel/button art via border-image, so the fill/semantic colors
+   (correct=green, wrong=red) underneath are always preserved. */
+.quiz-theme-pixel { background: repeating-linear-gradient(45deg, #eef3fb 0 16px, #e2ebf8 16px 32px); }
+.quiz-theme-pixel .quiz-fullview-card {
+  border-image: url('/quiz-themes/pixel/panel.png') 16 fill stretch;
+  border-width: 16px;
+  border-style: solid;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 10px;
+  image-rendering: pixelated;
+}
+.quiz-theme-pixel .btn {
+  border-radius: 4px;
+  border-image: url('/quiz-themes/pixel/button.png') 16 fill stretch;
+  border-width: 12px;
+  border-style: solid;
+  image-rendering: pixelated;
+}
+.quiz-theme-pixel .btn-danger { border-image-source: url('/quiz-themes/pixel/button-danger.png'); }
+
+.quiz-theme-adventure { background: linear-gradient(180deg, #f4e4c9, #e6cd9e); }
+.quiz-theme-adventure .quiz-fullview-card {
+  border-image: url('/quiz-themes/adventure/panel.png') 20 fill stretch;
+  border-width: 22px;
+  border-style: solid;
+  border-radius: 6px;
+  box-shadow: none;
+  background: transparent;
+  padding: 10px;
+}
+.quiz-theme-adventure .btn {
+  border-radius: 8px;
+  border-image: url('/quiz-themes/adventure/button.png') 8 fill stretch;
+  border-width: 10px;
+  border-style: solid;
+  font-family: 'Baloo 2', sans-serif;
+}
+.quiz-theme-adventure .btn-danger { border-image-source: url('/quiz-themes/adventure/button-danger.png'); }
+
+.quiz-theme-fantasy { background: linear-gradient(180deg, #efe2ff, #d9c2f2); }
+.quiz-theme-fantasy .quiz-fullview-card {
+  border-image: url('/quiz-themes/fantasy/panel.png') 30 fill stretch;
+  border-width: 26px;
+  border-style: solid;
+  border-radius: 10px;
+  box-shadow: none;
+  background: transparent;
+  padding: 10px;
+}
+.quiz-theme-fantasy .btn {
+  border-radius: 999px;
+  border-image: url('/quiz-themes/fantasy/button.png') 18 fill stretch;
+  border-width: 14px;
+  border-style: solid;
+  font-family: 'Baloo 2', sans-serif;
+}
+.quiz-theme-fantasy .btn-danger { border-image-source: url('/quiz-themes/fantasy/button-danger.png'); }
 
 /* ---------- Break / Playground countdown timer ---------- */
 .break-timer {

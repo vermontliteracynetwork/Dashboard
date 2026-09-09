@@ -430,6 +430,27 @@ export const useStore = create<AppState>()(
             set((s) => ({ marketplaceItems: [...s.marketplaceItems, ...topUp] }));
             topUp.forEach((it) => pushMarketplaceItem(it));
           }
+
+          // One-time price normalization to the teacher's stated pricing
+          // standard (fonts/colors $2, voices $4, power-ups $15, +25% for
+          // specialty/seasonal/fun items). Only touches an item still at
+          // its OLD auto-seeded price — if a price differs from that, the
+          // teacher already edited it by hand, so it's left alone.
+          const OLD_SEED_PRICES: Record<string, number> = {
+            'font-baloo': 400, 'font-mono': 400, 'font-serif': 600,
+            'color-gold': 400, 'color-rainbow': 800,
+            'voice-santa': 400,
+          };
+          const priceFixes = get().marketplaceItems.filter(
+            (it) => OLD_SEED_PRICES[it.id] !== undefined && it.price === OLD_SEED_PRICES[it.id],
+          );
+          if (priceFixes.length > 0) {
+            const newPriceById = new Map(STARTER_MARKETPLACE_ITEMS.map((it) => [it.id, it.price]));
+            priceFixes.forEach((it) => {
+              const newPrice = newPriceById.get(it.id);
+              if (newPrice !== undefined) get().updateMarketplaceItem(it.id, { price: newPrice });
+            });
+          }
         } catch (err) {
           set({ hydrated: true, hydrationError: extractErrorMessage(err) });
           return;
@@ -565,6 +586,7 @@ export const useStore = create<AppState>()(
           ownedVoiceIds: [...STARTER_VOICE_IDS],
           equippedVoiceId: null,
           ownedPrizeIds: [],
+          quizTheme: 'standard',
         };
         set((s) => ({
           students: [...s.students, student],
@@ -809,7 +831,9 @@ export const useStore = create<AppState>()(
         const prog = get().progress[studentId]?.[subject];
         if (!prog || prog.completedTaskIds.includes(taskId)) return false;
         const task = get().rotations[studentId]?.[subject]?.find((t) => t.id === taskId);
-        if (task?.required) return false;
+        // Hard rule: quizzes and final checkpoints can never be skipped with
+        // a Skip Pass, regardless of the teacher's per-task "required" toggle.
+        if (task?.required || task?.type === 'quiz' || task?.isFinalCheck) return false;
         get().updateStudent(studentId, { skipTokens: student.skipTokens - 1 });
         set((s) => ({
           progress: {

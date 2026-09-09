@@ -232,7 +232,7 @@ export default function TaskChecklist({
               {skipped && <span className="tag-pill" style={{ marginLeft: 6, fontSize: '0.7rem', background: 'var(--orange)' }}>⏭️ Skipped</span>}
             </button>
 
-            {isCurrent && onSkip && !t.required && (skipTokens ?? 0) > 0 && (
+            {isCurrent && onSkip && !t.required && t.type !== 'quiz' && !t.isFinalCheck && (skipTokens ?? 0) > 0 && (
               <button
                 className="btn btn-sm"
                 style={{ minHeight: 44 }}

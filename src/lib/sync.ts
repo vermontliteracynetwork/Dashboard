@@ -67,6 +67,7 @@ const rowToStudent = (r: Row): Student => ({
   ownedVoiceIds: r.owned_voice_ids && r.owned_voice_ids.length > 0 ? r.owned_voice_ids : [...STARTER_VOICE_IDS],
   equippedVoiceId: r.equipped_voice_id ?? null,
   ownedPrizeIds: r.owned_prize_ids ?? [],
+  quizTheme: r.quiz_theme ?? 'standard',
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -98,6 +99,7 @@ const studentToRow = (s: Student): Row => ({
   owned_voice_ids: s.ownedVoiceIds,
   equipped_voice_id: s.equippedVoiceId,
   owned_prize_ids: s.ownedPrizeIds,
+  quiz_theme: s.quizTheme,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import ReadAloud from '../../components/ReadAloud';
-import TicketStub from '../../components/TicketStub';
+import SubjectProgressBar from '../../components/SubjectProgressBar';
+import QuizThemePicker from '../../components/QuizThemePicker';
 import type { Student, Subject, Task, MatchingQuestion } from '../../types';
 
 interface Props {
@@ -168,9 +169,11 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
 
   const remainingCount = state.remainingIds.length;
   const answered = pendingCorrect !== null;
+  const doneCount = state.masteredIds.length;
+  const quizTheme = student.quizTheme ?? 'standard';
 
   return (
-    <div className="quiz-fullview">
+    <div className={`quiz-fullview quiz-theme-${quizTheme}`}>
       {confirmExit && (
         <div className="overlay-backdrop" onClick={() => setConfirmExit(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
@@ -186,12 +189,13 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
         </div>
       )}
       <div className="quiz-fullview-card stack">
-        <div className="row space-between">
-          <TicketStub remaining={remainingCount} total={total} label="questions left" />
+        <div className="row space-between" style={{ alignItems: 'center' }}>
+          <QuizThemePicker studentId={student.id} current={quizTheme} />
           <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label="Exit quiz" onClick={() => setConfirmExit(true)}>
             ✕
           </button>
         </div>
+        <SubjectProgressBar done={doneCount} total={total} />
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
           <div className="row" style={{ justifyContent: 'center' }}>
             <h2 style={{ margin: 0 }}>{activeQ.prompt}</h2>

@@ -291,6 +291,7 @@ alter table students add column if not exists equipped_marker_color_id text;
 alter table students add column if not exists owned_voice_ids jsonb not null default '[]';
 alter table students add column if not exists equipped_voice_id text;
 alter table students add column if not exists owned_prize_ids jsonb not null default '[]';
+alter table students add column if not exists quiz_theme text not null default 'standard';
 
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so
