@@ -3,7 +3,10 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
-import { THESAURUS, DICTIONARY, SOUND_WALL } from '../lib/wordData';
+import { SOUND_WALL } from '../lib/wordData';
+import { fetchDefinition, fetchSynonyms, fetchAntonyms } from '../lib/wordLookup';
+import type { WordLookupResult } from '../lib/wordLookup';
+import { analyzeMorphology } from '../lib/morphology';
 import type { Student, ToolKey, Subject, CustomTool } from '../types';
 import { ACCESSIBILITY_TOOLS, SUBJECT_TOOLS, TOOL_LABELS } from '../types';
 
@@ -285,23 +288,79 @@ function NumberLine() {
 
 function Thesaurus({ student }: { student: Student }) {
   const [q, setQ] = useState('');
-  const key = q.trim().toLowerCase();
-  const results = THESAURUS[key];
+  const [word, setWord] = useState<string | null>(null);
+  const [synonyms, setSynonyms] = useState<string[]>([]);
+  const [antonyms, setAntonyms] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const search = async (raw: string) => {
+    const key = raw.trim().toLowerCase();
+    if (!key) return;
+    setQ(key);
+    setWord(key);
+    setLoading(true);
+    setError(null);
+    try {
+      const [syn, ant] = await Promise.all([fetchSynonyms(key), fetchAntonyms(key)]);
+      setSynonyms(syn);
+      setAntonyms(ant);
+    } catch {
+      setError("Couldn't reach the thesaurus right now — try again in a moment.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="stack">
-      <input placeholder="Type a word..." value={q} onChange={(e) => setQ(e.target.value)} />
-      {key && (
-        results ? (
-          <div className="content-well">
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <strong>{key}</strong>
-              <button className="btn btn-sm btn-blue" onClick={() => speak(key, student.ttsSettings)}>🔈</button>
-            </div>
-            <p>{results.join(', ')}</p>
+      <div className="row-wrap">
+        <input
+          placeholder="Type a word..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && search(q)}
+          style={{ flex: 1, minWidth: 160 }}
+        />
+        <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => search(q)}>
+          🔍 Look up
+        </button>
+      </div>
+      {loading && <p>Looking that up…</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
+      {!loading && !error && word && (
+        <div className="content-well stack">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <strong>{word}</strong>
+            <button className="btn btn-sm btn-blue" onClick={() => speak(word, student.ttsSettings)}>🔈</button>
           </div>
-        ) : (
-          <p>No matches yet — try: {Object.keys(THESAURUS).slice(0, 6).join(', ')}...</p>
-        )
+          <div>
+            <strong style={{ fontSize: '0.85rem' }}>✅ Means about the same:</strong>
+            {synonyms.length === 0 ? (
+              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No synonyms found.</p>
+            ) : (
+              <div className="row-wrap" style={{ marginTop: 4 }}>
+                {synonyms.map((s) => (
+                  <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => search(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {antonyms.length > 0 && (
+            <div>
+              <strong style={{ fontSize: '0.85rem' }}>🔁 Means the opposite:</strong>
+              <div className="row-wrap" style={{ marginTop: 4 }}>
+                {antonyms.map((s) => (
+                  <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36, background: 'var(--orange)' }} onClick={() => search(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -309,23 +368,110 @@ function Thesaurus({ student }: { student: Student }) {
 
 function Dictionary({ student }: { student: Student }) {
   const [q, setQ] = useState('');
-  const key = q.trim().toLowerCase();
-  const def = DICTIONARY[key];
+  const [result, setResult] = useState<WordLookupResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [synonyms, setSynonyms] = useState<string[]>([]);
+
+  const search = async (raw: string) => {
+    const key = raw.trim().toLowerCase();
+    if (!key) return;
+    setQ(key);
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const [def, syn] = await Promise.all([fetchDefinition(key), fetchSynonyms(key)]);
+      if (!def) {
+        setError(`No dictionary entry found for "${key}" — check the spelling?`);
+      } else {
+        setResult(def);
+        setSynonyms(syn.slice(0, 5));
+      }
+    } catch {
+      setError("Couldn't reach the dictionary right now — try again in a moment.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const morphology = result ? analyzeMorphology(result.word) : null;
+
   return (
     <div className="stack">
-      <input placeholder="Type a word..." value={q} onChange={(e) => setQ(e.target.value)} />
-      {key && (
-        def ? (
-          <div className="content-well">
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <strong>{key}</strong>
-              <button className="btn btn-sm btn-blue" onClick={() => speak(`${key}. ${def}`, student.ttsSettings)}>🔈</button>
+      <div className="row-wrap">
+        <input
+          placeholder="Type a word..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && search(q)}
+          style={{ flex: 1, minWidth: 160 }}
+        />
+        <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => search(q)}>
+          🔍 Look up
+        </button>
+      </div>
+      {loading && <p>Looking that up…</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
+      {result && (
+        <div className="content-well stack">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <div>
+              <strong>{result.word}</strong>
+              {result.phonetic && <span style={{ opacity: 0.6, marginLeft: 6, fontSize: '0.85rem' }}>{result.phonetic}</span>}
             </div>
-            <p>{def}</p>
+            <button
+              className="btn btn-sm btn-blue"
+              onClick={() => speak(`${result.word}. ${result.definitions[0]?.definition ?? ''}`, student.ttsSettings)}
+            >
+              🔈
+            </button>
           </div>
-        ) : (
-          <p>No matches yet — try: {Object.keys(DICTIONARY).slice(0, 6).join(', ')}...</p>
-        )
+
+          {result.definitions.map((d, i) => (
+            <div key={i}>
+              <span className="tag-pill" style={{ fontSize: '0.7rem' }}>{d.partOfSpeech}</span>
+              <p style={{ margin: '4px 0' }}>{d.definition}</p>
+              {d.example && <p style={{ margin: 0, fontStyle: 'italic', opacity: 0.7, fontSize: '0.85rem' }}>"{d.example}"</p>}
+            </div>
+          ))}
+
+          {morphology && (morphology.prefix || morphology.suffix) && (
+            <div className="content-well" style={{ background: '#f4f2ff' }}>
+              <strong style={{ fontSize: '0.85rem' }}>🧩 Word Parts</strong>
+              <div className="row-wrap" style={{ alignItems: 'center', marginTop: 6 }}>
+                {morphology.prefix && (
+                  <div className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>
+                    {morphology.prefix.form}-
+                  </div>
+                )}
+                <div className="tag-pill" style={{ background: 'var(--yellow)' }}>{morphology.base}</div>
+                {morphology.suffix && (
+                  <div className="tag-pill" style={{ background: 'var(--teal)', color: '#fff' }}>
+                    -{morphology.suffix.form}
+                  </div>
+                )}
+              </div>
+              <div className="stack" style={{ gap: 2, marginTop: 6, fontSize: '0.8rem' }}>
+                {morphology.prefix && <p style={{ margin: 0 }}>{morphology.prefix.form}- = {morphology.prefix.meaning}</p>}
+                {morphology.suffix && <p style={{ margin: 0 }}>-{morphology.suffix.form} = {morphology.suffix.meaning}</p>}
+              </div>
+            </div>
+          )}
+
+          {synonyms.length > 0 && (
+            <div>
+              <strong style={{ fontSize: '0.85rem' }}>✅ Similar words:</strong>
+              <div className="row-wrap" style={{ marginTop: 4 }}>
+                {synonyms.map((s) => (
+                  <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => search(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
