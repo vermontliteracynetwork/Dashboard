@@ -24,12 +24,11 @@ import type {
   SentenceBuilderResponse,
   ChatMessage,
   Note,
-  CustomPrize,
+  MarketplaceItem,
+  AssignmentCompletionReward,
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
-import { STARTER_FONT_IDS } from './fontCatalog';
-import { STARTER_COLOR_IDS } from './colorCatalog';
-import { STARTER_VOICE_IDS } from './voiceCatalog';
+import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS } from './marketplaceSeed';
 
 // ---------------------------------------------------------------------------
 // Row <-> app-shape mapping
@@ -198,24 +197,44 @@ const noteToRow = (n: Note): Row => ({
   updated_at: n.updatedAt,
 });
 
-const rowToCustomPrize = (r: Row): CustomPrize => ({
+const rowToMarketplaceItem = (r: Row): MarketplaceItem => ({
   id: r.id,
-  category: r.category,
+  kind: r.kind,
   name: r.name,
   icon: r.icon,
   price: r.price,
+  category: r.category,
+  tags: r.tags ?? [],
   description: r.description ?? undefined,
+  availableFrom: r.available_from ?? null,
+  availableUntil: r.available_until ?? null,
   createdAt: r.created_at,
+  cssFontFamily: r.css_font_family ?? undefined,
+  colorHex: r.color_hex ?? undefined,
+  voicePitch: r.voice_pitch ?? undefined,
+  voiceRate: r.voice_rate ?? undefined,
+  voiceHints: r.voice_hints ?? undefined,
 });
-const customPrizeToRow = (p: CustomPrize): Row => ({
-  id: p.id,
-  category: p.category,
-  name: p.name,
-  icon: p.icon,
-  price: p.price,
-  description: p.description ?? null,
-  created_at: p.createdAt,
+const marketplaceItemToRow = (it: MarketplaceItem): Row => ({
+  id: it.id,
+  kind: it.kind,
+  name: it.name,
+  icon: it.icon,
+  price: it.price,
+  category: it.category,
+  tags: it.tags,
+  description: it.description ?? null,
+  available_from: it.availableFrom ?? null,
+  available_until: it.availableUntil ?? null,
+  created_at: it.createdAt,
+  css_font_family: it.cssFontFamily ?? null,
+  color_hex: it.colorHex ?? null,
+  voice_pitch: it.voicePitch ?? null,
+  voice_rate: it.voiceRate ?? null,
+  voice_hints: it.voiceHints ?? null,
 });
+
+const rowToAppSettings = (r: Row): AssignmentCompletionReward | null => r.assignment_completion_reward ?? null;
 
 const rowToTransaction = (r: Row): Transaction => ({
   id: r.id,
@@ -423,7 +442,8 @@ export interface HydratedState {
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>;
   chatMessages: ChatMessage[];
   notes: Note[];
-  customPrizes: CustomPrize[];
+  marketplaceItems: MarketplaceItem[];
+  assignmentCompletionReward: AssignmentCompletionReward | null;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -438,7 +458,7 @@ export async function fetchAll(): Promise<HydratedState> {
   const [
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
-    quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, customPrizesRes,
+    quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -462,10 +482,11 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('sentence_builder_responses').select('*'),
     supabase.from('chat_messages').select('*'),
     supabase.from('notes').select('*'),
-    supabase.from('custom_prizes').select('*'),
+    supabase.from('marketplace_items').select('*'),
+    supabase.from('app_settings').select('*').eq('id', 'global').maybeSingle(),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, customPrizesRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -528,7 +549,8 @@ export async function fetchAll(): Promise<HydratedState> {
     ),
     chatMessages: (chatMessagesRes.data ?? []).map(rowToChatMessage),
     notes: (notesRes.data ?? []).map(rowToNote),
-    customPrizes: (customPrizesRes.data ?? []).map(rowToCustomPrize),
+    marketplaceItems: (marketplaceItemsRes.data ?? []).map(rowToMarketplaceItem),
+    assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -604,8 +626,11 @@ export const pushSbResponse = (a: SentenceBuilderResponse) => upsert('sentence_b
 export const pushChatMessage = (m: ChatMessage) => upsert('chat_messages', chatMessageToRow(m));
 export const pushNote = (n: Note) => upsert('notes', noteToRow(n));
 export const deleteNoteRemote = (id: string) => remove('notes', { id });
-export const pushCustomPrize = (p: CustomPrize) => upsert('custom_prizes', customPrizeToRow(p));
-export const deleteCustomPrizeRemote = (id: string) => remove('custom_prizes', { id });
+export const pushMarketplaceItem = (it: MarketplaceItem) => upsert('marketplace_items', marketplaceItemToRow(it));
+export const deleteMarketplaceItemRemote = (id: string) => remove('marketplace_items', { id });
+
+export const pushAppSettings = (reward: AssignmentCompletionReward | null) =>
+  upsert('app_settings', { id: 'global', assignment_completion_reward: reward, updated_at: new Date().toISOString() });
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });
@@ -775,7 +800,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToCustomPrize };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -800,7 +825,8 @@ export interface RealtimeHandlers {
   onSbResponse: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onChatMessage: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onNote: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
-  onCustomPrize: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onMarketplaceItem: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onAppSettings: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -838,7 +864,8 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sentence_builder_responses' }, wire(handlers.onSbResponse))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, wire(handlers.onChatMessage))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, wire(handlers.onNote))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_prizes' }, wire(handlers.onCustomPrize))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, wire(handlers.onMarketplaceItem))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, wire(handlers.onAppSettings))
     .subscribe();
 
   return () => {

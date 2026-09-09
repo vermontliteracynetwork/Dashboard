@@ -5,9 +5,7 @@ import { todayISO } from '../lib/dates';
 import { getDailySpinSegments, type DailySpinSegment } from '../lib/dailySpin';
 import { emoteById } from '../lib/emoteCatalog';
 import { avatarById } from '../lib/avatarCatalog';
-import { fontById } from '../lib/fontCatalog';
-import { colorById } from '../lib/colorCatalog';
-import { voiceOptionById } from '../lib/voiceCatalog';
+import type { MarketplaceItem } from '../types';
 
 interface Props {
   studentId: string;
@@ -34,20 +32,17 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 // A little "what did I actually win" lookup so the result screen can show
 // the real name/art of an item prize, not just its catalog id.
-function itemDisplay(itemKind: string, itemId: string): { name: string; imageUrl?: string } | null {
-  switch (itemKind) {
-    case 'avatar': { const a = avatarById(itemId); return a ? { name: a.name } : null; }
-    case 'emote': { const e = emoteById(itemId); return e ? { name: e.name, imageUrl: e.src } : null; }
-    case 'font': { const f = fontById(itemId); return f ? { name: f.name } : null; }
-    case 'color': { const c = colorById(itemId); return c ? { name: c.name } : null; }
-    case 'voice': { const v = voiceOptionById(itemId); return v ? { name: v.name } : null; }
-    default: return null;
-  }
+function itemDisplay(itemKind: string, itemId: string, marketplaceItems: MarketplaceItem[]): { name: string; imageUrl?: string } | null {
+  if (itemKind === 'avatar') { const a = avatarById(itemId); return a ? { name: a.name } : null; }
+  if (itemKind === 'emote') { const e = emoteById(itemId); return e ? { name: e.name, imageUrl: e.src } : null; }
+  const item = marketplaceItems.find((it) => it.id === itemId);
+  if (!item) return null;
+  return { name: item.name, imageUrl: item.icon.startsWith('/') || item.icon.startsWith('http') ? item.icon : undefined };
 }
 
 export default function DailySpinWheel({ studentId, onClose }: Props) {
   const students = useStore((s) => s.students);
-  const customPrizes = useStore((s) => s.customPrizes);
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
   const spinDailyWheel = useStore((s) => s.spinDailyWheel);
   const containerRef = useRef<HTMLDivElement>(null);
   const wheelRef = useRef<InstanceType<typeof Wheel> | null>(null);
@@ -56,12 +51,17 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
   const [result, setResult] = useState<DailySpinResult | null>(null);
 
   const student = students.find((s) => s.id === studentId);
-  const alreadySpun = student?.lastSpinDate === todayISO();
-  const showWheel = !!student && !alreadySpun;
+  // Captured once at mount, not recomputed live — spinDailyWheel() sets
+  // lastSpinDate to today as its very first store update, which would
+  // otherwise flip this true mid-spin (before the animation even starts)
+  // and tear the wheel down / jump straight to the "already spun" screen,
+  // which is exactly what made the spin look like it "didn't work."
+  const [hasSpunToday] = useState(() => student?.lastSpinDate === todayISO());
+  const showWheel = !!student && !hasSpunToday;
 
   // Today's 10 segments — deterministic from the date, same for every
   // student, fresh again tomorrow.
-  const segments = useMemo(() => getDailySpinSegments(todayISO(), customPrizes), [customPrizes]);
+  const segments = useMemo(() => getDailySpinSegments(todayISO(), marketplaceItems), [marketplaceItems]);
 
   useEffect(() => {
     if (!showWheel) return;
@@ -123,7 +123,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
     }, SPIN_DURATION_MS + 100);
   };
 
-  const won = result?.type === 'item' && result.itemKind && result.itemId ? itemDisplay(result.itemKind, result.itemId) : null;
+  const won = result?.type === 'item' && result.itemKind && result.itemId ? itemDisplay(result.itemKind, result.itemId, marketplaceItems) : null;
 
   return (
     <div className="overlay-backdrop" onClick={spinning ? undefined : onClose}>
@@ -131,7 +131,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
           <h2 style={{ margin: 0 }}>🎡 Daily Spin</h2>
 
-          {alreadySpun && !result ? (
+          {hasSpunToday && !result ? (
             <>
               <p>You already spun today — come back tomorrow for another spin!</p>
               <button className="btn btn-primary btn-lg" style={{ minHeight: 44 }} onClick={onClose}>

@@ -134,7 +134,7 @@ export default function SubjectDashboard() {
 
   const renderTask = (task: Task) => {
     switch (task.type) {
-      case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} />;
+      case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
       case 'link':
         return (
           <LinkTask
@@ -147,7 +147,7 @@ export default function SubjectDashboard() {
         );
       case 'offscreen': return <OffscreenTask student={student} task={task} onDone={handleDone} />;
       case 'video': return <VideoTask student={student} task={task} onDone={handleDone} />;
-      case 'passage': return <PassageTask student={student} subject={subj} task={task} onDone={handleDone} />;
+      case 'passage': return <PassageTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
       case 'drill': return <DrillTask student={student} task={task} onDone={handleDone} />;
       case 'wordchain': return <WordChainTask student={student} task={task} onDone={handleDone} />;
       case 'sentenceEdit': return <SentenceEditTask student={student} task={task} onDone={handleDone} />;

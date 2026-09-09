@@ -8,14 +8,15 @@ interface Props {
   subject: Subject;
   task: Task;
   onDone: () => void;
+  onExit: () => void;
 }
 
-export default function PassageTask({ student, subject, task, onDone }: Props) {
+export default function PassageTask({ student, subject, task, onDone, onExit }: Props) {
   const hasQuestions = (task.quiz?.questions.length ?? 0) > 0;
   const [phase, setPhase] = useState<'reading' | 'questions'>('reading');
 
   if (phase === 'questions' && hasQuestions) {
-    return <QuizTask student={student} subject={subject} task={task} onDone={onDone} />;
+    return <QuizTask student={student} subject={subject} task={task} onDone={onDone} onExit={onExit} />;
   }
 
   return (

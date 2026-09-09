@@ -90,10 +90,10 @@ export default function PlaygroundView() {
               <strong>{openEntry.task.icon} {openEntry.task.title}</strong>
               <button className="btn btn-sm" onClick={close}>✕ Close</button>
             </div>
-            {openEntry.task.type === 'quiz' && <QuizTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} />}
+            {openEntry.task.type === 'quiz' && <QuizTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}
             {openEntry.task.type === 'offscreen' && <OffscreenTask student={student} task={openEntry.task} onDone={close} />}
             {openEntry.task.type === 'video' && <VideoTask student={student} task={openEntry.task} onDone={close} />}
-            {openEntry.task.type === 'passage' && <PassageTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} />}
+            {openEntry.task.type === 'passage' && <PassageTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}
             {openEntry.task.type === 'drill' && <DrillTask student={student} task={openEntry.task} onDone={close} />}
             {openEntry.task.type === 'wordchain' && <WordChainTask student={student} task={openEntry.task} onDone={close} />}
             {openEntry.task.type === 'sentenceEdit' && <SentenceEditTask student={student} task={openEntry.task} onDone={close} />}

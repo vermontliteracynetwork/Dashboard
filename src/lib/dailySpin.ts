@@ -1,10 +1,7 @@
 import { AVATAR_CATALOG } from '../store/badges';
 import { EMOTE_CATALOG } from './emoteCatalog';
-import { FONT_CATALOG } from './fontCatalog';
-import { COLOR_CATALOG } from './colorCatalog';
-import { VOICE_CATALOG } from './voiceCatalog';
 import { formatMoney } from './money';
-import type { CustomPrize } from '../types';
+import type { MarketplaceItem } from '../types';
 
 export type SpinItemKind = 'avatar' | 'emote' | 'font' | 'color' | 'voice' | 'prize';
 
@@ -39,12 +36,21 @@ function hashString(str: string): number {
 
 const CASH_AMOUNTS_CENTS = [100, 200, 250, 300, 500, 1000]; // $1, $2, $2.50, $3, $5, $10
 
+function isAvailableOn(item: MarketplaceItem, dateISO: string): boolean {
+  if (item.availableFrom && dateISO < item.availableFrom) return false;
+  if (item.availableUntil && dateISO > item.availableUntil) return false;
+  return true;
+}
+
 // Every spin is a win — no empty outcome — so the 10 segments are always:
 // 1 Skip Pass, 1 cashback tier (3% or 5%), 4 distinct cash amounts, and 4
-// random marketplace items (avatar/emote/font/color/voice/teacher prize).
-// If a student already owns an item they land on, spinDailyWheel falls
-// back to a small cash consolation so nothing is ever a dead spin.
-export function getDailySpinSegments(dateISO: string, customPrizes: CustomPrize[]): DailySpinSegment[] {
+// random marketplace items (avatar/emote/font/color/voice/teacher prize —
+// power-ups are excluded since the dedicated Skip Pass segment already
+// covers that). If a student already owns an item they land on,
+// spinDailyWheel falls back to a small cash consolation so nothing is ever
+// a dead spin. A seasonal/limited-time item only enters the pool on the
+// days it's actually available.
+export function getDailySpinSegments(dateISO: string, marketplaceItems: MarketplaceItem[]): DailySpinSegment[] {
   const rand = seededRandom(hashString(dateISO));
 
   const segments: DailySpinSegment[] = [];
@@ -61,18 +67,18 @@ export function getDailySpinSegments(dateISO: string, customPrizes: CustomPrize[
   }
 
   interface Candidate { kind: SpinItemKind; itemId: string; label: string; imageUrl?: string }
+  const availableToday = marketplaceItems.filter((it) => it.price > 0 && isAvailableOn(it, dateISO));
   const candidates: Candidate[] = [
     ...AVATAR_CATALOG.map((a) => ({ kind: 'avatar' as const, itemId: a.id, label: a.name })),
     ...EMOTE_CATALOG.map((e) => ({ kind: 'emote' as const, itemId: e.id, label: e.name, imageUrl: e.src })),
-    ...FONT_CATALOG.filter((f) => f.price > 0).map((f) => ({ kind: 'font' as const, itemId: f.id, label: f.name })),
-    ...COLOR_CATALOG.filter((c) => c.price > 0).map((c) => ({ kind: 'color' as const, itemId: c.id, label: c.name })),
-    ...VOICE_CATALOG.filter((v) => v.price > 0).map((v) => ({ kind: 'voice' as const, itemId: v.id, label: v.name })),
-    ...customPrizes.map((p) => ({
-      kind: 'prize' as const,
-      itemId: p.id,
-      label: p.name,
-      imageUrl: p.icon.startsWith('/') || p.icon.startsWith('http') ? p.icon : undefined,
-    })),
+    ...availableToday
+      .filter((it) => it.kind === 'font' || it.kind === 'color' || it.kind === 'voice' || it.kind === 'prize')
+      .map((it) => ({
+        kind: it.kind as SpinItemKind,
+        itemId: it.id,
+        label: it.name,
+        imageUrl: it.icon.startsWith('/') || it.icon.startsWith('http') ? it.icon : undefined,
+      })),
   ];
   for (let i = 0; i < 4 && candidates.length > 0; i++) {
     const idx = Math.floor(rand() * candidates.length);

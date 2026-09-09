@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TTSSettings } from '../types';
-import { voiceOptionById, pickSystemVoice } from '../lib/voiceCatalog';
+import { pickSystemVoice } from '../lib/voiceCatalog';
+import { useStore } from '../store/store';
 
 interface Props {
   text: string;
@@ -10,15 +11,17 @@ interface Props {
 
 // voiceSkinId, when given, layers a purchased "voice" (pitch/rate preset,
 // and a best-guess real system voice) on top of the student's own
-// accessibility rate — a fun cosmetic, not a replacement for it.
+// accessibility rate — a fun cosmetic, not a replacement for it. Reads the
+// marketplace item straight from the store since this is a plain function,
+// not a component — voices are teacher-editable, not a static catalog.
 export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null) => {
   if (!('speechSynthesis' in window) || !text) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  const skin = voiceSkinId ? voiceOptionById(voiceSkinId) : undefined;
-  utter.rate = (settings?.rate ?? 1) * (skin?.rate ?? 1);
-  utter.pitch = skin?.pitch ?? 1;
-  const skinVoice = skin ? pickSystemVoice(skin.preferredVoiceNameHints) : null;
+  const skin = voiceSkinId ? useStore.getState().marketplaceItems.find((it) => it.id === voiceSkinId && it.kind === 'voice') : undefined;
+  utter.rate = (settings?.rate ?? 1) * (skin?.voiceRate ?? 1);
+  utter.pitch = skin?.voicePitch ?? 1;
+  const skinVoice = skin ? pickSystemVoice(skin.voiceHints ?? []) : null;
   if (skinVoice) {
     utter.voice = skinVoice;
   } else if (settings?.voiceURI) {

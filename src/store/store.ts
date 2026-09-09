@@ -4,9 +4,7 @@ import { makeId } from '../lib/id';
 import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById } from '../lib/emoteCatalog';
-import { STARTER_FONT_IDS, fontById } from '../lib/fontCatalog';
-import { STARTER_COLOR_IDS, colorById } from '../lib/colorCatalog';
-import { STARTER_VOICE_IDS, voiceOptionById } from '../lib/voiceCatalog';
+import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
 import { avatarById } from '../lib/avatarCatalog';
 import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
 import { playChaChing } from '../lib/chime';
@@ -29,8 +27,6 @@ export interface DailySpinResult {
   itemKind?: SpinItemKind; // set when type is 'item' and the student actually won it (not the consolation fallback)
   itemId?: string;
 }
-
-const SKIP_TOKEN_PRICE_CENTS = 1500; // $15.00
 
 // Consolation prize when an 'item' segment lands but the student already
 // owns that item — keeps every spin a genuine win instead of a no-op.
@@ -102,9 +98,10 @@ import {
   pushNote,
   deleteNoteRemote,
   rowToNote,
-  pushCustomPrize,
-  deleteCustomPrizeRemote,
-  rowToCustomPrize,
+  pushMarketplaceItem,
+  deleteMarketplaceItemRemote,
+  rowToMarketplaceItem,
+  pushAppSettings,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -138,7 +135,8 @@ import type {
   SentenceBuilderResponse,
   ChatMessage,
   Note,
-  CustomPrize,
+  MarketplaceItem,
+  AssignmentCompletionReward,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -186,7 +184,8 @@ interface AppState {
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
   chatMessages: ChatMessage[]; // teacher<->student chat, newest last
   notes: Note[];
-  customPrizes: CustomPrize[];
+  marketplaceItems: MarketplaceItem[];
+  assignmentCompletionReward: AssignmentCompletionReward | null;
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
@@ -213,19 +212,16 @@ interface AppState {
   createNote: (studentId: string) => string;
   updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'fontId' | 'colorId'>>) => void;
   deleteNote: (id: string) => void;
-  addCustomPrize: (prize: Omit<CustomPrize, 'id' | 'createdAt'>) => void;
-  updateCustomPrize: (id: string, patch: Partial<CustomPrize>) => void;
-  deleteCustomPrize: (id: string) => void;
-  buyFont: (studentId: string, fontId: string) => boolean;
-  buyColor: (studentId: string, colorId: string) => boolean;
-  buyVoice: (studentId: string, voiceId: string) => boolean;
-  buyCustomPrize: (studentId: string, prizeId: string) => boolean;
+  addMarketplaceItem: (item: Omit<MarketplaceItem, 'id' | 'createdAt'>) => void;
+  updateMarketplaceItem: (id: string, patch: Partial<MarketplaceItem>) => void;
+  deleteMarketplaceItem: (id: string) => void;
+  buyMarketplaceItem: (studentId: string, itemId: string) => boolean;
+  setAssignmentCompletionReward: (reward: AssignmentCompletionReward | null) => void;
   adjustStudentBalance: (studentId: string, amountCents: number, reason: string) => void;
   setStudentBalance: (studentId: string, newBalanceCents: number, reason: string) => void;
   buyAvatar: (studentId: string, avatarId: string) => boolean;
   buyEmote: (studentId: string, emoteId: string) => boolean;
   equipEmote: (studentId: string, emoteId: string | null) => void;
-  buySkipToken: (studentId: string) => boolean;
   skipTask: (studentId: string, subject: Subject, taskId: string) => boolean;
   spinDailyWheel: (studentId: string) => DailySpinResult | null;
   resetDailySpin: (studentId: string) => void;
@@ -398,7 +394,8 @@ export const useStore = create<AppState>()(
       sentenceBuilderResponses: {},
       chatMessages: [],
       notes: [],
-      customPrizes: [],
+      marketplaceItems: [],
+      assignmentCompletionReward: null,
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -410,6 +407,18 @@ export const useStore = create<AppState>()(
         try {
           const data = await fetchAll();
           set({ ...data, hydrated: true, hydrationError: null });
+          // One-time bootstrap: the very first time this app's data is
+          // ever empty of marketplace items, seed the starter fonts/
+          // colors/voices/power-ups so students aren't left with nothing
+          // to buy and existing ownedFontIds/etc. references still
+          // resolve. Never runs again once any item exists — from then on
+          // the marketplace is entirely teacher-authored.
+          if (data.marketplaceItems.length === 0) {
+            const now = new Date().toISOString();
+            const seeded: MarketplaceItem[] = STARTER_MARKETPLACE_ITEMS.map((it) => ({ ...it, createdAt: now }));
+            set({ marketplaceItems: seeded });
+            seeded.forEach((it) => pushMarketplaceItem(it));
+          }
         } catch (err) {
           set({ hydrated: true, hydrationError: extractErrorMessage(err) });
           return;
@@ -498,7 +507,12 @@ export const useStore = create<AppState>()(
           onChatMessage: (e, n, o) =>
             set((s) => ({ chatMessages: applyArrayRow(s.chatMessages, e, rowToChatMessage, n, o) })),
           onNote: (e, n, o) => set((s) => ({ notes: applyArrayRow(s.notes, e, rowToNote, n, o) })),
-          onCustomPrize: (e, n, o) => set((s) => ({ customPrizes: applyArrayRow(s.customPrizes, e, rowToCustomPrize, n, o) })),
+          onMarketplaceItem: (e, n, o) => set((s) => ({ marketplaceItems: applyArrayRow(s.marketplaceItems, e, rowToMarketplaceItem, n, o) })),
+          onAppSettings: (e, n) => {
+            if (e === 'DELETE') return;
+            if (!n) return;
+            set({ assignmentCompletionReward: n.assignment_completion_reward ?? null });
+          },
         });
       },
 
@@ -619,66 +633,61 @@ export const useStore = create<AppState>()(
         get().updateStudent(studentId, { equippedEmoteId: emoteId });
       },
 
-      buyFont: (studentId, fontId) => {
+      // Every non-character, non-emote purchase (font/color/voice/power-up/
+      // prize) goes through this one path — a MarketplaceItem is either
+      // "owned" (font/color/voice/prize, tracked in the matching
+      // ownedXIds array) or a stacking power-up (skip passes: no owned
+      // list, buying always grants another one). Seasonal items outside
+      // their availability window can't be bought even if a stale UI
+      // still shows them.
+      buyMarketplaceItem: (studentId, itemId) => {
         const student = get().students.find((st) => st.id === studentId);
-        const item = fontById(fontId);
+        const item = get().marketplaceItems.find((it) => it.id === itemId);
         if (!student || !item) return false;
-        if (student.ownedFontIds.includes(fontId)) return false;
+        const today = todayISO();
+        if (item.availableFrom && today < item.availableFrom) return false;
+        if (item.availableUntil && today > item.availableUntil) return false;
         if (student.coins < item.price) return false;
-        get().updateStudent(studentId, { ownedFontIds: [...student.ownedFontIds, fontId] });
-        get().recordTransaction(studentId, -item.price, `New font: ${item.name}`, '🔤', 'purchase-font');
+
+        if (item.kind === 'powerup') {
+          get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
+          get().recordTransaction(studentId, -item.price, item.name, item.icon, 'purchase-skip');
+          return true;
+        }
+
+        const ownedField = (
+          { font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds' } as const
+        )[item.kind];
+        if (student[ownedField].includes(itemId)) return false;
+        get().updateStudent(studentId, { [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
+        const kindLabel = { font: 'New font', color: 'New color', voice: 'New voice', prize: 'Prize' }[item.kind];
+        const txKind = { font: 'purchase-font', color: 'purchase-color', voice: 'purchase-voice', prize: 'purchase-prize' }[item.kind] as TransactionKind;
+        get().recordTransaction(studentId, -item.price, `${kindLabel}: ${item.name}`, item.icon, txKind);
         return true;
       },
 
-      buyColor: (studentId, colorId) => {
-        const student = get().students.find((st) => st.id === studentId);
-        const item = colorById(colorId);
-        if (!student || !item) return false;
-        if (student.ownedColorIds.includes(colorId)) return false;
-        if (student.coins < item.price) return false;
-        get().updateStudent(studentId, { ownedColorIds: [...student.ownedColorIds, colorId] });
-        get().recordTransaction(studentId, -item.price, `New color: ${item.name}`, '🎨', 'purchase-color');
-        return true;
+      addMarketplaceItem: (item) => {
+        const full: MarketplaceItem = { ...item, id: makeId(), createdAt: new Date().toISOString() };
+        set((s) => ({ marketplaceItems: [...s.marketplaceItems, full] }));
+        pushMarketplaceItem(full);
       },
 
-      buyVoice: (studentId, voiceId) => {
-        const student = get().students.find((st) => st.id === studentId);
-        const item = voiceOptionById(voiceId);
-        if (!student || !item) return false;
-        if (student.ownedVoiceIds.includes(voiceId)) return false;
-        if (student.coins < item.price) return false;
-        get().updateStudent(studentId, { ownedVoiceIds: [...student.ownedVoiceIds, voiceId] });
-        get().recordTransaction(studentId, -item.price, `New voice: ${item.name}`, '🔊', 'purchase-voice');
-        return true;
-      },
-
-      buyCustomPrize: (studentId, prizeId) => {
-        const student = get().students.find((st) => st.id === studentId);
-        const prize = get().customPrizes.find((p) => p.id === prizeId);
-        if (!student || !prize) return false;
-        if (student.coins < prize.price) return false;
-        get().updateStudent(studentId, { ownedPrizeIds: [...student.ownedPrizeIds, prizeId] });
-        get().recordTransaction(studentId, -prize.price, `Prize: ${prize.name}`, prize.icon, 'purchase-prize');
-        return true;
-      },
-
-      addCustomPrize: (prize) => {
-        const p: CustomPrize = { ...prize, id: makeId(), createdAt: new Date().toISOString() };
-        set((s) => ({ customPrizes: [...s.customPrizes, p] }));
-        pushCustomPrize(p);
-      },
-
-      updateCustomPrize: (id, patch) => {
-        const existing = get().customPrizes.find((p) => p.id === id);
+      updateMarketplaceItem: (id, patch) => {
+        const existing = get().marketplaceItems.find((it) => it.id === id);
         if (!existing) return;
         const updated = { ...existing, ...patch };
-        set((s) => ({ customPrizes: s.customPrizes.map((p) => (p.id === id ? updated : p)) }));
-        pushCustomPrize(updated);
+        set((s) => ({ marketplaceItems: s.marketplaceItems.map((it) => (it.id === id ? updated : it)) }));
+        pushMarketplaceItem(updated);
       },
 
-      deleteCustomPrize: (id) => {
-        set((s) => ({ customPrizes: s.customPrizes.filter((p) => p.id !== id) }));
-        deleteCustomPrizeRemote(id);
+      deleteMarketplaceItem: (id) => {
+        set((s) => ({ marketplaceItems: s.marketplaceItems.filter((it) => it.id !== id) }));
+        deleteMarketplaceItemRemote(id);
+      },
+
+      setAssignmentCompletionReward: (reward) => {
+        set({ assignmentCompletionReward: reward });
+        pushAppSettings(reward);
       },
 
       createNote: (studentId) => {
@@ -774,14 +783,6 @@ export const useStore = create<AppState>()(
         pushChatMessage(msg);
       },
 
-      buySkipToken: (studentId) => {
-        const student = get().students.find((st) => st.id === studentId);
-        if (!student || student.coins < SKIP_TOKEN_PRICE_CENTS) return false;
-        get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
-        get().recordTransaction(studentId, -SKIP_TOKEN_PRICE_CENTS, 'Skip Pass', '🎫', 'purchase-skip');
-        return true;
-      },
-
       // Crosses a task off using a Skip Pass instead of actually doing it.
       // It still lands in completedTaskIds (so progress/unlock logic treats
       // it the same as any other finished task), but also in
@@ -819,7 +820,7 @@ export const useStore = create<AppState>()(
         if (!student) return null;
         const today = todayISO();
         if (student.lastSpinDate === today) return null;
-        const segments = getDailySpinSegments(today, get().customPrizes);
+        const segments = getDailySpinSegments(today, get().marketplaceItems);
         const segmentIndex = Math.floor(Math.random() * segments.length);
         const segment = segments[segmentIndex];
         get().updateStudent(studentId, { lastSpinDate: today });
@@ -1124,6 +1125,33 @@ export const useStore = create<AppState>()(
           const interest = Math.round(balanceForInterest * (pct / 100));
           if (interest > 0) {
             get().recordTransaction(studentId, interest, `🔥 ${newStreak}-day streak bonus (${pct}%)`, '🔥', 'streak-interest');
+          }
+
+          // A separate, teacher-defined bonus for finishing the WHOLE
+          // assignment (both subjects) — on top of, not instead of, every
+          // per-activity task reward and the streak interest above.
+          const reward = get().assignmentCompletionReward;
+          if (reward) {
+            if (reward.type === 'coins' && (reward.amountCents ?? 0) > 0) {
+              get().recordTransaction(studentId, reward.amountCents!, "🎉 Finished today's assignment!", '🎉', 'assignment-complete');
+            } else if (reward.type === 'marketplaceItem' && reward.itemId) {
+              const item = get().marketplaceItems.find((it) => it.id === reward.itemId);
+              const s = get().students.find((st) => st.id === studentId);
+              if (item && s) {
+                if (item.kind === 'powerup') {
+                  get().updateStudent(studentId, { skipTokens: s.skipTokens + 1 });
+                } else {
+                  const ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds' } as const)[item.kind];
+                  if (!(s[ownedField] as string[]).includes(item.id)) {
+                    get().updateStudent(studentId, { [ownedField]: [...(s[ownedField] as string[]), item.id] } as Partial<Student>);
+                  }
+                }
+                get().recordTransaction(studentId, 0, `🎉 Finished today's assignment: won ${item.name}!`, item.icon, 'assignment-complete');
+              }
+            } else if (reward.type === 'spin') {
+              get().resetDailySpin(studentId);
+              get().recordTransaction(studentId, 0, "🎉 Finished today's assignment: bonus spin!", '🎡', 'assignment-complete');
+            }
           }
         }
         get().evaluateBadgeRules(studentId);

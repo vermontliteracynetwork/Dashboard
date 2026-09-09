@@ -303,18 +303,40 @@ create table if not exists notes (
   updated_at timestamptz not null default now()
 );
 
--- Teacher-defined, open-ended marketplace prizes ("10 min free time," "a
--- pet," a piece for a build). Buying one just deducts cost and logs a
--- redemption for the teacher to fulfill — no further app logic needed.
-create table if not exists custom_prizes (
+-- Every non-character, non-emote thing a student can buy: fonts, text
+-- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended
+-- prizes ("10 min free time," "a pet," a piece for a build). Fully
+-- teacher-authored — name, icon, price, category, tags, and an optional
+-- date window for seasonal/limited-time items.
+create table if not exists marketplace_items (
   id text primary key,
-  category text not null,
+  kind text not null,
   name text not null,
   icon text not null default '🎁',
   price int not null default 0,
+  category text not null default 'General',
+  tags jsonb not null default '[]'::jsonb,
   description text,
-  created_at timestamptz not null default now()
+  available_from date,
+  available_until date,
+  created_at timestamptz not null default now(),
+  css_font_family text,
+  color_hex text,
+  voice_pitch real,
+  voice_rate real,
+  voice_hints jsonb
 );
+
+-- A single settings row for class-wide teacher preferences that don't
+-- belong to any one student — currently just the whole-assignment
+-- completion reward (given the moment a student finishes both subjects
+-- for the day), but shaped to hold more app-wide settings later.
+create table if not exists app_settings (
+  id text primary key default 'global',
+  assignment_completion_reward jsonb,
+  updated_at timestamptz not null default now()
+);
+insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference
@@ -354,7 +376,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'custom_prizes'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings'
   ];
 begin
   foreach t in array tables loop
@@ -397,7 +419,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'custom_prizes'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings'
   ];
 begin
   foreach t in array tables loop

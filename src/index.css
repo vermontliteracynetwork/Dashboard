@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Lexend:wght@400;600;700&display=swap');
 
 :root {
   --purple: #7c3aed;
@@ -13,7 +13,7 @@
   --content-bg: #ffffff;
   --content-border: #d8d3ea;
   --success: #22c55e;
-  --danger: #ef4444;
+  --danger: #dc2626;
 
   --math-a: var(--blue);
   --math-b: #60a5fa;

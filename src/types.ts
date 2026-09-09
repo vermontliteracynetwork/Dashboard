@@ -433,7 +433,18 @@ export type TransactionKind =
   | 'purchase-color'
   | 'purchase-voice'
   | 'purchase-prize'
-  | 'teacher-adjustment';
+  | 'teacher-adjustment'
+  | 'assignment-complete';
+
+// A teacher-defined bonus given the moment a student finishes their WHOLE
+// assignment for the day (both Math and Literacy complete) — separate from
+// the per-activity task reward. Exactly one of these at a time, class-wide.
+export type AssignmentCompletionRewardType = 'coins' | 'marketplaceItem' | 'spin';
+export interface AssignmentCompletionReward {
+  type: AssignmentCompletionRewardType;
+  amountCents?: number; // type: 'coins'
+  itemId?: string; // type: 'marketplaceItem' — granted free, no charge
+}
 
 // One line in a student's bank register. amountCents is signed: positive
 // for income (task rewards, interest, spin winnings), negative for a
@@ -500,18 +511,34 @@ export interface Note {
   updatedAt: string;
 }
 
-// A teacher-defined, open-ended prize: "10 minutes free time," "a pet,"
-// "a piece for your house," etc. Buying one just deducts the cost and logs
-// a redemption — the teacher fulfills it in real life or elsewhere in the
-// game, the same way a Webkinz-style prize counter works.
-export interface CustomPrize {
+// Every non-character, non-emote thing a student can buy — a font, a text
+// color, a read-aloud voice skin, a power-up (Skip Pass), or an open-ended
+// prize ("10 minutes free time," "a pet," a real-life item the teacher
+// hands over). Fully teacher-authored: name, icon, price, category, tags,
+// and an optional date window for seasonal/limited-time items — nothing
+// about the marketplace's economic items is hardcoded in the app.
+export type MarketplaceItemKind = 'font' | 'color' | 'voice' | 'powerup' | 'prize';
+
+export interface MarketplaceItem {
   id: string;
-  category: string; // teacher-defined, free-form (e.g. "Free Time", "Pets", "Tools")
+  kind: MarketplaceItemKind;
   name: string;
-  icon: string; // emoji or an uploaded image URL
+  icon: string; // emoji, or an uploaded image URL
   price: number; // Class Cash, in cents
+  category: string; // teacher-defined, free-form (e.g. "Free Time", "Pets", "Tools", "Seasonal")
+  tags: string[]; // teacher-defined, free-form
   description?: string;
+  availableFrom?: string | null; // ISO date (yyyy-mm-dd) — null/undefined = always available
+  availableUntil?: string | null; // ISO date (yyyy-mm-dd), inclusive
   createdAt: string;
+  // kind: 'font' only
+  cssFontFamily?: string;
+  // kind: 'color' only — a CSS color, or the literal 'rainbow' for the animated swatch
+  colorHex?: string;
+  // kind: 'voice' only — layered on top of the student's TTS rate/voice settings
+  voicePitch?: number;
+  voiceRate?: number;
+  voiceHints?: string[];
 }
 
 export interface OffscreenReview {

@@ -9,6 +9,7 @@ interface Props {
   subject: Subject;
   task: Task;
   onDone: () => void;
+  onExit: () => void;
 }
 
 function MatchingBoard({ q, onSolved }: { q: MatchingQuestion; onSolved: () => void }) {
@@ -70,7 +71,7 @@ function MatchingBoard({ q, onSolved }: { q: MatchingQuestion; onSolved: () => v
 // shows a clear right/wrong result, and waits for the student to tap the
 // arrow. Only then is the answer actually recorded (a wrong one gets
 // reinserted later in the queue so it comes back around to try again).
-export default function QuizTask({ student, subject, task, onDone }: Props) {
+export default function QuizTask({ student, subject, task, onDone, onExit }: Props) {
   const ensureQuizState = useStore((s) => s.ensureQuizState);
   const submitQuizAnswer = useStore((s) => s.submitQuizAnswer);
   const progress = useStore((s) => s.progress);
@@ -79,6 +80,7 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
   const [fillValue, setFillValue] = useState('');
   const [usedWords, setUsedWords] = useState<string[]>([]);
   const [pendingCorrect, setPendingCorrect] = useState<boolean | null>(null); // null = this question not yet answered
+  const [confirmExit, setConfirmExit] = useState(false);
 
   useEffect(() => {
     ensureQuizState(student.id, subject, task);
@@ -169,8 +171,27 @@ export default function QuizTask({ student, subject, task, onDone }: Props) {
 
   return (
     <div className="quiz-fullview">
+      {confirmExit && (
+        <div className="overlay-backdrop" onClick={() => setConfirmExit(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h2 style={{ margin: 0 }}>Leave this quiz?</h2>
+              <p style={{ margin: 0 }}>Your progress is saved — you can pick up right where you left off.</p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-lg" onClick={onExit}>Yes, go to my to-do list</button>
+                <button className="btn btn-lg" onClick={() => setConfirmExit(false)}>Keep going</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="quiz-fullview-card stack">
-        <TicketStub remaining={remainingCount} total={total} label="questions left" />
+        <div className="row space-between">
+          <TicketStub remaining={remainingCount} total={total} label="questions left" />
+          <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label="Exit quiz" onClick={() => setConfirmExit(true)}>
+            ✕
+          </button>
+        </div>
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
           <div className="row" style={{ justifyContent: 'center' }}>
             <h2 style={{ margin: 0 }}>{activeQ.prompt}</h2>

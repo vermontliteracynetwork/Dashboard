@@ -4,10 +4,7 @@ import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
 import { SOUND_WALL } from '../lib/wordData';
-import { FONT_CATALOG, fontById } from '../lib/fontCatalog';
-import { COLOR_CATALOG, colorById } from '../lib/colorCatalog';
-import { VOICE_CATALOG } from '../lib/voiceCatalog';
-import { fetchDefinition, fetchSynonyms, fetchAntonyms } from '../lib/wordLookup';
+import { fetchDefinition, fetchSynonyms, fetchAntonyms, isBlockedTerm } from '../lib/wordLookup';
 import type { WordLookupResult } from '../lib/wordLookup';
 import { analyzeMorphology } from '../lib/morphology';
 import type { Student, ToolKey, Subject, CustomTool } from '../types';
@@ -301,6 +298,11 @@ function Thesaurus({ student }: { student: Student }) {
     const key = raw.trim().toLowerCase();
     if (!key) return;
     setQ(key);
+    if (isBlockedTerm(key)) {
+      setWord(null);
+      setError("Let's look up a different word — ask your teacher if you're not sure.");
+      return;
+    }
     setWord(key);
     setLoading(true);
     setError(null);
@@ -332,37 +334,42 @@ function Thesaurus({ student }: { student: Student }) {
       {loading && <p>Looking that up…</p>}
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
       {!loading && !error && word && (
-        <div className="content-well stack">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <strong>{word}</strong>
-            <button className="btn btn-sm btn-blue" onClick={() => speak(word, student.ttsSettings)}>🔈</button>
+        <div className="stack" style={{ gap: 0, borderRadius: 16, overflow: 'hidden', border: '3px solid var(--content-border)' }}>
+          <div
+            className="row space-between"
+            style={{ background: 'linear-gradient(120deg, var(--teal), var(--purple))', color: '#fff', padding: '14px 18px' }}
+          >
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, textTransform: 'capitalize' }}>{word}</div>
+            <button className="btn btn-sm" style={{ background: '#fff', minHeight: 44 }} onClick={() => speak(word, student.ttsSettings)}>🔈</button>
           </div>
-          <div>
-            <strong style={{ fontSize: '0.85rem' }}>✅ Means about the same:</strong>
-            {synonyms.length === 0 ? (
-              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No synonyms found.</p>
-            ) : (
-              <div className="row-wrap" style={{ marginTop: 4 }}>
-                {synonyms.map((s) => (
-                  <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => search(s)}>
-                    {s}
-                  </button>
-                ))}
+          <div className="stack" style={{ padding: 16, background: '#fff' }}>
+            <div>
+              <strong style={{ fontSize: '0.85rem' }}>✅ Means about the same:</strong>
+              {synonyms.length === 0 ? (
+                <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No synonyms found.</p>
+              ) : (
+                <div className="row-wrap" style={{ marginTop: 4 }}>
+                  {synonyms.map((s) => (
+                    <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => search(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {antonyms.length > 0 && (
+              <div>
+                <strong style={{ fontSize: '0.85rem' }}>🔁 Means the opposite:</strong>
+                <div className="row-wrap" style={{ marginTop: 4 }}>
+                  {antonyms.map((s) => (
+                    <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36, background: 'var(--orange)' }} onClick={() => search(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-          {antonyms.length > 0 && (
-            <div>
-              <strong style={{ fontSize: '0.85rem' }}>🔁 Means the opposite:</strong>
-              <div className="row-wrap" style={{ marginTop: 4 }}>
-                {antonyms.map((s) => (
-                  <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36, background: 'var(--orange)' }} onClick={() => search(s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -380,9 +387,13 @@ function Dictionary({ student }: { student: Student }) {
     const key = raw.trim().toLowerCase();
     if (!key) return;
     setQ(key);
+    setResult(null);
+    if (isBlockedTerm(key)) {
+      setError("Let's look up a different word — ask your teacher if you're not sure.");
+      return;
+    }
     setLoading(true);
     setError(null);
-    setResult(null);
     try {
       const [def, syn] = await Promise.all([fetchDefinition(key), fetchSynonyms(key)]);
       if (!def) {
@@ -417,63 +428,80 @@ function Dictionary({ student }: { student: Student }) {
       {loading && <p>Looking that up…</p>}
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
       {result && (
-        <div className="content-well stack">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
+        <div className="stack" style={{ gap: 0, borderRadius: 16, overflow: 'hidden', border: '3px solid var(--content-border)' }}>
+          <div
+            className="row space-between"
+            style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))', color: '#fff', padding: '14px 18px' }}
+          >
             <div>
-              <strong>{result.word}</strong>
-              {result.phonetic && <span style={{ opacity: 0.6, marginLeft: 6, fontSize: '0.85rem' }}>{result.phonetic}</span>}
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, textTransform: 'capitalize' }}>{result.word}</div>
+              {result.phonetic && <span style={{ opacity: 0.85, fontSize: '0.85rem' }}>{result.phonetic}</span>}
             </div>
             <button
-              className="btn btn-sm btn-blue"
+              className="btn btn-sm"
+              style={{ background: '#fff', minHeight: 44 }}
               onClick={() => speak(`${result.word}. ${result.definitions[0]?.definition ?? ''}`, student.ttsSettings)}
             >
               🔈
             </button>
           </div>
 
-          {result.definitions.map((d, i) => (
-            <div key={i}>
-              <span className="tag-pill" style={{ fontSize: '0.7rem' }}>{d.partOfSpeech}</span>
-              <p style={{ margin: '4px 0' }}>{d.definition}</p>
-              {d.example && <p style={{ margin: 0, fontStyle: 'italic', opacity: 0.7, fontSize: '0.85rem' }}>"{d.example}"</p>}
-            </div>
-          ))}
+          <div className="stack" style={{ padding: 16, background: '#fff' }}>
+            {result.definitions.map((d, i) => (
+              <div key={i} className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--purple)', minWidth: 24 }}>{i + 1}</span>
+                <div>
+                  <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--yellow)' }}>{d.partOfSpeech}</span>
+                  <p style={{ margin: '4px 0' }}>{d.definition}</p>
+                  {d.example && <p style={{ margin: 0, fontStyle: 'italic', opacity: 0.7, fontSize: '0.85rem' }}>"{d.example}"</p>}
+                </div>
+              </div>
+            ))}
 
-          {morphology && (morphology.prefix || morphology.suffix) && (
-            <div className="content-well" style={{ background: '#f4f2ff' }}>
-              <strong style={{ fontSize: '0.85rem' }}>🧩 Word Parts</strong>
-              <div className="row-wrap" style={{ alignItems: 'center', marginTop: 6 }}>
-                {morphology.prefix && (
-                  <div className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>
-                    {morphology.prefix.form}-
+            {morphology && (morphology.prefix || morphology.suffix) && (
+              <div>
+                <strong style={{ fontSize: '0.85rem' }}>🧩 Word Parts Matrix</strong>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${[morphology.prefix, true, morphology.suffix].filter(Boolean).length}, 1fr)`,
+                    gap: 6,
+                    marginTop: 6,
+                  }}
+                >
+                  {morphology.prefix && (
+                    <div className="stack" style={{ gap: 2, alignItems: 'center', textAlign: 'center', background: 'var(--purple)', color: '#fff', borderRadius: 10, padding: '8px 6px' }}>
+                      <strong style={{ fontSize: '1.05rem' }}>{morphology.prefix.form}-</strong>
+                      <span style={{ fontSize: '0.68rem', opacity: 0.9 }}>{morphology.prefix.meaning}</span>
+                    </div>
+                  )}
+                  <div className="stack" style={{ gap: 2, alignItems: 'center', textAlign: 'center', background: 'var(--yellow)', borderRadius: 10, padding: '8px 6px' }}>
+                    <strong style={{ fontSize: '1.05rem' }}>{morphology.base}</strong>
+                    <span style={{ fontSize: '0.68rem', opacity: 0.75 }}>base word</span>
                   </div>
-                )}
-                <div className="tag-pill" style={{ background: 'var(--yellow)' }}>{morphology.base}</div>
-                {morphology.suffix && (
-                  <div className="tag-pill" style={{ background: 'var(--teal)', color: '#fff' }}>
-                    -{morphology.suffix.form}
-                  </div>
-                )}
+                  {morphology.suffix && (
+                    <div className="stack" style={{ gap: 2, alignItems: 'center', textAlign: 'center', background: 'var(--teal)', color: '#fff', borderRadius: 10, padding: '8px 6px' }}>
+                      <strong style={{ fontSize: '1.05rem' }}>-{morphology.suffix.form}</strong>
+                      <span style={{ fontSize: '0.68rem', opacity: 0.9 }}>{morphology.suffix.meaning}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="stack" style={{ gap: 2, marginTop: 6, fontSize: '0.8rem' }}>
-                {morphology.prefix && <p style={{ margin: 0 }}>{morphology.prefix.form}- = {morphology.prefix.meaning}</p>}
-                {morphology.suffix && <p style={{ margin: 0 }}>-{morphology.suffix.form} = {morphology.suffix.meaning}</p>}
-              </div>
-            </div>
-          )}
+            )}
 
-          {synonyms.length > 0 && (
-            <div>
-              <strong style={{ fontSize: '0.85rem' }}>✅ Similar words:</strong>
-              <div className="row-wrap" style={{ marginTop: 4 }}>
-                {synonyms.map((s) => (
-                  <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => search(s)}>
-                    {s}
-                  </button>
-                ))}
+            {synonyms.length > 0 && (
+              <div>
+                <strong style={{ fontSize: '0.85rem' }}>✅ Similar words:</strong>
+                <div className="row-wrap" style={{ marginTop: 4 }}>
+                  {synonyms.map((s) => (
+                    <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => search(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -512,11 +540,15 @@ function WordProcessor({ student }: { student: Student }) {
   const [fontSize, setFontSize] = useState(1.15);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const fontItems = marketplaceItems.filter((it) => it.kind === 'font');
+  const colorItems = marketplaceItems.filter((it) => it.kind === 'color');
+
   const selected = myNotes.find((n) => n.id === selectedId) ?? null;
-  const ownedFonts = FONT_CATALOG.filter((f) => student.ownedFontIds.includes(f.id));
-  const ownedColors = COLOR_CATALOG.filter((c) => student.ownedColorIds.includes(c.id));
-  const activeFont = fontById(selected?.fontId ?? student.equippedFontId ?? '') ?? FONT_CATALOG[0];
-  const activeColor = colorById(selected?.colorId ?? student.equippedColorId ?? '') ?? COLOR_CATALOG[0];
+  const ownedFonts = fontItems.filter((f) => student.ownedFontIds.includes(f.id));
+  const ownedColors = colorItems.filter((c) => student.ownedColorIds.includes(c.id));
+  const activeFont = fontItems.find((f) => f.id === (selected?.fontId ?? student.equippedFontId)) ?? fontItems[0];
+  const activeColor = colorItems.find((c) => c.id === (selected?.colorId ?? student.equippedColorId)) ?? colorItems[0];
   const wordCount = selected?.body.trim() ? selected.body.trim().split(/\s+/).length : 0;
 
   const handleNew = () => {
@@ -583,12 +615,12 @@ function WordProcessor({ student }: { student: Student }) {
                 <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.max(0.85, +(f - 0.15).toFixed(2)))} aria-label="Smaller text">A-</button>
                 <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.min(2, +(f + 0.15).toFixed(2)))} aria-label="Larger text">A+</button>
                 {ownedFonts.length > 1 && (
-                  <select value={activeFont.id} onChange={(e) => updateNote(selected.id, { fontId: e.target.value })} style={{ fontSize: '0.8rem' }}>
+                  <select value={activeFont?.id} onChange={(e) => updateNote(selected.id, { fontId: e.target.value })} style={{ fontSize: '0.8rem' }}>
                     {ownedFonts.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 )}
                 {ownedColors.length > 1 && (
-                  <div className="row" style={{ gap: 3 }}>
+                  <div className="row-wrap" style={{ gap: 4 }}>
                     {ownedColors.map((c) => (
                       <button
                         key={c.id}
@@ -596,13 +628,13 @@ function WordProcessor({ student }: { student: Student }) {
                         aria-label={c.name}
                         title={c.name}
                         style={{
-                          width: 22,
-                          height: 22,
+                          width: 40,
+                          height: 40,
                           borderRadius: '50%',
                           padding: 0,
                           cursor: 'pointer',
-                          border: activeColor.id === c.id ? '3px solid var(--ink)' : '2px solid var(--content-border)',
-                          background: c.hex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : c.hex,
+                          border: activeColor?.id === c.id ? '3px solid var(--ink)' : '2px solid var(--content-border)',
+                          background: c.colorHex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : c.colorHex,
                         }}
                       />
                     ))}
@@ -622,10 +654,10 @@ function WordProcessor({ student }: { student: Student }) {
                 fontSize: `${fontSize}rem`,
                 lineHeight: 1.6,
                 padding: 14,
-                fontFamily: activeFont.cssFontFamily,
-                ...(activeColor.hex === 'rainbow'
+                fontFamily: activeFont?.cssFontFamily,
+                ...(activeColor?.colorHex === 'rainbow'
                   ? { background: 'conic-gradient(red, orange, yellow, green, blue, purple, red)', WebkitBackgroundClip: 'text', color: 'transparent' }
-                  : { color: activeColor.hex }),
+                  : { color: activeColor?.colorHex }),
               }}
               placeholder="Start writing..."
             />
@@ -767,6 +799,7 @@ function Whiteboard() {
 
 function TTSSettingsPanel({ student }: { student: Student }) {
   const updateStudent = useStore((s) => s.updateStudent);
+  const voiceItems = useStore((s) => s.marketplaceItems.filter((it) => it.kind === 'voice'));
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   useState(() => {
     const load = () => setVoices(window.speechSynthesis?.getVoices() ?? []);
@@ -804,7 +837,7 @@ function TTSSettingsPanel({ student }: { student: Student }) {
         <div>
           <label>🎭 Voice Skin (from the Marketplace)</label>
           <div className="row-wrap">
-            {VOICE_CATALOG.filter((v) => student.ownedVoiceIds.includes(v.id)).map((v) => (
+            {voiceItems.filter((v) => student.ownedVoiceIds.includes(v.id)).map((v) => (
               <button
                 key={v.id}
                 className={`btn btn-sm ${student.equippedVoiceId === v.id || (!student.equippedVoiceId && v.id === 'voice-default') ? 'btn-primary' : ''}`}
