@@ -3,6 +3,8 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import ImageUploadField from '../../components/ImageUploadField';
 import { STANDARD_PRICE_CENTS, specialtyPrice } from '../../lib/marketplaceSeed';
+import { EMOTE_CATALOG, emotePriceFor } from '../../lib/emoteCatalog';
+import { formatMoney } from '../../lib/money';
 import type { MarketplaceItem, MarketplaceItemKind } from '../../types';
 
 const KIND_LABELS: Record<MarketplaceItemKind, string> = {
@@ -13,7 +15,7 @@ const KIND_LABELS: Record<MarketplaceItemKind, string> = {
   prize: '🎁 Prize',
 };
 
-const STARTER_CATEGORIES = ['Free Time', 'Pets', 'Build a House', 'Tools', 'Fonts', 'Colors', 'Voices', 'Power-Ups', 'Seasonal'];
+const STARTER_CATEGORIES = ['Free Time', 'Pets', 'Build a House', 'Tools', 'Fonts', 'Text Colors', 'Highlight Colors', 'Whiteboard Markers', 'Voices', 'Power-Ups', 'Seasonal'];
 
 // A separate, class-wide bonus for finishing the WHOLE day's assignment
 // (both Math and Literacy complete) — on top of the per-activity rewards
@@ -111,6 +113,54 @@ function AssignmentRewardSettings() {
   );
 }
 
+// Emote glyphs live in a bundled catalog file, not the teacher-editable
+// marketplace_items table (see the note at the top of this page), so this
+// gives Kayden a real way to reprice them without a code change — a small
+// override map layered on top of the catalog defaults.
+function EmotePricesSettings() {
+  const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
+  const setEmotePriceOverride = useStore((s) => s.setEmotePriceOverride);
+  const priced = EMOTE_CATALOG.filter((e) => e.price > 0 || emotePriceOverrides[e.id] !== undefined);
+
+  return (
+    <div className="chrome-frame stack" style={{ padding: 16 }}>
+      <h3 style={{ marginTop: 0 }}>😊 Emote Prices</h3>
+      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+        Emotes use bundled art, not the catalog below, but you can still reprice them here. Standard is{' '}
+        {formatMoney(STANDARD_PRICE_CENTS.emote)}–{formatMoney(specialtyPrice('emote'))}.
+      </p>
+      <div className="row-wrap">
+        {priced.map((e) => {
+          const price = emotePriceFor(emotePriceOverrides, e.id);
+          const overridden = emotePriceOverrides[e.id] !== undefined;
+          return (
+            <div key={e.id} className="stack" style={{ alignItems: 'center', gap: 2, width: 84 }}>
+              <img src={e.src} alt="" style={{ width: 32, height: 32 }} />
+              <span style={{ fontSize: '0.62rem', fontWeight: 700, textAlign: 'center' }}>{e.name}</span>
+              <div className="row" style={{ gap: 2 }}>
+                <span style={{ fontSize: '0.75rem' }}>$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.25}
+                  value={(price / 100).toFixed(2)}
+                  onChange={(ev) => setEmotePriceOverride(e.id, Math.round(Math.max(0, parseFloat(ev.target.value) || 0) * 100))}
+                  style={{ width: 56 }}
+                />
+              </div>
+              {overridden && (
+                <button className="btn btn-sm" style={{ fontSize: '0.6rem', padding: '2px 6px', minHeight: 0 }} onClick={() => setEmotePriceOverride(e.id, null)}>
+                  Reset
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ItemRow({ item }: { item: MarketplaceItem }) {
   const updateMarketplaceItem = useStore((s) => s.updateMarketplaceItem);
   const deleteMarketplaceItem = useStore((s) => s.deleteMarketplaceItem);
@@ -130,16 +180,31 @@ function ItemRow({ item }: { item: MarketplaceItem }) {
         <span className="tag-pill" style={{ fontSize: '0.68rem' }}>{KIND_LABELS[item.kind]}</span>
         <input value={item.name} onChange={(e) => updateMarketplaceItem(item.id, { name: e.target.value })} style={{ width: 140 }} />
         <input value={item.category} onChange={(e) => updateMarketplaceItem(item.id, { category: e.target.value })} style={{ width: 110 }} placeholder="Category" />
-        <div className="row" style={{ gap: 4 }}>
-          <span>$</span>
-          <input
-            type="number"
-            min={0}
-            step={0.25}
-            style={{ width: 72 }}
-            value={(item.price / 100).toFixed(2)}
-            onChange={(e) => updateMarketplaceItem(item.id, { price: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
-          />
+        <div className="stack" style={{ gap: 1 }}>
+          <div className="row" style={{ gap: 4 }}>
+            <span>$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.25}
+              style={{ width: 72 }}
+              value={(item.price / 100).toFixed(2)}
+              onChange={(e) => updateMarketplaceItem(item.id, { price: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
+            />
+          </div>
+          {item.kind !== 'prize' && (() => {
+            const k = item.kind as keyof typeof STANDARD_PRICE_CENTS;
+            const std = STANDARD_PRICE_CENTS[k];
+            const specialty = specialtyPrice(k);
+            const atStandard = item.price === std || item.price === specialty || item.price === 0;
+            return atStandard ? (
+              <span style={{ fontSize: '0.6rem', opacity: 0.55 }}>standard: {formatMoney(std)}</span>
+            ) : (
+              <span style={{ fontSize: '0.6rem', color: 'var(--danger)', fontWeight: 700 }} title={`Standard for ${item.kind} is ${formatMoney(std)} (${formatMoney(specialty)} for specialty)`}>
+                ⚠️ standard is {formatMoney(std)}
+              </span>
+            );
+          })()}
         </div>
         {confirmDelete ? (
           <>
@@ -241,9 +306,19 @@ export default function MarketplaceManager() {
   const [availableFrom, setAvailableFrom] = useState('');
   const [availableUntil, setAvailableUntil] = useState('');
   const [kindFilter, setKindFilter] = useState<'all' | MarketplaceItemKind>('all');
+  const [search, setSearch] = useState('');
 
   const existingCategories = [...new Set([...STARTER_CATEGORIES, ...marketplaceItems.map((it) => it.category)])];
-  const visibleItems = marketplaceItems.filter((it) => kindFilter === 'all' || it.kind === kindFilter);
+  const searchLower = search.trim().toLowerCase();
+  const visibleItems = marketplaceItems.filter((it) => {
+    if (kindFilter !== 'all' && it.kind !== kindFilter) return false;
+    if (!searchLower) return true;
+    return (
+      it.name.toLowerCase().includes(searchLower) ||
+      it.category.toLowerCase().includes(searchLower) ||
+      it.tags.some((t) => t.toLowerCase().includes(searchLower))
+    );
+  });
   const grouped = [...new Set(visibleItems.map((it) => it.category))]
     .map((cat) => ({ cat, items: visibleItems.filter((it) => it.category === cat) }))
     .filter((g) => g.items.length > 0);
@@ -285,6 +360,7 @@ export default function MarketplaceManager() {
         </p>
 
         <AssignmentRewardSettings />
+        <EmotePricesSettings />
 
         <div className="chrome-frame stack" style={{ padding: 16 }}>
           <h3 style={{ marginTop: 0 }}>➕ New Item</h3>
@@ -376,11 +452,17 @@ export default function MarketplaceManager() {
           </button>
         </div>
 
-        <div className="row-wrap">
+        <div className="row-wrap" style={{ alignItems: 'center' }}>
           <button className={`btn btn-sm ${kindFilter === 'all' ? 'btn-primary' : ''}`} onClick={() => setKindFilter('all')}>All</button>
           {(Object.keys(KIND_LABELS) as MarketplaceItemKind[]).map((k) => (
             <button key={k} className={`btn btn-sm ${kindFilter === k ? 'btn-primary' : ''}`} onClick={() => setKindFilter(k)}>{KIND_LABELS[k]}</button>
           ))}
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Search name, category, or tag…"
+            style={{ marginLeft: 'auto', minWidth: 220 }}
+          />
         </div>
 
         <div className="stack">

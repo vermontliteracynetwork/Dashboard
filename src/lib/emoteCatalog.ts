@@ -35,3 +35,12 @@ const BY_ID = new Map(EMOTE_CATALOG.map((e) => [e.id, e]));
 export function emoteById(id: string): EmoteOption | undefined {
   return BY_ID.get(id);
 }
+
+// Emote prices are baked into this file, not the teacher-editable
+// marketplace_items table, so the teacher's admin page keeps a small
+// per-emote override map (persisted in app_settings) instead — this
+// resolves the price actually charged/shown, falling back to the
+// catalog default when nothing's been overridden.
+export function emotePriceFor(overrides: Record<string, number>, id: string): number {
+  return overrides[id] ?? BY_ID.get(id)?.price ?? 0;
+}

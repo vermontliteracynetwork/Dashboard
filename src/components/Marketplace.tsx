@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
 import { AvatarGlyph } from './AvatarGlyph';
-import { EMOTE_CATALOG } from '../lib/emoteCatalog';
+import { EMOTE_CATALOG, emotePriceFor } from '../lib/emoteCatalog';
 import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
@@ -96,6 +96,7 @@ export default function Marketplace() {
   const students = useStore((s) => s.students);
   const equipEmote = useStore((s) => s.equipEmote);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
   const updateStudent = useStore((s) => s.updateStudent);
   const [tab, setTab] = useState<Tab>('characters');
   const [cart, setCart] = useState<CartEntry[]>([]);
@@ -393,7 +394,8 @@ export default function Marketplace() {
                 {EMOTE_CATALOG.map((e) => {
                   const owned = student.ownedEmoteIds.includes(e.id);
                   const equipped = student.equippedEmoteId === e.id;
-                  const affordable = student.coins >= e.price;
+                  const price = emotePriceFor(emotePriceOverrides, e.id);
+                  const affordable = student.coins >= price;
                   return (
                     <div key={e.id} className="shop-item-card" style={{ width: 150 }}>
                       <div className="shop-item-icon-frame shop-item-icon-frame-lg" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
@@ -409,7 +411,7 @@ export default function Marketplace() {
                           Show
                         </button>
                       ) : (
-                        cartButtonFor({ key: `emote-${e.id}`, source: 'emote', id: e.id, name: e.name, icon: e.src, price: e.price }, affordable)
+                        cartButtonFor({ key: `emote-${e.id}`, source: 'emote', id: e.id, name: e.name, icon: e.src, price }, affordable)
                       )}
                     </div>
                   );

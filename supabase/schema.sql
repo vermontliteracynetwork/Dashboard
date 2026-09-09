@@ -292,6 +292,8 @@ alter table students add column if not exists owned_voice_ids jsonb not null def
 alter table students add column if not exists equipped_voice_id text;
 alter table students add column if not exists owned_prize_ids jsonb not null default '[]';
 alter table students add column if not exists quiz_theme text not null default 'standard';
+alter table app_settings add column if not exists emote_price_overrides jsonb not null default '{}';
+alter table transactions add column if not exists voided boolean not null default false;
 
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so

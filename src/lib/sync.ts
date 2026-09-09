@@ -254,6 +254,7 @@ const rowToTransaction = (r: Row): Transaction => ({
   icon: r.icon,
   kind: r.kind,
   createdAt: r.created_at,
+  voided: r.voided ?? false,
 });
 
 const transactionToRow = (t: Transaction): Row => ({
@@ -264,6 +265,7 @@ const transactionToRow = (t: Transaction): Row => ({
   icon: t.icon,
   kind: t.kind,
   created_at: t.createdAt,
+  voided: t.voided ?? false,
 });
 
 const annotationKey = (studentId: string, taskId: string, articleIndex: number) => `${studentId}:${taskId}:${articleIndex}`;
@@ -454,6 +456,7 @@ export interface HydratedState {
   notes: Note[];
   marketplaceItems: MarketplaceItem[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
+  emotePriceOverrides: Record<string, number>;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -561,6 +564,7 @@ export async function fetchAll(): Promise<HydratedState> {
     notes: (notesRes.data ?? []).map(rowToNote),
     marketplaceItems: (marketplaceItemsRes.data ?? []).map(rowToMarketplaceItem),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
+    emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -641,6 +645,9 @@ export const deleteMarketplaceItemRemote = (id: string) => remove('marketplace_i
 
 export const pushAppSettings = (reward: AssignmentCompletionReward | null) =>
   upsert('app_settings', { id: 'global', assignment_completion_reward: reward, updated_at: new Date().toISOString() });
+
+export const pushEmotePriceOverrides = (overrides: Record<string, number>) =>
+  upsert('app_settings', { id: 'global', emote_price_overrides: overrides, updated_at: new Date().toISOString() });
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });

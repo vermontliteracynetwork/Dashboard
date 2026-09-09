@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
 import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
-import { STARTER_EMOTE_IDS, emoteById } from '../lib/emoteCatalog';
+import { STARTER_EMOTE_IDS, emoteById, emotePriceFor } from '../lib/emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
 import { avatarById } from '../lib/avatarCatalog';
 import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
@@ -91,7 +91,6 @@ import {
   pushAssignment,
   deleteAssignmentRemote,
   pushTransaction,
-  deleteTransactionRemote,
   pushChatMessage,
   rowToChatMessage,
   deleteBadgeEarnRemote,
@@ -102,6 +101,7 @@ import {
   deleteMarketplaceItemRemote,
   rowToMarketplaceItem,
   pushAppSettings,
+  pushEmotePriceOverrides,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -217,6 +217,8 @@ interface AppState {
   deleteMarketplaceItem: (id: string) => void;
   buyMarketplaceItem: (studentId: string, itemId: string) => boolean;
   setAssignmentCompletionReward: (reward: AssignmentCompletionReward | null) => void;
+  emotePriceOverrides: Record<string, number>;
+  setEmotePriceOverride: (emoteId: string, priceCents: number | null) => void;
   adjustStudentBalance: (studentId: string, amountCents: number, reason: string) => void;
   setStudentBalance: (studentId: string, newBalanceCents: number, reason: string) => void;
   buyAvatar: (studentId: string, avatarId: string) => boolean;
@@ -396,6 +398,7 @@ export const useStore = create<AppState>()(
       notes: [],
       marketplaceItems: [],
       assignmentCompletionReward: null,
+      emotePriceOverrides: {},
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -543,7 +546,10 @@ export const useStore = create<AppState>()(
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
             if (!n) return;
-            set({ assignmentCompletionReward: n.assignment_completion_reward ?? null });
+            set({
+              assignmentCompletionReward: n.assignment_completion_reward ?? null,
+              emotePriceOverrides: n.emote_price_overrides ?? {},
+            });
           },
         });
       },
@@ -622,17 +628,20 @@ export const useStore = create<AppState>()(
         if (amountCents > 0) playChaChing();
       },
 
-      // Removes a mistaken register entry entirely and reverses its effect
-      // on the balance — for a teacher fixing a fat-fingered bonus or a
-      // duplicate spin/purchase row, not for routine corrections (those
-      // should be a new adjustStudentBalance entry so the register still
-      // shows what happened).
+      // Reverses a mistaken register entry's effect on the balance — for a
+      // teacher fixing a fat-fingered bonus or a duplicate spin/purchase
+      // row, not for routine corrections (those should be a new
+      // adjustStudentBalance entry so the register still shows what
+      // happened). The row itself is kept and marked voided (struck
+      // through in the register, excluded from Charts) rather than erased,
+      // so there's always an audit trail of what was removed and when.
       deleteTransaction: (id) => {
         const tx = get().transactions.find((t) => t.id === id);
-        if (!tx) return;
+        if (!tx || tx.voided) return;
         const student = get().students.find((st) => st.id === tx.studentId);
-        set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
-        deleteTransactionRemote(id);
+        const voidedTx: Transaction = { ...tx, voided: true };
+        set((s) => ({ transactions: s.transactions.map((t) => (t.id === id ? voidedTx : t)) }));
+        pushTransaction(voidedTx);
         if (student) get().updateStudent(student.id, { coins: student.coins - tx.amountCents });
       },
 
@@ -655,9 +664,10 @@ export const useStore = create<AppState>()(
         const item = emoteById(emoteId);
         if (!student || !item) return false;
         if (student.ownedEmoteIds.includes(emoteId)) return false;
-        if (student.coins < item.price) return false;
+        const price = emotePriceFor(get().emotePriceOverrides, emoteId);
+        if (student.coins < price) return false;
         get().updateStudent(studentId, { ownedEmoteIds: [...student.ownedEmoteIds, emoteId] });
-        get().recordTransaction(studentId, -item.price, `New emote: ${item.name}`, item.src, 'purchase-emote');
+        get().recordTransaction(studentId, -price, `New emote: ${item.name}`, item.src, 'purchase-emote');
         return true;
       },
 
@@ -723,6 +733,17 @@ export const useStore = create<AppState>()(
       setAssignmentCompletionReward: (reward) => {
         set({ assignmentCompletionReward: reward });
         pushAppSettings(reward);
+      },
+
+      setEmotePriceOverride: (emoteId, priceCents) => {
+        const next = { ...get().emotePriceOverrides };
+        if (priceCents === null) {
+          delete next[emoteId];
+        } else {
+          next[emoteId] = priceCents;
+        }
+        set({ emotePriceOverrides: next });
+        pushEmotePriceOverrides(next);
       },
 
       createNote: (studentId) => {

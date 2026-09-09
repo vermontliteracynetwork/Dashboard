@@ -20,18 +20,21 @@ export default function TeacherStudentBank() {
   const setStudentBalance = useStore((s) => s.setStudentBalance);
   const deleteTransaction = useStore((s) => s.deleteTransaction);
   const updateStudent = useStore((s) => s.updateStudent);
+  const recordTransaction = useStore((s) => s.recordTransaction);
   const setStreak = useStore((s) => s.setStreak);
   const resetDailySpin = useStore((s) => s.resetDailySpin);
 
   const [view, setView] = useState<'register' | 'charts'>('register');
   const [addAmount, setAddAmount] = useState('5.00');
   const [addReason, setAddReason] = useState('');
-  const [subAmount, setSubAmount] = useState('5.00');
+  const [subAmount, setSubAmount] = useState('');
   const [subReason, setSubReason] = useState('');
+  const [confirmSub, setConfirmSub] = useState(false);
   const [exactAmount, setExactAmount] = useState('');
   const [exactReason, setExactReason] = useState('');
   const [confirmSet, setConfirmSet] = useState(false);
   const [streakInput, setStreakInput] = useState('');
+  const [confirmStreakSet, setConfirmStreakSet] = useState(false);
   const [confirmDeleteTxId, setConfirmDeleteTxId] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -50,6 +53,7 @@ export default function TeacherStudentBank() {
   }
 
   const register = transactions.filter((t) => t.studentId === student.id).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const chartRegister = register.filter((t) => !t.voided);
   const showFlash = (msg: string) => {
     setFlash(msg);
     window.setTimeout(() => setFlash(null), 2000);
@@ -114,21 +118,32 @@ export default function TeacherStudentBank() {
             <h3 style={{ marginTop: 0 }}>➖ Subtract</h3>
             <div className="row" style={{ gap: 4 }}>
               <span>$</span>
-              <input type="number" min={0} step={0.25} value={subAmount} onChange={(e) => setSubAmount(e.target.value)} style={{ width: 90 }} />
+              <input type="number" min={0} step={0.25} value={subAmount} onChange={(e) => { setSubAmount(e.target.value); setConfirmSub(false); }} placeholder="0.00" style={{ width: 90 }} />
             </div>
             <input value={subReason} onChange={(e) => setSubReason(e.target.value)} placeholder="Reason (optional)" />
-            <button
-              className="btn btn-danger"
-              onClick={() => {
-                const cents = dollarsToCents(parseFloat(subAmount) || 0);
-                if (cents <= 0) return;
-                adjustStudentBalance(student.id, -cents, subReason.trim() || 'Balance adjusted by your teacher');
-                setSubReason('');
-                showFlash(`Subtracted ${formatMoney(cents)}`);
-              }}
-            >
-              ➖ Subtract from balance
-            </button>
+            {confirmSub ? (
+              <div className="row-wrap">
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={() => {
+                    const cents = dollarsToCents(parseFloat(subAmount) || 0);
+                    if (cents <= 0) return;
+                    adjustStudentBalance(student.id, -cents, subReason.trim() || 'Balance adjusted by your teacher');
+                    setSubAmount('');
+                    setSubReason('');
+                    setConfirmSub(false);
+                    showFlash(`Subtracted ${formatMoney(cents)}`);
+                  }}
+                >
+                  Confirm — subtract ${subAmount || '0.00'}
+                </button>
+                <button className="btn btn-sm" onClick={() => setConfirmSub(false)}>Cancel</button>
+              </div>
+            ) : (
+              <button className="btn btn-danger" disabled={!subAmount || (parseFloat(subAmount) || 0) <= 0} onClick={() => setConfirmSub(true)}>
+                ➖ Subtract from balance
+              </button>
+            )}
           </div>
 
           <div className="chrome-frame stack" style={{ padding: 16, flex: 1, minWidth: 240 }}>
@@ -180,21 +195,30 @@ export default function TeacherStudentBank() {
                 min={0}
                 placeholder="Set exact #"
                 value={streakInput}
-                onChange={(e) => setStreakInput(e.target.value)}
+                onChange={(e) => { setStreakInput(e.target.value); setConfirmStreakSet(false); }}
                 style={{ width: 90 }}
               />
-              <button
-                className="btn btn-sm"
-                disabled={!streakInput}
-                onClick={() => {
-                  const n = Math.max(0, Math.round(parseFloat(streakInput) || 0));
-                  setStreak(student.id, n);
-                  setStreakInput('');
-                  showFlash(`Streak set to ${n} days`);
-                }}
-              >
-                Set
-              </button>
+              {confirmStreakSet ? (
+                <>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => {
+                      const n = Math.max(0, Math.round(parseFloat(streakInput) || 0));
+                      setStreak(student.id, n);
+                      setStreakInput('');
+                      setConfirmStreakSet(false);
+                      showFlash(`Streak set to ${n} days`);
+                    }}
+                  >
+                    Confirm
+                  </button>
+                  <button className="btn btn-sm" onClick={() => setConfirmStreakSet(false)}>Cancel</button>
+                </>
+              ) : (
+                <button className="btn btn-sm" disabled={!streakInput} onClick={() => setConfirmStreakSet(true)}>
+                  Set
+                </button>
+              )}
             </div>
             <label className="row" style={{ gap: 6, fontSize: '0.8rem' }}>
               <input type="checkbox" checked={!!student.streakHidden} onChange={(e) => updateStudent(student.id, { streakHidden: e.target.checked })} />
@@ -208,11 +232,24 @@ export default function TeacherStudentBank() {
               Lets this student skip one non-required to-do item. Earned from the daily wheel or bought in the Marketplace.
             </p>
             <div className="row" style={{ gap: 6, alignItems: 'center' }}>
-              <button className="btn btn-sm" disabled={student.skipTokens <= 0} onClick={() => updateStudent(student.id, { skipTokens: Math.max(0, student.skipTokens - 1) })}>
+              <button
+                className="btn btn-sm"
+                disabled={student.skipTokens <= 0}
+                onClick={() => {
+                  updateStudent(student.id, { skipTokens: Math.max(0, student.skipTokens - 1) });
+                  recordTransaction(student.id, 0, '🎫 Skip Pass removed by teacher', '🎫', 'teacher-adjustment');
+                }}
+              >
                 −
               </button>
               <strong style={{ fontSize: '1.3rem', minWidth: 40, textAlign: 'center' }}>{student.skipTokens}</strong>
-              <button className="btn btn-sm" onClick={() => updateStudent(student.id, { skipTokens: student.skipTokens + 1 })}>
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  updateStudent(student.id, { skipTokens: student.skipTokens + 1 });
+                  recordTransaction(student.id, 0, '🎫 Skip Pass given by teacher', '🎫', 'teacher-adjustment');
+                }}
+              >
                 +
               </button>
             </div>
@@ -247,7 +284,7 @@ export default function TeacherStudentBank() {
         </div>
 
         {view === 'charts' ? (
-          <PiggyBankCharts transactions={register} currentBalanceCents={student.coins} streak={student.streak} />
+          <PiggyBankCharts transactions={chartRegister} currentBalanceCents={student.coins} streak={student.streak} />
         ) : register.length === 0 ? (
           <p style={{ opacity: 0.7 }}>No transactions yet.</p>
         ) : (
@@ -255,21 +292,24 @@ export default function TeacherStudentBank() {
             {register.map((t) => {
               const income = t.amountCents >= 0;
               return (
-                <div key={t.id} className="row space-between chrome-frame" style={{ padding: '8px 12px' }}>
+                <div key={t.id} className="row space-between chrome-frame" style={{ padding: '8px 12px', opacity: t.voided ? 0.55 : 1 }}>
                   <div className="row" style={{ gap: 8 }}>
                     <div style={{ width: 30, height: 30, borderRadius: 8, background: '#f4f2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                       {isImagePath(t.icon) ? <img src={t.icon} alt="" style={{ width: '80%', height: '80%', objectFit: 'contain' }} /> : <span>{t.icon}</span>}
                     </div>
                     <div className="stack" style={{ gap: 0 }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{t.description}</span>
-                      <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{new Date(t.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, textDecoration: t.voided ? 'line-through' : 'none' }}>{t.description}</span>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
+                        {new Date(t.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        {t.voided && ' — removed by teacher'}
+                      </span>
                     </div>
                   </div>
                   <div className="row" style={{ gap: 10 }}>
-                    <strong style={{ color: income ? 'var(--success)' : 'var(--danger)' }}>
+                    <strong style={{ color: income ? 'var(--success)' : 'var(--danger)', textDecoration: t.voided ? 'line-through' : 'none' }}>
                       {income ? '+' : ''}{formatMoney(t.amountCents)}
                     </strong>
-                    {confirmDeleteTxId === t.id ? (
+                    {t.voided ? null : confirmDeleteTxId === t.id ? (
                       <div className="row" style={{ gap: 4 }}>
                         <button
                           className="btn btn-sm btn-danger"

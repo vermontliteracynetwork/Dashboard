@@ -470,6 +470,7 @@ export interface Transaction {
   icon: string;
   kind: TransactionKind;
   createdAt: string; // ISO
+  voided?: boolean; // teacher removed this entry (reversed from the balance) but it stays in the register, struck through, for an audit trail
 }
 
 export interface SubjectProgress {
