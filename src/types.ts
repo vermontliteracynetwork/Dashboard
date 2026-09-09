@@ -85,7 +85,7 @@ export interface Student {
   lastSpinDate: string | null; // ISO date of the last daily-wheel spin, so it's once per day
 }
 
-export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder';
+export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice';
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   quiz: 'Quiz (practice or checkpoint)',
@@ -98,6 +98,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   sentenceEdit: 'Editing sentences',
   article: 'Article Reader (real web article, in-app)',
   sentenceBuilder: 'Sentence Builder (graphic organizer)',
+  linkChoice: 'Pick One (2-4 video/link options, student chooses)',
 };
 
 export interface MCQuestion {
@@ -211,6 +212,22 @@ export interface SentenceBuilderContent {
   parts: SentencePart[];
 }
 
+// One option in a "pick one" link/video choice task — the replacement for
+// a whole-subject choice board, scoped to a single activity: 2-4 videos or
+// links the student picks freely between, never required to do more than one.
+export interface LinkChoiceOption {
+  id: string;
+  label: string;
+  url: string;
+  thumbnailUrl?: string; // auto-filled from a YouTube link; teacher can override/add for any other link
+  durationLabel?: string; // free-text, e.g. "4:32" — teacher-entered, no reliable no-key API for real duration
+}
+
+export interface LinkChoiceContent {
+  prompt?: string; // optional instruction shown above the options, e.g. "Pick the one that sounds most interesting!"
+  options: LinkChoiceOption[]; // 2-4
+}
+
 // One student's filled-in answers for one sentence-builder task, keyed by
 // (studentId, taskId) — a student only ever has one in-progress/finished
 // response per assignment of this task.
@@ -272,6 +289,7 @@ export interface Task {
   sentenceEdit?: SentenceEditContent;
   article?: ArticleTaskContent;
   sentenceBuilder?: SentenceBuilderContent;
+  linkChoice?: LinkChoiceContent;
   customSteps?: StepDef[]; // teacher override of the auto-generated visual step guide
   referenceImageUrl?: string; // shown to the student throughout this activity, any task type
   referenceLinkUrl?: string; // an extra reference link, any task type (distinct from the 'link' task type itself)
@@ -393,7 +411,7 @@ export interface QuizAttemptRecord {
   totalCount: number;
 }
 
-export type TransactionKind = 'task' | 'streak-interest' | 'spin-cashback' | 'spin-cash' | 'purchase-avatar' | 'purchase-emote' | 'purchase-skip';
+export type TransactionKind = 'task' | 'streak-interest' | 'spin-cashback' | 'spin-cash' | 'purchase-avatar' | 'purchase-emote' | 'purchase-skip' | 'achievement';
 
 // One line in a student's bank register. amountCents is signed: positive
 // for income (task rewards, interest, spin winnings), negative for a
@@ -484,6 +502,7 @@ export interface BadgeDef {
   description: string;
   icon: string;
   rule?: BadgeRule; // present = auto-awarded when the condition is met; absent = teacher awards it by hand (unchanged existing behavior)
+  rewardCents?: number; // Class Cash paid into Piggy Bank when earned; falls back to DEFAULT_BADGE_REWARD_CENTS when unset
 }
 
 export interface BadgeEarn {

@@ -180,13 +180,26 @@ function AssignmentDetailModal({
 }) {
   const planTemplates = useStore((s) => s.planTemplates);
   const students = useStore((s) => s.students);
+  const addStudentToAssignment = useStore((s) => s.addStudentToAssignment);
   const template = planTemplates.find((t) => t.id === group.templateId);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [republished, setRepublished] = useState(false);
+  const today = todayISO();
+  const isPast = group.endDate < today;
 
   const studentList = uniqueRowsByStudent(group.rows)
     .map((r) => students.find((s) => s.id === r.studentId))
     .filter((s): s is Student => !!s);
   const ordered = template ? sortForDisplay(template.activities) : [];
+
+  // Reuses this same plan for today — the "run it again" path for a
+  // completed assignment now that a past-published plan no longer falls
+  // back into the Drafts tab to do this from.
+  const republishForToday = () => {
+    const targets = studentList.length > 0 ? studentList : students;
+    targets.forEach((st) => addStudentToAssignment(st.id, group.subject, group.templateId, today, today, 'repeat'));
+    setRepublished(true);
+  };
 
   return (
     <div className="overlay-backdrop" onClick={onClose}>
@@ -225,6 +238,23 @@ function AssignmentDetailModal({
               <span key={st.id} className="tag-pill"><AvatarGlyph value={st.avatar} size={18} /> {st.name}</span>
             ))}
           </div>
+
+          {isPast && (
+            <>
+              <hr className="divider" />
+              <div className="row-wrap" style={{ alignItems: 'center' }}>
+                <button className="btn btn-sm btn-primary" onClick={republishForToday}>
+                  🚀 Publish again for today
+                </button>
+                {republished && (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700 }}>
+                    ✅ Published to {studentList.length > 0 ? studentList.length : students.length} student
+                    {(studentList.length > 0 ? studentList.length : students.length) === 1 ? '' : 's'} today.
+                  </span>
+                )}
+              </div>
+            </>
+          )}
 
           <hr className="divider" />
           {confirmDelete ? (
@@ -270,14 +300,16 @@ export default function AssignmentsIndex() {
   });
   const selectedStudent = students.find((st) => st.id === selectedStudentId) ?? null;
 
-  // A draft that's been published (has an active or upcoming assignment)
-  // moves out of Drafts into Active/Upcoming — it's no longer just a draft.
-  // It comes back to Drafts once that window ends, since it's a reusable
-  // plan again at that point.
-  const livePublishedTemplateIds = new Set(
-    groups.filter((g) => g.endDate >= today).map((g) => g.templateId),
-  );
-  const draftTemplates = planTemplates.filter((t) => !livePublishedTemplateIds.has(t.id));
+  // A template only counts as a "Draft" until the first time it's actually
+  // published. Once it has any assignment record at all — active, upcoming,
+  // or already past — it belongs in that tab, not back in Drafts, even
+  // after its date window ends; "Draft" always means "never sent to a
+  // student," the same as every other tool that has drafts. A published
+  // plan is still reusable (see "🚀 Publish again" on a past assignment),
+  // which covers the old "recycle it back to Drafts" use case without the
+  // confusing double-listing.
+  const everPublishedTemplateIds = new Set(groups.map((g) => g.templateId));
+  const draftTemplates = planTemplates.filter((t) => !everPublishedTemplateIds.has(t.id));
 
   const closeBuilder = () => {
     setCreating(false);

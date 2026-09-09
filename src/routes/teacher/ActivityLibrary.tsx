@@ -8,7 +8,8 @@ import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
-import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot, SentencePart } from '../../types';
+import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
+import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
 import { TASK_TYPE_LABELS } from '../../types';
 
 const MAX_ARTICLES_PER_TASK = 3;
@@ -214,6 +215,103 @@ function SentenceBuilderEditor({ parts, onChange }: { parts: SentencePart[]; onC
   );
 }
 
+const MIN_LINK_CHOICE_OPTIONS = 2;
+const MAX_LINK_CHOICE_OPTIONS = 4;
+
+function blankLinkChoiceOption(): LinkChoiceOption {
+  return { id: makeId(), label: '', url: '' };
+}
+
+// Teacher-side builder for a "pick one" task — 2-4 links (typically
+// YouTube videos) a student freely chooses between instead of a whole-
+// subject choice board. A YouTube URL auto-fills a real cover thumbnail
+// (no API key needed — every video has one at a fixed URL); duration is
+// free-text since there's no equivalent no-key way to fetch the real one.
+function LinkChoiceEditor({ content, onChange }: { content: LinkChoiceContent; onChange: (content: LinkChoiceContent) => void }) {
+  const options = content.options.length > 0 ? content.options : [blankLinkChoiceOption(), blankLinkChoiceOption()];
+
+  const updateOption = (id: string, patch: Partial<LinkChoiceOption>) => {
+    onChange({ ...content, options: options.map((o) => (o.id === id ? { ...o, ...patch } : o)) });
+  };
+  const removeOption = (id: string) => onChange({ ...content, options: options.filter((o) => o.id !== id) });
+  const addOption = () => {
+    if (options.length >= MAX_LINK_CHOICE_OPTIONS) return;
+    onChange({ ...content, options: [...options, blankLinkChoiceOption()] });
+  };
+
+  return (
+    <div className="stack">
+      <div>
+        <label>Instructions shown above the options (optional)</label>
+        <input
+          style={{ width: '100%' }}
+          placeholder="e.g. Pick the one that sounds most interesting to you!"
+          value={content.prompt ?? ''}
+          onChange={(e) => onChange({ ...content, prompt: e.target.value })}
+        />
+      </div>
+
+      <div className="stack" style={{ gap: 10 }}>
+        {options.map((opt, i) => {
+          const videoId = extractYouTubeId(opt.url);
+          return (
+            <div key={opt.id} className="content-well row-wrap" style={{ gap: 8, alignItems: 'flex-end' }}>
+              <div>
+                <label>Option {i + 1} title</label>
+                <input
+                  style={{ width: 160 }}
+                  value={opt.label}
+                  onChange={(e) => updateOption(opt.id, { label: e.target.value })}
+                  placeholder="e.g. Ocean Animals"
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label>Link (YouTube or any URL)</label>
+                <input
+                  style={{ width: '100%' }}
+                  value={opt.url}
+                  onChange={(e) => updateOption(opt.id, { url: e.target.value })}
+                  onBlur={() => {
+                    if (videoId && !opt.thumbnailUrl) updateOption(opt.id, { thumbnailUrl: youtubeThumbnailUrl(videoId) });
+                  }}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+              </div>
+              <div>
+                <label>Duration (optional)</label>
+                <input
+                  style={{ width: 90 }}
+                  value={opt.durationLabel ?? ''}
+                  onChange={(e) => updateOption(opt.id, { durationLabel: e.target.value })}
+                  placeholder="4:32"
+                />
+              </div>
+              <div>
+                <label>Cover image</label>
+                {opt.thumbnailUrl ? (
+                  <img src={opt.thumbnailUrl} alt="" style={{ width: 64, height: 36, objectFit: 'cover', borderRadius: 6, display: 'block' }} />
+                ) : (
+                  <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>{videoId ? 'Auto-fills on save' : 'None (paste a YouTube link, or leave blank)'}</span>
+                )}
+              </div>
+              {options.length > MIN_LINK_CHOICE_OPTIONS && (
+                <button className="btn btn-sm btn-danger" onClick={() => removeOption(opt.id)}>Remove</button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {options.length < MAX_LINK_CHOICE_OPTIONS && (
+        <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={addOption}>➕ Add another option</button>
+      )}
+      <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
+        The student sees these as cards with the cover image and duration, and picks just one — they're never asked to do all of them.
+      </p>
+    </div>
+  );
+}
+
 export const ICON_CHOICES = ['📘', '✏️', '🔤', '🔢', '➗', '🧩', '🎧', '🌍', '🖐️', '🎯', '🧠', '📐', '🗣️', '🎨', '▶️', '📖', '⛓️', '🩹'];
 
 export const blankTask = (): Task => ({
@@ -230,6 +328,7 @@ export const blankTask = (): Task => ({
   wordchain: { startWord: '', steps: [] },
   sentenceEdit: { original: '', corrected: '' },
   sentenceBuilder: { parts: ORGANIZER_PRESETS[0].build() },
+  linkChoice: { options: [] },
   customSteps: [],
   referenceImageUrl: '',
   referenceLinkUrl: '',
@@ -261,6 +360,7 @@ export const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
   rewardCents: a.rewardCents,
   article: a.article,
   sentenceBuilder: a.sentenceBuilder,
+  linkChoice: a.linkChoice,
 });
 
 export function TaskEditor({
@@ -391,6 +491,13 @@ export function TaskEditor({
         <SentenceBuilderEditor
           parts={task.sentenceBuilder?.parts ?? ORGANIZER_PRESETS[0].build()}
           onChange={(parts) => setTask({ ...task, sentenceBuilder: { parts } })}
+        />
+      )}
+
+      {task.type === 'linkChoice' && (
+        <LinkChoiceEditor
+          content={task.linkChoice ?? { options: [] }}
+          onChange={(linkChoice) => setTask({ ...task, linkChoice })}
         />
       )}
 

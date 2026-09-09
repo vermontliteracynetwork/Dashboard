@@ -2,6 +2,7 @@
 // cents (never floats) and only converted to a dollar string for display,
 // the same way a real fintech app avoids floating-point rounding drift.
 export const DEFAULT_TASK_REWARD_CENTS = 100; // $1.00, used when a task has no teacher-set reward
+export const DEFAULT_BADGE_REWARD_CENTS = 200; // $2.00, used when an achievement has no teacher-set reward
 
 export function formatMoney(cents: number): string {
   const sign = cents < 0 ? '-' : '';

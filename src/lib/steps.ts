@@ -57,6 +57,12 @@ const DEFAULT_STEPS: Record<TaskType, Omit<StepDef, 'id'>[]> = {
     { icon: '📝', text: 'Read your whole sentence' },
     { icon: '✅', text: 'Tap "I\'m done!"' },
   ],
+  linkChoice: [
+    { icon: '👀', text: 'Look at all the options' },
+    { icon: '👉', text: 'Pick just ONE — not all of them!' },
+    { icon: '▶️', text: 'Watch or do that one' },
+    { icon: '✅', text: 'Tap "I\'m done!"' },
+  ],
 };
 
 export function getTaskSteps(task: Task): StepDef[] {

@@ -27,3 +27,49 @@ export function playCalmChime() {
     // Audio isn't available (e.g. autoplay policy) — the visual timer still communicates time's up.
   }
 }
+
+// A bright cash-register "cha-ching" — a quick bell strike followed by a
+// few rapid high coin-jingle blips. Synthesized (no bundled audio file),
+// played any time Class Cash lands in a student's Piggy Bank.
+export function playChaChing() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+
+    // The "ching" — a bright bell strike.
+    const bell = ctx.createOscillator();
+    const bellGain = ctx.createGain();
+    bell.type = 'square';
+    bell.frequency.value = 1046.5; // C6
+    bellGain.gain.setValueAtTime(0, now);
+    bellGain.gain.linearRampToValueAtTime(0.12, now + 0.01);
+    bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    bell.connect(bellGain);
+    bellGain.connect(ctx.destination);
+    bell.start(now);
+    bell.stop(now + 0.35);
+
+    // The coin jingle — a few quick high blips.
+    const coinFreqs = [2093, 2349, 2637, 3136]; // C7, D7, E7, G7
+    coinFreqs.forEach((freq, i) => {
+      const start = now + 0.06 + i * 0.05;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.08, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.2);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.2);
+    });
+
+    setTimeout(() => ctx.close(), 1000);
+  } catch {
+    // Audio isn't available (e.g. autoplay policy) — the money still lands, just silently.
+  }
+}

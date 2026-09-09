@@ -26,7 +26,7 @@ export default function TeacherNav() {
         <NavLink to="/teacher/inbox" className={({ isActive }) => (isActive ? 'active' : '')}>
           📥 Inbox{inboxCount > 0 ? ` (${inboxCount})` : ''}
         </NavLink>
-        <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏅 Badges</NavLink>
+        <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏆 Achievements</NavLink>
         <NavLink to="/teacher/scores" className={({ isActive }) => (isActive ? 'active' : '')}>📊 Scores</NavLink>
       </div>
       <button

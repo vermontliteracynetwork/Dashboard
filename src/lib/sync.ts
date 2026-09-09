@@ -151,8 +151,8 @@ const quizAttemptToRow = (a: QuizAttemptRecord): Row => ({
   total_count: a.totalCount,
 });
 
-const rowToBadge = (r: Row): BadgeDef => ({ id: r.id, name: r.name, description: r.description, icon: r.icon, rule: r.rule ?? undefined });
-const badgeToRow = (b: BadgeDef): Row => ({ id: b.id, name: b.name, description: b.description, icon: b.icon, rule: b.rule ?? null });
+const rowToBadge = (r: Row): BadgeDef => ({ id: r.id, name: r.name, description: r.description, icon: r.icon, rule: r.rule ?? undefined, rewardCents: r.reward_cents ?? undefined });
+const badgeToRow = (b: BadgeDef): Row => ({ id: b.id, name: b.name, description: b.description, icon: b.icon, rule: b.rule ?? null, reward_cents: b.rewardCents ?? null });
 
 const rowToBadgeEarn = (r: Row): BadgeEarn => ({ id: r.id, studentId: r.student_id, badgeId: r.badge_id, date: r.earned_at });
 

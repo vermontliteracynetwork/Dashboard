@@ -5,7 +5,8 @@ import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById } from '../lib/emoteCatalog';
 import { avatarById } from '../lib/avatarCatalog';
-import { DEFAULT_TASK_REWARD_CENTS, formatMoney } from '../lib/money';
+import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
+import { playChaChing } from '../lib/chime';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -16,24 +17,33 @@ import { DEFAULT_TASK_REWARD_CENTS, formatMoney } from '../lib/money';
 let realtimeSubscribed = false;
 
 export interface DailySpinResult {
-  type: 'cents' | 'skip' | 'cashback';
-  amountCents: number; // for 'cashback' this is the computed payout, not the percent
+  type: 'cents' | 'skip' | 'cashback' | 'emote';
+  amountCents: number; // for 'cashback' this is the computed payout, not the percent; 0 for 'emote' unless it fell back to a cash consolation
   label: string;
   segmentIndex: number; // which DAILY_SPIN_SEGMENTS entry won, so the wheel UI can land on the same one
+  emoteId?: string; // set when type is 'emote' and the student actually won it (not the consolation fallback)
 }
 
 const SKIP_TOKEN_PRICE_CENTS = 1500; // $15.00
 
+// Consolation prize when an 'emote' segment lands but the student already
+// owns that emote — keeps every spin a genuine win instead of a no-op.
+const EMOTE_ALREADY_OWNED_CONSOLATION_CENTS = 250; // $2.50
+
 // Every segment is a win — no empty/losing outcome — since this is a daily
 // mood-lift, not a chance-based reward loop a student could feel bad about
 // landing on. 'cashback' pays 5% of the student's current balance instead
-// of a fixed amount, computed at spin time.
+// of a fixed amount, computed at spin time. 'emote' segments give away one
+// specific emote for free (see EMOTE_CATALOG) — a real, named prize rather
+// than an abstract chance, with its actual artwork shown on the wheel.
 const DAILY_SPIN_SEGMENTS = [
-  { type: 'cents' as const, amountCents: 100, label: '💵 $1.00' },
-  { type: 'cents' as const, amountCents: 250, label: '💵 $2.50' },
-  { type: 'cents' as const, amountCents: 500, label: '💵 $5.00' },
+  { type: 'cents' as const, amountCents: 100, label: '$1.00' },
+  { type: 'cents' as const, amountCents: 250, label: '$2.50' },
+  { type: 'cents' as const, amountCents: 500, label: '$5.00' },
   { type: 'skip' as const, amountCents: 0, label: '🎫 1 Skip Pass' },
   { type: 'cashback' as const, amountCents: 0, label: '💰 5% Cashback' },
+  { type: 'emote' as const, amountCents: 0, label: 'LOL Emote', emoteId: 'emote-laugh' },
+  { type: 'emote' as const, amountCents: 0, label: 'Sparkle Emote', emoteId: 'emote-stars' },
 ];
 
 // A streak bonus is capped so a very long streak can't compound into an
@@ -523,6 +533,7 @@ export const useStore = create<AppState>()(
         set((s) => ({ transactions: [tx, ...s.transactions] }));
         pushTransaction(tx);
         get().updateStudent(studentId, { coins: student.coins + amountCents });
+        if (amountCents > 0) playChaChing();
       },
 
       // Marketplace: spend Class Cash to unlock an avatar or emote. Returns
@@ -655,12 +666,32 @@ export const useStore = create<AppState>()(
           get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
           return { type: 'skip', amountCents: 0, label: segment.label, segmentIndex };
         }
+        if (segment.type === 'emote') {
+          const alreadyOwned = student.ownedEmoteIds.includes(segment.emoteId);
+          if (alreadyOwned) {
+            get().recordTransaction(
+              studentId,
+              EMOTE_ALREADY_OWNED_CONSOLATION_CENTS,
+              '🎡 Daily Spin (already had this emote)',
+              '🎡',
+              'spin-cash',
+            );
+            return {
+              type: 'emote',
+              amountCents: EMOTE_ALREADY_OWNED_CONSOLATION_CENTS,
+              label: `You already have that one — here's ${formatMoney(EMOTE_ALREADY_OWNED_CONSOLATION_CENTS)} instead!`,
+              segmentIndex,
+            };
+          }
+          get().updateStudent(studentId, { ownedEmoteIds: [...student.ownedEmoteIds, segment.emoteId] });
+          return { type: 'emote', amountCents: 0, label: segment.label, segmentIndex, emoteId: segment.emoteId };
+        }
         const amountCents = segment.type === 'cashback' ? Math.round(student.coins * 0.05) : segment.amountCents;
         get().recordTransaction(studentId, amountCents, '🎡 Daily Spin winnings', '🎡', segment.type === 'cashback' ? 'spin-cashback' : 'spin-cash');
         return {
           type: segment.type,
           amountCents,
-          label: segment.type === 'cashback' ? `💰 ${formatMoney(amountCents)} Cashback` : segment.label,
+          label: segment.type === 'cashback' ? `💰 ${formatMoney(amountCents)} Cashback` : `💵 ${segment.label}`,
           segmentIndex,
         };
       },
@@ -1177,6 +1208,11 @@ export const useStore = create<AppState>()(
         const student = get().students.find((st) => st.id === studentId);
         if (student && !student.badgeIds.includes(badgeId)) {
           get().updateStudent(studentId, { badgeIds: [...student.badgeIds, badgeId] });
+          const badge = get().badges.find((b) => b.id === badgeId);
+          const rewardCents = badge?.rewardCents ?? DEFAULT_BADGE_REWARD_CENTS;
+          if (rewardCents > 0) {
+            get().recordTransaction(studentId, rewardCents, `🏆 Achievement: ${badge?.name ?? 'Achievement'}`, badge?.icon ?? '🏆', 'achievement');
+          }
         }
       },
 

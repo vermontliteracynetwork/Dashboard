@@ -18,6 +18,7 @@ import SubjectProgressBar from '../../components/SubjectProgressBar';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
 import ArticleReader from '../../components/ArticleReader';
 import SentenceBuilder from '../../components/SentenceBuilder';
+import LinkChoiceTask from './LinkChoiceTask';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -158,6 +159,7 @@ export default function SubjectDashboard() {
         return task.sentenceBuilder ? (
           <SentenceBuilder studentId={student.id} taskId={task.id} content={task.sentenceBuilder} ttsSettings={student.ttsSettings} onDone={handleDone} />
         ) : null;
+      case 'linkChoice': return <LinkChoiceTask student={student} subject={subj} task={task} onDone={handleDone} />;
       default: return null;
     }
   };

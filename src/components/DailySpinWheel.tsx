@@ -1,47 +1,111 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Wheel } from 'spin-wheel';
 import { useStore, type DailySpinResult } from '../store/store';
 import { todayISO } from '../lib/dates';
+import { emoteById } from '../lib/emoteCatalog';
 
 interface Props {
   studentId: string;
   onClose: () => void;
 }
 
+const SPIN_DURATION_MS = 3200;
+
 // Kept in the same order as DAILY_SPIN_SEGMENTS in store.ts so the wheel's
 // visual segments line up with what spinDailyWheel() can actually return.
-const SEGMENTS = [
-  { icon: '💵', label: '$1.00', color: '#f7c948' },
-  { icon: '💵', label: '$2.50', color: '#4ade80' },
-  { icon: '💵', label: '$5.00', color: '#60a5fa' },
-  { icon: '🎫', label: 'Skip Pass', color: '#f472b6' },
-  { icon: '💰', label: '5% Cashback', color: '#c084fc' },
+// Cash segments show the real "cash prize" emote art; the two emote
+// segments show the actual emote a student would win — real prize images
+// on the wheel, not generic icons.
+const SEGMENTS: { label: string; color: string; imageSrc?: string }[] = [
+  { label: '$1.00', color: '#f7c948', imageSrc: '/emotes/emote_cash.png' },
+  { label: '$2.50', color: '#4ade80', imageSrc: '/emotes/emote_cash.png' },
+  { label: '$5.00', color: '#60a5fa', imageSrc: '/emotes/emote_cash.png' },
+  { label: '🎫 Skip Pass', color: '#f472b6' },
+  { label: '💰 5% Cashback', color: '#c084fc', imageSrc: '/emotes/emote_cash.png' },
+  { label: emoteById('emote-laugh')?.name ?? 'LOL', color: '#fb923c', imageSrc: emoteById('emote-laugh')?.src },
+  { label: emoteById('emote-stars')?.name ?? 'Sparkle', color: '#facc15', imageSrc: emoteById('emote-stars')?.src },
 ];
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
 
 export default function DailySpinWheel({ studentId, onClose }: Props) {
   const students = useStore((s) => s.students);
   const spinDailyWheel = useStore((s) => s.spinDailyWheel);
-  const [rotation, setRotation] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const wheelRef = useRef<InstanceType<typeof Wheel> | null>(null);
+  const [wheelReady, setWheelReady] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<DailySpinResult | null>(null);
 
   const student = students.find((s) => s.id === studentId);
+  const alreadySpun = student?.lastSpinDate === todayISO();
+  const showWheel = !!student && !alreadySpun;
+
+  // Build the canvas wheel once, after every segment's real prize image has
+  // loaded — a missing/broken image just falls back to no image for that
+  // segment rather than blocking the whole wheel.
+  useEffect(() => {
+    if (!showWheel) return;
+    let cancelled = false;
+
+    (async () => {
+      const images = await Promise.all(
+        SEGMENTS.map((seg) => (seg.imageSrc ? loadImage(seg.imageSrc).catch(() => null) : Promise.resolve(null))),
+      );
+      if (cancelled || !containerRef.current) return;
+
+      wheelRef.current = new Wheel(containerRef.current, {
+        items: SEGMENTS.map((seg, i) => ({
+          label: seg.label,
+          backgroundColor: seg.color,
+          image: images[i] ?? undefined,
+          imageRadius: 0.62,
+          imageScale: 1.3,
+        })),
+        isInteractive: false, // only our Spin button drives it — the winner is already decided server-side
+        itemLabelRadius: 0.92,
+        itemLabelRadiusMax: 0.32,
+        itemLabelFont: "'Nunito', sans-serif",
+        itemLabelFontSizeMax: 24,
+        itemLabelColors: ['#1a1420'],
+        itemLabelStrokeColor: '#fff',
+        itemLabelStrokeWidth: 4,
+        lineWidth: 2,
+        lineColor: '#1a1420',
+        borderColor: '#1a1420',
+        borderWidth: 5,
+        radius: 0.92,
+      });
+      setWheelReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+      wheelRef.current?.remove();
+      wheelRef.current = null;
+      setWheelReady(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showWheel]);
+
   if (!student) return null;
-  const alreadySpun = student.lastSpinDate === todayISO();
 
   const doSpin = () => {
     const outcome = spinDailyWheel(studentId);
-    if (!outcome) return;
-    const index = outcome.segmentIndex;
-    const segmentAngle = 360 / SEGMENTS.length;
-    // Land the winning segment's center under the top pointer, plus several
-    // full spins so it actually feels like a spin rather than a snap.
-    const target = 360 * 5 + (360 - (index * segmentAngle + segmentAngle / 2));
+    if (!outcome || !wheelRef.current) return;
     setSpinning(true);
-    setRotation(target);
+    wheelRef.current.spinToItem(outcome.segmentIndex, SPIN_DURATION_MS, true, 5, 1, null);
     window.setTimeout(() => {
       setSpinning(false);
       setResult(outcome);
-    }, 2200);
+    }, SPIN_DURATION_MS + 100);
   };
 
   return (
@@ -59,8 +123,15 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
             </>
           ) : result ? (
             <>
-              <div style={{ fontSize: '3rem' }}>🎉</div>
-              <p style={{ fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>You got {result.label}!</p>
+              {result.type === 'emote' && result.emoteId && (
+                <img src={emoteById(result.emoteId)?.src} alt="" style={{ width: 96, height: 96 }} />
+              )}
+              <div style={{ fontSize: result.type === 'emote' && result.emoteId ? '2rem' : '3rem' }}>
+                {result.type === 'emote' && result.emoteId ? '🎉 New emote!' : '🎉'}
+              </div>
+              <p style={{ fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>
+                {result.type === 'emote' ? result.label : `You got ${result.label}!`}
+              </p>
               <button className="btn btn-primary btn-lg" style={{ minHeight: 44 }} onClick={onClose}>
                 Yay!
               </button>
@@ -68,7 +139,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
           ) : (
             <>
               <p style={{ opacity: 0.75, marginTop: -8 }}>One free spin a day — every prize is a win!</p>
-              <div style={{ position: 'relative', width: 220, height: 220 }}>
+              <div style={{ position: 'relative', width: 240, height: 240 }}>
                 <div
                   aria-hidden
                   style={{
@@ -82,45 +153,24 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
                 >
                   🔻
                 </div>
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '5px solid var(--ink)',
-                    background: `conic-gradient(${SEGMENTS.map((seg, i) => `${seg.color} ${(i * 360) / SEGMENTS.length}deg ${((i + 1) * 360) / SEGMENTS.length}deg`).join(', ')})`,
-                    transform: `rotate(${rotation}deg)`,
-                    transition: spinning ? 'transform 2.2s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
-                    position: 'relative',
-                  }}
-                >
-                  {SEGMENTS.map((seg, i) => {
-                    const segmentAngle = 360 / SEGMENTS.length;
-                    const angle = i * segmentAngle + segmentAngle / 2;
-                    return (
-                      <div
-                        key={seg.label}
-                        aria-hidden
-                        style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          width: 62,
-                          textAlign: 'center',
-                          transform: `translate(-50%, -50%) rotate(${angle}deg) translate(0, -72px) rotate(${-angle}deg)`,
-                          fontSize: '0.62rem',
-                          fontWeight: 800,
-                          color: '#1a1420',
-                        }}
-                      >
-                        <div style={{ fontSize: '1.2rem' }}>{seg.icon}</div>
-                        {seg.label}
-                      </div>
-                    );
-                  })}
-                </div>
+                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+                {!wheelReady && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.85rem',
+                      opacity: 0.6,
+                    }}
+                  >
+                    Loading wheel…
+                  </div>
+                )}
               </div>
-              <button className="btn btn-primary btn-lg" style={{ minHeight: 44 }} disabled={spinning} onClick={doSpin}>
+              <button className="btn btn-primary btn-lg" style={{ minHeight: 44 }} disabled={spinning || !wheelReady} onClick={doSpin}>
                 {spinning ? 'Spinning…' : 'Spin!'}
               </button>
               <button className="btn btn-sm" style={{ minHeight: 44 }} disabled={spinning} onClick={onClose}>

@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { BADGE_RULE_LABELS, BADGE_RULE_SUBJECT_AWARE } from '../../types';
 import type { BadgeDef, BadgeRule, BadgeRuleType, Subject } from '../../types';
+import { DEFAULT_BADGE_REWARD_CENTS } from '../../lib/money';
 
 function BadgeRow({ badge }: { badge: BadgeDef }) {
   const updateBadge = useStore((s) => s.updateBadge);
@@ -22,6 +23,18 @@ function BadgeRow({ badge }: { badge: BadgeDef }) {
           <span style={{ fontSize: '1.8rem' }}>{badge.icon}</span>
           <input value={badge.name} onChange={(e) => updateBadge(badge.id, { name: e.target.value })} />
           <input value={badge.description} onChange={(e) => updateBadge(badge.id, { description: e.target.value })} style={{ flex: 1 }} />
+          <div className="row" style={{ gap: 4 }}>
+            <span style={{ fontSize: '0.85rem' }}>💰</span>
+            <input
+              type="number"
+              min={0}
+              step={0.25}
+              style={{ width: 72 }}
+              title="Class Cash paid into Piggy Bank when earned"
+              value={((badge.rewardCents ?? DEFAULT_BADGE_REWARD_CENTS) / 100).toFixed(2)}
+              onChange={(e) => updateBadge(badge.id, { rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
+            />
+          </div>
         </div>
         <div className="row-wrap">
           <button className="btn btn-sm" onClick={() => setExpanded((v) => !v)}>
@@ -39,7 +52,7 @@ function BadgeRow({ badge }: { badge: BadgeDef }) {
               checked={!!rule}
               onChange={(e) => updateBadge(badge.id, { rule: e.target.checked ? { type: 'streak', threshold: 1 } : undefined })}
             />
-            Auto-award this badge when a rule is met (instead of only awarding it by hand)
+            Auto-award this achievement when a rule is met (instead of only awarding it by hand)
           </label>
           {rule && (
             <div className="row-wrap" style={{ alignItems: 'center' }}>
@@ -94,10 +107,10 @@ export default function BadgeManager() {
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <h1>Badges</h1>
+        <h1>🏆 Achievements</h1>
 
         <div className="chrome-frame stack" style={{ padding: 16 }}>
-          <h3 style={{ marginTop: 0 }}>➕ New Badge</h3>
+          <h3 style={{ marginTop: 0 }}>➕ New Achievement</h3>
           <div className="row-wrap">
             <input placeholder="Icon (emoji)" style={{ width: 70 }} value={icon} onChange={(e) => setIcon(e.target.value)} />
             <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -115,9 +128,10 @@ export default function BadgeManager() {
             </button>
           </div>
           <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-            Every badge can be awarded by hand below, or you can set an auto-award rule on it — tap "➕ Add auto-award
-            rule" on any badge to build one (IF a metric reaches a number, optionally constrained to one subject,
-            THEN it's awarded automatically).
+            Every achievement pays Class Cash into the student's Piggy Bank when earned (💰, editable per achievement —
+            defaults to ${(DEFAULT_BADGE_REWARD_CENTS / 100).toFixed(2)}). It can be awarded by hand below, or you can set an
+            auto-award rule on it — tap "➕ Add auto-award rule" on any achievement to build one (IF a metric reaches a
+            number, optionally constrained to one subject, THEN it's awarded automatically).
           </p>
         </div>
 
@@ -126,14 +140,14 @@ export default function BadgeManager() {
         </div>
 
         <div className="chrome-frame stack" style={{ padding: 16 }}>
-          <h3 style={{ marginTop: 0 }}>🎁 Award a Badge by Hand</h3>
+          <h3 style={{ marginTop: 0 }}>🎁 Award an Achievement by Hand</h3>
           <div className="row-wrap">
             <select value={awardStudent} onChange={(e) => setAwardStudent(e.target.value)}>
               <option value="">Choose a student</option>
               {students.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
             </select>
             <select value={awardBadgeId} onChange={(e) => setAwardBadgeId(e.target.value)}>
-              <option value="">Choose a badge</option>
+              <option value="">Choose an achievement</option>
               {badges.map((b) => <option key={b.id} value={b.id}>{b.icon} {b.name}</option>)}
             </select>
             <button

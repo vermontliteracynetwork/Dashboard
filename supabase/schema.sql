@@ -268,6 +268,7 @@ alter table students add column if not exists last_spin_date date;
 alter table subject_progress add column if not exists skipped_task_ids jsonb not null default '[]';
 alter table activity_library add column if not exists reward_cents int;
 alter table activity_library add column if not exists article jsonb;
+alter table badges add column if not exists reward_cents int;
 
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference

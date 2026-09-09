@@ -27,7 +27,7 @@ export default function PiggyBank({ studentId, onClose }: Props) {
       <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack">
           <div className="space-between">
-            <h2 style={{ margin: 0 }}>🐷 My Bank</h2>
+            <h2 style={{ margin: 0 }}>🐷 Piggy Bank</h2>
             <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={onClose}>
               Close
             </button>

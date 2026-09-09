@@ -100,7 +100,7 @@ export default function StudentHome() {
         <div className="overlay-backdrop" onClick={() => setShowBadges(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
-              <h2 style={{ margin: 0 }}>🏅 Your Badges</h2>
+              <h2 style={{ margin: 0 }}>🏆 Your Achievements</h2>
               {earnedBadges.length === 0 ? (
                 <p style={{ opacity: 0.75 }}>No badges yet — keep going!</p>
               ) : (
@@ -158,16 +158,7 @@ export default function StudentHome() {
         </div>
       )}
 
-      {showMarketplace && (
-        <Marketplace
-          studentId={student.id}
-          onClose={() => setShowMarketplace(false)}
-          onOpenBank={() => {
-            setShowMarketplace(false);
-            setShowBank(true);
-          }}
-        />
-      )}
+      {showMarketplace && <Marketplace studentId={student.id} onClose={() => setShowMarketplace(false)} />}
       {showSpinWheel && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
       {showBank && <PiggyBank studentId={student.id} onClose={() => setShowBank(false)} />}
 
@@ -186,7 +177,7 @@ export default function StudentHome() {
                 className="tag-pill"
                 style={{ background: 'var(--yellow)', border: 'none', cursor: 'pointer', minHeight: 44 }}
                 onClick={() => setShowBank(true)}
-                aria-label={`Balance ${formatMoney(student.coins)} — open My Bank`}
+                aria-label={`Balance ${formatMoney(student.coins)} — open Piggy Bank`}
               >
                 🐷 {formatMoney(student.coins)}
               </button>
@@ -194,9 +185,9 @@ export default function StudentHome() {
                 className="btn btn-sm"
                 style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
                 onClick={() => setShowBadges(true)}
-                aria-label="Your badges"
+                aria-label="Your achievements"
               >
-                🏅 Badges
+                🏆 Achievements
               </button>
               <button
                 className="btn btn-sm"

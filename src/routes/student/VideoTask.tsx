@@ -1,36 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import ReadAloud from '../../components/ReadAloud';
-import { extractYouTubeId } from '../../lib/youtube';
+import { extractYouTubeId, loadYouTubeApi } from '../../lib/youtube';
 import type { Student, Task } from '../../types';
 
 interface Props {
   student: Student;
   task: Task;
   onDone: () => void;
-}
-
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-let ytApiPromise: Promise<void> | null = null;
-function loadYouTubeApi(): Promise<void> {
-  if (window.YT?.Player) return Promise.resolve();
-  if (ytApiPromise) return ytApiPromise;
-  ytApiPromise = new Promise((resolve) => {
-    const prevReady = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      prevReady?.();
-      resolve();
-    };
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-  });
-  return ytApiPromise;
 }
 
 // The video always requires a real manual tap to start (no autoplay param),
