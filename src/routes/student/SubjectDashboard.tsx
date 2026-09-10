@@ -246,7 +246,7 @@ export default function SubjectDashboard() {
           // wherever the header happened to lay out, which could land on
           // top of a full-screen activity (like the platformer) and block
           // the view instead of floating clear of it.
-          style={{ position: 'fixed', top: 16, right: 78, zIndex: 200 }}
+          style={{ position: 'fixed', top: 16, left: 16, zIndex: 200 }}
           aria-label="Back to my to-do list"
           title="Back to my to-do list"
           onClick={() => { setConfirmDone(null); setSelectedTaskId(null); }}

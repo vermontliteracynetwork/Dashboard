@@ -665,6 +665,61 @@ const remove = (table: string, match: Row) => {
 export const pushStudent = (s: Student) => upsert('students', studentToRow(s));
 export const deleteStudentRemote = (id: string) => remove('students', { id });
 
+// camelCase Student field -> snake_case students column, for pushStudentPatch below.
+const STUDENT_COLUMNS: Record<keyof Student, string> = {
+  id: 'id',
+  name: 'name',
+  avatar: 'avatar',
+  streak: 'streak',
+  lastCompletedDate: 'last_completed_date',
+  streakHidden: 'streak_hidden',
+  badgeIds: 'badge_ids',
+  featureToggles: 'feature_toggles',
+  breakMinutes: 'break_minutes',
+  ttsSettings: 'tts_settings',
+  createdAt: 'created_at',
+  playgroundThreshold: 'playground_threshold',
+  customTools: 'custom_tools',
+  coins: 'coins',
+  ownedAvatarIds: 'owned_avatar_ids',
+  ownedEmoteIds: 'owned_emote_ids',
+  equippedEmoteId: 'equipped_emote_id',
+  skipTokens: 'skip_tokens',
+  lastSpinDate: 'last_spin_date',
+  ownedFontIds: 'owned_font_ids',
+  equippedFontId: 'equipped_font_id',
+  ownedColorIds: 'owned_color_ids',
+  equippedColorId: 'equipped_color_id',
+  equippedHighlightColorId: 'equipped_highlight_color_id',
+  equippedMarkerColorId: 'equipped_marker_color_id',
+  ownedVoiceIds: 'owned_voice_ids',
+  equippedVoiceId: 'equipped_voice_id',
+  ownedPrizeIds: 'owned_prize_ids',
+  quizTheme: 'quiz_theme',
+  bonusSpinAvailable: 'bonus_spin_available',
+};
+
+// Writes only the changed columns (a real SQL UPDATE), instead of
+// pushStudent's full-row upsert of whatever the client last had in memory.
+// Two updateStudent() calls for the same student (e.g. a daily-spin prize
+// grant and an unrelated streak/bonus-spin update landing moments apart)
+// used to each push their own full snapshot of every column; whichever
+// network request reached Supabase last won outright and silently reverted
+// every column the other one had just changed — that's how a spin prize (or
+// the "already spun today" flag itself) could vanish after a refresh.
+// Patching only the touched columns means two concurrent writes to
+// different fields can never clobber each other, regardless of arrival order.
+export const pushStudentPatch = (id: string, patch: Partial<Student>) => {
+  if (!isSupabaseConfigured) return;
+  const row: Row = {};
+  for (const key of Object.keys(patch) as (keyof Student)[]) {
+    const col = STUDENT_COLUMNS[key];
+    if (col) row[col] = patch[key];
+  }
+  if (Object.keys(row).length === 0) return;
+  void pushWithRetry(() => supabase.from('students').update(row).eq('id', id), 'update students');
+};
+
 export const pushRotation = (studentId: string, subject: Subject, tasks: Task[]) =>
   upsert('rotations', { student_id: studentId, subject, tasks });
 

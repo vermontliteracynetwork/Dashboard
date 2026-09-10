@@ -35,11 +35,10 @@ export default function InternalBrowser({ url, title, onClose, onMarkDone, onWin
   };
 
   return (
-    <div className="overlay-backdrop" onClick={onClose}>
+    <div className="quiz-fullview">
       <div
-        className="chrome-frame stack"
-        style={{ width: '95vw', maxWidth: embed ? 720 : 480, padding: 0, gap: 0, overflow: 'hidden' }}
-        onClick={(e) => e.stopPropagation()}
+        className="chrome-frame stack quiz-fullview-card"
+        style={{ maxWidth: embed ? 720 : 480, padding: 0, gap: 0, overflow: 'hidden' }}
       >
         <div className="space-between" style={{ padding: '10px 16px', background: 'var(--ink)' }}>
           <strong style={{ color: 'white' }}>{title}</strong>

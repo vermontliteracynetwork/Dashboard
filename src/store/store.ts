@@ -63,6 +63,7 @@ import {
   sbResponseKey,
   pushSbResponse,
   pushStudent,
+  pushStudentPatch,
   deleteStudentRemote,
   pushRotation,
   pushProgress,
@@ -665,8 +666,7 @@ export const useStore = create<AppState>()(
 
       updateStudent: (id, patch) => {
         set((s) => ({ students: s.students.map((st) => (st.id === id ? { ...st, ...patch } : st)) }));
-        const updated = get().students.find((st) => st.id === id);
-        if (updated) pushStudent(updated);
+        pushStudentPatch(id, patch);
       },
 
       // Every earn/spend goes through here so the bank register always has
@@ -1041,19 +1041,13 @@ export const useStore = create<AppState>()(
       },
 
       setFeatureToggle: (studentId, tool, enabled) => {
-        set((s) => ({
-          students: s.students.map((st) =>
-            st.id === studentId ? { ...st, featureToggles: { ...st.featureToggles, [tool]: enabled } } : st,
-          ),
-        }));
-        const updated = get().students.find((st) => st.id === studentId);
-        if (updated) pushStudent(updated);
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        get().updateStudent(studentId, { featureToggles: { ...student.featureToggles, [tool]: enabled } });
       },
 
       setStreak: (studentId, streak) => {
-        set((s) => ({ students: s.students.map((st) => (st.id === studentId ? { ...st, streak } : st)) }));
-        const updated = get().students.find((st) => st.id === studentId);
-        if (updated) pushStudent(updated);
+        get().updateStudent(studentId, { streak });
       },
 
       getTasks: (studentId, subject) => get().rotations[studentId]?.[subject] ?? [],
