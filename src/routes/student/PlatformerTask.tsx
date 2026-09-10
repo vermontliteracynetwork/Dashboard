@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import ReadAloud from '../../components/ReadAloud';
 import { MatchingBoard } from './QuizTask';
-import type { Student, Subject, Task } from '../../types';
+import { formatMoney } from '../../lib/money';
+import type { Student, Subject, Task, QuizQuestion } from '../../types';
 
 interface Props {
   student: Student;
@@ -42,31 +43,85 @@ const DISPLAY_SCALE = 3;
 
 const QUESTION_TIMER_MS = 60_000; // ask a question every 1 minute of active play, even with no mistakes
 
+// ---------- Lives / gauntlet ----------
+const MAX_LIVES = 3;
+const GAUNTLET_LENGTH = 5; // questions in a row, no misses, to get lives back once all 3 are gone
+const CENTS_PER_COIN = 5; // in-game coins convert to Class Cash the moment the activity is finished
+
 // ---------- Level ----------
 type GroundSegment = { kind: 'ground'; width: number; spikeAt?: number[] };
 type GapSegment = { kind: 'gap'; width: number };
 type LevelSegment = GroundSegment | GapSegment;
 
-// A hand-paced sequence of short, forgiving segments — gaps and spikes are
-// never wider than the physics below can comfortably clear, since a
-// student who gets stuck on the PLATFORMING isn't practicing the actual
-// homework (the questions). Difficulty here is "keep it moving," not "test
-// precision."
-const LEVEL_PLAN: LevelSegment[] = [
-  { kind: 'ground', width: 10 },
-  { kind: 'gap', width: 2 },
-  { kind: 'ground', width: 8, spikeAt: [4] },
-  { kind: 'gap', width: 2 },
-  { kind: 'ground', width: 10 },
-  { kind: 'gap', width: 3 },
-  { kind: 'ground', width: 9, spikeAt: [3, 6] },
-  { kind: 'gap', width: 2 },
-  { kind: 'ground', width: 12 },
-  { kind: 'gap', width: 2 },
-  { kind: 'ground', width: 8, spikeAt: [3] },
-  { kind: 'gap', width: 2 },
-  { kind: 'ground', width: 14 },
+// Levels get progressively harder — tighter ground, more/closer spikes,
+// wider (but still jumpable) gaps — while speedMul below also ramps the
+// player up. Reaching the flag advances to the next level and loops back
+// to the start of it; the actual "done" condition is still the question
+// set, not distance — see the flag-touch handler in the game loop.
+const LEVEL_PLANS: LevelSegment[][] = [
+  [
+    { kind: 'ground', width: 10 },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 8, spikeAt: [4] },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 10 },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 9, spikeAt: [3, 6] },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 12 },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 8, spikeAt: [3] },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 14 },
+  ],
+  [
+    { kind: 'ground', width: 8 },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 6, spikeAt: [2, 5] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 7 },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 6, spikeAt: [1, 4] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 8, spikeAt: [3, 6] },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 6, spikeAt: [2] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 10 },
+  ],
+  [
+    { kind: 'ground', width: 7 },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 5, spikeAt: [1, 3] },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 5, spikeAt: [2, 4] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 6, spikeAt: [1, 4] },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 5, spikeAt: [0, 3] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 6, spikeAt: [2, 5] },
+    { kind: 'gap', width: 2 },
+    { kind: 'ground', width: 9 },
+  ],
+  [
+    { kind: 'ground', width: 6 },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 4, spikeAt: [1] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 4, spikeAt: [0, 2] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 5, spikeAt: [1, 3] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 4, spikeAt: [2] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 5, spikeAt: [0, 3] },
+    { kind: 'gap', width: 3 },
+    { kind: 'ground', width: 8 },
+  ],
 ];
+// Player top speed/acceleration scale up with level — same shape, brisker pace.
+const SPEED_MULTIPLIERS = [1, 1.08, 1.16, 1.25];
 
 const ROWS = VIEW_ROWS;
 const GROUND_TOP_ROW = ROWS - 3; // top surface of the ground (3 tiles deep)
@@ -79,13 +134,13 @@ interface LevelData {
   flagCol: number;
 }
 
-function buildLevel(): LevelData {
+function buildLevel(plan: LevelSegment[]): LevelData {
   let col = 0;
   const groundCols: number[] = [];
   const spikeCols = new Set<number>();
   const coins: { col: number; row: number }[] = [];
 
-  for (const seg of LEVEL_PLAN) {
+  for (const seg of plan) {
     if (seg.kind === 'ground') {
       for (let i = 0; i < seg.width; i++) {
         groundCols.push(col);
@@ -120,14 +175,21 @@ function isSolid(level: LevelData, col: number, row: number): boolean {
 export default function PlatformerTask({ student, subject, task, onDone, onExit }: Props) {
   const ensureQuizState = useStore((s) => s.ensureQuizState);
   const submitQuizAnswer = useStore((s) => s.submitQuizAnswer);
+  const recordTransaction = useStore((s) => s.recordTransaction);
   const progress = useStore((s) => s.progress);
 
   const [character, setCharacter] = useState<CharacterId | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [pauseReason, setPauseReason] = useState<'death' | 'timer' | null>(null);
+  const [pauseReason, setPauseReason] = useState<'death' | 'timer' | 'gauntlet' | null>(null);
   const [collectedCoins, setCollectedCoins] = useState(0);
   const [celebrateLap, setCelebrateLap] = useState(false);
+  const [levelIndex, setLevelIndex] = useState(0);
+  const [lives, setLives] = useState(MAX_LIVES);
+  const [gauntletQuestions, setGauntletQuestions] = useState<QuizQuestion[]>([]);
+  const [gauntletIndex, setGauntletIndex] = useState(0);
+  const [gauntletMissed, setGauntletMissed] = useState(false);
+  const [payout, setPayout] = useState<{ coins: number; cents: number } | null>(null);
 
   // Quiz answer widget local state (mirrors QuizTask's pattern)
   const [picked, setPicked] = useState<number | null>(null);
@@ -137,7 +199,11 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<Record<string, HTMLImageElement>>({});
   const imagesReadyRef = useRef(false);
-  const level = useMemo(() => buildLevel(), []);
+  const level = useMemo(() => buildLevel(LEVEL_PLANS[Math.min(levelIndex, LEVEL_PLANS.length - 1)]), [levelIndex]);
+  const speedMulRef = useRef(1);
+  useEffect(() => {
+    speedMulRef.current = SPEED_MULTIPLIERS[Math.min(levelIndex, SPEED_MULTIPLIERS.length - 1)];
+  }, [levelIndex]);
 
   const keysRef = useRef<{ left: boolean; right: boolean; jump: boolean }>({ left: false, right: false, jump: false });
   const pausedRef = useRef(false);
@@ -145,6 +211,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const lastTsRef = useRef<number | null>(null);
   const activeMsRef = useRef(0);
   const collectedColsRef = useRef<Set<string>>(new Set());
+  const livesRef = useRef(MAX_LIVES);
 
   const player = useRef({
     x: 2 * TILE,
@@ -169,8 +236,12 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const questions = task.quiz?.questions ?? [];
   const total = questions.length;
   const activeId = state?.remainingIds[0];
-  const activeQ = questions.find((q) => q.id === activeId);
+  const masteryQ = questions.find((q) => q.id === activeId);
   const doneCount = state?.masteredIds.length ?? 0;
+  // During the gauntlet (all lives lost), questions come from a separate
+  // local streak-of-5 rather than the mastery queue above — missing one of
+  // these doesn't cost mastery progress, it just restarts the streak.
+  const activeQ = pauseReason === 'gauntlet' ? gauntletQuestions[gauntletIndex] : masteryQ;
 
   // ---------- Preload sprites once a character is picked ----------
   useEffect(() => {
@@ -217,6 +288,9 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     };
     collectedColsRef.current = new Set();
     setCollectedCoins(0);
+    livesRef.current = MAX_LIVES;
+    setLives(MAX_LIVES);
+    setLevelIndex(0);
     return () => { cancelled = true; };
   }, [character]);
 
@@ -250,6 +324,26 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     setPendingCorrect(null);
   };
 
+  // 5 random questions from the same set — used only for the "lives are
+  // gone, prove you're paying attention" gauntlet, kept separate from the
+  // real mastery queue so a miss here never erases mastery progress.
+  const pickGauntletQuestions = (): QuizQuestion[] => {
+    if (questions.length === 0) return [];
+    return Array.from({ length: GAUNTLET_LENGTH }, () => questions[Math.floor(Math.random() * questions.length)]);
+  };
+
+  const triggerGauntlet = () => {
+    pausedRef.current = true;
+    setPauseReason('gauntlet');
+    setPaused(true);
+    setGauntletQuestions(pickGauntletQuestions());
+    setGauntletIndex(0);
+    setGauntletMissed(false);
+    setPicked(null);
+    setFillValue('');
+    setPendingCorrect(null);
+  };
+
   // ---------- Game loop ----------
   useEffect(() => {
     if (!character) return;
@@ -274,12 +368,15 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           triggerQuestion('timer');
         }
 
-        // --- physics ---
+        // --- physics --- (accel/top speed ramp up a little each level)
+        const speedMul = speedMulRef.current;
+        const moveAccel = MOVE_ACCEL * speedMul;
+        const maxSpeed = MAX_SPEED * speedMul;
         const k = keysRef.current;
-        if (k.left && !k.right) { p.vx -= MOVE_ACCEL; p.facing = -1; }
-        else if (k.right && !k.left) { p.vx += MOVE_ACCEL; p.facing = 1; }
+        if (k.left && !k.right) { p.vx -= moveAccel; p.facing = -1; }
+        else if (k.right && !k.left) { p.vx += moveAccel; p.facing = 1; }
         else p.vx *= FRICTION;
-        p.vx = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, p.vx));
+        p.vx = Math.max(-maxSpeed, Math.min(maxSpeed, p.vx));
         if (Math.abs(p.vx) < 0.05) p.vx = 0;
 
         if (k.jump && p.onGround) { p.vy = JUMP_VELOCITY; p.onGround = false; }
@@ -323,7 +420,17 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         const fellOff = p.y > ROWS * TILE + 40;
         if (hitSpike || fellOff) {
           p.state = 'hit';
-          triggerQuestion('death');
+          // Getting hit or falling off always costs a life and always keeps
+          // the game going — it never just stops. Running out of lives
+          // raises the stakes (the 5-question gauntlet below) instead of
+          // ending the activity. livesRef is the authoritative count during
+          // play (same reasoning as pausedRef — this runs inside the RAF
+          // loop's closure, which would otherwise see a stale value of the
+          // lives state).
+          livesRef.current = Math.max(0, livesRef.current - 1);
+          setLives(livesRef.current);
+          if (livesRef.current === 0) triggerGauntlet();
+          else triggerQuestion('death');
         }
 
         // Coin collection
@@ -338,7 +445,8 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           }
         }
 
-        // Reached the flag — celebrate and loop back to the start; the
+        // Reached the flag — celebrate and advance to the next (harder,
+        // faster) level, looping the last one once the list runs out. The
         // real "done" condition is finishing the question set, not distance.
         if (Math.floor(p.x / TILE) >= level.flagCol && p.onGround) {
           setCelebrateLap(true);
@@ -347,6 +455,8 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           p.y = (GROUND_TOP_ROW - 2) * TILE;
           p.vx = 0;
           p.vy = 0;
+          const nextLevel = Math.min(levelIndex + 1, LEVEL_PLANS.length - 1);
+          if (nextLevel !== levelIndex) setLevelIndex(nextLevel);
         }
 
         // --- animation state ---
@@ -428,10 +538,60 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   // ---------- Answer handling (reuses the same mastery/retry loop as QuizTask) ----------
   const submitAnswer = (correct: boolean) => setPendingCorrect(correct);
 
+  // Converts collected in-game coins into real Class Cash and shows the
+  // payout before handing off to onDone. The falling-coins animation and
+  // sound (CoinDropOverlay, mounted globally in App.tsx) fires on its own
+  // off this same recordTransaction call — no separate animation to build.
+  const finishRun = () => {
+    if (collectedCoins > 0) {
+      const cents = collectedCoins * CENTS_PER_COIN;
+      recordTransaction(student.id, cents, `🎮 ${task.title || 'Platformer'}: coins collected`, '🪙', 'task');
+      setPayout({ coins: collectedCoins, cents });
+    } else {
+      onDone();
+    }
+  };
+
   const resumeAfterQuestion = () => {
-    if (pendingCorrect === null || !activeQ) return;
+    if (pendingCorrect === null) return;
+
+    // The revive gauntlet (all 3 hearts gone) is tracked entirely locally —
+    // a miss restarts the streak from zero but never touches the real
+    // mastery queue, so it can't cost the student progress on the homework.
+    if (pauseReason === 'gauntlet') {
+      setPicked(null);
+      setFillValue('');
+      if (pendingCorrect) {
+        const nextIndex = gauntletIndex + 1;
+        if (nextIndex >= GAUNTLET_LENGTH) {
+          livesRef.current = MAX_LIVES;
+          setLives(MAX_LIVES);
+          setGauntletMissed(false);
+          setPendingCorrect(null);
+          setPauseReason(null);
+          setPaused(false);
+          const p = player.current;
+          p.x = 2 * TILE;
+          p.y = (GROUND_TOP_ROW - 2) * TILE;
+          p.vx = 0;
+          p.vy = 0;
+          p.state = 'idle';
+          return;
+        }
+        setGauntletIndex(nextIndex);
+        setPendingCorrect(null);
+        return;
+      }
+      setGauntletMissed(true);
+      setGauntletQuestions(pickGauntletQuestions());
+      setGauntletIndex(0);
+      setPendingCorrect(null);
+      return;
+    }
+
+    if (!masteryQ) return;
     try {
-      submitQuizAnswer(student.id, subject, task, activeQ.id, pendingCorrect);
+      submitQuizAnswer(student.id, subject, task, masteryQ.id, pendingCorrect);
     } catch (err) {
       console.error('submitQuizAnswer failed', err);
     }
@@ -440,7 +600,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     setPicked(null);
     setFillValue('');
     if (remaining && remaining.length === 0) {
-      onDone();
+      // Stays paused/frozen under the payout screen (or exits immediately
+      // via onDone if there were no coins to show) rather than resuming
+      // play for the instant before the parent unmounts this component.
+      finishRun();
       return;
     }
     // Death-triggered questions send the player back to the start; a
@@ -495,7 +658,13 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>Leave this game?</h2>
-              <p style={{ margin: 0 }}>Your question progress is saved — you can pick up right where you left off.</p>
+              <p style={{ margin: 0 }}>
+                This activity won't be marked done — you'll need to come back and finish every question before you
+                can check it off your to-do list.
+              </p>
+              <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.75 }}>
+                (Any questions you already got right are still saved, so you won't have to redo those.)
+              </p>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 <button className="btn btn-primary btn-lg" onClick={onExit}>Yes, go to my to-do list</button>
                 <button className="btn btn-lg" onClick={() => setConfirmExit(false)}>Keep playing</button>
@@ -507,12 +676,16 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
       <div className="quiz-fullview-card stack" style={{ maxWidth: CANVAS_W * DISPLAY_SCALE + 40 }}>
         <div className="row space-between" style={{ alignItems: 'center' }}>
-          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
             <span className="tag-pill" style={{ fontSize: '0.75rem' }}>🏁 {doneCount} of {total} answered</span>
             <span className="tag-pill" style={{ fontSize: '0.75rem', background: 'var(--yellow)' }}>🪙 {collectedCoins}</span>
+            <span className="tag-pill" style={{ fontSize: '0.75rem', background: '#fff' }} aria-label={`${lives} of ${MAX_LIVES} hearts left`}>
+              {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
+            </span>
+            <span className="tag-pill" style={{ fontSize: '0.75rem', background: 'var(--blue)', color: '#fff' }}>🚩 Level {levelIndex + 1}</span>
           </div>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} aria-label="Exit game" onClick={() => setConfirmExit(true)}>
-            ✕ Exit
+          <button className="fab-style-btn" aria-label="Exit game" title="Exit game" onClick={() => setConfirmExit(true)}>
+            ✕
           </button>
         </div>
 
@@ -583,9 +756,25 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         <div className="overlay-backdrop">
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 480 }}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <div className="tag-pill" style={{ background: pauseReason === 'death' ? 'var(--danger)' : 'var(--purple)', color: '#fff' }}>
-                {pauseReason === 'death' ? '💥 You got hit! Answer to keep going.' : '⏰ Quick question break!'}
+              <div className="tag-pill" style={{ background: pauseReason === 'death' ? 'var(--danger)' : pauseReason === 'gauntlet' ? 'var(--danger)' : 'var(--purple)', color: '#fff' }}>
+                {pauseReason === 'death'
+                  ? '💥 You got hit! Answer to keep going.'
+                  : pauseReason === 'gauntlet'
+                    ? `💔 Out of hearts! Answer ${GAUNTLET_LENGTH} in a row to get back in the game.`
+                    : '⏰ Quick question break!'}
               </div>
+              {pauseReason === 'gauntlet' && (
+                <>
+                  <div className="tag-pill" style={{ background: '#fff' }}>
+                    {gauntletIndex} of {GAUNTLET_LENGTH} in a row
+                  </div>
+                  {gauntletMissed && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 700 }}>
+                      That one broke the streak — starting the count over from 0.
+                    </p>
+                  )}
+                </>
+              )}
               <div className="row" style={{ justifyContent: 'center' }}>
                 <h2 style={{ margin: 0 }}>{activeQ.prompt}</h2>
                 <ReadAloud text={activeQ.prompt} settings={student.ttsSettings} />
@@ -653,6 +842,26 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                   ▶️ Back to the game!
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {payout && (
+        <div className="overlay-backdrop">
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ fontSize: '2.4rem' }}>🎉</div>
+              <h2 style={{ margin: 0 }}>All done!</h2>
+              <p style={{ margin: 0, fontSize: '1.1rem' }}>
+                🪙 You collected <strong>{payout.coins}</strong> coin{payout.coins === 1 ? '' : 's'}!
+              </p>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: '1.3rem', color: 'var(--success)' }}>
+                {formatMoney(payout.cents)} added to your Piggy Bank! 🐷
+              </p>
+              <button className="btn btn-primary btn-lg pulse-cta" onClick={onDone}>
+                Continue
+              </button>
             </div>
           </div>
         </div>

@@ -29,6 +29,19 @@
 
 * { box-sizing: border-box; }
 
+/* Mobile browsers flash a big semi-transparent highlight over a tapped
+   element by default — on a full-width/full-screen button (like the
+   platformer's touch controls) that reads as "the whole screen flashes."
+   Turn that off everywhere and use a visible-but-contained focus ring
+   instead, only for keyboard/switch-device focus (not every tap). */
+* { -webkit-tap-highlight-color: transparent; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:focus, a:focus { outline: none; }
+button:focus-visible, a:focus-visible {
+  outline: 3px solid var(--purple);
+  outline-offset: 2px;
+}
+
 html, body, #root {
   height: 100%;
 }
@@ -561,6 +574,33 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   z-index: 60;
 }
 .tools-fab:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+
+/* A "FAB-styled" button for use inline in normal document flow (not
+   position: fixed like .tools-fab/.whatnow-fab/.help-fab below) — same
+   chunky circular look, used anywhere a to-do/exit affordance should read
+   as visually consistent with those corner buttons, e.g. inside the
+   platformer's full-screen game view. */
+.fab-style-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: var(--chunk) solid var(--ink);
+  background: var(--danger);
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 900;
+  box-shadow: 4px 4px 0 var(--ink);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fab-style-btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.fab-style-btn:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
+.fab-style-btn.fab-style-btn-todo { background: var(--blue); font-size: 1.3rem; }
 
 .whatnow-fab {
   position: fixed;

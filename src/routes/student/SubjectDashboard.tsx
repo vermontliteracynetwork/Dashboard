@@ -217,14 +217,18 @@ export default function SubjectDashboard() {
         <div className="row-wrap">
           {activeTask && (
             <button
-              className="btn btn-sm btn-primary"
+              className="fab-style-btn fab-style-btn-todo"
               // Always clickable, even over the "are you sure?" dialog
               // (which covers the whole screen) — this is the guaranteed
               // way back to the checklist no matter what else is going on.
+              // Styled to match the circular Tools/What-do-I-do?/Help FABs
+              // used everywhere else, instead of a plain rectangular button.
               style={{ position: 'relative', zIndex: 200 }}
+              aria-label="Back to my to-do list"
+              title="Back to my to-do list"
               onClick={() => { setConfirmDone(null); setSelectedTaskId(null); }}
             >
-              📋 To-Do List
+              📋
             </button>
           )}
           <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
