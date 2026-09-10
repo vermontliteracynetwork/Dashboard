@@ -671,7 +671,12 @@ export const useStore = create<AppState>()(
           lastCoinEarn: amountCents > 0 ? { id: makeId(), studentId, amountCents } : s.lastCoinEarn,
         }));
         pushTransaction(tx);
-        get().updateStudent(studentId, { coins: student.coins + amountCents });
+        // A $0 transaction (a free item win, a Skip Pass win, a log-only
+        // register row) changes nothing about the balance — skip the
+        // otherwise-redundant updateStudent call so it can't race a
+        // different update already in flight for this student (e.g. the
+        // daily spin's item-grant write) and clobber it.
+        if (amountCents !== 0) get().updateStudent(studentId, { coins: student.coins + amountCents });
       },
 
       // Reverses a mistaken register entry's effect on the balance — for a
@@ -927,16 +932,25 @@ export const useStore = create<AppState>()(
         const segments = getDailySpinSegments(today, get().marketplaceItems);
         const segmentIndex = Math.floor(Math.random() * segments.length);
         const segment = segments[segmentIndex];
-        get().updateStudent(studentId, { lastSpinDate: today, bonusSpinAvailable: false });
+        // Folded into each branch's own updateStudent call below instead of
+        // fired as its own separate update — two back-to-back updateStudent
+        // calls on the same student each push their own full-row upsert to
+        // Supabase, and those two async writes can land out of order,
+        // occasionally letting the earlier (pre-prize) row win and silently
+        // drop whatever the second call had just added (e.g. a won emote
+        // never actually persisting). One combined patch per branch avoids
+        // the race entirely.
+        const spinPatch: Partial<Student> = { lastSpinDate: today, bonusSpinAvailable: false };
 
         if (segment.kind === 'skip') {
-          get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
+          get().updateStudent(studentId, { ...spinPatch, skipTokens: student.skipTokens + 1 });
           get().recordTransaction(studentId, 0, '🎡 Daily Spin: won a Skip Pass', '🎫', 'spin-cash');
           return { type: 'skip', amountCents: 0, label: segment.label, segmentIndex };
         }
 
         if (segment.kind === 'cents' || segment.kind === 'cashback') {
           const amountCents = segment.kind === 'cashback' ? Math.round(student.coins * ((segment.percent ?? 0) / 100)) : segment.amountCents ?? 0;
+          get().updateStudent(studentId, spinPatch);
           get().recordTransaction(studentId, amountCents, '🎡 Daily Spin winnings', '🎡', segment.kind === 'cashback' ? 'spin-cashback' : 'spin-cash');
           return {
             type: segment.kind,
@@ -961,6 +975,7 @@ export const useStore = create<AppState>()(
         )[itemKind];
         const alreadyOwned = student[ownedField].includes(itemId);
         if (alreadyOwned) {
+          get().updateStudent(studentId, spinPatch);
           get().recordTransaction(studentId, ITEM_ALREADY_OWNED_CONSOLATION_CENTS, `🎡 Daily Spin (already had ${segment.label})`, '🎡', 'spin-cash');
           return {
             type: 'item',
@@ -969,7 +984,7 @@ export const useStore = create<AppState>()(
             segmentIndex,
           };
         }
-        get().updateStudent(studentId, { [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
+        get().updateStudent(studentId, { ...spinPatch, [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
         // Every spin — including a free item win — leaves a $0 register
         // row, so a student's bank history always shows exactly what
         // happened on every spin, not just the ones that moved money.
