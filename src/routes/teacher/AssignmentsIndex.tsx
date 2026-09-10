@@ -43,7 +43,7 @@ function uniqueRowsByStudent(rows: Assignment[]): Assignment[] {
   return rows.filter((r) => (seen.has(r.studentId) ? false : (seen.add(r.studentId), true)));
 }
 
-type Filter = 'active' | 'upcoming' | 'past' | 'drafts' | 'all' | 'by-student';
+type Filter = 'active' | 'upcoming' | 'past' | 'drafts' | 'all' | 'by-student' | 'deleted';
 
 // What the full builder needs to reopen editing an existing draft or
 // upcoming assignment, pre-filled exactly as it was.
@@ -112,14 +112,26 @@ function DraftCard({
   );
 }
 
-function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () => void }) {
+function AssignmentCard({
+  group,
+  onOpen,
+  onDelete,
+}: {
+  group: AssignmentGroup;
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
   const planTemplates = useStore((s) => s.planTemplates);
   const students = useStore((s) => s.students);
   const progress = useStore((s) => s.progress);
+  const duplicateTemplate = useStore((s) => s.duplicateTemplate);
   const template = planTemplates.find((t) => t.id === group.templateId);
   const today = todayISO();
   const isActiveToday = group.startDate <= today && today <= group.endDate;
   const isUpcoming = group.startDate > today;
+  const isPast = group.endDate < today;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [duplicated, setDuplicated] = useState(false);
 
   const studentList = uniqueRowsByStudent(group.rows)
     .map((r) => students.find((s) => s.id === r.studentId))
@@ -131,14 +143,16 @@ function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () 
   }).length;
 
   return (
-    <button className="assignment-card" onClick={onOpen}>
+    <div className="assignment-card" style={{ cursor: 'default' }}>
       <div className={`assignment-card-banner ${group.subject === 'math' ? 'banner-math' : 'banner-literacy'}`}>
         <span>{group.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-        {group.endDate < today && <span className="tag-pill">Past</span>}
+        {isPast && <span className="tag-pill">Past</span>}
         {isUpcoming && <span className="tag-pill">✏️ Upcoming</span>}
       </div>
       <div className="assignment-card-body">
-        <strong className="assignment-card-title">{template?.name ?? '(deleted plan)'}</strong>
+        <button className="assignment-card-title" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', font: 'inherit', cursor: 'pointer' }} onClick={onOpen}>
+          <strong>{template?.name ?? '(deleted plan)'}</strong>
+        </button>
         <div className="assignment-card-meta">
           {template?.activities.length ?? 0} activities · {group.mode === 'repeat' ? '🔁 Repeats daily' : '📌 One span'}
         </div>
@@ -163,9 +177,81 @@ function AssignmentCard({ group, onOpen }: { group: AssignmentGroup; onOpen: () 
             <span>{doneToday}/{studentList.length} done today</span>
           </div>
         )}
-        {group.endDate >= today && <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: '4px 0 0' }}>Tap to edit — dates, students, and activities</p>}
+
+        <div className="row-wrap" style={{ marginTop: 8 }}>
+          <button className="btn btn-sm" onClick={onOpen}>{isPast ? '👁️ View' : '✏️ Edit'}</button>
+          <button
+            className="btn btn-sm"
+            onClick={() => {
+              if (template) duplicateTemplate(template.id);
+              setDuplicated(true);
+            }}
+          >
+            ⧉ Duplicate
+          </button>
+          {confirmDelete ? (
+            <>
+              <button className="btn btn-sm btn-danger" onClick={onDelete}>Confirm delete</button>
+              <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
+            </>
+          ) : (
+            <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(true)}>🗑️ Delete</button>
+          )}
+        </div>
+        {duplicated && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 700, margin: '6px 0 0' }}>
+            ✅ Duplicated to Drafts — find it under the Drafts tab to customize and publish.
+          </p>
+        )}
       </div>
-    </button>
+    </div>
+  );
+}
+
+function DeletedAssignmentCard({ group, onRestore, onDeleteForever }: { group: AssignmentGroup; onRestore: () => void; onDeleteForever: () => void }) {
+  const planTemplates = useStore((s) => s.planTemplates);
+  const students = useStore((s) => s.students);
+  const template = planTemplates.find((t) => t.id === group.templateId);
+  const [confirmForever, setConfirmForever] = useState(false);
+
+  const studentList = uniqueRowsByStudent(group.rows)
+    .map((r) => students.find((s) => s.id === r.studentId))
+    .filter((s): s is Student => !!s);
+
+  return (
+    <div className="assignment-card" style={{ cursor: 'default', opacity: 0.8 }}>
+      <div className={`assignment-card-banner ${group.subject === 'math' ? 'banner-math' : 'banner-literacy'}`}>
+        <span>{group.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
+        <span className="tag-pill">🗑️ Deleted</span>
+      </div>
+      <div className="assignment-card-body">
+        <strong className="assignment-card-title">{template?.name ?? '(deleted plan)'}</strong>
+        <div className="assignment-card-meta">
+          {group.startDate === group.endDate
+            ? formatDateLong(group.startDate)
+            : `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`}
+        </div>
+        <div className="assignment-card-students">
+          {studentList.map((st) => (
+            <span key={st.id} title={st.name}><AvatarGlyph value={st.avatar} size={22} /></span>
+          ))}
+          <span className="assignment-card-count">
+            {studentList.length} student{studentList.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <div className="row-wrap" style={{ marginTop: 8 }}>
+          <button className="btn btn-sm btn-primary" onClick={onRestore}>↩️ Restore</button>
+          {confirmForever ? (
+            <>
+              <button className="btn btn-sm btn-danger" onClick={onDeleteForever}>Confirm — delete forever</button>
+              <button className="btn btn-sm" onClick={() => setConfirmForever(false)}>Cancel</button>
+            </>
+          ) : (
+            <button className="btn btn-sm btn-danger" onClick={() => setConfirmForever(true)}>🗑️ Delete forever</button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -259,7 +345,7 @@ function AssignmentDetailModal({
           <hr className="divider" />
           {confirmDelete ? (
             <div className="row-wrap">
-              <span style={{ fontSize: '0.85rem' }}>Remove this assignment for everyone?</span>
+              <span style={{ fontSize: '0.85rem' }}>Remove this assignment for everyone? (You can restore it later from the Deleted tab.)</span>
               <button className="btn btn-sm btn-danger" onClick={onDelete}>Yes, remove it</button>
               <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
             </div>
@@ -280,6 +366,8 @@ export default function AssignmentsIndex() {
   const planTemplates = useStore((s) => s.planTemplates);
   const students = useStore((s) => s.students);
   const deleteAssignment = useStore((s) => s.deleteAssignment);
+  const softDeleteAssignment = useStore((s) => s.softDeleteAssignment);
+  const restoreAssignment = useStore((s) => s.restoreAssignment);
 
   const [subject, setSubject] = useState<Subject>('math');
   const [creating, setCreating] = useState(false);
@@ -289,11 +377,12 @@ export default function AssignmentsIndex() {
   const [filter, setFilter] = useState<Filter>('active');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
-  const groups = useMemo(() => groupAssignments(assignments), [assignments]);
+  const groups = useMemo(() => groupAssignments(assignments.filter((a) => !a.deletedAt)), [assignments]);
+  const deletedGroups = useMemo(() => groupAssignments(assignments.filter((a) => !!a.deletedAt)), [assignments]);
   const detailGroup = groups.find((g) => g.key === detailKey) ?? null;
   const today = todayISO();
   const filteredGroups = groups.filter((g) => {
-    if (filter === 'all' || filter === 'drafts' || filter === 'by-student') return filter === 'all';
+    if (filter === 'all' || filter === 'drafts' || filter === 'by-student' || filter === 'deleted') return filter === 'all';
     if (filter === 'active') return g.startDate <= today && today <= g.endDate;
     if (filter === 'upcoming') return g.startDate > today;
     return g.endDate < today;
@@ -428,7 +517,7 @@ export default function AssignmentsIndex() {
         <h1>📋 Assignments</h1>
 
         <div className="lp-tabs">
-          {(['active', 'upcoming', 'past', 'drafts', 'all', 'by-student'] as Filter[]).map((f) => (
+          {(['active', 'upcoming', 'past', 'drafts', 'all', 'by-student', 'deleted'] as Filter[]).map((f) => (
             <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
               {f === 'active'
                 ? '🟢 Active'
@@ -440,12 +529,29 @@ export default function AssignmentsIndex() {
                       ? `📝 Drafts (${draftTemplates.length})`
                       : f === 'by-student'
                         ? '🧑 By Student'
-                        : 'All'}
+                        : f === 'deleted'
+                          ? `🗑️ Deleted (${deletedGroups.length})`
+                          : 'All'}
             </button>
           ))}
         </div>
 
-        {filter === 'by-student' ? (
+        {filter === 'deleted' ? (
+          <div className="assignment-card-grid">
+            {deletedGroups.length === 0 ? (
+              <p style={{ opacity: 0.7 }}>Nothing deleted right now.</p>
+            ) : (
+              deletedGroups.map((g) => (
+                <DeletedAssignmentCard
+                  key={g.key}
+                  group={g}
+                  onRestore={() => g.rows.forEach((r) => restoreAssignment(r.id))}
+                  onDeleteForever={() => g.rows.forEach((r) => deleteAssignment(r.id))}
+                />
+              ))
+            )}
+          </div>
+        ) : filter === 'by-student' ? (
           <>
             {students.length === 0 ? (
               <p style={{ opacity: 0.7 }}>No students yet — add one from the Students page first.</p>
@@ -482,6 +588,7 @@ export default function AssignmentsIndex() {
                       key={g.key}
                       group={g}
                       onOpen={() => (g.endDate >= today ? startEditGroup(g) : setDetailKey(g.key))}
+                      onDelete={() => g.rows.forEach((r) => softDeleteAssignment(r.id))}
                     />
                   ))}
             </div>
@@ -506,7 +613,7 @@ export default function AssignmentsIndex() {
           group={detailGroup}
           onClose={() => setDetailKey(null)}
           onDelete={() => {
-            detailGroup.rows.forEach((r) => deleteAssignment(r.id));
+            detailGroup.rows.forEach((r) => softDeleteAssignment(r.id));
             setDetailKey(null);
           }}
         />

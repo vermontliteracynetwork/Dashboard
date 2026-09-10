@@ -417,6 +417,7 @@ const rowToAssignment = (r: Row): Assignment => ({
   endDate: r.end_date,
   mode: r.mode,
   applied: r.applied ?? false,
+  deletedAt: r.deleted_at ?? null,
 });
 
 const assignmentToRow = (a: Assignment): Row => ({
@@ -428,6 +429,7 @@ const assignmentToRow = (a: Assignment): Row => ({
   end_date: a.endDate,
   mode: a.mode,
   applied: a.applied,
+  deleted_at: a.deletedAt ?? null,
 });
 
 const rowToLiteracyFocusSet = (r: Row): LiteracyFocusSet => ({

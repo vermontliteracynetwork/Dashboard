@@ -423,6 +423,7 @@ export interface Assignment {
   endDate: string; // ISO date; equals startDate for a single day
   mode: 'repeat' | 'span';
   applied: boolean; // 'span' only: whether the one-time copy into the live plan has happened yet
+  deletedAt?: string | null; // ISO timestamp — set when soft-deleted (moved to the Deleted tab), null/unset = active
 }
 
 // A student's phonics/morpheme/spelling focus for a date window (typically

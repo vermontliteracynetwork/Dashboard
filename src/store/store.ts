@@ -337,6 +337,12 @@ interface AppState {
     mode: 'repeat' | 'span',
   ) => void;
   deleteAssignment: (id: string) => void;
+  // Moves an assignment to the Deleted tab instead of erasing it — the
+  // default "delete" everywhere in the Assignments UI. The permanent
+  // deleteAssignment above is only reachable from inside that tab now
+  // ("delete forever").
+  softDeleteAssignment: (id: string) => void;
+  restoreAssignment: (id: string) => void;
   updateAssignment: (id: string, patch: Partial<Assignment>) => void;
   addStudentToAssignment: (
     studentId: string,
@@ -1956,6 +1962,31 @@ export const useStore = create<AppState>()(
         set((s) => ({ assignments: s.assignments.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
         const updated = get().assignments.find((a) => a.id === id);
         if (updated) pushAssignment(updated);
+      },
+
+      softDeleteAssignment: (id) => {
+        const removed = get().assignments.find((a) => a.id === id);
+        if (!removed) return;
+        get().updateAssignment(id, { deletedAt: new Date().toISOString() });
+        // Same as a real delete: stop showing it today rather than waiting
+        // for tomorrow's daily refresh.
+        const today = todayISO();
+        if (removed.startDate <= today && today <= removed.endDate) {
+          get().clearRotationIfNoLongerAssigned(removed.studentId, removed.subject);
+        }
+      },
+
+      restoreAssignment: (id) => {
+        const restored = get().assignments.find((a) => a.id === id);
+        if (!restored) return;
+        get().updateAssignment(id, { deletedAt: null });
+        // If it's back inside its own active window, put it back on the
+        // student's live plan immediately rather than waiting on them to
+        // reload — mirrors how publishing a new assignment already works.
+        const today = todayISO();
+        if (restored.startDate <= today && today <= restored.endDate) {
+          get().applyTemplateToStudent(restored.studentId, restored.templateId);
+        }
       },
 
       // Idempotent by design: a student can only ever have one live
