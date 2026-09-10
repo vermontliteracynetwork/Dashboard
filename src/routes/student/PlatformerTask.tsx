@@ -3,7 +3,7 @@ import { useStore } from '../../store/store';
 import ReadAloud from '../../components/ReadAloud';
 import { MatchingBoard } from './QuizTask';
 import { formatMoney } from '../../lib/money';
-import type { Student, Subject, Task, QuizQuestion } from '../../types';
+import type { Student, Subject, Task } from '../../types';
 
 interface Props {
   student: Student;
@@ -186,7 +186,6 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const [celebrateLap, setCelebrateLap] = useState(false);
   const [levelIndex, setLevelIndex] = useState(0);
   const [lives, setLives] = useState(MAX_LIVES);
-  const [gauntletQuestions, setGauntletQuestions] = useState<QuizQuestion[]>([]);
   const [gauntletIndex, setGauntletIndex] = useState(0);
   const [gauntletMissed, setGauntletMissed] = useState(false);
   const [payout, setPayout] = useState<{ coins: number; cents: number } | null>(null);
@@ -238,10 +237,11 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const activeId = state?.remainingIds[0];
   const masteryQ = questions.find((q) => q.id === activeId);
   const doneCount = state?.masteredIds.length ?? 0;
-  // During the gauntlet (all lives lost), questions come from a separate
-  // local streak-of-5 rather than the mastery queue above — missing one of
-  // these doesn't cost mastery progress, it just restarts the streak.
-  const activeQ = pauseReason === 'gauntlet' ? gauntletQuestions[gauntletIndex] : masteryQ;
+  // The gauntlet (all lives lost) still asks real questions from the same
+  // mastery queue — every answer, gauntlet or not, counts toward actually
+  // finishing the question set. Gauntlet mode only adds an extra local
+  // "5 correct in a row" requirement on top, before lives come back.
+  const activeQ = masteryQ;
 
   // ---------- Preload sprites once a character is picked ----------
   useEffect(() => {
@@ -324,19 +324,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     setPendingCorrect(null);
   };
 
-  // 5 random questions from the same set — used only for the "lives are
-  // gone, prove you're paying attention" gauntlet, kept separate from the
-  // real mastery queue so a miss here never erases mastery progress.
-  const pickGauntletQuestions = (): QuizQuestion[] => {
-    if (questions.length === 0) return [];
-    return Array.from({ length: GAUNTLET_LENGTH }, () => questions[Math.floor(Math.random() * questions.length)]);
-  };
-
   const triggerGauntlet = () => {
     pausedRef.current = true;
     setPauseReason('gauntlet');
     setPaused(true);
-    setGauntletQuestions(pickGauntletQuestions());
     setGauntletIndex(0);
     setGauntletMissed(false);
     setPicked(null);
@@ -553,21 +544,45 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   };
 
   const resumeAfterQuestion = () => {
-    if (pendingCorrect === null) return;
+    if (pendingCorrect === null || !masteryQ) return;
+    const wasCorrect = pendingCorrect;
 
-    // The revive gauntlet (all 3 hearts gone) is tracked entirely locally —
-    // a miss restarts the streak from zero but never touches the real
-    // mastery queue, so it can't cost the student progress on the homework.
+    // Every question — gauntlet or not — is a real mastery-queue question,
+    // and every answer is submitted for real: a correct answer always
+    // retires that question for good (it never comes back), a wrong one
+    // gets requeued for another try later. The gauntlet layers one extra
+    // local rule on top (5 correct in a row to get lives back) without
+    // ever pulling from a separate, disconnected question pool — that
+    // used to let the same already-mastered question resurface, and let a
+    // student spend an entire session in gauntlet loops that never
+    // actually advanced the real question set.
+    try {
+      submitQuizAnswer(student.id, subject, task, masteryQ.id, wasCorrect);
+    } catch (err) {
+      console.error('submitQuizAnswer failed', err);
+    }
+    const remaining = useStore.getState().progress[student.id]?.[subject]?.quizState?.[task.id]?.remainingIds;
+    setPendingCorrect(null);
+    setPicked(null);
+    setFillValue('');
+
+    if (remaining && remaining.length === 0) {
+      // Finishing the whole question set always wins, even mid-gauntlet —
+      // stays paused/frozen under the payout screen (or exits immediately
+      // via onDone if there were no coins to show) rather than resuming
+      // play for the instant before the parent unmounts this component.
+      finishRun();
+      return;
+    }
+
     if (pauseReason === 'gauntlet') {
-      setPicked(null);
-      setFillValue('');
-      if (pendingCorrect) {
+      if (wasCorrect) {
         const nextIndex = gauntletIndex + 1;
         if (nextIndex >= GAUNTLET_LENGTH) {
           livesRef.current = MAX_LIVES;
           setLives(MAX_LIVES);
           setGauntletMissed(false);
-          setPendingCorrect(null);
+          setGauntletIndex(0);
           setPauseReason(null);
           setPaused(false);
           const p = player.current;
@@ -579,33 +594,14 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           return;
         }
         setGauntletIndex(nextIndex);
-        setPendingCorrect(null);
+        setGauntletMissed(false);
         return;
       }
       setGauntletMissed(true);
-      setGauntletQuestions(pickGauntletQuestions());
       setGauntletIndex(0);
-      setPendingCorrect(null);
       return;
     }
 
-    if (!masteryQ) return;
-    try {
-      submitQuizAnswer(student.id, subject, task, masteryQ.id, pendingCorrect);
-    } catch (err) {
-      console.error('submitQuizAnswer failed', err);
-    }
-    const remaining = useStore.getState().progress[student.id]?.[subject]?.quizState?.[task.id]?.remainingIds;
-    setPendingCorrect(null);
-    setPicked(null);
-    setFillValue('');
-    if (remaining && remaining.length === 0) {
-      // Stays paused/frozen under the payout screen (or exits immediately
-      // via onDone if there were no coins to show) rather than resuming
-      // play for the instant before the parent unmounts this component.
-      finishRun();
-      return;
-    }
     // Death-triggered questions send the player back to the start; a
     // timer-triggered question just resumes exactly where play paused.
     if (pauseReason === 'death') {
@@ -710,6 +706,27 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
               <div className="tag-pill" style={{ fontSize: '1.1rem', background: 'var(--success)', color: '#fff' }}>🎉 You made it! Looping back for more.</div>
             </div>
           )}
+
+          {/* Optional corner-touch movement — an alternative to the arrow
+              buttons below for students who prefer tapping/holding the
+              screen itself. Purely additive: the arrow buttons still work
+              exactly the same either way. */}
+          <div
+            style={{ position: 'absolute', left: 0, bottom: 0, width: '32%', height: '55%', touchAction: 'none' }}
+            onPointerDown={holdKey('left', true)}
+            onPointerUp={holdKey('left', false)}
+            onPointerLeave={holdKey('left', false)}
+            aria-label="Move left (touch and hold)"
+            role="button"
+          />
+          <div
+            style={{ position: 'absolute', right: 0, bottom: 0, width: '32%', height: '55%', touchAction: 'none' }}
+            onPointerDown={holdKey('right', true)}
+            onPointerUp={holdKey('right', false)}
+            onPointerLeave={holdKey('right', false)}
+            aria-label="Move right (touch and hold)"
+            role="button"
+          />
 
           {/* Touch controls */}
           <div className="row space-between" style={{ marginTop: 8 }}>

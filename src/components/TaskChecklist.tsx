@@ -169,12 +169,14 @@ export default function TaskChecklist({
         // row for attention but does not itself count as opened, or a numbered
         // link/offscreen task could be checked off sight-unseen.
         const opened = openedIds.has(t.id);
-        // Only a plain external link is a manual, self-reported completion
-        // (confirmed via the dialog below). Every other type must be finished
-        // through its own activity screen — a quiz mastered, a drill flipped
-        // through, a required photo attached — so tapping the checkbox for
-        // those opens/reopens the activity instead of silently checking it off.
-        const directComplete = t.type === 'link';
+        // A plain external link is always a manual, self-reported completion
+        // (confirmed via the dialog below). The platformer game gets the
+        // same manual-override option as a deliberate safety valve — every
+        // other type must be finished through its own activity screen (a
+        // quiz mastered, a drill flipped through, a required photo
+        // attached), so tapping the checkbox for those opens/reopens the
+        // activity instead of silently checking it off.
+        const directComplete = t.type === 'link' || t.type === 'platformer';
         const handleClick = () => {
           // A completed row stays clickable — tapping it double-checks
           // before undoing anything, rather than being locked out entirely.
