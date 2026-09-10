@@ -79,6 +79,7 @@ export default function PlaygroundView() {
         <InternalBrowser
           url={openEntry.task.link?.url ?? ''}
           title={openEntry.task.title}
+          embed={openEntry.task.link?.embed}
           onClose={close}
           toolsButton={<ToolsPanel student={student} subject={openEntry.subject} variant="inline" />}
         />

@@ -8,7 +8,7 @@ import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
-type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'mystuff';
+type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'mystuff' | 'receipts';
 
 interface CartEntry {
   key: string; // `${source}-${id}`, unique per cart
@@ -94,6 +94,7 @@ export default function Marketplace() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
+  const transactions = useStore((s) => s.transactions);
   const equipEmote = useStore((s) => s.equipEmote);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
@@ -109,6 +110,9 @@ export default function Marketplace() {
 
   const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
+  const pastReceipts = transactions
+    .filter((t) => t.studentId === studentId && t.kind.startsWith('purchase-'))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
   const byKind = (kind: MarketplaceItemKind) => marketplaceItems.filter((it) => it.kind === kind && isAvailableToday(it));
   const fontItems = byKind('font');
@@ -357,6 +361,9 @@ export default function Marketplace() {
             <button className={`shop-tab-btn ${tab === 'mystuff' ? 'active' : ''}`} onClick={() => setTab('mystuff')}>
               🎒 My Stuff
             </button>
+            <button className={`shop-tab-btn ${tab === 'receipts' ? 'active' : ''}`} onClick={() => setTab('receipts')}>
+              🧾 Receipts
+            </button>
           </div>
 
           <div className="shop-shelf">
@@ -550,6 +557,36 @@ export default function Marketplace() {
                     })}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {tab === 'receipts' && (
+              <div className="stack" style={{ gap: 10, maxWidth: 480, margin: '0 auto' }}>
+                {pastReceipts.length === 0 ? (
+                  <p style={{ opacity: 0.7, textAlign: 'center' }}>No purchases yet — anything you buy shows up here to look back at.</p>
+                ) : (
+                  pastReceipts.map((t) => (
+                    <div key={t.id} className="row space-between chrome-frame" style={{ padding: '10px 14px', opacity: t.voided ? 0.55 : 1 }}>
+                      <div className="row" style={{ gap: 10 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 8, background: '#f4f2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                          {t.icon.startsWith('/') || t.icon.startsWith('http') ? (
+                            <img src={t.icon} alt="" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+                          ) : (
+                            <span>{t.icon}</span>
+                          )}
+                        </div>
+                        <div className="stack" style={{ gap: 0 }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, textDecoration: t.voided ? 'line-through' : 'none' }}>{t.description}</span>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
+                            {new Date(t.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            {t.voided && ' — refunded'}
+                          </span>
+                        </div>
+                      </div>
+                      <strong style={{ color: 'var(--danger)', textDecoration: t.voided ? 'line-through' : 'none' }}>{formatMoney(t.amountCents)}</strong>
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>

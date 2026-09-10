@@ -32,6 +32,7 @@ export default function LinkTask({ student, subject, task, openToken, onWindowOp
       key={`${task.id}-${openToken}`}
       url={task.link?.url ?? ''}
       title={task.title}
+      embed={task.link?.embed}
       onClose={() => setBrowsing(false)}
       onWindowOpened={onWindowOpened}
       toolsButton={<ToolsPanel student={student} subject={subject} variant="inline" />}

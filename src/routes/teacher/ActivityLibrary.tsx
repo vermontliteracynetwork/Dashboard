@@ -276,6 +276,12 @@ function LinkChoiceEditor({ content, onChange }: { content: LinkChoiceContent; o
                   }}
                   placeholder="https://www.youtube.com/watch?v=..."
                 />
+                {!videoId && opt.url && (
+                  <label className="row" style={{ gap: 6, fontSize: '0.72rem', marginTop: 4 }}>
+                    <input type="checkbox" checked={opt.embed ?? false} onChange={(e) => updateOption(opt.id, { embed: e.target.checked })} />
+                    📺 Play right here (only sites built for embedding, like Scratch's <code>/embed</code> links)
+                  </label>
+                )}
               </div>
               <div>
                 <label>Duration (optional)</label>
@@ -532,8 +538,17 @@ export function TaskEditor({
             style={{ width: '100%' }}
             placeholder="https://..."
             value={task.link?.url ?? ''}
-            onChange={(e) => setTask({ ...task, link: { url: e.target.value } })}
+            onChange={(e) => setTask({ ...task, link: { url: e.target.value, embed: task.link?.embed } })}
           />
+          <label className="row" style={{ gap: 6, fontSize: '0.8rem', marginTop: 6 }}>
+            <input
+              type="checkbox"
+              checked={task.link?.embed ?? false}
+              onChange={(e) => setTask({ ...task, link: { url: task.link?.url ?? '', embed: e.target.checked } })}
+            />
+            📺 Play right here in the app (only works for sites built for it, like Scratch's{' '}
+            <code>/embed</code> project links — most sites block this and will show a blank box)
+          </label>
         </div>
       )}
 

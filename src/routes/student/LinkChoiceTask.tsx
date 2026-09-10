@@ -132,6 +132,7 @@ function ChosenOptionView({
       <InternalBrowser
         url={option.url}
         title={option.label}
+        embed={option.embed}
         onClose={onChangeChoice}
         onMarkDone={onDone}
         toolsButton={<ToolsPanel student={student} subject={subject} variant="inline" />}

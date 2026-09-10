@@ -156,6 +156,13 @@ export interface QuizContent {
 
 export interface LinkContent {
   url: string;
+  // Shows this activity inside the app in an iframe instead of the default
+  // "opens in a new tab" card. Only works for sites that explicitly allow
+  // being framed (most block it outright with X-Frame-Options/CSP) — e.g.
+  // Scratch's own /embed project URLs (scratch.mit.edu/projects/<id>/embed).
+  // Off by default so a teacher opts in per-activity, since turning it on
+  // for a site that blocks framing just shows a blank box.
+  embed?: boolean;
 }
 
 export interface OffscreenContent {
@@ -240,6 +247,7 @@ export interface LinkChoiceOption {
   url: string;
   thumbnailUrl?: string; // auto-filled from a YouTube link; teacher can override/add for any other link
   durationLabel?: string; // free-text, e.g. "4:32" — teacher-entered, no reliable no-key API for real duration
+  embed?: boolean; // see LinkContent.embed — only for non-YouTube urls (YouTube ones already embed automatically)
 }
 
 export interface LinkChoiceContent {
