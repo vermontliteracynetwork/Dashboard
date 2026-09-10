@@ -46,6 +46,22 @@ export function playCashRegister() {
   }
 }
 
+// A real recorded completion sound — played the moment a student checks an
+// activity off their to-do list (the "Yes, I did it" confirmation), on top
+// of whatever reward sound/animation that completion also triggers.
+export function playTaskComplete() {
+  try {
+    const audio = new Audio('/sounds/task-complete.mp3');
+    audio.volume = 0.6;
+    void audio.play().catch(() => {
+      // Autoplay can be blocked until the student has interacted with the
+      // page — checking off a task is always a tap, so this is a rare edge case.
+    });
+  } catch {
+    // Audio isn't available — the task still checks off, just silently.
+  }
+}
+
 // A real recorded coin-drop jingle — played any time Class Cash lands in a
 // student's Piggy Bank (spin win, task reward, streak bonus, achievement,
 // teacher bonus, etc.), alongside the falling-coins animation in

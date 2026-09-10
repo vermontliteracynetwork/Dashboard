@@ -12,6 +12,7 @@ import DrillTask from './DrillTask';
 import WordChainTask from './WordChainTask';
 import SentenceEditTask from './SentenceEditTask';
 import ToolsPanel from '../../components/ToolsPanel';
+import { playTaskComplete } from '../../lib/chime';
 import HelpOverlay from '../../components/HelpOverlay';
 import WhatNowOverlay from '../../components/WhatNowOverlay';
 import TaskChecklist from '../../components/TaskChecklist';
@@ -122,6 +123,7 @@ export default function SubjectDashboard() {
   };
 
   const checkOff = (task: Task, photoUrl?: string) => {
+    playTaskComplete();
     if (task.type === 'link') closeOpenedWindow(task.id);
     if (task.type === 'offscreen') markOffscreenDone(student.id, subj, task, photoUrl);
     else completeTask(student.id, subj, task.id);
