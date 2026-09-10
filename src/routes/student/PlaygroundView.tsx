@@ -15,7 +15,26 @@ import WordChainTask from './WordChainTask';
 import SentenceEditTask from './SentenceEditTask';
 import { todayISO } from '../../lib/dates';
 import { getPlaygroundAccess } from '../../lib/playgroundAccess';
-import type { Subject, Task } from '../../types';
+import { makeId } from '../../lib/id';
+import type { QuestionSet, Subject, Task } from '../../types';
+
+// Turns a saved question set into a standalone, ungraded Platformer run —
+// same game, but the student picked the content instead of a teacher
+// assigning it, so there's no to-do-list checkbox waiting on it. This is
+// every saved quiz-kind set the teacher has made for that subject, not
+// strictly limited to sets this exact student has been assigned before —
+// the app doesn't keep a record linking a task's questions back to the
+// saved set they came from, so "assigned before" isn't something it can
+// reliably answer yet.
+function buildFreePlayTask(set: QuestionSet): Task {
+  return {
+    id: makeId(),
+    title: `🎮 Free Play: ${set.name}`,
+    icon: '🎮',
+    type: 'platformer',
+    quiz: { questions: set.questions, shuffleQuestions: true },
+  };
+}
 
 export default function PlaygroundView() {
   const navigate = useNavigate();
@@ -24,9 +43,11 @@ export default function PlaygroundView() {
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const activityLibrary = useStore((s) => s.activityLibrary);
+  const questionSets = useStore((s) => s.questionSets);
   const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
 
   const [openEntry, setOpenEntry] = useState<{ task: Task; subject: Subject } | null>(null);
+  const [pickingFreePlay, setPickingFreePlay] = useState(false);
   const [, setTick] = useState(0);
 
   const student = students.find((s) => s.id === currentStudentId);
@@ -54,6 +75,8 @@ export default function PlaygroundView() {
   const entries: { task: Task; subject: Subject }[] = activityLibrary
     .filter((a) => a.inPlayground)
     .map((a) => ({ task: a, subject: a.subject }));
+
+  const quizSets = questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.length > 0);
 
   const close = () => setOpenEntry(null);
 
@@ -118,12 +141,44 @@ export default function PlaygroundView() {
         />
       )}
 
+      {pickingFreePlay && (
+        <div className="overlay-backdrop" onClick={() => setPickingFreePlay(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div className="space-between" style={{ marginBottom: 10 }}>
+              <strong>🎮 Pick what to practice</strong>
+              <button className="btn btn-sm" onClick={() => setPickingFreePlay(false)}>✕ Close</button>
+            </div>
+            <div className="stack" style={{ gap: 8 }}>
+              {quizSets.map((set) => (
+                <button
+                  key={set.id}
+                  className="btn"
+                  style={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                  onClick={() => {
+                    setOpenEntry({ task: buildFreePlayTask(set), subject: set.subject });
+                    setPickingFreePlay(false);
+                  }}
+                >
+                  {set.subject === 'math' ? '🔢' : '📚'} {set.name} <span style={{ opacity: 0.6, fontSize: '0.8rem' }}>({set.questions.length} questions)</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <p style={{ textAlign: 'center', fontWeight: 700 }}>Pick anything you want — just for fun! ✨</p>
 
-      {entries.length === 0 ? (
+      {entries.length === 0 && quizSets.length === 0 ? (
         <p style={{ textAlign: 'center', opacity: 0.75 }}>Nothing here yet — ask your teacher to add some Playground fun!</p>
       ) : (
         <div className="choice-board">
+          {quizSets.length > 0 && (
+            <button className="choice-tile" onClick={() => setPickingFreePlay(true)}>
+              <span className="choice-icon">🎮</span>
+              <span>Free Play — pick your own practice</span>
+            </button>
+          )}
           {entries.map(({ task, subject }) => (
             <button key={`${subject}-${task.id}`} className="choice-tile" onClick={() => setOpenEntry({ task, subject })}>
               {task.referenceImageUrl ? (
