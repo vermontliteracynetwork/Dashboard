@@ -967,6 +967,11 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   image-rendering: pixelated;
 }
 .quiz-theme-pixel .btn-danger { border-image-source: url('/quiz-themes/pixel/button-danger.png'); }
+/* The themed button texture (border-image with `fill`) paints over a plain
+   background-color, which would otherwise silently erase the green
+   "correct answer" signal — so success buttons drop the texture here and
+   keep a plain, unmistakably green box instead. */
+.quiz-theme-pixel .btn-success { border-image: none; background: var(--success); border: 3px solid var(--ink); color: #fff; }
 
 .quiz-theme-adventure { background: linear-gradient(180deg, #f4e4c9, #e6cd9e); }
 .quiz-theme-adventure .quiz-fullview-card {
@@ -986,6 +991,7 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   font-family: 'Baloo 2', sans-serif;
 }
 .quiz-theme-adventure .btn-danger { border-image-source: url('/quiz-themes/adventure/button-danger.png'); }
+.quiz-theme-adventure .btn-success { border-image: none; background: var(--success); border: 3px solid var(--ink); color: #fff; }
 
 .quiz-theme-fantasy { background: linear-gradient(180deg, #efe2ff, #d9c2f2); }
 .quiz-theme-fantasy .quiz-fullview-card {
@@ -1005,6 +1011,7 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   font-family: 'Baloo 2', sans-serif;
 }
 .quiz-theme-fantasy .btn-danger { border-image-source: url('/quiz-themes/fantasy/button-danger.png'); }
+.quiz-theme-fantasy .btn-success { border-image: none; background: var(--success); border: 3px solid var(--ink); color: #fff; }
 
 /* ---------- Break / Playground countdown timer ---------- */
 .break-timer {

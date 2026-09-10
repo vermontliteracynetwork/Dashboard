@@ -100,7 +100,10 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
   const shuffleAnswers = task.quiz?.shuffleAnswers ?? false;
   const mcOrder = useMemo(() => {
     if (!activeQ || activeQ.kind !== 'mc') return null;
-    const order = activeQ.choices.map((_, i) => i);
+    // Blank answer slots (an unused "(Optional)" tile left empty) should
+    // never render as an empty, tappable button — new saves already strip
+    // these, but this also protects any quiz saved before that existed.
+    const order = activeQ.choices.map((_, i) => i).filter((i) => activeQ.choices[i].trim());
     if (!shuffleAnswers) return order;
     for (let i = order.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -191,8 +194,8 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
       <div className="quiz-fullview-card stack">
         <div className="row space-between" style={{ alignItems: 'center' }}>
           <QuizThemePicker studentId={student.id} current={quizTheme} />
-          <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label="Exit quiz" onClick={() => setConfirmExit(true)}>
-            ✕
+          <button className="btn btn-sm" style={{ minHeight: 44 }} aria-label="Exit quiz" onClick={() => setConfirmExit(true)}>
+            ✕ Exit
           </button>
         </div>
         <SubjectProgressBar done={doneCount} total={total} />

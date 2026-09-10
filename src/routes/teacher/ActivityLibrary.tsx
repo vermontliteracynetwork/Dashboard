@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
-import QuizEditor, { validateQuizQuestions } from './QuizEditor';
+import QuizEditor, { validateQuizQuestions, sanitizeQuizQuestions } from './QuizEditor';
 import DrillEditor from './DrillEditor';
 import StepsEditor from './StepsEditor';
 import ImageUploadField from '../../components/ImageUploadField';
@@ -844,7 +844,10 @@ export function TaskEditor({
               <button
                 className="btn btn-primary"
                 disabled={!task.title.trim() || quizIssues.length > 0}
-                onClick={() => onSave(showSteps ? task : { ...task, customSteps: [] })}
+                onClick={() => {
+                  const cleaned = task.quiz ? { ...task, quiz: { ...task.quiz, questions: sanitizeQuizQuestions(task.quiz.questions) } } : task;
+                  onSave(showSteps ? cleaned : { ...cleaned, customSteps: [] });
+                }}
               >
                 💾 Save Activity
               </button>

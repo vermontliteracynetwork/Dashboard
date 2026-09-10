@@ -1379,9 +1379,15 @@ export const useStore = create<AppState>()(
         // it for the teacher, independent of the live quizState above so a
         // student retaking the quiz later doesn't erase this run's result.
         if (remainingIds.length === 0) {
-          const totalCount = (task.quiz?.questions ?? []).length;
+          const liveQuestionIds = new Set((task.quiz?.questions ?? []).map((q) => q.id));
+          const totalCount = liveQuestionIds.size;
           const firstResultByQuestion = new Map<string, boolean>();
           for (const entry of log) {
+            // A question the teacher removed mid-attempt gets auto-skipped
+            // (see QuizTask's "stuck on stale question" path) so the
+            // student isn't trapped — but it was never really part of
+            // THIS quiz, so it shouldn't count toward the score.
+            if (!liveQuestionIds.has(entry.questionId)) continue;
             if (!firstResultByQuestion.has(entry.questionId)) firstResultByQuestion.set(entry.questionId, entry.correct);
           }
           const correctCount = [...firstResultByQuestion.values()].filter(Boolean).length;

@@ -36,6 +36,19 @@ export function getQuestionIssue(q: QuizQuestion): string | null {
   return q.answer.trim() ? null : 'Needs a correct answer typed in.';
 }
 
+// Strips blank "(Optional)" MC answer tiles before saving — otherwise they
+// render to the student as empty, tappable buttons (see QuizTask.tsx).
+// Remaps correctIndex to keep pointing at the same answer text.
+export function sanitizeQuizQuestions(questions: QuizQuestion[]): QuizQuestion[] {
+  return questions.map((q) => {
+    if (q.kind !== 'mc') return q;
+    const correctText = q.choices[q.correctIndex];
+    const choices = q.choices.filter((c) => c.trim());
+    const correctIndex = Math.max(0, choices.indexOf(correctText));
+    return { ...q, choices, correctIndex };
+  });
+}
+
 // One plain-language problem per question that still needs fixing, in
 // order, for the Save-button summary — empty when the whole quiz is safe
 // to hand to a student.
@@ -128,7 +141,14 @@ function QuestionRow({
                   aria-label="Remove this answer"
                   onClick={() => {
                     const choices = q.choices.filter((_, idx) => idx !== i);
-                    const correctIndex = q.correctIndex >= choices.length ? 0 : q.correctIndex;
+                    // Shift the correct-answer pointer down with everything
+                    // after the deleted tile, so it keeps pointing at the
+                    // SAME answer text instead of silently landing on
+                    // whatever slides into its old index.
+                    let correctIndex = q.correctIndex;
+                    if (i < q.correctIndex) correctIndex -= 1;
+                    else if (i === q.correctIndex) correctIndex = 0;
+                    if (correctIndex >= choices.length) correctIndex = 0;
                     onUpdate({ ...q, choices, correctIndex });
                   }}
                 >
