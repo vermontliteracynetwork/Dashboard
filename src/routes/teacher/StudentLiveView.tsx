@@ -7,7 +7,8 @@ import TaskChecklist from '../../components/TaskChecklist';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import ChatPanel from '../../components/ChatPanel';
 import { nextRequiredTaskId } from '../../lib/taskOrder';
-import type { Subject } from '../../types';
+import { formatMoney, DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
+import type { Subject, Task } from '../../types';
 
 // A read-only mirror of exactly what this student's checklist looks like
 // right now — not a literal screen capture (this app has no video/screen
@@ -21,8 +22,12 @@ export default function StudentLiveView() {
   const progress = useStore((s) => s.progress);
   const studentStatus = useStore((s) => s.studentStatus);
   const getStudentBreakState = useStore((s) => s.getStudentBreakState);
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const completeTask = useStore((s) => s.completeTask);
+  const uncompleteTask = useStore((s) => s.uncompleteTask);
   const [subject, setSubject] = useState<Subject>('math');
   const [showChat, setShowChat] = useState(false);
+  const [overrideNotice, setOverrideNotice] = useState<string | null>(null);
 
   const student = students.find((s) => s.id === studentId);
 
@@ -44,6 +49,36 @@ export default function StudentLiveView() {
   const breakState = getStudentBreakState(student.id);
   const requiredId = prog ? nextRequiredTaskId(tasks, prog.completedTaskIds) : null;
   const activeTask = requiredId ? tasks.find((t) => t.id === requiredId) : null;
+
+  // What completing this task actually hands the student — computed the
+  // same way store.ts's completeTask grants it, so the confirmation below
+  // tells the truth about what the student was just given.
+  const describeReward = (task: Task): string => {
+    const reward = task.reward ?? { type: 'money' as const };
+    if (reward.type === 'marketplaceItem' && reward.itemId) {
+      const item = marketplaceItems.find((it) => it.id === reward.itemId);
+      return item ? `the "${item.name}" item` : 'a Marketplace item (it looks like it was since removed)';
+    }
+    if (reward.type === 'customItem') return `"${reward.customName || 'a special prize'}"`;
+    if (reward.type === 'spin') return 'a bonus wheel spin';
+    return formatMoney(task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS);
+  };
+
+  // Overriding from here calls the exact same store action a student's own
+  // "I did it" confirmation calls — same reward, same streak/badge credit,
+  // same sync to the student's own to-do list. Nothing here is a special
+  // teacher-only path; it's the identical completion, just triggered by
+  // the teacher instead of the student.
+  const overrideCheck = (task: Task) => {
+    const rewardDesc = describeReward(task);
+    completeTask(student.id, subject, task.id);
+    setOverrideNotice(`✅ Marked "${task.title}" done for ${student.name} — they were awarded ${rewardDesc}, same as if they'd finished it themselves.`);
+    window.setTimeout(() => setOverrideNotice(null), 7000);
+  };
+  const overrideUncheck = (task: Task) => {
+    uncompleteTask(student.id, subject, task.id);
+    setOverrideNotice(null);
+  };
 
   return (
     <div className="app-shell">
@@ -85,19 +120,27 @@ export default function StudentLiveView() {
             {activeTask && (
               <p style={{ fontWeight: 700, textAlign: 'center' }}>👉 Currently on: {activeTask.icon} {activeTask.title}</p>
             )}
-            <div style={{ pointerEvents: 'none', opacity: 0.9 }}>
-              <TaskChecklist
-                student={student}
-                tasks={tasks}
-                completedIds={prog.completedTaskIds}
-                openedIds={new Set(tasks.map((t) => t.id))}
-                onOpen={() => {}}
-                onCheck={() => {}}
-                onReopenLink={() => {}}
-                onUncheck={() => {}}
-                skippedIds={new Set(prog.skippedTaskIds)}
-              />
-            </div>
+            <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+              ✅ Tap any checkbox below to mark that activity done for {student.name} yourself — it counts exactly
+              as if they'd finished it, reward and all, and shows up on their own to-do list right away.
+            </p>
+            {overrideNotice && (
+              <div className="content-well" style={{ background: '#e8fff0', textAlign: 'center', fontWeight: 700, color: 'var(--success)' }}>
+                {overrideNotice}
+              </div>
+            )}
+            <TaskChecklist
+              student={student}
+              tasks={tasks}
+              completedIds={prog.completedTaskIds}
+              openedIds={new Set(tasks.map((t) => t.id))}
+              onOpen={() => {}}
+              onCheck={overrideCheck}
+              onReopenLink={() => {}}
+              onUncheck={overrideUncheck}
+              skippedIds={new Set(prog.skippedTaskIds)}
+              overrideMode
+            />
           </>
         )}
       </div>

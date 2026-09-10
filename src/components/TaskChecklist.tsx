@@ -21,6 +21,12 @@ interface Props {
   skippedIds?: Set<string>;
   skipTokens?: number;
   onSkip?: (task: Task) => void;
+  // Teacher Live View override: every activity (not just links/the
+  // platformer) can be checked off directly from the checkbox, and the
+  // confirm dialog copy speaks to the teacher instead of the student —
+  // used nowhere else, since a student always finishes an activity
+  // through its own screen.
+  overrideMode?: boolean;
 }
 
 export default function TaskChecklist({
@@ -35,6 +41,7 @@ export default function TaskChecklist({
   skippedIds,
   skipTokens,
   onSkip,
+  overrideMode,
 }: Props) {
   const [stepsForTaskId, setStepsForTaskId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -66,8 +73,13 @@ export default function TaskChecklist({
         <div className="overlay-backdrop" onClick={() => setConfirmingId(null)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h3 style={{ margin: 0 }}>Are you sure you completed this?</h3>
+              <h3 style={{ margin: 0 }}>{overrideMode ? `Mark this done for ${student.name}?` : 'Are you sure you completed this?'}</h3>
               <p style={{ margin: 0 }}>{confirmingTask.icon} {confirmingTask.title}</p>
+              {overrideMode && (
+                <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.75 }}>
+                  This counts exactly as if {student.name} finished it themselves — same reward, same streak/badge credit.
+                </p>
+              )}
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 <button
                   className="btn btn-primary btn-lg"
@@ -82,16 +94,16 @@ export default function TaskChecklist({
                     }
                   }}
                 >
-                  ✓ Yes, I did it
+                  {overrideMode ? '✓ Yes, mark it done' : '✓ Yes, I did it'}
                 </button>
                 <button
                   className="btn btn-lg"
                   onClick={() => {
                     setConfirmingId(null);
-                    onReopenLink(confirmingTask);
+                    if (!overrideMode) onReopenLink(confirmingTask);
                   }}
                 >
-                  ✕ Not yet
+                  {overrideMode ? '✕ Cancel' : '✕ Not yet'}
                 </button>
               </div>
             </div>
@@ -103,7 +115,7 @@ export default function TaskChecklist({
         <div className="overlay-backdrop" onClick={() => setUncheckingId(null)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h3 style={{ margin: 0 }}>Did you do this?</h3>
+              <h3 style={{ margin: 0 }}>{overrideMode ? `Keep this marked done for ${student.name}?` : 'Did you do this?'}</h3>
               <p style={{ margin: 0 }}>{uncheckingTask.icon} {uncheckingTask.title}</p>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 <button className="btn btn-primary btn-lg" onClick={() => setUncheckingId(null)}>
@@ -171,12 +183,15 @@ export default function TaskChecklist({
         const opened = openedIds.has(t.id);
         // A plain external link is always a manual, self-reported completion
         // (confirmed via the dialog below). The platformer game gets the
-        // same manual-override option as a deliberate safety valve — every
-        // other type must be finished through its own activity screen (a
-        // quiz mastered, a drill flipped through, a required photo
-        // attached), so tapping the checkbox for those opens/reopens the
-        // activity instead of silently checking it off.
-        const directComplete = t.type === 'link' || t.type === 'platformer';
+        // same manual-override option as a deliberate safety valve. In
+        // overrideMode (teacher Live View) every type is direct-complete,
+        // since the teacher is deliberately marking it done on the
+        // student's behalf, not opening it. Otherwise every other type
+        // must be finished through its own activity screen (a quiz
+        // mastered, a drill flipped through, a required photo attached),
+        // so tapping the checkbox for those opens/reopens the activity
+        // instead of silently checking it off.
+        const directComplete = overrideMode || t.type === 'link' || t.type === 'platformer';
         const handleClick = () => {
           // A completed row stays clickable — tapping it double-checks
           // before undoing anything, rather than being locked out entirely.
