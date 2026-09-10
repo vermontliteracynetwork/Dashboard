@@ -1054,6 +1054,15 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   50% { transform: scale(1.02); }
 }
 
+/* Coins earned (spin win, task reward, streak bonus, etc.) cascade down
+   from the top of the screen, tumbling, then fade out near the bottom. */
+@keyframes coin-drop-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  12% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(70vh) rotate(400deg); opacity: 0; }
+}
+
 /* ---------- Quiz editor: Blooket-style question card + answer tiles ---------- */
 .quiz-question-row { position: relative; }
 .quiz-question-header {

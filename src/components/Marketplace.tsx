@@ -6,6 +6,7 @@ import { AvatarGlyph } from './AvatarGlyph';
 import { EMOTE_CATALOG, emotePriceFor } from '../lib/emoteCatalog';
 import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
+import { playCashRegister } from '../lib/chime';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
 type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'mystuff' | 'receipts';
@@ -175,6 +176,7 @@ export default function Marketplace() {
     setCart([]);
     setShowCart(false);
     setReceipt(lines);
+    if (lines.some((l) => l.ok)) playCashRegister();
   };
 
   const cartButtonFor = (entry: CartEntry, affordable: boolean) => {

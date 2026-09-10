@@ -28,6 +28,41 @@ export function playCalmChime() {
   }
 }
 
+// A real recorded cash-register "cha-ching" — played once at the moment a
+// student confirms a Marketplace purchase, distinct from the synthesized
+// playChaChing() below (which fires for money landing IN the bank, not
+// leaving it). A fresh Audio element each call so back-to-back checkouts
+// don't get cut off by a still-playing previous one.
+export function playCashRegister() {
+  try {
+    const audio = new Audio('/sounds/cash-register.mp3');
+    audio.volume = 0.6;
+    void audio.play().catch(() => {
+      // Autoplay can be blocked until the student has interacted with the
+      // page — checkout is always a tap, so this is only a rare edge case.
+    });
+  } catch {
+    // Audio isn't available — the purchase still goes through, just silently.
+  }
+}
+
+// A real recorded coin-drop jingle — played any time Class Cash lands in a
+// student's Piggy Bank (spin win, task reward, streak bonus, achievement,
+// teacher bonus, etc.), alongside the falling-coins animation in
+// CoinDropOverlay. Replaces the old synthesized playChaChing() for that use.
+export function playCoinDrop() {
+  try {
+    const audio = new Audio('/sounds/coin-drop.mp3');
+    audio.volume = 0.6;
+    void audio.play().catch(() => {
+      // Autoplay can be blocked until the student has interacted with the
+      // page — the coins still land, just silently until then.
+    });
+  } catch {
+    // Audio isn't available — the coins still land, just silently.
+  }
+}
+
 // A bright cash-register "cha-ching" — a quick bell strike followed by a
 // few rapid high coin-jingle blips. Synthesized (no bundled audio file),
 // played any time Class Cash lands in a student's Piggy Bank.

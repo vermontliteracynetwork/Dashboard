@@ -7,7 +7,6 @@ import { STARTER_EMOTE_IDS, emoteById, emotePriceFor } from '../lib/emoteCatalog
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
 import { avatarById } from '../lib/avatarCatalog';
 import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
-import { playChaChing } from '../lib/chime';
 import { getDailySpinSegments } from '../lib/dailySpin';
 import type { SpinItemKind } from '../lib/dailySpin';
 
@@ -180,6 +179,7 @@ interface AppState {
   badgeCounters: Record<string, BadgeCounters>; // studentId -> lifetime counters used by badge rules
   assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
   transactions: Transaction[]; // every student's bank register, newest first
+  lastCoinEarn: { id: string; studentId: string; amountCents: number } | null; // bumped by recordTransaction whenever coins land (spin win, task reward, streak bonus, etc.) — purely a UI trigger for the coin-drop animation/sound, not persisted
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
   chatMessages: ChatMessage[]; // teacher<->student chat, newest last
@@ -392,6 +392,7 @@ export const useStore = create<AppState>()(
       badgeCounters: {},
       assignments: [],
       transactions: [],
+      lastCoinEarn: null,
       articleAnnotations: {},
       sentenceBuilderResponses: {},
       chatMessages: [],
@@ -623,10 +624,12 @@ export const useStore = create<AppState>()(
           kind,
           createdAt: new Date().toISOString(),
         };
-        set((s) => ({ transactions: [tx, ...s.transactions] }));
+        set((s) => ({
+          transactions: [tx, ...s.transactions],
+          lastCoinEarn: amountCents > 0 ? { id: makeId(), studentId, amountCents } : s.lastCoinEarn,
+        }));
         pushTransaction(tx);
         get().updateStudent(studentId, { coins: student.coins + amountCents });
-        if (amountCents > 0) playChaChing();
       },
 
       // Reverses a mistaken register entry's effect on the balance — for a

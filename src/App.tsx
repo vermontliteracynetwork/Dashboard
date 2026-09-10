@@ -25,6 +25,7 @@ import ScoreHistory from './routes/teacher/ScoreHistory';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
+import CoinDropOverlay from './components/CoinDropOverlay';
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated);
@@ -71,6 +72,7 @@ export default function App() {
       <div className="app-shell">
         <TeacherHelpAlert />
         <StudentChatAlert />
+        <CoinDropOverlay />
         <Routes>
           <Route path="/" element={<RoleSelect />} />
           <Route path="/student/login" element={<StudentLogin />} />
