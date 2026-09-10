@@ -624,12 +624,27 @@ export async function fetchAll(): Promise<HydratedState> {
 // finally giving up and logging, so a one-off network blip doesn't cost
 // real data.
 const RETRY_DELAYS_MS = [400, 1200, 3000];
+
+// Set by the store once it's created (sync.ts can't import the store —
+// the store imports this file) so a save that fails even after every
+// retry can surface something the teacher/student actually sees, instead
+// of only a console.error nobody's watching. A repeated, identical
+// failure here (e.g. every save to one table) usually means a schema
+// mismatch — a column the app expects that a migration hasn't been run
+// for yet — not a network blip, so surfacing it matters even more than
+// for a one-off.
+let onPersistentSyncFailure: ((label: string, message: string) => void) | null = null;
+export function setSyncFailureHandler(fn: (label: string, message: string) => void) {
+  onPersistentSyncFailure = fn;
+}
+
 async function pushWithRetry(run: () => PromiseLike<{ error: { message: string } | null }>, label: string) {
   for (let attempt = 0; ; attempt++) {
     const res = await run();
     if (!res.error) return;
     if (attempt >= RETRY_DELAYS_MS.length) {
       console.error(`[sync] ${label} failed after ${attempt + 1} attempts:`, res.error.message);
+      onPersistentSyncFailure?.(label, res.error.message);
       return;
     }
     console.warn(`[sync] ${label} failed (attempt ${attempt + 1}), retrying:`, res.error.message);

@@ -39,6 +39,7 @@ import { isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   fetchAll,
   subscribeRealtime,
+  setSyncFailureHandler,
   applyArrayRow,
   applyNestedRow,
   applyStudentMetaRow,
@@ -195,6 +196,13 @@ interface AppState {
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
   hydrationError: string | null;
   initSync: () => Promise<void>;
+
+  // A save that failed even after every retry (see pushWithRetry in
+  // sync.ts) — surfaced so it's visible somewhere a person actually looks,
+  // not just a console.error. A repeated failure on the same table
+  // usually means a pending database migration hasn't been run yet.
+  syncTrouble: { at: number; label: string; message: string } | null;
+  dismissSyncTrouble: () => void;
 
   currentStudentId: string | null;
   role: 'none' | 'teacher' | 'student';
@@ -450,6 +458,8 @@ export const useStore = create<AppState>()(
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
+      syncTrouble: null,
+      dismissSyncTrouble: () => set({ syncTrouble: null }),
       initSync: async () => {
         if (!isSupabaseConfigured) {
           set({ hydrated: true });
@@ -2055,3 +2065,7 @@ export const useStore = create<AppState>()(
     { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },
   ),
 );
+
+setSyncFailureHandler((label, message) => {
+  useStore.setState({ syncTrouble: { at: Date.now(), label, message } });
+});

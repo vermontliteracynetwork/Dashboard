@@ -26,6 +26,7 @@ import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
 import CoinDropOverlay from './components/CoinDropOverlay';
+import SyncTroubleAlert from './components/SyncTroubleAlert';
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated);
@@ -73,6 +74,7 @@ export default function App() {
         <TeacherHelpAlert />
         <StudentChatAlert />
         <CoinDropOverlay />
+        <SyncTroubleAlert />
         <Routes>
           <Route path="/" element={<RoleSelect />} />
           <Route path="/student/login" element={<StudentLogin />} />
