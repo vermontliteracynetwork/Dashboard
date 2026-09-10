@@ -121,6 +121,7 @@ const LEVEL_PLANS: LevelSegment[][] = [
 ];
 // Player top speed/acceleration scale up with level — same shape, brisker pace.
 const SPEED_MULTIPLIERS = [1, 1.08, 1.16, 1.25];
+const LEVEL_WORDS = ['ONE', 'TWO', 'THREE', 'FOUR']; // matches LEVEL_PLANS.length — for the big "LEVEL ___" flash
 
 const ROWS = VIEW_ROWS;
 const GROUND_TOP_ROW = ROWS - 3; // top surface of the ground (3 tiles deep)
@@ -184,6 +185,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const [collectedCoins, setCollectedCoins] = useState(0);
   const [celebrateLap, setCelebrateLap] = useState(false);
   const [levelIndex, setLevelIndex] = useState(0);
+  const [levelBanner, setLevelBanner] = useState<number | null>(null);
   const [lives, setLives] = useState(MAX_LIVES);
   const [gauntletMissed, setGauntletMissed] = useState(false);
   const [payout, setPayout] = useState<{ coins: number; cents: number } | null>(null);
@@ -229,6 +231,23 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   });
 
   useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // Flashes "LEVEL ___" big and centered before play starts — at the very
+  // first level and every level change after that (advancing by reaching
+  // the flag, or dropping back to level 1 after a full heart wipeout).
+  // Freezes the game via pausedRef directly rather than the React `paused`
+  // state, since this must never surface the question-popup overlay (which
+  // is gated on that state) — it's a separate, purely visual freeze.
+  useEffect(() => {
+    if (!character) return;
+    pausedRef.current = true;
+    setLevelBanner(levelIndex);
+    const t = window.setTimeout(() => {
+      setLevelBanner(null);
+      pausedRef.current = false;
+    }, 2200);
+    return () => window.clearTimeout(t);
+  }, [character, levelIndex]);
 
   useEffect(() => {
     ensureQuizState(student.id, subject, task);
@@ -721,6 +740,12 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           {celebrateLap && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
               <div className="tag-pill" style={{ fontSize: '1.1rem', background: 'var(--success)', color: '#fff' }}>🎉 You made it! Looping back for more.</div>
+            </div>
+          )}
+
+          {levelBanner !== null && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', background: 'rgba(20, 16, 31, 0.55)', borderRadius: 10 }}>
+              <span className="platformer-level-banner">LEVEL {LEVEL_WORDS[levelBanner] ?? levelBanner + 1}</span>
             </div>
           )}
 
