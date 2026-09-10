@@ -615,18 +615,36 @@ export async function fetchAll(): Promise<HydratedState> {
 // the console rather than silently dropped.
 // ---------------------------------------------------------------------------
 
-const logIfError = (label: string) => (res: { error: { message: string } | null }) => {
-  if (res.error) console.error(`[sync] ${label} failed:`, res.error.message);
-};
+// A single flaky request (a dropped wifi packet, a tab backgrounded mid-
+// request, a brief Supabase hiccup) used to mean that write was just gone
+// — nothing retried it, and the only trace was a console.error nobody was
+// looking at. That's how something like a daily-spin prize could vanish
+// on the very write that was supposed to save it, with no visible error
+// to the student or teacher. Retry a few times with backoff before
+// finally giving up and logging, so a one-off network blip doesn't cost
+// real data.
+const RETRY_DELAYS_MS = [400, 1200, 3000];
+async function pushWithRetry(run: () => PromiseLike<{ error: { message: string } | null }>, label: string) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await run();
+    if (!res.error) return;
+    if (attempt >= RETRY_DELAYS_MS.length) {
+      console.error(`[sync] ${label} failed after ${attempt + 1} attempts:`, res.error.message);
+      return;
+    }
+    console.warn(`[sync] ${label} failed (attempt ${attempt + 1}), retrying:`, res.error.message);
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+  }
+}
 
 const upsert = (table: string, row: Row) => {
   if (!isSupabaseConfigured) return;
-  supabase.from(table).upsert(row).then(logIfError(`upsert ${table}`));
+  void pushWithRetry(() => supabase.from(table).upsert(row), `upsert ${table}`);
 };
 
 const remove = (table: string, match: Row) => {
   if (!isSupabaseConfigured) return;
-  supabase.from(table).delete().match(match).then(logIfError(`delete ${table}`));
+  void pushWithRetry(() => supabase.from(table).delete().match(match), `delete ${table}`);
 };
 
 export const pushStudent = (s: Student) => upsert('students', studentToRow(s));
