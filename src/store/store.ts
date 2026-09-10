@@ -210,7 +210,7 @@ interface AppState {
   setSentenceBuilderAnswer: (studentId: string, taskId: string, partId: string, text: string) => void;
   sendChatMessage: (studentId: string, sender: 'student' | 'teacher', text: string) => void;
   createNote: (studentId: string) => string;
-  updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'fontId' | 'colorId' | 'highlightColorId'>>) => void;
+  updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'bodyHtml' | 'fontId' | 'colorId' | 'highlightColorId'>>) => void;
   deleteNote: (id: string) => void;
   addMarketplaceItem: (item: Omit<MarketplaceItem, 'id' | 'createdAt'>) => void;
   updateMarketplaceItem: (id: string, patch: Partial<MarketplaceItem>) => void;

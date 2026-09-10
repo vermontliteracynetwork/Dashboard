@@ -932,6 +932,16 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   max-width: 640px;
 }
 
+/* Notes word processor: contentEditable body, so a student can select just
+   one word/phrase to color-code it instead of only ever coloring the whole
+   note. The placeholder can't use the `placeholder` attribute (that's
+   input/textarea-only), so it's a pseudo-element shown only while empty. */
+.note-editor:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* ---------- Quiz themes ---------- */
 /* Student-picked visual skin for the quiz view, built from Kenney UI kits.
    "Standard" is the app's normal look (no overrides below apply). Each

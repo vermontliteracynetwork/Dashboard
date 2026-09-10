@@ -526,10 +526,11 @@ export interface Note {
   id: string;
   studentId: string;
   title: string;
-  body: string;
+  body: string; // plain-text mirror of bodyHtml, kept in sync — used for word count and read-aloud
+  bodyHtml?: string; // rich content: lets a student color-code individual words/phrases (multiple text/highlight colors in one note), not just one color for the whole note. Falls back to plain `body` for notes saved before this existed.
   fontId: string | null; // null = use whatever's currently equipped
-  colorId: string | null; // text color
-  highlightColorId: string | null; // note background/highlight color
+  colorId: string | null; // default text color for anything not individually colored
+  highlightColorId: string | null; // default note background/highlight color
   updatedAt: string;
 }
 

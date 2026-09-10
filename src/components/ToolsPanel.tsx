@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
@@ -27,6 +27,14 @@ const TOOL_ICONS: Record<ToolKey, string> = {
 // Tools that need real room to work — shown in a much larger overlay
 // instead of the default small popup.
 const WIDE_TOOLS: ToolKey[] = ['wordProcessor', 'whiteboard'];
+
+// Plain text -> safe HTML for seeding a contentEditable from an old,
+// pre-rich-text note that only ever had a plain `body`.
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
 function Calculator() {
   const [display, setDisplay] = useState('0');
@@ -559,6 +567,60 @@ function WordProcessor({ student }: { student: Student }) {
     setSelectedId(id);
   };
 
+  // The note body is an uncontrolled contentEditable (not a React-controlled
+  // value) so a student can select just one word/phrase and color-code it —
+  // React never touches its innerHTML except when switching to a different
+  // note, which would otherwise reset the cursor on every keystroke.
+  const bodyEditorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bodyEditorRef.current;
+    if (!el) return;
+    el.innerHTML = selected?.bodyHtml ?? escapeHtml(selected?.body ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
+
+  const syncBodyFromDom = () => {
+    const el = bodyEditorRef.current;
+    if (!el || !selected) return;
+    updateNote(selected.id, { bodyHtml: el.innerHTML, body: el.textContent ?? '' });
+  };
+
+  // Wraps the current text selection (if any, and if it's actually inside
+  // this note) in a span carrying the given inline style — lets a student
+  // color just one word or phrase without changing the color of the rest
+  // of the note, so multiple colors can be used side by side for color-
+  // coding. Returns false (does nothing) when there's no selection, so the
+  // caller can fall back to the old "set the whole note's color" behavior.
+  const applyStyleToSelection = (style: Partial<CSSStyleDeclaration>): boolean => {
+    const el = bodyEditorRef.current;
+    const sel = window.getSelection();
+    if (!el || !sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
+    const range = sel.getRangeAt(0);
+    if (!el.contains(range.commonAncestorContainer)) return false;
+    const span = document.createElement('span');
+    Object.assign(span.style, style);
+    try {
+      range.surroundContents(span);
+    } catch {
+      // Selection crosses existing span boundaries (partial overlap) —
+      // extract the fragment and wrap it instead.
+      const frag = range.extractContents();
+      span.appendChild(frag);
+      range.insertNode(span);
+    }
+    sel.removeAllRanges();
+    syncBodyFromDom();
+    return true;
+  };
+
+  const RAINBOW_STYLE: Partial<CSSStyleDeclaration> = {
+    backgroundImage: 'repeating-linear-gradient(90deg, #e63946, #f4a300, #ffdd33, #2fae5d, #2a6df4, #7c3aed, #e63946)',
+    backgroundSize: '140px 100%',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    color: 'transparent',
+  } as Partial<CSSStyleDeclaration>;
+
   return (
     <div className="row" style={{ height: '100%', minHeight: 0, gap: 12, alignItems: 'stretch' }}>
       <div className="stack" style={{ width: 170, flex: '0 0 auto', gap: 6, overflowY: 'auto' }}>
@@ -627,8 +689,12 @@ function WordProcessor({ student }: { student: Student }) {
                     {ownedColors.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => updateNote(selected.id, { colorId: c.id })}
-                        aria-label={`${c.name} Text Color`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          const applied = applyStyleToSelection(c.colorHex === 'rainbow' ? RAINBOW_STYLE : { color: c.colorHex });
+                          if (!applied) updateNote(selected.id, { colorId: c.id });
+                        }}
+                        aria-label={`${c.name} Text Color — select some words first to color just those, or tap with nothing selected to set the whole note's color`}
                         title={`${c.name} Text Color`}
                         style={{
                           width: 40,
@@ -647,6 +713,7 @@ function WordProcessor({ student }: { student: Student }) {
                   <div className="row-wrap" style={{ gap: 4, alignItems: 'center' }}>
                     <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>🖍️</span>
                     <button
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => updateNote(selected.id, { highlightColorId: null })}
                       aria-label="No highlight"
                       title="No highlight"
@@ -663,8 +730,12 @@ function WordProcessor({ student }: { student: Student }) {
                     {ownedHighlights.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => updateNote(selected.id, { highlightColorId: c.id })}
-                        aria-label={`${c.name} Highlight`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          const applied = applyStyleToSelection({ backgroundColor: c.colorHex });
+                          if (!applied) updateNote(selected.id, { highlightColorId: c.id });
+                        }}
+                        aria-label={`${c.name} Highlight — select some words first to highlight just those, or tap with nothing selected to set the whole note's background`}
                         title={`${c.name} Highlight`}
                         style={{
                           width: 32,
@@ -682,24 +753,41 @@ function WordProcessor({ student }: { student: Student }) {
               </div>
               <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{wordCount} word{wordCount === 1 ? '' : 's'}</span>
             </div>
+            {(ownedColors.length > 1 || ownedHighlights.length > 0) && (
+              <p style={{ fontSize: '0.7rem', opacity: 0.65, margin: 0 }}>
+                💡 Select some words, then tap a color to color-code just that part — tap a color with nothing selected to change the whole note.
+              </p>
+            )}
             <div style={{ background: activeHighlight?.colorHex ?? 'transparent', borderRadius: 12, padding: activeHighlight ? 6 : 0, flex: 1, minHeight: 0, display: 'flex' }}>
-              <textarea
-                value={selected.body}
-                onChange={(e) => updateNote(selected.id, { body: e.target.value })}
+              <div
+                ref={bodyEditorRef}
+                className="note-editor"
+                contentEditable
+                suppressContentEditableWarning
+                onInput={syncBodyFromDom}
+                data-placeholder="Start writing..."
                 style={{
                   width: '100%',
                   flex: 1,
                   minHeight: 260,
-                  resize: 'vertical',
+                  overflowY: 'auto',
                   fontSize: `${fontSize}rem`,
                   lineHeight: 1.6,
                   padding: 14,
+                  outline: 'none',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
                   fontFamily: activeFont?.cssFontFamily,
                   ...(activeColor?.colorHex === 'rainbow'
-                    ? { background: 'conic-gradient(red, orange, yellow, green, blue, purple, red)', WebkitBackgroundClip: 'text', color: 'transparent' }
+                    ? {
+                        background: 'repeating-linear-gradient(90deg, #e63946, #f4a300, #ffdd33, #2fae5d, #2a6df4, #7c3aed, #e63946)',
+                        backgroundSize: '140px 100%',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                      }
                     : { background: activeHighlight ? 'transparent' : '#fff', color: activeColor?.colorHex }),
                 }}
-                placeholder="Start writing..."
               />
             </div>
             <div className="row" style={{ justifyContent: 'space-between' }}>
