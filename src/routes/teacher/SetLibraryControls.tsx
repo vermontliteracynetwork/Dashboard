@@ -89,6 +89,14 @@ export default function SetLibraryControls(props: QuizProps | DrillProps) {
         <button className="btn btn-sm" disabled={!insertId} onClick={handleInsert}>Insert</button>
 
         <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>📤 Upload a CSV</button>
+        <a
+          className="btn btn-sm"
+          href="https://docs.google.com/spreadsheets/d/1pCzJ-M00kcz4yfJ45Ma04f1I0GQV4tUiDtH03OYmoGw/copy"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          📄 Get CSV template
+        </a>
         <input
           ref={fileRef}
           type="file"
