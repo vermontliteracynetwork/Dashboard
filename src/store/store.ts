@@ -593,6 +593,7 @@ export const useStore = create<AppState>()(
           equippedVoiceId: null,
           ownedPrizeIds: [],
           quizTheme: 'standard',
+          bonusSpinAvailable: false,
         };
         set((s) => ({
           students: [...s.students, student],
@@ -881,7 +882,7 @@ export const useStore = create<AppState>()(
         const segments = getDailySpinSegments(today, get().marketplaceItems);
         const segmentIndex = Math.floor(Math.random() * segments.length);
         const segment = segments[segmentIndex];
-        get().updateStudent(studentId, { lastSpinDate: today });
+        get().updateStudent(studentId, { lastSpinDate: today, bonusSpinAvailable: false });
 
         if (segment.kind === 'skip') {
           get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
@@ -1208,6 +1209,7 @@ export const useStore = create<AppState>()(
               }
             } else if (reward.type === 'spin') {
               get().resetDailySpin(studentId);
+              get().updateStudent(studentId, { bonusSpinAvailable: true });
               get().recordTransaction(studentId, 0, "🎉 Finished today's assignment: bonus spin!", '🎡', 'assignment-complete');
             }
           }

@@ -58,6 +58,10 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
   // and tear the wheel down / jump straight to the "already spun" screen,
   // which is exactly what made the spin look like it "didn't work."
   const [hasSpunToday] = useState(() => student?.lastSpinDate === todayISO());
+  // Same capture-once reasoning as hasSpunToday: spinDailyWheel() clears
+  // this as part of its first update, so it must be read once at mount to
+  // keep showing "Bonus Spin!" through the animation and result screen.
+  const [isBonusSpin] = useState(() => student?.bonusSpinAvailable ?? false);
   const showWheel = !!student && !hasSpunToday;
 
   // Today's 10 segments — deterministic from the date, same for every
@@ -130,7 +134,12 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
     <div className="overlay-backdrop" onClick={spinning ? undefined : onClose}>
       <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-          <h2 style={{ margin: 0 }}>🎡 Daily Spin</h2>
+          <h2 style={{ margin: 0 }}>{isBonusSpin ? '🎉 Bonus Spin!' : '🎡 Daily Spin'}</h2>
+          {isBonusSpin && !result && (
+            <div className="tag-pill" style={{ background: 'var(--success)', color: '#fff', fontSize: '0.8rem' }}>
+              🏁 Earned for finishing your whole assignment today!
+            </div>
+          )}
 
           {hasSpunToday && !result ? (
             <>
@@ -155,7 +164,9 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
             </>
           ) : (
             <>
-              <p style={{ opacity: 0.75, marginTop: -8 }}>One free spin a day — every prize is a win! New prizes tomorrow.</p>
+              <p style={{ opacity: 0.75, marginTop: -8 }}>
+                {isBonusSpin ? 'A bonus spin, just for you — every prize is a win!' : 'One free spin a day — every prize is a win! New prizes tomorrow.'}
+              </p>
               <div style={{ position: 'relative', width: 260, height: 260 }}>
                 <div
                   aria-hidden

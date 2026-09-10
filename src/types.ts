@@ -93,6 +93,7 @@ export interface Student {
   equippedVoiceId: string | null;
   ownedPrizeIds: string[]; // custom_prizes ids this student has redeemed (teacher-fulfilled real/in-game prizes)
   quizTheme: QuizTheme; // student-picked visual skin for the quiz view
+  bonusSpinAvailable: boolean; // earned a re-spin today for finishing the whole assignment (assignmentCompletionReward type 'spin') — shown as a distinct "Bonus Spin!" on the wheel, cleared once used
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';
