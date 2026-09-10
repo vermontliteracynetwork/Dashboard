@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
-import QuizEditor from './QuizEditor';
+import QuizEditor, { validateQuizQuestions } from './QuizEditor';
 import DrillEditor from './DrillEditor';
 import StepsEditor from './StepsEditor';
 import ImageUploadField from '../../components/ImageUploadField';
@@ -828,12 +828,31 @@ export function TaskEditor({
         <StepsEditor steps={task.customSteps ?? []} onChange={(customSteps) => setTask({ ...task, customSteps })} />
       )}
 
-      <div className="row">
-        <button className="btn btn-primary" disabled={!task.title.trim()} onClick={() => onSave(showSteps ? task : { ...task, customSteps: [] })}>
-          💾 Save Activity
-        </button>
-        <button className="btn" onClick={onCancel}>Cancel</button>
-      </div>
+      {(() => {
+        const quizIssues = (task.type === 'quiz' || task.type === 'passage') ? validateQuizQuestions(task.quiz?.questions ?? []) : [];
+        return (
+          <div className="stack">
+            {quizIssues.length > 0 && (
+              <div className="content-well" style={{ background: '#fdecea', color: 'var(--danger)' }}>
+                <strong style={{ fontSize: '0.85rem' }}>⚠️ Fix before saving:</strong>
+                <ul style={{ margin: '4px 0 0', paddingLeft: 20, fontSize: '0.8rem' }}>
+                  {quizIssues.map((issue) => <li key={issue}>{issue}</li>)}
+                </ul>
+              </div>
+            )}
+            <div className="row">
+              <button
+                className="btn btn-primary"
+                disabled={!task.title.trim() || quizIssues.length > 0}
+                onClick={() => onSave(showSteps ? task : { ...task, customSteps: [] })}
+              >
+                💾 Save Activity
+              </button>
+              <button className="btn" onClick={onCancel}>Cancel</button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

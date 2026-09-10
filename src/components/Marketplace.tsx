@@ -95,6 +95,8 @@ export default function Marketplace() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const transactions = useStore((s) => s.transactions);
+  const rotations = useStore((s) => s.rotations);
+  const progress = useStore((s) => s.progress);
   const equipEmote = useStore((s) => s.equipEmote);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
@@ -110,6 +112,22 @@ export default function Marketplace() {
 
   const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
+  // Sends the student straight to whichever subject's to-do list still has
+  // unfinished work, so using a Skip Pass from the inventory doesn't dump
+  // them at Home to go hunt for it themselves.
+  const goPickActivityToSkip = () => {
+    const today = todayISO();
+    const mathTasks = rotations[studentId]?.math ?? [];
+    const litTasks = rotations[studentId]?.literacy ?? [];
+    const mathProg = progress[studentId]?.math;
+    const litProg = progress[studentId]?.literacy;
+    const mathDone = mathTasks.length === 0 || (mathProg?.date === today && mathProg.subjectComplete);
+    const litDone = litTasks.length === 0 || (litProg?.date === today && litProg.subjectComplete);
+    if (mathTasks.length > 0 && !mathDone) navigate('/student/math');
+    else if (litTasks.length > 0 && !litDone) navigate('/student/literacy');
+    else navigate('/student/home');
+  };
+
   const pastReceipts = transactions
     .filter((t) => t.studentId === studentId && t.kind.startsWith('purchase-'))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
@@ -508,6 +526,20 @@ export default function Marketplace() {
 
             {tab === 'mystuff' && (
               <div className="stack" style={{ gap: 16 }}>
+                {student.skipTokens > 0 && (
+                  <div className="content-well row space-between" style={{ alignItems: 'center', background: 'linear-gradient(120deg, var(--yellow), var(--orange))' }}>
+                    <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.8rem' }}>🎫</span>
+                      <div className="stack" style={{ gap: 0 }}>
+                        <strong>{student.skipTokens} Skip Pass{student.skipTokens === 1 ? '' : 'es'}</strong>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>Skip one thing on your to-do list</span>
+                      </div>
+                    </div>
+                    <button className="btn btn-primary btn-lg" onClick={goPickActivityToSkip}>
+                      Use it →
+                    </button>
+                  </div>
+                )}
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>🧑 Your Characters</strong>
                   <div className="shop-item-grid" style={{ marginTop: 8 }}>

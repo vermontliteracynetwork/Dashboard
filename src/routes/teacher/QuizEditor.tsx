@@ -14,6 +14,40 @@ const blankMC = (): MCQuestion => ({ id: makeId(), kind: 'mc', prompt: '', choic
 const blankMatching = (): MatchingQuestion => ({ id: makeId(), kind: 'matching', prompt: '', pairs: [{ left: '', right: '' }, { left: '', right: '' }] });
 const blankFill = (): FillBlankQuestion => ({ id: makeId(), kind: 'fill', prompt: '', answer: '', wordBank: [] });
 
+// A half-filled-in question isn't just untidy — it's a quiz a student
+// literally cannot pass: a blank fill-in answer means no typed input can
+// ever match it, and a correct-answer marker left pointing at an empty MC
+// choice means the "right" answer is nothing a student could ever pick.
+// Returns null when the question is fine to give to a student.
+export function getQuestionIssue(q: QuizQuestion): string | null {
+  if (!q.prompt.trim()) return 'Needs the question text filled in.';
+  if (q.kind === 'mc') {
+    const filled = q.choices.map((c) => c.trim());
+    const filledCount = filled.filter(Boolean).length;
+    if (filledCount < 2) return 'Needs at least 2 answers filled in.';
+    if (!filled[q.correctIndex]) return 'Needs a correct answer marked (✓) on one of the filled-in choices.';
+    return null;
+  }
+  if (q.kind === 'matching') {
+    const completePairs = q.pairs.filter((p) => p.left.trim() && p.right.trim()).length;
+    return completePairs < 2 ? 'Needs at least 2 complete pairs (both sides filled in).' : null;
+  }
+  // fill
+  return q.answer.trim() ? null : 'Needs a correct answer typed in.';
+}
+
+// One plain-language problem per question that still needs fixing, in
+// order, for the Save-button summary — empty when the whole quiz is safe
+// to hand to a student.
+export function validateQuizQuestions(questions: QuizQuestion[]): string[] {
+  return questions
+    .map((q, i) => {
+      const issue = getQuestionIssue(q);
+      return issue ? `Question ${i + 1}: ${issue}` : null;
+    })
+    .filter((x): x is string => x !== null);
+}
+
 const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 // A Blooket-style quadrant palette for the answer tiles — bold, distinct
 // colors so a student scanning a live game/preview can tell answers apart
@@ -23,16 +57,18 @@ const ANSWER_TILE_COLORS = ['#f4a300', '#2a6df4', '#2fae5d', '#e63946', '#8b5cf6
 function QuestionRow({
   index,
   q,
+  issue,
   onUpdate,
   onDelete,
 }: {
   index: number;
   q: QuizQuestion;
+  issue?: string;
   onUpdate: (q: QuizQuestion) => void;
   onDelete: () => void;
 }) {
   return (
-    <div className="stack quiz-question-row" style={{ gap: 0, borderRadius: 16, overflow: 'hidden', border: '3px solid var(--content-border)' }}>
+    <div className="stack quiz-question-row" style={{ gap: 0, borderRadius: 16, overflow: 'hidden', border: `3px solid ${issue ? 'var(--danger)' : 'var(--content-border)'}` }}>
       <div className="quiz-question-header space-between">
         <div className="row" style={{ gap: 10 }}>
           <span className="quiz-question-number">Question {index + 1}</span>
@@ -40,6 +76,11 @@ function QuestionRow({
         </div>
         <button className="btn btn-sm btn-danger" onClick={onDelete}>Delete question</button>
       </div>
+      {issue && (
+        <div style={{ padding: '8px 16px', background: '#fdecea', color: 'var(--danger)', fontWeight: 700, fontSize: '0.82rem' }}>
+          ⚠️ {issue}
+        </div>
+      )}
       <div className="stack" style={{ padding: 16, background: '#fff' }}>
       <div>
         <label>Question</label>
@@ -181,7 +222,7 @@ export default function QuizEditor({ subject, questions, onChange }: Props) {
     <div className="stack">
       <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} />
       {questions.map((q, i) => (
-        <QuestionRow key={q.id} index={i} q={q} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)} />
+        <QuestionRow key={q.id} index={i} q={q} issue={getQuestionIssue(q) ?? undefined} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)} />
       ))}
       <div className="row">
         <select value={addingKind} onChange={(e) => setAddingKind(e.target.value as typeof addingKind)}>
