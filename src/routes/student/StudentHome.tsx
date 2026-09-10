@@ -12,6 +12,7 @@ import { AVATAR_CATALOG } from '../../store/badges';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
 import DailySpinWheel from '../../components/DailySpinWheel';
+import ToolsPanel from '../../components/ToolsPanel';
 import ChatPanel from '../../components/ChatPanel';
 import { formatMoney } from '../../lib/money';
 
@@ -90,6 +91,7 @@ export default function StudentHome() {
 
   return (
     <div className="container stack">
+      <ToolsPanel student={student} subject="both" />
       <Onboarding studentId={student.id} />
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
       {showWhatNow && (

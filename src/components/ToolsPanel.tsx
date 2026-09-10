@@ -1005,7 +1005,11 @@ function QuietTool() {
 
 interface Props {
   student: Student;
-  subject: Subject;
+  // 'both' shows every subject's tools together — for screens with no one
+  // active subject (Home, a subject's "all done"/"nothing assigned"
+  // screen), so tools stay reachable there too instead of only while a
+  // task is actually in progress.
+  subject: Subject | 'both';
   variant?: 'fab' | 'inline';
   hideCalculator?: boolean; // quiz activities hide it — the point is fact fluency, not calculating the answer
 }
@@ -1020,9 +1024,11 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
   const [customOpen, setCustomOpen] = useState<CustomTool | null>(null);
   const recordToolUsage = useStore((s) => s.recordToolUsage);
 
-  const subjectTools = SUBJECT_TOOLS[subject].filter((t) => student.featureToggles[t] !== false);
+  const subjectTools = (subject === 'both' ? [...SUBJECT_TOOLS.math, ...SUBJECT_TOOLS.literacy] : SUBJECT_TOOLS[subject]).filter(
+    (t) => student.featureToggles[t] !== false,
+  );
   const accessTools = ACCESSIBILITY_TOOLS.filter((t) => student.featureToggles[t] !== false && (!hideCalculator || t !== 'calculator'));
-  const customTools = student.customTools.filter((c) => c.subject === subject || c.subject === 'both');
+  const customTools = student.customTools.filter((c) => subject === 'both' || c.subject === subject || c.subject === 'both');
 
   const openTool = (tool: ToolKey) => {
     setOpen(tool);

@@ -91,6 +91,7 @@ export default function SubjectDashboard() {
     const otherDone = otherTasks.length === 0 || (otherProg?.date === todayISO() && otherProg.subjectComplete);
     return (
       <SubjectCompleteScreen
+        student={student}
         subject={subj}
         onHome={() => navigate('/student/home')}
         onReview={tasks.length > 0 ? () => setReviewing(true) : undefined}
