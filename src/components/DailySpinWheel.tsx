@@ -18,7 +18,7 @@ const SEGMENT_COLORS = ['#f7c948', '#4ade80', '#60a5fa', '#f472b6', '#c084fc', '
 
 function segmentImageSrc(seg: DailySpinSegment): string | undefined {
   if (seg.imageUrl) return seg.imageUrl;
-  if (seg.kind === 'cents' || seg.kind === 'cashback') return '/emotes/emote_cash.png';
+  if (seg.kind === 'cents' || seg.kind === 'cashback') return '/coins/coin.png';
   return undefined;
 }
 
