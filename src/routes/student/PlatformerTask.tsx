@@ -186,11 +186,12 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const [character, setCharacter] = useState<CharacterId | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [pauseReason, setPauseReason] = useState<'death' | 'timer' | 'gauntlet' | null>(null);
+  const [pauseReason, setPauseReason] = useState<'hit' | 'fall' | 'timer' | 'gauntlet' | null>(null);
   const [collectedCoins, setCollectedCoins] = useState(0);
   const [celebrateLap, setCelebrateLap] = useState(false);
   const [levelIndex, setLevelIndex] = useState(0);
   const [levelBanner, setLevelBanner] = useState<number | null>(null);
+  const [restartBanner, setRestartBanner] = useState(false);
   const [lives, setLives] = useState(MAX_LIVES);
   const [gauntletMissed, setGauntletMissed] = useState(false);
   const [payout, setPayout] = useState<{ coins: number; cents: number } | null>(null);
@@ -237,22 +238,12 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
-  // Flashes "LEVEL ___" big and centered before play starts — at the very
-  // first level and every level change after that (advancing by reaching
-  // the flag, or dropping back to level 1 after a full heart wipeout).
-  // Freezes the game via pausedRef directly rather than the React `paused`
-  // state, since this must never surface the question-popup overlay (which
-  // is gated on that state) — it's a separate, purely visual freeze.
+  // Flashes "LEVEL ONE" once, the moment play starts.
   useEffect(() => {
     if (!character) return;
-    pausedRef.current = true;
-    setLevelBanner(levelIndex);
-    const t = window.setTimeout(() => {
-      setLevelBanner(null);
-      pausedRef.current = false;
-    }, 2200);
-    return () => window.clearTimeout(t);
-  }, [character, levelIndex]);
+    flashLevelBanner(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [character]);
 
   useEffect(() => {
     ensureQuizState(student.id, subject, task);
@@ -344,7 +335,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     };
   }, []);
 
-  const triggerQuestion = (reason: 'death' | 'timer') => {
+  const triggerQuestion = (reason: 'hit' | 'fall' | 'timer') => {
     pausedRef.current = true;
     setPauseReason(reason);
     setPaused(true);
@@ -361,6 +352,22 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     setPicked(null);
     setFillValue('');
     setPendingCorrect(null);
+  };
+
+  // Flashes "LEVEL ___" big and centered, freezing the game via pausedRef
+  // directly (never the React `paused` state, which would also surface the
+  // question-popup overlay) — called explicitly on character select and on
+  // every level change (flag touch, gauntlet full-recovery) rather than
+  // inferred from a levelIndex effect, so it always fires even when the
+  // level number doesn't actually change (recovering back to level 1 while
+  // already on level 1).
+  const flashLevelBanner = (idx: number) => {
+    pausedRef.current = true;
+    setLevelBanner(idx);
+    window.setTimeout(() => {
+      setLevelBanner(null);
+      pausedRef.current = false;
+    }, 2200);
   };
 
   // ---------- Game loop ----------
@@ -456,7 +463,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           livesRef.current = Math.max(0, livesRef.current - 1);
           setLives(livesRef.current);
           if (livesRef.current === 0) triggerGauntlet();
-          else triggerQuestion('death');
+          else triggerQuestion(hitSpike ? 'hit' : 'fall');
         }
 
         // Coin collection
@@ -482,7 +489,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           p.vx = 0;
           p.vy = 0;
           const nextLevel = Math.min(levelIndex + 1, LEVEL_PLANS.length - 1);
-          if (nextLevel !== levelIndex) setLevelIndex(nextLevel);
+          if (nextLevel !== levelIndex) {
+            setLevelIndex(nextLevel);
+            flashLevelBanner(nextLevel);
+          }
         }
 
         // --- animation state ---
@@ -618,34 +628,54 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         setLives(livesRef.current);
         setGauntletMissed(false);
         if (livesRef.current >= MAX_LIVES) {
-          // Full hearts again — back to gameplay, starting fresh at level 1.
-          const startX = 2 * TILE;
-          const startY = (GROUND_TOP_ROW - 2) * TILE;
-          lastSafeRef.current = { x: startX, y: startY };
-          setLevelIndex(0);
+          // Full hearts again — hide the question modal, then a "Starting
+          // Over!" message, then the LEVEL ONE banner, before gameplay
+          // resumes back at the very start of level 1. flashLevelBanner is
+          // called explicitly (not inferred from a levelIndex change) so
+          // the LEVEL ONE banner always shows here, even if the student
+          // was already on level 1 when the last heart went.
           setPauseReason(null);
           setPaused(false);
-          const p = player.current;
-          p.x = startX;
-          p.y = startY;
-          p.vx = 0;
-          p.vy = 0;
-          p.state = 'idle';
+          setRestartBanner(true);
+          window.setTimeout(() => {
+            setRestartBanner(false);
+            const startX = 2 * TILE;
+            const startY = (GROUND_TOP_ROW - 2) * TILE;
+            lastSafeRef.current = { x: startX, y: startY };
+            const p = player.current;
+            p.x = startX;
+            p.y = startY;
+            p.vx = 0;
+            p.vy = 0;
+            p.state = 'idle';
+            setLevelIndex(0);
+            flashLevelBanner(0);
+          }, 1500);
         }
+        // Still short of a full recovery — stay paused, the next gauntlet
+        // question is already showing (activeQ reflects the live queue).
         return;
       }
-      // A miss wipes the hearts-back streak completely — starts over from 0.
+      // A miss wipes the hearts-back streak completely — starts over from
+      // 0, stays paused, and the next question shows automatically.
       livesRef.current = 0;
       setLives(0);
       setGauntletMissed(true);
       return;
     }
 
-    // Death-triggered questions resume right where the student was
-    // standing (the last safe checkpoint), not back at the level start —
-    // losing one heart never costs level progress. A timer-triggered
-    // question just resumes exactly where play paused, mid-motion.
-    if (pauseReason === 'death') {
+    // A wrong answer never sends the student back into gameplay — it just
+    // stays paused on the next question (already reflected by activeQ,
+    // since submitQuizAnswer above requeued this one and moved on) until
+    // they get one right.
+    if (!wasCorrect) return;
+
+    // From here on the answer was correct. A hit/fall question resumes
+    // right where the student was standing (the last safe checkpoint), not
+    // back at the level start — losing one heart never costs level
+    // progress. A timer-triggered question just resumes exactly where play
+    // paused, mid-motion.
+    if (pauseReason === 'hit' || pauseReason === 'fall') {
       const p = player.current;
       p.x = lastSafeRef.current.x;
       p.y = lastSafeRef.current.y;
@@ -739,13 +769,28 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             }}
           />
 
-          <div
-            className="tag-pill"
-            style={{ position: 'absolute', top: 8, right: 8, fontSize: '1.1rem', background: 'rgba(255,255,255,0.92)', pointerEvents: 'none' }}
-            aria-label={`${lives} of ${MAX_LIVES} hearts left`}
-          >
-            {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
+          <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, pointerEvents: 'none' }}>
+            <div
+              className="tag-pill"
+              style={{ fontSize: '1.1rem', background: 'rgba(255,255,255,0.92)' }}
+              aria-label={`${lives} of ${MAX_LIVES} hearts left`}
+            >
+              {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
+            </div>
+            <div
+              className="tag-pill"
+              style={{ fontSize: '0.9rem', background: 'var(--yellow)' }}
+              aria-label={`${collectedCoins} coins collected — become Class Cash when you finish`}
+            >
+              🪙 {collectedCoins}
+            </div>
           </div>
+
+          {restartBanner && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', background: 'rgba(20, 16, 31, 0.55)', borderRadius: 10 }}>
+              <span className="platformer-level-banner">Starting Over!</span>
+            </div>
+          )}
 
           {celebrateLap && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -823,14 +868,16 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
       {paused && activeQ && (
         <div className="overlay-backdrop">
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 480 }}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 640 }}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <div className="tag-pill" style={{ background: pauseReason === 'death' ? 'var(--danger)' : pauseReason === 'gauntlet' ? 'var(--danger)' : 'var(--purple)', color: '#fff' }}>
-                {pauseReason === 'death'
+              <div className="tag-pill" style={{ background: pauseReason === 'hit' || pauseReason === 'fall' || pauseReason === 'gauntlet' ? 'var(--danger)' : 'var(--purple)', color: '#fff' }}>
+                {pauseReason === 'hit'
                   ? '💥 You got hit! Answer to keep going.'
-                  : pauseReason === 'gauntlet'
-                    ? `💔 Out of hearts! Answer ${MAX_LIVES} in a row to earn them all back.`
-                    : '⏰ Quick question break!'}
+                  : pauseReason === 'fall'
+                    ? '🕳️ You fell! Answer to keep going.'
+                    : pauseReason === 'gauntlet'
+                      ? `💔 Out of hearts! Answer ${MAX_LIVES} in a row to earn them all back.`
+                      : '⏰ Quick question break!'}
               </div>
               {pauseReason === 'gauntlet' && (
                 <>
@@ -908,7 +955,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
               {pendingCorrect !== null && (
                 <button className="btn btn-primary btn-lg pulse-cta" onClick={resumeAfterQuestion}>
-                  ▶️ Back to the game!
+                  {pendingCorrect ? '▶️ Back to the game!' : '➡️ Next question'}
                 </button>
               )}
             </div>
