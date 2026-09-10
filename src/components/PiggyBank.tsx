@@ -22,6 +22,7 @@ export default function PiggyBank() {
   if (!student) return null;
 
   const register = transactions.filter((t) => t.studentId === student.id);
+  const chartRegister = register.filter((t) => !t.voided);
 
   return (
     <div className="container stack">
@@ -57,7 +58,7 @@ export default function PiggyBank() {
         </div>
 
         {view === 'charts' ? (
-          <PiggyBankCharts transactions={register} currentBalanceCents={student.coins} streak={student.streak} />
+          <PiggyBankCharts transactions={chartRegister} currentBalanceCents={student.coins} streak={student.streak} />
         ) : register.length === 0 ? (
           <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>Nothing here yet — finish an activity to make your first deposit!</p>
         ) : (
@@ -73,6 +74,7 @@ export default function PiggyBank() {
                     borderRadius: 10,
                     border: '2px solid var(--content-border)',
                     background: '#fff',
+                    opacity: t.voided ? 0.55 : 1,
                   }}
                 >
                   <div className="row" style={{ gap: 8, minWidth: 0 }}>
@@ -96,15 +98,16 @@ export default function PiggyBank() {
                       )}
                     </div>
                     <div className="stack" style={{ gap: 0, minWidth: 0 }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: t.voided ? 'line-through' : 'none' }}>
                         {t.description}
                       </span>
                       <span style={{ fontSize: '0.68rem', opacity: 0.6 }}>
                         {new Date(t.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        {t.voided && ' — removed by teacher'}
                       </span>
                     </div>
                   </div>
-                  <strong style={{ fontSize: '0.9rem', color: income ? 'var(--success)' : 'var(--danger)', flexShrink: 0 }}>
+                  <strong style={{ fontSize: '0.9rem', color: income ? 'var(--success)' : 'var(--danger)', flexShrink: 0, textDecoration: t.voided ? 'line-through' : 'none' }}>
                     {income ? '+' : ''}
                     {formatMoney(t.amountCents)}
                   </strong>

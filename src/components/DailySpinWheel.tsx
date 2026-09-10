@@ -146,6 +146,9 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
               <p style={{ fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>
                 {result.type === 'item' ? result.label : `You got ${result.label}!`}
               </p>
+              <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
+                🐷 Added to your Piggy Bank — check the Register to see it anytime.
+              </p>
               <button className="btn btn-primary btn-lg" style={{ minHeight: 44 }} onClick={onClose}>
                 Yay!
               </button>

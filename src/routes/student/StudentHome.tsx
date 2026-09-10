@@ -26,6 +26,7 @@ export default function StudentHome() {
   const activityLibrary = useStore((s) => s.activityLibrary);
   const hydrated = useStore((s) => s.hydrated);
   const applyTodaysScheduleIfNeeded = useStore((s) => s.applyTodaysScheduleIfNeeded);
+  const onboardedIds = useStore((s) => s.onboardedIds);
   const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
@@ -53,6 +54,18 @@ export default function StudentHome() {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Greets the student with the daily wheel automatically as soon as they
+  // land on Home, for as long as they haven't spun yet today — once
+  // they've spun, lastSpinDate flips to today and this stops firing. Never
+  // stacks on top of the one-time first-login walkthrough (Onboarding) —
+  // that always gets a brand-new student's full attention by itself first.
+  useEffect(() => {
+    if (hydrated && student && student.lastSpinDate !== todayISO() && onboardedIds.includes(student.id)) {
+      setShowSpinWheel(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, student?.id, student?.lastSpinDate, onboardedIds]);
 
   if (!student) return null;
 
