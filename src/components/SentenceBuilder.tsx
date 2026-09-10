@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
+import { roleFromLabel, wordEmoji } from '../lib/sentenceScene';
 import type { SentenceBuilderContent, TTSSettings } from '../types';
 
 interface Props {
@@ -40,6 +41,18 @@ export default function SentenceBuilder({ studentId, taskId, content, ttsSetting
     .map((p) => (p.kind === 'connector' ? p.text : draft[p.id]?.trim()))
     .filter(Boolean)
     .join(' ');
+
+  // A small emoji "scene" built from the words the student picked — the
+  // app has no AI image-generation configured, so this stands in for the
+  // "picture of your sentence" payoff with a simple, honest illustration.
+  const sceneTokens = blanks
+    .map((p) => {
+      const word = draft[p.id]?.trim();
+      if (!word) return null;
+      const role = roleFromLabel(p.label);
+      return { partId: p.id, word, emoji: wordEmoji(word, role), role };
+    })
+    .filter((t): t is NonNullable<typeof t> => t !== null);
 
   return (
     <div className="stack" style={{ gap: 16 }}>
@@ -116,6 +129,20 @@ export default function SentenceBuilder({ studentId, taskId, content, ttsSetting
           {sentencePreview || <span style={{ opacity: 0.4 }}>Your sentence will build here as you type…</span>}
         </p>
       </div>
+
+      {sceneTokens.length > 0 && (
+        <div className="sentence-scene">
+          <strong style={{ fontSize: '0.85rem' }}>🎨 A little picture of your sentence:</strong>
+          <div className="sentence-scene-stage">
+            {sceneTokens.map((t) => (
+              <div key={t.partId} className={`sentence-scene-token${t.role === 'action' ? ' sentence-scene-token-action' : ''}`}>
+                <span className="sentence-scene-emoji">{t.emoji}</span>
+                <span className="sentence-scene-word">{t.word}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button
         className="btn btn-primary btn-lg"

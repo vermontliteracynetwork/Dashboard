@@ -413,6 +413,21 @@ export interface Assignment {
   applied: boolean; // 'span' only: whether the one-time copy into the live plan has happened yet
 }
 
+// A student's phonics/morpheme/spelling focus for a date window (typically
+// a week) — shown to the student as a quick reference while they work on
+// Literacy, and editable per-student by the teacher. Only one is "active"
+// at a time per student (today's date falls inside its window); older ones
+// are kept around as history rather than overwritten.
+export interface LiteracyFocusSet {
+  id: string;
+  studentId: string;
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  phonicsPatterns: string[]; // e.g. "-ild", "-ost" (long vowel VCC exceptions)
+  morphemes: string[]; // e.g. "-ed", "-est"
+  practiceWords: string[]; // spelling words combining the patterns/morphemes above
+}
+
 export interface QuestionAttemptLog {
   questionId: string;
   timestamp: string;

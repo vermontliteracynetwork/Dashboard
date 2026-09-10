@@ -4,8 +4,108 @@ import TeacherNav from '../../components/TeacherNav';
 import { AVATAR_CATALOG } from '../../store/badges';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
+import { todayISO } from '../../lib/dates';
 import { ALL_TOOL_KEYS, TOOL_LABELS } from '../../types';
 import type { CustomTool, Subject, Student } from '../../types';
+
+// Adds `days - 1` days to an ISO date — used to default a new focus set's
+// window to a week (today through six days out) without pulling in a date
+// library for one calculation.
+function addDaysISO(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function tagListToText(list: string[]): string {
+  return list.join(', ');
+}
+function textToTagList(text: string): string[] {
+  return text.split(',').map((w) => w.trim()).filter(Boolean);
+}
+
+// Weekly phonics pattern / morpheme / practice-word focus for one student
+// (see LiteracyFocusSet). Editing while today falls inside an existing
+// window edits that window in place; otherwise "Publish" starts a new one.
+function LiteracyFocusEditor({ student }: { student: Student }) {
+  const literacyFocusSets = useStore((s) => s.literacyFocusSets);
+  const publishLiteracyFocusSet = useStore((s) => s.publishLiteracyFocusSet);
+  const deleteLiteracyFocusSet = useStore((s) => s.deleteLiteracyFocusSet);
+
+  const today = todayISO();
+  const mine = literacyFocusSets.filter((f) => f.studentId === student.id).sort((a, b) => b.startDate.localeCompare(a.startDate));
+  const active = mine.find((f) => f.startDate <= today && today <= f.endDate) ?? null;
+
+  const [startDate, setStartDate] = useState(active?.startDate ?? today);
+  const [endDate, setEndDate] = useState(active?.endDate ?? addDaysISO(today, 6));
+  const [phonics, setPhonics] = useState(tagListToText(active?.phonicsPatterns ?? []));
+  const [morphemes, setMorphemes] = useState(tagListToText(active?.morphemes ?? []));
+  const [words, setWords] = useState(tagListToText(active?.practiceWords ?? []));
+
+  const publish = () => {
+    publishLiteracyFocusSet(student.id, startDate, endDate, textToTagList(phonics), textToTagList(morphemes), textToTagList(words));
+  };
+
+  const others = mine.filter((f) => f.id !== active?.id);
+
+  return (
+    <div className="stack">
+      <strong>📚 Weekly Literacy Focus</strong>
+      <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+        This student's phonics pattern(s), morpheme(s), and practice/spelling words for a date window — shown to
+        them as a quick reference while they work on Literacy.
+      </p>
+      <div className="row-wrap">
+        <div>
+          <label>Start date</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </div>
+        <div>
+          <label>End date</label>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <label>Phonics pattern(s) — comma-separated</label>
+        <input style={{ width: '100%' }} value={phonics} onChange={(e) => setPhonics(e.target.value)} placeholder="e.g. -ild, -ost" />
+      </div>
+      <div>
+        <label>Morpheme(s) — comma-separated</label>
+        <input style={{ width: '100%' }} value={morphemes} onChange={(e) => setMorphemes(e.target.value)} placeholder="e.g. -ed, -est" />
+      </div>
+      <div>
+        <label>Practice / spelling words — comma-separated</label>
+        <input style={{ width: '100%' }} value={words} onChange={(e) => setWords(e.target.value)} placeholder="e.g. child, mild, wildest" />
+      </div>
+      <div className="row-wrap">
+        <button className="btn btn-sm btn-primary" disabled={!startDate || !endDate} onClick={publish}>
+          {active ? '💾 Update this week\'s focus' : '➕ Publish focus set'}
+        </button>
+        {active && (
+          <button className="btn btn-sm btn-danger" onClick={() => deleteLiteracyFocusSet(active.id)}>Delete</button>
+        )}
+      </div>
+
+      {others.length > 0 && (
+        <details>
+          <summary style={{ cursor: 'pointer', fontSize: '0.85rem' }}>Past focus sets ({others.length})</summary>
+          <div className="stack" style={{ marginTop: 8 }}>
+            {others.map((f) => (
+              <div key={f.id} className="content-well space-between">
+                <span style={{ fontSize: '0.85rem' }}>
+                  <strong>{f.startDate} → {f.endDate}</strong>
+                  {f.phonicsPatterns.length > 0 && <> · Phonics: {tagListToText(f.phonicsPatterns)}</>}
+                  {f.morphemes.length > 0 && <> · Morphemes: {tagListToText(f.morphemes)}</>}
+                </span>
+                <button className="btn btn-sm btn-danger" onClick={() => deleteLiteracyFocusSet(f.id)}>Delete</button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
 
 function CustomToolsEditor({ student }: { student: Student }) {
   const updateStudent = useStore((s) => s.updateStudent);
@@ -216,6 +316,9 @@ export default function StudentManager() {
 
                 <hr className="divider" />
                 <CustomToolsEditor student={st} />
+
+                <hr className="divider" />
+                <LiteracyFocusEditor student={st} />
               </div>
             )}
           </div>

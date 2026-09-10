@@ -89,6 +89,9 @@ import {
   rowToAssignment,
   pushAssignment,
   deleteAssignmentRemote,
+  rowToLiteracyFocusSet,
+  pushLiteracyFocusSet,
+  deleteLiteracyFocusSetRemote,
   pushTransaction,
   pushChatMessage,
   rowToChatMessage,
@@ -127,6 +130,7 @@ import type {
   WeeklyScheduleEntry,
   DayOfWeek,
   Assignment,
+  LiteracyFocusSet,
   Transaction,
   TransactionKind,
   ArticleAnnotationSet,
@@ -178,6 +182,7 @@ interface AppState {
   weeklyPlanApplied: Record<string, Partial<Record<Subject, string>>>; // studentId -> subject -> ISO date last auto-applied
   badgeCounters: Record<string, BadgeCounters>; // studentId -> lifetime counters used by badge rules
   assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
+  literacyFocusSets: LiteracyFocusSet[]; // a student's phonics/morpheme/spelling focus for a date window, typically a week
   transactions: Transaction[]; // every student's bank register, newest first
   lastCoinEarn: { id: string; studentId: string; amountCents: number } | null; // bumped by recordTransaction whenever coins land (spin win, task reward, streak bonus, etc.) — purely a UI trigger for the coin-drop animation/sound, not persisted
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
@@ -341,6 +346,21 @@ interface AppState {
     endDate: string,
     mode: 'repeat' | 'span',
   ) => void;
+
+  // A student's phonics/morpheme/spelling focus for a date window (see
+  // LiteracyFocusSet). Publishing while an existing set for that student
+  // overlaps the new window updates it in place instead of creating a
+  // duplicate — a teacher republishing this week's focus shouldn't pile up
+  // near-identical rows.
+  publishLiteracyFocusSet: (
+    studentId: string,
+    startDate: string,
+    endDate: string,
+    phonicsPatterns: string[],
+    morphemes: string[],
+    practiceWords: string[],
+  ) => void;
+  deleteLiteracyFocusSet: (id: string) => void;
 }
 
 // Pushes the full consolidated student_meta row for a student, reading the
@@ -391,6 +411,7 @@ export const useStore = create<AppState>()(
       weeklyPlanApplied: {},
       badgeCounters: {},
       assignments: [],
+      literacyFocusSets: [],
       transactions: [],
       lastCoinEarn: null,
       articleAnnotations: {},
@@ -507,6 +528,7 @@ export const useStore = create<AppState>()(
           onWeeklySchedule: (e, n, o) =>
             set((s) => ({ weeklySchedule: applyArrayRow(s.weeklySchedule, e, rowToWeeklyScheduleEntry, n, o) })),
           onAssignment: (e, n, o) => set((s) => ({ assignments: applyArrayRow(s.assignments, e, rowToAssignment, n, o) })),
+          onLiteracyFocusSet: (e, n, o) => set((s) => ({ literacyFocusSets: applyArrayRow(s.literacyFocusSets, e, rowToLiteracyFocusSet, n, o) })),
           onTransaction: (e, n, o) => set((s) => ({ transactions: applyArrayRow(s.transactions, e, rowToTransaction, n, o) })),
           onAnnotation: (e, n, o) => {
             if (e === 'DELETE') {
@@ -1932,6 +1954,32 @@ export const useStore = create<AppState>()(
           }));
           pushMetaFor(get, studentId);
         }
+      },
+
+      publishLiteracyFocusSet: (studentId, startDate, endDate, phonicsPatterns, morphemes, practiceWords) => {
+        const overlapping = get().literacyFocusSets.find(
+          (f) => f.studentId === studentId && f.startDate <= endDate && f.endDate >= startDate,
+        );
+        const set_: LiteracyFocusSet = {
+          id: overlapping?.id ?? makeId(),
+          studentId,
+          startDate,
+          endDate,
+          phonicsPatterns,
+          morphemes,
+          practiceWords,
+        };
+        set((s) => ({
+          literacyFocusSets: overlapping
+            ? s.literacyFocusSets.map((f) => (f.id === set_.id ? set_ : f))
+            : [...s.literacyFocusSets, set_],
+        }));
+        pushLiteracyFocusSet(set_);
+      },
+
+      deleteLiteracyFocusSet: (id) => {
+        set((s) => ({ literacyFocusSets: s.literacyFocusSets.filter((f) => f.id !== id) }));
+        deleteLiteracyFocusSetRemote(id);
       },
     }),
     { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },

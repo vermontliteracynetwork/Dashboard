@@ -237,6 +237,20 @@ create table if not exists assignments (
   applied boolean not null default false
 );
 
+-- A student's phonics pattern(s), morpheme(s), and practice/spelling words
+-- for a date window (typically a week). Only one is meant to be "active"
+-- for a student at a time (today falls inside start_date..end_date); older
+-- ones are kept as history rather than overwritten.
+create table if not exists literacy_focus_sets (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  start_date date not null,
+  end_date date not null,
+  phonics_patterns text[] not null default '{}',
+  morphemes text[] not null default '{}',
+  practice_words text[] not null default '{}'
+);
+
 create table if not exists rotation_modes (
   student_id text not null references students(id) on delete cascade,
   subject text not null check (subject in ('math', 'literacy')),
@@ -384,7 +398,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
     'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings'
   ];
 begin
@@ -427,7 +441,7 @@ declare
   tables text[] := array[
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
-    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments',
+    'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
     'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings'
   ];
 begin

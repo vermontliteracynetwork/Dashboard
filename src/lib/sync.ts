@@ -19,6 +19,7 @@ import type {
   PlanTemplate,
   WeeklyScheduleEntry,
   Assignment,
+  LiteracyFocusSet,
   Transaction,
   ArticleAnnotationSet,
   SentenceBuilderResponse,
@@ -427,6 +428,26 @@ const assignmentToRow = (a: Assignment): Row => ({
   applied: a.applied,
 });
 
+const rowToLiteracyFocusSet = (r: Row): LiteracyFocusSet => ({
+  id: r.id,
+  studentId: r.student_id,
+  startDate: r.start_date,
+  endDate: r.end_date,
+  phonicsPatterns: r.phonics_patterns ?? [],
+  morphemes: r.morphemes ?? [],
+  practiceWords: r.practice_words ?? [],
+});
+
+const literacyFocusSetToRow = (f: LiteracyFocusSet): Row => ({
+  id: f.id,
+  student_id: f.studentId,
+  start_date: f.startDate,
+  end_date: f.endDate,
+  phonics_patterns: f.phonicsPatterns,
+  morphemes: f.morphemes,
+  practice_words: f.practiceWords,
+});
+
 // ---------------------------------------------------------------------------
 // Fetch everything once, folded into the shapes the store keeps in memory
 // ---------------------------------------------------------------------------
@@ -453,6 +474,7 @@ export interface HydratedState {
   planTemplates: PlanTemplate[];
   weeklySchedule: WeeklyScheduleEntry[];
   assignments: Assignment[];
+  literacyFocusSets: LiteracyFocusSet[];
   transactions: Transaction[];
   articleAnnotations: Record<string, ArticleAnnotationSet>;
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>;
@@ -476,6 +498,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
+    literacyFocusSetsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -501,9 +524,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('notes').select('*'),
     supabase.from('marketplace_items').select('*'),
     supabase.from('app_settings').select('*').eq('id', 'global').maybeSingle(),
+    supabase.from('literacy_focus_sets').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -557,6 +581,7 @@ export async function fetchAll(): Promise<HydratedState> {
     planTemplates: (templatesRes.data ?? []).map(rowToTemplate),
     weeklySchedule: (scheduleRes.data ?? []).map(rowToWeeklyScheduleEntry),
     assignments: (assignmentsRes.data ?? []).map(rowToAssignment),
+    literacyFocusSets: (literacyFocusSetsRes.data ?? []).map(rowToLiteracyFocusSet),
     transactions: (transactionsRes.data ?? []).map(rowToTransaction),
     articleAnnotations: Object.fromEntries(
       (annotationsRes.data ?? []).map(rowToAnnotation).map((a) => [annotationKey(a.studentId, a.taskId, a.articleIndex), a]),
@@ -685,6 +710,9 @@ export const deleteWeeklyScheduleEntryRemote = (id: string) => remove('weekly_sc
 
 export const pushAssignment = (a: Assignment) => upsert('assignments', assignmentToRow(a));
 export const deleteAssignmentRemote = (id: string) => remove('assignments', { id });
+
+export const pushLiteracyFocusSet = (f: LiteracyFocusSet) => upsert('literacy_focus_sets', literacyFocusSetToRow(f));
+export const deleteLiteracyFocusSetRemote = (id: string) => remove('literacy_focus_sets', { id });
 
 export interface StudentMetaSlice {
   taskCompletionCounts: Record<string, number>; // just this student's, keyed by taskId (not the composite key)
@@ -821,7 +849,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -841,6 +869,7 @@ export interface RealtimeHandlers {
   onTemplate: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onWeeklySchedule: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onAssignment: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onLiteracyFocusSet: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onTransaction: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onAnnotation: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onSbResponse: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -880,6 +909,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_templates' }, wire(handlers.onTemplate))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_schedule' }, wire(handlers.onWeeklySchedule))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, wire(handlers.onAssignment))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'literacy_focus_sets' }, wire(handlers.onLiteracyFocusSet))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, wire(handlers.onTransaction))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'article_annotations' }, wire(handlers.onAnnotation))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sentence_builder_responses' }, wire(handlers.onSbResponse))

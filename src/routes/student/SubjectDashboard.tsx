@@ -20,6 +20,7 @@ import AvatarWithEmote from '../../components/AvatarWithEmote';
 import ArticleReader from '../../components/ArticleReader';
 import SentenceBuilder from '../../components/SentenceBuilder';
 import LinkChoiceTask from './LinkChoiceTask';
+import { todayISO } from '../../lib/dates';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -29,6 +30,7 @@ export default function SubjectDashboard() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const rotations = useStore((s) => s.rotations);
+  const literacyFocusSets = useStore((s) => s.literacyFocusSets);
   const ensureProgress = useStore((s) => s.ensureProgress);
   const markRitualSeen = useStore((s) => s.markRitualSeen);
   const progress = useStore((s) => s.progress);
@@ -228,6 +230,24 @@ export default function SubjectDashboard() {
           <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
         </div>
       </div>
+
+      {subj === 'literacy' && (() => {
+        const today = todayISO();
+        const focus = literacyFocusSets.find(
+          (f) => f.studentId === student.id && f.startDate <= today && today <= f.endDate,
+        );
+        if (!focus || (focus.phonicsPatterns.length === 0 && focus.morphemes.length === 0 && focus.practiceWords.length === 0)) return null;
+        return (
+          <div className="content-well stack" style={{ background: '#f4f2ff', gap: 4 }}>
+            <strong style={{ fontSize: '0.85rem' }}>📚 This week's focus</strong>
+            <div className="row-wrap" style={{ gap: 8 }}>
+              {focus.phonicsPatterns.map((p) => <span key={`p-${p}`} className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>{p}</span>)}
+              {focus.morphemes.map((m) => <span key={`m-${m}`} className="tag-pill" style={{ background: 'var(--blue)', color: '#fff' }}>{m}</span>)}
+              {focus.practiceWords.map((w) => <span key={`w-${w}`} className="tag-pill">{w}</span>)}
+            </div>
+          </div>
+        );
+      })()}
 
       {reviewing && (
         <div className="content-well space-between" style={{ background: '#fff8e1' }}>
