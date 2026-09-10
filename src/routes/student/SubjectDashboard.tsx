@@ -84,11 +84,16 @@ export default function SubjectDashboard() {
   }
 
   if ((prog.subjectComplete || tasks.length === 0) && !reviewing) {
+    const otherSubject: Subject = subj === 'math' ? 'literacy' : 'math';
+    const otherTasks = rotations[student.id]?.[otherSubject] ?? [];
+    const otherProg = progress[student.id]?.[otherSubject];
+    const otherDone = otherTasks.length === 0 || (otherProg?.date === todayISO() && otherProg.subjectComplete);
     return (
       <SubjectCompleteScreen
         subject={subj}
         onHome={() => navigate('/student/home')}
         onReview={tasks.length > 0 ? () => setReviewing(true) : undefined}
+        onPlayground={otherDone ? () => navigate('/student/playground/view') : undefined}
       />
     );
   }
