@@ -945,7 +945,19 @@ export const useStore = create<AppState>()(
         const student = get().students.find((st) => st.id === studentId);
         if (!student) return null;
         const today = todayISO();
-        if (student.lastSpinDate === today) return null;
+        // Already spun today refuses another spin — UNLESS a bonus spin
+        // (from finishing an activity/assignment with a "spin" reward) is
+        // waiting, in which case lastSpinDate being today is exactly the
+        // expected state and shouldn't block it. This used to be handled
+        // by literally nulling lastSpinDate out (resetDailySpin) whenever a
+        // bonus spin was granted, which also reset "already spun today"
+        // itself — so the very next time the student's Home screen
+        // re-checked that flag, it looked like they hadn't spun at all yet
+        // and popped the wheel open again, forever, for anyone who ever
+        // earned a bonus spin. bonusSpinAvailable is now its own
+        // independent gate, so a real spin's "already used today" status
+        // is never touched by granting a bonus one.
+        if (student.lastSpinDate === today && !student.bonusSpinAvailable) return null;
         const segments = getDailySpinSegments(today, get().marketplaceItems);
         const segmentIndex = Math.floor(Math.random() * segments.length);
         const segment = segments[segmentIndex];
@@ -1219,7 +1231,6 @@ export const useStore = create<AppState>()(
         } else if (reward.type === 'customItem') {
           get().recordTransaction(studentId, 0, `${taskLabel}: won ${reward.customName || 'a prize'}!`, reward.customIcon || '🎁', 'task');
         } else if (reward.type === 'spin') {
-          get().resetDailySpin(studentId);
           get().updateStudent(studentId, { bonusSpinAvailable: true });
           get().recordTransaction(studentId, 0, `${taskLabel}: bonus spin!`, '🎡', 'task');
         } else {
@@ -1283,7 +1294,6 @@ export const useStore = create<AppState>()(
                 get().recordTransaction(studentId, 0, `🎉 Finished today's assignment: won ${item.name}!`, item.icon, 'assignment-complete');
               }
             } else if (reward.type === 'spin') {
-              get().resetDailySpin(studentId);
               get().updateStudent(studentId, { bonusSpinAvailable: true });
               get().recordTransaction(studentId, 0, "🎉 Finished today's assignment: bonus spin!", '🎡', 'assignment-complete');
             }

@@ -61,11 +61,16 @@ export default function StudentHome() {
   // stacks on top of the one-time first-login walkthrough (Onboarding) —
   // that always gets a brand-new student's full attention by itself first.
   useEffect(() => {
-    if (hydrated && student && student.lastSpinDate !== todayISO() && onboardedIds.includes(student.id)) {
+    if (
+      hydrated &&
+      student &&
+      onboardedIds.includes(student.id) &&
+      (student.lastSpinDate !== todayISO() || student.bonusSpinAvailable)
+    ) {
       setShowSpinWheel(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, student?.id, student?.lastSpinDate, onboardedIds]);
+  }, [hydrated, student?.id, student?.lastSpinDate, student?.bonusSpinAvailable, onboardedIds]);
 
   if (!student) return null;
 

@@ -58,7 +58,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
   // otherwise flip this true mid-spin (before the animation even starts)
   // and tear the wheel down / jump straight to the "already spun" screen,
   // which is exactly what made the spin look like it "didn't work."
-  const [hasSpunToday] = useState(() => student?.lastSpinDate === todayISO());
+  const [hasSpunToday] = useState(() => student?.lastSpinDate === todayISO() && !student?.bonusSpinAvailable);
   // Same capture-once reasoning as hasSpunToday: spinDailyWheel() clears
   // this as part of its first update, so it must be read once at mount to
   // keep showing "Bonus Spin!" through the animation and result screen.

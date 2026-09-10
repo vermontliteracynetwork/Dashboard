@@ -368,17 +368,22 @@ label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px;
   text-align: center;
 }
 
+/* All four corner FABs (.help-fab, .tools-fab, .whatnow-fab, and the
+   to-do button's .fab-style-btn-todo override) share this same size,
+   16px edge offset, and visual weight — only which corner and color
+   differ, so the four read as one consistent set of "always there"
+   buttons no matter which one a student is looking at. */
 .help-fab {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 64px;
-  height: 64px;
+  bottom: 16px;
+  right: 16px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   border: var(--chunk) solid var(--ink);
   background: var(--orange);
   color: white;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   box-shadow: 5px 5px 0 var(--ink);
   cursor: pointer;
   z-index: 50;
@@ -562,14 +567,14 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   position: fixed;
   top: 16px;
   right: 16px;
-  width: 54px;
-  height: 54px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   border: var(--chunk) solid var(--ink);
   background: var(--purple);
   color: white;
-  font-size: 1.5rem;
-  box-shadow: 4px 4px 0 var(--ink);
+  font-size: 1.6rem;
+  box-shadow: 5px 5px 0 var(--ink);
   cursor: pointer;
   z-index: 60;
 }
@@ -600,19 +605,30 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 }
 .fab-style-btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
 .fab-style-btn:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
-.fab-style-btn.fab-style-btn-todo { background: var(--blue); font-size: 1.3rem; }
+/* Matches the other three corner FABs exactly — same 58px size, same 5px
+   shadow — for the one spot (the platformer's floating to-do button) that
+   otherwise uses the smaller inline .fab-style-btn sizing. */
+.fab-style-btn.fab-style-btn-todo {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  background: var(--blue);
+  font-size: 1.6rem;
+  box-shadow: 5px 5px 0 var(--ink);
+}
 
 .whatnow-fab {
   position: fixed;
-  bottom: 24px;
-  left: 24px;
-  width: 64px;
-  height: 64px;
+  bottom: 16px;
+  left: 16px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   border: var(--chunk) solid var(--ink);
   background: var(--blue);
   color: white;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 900;
   box-shadow: 5px 5px 0 var(--ink);
   cursor: pointer;
