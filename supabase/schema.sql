@@ -310,6 +310,7 @@ alter table app_settings add column if not exists emote_price_overrides jsonb no
 alter table transactions add column if not exists voided boolean not null default false;
 alter table notes add column if not exists body_html text;
 alter table students add column if not exists bonus_spin_available boolean not null default false;
+alter table activity_library add column if not exists reward jsonb;
 
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so

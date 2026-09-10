@@ -63,6 +63,71 @@ export function playCoinDrop() {
   }
 }
 
+// A ratcheting "tick-tick-tick" — played while the daily spin wheel turns,
+// spaced out with an ease-out curve so the ticks slow down toward the end
+// like a real wheel-of-fortune winding down to a stop. Synthesized (no
+// bundled audio file) and scheduled all at once for the wheel's known,
+// fixed spin duration rather than looped/stopped, since the spin always
+// runs for exactly durationMs.
+export function playWheelSpin(durationMs: number) {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const durationSec = durationMs / 1000;
+    const tickCount = 28;
+    for (let i = 0; i < tickCount; i++) {
+      const t = i / (tickCount - 1);
+      const eased = 1 - (1 - t) * (1 - t); // ease-out: ticks bunch up early, spread out late
+      const start = ctx.currentTime + eased * durationSec;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 900;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.09, start + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.045);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.05);
+    }
+    setTimeout(() => ctx.close(), durationMs + 300);
+  } catch {
+    // Audio isn't available (e.g. autoplay policy) — the wheel still spins, just silently.
+  }
+}
+
+// A bright four-note major arpeggio — played the moment the wheel stops
+// and the prize is revealed, for every prize (money or not). Distinct from
+// playCoinDrop(), which is specifically for Class Cash landing in the bank.
+export function playAchievementChime() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    notes.forEach((freq, i) => {
+      const start = now + i * 0.09;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.16, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.4);
+    });
+    setTimeout(() => ctx.close(), 900);
+  } catch {
+    // Audio isn't available — the result still shows, just silently.
+  }
+}
+
 // A bright cash-register "cha-ching" — a quick bell strike followed by a
 // few rapid high coin-jingle blips. Synthesized (no bundled audio file),
 // played any time Class Cash lands in a student's Piggy Bank.

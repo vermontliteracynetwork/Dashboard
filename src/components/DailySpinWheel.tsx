@@ -6,6 +6,7 @@ import { getDailySpinSegments, type DailySpinSegment } from '../lib/dailySpin';
 import { emoteById } from '../lib/emoteCatalog';
 import { avatarById } from '../lib/avatarCatalog';
 import { marketplaceItemDisplayName } from '../lib/marketplaceDisplay';
+import { playWheelSpin, playAchievementChime } from '../lib/chime';
 import type { MarketplaceItem } from '../types';
 
 interface Props {
@@ -122,9 +123,11 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
     if (!outcome || !wheelRef.current) return;
     setSpinning(true);
     wheelRef.current.spinToItem(outcome.segmentIndex, SPIN_DURATION_MS, true, 5, 1, null);
+    playWheelSpin(SPIN_DURATION_MS);
     window.setTimeout(() => {
       setSpinning(false);
       setResult(outcome);
+      playAchievementChime();
     }, SPIN_DURATION_MS + 100);
   };
 

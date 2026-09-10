@@ -9,7 +9,7 @@ import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
-import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
+import type { Subject, Task, TaskType, TaskRewardType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
 import { TASK_TYPE_LABELS } from '../../types';
 
 const MAX_ARTICLES_PER_TASK = 3;
@@ -410,6 +410,7 @@ export const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
   referenceLinkLabel: a.referenceLinkLabel,
   isDaily: a.isDaily,
   rewardCents: a.rewardCents,
+  reward: a.reward,
   article: a.article,
   sentenceBuilder: a.sentenceBuilder,
   linkChoice: a.linkChoice,
@@ -431,6 +432,8 @@ export function TaskEditor({
   const [task, setTask] = useState<Task>(initial);
   const [showSteps, setShowSteps] = useState((initial.customSteps?.length ?? 0) > 0);
   const [matchedNotice, setMatchedNotice] = useState<string | null>(null);
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const rewardType: TaskRewardType = task.reward?.type ?? 'money';
 
   return (
     <div className="content-well stack">
@@ -474,18 +477,79 @@ export function TaskEditor({
         </div>
         <div>
           <label>💰 Reward</label>
-          <div className="row" style={{ gap: 4 }}>
-            <span>$</span>
-            <input
-              type="number"
-              min={0}
-              step={0.25}
-              style={{ width: 72 }}
-              value={((task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS) / 100).toFixed(2)}
-              onChange={(e) => setTask({ ...task, rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
-            />
-          </div>
+          <select
+            value={rewardType}
+            onChange={(e) => {
+              const type = e.target.value as TaskRewardType;
+              setTask({ ...task, reward: type === 'money' ? undefined : { type } });
+            }}
+          >
+            <option value="money">💰 Money</option>
+            <option value="marketplaceItem">🎁 Marketplace item</option>
+            <option value="customItem">✨ Special item (not in Marketplace)</option>
+            <option value="spin">🎡 Bonus wheel spin</option>
+          </select>
         </div>
+
+        {rewardType === 'money' && (
+          <div>
+            <label>Amount</label>
+            <div className="row" style={{ gap: 4 }}>
+              <span>$</span>
+              <input
+                type="number"
+                min={0}
+                step={0.25}
+                style={{ width: 72 }}
+                value={((task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS) / 100).toFixed(2)}
+                onChange={(e) => setTask({ ...task, rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
+              />
+            </div>
+          </div>
+        )}
+
+        {rewardType === 'marketplaceItem' && (
+          <div style={{ minWidth: 200 }}>
+            <label>Which item</label>
+            <select
+              value={task.reward?.itemId ?? ''}
+              onChange={(e) => setTask({ ...task, reward: { type: 'marketplaceItem', itemId: e.target.value } })}
+            >
+              <option value="">Choose an item…</option>
+              {marketplaceItems.map((it) => (
+                <option key={it.id} value={it.id}>{it.icon.startsWith('http') ? '🖼️' : it.icon} {it.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {rewardType === 'customItem' && (
+          <>
+            <div>
+              <label>Icon</label>
+              <input
+                style={{ width: 56 }}
+                value={task.reward?.customIcon ?? '🎁'}
+                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customName: task.reward?.customName, customIcon: e.target.value } })}
+              />
+            </div>
+            <div>
+              <label>Prize name</label>
+              <input
+                style={{ width: 180 }}
+                value={task.reward?.customName ?? ''}
+                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customIcon: task.reward?.customIcon, customName: e.target.value } })}
+                placeholder="e.g. Sit by the window"
+              />
+            </div>
+          </>
+        )}
+
+        {rewardType === 'spin' && (
+          <p style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'flex-end', margin: 0 }}>
+            Finishing this activity unlocks a bonus spin on the daily wheel.
+          </p>
+        )}
       </div>
 
       <div style={{ maxWidth: 320 }}>

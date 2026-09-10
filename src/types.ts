@@ -303,6 +303,17 @@ export interface StepDef {
   text: string;
 }
 
+// What completing an activity grants. Defaults to money (see Task.rewardCents)
+// when unset — every task created before this existed keeps working exactly
+// as it did.
+export type TaskRewardType = 'money' | 'marketplaceItem' | 'customItem' | 'spin';
+export interface TaskReward {
+  type: TaskRewardType;
+  itemId?: string; // type: 'marketplaceItem' — any item from the Marketplace, granted free (no charge)
+  customName?: string; // type: 'customItem' — a one-off prize just for this activity, not listed in the Marketplace
+  customIcon?: string; // type: 'customItem' — emoji shown in the student's transaction history
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -326,7 +337,8 @@ export interface Task {
   order?: number; // set = must be done in ascending order before any unordered task unlocks; unset = free-choice once all ordered tasks are done
   isDaily?: boolean; // teacher-marked "this repeats every day" — shown with a star in the library
   isFinalCheck?: boolean; // teacher-marked "completing this marks the whole subject done" — unlocks Playground and updates the streak, instead of requiring every other activity to be checked off too. Typically a quiz.
-  rewardCents?: number; // Class Cash paid out on completion; falls back to DEFAULT_TASK_REWARD_CENTS when unset
+  reward?: TaskReward; // what completing this grants; defaults to { type: 'money' } (see rewardCents) when unset
+  rewardCents?: number; // Class Cash paid out on completion when reward is money-type (the default); falls back to DEFAULT_TASK_REWARD_CENTS when unset
   required?: boolean; // teacher-marked "cannot be skipped with a Skip Pass under any circumstances"
 }
 

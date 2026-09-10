@@ -385,6 +385,26 @@ function pushMetaFor(get: () => AppState, studentId: string) {
   });
 }
 
+// Grants a marketplace item to a student for free (a task-completion prize
+// or the assignment-completion bonus) — a power-up adds a Skip Pass token,
+// anything else is added to the matching owned-ids list. Returns the
+// granted item, or null if it's gone (deleted from the marketplace since
+// being picked as a reward).
+function grantFreeMarketplaceItem(get: () => AppState, studentId: string, itemId: string): MarketplaceItem | null {
+  const item = get().marketplaceItems.find((it) => it.id === itemId);
+  const s = get().students.find((st) => st.id === studentId);
+  if (!item || !s) return null;
+  if (item.kind === 'powerup') {
+    get().updateStudent(studentId, { skipTokens: s.skipTokens + 1 });
+  } else {
+    const ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds' } as const)[item.kind];
+    if (!(s[ownedField] as string[]).includes(item.id)) {
+      get().updateStudent(studentId, { [ownedField]: [...(s[ownedField] as string[]), item.id] } as Partial<Student>);
+    }
+  }
+  return item;
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -1165,8 +1185,21 @@ export const useStore = create<AppState>()(
         pushProgress(studentId, subject, get().progress[studentId][subject]);
 
         const rewardedTask = tasks.find((t) => t.id === taskId);
-        const rewardCents = rewardedTask?.rewardCents ?? DEFAULT_TASK_REWARD_CENTS;
-        get().recordTransaction(studentId, rewardCents, rewardedTask?.title || 'Activity completed', rewardedTask?.icon ?? '📝', 'task');
+        const taskLabel = rewardedTask?.title || 'Activity completed';
+        const reward = rewardedTask?.reward ?? { type: 'money' as const };
+        if (reward.type === 'marketplaceItem' && reward.itemId) {
+          const item = grantFreeMarketplaceItem(get, studentId, reward.itemId);
+          get().recordTransaction(studentId, 0, item ? `${taskLabel}: won ${item.name}!` : taskLabel, item?.icon ?? rewardedTask?.icon ?? '🎁', 'task');
+        } else if (reward.type === 'customItem') {
+          get().recordTransaction(studentId, 0, `${taskLabel}: won ${reward.customName || 'a prize'}!`, reward.customIcon || '🎁', 'task');
+        } else if (reward.type === 'spin') {
+          get().resetDailySpin(studentId);
+          get().updateStudent(studentId, { bonusSpinAvailable: true });
+          get().recordTransaction(studentId, 0, `${taskLabel}: bonus spin!`, '🎡', 'task');
+        } else {
+          const rewardCents = rewardedTask?.rewardCents ?? DEFAULT_TASK_REWARD_CENTS;
+          get().recordTransaction(studentId, rewardCents, taskLabel, rewardedTask?.icon ?? '📝', 'task');
+        }
 
         // lifetime completion count -> practice-makes-progress badge
         const key = `${studentId}:${taskId}`;
@@ -1219,17 +1252,8 @@ export const useStore = create<AppState>()(
             if (reward.type === 'coins' && (reward.amountCents ?? 0) > 0) {
               get().recordTransaction(studentId, reward.amountCents!, "🎉 Finished today's assignment!", '🎉', 'assignment-complete');
             } else if (reward.type === 'marketplaceItem' && reward.itemId) {
-              const item = get().marketplaceItems.find((it) => it.id === reward.itemId);
-              const s = get().students.find((st) => st.id === studentId);
-              if (item && s) {
-                if (item.kind === 'powerup') {
-                  get().updateStudent(studentId, { skipTokens: s.skipTokens + 1 });
-                } else {
-                  const ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds' } as const)[item.kind];
-                  if (!(s[ownedField] as string[]).includes(item.id)) {
-                    get().updateStudent(studentId, { [ownedField]: [...(s[ownedField] as string[]), item.id] } as Partial<Student>);
-                  }
-                }
+              const item = grantFreeMarketplaceItem(get, studentId, reward.itemId);
+              if (item) {
                 get().recordTransaction(studentId, 0, `🎉 Finished today's assignment: won ${item.name}!`, item.icon, 'assignment-complete');
               }
             } else if (reward.type === 'spin') {
