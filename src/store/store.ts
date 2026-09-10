@@ -305,6 +305,7 @@ interface AppState {
 
   // reusable question/drill sets ("Google Sheet" CSV import lands here too)
   addQuestionSet: (set: Omit<QuestionSet, 'id' | 'createdAt'>) => string;
+  duplicateQuestionSet: (id: string) => string | null;
   updateQuestionSet: (id: string, patch: Partial<QuestionSet>) => void;
   deleteQuestionSet: (id: string) => void;
 
@@ -1714,6 +1715,19 @@ export const useStore = create<AppState>()(
         set((s) => ({ questionSets: [full, ...s.questionSets] }));
         pushQuestionSet(full);
         return id;
+      },
+
+      duplicateQuestionSet: (id) => {
+        const original = get().questionSets.find((qs) => qs.id === id);
+        if (!original) return null;
+        return get().addQuestionSet({
+          name: `${original.name} (copy)`,
+          subject: original.subject,
+          kind: original.kind,
+          questions: original.questions.map((q) => ({ ...q, id: makeId() })),
+          cards: original.cards.map((c) => ({ ...c, id: makeId() })),
+          coverImageUrl: original.coverImageUrl,
+        });
       },
 
       updateQuestionSet: (id, patch) => {

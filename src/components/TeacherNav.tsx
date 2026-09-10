@@ -20,7 +20,7 @@ export default function TeacherNav() {
         <NavLink to="/teacher" end className={({ isActive }) => (isActive ? 'active' : '')}>🏠 Overview</NavLink>
         <NavLink to="/teacher/students" className={({ isActive }) => (isActive ? 'active' : '')}>🧒 Students</NavLink>
         <NavLink to="/teacher/assignments" className={({ isActive }) => (isActive ? 'active' : '')}>📋 Assignments</NavLink>
-        <NavLink to="/teacher/playground" className={({ isActive }) => (isActive ? 'active' : '')}>
+        <NavLink to="/teacher/activities" className={({ isActive }) => (isActive ? 'active' : '')}>
           🎪 Activities{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
         </NavLink>
         <NavLink to="/teacher/inbox" className={({ isActive }) => (isActive ? 'active' : '')}>

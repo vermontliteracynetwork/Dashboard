@@ -167,7 +167,12 @@ function buildLevel(plan: LevelSegment[]): LevelData {
 }
 
 function isSolid(level: LevelData, col: number, row: number): boolean {
-  if (row < 0 || row >= ROWS || col < 0 || col >= level.cols) return row >= ROWS; // below the level = solid "floor" only conceptually never reached; off level ends = open air
+  // Every direction off the edge of the level — including straight down
+  // through a gap — is open air, never solid. This used to treat "below
+  // the bottom row" as solid ground, which silently caught a student
+  // falling into a hole and stood them on an invisible floor instead of
+  // letting them keep falling into the real fell-off-the-level check.
+  if (row < 0 || row >= ROWS || col < 0 || col >= level.cols) return false;
   return level.solid[row][col];
 }
 
@@ -711,9 +716,6 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
             <span className="tag-pill" style={{ fontSize: '0.75rem' }}>🏁 {doneCount} of {total} answered</span>
             <span className="tag-pill" style={{ fontSize: '0.75rem', background: 'var(--yellow)' }}>🪙 {collectedCoins}</span>
-            <span className="tag-pill" style={{ fontSize: '0.75rem', background: '#fff' }} aria-label={`${lives} of ${MAX_LIVES} hearts left`}>
-              {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
-            </span>
             <span className="tag-pill" style={{ fontSize: '0.75rem', background: 'var(--blue)', color: '#fff' }}>🚩 Level {levelIndex + 1}</span>
           </div>
           <button className="fab-style-btn" aria-label="Exit game" title="Exit game" onClick={() => setConfirmExit(true)}>
@@ -736,6 +738,14 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
               background: '#8ec9f0',
             }}
           />
+
+          <div
+            className="tag-pill"
+            style={{ position: 'absolute', top: 8, right: 8, fontSize: '1.1rem', background: 'rgba(255,255,255,0.92)', pointerEvents: 'none' }}
+            aria-label={`${lives} of ${MAX_LIVES} hearts left`}
+          >
+            {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
+          </div>
 
           {celebrateLap && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
