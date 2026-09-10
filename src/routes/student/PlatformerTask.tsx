@@ -44,8 +44,7 @@ const DISPLAY_SCALE = 3;
 const QUESTION_TIMER_MS = 60_000; // ask a question every 1 minute of active play, even with no mistakes
 
 // ---------- Lives / gauntlet ----------
-const MAX_LIVES = 3;
-const GAUNTLET_LENGTH = 5; // questions in a row, no misses, to get lives back once all 3 are gone
+const MAX_LIVES = 3; // also how many correct answers in a row (no misses) it takes to earn all hearts back once they're gone
 const CENTS_PER_COIN = 5; // in-game coins convert to Class Cash the moment the activity is finished
 
 // ---------- Level ----------
@@ -186,7 +185,6 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const [celebrateLap, setCelebrateLap] = useState(false);
   const [levelIndex, setLevelIndex] = useState(0);
   const [lives, setLives] = useState(MAX_LIVES);
-  const [gauntletIndex, setGauntletIndex] = useState(0);
   const [gauntletMissed, setGauntletMissed] = useState(false);
   const [payout, setPayout] = useState<{ coins: number; cents: number } | null>(null);
 
@@ -211,6 +209,12 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const activeMsRef = useRef(0);
   const collectedColsRef = useRef<Set<string>>(new Set());
   const livesRef = useRef(MAX_LIVES);
+  // The last spot the player was standing safely (on solid ground, not on
+  // a spike) — a rolling checkpoint. Losing one heart (but not all 3)
+  // resumes here instead of at the level start, so the student keeps
+  // their place in the level; only a full wipeout (see the gauntlet) sends
+  // them back to the very beginning, at level 1.
+  const lastSafeRef = useRef({ x: 2 * TILE, y: (GROUND_TOP_ROW - 2) * TILE });
 
   const player = useRef({
     x: 2 * TILE,
@@ -291,6 +295,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     livesRef.current = MAX_LIVES;
     setLives(MAX_LIVES);
     setLevelIndex(0);
+    lastSafeRef.current = { x: 2 * TILE, y: (GROUND_TOP_ROW - 2) * TILE };
     return () => { cancelled = true; };
   }, [character]);
 
@@ -328,7 +333,6 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     pausedRef.current = true;
     setPauseReason('gauntlet');
     setPaused(true);
-    setGauntletIndex(0);
     setGauntletMissed(false);
     setPicked(null);
     setFillValue('');
@@ -409,6 +413,13 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         const feetRow = Math.floor((p.y + PLAYER_H - 1) / TILE);
         const hitSpike = level.spikeCols.has(feetCol) && feetRow === GROUND_TOP_ROW - 1;
         const fellOff = p.y > ROWS * TILE + 40;
+
+        // Rolling checkpoint — standing safely (on the ground, not on a
+        // spike) makes this the spot a single heart loss resumes at.
+        if (p.onGround && !hitSpike) {
+          lastSafeRef.current = { x: p.x, y: p.y };
+        }
+
         if (hitSpike || fellOff) {
           p.state = 'hit';
           // Getting hit or falling off always costs a life and always keeps
@@ -551,10 +562,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     // and every answer is submitted for real: a correct answer always
     // retires that question for good (it never comes back), a wrong one
     // gets requeued for another try later. The gauntlet layers one extra
-    // local rule on top (5 correct in a row to get lives back) without
-    // ever pulling from a separate, disconnected question pool — that
-    // used to let the same already-mastered question resurface, and let a
-    // student spend an entire session in gauntlet loops that never
+    // local rule on top (MAX_LIVES correct in a row to get hearts back)
+    // without ever pulling from a separate, disconnected question pool —
+    // that used to let the same already-mastered question resurface, and
+    // let a student spend an entire session in gauntlet loops that never
     // actually advanced the real question set.
     try {
       submitQuizAnswer(student.id, subject, task, masteryQ.id, wasCorrect);
@@ -577,37 +588,43 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
     if (pauseReason === 'gauntlet') {
       if (wasCorrect) {
-        const nextIndex = gauntletIndex + 1;
-        if (nextIndex >= GAUNTLET_LENGTH) {
-          livesRef.current = MAX_LIVES;
-          setLives(MAX_LIVES);
-          setGauntletMissed(false);
-          setGauntletIndex(0);
+        // One heart back per correct answer, shown live in the gauntlet
+        // panel below.
+        livesRef.current = Math.min(MAX_LIVES, livesRef.current + 1);
+        setLives(livesRef.current);
+        setGauntletMissed(false);
+        if (livesRef.current >= MAX_LIVES) {
+          // Full hearts again — back to gameplay, starting fresh at level 1.
+          const startX = 2 * TILE;
+          const startY = (GROUND_TOP_ROW - 2) * TILE;
+          lastSafeRef.current = { x: startX, y: startY };
+          setLevelIndex(0);
           setPauseReason(null);
           setPaused(false);
           const p = player.current;
-          p.x = 2 * TILE;
-          p.y = (GROUND_TOP_ROW - 2) * TILE;
+          p.x = startX;
+          p.y = startY;
           p.vx = 0;
           p.vy = 0;
           p.state = 'idle';
-          return;
         }
-        setGauntletIndex(nextIndex);
-        setGauntletMissed(false);
         return;
       }
+      // A miss wipes the hearts-back streak completely — starts over from 0.
+      livesRef.current = 0;
+      setLives(0);
       setGauntletMissed(true);
-      setGauntletIndex(0);
       return;
     }
 
-    // Death-triggered questions send the player back to the start; a
-    // timer-triggered question just resumes exactly where play paused.
+    // Death-triggered questions resume right where the student was
+    // standing (the last safe checkpoint), not back at the level start —
+    // losing one heart never costs level progress. A timer-triggered
+    // question just resumes exactly where play paused, mid-motion.
     if (pauseReason === 'death') {
       const p = player.current;
-      p.x = 2 * TILE;
-      p.y = (GROUND_TOP_ROW - 2) * TILE;
+      p.x = lastSafeRef.current.x;
+      p.y = lastSafeRef.current.y;
       p.vx = 0;
       p.vy = 0;
       p.state = 'idle';
@@ -777,17 +794,17 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 {pauseReason === 'death'
                   ? '💥 You got hit! Answer to keep going.'
                   : pauseReason === 'gauntlet'
-                    ? `💔 Out of hearts! Answer ${GAUNTLET_LENGTH} in a row to get back in the game.`
+                    ? `💔 Out of hearts! Answer ${MAX_LIVES} in a row to earn them all back.`
                     : '⏰ Quick question break!'}
               </div>
               {pauseReason === 'gauntlet' && (
                 <>
-                  <div className="tag-pill" style={{ background: '#fff' }}>
-                    {gauntletIndex} of {GAUNTLET_LENGTH} in a row
+                  <div className="tag-pill" style={{ background: '#fff', fontSize: '1.4rem' }} aria-label={`${lives} of ${MAX_LIVES} hearts back`}>
+                    {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
                   </div>
                   {gauntletMissed && (
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 700 }}>
-                      That one broke the streak — starting the count over from 0.
+                      That one broke the streak — hearts back to zero, starting over.
                     </p>
                   )}
                 </>
