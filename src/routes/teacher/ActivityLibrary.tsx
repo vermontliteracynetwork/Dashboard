@@ -499,8 +499,15 @@ export function TaskEditor({
         </p>
       </div>
 
-      {task.type === 'quiz' && (
+      {(task.type === 'quiz' || task.type === 'platformer') && (
         <div className="stack">
+          {task.type === 'platformer' && (
+            <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+              🎮 These are the questions that pop up during the game — every time the character gets hit, or every
+              minute if they haven't been hit yet. Add at least one. Pull in a saved set below to reuse questions
+              from a regular quiz.
+            </p>
+          )}
           <QuizEditor
             subject={subject}
             questions={task.quiz?.questions ?? []}
@@ -829,7 +836,10 @@ export function TaskEditor({
       )}
 
       {(() => {
-        const quizIssues = (task.type === 'quiz' || task.type === 'passage') ? validateQuizQuestions(task.quiz?.questions ?? []) : [];
+        const quizIssues = (task.type === 'quiz' || task.type === 'passage' || task.type === 'platformer') ? validateQuizQuestions(task.quiz?.questions ?? []) : [];
+        if (task.type === 'platformer' && (task.quiz?.questions ?? []).length === 0) {
+          quizIssues.unshift('Add at least one question — that\'s what pops up during the game.');
+        }
         return (
           <div className="stack">
             {quizIssues.length > 0 && (

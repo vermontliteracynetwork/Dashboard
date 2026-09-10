@@ -105,7 +105,7 @@ export const QUIZ_THEME_LABELS: Record<QuizTheme, string> = {
   fantasy: 'Fantasy',
 };
 
-export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice';
+export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice' | 'platformer';
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   quiz: 'Quiz (practice or checkpoint)',
@@ -119,6 +119,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   article: 'Article Reader (real web article, in-app)',
   sentenceBuilder: 'Sentence Builder (graphic organizer)',
   linkChoice: 'Pick One (2-4 video/link options, student chooses)',
+  platformer: '🎮 Platformer Game + Quiz (Blooket-style homework)',
 };
 
 export interface MCQuestion {

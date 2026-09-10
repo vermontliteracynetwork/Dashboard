@@ -63,6 +63,12 @@ const DEFAULT_STEPS: Record<TaskType, Omit<StepDef, 'id'>[]> = {
     { icon: '▶️', text: 'Watch or do that one' },
     { icon: '✅', text: 'Tap "I\'m done!"' },
   ],
+  platformer: [
+    { icon: '🏃', text: 'Run and jump through the level' },
+    { icon: '💥', text: 'A question pops up if you get hit — or every minute' },
+    { icon: '✅', text: 'Answer it to keep going' },
+    { icon: '🏁', text: "You're done once you've answered every question!" },
+  ],
 };
 
 export function getTaskSteps(task: Task): StepDef[] {

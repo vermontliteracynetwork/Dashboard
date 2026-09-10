@@ -6,6 +6,7 @@ import ToolsPanel from '../../components/ToolsPanel';
 import BreakTimer from '../../components/BreakTimer';
 import { playCalmChime } from '../../lib/chime';
 import QuizTask from './QuizTask';
+import PlatformerTask from './PlatformerTask';
 import OffscreenTask from './OffscreenTask';
 import VideoTask from './VideoTask';
 import PassageTask from './PassageTask';
@@ -92,6 +93,7 @@ export default function PlaygroundView() {
               <button className="btn btn-sm" onClick={close}>✕ Close</button>
             </div>
             {openEntry.task.type === 'quiz' && <QuizTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}
+            {openEntry.task.type === 'platformer' && <PlatformerTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}
             {openEntry.task.type === 'offscreen' && <OffscreenTask student={student} task={openEntry.task} onDone={close} />}
             {openEntry.task.type === 'video' && <VideoTask student={student} task={openEntry.task} onDone={close} />}
             {openEntry.task.type === 'passage' && <PassageTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { StartRitual, SubjectCompleteScreen } from './Rituals';
 import QuizTask from './QuizTask';
+import PlatformerTask from './PlatformerTask';
 import LinkTask from './LinkTask';
 import OffscreenTask from './OffscreenTask';
 import VideoTask from './VideoTask';
@@ -135,6 +136,7 @@ export default function SubjectDashboard() {
   const renderTask = (task: Task) => {
     switch (task.type) {
       case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
+      case 'platformer': return <PlatformerTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
       case 'link':
         return (
           <LinkTask

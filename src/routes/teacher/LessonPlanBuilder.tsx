@@ -609,6 +609,7 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
                       {t.type === 'drill' && `Flashcard drill · ${t.drill?.cards.length ?? 0} card(s)`}
                       {t.type === 'wordchain' && `Word chain · ${t.wordchain?.steps.length ?? 0} step(s)`}
                       {t.type === 'sentenceEdit' && `Editing sentences`}
+                      {t.type === 'platformer' && `🎮 Platformer · ${t.quiz?.questions.length ?? 0} question(s)`}
                       {t.referenceImageUrl && ' · 🖼️'}
                       {t.referenceLinkUrl && ' · 🔗'}
                       {t.isDaily && ' · ⭐'}

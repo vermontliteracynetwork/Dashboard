@@ -13,7 +13,7 @@ interface Props {
   onExit: () => void;
 }
 
-function MatchingBoard({ q, onSolved }: { q: MatchingQuestion; onSolved: () => void }) {
+export function MatchingBoard({ q, onSolved }: { q: MatchingQuestion; onSolved: () => void }) {
   const [matched, setMatched] = useState<string[]>([]);
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
   const [shake, setShake] = useState<string | null>(null);
