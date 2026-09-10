@@ -687,6 +687,28 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     setPaused(false);
   };
 
+  // Hearts row, shared by the corner HUD and the gauntlet panel — a lost
+  // heart is the same red heart image dimmed and desaturated rather than a
+  // separate asset, since only one heart color is available to use here.
+  const renderHearts = (count: number, size: number) => (
+    <div className="row" style={{ gap: 3 }} aria-label={`${lives} of ${MAX_LIVES} hearts`}>
+      {Array.from({ length: MAX_LIVES }, (_, i) => (
+        <img
+          key={i}
+          src="/platformer/hearts/heart-full.png"
+          alt=""
+          style={{
+            width: size,
+            height: Math.round(size * 0.73),
+            imageRendering: 'pixelated',
+            opacity: i < count ? 1 : 0.28,
+            filter: i < count ? 'none' : 'grayscale(1)',
+          }}
+        />
+      ))}
+    </div>
+  );
+
   // ---------- Touch controls ----------
   const holdKey = (key: 'left' | 'right' | 'jump', on: boolean) => (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -770,12 +792,8 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           />
 
           <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, pointerEvents: 'none' }}>
-            <div
-              className="tag-pill"
-              style={{ fontSize: '1.1rem', background: 'rgba(255,255,255,0.92)' }}
-              aria-label={`${lives} of ${MAX_LIVES} hearts left`}
-            >
-              {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
+            <div className="tag-pill" style={{ background: 'rgba(255,255,255,0.92)' }}>
+              {renderHearts(lives, 22)}
             </div>
             <div
               className="tag-pill"
@@ -881,8 +899,8 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
               </div>
               {pauseReason === 'gauntlet' && (
                 <>
-                  <div className="tag-pill" style={{ background: '#fff', fontSize: '1.4rem' }} aria-label={`${lives} of ${MAX_LIVES} hearts back`}>
-                    {'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}
+                  <div className="tag-pill" style={{ background: '#fff' }}>
+                    {renderHearts(lives, 30)}
                   </div>
                   {gauntletMissed && (
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 700 }}>

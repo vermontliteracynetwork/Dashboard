@@ -353,6 +353,7 @@ export interface QuestionSet {
   cards: DrillCard[]; // kind === 'drill'
   coverImageUrl?: string; // shown on the library card; falls back to a kind icon when unset
   createdAt: string;
+  tags?: string[]; // teacher-authored, for searching/filtering the Question Sets library
 }
 
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks

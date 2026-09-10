@@ -1731,6 +1731,7 @@ export const useStore = create<AppState>()(
           questions: original.questions.map((q) => ({ ...q, id: makeId() })),
           cards: original.cards.map((c) => ({ ...c, id: makeId() })),
           coverImageUrl: original.coverImageUrl,
+          tags: original.tags,
         });
       },
 

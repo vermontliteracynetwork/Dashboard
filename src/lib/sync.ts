@@ -324,6 +324,7 @@ const rowToQuestionSet = (r: Row): QuestionSet => ({
   cards: r.cards ?? [],
   coverImageUrl: r.cover_image_url ?? undefined,
   createdAt: r.created_at,
+  tags: r.tags ?? [],
 });
 
 const rowToActivity = (r: Row): ActivityLibraryItem => ({
@@ -784,6 +785,7 @@ export const pushQuestionSet = (q: QuestionSet) =>
     cards: q.cards,
     cover_image_url: q.coverImageUrl ?? null,
     created_at: q.createdAt,
+    tags: q.tags ?? [],
   });
 export const deleteQuestionSetRemote = (id: string) => remove('question_sets', { id });
 
