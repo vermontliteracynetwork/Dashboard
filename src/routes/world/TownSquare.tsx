@@ -101,10 +101,39 @@ const COMPUTER_RADIUS = 1.8;
 // Neighbors (verified by hashing the source files against what's already
 // copied in, so there's no risk of an accidental duplicate skin).
 const AMBIENT_NPCS: { id: string; modelPath: string; home: [number, number] }[] = [
-  { id: 'amb-1', modelPath: '/world/models/characters/ambient-1.glb', home: [-4, 1] },
+  // Nudged from [-4,1] — its wander circle clipped the computer desk at
+  // [-5,-2] by about 0.3 units (Claudia's review).
+  { id: 'amb-1', modelPath: '/world/models/characters/ambient-1.glb', home: [-4, 2] },
   { id: 'amb-2', modelPath: '/world/models/characters/ambient-2.glb', home: [4, -3] },
   { id: 'amb-3', modelPath: '/world/models/characters/ambient-3.glb', home: [-2, 9] },
 ];
+
+// Kenney City Kit Commercial buildings (verified CC0) placed near each
+// Neighbor's own spot, per Claudia's layout spec — a building "belongs"
+// to the Neighbor associated with it (Penny/Banker, Pip/Shopkeeper,
+// Wren/Mail Carrier), same as how Animal Crossing villagers stand near
+// their own homes. Positioned at roughly 1.25x each Neighbor's radius
+// from center, same radial direction, so they read as "just past" the
+// Neighbor rather than randomly placed. rotationY aims each building's
+// front toward the park center — a first-pass estimate, verified in a
+// standalone render before shipping, not guessed blind.
+const BUILDINGS: { id: string; modelPath: string; position: [number, number]; rotationY: number; label: string }[] = [
+  { id: 'bank', modelPath: '/world/models/buildings/bank.glb', position: [10, -7.5], rotationY: Math.atan2(-10, 7.5), label: 'Bank' },
+  { id: 'store', modelPath: '/world/models/buildings/store.glb', position: [-10, 7.5], rotationY: Math.atan2(10, -7.5), label: 'Store' },
+  // Pushed further out than the pure 1.25x-radial estimate — that landed
+  // close enough to the pond's edge to read as overlapping in a
+  // verification render (this is the spot Claudia's own spec flagged as
+  // the tightest fit and worth double-checking before finalizing).
+  { id: 'post-office', modelPath: '/world/models/buildings/post-office.glb', position: [12, 9], rotationY: Math.atan2(-12, -9), label: 'Post Office' },
+];
+const BUILDING_SCALE = 3;
+// Road/sidewalk tiles (City Kit Roads, also verified CC0) are already
+// copied into public/world/models/roads/ for the next pass — not placed
+// yet. A "doorstep" tile between a building and the park interior lands
+// right on top of that building's own Neighbor (they share the same
+// radial line by design), so laying road down without also reconsidering
+// Neighbor placement needs more room than this pass has; shipping the
+// buildings alone now rather than rushing an overlapping road tile.
 
 function blockPond(x: number, z: number): [number, number] {
   const dx = x - POND_CENTER.x;
@@ -768,6 +797,9 @@ function Park({
       {treeRing.map((t, i) =>
         t.pine ? <PineTree key={i} position={t.pos} scaleMul={t.scale} /> : <Tree key={i} position={t.pos} scaleMul={t.scale} />,
       )}
+      {BUILDINGS.map((b) => (
+        <Prop key={b.id} path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={BUILDING_SCALE} />
+      ))}
     </group>
   );
 }
