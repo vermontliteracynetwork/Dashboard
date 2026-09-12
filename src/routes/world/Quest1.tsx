@@ -15,14 +15,13 @@ import { formatMoney } from '../../lib/money';
 // other reward in this app already uses, so it shows up for real in the
 // student's Piggy Bank/register, not a mocked-up number.
 //
-// Deliberately still placeholder on the visual side: the room is plain
-// geometry and Neighbors are simple labeled capsules, not the real
-// Building Kit walls / Tiny Treats furniture / character models cataloged
-// in the plan. That's an intentional sequencing choice, not a shortcut —
-// per Claudia's own risk read, the movement/camera/interaction system is
-// the risky, foundational part of Phase 0; swapping in real assets on top
-// of a proven interaction system is comparatively low-risk, mechanical
-// follow-up work.
+// The player and all 4 Neighbors use real Kenney Mini Characters models
+// (CC0); the Fox uses its real cataloged model too. The room itself is
+// still plain box/plane geometry, not the real Building Kit walls or
+// Tiny Treats furniture cataloged in the plan — swapping those in is a
+// lower-risk, mechanical follow-up now that the movement/camera/
+// interaction system underneath (the actually risky Phase 0 foundation,
+// per Claudia's own read) is built and working.
 
 const ROOM_HALF = 6; // meters — the room is a ROOM_HALF*2 square
 const TALK_RADIUS = 1.6;
@@ -48,6 +47,14 @@ function useKeys() {
 function Fox() {
   const { scene } = useGLTF('/world/models/fox.glb');
   return <primitive object={scene} scale={0.9} position={[0, 0, -4.2]} rotation={[0, Math.PI, 0]} />;
+}
+
+// Kenney Mini Characters (CC0) — a real model instead of a placeholder
+// capsule. Each id loads its own file, so no shared-instance mutation risk
+// between the player and the 4 Neighbors, each a distinct character.
+function CharacterModel({ path }: { path: string }) {
+  const { scene } = useGLTF(path);
+  return <primitive object={scene} scale={1} />;
 }
 
 interface PlayerProps {
@@ -93,14 +100,9 @@ function Player({ touchDir, onMove, frozen }: PlayerProps) {
 
   return (
     <group ref={groupRef}>
-      <mesh castShadow position={[0, 0.55, 0]}>
-        <capsuleGeometry args={[0.35, 0.7, 4, 8]} />
-        <meshStandardMaterial color="#e2775c" />
-      </mesh>
-      <mesh position={[0, 1.15, 0.15]}>
-        <sphereGeometry args={[0.22, 12, 12]} />
-        <meshStandardMaterial color="#ffd9b3" />
-      </mesh>
+      <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#e2775c" /></mesh>}>
+        <CharacterModel path="/world/models/player.glb" />
+      </Suspense>
     </group>
   );
 }
@@ -119,14 +121,9 @@ function Neighbor({ n, playerPos, met, onTalk }: { n: Quest1Neighbor; playerPos:
 
   return (
     <group position={[px, 0, pz]}>
-      <mesh castShadow position={[0, 0.55, 0]}>
-        <capsuleGeometry args={[0.35, 0.7, 4, 8]} />
-        <meshStandardMaterial color={met ? '#9fb8ac' : '#3e7c6b'} />
-      </mesh>
-      <mesh position={[0, 1.15, 0.15]}>
-        <sphereGeometry args={[0.22, 12, 12]} />
-        <meshStandardMaterial color="#ffd9b3" />
-      </mesh>
+      <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color={met ? '#9fb8ac' : '#3e7c6b'} /></mesh>}>
+        <CharacterModel path={n.modelPath} />
+      </Suspense>
       <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
         <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
           {met ? '✅ ' : ''}{n.name} — {n.role}
@@ -236,15 +233,33 @@ export default function Quest1() {
         </Suspense>
       </Canvas>
 
-      {/* Touch movement — same corner-hold pattern the Platformer already uses. */}
-      <div
-        style={{ position: 'absolute', left: 0, bottom: 0, width: 160, height: 160, touchAction: 'none' }}
-        onPointerDown={(e) => { e.preventDefault(); touchDir.current = { x: -0.7, z: 0.3 }; }}
-        onPointerUp={() => { touchDir.current = { x: 0, z: 0 }; }}
-        onPointerLeave={() => { touchDir.current = { x: 0, z: 0 }; }}
-        aria-label="Move (touch and hold)"
-        role="button"
-      />
+      {/* Touch D-pad — same hold-to-move pattern the Platformer's arrow
+          buttons already use, extended to 4 directions since this is a
+          full XZ-plane room, not a single side-scrolling axis. One
+          direction at a time for now (holding two doesn't combine into a
+          diagonal) — real multi-touch tracking is a follow-up if that
+          turns out to matter in practice; keyboard already supports
+          diagonals fine via WASD combos. */}
+      <div style={{ position: 'absolute', left: 16, bottom: 16, width: 150, height: 150, zIndex: 10 }}>
+        {([
+          { label: '⬆️', dx: 0, dz: -1, style: { top: 0, left: 50 } },
+          { label: '⬇️', dx: 0, dz: 1, style: { bottom: 0, left: 50 } },
+          { label: '⬅️', dx: -1, dz: 0, style: { left: 0, top: 50 } },
+          { label: '➡️', dx: 1, dz: 0, style: { right: 0, top: 50 } },
+        ] as const).map((b) => (
+          <button
+            key={b.label}
+            className="btn btn-lg"
+            style={{ position: 'absolute', width: 50, height: 50, fontSize: '1.2rem', touchAction: 'none', ...b.style }}
+            onPointerDown={(e) => { e.preventDefault(); touchDir.current = { x: b.dx, z: b.dz }; }}
+            onPointerUp={() => { touchDir.current = { x: 0, z: 0 }; }}
+            onPointerLeave={() => { touchDir.current = { x: 0, z: 0 }; }}
+            aria-label={`Move ${b.label}`}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
       <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.72rem', opacity: 0.7, background: 'rgba(255,255,255,0.85)', padding: '3px 10px', borderRadius: 8, fontFamily: 'system-ui, sans-serif' }}>
         WASD or arrow keys to move — walk up to a Neighbor and press E (or tap Talk).
       </p>

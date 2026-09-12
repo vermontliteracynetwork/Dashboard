@@ -18,6 +18,12 @@ export interface Quest1Neighbor {
   itemRewardCents: number;
   // Position in the demo room (meters, x/z on the floor plane).
   position: [number, number];
+  // A real Kenney Mini Characters model (CC0) — swapped in for the
+  // placeholder capsule. Scale/facing were set without being able to see
+  // this render live in this environment (no local Supabase credentials
+  // to get past student login here), so treat the exact size/rotation as
+  // a first guess worth a quick visual check, not a verified value.
+  modelPath: string;
 }
 
 export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
@@ -29,6 +35,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     itemLabel: 'a little pile of fall leaves',
     itemRewardCents: 25,
     position: [-3, -2],
+    modelPath: '/world/models/neighbor-scout.glb',
   },
   {
     id: 'penny',
@@ -38,6 +45,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     itemLabel: 'a cozy autumn welcome mat',
     itemRewardCents: 25,
     position: [3, -2],
+    modelPath: '/world/models/neighbor-penny.glb',
   },
   {
     id: 'pip',
@@ -47,6 +55,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     itemLabel: 'a small pumpkin for your shelf',
     itemRewardCents: 25,
     position: [-3, 2],
+    modelPath: '/world/models/neighbor-pip.glb',
   },
   {
     id: 'wren',
@@ -56,6 +65,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     itemLabel: 'a string of fall leaf garland',
     itemRewardCents: 25,
     position: [3, 2],
+    modelPath: '/world/models/neighbor-wren.glb',
   },
 ];
 
