@@ -668,6 +668,8 @@ export const useStore = create<AppState>()(
           quizTheme: 'standard',
           bonusSpinAvailable: false,
           worldQuest1MetIds: [],
+          worldMoveSensitivity: 1,
+          worldDpadSide: 'left',
         };
         set((s) => ({
           students: [...s.students, student],

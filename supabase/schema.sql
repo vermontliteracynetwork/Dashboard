@@ -312,6 +312,8 @@ alter table students add column if not exists bonus_spin_available boolean not n
 alter table activity_library add column if not exists reward jsonb;
 alter table assignments add column if not exists deleted_at timestamptz;
 alter table students add column if not exists world_quest1_met_ids jsonb not null default '[]';
+alter table students add column if not exists world_move_sensitivity numeric not null default 1;
+alter table students add column if not exists world_dpad_side text not null default 'left';
 
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so

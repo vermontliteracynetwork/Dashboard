@@ -1,11 +1,13 @@
 import { Suspense, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations } from '@react-three/drei';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { QUEST1_NEIGHBORS, type Quest1Neighbor } from '../../lib/worldQuest1';
 import { formatMoney } from '../../lib/money';
+import ToolsPanel from '../../components/ToolsPanel';
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -19,7 +21,9 @@ import { formatMoney } from '../../lib/money';
 // it works) — they're present and can still be talked to for flavor, but
 // nothing is gated or sequenced here anymore, and there's no quest-progress
 // HUD. That logic still exists in the store (meetQuest1Neighbor) for
-// whenever the quest becomes the focus again.
+// whenever the quest becomes the focus again. Once a Neighbor has been
+// talked to, they stop being a fixed findable quest-giver and join the
+// ambient townspeople wandering the square (explicit teacher instruction).
 
 const GROUND_HALF = 14; // meters — the walkable square (movement/placement bounds)
 // The visible ground mesh is drawn much larger than the walkable area so
@@ -31,9 +35,20 @@ const GROUND_HALF = 14; // meters — the walkable square (movement/placement bo
 // of view fixes the read without changing the shape.
 const GROUND_VISUAL_RADIUS = GROUND_HALF * 4;
 const TALK_RADIUS = 1.8;
-const MOVE_SPEED = 3.6;
+// Base walking speed — multiplied by the student's own sensitivity setting
+// (Settings panel, student.worldMoveSensitivity, 0.5-2x) so a student who
+// finds the default speed too fast or too slow can adjust it themselves.
+const BASE_MOVE_SPEED = 3.6;
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
+const WANDER_SPEED = 1.3; // slower than the player's walk — ambient, unhurried
+const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
+// Simple flat-circle collision so the pond reads as an actual obstacle now
+// that a bridge exists specifically to cross it — not the pond's full
+// visual radius (3), so the bridge itself (which sits 3 units from the
+// pond center) stays just outside the blocked circle and is still usable.
+const POND_CENTER = { x: 6, z: 6 };
+const POND_BLOCK_RADIUS = 2.6;
 
 // Scale factors, measured against each model's actual loaded bounding box
 // in a standalone render check, not guessed — the first version of this
@@ -55,6 +70,25 @@ const ROCK_SCALE = 1.8;
 // prop was measured too but left unplaced — snow doesn't match a spring/
 // summer park, so it's cataloged and waiting on a winter-themed use instead.
 const PROP_SCALE = { flower: 3.5, mushroom: 4.2, largeRock: 4.3, mediumRock: 2.9, bridge: 13 };
+
+// Background townspeople — always wandering, never tied to a task. Spare
+// Kenney Mini Character skins not already used by the Player or the 4
+// Neighbors (verified by hashing the source files against what's already
+// copied in, so there's no risk of an accidental duplicate skin).
+const AMBIENT_NPCS: { id: string; modelPath: string; home: [number, number] }[] = [
+  { id: 'amb-1', modelPath: '/world/models/characters/ambient-1.glb', home: [-4, 1] },
+  { id: 'amb-2', modelPath: '/world/models/characters/ambient-2.glb', home: [4, -3] },
+  { id: 'amb-3', modelPath: '/world/models/characters/ambient-3.glb', home: [-2, 9] },
+];
+
+function blockPond(x: number, z: number): [number, number] {
+  const dx = x - POND_CENTER.x;
+  const dz = z - POND_CENTER.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist >= POND_BLOCK_RADIUS || dist === 0) return [x, z];
+  const scale = POND_BLOCK_RADIUS / dist;
+  return [POND_CENTER.x + dx * scale, POND_CENTER.z + dz * scale];
+}
 
 function useKeys() {
   const keys = useRef<Record<string, boolean>>({});
@@ -98,13 +132,8 @@ function Fox() {
     toRemove.forEach((obj) => obj.removeFromParent());
   }, [scene]);
 
-  // Not cloned, unlike Tree/Rocks/Prop — this model ships baked skeletal
-  // animations (Idle/Run/Attack/...), and a plain Object3D.clone() doesn't
-  // rebind a SkinnedMesh's skeleton to the cloned bones (a real three.js
-  // gotcha, caught in a verification render before this shipped — clones
-  // ended up as huge distorted geometry). There's only ever one Fox in
-  // the scene, so there's nothing a clone would protect against here.
   useEffect(() => {
+    if (!actions['Idle']) console.warn('[TownSquare] Fox: no "Idle" animation clip found');
     actions['Idle']?.reset().play();
   }, [actions]);
 
@@ -124,20 +153,27 @@ function Fox() {
 // animation clips — this was never wired up before now, which is exactly
 // why every character stood frozen in a rigid T-pose in the recording the
 // teacher (and Claudia's independent review) flagged as "not a functional
-// video game." Neighbors just play idle forever; the Player additionally
-// crossfades into walk (see PlayerModel below).
+// video game." Neighbors just play idle forever; the Player and wandering
+// NPCs additionally crossfade into walk.
+//
+// Cloned via three's SkeletonUtils (not a plain Object3D.clone(), which
+// doesn't rebind a SkinnedMesh's skeleton to the cloned bones) so this is
+// safe even if a future model path is ever reused by more than one
+// instance — flagged in review as a landmine when nothing here cloned yet.
 function CharacterModel({ path, scale = CHARACTER_SCALE }: { path: string; scale?: number }) {
   const { scene, animations } = useGLTF(path);
+  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
   const group = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
   useEffect(() => {
     const idle = actions['idle'];
+    if (!idle) console.warn(`[TownSquare] ${path}: no "idle" animation clip found`);
     idle?.reset().play();
     return () => { idle?.stop(); };
-  }, [actions]);
+  }, [actions, path]);
   return (
     <group ref={group}>
-      <primitive object={scene} scale={scale} />
+      <primitive object={cloned} scale={scale} />
     </group>
   );
 }
@@ -150,12 +186,15 @@ function CharacterModel({ path, scale = CHARACTER_SCALE }: { path: string; scale
 // useFrame loop).
 function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
   const { scene, animations } = useGLTF('/world/models/characters/player.glb');
+  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
   const group = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
   const current = useRef<'idle' | 'walk'>('idle');
 
   useEffect(() => {
+    if (!actions['idle']) console.warn('[TownSquare] player: no "idle" animation clip found');
     actions['idle']?.reset().play();
+    return () => { actions['idle']?.stop(); };
   }, [actions]);
 
   useFrame(() => {
@@ -168,7 +207,108 @@ function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
 
   return (
     <group ref={group}>
-      <primitive object={scene} scale={CHARACTER_SCALE} />
+      <primitive object={cloned} scale={CHARACTER_SCALE} />
+    </group>
+  );
+}
+
+// Shared by every wandering character (freed Neighbors + ambient
+// townspeople) — same idle/walk crossfade as PlayerModel, parameterized
+// by model path and scale instead of hardcoded to the player's own model.
+function WanderBodyModel({ path, scale, isMoving }: { path: string; scale: number; isMoving: React.RefObject<boolean> }) {
+  const { scene, animations } = useGLTF(path);
+  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
+  const group = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, group);
+  const current = useRef<'idle' | 'walk'>('idle');
+
+  useEffect(() => {
+    if (!actions['idle']) console.warn(`[TownSquare] ${path}: no "idle" animation clip found`);
+    actions['idle']?.reset().play();
+    return () => { actions['idle']?.stop(); };
+  }, [actions, path]);
+
+  useFrame(() => {
+    const next = isMoving.current ? 'walk' : 'idle';
+    if (next === current.current) return;
+    actions[current.current]?.fadeOut(0.15);
+    actions[next]?.reset().fadeIn(0.15).play();
+    current.current = next;
+  });
+
+  return (
+    <group ref={group}>
+      <primitive object={cloned} scale={scale} />
+    </group>
+  );
+}
+
+// A gentle, predictable wander: pick a random point within WANDER_RADIUS
+// of "home," walk to it, pause a couple seconds, repeat — forever, while
+// `active`. Used for the always-on background townspeople and for any
+// Neighbor once their task is done and they've joined the ambient crowd.
+// Deliberately simple (no obstacle avoidance) — this is flavor movement in
+// a small, mostly-open park, not a pathfinding system.
+function WanderingNPC({
+  modelPath,
+  home,
+  active,
+  scale = CHARACTER_SCALE,
+}: {
+  modelPath: string;
+  home: [number, number];
+  active: boolean;
+  scale?: number;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const pos = useRef(new THREE.Vector3(home[0], 0, home[1]));
+  const facing = useRef(0);
+  const target = useRef<THREE.Vector3 | null>(null);
+  const pauseUntil = useRef(0);
+  const isMoving = useRef(false);
+
+  useFrame(({ clock }, dt) => {
+    if (!groupRef.current) return;
+    if (active) {
+      if (!target.current && clock.elapsedTime >= pauseUntil.current) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.random() * WANDER_RADIUS;
+        target.current = new THREE.Vector3(
+          THREE.MathUtils.clamp(home[0] + Math.cos(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1),
+          0,
+          THREE.MathUtils.clamp(home[1] + Math.sin(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1),
+        );
+      }
+      if (target.current) {
+        const dx = target.current.x - pos.current.x;
+        const dz = target.current.z - pos.current.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < 0.2) {
+          target.current = null;
+          pauseUntil.current = clock.elapsedTime + 1.5 + Math.random() * 2.5;
+          isMoving.current = false;
+        } else {
+          const ndx = dx / dist;
+          const ndz = dz / dist;
+          const [bx, bz] = blockPond(pos.current.x + ndx * WANDER_SPEED * dt, pos.current.z + ndz * WANDER_SPEED * dt);
+          pos.current.x = bx;
+          pos.current.z = bz;
+          facing.current = Math.atan2(ndx, ndz);
+          isMoving.current = true;
+        }
+      }
+    } else {
+      isMoving.current = false;
+    }
+    groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+    groupRef.current.rotation.y = facing.current;
+  });
+
+  return (
+    <group ref={groupRef}>
+      <Suspense fallback={null}>
+        <WanderBodyModel path={modelPath} scale={scale} isMoving={isMoving} />
+      </Suspense>
     </group>
   );
 }
@@ -214,7 +354,17 @@ function Prop({
 // export is in hand yet (the cataloged Free Pond Kit only ships FBX). A
 // small wooden bridge from the teacher's newest prop pack now sits at its
 // edge, which does most of the work of making it read as a real pond
-// rather than a paint swatch.
+// rather than a paint swatch. The pond now also blocks movement (see
+// blockPond) so the bridge means something instead of being decorative.
+function Pond() {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[6, 0.02, 6]}>
+      <circleGeometry args={[3, 32]} />
+      <meshStandardMaterial color="#5b9bd5" roughness={0.15} metalness={0.1} />
+    </mesh>
+  );
+}
+
 // A small ring on the ground at the current click/tap-to-walk destination
 // — same "never a surprise, always visible feedback" principle as
 // everything else in this plan. Disappears once the player arrives
@@ -239,11 +389,23 @@ function WalkTargetMarker({ walkTarget }: { walkTarget: React.RefObject<{ x: num
   );
 }
 
-function Pond() {
+// A fainter, non-pulsing ring that follows the mouse cursor (or a dragging
+// finger) over the ground *before* a click/tap commits to it — "preview
+// where I'm pressing before I move there," direct teacher request. Distinct
+// look from WalkTargetMarker (soft white, no pulse) so the two are never
+// confused: this one is a suggestion, the orange one is a commitment.
+function HoverPreviewMarker({ hoverTarget }: { hoverTarget: React.RefObject<{ x: number; z: number } | null> }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    if (!ref.current) return;
+    const t = hoverTarget.current;
+    ref.current.visible = !!t;
+    if (t) ref.current.position.set(t.x, 0.025, t.z);
+  });
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[6, 0.02, 6]}>
-      <circleGeometry args={[3, 32]} />
-      <meshStandardMaterial color="#5b9bd5" roughness={0.15} metalness={0.1} />
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+      <ringGeometry args={[0.26, 0.36, 24]} />
+      <meshBasicMaterial color="#ffffff" transparent opacity={0.55} />
     </mesh>
   );
 }
@@ -253,15 +415,18 @@ interface PlayerProps {
   walkTarget: React.RefObject<{ x: number; z: number } | null>;
   onMove: (pos: THREE.Vector3) => void;
   frozen: boolean;
+  sensitivity: number;
+  cameraLook: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
   const pos = useRef(new THREE.Vector3(0, 0, 6));
   const facing = useRef(0);
   const isMoving = useRef(false);
+  const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
 
   useFrame((_, dt) => {
     if (!groupRef.current) return;
@@ -276,10 +441,16 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
         // click/tap-to-walk destination — a student correcting course by
         // hand shouldn't have to wait for the walk to finish first.
         walkTarget.current = null;
+        // Moving under your own control re-centers the camera directly
+        // behind you, cancelling any manual look-around offset — the same
+        // "always predictable, never a surprise" rule as everything else
+        // here; free-look is for standing still and peeking around.
+        cameraLook.current = 0;
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
-        pos.current.x = THREE.MathUtils.clamp(pos.current.x + dx * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
-        pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const [bx, bz] = blockPond(pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
+        pos.current.x = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
+        pos.current.z = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
         facing.current = Math.atan2(dx, dz);
         onMove(pos.current);
         moved = true;
@@ -295,10 +466,12 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
         if (dist < 0.15) {
           walkTarget.current = null;
         } else {
+          cameraLook.current = 0;
           const ndx = tx / dist;
           const ndz = tz / dist;
-          pos.current.x = THREE.MathUtils.clamp(pos.current.x + ndx * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
-          pos.current.z = THREE.MathUtils.clamp(pos.current.z + ndz * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+          const [bx, bz] = blockPond(pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
+          pos.current.x = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
+          pos.current.z = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
           facing.current = Math.atan2(ndx, ndz);
           onMove(pos.current);
           moved = true;
@@ -309,8 +482,9 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
 
-    const camX = pos.current.x - Math.sin(facing.current) * CAMERA_DISTANCE;
-    const camZ = pos.current.z - Math.cos(facing.current) * CAMERA_DISTANCE;
+    const camAngle = facing.current + cameraLook.current;
+    const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE;
+    const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE;
     camera.position.lerp(new THREE.Vector3(camX, CAMERA_HEIGHT, camZ), 1 - Math.pow(0.001, dt));
     camera.lookAt(pos.current.x, 1, pos.current.z);
   });
@@ -328,11 +502,15 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
 // as flavor/world-building right now. The one-item reward on first talk
 // stays (it's harmless and already built), but there's no sequencing, no
 // "not yet" lock, and no quest-progress HUD while the focus is the world
-// itself, not the quest (explicit teacher instruction).
+// itself, not the quest (explicit teacher instruction). Once met, a
+// Neighbor stops being a fixed, findable quest-giver and wanders their old
+// spot instead, same as the ambient townspeople (also explicit teacher
+// instruction) — they're done being "on duty."
 function Neighbor({
   n,
   playerPos,
   dialogueOpen,
+  wandering,
   onTalk,
 }: {
   n: Quest1Neighbor;
@@ -344,11 +522,12 @@ function Neighbor({
   // open, and the redundant Talk prompt rendered floating behind the
   // modal. Gating on dialogueOpen too fixes both.
   dialogueOpen: boolean;
+  wandering: boolean;
   onTalk: () => void;
 }) {
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
-  const inRange = dist <= TALK_RADIUS && !dialogueOpen;
+  const inRange = !wandering && dist <= TALK_RADIUS && !dialogueOpen;
 
   useEffect(() => {
     if (!inRange) return;
@@ -356,6 +535,10 @@ function Neighbor({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [inRange, onTalk]);
+
+  if (wandering) {
+    return <WanderingNPC modelPath={n.modelPath} home={n.position} active />;
+  }
 
   return (
     <group position={[px, 0, pz]}>
@@ -371,9 +554,9 @@ function Neighbor({
         <Html center position={[0, 2.15, 0]}>
           <button
             onClick={onTalk}
-            style={{ background: '#e2775c', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 800, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+            style={{ background: '#e2775c', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
           >
-            Talk (E)
+            Talk
           </button>
         </Html>
       )}
@@ -417,7 +600,13 @@ function SkyboxBackground() {
   return null;
 }
 
-function Park({ onGroundTap }: { onGroundTap: (x: number, z: number) => void }) {
+function Park({
+  onGroundTap,
+  onGroundHover,
+}: {
+  onGroundTap: (x: number, z: number) => void;
+  onGroundHover: (pt: { x: number; z: number } | null) => void;
+}) {
   // A ring of trees around the square's edge, a few pines mixed in for
   // variety, and a couple of rock clusters — real cataloged CC0 assets
   // (Kenney Mini Forest + Nature Kit), not primitives.
@@ -445,6 +634,11 @@ function Park({ onGroundTap }: { onGroundTap: (x: number, z: number) => void }) 
           e.stopPropagation();
           onGroundTap(e.point.x, e.point.z);
         }}
+        onPointerMove={(e) => {
+          e.stopPropagation();
+          onGroundHover({ x: e.point.x, z: e.point.z });
+        }}
+        onPointerOut={() => onGroundHover(null)}
       >
         <circleGeometry args={[GROUND_VISUAL_RADIUS, 48]} />
         <Suspense fallback={<meshStandardMaterial color="#7fb069" />}>
@@ -453,10 +647,11 @@ function Park({ onGroundTap }: { onGroundTap: (x: number, z: number) => void }) 
       </mesh>
       <Pond />
       <Prop path="/world/models/props/bridge.glb" position={[3, 0, 6]} rotationY={Math.PI / 2} scale={PROP_SCALE.bridge} />
-      <Rocks position={[-6, 0, 5]} />
-      <Rocks position={[8, 0, -7]} />
-      {/* Not at [8.5, 0, 8] — that overlapped Wren's spot at [8, 6] in a
-          verification render. Moved clear of every Neighbor. */}
+      {/* Not at [8, 0, -7] / [-6, 0, 5] — those sat right on top of (or at
+          the edge of) Penny and Pip in a verification render (Claudia's
+          review). Moved clear of every Neighbor's talk radius. */}
+      <Rocks position={[8, 0, -10]} />
+      <Rocks position={[-6, 0, 3]} />
       <Prop path="/world/models/props/large_rock.glb" position={[10, 0, -2]} scale={PROP_SCALE.largeRock} />
       <Prop path="/world/models/props/medium_rock.glb" position={[-1, 0, -10]} scale={PROP_SCALE.mediumRock} />
       {[
@@ -476,21 +671,129 @@ function Park({ onGroundTap }: { onGroundTap: (x: number, z: number) => void }) 
   );
 }
 
+// A single triangular "play" icon (from the teacher's flat-blue UI kit,
+// menu_3 — the one visually consistent with a "realistic modern town" over
+// the other two packs' medieval-fantasy styling) rotated per direction —
+// the standard rotate-one-triangle approach for a 4-way D-pad. The
+// teacher's own dedicated arrow assets weren't in the packs on hand yet;
+// swap /world/ui/btn-arrow.png out directly once they arrive, nothing else
+// needs to change.
+function DpadButton({
+  rotate,
+  label,
+  dx,
+  dz,
+  style,
+  touchDir,
+}: {
+  rotate: number;
+  label: string;
+  dx: number;
+  dz: number;
+  style: React.CSSProperties;
+  touchDir: React.RefObject<{ x: number; z: number }>;
+}) {
+  return (
+    <button
+      style={{
+        position: 'absolute',
+        width: 56,
+        height: 56,
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: '50%',
+        border: 'var(--chunk, 3px) solid var(--ink, #1f4238)',
+        background: '#2d5c8a',
+        boxShadow: '3px 3px 0 var(--ink, #1f4238)',
+        touchAction: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1,
+        ...style,
+      }}
+      onPointerDown={(e) => { e.preventDefault(); touchDir.current = { x: dx, z: dz }; }}
+      onPointerUp={() => { touchDir.current = { x: 0, z: 0 }; }}
+      onPointerLeave={() => { touchDir.current = { x: 0, z: 0 }; }}
+      aria-label={`Move ${label}`}
+    >
+      <img
+        src="/world/ui/btn-arrow.png"
+        alt=""
+        style={{ width: 26, height: 26, transform: `rotate(${rotate}deg)`, pointerEvents: 'none' }}
+      />
+      <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+// The teacher's explicit ask: on a computer, students should have both a
+// way to look around independent of where they're walking, and a way to
+// walk in a direction — the D-pad already covers walking on every device,
+// so this adds only the missing piece, camera look, and only where a
+// mouse/trackpad (not a touch screen) is the primary input. Discrete
+// clicks, not a continuous hold-drag — predictable, one-tap-does-the-thing,
+// same shape as every other control in this app. Capped well short of a
+// full spin so a student can peek around without ever losing their sense
+// of which way they're actually facing; moving snaps it back to normal.
+function CameraLookButtons({ cameraLook, side }: { cameraLook: React.RefObject<number>; side: 'left' | 'right' }) {
+  const [, forceTick] = useState(0);
+  const STEP = Math.PI / 6;
+  const CAP = Math.PI * 0.6;
+  const turn = (dir: 1 | -1) => {
+    cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dir * STEP, -CAP, CAP);
+    forceTick((n) => n + 1);
+  };
+  return (
+    <div style={{ position: 'absolute', bottom: 16, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: 'rgba(255,255,255,0.92)', padding: '2px 8px', borderRadius: 6, fontFamily: 'system-ui, sans-serif' }}>
+        Look around
+      </span>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => turn(-1)}
+          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)' }}
+          aria-label="Look left"
+        >
+          ↺
+        </button>
+        <button
+          onClick={() => turn(1)}
+          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)' }}
+          aria-label="Look right"
+        >
+          ↻
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TownSquare() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const meetQuest1Neighbor = useStore((s) => s.meetQuest1Neighbor);
+  const updateStudent = useStore((s) => s.updateStudent);
   const student = students.find((s) => s.id === currentStudentId);
 
   const [playerPos, setPlayerPos] = useState(() => new THREE.Vector3(0, 0, 6));
   const [activeDialogue, setActiveDialogue] = useState<Quest1Neighbor | null>(null);
   const [justEarned, setJustEarned] = useState<{ label: string; cents: number } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches);
   const touchDir = useRef({ x: 0, z: 0 });
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
   // there — the primary cross-device movement method; the D-pad and
   // keyboard both still work and take over instantly if used.
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
+  const hoverTarget = useRef<{ x: number; z: number } | null>(null);
+  const cameraLook = useRef(0);
 
   useEffect(() => {
     if (!currentStudentId) navigate('/student/login');
@@ -533,6 +836,9 @@ export default function TownSquare() {
 
   if (!student) return null;
 
+  const dpadSide = student.worldDpadSide;
+  const otherSide = dpadSide === 'left' ? 'right' : 'left';
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0' }}>
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', gap: 8 }}>
@@ -541,11 +847,23 @@ export default function TownSquare() {
         </span>
       </div>
 
+      <ToolsPanel student={student} subject="both" />
+
+      <button
+        onClick={() => setSettingsOpen(true)}
+        style={{ position: 'fixed', top: 82, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 8 }}
+        aria-label="Movement settings"
+      >
+        <img src="/world/ui/btn-settings.png" alt="" style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
+      </button>
+
       <Link
         to="/student/home"
-        style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, background: '#e2775c', color: '#fff', padding: '8px 16px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+        style={{ position: 'fixed', bottom: 16, [otherSide]: 16, zIndex: 60, width: 58, height: 58, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#e2775c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', textDecoration: 'none', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        aria-label="My Tasks"
+        title="My Tasks"
       >
-        📋 My Tasks
+        📋
       </Link>
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
@@ -555,55 +873,119 @@ export default function TownSquare() {
           <SkyboxBackground />
           <Park
             onGroundTap={(x, z) => {
+              hoverTarget.current = null;
               walkTarget.current = {
                 x: THREE.MathUtils.clamp(x, -GROUND_HALF + 1, GROUND_HALF - 1),
                 z: THREE.MathUtils.clamp(z, -GROUND_HALF + 1, GROUND_HALF - 1),
               };
             }}
+            onGroundHover={(pt) => {
+              hoverTarget.current = pt
+                ? {
+                    x: THREE.MathUtils.clamp(pt.x, -GROUND_HALF + 1, GROUND_HALF - 1),
+                    z: THREE.MathUtils.clamp(pt.z, -GROUND_HALF + 1, GROUND_HALF - 1),
+                  }
+                : null;
+            }}
           />
           <Fox />
           <WalkTargetMarker walkTarget={walkTarget} />
-          <Player touchDir={touchDir} walkTarget={walkTarget} onMove={(p) => setPlayerPos(p.clone())} frozen={!!activeDialogue} />
+          <HoverPreviewMarker hoverTarget={hoverTarget} />
+          <Player
+            touchDir={touchDir}
+            walkTarget={walkTarget}
+            onMove={(p) => setPlayerPos(p.clone())}
+            frozen={!!activeDialogue}
+            sensitivity={student.worldMoveSensitivity}
+            cameraLook={cameraLook}
+          />
           {QUEST1_NEIGHBORS.map((n) => (
-            <Neighbor key={n.id} n={n} playerPos={playerPos} dialogueOpen={!!activeDialogue} onTalk={() => handleTalk(n)} />
+            <Neighbor
+              key={n.id}
+              n={n}
+              playerPos={playerPos}
+              dialogueOpen={!!activeDialogue}
+              wandering={metIds.includes(n.id)}
+              onTalk={() => handleTalk(n)}
+            />
+          ))}
+          {AMBIENT_NPCS.map((npc) => (
+            <WanderingNPC key={npc.id} modelPath={npc.modelPath} home={npc.home} active />
           ))}
         </Suspense>
       </Canvas>
 
-      <div style={{ position: 'absolute', left: 16, bottom: 16, width: 150, height: 150, zIndex: 10 }}>
-        {([
-          { label: '⬆️', dx: 0, dz: -1, style: { top: 0, left: 50 } },
-          { label: '⬇️', dx: 0, dz: 1, style: { bottom: 0, left: 50 } },
-          { label: '⬅️', dx: -1, dz: 0, style: { left: 0, top: 50 } },
-          { label: '➡️', dx: 1, dz: 0, style: { right: 0, top: 50 } },
-        ] as const).map((b) => (
-          <button
-            key={b.label}
-            className="btn btn-lg"
-            style={{ position: 'absolute', width: 50, height: 50, fontSize: '1.2rem', touchAction: 'none', ...b.style }}
-            onPointerDown={(e) => { e.preventDefault(); touchDir.current = { x: b.dx, z: b.dz }; }}
-            onPointerUp={() => { touchDir.current = { x: 0, z: 0 }; }}
-            onPointerLeave={() => { touchDir.current = { x: 0, z: 0 }; }}
-            aria-label={`Move ${b.label}`}
-          >
-            {b.label}
-          </button>
-        ))}
+      <div style={{ position: 'absolute', [dpadSide]: 16, bottom: 16, width: 170, height: 170, zIndex: 10 }}>
+        <DpadButton rotate={-90} label="Up" dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
+        <DpadButton rotate={90} label="Down" dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
+        <DpadButton rotate={180} label="Left" dx={-1} dz={0} style={{ left: 0, top: 57 }} touchDir={touchDir} />
+        <DpadButton rotate={0} label="Right" dx={1} dz={0} style={{ right: 0, top: 57 }} touchDir={touchDir} />
       </div>
-      <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.72rem', opacity: 0.7, background: 'rgba(255,255,255,0.85)', padding: '3px 10px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center' }}>
-        🖱️ Click, or 👆 tap, anywhere on the grass to walk there — or use WASD/arrow keys/the D-pad.
+
+      {isDesktop && <CameraLookButtons cameraLook={cameraLook} side={dpadSide} />}
+
+      <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
+        🖱️ Click, or 👆 tap, anywhere on the grass to walk there — or use WASD/arrow keys/the buttons.
         <br />Walk up to a Neighbor and press E (or tap Talk).
       </p>
 
       {activeDialogue && (
-        <div className="overlay-backdrop">
+        <div className="overlay-backdrop" role="dialog" aria-modal="true">
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>{activeDialogue.name}</h2>
               <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeDialogue.role}</p>
               <p style={{ fontSize: '1.05rem', margin: '8px 0' }}>{activeDialogue.greeting}</p>
-              <button className="btn btn-primary btn-lg pulse-cta" onClick={handleContinue}>
+              <button className="btn btn-primary btn-lg pulse-cta" onClick={handleContinue} autoFocus>
                 Thanks, {activeDialogue.name.split(' ')[0]}!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {settingsOpen && student && (
+        <div className="overlay-backdrop" role="dialog" aria-modal="true">
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }}>
+            <div className="content-well stack" style={{ gap: 16 }}>
+              <h2 style={{ margin: 0 }}>⚙️ Movement Settings</h2>
+
+              <div className="stack" style={{ gap: 6 }}>
+                <label htmlFor="sensitivity-slider" style={{ fontWeight: 700 }}>
+                  Movement speed: {Math.round(student.worldMoveSensitivity * 100)}%
+                </label>
+                <input
+                  id="sensitivity-slider"
+                  type="range"
+                  min={0.5}
+                  max={2}
+                  step={0.1}
+                  value={student.worldMoveSensitivity}
+                  onChange={(e) => updateStudent(student.id, { worldMoveSensitivity: parseFloat(e.target.value) })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div className="stack" style={{ gap: 6 }}>
+                <span style={{ fontWeight: 700 }}>Which side are the walk buttons on?</span>
+                <div className="row-wrap" style={{ gap: 8 }}>
+                  <button
+                    className={`btn btn-sm${dpadSide === 'left' ? ' btn-primary' : ''}`}
+                    onClick={() => updateStudent(student.id, { worldDpadSide: 'left' })}
+                  >
+                    Left side
+                  </button>
+                  <button
+                    className={`btn btn-sm${dpadSide === 'right' ? ' btn-primary' : ''}`}
+                    onClick={() => updateStudent(student.id, { worldDpadSide: 'right' })}
+                  >
+                    Right side
+                  </button>
+                </div>
+              </div>
+
+              <button className="btn btn-primary btn-lg" onClick={() => setSettingsOpen(false)} autoFocus>
+                Done
               </button>
             </div>
           </div>
