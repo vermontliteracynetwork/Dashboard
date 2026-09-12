@@ -1,6 +1,6 @@
 import { Suspense, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Html, Sky } from '@react-three/drei';
+import { useGLTF, Html, useTexture, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
@@ -46,6 +46,15 @@ const FOX_SCALE = 1.1;
 const TREE_SCALE = 2.8;
 const PINE_SCALE = 3.2;
 const ROCK_SCALE = 1.8;
+
+// The teacher's own uploaded prop pack (bridge/flower/mushroom/rocks) — a
+// different source pack from the Kenney forest models above, so its raw
+// model scale isn't comparable. Every value below was measured the same
+// way: load it alone, read its actual bounding box, then pick a scale from
+// a real target size instead of guessing. The pack's snow-capped pine_tree
+// prop was measured too but left unplaced — snow doesn't match a spring/
+// summer park, so it's cataloged and waiting on a winter-themed use instead.
+const PROP_SCALE = { flower: 3.5, mushroom: 4.2, largeRock: 4.3, mediumRock: 2.9, bridge: 13 };
 
 function useKeys() {
   const keys = useRef<Record<string, boolean>>({});
@@ -95,9 +104,57 @@ function Fox() {
 // shared folder would have one pack's colormap.png silently overwrite the
 // other's, which is exactly the "everything is flat grey" bug the teacher
 // caught in the last recording. Keep every new pack in its own subfolder.
+// Every Kenney Mini Character GLB ships real "idle"/"walk"/"sprint" (etc.)
+// animation clips — this was never wired up before now, which is exactly
+// why every character stood frozen in a rigid T-pose in the recording the
+// teacher (and Claudia's independent review) flagged as "not a functional
+// video game." Neighbors just play idle forever; the Player additionally
+// crossfades into walk (see PlayerModel below).
 function CharacterModel({ path, scale = CHARACTER_SCALE }: { path: string; scale?: number }) {
-  const { scene } = useGLTF(path);
-  return <primitive object={scene} scale={scale} />;
+  const { scene, animations } = useGLTF(path);
+  const group = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, group);
+  useEffect(() => {
+    const idle = actions['idle'];
+    idle?.reset().play();
+    return () => { idle?.stop(); };
+  }, [actions]);
+  return (
+    <group ref={group}>
+      <primitive object={scene} scale={scale} />
+    </group>
+  );
+}
+
+// The Player's own model, split out from CharacterModel so movement can
+// crossfade idle -> walk every frame without going through React state
+// (a state update on every frame of movement would be a lot of unnecessary
+// re-renders — this drives the THREE.AnimationMixer directly via a ref
+// Player already updates each frame, same as everything else in its
+// useFrame loop).
+function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
+  const { scene, animations } = useGLTF('/world/models/characters/player.glb');
+  const group = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, group);
+  const current = useRef<'idle' | 'walk'>('idle');
+
+  useEffect(() => {
+    actions['idle']?.reset().play();
+  }, [actions]);
+
+  useFrame(() => {
+    const next = isMoving.current ? 'walk' : 'idle';
+    if (next === current.current) return;
+    actions[current.current]?.fadeOut(0.15);
+    actions[next]?.reset().fadeIn(0.15).play();
+    current.current = next;
+  });
+
+  return (
+    <group ref={group}>
+      <primitive object={scene} scale={CHARACTER_SCALE} />
+    </group>
+  );
 }
 
 function Tree({ position, scaleMul = 1 }: { position: [number, number, number]; scaleMul?: number }) {
@@ -118,10 +175,30 @@ function Rocks({ position }: { position: [number, number, number] }) {
   return <primitive object={cloned} position={position} scale={ROCK_SCALE} />;
 }
 
-// A simple placeholder pond — no real pond asset with a ready GLB export
-// is in hand yet (the cataloged Free Pond Kit only ships FBX). Flagged to
-// the teacher directly as one of the things a real texture/model upload
-// would improve most.
+// Generic loader for the small self-contained prop GLBs (each one ships
+// its own embedded textures, unlike the character/forest packs above, so
+// there's no shared-folder collision risk and no per-pack subfolder needed).
+function Prop({
+  path,
+  position,
+  scale = 1,
+  rotationY = 0,
+}: {
+  path: string;
+  position: [number, number, number];
+  scale?: number;
+  rotationY?: number;
+}) {
+  const { scene } = useGLTF(path);
+  const cloned = useMemo(() => scene.clone(), [scene]);
+  return <primitive object={cloned} position={position} scale={scale} rotation={[0, rotationY, 0]} />;
+}
+
+// Still a simple flat-color pond — no real pond asset with a ready GLB
+// export is in hand yet (the cataloged Free Pond Kit only ships FBX). A
+// small wooden bridge from the teacher's newest prop pack now sits at its
+// edge, which does most of the work of making it read as a real pond
+// rather than a paint swatch.
 // A small ring on the ground at the current click/tap-to-walk destination
 // — same "never a surprise, always visible feedback" principle as
 // everything else in this plan. Disappears once the player arrives
@@ -168,9 +245,11 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
   const { camera } = useThree();
   const pos = useRef(new THREE.Vector3(0, 0, 6));
   const facing = useRef(0);
+  const isMoving = useRef(false);
 
   useFrame((_, dt) => {
     if (!groupRef.current) return;
+    let moved = false;
     if (!frozen) {
       const k = keys.current;
       let dx = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
@@ -187,6 +266,7 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
         pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
         facing.current = Math.atan2(dx, dz);
         onMove(pos.current);
+        moved = true;
       } else if (walkTarget.current) {
         // Click-to-walk (mouse click or a tap on the ground) — the main
         // move method for touchpad/mouse users and the simplest one for
@@ -205,9 +285,11 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
           pos.current.z = THREE.MathUtils.clamp(pos.current.z + ndz * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
           facing.current = Math.atan2(ndx, ndz);
           onMove(pos.current);
+          moved = true;
         }
       }
     }
+    isMoving.current = moved;
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
 
@@ -220,7 +302,7 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
   return (
     <group ref={groupRef}>
       <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#e2775c" /></mesh>}>
-        <CharacterModel path="/world/models/characters/player.glb" />
+        <PlayerModel isMoving={isMoving} />
       </Suspense>
     </group>
   );
@@ -231,10 +313,26 @@ function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
 // stays (it's harmless and already built), but there's no sequencing, no
 // "not yet" lock, and no quest-progress HUD while the focus is the world
 // itself, not the quest (explicit teacher instruction).
-function Neighbor({ n, playerPos, onTalk }: { n: Quest1Neighbor; playerPos: THREE.Vector3; onTalk: () => void }) {
+function Neighbor({
+  n,
+  playerPos,
+  dialogueOpen,
+  onTalk,
+}: {
+  n: Quest1Neighbor;
+  playerPos: THREE.Vector3;
+  // While any dialogue is open the player is frozen in place anyway (can't
+  // walk away), so `inRange` alone can't tell "still in range" apart from
+  // "conversation already showing" — without this, holding/repeating E
+  // while talking to someone just kept re-triggering the same dialogue
+  // open, and the redundant Talk prompt rendered floating behind the
+  // modal. Gating on dialogueOpen too fixes both.
+  dialogueOpen: boolean;
+  onTalk: () => void;
+}) {
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
-  const inRange = dist <= TALK_RADIUS;
+  const inRange = dist <= TALK_RADIUS && !dialogueOpen;
 
   useEffect(() => {
     if (!inRange) return;
@@ -267,12 +365,46 @@ function Neighbor({ n, playerPos, onTalk }: { n: Quest1Neighbor; playerPos: THRE
   );
 }
 
+// Real tiled grass (from the teacher's Tiny Treats Pretty Park upload),
+// not a flat green fill. Picked over the more photorealistic wests_textures
+// grass specifically because a photo-real ground under these low-poly
+// Kenney/Tiny Treats characters and props would clash — everything in this
+// scene is stylized, so the ground should be too. Repeat count is tuned to
+// the actual visible ground size, not the smaller walkable square, since
+// that's the area the tiling has to look right across.
+function GroundMaterial() {
+  const tex = useTexture('/world/textures/grass.png');
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  // Tuned against a real render: ~4 world units per tile reads as a
+  // believable grass scale next to a ~1.7-unit-tall character.
+  const tileRepeat = (GROUND_VISUAL_RADIUS * 2) / 4;
+  tex.repeat.set(tileRepeat, tileRepeat);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return <meshStandardMaterial map={tex} />;
+}
+
+// The real Kenney day skybox (equirectangular, CC0) as the scene
+// background, replacing drei's procedural <Sky> — the teacher's explicit
+// ask was a realistic modern-town look, and a photographed/painted real
+// sky reads more like that than a procedural gradient does.
+function SkyboxBackground() {
+  const tex = useTexture('/world/textures/skybox-day.png');
+  const { scene } = useThree();
+  useEffect(() => {
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    scene.background = tex;
+    return () => {
+      scene.background = null;
+    };
+  }, [tex, scene]);
+  return null;
+}
+
 function Park({ onGroundTap }: { onGroundTap: (x: number, z: number) => void }) {
   // A ring of trees around the square's edge, a few pines mixed in for
   // variety, and a couple of rock clusters — real cataloged CC0 assets
-  // (Kenney Mini Forest + Nature Kit), not primitives. The ground itself
-  // is still a plain green plane, not a real grass texture — flagged to
-  // the teacher as one of the highest-value uploads.
+  // (Kenney Mini Forest + Nature Kit), not primitives.
   const treeRing = useMemo(() => {
     const trees: { pos: [number, number, number]; pine: boolean; scale: number }[] = [];
     const count = 16;
@@ -299,11 +431,28 @@ function Park({ onGroundTap }: { onGroundTap: (x: number, z: number) => void }) 
         }}
       >
         <circleGeometry args={[GROUND_VISUAL_RADIUS, 48]} />
-        <meshStandardMaterial color="#7fb069" />
+        <Suspense fallback={<meshStandardMaterial color="#7fb069" />}>
+          <GroundMaterial />
+        </Suspense>
       </mesh>
       <Pond />
+      <Prop path="/world/models/props/bridge.glb" position={[3, 0, 6]} rotationY={Math.PI / 2} scale={PROP_SCALE.bridge} />
       <Rocks position={[-6, 0, 5]} />
       <Rocks position={[8, 0, -7]} />
+      {/* Not at [8.5, 0, 8] — that overlapped Wren's spot at [8, 6] in a
+          verification render. Moved clear of every Neighbor. */}
+      <Prop path="/world/models/props/large_rock.glb" position={[10, 0, -2]} scale={PROP_SCALE.largeRock} />
+      <Prop path="/world/models/props/medium_rock.glb" position={[-1, 0, -10]} scale={PROP_SCALE.mediumRock} />
+      {[
+        [-3, 2], [4, 9], [-9, -2], [2, -8], [9, 3], [-5, -9],
+      ].map(([x, z], i) => (
+        <Prop key={`flower-${i}`} path="/world/models/props/flower.glb" position={[x, 0, z]} scale={PROP_SCALE.flower} />
+      ))}
+      {[
+        [-2, -3], [5, 3], [-11, 9], [1, 10],
+      ].map(([x, z], i) => (
+        <Prop key={`mushroom-${i}`} path="/world/models/props/mushroom.glb" position={[x, 0, z]} scale={PROP_SCALE.mushroom} />
+      ))}
       {treeRing.map((t, i) =>
         t.pine ? <PineTree key={i} position={t.pos} scaleMul={t.scale} /> : <Tree key={i} position={t.pos} scaleMul={t.scale} />,
       )}
@@ -347,7 +496,14 @@ export default function TownSquare() {
 
   const metIds = student?.worldQuest1MetIds ?? [];
 
-  const handleTalk = (n: Quest1Neighbor) => setActiveDialogue(n);
+  const handleTalk = (n: Quest1Neighbor) => {
+    // A pending click/tap-to-walk destination is cancelled when a
+    // conversation starts — resuming a walk toward wherever the student
+    // last tapped, after they finish talking to someone, would be a
+    // surprise move they didn't ask for a second time.
+    walkTarget.current = null;
+    setActiveDialogue(n);
+  };
 
   const handleContinue = () => {
     if (!activeDialogue || !student) return;
@@ -377,10 +533,10 @@ export default function TownSquare() {
       </Link>
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
-        <Sky sunPosition={[10, 12, 8]} turbidity={4} rayleigh={1.2} />
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
+          <SkyboxBackground />
           <Park
             onGroundTap={(x, z) => {
               walkTarget.current = {
@@ -393,7 +549,7 @@ export default function TownSquare() {
           <WalkTargetMarker walkTarget={walkTarget} />
           <Player touchDir={touchDir} walkTarget={walkTarget} onMove={(p) => setPlayerPos(p.clone())} frozen={!!activeDialogue} />
           {QUEST1_NEIGHBORS.map((n) => (
-            <Neighbor key={n.id} n={n} playerPos={playerPos} onTalk={() => handleTalk(n)} />
+            <Neighbor key={n.id} n={n} playerPos={playerPos} dialogueOpen={!!activeDialogue} onTalk={() => handleTalk(n)} />
           ))}
         </Suspense>
       </Canvas>
