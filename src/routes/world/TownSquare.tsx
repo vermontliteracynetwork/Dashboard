@@ -21,7 +21,15 @@ import { formatMoney } from '../../lib/money';
 // HUD. That logic still exists in the store (meetQuest1Neighbor) for
 // whenever the quest becomes the focus again.
 
-const GROUND_HALF = 14; // meters — the open square
+const GROUND_HALF = 14; // meters — the walkable square (movement/placement bounds)
+// The visible ground mesh is drawn much larger than the walkable area so
+// its circular edge sits well past the horizon at normal camera framing.
+// A ground radius that matches the walkable bound exactly is what caused
+// the visible "curved horizon" artifact flagged in review — at this camera
+// height/distance, the mesh's own edge was inside the frame, and a
+// circle's silhouette against the sky always arcs. Pushing the edge out
+// of view fixes the read without changing the shape.
+const GROUND_VISUAL_RADIUS = GROUND_HALF * 4;
 const TALK_RADIUS = 1.8;
 const MOVE_SPEED = 3.6;
 const CAMERA_HEIGHT = 2.9;
@@ -114,6 +122,30 @@ function Rocks({ position }: { position: [number, number, number] }) {
 // is in hand yet (the cataloged Free Pond Kit only ships FBX). Flagged to
 // the teacher directly as one of the things a real texture/model upload
 // would improve most.
+// A small ring on the ground at the current click/tap-to-walk destination
+// — same "never a surprise, always visible feedback" principle as
+// everything else in this plan. Disappears once the player arrives
+// (walkTarget clears itself in Player's useFrame).
+function WalkTargetMarker({ walkTarget }: { walkTarget: React.RefObject<{ x: number; z: number } | null> }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const t = walkTarget.current;
+    ref.current.visible = !!t;
+    if (t) {
+      ref.current.position.set(t.x, 0.03, t.z);
+      const pulse = 1 + Math.sin(clock.elapsedTime * 6) * 0.1;
+      ref.current.scale.setScalar(pulse);
+    }
+  });
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+      <ringGeometry args={[0.35, 0.5, 24]} />
+      <meshBasicMaterial color="#e2775c" />
+    </mesh>
+  );
+}
+
 function Pond() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[6, 0.02, 6]}>
@@ -125,11 +157,12 @@ function Pond() {
 
 interface PlayerProps {
   touchDir: React.RefObject<{ x: number; z: number }>;
+  walkTarget: React.RefObject<{ x: number; z: number } | null>;
   onMove: (pos: THREE.Vector3) => void;
   frozen: boolean;
 }
 
-function Player({ touchDir, onMove, frozen }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -144,12 +177,35 @@ function Player({ touchDir, onMove, frozen }: PlayerProps) {
       let dz = (k['s'] || k['arrowdown'] ? 1 : 0) - (k['w'] || k['arrowup'] ? 1 : 0) + touchDir.current.z;
       const len = Math.hypot(dx, dz);
       if (len > 0.001) {
+        // Direct keyboard/D-pad input always wins over a pending
+        // click/tap-to-walk destination — a student correcting course by
+        // hand shouldn't have to wait for the walk to finish first.
+        walkTarget.current = null;
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
         pos.current.x = THREE.MathUtils.clamp(pos.current.x + dx * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
         pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
         facing.current = Math.atan2(dx, dz);
         onMove(pos.current);
+      } else if (walkTarget.current) {
+        // Click-to-walk (mouse click or a tap on the ground) — the main
+        // move method for touchpad/mouse users and the simplest one for
+        // iPad: tap where you want to go, same one-tap-does-the-thing
+        // shape as every other interaction in this app, rather than
+        // requiring a held D-pad button.
+        const tx = walkTarget.current.x - pos.current.x;
+        const tz = walkTarget.current.z - pos.current.z;
+        const dist = Math.hypot(tx, tz);
+        if (dist < 0.15) {
+          walkTarget.current = null;
+        } else {
+          const ndx = tx / dist;
+          const ndz = tz / dist;
+          pos.current.x = THREE.MathUtils.clamp(pos.current.x + ndx * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+          pos.current.z = THREE.MathUtils.clamp(pos.current.z + ndz * MOVE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+          facing.current = Math.atan2(ndx, ndz);
+          onMove(pos.current);
+        }
       }
     }
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
@@ -211,7 +267,7 @@ function Neighbor({ n, playerPos, onTalk }: { n: Quest1Neighbor; playerPos: THRE
   );
 }
 
-function Park() {
+function Park({ onGroundTap }: { onGroundTap: (x: number, z: number) => void }) {
   // A ring of trees around the square's edge, a few pines mixed in for
   // variety, and a couple of rock clusters — real cataloged CC0 assets
   // (Kenney Mini Forest + Nature Kit), not primitives. The ground itself
@@ -234,8 +290,15 @@ function Park() {
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[GROUND_HALF, 48]} />
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        onClick={(e) => {
+          e.stopPropagation();
+          onGroundTap(e.point.x, e.point.z);
+        }}
+      >
+        <circleGeometry args={[GROUND_VISUAL_RADIUS, 48]} />
         <meshStandardMaterial color="#7fb069" />
       </mesh>
       <Pond />
@@ -259,10 +322,28 @@ export default function TownSquare() {
   const [activeDialogue, setActiveDialogue] = useState<Quest1Neighbor | null>(null);
   const [justEarned, setJustEarned] = useState<{ label: string; cents: number } | null>(null);
   const touchDir = useRef({ x: 0, z: 0 });
+  // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
+  // there — the primary cross-device movement method; the D-pad and
+  // keyboard both still work and take over instantly if used.
+  const walkTarget = useRef<{ x: number; z: number } | null>(null);
 
   useEffect(() => {
     if (!currentStudentId) navigate('/student/login');
   }, [currentStudentId, navigate]);
+
+  // Safety net for the D-pad buttons on iPad: Safari can occasionally miss
+  // a button's own onPointerUp/onPointerLeave if a finger drags off it
+  // fast, which would otherwise leave movement "stuck on" until another
+  // touch happens. A window-level listener guarantees it always clears.
+  useEffect(() => {
+    const clear = () => { touchDir.current = { x: 0, z: 0 }; };
+    window.addEventListener('pointerup', clear);
+    window.addEventListener('pointercancel', clear);
+    return () => {
+      window.removeEventListener('pointerup', clear);
+      window.removeEventListener('pointercancel', clear);
+    };
+  }, []);
 
   const metIds = student?.worldQuest1MetIds ?? [];
 
@@ -295,14 +376,22 @@ export default function TownSquare() {
         📋 My Tasks
       </Link>
 
-      <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 60 }}>
+      <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
         <Sky sunPosition={[10, 12, 8]} turbidity={4} rayleigh={1.2} />
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
-          <Park />
+          <Park
+            onGroundTap={(x, z) => {
+              walkTarget.current = {
+                x: THREE.MathUtils.clamp(x, -GROUND_HALF + 1, GROUND_HALF - 1),
+                z: THREE.MathUtils.clamp(z, -GROUND_HALF + 1, GROUND_HALF - 1),
+              };
+            }}
+          />
           <Fox />
-          <Player touchDir={touchDir} onMove={(p) => setPlayerPos(p.clone())} frozen={!!activeDialogue} />
+          <WalkTargetMarker walkTarget={walkTarget} />
+          <Player touchDir={touchDir} walkTarget={walkTarget} onMove={(p) => setPlayerPos(p.clone())} frozen={!!activeDialogue} />
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor key={n.id} n={n} playerPos={playerPos} onTalk={() => handleTalk(n)} />
           ))}
@@ -329,8 +418,9 @@ export default function TownSquare() {
           </button>
         ))}
       </div>
-      <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.72rem', opacity: 0.7, background: 'rgba(255,255,255,0.85)', padding: '3px 10px', borderRadius: 8, fontFamily: 'system-ui, sans-serif' }}>
-        WASD or arrow keys to move — walk up to a Neighbor and press E (or tap Talk).
+      <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.72rem', opacity: 0.7, background: 'rgba(255,255,255,0.85)', padding: '3px 10px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center' }}>
+        🖱️ Click, or 👆 tap, anywhere on the grass to walk there — or use WASD/arrow keys/the D-pad.
+        <br />Walk up to a Neighbor and press E (or tap Talk).
       </p>
 
       {activeDialogue && (
