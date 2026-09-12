@@ -5,7 +5,8 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { QUEST1_NEIGHBORS, type Quest1Neighbor } from '../../lib/worldQuest1';
+import { QUEST1_NEIGHBORS, type Quest1Neighbor, type ConversationStep } from '../../lib/worldQuest1';
+import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { formatMoney } from '../../lib/money';
 import ToolsPanel from '../../components/ToolsPanel';
 
@@ -192,6 +193,16 @@ function blockObstacles(x: number, z: number): [number, number] {
   return [bx, bz];
 }
 
+// Either a quest Neighbor or a Townsperson, once talking starts — the
+// modal doesn't need to know which, just the name/steps to show.
+interface ActiveConversation {
+  kind: 'neighbor' | 'townsperson';
+  id: string;
+  name: string;
+  role?: string;
+  steps: ConversationStep[];
+}
+
 function blockPond(x: number, z: number): [number, number] {
   const dx = x - POND_CENTER.x;
   const dz = z - POND_CENTER.z;
@@ -330,16 +341,33 @@ function WanderBodyModel({ path, scale, isMoving }: { path: string; scale: numbe
 // Neighbor once their task is done and they've joined the ambient crowd.
 // Deliberately simple (no obstacle avoidance) — this is flavor movement in
 // a small, mostly-open park, not a pathfinding system.
+interface WanderingNPCInteraction {
+  id: string;
+  name: string;
+  playerPos: THREE.Vector3;
+  dialogueOpen: boolean;
+  pendingApproach: boolean;
+  onTalk: () => void;
+  onApproach: () => void;
+  exposePosition: (v: THREE.Vector3) => void;
+}
+
 function WanderingNPC({
   modelPath,
   home,
   active,
   scale = CHARACTER_SCALE,
+  interaction,
 }: {
   modelPath: string;
   home: [number, number];
   active: boolean;
   scale?: number;
+  // Once a Neighbor has been met (or for the always-ambient Townspeople),
+  // they keep wandering but should stay just as name-able and talkable as
+  // before — direct teacher instruction: a name/click shouldn't disappear
+  // just because you've talked to someone once already.
+  interaction?: WanderingNPCInteraction;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const pos = useRef(new THREE.Vector3(home[0], 0, home[1]));
@@ -347,6 +375,27 @@ function WanderingNPC({
   const target = useRef<THREE.Vector3 | null>(null);
   const pauseUntil = useRef(0);
   const isMoving = useRef(false);
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    interaction?.exposePosition(pos.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const dist = interaction ? Math.hypot(interaction.playerPos.x - pos.current.x, interaction.playerPos.z - pos.current.z) : Infinity;
+  const inRange = !!interaction && dist <= TALK_RADIUS && !interaction.dialogueOpen;
+  const noticed = !!interaction && dist <= NOTICE_RADIUS && !interaction.dialogueOpen;
+
+  useEffect(() => {
+    if (!interaction || !inRange) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'e') interaction.onTalk(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [interaction, inRange]);
+
+  useEffect(() => {
+    if (interaction?.pendingApproach && inRange) interaction.onTalk();
+  }, [interaction, inRange]);
 
   useFrame(({ clock }, dt) => {
     if (!groupRef.current) return;
@@ -371,7 +420,7 @@ function WanderingNPC({
         } else {
           const ndx = dx / dist;
           const ndz = dz / dist;
-          const [bx, bz] = blockPond(pos.current.x + ndx * WANDER_SPEED * dt, pos.current.z + ndz * WANDER_SPEED * dt);
+          const [bx, bz] = blockObstacles(pos.current.x + ndx * WANDER_SPEED * dt, pos.current.z + ndz * WANDER_SPEED * dt);
           pos.current.x = bx;
           pos.current.z = bz;
           facing.current = Math.atan2(ndx, ndz);
@@ -390,6 +439,36 @@ function WanderingNPC({
       <Suspense fallback={null}>
         <WanderBodyModel path={modelPath} scale={scale} isMoving={isMoving} />
       </Suspense>
+      {interaction && (
+        <>
+          <mesh
+            position={[0, 1, 0]}
+            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+            onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+            onClick={(e) => { e.stopPropagation(); interaction.onApproach(); }}
+          >
+            <cylinderGeometry args={[0.95, 0.95, 2.2, 12]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+          {(hovered || noticed) && (
+            <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
+              <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
+                {interaction.name}
+              </div>
+            </Html>
+          )}
+          {inRange && (
+            <Html center position={[0, 2.15, 0]}>
+              <button
+                onClick={interaction.onTalk}
+                style={{ background: '#c2593f', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+              >
+                Talk
+              </button>
+            </Html>
+          )}
+        </>
+      )}
     </group>
   );
 }
@@ -606,6 +685,7 @@ function Neighbor({
   pendingApproach,
   onTalk,
   onApproach,
+  exposePosition,
 }: {
   n: Quest1Neighbor;
   playerPos: THREE.Vector3;
@@ -623,7 +703,12 @@ function Neighbor({
   // tap once they get there.
   pendingApproach: boolean;
   onTalk: () => void;
+  // Before meeting, approaching walks toward the Neighbor's fixed spot
+  // (handleApproach). Once wandering, their position moves, so a separate
+  // handler (handleApproachWandering, keyed by live position) takes over —
+  // same click, different targeting underneath.
   onApproach: () => void;
+  exposePosition: (v: THREE.Vector3) => void;
 }) {
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
@@ -656,7 +741,23 @@ function Neighbor({
   }, [pendingApproach, inRange, onTalk]);
 
   if (wandering) {
-    return <WanderingNPC modelPath={n.modelPath} home={n.position} active />;
+    return (
+      <WanderingNPC
+        modelPath={n.modelPath}
+        home={n.position}
+        active
+        interaction={{
+          id: n.id,
+          name: `${n.name}, ${n.role}`,
+          playerPos,
+          dialogueOpen,
+          pendingApproach,
+          onTalk,
+          onApproach,
+          exposePosition,
+        }}
+      />
+    );
   }
 
   return (
@@ -979,8 +1080,19 @@ export default function TownSquare() {
   const student = students.find((s) => s.id === currentStudentId);
 
   const [playerPos, setPlayerPos] = useState(() => new THREE.Vector3(0, 0, 6));
-  const [activeDialogue, setActiveDialogue] = useState<Quest1Neighbor | null>(null);
+  const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  // The option the student just picked, shown as "You: ..." above the
+  // NPC's next line so a multi-step conversation actually reads as
+  // back-and-forth, not a wall of NPC text — direct teacher instruction.
+  const [lastPlayerLine, setLastPlayerLine] = useState<string | null>(null);
   const [justEarned, setJustEarned] = useState<{ label: string; cents: number } | null>(null);
+  // Live position of every wandering NPC (met Neighbors + Townspeople),
+  // keyed by id — each WanderingNPC hands up the same mutable Vector3 it
+  // updates every frame (see exposePosition), so a click-to-approach
+  // started later always aims at where they really are right now instead
+  // of their fixed home spot.
+  const wanderingPositions = useRef<Record<string, THREE.Vector3>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mapView, setMapView] = useState(false);
   // Direct teacher instruction: the "click/tap to walk" instruction text
@@ -1041,14 +1153,24 @@ export default function TownSquare() {
 
   const metIds = student?.worldQuest1MetIds ?? [];
 
-  const handleTalk = (n: Quest1Neighbor) => {
+  const beginConversation = (c: ActiveConversation) => {
     // A pending click/tap-to-walk destination is cancelled when a
     // conversation starts — resuming a walk toward wherever the student
     // last tapped, after they finish talking to someone, would be a
     // surprise move they didn't ask for a second time.
     walkTarget.current = null;
     pendingApproach.current = null;
-    setActiveDialogue(n);
+    setStepIndex(0);
+    setLastPlayerLine(null);
+    setActiveConversation(c);
+  };
+
+  const handleTalk = (n: Quest1Neighbor) => {
+    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: n.dialogue });
+  };
+
+  const handleTalkTownsperson = (tp: Townsperson) => {
+    beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: tp.dialogue });
   };
 
   // Direct teacher instruction: clicking a Neighbor should walk the student
@@ -1086,14 +1208,54 @@ export default function TownSquare() {
     setHasWalkedOnce(true);
   };
 
-  const handleContinue = () => {
-    if (!activeDialogue || !student) return;
-    if (!metIds.includes(activeDialogue.id)) {
-      meetQuest1Neighbor(student.id, activeDialogue.id, activeDialogue.itemRewardCents, activeDialogue.itemLabel);
-      setJustEarned({ label: activeDialogue.itemLabel, cents: activeDialogue.itemRewardCents });
-      window.setTimeout(() => setJustEarned(null), 2600);
+  // Same click-to-approach shape as handleApproach, but for a target that
+  // moves (a met Neighbor or Townsperson wandering) — aims at their live
+  // position (wanderingPositions), not a fixed spot, and talks immediately
+  // if already close enough.
+  const handleApproachWandering = (id: string, talk: () => void) => {
+    if (mapView) return;
+    const live = wanderingPositions.current[id];
+    if (!live) return;
+    const dx = playerPos.x - live.x;
+    const dz = playerPos.z - live.z;
+    const dist = Math.hypot(dx, dz) || 1;
+    if (dist <= TALK_RADIUS) {
+      talk();
+      return;
     }
-    setActiveDialogue(null);
+    const approachDist = TALK_RADIUS * 0.7;
+    hoverTarget.current = null;
+    pendingApproach.current = id;
+    walkTarget.current = {
+      x: THREE.MathUtils.clamp(live.x + (dx / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+      z: THREE.MathUtils.clamp(live.z + (dz / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+    };
+    setHasWalkedOnce(true);
+  };
+
+  const activeStep = activeConversation?.steps[stepIndex] ?? null;
+  const isLastStep = !!activeConversation && stepIndex >= activeConversation.steps.length - 1;
+
+  // Advances one exchange: the student's pick (if this step had options)
+  // is remembered as "You: ..." for the next line, same as a real
+  // back-and-forth. On the last line, a Neighbor met for the first time
+  // grants their quest reward; a Townsperson never does (flavor-only).
+  const advanceConversation = (pickedOption?: string) => {
+    if (!activeConversation) return;
+    if (isLastStep) {
+      if (activeConversation.kind === 'neighbor' && student && !metIds.includes(activeConversation.id)) {
+        const n = QUEST1_NEIGHBORS.find((x) => x.id === activeConversation.id);
+        if (n) {
+          meetQuest1Neighbor(student.id, n.id, n.itemRewardCents, n.itemLabel);
+          setJustEarned({ label: n.itemLabel, cents: n.itemRewardCents });
+          window.setTimeout(() => setJustEarned(null), 2600);
+        }
+      }
+      setActiveConversation(null);
+      return;
+    }
+    setLastPlayerLine(pickedOption ?? null);
+    setStepIndex((i) => i + 1);
   };
 
   if (!student) return null;
@@ -1187,7 +1349,7 @@ export default function TownSquare() {
             touchDir={touchDir}
             walkTarget={walkTarget}
             onMove={(p) => setPlayerPos(p.clone())}
-            frozen={!!activeDialogue || mapView}
+            frozen={!!activeConversation || mapView}
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}
             mapView={mapView}
@@ -1197,16 +1359,35 @@ export default function TownSquare() {
               key={n.id}
               n={n}
               playerPos={playerPos}
-              dialogueOpen={!!activeDialogue}
+              dialogueOpen={!!activeConversation}
               wandering={metIds.includes(n.id)}
               pendingApproach={pendingApproach.current === n.id}
               onTalk={() => handleTalk(n)}
-              onApproach={() => handleApproach(n)}
+              onApproach={() => (metIds.includes(n.id) ? handleApproachWandering(n.id, () => handleTalk(n)) : handleApproach(n))}
+              exposePosition={(v) => { wanderingPositions.current[n.id] = v; }}
             />
           ))}
-          {AMBIENT_NPCS.map((npc) => (
-            <WanderingNPC key={npc.id} modelPath={npc.modelPath} home={npc.home} active />
-          ))}
+          {AMBIENT_NPCS.map((npc) => {
+            const tp = TOWNSPEOPLE[npc.id];
+            return (
+              <WanderingNPC
+                key={npc.id}
+                modelPath={npc.modelPath}
+                home={npc.home}
+                active
+                interaction={tp ? {
+                  id: npc.id,
+                  name: tp.name,
+                  playerPos,
+                  dialogueOpen: !!activeConversation,
+                  pendingApproach: pendingApproach.current === npc.id,
+                  onTalk: () => handleTalkTownsperson(tp),
+                  onApproach: () => handleApproachWandering(npc.id, () => handleTalkTownsperson(tp)),
+                  exposePosition: (v) => { wanderingPositions.current[npc.id] = v; },
+                } : undefined}
+              />
+            );
+          })}
           <ComputerDesk playerPos={playerPos} onUse={() => { if (!mapView) navigate('/student/home'); }} />
         </Suspense>
       </Canvas>
@@ -1243,16 +1424,31 @@ export default function TownSquare() {
         </p>
       )}
 
-      {activeDialogue && (
+      {activeConversation && activeStep && (
         <div className="overlay-backdrop" role="dialog" aria-modal="true">
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h2 style={{ margin: 0 }}>{activeDialogue.name}</h2>
-              <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeDialogue.role}</p>
-              <p style={{ fontSize: '1.05rem', margin: '8px 0' }}>{activeDialogue.greeting}</p>
-              <button className="btn btn-primary btn-lg pulse-cta" onClick={handleContinue} autoFocus>
-                Thanks, {activeDialogue.name.split(' ')[0]}!
-              </button>
+              <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
+              {activeConversation.role && <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeConversation.role}</p>}
+              {lastPlayerLine && (
+                <p style={{ fontSize: '0.9rem', margin: '4px 0 0', opacity: 0.75, fontStyle: 'italic' }}>
+                  You: {lastPlayerLine}
+                </p>
+              )}
+              <p style={{ fontSize: '1.05rem', margin: '8px 0' }}>{activeStep.npc}</p>
+              {activeStep.options && !isLastStep ? (
+                <div className="stack" style={{ gap: 8, width: '100%' }}>
+                  {activeStep.options.map((opt) => (
+                    <button key={opt} className="btn btn-primary" onClick={() => advanceConversation(opt)}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <button className="btn btn-primary btn-lg pulse-cta" onClick={() => advanceConversation()} autoFocus>
+                  {isLastStep ? `Thanks, ${activeConversation.name.split(' ')[0]}!` : 'Continue'}
+                </button>
+              )}
             </div>
           </div>
         </div>
