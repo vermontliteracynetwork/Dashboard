@@ -35,16 +35,25 @@ const GROUND_HALF = 14; // meters — the walkable square (movement/placement bo
 // of view fixes the read without changing the shape.
 const GROUND_VISUAL_RADIUS = GROUND_HALF * 4;
 const TALK_RADIUS = 1.8;
+// A Neighbor's name/role label appears once the student is this close,
+// well before they're actually in talk range — see the touch-predictability
+// note where it's used.
+const NOTICE_RADIUS = 5;
 // Base walking speed — multiplied by the student's own sensitivity setting
 // (Settings panel, student.worldMoveSensitivity, 0.5-2x) so a student who
 // finds the default speed too fast or too slow can adjust it themselves.
 const BASE_MOVE_SPEED = 3.6;
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
-// Height for the overhead map view — at the Canvas's 50° fov, tall enough
-// that the visible ground (radius GROUND_HALF*4) and the tree ring
-// (radius ~GROUND_HALF-2) both sit comfortably inside frame with margin.
-const MAP_HEIGHT = 34;
+// Height for the overhead map view. The first value (34) only checked
+// vertical framing — horizontal FOV is vertical FOV times aspect ratio, so
+// on an iPad's portrait aspect (~0.7-0.75, the primary device for this
+// app) that height cropped the Neighbors sitting out at x=±8. Sized here
+// for a 16-unit horizontal half-extent at a 0.7 aspect (margin past
+// GROUND_HALF=14), which only makes the landscape view a bit less zoomed
+// in — a much smaller cost than cropping the map on the device that
+// matters most.
+const MAP_HEIGHT = 46;
 const WANDER_SPEED = 1.3; // slower than the player's walk — ambient, unhurried
 const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
 // Simple flat-circle collision so the pond reads as an actual obstacle now
@@ -533,6 +542,15 @@ function Neighbor({
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
   const inRange = !wandering && dist <= TALK_RADIUS && !dialogueOpen;
+  // Caught in review: hover-only labels work for a mouse but touch screens
+  // have no hover state at all, and this app's primary device is iPad —
+  // that made every Neighbor's name invisible until a student had already
+  // walked almost all the way up to them, which cuts against this file's
+  // own "never a surprise" rule and the predictability this population
+  // needs most. NOTICE_RADIUS keeps the label appearing before arrival on
+  // every device, while hover still reveals it early for a mouse user
+  // looking around without walking closer.
+  const noticed = dist <= NOTICE_RADIUS && !dialogueOpen;
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
@@ -574,7 +592,7 @@ function Neighbor({
         <cylinderGeometry args={[0.95, 0.95, 2.2, 12]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      {(hovered || inRange) && (
+      {(hovered || noticed) && (
         <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
             {n.name}, {n.role}
@@ -585,7 +603,7 @@ function Neighbor({
         <Html center position={[0, 2.15, 0]}>
           <button
             onClick={onTalk}
-            style={{ background: '#e2775c', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+            style={{ background: '#c2593f', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
           >
             Talk
           </button>
@@ -920,12 +938,25 @@ export default function TownSquare() {
   // talk range (not exactly on top of them) so the approach itself feels
   // natural; Neighbor's own effect fires the actual onTalk once the
   // student physically arrives.
+  //
+  // Caught in review: if the student was already standing close enough
+  // (inside TALK_RADIUS) when they clicked, the walk target could land
+  // less than the 0.15-unit arrival threshold away, so Player's useFrame
+  // clears walkTarget without ever calling onMove — nothing re-renders,
+  // the pendingApproach ref is never re-read, and the click silently does
+  // nothing. Checking distance up front and firing onTalk directly when
+  // already in range sidesteps the whole ref/re-render race.
   const handleApproach = (n: Quest1Neighbor) => {
+    if (mapView) return; // the map's click-through is for looking, not acting
     if (metIds.includes(n.id)) return; // already wandering — nothing to walk up to
     const [nx, nz] = n.position;
     const dx = playerPos.x - nx;
     const dz = playerPos.z - nz;
     const dist = Math.hypot(dx, dz) || 1;
+    if (dist <= TALK_RADIUS) {
+      handleTalk(n);
+      return;
+    }
     const approachDist = TALK_RADIUS * 0.7;
     hoverTarget.current = null;
     pendingApproach.current = n.id;
@@ -949,6 +980,7 @@ export default function TownSquare() {
   if (!student) return null;
 
   const dpadSide = student.worldDpadSide;
+  const otherSide = dpadSide === 'left' ? 'right' : 'left';
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0' }}>
@@ -989,6 +1021,11 @@ export default function TownSquare() {
           <SkyboxBackground />
           <Park
             onGroundTap={(x, z) => {
+              // Caught in review: the map view has no backdrop over the
+              // Canvas, so without this guard a tap meant to look around
+              // the overhead view could still queue a real walk that fires
+              // the moment the map closes.
+              if (mapView) return;
               hoverTarget.current = null;
               pendingApproach.current = null;
               setHasWalkedOnce(true);
@@ -1032,7 +1069,7 @@ export default function TownSquare() {
           {AMBIENT_NPCS.map((npc) => (
             <WanderingNPC key={npc.id} modelPath={npc.modelPath} home={npc.home} active />
           ))}
-          <ComputerDesk playerPos={playerPos} onUse={() => navigate('/student/home')} />
+          <ComputerDesk playerPos={playerPos} onUse={() => { if (!mapView) navigate('/student/home'); }} />
         </Suspense>
       </Canvas>
 
@@ -1045,10 +1082,26 @@ export default function TownSquare() {
 
       {isDesktop && <CameraLookButtons cameraLook={cameraLook} side={dpadSide} />}
 
+      {/* A small, deliberately secondary way back to the task dashboard —
+          the computer desk in the world is the primary path now, but every
+          other student screen has an always-visible, same-spot way to get
+          between hubs (Claudia's review: this was the one screen without
+          any fixed fallback at all, which breaks that consistency for a
+          population that relies on it). Sized well under the corner FABs
+          so it doesn't compete with the desk as the main affordance. */}
+      <button
+        onClick={() => navigate('/student/home')}
+        style={{ position: 'fixed', bottom: 16, [otherSide]: 16, zIndex: 55, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
+        aria-label="Back to task dashboard"
+        title="Back to task dashboard"
+      >
+        🏠
+      </button>
+
       {!hasWalkedOnce && (
         <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
           🖱️ Click, or 👆 tap, anywhere on the grass to walk there. Or use WASD/arrow keys/the buttons.
-          <br />Walk up to a Neighbor and press E (or tap Talk).
+          <br />Click a Neighbor to walk right up and start talking!
         </p>
       )}
 
