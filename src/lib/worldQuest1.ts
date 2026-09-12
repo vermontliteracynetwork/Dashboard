@@ -96,7 +96,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
       { npc: "Hey there! I'm Wren.", options: ["Hi Wren!", "Nice to meet you."] },
       { npc: "How's it going with you today?", options: ["Going great!", "Pretty normal.", "Happy to be here!"] },
       { npc: "Good to hear it. I deliver the mail all over town, and the Post Office is right over there.", options: ["That sounds like fun.", "Do I get any mail?"] },
-      { npc: "Keep an eye on your mailbox. I'll have something for you soon.", options: ["I'll watch for it!"] },
+      { npc: "As a matter of fact, yes! Here, this is for you.", options: ["Thank you, Wren!"] },
       { npc: "Take care, see you around!" },
     ],
     itemLabel: 'a string of fall leaf garland',
