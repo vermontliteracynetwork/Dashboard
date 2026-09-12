@@ -72,16 +72,18 @@ function useKeys() {
 }
 
 function Fox() {
-  const { scene } = useGLTF('/world/models/fox.glb');
+  const { scene, animations } = useGLTF('/world/models/fox.glb');
+  const group = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, group);
+
   // Caught in a visual verification pass, not assumed safe: this model's
   // base pose includes a visible sword mesh (node "Sword mesh"), which the
   // zero-weapons rule (§Not building) already flagged as excluded when the
   // Fox asset was catalogued — that exclusion was never actually wired up
-  // in code until now. Strip it from the loaded scene graph every time,
-  // not just visually hide it once, so a future model reload can't bring
-  // it back.
-  const cleanScene = useMemo(() => {
-    const clone = scene.clone();
+  // in code until now. Strip it from the loaded scene graph directly
+  // (there's only ever one Fox, so there's no per-instance clone to strip
+  // it from — see below on why this model isn't cloned at all).
+  useEffect(() => {
     // The actual runtime node is "Sword_1" — glTF loaders sanitize the
     // source file's "Sword mesh" name (spaces aren't valid Object3D name
     // characters), which is exactly why a first attempt matching the raw
@@ -90,13 +92,27 @@ function Fox() {
     // against every node, not one exact expected string, so a renamed or
     // re-exported version of this model can't quietly bring it back either.
     const toRemove: THREE.Object3D[] = [];
-    clone.traverse((obj) => {
+    scene.traverse((obj) => {
       if (obj.name.toLowerCase().includes('sword')) toRemove.push(obj);
     });
     toRemove.forEach((obj) => obj.removeFromParent());
-    return clone;
   }, [scene]);
-  return <primitive object={cleanScene} scale={FOX_SCALE} position={[0, 0, -3]} rotation={[0, Math.PI, 0]} />;
+
+  // Not cloned, unlike Tree/Rocks/Prop — this model ships baked skeletal
+  // animations (Idle/Run/Attack/...), and a plain Object3D.clone() doesn't
+  // rebind a SkinnedMesh's skeleton to the cloned bones (a real three.js
+  // gotcha, caught in a verification render before this shipped — clones
+  // ended up as huge distorted geometry). There's only ever one Fox in
+  // the scene, so there's nothing a clone would protect against here.
+  useEffect(() => {
+    actions['Idle']?.reset().play();
+  }, [actions]);
+
+  return (
+    <group ref={group} position={[0, 0, -3]} rotation={[0, Math.PI, 0]}>
+      <primitive object={scene} scale={FOX_SCALE} />
+    </group>
+  );
 }
 
 // Each character pack keeps its own texture next to it (see the
