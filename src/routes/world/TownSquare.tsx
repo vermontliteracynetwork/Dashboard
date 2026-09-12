@@ -106,9 +106,13 @@ const COMPUTER_RADIUS = 1.8;
 // Neighbors (verified by hashing the source files against what's already
 // copied in, so there's no risk of an accidental duplicate skin).
 const AMBIENT_NPCS: { id: string; modelPath: string; home: [number, number] }[] = [
-  // Nudged from [-4,1] — its wander circle clipped the computer desk at
-  // [-5,-2] by about 0.3 units (Claudia's review).
-  { id: 'amb-1', modelPath: '/world/models/characters/ambient-1.glb', home: [-4, 2] },
+  // Nudged from [-4,1], then [-4,2] — each time Claudia's review found the
+  // wander circle (radius WANDER_RADIUS) still reaching into the desk's
+  // now-real collision circle (DESK_BLOCK_RADIUS), leaving an unreachable
+  // wander target that pins Miller at the desk's edge on that angular
+  // slice. [-4,2.6] clears it with margin: distance to the desk is 4.75,
+  // minus WANDER_RADIUS 3.5 leaves 1.25 units of clearance.
+  { id: 'amb-1', modelPath: '/world/models/characters/ambient-1.glb', home: [-4, 2.6] },
   { id: 'amb-2', modelPath: '/world/models/characters/ambient-2.glb', home: [4, -3] },
   { id: 'amb-3', modelPath: '/world/models/characters/ambient-3.glb', home: [-2, 9] },
 ];
@@ -122,7 +126,7 @@ const AMBIENT_NPCS: { id: string; modelPath: string; home: [number, number] }[] 
 // Neighbor rather than randomly placed. rotationY aims each building's
 // front toward the park center — a first-pass estimate, verified in a
 // standalone render before shipping, not guessed blind.
-const BUILDINGS: { id: string; modelPath: string; position: [number, number]; rotationY: number; label: string }[] = [
+const BUILDINGS: { id: string; modelPath: string; position: [number, number]; rotationY: number; label: string; scale?: number }[] = [
   { id: 'bank', modelPath: '/world/models/buildings/bank.glb', position: [10, -7.5], rotationY: Math.atan2(-10, 7.5), label: 'Bank' },
   { id: 'store', modelPath: '/world/models/buildings/store.glb', position: [-10, 7.5], rotationY: Math.atan2(10, -7.5), label: 'Store' },
   // Pushed further out than the pure 1.25x-radial estimate — that landed
@@ -130,6 +134,16 @@ const BUILDINGS: { id: string; modelPath: string; position: [number, number]; ro
   // verification render (this is the spot Claudia's own spec flagged as
   // the tightest fit and worth double-checking before finalizing).
   { id: 'post-office', modelPath: '/world/models/buildings/post-office.glb', position: [12, 9], rotationY: Math.atan2(-12, -9), label: 'Post Office' },
+  // The 4th building, held back until Claudia's layout review weighed in
+  // on where it belonged. Her verdict: Scout's corner, at the exact same
+  // 1.25x-radial rule as the other three (Scout is at [-8,-6], so
+  // [-10,-7.5]) — a town with 3 of 4 corners built up and one bare forever
+  // was the actual problem, not a deliberate choice worth keeping. Labeled
+  // Welcome Center rather than a shop, since nothing about Scout ("shows
+  // you around") is a shopkeeper. Own scale, not BUILDING_SCALE — this
+  // model (KayKit, CC0) loads at a tiny native size unrelated to the
+  // Kenney buildings' scale, measured the same real-bounding-box way.
+  { id: 'welcome-center', modelPath: '/world/models/props/shop_building.glb', position: [-10, -7.5], rotationY: Math.atan2(10, 7.5), label: 'Welcome Center', scale: 22 },
 ];
 const BUILDING_SCALE = 3;
 
@@ -141,7 +155,12 @@ const BUILDING_SCALE = 3;
 // but set back from any building into the grass, not fronting one.
 const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number }[] = [
   { id: 'stall-1', modelPath: '/world/models/market/stall-green.glb', position: [0, -4], rotationY: 0 },
-  { id: 'stall-2', modelPath: '/world/models/market/stall-red.glb', position: [2, -4], rotationY: 0 },
+  // Widened from [2,-4] — at STALL_BLOCK_RADIUS 0.75 each, the old 2-unit
+  // gap to stall-1 left only 0.5 units of clearance, tight enough that the
+  // player's own ~0.7-unit-wide model would visually clip a stall corner
+  // even though the collision math never technically let them through
+  // (Claudia's review).
+  { id: 'stall-2', modelPath: '/world/models/market/stall-red.glb', position: [2.6, -4], rotationY: 0 },
   { id: 'stall-3', modelPath: '/world/models/market/stall.glb', position: [1, -2], rotationY: Math.PI / 6 },
 ];
 const MARKET_SCALE = 2.6;
@@ -161,6 +180,23 @@ const ROAD_TILES: { id: string; position: [number, number]; rotationY: number }[
   { id: 'road-penny', position: [8, -6], rotationY: Math.atan2(8, -6) + Math.PI / 2 },
   { id: 'road-pip', position: [-8, 6], rotationY: Math.atan2(-8, 6) + Math.PI / 2 },
   { id: 'road-wren', position: [8, 6], rotationY: Math.atan2(8, 6) + Math.PI / 2 },
+  // Scout's corner now has a building too (see BUILDINGS' welcome-center
+  // entry) — same tangential sidewalk-in-front-of-the-door treatment as
+  // the other three, for the same reason.
+  { id: 'road-scout', position: [-8, -6], rotationY: Math.atan2(-8, -6) + Math.PI / 2 },
+  // Claudia's review, the single most consequential finding: the market
+  // stalls and the computer desk (arguably the two busiest interaction
+  // points in the scene) sat 8+ units from the nearest sidewalk tile with
+  // nothing connecting them — sparse/disconnected rather than a real
+  // plaza. These four are stepping-stone tiles along the straight line
+  // from the desk through the market to Penny's corner (each tile's
+  // rotation points ALONG the path, unlike the sidewalk tiles above which
+  // are rotated across it), not a full continuous road, but enough to
+  // visually tie the busiest spots into the same street network.
+  { id: 'path-desk-1', position: [-2.93, -2.44], rotationY: Math.atan2(6.2, -1.33) },
+  { id: 'path-desk-2', position: [-0.87, -2.89], rotationY: Math.atan2(6.2, -1.33) },
+  { id: 'path-market-1', position: [3.47, -4.22], rotationY: Math.atan2(6.8, -2.67) },
+  { id: 'path-market-2', position: [5.73, -5.11], rotationY: Math.atan2(6.8, -2.67) },
 ];
 const ROAD_SCALE = 4;
 
@@ -198,6 +234,14 @@ const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   ...BUILDINGS.map((b) => ({ x: b.position[0], z: b.position[1], radius: BUILDING_BLOCK_RADIUS })),
   ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
   { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
+  // Claudia's review: collision covered every building/stall/the desk but
+  // not the two big rocks, which is the same "walking through a solid
+  // object" complaint the teacher raised, just not yet reported because
+  // it wasn't named. Only the two large ones — the small Rocks() clusters
+  // and every tree are thin/low enough that leaving them uncollided is a
+  // reasonable call, not an oversight.
+  { x: 10, z: -2, radius: 1.0 }, // large_rock.glb
+  { x: -1, z: -10, radius: 0.7 }, // medium_rock.glb
 ];
 
 function blockObstacles(x: number, z: number): [number, number] {
@@ -978,7 +1022,7 @@ function Park({
         t.pine ? <PineTree key={i} position={t.pos} scaleMul={t.scale} /> : <Tree key={i} position={t.pos} scaleMul={t.scale} />,
       )}
       {BUILDINGS.map((b) => (
-        <Prop key={b.id} path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={BUILDING_SCALE} />
+        <Prop key={b.id} path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={b.scale ?? BUILDING_SCALE} />
       ))}
       {MARKET_STALLS.map((m) => (
         <Prop key={m.id} path={m.modelPath} position={[m.position[0], 0, m.position[1]]} rotationY={m.rotationY} scale={MARKET_SCALE} />
