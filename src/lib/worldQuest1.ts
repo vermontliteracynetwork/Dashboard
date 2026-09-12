@@ -4,17 +4,32 @@
 // scattered through the scene component) so authoring/editing the quest
 // later never means touching rendering code.
 
+// A response the student can pick. Plain text converges to the next step
+// in the array (today's only shape, still fully supported). Passing an
+// object with `next` instead branches to the step with that id, so a
+// pick can lead somewhere genuinely different rather than everything
+// funneling back into one shared line — the engine upgrade Claudia's
+// conversation-frameworks guide flagged as the highest-leverage one (real
+// reflection/consequence responses need this). No existing dialogue below
+// uses it yet; it's here so future authoring doesn't need another engine
+// change first.
+export interface ConversationOption {
+  text: string;
+  next?: string;
+}
+
 // One back-and-forth turn of a conversation. If options is present the
 // student picks one of 2-3 short responses instead of a plain Continue
 // button — direct teacher instruction: real conversations, not a single
-// greeting line, at least 4 exchanges, with the student given choices.
-// Every option currently leads to the same next line (the content itself
-// is placeholder flavor, not yet the real ABA-authored dialogue the
-// teacher's curriculum will eventually drive) but the shape already
-// supports a per-option reply later without changing the engine.
+// greeting line, at least 4 exchanges, with the student given choices. A
+// step with no options is a closing line: the button underneath ends the
+// conversation (and, for a Neighbor's first conversation, grants the
+// quest reward) rather than advancing further, regardless of which
+// branch led there.
 export interface ConversationStep {
+  id?: string;
   npc: string;
-  options?: string[];
+  options?: (string | ConversationOption)[];
 }
 
 export interface Quest1Neighbor {

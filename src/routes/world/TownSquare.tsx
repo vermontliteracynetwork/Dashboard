@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { QUEST1_NEIGHBORS, type Quest1Neighbor, type ConversationStep } from '../../lib/worldQuest1';
+import { QUEST1_NEIGHBORS, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { formatMoney } from '../../lib/money';
 import ToolsPanel from '../../components/ToolsPanel';
@@ -1267,13 +1267,17 @@ export default function TownSquare() {
   };
 
   const activeStep = activeConversation?.steps[stepIndex] ?? null;
-  const isLastStep = !!activeConversation && stepIndex >= activeConversation.steps.length - 1;
+  // A step with no options is a closing line, whichever branch led there —
+  // not just "the last one in the array" — so a future branching
+  // conversation can have several different paths that each end the
+  // conversation, not only one linear ending.
+  const isLastStep = !!activeStep && (!activeStep.options || activeStep.options.length === 0);
 
   // Advances one exchange: the student's pick (if this step had options)
   // is remembered as "You: ..." for the next line, same as a real
-  // back-and-forth. On the last line, a Neighbor met for the first time
+  // back-and-forth. On the closing line, a Neighbor met for the first time
   // grants their quest reward; a Townsperson never does (flavor-only).
-  const advanceConversation = (pickedOption?: string) => {
+  const advanceConversation = (picked?: string | ConversationOption) => {
     if (!activeConversation) return;
     if (isLastStep) {
       if (activeConversation.kind === 'neighbor' && student && !metIds.includes(activeConversation.id)) {
@@ -1287,8 +1291,11 @@ export default function TownSquare() {
       setActiveConversation(null);
       return;
     }
-    setLastPlayerLine(pickedOption ?? null);
-    setStepIndex((i) => i + 1);
+    const label = typeof picked === 'string' ? picked : picked?.text;
+    const nextId = typeof picked === 'object' ? picked.next : undefined;
+    setLastPlayerLine(label ?? null);
+    const nextIndex = nextId ? activeConversation.steps.findIndex((s) => s.id === nextId) : -1;
+    setStepIndex(nextIndex !== -1 ? nextIndex : stepIndex + 1);
   };
 
   if (!student) return null;
@@ -1526,11 +1533,14 @@ export default function TownSquare() {
               <p style={{ fontSize: '1.05rem', margin: '8px 0' }}>{activeStep.npc}</p>
               {activeStep.options && !isLastStep ? (
                 <div className="stack" style={{ gap: 8, width: '100%' }}>
-                  {activeStep.options.map((opt) => (
-                    <button key={opt} className="btn btn-primary" onClick={() => advanceConversation(opt)}>
-                      {opt}
-                    </button>
-                  ))}
+                  {activeStep.options.map((opt) => {
+                    const label = typeof opt === 'string' ? opt : opt.text;
+                    return (
+                      <button key={label} className="btn btn-primary" onClick={() => advanceConversation(opt)}>
+                        {label}
+                      </button>
+                    );
+                  })}
                   <button className="btn btn-sm" style={{ opacity: 0.7 }} onClick={() => setActiveConversation(null)}>
                     I need a minute
                   </button>
