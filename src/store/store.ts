@@ -216,7 +216,12 @@ interface AppState {
   // students
   addStudent: (name: string, avatar: string) => string;
   updateStudent: (id: string, patch: Partial<Student>) => void;
-  recordTransaction: (studentId: string, amountCents: number, description: string, icon: string, kind: TransactionKind) => void;
+  recordTransaction: (studentId: string, amountCents: number, description: string, icon: string, kind: TransactionKind, silent?: boolean) => void;
+  // Manually fires the same coin-drop celebration recordTransaction triggers automatically —
+  // for the rare case (the Daily Spin Wheel) where the money already landed silently ahead of
+  // a multi-second reveal animation, and the celebration needs to wait for that reveal instead
+  // of firing the instant the spin button is clicked.
+  announceCoinEarn: (studentId: string, amountCents: number) => void;
   deleteTransaction: (id: string) => void;
   addHighlight: (studentId: string, taskId: string, articleIndex: number, highlight: Highlight) => void;
   removeHighlight: (studentId: string, taskId: string, articleIndex: number, highlightId: string) => void;
@@ -671,7 +676,7 @@ export const useStore = create<AppState>()(
 
       // Every earn/spend goes through here so the bank register always has
       // a matching row — nothing changes a balance silently.
-      recordTransaction: (studentId, amountCents, description, icon, kind) => {
+      recordTransaction: (studentId, amountCents, description, icon, kind, silent) => {
         const student = get().students.find((st) => st.id === studentId);
         if (!student) return;
         const tx: Transaction = {
@@ -685,7 +690,7 @@ export const useStore = create<AppState>()(
         };
         set((s) => ({
           transactions: [tx, ...s.transactions],
-          lastCoinEarn: amountCents > 0 ? { id: makeId(), studentId, amountCents } : s.lastCoinEarn,
+          lastCoinEarn: amountCents > 0 && !silent ? { id: makeId(), studentId, amountCents } : s.lastCoinEarn,
         }));
         pushTransaction(tx);
         // A $0 transaction (a free item win, a Skip Pass win, a log-only
@@ -694,6 +699,11 @@ export const useStore = create<AppState>()(
         // different update already in flight for this student (e.g. the
         // daily spin's item-grant write) and clobber it.
         if (amountCents !== 0) get().updateStudent(studentId, { coins: student.coins + amountCents });
+      },
+
+      announceCoinEarn: (studentId, amountCents) => {
+        if (amountCents <= 0) return;
+        set({ lastCoinEarn: { id: makeId(), studentId, amountCents } });
       },
 
       // Reverses a mistaken register entry's effect on the balance — for a
@@ -973,14 +983,17 @@ export const useStore = create<AppState>()(
 
         if (segment.kind === 'skip') {
           get().updateStudent(studentId, { ...spinPatch, skipTokens: student.skipTokens + 1 });
-          get().recordTransaction(studentId, 0, '🎡 Daily Spin: won a Skip Pass', '🎫', 'spin-cash');
+          get().recordTransaction(studentId, 0, '🎡 Daily Spin: won a Skip Pass', '🎫', 'spin-cash', true);
           return { type: 'skip', amountCents: 0, label: segment.label, segmentIndex };
         }
 
         if (segment.kind === 'cents' || segment.kind === 'cashback') {
           const amountCents = segment.kind === 'cashback' ? Math.round(student.coins * ((segment.percent ?? 0) / 100)) : segment.amountCents ?? 0;
           get().updateStudent(studentId, spinPatch);
-          get().recordTransaction(studentId, amountCents, '🎡 Daily Spin winnings', '🎡', segment.kind === 'cashback' ? 'spin-cashback' : 'spin-cash');
+          // silent: true — the wheel's own multi-second spin animation is the real reveal; the
+          // component fires the coin-drop celebration itself once that animation actually
+          // finishes, via announceCoinEarn, instead of it firing the instant Spin is clicked.
+          get().recordTransaction(studentId, amountCents, '🎡 Daily Spin winnings', '🎡', segment.kind === 'cashback' ? 'spin-cashback' : 'spin-cash', true);
           return {
             type: segment.kind,
             amountCents,
@@ -1005,7 +1018,7 @@ export const useStore = create<AppState>()(
         const alreadyOwned = student[ownedField].includes(itemId);
         if (alreadyOwned) {
           get().updateStudent(studentId, spinPatch);
-          get().recordTransaction(studentId, ITEM_ALREADY_OWNED_CONSOLATION_CENTS, `🎡 Daily Spin (already had ${segment.label})`, '🎡', 'spin-cash');
+          get().recordTransaction(studentId, ITEM_ALREADY_OWNED_CONSOLATION_CENTS, `🎡 Daily Spin (already had ${segment.label})`, '🎡', 'spin-cash', true);
           return {
             type: 'item',
             amountCents: ITEM_ALREADY_OWNED_CONSOLATION_CENTS,
@@ -1017,7 +1030,7 @@ export const useStore = create<AppState>()(
         // Every spin — including a free item win — leaves a $0 register
         // row, so a student's bank history always shows exactly what
         // happened on every spin, not just the ones that moved money.
-        get().recordTransaction(studentId, 0, `🎡 Daily Spin: won ${segment.label}`, segment.imageUrl ?? '🎁', 'spin-cash');
+        get().recordTransaction(studentId, 0, `🎡 Daily Spin: won ${segment.label}`, segment.imageUrl ?? '🎁', 'spin-cash', true);
         return { type: 'item', amountCents: 0, label: segment.label, segmentIndex, itemKind, itemId };
       },
 

@@ -973,7 +973,14 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
               {pendingCorrect !== null && (
                 <button className="btn btn-primary btn-lg pulse-cta" onClick={resumeAfterQuestion}>
-                  {pendingCorrect ? '▶️ Back to the game!' : '➡️ Next question'}
+                  {/* A correct answer only actually returns to gameplay once it either isn't the
+                      gauntlet (hit/fall/timer questions always resume immediately) or it's the
+                      one that completes the full MAX_LIVES-in-a-row streak — otherwise clicking
+                      this just shows the next gauntlet question, so the label says so instead of
+                      falsely promising "back to the game." */}
+                  {pendingCorrect && !(pauseReason === 'gauntlet' && lives + 1 < MAX_LIVES)
+                    ? '▶️ Back to the game!'
+                    : '➡️ Next question'}
                 </button>
               )}
             </div>

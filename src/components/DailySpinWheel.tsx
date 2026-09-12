@@ -46,6 +46,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
   const students = useStore((s) => s.students);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const spinDailyWheel = useStore((s) => s.spinDailyWheel);
+  const announceCoinEarn = useStore((s) => s.announceCoinEarn);
   const containerRef = useRef<HTMLDivElement>(null);
   const wheelRef = useRef<InstanceType<typeof Wheel> | null>(null);
   const [wheelReady, setWheelReady] = useState(false);
@@ -128,6 +129,12 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
       setSpinning(false);
       setResult(outcome);
       playAchievementChime();
+      // The falling-coins celebration only belongs to an actual cash prize
+      // landing (cents, cashback, or the already-owned consolation cash) —
+      // fired here, at the real reveal, instead of the moment Spin was
+      // clicked (recordTransaction was called silently back in
+      // spinDailyWheel specifically so this wouldn't double-fire early).
+      if (outcome.amountCents > 0) announceCoinEarn(studentId, outcome.amountCents);
     }, SPIN_DURATION_MS + 100);
   };
 

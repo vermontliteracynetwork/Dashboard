@@ -307,9 +307,7 @@ alter table students add column if not exists owned_voice_ids jsonb not null def
 alter table students add column if not exists equipped_voice_id text;
 alter table students add column if not exists owned_prize_ids jsonb not null default '[]';
 alter table students add column if not exists quiz_theme text not null default 'standard';
-alter table app_settings add column if not exists emote_price_overrides jsonb not null default '{}';
 alter table transactions add column if not exists voided boolean not null default false;
-alter table notes add column if not exists body_html text;
 alter table students add column if not exists bonus_spin_available boolean not null default false;
 alter table activity_library add column if not exists reward jsonb;
 alter table assignments add column if not exists deleted_at timestamptz;
@@ -327,6 +325,14 @@ create table if not exists notes (
   highlight_color_id text,
   updated_at timestamptz not null default now()
 );
+-- Was previously listed in the "columns added after initial release" block
+-- above, ahead of this table's own creation — running the whole file fresh
+-- (a new project, or a from-scratch re-run) hit that alter statement before
+-- this create table ever ran, errored on "relation notes does not exist,"
+-- and could abort the rest of the script before marketplace_items and
+-- app_settings below ever got created. Moved here, after the table it
+-- actually belongs to, so the file is safe to run top to bottom in one go.
+alter table notes add column if not exists body_html text;
 
 -- Every non-character, non-emote thing a student can buy: fonts, text
 -- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended
@@ -362,6 +368,9 @@ create table if not exists app_settings (
   assignment_completion_reward jsonb,
   updated_at timestamptz not null default now()
 );
+-- Same reordering fix as notes.body_html above — this used to run before
+-- app_settings existed at all.
+alter table app_settings add column if not exists emote_price_overrides jsonb not null default '{}';
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
