@@ -141,13 +141,23 @@ const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]
 ];
 const MARKET_SCALE = 2.6;
 
-// Road/sidewalk tiles (City Kit Roads, also verified CC0) are already
-// copied into public/world/models/roads/ for the next pass — not placed
-// yet. A "doorstep" tile between a building and the park interior lands
-// right on top of that building's own Neighbor (they share the same
-// radial line by design), so laying road down without also reconsidering
-// Neighbor placement needs more room than this pass has; shipping the
-// buildings alone now rather than rushing an overlapping road tile.
+// Road/sidewalk (City Kit Roads, verified CC0). Re-read Claudia's own
+// spec more carefully after flagging this as blocked: "the sidewalk
+// should be drawn to them, not the reverse" — a Neighbor is meant to
+// stand ON the sidewalk in front of their own building, same as a real
+// shopkeeper standing outside their shop. There's no actual placement
+// conflict; a decorative floor tile has no collision and doesn't block
+// clicking or talking to anyone standing on it. One tile centered on
+// each "downtown" Neighbor (Penny/Pip/Wren, matching the buildings above
+// — Scout's corner stays open, per the same spec), rotated tangentially
+// (perpendicular to the radial line into the park) so it reads as a
+// stretch of street running past them, not a path pointing at them.
+const ROAD_TILES: { id: string; position: [number, number]; rotationY: number }[] = [
+  { id: 'road-penny', position: [8, -6], rotationY: Math.atan2(8, -6) + Math.PI / 2 },
+  { id: 'road-pip', position: [-8, 6], rotationY: Math.atan2(-8, 6) + Math.PI / 2 },
+  { id: 'road-wren', position: [8, 6], rotationY: Math.atan2(8, 6) + Math.PI / 2 },
+];
+const ROAD_SCALE = 4;
 
 function blockPond(x: number, z: number): [number, number] {
   const dx = x - POND_CENTER.x;
@@ -816,6 +826,13 @@ function Park({
       ))}
       {MARKET_STALLS.map((m) => (
         <Prop key={m.id} path={m.modelPath} position={[m.position[0], 0, m.position[1]]} rotationY={m.rotationY} scale={MARKET_SCALE} />
+      ))}
+      {ROAD_TILES.map((r) => (
+        // A tiny y offset above the grass — coplanar flat meshes at the
+        // exact same height is the classic z-fighting setup (flickering
+        // as two surfaces fight to render on top of each other), same
+        // reason Pond and the walk markers all sit slightly above 0.
+        <Prop key={r.id} path="/world/models/roads/road-straight.glb" position={[r.position[0], 0.01, r.position[1]]} rotationY={r.rotationY} scale={ROAD_SCALE} />
       ))}
     </group>
   );
