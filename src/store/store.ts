@@ -41,6 +41,7 @@ import {
   fetchAll,
   subscribeRealtime,
   setSyncFailureHandler,
+  retryPendingSync,
   applyArrayRow,
   applyNestedRow,
   applyStudentMetaRow,
@@ -205,6 +206,7 @@ interface AppState {
   // usually means a pending database migration hasn't been run yet.
   syncTrouble: { at: number; label: string; message: string } | null;
   dismissSyncTrouble: () => void;
+  retrySyncNow: () => void;
 
   currentStudentId: string | null;
   role: 'none' | 'teacher' | 'student';
@@ -474,6 +476,10 @@ export const useStore = create<AppState>()(
       hydrationError: null,
       syncTrouble: null,
       dismissSyncTrouble: () => set({ syncTrouble: null }),
+      retrySyncNow: () => {
+        retryPendingSync();
+        set({ syncTrouble: null });
+      },
       initSync: async () => {
         if (!isSupabaseConfigured) {
           set({ hydrated: true });

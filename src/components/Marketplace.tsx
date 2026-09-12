@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
 import { AvatarGlyph } from './AvatarGlyph';
@@ -93,6 +93,11 @@ function useItemFilter(items: MarketplaceItem[]) {
 
 export default function Marketplace() {
   const navigate = useNavigate();
+  // Town Square's inventory button jumps straight to the My Stuff tab
+  // (navigate('/student/marketplace', { state: { tab: 'mystuff' } })
+  // instead of always opening on the shop.
+  const location = useLocation();
+  const initialTab = (location.state as { tab?: Tab } | null)?.tab ?? 'characters';
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const transactions = useStore((s) => s.transactions);
@@ -102,7 +107,7 @@ export default function Marketplace() {
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
   const updateStudent = useStore((s) => s.updateStudent);
-  const [tab, setTab] = useState<Tab>('characters');
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [cart, setCart] = useState<CartEntry[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptLine[] | null>(null);

@@ -630,7 +630,7 @@ export async function fetchAll(): Promise<HydratedState> {
 // to the student or teacher. Retry a few times with backoff before
 // finally giving up and logging, so a one-off network blip doesn't cost
 // real data.
-const RETRY_DELAYS_MS = [400, 1200, 3000];
+const RETRY_DELAYS_MS = [500, 1500, 4000, 8000];
 
 // Set by the store once it's created (sync.ts can't import the store —
 // the store imports this file) so a save that fails even after every
@@ -645,18 +645,43 @@ export function setSyncFailureHandler(fn: (label: string, message: string) => vo
   onPersistentSyncFailure = fn;
 }
 
+// Writes that ran out of retries land here instead of just vanishing, so a
+// classroom wifi drop that outlasts the retry window doesn't permanently
+// lose the change (a coin balance, a saved answer) the moment the alert is
+// dismissed. They're replayed automatically the instant the browser reports
+// it's back online, on a slow background sweep as a fallback for devices
+// that don't fire that event reliably, and on demand via retryPendingSync
+// (wired to the "Retry now" button on the sync-trouble alert).
+type PendingWrite = { run: () => PromiseLike<{ error: { message: string } | null }>; label: string };
+let pendingWrites: PendingWrite[] = [];
+
 async function pushWithRetry(run: () => PromiseLike<{ error: { message: string } | null }>, label: string) {
   for (let attempt = 0; ; attempt++) {
     const res = await run();
     if (!res.error) return;
     if (attempt >= RETRY_DELAYS_MS.length) {
       console.error(`[sync] ${label} failed after ${attempt + 1} attempts:`, res.error.message);
+      pendingWrites.push({ run, label });
       onPersistentSyncFailure?.(label, res.error.message);
       return;
     }
     console.warn(`[sync] ${label} failed (attempt ${attempt + 1}), retrying:`, res.error.message);
     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
   }
+}
+
+export function retryPendingSync() {
+  if (pendingWrites.length === 0) return;
+  const queued = pendingWrites;
+  pendingWrites = [];
+  for (const w of queued) void pushWithRetry(w.run, w.label);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', retryPendingSync);
+  setInterval(() => {
+    if (pendingWrites.length > 0) retryPendingSync();
+  }, 20000);
 }
 
 const upsert = (table: string, row: Row) => {

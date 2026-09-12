@@ -45,6 +45,8 @@ const NOTICE_RADIUS = 5;
 const BASE_MOVE_SPEED = 3.6;
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
+const CAMERA_LOOK_CAP = Math.PI * 0.6;
+const DRAG_LOOK_SENSITIVITY = 0.005;
 // Height for the overhead map view. The first value (34) only checked
 // vertical framing — horizontal FOV is vertical FOV times aspect ratio, so
 // on an iPad's portrait aspect (~0.7-0.75, the primary device for this
@@ -158,6 +160,37 @@ const ROAD_TILES: { id: string; position: [number, number]; rotationY: number }[
   { id: 'road-wren', position: [8, 6], rotationY: Math.atan2(8, 6) + Math.PI / 2 },
 ];
 const ROAD_SCALE = 4;
+
+// Every building/stall/the desk now blocks movement too — walking straight
+// through a building was flagged directly as illogical. Radii are each
+// building/prop's real footprint, not its full visual scale (BUILDING_SCALE
+// and MARKET_SCALE inflate the model well past just its base), sized so a
+// building doesn't reach out and swallow its own sidewalk tile or Neighbor's
+// standing spot (e.g. the bank at [10,-7.5] and Penny's sidewalk tile at
+// [8,-6] are ~2.5 units apart — a 1.8 building radius leaves it clear).
+const BUILDING_BLOCK_RADIUS = 1.8;
+const STALL_BLOCK_RADIUS = 0.75;
+const DESK_BLOCK_RADIUS = 0.9; // just the desk/chair footprint, well inside COMPUTER_RADIUS so "walk up and use" still works
+const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
+  ...BUILDINGS.map((b) => ({ x: b.position[0], z: b.position[1], radius: BUILDING_BLOCK_RADIUS })),
+  ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
+  { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
+];
+
+function blockObstacles(x: number, z: number): [number, number] {
+  let [bx, bz] = blockPond(x, z);
+  for (const o of STATIC_OBSTACLES) {
+    const dx = bx - o.x;
+    const dz = bz - o.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < o.radius && dist > 0) {
+      const scale = o.radius / dist;
+      bx = o.x + dx * scale;
+      bz = o.z + dz * scale;
+    }
+  }
+  return [bx, bz];
+}
 
 function blockPond(x: number, z: number): [number, number] {
   const dx = x - POND_CENTER.x;
@@ -497,7 +530,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         cameraLook.current = 0;
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
-        const [bx, bz] = blockPond(pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
+        const [bx, bz] = blockObstacles(pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
         pos.current.x = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
         pos.current.z = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
         facing.current = Math.atan2(dx, dz);
@@ -518,7 +551,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           cameraLook.current = 0;
           const ndx = tx / dist;
           const ndz = tz / dist;
-          const [bx, bz] = blockPond(pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
+          const [bx, bz] = blockObstacles(pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
           pos.current.x = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
           pos.current.z = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
           facing.current = Math.atan2(ndx, ndz);
@@ -911,9 +944,8 @@ function DpadButton({
 function CameraLookButtons({ cameraLook, side }: { cameraLook: React.RefObject<number>; side: 'left' | 'right' }) {
   const [, forceTick] = useState(0);
   const STEP = Math.PI / 6;
-  const CAP = Math.PI * 0.6;
   const turn = (dir: 1 | -1) => {
-    cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dir * STEP, -CAP, CAP);
+    cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dir * STEP, -CAMERA_LOOK_CAP, CAMERA_LOOK_CAP);
     forceTick((n) => n + 1);
   };
   return (
@@ -963,6 +995,27 @@ export default function TownSquare() {
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
   const hoverTarget = useRef<{ x: number; z: number } | null>(null);
   const cameraLook = useRef(0);
+  // Mouse press-and-drag look, desktop only (mirrors the ↺/↻ buttons but
+  // continuous) — direct teacher request: hold the mouse down and drag to
+  // turn the view, dragging right turning right same as the "Look right"
+  // button. Only starts on the primary mouse button so it never fires from
+  // a touch tap-to-walk, and a drag that barely moves still lets the
+  // underlying click (walk/talk) through, since the browser itself only
+  // suppresses a native "click" after real pointer movement.
+  const isDraggingLook = useRef(false);
+  const dragLastX = useRef(0);
+  const handleLookPointerDown = (e: React.PointerEvent) => {
+    if (!isDesktop || e.pointerType !== 'mouse' || e.button !== 0) return;
+    isDraggingLook.current = true;
+    dragLastX.current = e.clientX;
+  };
+  const handleLookPointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingLook.current) return;
+    const dx = e.clientX - dragLastX.current;
+    dragLastX.current = e.clientX;
+    cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dx * DRAG_LOOK_SENSITIVITY, -CAMERA_LOOK_CAP, CAMERA_LOOK_CAP);
+  };
+  const handleLookPointerUp = () => { isDraggingLook.current = false; };
   // Set by clicking a Neighbor directly (see handleApproach) — names which
   // Neighbor's conversation should auto-start the moment the walk this
   // triggers actually brings the student into talk range.
@@ -1049,7 +1102,13 @@ export default function TownSquare() {
   const otherSide = dpadSide === 'left' ? 'right' : 'left';
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0' }}>
+    <div
+      style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0' }}
+      onPointerDown={handleLookPointerDown}
+      onPointerMove={handleLookPointerMove}
+      onPointerUp={handleLookPointerUp}
+      onPointerLeave={handleLookPointerUp}
+    >
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', gap: 8 }}>
         <span style={{ background: 'white', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 700, color: '#1f4238', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
           🌳 Yoglandia Town Square
@@ -1078,6 +1137,19 @@ export default function TownSquare() {
         title={mapView ? 'Close map' : 'Map'}
       >
         {mapView ? '✕' : '🗺️'}
+      </button>
+
+      {/* Direct teacher instruction: a button, same shape as Map/Tools, for
+          everything the student has purchased/owns — reuses the existing
+          "My Stuff" tab already built inside the Marketplace rather than a
+          new inventory screen. */}
+      <button
+        onClick={() => navigate('/student/marketplace', { state: { tab: 'mystuff' } })}
+        style={{ position: 'fixed', top: 214, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#c2953f', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        aria-label="My stuff"
+        title="My Stuff"
+      >
+        🎒
       </button>
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
