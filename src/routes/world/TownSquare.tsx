@@ -1152,10 +1152,15 @@ export default function TownSquare() {
   const [playerPos, setPlayerPos] = useState(() => new THREE.Vector3(0, 0, 6));
   const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  // The option the student just picked, shown as "You: ..." above the
-  // NPC's next line so a multi-step conversation actually reads as
-  // back-and-forth, not a wall of NPC text — direct teacher instruction.
-  const [lastPlayerLine, setLastPlayerLine] = useState<string | null>(null);
+  // The full conversation so far, rendered as chat bubbles (NPC left,
+  // student right) like a phone messaging app — direct teacher
+  // instruction: keep every line visible to refer back to, not just the
+  // current one.
+  const [messageLog, setMessageLog] = useState<{ sender: 'npc' | 'player'; text: string }[]>([]);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messageLog]);
   const [justEarned, setJustEarned] = useState<{ label: string; cents: number } | null>(null);
   // Live position of every wandering NPC (met Neighbors + Townspeople),
   // keyed by id — each WanderingNPC hands up the same mutable Vector3 it
@@ -1253,7 +1258,7 @@ export default function TownSquare() {
     walkTarget.current = null;
     pendingApproach.current = null;
     setStepIndex(0);
-    setLastPlayerLine(null);
+    setMessageLog(c.steps.length > 0 ? [{ sender: 'npc', text: c.steps[0].npc }] : []);
     setActiveConversation(c);
   };
 
@@ -1335,9 +1340,10 @@ export default function TownSquare() {
   const isLastStep = !!activeStep && (!activeStep.options || activeStep.options.length === 0);
 
   // Advances one exchange: the student's pick (if this step had options)
-  // is remembered as "You: ..." for the next line, same as a real
-  // back-and-forth. On the closing line, a Neighbor met for the first time
-  // grants their quest reward; a Townsperson never does (flavor-only).
+  // is appended to the message log as their own chat bubble, then the
+  // next NPC line is appended too, same as a real back-and-forth. On the
+  // closing line, a Neighbor met for the first time grants their quest
+  // reward; a Townsperson never does (flavor-only).
   const advanceConversation = (picked?: string | ConversationOption) => {
     if (!activeConversation) return;
     if (isLastStep) {
@@ -1354,9 +1360,15 @@ export default function TownSquare() {
     }
     const label = typeof picked === 'string' ? picked : picked?.text;
     const nextId = typeof picked === 'object' ? picked.next : undefined;
-    setLastPlayerLine(label ?? null);
     const nextIndex = nextId ? activeConversation.steps.findIndex((s) => s.id === nextId) : -1;
-    setStepIndex(nextIndex !== -1 ? nextIndex : stepIndex + 1);
+    const resolvedIndex = nextIndex !== -1 ? nextIndex : stepIndex + 1;
+    const nextNpcLine = activeConversation.steps[resolvedIndex]?.npc;
+    setMessageLog((log) => [
+      ...log,
+      ...(label ? [{ sender: 'player' as const, text: label }] : []),
+      ...(nextNpcLine ? [{ sender: 'npc' as const, text: nextNpcLine }] : []),
+    ]);
+    setStepIndex(resolvedIndex);
   };
 
   if (!student) return null;
@@ -1590,12 +1602,34 @@ export default function TownSquare() {
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
               {activeConversation.role && <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeConversation.role}</p>}
-              {lastPlayerLine && (
-                <p style={{ fontSize: '0.9rem', margin: '4px 0 0', opacity: 0.75, fontStyle: 'italic' }}>
-                  You: {lastPlayerLine}
-                </p>
-              )}
-              <p style={{ fontSize: '1.05rem', margin: '8px 0' }}>{activeStep.npc}</p>
+              {/* Direct teacher instruction: read like a phone messaging
+                  app — the other person's lines on the left, yours on the
+                  right, the whole conversation kept visible to scroll back
+                  through, not just the current line. */}
+              <div
+                ref={chatScrollRef}
+                style={{ width: '100%', maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 2px', textAlign: 'left' }}
+              >
+                {messageLog.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: m.sender === 'player' ? 'flex-end' : 'flex-start' }}>
+                    <div
+                      style={{
+                        maxWidth: '78%',
+                        padding: '8px 13px',
+                        borderRadius: 16,
+                        fontSize: '0.95rem',
+                        lineHeight: 1.35,
+                        background: m.sender === 'player' ? '#3e7c6b' : '#e9e6df',
+                        color: m.sender === 'player' ? '#fff' : '#1f4238',
+                        borderBottomRightRadius: m.sender === 'player' ? 4 : 16,
+                        borderBottomLeftRadius: m.sender === 'player' ? 16 : 4,
+                      }}
+                    >
+                      {m.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
               {activeStep.options && !isLastStep ? (
                 <div className="stack" style={{ gap: 8, width: '100%' }}>
                   {activeStep.options.map((opt) => {
