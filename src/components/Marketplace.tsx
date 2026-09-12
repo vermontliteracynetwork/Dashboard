@@ -112,6 +112,23 @@ export default function Marketplace() {
   const [showCart, setShowCart] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptLine[] | null>(null);
 
+  // byKind/the three useItemFilter calls below don't depend on `student` at
+  // all, so they're computed before the early-return — caught by lint as a
+  // real rules-of-hooks violation (pre-existing, not from this session's
+  // changes): with the checks below this block, useItemFilter would only
+  // run on renders where a student is already found, meaning the number of
+  // hooks called could change between renders.
+  const byKind = (kind: MarketplaceItemKind) => marketplaceItems.filter((it) => it.kind === kind && isAvailableToday(it));
+  const fontItems = byKind('font');
+  const allColorItems = byKind('color');
+  const voiceItems = byKind('voice');
+  const prizeItems = byKind('prize');
+  const powerupItems = byKind('powerup');
+
+  const prizeFilter = useItemFilter(prizeItems);
+  const fontFilter = useItemFilter(fontItems);
+  const voiceFilter = useItemFilter(voiceItems);
+
   const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
   const studentId = student.id;
@@ -138,19 +155,9 @@ export default function Marketplace() {
     .filter((t) => t.studentId === studentId && t.kind.startsWith('purchase-'))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
-  const byKind = (kind: MarketplaceItemKind) => marketplaceItems.filter((it) => it.kind === kind && isAvailableToday(it));
-  const fontItems = byKind('font');
-  const allColorItems = byKind('color');
   const textColorItems = allColorItems.filter((it) => (it.colorUse ?? 'text') === 'text');
   const highlightColorItems = allColorItems.filter((it) => it.colorUse === 'highlight');
   const markerColorItems = allColorItems.filter((it) => it.colorUse === 'marker');
-  const voiceItems = byKind('voice');
-  const prizeItems = byKind('prize');
-  const powerupItems = byKind('powerup');
-
-  const prizeFilter = useItemFilter(prizeItems);
-  const fontFilter = useItemFilter(fontItems);
-  const voiceFilter = useItemFilter(voiceItems);
 
   const ownedFieldFor = (kind: MarketplaceItemKind): keyof typeof student | null => {
     if (kind === 'font') return 'ownedFontIds';
