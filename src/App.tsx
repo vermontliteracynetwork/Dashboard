@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/store';
 import { isSupabaseConfigured } from './lib/supabaseClient';
@@ -26,6 +27,10 @@ import ScoreHistory from './routes/teacher/ScoreHistory';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
+
+// Lazy-loaded: Three.js/react-three-fiber are heavy, and only the world
+// route needs them — every existing 2D screen should stay unaffected.
+const WorldPreview = lazy(() => import('./routes/world/WorldPreview'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
 
@@ -78,6 +83,14 @@ export default function App() {
         <SyncTroubleAlert />
         <Routes>
           <Route path="/" element={<RoleSelect />} />
+          <Route
+            path="/world-preview"
+            element={
+              <Suspense fallback={<div className="app-shell center-screen"><p>Loading world…</p></div>}>
+                <WorldPreview />
+              </Suspense>
+            }
+          />
           <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/student/home" element={<StudentHome />} />
           <Route path="/student/:subject" element={<SubjectDashboard />} />
