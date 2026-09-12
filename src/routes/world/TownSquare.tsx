@@ -9,6 +9,8 @@ import { QUEST1_NEIGHBORS, type Quest1Neighbor, type ConversationStep } from '..
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { formatMoney } from '../../lib/money';
 import ToolsPanel from '../../components/ToolsPanel';
+import HelpOverlay from '../../components/HelpOverlay';
+import StepGuide from '../../components/StepGuide';
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -1095,6 +1097,14 @@ export default function TownSquare() {
   const wanderingPositions = useRef<Record<string, THREE.Vector3>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mapView, setMapView] = useState(false);
+  // Claudia's review: every other student screen has these two FABs
+  // (What do I do? / calm-down + ask-for-help) at the same fixed spot;
+  // Town Square had neither, which meant the one screen the teacher wants
+  // students living in was the one screen where they couldn't ask for
+  // help. Same class names as StudentHome/SubjectDashboard so they land
+  // in the same place without new CSS.
+  const [showHelp, setShowHelp] = useState(false);
+  const [showWhatNow, setShowWhatNow] = useState(false);
   // Direct teacher instruction: the "click/tap to walk" instruction text
   // is onboarding, not a permanent fixture — once a student has actually
   // done it once, it just clutters an otherwise clean view.
@@ -1278,6 +1288,48 @@ export default function TownSquare() {
       </div>
 
       <ToolsPanel student={student} subject="both" />
+
+      {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
+      {showWhatNow && (
+        <div className="overlay-backdrop" onClick={() => setShowWhatNow(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <h2 style={{ margin: 0 }}>❓ What do I do?</h2>
+              <StepGuide
+                steps={[
+                  { id: '1', icon: '🚶', text: 'Walk or click/tap to move around town' },
+                  { id: '2', icon: '🙋', text: 'Talk to a Neighbor or Townsperson by clicking them' },
+                  { id: '3', icon: '💻', text: 'Walk up to the computer to do your tasks' },
+                ]}
+              />
+              <button className="btn btn-primary btn-lg" onClick={() => setShowWhatNow(false)}>
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Not the shared .whatnow-fab/.help-fab corner spots — Town Square is
+          the one screen with a D-pad occupying a whole bottom corner, so
+          those fixed positions would sit right on top of it depending on
+          which side the student has it set to. Placed somewhere that's
+          always clear instead: what matters per Claudia's review is that
+          both are reachable from here at all, not the exact pixel match. */}
+      <button
+        onClick={() => setShowWhatNow(true)}
+        aria-label="What do I do?"
+        title="What do I do?"
+        style={{ position: 'fixed', top: 70, left: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: 'var(--blue, #4a90d9)', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+      >
+        ❓
+      </button>
+      <button
+        onClick={() => setShowHelp(true)}
+        aria-label="Help"
+        style={{ position: 'fixed', top: 280, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: 'var(--orange, #e2775c)', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+      >
+        🧘
+      </button>
 
       <button
         onClick={() => setSettingsOpen(true)}

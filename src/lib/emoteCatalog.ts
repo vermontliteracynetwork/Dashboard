@@ -14,8 +14,13 @@ export const EMOTE_CATALOG: EmoteOption[] = [
   { id: 'emote-heart', name: 'Love It', src: '/emotes/emote_heart.png', price: 0 },
   { id: 'emote-star', name: 'Great Job', src: '/emotes/emote_star.png', price: 0 },
   { id: 'emote-laugh', name: 'LOL', src: '/emotes/emote_laugh.png', price: 200 },
-  { id: 'emote-sad', name: 'Sad', src: '/emotes/emote_faceSad.png', price: 200 },
-  { id: 'emote-angry', name: 'Frustrated', src: '/emotes/emote_faceAngry.png', price: 200 },
+  // Claudia's review: a student having a hard day shouldn't have to buy
+  // the word for it while every positive feeling is free — these four are
+  // the ones that actually name a hard emotion, so they're free (and,
+  // since STARTER_EMOTE_IDS below is derived from price===0, owned from
+  // day one, not just theoretically purchasable for $0).
+  { id: 'emote-sad', name: 'Sad', src: '/emotes/emote_faceSad.png', price: 0 },
+  { id: 'emote-angry', name: 'Frustrated', src: '/emotes/emote_faceAngry.png', price: 0 },
   { id: 'emote-idea', name: 'Idea', src: '/emotes/emote_idea.png', price: 300 },
   { id: 'emote-music', name: 'Music', src: '/emotes/emote_music.png', price: 300 },
   { id: 'emote-sleep', name: 'Sleepy', src: '/emotes/emote_sleep.png', price: 200 },
@@ -24,8 +29,8 @@ export const EMOTE_CATALOG: EmoteOption[] = [
   { id: 'emote-wow', name: 'Wow', src: '/emotes/emote_exclamation.png', price: 200 },
   { id: 'emote-question', name: 'Huh?', src: '/emotes/emote_question.png', price: 200 },
   { id: 'emote-cash', name: 'Cha-ching', src: '/emotes/emote_cash.png', price: 300 },
-  { id: 'emote-heartbroken', name: 'Heartbroken', src: '/emotes/emote_heartBroken.png', price: 300 },
-  { id: 'emote-grr', name: 'Grr', src: '/emotes/emote_anger.png', price: 300 },
+  { id: 'emote-heartbroken', name: 'Heartbroken', src: '/emotes/emote_heartBroken.png', price: 0 },
+  { id: 'emote-grr', name: 'Grr', src: '/emotes/emote_anger.png', price: 0 },
 ];
 
 export const STARTER_EMOTE_IDS: string[] = EMOTE_CATALOG.filter((e) => e.price === 0).map((e) => e.id);

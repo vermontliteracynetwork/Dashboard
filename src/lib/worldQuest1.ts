@@ -107,4 +107,9 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
 ];
 
 export const QUEST1_NEIGHBOR_COUNT = QUEST1_NEIGHBORS.length;
-export const QUEST1_GRAND_PRIZE_CENTS = 20000; // $200
+// Claudia's review: at $200 this paid 200x a single completed academic
+// task (DEFAULT_TASK_REWARD_CENTS in money.ts is $1), which teaches that
+// walking around and talking is worth vastly more than real work. Sized
+// instead as a nice one-time "you met everyone" milestone bonus — a few
+// times a single task's reward, not an order of magnitude beyond it.
+export const QUEST1_GRAND_PRIZE_CENTS = 500; // $5

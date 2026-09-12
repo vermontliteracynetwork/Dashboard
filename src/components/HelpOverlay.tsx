@@ -9,7 +9,9 @@ interface Props {
 
 export default function HelpOverlay({ studentId, onClose }: Props) {
   const pingHelp = useStore((s) => s.pingHelp);
+  const requestBreak = useStore((s) => s.requestBreak);
   const [pinged, setPinged] = useState(false);
+  const [breakRequested, setBreakRequested] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
   if (showChat) return <ChatPanel studentId={studentId} role="student" onClose={() => setShowChat(false)} />;
@@ -39,6 +41,19 @@ export default function HelpOverlay({ studentId, onClose }: Props) {
               }}
             >
               🙋 I need my teacher
+            </button>
+          )}
+          {breakRequested ? (
+            <p>🌿 Your teacher will see your break request soon.</p>
+          ) : (
+            <button
+              className="btn btn-pink"
+              onClick={() => {
+                requestBreak(studentId);
+                setBreakRequested(true);
+              }}
+            >
+              🌿 I need a break
             </button>
           )}
           <button className="btn btn-primary btn-lg" onClick={onClose}>
