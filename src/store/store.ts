@@ -676,6 +676,9 @@ export const useStore = create<AppState>()(
           worldQuest1MetIds: [],
           worldMoveSensitivity: 1,
           worldDpadSide: 'left',
+          worldNpcLastTalkDates: {},
+          worldJokesHeardIds: [],
+          worldTalkRewardCents: 5,
         };
         set((s) => ({
           students: [...s.students, student],

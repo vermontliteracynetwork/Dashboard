@@ -97,6 +97,9 @@ export interface Student {
   worldQuest1MetIds: string[]; // Neighbor ids met so far in Homeplot's launch quest ("Meet the Neighbors") — grows to 4, then the quest is complete
   worldMoveSensitivity: number; // Town Square movement-speed multiplier, student-adjustable in-world Settings (0.5-2, default 1)
   worldDpadSide: 'left' | 'right'; // which corner the on-screen D-pad sits in, student-adjustable
+  worldNpcLastTalkDates: Record<string, string>; // NPC id -> ISO date of the last conversation that paid the daily talk coin, so each NPC pays at most once per real-world day
+  worldJokesHeardIds: string[]; // joke ids ever collected into the Joke Book — permanent, never resets
+  worldTalkRewardCents: number; // per-NPC daily talk coin amount; a teacher can set to 0 to turn off all NPC-talk payouts for a student without hiding the jokes/Joke Book
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

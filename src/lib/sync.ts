@@ -73,6 +73,9 @@ const rowToStudent = (r: Row): Student => ({
   worldQuest1MetIds: r.world_quest1_met_ids ?? [],
   worldMoveSensitivity: r.world_move_sensitivity ?? 1,
   worldDpadSide: r.world_dpad_side ?? 'left',
+  worldNpcLastTalkDates: r.world_npc_last_talk_dates ?? {},
+  worldJokesHeardIds: r.world_jokes_heard_ids ?? [],
+  worldTalkRewardCents: r.world_talk_reward_cents ?? 5,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -109,6 +112,9 @@ const studentToRow = (s: Student): Row => ({
   world_quest1_met_ids: s.worldQuest1MetIds,
   world_move_sensitivity: s.worldMoveSensitivity,
   world_dpad_side: s.worldDpadSide,
+  world_npc_last_talk_dates: s.worldNpcLastTalkDates,
+  world_jokes_heard_ids: s.worldJokesHeardIds,
+  world_talk_reward_cents: s.worldTalkRewardCents,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -731,6 +737,9 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   bonusSpinAvailable: 'bonus_spin_available',
   worldQuest1MetIds: 'world_quest1_met_ids',
   worldMoveSensitivity: 'world_move_sensitivity',
+  worldNpcLastTalkDates: 'world_npc_last_talk_dates',
+  worldJokesHeardIds: 'world_jokes_heard_ids',
+  worldTalkRewardCents: 'world_talk_reward_cents',
   worldDpadSide: 'world_dpad_side',
 };
 

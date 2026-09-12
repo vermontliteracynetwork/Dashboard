@@ -442,6 +442,7 @@ function WanderingNPC({
   const target = useRef<THREE.Vector3 | null>(null);
   const pauseUntil = useRef(0);
   const isMoving = useRef(false);
+  const targetSetAt = useRef(0);
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
@@ -470,17 +471,27 @@ function WanderingNPC({
       if (!target.current && clock.elapsedTime >= pauseUntil.current) {
         const angle = Math.random() * Math.PI * 2;
         const r = Math.random() * WANDER_RADIUS;
-        target.current = new THREE.Vector3(
-          THREE.MathUtils.clamp(home[0] + Math.cos(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1),
-          0,
-          THREE.MathUtils.clamp(home[1] + Math.sin(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1),
-        );
+        const rawX = THREE.MathUtils.clamp(home[0] + Math.cos(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const rawZ = THREE.MathUtils.clamp(home[1] + Math.sin(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1);
+        // Push the candidate target itself clear of any obstacle before
+        // committing to it, not just the steps taken toward it — a random
+        // target that happened to land inside an obstacle's collision
+        // circle was never reachable (arrival needs dist < 0.2), which
+        // could pin an NPC at that obstacle's edge forever. Direct teacher
+        // instruction: NPCs should never get stuck in an endless loop.
+        const [tx, tz] = blockObstacles(rawX, rawZ);
+        target.current = new THREE.Vector3(tx, 0, tz);
+        targetSetAt.current = clock.elapsedTime;
       }
       if (target.current) {
         const dx = target.current.x - pos.current.x;
         const dz = target.current.z - pos.current.z;
         const dist = Math.hypot(dx, dz);
-        if (dist < 0.2) {
+        // A general timeout failsafe on top of the fix above — if an NPC
+        // still hasn't reached its target after a while for any reason,
+        // abandon it and pick a new one rather than risk pacing forever.
+        const stuck = clock.elapsedTime - targetSetAt.current > 8;
+        if (dist < 0.2 || stuck) {
           target.current = null;
           pauseUntil.current = clock.elapsedTime + 1.5 + Math.random() * 2.5;
           isMoving.current = false;
