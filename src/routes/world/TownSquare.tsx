@@ -1501,7 +1501,20 @@ export default function TownSquare() {
 
       {activeConversation && activeStep && (
         <div className="overlay-backdrop" role="dialog" aria-modal="true">
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420, position: 'relative' }}>
+            {/* Claudia's conversation-framework review: every turn needs a
+                free, always-working way out (Functional Communication
+                Training — an escape response that doesn't reliably work
+                stops getting used). A student ending a conversation early
+                never loses anything or gets a guilt line. */}
+            <button
+              onClick={() => setActiveConversation(null)}
+              aria-label="I need a minute, leave this conversation"
+              title="I need a minute"
+              style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', opacity: 0.6, minWidth: 32, minHeight: 32 }}
+            >
+              ✕
+            </button>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
               {activeConversation.role && <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeConversation.role}</p>}
@@ -1518,6 +1531,9 @@ export default function TownSquare() {
                       {opt}
                     </button>
                   ))}
+                  <button className="btn btn-sm" style={{ opacity: 0.7 }} onClick={() => setActiveConversation(null)}>
+                    I need a minute
+                  </button>
                 </div>
               ) : (
                 <button className="btn btn-primary btn-lg pulse-cta" onClick={() => advanceConversation()} autoFocus>
