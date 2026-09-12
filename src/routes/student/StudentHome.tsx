@@ -237,11 +237,11 @@ export default function StudentHome() {
               </button>
               <button
                 className="btn btn-sm"
-                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px', outline: '3px solid var(--purple)' }}
-                onClick={() => navigate('/world/quest1')}
-                aria-label="New! Meet the Neighbors"
+                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
+                onClick={() => navigate('/world/town')}
+                aria-label="Go to Town Square"
               >
-                🦊 New!
+                🌳 Town Square
               </button>
             </div>
           </div>

@@ -34,8 +34,8 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     greeting: "Hi, I'm Scout! I show new folks around Yoglandia. Walk with WASD or the arrows, and press E near someone to talk!",
     itemLabel: 'a little pile of fall leaves',
     itemRewardCents: 25,
-    position: [-3, -2],
-    modelPath: '/world/models/neighbor-scout.glb',
+    position: [-8, -6],
+    modelPath: '/world/models/characters/neighbor-scout.glb',
   },
   {
     id: 'penny',
@@ -44,8 +44,8 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     greeting: "Welcome! I'm Penny, I run the Bank. Every bit of Class Cash you earn is real and it's yours — come see me anytime.",
     itemLabel: 'a cozy autumn welcome mat',
     itemRewardCents: 25,
-    position: [3, -2],
-    modelPath: '/world/models/neighbor-penny.glb',
+    position: [8, -6],
+    modelPath: '/world/models/characters/neighbor-penny.glb',
   },
   {
     id: 'pip',
@@ -54,8 +54,8 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     greeting: "Hiya, I'm Pip! I run the Store — same stuff every day, so you always know what you'll find.",
     itemLabel: 'a small pumpkin for your shelf',
     itemRewardCents: 25,
-    position: [-3, 2],
-    modelPath: '/world/models/neighbor-pip.glb',
+    position: [-8, 6],
+    modelPath: '/world/models/characters/neighbor-pip.glb',
   },
   {
     id: 'wren',
@@ -64,8 +64,8 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     greeting: "Hey there, I'm Wren! I deliver the mail all over town. Keep an eye on your mailbox — I'll have something for you soon.",
     itemLabel: 'a string of fall leaf garland',
     itemRewardCents: 25,
-    position: [3, 2],
-    modelPath: '/world/models/neighbor-wren.glb',
+    position: [8, 6],
+    modelPath: '/world/models/characters/neighbor-wren.glb',
   },
 ];
 

@@ -25,7 +25,12 @@ export default function StudentLogin() {
                 style={{ width: 'auto', minWidth: 110, height: 'auto', gap: 6, padding: '16px 18px' }}
                 onClick={() => {
                   loginStudent(st.id);
-                  navigate('/student/home');
+                  // Straight into the open world on login now — the 2D
+                  // task-list screen is one tap away via "My Tasks," but
+                  // it's no longer the first thing a student sees
+                  // (explicit teacher direction after watching it built
+                  // the old way).
+                  navigate('/world/town');
                 }}
                 aria-label={st.name}
                 title={st.name}

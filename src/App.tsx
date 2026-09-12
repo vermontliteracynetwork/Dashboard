@@ -30,7 +30,7 @@ import StudentChatAlert from './components/StudentChatAlert';
 
 // Lazy-loaded: Three.js/react-three-fiber are heavy, and only the world
 // route needs them — every existing 2D screen should stay unaffected.
-const Quest1 = lazy(() => import('./routes/world/Quest1'));
+const TownSquare = lazy(() => import('./routes/world/TownSquare'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
 
@@ -84,10 +84,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RoleSelect />} />
           <Route
-            path="/world/quest1"
+            path="/world/town"
             element={
-              <Suspense fallback={<div className="app-shell center-screen"><p>Loading world…</p></div>}>
-                <Quest1 />
+              <Suspense fallback={<div className="app-shell center-screen"><p>Loading Yoglandia…</p></div>}>
+                <TownSquare />
               </Suspense>
             }
           />
