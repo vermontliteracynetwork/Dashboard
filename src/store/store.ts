@@ -8,6 +8,7 @@ import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETP
 import { avatarById } from '../lib/avatarCatalog';
 import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
 import { getDailySpinSegments } from '../lib/dailySpin';
+import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
@@ -246,6 +247,12 @@ interface AppState {
   skipTask: (studentId: string, subject: Subject, taskId: string) => boolean;
   spinDailyWheel: (studentId: string) => DailySpinResult | null;
   resetDailySpin: (studentId: string) => void;
+  // Homeplot launch quest ("Meet the Neighbors") — records one Neighbor as
+  // met (idempotent, a second call for the same id is a no-op), pays that
+  // Neighbor's small item reward, and once all 4 are met also pays the
+  // $200 grand-finish reward, through the same real Class Cash ledger
+  // every other reward in the app already uses.
+  meetQuest1Neighbor: (studentId: string, neighborId: string, itemRewardCents: number, itemLabel: string) => void;
   resetAllDailySpins: () => void;
   deleteStudent: (id: string) => void;
   setFeatureToggle: (studentId: string, tool: ToolKey, enabled: boolean) => void;
@@ -660,6 +667,7 @@ export const useStore = create<AppState>()(
           ownedPrizeIds: [],
           quizTheme: 'standard',
           bonusSpinAvailable: false,
+          worldQuest1MetIds: [],
         };
         set((s) => ({
           students: [...s.students, student],
@@ -1047,6 +1055,21 @@ export const useStore = create<AppState>()(
         get().students.forEach((st) => {
           if (st.lastSpinDate !== null) get().updateStudent(st.id, { lastSpinDate: null });
         });
+      },
+
+      meetQuest1Neighbor: (studentId, neighborId, itemRewardCents, itemLabel) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student || student.worldQuest1MetIds.includes(neighborId)) return; // already met — no double reward
+        const metIds = [...student.worldQuest1MetIds, neighborId];
+        get().updateStudent(studentId, { worldQuest1MetIds: metIds });
+        get().recordTransaction(studentId, itemRewardCents, `🦊 Meet the Neighbors: ${itemLabel}`, '🍂', 'task');
+        // The grand-finish prize fires the moment the 4th Neighbor is met —
+        // a separate register row, not folded into that Neighbor's own
+        // item reward, so a student's history shows the two as the
+        // distinct moments they actually were (§First quest).
+        if (metIds.length >= QUEST1_NEIGHBOR_COUNT) {
+          get().recordTransaction(studentId, QUEST1_GRAND_PRIZE_CENTS, '🎉 Meet the Neighbors: quest complete!', '🏆', 'task');
+        }
       },
 
       deleteStudent: (id) => {

@@ -94,6 +94,7 @@ export interface Student {
   ownedPrizeIds: string[]; // custom_prizes ids this student has redeemed (teacher-fulfilled real/in-game prizes)
   quizTheme: QuizTheme; // student-picked visual skin for the quiz view
   bonusSpinAvailable: boolean; // earned a re-spin today for finishing the whole assignment (assignmentCompletionReward type 'spin') — shown as a distinct "Bonus Spin!" on the wheel, cleared once used
+  worldQuest1MetIds: string[]; // Neighbor ids met so far in Homeplot's launch quest ("Meet the Neighbors") — grows to 4, then the quest is complete
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

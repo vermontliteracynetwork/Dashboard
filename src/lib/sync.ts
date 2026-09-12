@@ -70,6 +70,7 @@ const rowToStudent = (r: Row): Student => ({
   ownedPrizeIds: r.owned_prize_ids ?? [],
   quizTheme: r.quiz_theme ?? 'standard',
   bonusSpinAvailable: r.bonus_spin_available ?? false,
+  worldQuest1MetIds: r.world_quest1_met_ids ?? [],
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -103,6 +104,7 @@ const studentToRow = (s: Student): Row => ({
   owned_prize_ids: s.ownedPrizeIds,
   quiz_theme: s.quizTheme,
   bonus_spin_available: s.bonusSpinAvailable,
+  world_quest1_met_ids: s.worldQuest1MetIds,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -698,6 +700,7 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   ownedPrizeIds: 'owned_prize_ids',
   quizTheme: 'quiz_theme',
   bonusSpinAvailable: 'bonus_spin_available',
+  worldQuest1MetIds: 'world_quest1_met_ids',
 };
 
 // Writes only the changed columns (a real SQL UPDATE), instead of
