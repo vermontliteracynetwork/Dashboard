@@ -1190,10 +1190,21 @@ export default function TownSquare() {
   // button. Only starts on the primary mouse button so it never fires from
   // a touch tap-to-walk, and a drag that barely moves still lets the
   // underlying click (walk/talk) through, since the browser itself only
-  // suppresses a native "click" after real pointer movement.
+  // suppresses a native "click" after real pointer movement — turned out
+  // not to be true here: react-three-fiber dispatches its own onClick from
+  // pointerdown/pointerup pairing rather than the native "click" event, so
+  // releasing a look-drag over the ground was still walking the student
+  // there (direct teacher report). wasDraggingLook tracks real distance
+  // moved during the gesture and every 3D click handler below checks it
+  // and bails — reset at the start of every new pointerdown so only the
+  // one click immediately after an actual drag is ever suppressed.
   const isDraggingLook = useRef(false);
   const dragLastX = useRef(0);
+  const dragDistanceAccum = useRef(0);
+  const wasDraggingLook = useRef(false);
   const handleLookPointerDown = (e: React.PointerEvent) => {
+    wasDraggingLook.current = false;
+    dragDistanceAccum.current = 0;
     if (!isDesktop || e.pointerType !== 'mouse' || e.button !== 0) return;
     isDraggingLook.current = true;
     dragLastX.current = e.clientX;
@@ -1202,6 +1213,8 @@ export default function TownSquare() {
     if (!isDraggingLook.current) return;
     const dx = e.clientX - dragLastX.current;
     dragLastX.current = e.clientX;
+    dragDistanceAccum.current += Math.abs(dx);
+    if (dragDistanceAccum.current > 5) wasDraggingLook.current = true;
     cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dx * DRAG_LOOK_SENSITIVITY, -CAMERA_LOOK_CAP, CAMERA_LOOK_CAP);
   };
   const handleLookPointerUp = () => { isDraggingLook.current = false; };
@@ -1266,6 +1279,7 @@ export default function TownSquare() {
   // already in range sidesteps the whole ref/re-render race.
   const handleApproach = (n: Quest1Neighbor) => {
     if (mapView) return; // the map's click-through is for looking, not acting
+    if (wasDraggingLook.current) return; // releasing a look-drag isn't a click to approach
     if (metIds.includes(n.id)) return; // already wandering — nothing to walk up to
     const [nx, nz] = n.position;
     const dx = playerPos.x - nx;
@@ -1291,6 +1305,7 @@ export default function TownSquare() {
   // if already close enough.
   const handleApproachWandering = (id: string, talk: () => void) => {
     if (mapView) return;
+    if (wasDraggingLook.current) return; // releasing a look-drag isn't a click to approach
     const live = wanderingPositions.current[id];
     if (!live) return;
     const dx = playerPos.x - live.x;
@@ -1452,6 +1467,9 @@ export default function TownSquare() {
               // the overhead view could still queue a real walk that fires
               // the moment the map closes.
               if (mapView) return;
+              // Direct teacher report: releasing a look-drag over the
+              // ground was still walking the student there.
+              if (wasDraggingLook.current) return;
               hoverTarget.current = null;
               pendingApproach.current = null;
               setHasWalkedOnce(true);
@@ -1514,7 +1532,7 @@ export default function TownSquare() {
               />
             );
           })}
-          <ComputerDesk playerPos={playerPos} onUse={() => { if (!mapView) navigate('/student/home'); }} />
+          <ComputerDesk playerPos={playerPos} onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }} />
         </Suspense>
       </Canvas>
 
