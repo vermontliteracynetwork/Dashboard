@@ -107,17 +107,35 @@ function Player({ touchDir, onMove, frozen }: PlayerProps) {
   );
 }
 
-function Neighbor({ n, playerPos, met, onTalk }: { n: Quest1Neighbor; playerPos: THREE.Vector3; met: boolean; onTalk: () => void }) {
+function Neighbor({
+  n,
+  playerPos,
+  met,
+  isNext,
+  onTalk,
+}: {
+  n: Quest1Neighbor;
+  playerPos: THREE.Vector3;
+  met: boolean;
+  // Whether this is the one Neighbor the quest sequence currently allows
+  // talking to — Quest 1 is deliberately sequenced, not an open map to
+  // wander and meet whoever in any order (§First quest), so every
+  // not-yet-turn Neighbor stays visible (never silently missing) but
+  // isn't talkable yet, with an honest "not yet" instead of a Talk prompt.
+  isNext: boolean;
+  onTalk: () => void;
+}) {
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
   const inRange = dist <= TALK_RADIUS;
+  const canTalkNow = inRange && isNext && !met;
 
   useEffect(() => {
-    if (!inRange) return;
+    if (!canTalkNow) return;
     const onKey = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'e') onTalk(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [inRange, onTalk]);
+  }, [canTalkNow, onTalk]);
 
   return (
     <group position={[px, 0, pz]}>
@@ -129,7 +147,7 @@ function Neighbor({ n, playerPos, met, onTalk }: { n: Quest1Neighbor; playerPos:
           {met ? '✅ ' : ''}{n.name} — {n.role}
         </div>
       </Html>
-      {inRange && !met && (
+      {inRange && canTalkNow && (
         <Html center position={[0, 2.15, 0]}>
           <button
             onClick={onTalk}
@@ -137,6 +155,13 @@ function Neighbor({ n, playerPos, met, onTalk }: { n: Quest1Neighbor; playerPos:
           >
             Talk (E)
           </button>
+        </Html>
+      )}
+      {inRange && !met && !isNext && (
+        <Html center position={[0, 2.15, 0]} style={{ pointerEvents: 'none' }}>
+          <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#8a7a5c', fontFamily: 'system-ui, sans-serif' }}>
+            You'll meet {n.name} soon!
+          </div>
         </Html>
       )}
     </group>
@@ -186,7 +211,10 @@ export default function Quest1() {
   const questComplete = metCount >= QUEST1_NEIGHBOR_COUNT;
 
   const handleTalk = (n: Quest1Neighbor) => {
-    if (metIds.includes(n.id)) return;
+    // Guards the sequencing rule at the data layer too, not just the UI —
+    // only the next Neighbor in order can actually be talked to.
+    const nextExpectedId = QUEST1_NEIGHBORS[metIds.length]?.id;
+    if (metIds.includes(n.id) || n.id !== nextExpectedId) return;
     setActiveDialogue(n);
   };
 
@@ -227,8 +255,15 @@ export default function Quest1() {
           <Room />
           <Fox />
           <Player touchDir={touchDir} onMove={(p) => setPlayerPos(p.clone())} frozen={!!activeDialogue} />
-          {QUEST1_NEIGHBORS.map((n) => (
-            <Neighbor key={n.id} n={n} playerPos={playerPos} met={metIds.includes(n.id)} onTalk={() => handleTalk(n)} />
+          {QUEST1_NEIGHBORS.map((n, i) => (
+            <Neighbor
+              key={n.id}
+              n={n}
+              playerPos={playerPos}
+              met={metIds.includes(n.id)}
+              isNext={i === metIds.length}
+              onTalk={() => handleTalk(n)}
+            />
           ))}
         </Suspense>
       </Canvas>
