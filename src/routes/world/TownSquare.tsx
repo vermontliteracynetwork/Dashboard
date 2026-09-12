@@ -164,6 +164,26 @@ const ROAD_TILES: { id: string; position: [number, number]; rotationY: number }[
 ];
 const ROAD_SCALE = 4;
 
+// Two more real, license-verified props (KayKit Mini-Game Variety Pack,
+// CC0 — the same pack the bridge/flower/mushroom/rocks came from) to keep
+// filling out the town with what's already on hand. Scale factors measured
+// the same real-bounding-box way as everything else: both models load at
+// a tiny ~0.12-unit native height (a quirk of this pack, not an error —
+// verified by rendering each one up close before picking a number), so
+// getting them to a believable in-world size needs a large multiplier.
+const POTTED_TREE_SCALE = 9; // -> ~1.1 units tall, a small entryway planter
+const PAW_SIGN_SCALE = 12.5; // -> ~1.5 units tall, post-mounted sign height
+// Flanking the computer desk rather than a building — the three Kenney
+// buildings already have their own Neighbor and sidewalk tile standing
+// right at their door (a tight spot), while the desk area was bare.
+const DECOR_PROPS: { id: string; modelPath: string; position: [number, number]; scale: number }[] = [
+  { id: 'desk-plant-1', modelPath: '/world/models/props/potted_tree.glb', position: [-6.2, -2], scale: POTTED_TREE_SCALE },
+  { id: 'desk-plant-2', modelPath: '/world/models/props/potted_tree.glb', position: [-3.8, -2], scale: POTTED_TREE_SCALE },
+  // A little paw-print sign near the pond — open grass, nothing else
+  // placed there yet.
+  { id: 'paw-sign', modelPath: '/world/models/props/traffic_sign.glb', position: [8, 3], scale: PAW_SIGN_SCALE },
+];
+
 // Every building/stall/the desk now blocks movement too — walking straight
 // through a building was flagged directly as illogical. Radii are each
 // building/prop's real footprint, not its full visual scale (BUILDING_SCALE
@@ -969,6 +989,9 @@ function Park({
         // as two surfaces fight to render on top of each other), same
         // reason Pond and the walk markers all sit slightly above 0.
         <Prop key={r.id} path="/world/models/roads/road-straight.glb" position={[r.position[0], 0.01, r.position[1]]} rotationY={r.rotationY} scale={ROAD_SCALE} />
+      ))}
+      {DECOR_PROPS.map((d) => (
+        <Prop key={d.id} path={d.modelPath} position={[d.position[0], 0, d.position[1]]} scale={d.scale} />
       ))}
     </group>
   );
