@@ -85,7 +85,7 @@ function ArticleEditor({ articles, onChange }: { articles: ArticleSnapshot[]; on
               <div className="row" style={{ gap: 8 }}>
                 <span className="tag-pill" style={{ background: 'var(--success)', color: '#fff' }}>✓ Ready</span>
                 <strong style={{ fontSize: '0.85rem' }}>{fetched.title}</strong>
-                {fetched.siteName && <span style={{ fontSize: '0.78rem', opacity: 0.7 }}>— {fetched.siteName}</span>}
+                {fetched.siteName && <span style={{ fontSize: '0.78rem', opacity: 0.7 }}>({fetched.siteName})</span>}
               </div>
             )}
           </div>
@@ -97,7 +97,7 @@ function ArticleEditor({ articles, onChange }: { articles: ArticleSnapshot[]; on
         </button>
       )}
       <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
-        The student sees a clean, ad-free reader with adjustable text size/spacing, read-aloud, and highlighting — never the live website.
+        The student sees a clean, ad-free reader with adjustable text size/spacing, read-aloud, and highlighting, never the live website.
       </p>
     </div>
   );
@@ -209,7 +209,7 @@ function SentenceBuilderEditor({ parts, onChange }: { parts: SentencePart[]; onC
         </div>
       )}
       <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
-        The student sees these in order, left to right, as colored boxes they fill in — with a live sentence preview underneath.
+        The student sees these in order, left to right, as colored boxes they fill in, with a live sentence preview underneath.
       </p>
     </div>
   );
@@ -312,7 +312,7 @@ function LinkChoiceEditor({ content, onChange }: { content: LinkChoiceContent; o
         <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={addOption}>➕ Add another option</button>
       )}
       <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
-        The student sees these as cards with the cover image and duration, and picks just one — they're never asked to do all of them.
+        The student sees these as cards with the cover image and duration, and picks just one. They're never asked to do all of them.
       </p>
     </div>
   );
@@ -334,7 +334,7 @@ function TagsEditor({ tags, onChange, suggestions }: { tags: string[]; onChange:
 
   return (
     <div className="stack" style={{ gap: 6 }}>
-      <label>🏷️ Tags (activity type — e.g. "YouTube Video", "Baamboozle Game")</label>
+      <label>🏷️ Tags (activity type, e.g. "YouTube Video", "Baamboozle Game")</label>
       <div className="row-wrap">
         {tags.map((t) => (
           <button key={t} className="tag-pill" style={{ cursor: 'pointer' }} onClick={() => onChange(tags.filter((x) => x !== t))} title="Tap to remove">
@@ -458,7 +458,7 @@ export function TaskEditor({
               if (match && match.id !== initial.id) {
                 setTask({ ...match, id: task.id, title: trimmed });
                 setShowSteps((match.customSteps?.length ?? 0) > 0);
-                setMatchedNotice(`Filled in from your existing "${trimmed}" activity — directions, links, and settings all matched. Change anything you need for this one.`);
+                setMatchedNotice(`Filled in from your existing "${trimmed}" activity. Directions, links, and settings all matched. Change anything you need for this one.`);
               }
             }}
             placeholder="e.g. Sound Drill Review"
@@ -554,7 +554,7 @@ export function TaskEditor({
 
       <div style={{ maxWidth: 320 }}>
         <ImageUploadField
-          label="🖼️ Cover image — shown on the activity card and to the student"
+          label="🖼️ Cover image, shown on the activity card and to the student"
           value={task.referenceImageUrl}
           onChange={(url) => setTask({ ...task, referenceImageUrl: url })}
         />
@@ -567,7 +567,7 @@ export function TaskEditor({
         <div className="stack">
           {task.type === 'platformer' && (
             <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-              🎮 These are the questions that pop up during the game — every time the character gets hit, or every
+              🎮 These are the questions that pop up during the game, every time the character gets hit, or every
               minute if they haven't been hit yet. Add at least one. Pull in a saved set below to reuse questions
               from a regular quiz.
             </p>
@@ -618,7 +618,7 @@ export function TaskEditor({
               onChange={(e) => setTask({ ...task, link: { url: task.link?.url ?? '', embed: e.target.checked } })}
             />
             📺 Play right here in the app (only works for sites built for it, like Scratch's{' '}
-            <code>/embed</code> project links — most sites block this and will show a blank box)
+            <code>/embed</code> project links, most sites block this and will show a blank box)
           </label>
         </div>
       )}
@@ -854,7 +854,7 @@ export function TaskEditor({
       <strong>Extras</strong>
       <div className="row-wrap">
         <div style={{ flex: 1, minWidth: 220 }}>
-          <label>🔗 Reference link (optional — a helper link shown alongside the activity)</label>
+          <label>🔗 Reference link (optional, a helper link shown alongside the activity)</label>
           <input
             style={{ width: '100%' }}
             placeholder="https://..."
@@ -887,7 +887,7 @@ export function TaskEditor({
           onChange={(e) => setTask({ ...task, isFinalCheck: e.target.checked })}
           style={{ marginRight: 6 }}
         />
-        🏁 Final Check — completing this marks the whole assignment done (unlocks Playground, updates the streak),
+        🏁 Final Check: completing this marks the whole assignment done (unlocks Playground, updates the streak),
         even if other activities are still unchecked. Only mark one activity per plan.
       </label>
       <hr className="divider" />
@@ -902,7 +902,7 @@ export function TaskEditor({
       {(() => {
         const quizIssues = (task.type === 'quiz' || task.type === 'passage' || task.type === 'platformer') ? validateQuizQuestions(task.quiz?.questions ?? []) : [];
         if (task.type === 'platformer' && (task.quiz?.questions ?? []).length === 0) {
-          quizIssues.unshift('Add at least one question — that\'s what pops up during the game.');
+          quizIssues.unshift('Add at least one question, that\'s what pops up during the game.');
         }
         return (
           <div className="stack">
@@ -944,11 +944,11 @@ export function PlaygroundPool() {
   return (
     <div className="zone zone-playground stack">
       <button className="zone-header-btn" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length}) — shared across all students
+        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length}), shared across all students
       </button>
       {open && (
         entries.length === 0 ? (
-          <p className="zone-empty-note">Nothing here yet — tap the 🎪 button on any card in the Activity Library.</p>
+          <p className="zone-empty-note">Nothing here yet. Tap the 🎪 button on any card in the Activity Library.</p>
         ) : (
           <div className="playground-strip">
             {entries.map((a) => (
@@ -989,8 +989,8 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
           {subject
-            ? `Build a ${subject === 'math' ? 'Math' : 'Literacy'} activity here — it lands in the Activity Library for every student.`
-            : 'Build an activity here — it lands in the Activity Library for every student.'}
+            ? `Build a ${subject === 'math' ? 'Math' : 'Literacy'} activity here. It lands in the Activity Library for every student.`
+            : 'Build an activity here. It lands in the Activity Library for every student.'}
           {' '}Typing a title that matches an existing activity auto-fills the rest for you.
         </p>
         {!subject && creating && (
@@ -1070,7 +1070,7 @@ export function ActivityLibraryBrowse({
 
   return (
     <div className="zone zone-library stack">
-      <div className="zone-header-bar">🗂️ Activity Library — build it once, use it everywhere</div>
+      <div className="zone-header-bar">🗂️ Activity Library: build it once, use it everywhere</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
           Drag a card into a plan, tap "➕ Add to plan" to send it somewhere, or tap 🎪 to put it in the shared

@@ -59,13 +59,13 @@ const DEFAULT_STEPS: Record<TaskType, Omit<StepDef, 'id'>[]> = {
   ],
   linkChoice: [
     { icon: '👀', text: 'Look at all the options' },
-    { icon: '👉', text: 'Pick just ONE — not all of them!' },
+    { icon: '👉', text: 'Pick just ONE, not all of them!' },
     { icon: '▶️', text: 'Watch or do that one' },
     { icon: '✅', text: 'Tap "I\'m done!"' },
   ],
   platformer: [
     { icon: '🏃', text: 'Run and jump through the level' },
-    { icon: '💥', text: 'A question pops up if you get hit — or every minute' },
+    { icon: '💥', text: 'A question pops up if you get hit, or every minute' },
     { icon: '✅', text: 'Answer it to keep going' },
     { icon: '🏁', text: "You're done once you've answered every question!" },
   ],

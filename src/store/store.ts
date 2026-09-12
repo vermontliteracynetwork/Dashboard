@@ -1032,7 +1032,7 @@ export const useStore = create<AppState>()(
           return {
             type: 'item',
             amountCents: ITEM_ALREADY_OWNED_CONSOLATION_CENTS,
-            label: `You already have that one — here's ${formatMoney(ITEM_ALREADY_OWNED_CONSOLATION_CENTS)} instead!`,
+            label: `You already have that one, here's ${formatMoney(ITEM_ALREADY_OWNED_CONSOLATION_CENTS)} instead!`,
             segmentIndex,
           };
         }

@@ -151,9 +151,9 @@ export default function BadgeManager() {
             </button>
           </div>
           <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-            Every achievement pays Class Cash into the student's Piggy Bank when earned (💰, editable per achievement —
+            Every achievement pays Class Cash into the student's Piggy Bank when earned (💰, editable per achievement,
             defaults to ${(DEFAULT_BADGE_REWARD_CENTS / 100).toFixed(2)}). It can be awarded by hand below, or you can set an
-            auto-award rule on it — tap "➕ Add auto-award rule" on any achievement to build one (IF a metric reaches a
+            auto-award rule on it. Tap "➕ Add auto-award rule" on any achievement to build one (IF a metric reaches a
             number, optionally constrained to one subject, THEN it's awarded automatically).
           </p>
         </div>

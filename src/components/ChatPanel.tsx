@@ -50,7 +50,7 @@ export default function ChatPanel({ studentId, role, onClose }: Props) {
         <div className="stack" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 14, gap: 8, background: '#faf9ff' }}>
           {thread.length === 0 && (
             <p style={{ opacity: 0.65, fontSize: '0.85rem', textAlign: 'center', margin: 'auto' }}>
-              {role === 'teacher' ? `No messages with ${student.name} yet — say hi!` : 'No messages yet — say hi to your teacher!'}
+              {role === 'teacher' ? `No messages with ${student.name} yet. Say hi!` : 'No messages yet. Say hi to your teacher!'}
             </p>
           )}
           {thread.map((m) => {

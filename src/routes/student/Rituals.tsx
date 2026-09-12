@@ -61,7 +61,7 @@ export function SubjectCompleteScreen({ student, subject, onHome, onReview, onPl
         <span style={{ fontSize: '3rem' }}>🎉</span>
         <h2>{meta.label} complete!</h2>
         <p>Awesome work today.</p>
-        {onPlayground && <p style={{ margin: 0, fontWeight: 700, color: 'var(--purple-dark)' }}>🎪 The Playground is open — you finished everything today!</p>}
+        {onPlayground && <p style={{ margin: 0, fontWeight: 700, color: 'var(--purple-dark)' }}>🎪 The Playground is open. You finished everything today!</p>}
         <div className="row-wrap" style={{ justifyContent: 'center' }}>
           {onPlayground ? (
             <button className="btn btn-primary btn-lg pulse-cta" onClick={onPlayground}>

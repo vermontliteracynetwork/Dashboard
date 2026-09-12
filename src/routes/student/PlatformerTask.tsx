@@ -748,7 +748,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>Leave this game?</h2>
               <p style={{ margin: 0 }}>
-                This activity won't be marked done — you'll need to come back and finish every question before you
+                This activity won't be marked done. You'll need to come back and finish every question before you
                 can check it off your to-do list.
               </p>
               <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.75 }}>
@@ -798,7 +798,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             <div
               className="tag-pill"
               style={{ fontSize: '0.9rem', background: 'var(--yellow)' }}
-              aria-label={`${collectedCoins} coins collected — become Class Cash when you finish`}
+              aria-label={`${collectedCoins} coins collected, become Class Cash when you finish`}
             >
               🪙 {collectedCoins}
             </div>
@@ -904,7 +904,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                   </div>
                   {gauntletMissed && (
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 700 }}>
-                      That one broke the streak — hearts back to zero, starting over.
+                      That one broke the streak. Hearts back to zero, starting over.
                     </p>
                   )}
                 </>

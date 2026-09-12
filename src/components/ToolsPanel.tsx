@@ -308,7 +308,7 @@ function Thesaurus({ student }: { student: Student }) {
     setQ(key);
     if (isBlockedTerm(key)) {
       setWord(null);
-      setError("Let's look up a different word — ask your teacher if you're not sure.");
+      setError("Let's look up a different word. Ask your teacher if you're not sure.");
       return;
     }
     setWord(key);
@@ -319,7 +319,7 @@ function Thesaurus({ student }: { student: Student }) {
       setSynonyms(syn);
       setAntonyms(ant);
     } catch {
-      setError("Couldn't reach the thesaurus right now — try again in a moment.");
+      setError("Couldn't reach the thesaurus right now. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -397,7 +397,7 @@ function Dictionary({ student }: { student: Student }) {
     setQ(key);
     setResult(null);
     if (isBlockedTerm(key)) {
-      setError("Let's look up a different word — ask your teacher if you're not sure.");
+      setError("Let's look up a different word. Ask your teacher if you're not sure.");
       return;
     }
     setLoading(true);
@@ -405,13 +405,13 @@ function Dictionary({ student }: { student: Student }) {
     try {
       const [def, syn] = await Promise.all([fetchDefinition(key), fetchSynonyms(key)]);
       if (!def) {
-        setError(`No dictionary entry found for "${key}" — check the spelling?`);
+        setError(`No dictionary entry found for "${key}". Check the spelling?`);
       } else {
         setResult(def);
         setSynonyms(syn.slice(0, 5));
       }
     } catch {
-      setError("Couldn't reach the dictionary right now — try again in a moment.");
+      setError("Couldn't reach the dictionary right now. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -694,7 +694,7 @@ function WordProcessor({ student }: { student: Student }) {
                           const applied = applyStyleToSelection(c.colorHex === 'rainbow' ? RAINBOW_STYLE : { color: c.colorHex });
                           if (!applied) updateNote(selected.id, { colorId: c.id });
                         }}
-                        aria-label={`${c.name} Text Color — select some words first to color just those, or tap with nothing selected to set the whole note's color`}
+                        aria-label={`${c.name} Text Color. Select some words first to color just those, or tap with nothing selected to set the whole note's color`}
                         title={`${c.name} Text Color`}
                         style={{
                           width: 40,
@@ -735,7 +735,7 @@ function WordProcessor({ student }: { student: Student }) {
                           const applied = applyStyleToSelection({ backgroundColor: c.colorHex });
                           if (!applied) updateNote(selected.id, { highlightColorId: c.id });
                         }}
-                        aria-label={`${c.name} Highlight — select some words first to highlight just those, or tap with nothing selected to set the whole note's background`}
+                        aria-label={`${c.name} Highlight. Select some words first to highlight just those, or tap with nothing selected to set the whole note's background`}
                         title={`${c.name} Highlight`}
                         style={{
                           width: 32,
@@ -755,7 +755,7 @@ function WordProcessor({ student }: { student: Student }) {
             </div>
             {(ownedColors.length > 1 || ownedHighlights.length > 0) && (
               <p style={{ fontSize: '0.7rem', opacity: 0.65, margin: 0 }}>
-                💡 Select some words, then tap a color to color-code just that part — tap a color with nothing selected to change the whole note.
+                💡 Select some words, then tap a color to color-code just that part. Tap a color with nothing selected to change the whole note.
               </p>
             )}
             <div style={{ background: activeHighlight?.colorHex ?? 'transparent', borderRadius: 12, padding: activeHighlight ? 6 : 0, flex: 1, minHeight: 0, display: 'flex' }}>
@@ -930,7 +930,7 @@ function Whiteboard({ student }: { student: Student }) {
         onPointerUp={endDraw}
         onPointerLeave={endDraw}
       />
-      <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: 0 }}>🔒 Just for scratch work — not saved.</p>
+      <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: 0 }}>🔒 Just for scratch work, not saved.</p>
     </div>
   );
 }

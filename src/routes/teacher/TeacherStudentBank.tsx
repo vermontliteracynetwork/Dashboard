@@ -135,7 +135,7 @@ export default function TeacherStudentBank() {
                     showFlash(`Subtracted ${formatMoney(cents)}`);
                   }}
                 >
-                  Confirm — subtract ${subAmount || '0.00'}
+                  Confirm: subtract ${subAmount || '0.00'}
                 </button>
                 <button className="btn btn-sm" onClick={() => setConfirmSub(false)}>Cancel</button>
               </div>
@@ -166,7 +166,7 @@ export default function TeacherStudentBank() {
                     showFlash(`Balance set to ${formatMoney(cents)}`);
                   }}
                 >
-                  Confirm — set to ${exactAmount || '0.00'}
+                  Confirm: set to ${exactAmount || '0.00'}
                 </button>
                 <button className="btn btn-sm" onClick={() => setConfirmSet(false)}>Cancel</button>
               </div>
@@ -301,7 +301,7 @@ export default function TeacherStudentBank() {
                       <span style={{ fontSize: '0.85rem', fontWeight: 700, textDecoration: t.voided ? 'line-through' : 'none' }}>{t.description}</span>
                       <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
                         {new Date(t.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                        {t.voided && ' — removed by teacher'}
+                        {t.voided && ' (removed by teacher)'}
                       </span>
                     </div>
                   </div>

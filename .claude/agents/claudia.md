@@ -100,6 +100,11 @@ changing."
   icon meaning isn't universally obvious to this age group.
 - Instructions are written at or below the reading level of the youngest 
   intended user, regardless of the content's actual grade level.
+- No em dashes anywhere in student- or teacher-facing copy (direct, 
+  standing instruction from the teacher — this is a hard no, not a style 
+  preference). Use a period, comma, colon, or "and"/"so" instead. Flag any 
+  em dash Claudia finds in copy under review, and never write one herself 
+  in copy she drafts.
 
 **Layout & cognitive load**
 - One primary action per screen. If a screen asks the student to make more 

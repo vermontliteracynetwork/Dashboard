@@ -200,7 +200,7 @@ function AssignmentCard({
         </div>
         {duplicated && (
           <p style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 700, margin: '6px 0 0' }}>
-            ✅ Duplicated to Drafts — find it under the Drafts tab to customize and publish.
+            ✅ Duplicated to Drafts. Find it under the Drafts tab to customize and publish.
           </p>
         )}
       </div>
@@ -243,7 +243,7 @@ function DeletedAssignmentCard({ group, onRestore, onDeleteForever }: { group: A
           <button className="btn btn-sm btn-primary" onClick={onRestore}>↩️ Restore</button>
           {confirmForever ? (
             <>
-              <button className="btn btn-sm btn-danger" onClick={onDeleteForever}>Confirm — delete forever</button>
+              <button className="btn btn-sm btn-danger" onClick={onDeleteForever}>Confirm: delete forever</button>
               <button className="btn btn-sm" onClick={() => setConfirmForever(false)}>Cancel</button>
             </>
           ) : (
@@ -301,7 +301,7 @@ function AssignmentDetailModal({
               ? formatDateLong(group.startDate)
               : `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`}
             {' · '}
-            {group.mode === 'repeat' ? '🔁 Repeats every day in this range' : '📌 One assignment — progress carries forward'}
+            {group.mode === 'repeat' ? '🔁 Repeats every day in this range' : '📌 One assignment, progress carries forward'}
           </div>
 
           <strong>Activities ({ordered.length})</strong>
@@ -554,7 +554,7 @@ export default function AssignmentsIndex() {
         ) : filter === 'by-student' ? (
           <>
             {students.length === 0 ? (
-              <p style={{ opacity: 0.7 }}>No students yet — add one from the Students page first.</p>
+              <p style={{ opacity: 0.7 }}>No students yet. Add one from the Students page first.</p>
             ) : (
               <div className="row-wrap">
                 {students.map((st) => (
@@ -595,7 +595,7 @@ export default function AssignmentsIndex() {
 
             {filter === 'drafts' && planTemplates.length === 0 && (
               <p style={{ opacity: 0.7 }}>
-                No drafts yet — save a plan as a draft from any student's Assignments page ("📜 History &amp; Drafts"),
+                No drafts yet. Save a plan as a draft from any student's Assignments page ("📜 History &amp; Drafts"),
                 or build one here and use "💾 Save as Draft only" instead of publishing.
               </p>
             )}

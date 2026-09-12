@@ -48,7 +48,7 @@ export default function SentenceEditTask({ student, task, onDone }: Props) {
       </div>
 
       {feedback === 'retry' && (
-        <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white' }}>💛 Not quite — look again!</div>
+        <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white' }}>💛 Not quite, look again!</div>
       )}
 
       <textarea rows={2} value={value} onChange={(e) => setValue(e.target.value)} style={{ fontSize: '1.1rem' }} />

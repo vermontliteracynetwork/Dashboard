@@ -186,7 +186,7 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
         <h3 style={{ margin: 0 }}>{article.title}</h3>
         {(article.byline || article.siteName) && (
           <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0 }}>
-            {article.byline ? `${article.byline} — ` : ''}
+            {article.byline ? `${article.byline} · ` : ''}
             {article.siteName ?? ''}
           </p>
         )}
@@ -270,7 +270,7 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
         <div className="overlay-backdrop" onClick={() => setShowNotes(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
-              <h3 style={{ margin: 0 }}>💬 My Notes — {article.title}</h3>
+              <h3 style={{ margin: 0 }}>💬 My Notes: {article.title}</h3>
               {highlights.length === 0 ? (
                 <p style={{ opacity: 0.7 }}>Select some text in the article and tap 🖍️ Highlight to start taking notes!</p>
               ) : (

@@ -15,10 +15,10 @@ export default function Onboarding({ studentId }: Props) {
       <div className="overlay-panel chrome-frame" style={{ padding: 24 }}>
         <div className="content-well stack">
           <h2>👋 Welcome!</h2>
-          <p>🗺️ You'll walk a path of stepping stones — one task glows at a time, so you always know what's next.</p>
+          <p>🗺️ You'll walk a path of stepping stones. One task glows at a time, so you always know what's next.</p>
           <p>🧰 Your tools (calculator, read-aloud, and more) are always nearby if you need them.</p>
           <p>🧘 See the orange button? Tap it any time you need a break to breathe.</p>
-          <p>✅ Tap "I'm done!" when you finish a task — no rushing, no timers, ever.</p>
+          <p>✅ Tap "I'm done!" when you finish a task. No rushing, no timers, ever.</p>
           <button
             className="btn btn-primary btn-lg"
             style={{ alignSelf: 'center' }}

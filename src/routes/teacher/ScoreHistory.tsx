@@ -45,7 +45,7 @@ export default function ScoreHistory() {
       <div className="container stack">
         <h1>📊 Scores</h1>
         <p style={{ opacity: 0.75, marginTop: -8 }}>
-          Every finished quiz attempt — students can retake a quiz any number of times, and each pass logs its own record here.
+          Every finished quiz attempt. Students can retake a quiz any number of times, and each pass logs its own record here.
         </p>
 
         <div className="row-wrap">
@@ -72,7 +72,7 @@ export default function ScoreHistory() {
                 <div key={a.id} className="score-row">
                   <span className="score-avatar"><AvatarGlyph value={avatarFor(a.studentId)} /></span>
                   <div className="score-body">
-                    <div className="score-title">{nameFor(a.studentId)} — {a.taskTitle}</div>
+                    <div className="score-title">{nameFor(a.studentId)}: {a.taskTitle}</div>
                     <div className="score-meta">
                       {a.subject === 'math' ? '🔢 Math' : '📚 Literacy'} · {new Date(a.completedAt).toLocaleString()} · ⏱ {formatDuration(a.durationMs)}
                     </div>

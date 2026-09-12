@@ -52,7 +52,7 @@ function LiteracyFocusEditor({ student }: { student: Student }) {
     <div className="stack">
       <strong>📚 Weekly Literacy Focus</strong>
       <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
-        This student's phonics pattern(s), morpheme(s), and practice/spelling words for a date window — shown to
+        This student's phonics pattern(s), morpheme(s), and practice/spelling words for a date window, shown to
         them as a quick reference while they work on Literacy.
       </p>
       <div className="row-wrap">
@@ -66,15 +66,15 @@ function LiteracyFocusEditor({ student }: { student: Student }) {
         </div>
       </div>
       <div>
-        <label>Phonics pattern(s) — comma-separated</label>
+        <label>Phonics pattern(s), comma-separated</label>
         <input style={{ width: '100%' }} value={phonics} onChange={(e) => setPhonics(e.target.value)} placeholder="e.g. -ild, -ost" />
       </div>
       <div>
-        <label>Morpheme(s) — comma-separated</label>
+        <label>Morpheme(s), comma-separated</label>
         <input style={{ width: '100%' }} value={morphemes} onChange={(e) => setMorphemes(e.target.value)} placeholder="e.g. -ed, -est" />
       </div>
       <div>
-        <label>Practice / spelling words — comma-separated</label>
+        <label>Practice / spelling words, comma-separated</label>
         <input style={{ width: '100%' }} value={words} onChange={(e) => setWords(e.target.value)} placeholder="e.g. child, mild, wildest" />
       </div>
       <div className="row-wrap">
@@ -127,7 +127,7 @@ function CustomToolsEditor({ student }: { student: Student }) {
     <div className="stack">
       <strong>More Tools (custom links)</strong>
       <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
-        Add any external link — Amplify, Polypad, a research article — as its own button in this student's Tools
+        Add any external link (Amplify, Polypad, a research article) as its own button in this student's Tools
         menu. It opens in the internal browser, same as an activity.
       </p>
       {student.customTools.length > 0 && (

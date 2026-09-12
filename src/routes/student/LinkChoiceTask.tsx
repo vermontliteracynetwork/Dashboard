@@ -32,7 +32,7 @@ export default function LinkChoiceTask({ student, subject, task, onDone }: Props
           <ReadAloud text={`${task.title}. ${task.linkChoice?.prompt ?? ''}`} settings={student.ttsSettings} />
         </div>
         <p style={{ fontWeight: 700, fontSize: '1.05rem', margin: 0 }}>
-          👉 {task.linkChoice?.prompt || 'Pick ONE — you don\'t have to do them all!'}
+          👉 {task.linkChoice?.prompt || 'Pick ONE, you don\'t have to do them all!'}
         </p>
         <div className="row-wrap" style={{ justifyContent: 'center', gap: 14 }}>
           {options.map((opt) => (

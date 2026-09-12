@@ -77,7 +77,7 @@ export default function TaskChecklist({
               <p style={{ margin: 0 }}>{confirmingTask.icon} {confirmingTask.title}</p>
               {overrideMode && (
                 <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.75 }}>
-                  This counts exactly as if {student.name} finished it themselves — same reward, same streak/badge credit.
+                  This counts exactly as if {student.name} finished it themselves, same reward, same streak/badge credit.
                 </p>
               )}
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
@@ -208,9 +208,9 @@ export default function TaskChecklist({
               onClick={handleClick}
               aria-label={
                 skipped
-                  ? 'Skipped — tap to undo'
+                  ? 'Skipped (tap to undo)'
                   : done
-                    ? 'Completed — tap to unmark'
+                    ? 'Completed (tap to unmark)'
                     : opened
                       ? directComplete
                         ? 'Mark as complete'
@@ -219,9 +219,9 @@ export default function TaskChecklist({
               }
               title={
                 skipped
-                  ? 'Skipped with a Skip Pass — tap to undo'
+                  ? 'Skipped with a Skip Pass (tap to undo)'
                   : done
-                    ? 'Completed — tap to unmark'
+                    ? 'Completed (tap to unmark)'
                     : locked
                       ? 'Not unlocked yet'
                       : !opened

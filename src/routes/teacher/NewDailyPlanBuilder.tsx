@@ -9,7 +9,7 @@ import type { Assignment, Subject, Task } from '../../types';
 function defaultPlanName(tasks: Task[]): string {
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const preview = tasks.slice(0, 2).map((t) => t.title || '(untitled)').join(', ');
-  return preview ? `${date} — ${preview}${tasks.length > 2 ? '…' : ''}` : date;
+  return preview ? `${date}: ${preview}${tasks.length > 2 ? '…' : ''}` : date;
 }
 
 // Passed in when this builder is editing an existing plan (a draft, or a
@@ -138,8 +138,8 @@ export default function NewDailyPlanBuilder({
       });
       remaining.forEach((row) => deleteAssignment(row.id));
       setSaved(
-        `Saved changes to "${finalName}" — assigned to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
-          (activeNow ? ' — it\'s live now.' : ' — it will load automatically when the window opens.'),
+        `Saved changes to "${finalName}", assigned to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
+          (activeNow ? '. It\'s live now.' : '. It will load automatically when the window opens.'),
       );
       onSaved?.();
       return;
@@ -148,7 +148,7 @@ export default function NewDailyPlanBuilder({
     publishAssignment(selectedIds, subject, tasks, finalName, startDate, endDate, mode);
     setSaved(
       `Published "${finalName}" to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
-        (activeNow ? ' — it\'s live now.' : ' — it will load automatically when the window opens.'),
+        (activeNow ? '. It\'s live now.' : '. It will load automatically when the window opens.'),
     );
     resetForm();
   };
@@ -159,7 +159,7 @@ export default function NewDailyPlanBuilder({
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
           Search and add {subject === 'math' ? 'Math' : 'Literacy'} activities below, or drag them in from the
-          Library on the right — then assign the finished plan to any student(s) at once.
+          Library on the right, then assign the finished plan to any student(s) at once.
         </p>
 
         <div style={{ position: 'relative' }}>
@@ -217,7 +217,7 @@ export default function NewDailyPlanBuilder({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={t.order ?? ''}
-                    placeholder="—"
+                    placeholder="-"
                     title="Order (blank = free choice)"
                     className="plan-order-input"
                     onChange={(e) => {
@@ -231,7 +231,7 @@ export default function NewDailyPlanBuilder({
                   <div className="row-wrap" style={{ gap: 4 }}>
                     <button
                       className={`btn btn-sm ${t.required ? 'btn-danger' : ''}`}
-                      title={t.required ? 'Required — cannot be skipped with a Skip Pass' : 'Mark required (cannot be skipped)'}
+                      title={t.required ? 'Required, cannot be skipped with a Skip Pass' : 'Mark required (cannot be skipped)'}
                       onClick={() => setTasks(tasks.map((x) => (x.id === t.id ? { ...x, required: !x.required } : x)))}
                     >
                       {t.required ? '🔒 Required' : '🔓 Optional'}
@@ -278,7 +278,7 @@ export default function NewDailyPlanBuilder({
 
         <div className="content-well stack" style={{ background: '#faf9ff' }}>
             <div>
-              <label>Plan name (optional — auto-named if left blank)</label>
+              <label>Plan name (optional, auto-named if left blank)</label>
               <input style={{ width: '100%' }} value={name} onChange={(e) => setName(e.target.value)} placeholder={defaultPlanName(tasks)} />
             </div>
 
@@ -300,7 +300,7 @@ export default function NewDailyPlanBuilder({
                 />
               </div>
               <div>
-                <label>End date (last day — same as start for a single day)</label>
+                <label>End date (last day, same as start for a single day)</label>
                 <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
               {(startDate !== todayISO() || endDate !== todayISO()) && (
@@ -321,18 +321,18 @@ export default function NewDailyPlanBuilder({
                 <strong style={{ fontSize: '0.85rem' }}>Over this range:</strong>
                 <label className="row" style={{ gap: 6 }}>
                   <input type="radio" checked={mode === 'repeat'} onChange={() => setMode('repeat')} />
-                  🔁 Repeats every day — fresh checklist each day in the range
+                  🔁 Repeats every day, fresh checklist each day in the range
                 </label>
                 <label className="row" style={{ gap: 6 }}>
                   <input type="radio" checked={mode === 'span'} onChange={() => setMode('span')} />
-                  📌 One assignment — they have until the end date to finish it
+                  📌 One assignment, they have until the end date to finish it
                 </label>
               </div>
             )}
 
             <strong style={{ fontSize: '0.85rem' }}>Assign to:</strong>
             {students.length === 0 ? (
-              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No students yet — you can still save this as a draft.</p>
+              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No students yet. You can still save this as a draft.</p>
             ) : (
               <div className="row-wrap">
                 {students.map((st) => (

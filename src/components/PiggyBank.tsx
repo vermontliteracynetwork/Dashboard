@@ -60,7 +60,7 @@ export default function PiggyBank() {
         {view === 'charts' ? (
           <PiggyBankCharts transactions={chartRegister} currentBalanceCents={student.coins} streak={student.streak} />
         ) : register.length === 0 ? (
-          <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>Nothing here yet — finish an activity to make your first deposit!</p>
+          <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>Nothing here yet. Finish an activity to make your first deposit!</p>
         ) : (
           <div className="stack" style={{ gap: 6, maxHeight: 420, overflowY: 'auto' }}>
             {register.map((t) => {
@@ -103,7 +103,7 @@ export default function PiggyBank() {
                       </span>
                       <span style={{ fontSize: '0.68rem', opacity: 0.6 }}>
                         {new Date(t.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                        {t.voided && ' — removed by teacher'}
+                        {t.voided && ' (removed by teacher)'}
                       </span>
                     </div>
                   </div>

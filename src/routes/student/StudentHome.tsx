@@ -120,7 +120,7 @@ export default function StudentHome() {
             <div className="content-well stack">
               <h2 style={{ margin: 0 }}>🏆 Your Achievements</h2>
               {earnedBadges.length === 0 ? (
-                <p style={{ opacity: 0.75 }}>No badges yet — keep going!</p>
+                <p style={{ opacity: 0.75 }}>No badges yet. Keep going!</p>
               ) : (
                 <div className="row-wrap">
                   {earnedBadges.map((b) => (
@@ -194,7 +194,7 @@ export default function StudentHome() {
                 className="tag-pill"
                 style={{ background: 'var(--yellow)', border: 'none', cursor: 'pointer', minHeight: 44 }}
                 onClick={() => navigate('/student/piggy-bank')}
-                aria-label={`Balance ${formatMoney(student.coins)} — open Piggy Bank`}
+                aria-label={`Balance ${formatMoney(student.coins)}, open Piggy Bank`}
               >
                 🐷 {formatMoney(student.coins)}
               </button>

@@ -167,16 +167,16 @@ export default function PlaygroundView() {
         </div>
       )}
 
-      <p style={{ textAlign: 'center', fontWeight: 700 }}>Pick anything you want — just for fun! ✨</p>
+      <p style={{ textAlign: 'center', fontWeight: 700 }}>Pick anything you want, just for fun! ✨</p>
 
       {entries.length === 0 && quizSets.length === 0 ? (
-        <p style={{ textAlign: 'center', opacity: 0.75 }}>Nothing here yet — ask your teacher to add some Playground fun!</p>
+        <p style={{ textAlign: 'center', opacity: 0.75 }}>Nothing here yet. Ask your teacher to add some Playground fun!</p>
       ) : (
         <div className="choice-board">
           {quizSets.length > 0 && (
             <button className="choice-tile" onClick={() => setPickingFreePlay(true)}>
               <span className="choice-icon">🎮</span>
-              <span>Free Play — pick your own practice</span>
+              <span>Free Play, pick your own practice</span>
             </button>
           )}
           {entries.map(({ task, subject }) => (

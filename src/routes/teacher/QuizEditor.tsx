@@ -108,7 +108,7 @@ function QuestionRow({
 
       {q.kind === 'mc' && (
         <div className="stack">
-          <label>Answers — tap ✓ to mark the correct one</label>
+          <label>Answers, tap ✓ to mark the correct one</label>
           <div className="quiz-tile-grid">
             {q.choices.map((c, i) => (
               <div
@@ -214,7 +214,7 @@ function QuestionRow({
             <input value={q.answer} onChange={(e) => onUpdate({ ...q, answer: e.target.value })} />
           </div>
           <div>
-            <label>Word bank (optional — comma separated; lets student tap instead of type)</label>
+            <label>Word bank (optional, comma separated; lets student tap instead of type)</label>
             <input
               value={(q.wordBank ?? []).join(', ')}
               onChange={(e) => onUpdate({ ...q, wordBank: e.target.value.split(',').map((w) => w.trim()).filter(Boolean) })}

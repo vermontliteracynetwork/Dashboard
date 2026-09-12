@@ -245,7 +245,7 @@ export default function Marketplace() {
                 <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowCart(false)}>✕ Close</button>
               </div>
               {cart.length === 0 ? (
-                <p style={{ opacity: 0.7 }}>Nothing in your cart yet — tap 🛒 on anything you want!</p>
+                <p style={{ opacity: 0.7 }}>Nothing in your cart yet. Tap 🛒 on anything you want!</p>
               ) : (
                 <div className="stack" style={{ gap: 6, maxHeight: 320, overflowY: 'auto' }}>
                   {cart.map((entry) => (
@@ -323,7 +323,7 @@ export default function Marketplace() {
           <div className="shop-header">
             <span className="shop-ribbon">🛍️ MARKETPLACE</span>
             <div className="row" style={{ gap: 8 }}>
-              <span className="shop-balance-chip" title="Your Piggy Bank balance — spend it here!">
+              <span className="shop-balance-chip" title="Your Piggy Bank balance. Spend it here!">
                 🐷 {formatMoney(student.coins)}
               </span>
               <button className="btn btn-sm" style={{ minHeight: 44, position: 'relative' }} onClick={() => setShowCart(true)} aria-label={`Cart, ${cart.length} items`}>
@@ -477,7 +477,7 @@ export default function Marketplace() {
                 <strong style={{ fontSize: '0.85rem' }}>✏️ Marker Colors</strong>
                 <div className="shop-item-grid" style={{ marginTop: 8 }}>
                   {markerColorItems.length === 0 ? (
-                    <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No marker colors yet — ask your teacher to add some!</p>
+                    <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No marker colors yet. Ask your teacher to add some!</p>
                   ) : (
                     markerColorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))
                   )}
@@ -501,7 +501,7 @@ export default function Marketplace() {
                   {prizeFilter.filtered.map((p) => renderBuyableItem(p))}
                 </div>
                 <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
-                  💡 Bought a prize? Show this screen to your teacher — they'll help you get it!
+                  💡 Bought a prize? Show this screen to your teacher. They'll help you get it!
                 </p>
               </div>
             )}
@@ -568,7 +568,7 @@ export default function Marketplace() {
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>😊 Your Emotes</strong>
                   <div className="shop-item-grid" style={{ marginTop: 8 }}>
-                    {ownedEmotes.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No emotes yet — find some in the 😊 Emotes tab!</p>}
+                    {ownedEmotes.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No emotes yet. Find some in the 😊 Emotes tab!</p>}
                     {ownedEmotes.map((e) => {
                       const equipped = student.equippedEmoteId === e.id;
                       return (
@@ -597,7 +597,7 @@ export default function Marketplace() {
             {tab === 'receipts' && (
               <div className="stack" style={{ gap: 10, maxWidth: 480, margin: '0 auto' }}>
                 {pastReceipts.length === 0 ? (
-                  <p style={{ opacity: 0.7, textAlign: 'center' }}>No purchases yet — anything you buy shows up here to look back at.</p>
+                  <p style={{ opacity: 0.7, textAlign: 'center' }}>No purchases yet. Anything you buy shows up here to look back at.</p>
                 ) : (
                   pastReceipts.map((t) => (
                     <div key={t.id} className="row space-between chrome-frame" style={{ padding: '10px 14px', opacity: t.voided ? 0.55 : 1 }}>
@@ -613,7 +613,7 @@ export default function Marketplace() {
                           <span style={{ fontSize: '0.85rem', fontWeight: 700, textDecoration: t.voided ? 'line-through' : 'none' }}>{t.description}</span>
                           <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
                             {new Date(t.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                            {t.voided && ' — refunded'}
+                            {t.voided && ' (refunded)'}
                           </span>
                         </div>
                       </div>

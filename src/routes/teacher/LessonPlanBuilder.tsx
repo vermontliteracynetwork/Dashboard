@@ -127,7 +127,7 @@ function Importer({ subject, kind }: { subject: Subject; kind: 'quiz' | 'drill' 
         <label style={{ fontSize: '0.8rem' }}>4️⃣ Upload your filled-in CSV here</label>
         <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
       </div>
-      {fileName && <p style={{ fontSize: '0.85rem', opacity: 0.75 }}>Loaded: {fileName} — found {count} {kind === 'quiz' ? 'question(s)' : 'card(s)'}</p>}
+      {fileName && <p style={{ fontSize: '0.85rem', opacity: 0.75 }}>Loaded: {fileName}, found {count} {kind === 'quiz' ? 'question(s)' : 'card(s)'}</p>}
 
       {parsed && (
         <div className="row-wrap">
@@ -168,7 +168,7 @@ function ContentLibrary({ subject }: { subject: Subject }) {
 function defaultBacklogName(tasks: Task[]): string {
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const preview = tasks.slice(0, 2).map((t) => t.title || '(untitled)').join(', ');
-  return preview ? `${date} — ${preview}${tasks.length > 2 ? '…' : ''}` : date;
+  return preview ? `${date}: ${preview}${tasks.length > 2 ? '…' : ''}` : date;
 }
 
 function WeeklyCalendar({ studentId, subject, studentName }: { studentId: string; subject: Subject; studentName: string }) {
@@ -188,10 +188,10 @@ function WeeklyCalendar({ studentId, subject, studentName }: { studentId: string
 
   return (
     <div className="zone zone-week stack">
-      <div className="zone-header-bar">📅 This Week — {studentName}'s recurring plan</div>
+      <div className="zone-header-bar">📅 This Week: {studentName}'s recurring plan</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Assign a draft to each weekday — it loads into "Today's Plan" below automatically the first time{' '}
+          Assign a draft to each weekday. It loads into "Today's Plan" below automatically the first time{' '}
           {studentName} logs in that day. A day left blank stays whatever you set it to by hand. You can still tweak
           a single day's copy afterward (like swapping a link) without changing the draft or any other day.
         </p>
@@ -211,7 +211,7 @@ function WeeklyCalendar({ studentId, subject, studentName }: { studentId: string
                     }}
                     onBlur={() => setEditingDay(null)}
                   >
-                    <option value="">— manual —</option>
+                    <option value="">(manual)</option>
                     {backlog.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 ) : entry ? (
@@ -228,7 +228,7 @@ function WeeklyCalendar({ studentId, subject, studentName }: { studentId: string
                   </>
                 ) : (
                   <>
-                    <p className="week-day-empty">— no plan set —</p>
+                    <p className="week-day-empty">(no plan set)</p>
                     <button className="btn btn-sm btn-primary" disabled={backlog.length === 0} onClick={() => setEditingDay(day)}>
                       + Assign
                     </button>
@@ -291,7 +291,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
   return (
     <div className="zone zone-backlog stack">
       <button className="zone-header-btn zone-header-bar" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} 📜 History &amp; Drafts ({pastAssignments.length + backlog.length}) — past assignments and reusable plans
+        {open ? '▾' : '▸'} 📜 History &amp; Drafts ({pastAssignments.length + backlog.length}): past assignments and reusable plans
       </button>
       <div style={{ padding: 14 }} className="stack">
         {pastAssignments.length > 0 && (
@@ -302,7 +302,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
               return (
                 <div key={a.id} className="content-well space-between">
                   <span>
-                    {t?.name ?? '(deleted plan)'} — {formatDateLong(a.startDate)}
+                    {t?.name ?? '(deleted plan)'}, {formatDateLong(a.startDate)}
                     {a.endDate !== a.startDate ? ` → ${formatDateLong(a.endDate)}` : ''}
                     {' · '}{t?.activities.length ?? 0} activities
                   </span>
@@ -319,7 +319,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
             <hr className="divider" />
           </div>
         )}
-        <strong>📝 Drafts — reusable plans not currently scheduled</strong>
+        <strong>📝 Drafts: reusable plans not currently scheduled</strong>
         <button
           className="btn btn-sm"
           disabled={currentTasks.length === 0}
@@ -329,7 +329,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
         </button>
         {open && (
           backlog.length === 0 ? (
-            <p style={{ opacity: 0.7 }}>No drafts saved yet — save today's plan above to start one.</p>
+            <p style={{ opacity: 0.7 }}>No drafts saved yet. Save today's plan above to start one.</p>
           ) : (
             <div className="stack">
               {backlog.map((t) => {
@@ -352,7 +352,7 @@ function BacklogPanel({ studentId, subject, currentTasks }: { studentId: string;
                           <button className="btn btn-sm" onClick={() => setRenamingId(null)}>Cancel</button>
                         </div>
                       ) : (
-                        <span><strong>{t.name}</strong> — {t.activities.length} activities</span>
+                        <span><strong>{t.name}</strong>: {t.activities.length} activities</span>
                       )}
                       {applyTargetId !== t.id && (
                         <div className="row-wrap">
@@ -522,7 +522,7 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
 
   return (
     <div className="zone zone-today stack">
-      <div className="zone-header-bar">✅ Today's Plan — exactly what {studentName} sees right now</div>
+      <div className="zone-header-bar">✅ Today's Plan: exactly what {studentName} sees right now</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
           Give an activity a number to require that order (1, 2, 3…). Leave the number blank and it becomes a free
@@ -587,10 +587,10 @@ function TodaysPlanView({ studentId, subject, studentName }: { studentId: string
                       inputMode="numeric"
                       pattern="[0-9]*"
                       value={t.order ?? ''}
-                      placeholder="—"
+                      placeholder="-"
                       style={{ width: 54 }}
                       disabled={t.isFinalCheck}
-                      title={t.isFinalCheck ? 'Final Check — always last' : undefined}
+                      title={t.isFinalCheck ? 'Final Check, always last' : undefined}
                       onChange={(e) => {
                         const digits = e.target.value.replace(/[^0-9]/g, '');
                         updateTask(studentId, subject, t.id, { order: digits ? parseInt(digits, 10) : undefined });
@@ -712,7 +712,7 @@ export default function LessonPlanBuilder() {
       <TeacherNav />
       <div className="container stack">
         <div className="space-between">
-          <h1><AvatarGlyph value={student.avatar} size={32} /> {student.name} — Assignments</h1>
+          <h1><AvatarGlyph value={student.avatar} size={32} /> {student.name}: Assignments</h1>
           <div className="row-wrap">
             <button className="btn btn-sm btn-primary" onClick={() => navigate('/teacher/assignments')}>📋 All Assignments</button>
             <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>

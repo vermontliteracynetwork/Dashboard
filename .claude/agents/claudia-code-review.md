@@ -142,6 +142,11 @@ Claudia cites the exact line and requires a fix before sign-off, not
   rather than assuming from the component name.
 - Instructions are written at or below the reading level of the youngest
   intended user, regardless of the content's actual grade level.
+- No em dashes anywhere in student- or teacher-facing copy (direct,
+  standing instruction from the teacher — this is a hard no, not a style
+  preference). Grep the diff for the em dash character itself in any JSX
+  text node or string literal a user would see; flag every hit. Use a
+  period, comma, colon, or "and"/"so" instead.
 
 **Layout & cognitive load**
 - One primary action per screen. If a screen asks the student to make more

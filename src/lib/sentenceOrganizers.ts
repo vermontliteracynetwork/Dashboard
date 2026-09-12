@@ -68,7 +68,7 @@ export const ORGANIZER_PRESETS: OrganizerPreset[] = [
   {
     id: 'who-doing-where',
     name: 'Who + What + Where',
-    description: 'The core sentence scaffold — a color for who, what they’re doing, and where.',
+    description: 'The core sentence scaffold: a color for who, what they’re doing, and where.',
     build: () => [
       blank('Who?', PART_COLORS[0].value, 'the dog'),
       blank('Doing what?', PART_COLORS[2].value, 'is running'),
@@ -108,13 +108,13 @@ export const ORGANIZER_PRESETS: OrganizerPreset[] = [
   {
     id: 'blank-slate',
     name: 'Start from scratch',
-    description: 'One empty blank — build your own organizer from here.',
+    description: 'One empty blank. Build your own organizer from here.',
     build: () => [blank('Part 1', PART_COLORS[0].value, '')],
   },
   {
     id: 'simple-sentence',
     name: 'Simple Sentence',
-    description: 'Who + Action — the most basic sentence formula. "The dog barked!"',
+    description: 'Who + Action, the most basic sentence formula. "The dog barked!"',
     build: () => [
       blank('Who?', YELLOW, 'The dog', WHO_WORDS),
       blank('Action', GREEN, 'barked', ACTION_WORDS),
@@ -123,7 +123,7 @@ export const ORGANIZER_PRESETS: OrganizerPreset[] = [
   {
     id: 'simple-descriptive-sentence',
     name: 'Simple Descriptive Sentence',
-    description: 'Who + Action + Description — what is it, or how was it done? "Yoga is funny."',
+    description: 'Who + Action + Description: what is it, or how was it done? "Yoga is funny."',
     build: () => [
       blank('Who?', YELLOW, 'Yoga', WHO_WORDS),
       blank('Action', GREEN, 'is', ACTION_WORDS),
@@ -133,7 +133,7 @@ export const ORGANIZER_PRESETS: OrganizerPreset[] = [
   {
     id: 'simple-statement',
     name: 'Simple Statement',
-    description: 'Who + Action + Who-or-what — who or what is it? "Xander loves rocks."',
+    description: 'Who + Action + Who-or-what: who or what is it? "Xander loves rocks."',
     build: () => [
       blank('Who?', YELLOW, 'Xander', WHO_WORDS),
       blank('Action', GREEN, 'loves', ACTION_WORDS),
@@ -143,7 +143,7 @@ export const ORGANIZER_PRESETS: OrganizerPreset[] = [
   {
     id: 'full-sentence-formula',
     name: 'Full Sentence Formula',
-    description: 'Who + Action + Who-or-what + Description — all four parts together.',
+    description: 'Who + Action + Who-or-what + Description, all four parts together.',
     build: () => [
       blank('Who?', YELLOW, 'My teacher', WHO_WORDS),
       blank('Action', GREEN, 'ate', ACTION_WORDS),

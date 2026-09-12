@@ -235,6 +235,7 @@ export default function SubjectDashboard() {
             </button>
           )}
           <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+          <button className="btn btn-sm" onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
         </div>
       </div>
 
@@ -276,7 +277,7 @@ export default function SubjectDashboard() {
 
       {reviewing && (
         <div className="content-well space-between" style={{ background: '#fff8e1' }}>
-          <strong>📚 Reviewing your completed work — tap anything to do it again. Nothing here changes your progress.</strong>
+          <strong>📚 Reviewing your completed work. Tap anything to do it again. Nothing here changes your progress.</strong>
           <button className="btn btn-sm" onClick={() => setReviewing(false)}>✕ Exit review</button>
         </div>
       )}

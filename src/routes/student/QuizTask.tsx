@@ -182,7 +182,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>Leave this quiz?</h2>
-              <p style={{ margin: 0 }}>Your progress is saved — you can pick up right where you left off.</p>
+              <p style={{ margin: 0 }}>Your progress is saved. You can pick up right where you left off.</p>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 <button className="btn btn-primary btn-lg" onClick={onExit}>Yes, go to my to-do list</button>
                 <button className="btn btn-lg" onClick={() => setConfirmExit(false)}>Keep going</button>
@@ -214,8 +214,8 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
           {pendingCorrect === false && (
             <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white', fontSize: '1rem' }}>
               💛 {(state.log.filter((l) => l.questionId === activeQ.id && !l.correct).length >= 2)
-                ? "Not quite — that's okay, let's keep going!"
-                : "Not quite — you'll see this one again"}
+                ? "Not quite, that's okay, let's keep going!"
+                : "Not quite, you'll see this one again"}
             </div>
           )}
 

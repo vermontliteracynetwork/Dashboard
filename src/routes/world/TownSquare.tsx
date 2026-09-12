@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { QUEST1_NEIGHBORS, type Quest1Neighbor } from '../../lib/worldQuest1';
 import { formatMoney } from '../../lib/money';
@@ -41,6 +41,10 @@ const TALK_RADIUS = 1.8;
 const BASE_MOVE_SPEED = 3.6;
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
+// Height for the overhead map view — at the Canvas's 50° fov, tall enough
+// that the visible ground (radius GROUND_HALF*4) and the tree ring
+// (radius ~GROUND_HALF-2) both sit comfortably inside frame with margin.
+const MAP_HEIGHT = 34;
 const WANDER_SPEED = 1.3; // slower than the player's walk — ambient, unhurried
 const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
 // Simple flat-circle collision so the pond reads as an actual obstacle now
@@ -57,7 +61,6 @@ const POND_BLOCK_RADIUS = 2.6;
 // recording the teacher flagged. CHARACTER_SCALE brings the ~0.67-unit-
 // tall Kenney Mini Characters up to a human-reads-as-a-person height.
 const CHARACTER_SCALE = 2.6;
-const FOX_SCALE = 1.1;
 const TREE_SCALE = 2.8;
 const PINE_SCALE = 3.2;
 const ROCK_SCALE = 1.8;
@@ -70,6 +73,19 @@ const ROCK_SCALE = 1.8;
 // prop was measured too but left unplaced — snow doesn't match a spring/
 // summer park, so it's cataloged and waiting on a winter-themed use instead.
 const PROP_SCALE = { flower: 3.5, mushroom: 4.2, largeRock: 4.3, mediumRock: 2.9, bridge: 13 };
+
+// The Kenney Furniture Kit desk/chair/computer (verified CC0, License.txt
+// bundled) — measured the same real-bounding-box way as everything else
+// above, then arranged and eyeballed together in a standalone render
+// before locking these offsets in, since a desk/chair/monitor only reads
+// as "a desk" if they're actually aligned with each other.
+const FURNITURE_SCALE = 1.8;
+// Direct teacher instruction: the old 2D task dashboard (subjects, header,
+// Playground) is no longer reachable from a corner button — it's now
+// something a student walks up to and uses, like everything else in this
+// world. Placed clear of every Neighbor, prop, and wandering-NPC home spot.
+const COMPUTER_POSITION: [number, number] = [-5, -2];
+const COMPUTER_RADIUS = 1.8;
 
 // Background townspeople — always wandering, never tied to a task. Spare
 // Kenney Mini Character skins not already used by the Player or the 4
@@ -105,44 +121,14 @@ function useKeys() {
   return keys;
 }
 
-function Fox() {
-  const { scene, animations } = useGLTF('/world/models/fox.glb');
-  const group = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, group);
-
-  // Caught in a visual verification pass, not assumed safe: this model's
-  // base pose includes a visible sword mesh (node "Sword mesh"), which the
-  // zero-weapons rule (§Not building) already flagged as excluded when the
-  // Fox asset was catalogued — that exclusion was never actually wired up
-  // in code until now. Strip it from the loaded scene graph directly
-  // (there's only ever one Fox, so there's no per-instance clone to strip
-  // it from — see below on why this model isn't cloned at all).
-  useEffect(() => {
-    // The actual runtime node is "Sword_1" — glTF loaders sanitize the
-    // source file's "Sword mesh" name (spaces aren't valid Object3D name
-    // characters), which is exactly why a first attempt matching the raw
-    // source name silently matched nothing and the sword kept rendering
-    // in the verification screenshot. Match by substring, case-insensitive,
-    // against every node, not one exact expected string, so a renamed or
-    // re-exported version of this model can't quietly bring it back either.
-    const toRemove: THREE.Object3D[] = [];
-    scene.traverse((obj) => {
-      if (obj.name.toLowerCase().includes('sword')) toRemove.push(obj);
-    });
-    toRemove.forEach((obj) => obj.removeFromParent());
-  }, [scene]);
-
-  useEffect(() => {
-    if (!actions['Idle']) console.warn('[TownSquare] Fox: no "Idle" animation clip found');
-    actions['Idle']?.reset().play();
-  }, [actions]);
-
-  return (
-    <group ref={group} position={[0, 0, -3]} rotation={[0, Math.PI, 0]}>
-      <primitive object={scene} scale={FOX_SCALE} />
-    </group>
-  );
-}
+// The Fox mascot component (model load, sword-removal, Idle animation)
+// was removed from this file on direct teacher instruction: pull it until
+// Quest 1 itself is actually built again, since it was the quest's
+// narrator/guide and standing around with nothing to narrate reads as a
+// loose end. All of that logic already exists in git history from earlier
+// this session (character/townsquare-related commits) — restore it
+// wholesale rather than re-solving the sword-removal/skeleton-animation
+// gotchas from scratch when the quest comes back.
 
 // Each character pack keeps its own texture next to it (see the
 // characters/ vs forest/ subfolders) — loading two packs' models from one
@@ -417,9 +403,10 @@ interface PlayerProps {
   frozen: boolean;
   sensitivity: number;
   cameraLook: React.RefObject<number>;
+  mapView: boolean;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -482,11 +469,21 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook 
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
 
-    const camAngle = facing.current + cameraLook.current;
-    const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE;
-    const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE;
-    camera.position.lerp(new THREE.Vector3(camX, CAMERA_HEIGHT, camZ), 1 - Math.pow(0.001, dt));
-    camera.lookAt(pos.current.x, 1, pos.current.z);
+    if (mapView) {
+      // A fixed bird's-eye view of the whole walkable area, centered on
+      // the square itself (not following the player) so the whole world
+      // is visible at once — direct teacher request for a map feature.
+      // High enough that MAP_HEIGHT's vertical field of view at this fov
+      // comfortably covers the visible ground radius with margin.
+      camera.position.lerp(new THREE.Vector3(0, MAP_HEIGHT, 0.01), 1 - Math.pow(0.001, dt));
+      camera.lookAt(0, 0, 0);
+    } else {
+      const camAngle = facing.current + cameraLook.current;
+      const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE;
+      const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE;
+      camera.position.lerp(new THREE.Vector3(camX, CAMERA_HEIGHT, camZ), 1 - Math.pow(0.001, dt));
+      camera.lookAt(pos.current.x, 1, pos.current.z);
+    }
   });
 
   return (
@@ -511,7 +508,9 @@ function Neighbor({
   playerPos,
   dialogueOpen,
   wandering,
+  pendingApproach,
   onTalk,
+  onApproach,
 }: {
   n: Quest1Neighbor;
   playerPos: THREE.Vector3;
@@ -523,11 +522,18 @@ function Neighbor({
   // modal. Gating on dialogueOpen too fixes both.
   dialogueOpen: boolean;
   wandering: boolean;
+  // True while this specific Neighbor is the target of a click-to-approach
+  // (see onApproach) — used to auto-start the conversation the moment the
+  // student actually arrives in range, instead of requiring a second Talk
+  // tap once they get there.
+  pendingApproach: boolean;
   onTalk: () => void;
+  onApproach: () => void;
 }) {
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
   const inRange = !wandering && dist <= TALK_RADIUS && !dialogueOpen;
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (!inRange) return;
@@ -535,6 +541,15 @@ function Neighbor({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [inRange, onTalk]);
+
+  // Direct teacher instruction: clicking an NPC with a conversation should
+  // walk the student to them and start talking automatically, not require
+  // walking manually and then finding/tapping a separate Talk button. This
+  // fires the moment the student's walk (started by onApproach, below)
+  // actually brings them into range.
+  useEffect(() => {
+    if (pendingApproach && inRange) onTalk();
+  }, [pendingApproach, inRange, onTalk]);
 
   if (wandering) {
     return <WanderingNPC modelPath={n.modelPath} home={n.position} active />;
@@ -545,11 +560,27 @@ function Neighbor({
       <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#3e7c6b" /></mesh>}>
         <CharacterModel path={n.modelPath} />
       </Suspense>
-      <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
-        <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-          {n.name} — {n.role}
-        </div>
-      </Html>
+      {/* A generous invisible cylinder around the character, well bigger
+          than the model's actual silhouette — direct teacher feedback that
+          it was too easy to walk/click past an NPC without hitting it.
+          Handles both the hover reveal and the click-to-approach, so
+          there's one consistent, forgiving hit area for both. */}
+      <mesh
+        position={[0, 1, 0]}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+        onClick={(e) => { e.stopPropagation(); onApproach(); }}
+      >
+        <cylinderGeometry args={[0.95, 0.95, 2.2, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {(hovered || inRange) && (
+        <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
+          <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
+            {n.name}, {n.role}
+          </div>
+        </Html>
+      )}
       {inRange && (
         <Html center position={[0, 2.15, 0]}>
           <button
@@ -598,6 +629,58 @@ function SkyboxBackground() {
     };
   }, [tex, scene]);
   return null;
+}
+
+// The in-world stand-in for the old "My Tasks" corner button — walking up
+// and using this opens the 2D task dashboard (subjects, header, Playground)
+// that used to be one tap away everywhere. Same in-range/hover/E-or-tap
+// pattern as a Neighbor, minus the wandering behavior (it's furniture).
+function ComputerDesk({ playerPos, onUse }: { playerPos: THREE.Vector3; onUse: () => void }) {
+  const [cx, cz] = COMPUTER_POSITION;
+  const dist = Math.hypot(playerPos.x - cx, playerPos.z - cz);
+  const inRange = dist <= COMPUTER_RADIUS;
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (!inRange) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'e') onUse(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [inRange, onUse]);
+
+  return (
+    <group position={[cx, 0, cz]}>
+      <Prop path="/world/models/props/desk.glb" position={[0, 0, 0]} scale={FURNITURE_SCALE} />
+      <Prop path="/world/models/props/chair-desk.glb" position={[0.1, 0, 0.2]} rotationY={Math.PI} scale={FURNITURE_SCALE} />
+      <Prop path="/world/models/props/computer-screen.glb" position={[0, 0.684, -0.15]} scale={FURNITURE_SCALE} />
+      <mesh
+        position={[0, 0.8, 0]}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+        onClick={(e) => { e.stopPropagation(); onUse(); }}
+      >
+        <cylinderGeometry args={[1.1, 1.1, 1.8, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {(hovered || inRange) && (
+        <Html center position={[0, 1.5, 0]} style={{ pointerEvents: 'none' }}>
+          <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
+            💻 Computer
+          </div>
+        </Html>
+      )}
+      {inRange && (
+        <Html center position={[0, 1.9, 0]}>
+          <button
+            onClick={onUse}
+            style={{ background: '#5b6b8a', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+          >
+            My Tasks
+          </button>
+        </Html>
+      )}
+    </group>
+  );
 }
 
 function Park({
@@ -751,9 +834,6 @@ function CameraLookButtons({ cameraLook, side }: { cameraLook: React.RefObject<n
   };
   return (
     <div style={{ position: 'absolute', bottom: 16, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: 'rgba(255,255,255,0.92)', padding: '2px 8px', borderRadius: 6, fontFamily: 'system-ui, sans-serif' }}>
-        Look around
-      </span>
       <div style={{ display: 'flex', gap: 8 }}>
         <button
           onClick={() => turn(-1)}
@@ -786,6 +866,11 @@ export default function TownSquare() {
   const [activeDialogue, setActiveDialogue] = useState<Quest1Neighbor | null>(null);
   const [justEarned, setJustEarned] = useState<{ label: string; cents: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mapView, setMapView] = useState(false);
+  // Direct teacher instruction: the "click/tap to walk" instruction text
+  // is onboarding, not a permanent fixture — once a student has actually
+  // done it once, it just clutters an otherwise clean view.
+  const [hasWalkedOnce, setHasWalkedOnce] = useState(false);
   const [isDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches);
   const touchDir = useRef({ x: 0, z: 0 });
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
@@ -794,6 +879,10 @@ export default function TownSquare() {
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
   const hoverTarget = useRef<{ x: number; z: number } | null>(null);
   const cameraLook = useRef(0);
+  // Set by clicking a Neighbor directly (see handleApproach) — names which
+  // Neighbor's conversation should auto-start the moment the walk this
+  // triggers actually brings the student into talk range.
+  const pendingApproach = useRef<string | null>(null);
 
   useEffect(() => {
     if (!currentStudentId) navigate('/student/login');
@@ -821,7 +910,30 @@ export default function TownSquare() {
     // last tapped, after they finish talking to someone, would be a
     // surprise move they didn't ask for a second time.
     walkTarget.current = null;
+    pendingApproach.current = null;
     setActiveDialogue(n);
+  };
+
+  // Direct teacher instruction: clicking a Neighbor should walk the student
+  // to them and start the conversation automatically, not require walking
+  // manually and then finding a separate Talk button. Aims just inside
+  // talk range (not exactly on top of them) so the approach itself feels
+  // natural; Neighbor's own effect fires the actual onTalk once the
+  // student physically arrives.
+  const handleApproach = (n: Quest1Neighbor) => {
+    if (metIds.includes(n.id)) return; // already wandering — nothing to walk up to
+    const [nx, nz] = n.position;
+    const dx = playerPos.x - nx;
+    const dz = playerPos.z - nz;
+    const dist = Math.hypot(dx, dz) || 1;
+    const approachDist = TALK_RADIUS * 0.7;
+    hoverTarget.current = null;
+    pendingApproach.current = n.id;
+    walkTarget.current = {
+      x: THREE.MathUtils.clamp(nx + (dx / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+      z: THREE.MathUtils.clamp(nz + (dz / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+    };
+    setHasWalkedOnce(true);
   };
 
   const handleContinue = () => {
@@ -837,7 +949,6 @@ export default function TownSquare() {
   if (!student) return null;
 
   const dpadSide = student.worldDpadSide;
-  const otherSide = dpadSide === 'left' ? 'right' : 'left';
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0' }}>
@@ -857,14 +968,19 @@ export default function TownSquare() {
         <img src="/world/ui/btn-settings.png" alt="" style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
       </button>
 
-      <Link
-        to="/student/home"
-        style={{ position: 'fixed', bottom: 16, [otherSide]: 16, zIndex: 60, width: 58, height: 58, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#e2775c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', textDecoration: 'none', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
-        aria-label="My Tasks"
-        title="My Tasks"
+      {/* Direct teacher instruction: a way to see the whole world from
+          overhead. Toggles the Canvas camera to a fixed top-down view
+          (see Player's mapView branch) instead of opening a separate 2D
+          minimap — reuses the same 3D scene rather than building a second
+          renderer. */}
+      <button
+        onClick={() => setMapView((v) => !v)}
+        style={{ position: 'fixed', top: 148, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: mapView ? '#e2775c' : '#3e7c6b', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        aria-label={mapView ? 'Close map' : 'Open map'}
+        title={mapView ? 'Close map' : 'Map'}
       >
-        📋
-      </Link>
+        {mapView ? '✕' : '🗺️'}
+      </button>
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
         <ambientLight intensity={0.75} />
@@ -874,6 +990,8 @@ export default function TownSquare() {
           <Park
             onGroundTap={(x, z) => {
               hoverTarget.current = null;
+              pendingApproach.current = null;
+              setHasWalkedOnce(true);
               walkTarget.current = {
                 x: THREE.MathUtils.clamp(x, -GROUND_HALF + 1, GROUND_HALF - 1),
                 z: THREE.MathUtils.clamp(z, -GROUND_HALF + 1, GROUND_HALF - 1),
@@ -888,16 +1006,16 @@ export default function TownSquare() {
                 : null;
             }}
           />
-          <Fox />
           <WalkTargetMarker walkTarget={walkTarget} />
           <HoverPreviewMarker hoverTarget={hoverTarget} />
           <Player
             touchDir={touchDir}
             walkTarget={walkTarget}
             onMove={(p) => setPlayerPos(p.clone())}
-            frozen={!!activeDialogue}
+            frozen={!!activeDialogue || mapView}
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}
+            mapView={mapView}
           />
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
@@ -906,12 +1024,15 @@ export default function TownSquare() {
               playerPos={playerPos}
               dialogueOpen={!!activeDialogue}
               wandering={metIds.includes(n.id)}
+              pendingApproach={pendingApproach.current === n.id}
               onTalk={() => handleTalk(n)}
+              onApproach={() => handleApproach(n)}
             />
           ))}
           {AMBIENT_NPCS.map((npc) => (
             <WanderingNPC key={npc.id} modelPath={npc.modelPath} home={npc.home} active />
           ))}
+          <ComputerDesk playerPos={playerPos} onUse={() => navigate('/student/home')} />
         </Suspense>
       </Canvas>
 
@@ -924,10 +1045,12 @@ export default function TownSquare() {
 
       {isDesktop && <CameraLookButtons cameraLook={cameraLook} side={dpadSide} />}
 
-      <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
-        🖱️ Click, or 👆 tap, anywhere on the grass to walk there — or use WASD/arrow keys/the buttons.
-        <br />Walk up to a Neighbor and press E (or tap Talk).
-      </p>
+      {!hasWalkedOnce && (
+        <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
+          🖱️ Click, or 👆 tap, anywhere on the grass to walk there. Or use WASD/arrow keys/the buttons.
+          <br />Walk up to a Neighbor and press E (or tap Talk).
+        </p>
+      )}
 
       {activeDialogue && (
         <div className="overlay-backdrop" role="dialog" aria-modal="true">
@@ -994,7 +1117,7 @@ export default function TownSquare() {
 
       {justEarned && (
         <div style={{ position: 'absolute', top: 72, left: '50%', transform: 'translateX(-50%)', zIndex: 20, background: 'var(--success, #3e7c6b)', color: '#fff', padding: '10px 20px', borderRadius: 12, fontFamily: 'system-ui, sans-serif', fontWeight: 800, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
-          🎉 {justEarned.label} — {formatMoney(justEarned.cents)} added to your Piggy Bank!
+          🎉 {justEarned.label}: {formatMoney(justEarned.cents)} added to your Piggy Bank!
         </div>
       )}
     </div>

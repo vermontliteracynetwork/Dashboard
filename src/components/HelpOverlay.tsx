@@ -21,7 +21,7 @@ export default function HelpOverlay({ studentId, onClose }: Props) {
           <h2>🧘 Take a Moment</h2>
           <p>Breathe in as the circle grows. Breathe out as it shrinks.</p>
           <div className="breathe-circle" />
-          <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>No rush — stay here as long as you'd like.</p>
+          <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>No rush. Stay here as long as you'd like.</p>
           <hr className="divider" style={{ width: '100%' }} />
           {pinged ? (
             <>

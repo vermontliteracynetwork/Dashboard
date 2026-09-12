@@ -39,7 +39,7 @@ export default function QuizThemePicker({ studentId, current }: Props) {
           <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ margin: 0 }}>Pick a look for your quiz</h2>
-              <p style={{ opacity: 0.75, margin: 0, fontSize: '0.9rem' }}>Pick one — you can change it anytime.</p>
+              <p style={{ opacity: 0.75, margin: 0, fontSize: '0.9rem' }}>Pick one. You can change it anytime.</p>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 {THEMES.map((t) => (
                   <button

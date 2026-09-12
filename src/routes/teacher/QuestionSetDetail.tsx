@@ -39,7 +39,7 @@ export default function QuestionSetDetail() {
       <div className="app-shell">
         <TeacherNav />
         <div className="container stack">
-          <p>That question set couldn't be found — it may have been deleted.</p>
+          <p>That question set couldn't be found. It may have been deleted.</p>
           <Link className="btn btn-sm" to="/teacher/activities">← Back to Activities</Link>
         </div>
       </div>

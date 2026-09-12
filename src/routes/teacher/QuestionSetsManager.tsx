@@ -29,7 +29,7 @@ export default function QuestionSetsManager() {
 
   return (
     <div className="zone zone-library stack">
-      <div className="zone-header-bar">🧠 Question Sets — every set used across your activities</div>
+      <div className="zone-header-bar">🧠 Question Sets: every set used across your activities</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
           Click a set to open, edit, duplicate, or delete it.
@@ -64,7 +64,7 @@ export default function QuestionSetsManager() {
         {sets.length === 0 ? (
           <p style={{ opacity: 0.7 }}>
             {questionSets.length === 0
-              ? 'No saved question/drill sets yet — add one from any quiz or drill activity\'s editor.'
+              ? 'No saved question/drill sets yet. Add one from any quiz or drill activity\'s editor.'
               : 'No sets match your search/filters.'}
           </p>
         ) : (

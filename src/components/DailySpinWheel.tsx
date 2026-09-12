@@ -153,7 +153,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
 
           {hasSpunToday && !result ? (
             <>
-              <p>You already spun today — come back tomorrow for another spin!</p>
+              <p>You already spun today. Come back tomorrow for another spin!</p>
               <button className="btn btn-primary btn-lg" style={{ minHeight: 44 }} onClick={onClose}>
                 Okay
               </button>
@@ -166,7 +166,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
                 {result.type === 'item' ? result.label : `You got ${result.label}!`}
               </p>
               <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
-                🐷 Added to your Piggy Bank — check the Register to see it anytime.
+                🐷 Added to your Piggy Bank. Check the Register to see it anytime.
               </p>
               <button className="btn btn-primary btn-lg" style={{ minHeight: 44 }} onClick={onClose}>
                 Yay!
@@ -175,7 +175,7 @@ export default function DailySpinWheel({ studentId, onClose }: Props) {
           ) : (
             <>
               <p style={{ opacity: 0.75, marginTop: -8 }}>
-                {isBonusSpin ? 'A bonus spin, just for you — every prize is a win!' : 'One free spin a day — every prize is a win! New prizes tomorrow.'}
+                {isBonusSpin ? 'A bonus spin, just for you, every prize is a win!' : 'One free spin a day, every prize is a win! New prizes tomorrow.'}
               </p>
               <div style={{ position: 'relative', width: 260, height: 260 }}>
                 <div

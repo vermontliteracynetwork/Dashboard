@@ -48,7 +48,7 @@ function AssignmentRewardSettings() {
     <div className="chrome-frame stack" style={{ padding: 16 }}>
       <h3 style={{ marginTop: 0 }}>🎉 Whole-Assignment Completion Reward</h3>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        An extra bonus given the moment a student finishes BOTH Math and Literacy for the day — on top of what
+        An extra bonus given the moment a student finishes BOTH Math and Literacy for the day, on top of what
         every activity already pays.
       </p>
       <label className="row" style={{ gap: 6 }}>
@@ -354,7 +354,7 @@ export default function MarketplaceManager() {
       <div className="container stack">
         <h1>🛍️ Marketplace</h1>
         <p style={{ opacity: 0.75, fontSize: '0.85rem', margin: 0 }}>
-          Full control over everything students can buy — fonts, colors, voices, power-ups, and prizes. Set prices,
+          Full control over everything students can buy: fonts, colors, voices, power-ups, and prizes. Set prices,
           categories, tags, and an optional date window for seasonal or limited-time items. (Characters and Emotes
           use the app's bundled art and aren't editable here.)
         </p>
@@ -466,7 +466,7 @@ export default function MarketplaceManager() {
         </div>
 
         <div className="stack">
-          {grouped.length === 0 && <p style={{ opacity: 0.7 }}>Nothing here yet — add one above and it appears in every student's Shop.</p>}
+          {grouped.length === 0 && <p style={{ opacity: 0.7 }}>Nothing here yet. Add one above and it appears in every student's Shop.</p>}
           {grouped.map((g) => (
             <div key={g.cat} className="stack" style={{ gap: 6 }}>
               <strong style={{ fontSize: '0.9rem' }}>{g.cat}</strong>

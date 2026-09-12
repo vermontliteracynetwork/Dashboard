@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase, TEACHER_EMAIL, isSupabaseConfigured } from './supabaseClient';
 
 export async function signInTeacher(password: string): Promise<string | null> {
-  if (!isSupabaseConfigured) return 'Supabase is not set up yet — see SETUP.md.';
+  if (!isSupabaseConfigured) return 'Supabase is not set up yet. See SETUP.md.';
   const { error } = await supabase.auth.signInWithPassword({ email: TEACHER_EMAIL, password });
   return error ? error.message : null;
 }

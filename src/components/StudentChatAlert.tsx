@@ -75,7 +75,7 @@ export default function StudentChatAlert() {
         setShowPanel(true);
       }}
     >
-      💬 New message from your teacher — tap to read
+      💬 New message from your teacher. Tap to read
     </button>
   );
 }

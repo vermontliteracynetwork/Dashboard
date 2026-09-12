@@ -72,7 +72,7 @@ export default function StudentLiveView() {
   const overrideCheck = (task: Task) => {
     const rewardDesc = describeReward(task);
     completeTask(student.id, subject, task.id);
-    setOverrideNotice(`✅ Marked "${task.title}" done for ${student.name} — they were awarded ${rewardDesc}, same as if they'd finished it themselves.`);
+    setOverrideNotice(`✅ Marked "${task.title}" done for ${student.name}. They were awarded ${rewardDesc}, same as if they'd finished it themselves.`);
     window.setTimeout(() => setOverrideNotice(null), 7000);
   };
   const overrideUncheck = (task: Task) => {
@@ -87,7 +87,7 @@ export default function StudentLiveView() {
         <div className="space-between">
           <div className="row">
             <AvatarWithEmote student={student} size={48} readOnly />
-            <h1 style={{ margin: 0 }}>{student.name} — Live View</h1>
+            <h1 style={{ margin: 0 }}>{student.name}: Live View</h1>
           </div>
           <div className="row-wrap">
             <button className="btn btn-sm" onClick={() => setShowChat(true)}>💬 Chat</button>
@@ -96,7 +96,7 @@ export default function StudentLiveView() {
         </div>
         {showChat && <ChatPanel studentId={student.id} role="teacher" onClose={() => setShowChat(false)} />}
         <p style={{ opacity: 0.75, fontSize: '0.85rem' }}>
-          👁️ This mirrors {student.name}'s live checklist data as it updates — it isn't a video of their screen, so
+          👁️ This mirrors {student.name}'s live checklist data as it updates. It isn't a video of their screen, so
           it won't show mouse movement or exactly what's on their tab, but progress here is real-time and accurate.
         </p>
 
@@ -121,7 +121,7 @@ export default function StudentLiveView() {
               <p style={{ fontWeight: 700, textAlign: 'center' }}>👉 Currently on: {activeTask.icon} {activeTask.title}</p>
             )}
             <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-              ✅ Tap any checkbox below to mark that activity done for {student.name} yourself — it counts exactly
+              ✅ Tap any checkbox below to mark that activity done for {student.name} yourself. It counts exactly
               as if they'd finished it, reward and all, and shows up on their own to-do list right away.
             </p>
             {overrideNotice && (

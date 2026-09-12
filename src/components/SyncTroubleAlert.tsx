@@ -20,7 +20,7 @@ export default function SyncTroubleAlert() {
       >
         <span style={{ fontSize: '1.3rem' }}>⚠️</span>
         <p style={{ margin: 0, fontSize: '0.85rem', flex: 1 }}>
-          A change didn't save after several tries — check the connection and try again. If this keeps happening,
+          A change didn't save after several tries. Check the connection and try again. If this keeps happening,
           let your teacher/developer know.
         </p>
         <button className="btn btn-sm" style={{ background: '#fff' }} onClick={dismissSyncTrouble} aria-label="Dismiss">✕</button>
