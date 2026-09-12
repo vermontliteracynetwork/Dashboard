@@ -91,6 +91,30 @@ export default function StudentHome() {
 
   return (
     <div className="container stack">
+      {/* Direct teacher instruction: this screen is reached by using the
+          in-world computer, so it should read as an actual old computer/
+          web browser, not just another app screen — and the way back to
+          Town Square should be obvious right where a browser's own close
+          button would be. Decorative and in normal document flow (not a
+          fixed overlay) so it can't collide with any other screen's own
+          fixed buttons. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(#e9e5d8, #cfc9b7)', border: '2px solid #8a8574', borderRadius: '8px 8px 0 0', padding: '6px 10px', fontFamily: '"Courier New", monospace', fontSize: 13, color: '#3a362b' }}>
+        <span style={{ display: 'flex', gap: 4 }}>
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#e2775c', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#e8c94a', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#5fa86b', display: 'inline-block' }} />
+        </span>
+        <div style={{ flex: 1, background: '#fff', border: '1px solid #8a8574', borderRadius: 4, padding: '3px 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          🔒 www.yoglandia.town/my-computer
+        </div>
+        <button
+          className="btn btn-sm"
+          style={{ minHeight: 32, fontFamily: 'system-ui, sans-serif', background: '#3e7c6b', color: '#fff' }}
+          onClick={() => navigate('/world/town')}
+        >
+          ✕ Close, back to Town Square
+        </button>
+      </div>
       <ToolsPanel student={student} subject="both" />
       <Onboarding studentId={student.id} />
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
