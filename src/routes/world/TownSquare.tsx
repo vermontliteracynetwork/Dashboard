@@ -11,6 +11,7 @@ import { formatMoney } from '../../lib/money';
 import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
+import InventoryHotbar from '../../components/InventoryHotbar';
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -1172,6 +1173,7 @@ export default function TownSquare() {
   // in the same place without new CSS.
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
   // Direct teacher instruction: the "click/tap to walk" instruction text
   // is onboarding, not a permanent fixture — once a student has actually
   // done it once, it just clutters an otherwise clean view.
@@ -1442,18 +1444,19 @@ export default function TownSquare() {
         {mapView ? '✕' : '🗺️'}
       </button>
 
-      {/* Direct teacher instruction: a button, same shape as Map/Tools, for
-          everything the student has purchased/owns — reuses the existing
-          "My Stuff" tab already built inside the Marketplace rather than a
-          new inventory screen. */}
+      {/* Direct teacher instruction: this must only ever show what the
+          student owns, never the shop — a separate hotbar-style overlay,
+          not a trip to the Marketplace page (even on its "My Stuff" tab,
+          the shop tabs/cart were still one click away from there). */}
       <button
-        onClick={() => navigate('/student/marketplace', { state: { tab: 'mystuff' } })}
-        style={{ position: 'fixed', top: 214, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#c2953f', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
-        aria-label="My stuff"
+        onClick={() => setShowInventory((v) => !v)}
+        style={{ position: 'fixed', top: 214, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: showInventory ? '#e2775c' : '#c2953f', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        aria-label={showInventory ? 'Close My Stuff' : 'My stuff'}
         title="My Stuff"
       >
-        🎒
+        {showInventory ? '✕' : '🎒'}
       </button>
+      {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
         <ambientLight intensity={0.75} />
