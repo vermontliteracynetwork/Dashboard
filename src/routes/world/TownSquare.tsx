@@ -127,6 +127,20 @@ const BUILDINGS: { id: string; modelPath: string; position: [number, number]; ro
   { id: 'post-office', modelPath: '/world/models/buildings/post-office.glb', position: [12, 9], rotationY: Math.atan2(-12, -9), label: 'Post Office' },
 ];
 const BUILDING_SCALE = 3;
+
+// The farmer's market — Kenney Fantasy Town Kit stalls (verified CC0; the
+// "fantasy" pack name doesn't mean the pieces read that way — the stall
+// itself is a plain wooden table with a cloth awning, no different from a
+// real farmer's-market stand). Clustered in the open lawn per Claudia's
+// spec: associated with the built-up half of the park (near Penny/Scout)
+// but set back from any building into the grass, not fronting one.
+const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number }[] = [
+  { id: 'stall-1', modelPath: '/world/models/market/stall-green.glb', position: [0, -4], rotationY: 0 },
+  { id: 'stall-2', modelPath: '/world/models/market/stall-red.glb', position: [2, -4], rotationY: 0 },
+  { id: 'stall-3', modelPath: '/world/models/market/stall.glb', position: [1, -2], rotationY: Math.PI / 6 },
+];
+const MARKET_SCALE = 2.6;
+
 // Road/sidewalk tiles (City Kit Roads, also verified CC0) are already
 // copied into public/world/models/roads/ for the next pass — not placed
 // yet. A "doorstep" tile between a building and the park interior lands
@@ -799,6 +813,9 @@ function Park({
       )}
       {BUILDINGS.map((b) => (
         <Prop key={b.id} path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={BUILDING_SCALE} />
+      ))}
+      {MARKET_STALLS.map((m) => (
+        <Prop key={m.id} path={m.modelPath} position={[m.position[0], 0, m.position[1]]} rotationY={m.rotationY} scale={MARKET_SCALE} />
       ))}
     </group>
   );
