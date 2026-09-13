@@ -39,6 +39,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'store', label: `Store → ${ROLE_VIEWS.store}` },
   { value: 'post-office', label: `Post Office → ${ROLE_VIEWS['post-office']}` },
   { value: 'welcome-center', label: `Welcome Center → ${ROLE_VIEWS['welcome-center']}` },
+  { value: 'computer-desk', label: `Computer Desk (task list) → ${ROLE_VIEWS['computer-desk']}` },
 ];
 const SCALE_MIN = 0.05;
 const SCALE_MAX = 20;
@@ -214,6 +215,20 @@ const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
   'Props & Tools': { icon: '🔧', bg: '#eef0f2' },
   'Other': { icon: '📦', bg: '#eef0f2' },
 };
+// Claudia's Front 1 Phase 1 recommendation: new placements default to
+// colliding for solid structural/furniture categories, and stay walk-
+// through for decorative nature/seasonal/character categories — 'roads'
+// is deliberately excluded even though it's grouped under "Buildings &
+// Places" in CATEGORY_TO_GROUP below, since a road tile is meant to be
+// walked ON, not blocked by. A teacher can always flip this per-object
+// from the role/collision toggle regardless of the category default.
+const COLLIDING_CATEGORIES = new Set([
+  'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
+  'props', 'prototype', 'toolsbits', 'misc',
+]);
+function defaultCollidesForCategory(category: string): boolean {
+  return COLLIDING_CATEGORIES.has(category);
+}
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
   buildings: 'Buildings & Places', city: 'Buildings & Places', interior: 'Buildings & Places', market: 'Buildings & Places', restaurant: 'Buildings & Places', roads: 'Buildings & Places', structures: 'Buildings & Places',
@@ -517,6 +532,14 @@ function RosterTab() {
                 >
                   {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
+                <label className="row" style={{ gap: 4, alignItems: 'center', fontSize: '0.8rem' }} title="Whether students/NPCs can walk through this object">
+                  <input
+                    type="checkbox"
+                    checked={!!obj.collides}
+                    onChange={(e) => updateWorldObject(obj.id, { collides: e.target.checked })}
+                  />
+                  Solid
+                </label>
                 <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={() => deleteWorldObject(obj.id)}>🗑️</button>
               </div>
             ))}
@@ -728,6 +751,15 @@ function SelectedObjectToolbar({
                 >
                   {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, margin: 0 }} title="Whether students/NPCs can walk through this object">
+                <input
+                  type="checkbox"
+                  checked={!!selected.collides}
+                  onChange={(e) => onUpdate({ collides: e.target.checked })}
+                  style={{ minHeight: 20, minWidth: 20 }}
+                />
+                <span style={{ fontSize: '0.72rem' }}>Solid (blocks walking through)</span>
               </label>
             </div>
           )}
@@ -1080,6 +1112,7 @@ export default function WorldEditor() {
       tintColor: selected.tintColor,
       role: selected.role,
       customName: selected.customName,
+      collides: selected.collides,
     });
     setSelection({ kind: 'placed', id: newId });
     if (continuous) armAsset({ path: selected.modelPath, label: selected.customName || selected.label, category: '' });
@@ -1136,7 +1169,7 @@ export default function WorldEditor() {
     if (armedAsset) {
       const x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled));
       const z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled));
-      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY: 0, scale: armedDefaultScale });
+      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY: 0, scale: armedDefaultScale, collides: defaultCollidesForCategory(armedAsset.category) });
       // ghostPos IS cleared — leaving it set to this exact spot meant the
       // next render's footprintOverlap check found the object we just
       // placed (distance 0) and flashed a false "overlapping itself"

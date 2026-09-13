@@ -18,7 +18,7 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import type { LayoutOverride, FocusSubject } from '../../types';
+import type { LayoutOverride, FocusSubject, WorldObject } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -59,10 +59,6 @@ const NEIGHBOR_FOCUS_LANE: Record<string, FocusSubject> = {
 // of view fixes the read without changing the shape.
 const GROUND_VISUAL_RADIUS = GROUND_HALF * 4;
 const TALK_RADIUS = 1.8;
-// A Neighbor's name/role label appears once the student is this close,
-// well before they're actually in talk range — see the touch-predictability
-// note where it's used.
-const NOTICE_RADIUS = 5;
 // Tier 3 of Claudia's guardrails design: how long a student needs to have
 // been free-roaming (with real tasks still open) before Scout's rare
 // check-in becomes eligible at all — see handleTalk's use of this.
@@ -93,69 +89,25 @@ const DRAG_LOOK_SENSITIVITY = 0.005;
 const MAP_HEIGHT = 46;
 const WANDER_SPEED = 1.3; // slower than the player's walk — ambient, unhurried
 const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
-// Simple flat-circle collision so the pond reads as an actual obstacle now
-// that a bridge exists specifically to cross it. Sized (Claudia's scale
-// review) to clear the East Park Path's edge (x=10, half-width 1.25) with
-// margin, keeping the ~0.4 inset relationship to the pond's own visual
-// radius below.
-const POND_CENTER = { x: 6, z: 6 };
-const POND_BLOCK_RADIUS = 1.8;
 
 // Direct teacher instruction: every student should always arrive at the
-// same fixed, centrally-located spot, clear of every building/stall/
-// pond/prop, not a spot that could vary or land on top of something.
-// Checked against every collision entry in BUILDING_FOOTPRINTS/
-// STATIC_OBSTACLES/POND_CENTER above and below — nothing sits within 5
-// units of this point. Once a student has their own Home (not built
-// yet — see the Homeplot plan's Phase 1), they should instead spawn
-// right in front of their own front door; that swap belongs in Home's
-// own spawn logic once Home exists, not here.
+// same fixed, centrally-located spot, clear of every building/stall/prop,
+// not a spot that could vary or land on top of something. Checked against
+// every collision entry in BUILDING_FOOTPRINTS/STATIC_OBSTACLES above and
+// below — nothing sits within 5 units of this point. Once a student has
+// their own Home (not built yet — see the Homeplot plan's Phase 1), they
+// should instead spawn right in front of their own front door; that swap
+// belongs in Home's own spawn logic once Home exists, not here.
 const SPAWN_POSITION = { x: 0, z: 6 };
 
-// Scale factors, measured against each model's actual loaded bounding box
-// in a standalone render check, not guessed — the first version of this
-// scene had every character rendering under a meter tall on a 36-unit
-// field, which is what made everyone look like ants on a lawn in the
-// recording the teacher flagged. CHARACTER_SCALE brings the ~0.67-unit-
-// tall Kenney Mini Characters up to a human-reads-as-a-person height
-// (measured 0.6713 raw, confirmed exactly by Claudia's follow-up review).
+// Measured against each model's actual loaded bounding box in a
+// standalone render check, not guessed — the first version of this scene
+// had every character rendering under a meter tall on a 36-unit field,
+// which is what made everyone look like ants on a lawn in the recording
+// the teacher flagged. CHARACTER_SCALE brings the ~0.67-unit-tall Kenney
+// Mini Characters up to a human-reads-as-a-person height (measured 0.6713
+// raw, confirmed exactly by Claudia's follow-up review).
 const CHARACTER_SCALE = 2.6;
-// Brought down from 2.8/3.2 in the same review: at the old values the
-// tallest ring trees (6.37 units) stood taller than every building in
-// town, which is backwards for a settlement's skyline — buildings are
-// meant to be the tallest things in view. These clear a 1.745-unit
-// character by ~2.2-3.3x while staying under every corrected building
-// height below (6.17-6.94).
-const TREE_SCALE = 2.5;
-const PINE_SCALE = 3.6;
-const ROCK_SCALE = 1.8;
-
-// The teacher's own uploaded prop pack (bridge/flower/mushroom/rocks) — a
-// different source pack from the Kenney forest models above, so its raw
-// model scale isn't comparable. Every value below was measured the same
-// way: load it alone, read its actual bounding box, then pick a scale from
-// a real target size instead of guessing. The pack's snow-capped pine_tree
-// prop was measured too but left unplaced — snow doesn't match a spring/
-// summer park, so it's cataloged and waiting on a winter-themed use instead.
-// flower/mushroom brought down and largeRock/mediumRock brought UP in
-// Claudia's follow-up scale review — the originals had ground clutter
-// reading as thigh-high (mushroom was 29% of a character's height) while
-// the "large" rock was smaller than the mushrooms next to it (52% —> now
-// matched to its 1.0-unit collision radius instead of dwarfed by it).
-const PROP_SCALE = { flower: 2.8, mushroom: 3.0, largeRock: 9.0, mediumRock: 5.0, bridge: 14 };
-
-// The Kenney Furniture Kit desk/chair/computer (verified CC0, License.txt
-// bundled) — measured the same real-bounding-box way as everything else
-// above, then arranged and eyeballed together in a standalone render
-// before locking these offsets in, since a desk/chair/monitor only reads
-// as "a desk" if they're actually aligned with each other.
-const FURNITURE_SCALE = 1.8;
-// Direct teacher instruction: the old 2D task dashboard (subjects, header,
-// Playground) is no longer reachable from a corner button — it's now
-// something a student walks up to and uses, like everything else in this
-// world. Placed clear of every Neighbor, prop, and wandering-NPC home spot.
-const COMPUTER_POSITION: [number, number] = [-5, -2];
-const COMPUTER_RADIUS = 1.8;
 
 // Background townspeople — always wandering, never tied to a task. Spare
 // Kenney Mini Character skins not already used by the Player or the 4
@@ -224,53 +176,50 @@ let BUILDING_FOOTPRINTS = BUILDINGS.map((b) => {
 // gives a role to.
 const BUILDING_VIEWS: Record<string, string> = ROLE_VIEWS;
 
-// Every stall/the desk/the two big rocks blocks movement via a plain
-// circle — each is close enough to round that a circle never traps
-// anything and never leaves a visible gap. Buildings collide via their
-// real rotated footprint instead (BUILDING_FOOTPRINTS above + the
-// blockBuildings push-out below), not a circle — an oblong building sized
-// for its short axis left the long sides walkable-through, which is
-// exactly the "walk through a building" complaint this whole system
-// exists to prevent.
+// Every stall blocks movement via a plain circle — close enough to round
+// that a circle never traps anything and never leaves a visible gap.
+// Buildings collide via their real rotated footprint instead
+// (BUILDING_FOOTPRINTS above + the blockBuildings push-out below), not a
+// circle — an oblong building sized for its short axis left the long
+// sides walkable-through, which is exactly the "walk through a building"
+// complaint this whole system exists to prevent.
 const STALL_BLOCK_RADIUS = 0.75;
-const DESK_BLOCK_RADIUS = 0.9; // just the desk/chair footprint, well inside COMPUTER_RADIUS so "walk up and use" still works
-// `let`, not `const` — same reactive-to-layoutOverrides reasoning as
-// BUILDING_FOOTPRINTS above; a deleted market stall stops blocking too.
+// A teacher-placed Build Mode object has no measured real bounding box
+// available here (that math lives in WorldEditor.tsx's own useModelSize
+// hook, not in this plain function) — Claudia's Front 1 Phase 1
+// recommendation: a generic circle sized off the object's own scale
+// value is an acceptable first pass (scale already tracks real-world
+// size, per computeAutoScale in WorldEditor.tsx), clamped to a sane
+// range so a tiny or huge scale can't produce a degenerate obstacle. A
+// real per-object rotated-footprint system is Phase 1b, not this pass.
+const WORLD_OBJECT_COLLISION_RADIUS = (scale: number) => THREE.MathUtils.clamp(scale * 0.4, 0.4, 1.6);
+// `let`, not `const` — same reactive-to-layoutOverrides/worldObjects
+// reasoning as BUILDING_FOOTPRINTS above; a deleted market stall or
+// deleted/un-solid Build Mode object stops blocking too.
 let STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
-  { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
-  // Claudia's review: collision covered every building/stall/the desk but
-  // not the two big rocks, which is the same "walking through a solid
-  // object" complaint the teacher raised, just not yet reported because
-  // it wasn't named. Only the two large ones — the small Rocks() clusters
-  // and every tree are thin/low enough that leaving them uncollided is a
-  // reasonable call, not an oversight. Position/radius updated in the same
-  // pass that moved large_rock off Main Street's path (it was sitting
-  // dead center on it) and re-scaled both rocks up to match their new,
-  // no-longer-tiny PROP_SCALE values.
-  { x: 12.8, z: -2.4, radius: 1.05 }, // large_rock.glb
-  { x: -1, z: -10, radius: 0.75 }, // medium_rock.glb
 ];
 
 // Rebuilds the two collision arrays above from scratch, skipping any fixed
-// building/stall a teacher has deleted from Build Mode. Called once at
-// module load (with no overrides, so first paint matches exactly what
-// shipped before this existed) and again from a useEffect inside the main
-// component whenever the store's layoutOverrides changes. Deliberately
-// DOES NOT move/resize a building's collision footprint yet — only
-// delete-awareness is wired into movement/collision this pass; a moved or
+// building/stall a teacher has deleted from Build Mode, and folding in
+// every Build Mode-placed object marked collides:true (Front 1 Phase 1 —
+// previously a teacher-placed object had zero collision at all, a real
+// "walk straight through a placed building" gap). Called once at module
+// load (with no overrides/objects, so first paint is a safe empty state)
+// and again from a useEffect inside the main component whenever the
+// store's layoutOverrides or worldObjects changes. Deliberately DOES NOT
+// move/resize a building's collision footprint yet — only delete-
+// awareness is wired into movement/collision this pass; a moved or
 // resized building's footprint stays at its original spot/size until a
 // follow-up pass (see the WorldEditor.tsx comment on the same limitation).
-function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>) {
+function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, worldObjects: WorldObject[]) {
   BUILDING_FOOTPRINTS = BUILDINGS.filter((b) => !overrides[b.id]?.deleted).map((b) => {
     const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
     return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
   });
   STATIC_OBSTACLES = [
     ...MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
-    { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
-    { x: 12.8, z: -2.4, radius: 1.05 },
-    { x: -1, z: -10, radius: 0.75 },
+    ...worldObjects.filter((o) => o.collides).map((o) => ({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale) })),
   ];
 }
 
@@ -302,8 +251,7 @@ function blockBuildings(x: number, z: number): [number, number] {
 }
 
 function blockObstacles(x: number, z: number): [number, number] {
-  let [bx, bz] = blockPond(x, z);
-  [bx, bz] = blockBuildings(bx, bz);
+  let [bx, bz] = blockBuildings(x, z);
   for (const o of STATIC_OBSTACLES) {
     const dx = bx - o.x;
     const dz = bz - o.z;
@@ -325,20 +273,6 @@ interface ActiveConversation {
   name: string;
   role?: string;
   steps: ConversationStep[];
-}
-
-function blockPond(x: number, z: number): [number, number] {
-  // The footbridge (moved to lay straight across the pond east-west in
-  // Claudia's layout review, rather than stopping short of the far shore)
-  // needs a corridor exception, or the pond's own circular collision walls
-  // off the middle of a bridge built specifically to cross it.
-  if (Math.abs(z - POND_CENTER.z) <= 1.0 && Math.abs(x - POND_CENTER.x) <= 2.6) return [x, z];
-  const dx = x - POND_CENTER.x;
-  const dz = z - POND_CENTER.z;
-  const dist = Math.hypot(dx, dz);
-  if (dist >= POND_BLOCK_RADIUS || dist === 0) return [x, z];
-  const scale = POND_BLOCK_RADIUS / dist;
-  return [POND_CENTER.x + dx * scale, POND_CENTER.z + dz * scale];
 }
 
 function useKeys() {
@@ -638,24 +572,6 @@ function WanderingNPC({
   );
 }
 
-function Tree({ position, scaleMul = 1 }: { position: [number, number, number]; scaleMul?: number }) {
-  const { scene } = useGLTF('/world/models/forest/tree.glb');
-  const cloned = useMemo(() => scene.clone(), [scene]);
-  return <primitive object={cloned} position={position} scale={TREE_SCALE * scaleMul} />;
-}
-
-function PineTree({ position, scaleMul = 1 }: { position: [number, number, number]; scaleMul?: number }) {
-  const { scene } = useGLTF('/world/models/tree-pine.glb');
-  const cloned = useMemo(() => scene.clone(), [scene]);
-  return <primitive object={cloned} position={position} scale={PINE_SCALE * scaleMul} />;
-}
-
-function Rocks({ position }: { position: [number, number, number] }) {
-  const { scene } = useGLTF('/world/models/forest/rocks.glb');
-  const cloned = useMemo(() => scene.clone(), [scene]);
-  return <primitive object={cloned} position={position} scale={ROCK_SCALE} />;
-}
-
 // Generic loader for the small self-contained prop GLBs (each one ships
 // its own embedded textures, unlike the character/forest packs above, so
 // there's no shared-folder collision risk and no per-pack subfolder needed).
@@ -703,24 +619,6 @@ function CityProp({
     <group position={[position[0], 0, position[1]]} rotation={[0, rotationY, 0]} scale={scale}>
       <primitive object={recentered} />
     </group>
-  );
-}
-
-// Still a simple flat-color pond — no real pond asset with a ready GLB
-// export is in hand yet (the cataloged Free Pond Kit only ships FBX). A
-// small wooden bridge from the teacher's newest prop pack now sits at its
-// edge, which does most of the work of making it read as a real pond
-// rather than a paint swatch. The pond now also blocks movement (see
-// blockPond) so the bridge means something instead of being decorative.
-function Pond() {
-  // Radius brought down from 3 to 2.2 in Claudia's layout review so its
-  // edge clears the East Park Path (x=10, half-width 1.25) with margin —
-  // at 3 the water was drawing over half of Wren's own sidewalk tile.
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[6, 0.02, 6]}>
-      <circleGeometry args={[2.2, 32]} />
-      <meshStandardMaterial color="#5b9bd5" roughness={0.15} metalness={0.1} />
-    </mesh>
   );
 }
 
@@ -963,10 +861,9 @@ function Neighbor({
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
   const inRange = !wandering && dist <= TALK_RADIUS && !dialogueOpen;
   // Direct teacher instruction: the name tag/emote bubble only shows on
-  // hover, not just from being nearby (NOTICE_RADIUS still gates other
-  // things like the building "View/Confirm" card, just not this label
-  // anymore). onPointerOver/onPointerOut below still fire on a touch tap,
-  // so an iPad student sees it by tapping the character, not by proximity.
+  // hover, not just from being nearby. onPointerOver/onPointerOut below
+  // still fire on a touch tap, so an iPad student sees it by tapping the
+  // character, not by proximity.
   const [hovered, setHovered] = useState(false);
   const npcEmote = useMemo(() => ambientEmoteFor(n.id), [n.id]);
   // Direct teacher request: a Neighbor tied to whatever curriculum focus is
@@ -1139,128 +1036,8 @@ function SkyboxBackground() {
   return null;
 }
 
-// Tier 2 of Claudia's guardrails design: rather than an NPC that chases a
-// student down about their assignments (her explicit "incessant reminder"
-// verdict — conditions the reminder itself as aversive and risks
-// generalized world-avoidance), the desk itself "pulls": a soft glowing
-// ring visible from across the park and a distance label naming how many
-// tasks are waiting, both purely additive attraction with zero effect on
-// whether the student can walk away, keep talking to Neighbors, or ignore
-// it entirely. Same visual either way once you're actually using it.
-//
-// Claudia's code review flagged the original version as a genuine
-// accessibility miss: it pulsed forever with no way to pause or skip,
-// which fails this app's own "no unbounded auto-playing animation" rule
-// for a sensory-sensitive population, however soft the motion. Two fixes:
-// prefers-reduced-motion gets a flat, non-animated glow with no exception,
-// and everyone else gets a pulse that decays to a steady glow over the
-// first few seconds — a real, noticeable cue the moment it appears,
-// without motion that runs the entire time a student is anywhere nearby.
-function DeskGlow({ forceReduced }: { forceReduced: boolean }) {
-  const ref = useRef<THREE.Mesh>(null);
-  const [osReducedMotion] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
-  // OS-level prefers-reduced-motion is respected unconditionally, but a
-  // shared/school device a student can't change system settings on needs
-  // an in-app equivalent too — student.worldReduceMotion, set from the
-  // Movement Settings panel.
-  const reducedMotion = osReducedMotion || forceReduced;
-  const startTime = useRef<number | null>(null);
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    const mat = ref.current.material as THREE.MeshBasicMaterial;
-    if (reducedMotion) {
-      mat.opacity = 0.5;
-      return;
-    }
-    if (startTime.current === null) startTime.current = clock.elapsedTime;
-    const decay = Math.max(0, 1 - (clock.elapsedTime - startTime.current) / 6);
-    const t = clock.elapsedTime;
-    mat.opacity = 0.5 + Math.sin(t * 1.6) * 0.2 * decay;
-    const scale = 1 + Math.sin(t * 1.6) * 0.08 * decay;
-    ref.current.scale.set(scale, scale, scale);
-  });
-  return (
-    <mesh ref={ref} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[1.3, 1.75, 32]} />
-      <meshBasicMaterial color="#ffd166" transparent opacity={0.6} depthWrite={false} />
-    </mesh>
-  );
-}
-
-// The in-world stand-in for the old "My Tasks" corner button — walking up
-// and using this opens the 2D task dashboard (subjects, header, Playground)
-// that used to be one tap away everywhere. Same in-range/hover/E-or-tap
-// pattern as a Neighbor, minus the wandering behavior (it's furniture).
-function ComputerDesk({
-  playerPos,
-  onUse,
-  tasksLeft,
-  showGlow,
-  reduceMotion,
-}: {
-  playerPos: THREE.Vector3;
-  onUse: () => void;
-  tasksLeft: number;
-  showGlow: boolean;
-  reduceMotion: boolean;
-}) {
-  const [cx, cz] = COMPUTER_POSITION;
-  const dist = Math.hypot(playerPos.x - cx, playerPos.z - cz);
-  const inRange = dist <= COMPUTER_RADIUS;
-  // Visible from much farther out than the ordinary hover/in-range label —
-  // the whole point of a "pull" is that it can be noticed from well
-  // outside conversation/approach range, same distance a Neighbor's own
-  // NOTICE_RADIUS uses for the same reason.
-  const noticedFar = tasksLeft > 0 && dist <= NOTICE_RADIUS * 1.6;
-  const [hovered, setHovered] = useState(false);
-
-  useEffect(() => {
-    if (!inRange) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'e') onUse(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [inRange, onUse]);
-
-  return (
-    <group position={[cx, 0, cz]}>
-      {tasksLeft > 0 && showGlow && <DeskGlow forceReduced={reduceMotion} />}
-      <Prop path="/world/models/props/desk.glb" position={[0, 0, 0]} scale={FURNITURE_SCALE} />
-      <Prop path="/world/models/props/chair-desk.glb" position={[0.1, 0, 0.2]} rotationY={Math.PI} scale={FURNITURE_SCALE} />
-      <Prop path="/world/models/props/computer-screen.glb" position={[0, 0.684, -0.15]} scale={FURNITURE_SCALE} />
-      <mesh
-        position={[0, 0.8, 0]}
-        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
-        onClick={(e) => { e.stopPropagation(); onUse(); }}
-      >
-        <cylinderGeometry args={[1.1, 1.1, 1.8, 12]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-      {(hovered || inRange || noticedFar) && (
-        <Html center position={[0, 1.5, 0]} style={{ pointerEvents: 'none' }}>
-          <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-            💻 {tasksLeft > 0 ? `${tasksLeft} task${tasksLeft === 1 ? '' : 's'} waiting` : 'Computer'}
-          </div>
-        </Html>
-      )}
-      {inRange && (
-        <Html center position={[0, 1.9, 0]}>
-          <button
-            onClick={onUse}
-            style={{ background: '#5b6b8a', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
-          >
-            My Tasks
-          </button>
-        </Html>
-      )}
-    </group>
-  );
-}
-
-// Same proximity-based label/button pattern as ComputerDesk (walk up, see
-// a label, then a button appears) rather than a raycast hitbox on the
+// Same proximity-based label/button pattern buildings/Neighbors already
+// use (walk up, see a label, then a button appears) rather than a raycast hitbox on the
 // building itself — a building's footprint sits close enough to its own
 // Neighbor (that's the exact clearance this file's real-bbox math just
 // spent a whole pass getting right) that a padded invisible click-cylinder
@@ -1335,31 +1112,6 @@ function Park({
   onBuildingClick: (id: string) => void;
   layoutOverrides: Record<string, LayoutOverride>;
 }) {
-  // A ring of trees around the square's edge, a few pines mixed in for
-  // variety, and a couple of rock clusters — real cataloged CC0 assets
-  // (Kenney Mini Forest + Nature Kit), not primitives.
-  const treeRing = useMemo(() => {
-    const trees: { pos: [number, number, number]; pine: boolean; scale: number }[] = [];
-    const count = 16;
-    // At the buildings' corrected (larger) scale, these 5 ring positions
-    // land inside a building's footprint or on Main Street — Claudia's
-    // scale review measured each one. Skipping them leaves real gaps in
-    // the treeline exactly where the buildings break through it, which
-    // reads as "a town in a clearing" instead of trees growing through walls.
-    const SKIP = new Set([1, 6, 9, 10, 14]);
-    for (let i = 0; i < count; i++) {
-      if (SKIP.has(i)) continue;
-      const angle = (i / count) * Math.PI * 2;
-      const r = GROUND_HALF - 2 + Math.sin(i * 3.1) * 1.5;
-      trees.push({
-        pos: [Math.cos(angle) * r, 0, Math.sin(angle) * r],
-        pine: i % 3 === 0,
-        scale: 0.9 + (i % 4) * 0.15,
-      });
-    }
-    return trees;
-  }, []);
-
   return (
     <group>
       <mesh
@@ -1380,41 +1132,6 @@ function Park({
           <GroundMaterial />
         </Suspense>
       </mesh>
-      <Pond />
-      {/* Straightened to run east-west across the pond's middle (was
-          angled and stopped 1.9 units short of the far shore — a bridge
-          to nowhere) — Claudia's layout review. */}
-      <Prop path="/world/models/props/bridge.glb" position={[6, 0, 6]} rotationY={0} scale={PROP_SCALE.bridge} />
-      {/* Not at [8, 0, -7] / [-6, 0, 5] — those sat right on top of (or at
-          the edge of) Penny and Pip in a verification render (Claudia's
-          review). Moved clear of every Neighbor's talk radius. Second
-          cluster and large_rock repositioned again in the follow-up scale
-          review — the cluster was sitting in open lawn instead of marking
-          a boundary, and large_rock was dead center on the new Main
-          Street. */}
-      <Rocks position={[8, 0, -10]} />
-      <Rocks position={[-2, 0, 9.4]} />
-      <Prop path="/world/models/props/large_rock.glb" position={[12.8, 0, -2.4]} scale={PROP_SCALE.largeRock} />
-      <Prop path="/world/models/props/medium_rock.glb" position={[-1, 0, -10]} scale={PROP_SCALE.mediumRock} />
-      {/* Flowers and mushrooms moved from an even scatter across the open
-          lawn (several sitting on top of the new road network, one inside
-          the store's corrected footprint) into clumps of 2 at the
-          treeline, per Claudia's placement template: decoration belongs
-          at the wild edge, never in the walking corridor, and reads as a
-          real "patch" only when grouped rather than sprinkled evenly. */}
-      {[
-        [-11.8, 2.2], [-12.4, 1.3], [3.2, -10.2], [5.4, -10.0], [-3.4, -10.6], [4, 9],
-      ].map(([x, z], i) => (
-        <Prop key={`flower-${i}`} path="/world/models/props/flower.glb" position={[x, 0, z]} scale={PROP_SCALE.flower} />
-      ))}
-      {[
-        [-11.5, -1.2], [-10.8, -2.6], [-0.8, 10.4], [1, 10],
-      ].map(([x, z], i) => (
-        <Prop key={`mushroom-${i}`} path="/world/models/props/mushroom.glb" position={[x, 0, z]} scale={PROP_SCALE.mushroom} />
-      ))}
-      {treeRing.map((t, i) =>
-        t.pine ? <PineTree key={i} position={t.pos} scaleMul={t.scale} /> : <Tree key={i} position={t.pos} scaleMul={t.scale} />,
-      )}
       {/* Every fixed item below can be deleted from Build Mode (direct
           teacher instruction: "everything can be deleted... including the
           items that were originally placed on the map"), so each is
@@ -1585,7 +1302,7 @@ export default function TownSquare() {
   // STATIC_OBSTACLES) in sync with Build Mode edits, including a teacher's
   // edit landing live from another tab/device via Supabase realtime — see
   // recomputeCollisionLayout's own comment above.
-  useEffect(() => { recomputeCollisionLayout(layoutOverrides); }, [layoutOverrides]);
+  useEffect(() => { recomputeCollisionLayout(layoutOverrides, worldObjects); }, [layoutOverrides, worldObjects]);
   const focuses = useStore((s) => s.focuses);
   // Roster tab (World Editor): a teacher's cosmetic custom title per
   // hand-authored Neighbor/Townsperson id — shown next to their name
@@ -2207,13 +1924,6 @@ export default function TownSquare() {
               />
             );
           })}
-          <ComputerDesk
-            playerPos={playerPos}
-            tasksLeft={totalTasksLeft}
-            showGlow={student.worldShowDeskGlow}
-            reduceMotion={student.worldReduceMotion}
-            onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }}
-          />
           {BUILDINGS.filter((b) => !layoutOverrides[b.id]?.deleted).map((b) => {
             const viewPath = BUILDING_VIEWS[b.id];
             return (

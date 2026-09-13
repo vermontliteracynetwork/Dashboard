@@ -343,6 +343,12 @@ create table if not exists world_objects (
   tint_color text,
   created_at timestamptz not null default now()
 );
+-- Whether a placed object blocks movement — added after the table already
+-- had live rows, so it's a nullable add-on column: null/false means
+-- walk-through (every object placed before this existed), true means it
+-- collides. See types.ts's WorldObject.collides comment for why old
+-- objects deliberately aren't retroactively defaulted to true.
+alter table world_objects add column if not exists collides boolean;
 -- RLS + realtime for this table are granted by the generic loops further
 -- down this file (the tables[] arrays) — 'world_objects' is added there,
 -- not here, so this table follows the exact same anon-read/write,

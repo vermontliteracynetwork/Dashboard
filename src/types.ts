@@ -580,7 +580,7 @@ export interface Transaction {
 // every student sees the same real, live town. Rendered by the same
 // WorldObjectRenderer both the editor and the real student-facing scene
 // use, so what a teacher builds is exactly what a student walks around in.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'
@@ -591,6 +591,13 @@ export interface WorldObject {
   rotationY: number; // radians
   scale: number; // uniform scale multiplier
   tintColor?: string; // hex color multiplied onto the model's material — the v1 "retexture" (arbitrary UV re-texturing is a later, bigger pass)
+  // Whether this object blocks student/NPC movement (a real, generic-
+  // circle obstacle in TownSquare's collision system). Undefined/false for
+  // every object placed before this field existed — Claudia's explicit
+  // guardrail against retroactively trapping a student under a building
+  // placed back when nothing collided — so only NEWLY placed objects
+  // default to colliding; an older object needs a teacher to opt it in.
+  collides?: boolean;
   createdAt: string; // ISO
 }
 

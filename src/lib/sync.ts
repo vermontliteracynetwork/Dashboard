@@ -314,6 +314,7 @@ const rowToWorldObject = (r: Row): WorldObject => ({
   rotationY: r.rotation_y ?? 0,
   scale: r.scale ?? 1,
   tintColor: r.tint_color ?? undefined,
+  collides: r.collides ?? undefined,
   createdAt: r.created_at,
 });
 const worldObjectToRow = (o: WorldObject): Row => ({
@@ -326,6 +327,7 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   rotation_y: o.rotationY,
   scale: o.scale,
   tint_color: o.tintColor ?? null,
+  collides: o.collides ?? null,
   created_at: o.createdAt,
 });
 
