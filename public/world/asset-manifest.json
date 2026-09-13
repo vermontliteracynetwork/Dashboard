@@ -1,6 +1,266 @@
 {
-  "generatedAt": "2026-09-13T14:30:22.223Z",
+  "generatedAt": "2026-09-13T14:37:56.580Z",
   "assets": [
+    {
+      "path": "/world/models/aquarium/anglerfish.glb",
+      "label": "Anglerfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/armored-catfish.glb",
+      "label": "Armored Catfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/betta.glb",
+      "label": "Betta",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/black-lion-fish.glb",
+      "label": "Black Lion Fish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/blobfish.glb",
+      "label": "Blobfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/blue-goldfish.glb",
+      "label": "Blue Goldfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/blue-tang.glb",
+      "label": "Blue Tang",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/boat.glb",
+      "label": "Boat",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/butterfly-fish.glb",
+      "label": "Butterfly Fish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/cardinal-fish.glb",
+      "label": "Cardinal Fish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/clownfish.glb",
+      "label": "Clownfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/coral-grouper.glb",
+      "label": "Coral Grouper",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/cowfish.glb",
+      "label": "Cowfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/dock-long-no-rope.glb",
+      "label": "Dock Long No Rope",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/dock-long.glb",
+      "label": "Dock Long",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/dock-stairs.glb",
+      "label": "Dock Stairs",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/dock-wide.glb",
+      "label": "Dock Wide",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/fishing-rod-lvl1.glb",
+      "label": "Fishing Rod Lvl1",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/fishing-rod-lvl2.glb",
+      "label": "Fishing Rod Lvl2",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/fishing-rod-lvl3.glb",
+      "label": "Fishing Rod Lvl3",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/fishing-rod-lvl4.glb",
+      "label": "Fishing Rod Lvl4",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/fishing-rod-lvl5.glb",
+      "label": "Fishing Rod Lvl5",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/flatfish.glb",
+      "label": "Flatfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/flower-horn.glb",
+      "label": "Flower Horn",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/goblin-shark.glb",
+      "label": "Goblin Shark",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/goldfish.glb",
+      "label": "Goldfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/humphead.glb",
+      "label": "Humphead",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/koi.glb",
+      "label": "Koi",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/lionfish.glb",
+      "label": "Lionfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/lure-1.glb",
+      "label": "Lure 1",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/lure-2.glb",
+      "label": "Lure 2",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/lure-3.glb",
+      "label": "Lure 3",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/lure-4.glb",
+      "label": "Lure 4",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/lure-5.glb",
+      "label": "Lure 5",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/lure-6.glb",
+      "label": "Lure 6",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/mandarin-fish.glb",
+      "label": "Mandarin Fish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/moorish-idol.glb",
+      "label": "Moorish Idol",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/parrot-fish.glb",
+      "label": "Parrot Fish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/piranha.glb",
+      "label": "Piranha",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/puffer.glb",
+      "label": "Puffer",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/red-snapper.glb",
+      "label": "Red Snapper",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/royal-gramma.glb",
+      "label": "Royal Gramma",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/shark.glb",
+      "label": "Shark",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/sunfish.glb",
+      "label": "Sunfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/swordfish.glb",
+      "label": "Swordfish",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/tang.glb",
+      "label": "Tang",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/tetra.glb",
+      "label": "Tetra",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/tuna.glb",
+      "label": "Tuna",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/turbot.glb",
+      "label": "Turbot",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/worm.glb",
+      "label": "Worm",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/yellow-tang.glb",
+      "label": "Yellow Tang",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/zebra-clown-fish.glb",
+      "label": "Zebra Clown Fish",
+      "category": "aquarium"
+    },
     {
       "path": "/world/models/buildings/bank.glb",
       "label": "Bank",
@@ -202,6 +462,126 @@
       "category": "creatures"
     },
     {
+      "path": "/world/models/creatures/bird-suzume-eat.glb",
+      "label": "Bird Suzume Eat",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/bird-suzume-fly-in.glb",
+      "label": "Bird Suzume Fly In",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/bird-suzume-fly-out.glb",
+      "label": "Bird Suzume Fly Out",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/bird-suzume-fly.glb",
+      "label": "Bird Suzume Fly",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/bird-suzume-idle-1.glb",
+      "label": "Bird Suzume Idle 1",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/bird-suzume-idle-2.glb",
+      "label": "Bird Suzume Idle 2",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/bird-suzume-walk.glb",
+      "label": "Bird Suzume Walk",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-alien.glb",
+      "label": "Blob Alien",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-birb.glb",
+      "label": "Blob Birb",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-cactoro.glb",
+      "label": "Blob Cactoro",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-cat.glb",
+      "label": "Blob Cat",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-chicken.glb",
+      "label": "Blob Chicken",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-dog.glb",
+      "label": "Blob Dog",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-fish.glb",
+      "label": "Blob Fish",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-green-blob.glb",
+      "label": "Blob Green Blob",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-green-spiky-blob.glb",
+      "label": "Blob Green Spiky Blob",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-mushnub-evolved.glb",
+      "label": "Blob Mushnub Evolved",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-mushnub.glb",
+      "label": "Blob Mushnub",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-ninja.glb",
+      "label": "Blob Ninja",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-orc.glb",
+      "label": "Blob Orc",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-pigeon.glb",
+      "label": "Blob Pigeon",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-pink-blob.glb",
+      "label": "Blob Pink Blob",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-wizard.glb",
+      "label": "Blob Wizard",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/blob-yeti.glb",
+      "label": "Blob Yeti",
+      "category": "creatures"
+    },
+    {
       "path": "/world/models/creatures/flying-Alpaking.gltf",
       "label": "Flying Alpaking",
       "category": "creatures"
@@ -285,6 +665,71 @@
       "path": "/world/models/creatures/flying-Tribal.gltf",
       "label": "Flying Tribal",
       "category": "creatures"
+    },
+    {
+      "path": "/world/models/farm/barn.glb",
+      "label": "Barn",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/big-barn.glb",
+      "label": "Big Barn",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/chicken-coop.glb",
+      "label": "Chicken Coop",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/fence.glb",
+      "label": "Fence",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/fence2.glb",
+      "label": "Fence2",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/open-barn.glb",
+      "label": "Open Barn",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/silo-house.glb",
+      "label": "Silo House",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/silo.glb",
+      "label": "Silo",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/small-barn.glb",
+      "label": "Small Barn",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/tower-windmill.glb",
+      "label": "Tower Windmill",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/water-tower.glb",
+      "label": "Water Tower",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/well.glb",
+      "label": "Well",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/windmill.glb",
+      "label": "Windmill",
+      "category": "farm"
     },
     {
       "path": "/world/models/food/FoodIngredient_Avocado.gltf",
@@ -975,6 +1420,616 @@
       "path": "/world/models/holiday/wreath.glb",
       "label": "Wreath",
       "category": "holiday"
+    },
+    {
+      "path": "/world/models/interior/bathroom-bathtub.glb",
+      "label": "Bathroom Bathtub",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-mirror1.glb",
+      "label": "Bathroom Mirror1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-mirror2.glb",
+      "label": "Bathroom Mirror2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-shower1.glb",
+      "label": "Bathroom Shower1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-sink.glb",
+      "label": "Bathroom Sink",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-toilet-paper-pile.glb",
+      "label": "Bathroom Toilet Paper Pile",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-toilet-paper.glb",
+      "label": "Bathroom Toilet Paper",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-toilet.glb",
+      "label": "Bathroom Toilet",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-toilet2.glb",
+      "label": "Bathroom Toilet2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-towel.glb",
+      "label": "Bathroom Towel",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bathroom-washing-machine.glb",
+      "label": "Bathroom Washing Machine",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bed-bunk.glb",
+      "label": "Bed Bunk",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bed-king.glb",
+      "label": "Bed King",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bed-single.glb",
+      "label": "Bed Single",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/bookshelf.glb",
+      "label": "Bookshelf",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/carpet-1.glb",
+      "label": "Carpet 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/carpet-2.glb",
+      "label": "Carpet 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/carpet-round.glb",
+      "label": "Carpet Round",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/chair-1.glb",
+      "label": "Chair 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/chair-2.glb",
+      "label": "Chair 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/chair-3.glb",
+      "label": "Chair 3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/chair-4.glb",
+      "label": "Chair 4",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/column-round1.glb",
+      "label": "Column Round1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/column-round2.glb",
+      "label": "Column Round2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/column-round3.glb",
+      "label": "Column Round3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/column-square-big.glb",
+      "label": "Column Square Big",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/column-square-small.glb",
+      "label": "Column Square Small",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-l.glb",
+      "label": "Couch L",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-large1.glb",
+      "label": "Couch Large1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-large2.glb",
+      "label": "Couch Large2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-large3.glb",
+      "label": "Couch Large3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-medium1.glb",
+      "label": "Couch Medium1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-medium2.glb",
+      "label": "Couch Medium2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-small1.glb",
+      "label": "Couch Small1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/couch-small2.glb",
+      "label": "Couch Small2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/curtains-double.glb",
+      "label": "Curtains Double",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/curtains-single.glb",
+      "label": "Curtains Single",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-1.glb",
+      "label": "Door 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-2.glb",
+      "label": "Door 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-3.glb",
+      "label": "Door 3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-4.glb",
+      "label": "Door 4",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-5.glb",
+      "label": "Door 5",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-6.glb",
+      "label": "Door 6",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-7.glb",
+      "label": "Door 7",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-8.glb",
+      "label": "Door 8",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-9.glb",
+      "label": "Door 9",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/door-double.glb",
+      "label": "Door Double",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/drawer-1.glb",
+      "label": "Drawer 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/drawer-2.glb",
+      "label": "Drawer 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/drawer-3.glb",
+      "label": "Drawer 3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/drawer-4.glb",
+      "label": "Drawer 4",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/drawer-5.glb",
+      "label": "Drawer 5",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/fireplace.glb",
+      "label": "Fireplace",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/fork.glb",
+      "label": "Fork",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-1.glb",
+      "label": "Houseplant 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-2.glb",
+      "label": "Houseplant 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-3.glb",
+      "label": "Houseplant 3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-4.glb",
+      "label": "Houseplant 4",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-5.glb",
+      "label": "Houseplant 5",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-6.glb",
+      "label": "Houseplant 6",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-7.glb",
+      "label": "Houseplant 7",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/houseplant-8.glb",
+      "label": "Houseplant 8",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-1-drawers.glb",
+      "label": "Kitchen 1 Drawers",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-2-drawers.glb",
+      "label": "Kitchen 2 Drawers",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-3-drawers.glb",
+      "label": "Kitchen 3 Drawers",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-cabinet-small.glb",
+      "label": "Kitchen Cabinet Small",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-cabinet1.glb",
+      "label": "Kitchen Cabinet1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-cabinet2.glb",
+      "label": "Kitchen Cabinet2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-fridge.glb",
+      "label": "Kitchen Fridge",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-oven-large.glb",
+      "label": "Kitchen Oven Large",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-oven.glb",
+      "label": "Kitchen Oven",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/kitchen-sink.glb",
+      "label": "Kitchen Sink",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-ceiling-single.glb",
+      "label": "Light Ceiling Single",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-ceiling1.glb",
+      "label": "Light Ceiling1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-ceiling2.glb",
+      "label": "Light Ceiling2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-ceiling3.glb",
+      "label": "Light Ceiling3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-ceiling4.glb",
+      "label": "Light Ceiling4",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-ceiling5.glb",
+      "label": "Light Ceiling5",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-ceiling6.glb",
+      "label": "Light Ceiling6",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-chandelier.glb",
+      "label": "Light Chandelier",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-cube.glb",
+      "label": "Light Cube",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-cube2.glb",
+      "label": "Light Cube2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-desk.glb",
+      "label": "Light Desk",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-floor1.glb",
+      "label": "Light Floor1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-floor2.glb",
+      "label": "Light Floor2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-floor3.glb",
+      "label": "Light Floor3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-floor4.glb",
+      "label": "Light Floor4",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-icosahedron.glb",
+      "label": "Light Icosahedron",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-icosahedron2.glb",
+      "label": "Light Icosahedron2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-small.glb",
+      "label": "Light Small",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-stand1.glb",
+      "label": "Light Stand1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/light-stand2.glb",
+      "label": "Light Stand2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/night-stand-1.glb",
+      "label": "Night Stand 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/night-stand-2.glb",
+      "label": "Night Stand 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/night-stand-3.glb",
+      "label": "Night Stand 3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/plate-1.glb",
+      "label": "Plate 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/plate-2.glb",
+      "label": "Plate 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/plate-3.glb",
+      "label": "Plate 3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/shelf-1.glb",
+      "label": "Shelf 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/shelf-2.glb",
+      "label": "Shelf 2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/shelf-large.glb",
+      "label": "Shelf Large",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/shelf-small1.glb",
+      "label": "Shelf Small1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/shelf-small2.glb",
+      "label": "Shelf Small2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/shelf-small3.glb",
+      "label": "Shelf Small3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/spoon.glb",
+      "label": "Spoon",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/stool.glb",
+      "label": "Stool",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/table-round-large.glb",
+      "label": "Table Round Large",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/table-round-small.glb",
+      "label": "Table Round Small",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/table-round-small2.glb",
+      "label": "Table Round Small2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/trashcan-cylindric.glb",
+      "label": "Trashcan Cylindric",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/trashcan-green.glb",
+      "label": "Trashcan Green",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/trashcan-large.glb",
+      "label": "Trashcan Large",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/trashcan-small1.glb",
+      "label": "Trashcan Small1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/trashcan-small2.glb",
+      "label": "Trashcan Small2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-large1.glb",
+      "label": "Window Large1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-large2.glb",
+      "label": "Window Large2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-round1.glb",
+      "label": "Window Round1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-round2.glb",
+      "label": "Window Round2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-round3.glb",
+      "label": "Window Round3",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-small1.glb",
+      "label": "Window Small1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-small2.glb",
+      "label": "Window Small2",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/window-small3.glb",
+      "label": "Window Small3",
+      "category": "interior"
     },
     {
       "path": "/world/models/market/stall-green.glb",
@@ -3250,6 +4305,151 @@
       "path": "/world/models/roads/road-straight.glb",
       "label": "Road Straight",
       "category": "roads"
+    },
+    {
+      "path": "/world/models/structures/modular-chimney.glb",
+      "label": "Modular Chimney",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-door01.glb",
+      "label": "Modular Door01",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-door02.glb",
+      "label": "Modular Door02",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-fence01.glb",
+      "label": "Modular Fence01",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-fence02.glb",
+      "label": "Modular Fence02",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-fencepillar.glb",
+      "label": "Modular Fencepillar",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-floor.glb",
+      "label": "Modular Floor",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-helpstairs.glb",
+      "label": "Modular Helpstairs",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-pillar.glb",
+      "label": "Modular Pillar",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-roof.glb",
+      "label": "Modular Roof",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-signpost01.glb",
+      "label": "Modular Signpost01",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-signpost02.glb",
+      "label": "Modular Signpost02",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-signs01.glb",
+      "label": "Modular Signs01",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-signs02.glb",
+      "label": "Modular Signs02",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-stairs.glb",
+      "label": "Modular Stairs",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-streetlamp.glb",
+      "label": "Modular Streetlamp",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-wall.glb",
+      "label": "Modular Wall",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-window01.glb",
+      "label": "Modular Window01",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/modular-window02.glb",
+      "label": "Modular Window02",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-bank.glb",
+      "label": "Pack Bank",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-flat.glb",
+      "label": "Pack Flat",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-flat2.glb",
+      "label": "Pack Flat2",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-hospital.glb",
+      "label": "Pack Hospital",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-house.glb",
+      "label": "Pack House",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-house2.glb",
+      "label": "Pack House2",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-house3.glb",
+      "label": "Pack House3",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-house4.glb",
+      "label": "Pack House4",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-house5.glb",
+      "label": "Pack House5",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/pack-shop.glb",
+      "label": "Pack Shop",
+      "category": "structures"
     },
     {
       "path": "/world/models/tree-pine.glb",
