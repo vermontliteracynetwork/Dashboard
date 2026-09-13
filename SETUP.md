@@ -17,7 +17,7 @@ Total time: ~15 minutes.
 
 1. In your new project, open **SQL Editor** (left sidebar) → **New query**.
 2. Open [`supabase/schema.sql`](./supabase/schema.sql) from this repo, copy its entire contents, and paste into the SQL editor.
-3. Click **Run**. You should see "Success. No rows returned." This creates every table, sets up permissions, turns on real-time sync, and seeds the four starter badges.
+3. Click **Run**. You should see "Success. No rows returned." This creates every table, sets up permissions, turns on real-time sync, seeds the four starter badges, and seeds an 8-week Common Core-aligned Focus scope & sequence for math and literacy (see `supabase/schema.sql`'s "Starter Focus scope & sequence" section — fully teacher-editable from Assignments → Focuses afterwards).
 4. It's safe to re-run this later (e.g. after pulling an update to `schema.sql`) — every statement is written to not fail on a second run.
 
 ## 3. Create the one teacher account

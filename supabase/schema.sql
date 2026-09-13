@@ -541,3 +541,38 @@ insert into badges (id, name, description, icon) values
   ('great-correction', 'Great Correction-Making', 'Fixed a missed question with a smile', '💪'),
   ('explorer', 'Explorer', 'Tried a new tool or launch pad item', '🧭')
 on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Starter "Focus" scope & sequence (teacher-editable/replaceable afterwards
+-- from Assignments → Focuses) — Common Core aligned, 8 weekly focuses per
+-- lane, ordered to match the real skill progression in UFLI Foundations
+-- (literacy: alphabet code → short vowels → digraphs → silent-e → r-
+-- controlled → vowel teams → diphthongs → affixes) and The Math Learning
+-- Center's Bridges Intervention volumes (math: place value → add/subtract
+-- facts → multi-digit add/subtract → word problems → multiply/divide facts
+-- → multi-digit multiply/divide → fractions → money & decimals, the last of
+-- which lines up directly with the in-world Bank). Non-overlapping weekly
+-- date ranges starting today, so getCurrentFocus() advances through the
+-- sequence on its own as the weeks pass, with no teacher action required —
+-- she can still swap, skip, or end any of them early at any time.
+-- ---------------------------------------------------------------------------
+
+insert into focuses (id, subject, category, title, detail, word_list, duration_mode, start_date, end_date) values
+  ('focus-lit-01', 'literacy', 'Phonics pattern', 'Alphabet Code', 'CCSS.ELA-LITERACY.RF.K.3.A — matching each consonant and vowel to its most common sound.', array['cat','sun','pig','mom','bug'], 'dateRange', current_date + 0, current_date + 6),
+  ('focus-lit-02', 'literacy', 'Phonics pattern', 'Short Vowels', 'CCSS.ELA-LITERACY.RF.K.3.B — short vowel sounds in simple consonant-vowel-consonant words.', array['bed','hop','six','cup','fan'], 'dateRange', current_date + 7, current_date + 13),
+  ('focus-lit-03', 'literacy', 'Phonics pattern', 'Digraphs (sh, ch, th, wh)', 'CCSS.ELA-LITERACY.RF.1.3.A — two letters that make one new sound together.', array['ship','chin','that','when','fish'], 'dateRange', current_date + 14, current_date + 20),
+  ('focus-lit-04', 'literacy', 'Phonics pattern', 'Silent-E Pattern', 'CCSS.ELA-LITERACY.RF.1.3.C — a silent e at the end makes the vowel before it say its own name.', array['cake','hope','five','cute','bike'], 'dateRange', current_date + 21, current_date + 27),
+  ('focus-lit-05', 'literacy', 'Phonics pattern', 'R-Controlled Vowels', 'CCSS.ELA-LITERACY.RF.2.3.B — ar, or, er, ir, and ur change the vowel sound right before them.', array['car','for','her','bird','turn'], 'dateRange', current_date + 28, current_date + 34),
+  ('focus-lit-06', 'literacy', 'Phonics pattern', 'Vowel Teams', 'CCSS.ELA-LITERACY.RF.2.3.C — two vowels working together to spell one sound.', array['rain','leaf','boat','tree','play'], 'dateRange', current_date + 35, current_date + 41),
+  ('focus-lit-07', 'literacy', 'Phonics pattern', 'Diphthongs', 'CCSS.ELA-LITERACY.RF.2.3.A — oi/oy and ou/ow, where the vowel sound glides from one to another.', array['coin','boy','loud','cow','join'], 'dateRange', current_date + 42, current_date + 48),
+  ('focus-lit-08', 'literacy', 'Prefix/suffix (affix)', 'Prefixes & Suffixes', 'CCSS.ELA-LITERACY.L.3.4.B — word parts added to the front or end that change a word''s meaning.', array['unhappy','replay','careful','jumping','slowly'], 'dateRange', current_date + 49, current_date + 55),
+
+  ('focus-math-01', 'math', 'Fact fluency', 'Counting & Place Value', 'CCSS.MATH.CONTENT.K.NBT.A.1 — ones and tens, and what each digit in a number is worth.', array['ones','tens','count','more','fewer'], 'dateRange', current_date + 0, current_date + 6),
+  ('focus-math-02', 'math', 'Fact fluency', 'Addition & Subtraction', 'CCSS.MATH.CONTENT.1.OA.C.6 — adding and subtracting fluently within 20.', array['sum','difference','plus','minus','total'], 'dateRange', current_date + 7, current_date + 13),
+  ('focus-math-03', 'math', 'Math strategy', 'Multi-Digit Add & Subtract', 'CCSS.MATH.CONTENT.2.NBT.B.7 — regrouping across the ones, tens, and hundreds place.', array['regroup','borrow','carry','digit','column'], 'dateRange', current_date + 14, current_date + 20),
+  ('focus-math-04', 'math', 'Word problems', 'Problem Situations', 'CCSS.MATH.CONTENT.1.OA.A.1 — turning a story into an addition or subtraction problem.', array['altogether','left','compare','join','separate'], 'dateRange', current_date + 21, current_date + 27),
+  ('focus-math-05', 'math', 'Fact fluency', 'Multiplication & Division', 'CCSS.MATH.CONTENT.3.OA.A.1 — equal groups, and splitting a total into equal shares.', array['groups','times','product','share','equal'], 'dateRange', current_date + 28, current_date + 34),
+  ('focus-math-06', 'math', 'Math strategy', 'Multi-Digit Multiply & Divide', 'CCSS.MATH.CONTENT.4.NBT.B.5 — multiplying and dividing larger numbers step by step.', array['array','remainder','factor','quotient','multiply'], 'dateRange', current_date + 35, current_date + 41),
+  ('focus-math-07', 'math', 'Math strategy', 'Fractions', 'CCSS.MATH.CONTENT.3.NF.A.1 — a fraction as equal-sized parts of one whole.', array['half','whole','numerator','denominator','equal parts'], 'dateRange', current_date + 42, current_date + 48),
+  ('focus-math-08', 'math', 'Money & decimals', 'Money & Decimals', 'CCSS.MATH.CONTENT.4.MD.A.2 — counting money and reading decimal amounts, the same math the in-world Bank uses.', array['dollar','cent','decimal','change','cost'], 'dateRange', current_date + 49, current_date + 55)
+on conflict (id) do nothing;
