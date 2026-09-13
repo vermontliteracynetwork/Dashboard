@@ -290,11 +290,38 @@ const ROAD_TILES: { id: string; position: [number, number]; rotationY: number }[
     id: `west-path-${i}`, position: [-8, z] as [number, number], rotationY: 0,
   })),
   // East Park Path — north-south down the east side, from Penny's corner
-  // to Wren's. x=10 (not 8) so its edge clears the pond.
-  ...[-3.5, -1, 1.5, 4, 6.5].map((z, i) => ({
+  // to Wren's, plus one more tile reaching toward the Post Office (added
+  // in Claudia's follow-up audit: the Post Office and Welcome Center were
+  // both pushed further from their original 1.25x-radial spot in the same
+  // real-bbox clearance fixes that moved Bank/Store/Welcome Center, and
+  // the road network never got extended to follow — the exact "roads in
+  // logical connected places" complaint this whole rebuild exists to
+  // answer, just recurring at the two corners fixed last).
+  //
+  // z=7.05 (not a clean round number) is deliberate: the Post Office's
+  // real rotated footprint (half-extents ~1.99 x 1.89 at its 4.1x scale)
+  // reaches further than a naive nearest-tile distance check suggests.
+  // This exact point was solved for directly (walked in from the Post
+  // Office along its own "face the park" direction until clearing its
+  // real footprint by a real margin, the same rotated-rectangle math
+  // behind every other clearance fix this session) rather than
+  // eyeballed, and lands at a real ~0.37-unit clearance.
+  ...[-3.5, -1, 1.5, 4, 6.5, 7.05].map((z, i) => ({
     id: `east-path-${i}`, position: [10, z] as [number, number], rotationY: 0,
   })),
 ];
+
+// The Welcome Center got no equivalent extension: its own real footprint
+// (half-extents ~3.29 x 2.87 at its 55x scale — huge relative to its
+// modest visual height, a quirk of this specific tiny-native-mesh model
+// rather than a normal building's proportions) turns out to reach nearly
+// all the way back to Main Street itself along its own "face the park"
+// direction — the same math above puts the nearest safe, non-overlapping
+// point only ~0.5 units short of Main Street's own westernmost tile, too
+// close to read as a real connecting path rather than a redundant one.
+// Flagged rather than forced: the actual fix here is shrinking this one
+// building's disproportionate footprint, not adding a road tile, and
+// that's a separate change worth its own pass, not a same-day add-on.
 
 // Two more real, license-verified props (KayKit Mini-Game Variety Pack,
 // CC0 — the same pack the bridge/flower/mushroom/rocks came from) to keep
@@ -689,9 +716,12 @@ function WanderingNPC({
           )}
           {inRange && (
             <Html center position={[0, 2.15, 0]}>
+              {/* #c2593f (the original orange) only cleared 4.38:1 white-on-
+                  orange contrast — under WCAG AA's 4.5:1 minimum for 14px
+                  bold text. #a8492f keeps the same hue but clears 4.5:1. */}
               <button
                 onClick={interaction.onTalk}
-                style={{ background: '#c2593f', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+                style={{ background: '#a8492f', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
               >
                 Talk
               </button>
@@ -1054,7 +1084,7 @@ function Neighbor({
         <Html center position={[0, 2.15, 0]}>
           <button
             onClick={onTalk}
-            style={{ background: '#c2593f', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+            style={{ background: '#a8492f', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
           >
             Talk
           </button>
@@ -1471,7 +1501,7 @@ function CameraLookButtons({ cameraLook, side }: { cameraLook: React.RefObject<n
     forceTick((n) => n + 1);
   };
   return (
-    <div style={{ position: 'absolute', bottom: 16, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+    <div style={{ position: 'absolute', bottom: 90, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         <button
           onClick={() => turn(-1)}
@@ -1915,31 +1945,25 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {/* Not the shared .whatnow-fab/.help-fab corner spots — Town Square is
-          the one screen with a D-pad occupying a whole bottom corner, so
-          those fixed positions would sit right on top of it depending on
-          which side the student has it set to. Placed somewhere that's
-          always clear instead: what matters per Claudia's review is that
-          both are reachable from here at all, not the exact pixel match. */}
-      <button
-        onClick={() => setShowWhatNow(true)}
-        aria-label="What do I do?"
-        title="What do I do?"
-        style={{ position: 'fixed', top: 70, left: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: 'var(--blue, #4a90d9)', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
-      >
+      {/* Claudia's full-game audit: this file used to place its own
+          What-do-I-do?/Help buttons at one-off spots (top-left/top-right)
+          specifically to dodge the D-pad, which broke WCAG 3.2.3's
+          "same control, same place, every screen" rule the rest of the
+          app follows via .whatnow-fab/.help-fab. The actual fix is
+          shrinking the real conflict instead of moving the buttons: the
+          D-pad below is now raised off the very bottom edge, leaving both
+          standard corners free for the exact same shared classes every
+          other student screen uses. */}
+      <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
         ❓
       </button>
-      <button
-        onClick={() => setShowHelp(true)}
-        aria-label="Help"
-        style={{ position: 'fixed', top: 280, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: 'var(--orange, #e2775c)', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
-      >
+      <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">
         🧘
       </button>
 
       <button
         onClick={() => setSettingsOpen(true)}
-        style={{ position: 'fixed', top: 82, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 8 }}
+        style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 8 }}
         aria-label="Movement settings"
       >
         <img src="/world/ui/btn-settings.png" alt="" style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
@@ -1952,7 +1976,7 @@ export default function TownSquare() {
           renderer. */}
       <button
         onClick={() => setMapView((v) => !v)}
-        style={{ position: 'fixed', top: 148, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: mapView ? '#e2775c' : '#3e7c6b', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        style={{ position: 'fixed', top: 82, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: mapView ? '#e2775c' : '#3e7c6b', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
         aria-label={mapView ? 'Close map' : 'Open map'}
         title={mapView ? 'Close map' : 'Map'}
       >
@@ -1965,7 +1989,7 @@ export default function TownSquare() {
           the shop tabs/cart were still one click away from there). */}
       <button
         onClick={() => setShowInventory((v) => !v)}
-        style={{ position: 'fixed', top: 214, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: showInventory ? '#e2775c' : '#c2953f', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        style={{ position: 'fixed', top: 148, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: showInventory ? '#e2775c' : '#c2953f', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
         aria-label={showInventory ? 'Close My Stuff' : 'My stuff'}
         title="My Stuff"
       >
@@ -2067,7 +2091,7 @@ export default function TownSquare() {
         </Suspense>
       </Canvas>
 
-      <div style={{ position: 'absolute', [dpadSide]: 16, bottom: 16, width: 170, height: 170, zIndex: 10 }}>
+      <div style={{ position: 'absolute', [dpadSide]: 16, bottom: 90, width: 170, height: 170, zIndex: 10 }}>
         <DpadButton rotate={-90} label="Up" dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
         <DpadButton rotate={90} label="Down" dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
         <DpadButton rotate={180} label="Left" dx={-1} dz={0} style={{ left: 0, top: 57 }} touchDir={touchDir} />
@@ -2082,10 +2106,14 @@ export default function TownSquare() {
           between hubs (Claudia's review: this was the one screen without
           any fixed fallback at all, which breaks that consistency for a
           population that relies on it). Sized well under the corner FABs
-          so it doesn't compete with the desk as the main affordance. */}
+          so it doesn't compete with the desk as the main affordance.
+          Stacked just above the otherSide corner's now-standard FAB
+          (whatnow or help, whichever lands there) rather than sharing its
+          spot, now that both bottom corners are real FABs on every load
+          instead of only whichever one the D-pad wasn't using. */}
       <button
         onClick={() => navigate('/student/home')}
-        style={{ position: 'fixed', bottom: 16, [otherSide]: 16, zIndex: 55, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
+        style={{ position: 'fixed', bottom: 82, [otherSide]: 16, zIndex: 55, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
         aria-label="Back to task dashboard"
         title="Back to task dashboard"
       >
