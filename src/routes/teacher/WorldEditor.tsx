@@ -447,33 +447,40 @@ function SelectedObjectToolbar({
           )}
 
           {openPopover === 'color' && (
-            <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 210 }}>
+            <div className="stack" style={{ gap: 8, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 232 }}>
               {/* Claudia's focus-group audit: a native <input type=color>
                   as the PRIMARY control launched the browser/OS's own
                   color-picker dialog — the single biggest "this isn't a
                   game" tell besides the category dropdown. A curated
                   swatch tray (Sims 4's own approach) is the primary
                   control now; the native picker survives only as a small
-                  "more colors" fallback. */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+                  "more colors" fallback. Swatch buttons and the fallback
+                  input are both a full 44x44 tap area (Claudia's
+                  verification pass flagged the first version at 28px/32px)
+                  — the visible color circle inside stays smaller via
+                  padding, so it doesn't look oversized while still being
+                  easy to tap. */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                 {TINT_SWATCHES.map((c) => (
                   <button
                     key={c}
                     title={c}
                     aria-label={`Tint ${c}`}
                     onClick={() => updateWorldObject(selected.id, { tintColor: c })}
-                    style={{ width: 28, height: 28, borderRadius: 8, border: selected.tintColor === c ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: c, cursor: 'pointer' }}
-                  />
+                    style={{ width: 44, height: 44, padding: 6, borderRadius: 10, border: selected.tintColor === c ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: '#fff', cursor: 'pointer' }}
+                  >
+                    <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: 6, background: c }} />
+                  </button>
                 ))}
               </div>
               <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', margin: 0 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', margin: 0 }}>
                   More colors
                   <input
                     type="color"
                     value={selected.tintColor ?? '#ffffff'}
                     onChange={(e) => updateWorldObject(selected.id, { tintColor: e.target.value })}
-                    style={{ minHeight: 32, width: 32, padding: 0 }}
+                    style={{ minHeight: 44, minWidth: 44, padding: 2 }}
                   />
                 </label>
                 {selected.tintColor && (
@@ -630,7 +637,13 @@ export default function WorldEditor() {
       // in a row without a round trip back to the catalog every time,
       // matching Minecraft's own hotbar-stays-selected behavior. The
       // catalog's Cancel button (shown while armed) is still the way to
-      // disarm deliberately.
+      // disarm deliberately. ghostPos IS cleared, though — leaving it set
+      // to this exact spot meant the next render's footprintOverlap check
+      // found the object we just placed (distance 0) and flashed a false
+      // "overlapping itself" warning with a doubled ghost on every single
+      // placement until the pointer moved again (Claudia's verification
+      // pass). It regenerates correctly on the next pointer move/tap.
+      setGhostPos(null);
       setSelectedId(id);
     } else {
       setSelectedId(null);
