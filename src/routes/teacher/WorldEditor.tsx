@@ -104,6 +104,11 @@ const BUILD_ACCENT = '#22c55e';
 const BUILD_ACCENT_DARK = '#15803d';
 const OVERLAP_COLOR = '#dc2626';
 
+// Curated tint swatches — Sims 4's own approach (a fixed color tray on the
+// object) instead of leading with the browser's native color-picker
+// dialog, per Claudia's focus-group audit.
+const TINT_SWATCHES = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#78350f', '#64748b', '#ffffff'];
+
 // Category-group visual identity for catalog tiles — an icon + tint per
 // group (Claudia's fallback for "no real per-item thumbnails exist yet,"
 // see the redesign spec) so the grid is scannable by color/icon the way
@@ -123,8 +128,23 @@ const CATEGORY_TO_GROUP: Record<string, string> = {
   characters: 'Characters',
   props: 'Props & Tools', prototype: 'Props & Tools', toolsbits: 'Props & Tools', misc: 'Props & Tools',
 };
+// Claudia's focus-group audit: collapsing all 29 raw manifest categories
+// down to just 6 group icons meant ~40 completely different "Props & Tools"
+// items (a wrench, a prototype cube, a random misc prop) all rendered as
+// visually identical tiles — a real "can't find my item" regression versus
+// either game's real thumbnails. The group still sets the tile's color
+// family (so filtering by group still scans as one hue), but each raw
+// category gets its own distinct icon on top of that.
+const CATEGORY_ICON: Record<string, string> = {
+  aquarium: '🐠', camping: '⛺', creatures: '🐾', fall: '🍂', farm: '🚜', food: '🍎', forest: '🌲', pets: '🐶', water: '💧', resources: '🪵',
+  buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', roads: '🛣️', structures: '🏗️',
+  fantasy: '🏰', halloween: '🎃', holiday: '🎄', japan: '⛩️', pirate: '🏴‍☠️', scifi: '🚀', platformer: '🎮',
+  characters: '🧑',
+  props: '🔧', prototype: '🧊', toolsbits: '🛠️', misc: '📦',
+};
 function tileStyleFor(category: string) {
-  return CATEGORY_GROUP_STYLE[CATEGORY_TO_GROUP[category] ?? 'Other'];
+  const groupStyle = CATEGORY_GROUP_STYLE[CATEGORY_TO_GROUP[category] ?? 'Other'];
+  return { icon: CATEGORY_ICON[category] ?? groupStyle.icon, bg: groupStyle.bg };
 }
 
 // A model's real (unscaled) footprint, for the wireframe outlines below —
@@ -214,7 +234,7 @@ function NpcRosterRow({ name, canonicalRole, title, onSetTitle }: { name: string
         placeholder="Custom title shown to students (optional)"
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => onSetTitle(draft)}
-        style={{ minHeight: 40, width: 220 }}
+        style={{ minHeight: 44, width: 220 }}
       />
     </div>
   );
@@ -281,13 +301,13 @@ function RosterTab() {
                     defaultValue={obj.customName ?? ''}
                     placeholder={obj.label}
                     onBlur={(e) => updateWorldObject(obj.id, { customName: e.target.value || undefined })}
-                    style={{ minHeight: 40, width: 160 }}
+                    style={{ minHeight: 44, width: 160 }}
                   />
                 </div>
                 <select
                   value={obj.role ?? ''}
                   onChange={(e) => updateWorldObject(obj.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
-                  style={{ minHeight: 40 }}
+                  style={{ minHeight: 44 }}
                 >
                   {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
@@ -326,10 +346,18 @@ function SelectedObjectToolbar({
   deselect: () => void;
 }) {
   const size = useModelSize(selected.modelPath);
-  const topY = size.y * selected.scale;
+  // Claudia's focus-group audit: an unclamped topY sent this toolbar off
+  // the default camera frame entirely for large/"Giant" (5x) objects —
+  // clamped so the controls that shrink an object back down stay reachable
+  // no matter how big it currently is.
+  const topY = Math.min(size.y * selected.scale, 6);
   const [openPopover, setOpenPopover] = useState<'resize' | 'color' | 'more' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  useEffect(() => { setOpenPopover(null); setConfirmingDelete(false); }, [selected.id]);
+  // Only the delete-confirm state resets on reselect — Claudia's audit:
+  // resetting openPopover too meant resize/color/name were one extra tap
+  // to reopen every single time a teacher moved to the next object, a real
+  // speed loss for "place and adjust several in a row."
+  useEffect(() => { setConfirmingDelete(false); }, [selected.id]);
 
   const doDelete = () => { deleteWorldObject(selected.id); deselect(); };
 
@@ -352,13 +380,18 @@ function SelectedObjectToolbar({
       {/* Corner delete badge — the second of the two delete affordances
           Kayden asked for ("the delete button or an X"), sitting right on
           the selection outline itself so it's visible the instant
-          something is selected, no hunting in a panel. */}
+          something is selected, no hunting in a panel. Claudia's audit:
+          this used to delete-on-second-click while the toolbar's own X
+          only ever armed the confirm chip — two identical-looking ✕
+          buttons with different click semantics. Both now do the same
+          single thing (arm the one shared confirm chip below), so there is
+          exactly one place delete actually commits. */}
       <Html position={[selected.position[0] + (size.x * selected.scale) / 2 + 0.15, topY, selected.position[2]]} center distanceFactor={8} zIndexRange={[60, 0]}>
         <button
           title="Delete"
           aria-label="Delete this object"
-          onClick={() => (confirmingDelete ? doDelete() : setConfirmingDelete(true))}
-          style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid #fff', background: 'var(--danger)', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}
+          onClick={() => setConfirmingDelete(true)}
+          style={{ width: 44, height: 44, borderRadius: '50%', border: '2px solid #fff', background: 'var(--danger)', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}
         >
           ✕
         </button>
@@ -368,8 +401,8 @@ function SelectedObjectToolbar({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif' }}>
           {confirmingDelete ? (
             <div className="row" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 12, boxShadow: '4px 4px 0 var(--ink)', padding: 6 }}>
-              <button className="btn btn-sm btn-danger" style={{ minHeight: 40 }} onClick={doDelete}>Delete</button>
-              <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => setConfirmingDelete(false)}>Cancel</button>
+              <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={doDelete}>Delete</button>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setConfirmingDelete(false)}>Cancel</button>
             </div>
           ) : (
             <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
@@ -398,7 +431,7 @@ function SelectedObjectToolbar({
                   <button
                     key={p.label}
                     className={`btn btn-sm ${Math.abs(selected.scale - p.value) < 0.001 ? 'btn-primary' : ''}`}
-                    style={{ minHeight: 40 }}
+                    style={{ minHeight: 44 }}
                     onClick={() => setScale(p.value)}
                   >
                     {Math.abs(selected.scale - p.value) < 0.001 ? '✓ ' : ''}{p.label}
@@ -406,24 +439,47 @@ function SelectedObjectToolbar({
                 ))}
               </div>
               <div className="row" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-                <button className="btn btn-sm" style={{ minHeight: 40, width: 40 }} {...shrinkHold}>−</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...shrinkHold}>−</button>
                 <span style={{ fontSize: '0.78rem', minWidth: 56, textAlign: 'center' }}>{Math.round(selected.scale * 100)}%</span>
-                <button className="btn btn-sm" style={{ minHeight: 40, width: 40 }} {...growHold}>+</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...growHold}>+</button>
               </div>
             </div>
           )}
 
           {openPopover === 'color' && (
-            <div className="row" style={{ gap: 6, alignItems: 'center', background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10 }}>
-              <input
-                type="color"
-                value={selected.tintColor ?? '#ffffff'}
-                onChange={(e) => updateWorldObject(selected.id, { tintColor: e.target.value })}
-                style={{ minHeight: 40, width: 48, padding: 2 }}
-              />
-              {selected.tintColor && (
-                <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => updateWorldObject(selected.id, { tintColor: undefined })}>Clear</button>
-              )}
+            <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 210 }}>
+              {/* Claudia's focus-group audit: a native <input type=color>
+                  as the PRIMARY control launched the browser/OS's own
+                  color-picker dialog — the single biggest "this isn't a
+                  game" tell besides the category dropdown. A curated
+                  swatch tray (Sims 4's own approach) is the primary
+                  control now; the native picker survives only as a small
+                  "more colors" fallback. */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+                {TINT_SWATCHES.map((c) => (
+                  <button
+                    key={c}
+                    title={c}
+                    aria-label={`Tint ${c}`}
+                    onClick={() => updateWorldObject(selected.id, { tintColor: c })}
+                    style={{ width: 28, height: 28, borderRadius: 8, border: selected.tintColor === c ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: c, cursor: 'pointer' }}
+                  />
+                ))}
+              </div>
+              <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', margin: 0 }}>
+                  More colors
+                  <input
+                    type="color"
+                    value={selected.tintColor ?? '#ffffff'}
+                    onChange={(e) => updateWorldObject(selected.id, { tintColor: e.target.value })}
+                    style={{ minHeight: 32, width: 32, padding: 0 }}
+                  />
+                </label>
+                {selected.tintColor && (
+                  <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => updateWorldObject(selected.id, { tintColor: undefined })}>Clear</button>
+                )}
+              </div>
             </div>
           )}
 
@@ -435,7 +491,7 @@ function SelectedObjectToolbar({
                   value={selected.customName ?? ''}
                   placeholder={selected.label}
                   onChange={(e) => updateWorldObject(selected.id, { customName: e.target.value || undefined })}
-                  style={{ minHeight: 40, width: '100%' }}
+                  style={{ minHeight: 44, width: '100%' }}
                 />
               </label>
               <label style={{ margin: 0 }}>
@@ -443,7 +499,7 @@ function SelectedObjectToolbar({
                 <select
                   value={selected.role ?? ''}
                   onChange={(e) => updateWorldObject(selected.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
-                  style={{ minHeight: 40, width: '100%' }}
+                  style={{ minHeight: 44, width: '100%' }}
                 >
                   {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
@@ -480,7 +536,13 @@ export default function WorldEditor() {
   const [ghostPos, setGhostPos] = useState<{ x: number; z: number } | null>(null);
   const [dragState, setDragState] = useState<{ id: string; startClientX: number; startClientY: number; moved: boolean } | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; z: number } | null>(null);
-  const isDragging = dragState !== null;
+  // Claudia's focus-group audit: this used to be `dragState !== null`, which
+  // went true the instant a pointer went down on an already-selected object
+  // — even a plain re-click, well under the 8px move threshold — hiding the
+  // floating toolbar and disabling camera orbit for every ordinary click,
+  // not just real drags. Gated on dragState.moved instead, so only an
+  // actual drag (past the threshold) does either of those things.
+  const isDragging = dragState?.moved === true;
 
   useEffect(() => {
     fetch('/world/asset-manifest.json')
@@ -504,26 +566,17 @@ export default function WorldEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragState, dragPos]);
 
-  const categories = useMemo(() => [...new Set(manifest.map((a) => a.category))].sort(), [manifest]);
-  // Claudia's audit: a flat 29-category dropdown over 1000+ assets is
-  // heading toward teacher-facing clutter. Loosely clusters categories
-  // under a few <optgroup> headings so the list scans faster; anything not
-  // named here still shows up, just under "Other" rather than disappearing.
-  const CATEGORY_GROUPS: { label: string; categories: string[] }[] = [
-    { label: 'Nature & Animals', categories: ['aquarium', 'camping', 'creatures', 'fall', 'farm', 'food', 'forest', 'pets', 'water', 'resources'] },
-    { label: 'Buildings & Places', categories: ['buildings', 'city', 'interior', 'market', 'restaurant', 'roads', 'structures'] },
-    { label: 'Seasonal & Themed', categories: ['fantasy', 'halloween', 'holiday', 'japan', 'pirate', 'scifi', 'platformer'] },
-    { label: 'Characters', categories: ['characters'] },
-    { label: 'Props & Tools', categories: ['props', 'prototype', 'toolsbits', 'misc'] },
-  ];
-  const groupedCategories = useMemo(() => {
-    const grouped = CATEGORY_GROUPS.map((g) => ({ label: g.label, categories: g.categories.filter((c) => categories.includes(c)) })).filter((g) => g.categories.length > 0);
-    const named = new Set(grouped.flatMap((g) => g.categories));
-    const other = categories.filter((c) => !named.has(c));
-    return other.length > 0 ? [...grouped, { label: 'Other', categories: other }] : grouped;
-  }, [categories]);
+  // Claudia's focus-group audit: a native <select> for category filtering
+  // was the single biggest "this is a web form, not a game" tell. Only 5
+  // real groups exist (CATEGORY_GROUP_STYLE), short enough to render as a
+  // row of chips instead — `category` now holds a group label, not a raw
+  // manifest category, and search narrows further within a group.
+  const presentGroups = useMemo(() => {
+    const set = new Set(manifest.map((a) => CATEGORY_TO_GROUP[a.category] ?? 'Other'));
+    return Object.keys(CATEGORY_GROUP_STYLE).filter((g) => set.has(g));
+  }, [manifest]);
   const filtered = manifest.filter((a) => {
-    if (category && a.category !== category) return false;
+    if (category && (CATEGORY_TO_GROUP[a.category] ?? 'Other') !== category) return false;
     if (search && !a.label.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
   });
@@ -572,8 +625,12 @@ export default function WorldEditor() {
       const x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled));
       const z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled));
       const id = addWorldObject({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY: 0, scale: 1 });
-      setArmedAsset(null);
-      setGhostPos(null);
+      // Claudia's focus-group audit: staying armed after a placement (not
+      // clearing armedAsset here) is what lets a teacher place ten trees
+      // in a row without a round trip back to the catalog every time,
+      // matching Minecraft's own hotbar-stays-selected behavior. The
+      // catalog's Cancel button (shown while armed) is still the way to
+      // disarm deliberately.
       setSelectedId(id);
     } else {
       setSelectedId(null);
@@ -624,15 +681,27 @@ export default function WorldEditor() {
         <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>📦 Catalog ({manifest.length})</strong>
           {manifestError && <p style={{ fontSize: '0.78rem', color: 'var(--danger)' }}>Couldn't load the asset list. Try refreshing.</p>}
-          <input placeholder="🔍 Search assets..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ minHeight: 40 }} />
-          <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: 40 }}>
-            <option value="">All categories</option>
-            {groupedCategories.map((g) => (
-              <optgroup key={g.label} label={g.label}>
-                {g.categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </optgroup>
+          <input placeholder="🔍 Search assets..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ minHeight: 44 }} />
+          <div className="row-wrap" style={{ gap: 4 }}>
+            <button
+              className="btn btn-sm"
+              style={{ minHeight: 44, background: category === '' ? BUILD_ACCENT : undefined, color: category === '' ? '#fff' : undefined, borderColor: category === '' ? BUILD_ACCENT : undefined }}
+              onClick={() => setCategory('')}
+            >
+              All
+            </button>
+            {presentGroups.map((g) => (
+              <button
+                key={g}
+                className="btn btn-sm"
+                style={{ minHeight: 44, background: category === g ? BUILD_ACCENT : undefined, color: category === g ? '#fff' : undefined, borderColor: category === g ? BUILD_ACCENT : undefined }}
+                onClick={() => setCategory(category === g ? '' : g)}
+                title={g}
+              >
+                {CATEGORY_GROUP_STYLE[g].icon} {g}
+              </button>
             ))}
-          </select>
+          </div>
           <p style={{ fontSize: '0.72rem', opacity: 0.7, margin: 0 }}>
             Tap an item, then tap the ground to place it.
           </p>
