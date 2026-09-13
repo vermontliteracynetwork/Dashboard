@@ -18,6 +18,9 @@ interface CartEntry {
   name: string;
   icon: string; // emoji, or an image URL
   price: number;
+  // Homeplot's needs-vs-wants standard: one optional, non-blocking reflection
+  // tap in the cart, never required, never gates Confirm Purchase.
+  needsWants?: 'need' | 'want';
 }
 
 interface ReceiptLine extends CartEntry {
@@ -171,6 +174,8 @@ export default function Marketplace() {
   const inCart = (key: string) => cart.some((c) => c.key === key);
   const addToCart = (entry: CartEntry) => setCart((c) => [...c, entry]);
   const removeFromCart = (key: string) => setCart((c) => c.filter((e) => e.key !== key));
+  const setCartNeedsWants = (key: string, value: 'need' | 'want') =>
+    setCart((c) => c.map((e) => (e.key === key ? { ...e, needsWants: e.needsWants === value ? undefined : value } : e)));
 
   // Every purchase — avatar, emote, or any marketplace item — is added to
   // a cart first, just like a real online store, rather than buying the
@@ -180,9 +185,9 @@ export default function Marketplace() {
     const s = useStore.getState();
     const lines: ReceiptLine[] = cart.map((entry) => {
       let ok = false;
-      if (entry.source === 'avatar') ok = s.buyAvatar(studentId, entry.id);
-      else if (entry.source === 'emote') ok = s.buyEmote(studentId, entry.id);
-      else ok = s.buyMarketplaceItem(studentId, entry.id);
+      if (entry.source === 'avatar') ok = s.buyAvatar(studentId, entry.id, entry.needsWants);
+      else if (entry.source === 'emote') ok = s.buyEmote(studentId, entry.id, entry.needsWants);
+      else ok = s.buyMarketplaceItem(studentId, entry.id, entry.needsWants);
       return { ...entry, ok };
     });
     setCart([]);
@@ -261,16 +266,37 @@ export default function Marketplace() {
               ) : (
                 <div className="stack" style={{ gap: 6, maxHeight: 320, overflowY: 'auto' }}>
                   {cart.map((entry) => (
-                    <div key={entry.key} className="row space-between" style={{ padding: '6px 8px', border: '2px solid var(--content-border)', borderRadius: 10 }}>
-                      <div className="row" style={{ gap: 8 }}>
-                        <div style={{ width: 30, height: 30, borderRadius: 8, background: '#f4effe', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                          {entry.icon.startsWith('/') || entry.icon.startsWith('http') ? <img src={entry.icon} alt="" style={{ width: '90%', height: '90%', objectFit: 'contain' }} /> : <span>{entry.icon}</span>}
+                    <div key={entry.key} className="stack" style={{ gap: 4, padding: '6px 8px', border: '2px solid var(--content-border)', borderRadius: 10 }}>
+                      <div className="row space-between">
+                        <div className="row" style={{ gap: 8 }}>
+                          <div style={{ width: 30, height: 30, borderRadius: 8, background: '#f4effe', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            {entry.icon.startsWith('/') || entry.icon.startsWith('http') ? <img src={entry.icon} alt="" style={{ width: '90%', height: '90%', objectFit: 'contain' }} /> : <span>{entry.icon}</span>}
+                          </div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{entry.name}</span>
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{entry.name}</span>
+                        <div className="row" style={{ gap: 8 }}>
+                          <strong style={{ fontSize: '0.85rem' }}>{formatMoney(entry.price)}</strong>
+                          <button className="btn btn-sm btn-danger" style={{ minHeight: 36, minWidth: 36 }} aria-label={`Remove ${entry.name}`} onClick={() => removeFromCart(entry.key)}>✕</button>
+                        </div>
                       </div>
-                      <div className="row" style={{ gap: 8 }}>
-                        <strong style={{ fontSize: '0.85rem' }}>{formatMoney(entry.price)}</strong>
-                        <button className="btn btn-sm btn-danger" style={{ minHeight: 36, minWidth: 36 }} aria-label={`Remove ${entry.name}`} onClick={() => removeFromCart(entry.key)}>✕</button>
+                      {/* Optional, non-blocking reflection prompt — never required, never
+                          affects whether Confirm Purchase below is enabled. */}
+                      <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>Still want it tomorrow?</span>
+                        <button
+                          className="btn btn-sm"
+                          style={{ minHeight: 32, fontSize: '0.68rem', padding: '2px 8px', background: entry.needsWants === 'need' ? 'var(--success)' : undefined, color: entry.needsWants === 'need' ? '#fff' : undefined }}
+                          onClick={() => setCartNeedsWants(entry.key, 'need')}
+                        >
+                          👍 Yep
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          style={{ minHeight: 32, fontSize: '0.68rem', padding: '2px 8px', background: entry.needsWants === 'want' ? 'var(--gold, #c2953f)' : undefined, color: entry.needsWants === 'want' ? '#fff' : undefined }}
+                          onClick={() => setCartNeedsWants(entry.key, 'want')}
+                        >
+                          🤔 Not sure
+                        </button>
                       </div>
                     </div>
                   ))}

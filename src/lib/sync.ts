@@ -51,6 +51,8 @@ const rowToStudent = (r: Row): Student => ({
   playgroundThreshold: r.playground_threshold ?? 4,
   customTools: r.custom_tools ?? [],
   coins: r.coins ?? 0,
+  savingsGoalLabel: r.savings_goal_label ?? null,
+  savingsGoalCents: r.savings_goal_cents ?? null,
   // Grandfather in whatever avatar a student already had before this
   // marketplace system existed, so nobody who already picked an avatar
   // loses access to it.
@@ -97,6 +99,8 @@ const studentToRow = (s: Student): Row => ({
   playground_threshold: s.playgroundThreshold,
   custom_tools: s.customTools,
   coins: s.coins,
+  savings_goal_label: s.savingsGoalLabel,
+  savings_goal_cents: s.savingsGoalCents,
   owned_avatar_ids: s.ownedAvatarIds,
   owned_emote_ids: s.ownedEmoteIds,
   equipped_emote_id: s.equippedEmoteId,
@@ -280,6 +284,7 @@ const rowToTransaction = (r: Row): Transaction => ({
   kind: r.kind,
   createdAt: r.created_at,
   voided: r.voided ?? false,
+  needsWants: r.needs_wants ?? undefined,
 });
 
 const transactionToRow = (t: Transaction): Row => ({
@@ -291,6 +296,7 @@ const transactionToRow = (t: Transaction): Row => ({
   kind: t.kind,
   created_at: t.createdAt,
   voided: t.voided ?? false,
+  needs_wants: t.needsWants ?? null,
 });
 
 const annotationKey = (studentId: string, taskId: string, articleIndex: number) => `${studentId}:${taskId}:${articleIndex}`;
@@ -727,6 +733,8 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   playgroundThreshold: 'playground_threshold',
   customTools: 'custom_tools',
   coins: 'coins',
+  savingsGoalLabel: 'savings_goal_label',
+  savingsGoalCents: 'savings_goal_cents',
   ownedAvatarIds: 'owned_avatar_ids',
   ownedEmoteIds: 'owned_emote_ids',
   equippedEmoteId: 'equipped_emote_id',

@@ -321,6 +321,9 @@ alter table students add column if not exists world_show_arrival_card boolean no
 alter table students add column if not exists world_show_desk_glow boolean not null default true;
 alter table students add column if not exists world_reduce_motion boolean not null default false;
 alter table students add column if not exists dyslexia_font boolean not null default false;
+alter table students add column if not exists savings_goal_label text;
+alter table students add column if not exists savings_goal_cents int;
+alter table transactions add column if not exists needs_wants text;
 
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so

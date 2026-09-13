@@ -219,7 +219,7 @@ interface AppState {
   // students
   addStudent: (name: string, avatar: string) => string;
   updateStudent: (id: string, patch: Partial<Student>) => void;
-  recordTransaction: (studentId: string, amountCents: number, description: string, icon: string, kind: TransactionKind, silent?: boolean) => void;
+  recordTransaction: (studentId: string, amountCents: number, description: string, icon: string, kind: TransactionKind, silent?: boolean, needsWants?: 'need' | 'want') => void;
   // Manually fires the same coin-drop celebration recordTransaction triggers automatically —
   // for the rare case (the Daily Spin Wheel) where the money already landed silently ahead of
   // a multi-second reveal animation, and the celebration needs to wait for that reveal instead
@@ -237,14 +237,14 @@ interface AppState {
   addMarketplaceItem: (item: Omit<MarketplaceItem, 'id' | 'createdAt'>) => void;
   updateMarketplaceItem: (id: string, patch: Partial<MarketplaceItem>) => void;
   deleteMarketplaceItem: (id: string) => void;
-  buyMarketplaceItem: (studentId: string, itemId: string) => boolean;
+  buyMarketplaceItem: (studentId: string, itemId: string, needsWants?: 'need' | 'want') => boolean;
   setAssignmentCompletionReward: (reward: AssignmentCompletionReward | null) => void;
   emotePriceOverrides: Record<string, number>;
   setEmotePriceOverride: (emoteId: string, priceCents: number | null) => void;
   adjustStudentBalance: (studentId: string, amountCents: number, reason: string) => void;
   setStudentBalance: (studentId: string, newBalanceCents: number, reason: string) => void;
-  buyAvatar: (studentId: string, avatarId: string) => boolean;
-  buyEmote: (studentId: string, emoteId: string) => boolean;
+  buyAvatar: (studentId: string, avatarId: string, needsWants?: 'need' | 'want') => boolean;
+  buyEmote: (studentId: string, emoteId: string, needsWants?: 'need' | 'want') => boolean;
   equipEmote: (studentId: string, emoteId: string | null) => void;
   skipTask: (studentId: string, subject: Subject, taskId: string) => boolean;
   spinDailyWheel: (studentId: string) => DailySpinResult | null;
@@ -659,6 +659,8 @@ export const useStore = create<AppState>()(
           createdAt: new Date().toISOString(),
           customTools: [],
           coins: 0,
+          savingsGoalLabel: null,
+          savingsGoalCents: null,
           ownedAvatarIds: [avatar],
           ownedEmoteIds: [...STARTER_EMOTE_IDS],
           equippedEmoteId: null,
@@ -701,7 +703,7 @@ export const useStore = create<AppState>()(
 
       // Every earn/spend goes through here so the bank register always has
       // a matching row — nothing changes a balance silently.
-      recordTransaction: (studentId, amountCents, description, icon, kind, silent) => {
+      recordTransaction: (studentId, amountCents, description, icon, kind, silent, needsWants) => {
         const student = get().students.find((st) => st.id === studentId);
         if (!student) return;
         const tx: Transaction = {
@@ -712,6 +714,7 @@ export const useStore = create<AppState>()(
           icon,
           kind,
           createdAt: new Date().toISOString(),
+          ...(needsWants ? { needsWants } : {}),
         };
         set((s) => ({
           transactions: [tx, ...s.transactions],
@@ -751,18 +754,18 @@ export const useStore = create<AppState>()(
       // Marketplace: spend Class Cash to unlock an avatar or emote. Returns
       // false (no-op) if already owned, unknown, or not enough money, so
       // callers can show "not enough" without duplicating the balance check.
-      buyAvatar: (studentId, avatarId) => {
+      buyAvatar: (studentId, avatarId, needsWants) => {
         const student = get().students.find((st) => st.id === studentId);
         const item = avatarById(avatarId);
         if (!student || !item) return false;
         if (student.ownedAvatarIds.includes(avatarId)) return false;
         if (student.coins < item.price) return false;
         get().updateStudent(studentId, { ownedAvatarIds: [...student.ownedAvatarIds, avatarId] });
-        get().recordTransaction(studentId, -item.price, `New character: ${item.name}`, item.src, 'purchase-avatar');
+        get().recordTransaction(studentId, -item.price, `New character: ${item.name}`, item.src, 'purchase-avatar', false, needsWants);
         return true;
       },
 
-      buyEmote: (studentId, emoteId) => {
+      buyEmote: (studentId, emoteId, needsWants) => {
         const student = get().students.find((st) => st.id === studentId);
         const item = emoteById(emoteId);
         if (!student || !item) return false;
@@ -770,7 +773,7 @@ export const useStore = create<AppState>()(
         const price = emotePriceFor(get().emotePriceOverrides, emoteId);
         if (student.coins < price) return false;
         get().updateStudent(studentId, { ownedEmoteIds: [...student.ownedEmoteIds, emoteId] });
-        get().recordTransaction(studentId, -price, `New emote: ${item.name}`, item.src, 'purchase-emote');
+        get().recordTransaction(studentId, -price, `New emote: ${item.name}`, item.src, 'purchase-emote', false, needsWants);
         return true;
       },
 
@@ -788,7 +791,7 @@ export const useStore = create<AppState>()(
       // list, buying always grants another one). Seasonal items outside
       // their availability window can't be bought even if a stale UI
       // still shows them.
-      buyMarketplaceItem: (studentId, itemId) => {
+      buyMarketplaceItem: (studentId, itemId, needsWants) => {
         const student = get().students.find((st) => st.id === studentId);
         const item = get().marketplaceItems.find((it) => it.id === itemId);
         if (!student || !item) return false;
@@ -799,7 +802,7 @@ export const useStore = create<AppState>()(
 
         if (item.kind === 'powerup') {
           get().updateStudent(studentId, { skipTokens: student.skipTokens + 1 });
-          get().recordTransaction(studentId, -item.price, item.name, item.icon, 'purchase-skip');
+          get().recordTransaction(studentId, -item.price, item.name, item.icon, 'purchase-skip', false, needsWants);
           return true;
         }
 
@@ -810,7 +813,7 @@ export const useStore = create<AppState>()(
         get().updateStudent(studentId, { [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
         const kindLabel = { font: 'New font', color: 'New color', voice: 'New voice', prize: 'Prize' }[item.kind];
         const txKind = { font: 'purchase-font', color: 'purchase-color', voice: 'purchase-voice', prize: 'purchase-prize' }[item.kind] as TransactionKind;
-        get().recordTransaction(studentId, -item.price, `${kindLabel}: ${item.name}`, item.icon, txKind);
+        get().recordTransaction(studentId, -item.price, `${kindLabel}: ${item.name}`, item.icon, txKind, false, needsWants);
         return true;
       },
 

@@ -4,6 +4,63 @@ import { useStore } from '../store/store';
 import { formatMoney } from '../lib/money';
 import PiggyBankCharts from './PiggyBankCharts';
 
+// Homeplot's Bank standard: saving is concept-only (no interest math), just
+// a concrete "your money is growing toward something" fill-meter — student-set,
+// never a teacher requirement, never blocking anything else in the app.
+function SavingsGoal({ studentId, coins, label, goalCents }: { studentId: string; coins: number; label: string | null; goalCents: number | null }) {
+  const updateStudent = useStore((s) => s.updateStudent);
+  const [editing, setEditing] = useState(false);
+  const [draftLabel, setDraftLabel] = useState(label ?? '');
+  const [draftAmount, setDraftAmount] = useState(goalCents ? (goalCents / 100).toString() : '');
+
+  const save = () => {
+    const cents = Math.round(parseFloat(draftAmount) * 100);
+    if (!draftLabel.trim() || !Number.isFinite(cents) || cents <= 0) return;
+    updateStudent(studentId, { savingsGoalLabel: draftLabel.trim(), savingsGoalCents: cents });
+    setEditing(false);
+  };
+
+  const clear = () => {
+    updateStudent(studentId, { savingsGoalLabel: null, savingsGoalCents: null });
+    setEditing(false);
+  };
+
+  if (editing || !label || !goalCents) {
+    return (
+      <div className="stack" style={{ gap: 6, padding: '10px 12px', border: '2px dashed var(--content-border)', borderRadius: 12 }}>
+        <strong style={{ fontSize: '0.8rem' }}>🎯 Saving up for something?</strong>
+        <div className="row-wrap" style={{ gap: 6 }}>
+          <input placeholder="What are you saving for?" value={draftLabel} onChange={(e) => setDraftLabel(e.target.value)} style={{ minHeight: 40, flex: '2 1 140px' }} />
+          <input type="number" min="1" step="0.01" placeholder="$ goal" value={draftAmount} onChange={(e) => setDraftAmount(e.target.value)} style={{ minHeight: 40, flex: '1 1 80px' }} />
+        </div>
+        <div className="row-wrap" style={{ gap: 6 }}>
+          <button className="btn btn-sm btn-primary" style={{ minHeight: 40 }} onClick={save}>Save goal</button>
+          {label && goalCents && <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => setEditing(false)}>Cancel</button>}
+        </div>
+      </div>
+    );
+  }
+
+  const pct = Math.min(100, Math.round((coins / goalCents) * 100));
+  const reached = coins >= goalCents;
+  return (
+    <div className="stack" style={{ gap: 6, padding: '10px 12px', border: '2px solid var(--content-border)', borderRadius: 12 }}>
+      <div className="row space-between" style={{ alignItems: 'center' }}>
+        <strong style={{ fontSize: '0.8rem' }}>{reached ? '🎉' : '🎯'} Saving for: {label}</strong>
+        <button className="btn btn-sm" style={{ minHeight: 32, fontSize: '0.7rem' }} onClick={() => { setDraftLabel(label); setDraftAmount((goalCents / 100).toString()); setEditing(true); }}>Edit</button>
+      </div>
+      <div style={{ height: 16, borderRadius: 8, background: '#eee', overflow: 'hidden', border: '2px solid var(--content-border)' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: reached ? 'var(--success)' : 'var(--purple)', transition: 'width 0.3s' }} />
+      </div>
+      <div className="row space-between" style={{ fontSize: '0.72rem', opacity: 0.75 }}>
+        <span>{formatMoney(coins)} of {formatMoney(goalCents)}</span>
+        <span>{reached ? "You made it!" : `${pct}%`}</span>
+      </div>
+      {reached && <button className="btn btn-sm" style={{ minHeight: 36, alignSelf: 'flex-start' }} onClick={clear}>Pick a new goal</button>}
+    </div>
+  );
+}
+
 // A small "is this an emoji or an image path" check — every icon this app
 // hands to a register row is either a plain emoji character or one of our
 // own /avatars, /emotes asset paths, never an arbitrary external URL.
@@ -51,6 +108,8 @@ export default function PiggyBank() {
         <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>
           💡 You earn money for finishing activities, and a bonus for keeping your streak going. Spend it in the 🛍️ Marketplace!
         </p>
+
+        <SavingsGoal studentId={student.id} coins={student.coins} label={student.savingsGoalLabel} goalCents={student.savingsGoalCents} />
 
         <div className="row-wrap">
           <button className={`btn btn-sm ${view === 'register' ? 'btn-primary' : ''}`} onClick={() => setView('register')}>📒 Register</button>
@@ -104,6 +163,8 @@ export default function PiggyBank() {
                       <span style={{ fontSize: '0.68rem', opacity: 0.6 }}>
                         {new Date(t.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         {t.voided && ' (removed by teacher)'}
+                        {t.needsWants === 'need' && ' · 👍 still wanted it'}
+                        {t.needsWants === 'want' && ' · 🤔 wasn\'t sure'}
                       </span>
                     </div>
                   </div>

@@ -78,6 +78,8 @@ export interface Student {
   playgroundThreshold: number; // activities completed today needed to unlock the Playground (repeatable)
   customTools: CustomTool[]; // teacher-added external link tools (e.g. Amplify, Polypad, research links)
   coins: number; // marketplace currency, earned by completing tasks
+  savingsGoalLabel: string | null; // what the student is saving up for, student-set, shown as a fill-meter in the Piggy Bank (Homeplot's Bank standard — concept-only saving, no interest math)
+  savingsGoalCents: number | null; // the target balance for that goal
   ownedAvatarIds: string[]; // avatar catalog ids this student has unlocked/purchased
   ownedEmoteIds: string[]; // emote catalog ids this student has unlocked/purchased
   equippedEmoteId: string | null; // currently displayed emote, if any
@@ -520,6 +522,11 @@ export interface Transaction {
   kind: TransactionKind;
   createdAt: string; // ISO
   voided?: boolean; // teacher removed this entry (reversed from the balance) but it stays in the register, struck through, for an audit trail
+  // Purchases only — set from the optional, non-blocking "still want this
+  // tomorrow?" cart reflection prompt (Homeplot's needs-vs-wants standard).
+  // 'need': the student was confident it'll still matter tomorrow. 'want':
+  // they weren't sure. Never required, never gates the purchase itself.
+  needsWants?: 'need' | 'want';
 }
 
 export interface SubjectProgress {
