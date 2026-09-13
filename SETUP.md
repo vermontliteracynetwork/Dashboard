@@ -22,13 +22,15 @@ Total time: ~15 minutes.
 
 ## 3. Create the one teacher account
 
-The teacher signs in with just a password — no email to remember — but under
-the hood that's powered by one real Supabase Auth account so the session
-handling is solid.
+There's no password prompt on the sign-in screen — the teacher just taps
+"Enter Teacher Area." Under the hood that's still powered by one real
+Supabase Auth account (some operations need a real signed-in session to
+work at all — see the comment on `TEACHER_INTERNAL_PASSWORD` in
+`src/lib/supabaseClient.ts`), it's just a password nobody ever types.
 
 1. In Supabase, open **Authentication** → **Users** → **Add user** → **Create new user**.
 2. Email: `teacher@independent-work-dashboard.local` (or anything you like — just remember it for step 4 if you change it).
-3. Password: whatever the teacher will type on the sign-in screen.
+3. Password: make up any string, 6+ characters — write it down for step 5. This is never shown to the teacher; it only has to match what you put in `VITE_TEACHER_INTERNAL_PASSWORD` below.
 4. Leave "Auto Confirm User" checked, then create it.
 
 ## 4. Get your API keys
@@ -50,13 +52,14 @@ Edit `.env` and fill in:
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-public-key
 VITE_TEACHER_EMAIL=teacher@independent-work-dashboard.local   # only if you used a different email in step 3
+VITE_TEACHER_INTERNAL_PASSWORD=whatever-you-set-in-step-3     # required — the "Enter Teacher Area" button has nothing to sign in with otherwise
 ```
 
 Then `npm install && npm run dev`.
 
 **For a live deployment (e.g. Vercel):**
 
-Add the same three variables under your project's Environment Variables
+Add the same four variables under your project's Environment Variables
 settings, then redeploy. On Vercel: **Project → Settings → Environment
 Variables**, add each one, and trigger a new deployment (or just push a
 commit).
