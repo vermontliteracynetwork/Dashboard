@@ -148,16 +148,13 @@ const AMBIENT_NPCS: { id: string; modelPath: string; home: [number, number] }[] 
 // real measured bounding boxes rather than eyeballed. Each is now sized so
 // its roofline lands at roughly 3.5-4.0x a 1.745-unit character (the
 // target band real town-life games use), individually because each raw
-// model's bounding box is different. blockRadius replaces the old single
-// BUILDING_BLOCK_RADIUS=1.8, which was already wrong for the three
-// original buildings at the new scale and was never going to fit the
-// store's much wider footprint (a circle sized for its long axis would
-// have reached out and swallowed Pip's standing spot) — this is a
-// simplified circle sized to the SHORTER (depth) half-extent, which
-// slightly under-covers the building's long sides but never traps a
-// Neighbor and never lets a student walk through the front face, which is
-// the complaint that actually matters here. A true rotated-box collision
-// is a fuller fix than this pass covers.
+// model's bounding box is different. blockRadius is still used for the
+// Neighbor/approach-radius math elsewhere in this file (BuildingEntrance,
+// handleApproachBuilding), sized to the SHORTER (depth) half-extent so it
+// never traps a Neighbor — but movement collision itself now uses each
+// building's real rotated footprint (BUILDING_FOOTPRINTS below) instead of
+// this circle, closing the "student can visually clip into the long side"
+// gap a plain circle sized to the short axis left open.
 const BUILDINGS: { id: string; modelPath: string; position: [number, number]; rotationY: number; label: string; scale: number; blockRadius: number }[] = [
   // Real-bbox rotated-rectangle math (the same check that caught the store
   // and welcome-center overlaps below) put Penny's point only 0.15 units
@@ -214,6 +211,24 @@ const BUILDINGS: { id: string; modelPath: string; position: [number, number]; ro
   // worse — the fix direction was right, this comment's arithmetic wasn't).
   { id: 'welcome-center', modelPath: '/world/models/props/shop_building.glb', position: [-11.2, -8.4], rotationY: Math.atan2(10, 7.5), label: 'Welcome Center', scale: 55, blockRadius: 2.0 },
 ];
+
+// Raw (pre-scale, pre-rotation) local half-extents from each building's
+// real .glb bounding box — the same measurements behind every clearance
+// number in the comments above, reused here so movement collision can use
+// each building's actual rotated footprint instead of the simplified
+// circle blockRadius still handles for approach/notice-radius math. Keyed
+// by id rather than folded into BUILDINGS itself since it's a fixed,
+// rarely-touched physical fact about each model, not a placement choice.
+const BUILDING_RAW_HALF_EXTENTS: Record<string, { hx: number; hz: number }> = {
+  bank: { hx: 0.4418, hz: 0.47 },
+  store: { hx: 1.0418, hz: 0.471 },
+  'post-office': { hx: 0.485, hz: 0.461 },
+  'welcome-center': { hx: 0.05975, hz: 0.0521 },
+};
+const BUILDING_FOOTPRINTS = BUILDINGS.map((b) => {
+  const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
+  return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
+});
 
 // Direct teacher clarification: buildings aren't walk-in 3D interiors
 // (only the student's own house eventually will be) — clicking one opens
@@ -323,17 +338,17 @@ const CITY_PROPS: { id: string; modelPath: string; position: [number, number]; s
   { id: 'main-st-stop-sign', modelPath: '/world/models/city/stopSign.glb', position: [-7.0, -4.6], scale: 0.18 },
 ];
 
-// Every building/stall/the desk now blocks movement too — walking straight
-// through a building was flagged directly as illogical. Each building
-// brings its own blockRadius now (see BUILDINGS above — the old single
-// BUILDING_BLOCK_RADIUS=1.8 stopped being right the moment buildings got
-// individually-scaled). Stall/desk radii are each prop's real footprint,
-// not its full visual scale, sized so nothing reaches out and swallows its
-// own sidewalk tile or Neighbor's standing spot.
+// Every stall/the desk/the two big rocks blocks movement via a plain
+// circle — each is close enough to round that a circle never traps
+// anything and never leaves a visible gap. Buildings collide via their
+// real rotated footprint instead (BUILDING_FOOTPRINTS above + the
+// blockBuildings push-out below), not a circle — an oblong building sized
+// for its short axis left the long sides walkable-through, which is
+// exactly the "walk through a building" complaint this whole system
+// exists to prevent.
 const STALL_BLOCK_RADIUS = 0.75;
 const DESK_BLOCK_RADIUS = 0.9; // just the desk/chair footprint, well inside COMPUTER_RADIUS so "walk up and use" still works
 const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
-  ...BUILDINGS.map((b) => ({ x: b.position[0], z: b.position[1], radius: b.blockRadius })),
   ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
   { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
   // Claudia's review: collision covered every building/stall/the desk but
@@ -349,8 +364,36 @@ const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   { x: -1, z: -10, radius: 0.75 }, // medium_rock.glb
 ];
 
+// Point-vs-rotated-rectangle push-out: transform into the building's own
+// local (unrotated) space, and if the point lands inside the real
+// footprint, push it back out along whichever axis has the shallower
+// penetration — the standard nearest-edge response, not just clamping to
+// one axis, so a student pushed out near a corner slides along the edge
+// instead of snapping across the whole building.
+function blockBuildings(x: number, z: number): [number, number] {
+  let [bx, bz] = [x, z];
+  for (const f of BUILDING_FOOTPRINTS) {
+    const dx = bx - f.x;
+    const dz = bz - f.z;
+    const c = Math.cos(f.rotationY);
+    const s = Math.sin(f.rotationY);
+    const localX = dx * c + dz * s;
+    const localZ = -dx * s + dz * c;
+    if (Math.abs(localX) >= f.hx || Math.abs(localZ) >= f.hz) continue;
+    const penX = f.hx - Math.abs(localX);
+    const penZ = f.hz - Math.abs(localZ);
+    const pushedLocalX = penX < penZ ? Math.sign(localX || 1) * f.hx : localX;
+    const pushedLocalZ = penX < penZ ? localZ : Math.sign(localZ || 1) * f.hz;
+    // Rotate the pushed-out local point back to world space.
+    bx = f.x + pushedLocalX * c - pushedLocalZ * s;
+    bz = f.z + pushedLocalX * s + pushedLocalZ * c;
+  }
+  return [bx, bz];
+}
+
 function blockObstacles(x: number, z: number): [number, number] {
   let [bx, bz] = blockPond(x, z);
+  [bx, bz] = blockBuildings(bx, bz);
   for (const o of STATIC_OBSTACLES) {
     const dx = bx - o.x;
     const dz = bz - o.z;
