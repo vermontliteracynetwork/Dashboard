@@ -83,13 +83,71 @@ const SCALE_PRESETS: { label: string; value: number }[] = [
 // app's original scale), but several uploaded packs (verified after a
 // teacher-reported "giant black shapes in the background" bug) use very
 // different native units and rendered many meters tall at scale 1. Every
-// placement now auto-normalizes to roughly a character's real height
-// (1.745 units — the same measured constant townLayout.ts's own building
-// scales are tuned against) using the model's REAL bounding box, so a
-// pack's arbitrary native units can never produce an invisible-up-close or
-// horizon-filling placement again. A teacher can still resize afterward via
-// the normal Tiny..Giant presets.
-const DEFAULT_PLACEMENT_HEIGHT = 1.75;
+// placement now auto-normalizes using the model's REAL bounding box, so a
+// pack's arbitrary native units can never produce an invisible-up-close
+// placement again. A teacher can still resize afterward via the normal
+// Tiny..Giant presets.
+//
+// Direct instruction after a follow-up bug report (a placed road tile
+// scaled to cover the entire visible map): real-world-scale reasoning, not
+// one flat "everything ~character height" rule, keyed by the asset
+// manifest's own category — same reference point townLayout.ts's building
+// scales are already tuned against (a 1.745-unit measured character).
+// Ranges given directly: regular buildings 4-5x a neighbor, city-scale
+// structures 8-10x, trees 3-8x, furniture/props comparable to a neighbor.
+// Animals/creatures share the Nature & Animals catalog group with trees
+// but are sized like a neighbor, not like tree-scale backdrop, since a
+// literal "8x-tall raccoon" would be its own bug. Categories not listed
+// fall back to plain character-height sizing.
+const CHARACTER_HEIGHT = 1.745;
+const CATEGORY_SCALE_TARGET: Record<string, number> = {
+  city: CHARACTER_HEIGHT * 9, // city-scale structures: 8-10x
+  buildings: CHARACTER_HEIGHT * 4.5, // regular buildings: 4-5x
+  structures: CHARACTER_HEIGHT * 4.5,
+  restaurant: CHARACTER_HEIGHT * 4.5,
+  market: CHARACTER_HEIGHT * 3, // stalls — smaller than a full building
+  interior: CHARACTER_HEIGHT * 1, // furniture, not building-scale
+  forest: CHARACTER_HEIGHT * 5.5, // trees: 3-8x
+  farm: CHARACTER_HEIGHT * 3,
+  camping: CHARACTER_HEIGHT * 1.5,
+  fall: CHARACTER_HEIGHT * 1.2,
+  creatures: CHARACTER_HEIGHT * 0.8, // animals — neighbor-comparable
+  pets: CHARACTER_HEIGHT * 0.6,
+  aquarium: CHARACTER_HEIGHT * 0.4,
+  water: CHARACTER_HEIGHT * 0.8,
+  resources: CHARACTER_HEIGHT * 0.8,
+  halloween: CHARACTER_HEIGHT * 1.3,
+  holiday: CHARACTER_HEIGHT * 1.3,
+  fantasy: CHARACTER_HEIGHT * 3,
+  japan: CHARACTER_HEIGHT * 2.5,
+  pirate: CHARACTER_HEIGHT * 1.5,
+  scifi: CHARACTER_HEIGHT * 2,
+  platformer: CHARACTER_HEIGHT * 1,
+  characters: CHARACTER_HEIGHT * 1,
+  props: CHARACTER_HEIGHT * 0.8, // furniture/tools — comparable to a neighbor
+  prototype: CHARACTER_HEIGHT * 1,
+  toolsbits: CHARACTER_HEIGHT * 0.5,
+  misc: CHARACTER_HEIGHT * 0.8,
+};
+const DEFAULT_SCALE_TARGET_HEIGHT = CHARACTER_HEIGHT;
+// The road-tile bug's real root cause: sizing ANY object by height alone
+// breaks the moment height is near zero (a flat road/floor/rug model),
+// which divides out to a huge multiplier regardless of category. Detected
+// generically (footprint many times taller than the model actually is),
+// not just special-cased for "roads" by name, since any other flat/wide
+// asset would hit the identical failure mode. Falls back to sizing by
+// footprint against a believable sidewalk width instead — the same 2.5-
+// unit figure townLayout.ts's own hand-placed ROAD_SCALE already uses.
+const FLAT_OBJECT_FOOTPRINT_RATIO = 6;
+const FLAT_OBJECT_TARGET_WIDTH = 2.5;
+function computeAutoScale(size: THREE.Vector3, category: string): number {
+  const footprint = Math.max(size.x, size.z);
+  if (size.y > 0 && isFinite(size.y) && footprint / size.y > FLAT_OBJECT_FOOTPRINT_RATIO) {
+    return footprint > 0 ? THREE.MathUtils.clamp(FLAT_OBJECT_TARGET_WIDTH / footprint, SCALE_MIN, SCALE_MAX) : 1;
+  }
+  const targetHeight = CATEGORY_SCALE_TARGET[category] ?? DEFAULT_SCALE_TARGET_HEIGHT;
+  return size.y > 0 && isFinite(size.y) ? THREE.MathUtils.clamp(targetHeight / size.y, SCALE_MIN, SCALE_MAX) : 1;
+}
 
 // Advisory-only footprint overlap check (Minecraft/Sims-style warning, per
 // Claudia's spec — never blocks placement). A real per-model bounding box
@@ -192,17 +250,16 @@ function useModelSize(path: string): THREE.Vector3 {
 }
 
 // Reports a freshly-armed asset's auto-normalized placement scale back up
-// to the main component (see DEFAULT_PLACEMENT_HEIGHT above). Lives inside
+// to the main component (see computeAutoScale above). Lives inside
 // <Canvas>, same as every other useGLTF call in this file — the ghost
 // preview already loads/measures a possibly-never-seen-before model this
 // same way, so this introduces no new loading behavior, just reuses it for
 // one more purpose.
-function GhostScaleReporter({ path, onScale }: { path: string; onScale: (s: number) => void }) {
+function GhostScaleReporter({ path, category, onScale }: { path: string; category: string; onScale: (s: number) => void }) {
   const size = useModelSize(path);
   useEffect(() => {
-    const s = size.y > 0 && isFinite(size.y) ? THREE.MathUtils.clamp(DEFAULT_PLACEMENT_HEIGHT / size.y, SCALE_MIN, SCALE_MAX) : 1;
-    onScale(s);
-  }, [size, onScale]);
+    onScale(computeAutoScale(size, category));
+  }, [size, category, onScale]);
   return null;
 }
 
@@ -808,6 +865,7 @@ export default function WorldEditor() {
   const selectionRef = useRef<Sel | null>(null);
   const deleteSelectedRef = useRef<() => void>(() => {});
   const rotateByRef = useRef<(deg: number) => void>(() => {});
+  const nudgeScaleByRef = useRef<(delta: number) => void>(() => {});
 
   useEffect(() => {
     fetch('/world/asset-manifest.json')
@@ -880,6 +938,8 @@ export default function WorldEditor() {
       }
       if (e.key === '[') { rotateByRef.current(-15); return; }
       if (e.key === ']') { rotateByRef.current(15); return; }
+      if (e.key === '-') { nudgeScaleByRef.current(-0.5); return; }
+      if (e.key === '=') { nudgeScaleByRef.current(0.5); return; }
     };
     const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(false); };
     window.addEventListener('keydown', onKeyDown);
@@ -1005,9 +1065,18 @@ export default function WorldEditor() {
     if (!selected) return;
     updateSelected({ scale: THREE.MathUtils.clamp(value, SCALE_MIN, SCALE_MAX) });
   };
+  // Direct instruction: -/= nudge the selected object's scale by a flat
+  // 0.5 units per press (additive, unlike the resize popover's percentage-
+  // based hold-repeat +/- below — a flat step is easier to predict and
+  // land on a round number when typing quickly).
+  const nudgeScaleBy = (delta: number) => {
+    if (!selected) return;
+    setScale(selected.scale + delta);
+  };
   selectionRef.current = selection;
   deleteSelectedRef.current = deleteSelected;
   rotateByRef.current = rotateBy;
+  nudgeScaleByRef.current = nudgeScaleBy;
   const nudgeScale = (factor: number) => {
     if (!selected) return;
     setScale(selected.scale * factor);
@@ -1317,6 +1386,7 @@ export default function WorldEditor() {
               <div>⌨️ WASD / Arrows — move</div>
               <div>⌨️ Delete — remove selected</div>
               <div>⌨️ [ / ] — rotate selected</div>
+              <div>⌨️ - / = — resize selected</div>
               <div>⌨️ Ctrl/Cmd+Z — undo</div>
             </div>
           )}
@@ -1375,7 +1445,7 @@ export default function WorldEditor() {
             </mesh>
             <gridHelper args={[GROUND_HALF * 2, GROUND_HALF * 2, '#5a8f48', '#5a8f48']} position={[0, 0.02, 0]} />
 
-            {armedAsset && <GhostScaleReporter path={armedAsset.path} onScale={setArmedDefaultScale} />}
+            {armedAsset && <GhostScaleReporter path={armedAsset.path} category={armedAsset.category} onScale={setArmedDefaultScale} />}
 
             {armedAsset && ghostPos && (
               <>
