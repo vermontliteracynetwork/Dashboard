@@ -1005,11 +1005,65 @@ function TTSSettingsPanel({ student }: { student: Student }) {
   );
 }
 
+// Real recorded water ambience (a calm-down tool getting real audio
+// options, not just the synthesized bell chime.ts already had) — loops
+// quietly, one at a time, and always stops when this tool closes so it
+// never keeps playing in the background after a student moves on.
+const CALM_SOUNDS: { id: string; label: string; icon: string; src: string }[] = [
+  { id: 'ocean', label: 'Ocean', icon: '🌊', src: '/sounds/calm/calming-ocean.wav' },
+  { id: 'waves', label: 'Waves', icon: '🏖️', src: '/sounds/calm/crashing-waves.wav' },
+  { id: 'bubbles', label: 'Bubbles', icon: '🫧', src: '/sounds/calm/bubbling-water.wav' },
+  { id: 'drops', label: 'Rain Drops', icon: '💧', src: '/sounds/calm/water-droplets.wav' },
+];
+
 function QuietTool() {
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stop = () => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+    setPlayingId(null);
+  };
+
+  const toggle = (sound: (typeof CALM_SOUNDS)[number]) => {
+    if (playingId === sound.id) {
+      stop();
+      return;
+    }
+    audioRef.current?.pause();
+    const audio = new Audio(sound.src);
+    audio.loop = true;
+    audio.volume = 0.4;
+    audio.play().catch(() => {}); // autoplay can be blocked until a gesture — the tap itself is that gesture, but ignore any failure quietly
+    audioRef.current = audio;
+    setPlayingId(sound.id);
+  };
+
+  // Never leave a sound playing after the tool closes.
+  useEffect(() => () => { audioRef.current?.pause(); }, []);
+
   return (
     <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
       <p>Breathe in as the circle grows. Breathe out as it shrinks.</p>
       <div className="breathe-circle" />
+      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: '8px 0 0' }}>Optional: play a calm sound</p>
+      <div className="row-wrap" style={{ justifyContent: 'center' }}>
+        {CALM_SOUNDS.map((sound) => (
+          <button
+            key={sound.id}
+            className={`btn btn-sm ${playingId === sound.id ? 'btn-primary' : ''}`}
+            style={{ minHeight: 44 }}
+            onClick={() => toggle(sound)}
+            aria-pressed={playingId === sound.id}
+          >
+            {sound.icon} {sound.label}{playingId === sound.id ? ' ⏸️' : ''}
+          </button>
+        ))}
+      </div>
+      {playingId && (
+        <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={stop}>🔇 Stop sound</button>
+      )}
     </div>
   );
 }
