@@ -24,6 +24,6 @@ function collectJokes(dialogues: ConversationStep[][]): Record<string, JokeBookE
 }
 
 export const ALL_JOKES: Record<string, JokeBookEntry> = collectJokes([
-  ...QUEST1_NEIGHBORS.map((n) => n.dialogue),
-  ...Object.values(TOWNSPEOPLE).map((t) => t.dialogue),
+  ...QUEST1_NEIGHBORS.flatMap((n) => n.dialogues),
+  ...Object.values(TOWNSPEOPLE).flatMap((t) => t.dialogues),
 ]);

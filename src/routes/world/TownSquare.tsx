@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { QUEST1_NEIGHBORS, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
+import { QUEST1_NEIGHBORS, pickDialogueVariant, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { formatMoney } from '../../lib/money';
 import ToolsPanel from '../../components/ToolsPanel';
@@ -299,6 +299,28 @@ const DECOR_PROPS: { id: string; modelPath: string; position: [number, number]; 
   // A little paw-print sign near the pond — open grass, nothing else
   // placed there yet.
   { id: 'paw-sign', modelPath: '/world/models/props/traffic_sign.glb', position: [8, 3], scale: PAW_SIGN_SCALE },
+];
+
+// The teacher's free_city_pack (proceeding without a bundled license per
+// her explicit go-ahead) sat cataloged-but-unplaced until the road network
+// itself had a real, believable shape worth dressing — these are that
+// street furniture pass, real streetlights/bench/hydrant/bin/sign along
+// the now-rebuilt Main Street and market rather than an even, meaningless
+// scatter. Unlike every other prop pack in this file, this pack's models
+// aren't centered on their own local origin (each one's raw bounding box
+// sits tens of units away from [0,0,0], a leftover from whatever larger
+// scene they were originally exported out of) — CityProp recenters each
+// one horizontally and drops it to sit on y=0 before position/rotation/
+// scale get applied, or every single piece would render far off in the
+// distance from where it's actually placed. Pure decoration, same as the
+// flowers/mushrooms/small rocks — no collision registered.
+const CITY_PROPS: { id: string; modelPath: string; position: [number, number]; scale: number; rotationY?: number }[] = [
+  { id: 'streetlight-1', modelPath: '/world/models/city/streetLight.glb', position: [-6.25, -4.2], scale: 0.29 },
+  { id: 'streetlight-2', modelPath: '/world/models/city/streetLight.glb', position: [6.25, -4.2], scale: 0.29 },
+  { id: 'fire-hydrant', modelPath: '/world/models/city/fireHydrant.glb', position: [11.3, -1], scale: 0.38 },
+  { id: 'market-bench', modelPath: '/world/models/city/bench2.glb', position: [-1.5, -2], scale: 0.41, rotationY: Math.PI / 2 },
+  { id: 'market-bin', modelPath: '/world/models/city/garbageBin.glb', position: [3.8, -3.5], scale: 0.36 },
+  { id: 'main-st-stop-sign', modelPath: '/world/models/city/stopSign.glb', position: [-7.0, -4.6], scale: 0.18 },
 ];
 
 // Every building/stall/the desk now blocks movement too — walking straight
@@ -673,6 +695,37 @@ function Prop({
   const { scene } = useGLTF(path);
   const cloned = useMemo(() => scene.clone(), [scene]);
   return <primitive object={cloned} position={position} scale={scale} rotation={[0, rotationY, 0]} />;
+}
+
+// Same idea as Prop, but for a pack whose models aren't centered on their
+// own local origin (see CITY_PROPS above) — recenters horizontally and
+// drops the model to sit on y=0 before the outer group's position/
+// rotation/scale apply, so it actually renders where it's placed instead
+// of far off in the distance at the model's own uncorrected local offset.
+function CityProp({
+  path,
+  position,
+  scale = 1,
+  rotationY = 0,
+}: {
+  path: string;
+  position: [number, number];
+  scale?: number;
+  rotationY?: number;
+}) {
+  const { scene } = useGLTF(path);
+  const recentered = useMemo(() => {
+    const c = scene.clone();
+    const box = new THREE.Box3().setFromObject(c);
+    const center = box.getCenter(new THREE.Vector3());
+    c.position.set(-center.x, -box.min.y, -center.z);
+    return c;
+  }, [scene]);
+  return (
+    <group position={[position[0], 0, position[1]]} rotation={[0, rotationY, 0]} scale={scale}>
+      <primitive object={recentered} />
+    </group>
+  );
 }
 
 // Still a simple flat-color pond — no real pond asset with a ready GLB
@@ -1103,10 +1156,12 @@ const ENTRANCE_APPROACH_BUFFER = 0.8;
 function BuildingEntrance({
   building,
   playerPos,
+  pendingApproach,
   onEnter,
 }: {
   building: (typeof BUILDINGS)[number];
   playerPos: THREE.Vector3;
+  pendingApproach: boolean;
   onEnter?: () => void;
 }) {
   const [bx, bz] = building.position;
@@ -1121,6 +1176,14 @@ function BuildingEntrance({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [inRange, onEnter]);
+
+  // Mirrors Neighbor's own pendingApproach effect — a click on the
+  // building itself (handleApproachBuilding) walks the student closer and
+  // sets this flag; once the walk actually lands them in range, open the
+  // view automatically rather than making them find and tap the button too.
+  useEffect(() => {
+    if (pendingApproach && inRange) onEnter?.();
+  }, [pendingApproach, inRange, onEnter]);
 
   if (!noticed) return null;
 
@@ -1148,9 +1211,11 @@ function BuildingEntrance({
 function Park({
   onGroundTap,
   onGroundHover,
+  onBuildingClick,
 }: {
   onGroundTap: (x: number, z: number) => void;
   onGroundHover: (pt: { x: number; z: number } | null) => void;
+  onBuildingClick: (id: string) => void;
 }) {
   // A ring of trees around the square's edge, a few pines mixed in for
   // variety, and a couple of rock clusters — real cataloged CC0 assets
@@ -1233,7 +1298,18 @@ function Park({
         t.pine ? <PineTree key={i} position={t.pos} scaleMul={t.scale} /> : <Tree key={i} position={t.pos} scaleMul={t.scale} />,
       )}
       {BUILDINGS.map((b) => (
-        <Prop key={b.id} path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={b.scale} />
+        // The click hitbox is the real rendered mesh, not a padded invisible
+        // shape — direct teacher feedback that buildings need to actually be
+        // clickable, not just something you can only walk up next to. Safe
+        // to use the real geometry here specifically because this file's own
+        // real-bbox math (the fix for the store/Pip and Scout/Welcome-Center
+        // overlaps above) already guarantees every building's actual
+        // footprint stops short of its Neighbor's talk hitbox — a padded
+        // circle was the thing that risked re-overlapping that margin, not
+        // the mesh itself.
+        <group key={b.id} onClick={(e) => { e.stopPropagation(); onBuildingClick(b.id); }}>
+          <Prop path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={b.scale} />
+        </group>
       ))}
       {MARKET_STALLS.map((m) => (
         <Prop key={m.id} path={m.modelPath} position={[m.position[0], 0, m.position[1]]} rotationY={m.rotationY} scale={m.scale ?? MARKET_SCALE} />
@@ -1247,6 +1323,9 @@ function Park({
       ))}
       {DECOR_PROPS.map((d) => (
         <Prop key={d.id} path={d.modelPath} position={[d.position[0], 0, d.position[1]]} scale={d.scale} />
+      ))}
+      {CITY_PROPS.map((c) => (
+        <CityProp key={c.id} path={c.modelPath} position={c.position} scale={c.scale} rotationY={c.rotationY} />
       ))}
     </group>
   );
@@ -1519,11 +1598,11 @@ export default function TownSquare() {
   };
 
   const handleTalk = (n: Quest1Neighbor) => {
-    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: n.dialogue });
+    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []) });
   };
 
   const handleTalkTownsperson = (tp: Townsperson) => {
-    beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: tp.dialogue });
+    beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: pickDialogueVariant(tp.dialogues, student?.worldJokesHeardIds ?? []) });
   };
 
   // Direct teacher instruction: clicking a Neighbor should walk the student
@@ -1584,6 +1663,36 @@ export default function TownSquare() {
     walkTarget.current = {
       x: THREE.MathUtils.clamp(live.x + (dx / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
       z: THREE.MathUtils.clamp(live.z + (dz / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+    };
+    setHasWalkedOnce(true);
+  };
+
+  // Same click-to-approach shape as handleApproach, for a building instead
+  // of a Neighbor — direct teacher feedback that buildings need to actually
+  // be clickable. Buildings with no BUILDING_VIEWS entry yet (Post Office,
+  // Welcome Center) still walk the student closer on click, same as any
+  // other building, they just have nothing to open once they arrive.
+  const handleApproachBuilding = (id: string) => {
+    if (mapView) return;
+    if (wasDraggingLook.current) return;
+    const b = BUILDINGS.find((bb) => bb.id === id);
+    if (!b) return;
+    const [bx, bz] = b.position;
+    const approachRadius = b.blockRadius + ENTRANCE_APPROACH_BUFFER;
+    const dx = playerPos.x - bx;
+    const dz = playerPos.z - bz;
+    const dist = Math.hypot(dx, dz) || 1;
+    const viewPath = BUILDING_VIEWS[id];
+    if (dist <= approachRadius) {
+      if (viewPath) navigate(viewPath);
+      return;
+    }
+    const approachDist = approachRadius * 0.85;
+    hoverTarget.current = null;
+    pendingApproach.current = id;
+    walkTarget.current = {
+      x: THREE.MathUtils.clamp(bx + (dx / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+      z: THREE.MathUtils.clamp(bz + (dz / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
     };
     setHasWalkedOnce(true);
   };
@@ -1833,6 +1942,7 @@ export default function TownSquare() {
                   }
                 : null;
             }}
+            onBuildingClick={handleApproachBuilding}
           />
           <WalkTargetMarker walkTarget={walkTarget} />
           <HoverPreviewMarker hoverTarget={hoverTarget} />
@@ -1887,6 +1997,7 @@ export default function TownSquare() {
                 key={b.id}
                 building={b}
                 playerPos={playerPos}
+                pendingApproach={pendingApproach.current === b.id}
                 onEnter={viewPath ? () => { if (!mapView && !wasDraggingLook.current) navigate(viewPath); } : undefined}
               />
             );
