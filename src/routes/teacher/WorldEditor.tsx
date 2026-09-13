@@ -114,8 +114,22 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   // smaller than a neighbor, same as 'props'.
   city: CHARACTER_HEIGHT * 0.8,
   buildings: CHARACTER_HEIGHT * 4.5, // regular buildings: 4-5x
-  structures: CHARACTER_HEIGHT * 4.5,
-  restaurant: CHARACTER_HEIGHT * 4.5,
+  // INTERIM fix, pending Claudia's proper per-item size-class system
+  // (dispatched — a flat per-category number can't work here, same root
+  // cause as the 'city' bug above). 'restaurant' (61 items) is almost
+  // entirely furniture/food/kitchen props (cafe tables, coffee cups, a
+  // blender) with no real buildings in it — safe to size like furniture.
+  // 'structures' (29 items) is a genuine 50/50 split this one number
+  // can't get right either way: ~20 "Modular X" items are small building-
+  // KIT PARTS (a door, a fence, a chimney), but ~9 "Pack X" items
+  // (PackHouse/Bank/Hospital/Shop) are actually whole pre-assembled
+  // buildings. Erring toward the smaller side on purpose: an oversized
+  // loose fence piece filling the screen is the dangerous failure mode
+  // (the exact bug this comment is next to), an undersized building is
+  // just small and easy to notice/resize up with the working resize
+  // controls.
+  structures: CHARACTER_HEIGHT * 2.5,
+  restaurant: CHARACTER_HEIGHT * 0.8,
   suburb: CHARACTER_HEIGHT * 4.5, // houses — regular-building scale
   'quaternius-buildings': CHARACTER_HEIGHT * 6, // 1-6 story buildings: splits the 4-10x regular/city-scale range, since one target height can't track story count
   market: CHARACTER_HEIGHT * 3, // stalls — smaller than a full building
