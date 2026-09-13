@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T14:26:40.064Z",
+  "generatedAt": "2026-09-13T14:30:22.223Z",
   "assets": [
     {
       "path": "/world/models/buildings/bank.glb",
@@ -120,6 +120,171 @@
       "path": "/world/models/city/trafficLight.glb",
       "label": "Traffic Light",
       "category": "city"
+    },
+    {
+      "path": "/world/models/creatures/big-Alien.gltf",
+      "label": "Big Alien",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Birb.gltf",
+      "label": "Big Birb",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-BlueDemon.gltf",
+      "label": "Big Blue Demon",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Bunny.gltf",
+      "label": "Big Bunny",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Cactoro.gltf",
+      "label": "Big Cactoro",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Demon.gltf",
+      "label": "Big Demon",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Dino.gltf",
+      "label": "Big Dino",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Fish.gltf",
+      "label": "Big Fish",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Frog.gltf",
+      "label": "Big Frog",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Monkroose.gltf",
+      "label": "Big Monkroose",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-MushroomKing.gltf",
+      "label": "Big Mushroom King",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Ninja.gltf",
+      "label": "Big Ninja",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Orc.gltf",
+      "label": "Big Orc",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Orc_Skull.gltf",
+      "label": "Big Orc Skull",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Tribal.gltf",
+      "label": "Big Tribal",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/big-Yeti.gltf",
+      "label": "Big Yeti",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Alpaking.gltf",
+      "label": "Flying Alpaking",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Alpaking_Evolved.gltf",
+      "label": "Flying Alpaking Evolved",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Armabee.gltf",
+      "label": "Flying Armabee",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Armabee_Evolved.gltf",
+      "label": "Flying Armabee Evolved",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Demon.gltf",
+      "label": "Flying Demon",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Dragon.gltf",
+      "label": "Flying Dragon",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Dragon_Evolved.gltf",
+      "label": "Flying Dragon Evolved",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Ghost.gltf",
+      "label": "Flying Ghost",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Ghost_Skull.gltf",
+      "label": "Flying Ghost Skull",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Glub.gltf",
+      "label": "Flying Glub",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Glub_Evolved.gltf",
+      "label": "Flying Glub Evolved",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Goleling.gltf",
+      "label": "Flying Goleling",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Goleling_Evolved.gltf",
+      "label": "Flying Goleling Evolved",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Hywirl.gltf",
+      "label": "Flying Hywirl",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Pigeon.gltf",
+      "label": "Flying Pigeon",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Squidle.gltf",
+      "label": "Flying Squidle",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/flying-Tribal.gltf",
+      "label": "Flying Tribal",
+      "category": "creatures"
     },
     {
       "path": "/world/models/food/FoodIngredient_Avocado.gltf",
