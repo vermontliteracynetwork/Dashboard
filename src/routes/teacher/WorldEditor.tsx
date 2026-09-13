@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
@@ -93,6 +93,80 @@ function useHoldRepeat(fn: () => void) {
     }, 400);
   };
   return { onPointerDown: start, onPointerUp: stop, onPointerLeave: stop };
+}
+
+// Build Mode's own accent (Claudia's Sims-4-inspired redesign: each Sims 4
+// mode gets its own color; this reuses the app's existing --success green
+// rather than inventing a new token) — kept as plain hex here since this
+// file needs it inside react-three-fiber materials, which don't resolve
+// CSS custom properties.
+const BUILD_ACCENT = '#22c55e';
+const BUILD_ACCENT_DARK = '#15803d';
+const OVERLAP_COLOR = '#dc2626';
+
+// Category-group visual identity for catalog tiles — an icon + tint per
+// group (Claudia's fallback for "no real per-item thumbnails exist yet,"
+// see the redesign spec) so the grid is scannable by color/icon the way
+// Sims 4's own category tabs are, even without a picture of each item.
+const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
+  'Nature & Animals': { icon: '🌳', bg: '#e8f5e0' },
+  'Buildings & Places': { icon: '🏠', bg: '#e6f0fb' },
+  'Seasonal & Themed': { icon: '🎃', bg: '#fdeee0' },
+  'Characters': { icon: '🧑', bg: '#f3e8fb' },
+  'Props & Tools': { icon: '🔧', bg: '#eef0f2' },
+  'Other': { icon: '📦', bg: '#eef0f2' },
+};
+const CATEGORY_TO_GROUP: Record<string, string> = {
+  aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
+  buildings: 'Buildings & Places', city: 'Buildings & Places', interior: 'Buildings & Places', market: 'Buildings & Places', restaurant: 'Buildings & Places', roads: 'Buildings & Places', structures: 'Buildings & Places',
+  fantasy: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
+  characters: 'Characters',
+  props: 'Props & Tools', prototype: 'Props & Tools', toolsbits: 'Props & Tools', misc: 'Props & Tools',
+};
+function tileStyleFor(category: string) {
+  return CATEGORY_GROUP_STYLE[CATEGORY_TO_GROUP[category] ?? 'Other'];
+}
+
+// A model's real (unscaled) footprint, for the wireframe outlines below —
+// translation-invariant, so the un-recentered scene works fine here; drei
+// caches useGLTF globally by path, so this is a cheap cache hit alongside
+// WorldObjectRenderer's own useGLTF call for the same model.
+function useModelSize(path: string): THREE.Vector3 {
+  const { scene } = useGLTF(path);
+  return useMemo(() => new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3()), [scene]);
+}
+
+// A crisp box outline matching a placed/ghost object's real footprint —
+// Minecraft/Sims-4-style "this is exactly where/how big it is" feedback,
+// layered on top of the existing translucent ghost rather than replacing
+// it (Claudia's spec section 4/6). Position is the object's ground point;
+// the box is centered on its true vertical midpoint.
+function FootprintOutline({ modelPath, x, z, rotationY = 0, scale, color, opacity = 1, lineWidth = 2 }: {
+  modelPath: string; x: number; z: number; rotationY?: number; scale: number; color: string; opacity?: number; lineWidth?: number;
+}) {
+  const size = useModelSize(modelPath);
+  const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(size.x, size.y, size.z)), [size]);
+  return (
+    <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
+      <lineSegments position={[0, (size.y * scale) / 2, 0]} scale={scale}>
+        <primitive object={edges} attach="geometry" />
+        <lineBasicMaterial color={color} transparent opacity={opacity} linewidth={lineWidth} />
+      </lineSegments>
+    </group>
+  );
+}
+
+// The flat highlighted ground cell under the ghost — Minecraft's actual
+// target-reticle equivalent, visible the instant an asset is armed even
+// before the pointer has moved (Claudia's spec section 4.1).
+function GroundCellOutline({ x, z, color, size = GRID_SIZE }: { x: number; z: number; color: string; size?: number }) {
+  const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.PlaneGeometry(size, size)), [size]);
+  return (
+    <lineSegments position={[x, 0.03, z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <primitive object={edges} attach="geometry" />
+      <lineBasicMaterial color={color} linewidth={2} />
+    </lineSegments>
+  );
 }
 
 function ReferenceScene() {
@@ -227,6 +301,161 @@ function RosterTab() {
   );
 }
 
+// The floating contextual toolbar that appears right at a selected object —
+// Sims 4's own pattern (a small cluster of icon buttons following the
+// object) instead of a docked side panel of stacked controls. Lives inside
+// the <Canvas> via drei's <Html>, the same world-anchored-2D-UI technique
+// already used elsewhere in this app (Town Square's name tags/emote
+// bubbles). A separate component (not inlined in WorldEditor) because
+// useModelSize calls useGLTF, which must only run while an object is
+// actually selected — mounting/unmounting this component is how that stays
+// within the Rules of Hooks rather than calling it conditionally inline.
+function SelectedObjectToolbar({
+  selected, rotateBy, rotateCwFine, rotateCcwFine, setScale, growHold, shrinkHold,
+  updateWorldObject, deleteWorldObject, deselect,
+}: {
+  selected: WorldObject;
+  rotateBy: (deg: number) => void;
+  rotateCwFine: ReturnType<typeof useHoldRepeat>;
+  rotateCcwFine: ReturnType<typeof useHoldRepeat>;
+  setScale: (v: number) => void;
+  growHold: ReturnType<typeof useHoldRepeat>;
+  shrinkHold: ReturnType<typeof useHoldRepeat>;
+  updateWorldObject: (id: string, patch: Partial<WorldObject>) => void;
+  deleteWorldObject: (id: string) => void;
+  deselect: () => void;
+}) {
+  const size = useModelSize(selected.modelPath);
+  const topY = size.y * selected.scale;
+  const [openPopover, setOpenPopover] = useState<'resize' | 'color' | 'more' | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  useEffect(() => { setOpenPopover(null); setConfirmingDelete(false); }, [selected.id]);
+
+  const doDelete = () => { deleteWorldObject(selected.id); deselect(); };
+
+  const iconBtn = (label: string, title: string, onClick?: () => void, holdProps?: ReturnType<typeof useHoldRepeat>, active?: boolean) => (
+    <button
+      key={title}
+      title={title}
+      aria-label={title}
+      className="btn btn-sm"
+      style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem', background: active ? BUILD_ACCENT : undefined, color: active ? '#fff' : undefined, borderColor: active ? BUILD_ACCENT : undefined }}
+      onClick={onClick}
+      {...holdProps}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <>
+      {/* Corner delete badge — the second of the two delete affordances
+          Kayden asked for ("the delete button or an X"), sitting right on
+          the selection outline itself so it's visible the instant
+          something is selected, no hunting in a panel. */}
+      <Html position={[selected.position[0] + (size.x * selected.scale) / 2 + 0.15, topY, selected.position[2]]} center distanceFactor={8} zIndexRange={[60, 0]}>
+        <button
+          title="Delete"
+          aria-label="Delete this object"
+          onClick={() => (confirmingDelete ? doDelete() : setConfirmingDelete(true))}
+          style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid #fff', background: 'var(--danger)', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}
+        >
+          ✕
+        </button>
+      </Html>
+
+      <Html position={[selected.position[0], topY + 0.5, selected.position[2]]} center distanceFactor={8} zIndexRange={[60, 0]}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif' }}>
+          {confirmingDelete ? (
+            <div className="row" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 12, boxShadow: '4px 4px 0 var(--ink)', padding: 6 }}>
+              <button className="btn btn-sm btn-danger" style={{ minHeight: 40 }} onClick={doDelete}>Delete</button>
+              <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => setConfirmingDelete(false)}>Cancel</button>
+            </div>
+          ) : (
+            <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
+              {iconBtn('↺', 'Rotate left 45° (hold for 15° steps)', () => rotateBy(-45), rotateCcwFine)}
+              {iconBtn('↻', 'Rotate right 45° (hold for 15° steps)', () => rotateBy(45), rotateCwFine)}
+              {iconBtn('⤢', 'Resize', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
+              {iconBtn('🎨', 'Color tint', () => setOpenPopover((v) => (v === 'color' ? null : 'color')), undefined, openPopover === 'color')}
+              {iconBtn('⋯', 'Name & role', () => setOpenPopover((v) => (v === 'more' ? null : 'more')), undefined, openPopover === 'more')}
+              <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)', margin: '0 2px' }} />
+              <button
+                title="Delete"
+                aria-label="Delete this object"
+                className="btn btn-sm btn-danger"
+                style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem' }}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {openPopover === 'resize' && (
+            <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 220 }}>
+              <div className="row-wrap" style={{ gap: 4, justifyContent: 'center' }}>
+                {SCALE_PRESETS.map((p) => (
+                  <button
+                    key={p.label}
+                    className={`btn btn-sm ${Math.abs(selected.scale - p.value) < 0.001 ? 'btn-primary' : ''}`}
+                    style={{ minHeight: 40 }}
+                    onClick={() => setScale(p.value)}
+                  >
+                    {Math.abs(selected.scale - p.value) < 0.001 ? '✓ ' : ''}{p.label}
+                  </button>
+                ))}
+              </div>
+              <div className="row" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                <button className="btn btn-sm" style={{ minHeight: 40, width: 40 }} {...shrinkHold}>−</button>
+                <span style={{ fontSize: '0.78rem', minWidth: 56, textAlign: 'center' }}>{Math.round(selected.scale * 100)}%</span>
+                <button className="btn btn-sm" style={{ minHeight: 40, width: 40 }} {...growHold}>+</button>
+              </div>
+            </div>
+          )}
+
+          {openPopover === 'color' && (
+            <div className="row" style={{ gap: 6, alignItems: 'center', background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10 }}>
+              <input
+                type="color"
+                value={selected.tintColor ?? '#ffffff'}
+                onChange={(e) => updateWorldObject(selected.id, { tintColor: e.target.value })}
+                style={{ minHeight: 40, width: 48, padding: 2 }}
+              />
+              {selected.tintColor && (
+                <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => updateWorldObject(selected.id, { tintColor: undefined })}>Clear</button>
+              )}
+            </div>
+          )}
+
+          {openPopover === 'more' && (
+            <div className="stack" style={{ gap: 8, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 230 }}>
+              <label style={{ margin: 0 }}>
+                <span style={{ fontSize: '0.72rem' }}>Custom name</span>
+                <input
+                  value={selected.customName ?? ''}
+                  placeholder={selected.label}
+                  onChange={(e) => updateWorldObject(selected.id, { customName: e.target.value || undefined })}
+                  style={{ minHeight: 40, width: '100%' }}
+                />
+              </label>
+              <label style={{ margin: 0 }}>
+                <span style={{ fontSize: '0.72rem' }}>Role (what opens for a student)</span>
+                <select
+                  value={selected.role ?? ''}
+                  onChange={(e) => updateWorldObject(selected.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
+                  style={{ minHeight: 40, width: '100%' }}
+                >
+                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
+      </Html>
+    </>
+  );
+}
+
 export default function WorldEditor() {
   const worldObjects = useStore((s) => s.worldObjects);
   const addWorldObject = useStore((s) => s.addWorldObject);
@@ -241,6 +470,8 @@ export default function WorldEditor() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<'build' | 'roster'>('build');
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [catalogOpen, setCatalogOpen] = useState(true);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   // Placement ghost (armed asset following the pointer before it's real —
   // Minecraft's hover-preview) and the live drag-preview for repositioning
@@ -355,19 +586,22 @@ export default function WorldEditor() {
   return (
     <div className="stack" style={{ padding: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <TeacherNav />
-      <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))', flexShrink: 0 }}>
+      {/* Build Mode's own accent (green, per Claudia's Sims-4-referenced
+          redesign — each Sims 4 mode gets its own color) replaces this
+          screen's earlier purple; nowhere else in the app changes. */}
+      <div className="subject-header space-between" style={{ background: `linear-gradient(120deg, ${BUILD_ACCENT}, ${BUILD_ACCENT_DARK})`, flexShrink: 0 }}>
         <h2 style={{ margin: 0, color: '#fff' }}>🏗️ Town Square Build Mode</h2>
         <div className="row-wrap" style={{ gap: 6 }}>
           <button
             className="btn btn-sm btn-flat"
-            style={{ minHeight: 44, background: tab === 'build' ? '#fff' : 'transparent', color: tab === 'build' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+            style={{ minHeight: 44, background: tab === 'build' ? '#fff' : 'transparent', color: tab === 'build' ? BUILD_ACCENT_DARK : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
             onClick={() => setTab('build')}
           >
             🏗️ Build
           </button>
           <button
             className="btn btn-sm btn-flat"
-            style={{ minHeight: 44, background: tab === 'roster' ? '#fff' : 'transparent', color: tab === 'roster' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+            style={{ minHeight: 44, background: tab === 'roster' ? '#fff' : 'transparent', color: tab === 'roster' ? BUILD_ACCENT_DARK : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
             onClick={() => setTab('roster')}
           >
             📋 Roster
@@ -378,22 +612,17 @@ export default function WorldEditor() {
       {tab === 'roster' && <RosterTab />}
 
       {tab === 'build' && (
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Asset inventory — a docked side panel, not a popup, so it uses a
-            plain flat border rather than .chrome-frame: that class's
-            painted bevel art is meant for a fully-framed floating popup,
-            and its baked-in rounded corners read as a stray seam when the
-            panel sits flush against the header/canvas on 3 of 4 sides. */}
-        <div className="stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
-          <strong style={{ fontSize: '0.85rem' }}>📦 Asset Inventory ({manifest.length})</strong>
-          <button
-            className={`btn btn-sm ${snapEnabled ? 'btn-primary' : ''}`}
-            style={{ minHeight: 44 }}
-            onClick={() => setSnapEnabled((v) => !v)}
-            title="When on, placing and moving objects snaps to the grid"
-          >
-            ▦ Snap to Grid: {snapEnabled ? 'ON' : 'OFF'}
-          </button>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, position: 'relative' }}>
+        {/* Asset catalog — a grid of tiles (Sims 4 Buy Mode's own layout),
+            not a list. No pre-rendered per-item pictures exist for these
+            1186 raw .glb models (a real thumbnail-render pipeline is a
+            separate, bigger project — see Claudia's redesign spec), so
+            each tile substitutes a category icon + tint, reading as "a
+            catalog card" by color/icon the way Sims 4's own category tabs
+            do, rather than a plain text row. */}
+        {catalogOpen && (
+        <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
+          <strong style={{ fontSize: '0.85rem' }}>📦 Catalog ({manifest.length})</strong>
           {manifestError && <p style={{ fontSize: '0.78rem', color: 'var(--danger)' }}>Couldn't load the asset list. Try refreshing.</p>}
           <input placeholder="🔍 Search assets..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ minHeight: 40 }} />
           <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: 40 }}>
@@ -405,33 +634,47 @@ export default function WorldEditor() {
             ))}
           </select>
           <p style={{ fontSize: '0.72rem', opacity: 0.7, margin: 0 }}>
-            Tap an asset, then tap the ground to place it.
+            Tap an item, then tap the ground to place it.
           </p>
-          <div className="stack" style={{ gap: 4 }}>
-            {filtered.map((a) => (
-              <button
-                key={a.path}
-                className="btn btn-sm btn-flat"
-                style={{ minHeight: 44, justifyContent: 'flex-start', textAlign: 'left', background: armedAsset?.path === a.path ? 'var(--purple)' : undefined, color: armedAsset?.path === a.path ? '#fff' : undefined }}
-                onClick={() => setArmedAsset(armedAsset?.path === a.path ? null : a)}
-              >
-                🧱 {a.label} <span style={{ opacity: 0.6, fontSize: '0.68rem', marginLeft: 4 }}>({a.category})</span>
-              </button>
-            ))}
-            {filtered.length === 0 && !manifestError && <p style={{ fontSize: '0.78rem', opacity: 0.6 }}>No assets match.</p>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))', gap: 8 }}>
+            {filtered.map((a) => {
+              const armed = armedAsset?.path === a.path;
+              const tileStyle = tileStyleFor(a.category);
+              return (
+                <button
+                  key={a.path}
+                  onClick={() => setArmedAsset(armed ? null : a)}
+                  title={a.label}
+                  style={{
+                    position: 'relative', display: 'flex', flexDirection: 'column', height: 96, padding: 0,
+                    border: armed ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)',
+                    borderRadius: 10, background: '#fff', overflow: 'hidden', cursor: 'pointer',
+                  }}
+                >
+                  {armed && (
+                    <span style={{ position: 'absolute', top: 3, left: 3, background: BUILD_ACCENT, color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>✓</span>
+                  )}
+                  <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, background: tileStyle.bg }}>{tileStyle.icon}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, textAlign: 'center', padding: '3px 4px', lineHeight: 1.15, maxHeight: 30, overflow: 'hidden', color: 'var(--ink)' }}>{a.label}</span>
+                  <span style={{ position: 'absolute', bottom: 22, right: 3, fontSize: 8, fontWeight: 700, background: tileStyle.bg, borderRadius: 5, padding: '1px 4px', color: 'var(--ink)', opacity: 0.85 }}>{a.category}</span>
+                </button>
+              );
+            })}
+            {filtered.length === 0 && !manifestError && <p style={{ fontSize: '0.78rem', opacity: 0.6, gridColumn: '1 / -1' }}>No assets match.</p>}
           </div>
         </div>
+        )}
 
         {/* 3D viewport */}
         <div style={{ flex: 1, position: 'relative' }}>
           {armedAsset && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: placementOverlap ? '#fff3ea' : '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
-              {placementOverlap && <div style={{ color: '#b5482f', fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Overlapping {placementOverlap} — that's OK, just checking</div>}
+              {placementOverlap && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Overlapping {placementOverlap} — that's OK, just checking</div>}
             </div>
           )}
           {dragOverlap && (
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff3ea', borderRadius: 10, padding: '6px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 600, fontSize: 12, color: '#b5482f' }}>
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff3ea', borderRadius: 10, padding: '6px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 600, fontSize: 12, color: OVERLAP_COLOR }}>
               ⚠ Overlapping {dragOverlap} — that's OK, just checking
             </div>
           )}
@@ -454,143 +697,113 @@ export default function WorldEditor() {
             <ReferenceScene />
 
             {armedAsset && ghostPos && (
-              <WorldObjectRenderer
-                obj={{
-                  id: '__ghost__',
-                  modelPath: armedAsset.path,
-                  label: armedAsset.label,
-                  position: [ghostPos.x, 0, ghostPos.z],
-                  rotationY: 0,
-                  scale: 1,
-                  createdAt: '',
-                  tintColor: placementOverlap ? '#e5533d' : undefined,
-                }}
-                opacity={0.55}
-              />
+              <>
+                <WorldObjectRenderer
+                  obj={{
+                    id: '__ghost__',
+                    modelPath: armedAsset.path,
+                    label: armedAsset.label,
+                    position: [ghostPos.x, 0, ghostPos.z],
+                    rotationY: 0,
+                    scale: 1,
+                    createdAt: '',
+                    tintColor: placementOverlap ? OVERLAP_COLOR : undefined,
+                  }}
+                  opacity={0.55}
+                />
+                {/* Minecraft's own placement clarity: a highlighted target
+                    cell plus a crisp wireframe cage on the exact footprint,
+                    layered on the translucent ghost above (Claudia's spec
+                    section 4) — never just a guess-and-see. */}
+                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={1} color={placementOverlap ? OVERLAP_COLOR : BUILD_ACCENT} />
+              </>
             )}
 
             {worldObjects.map((obj) => {
               const isBeingDragged = dragState?.id === obj.id && dragState.moved && !!dragPos;
+              const isSelected = selectedId === obj.id;
+              const isHovered = hoveredId === obj.id && !isSelected;
+              const livePos: [number, number, number] = isBeingDragged ? [dragPos!.x, 0, dragPos!.z] : obj.position;
               const renderObj = isBeingDragged
-                ? { ...obj, position: [dragPos!.x, 0, dragPos!.z] as [number, number, number], tintColor: dragOverlap ? '#e5533d' : obj.tintColor }
+                ? { ...obj, position: livePos, tintColor: dragOverlap ? OVERLAP_COLOR : obj.tintColor }
                 : obj;
               return (
-                <WorldObjectRenderer
-                  key={obj.id}
-                  obj={renderObj}
-                  opacity={isBeingDragged ? 0.6 : 1}
-                  onClick={() => setSelectedId(obj.id)}
-                  onPointerDown={(e) => {
-                    // Direct-drag-to-move (Sims/Webkinz-style), replacing
-                    // the old translate gizmo — only once the object is
-                    // already selected, so a first tap always just selects.
-                    if (selectedId !== obj.id) return;
-                    e.stopPropagation();
-                    setDragState({ id: obj.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
-                    setDragPos({ x: obj.position[0], z: obj.position[2] });
-                  }}
-                />
+                <group key={obj.id}>
+                  <WorldObjectRenderer
+                    obj={renderObj}
+                    opacity={isBeingDragged ? 0.6 : 1}
+                    onClick={() => setSelectedId(obj.id)}
+                    onPointerOver={() => setHoveredId(obj.id)}
+                    onPointerOut={() => setHoveredId((h) => (h === obj.id ? null : h))}
+                    onPointerDown={(e) => {
+                      // Direct-drag-to-move (Sims/Webkinz-style), replacing
+                      // the old translate gizmo — only once the object is
+                      // already selected, so a first tap always just selects.
+                      if (selectedId !== obj.id) return;
+                      e.stopPropagation();
+                      setDragState({ id: obj.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
+                      setDragPos({ x: obj.position[0], z: obj.position[2] });
+                    }}
+                  />
+                  {/* Selection/hover feedback lives in-scene, at the object
+                      itself — Claudia's finding: the old build had no visual
+                      indicator of what's selected anywhere but the side
+                      panel, which this closes. Color is reinforcement, the
+                      outline geometry itself is the primary signal. */}
+                  {isSelected && (
+                    <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={isBeingDragged && dragOverlap ? OVERLAP_COLOR : BUILD_ACCENT} lineWidth={2.5} />
+                  )}
+                  {isHovered && (
+                    <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
+                  )}
+                </group>
               );
             })}
+
+            {selected && !isDragging && (
+              <SelectedObjectToolbar
+                selected={selected}
+                rotateBy={rotateBy}
+                rotateCwFine={rotateCwFine}
+                rotateCcwFine={rotateCcwFine}
+                setScale={setScale}
+                growHold={growHold}
+                shrinkHold={shrinkHold}
+                updateWorldObject={updateWorldObject}
+                deleteWorldObject={deleteWorldObject}
+                deselect={() => setSelectedId(null)}
+              />
+            )}
           </Canvas>
-        </div>
 
-        {/* Selected-object panel — same reasoning as the asset inventory panel above. */}
-        <div className="stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 10, background: 'var(--content-bg)', borderLeft: '2px solid var(--content-border)' }}>
-          <strong style={{ fontSize: '0.85rem' }}>🎛️ Selected Object</strong>
-          {!selected ? (
-            <p style={{ fontSize: '0.78rem', opacity: 0.65 }}>Tap a placed object to edit it, or place a new one from the left panel.</p>
-          ) : (
-            <>
-              <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>{selected.label}</p>
-              <p style={{ fontSize: '0.72rem', opacity: 0.6, margin: 0 }}>👆 Press and drag it in the scene to move it.</p>
-
-              <label style={{ margin: 0 }}>
-                Rotate
-                <div className="row-wrap" style={{ gap: 4 }}>
-                  <button className="btn btn-sm" style={{ minHeight: 52 }} onClick={() => rotateBy(-45)}>↺ 45°</button>
-                  <button className="btn btn-sm" style={{ minHeight: 52 }} onClick={() => rotateBy(45)}>↻ 45°</button>
-                </div>
-                <div className="row-wrap" style={{ gap: 4, marginTop: 4 }}>
-                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...rotateCcwFine}>↺ 15°</button>
-                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...rotateCwFine}>↻ 15°</button>
-                </div>
-                <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Rotation: {Math.round(((selected.rotationY * 180) / Math.PI) % 360)}°</span>
-              </label>
-
-              <label style={{ margin: 0 }}>
-                Size
-                <div className="row-wrap" style={{ gap: 4 }}>
-                  {SCALE_PRESETS.map((p) => (
-                    <button
-                      key={p.label}
-                      className={`btn btn-sm ${Math.abs(selected.scale - p.value) < 0.001 ? 'btn-primary' : ''}`}
-                      style={{ minHeight: 44 }}
-                      onClick={() => setScale(p.value)}
-                    >
-                      {Math.abs(selected.scale - p.value) < 0.001 ? '✓ ' : ''}{p.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="row" style={{ gap: 4, marginTop: 4, alignItems: 'center' }}>
-                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...shrinkHold}>−</button>
-                  <span style={{ fontSize: '0.72rem', minWidth: 60, textAlign: 'center' }}>{Math.round(selected.scale * 100)}%</span>
-                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...growHold}>+</button>
-                </div>
-              </label>
-
-              <label>
-                Custom name
-                <input
-                  value={selected.customName ?? ''}
-                  placeholder={selected.label}
-                  onChange={(e) => updateWorldObject(selected.id, { customName: e.target.value || undefined })}
-                  style={{ minHeight: 44, width: '100%' }}
-                />
-              </label>
-
-              <label>
-                Role (what opens when a student clicks it)
-                <select
-                  value={selected.role ?? ''}
-                  onChange={(e) => updateWorldObject(selected.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
-                  style={{ minHeight: 44, width: '100%' }}
-                >
-                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </label>
-
-              <label>
-                Color tint
-                <div className="row" style={{ gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="color"
-                    value={selected.tintColor ?? '#ffffff'}
-                    onChange={(e) => updateWorldObject(selected.id, { tintColor: e.target.value })}
-                    style={{ minHeight: 44, width: 56, padding: 2 }}
-                  />
-                  {selected.tintColor && (
-                    <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => updateWorldObject(selected.id, { tintColor: undefined })}>Clear</button>
-                  )}
-                </div>
-              </label>
-
-              <button
-                className="btn btn-sm btn-danger"
-                style={{ minHeight: 44 }}
-                onClick={() => { deleteWorldObject(selected.id); setSelectedId(null); }}
-              >
-                🗑️ Delete
-              </button>
-            </>
-          )}
-
-          <hr className="divider" />
-          <p style={{ fontSize: '0.7rem', opacity: 0.6, margin: 0 }}>
-            {worldObjects.length} object{worldObjects.length === 1 ? '' : 's'} placed. Changes save immediately and
-            everyone sees the real Town Square update live. The 4 original buildings shown for reference aren't
-            editable here yet.
-          </p>
+          {/* Global mode-level controls, bottom-docked — Sims 4's own
+              bottom-toolbar feel, reserved for whole-scene settings rather
+              than the 1186-item catalog (Claudia's spec section 5: cramming
+              that many items into a short horizontal strip would force more
+              scrolling than the docked grid panel, not less). */}
+          <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '3px solid var(--ink)', borderRadius: 999, boxShadow: '4px 4px 0 var(--ink)', padding: '6px 10px' }}>
+            <button
+              className="btn btn-sm"
+              style={{ minHeight: 44, background: catalogOpen ? BUILD_ACCENT : undefined, color: catalogOpen ? '#fff' : undefined, borderColor: catalogOpen ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+              onClick={() => setCatalogOpen((v) => !v)}
+              title="Show or hide the catalog"
+            >
+              📦 Catalog
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{ minHeight: 44, background: snapEnabled ? BUILD_ACCENT : undefined, color: snapEnabled ? '#fff' : undefined, borderColor: snapEnabled ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+              onClick={() => setSnapEnabled((v) => !v)}
+              title="When on, placing and moving objects snaps to the grid"
+            >
+              ▦ Snap: {snapEnabled ? 'ON' : 'OFF'}
+            </button>
+            <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)' }} />
+            <span style={{ fontSize: '0.72rem', opacity: 0.65, padding: '0 6px', whiteSpace: 'nowrap' }}>
+              {worldObjects.length} object{worldObjects.length === 1 ? '' : 's'} placed
+            </span>
+          </div>
         </div>
       </div>
       )}
