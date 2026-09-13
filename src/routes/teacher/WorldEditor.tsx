@@ -240,6 +240,34 @@ function tileStyleFor(category: string) {
   return { icon: CATEGORY_ICON[category] ?? groupStyle.icon, bg: groupStyle.bg };
 }
 
+// A real rendered picture of the actual model, per direct instruction
+// ("show image of actual assets in the bar on the left") — offline-
+// generated PNGs under public/world/thumbnails/ (see
+// scripts/render-thumbnails.mjs), keyed by the exact same slug rule that
+// generation script uses. Not every one of the 1186 models necessarily
+// has a file (a handful failed to render — a missing texture/decoder
+// dependency — and were skipped rather than shipping a blank image), so
+// every use of this path goes through <AssetThumb>, which falls back to
+// the category icon tile on a 404 rather than showing a broken image.
+function thumbnailPathFor(modelPath: string): string {
+  return '/world/thumbnails/' + modelPath.replace(/^\/world\/models\//, '').replace(/\.(glb|gltf)$/, '').replace(/[/\s]/g, '_') + '.png';
+}
+function AssetThumb({ modelPath, category, size, iconSize }: { modelPath: string; category: string; size: number; iconSize: number }) {
+  const [failed, setFailed] = useState(false);
+  const tileStyle = tileStyleFor(category);
+  if (failed) {
+    return <span style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: iconSize, background: tileStyle.bg, borderRadius: 6 }}>{tileStyle.icon}</span>;
+  }
+  return (
+    <img
+      src={thumbnailPathFor(modelPath)}
+      alt=""
+      onError={() => setFailed(true)}
+      style={{ width: size, height: size, objectFit: 'contain', background: tileStyle.bg, borderRadius: 6 }}
+    />
+  );
+}
+
 // A model's real (unscaled) footprint, for the wireframe outlines below —
 // translation-invariant, so the un-recentered scene works fine here; drei
 // caches useGLTF globally by path, so this is a cheap cache hit alongside
@@ -1231,7 +1259,7 @@ export default function WorldEditor() {
                         borderRadius: 999, background: tileStyle.bg, cursor: 'pointer',
                       }}
                     >
-                      <span style={{ fontSize: 16 }}>{tileStyle.icon}</span>
+                      <AssetThumb modelPath={a.path} category={a.category} size={26} iconSize={15} />
                       <span style={{ fontSize: 11, fontWeight: 700, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label}</span>
                     </button>
                   );
@@ -1257,7 +1285,9 @@ export default function WorldEditor() {
                   {armed && (
                     <span style={{ position: 'absolute', top: 3, left: 3, background: BUILD_ACCENT, color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>✓</span>
                   )}
-                  <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, background: tileStyle.bg }}>{tileStyle.icon}</span>
+                  <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tileStyle.bg }}>
+                    <AssetThumb modelPath={a.path} category={a.category} size={52} iconSize={26} />
+                  </span>
                   <span style={{ fontSize: 10, fontWeight: 700, textAlign: 'center', padding: '3px 4px', lineHeight: 1.15, maxHeight: 30, overflow: 'hidden', color: 'var(--ink)' }}>{a.label}</span>
                   <span style={{ position: 'absolute', bottom: 22, right: 3, fontSize: 8, fontWeight: 700, background: tileStyle.bg, borderRadius: 5, padding: '1px 4px', color: 'var(--ink)', opacity: 0.85 }}>{a.category}</span>
                 </button>

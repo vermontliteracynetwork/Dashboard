@@ -1,0 +1,15 @@
+<!-- Dev-only renderer used by scripts/render-thumbnails.mjs to generate a
+     real picture of each catalog model (public/world/thumbnails/) — see
+     that script's own header comment. Never referenced by the shipped
+     app (Vite's default build only bundles index.html), kept as a
+     reusable tool for regenerating thumbnails after a new asset pack is
+     added, not a one-time throwaway. -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>thumb</title>
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+</head>
+<body>
+<script type="module" src="/src/devThumbRender.ts"></script>
+</body>
+</html>
