@@ -101,6 +101,17 @@ const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
 const POND_CENTER = { x: 6, z: 6 };
 const POND_BLOCK_RADIUS = 1.8;
 
+// Direct teacher instruction: every student should always arrive at the
+// same fixed, centrally-located spot, clear of every building/stall/
+// pond/prop, not a spot that could vary or land on top of something.
+// Checked against every collision entry in BUILDING_FOOTPRINTS/
+// STATIC_OBSTACLES/POND_CENTER above and below — nothing sits within 5
+// units of this point. Once a student has their own Home (not built
+// yet — see the Homeplot plan's Phase 1), they should instead spawn
+// right in front of their own front door; that swap belongs in Home's
+// own spawn logic once Home exists, not here.
+const SPAWN_POSITION = { x: 0, z: 6 };
+
 // Scale factors, measured against each model's actual loaded bounding box
 // in a standalone render check, not guessed — the first version of this
 // scene had every character rendering under a meter tall on a 36-unit
@@ -778,7 +789,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
-  const pos = useRef(new THREE.Vector3(0, 0, 6));
+  const pos = useRef(new THREE.Vector3(SPAWN_POSITION.x, 0, SPAWN_POSITION.z));
   const facing = useRef(0);
   const isMoving = useRef(false);
   const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
@@ -1092,17 +1103,39 @@ function GroundMaterial() {
 // background, replacing drei's procedural <Sky> — the teacher's explicit
 // ask was a realistic modern-town look, and a photographed/painted real
 // sky reads more like that than a procedural gradient does.
+// Direct teacher instruction: the old photographic skybox had actual
+// scenery — mountains/terrain — baked into the image far off on the
+// horizon, which never matches whatever's really out there and reads as
+// a broken/mismatched background. Replaced with a plain vertical gradient
+// generated on a small canvas at runtime — light blue overhead fading to
+// a pale near-white band at the horizon — so there is no baked content of
+// any kind, nothing in it can ever be "wrong." Static, not animated (same
+// no-ambient-weather/day-night rule the rest of this scene already
+// follows), and colored to match the same '#bfe3ff' sky Build Mode's own
+// default already uses elsewhere in this app.
 function SkyboxBackground() {
-  const tex = useTexture('/world/textures/skybox-day.png');
   const { scene } = useThree();
   useEffect(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#7ec4f0');
+    gradient.addColorStop(0.55, '#bfe3ff');
+    gradient.addColorStop(1, '#eef7ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const tex = new THREE.CanvasTexture(canvas);
     tex.mapping = THREE.EquirectangularReflectionMapping;
     tex.colorSpace = THREE.SRGBColorSpace;
     scene.background = tex;
     return () => {
       scene.background = null;
+      tex.dispose();
     };
-  }, [tex, scene]);
+  }, [scene]);
   return null;
 }
 
