@@ -110,7 +110,7 @@ function RosterTab() {
         <h3 style={{ margin: 0 }}>🧑‍🤝‍🧑 Neighbors &amp; Townspeople</h3>
         <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0, maxWidth: 640 }}>
           These are the hand-scripted characters students talk to in Town Square. A custom title here is just a
-          label next to their name — they'll still talk about their real role in conversation, so it's best used
+          label next to their name, and they'll still talk about their real role in conversation, so it's best used
           for flavor (a nickname, a fun fact) rather than actually reassigning who does what.
         </p>
         <div className="chrome-frame stack" style={{ padding: 0, overflow: 'hidden', gap: 0 }}>
@@ -138,11 +138,11 @@ function RosterTab() {
       <div className="stack" style={{ gap: 8 }}>
         <h3 style={{ margin: 0 }}>🏗️ Placed Objects</h3>
         <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0, maxWidth: 640 }}>
-          Anything placed from Build Mode. "Job" is real and functional — it's what actually opens when a student
+          Anything placed from Build Mode. "Job" is real and functional, and it's what actually opens when a student
           clicks it, the same setting as the properties panel over in Build Mode.
         </p>
         {worldObjects.length === 0 ? (
-          <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Nothing placed yet — switch to 🏗️ Build Mode to add some.</p>
+          <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Nothing placed yet. Switch to 🏗️ Build Mode to add some.</p>
         ) : (
           <div className="chrome-frame stack" style={{ padding: 0, overflow: 'hidden', gap: 0 }}>
             {worldObjects.map((obj) => (
@@ -163,7 +163,7 @@ function RosterTab() {
                 >
                   {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
-                <button className="btn btn-sm btn-danger" style={{ minHeight: 40 }} onClick={() => deleteWorldObject(obj.id)}>🗑️</button>
+                <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={() => deleteWorldObject(obj.id)}>🗑️</button>
               </div>
             ))}
           </div>
@@ -197,6 +197,23 @@ export default function WorldEditor() {
   }, []);
 
   const categories = useMemo(() => [...new Set(manifest.map((a) => a.category))].sort(), [manifest]);
+  // Claudia's audit: a flat 29-category dropdown over 1000+ assets is
+  // heading toward teacher-facing clutter. Loosely clusters categories
+  // under a few <optgroup> headings so the list scans faster; anything not
+  // named here still shows up, just under "Other" rather than disappearing.
+  const CATEGORY_GROUPS: { label: string; categories: string[] }[] = [
+    { label: 'Nature & Animals', categories: ['aquarium', 'camping', 'creatures', 'fall', 'farm', 'food', 'forest', 'pets', 'water', 'resources'] },
+    { label: 'Buildings & Places', categories: ['buildings', 'city', 'interior', 'market', 'restaurant', 'roads', 'structures'] },
+    { label: 'Seasonal & Themed', categories: ['fantasy', 'halloween', 'holiday', 'japan', 'pirate', 'scifi', 'platformer'] },
+    { label: 'Characters', categories: ['characters'] },
+    { label: 'Props & Tools', categories: ['props', 'prototype', 'toolsbits', 'misc'] },
+  ];
+  const groupedCategories = useMemo(() => {
+    const grouped = CATEGORY_GROUPS.map((g) => ({ label: g.label, categories: g.categories.filter((c) => categories.includes(c)) })).filter((g) => g.categories.length > 0);
+    const named = new Set(grouped.flatMap((g) => g.categories));
+    const other = categories.filter((c) => !named.has(c));
+    return other.length > 0 ? [...grouped, { label: 'Other', categories: other }] : grouped;
+  }, [categories]);
   const filtered = manifest.filter((a) => {
     if (category && a.category !== category) return false;
     if (search && !a.label.toLowerCase().includes(search.trim().toLowerCase())) return false;
@@ -243,15 +260,15 @@ export default function WorldEditor() {
         <h2 style={{ margin: 0, color: '#fff' }}>🏗️ Town Square Build Mode</h2>
         <div className="row-wrap" style={{ gap: 6 }}>
           <button
-            className="btn btn-sm"
-            style={{ minHeight: 40, background: tab === 'build' ? '#fff' : 'transparent', color: tab === 'build' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff' }}
+            className="btn btn-sm btn-flat"
+            style={{ minHeight: 44, background: tab === 'build' ? '#fff' : 'transparent', color: tab === 'build' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
             onClick={() => setTab('build')}
           >
             🏗️ Build
           </button>
           <button
-            className="btn btn-sm"
-            style={{ minHeight: 40, background: tab === 'roster' ? '#fff' : 'transparent', color: tab === 'roster' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff' }}
+            className="btn btn-sm btn-flat"
+            style={{ minHeight: 44, background: tab === 'roster' ? '#fff' : 'transparent', color: tab === 'roster' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
             onClick={() => setTab('roster')}
           >
             📋 Roster
@@ -263,14 +280,22 @@ export default function WorldEditor() {
 
       {tab === 'build' && (
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Asset inventory */}
-        <div className="chrome-frame stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, borderRadius: 0 }}>
+        {/* Asset inventory — a docked side panel, not a popup, so it uses a
+            plain flat border rather than .chrome-frame: that class's
+            painted bevel art is meant for a fully-framed floating popup,
+            and its baked-in rounded corners read as a stray seam when the
+            panel sits flush against the header/canvas on 3 of 4 sides. */}
+        <div className="stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>📦 Asset Inventory ({manifest.length})</strong>
           {manifestError && <p style={{ fontSize: '0.78rem', color: 'var(--danger)' }}>Couldn't load the asset list. Try refreshing.</p>}
           <input placeholder="🔍 Search assets..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ minHeight: 40 }} />
           <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: 40 }}>
             <option value="">All categories</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            {groupedCategories.map((g) => (
+              <optgroup key={g.label} label={g.label}>
+                {g.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              </optgroup>
+            ))}
           </select>
           <p style={{ fontSize: '0.72rem', opacity: 0.7, margin: 0 }}>
             Tap an asset, then tap the ground to place it.
@@ -279,7 +304,7 @@ export default function WorldEditor() {
             {filtered.map((a) => (
               <button
                 key={a.path}
-                className="btn btn-sm"
+                className="btn btn-sm btn-flat"
                 style={{ minHeight: 44, justifyContent: 'flex-start', textAlign: 'left', background: armedAsset?.path === a.path ? 'var(--purple)' : undefined, color: armedAsset?.path === a.path ? '#fff' : undefined }}
                 onClick={() => setArmedAsset(armedAsset?.path === a.path ? null : a)}
               >
@@ -294,7 +319,7 @@ export default function WorldEditor() {
         <div style={{ flex: 1, position: 'relative' }}>
           {armedAsset && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13 }}>
-              Tap the ground to place "{armedAsset.label}" — <button className="btn btn-sm" style={{ minHeight: 32, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
+              Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
             </div>
           )}
           <Canvas camera={{ position: [0, 18, 20], fov: 50 }} shadows>
@@ -335,8 +360,8 @@ export default function WorldEditor() {
           </Canvas>
         </div>
 
-        {/* Selected-object panel */}
-        <div className="chrome-frame stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 10, borderRadius: 0 }}>
+        {/* Selected-object panel — same reasoning as the asset inventory panel above. */}
+        <div className="stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 10, background: 'var(--content-bg)', borderLeft: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>🎛️ Selected Object</strong>
           {!selected ? (
             <p style={{ fontSize: '0.78rem', opacity: 0.65 }}>Tap a placed object to edit it, or place a new one from the left panel.</p>

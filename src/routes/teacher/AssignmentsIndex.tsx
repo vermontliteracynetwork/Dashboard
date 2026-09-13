@@ -429,7 +429,7 @@ function FocusLaneEditor({ subject, current }: { subject: FocusSubject; current:
       </label>
 
       <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
-        Specific words, comma-separated (optional — woven quietly into Town Square conversations)
+        Specific words, comma-separated (optional, woven quietly into Town Square conversations)
         <input value={wordsText} onChange={(e) => setWordsText(e.target.value)} placeholder="cake, hope, five, bike" />
       </label>
 

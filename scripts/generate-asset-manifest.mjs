@@ -36,7 +36,8 @@ function labelFor(fileBaseName) {
 const files = walk(MODELS_DIR).sort();
 const assets = files.map((full) => {
   const rel = relative(new URL('../public', import.meta.url).pathname, full).split('\\').join('/');
-  const category = rel.split('/')[2] ?? 'other'; // world/models/<category>/...
+  const relParts = rel.split('/'); // world/models/<category>/<file>, or world/models/<file> for the rare uncategorized model
+  const category = relParts.length > 3 ? relParts[2] : 'misc';
   const fileBase = basename(full, extname(full));
   return {
     path: `/${rel}`,

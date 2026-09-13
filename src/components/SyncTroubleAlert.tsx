@@ -16,8 +16,8 @@ export default function SyncTroubleAlert() {
   return (
     <div style={{ position: 'fixed', top: 16, left: 16, right: 16, zIndex: 200, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
       <div
-        className="chrome-frame row"
-        style={{ pointerEvents: 'auto', background: 'var(--danger)', color: '#fff', padding: '12px 18px', maxWidth: 480, alignItems: 'center' }}
+        className="row"
+        style={{ pointerEvents: 'auto', background: 'var(--danger)', color: '#fff', border: '3px solid var(--ink)', borderRadius: 'var(--radius)', boxShadow: '4px 4px 0 var(--ink)', padding: '12px 18px', maxWidth: 480, alignItems: 'center' }}
       >
         <span style={{ fontSize: '1.3rem' }}>⚠️</span>
         <p style={{ margin: 0, fontSize: '0.85rem', flex: 1 }}>
@@ -25,8 +25,8 @@ export default function SyncTroubleAlert() {
           background, so check the connection and tap Retry, or let your teacher/developer know if this keeps
           happening.
         </p>
-        <button className="btn btn-sm" style={{ background: '#fff' }} onClick={retrySyncNow}>Retry</button>
-        <button className="btn btn-sm" style={{ background: '#fff' }} onClick={dismissSyncTrouble} aria-label="Dismiss">✕</button>
+        <button className="btn btn-sm btn-flat" style={{ background: '#fff' }} onClick={retrySyncNow}>Retry</button>
+        <button className="btn btn-sm btn-flat" style={{ background: '#fff' }} onClick={dismissSyncTrouble} aria-label="Dismiss">✕</button>
       </div>
     </div>
   );

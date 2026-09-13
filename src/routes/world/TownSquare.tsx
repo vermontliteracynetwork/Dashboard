@@ -1900,10 +1900,12 @@ export default function TownSquare() {
           standard corners free for the exact same shared classes every
           other student screen uses. */}
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
-        ❓
+        <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>❓</span>
+        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>What now?</span>
       </button>
       <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">
-        🧘
+        <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>🧘</span>
+        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>Help</span>
       </button>
 
       <button

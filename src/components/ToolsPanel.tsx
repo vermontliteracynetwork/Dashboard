@@ -348,7 +348,7 @@ function Thesaurus({ student }: { student: Student }) {
             style={{ background: 'linear-gradient(120deg, var(--teal), var(--purple))', color: '#fff', padding: '14px 18px' }}
           >
             <div style={{ fontSize: '1.6rem', fontWeight: 800, textTransform: 'capitalize' }}>{word}</div>
-            <button className="btn btn-sm" style={{ background: '#fff', minHeight: 44 }} onClick={() => speak(word, student.ttsSettings)}>🔈</button>
+            <button className="btn btn-sm btn-flat" style={{ background: '#fff', minHeight: 44 }} onClick={() => speak(word, student.ttsSettings)}>🔈</button>
           </div>
           <div className="stack" style={{ padding: 16, background: '#fff' }}>
             <div>

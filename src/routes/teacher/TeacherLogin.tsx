@@ -30,7 +30,7 @@ export default function TeacherLogin() {
         <h1 style={{ margin: 0, color: 'var(--purple)' }}>🍎 Teacher Area</h1>
         {!TEACHER_INTERNAL_PASSWORD && (
           <p style={{ color: 'var(--danger)', margin: 0, fontSize: '0.85rem' }}>
-            Not set up yet — VITE_TEACHER_INTERNAL_PASSWORD is missing. See SETUP.md.
+            Not set up yet. VITE_TEACHER_INTERNAL_PASSWORD is missing. See SETUP.md.
           </p>
         )}
         {error && <p style={{ color: 'var(--danger)', margin: 0 }}>{error}</p>}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T15:19:25.541Z",
+  "generatedAt": "2026-09-13T15:25:23.930Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -1099,7 +1099,7 @@
     {
       "path": "/world/models/fox.glb",
       "label": "Fox",
-      "category": "fox.glb"
+      "category": "misc"
     },
     {
       "path": "/world/models/halloween/arch.gltf",
@@ -5864,7 +5864,7 @@
     {
       "path": "/world/models/tree-pine.glb",
       "label": "Tree Pine",
-      "category": "tree-pine.glb"
+      "category": "misc"
     },
     {
       "path": "/world/models/water/Anchor_A.glb",

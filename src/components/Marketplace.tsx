@@ -71,7 +71,7 @@ function CountItOutModal({ priceCents, onConfirm, onCancel }: { priceCents: numb
             {DENOMINATIONS.map((d) => (
               <button
                 key={d.cents}
-                className="btn"
+                className="btn btn-flat"
                 style={{ minHeight: 52, minWidth: 52, fontWeight: 800, borderRadius: d.kind === 'coin' ? '50%' : 10, background: d.kind === 'bill' ? '#dff3e6' : '#fff6d9' }}
                 onClick={() => setTray((t) => [...t, d.cents])}
               >
@@ -353,14 +353,14 @@ export default function Marketplace() {
                       <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
                         <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>Still want it tomorrow?</span>
                         <button
-                          className="btn btn-sm"
+                          className="btn btn-sm btn-flat"
                           style={{ minHeight: 44, fontSize: '0.68rem', padding: '2px 10px', background: entry.needsWants === 'need' ? 'var(--success)' : undefined, color: entry.needsWants === 'need' ? '#fff' : undefined }}
                           onClick={() => setCartNeedsWants(entry.key, 'need')}
                         >
                           👍 Yep
                         </button>
                         <button
-                          className="btn btn-sm"
+                          className="btn btn-sm btn-flat"
                           style={{ minHeight: 44, fontSize: '0.68rem', padding: '2px 10px', background: entry.needsWants === 'want' ? '#8a6a2f' : undefined, color: entry.needsWants === 'want' ? '#fff' : undefined }}
                           onClick={() => setCartNeedsWants(entry.key, 'want')}
                         >

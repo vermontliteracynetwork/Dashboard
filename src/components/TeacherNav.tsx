@@ -16,20 +16,29 @@ export default function TeacherNav() {
 
   return (
     <nav className="teacher-nav space-between">
-      <div className="row-wrap">
+      <div className="row-wrap" style={{ alignItems: 'center' }}>
         <NavLink to="/teacher" end className={({ isActive }) => (isActive ? 'active' : '')}>🏠 Overview</NavLink>
         <NavLink to="/teacher/students" className={({ isActive }) => (isActive ? 'active' : '')}>🧒 Students</NavLink>
         <NavLink to="/teacher/assignments" className={({ isActive }) => (isActive ? 'active' : '')}>📋 Assignments</NavLink>
-        <NavLink to="/teacher/activities" className={({ isActive }) => (isActive ? 'active' : '')}>
-          🎪 Activities{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
-        </NavLink>
         <NavLink to="/teacher/inbox" className={({ isActive }) => (isActive ? 'active' : '')}>
           📥 Inbox{inboxCount > 0 ? ` (${inboxCount})` : ''}
         </NavLink>
-        <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏆 Achievements</NavLink>
-        <NavLink to="/teacher/marketplace" className={({ isActive }) => (isActive ? 'active' : '')}>🛍️ Marketplace</NavLink>
-        <NavLink to="/teacher/scores" className={({ isActive }) => (isActive ? 'active' : '')}>📊 Scores</NavLink>
         <NavLink to="/teacher/world-editor" className={({ isActive }) => (isActive ? 'active' : '')}>🏗️ Build Mode</NavLink>
+        {/* Claudia's audit: 9 flat top-level links exceeded the ~5-6 item
+            navigation max. These four less-frequently-visited destinations
+            move under one grouped "More" menu (a native <details>, so it
+            needs no click-outside JS) instead of crowding the main bar. */}
+        <details className="teacher-nav-more">
+          <summary>⋯ More{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}</summary>
+          <div className="teacher-nav-more-menu">
+            <NavLink to="/teacher/activities" className={({ isActive }) => (isActive ? 'active' : '')}>
+              🎪 Activities{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
+            </NavLink>
+            <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏆 Achievements</NavLink>
+            <NavLink to="/teacher/marketplace" className={({ isActive }) => (isActive ? 'active' : '')}>🛍️ Marketplace</NavLink>
+            <NavLink to="/teacher/scores" className={({ isActive }) => (isActive ? 'active' : '')}>📊 Scores</NavLink>
+          </div>
+        </details>
       </div>
       <button
         className="btn btn-sm"
