@@ -1003,31 +1003,28 @@ function GroundMaterial() {
 // Direct teacher instruction: the old photographic skybox had actual
 // scenery — mountains/terrain — baked into the image far off on the
 // horizon, which never matches whatever's really out there and reads as
-// a broken/mismatched background. Replaced with a plain vertical gradient
-// generated on a small canvas at runtime — light blue overhead fading to
-// a pale near-white band at the horizon — so there is no baked content of
-// any kind, nothing in it can ever be "wrong." Static, not animated (same
-// no-ambient-weather/day-night rule the rest of this scene already
-// follows), and colored to match the same '#bfe3ff' sky Build Mode's own
+// a broken/mismatched background. Two earlier attempts at a replacement
+// both turned out wrong once actually seen live: a runtime canvas
+// gradient, then a real cloud photo — both applied via
+// EquirectangularReflectionMapping, which assumes the image IS a true
+// 360° spherical panorama (pixel rows converging to a point at the top/
+// bottom pole). Neither source image was actually authored that way (a
+// flat seamless-tile photo, not a real panorama capture), so the
+// wrapping itself produced the jagged dark shapes the teacher kept
+// seeing on the horizon — a projection/UV artifact, not leftover
+// content, and no photo swap could have fixed it. Direct teacher
+// instruction after seeing it live: "make the horizon a solid sky" — a
+// flat color background has no image, no mapping, no seams, so nothing
+// can ever distort. Matches the same '#bfe3ff' sky Build Mode's own
 // default already uses elsewhere in this app.
 function SkyboxBackground() {
-  // Real CC0 sky/cloud photography (teacher-provided, "Screaming Brain
-  // Studios" seamless sky pack) — pure sky and cloud, no baked-in
-  // mountains/terrain of any kind, replacing an earlier skybox photo that
-  // had real scenery on the horizon. A brief in-between version of this
-  // used a plain runtime-generated color gradient instead of an image at
-  // all; this real texture reads better and still has zero baked content
-  // that could ever be "wrong."
-  const tex = useTexture('/world/textures/sky-day.png');
   const { scene } = useThree();
   useEffect(() => {
-    tex.mapping = THREE.EquirectangularReflectionMapping;
-    tex.colorSpace = THREE.SRGBColorSpace;
-    scene.background = tex;
+    scene.background = new THREE.Color('#bfe3ff');
     return () => {
       scene.background = null;
     };
-  }, [tex, scene]);
+  }, [scene]);
   return null;
 }
 
