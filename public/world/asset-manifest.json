@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T14:57:17.918Z",
+  "generatedAt": "2026-09-13T15:08:18.417Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -280,6 +280,66 @@
       "path": "/world/models/buildings/store.glb",
       "label": "Store",
       "category": "buildings"
+    },
+    {
+      "path": "/world/models/camping/Archery_Target.glb",
+      "label": "Archery Target",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Backpack_A.glb",
+      "label": "Backpack A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Bear_Canister.glb",
+      "label": "Bear Canister",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Bell_Tent_A.glb",
+      "label": "Bell Tent A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Birch_Tree_A.glb",
+      "label": "Birch Tree A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Camp_Lantern_A.glb",
+      "label": "Camp Lantern A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Camp_Shower.glb",
+      "label": "Camp Shower",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Camp_Stool_A.glb",
+      "label": "Camp Stool A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Camp_Stove_A.glb",
+      "label": "Camp Stove A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Cooler_A.glb",
+      "label": "Cooler A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Deck_Corner_A.glb",
+      "label": "Deck Corner A",
+      "category": "camping"
+    },
+    {
+      "path": "/world/models/camping/Fishing_Dock_A.glb",
+      "label": "Fishing Dock A",
+      "category": "camping"
     },
     {
       "path": "/world/models/characters/ambient-1.glb",
@@ -665,6 +725,116 @@
       "path": "/world/models/creatures/flying-Tribal.gltf",
       "label": "Flying Tribal",
       "category": "creatures"
+    },
+    {
+      "path": "/world/models/fantasy/Alchemy_Bench_A.glb",
+      "label": "Alchemy Bench A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Arched_Door_A.glb",
+      "label": "Arched Door A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Armillary_Sphere.glb",
+      "label": "Armillary Sphere",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Armor_Stand_A.glb",
+      "label": "Armor Stand A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Barrel_A.glb",
+      "label": "Barrel A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Bell_Casting_Mold.glb",
+      "label": "Bell Casting Mold",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Bookcase_A.glb",
+      "label": "Bookcase A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Brazier_A.glb",
+      "label": "Brazier A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Cauldron_A.glb",
+      "label": "Cauldron A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/fantasy/Crystal_Cluster_A.glb",
+      "label": "Crystal Cluster A",
+      "category": "fantasy"
+    },
+    {
+      "path": "/world/models/farm/Apple_Sorter.glb",
+      "label": "Apple Sorter",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Apple_Tree_A.glb",
+      "label": "Apple Tree A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Bat_Box.glb",
+      "label": "Bat Box",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Birdbath_A.glb",
+      "label": "Birdbath A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Brick_Edge_A.glb",
+      "label": "Brick Edge A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Cabbage_Patch_A.glb",
+      "label": "Cabbage Patch A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Chicken_Coop_A.glb",
+      "label": "Chicken Coop A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Cold_Frame_A.glb",
+      "label": "Cold Frame A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Egg_Basket.glb",
+      "label": "Egg Basket",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Feed_Sack_A.glb",
+      "label": "Feed Sack A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Garden_Bench_A.glb",
+      "label": "Garden Bench A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Garden_Fork_A.glb",
+      "label": "Garden Fork A",
+      "category": "farm"
     },
     {
       "path": "/world/models/farm/barn.glb",
@@ -2035,6 +2205,31 @@
       "path": "/world/models/interior/window-small3.glb",
       "label": "Window Small3",
       "category": "interior"
+    },
+    {
+      "path": "/world/models/market/shop_001_mechanical_cash_register.glb",
+      "label": "Shop 001 Mechanical Cash Register",
+      "category": "market"
+    },
+    {
+      "path": "/world/models/market/shop_002_glass_checkout_counter.glb",
+      "label": "Shop 002 Glass Checkout Counter",
+      "category": "market"
+    },
+    {
+      "path": "/world/models/market/shop_003_cash_drawer_coin_insert.glb",
+      "label": "Shop 003 Cash Drawer Coin Insert",
+      "category": "market"
+    },
+    {
+      "path": "/world/models/market/shop_004_receipt_spike.glb",
+      "label": "Shop 004 Receipt Spike",
+      "category": "market"
+    },
+    {
+      "path": "/world/models/market/shop_005_paper_shopping_bag.glb",
+      "label": "Shop 005 Paper Shopping Bag",
+      "category": "market"
     },
     {
       "path": "/world/models/market/stall-green.glb",
@@ -4047,6 +4242,446 @@
       "category": "prototype"
     },
     {
+      "path": "/world/models/resources/Copper_Bar.gltf",
+      "label": "Copper Bar",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Bars.gltf",
+      "label": "Copper Bars",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Bars_Stack_Large.gltf",
+      "label": "Copper Bars Stack Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Bars_Stack_Medium.gltf",
+      "label": "Copper Bars Stack Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Bars_Stack_Small.gltf",
+      "label": "Copper Bars Stack Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Nugget_Large.gltf",
+      "label": "Copper Nugget Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Nugget_Medium.gltf",
+      "label": "Copper Nugget Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Nugget_Small.gltf",
+      "label": "Copper Nugget Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Copper_Nuggets.gltf",
+      "label": "Copper Nuggets",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_A_Barrel.gltf",
+      "label": "Fuel A Barrel",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_A_Barrel_Dirty.gltf",
+      "label": "Fuel A Barrel Dirty",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_A_Barrels.gltf",
+      "label": "Fuel A Barrels",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_A_Jerrycan.gltf",
+      "label": "Fuel A Jerrycan",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_B_Barrel.gltf",
+      "label": "Fuel B Barrel",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_B_Barrel_Dirty.gltf",
+      "label": "Fuel B Barrel Dirty",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_B_Barrels.gltf",
+      "label": "Fuel B Barrels",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_B_Jerrycan.gltf",
+      "label": "Fuel B Jerrycan",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_C_Barrel.gltf",
+      "label": "Fuel C Barrel",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_C_Barrel_Dirty.gltf",
+      "label": "Fuel C Barrel Dirty",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_C_Barrels.gltf",
+      "label": "Fuel C Barrels",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Fuel_C_Jerrycan.gltf",
+      "label": "Fuel C Jerrycan",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Bar.gltf",
+      "label": "Gold Bar",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Bars.gltf",
+      "label": "Gold Bars",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Bars_Stack_Large.gltf",
+      "label": "Gold Bars Stack Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Bars_Stack_Medium.gltf",
+      "label": "Gold Bars Stack Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Bars_Stack_Small.gltf",
+      "label": "Gold Bars Stack Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Nugget_Large.gltf",
+      "label": "Gold Nugget Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Nugget_Medium.gltf",
+      "label": "Gold Nugget Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Nugget_Small.gltf",
+      "label": "Gold Nugget Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Gold_Nuggets.gltf",
+      "label": "Gold Nuggets",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Bar.gltf",
+      "label": "Iron Bar",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Bars.gltf",
+      "label": "Iron Bars",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Bars_Stack_Large.gltf",
+      "label": "Iron Bars Stack Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Bars_Stack_Medium.gltf",
+      "label": "Iron Bars Stack Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Bars_Stack_Small.gltf",
+      "label": "Iron Bars Stack Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Nugget_Large.gltf",
+      "label": "Iron Nugget Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Nugget_Medium.gltf",
+      "label": "Iron Nugget Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Nugget_Small.gltf",
+      "label": "Iron Nugget Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Iron_Nuggets.gltf",
+      "label": "Iron Nuggets",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Pallet_Wood.gltf",
+      "label": "Pallet Wood",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Pallet_Wood_Covered_A.gltf",
+      "label": "Pallet Wood Covered A",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Pallet_Wood_Covered_B.gltf",
+      "label": "Pallet Wood Covered B",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Parts_Cog.gltf",
+      "label": "Parts Cog",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Parts_Pile_Large.gltf",
+      "label": "Parts Pile Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Parts_Pile_Medium.gltf",
+      "label": "Parts Pile Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Parts_Pile_Small.gltf",
+      "label": "Parts Pile Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Bar.gltf",
+      "label": "Silver Bar",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Bars.gltf",
+      "label": "Silver Bars",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Bars_Stack_Large.gltf",
+      "label": "Silver Bars Stack Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Bars_Stack_Medium.gltf",
+      "label": "Silver Bars Stack Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Bars_Stack_Small.gltf",
+      "label": "Silver Bars Stack Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Nugget_Large.gltf",
+      "label": "Silver Nugget Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Nugget_Medium.gltf",
+      "label": "Silver Nugget Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Nugget_Small.gltf",
+      "label": "Silver Nugget Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Silver_Nuggets.gltf",
+      "label": "Silver Nuggets",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Stone_Brick.gltf",
+      "label": "Stone Brick",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Stone_Bricks_Stack_Large.gltf",
+      "label": "Stone Bricks Stack Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Stone_Bricks_Stack_Medium.gltf",
+      "label": "Stone Bricks Stack Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Stone_Bricks_Stack_Small.gltf",
+      "label": "Stone Bricks Stack Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Stone_Chunks_Large.gltf",
+      "label": "Stone Chunks Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Stone_Chunks_Small.gltf",
+      "label": "Stone Chunks Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Textiles_A.gltf",
+      "label": "Textiles A",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Textiles_B.gltf",
+      "label": "Textiles B",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Textiles_C.gltf",
+      "label": "Textiles C",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Textiles_Stack_Large.gltf",
+      "label": "Textiles Stack Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Textiles_Stack_Large_Colored.gltf",
+      "label": "Textiles Stack Large Colored",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Textiles_Stack_Small.gltf",
+      "label": "Textiles Stack Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Log_A.gltf",
+      "label": "Wood Log A",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Log_B.gltf",
+      "label": "Wood Log B",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Log_Stack.gltf",
+      "label": "Wood Log Stack",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Plank_A.gltf",
+      "label": "Wood Plank A",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Plank_B.gltf",
+      "label": "Wood Plank B",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Plank_C.gltf",
+      "label": "Wood Plank C",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Planks_Stack_Large.gltf",
+      "label": "Wood Planks Stack Large",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Planks_Stack_Medium.gltf",
+      "label": "Wood Planks Stack Medium",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/resources/Wood_Planks_Stack_Small.gltf",
+      "label": "Wood Planks Stack Small",
+      "category": "resources"
+    },
+    {
+      "path": "/world/models/restaurant/Arcade_Cabinet.glb",
+      "label": "Arcade Cabinet",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Awning_A.glb",
+      "label": "Awning A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Back_Bar_A.glb",
+      "label": "Back Bar A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Bacon_Eggs.glb",
+      "label": "Bacon Eggs",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Blender.glb",
+      "label": "Blender",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Booth_Seat_A.glb",
+      "label": "Booth Seat A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Bread_Box_A.glb",
+      "label": "Bread Box A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Burger_A.glb",
+      "label": "Burger A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Cafe_Table_A.glb",
+      "label": "Cafe Table A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Coffee_Cup_A.glb",
+      "label": "Coffee Cup A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Deep_Fryer_A.glb",
+      "label": "Deep Fryer A",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Diner_Sign_A.glb",
+      "label": "Diner Sign A",
+      "category": "restaurant"
+    },
+    {
       "path": "/world/models/restaurant/Environment_Arch.gltf",
       "label": "Environment Arch",
       "category": "restaurant"
@@ -4312,6 +4947,66 @@
       "category": "roads"
     },
     {
+      "path": "/world/models/scifi/Access_Card.glb",
+      "label": "Access Card",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Air_Compressor.glb",
+      "label": "Air Compressor",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Airlock_Frame.glb",
+      "label": "Airlock Frame",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Arcade_Cabinet.glb",
+      "label": "Arcade Cabinet",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Backpack.glb",
+      "label": "Backpack",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Bar_Stool.glb",
+      "label": "Bar Stool",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Battery_Charger.glb",
+      "label": "Battery Charger",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Battery_Rack_Module.glb",
+      "label": "Battery Rack Module",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Beacon.glb",
+      "label": "Beacon",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Bowl.glb",
+      "label": "Bowl",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Camera_Drone.glb",
+      "label": "Camera Drone",
+      "category": "scifi"
+    },
+    {
+      "path": "/world/models/scifi/Coffee_Brewer.glb",
+      "label": "Coffee Brewer",
+      "category": "scifi"
+    },
+    {
       "path": "/world/models/structures/modular-chimney.glb",
       "label": "Modular Chimney",
       "category": "structures"
@@ -4457,9 +5152,294 @@
       "category": "structures"
     },
     {
+      "path": "/world/models/toolsbits/anvil.gltf",
+      "label": "Anvil",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/blueprint.gltf",
+      "label": "Blueprint",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/blueprint_stacked.gltf",
+      "label": "Blueprint Stacked",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/bucket_metal.gltf",
+      "label": "Bucket Metal",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/chisel.gltf",
+      "label": "Chisel",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/compass_base.gltf",
+      "label": "Compass Base",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/drafting_compass.gltf",
+      "label": "Drafting Compass",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/file.gltf",
+      "label": "File",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/grindstone.gltf",
+      "label": "Grindstone",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/hammer.gltf",
+      "label": "Hammer",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/handdrill.gltf",
+      "label": "Handdrill",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/handplane.gltf",
+      "label": "Handplane",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/journal_closed.gltf",
+      "label": "Journal Closed",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/journal_open.gltf",
+      "label": "Journal Open",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/lantern.gltf",
+      "label": "Lantern",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/magnifying_glass.gltf",
+      "label": "Magnifying Glass",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/mallet.gltf",
+      "label": "Mallet",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/map.gltf",
+      "label": "Map",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/map_empty.gltf",
+      "label": "Map Empty",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/map_rolled.gltf",
+      "label": "Map Rolled",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/nail.gltf",
+      "label": "Nail",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/pencil_A_long.gltf",
+      "label": "Pencil A Long",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/pencil_A_short.gltf",
+      "label": "Pencil A Short",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/pencil_B_long.gltf",
+      "label": "Pencil B Long",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/pencil_B_short.gltf",
+      "label": "Pencil B Short",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/rope_bundle_A.gltf",
+      "label": "Rope Bundle A",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/rope_bundle_B.gltf",
+      "label": "Rope Bundle B",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/scissors.gltf",
+      "label": "Scissors",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screw_A.gltf",
+      "label": "Screw A",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screw_B.gltf",
+      "label": "Screw B",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_A_long.gltf",
+      "label": "Screwdriver A Long",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_A_long_color.gltf",
+      "label": "Screwdriver A Long Color",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_A_short.gltf",
+      "label": "Screwdriver A Short",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_A_short_color.gltf",
+      "label": "Screwdriver A Short Color",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_B_long.gltf",
+      "label": "Screwdriver B Long",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_B_long_color.gltf",
+      "label": "Screwdriver B Long Color",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_B_short.gltf",
+      "label": "Screwdriver B Short",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/screwdriver_B_short_color.gltf",
+      "label": "Screwdriver B Short Color",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/shovel.gltf",
+      "label": "Shovel",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/tongs.gltf",
+      "label": "Tongs",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/torch.gltf",
+      "label": "Torch",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/torch_burnt.gltf",
+      "label": "Torch Burnt",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/trowel.gltf",
+      "label": "Trowel",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/wrench_A.gltf",
+      "label": "Wrench A",
+      "category": "toolsbits"
+    },
+    {
+      "path": "/world/models/toolsbits/wrench_B.gltf",
+      "label": "Wrench B",
+      "category": "toolsbits"
+    },
+    {
       "path": "/world/models/tree-pine.glb",
       "label": "Tree Pine",
       "category": "tree-pine.glb"
+    },
+    {
+      "path": "/world/models/water/Anchor_A.glb",
+      "label": "Anchor A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Bait_Box_A.glb",
+      "label": "Bait Box A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Bell_Stand_A.glb",
+      "label": "Bell Stand A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Boarding_Plank.glb",
+      "label": "Boarding Plank",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Boat_House_A.glb",
+      "label": "Boat House A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Boat_Stand_A.glb",
+      "label": "Boat Stand A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Boat_Wash_Station.glb",
+      "label": "Boat Wash Station",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Bollard_A.glb",
+      "label": "Bollard A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Buoy_Garland.glb",
+      "label": "Buoy Garland",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Cargo_Barrel_A.glb",
+      "label": "Cargo Barrel A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Dock_Chair_A.glb",
+      "label": "Dock Chair A",
+      "category": "water"
+    },
+    {
+      "path": "/world/models/water/Railing_A.glb",
+      "label": "Railing A",
+      "category": "water"
     },
     {
       "path": "/world/models/water/waterpack.glb",
