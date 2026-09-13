@@ -100,6 +100,9 @@ export interface Student {
   worldNpcLastTalkDates: Record<string, string>; // NPC id -> ISO date of the last conversation that paid the daily talk coin, so each NPC pays at most once per real-world day
   worldJokesHeardIds: string[]; // joke ids ever collected into the Joke Book — permanent, never resets
   worldTalkRewardCents: number; // per-NPC daily talk coin amount; a teacher can set to 0 to turn off all NPC-talk payouts for a student without hiding the jokes/Joke Book
+  worldShowArrivalCard: boolean; // teacher override for the Tier 0 daily arrival choice card — Claudia's full-game audit flagged that none of the guardrails tiers had a per-student off switch yet
+  worldShowDeskGlow: boolean; // teacher override for the Tier 2 computer-desk glow/label
+  worldReduceMotion: boolean; // student/teacher-set in-app motion reduction (desk glow, etc.) independent of the OS-level prefers-reduced-motion setting, for a shared/school device a student can't change system settings on
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

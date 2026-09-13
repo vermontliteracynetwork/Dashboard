@@ -76,6 +76,9 @@ const rowToStudent = (r: Row): Student => ({
   worldNpcLastTalkDates: r.world_npc_last_talk_dates ?? {},
   worldJokesHeardIds: r.world_jokes_heard_ids ?? [],
   worldTalkRewardCents: r.world_talk_reward_cents ?? 5,
+  worldShowArrivalCard: r.world_show_arrival_card ?? true,
+  worldShowDeskGlow: r.world_show_desk_glow ?? true,
+  worldReduceMotion: r.world_reduce_motion ?? false,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -115,6 +118,9 @@ const studentToRow = (s: Student): Row => ({
   world_npc_last_talk_dates: s.worldNpcLastTalkDates,
   world_jokes_heard_ids: s.worldJokesHeardIds,
   world_talk_reward_cents: s.worldTalkRewardCents,
+  world_show_arrival_card: s.worldShowArrivalCard,
+  world_show_desk_glow: s.worldShowDeskGlow,
+  world_reduce_motion: s.worldReduceMotion,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -741,6 +747,9 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   worldJokesHeardIds: 'world_jokes_heard_ids',
   worldTalkRewardCents: 'world_talk_reward_cents',
   worldDpadSide: 'world_dpad_side',
+  worldShowArrivalCard: 'world_show_arrival_card',
+  worldShowDeskGlow: 'world_show_desk_glow',
+  worldReduceMotion: 'world_reduce_motion',
 };
 
 // Writes only the changed columns (a real SQL UPDATE), instead of

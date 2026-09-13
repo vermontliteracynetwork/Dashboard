@@ -315,6 +315,41 @@ export default function StudentManager() {
                 </div>
 
                 <hr className="divider" />
+                <strong>Town Square</strong>
+                <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+                  All on by default. Turn any of these down or off per student — Claudia's full-game
+                  audit flagged that none of them had a teacher override yet.
+                </p>
+                <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
+                  <div>
+                    <label>Talk reward (¢ per NPC/day)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      style={{ width: 90 }}
+                      value={st.worldTalkRewardCents}
+                      onChange={(e) => updateStudent(st.id, { worldTalkRewardCents: Math.max(0, parseInt(e.target.value) || 0) })}
+                    />
+                  </div>
+                </div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={st.worldShowArrivalCard}
+                    onChange={(e) => updateStudent(st.id, { worldShowArrivalCard: e.target.checked })}
+                  />{' '}
+                  Show the daily "start Math/Reading or free time" arrival card
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={st.worldShowDeskGlow}
+                    onChange={(e) => updateStudent(st.id, { worldShowDeskGlow: e.target.checked })}
+                  />{' '}
+                  Glow/label the computer desk when tasks are waiting
+                </label>
+
+                <hr className="divider" />
                 <CustomToolsEditor student={st} />
 
                 <hr className="divider" />

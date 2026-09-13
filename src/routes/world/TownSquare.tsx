@@ -1147,11 +1147,16 @@ function SkyboxBackground() {
 // and everyone else gets a pulse that decays to a steady glow over the
 // first few seconds — a real, noticeable cue the moment it appears,
 // without motion that runs the entire time a student is anywhere nearby.
-function DeskGlow() {
+function DeskGlow({ forceReduced }: { forceReduced: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
-  const [reducedMotion] = useState(
+  const [osReducedMotion] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
+  // OS-level prefers-reduced-motion is respected unconditionally, but a
+  // shared/school device a student can't change system settings on needs
+  // an in-app equivalent too — student.worldReduceMotion, set from the
+  // Movement Settings panel.
+  const reducedMotion = osReducedMotion || forceReduced;
   const startTime = useRef<number | null>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
@@ -1179,7 +1184,19 @@ function DeskGlow() {
 // and using this opens the 2D task dashboard (subjects, header, Playground)
 // that used to be one tap away everywhere. Same in-range/hover/E-or-tap
 // pattern as a Neighbor, minus the wandering behavior (it's furniture).
-function ComputerDesk({ playerPos, onUse, tasksLeft }: { playerPos: THREE.Vector3; onUse: () => void; tasksLeft: number }) {
+function ComputerDesk({
+  playerPos,
+  onUse,
+  tasksLeft,
+  showGlow,
+  reduceMotion,
+}: {
+  playerPos: THREE.Vector3;
+  onUse: () => void;
+  tasksLeft: number;
+  showGlow: boolean;
+  reduceMotion: boolean;
+}) {
   const [cx, cz] = COMPUTER_POSITION;
   const dist = Math.hypot(playerPos.x - cx, playerPos.z - cz);
   const inRange = dist <= COMPUTER_RADIUS;
@@ -1199,7 +1216,7 @@ function ComputerDesk({ playerPos, onUse, tasksLeft }: { playerPos: THREE.Vector
 
   return (
     <group position={[cx, 0, cz]}>
-      {tasksLeft > 0 && <DeskGlow />}
+      {tasksLeft > 0 && showGlow && <DeskGlow forceReduced={reduceMotion} />}
       <Prop path="/world/models/props/desk.glb" position={[0, 0, 0]} scale={FURNITURE_SCALE} />
       <Prop path="/world/models/props/chair-desk.glb" position={[0.1, 0, 0.2]} rotationY={Math.PI} scale={FURNITURE_SCALE} />
       <Prop path="/world/models/props/computer-screen.glb" position={[0, 0.684, -0.15]} scale={FURNITURE_SCALE} />
@@ -1872,7 +1889,7 @@ export default function TownSquare() {
       <ToolsPanel student={student} subject="both" />
 
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
-      {showArrival && totalTasksLeft > 0 && (
+      {showArrival && totalTasksLeft > 0 && student.worldShowArrivalCard && (
         <div className="overlay-backdrop" onClick={dismissArrival}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
@@ -2075,7 +2092,13 @@ export default function TownSquare() {
               />
             );
           })}
-          <ComputerDesk playerPos={playerPos} tasksLeft={totalTasksLeft} onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }} />
+          <ComputerDesk
+            playerPos={playerPos}
+            tasksLeft={totalTasksLeft}
+            showGlow={student.worldShowDeskGlow}
+            reduceMotion={student.worldReduceMotion}
+            onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }}
+          />
           {BUILDINGS.map((b) => {
             const viewPath = BUILDING_VIEWS[b.id];
             return (
@@ -2237,6 +2260,19 @@ export default function TownSquare() {
                   </button>
                 </div>
               </div>
+
+              {/* Claudia's full-game audit: the desk-glow motion fix already
+                  respects the OS-level prefers-reduced-motion setting, but a
+                  student on a shared/school device usually can't change
+                  system settings — this gives the same effect in-app. */}
+              <label className="row" style={{ gap: 8, alignItems: 'center', fontWeight: 700 }}>
+                <input
+                  type="checkbox"
+                  checked={student.worldReduceMotion}
+                  onChange={(e) => updateStudent(student.id, { worldReduceMotion: e.target.checked })}
+                />
+                Reduce motion (calmer, less animation)
+              </label>
 
               <button className="btn btn-primary btn-lg" onClick={() => setSettingsOpen(false)} autoFocus>
                 Done

@@ -681,6 +681,9 @@ export const useStore = create<AppState>()(
           worldNpcLastTalkDates: {},
           worldJokesHeardIds: [],
           worldTalkRewardCents: 5,
+          worldShowArrivalCard: true,
+          worldShowDeskGlow: true,
+          worldReduceMotion: false,
         };
         set((s) => ({
           students: [...s.students, student],
