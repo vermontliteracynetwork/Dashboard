@@ -214,6 +214,17 @@ const BUILDINGS: { id: string; modelPath: string; position: [number, number]; ro
   { id: 'welcome-center', modelPath: '/world/models/props/shop_building.glb', position: [-11.2, -8.4], rotationY: Math.atan2(10, 7.5), label: 'Welcome Center', scale: 55, blockRadius: 2.0 },
 ];
 
+// Direct teacher clarification: buildings aren't walk-in 3D interiors
+// (only the student's own house eventually will be) — clicking one opens
+// its existing 2D page instead, the same idea as walking up to the
+// computer desk for "My Tasks". Only the two buildings with a real page to
+// send a student to are listed; Post Office and Welcome Center get a
+// label but no click action until they have somewhere to go.
+const BUILDING_VIEWS: Record<string, string> = {
+  bank: '/student/piggy-bank',
+  store: '/student/marketplace',
+};
+
 // The farmer's market — Kenney Fantasy Town Kit stalls (verified CC0; the
 // "fantasy" pack name doesn't mean the pieces read that way — the stall
 // itself is a plain wooden table with a cloth awning, no different from a
@@ -1044,6 +1055,63 @@ function ComputerDesk({ playerPos, onUse }: { playerPos: THREE.Vector3; onUse: (
   );
 }
 
+// Same proximity-based label/button pattern as ComputerDesk (walk up, see
+// a label, then a button appears) rather than a raycast hitbox on the
+// building itself — a building's footprint sits close enough to its own
+// Neighbor (that's the exact clearance this file's real-bbox math just
+// spent a whole pass getting right) that a padded invisible click-cylinder
+// around it would overlap that Neighbor's own talk hitbox at some real
+// building/Neighbor corners, making clicks near them ambiguous. Walking
+// close enough to see the button needs no raycasting at all, so it just
+// isn't given one. Buildings with no entry in BUILDING_VIEWS still get the
+// name label (onEnter is undefined) so Post Office/Welcome Center read as
+// real places, just not clickable ones yet.
+const ENTRANCE_APPROACH_BUFFER = 0.8;
+function BuildingEntrance({
+  building,
+  playerPos,
+  onEnter,
+}: {
+  building: (typeof BUILDINGS)[number];
+  playerPos: THREE.Vector3;
+  onEnter?: () => void;
+}) {
+  const [bx, bz] = building.position;
+  const approachRadius = building.blockRadius + ENTRANCE_APPROACH_BUFFER;
+  const dist = Math.hypot(playerPos.x - bx, playerPos.z - bz);
+  const inRange = !!onEnter && dist <= approachRadius;
+  const noticed = dist <= approachRadius + 3;
+
+  useEffect(() => {
+    if (!inRange || !onEnter) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'e') onEnter(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [inRange, onEnter]);
+
+  if (!noticed) return null;
+
+  return (
+    <group position={[bx, 0, bz]}>
+      <Html center position={[0, 3.4, 0]} style={{ pointerEvents: 'none' }}>
+        <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
+          {building.label}
+        </div>
+      </Html>
+      {inRange && (
+        <Html center position={[0, 3.8, 0]}>
+          <button
+            onClick={onEnter}
+            style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+          >
+            Enter {building.label}
+          </button>
+        </Html>
+      )}
+    </group>
+  );
+}
+
 function Park({
   onGroundTap,
   onGroundHover,
@@ -1669,6 +1737,17 @@ export default function TownSquare() {
             );
           })}
           <ComputerDesk playerPos={playerPos} onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }} />
+          {BUILDINGS.map((b) => {
+            const viewPath = BUILDING_VIEWS[b.id];
+            return (
+              <BuildingEntrance
+                key={b.id}
+                building={b}
+                playerPos={playerPos}
+                onEnter={viewPath ? () => { if (!mapView && !wasDraggingLook.current) navigate(viewPath); } : undefined}
+              />
+            );
+          })}
         </Suspense>
       </Canvas>
 
