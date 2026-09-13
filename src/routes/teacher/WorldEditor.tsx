@@ -627,6 +627,16 @@ export default function WorldEditor() {
   const [category, setCategory] = useState('');
   const [armedAsset, setArmedAsset] = useState<AssetManifestEntry | null>(null);
   const [armedDefaultScale, setArmedDefaultScale] = useState(1);
+  // Claudia's navigation review: re-finding the same item in a 1186-model
+  // catalog to place a 6th/7th/8th copy meant re-searching every time —
+  // Minecraft's hotbar and Sims 4's "recently used" tab both solve this.
+  // Most-recent-first, capped at 8, de-duped by path.
+  const [recentAssets, setRecentAssets] = useState<AssetManifestEntry[]>([]);
+  const armAsset = (a: AssetManifestEntry | null) => {
+    setHammerMode(false);
+    setArmedAsset(a);
+    if (a) setRecentAssets((prev) => [a, ...prev.filter((r) => r.path !== a.path)].slice(0, 8));
+  };
   const [selection, setSelection] = useState<Sel | null>(null);
   const [hovered, setHovered] = useState<Sel | null>(null);
   const [tab, setTab] = useState<'build' | 'roster'>('build');
@@ -680,6 +690,21 @@ export default function WorldEditor() {
   const [past, setPast] = useState<EditorSnapshot[]>([]);
   const [future, setFuture] = useState<EditorSnapshot[]>([]);
 
+  // Every write here already goes straight to the live Supabase-synced
+  // store with no separate "Save" step (see the file's own header
+  // comment) — but nothing ever told the teacher that, which Claudia's
+  // navigation review flagged as a real discoverability gap versus both
+  // reference games' persistent save/autosave indicators. A small
+  // transient "Saved" pulse on every committed change (and on undo/redo,
+  // which are real saves too) closes that gap cheaply.
+  const [showSaved, setShowSaved] = useState(false);
+  const savedTimeoutRef = useRef<number | null>(null);
+  const flashSaved = () => {
+    setShowSaved(true);
+    if (savedTimeoutRef.current) window.clearTimeout(savedTimeoutRef.current);
+    savedTimeoutRef.current = window.setTimeout(() => setShowSaved(false), 1200);
+  };
+
   function withHistory<F extends (...args: any[]) => any>(fn: F): F {
     return ((...args: Parameters<F>) => {
       // Captured via a direct synchronous store read (not a React state
@@ -689,7 +714,9 @@ export default function WorldEditor() {
       const snap: EditorSnapshot = { worldObjects: useStore.getState().worldObjects, layoutOverrides: useStore.getState().layoutOverrides };
       setPast((p) => [...p.slice(-(MAX_HISTORY - 1)), snap]);
       setFuture([]);
-      return fn(...args);
+      const result = fn(...args);
+      flashSaved();
+      return result;
     }) as F;
   }
   const addWorldObjectH = withHistory(addWorldObject);
@@ -705,6 +732,7 @@ export default function WorldEditor() {
     setFuture((f) => [...f, current]);
     restoreWorldEditorState(target.worldObjects, target.layoutOverrides);
     setSelection(null);
+    flashSaved();
   };
   const redo = () => {
     if (future.length === 0) return;
@@ -714,6 +742,7 @@ export default function WorldEditor() {
     setPast((p) => [...p, current]);
     restoreWorldEditorState(target.worldObjects, target.layoutOverrides);
     setSelection(null);
+    flashSaved();
   };
   // "Latest" refs so the keyboard listener (registered once) always calls
   // the current-render undo/redo/selection/delete/rotate rather than a
@@ -858,10 +887,7 @@ export default function WorldEditor() {
       customName: selected.customName,
     });
     setSelection({ kind: 'placed', id: newId });
-    if (continuous) {
-      setHammerMode(false);
-      setArmedAsset({ path: selected.modelPath, label: selected.customName || selected.label, category: '' });
-    }
+    if (continuous) armAsset({ path: selected.modelPath, label: selected.customName || selected.label, category: '' });
   };
 
   const rotateBy = (deg: number) => {
@@ -954,6 +980,21 @@ export default function WorldEditor() {
           >
             📋 Roster
           </button>
+          {/* Sims 4's signature Build<->Live loop — Claudia's navigation
+              review: nothing in this screen let a teacher check her work
+              in context without leaving the editor entirely. Opens in a
+              new tab so Build Mode's own state (armed asset, selection,
+              undo history) never gets lost. */}
+          <a
+            href="/#/world/town"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-sm btn-flat"
+            style={{ minHeight: 44, background: 'transparent', color: '#fff', border: '2px solid #fff', boxShadow: 'none', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+            title="Open Town Square in a new tab, exactly as a student sees it"
+          >
+            👀 Preview as Student
+          </a>
         </div>
       </div>
 
@@ -996,6 +1037,32 @@ export default function WorldEditor() {
           <p style={{ fontSize: '0.72rem', opacity: 0.7, margin: 0 }}>
             Tap an item, then tap the ground to place it. It places once and puts the catalog away — hold Shift while tapping the ground to keep placing more.
           </p>
+          {recentAssets.length > 0 && (
+            <div className="stack" style={{ gap: 4 }}>
+              <strong style={{ fontSize: '0.7rem', opacity: 0.6 }}>🕐 Recently used</strong>
+              <div className="row-wrap" style={{ gap: 4 }}>
+                {recentAssets.map((a) => {
+                  const armed = armedAsset?.path === a.path;
+                  const tileStyle = tileStyleFor(a.category);
+                  return (
+                    <button
+                      key={a.path}
+                      onClick={() => armAsset(armed ? null : a)}
+                      title={a.label}
+                      style={{
+                        minHeight: 44, minWidth: 44, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6,
+                        border: armed ? `2px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)',
+                        borderRadius: 999, background: tileStyle.bg, cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>{tileStyle.icon}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))', gap: 8 }}>
             {filtered.map((a) => {
               const armed = armedAsset?.path === a.path;
@@ -1003,7 +1070,7 @@ export default function WorldEditor() {
               return (
                 <button
                   key={a.path}
-                  onClick={() => { setHammerMode(false); setArmedAsset(armed ? null : a); }}
+                  onClick={() => armAsset(armed ? null : a)}
                   title={a.label}
                   style={{
                     position: 'relative', display: 'flex', flexDirection: 'column', height: 96, padding: 0,
@@ -1061,6 +1128,11 @@ export default function WorldEditor() {
           {dragOverlap && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff3ea', borderRadius: 10, padding: '6px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 600, fontSize: 12, color: OVERLAP_COLOR }}>
               ⚠ Overlapping {dragOverlap} — that's OK, just checking
+            </div>
+          )}
+          {showSaved && (
+            <div style={{ position: 'absolute', bottom: 70, right: 16, zIndex: 6, background: BUILD_ACCENT, color: '#fff', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'system-ui, sans-serif', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', pointerEvents: 'none' }}>
+              ✓ Saved
             </div>
           )}
           <Canvas camera={{ position: [0, 18, 20], fov: 50 }} shadows>
