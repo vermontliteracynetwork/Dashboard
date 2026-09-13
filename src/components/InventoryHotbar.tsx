@@ -4,6 +4,8 @@ import { AVATAR_CATALOG } from '../store/badges';
 import { AvatarGlyph } from './AvatarGlyph';
 import { EMOTE_CATALOG } from '../lib/emoteCatalog';
 import { ALL_JOKES } from '../lib/worldJokes';
+import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
+import { TOWNSPEOPLE } from '../lib/worldTownspeople';
 import type { Student } from '../types';
 
 // Direct teacher instruction: the backpack button was opening the full
@@ -14,12 +16,27 @@ import type { Student } from '../types';
 export default function InventoryHotbar({ student, onClose }: { student: Student; onClose: () => void }) {
   const updateStudent = useStore((s) => s.updateStudent);
   const equipEmote = useStore((s) => s.equipEmote);
-  const [tab, setTab] = useState<'stuff' | 'jokes'>('stuff');
+  const [tab, setTab] = useState<'stuff' | 'jokes' | 'friends'>('stuff');
   const [openJokeId, setOpenJokeId] = useState<string | null>(null);
 
   const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
   const heardJokes = student.worldJokesHeardIds.map((id) => ({ id, entry: ALL_JOKES[id] })).filter((j) => j.entry);
+  // Direct teacher instruction: a Friends section listing every Neighbor and
+  // Townsperson the student has talked to. worldNpcLastTalkDates is set the
+  // first time each NPC id is talked to (and only ever updated, never
+  // cleared) so its keys are a permanent "met" record for both Quest
+  // Neighbors and ambient Townspeople, not just "talked to today."
+  const metNpcs = Object.keys(student.worldNpcLastTalkDates)
+    .map((id) => {
+      const neighbor = QUEST1_NEIGHBORS.find((n) => n.id === id);
+      if (neighbor) return { id, name: neighbor.name, role: neighbor.role, lastTalk: student.worldNpcLastTalkDates[id] };
+      const townsperson = TOWNSPEOPLE[id];
+      if (townsperson) return { id, name: townsperson.name, role: 'Townsperson', lastTalk: student.worldNpcLastTalkDates[id] };
+      return null;
+    })
+    .filter((n): n is { id: string; name: string; role: string; lastTalk: string } => !!n)
+    .sort((a, b) => b.lastTalk.localeCompare(a.lastTalk));
 
   return (
     <div
@@ -44,10 +61,38 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
           <div className="row" style={{ gap: 6 }}>
             <button className={`btn btn-sm${tab === 'stuff' ? ' btn-primary' : ''}`} onClick={() => setTab('stuff')}>🎒 My Stuff</button>
             <button className={`btn btn-sm${tab === 'jokes' ? ' btn-primary' : ''}`} onClick={() => setTab('jokes')}>📖 Joke Book ({heardJokes.length})</button>
+            <button className={`btn btn-sm${tab === 'friends' ? ' btn-primary' : ''}`} onClick={() => setTab('friends')}>🧑‍🤝‍🧑 Friends ({metNpcs.length})</button>
           </div>
           <button className="btn btn-sm" onClick={onClose} aria-label="Close">✕</button>
         </div>
-        {tab === 'stuff' ? (
+        {tab === 'friends' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
+            {metNpcs.length === 0 && (
+              <p style={{ opacity: 0.7, fontSize: '0.85rem', margin: '10px 4px' }}>
+                No friends yet. Talk to a Neighbor or Townsperson in Town Square!
+              </p>
+            )}
+            {metNpcs.map((f) => (
+              <div
+                key={f.id}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f7f5ef', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '8px 12px' }}
+              >
+                <span style={{ fontSize: '1.3rem' }}>🙂</span>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>{f.name}</strong>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{f.role}</div>
+                </div>
+              </div>
+            ))}
+            {/* Other students met in Town Square aren't listed yet — that
+                needs real multiplayer presence, which doesn't exist in this
+                game yet. This note keeps the tab honest instead of looking
+                broken/incomplete once that's built. */}
+            <p style={{ opacity: 0.55, fontSize: '0.75rem', margin: '6px 4px 0', fontStyle: 'italic' }}>
+              Other students you meet in Town Square will show up here too, once that's ready.
+            </p>
+          </div>
+        ) : tab === 'stuff' ? (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
             {ownedAvatars.map((a) => {
               const equipped = student.avatar === a.id;
