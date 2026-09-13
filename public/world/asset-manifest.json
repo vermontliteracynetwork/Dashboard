@@ -1,9 +1,14 @@
 {
-  "generatedAt": "2026-09-13T14:07:21.879Z",
+  "generatedAt": "2026-09-13T14:17:36.881Z",
   "assets": [
     {
       "path": "/world/models/buildings/bank.glb",
       "label": "Bank",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/building-extra.glb",
+      "label": "Building Extra",
       "category": "buildings"
     },
     {
