@@ -18,7 +18,19 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import type { LayoutOverride } from '../../types';
+import type { LayoutOverride, FocusSubject } from '../../types';
+
+// Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
+// FocusSubject) their conversations/indicator should reflect — direct
+// teacher request that "if the neighbor is part of the to-do list, like a
+// personal-finance assignment, the banker can have an exclamation point
+// above their head." Scout (general check-ins/welcome) reads as SEL.
+const NEIGHBOR_FOCUS_LANE: Record<string, FocusSubject> = {
+  scout: 'sel',
+  penny: 'finance',
+  pip: 'math',
+  wren: 'literacy',
+};
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -456,6 +468,7 @@ interface WanderingNPCInteraction {
   onTalk: () => void;
   onApproach: () => void;
   exposePosition: (v: THREE.Vector3) => void;
+  focusFlag?: boolean;
 }
 
 function WanderingNPC({
@@ -567,6 +580,13 @@ function WanderingNPC({
             <cylinderGeometry args={[0.95, 0.95, 2.2, 12]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
+          {interaction.focusFlag && !hovered && (
+            <Html center position={[0, 2.05, 0]} style={{ pointerEvents: 'none' }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ffb020', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#1f4238', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
+                !
+              </div>
+            </Html>
+          )}
           {hovered && (
             <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -574,8 +594,13 @@ function WanderingNPC({
                     flavor (see ambientEmoteFor's comment); direct teacher
                     request that hovering a Neighbor pop up an emote and
                     their name, like a thought bubble. */}
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#fff', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'relative', width: 46, height: 46, borderRadius: '50%', background: '#fff', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <img src={npcEmote.src} alt="" style={{ width: '76%', height: '76%' }} />
+                  {interaction.focusFlag && (
+                    <div style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#ffb020', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#1f4238' }}>
+                      !
+                    </div>
+                  )}
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
                   {interaction.name}
@@ -859,8 +884,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         <Html center position={[0, 2.5, 0]} style={{ pointerEvents: 'none' }}>
           <div
             style={{
-              width: 44,
-              height: 44,
+              width: 60,
+              height: 60,
               borderRadius: '50%',
               background: '#fff',
               border: '2.5px solid var(--ink)',
@@ -933,6 +958,19 @@ function Neighbor({
   // so an iPad student sees it by tapping the character, not by proximity.
   const [hovered, setHovered] = useState(false);
   const npcEmote = useMemo(() => ambientEmoteFor(n.id), [n.id]);
+  // Direct teacher request: a Neighbor tied to whatever curriculum focus is
+  // currently live should show a small "!" so a student can spot who has
+  // something new to talk about, the same way a to-do badge works. Each
+  // Quest Neighbor's role maps to one Focus lane (finance/math/literacy/sel
+  // above are the only four lanes that exist) — Penny the Banker to
+  // finance, Pip the Shopkeeper to math, Wren the Mail Carrier to literacy,
+  // Scout (general welcome/check-ins) to SEL.
+  const focuses = useStore((s) => s.focuses);
+  const focusFlag = useMemo(() => {
+    const lane = NEIGHBOR_FOCUS_LANE[n.id];
+    if (!lane) return false;
+    return !!getCurrentFocus(focuses, lane, todayISO());
+  }, [focuses, n.id]);
 
   useEffect(() => {
     if (!inRange) return;
@@ -965,6 +1003,7 @@ function Neighbor({
           onTalk,
           onApproach,
           exposePosition,
+          focusFlag,
         }}
       />
     );
@@ -989,11 +1028,23 @@ function Neighbor({
         <cylinderGeometry args={[0.95, 0.95, 2.2, 12]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
+      {focusFlag && !hovered && (
+        <Html center position={[0, 2.05, 0]} style={{ pointerEvents: 'none' }}>
+          <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ffb020', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#1f4238', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
+            !
+          </div>
+        </Html>
+      )}
       {hovered && (
         <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#fff', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', width: 46, height: 46, borderRadius: '50%', background: '#fff', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src={npcEmote.src} alt="" style={{ width: '76%', height: '76%' }} />
+              {focusFlag && (
+                <div style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#ffb020', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#1f4238' }}>
+                  !
+                </div>
+              )}
             </div>
             <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
               {n.name}, {titleOverride || n.role}
@@ -1511,11 +1562,17 @@ export default function TownSquare() {
   // a worse mismatch than a role/title being cosmetic).
   const npcTitleOverrides = useStore((s) => s.npcTitleOverrides);
   // The Focuses system's dialogue-embedding half (see lib/focus.ts):
-  // whichever literacy focus is current gets one word woven into roughly
-  // 1-in-3 Neighbor/Townsperson conversations, never labeled as "your
-  // focus" — see maybeAppendFocusLine below, used by handleTalk and
-  // handleTalkTownsperson.
+  // whichever focus is current for a Neighbor's matched lane
+  // (NEIGHBOR_FOCUS_LANE — Penny/finance, Pip/math, Wren/literacy,
+  // Scout/sel) gets one word woven into roughly 1-in-3 conversations, never
+  // labeled as "your focus" — see maybeAppendFocusLine below. Ambient
+  // Townspeople have no role/lane, so they keep using literacy general
+  // small talk, same as before.
   const currentLiteracyFocus = getCurrentFocus(focuses, 'literacy', todayISO());
+  const currentFocusForNeighbor = (neighborId: string) => {
+    const lane = NEIGHBOR_FOCUS_LANE[neighborId];
+    return lane ? getCurrentFocus(focuses, lane, todayISO()) : currentLiteracyFocus;
+  };
   const meetQuest1Neighbor = useStore((s) => s.meetQuest1Neighbor);
   const recordNpcDailyTalk = useStore((s) => s.recordNpcDailyTalk);
   const collectJoke = useStore((s) => s.collectJoke);
@@ -1707,7 +1764,7 @@ export default function TownSquare() {
       beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: SCOUT_CHECKIN_VARIANT });
       return;
     }
-    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: maybeAppendFocusLine(pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []), currentLiteracyFocus) });
+    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: maybeAppendFocusLine(pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []), currentFocusForNeighbor(n.id)) });
   };
 
   const handleTalkTownsperson = (tp: Townsperson) => {
