@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, TransformControls } from '@react-three/drei';
+import { Canvas, type ThreeEvent } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
@@ -30,7 +30,6 @@ import type { WorldObject, WorldObjectRole } from '../../types';
 // break a returning student's mental map. This editor only ever adds a
 // purely additive layer of new placed objects on top of them.
 type AssetManifestEntry = { path: string; label: string; category: string };
-type GizmoMode = 'translate' | 'rotate' | 'scale';
 const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: '', label: 'No role (just decoration)' },
   { value: 'bank', label: `Bank → ${ROLE_VIEWS.bank}` },
@@ -40,6 +39,61 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
 ];
 const SCALE_MIN = 0.05;
 const SCALE_MAX = 20;
+
+// Claudia's Build Mode redesign (referencing Sims 4/Minecraft/Webkinz/
+// Paralives): grid-snap on by default, a 1-unit cell matching the drawn
+// gridHelper. No Alt-hold freeform toggle (Sims' approach) since that has
+// no touchscreen equivalent — a persistent tap-to-flip pill instead.
+const GRID_SIZE = 1;
+const snapValue = (v: number, enabled: boolean) => (enabled ? Math.round(v / GRID_SIZE) * GRID_SIZE : v);
+
+// Discrete resize presets instead of a drag handle — Sims' `[`/`]` and
+// Paralives' direct-resize both aim for "obvious result, no fine dragging."
+const SCALE_PRESETS: { label: string; value: number }[] = [
+  { label: 'Tiny', value: 0.25 },
+  { label: 'Small', value: 0.5 },
+  { label: 'Normal', value: 1 },
+  { label: 'Large', value: 1.5 },
+  { label: 'Huge', value: 2.5 },
+  { label: 'Giant', value: 5 },
+];
+
+// Advisory-only footprint overlap check (Minecraft/Sims-style warning, per
+// Claudia's spec — never blocks placement). A real per-model bounding box
+// would need every GLTF loaded synchronously just to check; a generic
+// per-model radius, scaled, is close enough for a "heads up" warning.
+const BASE_FOOTPRINT_RADIUS = 1;
+function footprintOverlap(x: number, z: number, scale: number, worldObjects: WorldObject[], excludeId?: string): string | null {
+  for (const o of worldObjects) {
+    if (o.id === excludeId) continue;
+    const dist = Math.hypot(x - o.position[0], z - o.position[2]);
+    if (dist < BASE_FOOTPRINT_RADIUS * scale + BASE_FOOTPRINT_RADIUS * o.scale) return o.customName || o.label;
+  }
+  for (const b of BUILDINGS) {
+    const dist = Math.hypot(x - b.position[0], z - b.position[1]);
+    if (dist < BASE_FOOTPRINT_RADIUS * scale + 3) return b.id;
+  }
+  return null;
+}
+
+// Press-and-hold auto-repeat for the fine resize/rotate nudge buttons —
+// 400ms initial delay, then repeats every 150ms, so a teacher can hold
+// instead of tapping many times (per Claudia's touch-target guidance).
+function useHoldRepeat(fn: () => void) {
+  const timeoutRef = useRef<number | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const stop = () => {
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+  };
+  const start = () => {
+    fn();
+    timeoutRef.current = window.setTimeout(() => {
+      intervalRef.current = window.setInterval(fn, 150);
+    }, 400);
+  };
+  return { onPointerDown: start, onPointerUp: stop, onPointerLeave: stop };
+}
 
 function ReferenceScene() {
   // Read-only — the same static layout the real Town Square renders, just
@@ -185,9 +239,17 @@ export default function WorldEditor() {
   const [category, setCategory] = useState('');
   const [armedAsset, setArmedAsset] = useState<AssetManifestEntry | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [gizmoMode, setGizmoMode] = useState<GizmoMode>('translate');
-  const [isDragging, setIsDragging] = useState(false);
   const [tab, setTab] = useState<'build' | 'roster'>('build');
+  const [snapEnabled, setSnapEnabled] = useState(true);
+
+  // Placement ghost (armed asset following the pointer before it's real —
+  // Minecraft's hover-preview) and the live drag-preview for repositioning
+  // an already-placed object (Sims/Webkinz-style direct drag, replacing the
+  // old translate gizmo). Only one of these is ever active at once.
+  const [ghostPos, setGhostPos] = useState<{ x: number; z: number } | null>(null);
+  const [dragState, setDragState] = useState<{ id: string; startClientX: number; startClientY: number; moved: boolean } | null>(null);
+  const [dragPos, setDragPos] = useState<{ x: number; z: number } | null>(null);
+  const isDragging = dragState !== null;
 
   useEffect(() => {
     fetch('/world/asset-manifest.json')
@@ -195,6 +257,21 @@ export default function WorldEditor() {
       .then((data) => setManifest(data.assets ?? []))
       .catch(() => setManifestError(true));
   }, []);
+
+  // A pointer released outside the ground plane (dragged off the visible
+  // floor) would otherwise leave the drag stuck forever — a window-level
+  // fallback guarantees the drag always ends and commits.
+  useEffect(() => {
+    if (!dragState) return;
+    const commit = () => {
+      if (dragState.moved && dragPos) updateWorldObject(dragState.id, { position: [dragPos.x, 0, dragPos.z] });
+      setDragState(null);
+      setDragPos(null);
+    };
+    window.addEventListener('pointerup', commit);
+    return () => window.removeEventListener('pointerup', commit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragState, dragPos]);
 
   const categories = useMemo(() => [...new Set(manifest.map((a) => a.category))].sort(), [manifest]);
   // Claudia's audit: a flat 29-category dropdown over 1000+ assets is
@@ -220,38 +297,60 @@ export default function WorldEditor() {
     return true;
   });
 
-  const objectRefs = useRef(new Map<string, THREE.Group>());
   const selected = worldObjects.find((o) => o.id === selectedId) ?? null;
 
-  const commitSelectedTransform = () => {
-    if (!selectedId) return;
-    const group = objectRefs.current.get(selectedId);
-    if (!group) return;
-    const scale = THREE.MathUtils.clamp(group.scale.x, SCALE_MIN, SCALE_MAX);
-    group.scale.setScalar(scale);
-    updateWorldObject(selectedId, {
-      position: [group.position.x, 0, group.position.z],
-      rotationY: group.rotation.y,
-      scale,
-    });
+  const rotateBy = (deg: number) => {
+    if (!selected) return;
+    updateWorldObject(selected.id, { rotationY: selected.rotationY + (deg * Math.PI) / 180 });
+  };
+  const setScale = (value: number) => {
+    if (!selected) return;
+    updateWorldObject(selected.id, { scale: THREE.MathUtils.clamp(value, SCALE_MIN, SCALE_MAX) });
+  };
+  const nudgeScale = (factor: number) => {
+    if (!selected) return;
+    setScale(selected.scale * factor);
+  };
+  const growHold = useHoldRepeat(() => nudgeScale(1.1));
+  const shrinkHold = useHoldRepeat(() => nudgeScale(1 / 1.1));
+  const rotateCwFine = useHoldRepeat(() => rotateBy(15));
+  const rotateCcwFine = useHoldRepeat(() => rotateBy(-15));
+
+  const clampToGround = (v: number) => THREE.MathUtils.clamp(v, -GROUND_HALF + 1, GROUND_HALF - 1);
+
+  const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
+    const x = clampToGround(snapValue(e.point.x, snapEnabled));
+    const z = clampToGround(snapValue(e.point.z, snapEnabled));
+    if (armedAsset) {
+      e.stopPropagation();
+      setGhostPos({ x, z });
+    } else if (dragState) {
+      e.stopPropagation();
+      setDragPos({ x, z });
+      if (!dragState.moved) {
+        const dx = e.nativeEvent.clientX - dragState.startClientX;
+        const dy = e.nativeEvent.clientY - dragState.startClientY;
+        if (Math.hypot(dx, dy) > 8) setDragState((s) => (s ? { ...s, moved: true } : s));
+      }
+    }
   };
 
-  const handleGroundClick = (e: { point: THREE.Vector3; stopPropagation: () => void }) => {
+  const handleGroundClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (armedAsset) {
-      const id = addWorldObject({
-        modelPath: armedAsset.path,
-        label: armedAsset.label,
-        position: [THREE.MathUtils.clamp(e.point.x, -GROUND_HALF + 1, GROUND_HALF - 1), 0, THREE.MathUtils.clamp(e.point.z, -GROUND_HALF + 1, GROUND_HALF - 1)],
-        rotationY: 0,
-        scale: 1,
-      });
+      const x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled));
+      const z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled));
+      const id = addWorldObject({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY: 0, scale: 1 });
       setArmedAsset(null);
+      setGhostPos(null);
       setSelectedId(id);
     } else {
       setSelectedId(null);
     }
   };
+
+  const placementOverlap = armedAsset && ghostPos ? footprintOverlap(ghostPos.x, ghostPos.z, 1, worldObjects) : null;
+  const dragOverlap = dragState && dragState.moved && dragPos ? footprintOverlap(dragPos.x, dragPos.z, selected?.scale ?? 1, worldObjects, dragState.id) : null;
 
   return (
     <div className="stack" style={{ padding: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -287,6 +386,14 @@ export default function WorldEditor() {
             panel sits flush against the header/canvas on 3 of 4 sides. */}
         <div className="stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>📦 Asset Inventory ({manifest.length})</strong>
+          <button
+            className={`btn btn-sm ${snapEnabled ? 'btn-primary' : ''}`}
+            style={{ minHeight: 44 }}
+            onClick={() => setSnapEnabled((v) => !v)}
+            title="When on, placing and moving objects snaps to the grid"
+          >
+            ▦ Snap to Grid: {snapEnabled ? 'ON' : 'OFF'}
+          </button>
           {manifestError && <p style={{ fontSize: '0.78rem', color: 'var(--danger)' }}>Couldn't load the asset list. Try refreshing.</p>}
           <input placeholder="🔍 Search assets..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ minHeight: 40 }} />
           <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: 40 }}>
@@ -318,8 +425,14 @@ export default function WorldEditor() {
         {/* 3D viewport */}
         <div style={{ flex: 1, position: 'relative' }}>
           {armedAsset && (
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13 }}>
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: placementOverlap ? '#fff3ea' : '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
+              {placementOverlap && <div style={{ color: '#b5482f', fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Overlapping {placementOverlap} — that's OK, just checking</div>}
+            </div>
+          )}
+          {dragOverlap && (
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff3ea', borderRadius: 10, padding: '6px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 600, fontSize: 12, color: '#b5482f' }}>
+              ⚠ Overlapping {dragOverlap} — that's OK, just checking
             </div>
           )}
           <Canvas camera={{ position: [0, 18, 20], fov: 50 }} shadows>
@@ -331,6 +444,7 @@ export default function WorldEditor() {
               rotation={[-Math.PI / 2, 0, 0]}
               position={[0, 0, 0]}
               onClick={(e) => handleGroundClick(e)}
+              onPointerMove={handleGroundPointerMove}
             >
               <planeGeometry args={[GROUND_HALF * 2, GROUND_HALF * 2]} />
               <meshStandardMaterial color="#8fc97a" />
@@ -339,24 +453,45 @@ export default function WorldEditor() {
 
             <ReferenceScene />
 
-            {worldObjects.map((obj) => (
+            {armedAsset && ghostPos && (
               <WorldObjectRenderer
-                key={obj.id}
-                obj={obj}
-                ref={(el) => { if (el) objectRefs.current.set(obj.id, el); else objectRefs.current.delete(obj.id); }}
-                onClick={() => setSelectedId(obj.id)}
-              />
-            ))}
-
-            {selected && objectRefs.current.get(selected.id) && (
-              <TransformControls
-                object={objectRefs.current.get(selected.id)}
-                mode={gizmoMode}
-                showY={gizmoMode !== 'translate'}
-                onMouseDown={() => setIsDragging(true)}
-                onMouseUp={() => { setIsDragging(false); commitSelectedTransform(); }}
+                obj={{
+                  id: '__ghost__',
+                  modelPath: armedAsset.path,
+                  label: armedAsset.label,
+                  position: [ghostPos.x, 0, ghostPos.z],
+                  rotationY: 0,
+                  scale: 1,
+                  createdAt: '',
+                  tintColor: placementOverlap ? '#e5533d' : undefined,
+                }}
+                opacity={0.55}
               />
             )}
+
+            {worldObjects.map((obj) => {
+              const isBeingDragged = dragState?.id === obj.id && dragState.moved && !!dragPos;
+              const renderObj = isBeingDragged
+                ? { ...obj, position: [dragPos!.x, 0, dragPos!.z] as [number, number, number], tintColor: dragOverlap ? '#e5533d' : obj.tintColor }
+                : obj;
+              return (
+                <WorldObjectRenderer
+                  key={obj.id}
+                  obj={renderObj}
+                  opacity={isBeingDragged ? 0.6 : 1}
+                  onClick={() => setSelectedId(obj.id)}
+                  onPointerDown={(e) => {
+                    // Direct-drag-to-move (Sims/Webkinz-style), replacing
+                    // the old translate gizmo — only once the object is
+                    // already selected, so a first tap always just selects.
+                    if (selectedId !== obj.id) return;
+                    e.stopPropagation();
+                    setDragState({ id: obj.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
+                    setDragPos({ x: obj.position[0], z: obj.position[2] });
+                  }}
+                />
+              );
+            })}
           </Canvas>
         </div>
 
@@ -368,11 +503,41 @@ export default function WorldEditor() {
           ) : (
             <>
               <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>{selected.label}</p>
-              <div className="row-wrap" style={{ gap: 4 }}>
-                <button className={`btn btn-sm ${gizmoMode === 'translate' ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setGizmoMode('translate')}>↔️ Move</button>
-                <button className={`btn btn-sm ${gizmoMode === 'rotate' ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setGizmoMode('rotate')}>🔄 Rotate</button>
-                <button className={`btn btn-sm ${gizmoMode === 'scale' ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setGizmoMode('scale')}>🔍 Resize</button>
-              </div>
+              <p style={{ fontSize: '0.72rem', opacity: 0.6, margin: 0 }}>👆 Press and drag it in the scene to move it.</p>
+
+              <label style={{ margin: 0 }}>
+                Rotate
+                <div className="row-wrap" style={{ gap: 4 }}>
+                  <button className="btn btn-sm" style={{ minHeight: 52 }} onClick={() => rotateBy(-45)}>↺ 45°</button>
+                  <button className="btn btn-sm" style={{ minHeight: 52 }} onClick={() => rotateBy(45)}>↻ 45°</button>
+                </div>
+                <div className="row-wrap" style={{ gap: 4, marginTop: 4 }}>
+                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...rotateCcwFine}>↺ 15°</button>
+                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...rotateCwFine}>↻ 15°</button>
+                </div>
+                <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Rotation: {Math.round(((selected.rotationY * 180) / Math.PI) % 360)}°</span>
+              </label>
+
+              <label style={{ margin: 0 }}>
+                Size
+                <div className="row-wrap" style={{ gap: 4 }}>
+                  {SCALE_PRESETS.map((p) => (
+                    <button
+                      key={p.label}
+                      className={`btn btn-sm ${Math.abs(selected.scale - p.value) < 0.001 ? 'btn-primary' : ''}`}
+                      style={{ minHeight: 44 }}
+                      onClick={() => setScale(p.value)}
+                    >
+                      {Math.abs(selected.scale - p.value) < 0.001 ? '✓ ' : ''}{p.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="row" style={{ gap: 4, marginTop: 4, alignItems: 'center' }}>
+                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...shrinkHold}>−</button>
+                  <span style={{ fontSize: '0.72rem', minWidth: 60, textAlign: 'center' }}>{Math.round(selected.scale * 100)}%</span>
+                  <button className="btn btn-sm" style={{ minHeight: 44 }} {...growHold}>+</button>
+                </div>
+              </label>
 
               <label>
                 Custom name
