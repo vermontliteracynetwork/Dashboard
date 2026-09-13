@@ -455,6 +455,50 @@ export interface LiteracyFocusSet {
   practiceWords: string[]; // spelling words combining the patterns/morphemes above
 }
 
+// A class-wide curriculum spotlight — Claudia's "Focuses" system (direct
+// teacher request: a phonics pattern, a math strategy, a prefix/suffix
+// set, a personal-finance topic, or an SEL skill the whole class is
+// working on right now, shown simply on the teacher side and woven
+// quietly into gameplay on the student side — never labeled to a student
+// as "your weak spot," always framed as a shared class theme, per
+// Claudia's population-risk guidance). Four independent lanes (one focus
+// "current" per subject at a time, same one-active-at-a-time simplicity
+// as LiteracyFocusSet above) rather than one combined list, since SEL and
+// personal finance don't fit naturally under Math/Literacy.
+export type FocusSubject = 'math' | 'literacy' | 'sel' | 'finance';
+
+export const FOCUS_SUBJECT_LABELS: Record<FocusSubject, string> = {
+  math: '🔢 Math',
+  literacy: '📚 Literacy',
+  sel: '💬 Social-Emotional',
+  finance: '💰 Personal Finance',
+};
+
+// Suggested categories per lane — shown as dropdown options (plus a
+// "Custom" free-text escape hatch) so the picker stays explicit/predictable
+// without blocking a teacher from typing something not on the list.
+export const FOCUS_CATEGORY_SUGGESTIONS: Record<FocusSubject, string[]> = {
+  math: ['Math strategy', 'Fact fluency', 'Word problems', 'Measurement'],
+  literacy: ['Phonics pattern', 'Prefix/suffix (affix)', 'Vocabulary', 'Word origins', 'Reading comprehension'],
+  sel: ['Asking for help', 'Turn-taking', 'Emotional regulation', 'Following routines'],
+  finance: ['Budgeting', 'Needs vs. wants', 'Saving', 'Earning'],
+};
+
+export type FocusDurationMode = 'days' | 'dateRange' | 'untilChanged';
+
+export interface Focus {
+  id: string;
+  subject: FocusSubject;
+  category: string; // one of FOCUS_CATEGORY_SUGGESTIONS[subject], or teacher-typed custom text
+  title: string; // short label, e.g. "Silent-E Pattern"
+  detail: string; // a sentence or two of specifics/example, e.g. "Words ending in a silent e, like cake, hope, five."
+  wordList: string[]; // specific words/phrases tied to this focus (phonics/affix words, finance vocab) — used to seed gameplay content; empty = none set
+  durationMode: FocusDurationMode;
+  startDate: string; // ISO date, always set (today when created)
+  endDate: string | null; // ISO date — set for 'days'/'dateRange' (computed at publish time); null while 'untilChanged' is still current
+  createdAt: string; // ISO timestamp
+}
+
 export interface QuestionAttemptLog {
   questionId: string;
   timestamp: string;

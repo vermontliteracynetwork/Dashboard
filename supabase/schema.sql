@@ -348,6 +348,27 @@ create table if not exists world_objects (
 -- not here, so this table follows the exact same anon-read/write,
 -- authenticated-delete policy every other table already uses.
 
+-- Class-wide curriculum "Focuses" (see types.ts's Focus interface) — one
+-- current focus per subject lane (math/literacy/sel/finance), teacher-set
+-- from the Assignments page, woven into gameplay (Neighbor/Townsperson
+-- dialogue word-pool, Piggy Bank/Marketplace/Bank banners). Global, not
+-- per-student, same reasoning as world_objects: the whole class shares one
+-- real town and one real curriculum focus at a time.
+create table if not exists focuses (
+  id text primary key,
+  subject text not null,
+  category text not null default '',
+  title text not null,
+  detail text not null default '',
+  word_list text[] not null default '{}',
+  duration_mode text not null default 'untilChanged',
+  start_date date not null,
+  end_date date,
+  created_at timestamptz not null default now()
+);
+-- RLS + realtime for this table are also granted by the generic loops
+-- further down this file — 'focuses' is added there, not here.
+
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so
 -- nothing existing breaks — the Notes tool just no longer reads/writes it).
@@ -447,7 +468,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses'
   ];
 begin
   foreach t in array tables loop
@@ -490,7 +511,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses'
   ];
 begin
   foreach t in array tables loop

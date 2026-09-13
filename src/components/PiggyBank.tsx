@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { formatMoney } from '../lib/money';
 import PiggyBankCharts from './PiggyBankCharts';
+import FocusBanner from './FocusBanner';
 
 // Homeplot's Bank standard: saving is concept-only (no interest math), just
 // a concrete "your money is growing toward something" fill-meter — student-set,
@@ -90,6 +91,8 @@ export default function PiggyBank() {
         <h2 style={{ margin: 0, color: '#fff' }}>🐷 Piggy Bank</h2>
         <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
       </div>
+
+      <FocusBanner subjects={['finance', 'math']} />
 
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%' }}>
         <div

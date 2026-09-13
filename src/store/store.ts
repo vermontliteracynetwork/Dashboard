@@ -111,6 +111,9 @@ import {
   pushWorldObject,
   deleteWorldObjectRemote,
   rowToWorldObject,
+  pushFocus,
+  deleteFocusRemote,
+  rowToFocus,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -148,6 +151,9 @@ import type {
   MarketplaceItem,
   AssignmentCompletionReward,
   WorldObject,
+  Focus,
+  FocusSubject,
+  FocusDurationMode,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -199,6 +205,7 @@ interface AppState {
   notes: Note[];
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
+  focuses: Focus[]; // class-wide curriculum spotlights (math/literacy/sel/finance lanes) — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
@@ -246,6 +253,22 @@ interface AppState {
   addWorldObject: (obj: Omit<WorldObject, 'id' | 'createdAt'>) => string;
   updateWorldObject: (id: string, patch: Partial<WorldObject>) => void;
   deleteWorldObject: (id: string) => void;
+  // Publishing a new focus for a subject lane ends whichever focus was
+  // previously current for that lane (sets its endDate if it didn't have
+  // one), matching the "one current focus per lane" model in types.ts.
+  publishFocus: (
+    subject: FocusSubject,
+    category: string,
+    title: string,
+    detail: string,
+    wordList: string[],
+    durationMode: FocusDurationMode,
+    dayCount?: number,
+    dateRangeStart?: string,
+    dateRangeEnd?: string,
+  ) => void;
+  endFocus: (id: string) => void; // teacher-ended 'untilChanged' focus — sets endDate to today
+  deleteFocus: (id: string) => void; // removes it from history entirely
   setAssignmentCompletionReward: (reward: AssignmentCompletionReward | null) => void;
   emotePriceOverrides: Record<string, number>;
   setEmotePriceOverride: (emoteId: string, priceCents: number | null) => void;
@@ -480,6 +503,7 @@ export const useStore = create<AppState>()(
       notes: [],
       marketplaceItems: [],
       worldObjects: [],
+      focuses: [],
       assignmentCompletionReward: null,
       emotePriceOverrides: {},
 
@@ -634,6 +658,7 @@ export const useStore = create<AppState>()(
           onNote: (e, n, o) => set((s) => ({ notes: applyArrayRow(s.notes, e, rowToNote, n, o) })),
           onMarketplaceItem: (e, n, o) => set((s) => ({ marketplaceItems: applyArrayRow(s.marketplaceItems, e, rowToMarketplaceItem, n, o) })),
           onWorldObject: (e, n, o) => set((s) => ({ worldObjects: applyArrayRow(s.worldObjects, e, rowToWorldObject, n, o) })),
+          onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
             if (!n) return;
@@ -871,6 +896,49 @@ export const useStore = create<AppState>()(
       deleteWorldObject: (id) => {
         set((s) => ({ worldObjects: s.worldObjects.filter((o) => o.id !== id) }));
         deleteWorldObjectRemote(id);
+      },
+
+      publishFocus: (subject, category, title, detail, wordList, durationMode, dayCount, dateRangeStart, dateRangeEnd) => {
+        const today = todayISO();
+        let startDate = today;
+        let endDate: string | null = null;
+        if (durationMode === 'days') {
+          const n = Math.max(1, dayCount ?? 7);
+          const end = new Date(`${today}T00:00:00`);
+          end.setDate(end.getDate() + (n - 1));
+          endDate = end.toISOString().slice(0, 10);
+        } else if (durationMode === 'dateRange') {
+          startDate = dateRangeStart ?? today;
+          endDate = dateRangeEnd ?? today;
+        }
+        // Ends whichever focus was current for this lane (per getCurrentFocus's
+        // rule) so there's only ever one current focus per subject at a time.
+        const previous = get().focuses.find(
+          (f) => f.subject === subject && f.startDate <= today && (f.endDate === null || f.endDate >= today),
+        );
+        const fresh: Focus = { id: makeId(), subject, category, title, detail, wordList, durationMode, startDate, endDate, createdAt: new Date().toISOString() };
+        set((s) => ({
+          focuses: [
+            ...(previous ? s.focuses.map((f) => (f.id === previous.id ? { ...f, endDate: f.endDate ?? today } : f)) : s.focuses),
+            fresh,
+          ],
+        }));
+        if (previous && previous.endDate === null) pushFocus({ ...previous, endDate: today });
+        pushFocus(fresh);
+      },
+
+      endFocus: (id) => {
+        const today = todayISO();
+        const existing = get().focuses.find((f) => f.id === id);
+        if (!existing) return;
+        const updated = { ...existing, endDate: existing.endDate ?? today };
+        set((s) => ({ focuses: s.focuses.map((f) => (f.id === id ? updated : f)) }));
+        pushFocus(updated);
+      },
+
+      deleteFocus: (id) => {
+        set((s) => ({ focuses: s.focuses.filter((f) => f.id !== id) }));
+        deleteFocusRemote(id);
       },
 
       setAssignmentCompletionReward: (reward) => {

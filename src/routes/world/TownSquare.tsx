@@ -15,6 +15,7 @@ import InventoryHotbar from '../../components/InventoryHotbar';
 import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
+import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -1374,6 +1375,13 @@ export default function TownSquare() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const worldObjects = useStore((s) => s.worldObjects);
+  const focuses = useStore((s) => s.focuses);
+  // The Focuses system's dialogue-embedding half (see lib/focus.ts):
+  // whichever literacy focus is current gets one word woven into roughly
+  // 1-in-3 Neighbor/Townsperson conversations, never labeled as "your
+  // focus" — see maybeAppendFocusLine below, used by handleTalk and
+  // handleTalkTownsperson.
+  const currentLiteracyFocus = getCurrentFocus(focuses, 'literacy', todayISO());
   const meetQuest1Neighbor = useStore((s) => s.meetQuest1Neighbor);
   const recordNpcDailyTalk = useStore((s) => s.recordNpcDailyTalk);
   const collectJoke = useStore((s) => s.collectJoke);
@@ -1565,11 +1573,11 @@ export default function TownSquare() {
       beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: SCOUT_CHECKIN_VARIANT });
       return;
     }
-    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []) });
+    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: maybeAppendFocusLine(pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []), currentLiteracyFocus) });
   };
 
   const handleTalkTownsperson = (tp: Townsperson) => {
-    beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: pickDialogueVariant(tp.dialogues, student?.worldJokesHeardIds ?? []) });
+    beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: maybeAppendFocusLine(pickDialogueVariant(tp.dialogues, student?.worldJokesHeardIds ?? []), currentLiteracyFocus) });
   };
 
   // Direct teacher instruction: clicking a Neighbor should walk the student

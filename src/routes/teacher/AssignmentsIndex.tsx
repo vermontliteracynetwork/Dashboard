@@ -9,7 +9,9 @@ import type { EditingPlan } from './NewDailyPlanBuilder';
 import { formatDateLong, todayISO } from '../../lib/dates';
 import { sortForDisplay } from '../../lib/taskOrder';
 import { makeId } from '../../lib/id';
-import type { Assignment, PlanTemplate, Student, Subject, Task } from '../../types';
+import { getCurrentFocus, getFocusHistory } from '../../lib/focus';
+import { FOCUS_SUBJECT_LABELS, FOCUS_CATEGORY_SUGGESTIONS } from '../../types';
+import type { Assignment, PlanTemplate, Student, Subject, Task, Focus, FocusSubject, FocusDurationMode } from '../../types';
 
 interface AssignmentGroup {
   key: string;
@@ -360,6 +362,204 @@ function AssignmentDetailModal({
   );
 }
 
+const FOCUS_SUBJECTS: FocusSubject[] = ['math', 'literacy', 'sel', 'finance'];
+
+// The per-lane "set/change a focus" form — deliberately small and flat
+// (category dropdown, title, one details sentence, an optional word list,
+// three duration radios) rather than a full authoring tool, per the direct
+// teacher instruction that this stay "explicit, simple, predictable."
+function FocusLaneEditor({ subject, current }: { subject: FocusSubject; current: Focus | null }) {
+  const publishFocus = useStore((s) => s.publishFocus);
+  const suggestions = FOCUS_CATEGORY_SUGGESTIONS[subject];
+  const currentIsSuggested = !!current && suggestions.includes(current.category);
+  const [category, setCategory] = useState(currentIsSuggested ? current!.category : suggestions[0]);
+  const [useCustomCategory, setUseCustomCategory] = useState(!!current && !currentIsSuggested);
+  const [customCategory, setCustomCategory] = useState(!currentIsSuggested ? (current?.category ?? '') : '');
+  const [title, setTitle] = useState(current?.title ?? '');
+  const [detail, setDetail] = useState(current?.detail ?? '');
+  const [wordsText, setWordsText] = useState((current?.wordList ?? []).join(', '));
+  const [durationMode, setDurationMode] = useState<FocusDurationMode>(current?.durationMode ?? 'untilChanged');
+  const [dayCount, setDayCount] = useState(7);
+  const today = todayISO();
+  const [rangeStart, setRangeStart] = useState(today);
+  const [rangeEnd, setRangeEnd] = useState(today);
+  const [published, setPublished] = useState(false);
+
+  const publish = () => {
+    if (!title.trim()) return;
+    const cat = useCustomCategory ? customCategory.trim() : category;
+    const wordList = wordsText.split(',').map((w) => w.trim()).filter(Boolean);
+    publishFocus(subject, cat, title.trim(), detail.trim(), wordList, durationMode, dayCount, rangeStart, rangeEnd);
+    setPublished(true);
+    window.setTimeout(() => setPublished(false), 2500);
+  };
+
+  return (
+    <div className="content-well stack" style={{ gap: 8, background: '#faf9ff' }}>
+      <div className="row-wrap" style={{ gap: 12 }}>
+        <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
+          Category
+          <select
+            value={useCustomCategory ? '__custom' : category}
+            onChange={(e) => {
+              if (e.target.value === '__custom') setUseCustomCategory(true);
+              else { setUseCustomCategory(false); setCategory(e.target.value); }
+            }}
+          >
+            {suggestions.map((c) => <option key={c} value={c}>{c}</option>)}
+            <option value="__custom">Custom…</option>
+          </select>
+        </label>
+        {useCustomCategory && (
+          <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
+            Custom category
+            <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="e.g. Word origins" />
+          </label>
+        )}
+      </div>
+
+      <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
+        Title
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder='e.g. "Silent-E Pattern"' />
+      </label>
+
+      <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
+        Details / example (shown as the class-theme banner)
+        <textarea value={detail} onChange={(e) => setDetail(e.target.value)} rows={2} placeholder="e.g. Words ending in a silent e, like cake, hope, five." />
+      </label>
+
+      <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
+        Specific words, comma-separated (optional — woven quietly into Town Square conversations)
+        <input value={wordsText} onChange={(e) => setWordsText(e.target.value)} placeholder="cake, hope, five, bike" />
+      </label>
+
+      <div className="row-wrap" style={{ gap: 14, alignItems: 'center' }}>
+        <label className="row" style={{ gap: 4, fontSize: '0.82rem' }}>
+          <input type="radio" checked={durationMode === 'days'} onChange={() => setDurationMode('days')} />
+          For
+          <input
+            type="number"
+            min={1}
+            value={dayCount}
+            onChange={(e) => setDayCount(Math.max(1, Number(e.target.value) || 1))}
+            style={{ width: 52 }}
+            disabled={durationMode !== 'days'}
+          />
+          days
+        </label>
+        <label className="row" style={{ gap: 4, fontSize: '0.82rem' }}>
+          <input type="radio" checked={durationMode === 'dateRange'} onChange={() => setDurationMode('dateRange')} />
+          Dates:
+          <input type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} disabled={durationMode !== 'dateRange'} />
+          to
+          <input type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} disabled={durationMode !== 'dateRange'} />
+        </label>
+        <label className="row" style={{ gap: 4, fontSize: '0.82rem' }}>
+          <input type="radio" checked={durationMode === 'untilChanged'} onChange={() => setDurationMode('untilChanged')} />
+          Until I change it
+        </label>
+      </div>
+
+      <div className="row-wrap" style={{ alignItems: 'center' }}>
+        <button className="btn btn-sm btn-primary" disabled={!title.trim()} onClick={publish}>
+          {current ? '💾 Update this focus' : '➕ Publish focus'}
+        </button>
+        {published && <span style={{ fontSize: '0.78rem', color: 'var(--success)', fontWeight: 700 }}>✅ Published.</span>}
+      </div>
+    </div>
+  );
+}
+
+function FocusLaneRow({ subject }: { subject: FocusSubject }) {
+  const focuses = useStore((s) => s.focuses);
+  const endFocus = useStore((s) => s.endFocus);
+  const deleteFocus = useStore((s) => s.deleteFocus);
+  const [editing, setEditing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const today = todayISO();
+  const current = getCurrentFocus(focuses, subject, today);
+  const history = getFocusHistory(focuses, subject).filter((f) => f.id !== current?.id);
+
+  return (
+    <div className="content-well stack" style={{ gap: 6 }}>
+      <div className="row-wrap space-between" style={{ alignItems: 'center' }}>
+        <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
+          <strong style={{ fontSize: '0.85rem' }}>{FOCUS_SUBJECT_LABELS[subject]}</strong>
+          {current ? (
+            <span className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>{current.title}</span>
+          ) : (
+            <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>No focus set</span>
+          )}
+          {current?.durationMode === 'untilChanged' && <span className="tag-pill">Until changed</span>}
+          {current?.durationMode !== 'untilChanged' && current?.endDate && <span className="tag-pill">Through {current.endDate}</span>}
+        </div>
+        <div className="row-wrap" style={{ gap: 6 }}>
+          <button className="btn btn-sm" onClick={() => setEditing((v) => !v)}>
+            {editing ? 'Close' : current ? '✏️ Change' : '➕ Set focus'}
+          </button>
+          {current && current.durationMode === 'untilChanged' && (
+            <button className="btn btn-sm" onClick={() => endFocus(current.id)}>⏹️ End now</button>
+          )}
+          {history.length > 0 && (
+            <button className="btn btn-sm" onClick={() => setShowHistory((v) => !v)}>
+              {showHistory ? 'Hide history' : `History (${history.length})`}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {editing && <FocusLaneEditor subject={subject} current={current} />}
+
+      {showHistory && (
+        <div className="stack" style={{ gap: 4 }}>
+          {history.map((f) => (
+            <div key={f.id} className="row-wrap space-between" style={{ fontSize: '0.78rem', opacity: 0.75 }}>
+              <span>{f.title} ({f.startDate}{f.endDate ? ` → ${f.endDate}` : ''})</span>
+              <button className="btn btn-sm btn-danger" onClick={() => deleteFocus(f.id)}>🗑️</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Direct teacher instruction: a collapsible section here so it never
+// overstimulates the page by default — collapsed, it still shows which
+// lanes have a focus set right now so a teacher doesn't have to open it
+// just to check.
+function FocusesPanel() {
+  const focuses = useStore((s) => s.focuses);
+  const [open, setOpen] = useState(false);
+  const today = todayISO();
+  const activeCount = FOCUS_SUBJECTS.filter((subj) => !!getCurrentFocus(focuses, subj, today)).length;
+
+  return (
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <button
+        className="space-between"
+        style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 44 }}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+          🎯 Focuses{activeCount > 0 ? ` (${activeCount} active)` : ''}
+        </span>
+        <span aria-hidden="true">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="stack" style={{ gap: 8, marginTop: 10 }}>
+          <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0 }}>
+            Set what the whole class is working on right now for each area. It shows up quietly around the app
+            (Town Square conversations, the Bank, the Marketplace) as a shared class theme, never singling out a student.
+          </p>
+          {FOCUS_SUBJECTS.map((subj) => <FocusLaneRow key={subj} subject={subj} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AssignmentsIndex() {
   const assignments = useStore((s) => s.assignments);
   const activityLibrary = useStore((s) => s.activityLibrary);
@@ -515,6 +715,8 @@ export default function AssignmentsIndex() {
       <TeacherNav />
       <div className="container stack">
         <h1>📋 Assignments</h1>
+
+        <FocusesPanel />
 
         <div className="lp-tabs">
           {(['active', 'upcoming', 'past', 'drafts', 'all', 'by-student', 'deleted'] as Filter[]).map((f) => (

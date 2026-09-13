@@ -21,6 +21,7 @@ import AvatarWithEmote from '../../components/AvatarWithEmote';
 import ArticleReader from '../../components/ArticleReader';
 import SentenceBuilder from '../../components/SentenceBuilder';
 import LinkChoiceTask from './LinkChoiceTask';
+import FocusBanner from '../../components/FocusBanner';
 import { todayISO } from '../../lib/dates';
 import type { Subject, Task } from '../../types';
 
@@ -256,6 +257,8 @@ export default function SubjectDashboard() {
           📋
         </button>
       )}
+
+      {subj === 'math' && <FocusBanner subjects={['math']} />}
 
       {subj === 'literacy' && (() => {
         const today = todayISO();
