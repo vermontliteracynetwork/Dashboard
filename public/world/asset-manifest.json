@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T14:40:25.324Z",
+  "generatedAt": "2026-09-13T14:41:54.909Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -719,6 +719,11 @@
     {
       "path": "/world/models/farm/water-tower.glb",
       "label": "Water Tower",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/watermill.glb",
+      "label": "Watermill",
       "category": "farm"
     },
     {
@@ -4455,6 +4460,11 @@
       "path": "/world/models/tree-pine.glb",
       "label": "Tree Pine",
       "category": "tree-pine.glb"
+    },
+    {
+      "path": "/world/models/water/waterpack.glb",
+      "label": "Waterpack",
+      "category": "water"
     }
   ]
 }
