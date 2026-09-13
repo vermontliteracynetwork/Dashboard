@@ -12,6 +12,7 @@ import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import InventoryHotbar from '../../components/InventoryHotbar';
+import ReadAloud from '../../components/ReadAloud';
 import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
@@ -1821,7 +1822,10 @@ export default function TownSquare() {
         <div className="overlay-backdrop" onClick={dismissArrival}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
-              <h2 style={{ margin: 0 }}>Welcome back, {student.name}!</h2>
+              <div className="row" style={{ gap: 8 }}>
+                <h2 style={{ margin: 0 }}>Welcome back, {student.name}!</h2>
+                <ReadAloud text={`Welcome back, ${student.name}! What sounds good first?`} small />
+              </div>
               <p style={{ margin: 0 }}>What sounds good first?</p>
               <div className="stack" style={{ gap: 8 }}>
                 {subjectsToday.filter((s) => s.remaining > 0).map((s) => (
@@ -2143,7 +2147,13 @@ export default function TownSquare() {
               ✕
             </button>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
+              <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
+                <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
+                {(() => {
+                  const lastNpcLine = [...messageLog].reverse().find((m) => m.sender === 'npc');
+                  return lastNpcLine ? <ReadAloud text={lastNpcLine.text} small /> : null;
+                })()}
+              </div>
               {activeConversation.role && <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeConversation.role}</p>}
               {/* Direct teacher instruction: read like a phone messaging
                   app — the other person's lines on the left, yours on the

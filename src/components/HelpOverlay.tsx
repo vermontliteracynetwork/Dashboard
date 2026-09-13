@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
 import ChatPanel from './ChatPanel';
+import ReadAloud from './ReadAloud';
 
 interface Props {
   studentId: string;
@@ -20,7 +21,10 @@ export default function HelpOverlay({ studentId, onClose }: Props) {
     <div className="overlay-backdrop" onClick={onClose}>
       <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-          <h2>🧘 Take a Moment</h2>
+          <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
+            <h2 style={{ margin: 0 }}>🧘 Take a Moment</h2>
+            <ReadAloud text="Take a moment. Breathe in as the circle grows. Breathe out as it shrinks. No rush. Stay here as long as you'd like." small />
+          </div>
           <p>Breathe in as the circle grows. Breathe out as it shrinks.</p>
           <div className="breathe-circle" />
           <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>No rush. Stay here as long as you'd like.</p>

@@ -1,4 +1,5 @@
 import type { StepDef } from '../types';
+import ReadAloud from './ReadAloud';
 
 interface Props {
   steps: StepDef[];
@@ -23,6 +24,7 @@ export default function StepGuide({ steps, compact, title }: Props) {
                 <span className="step-guide-icon">{s.icon}</span>
               )}
               <span className="step-guide-text">{s.text}</span>
+              {!compact && <ReadAloud text={s.text} small />}
             </div>
             {i < steps.length - 1 && <span className="step-guide-arrow">➜</span>}
           </div>

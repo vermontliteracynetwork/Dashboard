@@ -68,23 +68,17 @@ button {
 
 /* ---------- Zoned intensity: "chrome" is loud, content wells are clean ---------- */
 
-/* App-wide cartoon UI skin (direct teacher request, "reskin the whole app
-   now") — hand-painted button/panel art (public/ui/cartoon/), sliced with
-   border-image so the same 12px-bordered artwork stretches cleanly to any
-   button/panel size instead of being squished. Each source PNG is a flat
-   320x120 (buttons) or 960x640 (the panel) rounded rect with a consistent
-   12px painted border/bevel on every edge, measured directly from the
-   pixels rather than guessed, so the slice lines land exactly on the
-   border-to-fill boundary. Kept as `border-image` (not `background-image`)
-   specifically because border-image's 9-slice stretches only the middle,
-   never the rounded corners/bevel — a plain background-image would smear
-   the corner art on anything wider or taller than the source. */
+/* Direct teacher instruction: drop the thick painted-border cartoon skin
+   (was border-image, 12-16px) — reads as too bulky. Replaced with a
+   classic early-2000s "Web 1.0" beveled button: a thin 2px outset border,
+   whose light/dark bevel shading the browser derives automatically from
+   border-color, flipping to `inset` on :active to look physically
+   pressed. No image assets needed, so any background color shows through
+   correctly with no separate "flat" opt-out required. */
 
 .chrome-frame {
-  border-style: solid;
-  border-width: 16px;
-  border-image: url('/ui/cartoon/white/popup-window.png') 12 fill / 16px / 0 stretch;
-  border-radius: var(--radius);
+  border: 2px outset var(--content-border);
+  border-radius: 6px;
   background: var(--paper);
 }
 
@@ -100,62 +94,29 @@ button {
   font-family: 'Baloo 2', sans-serif;
   font-weight: 700;
   font-size: 1.08rem;
-  border-style: solid;
-  border-width: 12px;
-  border-image: url('/ui/cartoon/yellow/button-idle.png') 12 fill / 12px / 0 stretch;
-  border-radius: 14px;
-  padding: 14px 26px;
+  border: 2px outset var(--yellow);
+  border-radius: 4px;
+  padding: 9px 20px;
+  background: var(--yellow);
   color: var(--ink);
   cursor: pointer;
   transition: transform 0.06s ease;
 }
-.btn:hover { border-image-source: url('/ui/cartoon/yellow/button-hover.png'); }
-.btn:active { border-image-source: url('/ui/cartoon/yellow/button-clicked.png'); transform: translateY(2px); }
+.btn:active { border-style: inset; transform: translateY(1px); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-.btn-primary { border-image-source: url('/ui/cartoon/purple/button-idle.png'); color: white; }
-.btn-primary:hover { border-image-source: url('/ui/cartoon/purple/button-hover.png'); }
-.btn-primary:active { border-image-source: url('/ui/cartoon/purple/button-clicked.png'); }
+.btn-primary { background: var(--purple); border-color: var(--purple); color: white; }
+.btn-teal { background: var(--teal); border-color: var(--teal); color: white; }
+.btn-flat { background: var(--paper); }
+.btn-pink { background: var(--pink); border-color: var(--pink); color: white; }
+.btn-blue { background: var(--blue); border-color: var(--blue); color: white; }
+.btn-success { background: var(--success); border-color: var(--success); color: white; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: white; }
+.btn-ghost { background: var(--paper); border-color: var(--content-border); color: var(--ink); }
 
-/* No teal art in the pack — teal buttons (the "I'm the Teacher" entry
-   button among them) reuse the blue painted art rather than falling back
-   to the old flat-shadow style, so the very first screen a user sees
-   doesn't mix two different button languages side by side. */
-.btn-teal { border-image-source: url('/ui/cartoon/blue/button-idle.png'); color: white; }
-.btn-teal:hover { border-image-source: url('/ui/cartoon/blue/button-hover.png'); }
-.btn-teal:active { border-image-source: url('/ui/cartoon/blue/button-clicked.png'); }
-
-/* Opts a `.btn`/`.btn-sm` instance out of the painted border-image texture
-   entirely — needed wherever a button's own background color IS the
-   signal (currency color-coding, a selected/armed state, a themed alert
-   bar) since border-image's `fill` tile paints over any inline
-   background, silently erasing that signal otherwise. */
-.btn-flat { border-image: none; border: var(--chunk) solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
-.btn-flat.btn-sm { border-width: 3px; box-shadow: 3px 3px 0 var(--ink); }
-
-.btn-pink { border-image-source: url('/ui/cartoon/pink/button-idle.png'); color: white; }
-.btn-pink:hover { border-image-source: url('/ui/cartoon/pink/button-hover.png'); }
-.btn-pink:active { border-image-source: url('/ui/cartoon/pink/button-clicked.png'); }
-
-.btn-blue { border-image-source: url('/ui/cartoon/blue/button-idle.png'); color: white; }
-.btn-blue:hover { border-image-source: url('/ui/cartoon/blue/button-hover.png'); }
-.btn-blue:active { border-image-source: url('/ui/cartoon/blue/button-clicked.png'); }
-
-.btn-success { border-image-source: url('/ui/cartoon/green/button-idle.png'); color: white; }
-.btn-success:hover { border-image-source: url('/ui/cartoon/green/button-hover.png'); }
-.btn-success:active { border-image-source: url('/ui/cartoon/green/button-clicked.png'); }
-
-.btn-danger { border-image-source: url('/ui/cartoon/red/button-idle.png'); color: white; }
-.btn-danger:hover { border-image-source: url('/ui/cartoon/red/button-hover.png'); }
-.btn-danger:active { border-image-source: url('/ui/cartoon/red/button-clicked.png'); }
-
-.btn-ghost { border-image-source: url('/ui/cartoon/white/button-idle.png'); }
-.btn-ghost:hover { border-image-source: url('/ui/cartoon/white/button-hover.png'); }
-.btn-ghost:active { border-image-source: url('/ui/cartoon/white/button-clicked.png'); }
-
-.btn-lg { padding: 22px 38px; font-size: 1.35rem; border-radius: 18px; }
-.btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 10px; border-width: 8px; border-image-width: 8px; }
-.btn-icon { padding: 10px 14px; font-size: 1.4rem; line-height: 1; }
+.btn-lg { padding: 16px 32px; font-size: 1.35rem; }
+.btn-sm { padding: 5px 12px; font-size: 0.85rem; border-width: 2px; }
+.btn-icon { padding: 8px 12px; font-size: 1.4rem; line-height: 1; }
 
 .tag-pill {
   display: inline-block;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
 import { makeId } from '../lib/id';
+import { speak } from './ReadAloud';
 import type { ArticleTaskContent, Highlight, TTSSettings } from '../types';
 
 interface Props {
@@ -127,12 +128,10 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
       setSpeaking(false);
       return;
     }
-    const utter = new SpeechSynthesisUtterance(article.textContent);
-    utter.rate = ttsSettings?.rate ?? 1;
-    utter.onend = () => setSpeaking(false);
     setSpeaking(true);
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
+    const utter = speak(article.textContent, ttsSettings);
+    if (utter) utter.onend = () => setSpeaking(false);
+    else setSpeaking(false);
   };
 
   return (
