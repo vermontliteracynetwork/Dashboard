@@ -49,3 +49,17 @@ export function emoteById(id: string): EmoteOption | undefined {
 export function emotePriceFor(overrides: Record<string, number>, id: string): number {
   return overrides[id] ?? BY_ID.get(id)?.price ?? 0;
 }
+
+// A stable "mood" for an ambient NPC — same emote every time for a given
+// id (a simple string hash, not real randomness) so a Neighbor/Townsperson
+// reads as having a consistent personality across a session rather than
+// re-rolling every hover, which would feel jittery. Display only: this
+// does not drive dialogue content (Claudia's guardrail — emote-matched
+// conversation branching is held pending valence-matched content, so an
+// NPC's hover emote and what they actually say are intentionally
+// unconnected for now).
+export function ambientEmoteFor(id: string): EmoteOption {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return EMOTE_CATALOG[Math.abs(hash) % EMOTE_CATALOG.length];
+}

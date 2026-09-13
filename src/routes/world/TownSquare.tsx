@@ -16,6 +16,7 @@ import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
+import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -449,6 +450,7 @@ function WanderingNPC({
   const isMoving = useRef(false);
   const targetSetAt = useRef(0);
   const [hovered, setHovered] = useState(false);
+  const npcEmote = useMemo(() => ambientEmoteFor(interaction?.id ?? modelPath), [interaction?.id, modelPath]);
 
   useEffect(() => {
     interaction?.exposePosition(pos.current);
@@ -535,8 +537,17 @@ function WanderingNPC({
           </mesh>
           {(hovered || noticed) && (
             <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
-              <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-                {interaction.name}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                {/* A stable "mood" emote per NPC — display only, purely
+                    flavor (see ambientEmoteFor's comment); direct teacher
+                    request that hovering a Neighbor pop up an emote and
+                    their name, like a thought bubble. */}
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#fff', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src={npcEmote.src} alt="" style={{ width: '76%', height: '76%' }} />
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
+                  {interaction.name}
+                </div>
               </div>
             </Html>
           )}
@@ -698,9 +709,15 @@ interface PlayerProps {
   sensitivity: number;
   cameraLook: React.RefObject<number>;
   mapView: boolean;
+  // The student's currently-equipped emote (set from the Inventory hotbar,
+  // the same one used everywhere else — Student Home, the to-do list),
+  // shown as a thought bubble above their own character. Direct teacher
+  // request: an equipped emote should visibly "pop up above them" in the
+  // world, not just live in the 2D inventory screen.
+  emoteSrc?: string | null;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, emoteSrc }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -792,6 +809,25 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#e2775c" /></mesh>}>
         <PlayerModel isMoving={isMoving} />
       </Suspense>
+      {emoteSrc && !mapView && (
+        <Html center position={[0, 2.5, 0]} style={{ pointerEvents: 'none' }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: '#fff',
+              border: '2.5px solid var(--ink)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+            }}
+          >
+            <img src={emoteSrc} alt="" style={{ width: '78%', height: '78%' }} />
+          </div>
+        </Html>
+      )}
     </group>
   );
 }
@@ -850,6 +886,7 @@ function Neighbor({
   // looking around without walking closer.
   const noticed = dist <= NOTICE_RADIUS && !dialogueOpen;
   const [hovered, setHovered] = useState(false);
+  const npcEmote = useMemo(() => ambientEmoteFor(n.id), [n.id]);
 
   useEffect(() => {
     if (!inRange) return;
@@ -908,8 +945,13 @@ function Neighbor({
       </mesh>
       {(hovered || noticed) && (
         <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
-          <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-            {n.name}, {n.role}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#fff', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={npcEmote.src} alt="" style={{ width: '76%', height: '76%' }} />
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
+              {n.name}, {n.role}
+            </div>
           </div>
         </Html>
       )}
@@ -1932,6 +1974,7 @@ export default function TownSquare() {
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}
             mapView={mapView}
+            emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
           />
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
