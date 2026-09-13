@@ -1011,28 +1011,23 @@ function GroundMaterial() {
 // follows), and colored to match the same '#bfe3ff' sky Build Mode's own
 // default already uses elsewhere in this app.
 function SkyboxBackground() {
+  // Real CC0 sky/cloud photography (teacher-provided, "Screaming Brain
+  // Studios" seamless sky pack) — pure sky and cloud, no baked-in
+  // mountains/terrain of any kind, replacing an earlier skybox photo that
+  // had real scenery on the horizon. A brief in-between version of this
+  // used a plain runtime-generated color gradient instead of an image at
+  // all; this real texture reads better and still has zero baked content
+  // that could ever be "wrong."
+  const tex = useTexture('/world/textures/sky-day.png');
   const { scene } = useThree();
   useEffect(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 2;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#7ec4f0');
-    gradient.addColorStop(0.55, '#bfe3ff');
-    gradient.addColorStop(1, '#eef7ff');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const tex = new THREE.CanvasTexture(canvas);
     tex.mapping = THREE.EquirectangularReflectionMapping;
     tex.colorSpace = THREE.SRGBColorSpace;
     scene.background = tex;
     return () => {
       scene.background = null;
-      tex.dispose();
     };
-  }, [scene]);
+  }, [tex, scene]);
   return null;
 }
 

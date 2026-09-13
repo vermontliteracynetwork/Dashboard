@@ -317,6 +317,9 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
   { label: 'Sand', path: '/world/textures/wests/sand%201.png' },
   { label: 'Snow', path: '/world/textures/wests/snow%201.png' },
   { label: 'Stone', path: '/world/textures/wests/paving%201.png' },
+  { label: 'Cobblestone', path: '/world/textures/cobblestone.png' },
+  { label: 'Wood', path: '/world/textures/wood.png' },
+  { label: 'Arcade Carpet', path: '/world/textures/arcade-carpet.png' },
 ];
 // Same tiling approach as TownSquare's own GroundMaterial (which this
 // mirrors) so a texture picked here looks the same once it's real —
