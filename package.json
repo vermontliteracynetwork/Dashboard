@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/check-weapon-assets.mjs && tsc -b && vite build",
     "lint": "oxlint",
+    "check-weapons": "node scripts/check-weapon-assets.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
