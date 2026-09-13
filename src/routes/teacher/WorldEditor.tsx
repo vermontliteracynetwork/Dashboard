@@ -131,7 +131,7 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   structures: CHARACTER_HEIGHT * 2.5,
   restaurant: CHARACTER_HEIGHT * 0.8,
   suburb: CHARACTER_HEIGHT * 4.5, // houses — regular-building scale
-  'quaternius-buildings': CHARACTER_HEIGHT * 6, // 1-6 story buildings: splits the 4-10x regular/city-scale range, since one target height can't track story count
+  'quaternius-buildings': CHARACTER_HEIGHT * 8, // 1-6 story buildings, nudged toward Claudia's city-structure band since it was under-targeted at 6x
   market: CHARACTER_HEIGHT * 3, // stalls — smaller than a full building
   interior: CHARACTER_HEIGHT * 1, // furniture, not building-scale
   forest: CHARACTER_HEIGHT * 5.5, // trees: 3-8x
@@ -157,6 +157,75 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   misc: CHARACTER_HEIGHT * 0.8,
 };
 const DEFAULT_SCALE_TARGET_HEIGHT = CHARACTER_HEIGHT;
+
+// Claudia's per-item size-class system (dispatched after the 'city'
+// category bug — a flat per-category number can't work for a category
+// that mixes wildly different real-world scales, e.g. 'restaurant' has
+// both a cafe table and a coffee cup, 'structures' has both a whole
+// building and a single fence post). Classifies by matching the asset's
+// own label against a keyword list, falling back to the old
+// category-average target only when nothing matches. Target heights are
+// her stated unit scale (a neighbor = 2 of her units = CHARACTER_HEIGHT,
+// so 1 of her units = CHARACTER_HEIGHT / 2 ≈ 0.8725 real units):
+// washing machine/couch = 1 unit, houseplant = 0.5-1, countertop items =
+// 0.25, houses = 4-8 of her units. Two separate structure bands exist on
+// purpose, not by mistake — her "house sizes 4-8" statement (new small
+// unit scale) and her earlier same-session "buildings 4-5x/city 8-10x a
+// neighbor" statement are two different judgments (a modest house vs. a
+// large/city building), not one range said twice.
+const KAYDEN_UNIT = CHARACTER_HEIGHT / 2; // ≈0.8725 real units
+const SIZE_CLASS_TARGET = {
+  tiny: KAYDEN_UNIT * 0.25, // handheld/countertop: a cup, a card, a receipt
+  smallObject: KAYDEN_UNIT * 0.5, // countertop appliance/small furniture piece: a basket, a register
+  furniture: KAYDEN_UNIT * 1, // washing machine/couch/chair/table scale
+  personScale: CHARACTER_HEIGHT, // matches a neighbor — signs, posts, fences, doors
+  smallStructure: KAYDEN_UNIT * 6, // middle of her 4-8-unit house range: sheds, stalls, small houses
+  largeStructure: CHARACTER_HEIGHT * 4.5, // her original "regular buildings 4-5x a neighbor"
+  cityStructure: CHARACTER_HEIGHT * 9, // her original "city-scale 8-10x a neighbor"
+} as const;
+type SizeClass = keyof typeof SIZE_CLASS_TARGET;
+// Order matters — tested top to bottom, first match wins, so a label
+// that could plausibly match two classes resolves predictably (e.g. a
+// countertop "Cash Register" hits tiny/smallObject before a stray word
+// could pull it toward furniture).
+// Note: only a LEADING \b, deliberately — a trailing \b would fail to
+// match "Door01"/"Fence01"/"Signpost01"-style labels (Kenney's own
+// numbering convention appends digits with no separator, and \b never
+// falls between two word characters like "r" and "0"). 'card' and
+// 'bottle' need a trailing \b too, found by testing this against every
+// label in the manifest (not just Claudia's worked examples): without
+// it, "Cardinal Fish" (aquarium) matched tiny's "card" prefix, and
+// "Crate Bottles" matched tiny's "bottle" prefix before furniture's
+// "crate" ever got a chance — both wrong. A plain "bar" keyword (for
+// "Back Bar A") was tried and dropped for the same reason: it matched
+// "Copper Bar"/"Iron Bar"/"Gold Bar" (resources — literal metal ingots,
+// not furniture) far more often than it matched an actual bar counter,
+// so "Back Bar A" is a manual override below instead.
+const SIZE_CLASS_KEYWORDS: { cls: SizeClass; pattern: RegExp }[] = [
+  { cls: 'tiny', pattern: /\b(cup|mug|bowl|bottle\b|plate|spike|card\b|coin|fork|spoon|knife|bacon|bread|burger|receipt|blender|drone|beacon|bag)/i },
+  { cls: 'smallObject', pattern: /\b(basket|sack|box|register|drawer|bin|birdbath|feeder|pot|planter|cash|checkout|charger|module|compressor|crystal|fryer)/i },
+  { cls: 'furniture', pattern: /\b(chair|stool|bench|sofa|couch|table|desk|bookcase|shelf|barrel|crate|cauldron|chest|awning|booth|seat|stand|rack|cabinet|mold|sphere|roof|floor|door)/i },
+  { cls: 'personScale', pattern: /\b(sign|post|hydrant|light|cone|fence|pillar|flag|ladder)/i },
+  { cls: 'smallStructure', pattern: /\b(stall|shed|cottage|hut|coop|cold\s*frame)/i },
+  { cls: 'largeStructure', pattern: /\bhouse\b|\bbarn\b|castle\s*(wall|gate)|\binn\b|manor/i },
+];
+// A handful of labels a keyword rule would get wrong on its own — e.g.
+// "Boat Row Large"/"Boat Row Small" have no reliable size-telling
+// keyword ("boat" alone can't distinguish the two), so they're named
+// directly instead.
+const SIZE_CLASS_OVERRIDE: Record<string, SizeClass> = {
+  'Boat Row Large': 'smallStructure',
+  'Boat Row Small': 'furniture',
+  'Back Bar A': 'furniture',
+};
+function classifySizeForLabel(label: string): SizeClass | null {
+  if (SIZE_CLASS_OVERRIDE[label]) return SIZE_CLASS_OVERRIDE[label];
+  for (const { cls, pattern } of SIZE_CLASS_KEYWORDS) {
+    if (pattern.test(label)) return cls;
+  }
+  return null;
+}
+
 // The road-tile bug's real root cause: sizing ANY object by height alone
 // breaks the moment height is near zero (a flat road/floor/rug model),
 // which divides out to a huge multiplier regardless of category. Detected
@@ -165,14 +234,20 @@ const DEFAULT_SCALE_TARGET_HEIGHT = CHARACTER_HEIGHT;
 // asset would hit the identical failure mode. Falls back to sizing by
 // footprint against a believable sidewalk width instead — the same 2.5-
 // unit figure townLayout.ts's own hand-placed ROAD_SCALE already uses.
+// Checked first, unconditionally, ahead of both category and the size-
+// class system below — this is a geometry problem (a flat mesh breaks
+// height-based scaling no matter what it's named), not a naming problem,
+// so a keyword match ("Castle Wall" reading as a structure keyword, say)
+// must never pre-empt it or the original bug reproduces under a new name.
 const FLAT_OBJECT_FOOTPRINT_RATIO = 6;
 const FLAT_OBJECT_TARGET_WIDTH = 2.5;
-function computeAutoScale(size: THREE.Vector3, category: string): number {
+function computeAutoScale(size: THREE.Vector3, category: string, label: string): number {
   const footprint = Math.max(size.x, size.z);
   if (size.y > 0 && isFinite(size.y) && footprint / size.y > FLAT_OBJECT_FOOTPRINT_RATIO) {
     return footprint > 0 ? THREE.MathUtils.clamp(FLAT_OBJECT_TARGET_WIDTH / footprint, SCALE_MIN, SCALE_MAX) : 1;
   }
-  const targetHeight = CATEGORY_SCALE_TARGET[category] ?? DEFAULT_SCALE_TARGET_HEIGHT;
+  const sizeClass = classifySizeForLabel(label);
+  const targetHeight = sizeClass ? SIZE_CLASS_TARGET[sizeClass] : (CATEGORY_SCALE_TARGET[category] ?? DEFAULT_SCALE_TARGET_HEIGHT);
   return size.y > 0 && isFinite(size.y) ? THREE.MathUtils.clamp(targetHeight / size.y, SCALE_MIN, SCALE_MAX) : 1;
 }
 
@@ -324,11 +399,11 @@ function useModelSize(path: string): THREE.Vector3 {
 // preview already loads/measures a possibly-never-seen-before model this
 // same way, so this introduces no new loading behavior, just reuses it for
 // one more purpose.
-function GhostScaleReporter({ path, category, onScale }: { path: string; category: string; onScale: (s: number) => void }) {
+function GhostScaleReporter({ path, category, label, onScale }: { path: string; category: string; label: string; onScale: (s: number) => void }) {
   const size = useModelSize(path);
   useEffect(() => {
-    onScale(computeAutoScale(size, category));
-  }, [size, category, onScale]);
+    onScale(computeAutoScale(size, category, label));
+  }, [size, category, label, onScale]);
   return null;
 }
 
@@ -1599,7 +1674,7 @@ export default function WorldEditor() {
             </mesh>
             <gridHelper args={[GROUND_HALF * 2, GROUND_HALF * 2, '#5a8f48', '#5a8f48']} position={[0, 0.02, 0]} />
 
-            {armedAsset && <GhostScaleReporter path={armedAsset.path} category={armedAsset.category} onScale={setArmedDefaultScale} />}
+            {armedAsset && <GhostScaleReporter path={armedAsset.path} category={armedAsset.category} label={armedAsset.label} onScale={setArmedDefaultScale} />}
 
             {armedAsset && ghostPos && (
               <>
