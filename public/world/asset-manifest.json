@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T15:08:18.417Z",
+  "generatedAt": "2026-09-13T15:19:25.541Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -1100,6 +1100,321 @@
       "path": "/world/models/fox.glb",
       "label": "Fox",
       "category": "fox.glb"
+    },
+    {
+      "path": "/world/models/halloween/arch.gltf",
+      "label": "Arch",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/arch_gate.gltf",
+      "label": "Arch Gate",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/bench.gltf",
+      "label": "Bench",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/bench_decorated.gltf",
+      "label": "Bench Decorated",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/bone_A.gltf",
+      "label": "Bone A",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/bone_B.gltf",
+      "label": "Bone B",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/bone_C.gltf",
+      "label": "Bone C",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/candle.gltf",
+      "label": "Candle",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/candle_melted.gltf",
+      "label": "Candle Melted",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/candle_thin.gltf",
+      "label": "Candle Thin",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/candle_triple.gltf",
+      "label": "Candle Triple",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/coffin.gltf",
+      "label": "Coffin",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/coffin_decorated.gltf",
+      "label": "Coffin Decorated",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/crypt.gltf",
+      "label": "Crypt",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/fence.gltf",
+      "label": "Fence",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/fence_broken.gltf",
+      "label": "Fence Broken",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/fence_gate.gltf",
+      "label": "Fence Gate",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/fence_pillar.gltf",
+      "label": "Fence Pillar",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/fence_pillar_broken.gltf",
+      "label": "Fence Pillar Broken",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/fence_seperate.gltf",
+      "label": "Fence Seperate",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/fence_seperate_broken.gltf",
+      "label": "Fence Seperate Broken",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/floor_dirt.gltf",
+      "label": "Floor Dirt",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/floor_dirt_grave.gltf",
+      "label": "Floor Dirt Grave",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/floor_dirt_small.gltf",
+      "label": "Floor Dirt Small",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/grave_A.gltf",
+      "label": "Grave A",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/grave_A_destroyed.gltf",
+      "label": "Grave A Destroyed",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/grave_B.gltf",
+      "label": "Grave B",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/gravemarker_A.gltf",
+      "label": "Gravemarker A",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/gravemarker_B.gltf",
+      "label": "Gravemarker B",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/gravestone.gltf",
+      "label": "Gravestone",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/lantern_hanging.gltf",
+      "label": "Lantern Hanging",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/lantern_standing.gltf",
+      "label": "Lantern Standing",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/path_A.gltf",
+      "label": "Path A",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/path_B.gltf",
+      "label": "Path B",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/path_C.gltf",
+      "label": "Path C",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/path_D.gltf",
+      "label": "Path D",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/pillar.gltf",
+      "label": "Pillar",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/plaque.gltf",
+      "label": "Plaque",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/plaque_candles.gltf",
+      "label": "Plaque Candles",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/post.gltf",
+      "label": "Post",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/post_lantern.gltf",
+      "label": "Post Lantern",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/post_skull.gltf",
+      "label": "Post Skull",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/pumpkin_orange.gltf",
+      "label": "Pumpkin Orange",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/pumpkin_orange_jackolantern.gltf",
+      "label": "Pumpkin Orange Jackolantern",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/pumpkin_orange_small.gltf",
+      "label": "Pumpkin Orange Small",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/pumpkin_yellow.gltf",
+      "label": "Pumpkin Yellow",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/pumpkin_yellow_jackolantern.gltf",
+      "label": "Pumpkin Yellow Jackolantern",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/pumpkin_yellow_small.gltf",
+      "label": "Pumpkin Yellow Small",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/ribcage.gltf",
+      "label": "Ribcage",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/shrine.gltf",
+      "label": "Shrine",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/shrine_candles.gltf",
+      "label": "Shrine Candles",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/skull.gltf",
+      "label": "Skull",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/skull_candle.gltf",
+      "label": "Skull Candle",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_dead_large.gltf",
+      "label": "Tree Dead Large",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_dead_large_decorated.gltf",
+      "label": "Tree Dead Large Decorated",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_dead_medium.gltf",
+      "label": "Tree Dead Medium",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_dead_small.gltf",
+      "label": "Tree Dead Small",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_pine_orange_large.gltf",
+      "label": "Tree Pine Orange Large",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_pine_orange_medium.gltf",
+      "label": "Tree Pine Orange Medium",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_pine_orange_small.gltf",
+      "label": "Tree Pine Orange Small",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_pine_yellow_large.gltf",
+      "label": "Tree Pine Yellow Large",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_pine_yellow_medium.gltf",
+      "label": "Tree Pine Yellow Medium",
+      "category": "halloween"
+    },
+    {
+      "path": "/world/models/halloween/tree_pine_yellow_small.gltf",
+      "label": "Tree Pine Yellow Small",
+      "category": "halloween"
     },
     {
       "path": "/world/models/holiday/bench-short.glb",
@@ -2205,6 +2520,176 @@
       "path": "/world/models/interior/window-small3.glb",
       "label": "Window Small3",
       "category": "interior"
+    },
+    {
+      "path": "/world/models/japan/Barrel.gltf",
+      "label": "Barrel",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Basket_L.gltf",
+      "label": "Basket L",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Basket_S.gltf",
+      "label": "Basket S",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Carrot_Orange.gltf",
+      "label": "Carrot Orange",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/CeremicPot.gltf",
+      "label": "Ceremic Pot",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Chair.gltf",
+      "label": "Chair",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Corn.gltf",
+      "label": "Corn",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Fence_Wood.gltf",
+      "label": "Fence Wood",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/House_4x5.gltf",
+      "label": "House 4x5",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Ladder.gltf",
+      "label": "Ladder",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/LogStorage.gltf",
+      "label": "Log Storage",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Log_Cluster.gltf",
+      "label": "Log Cluster",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Mallet.gltf",
+      "label": "Mallet",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/MarketStall_Table_Flat.gltf",
+      "label": "Market Stall Table Flat",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/MarketStall_Table_SideTiered.gltf",
+      "label": "Market Stall Table Side Tiered",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/MarketStall_Table_Tiered.gltf",
+      "label": "Market Stall Table Tiered",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/MarketStall_Table_wSpace.gltf",
+      "label": "Market Stall Table W Space",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Potato.gltf",
+      "label": "Potato",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/RiceBin.gltf",
+      "label": "Rice Bin",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Road_Corner_Open.gltf",
+      "label": "Road Corner Open",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Road_Cross.gltf",
+      "label": "Road Cross",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Road_End_S.gltf",
+      "label": "Road End S",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Sprout.gltf",
+      "label": "Sprout",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/StoneLantern.gltf",
+      "label": "Stone Lantern",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Sweets_RiceDumpling_SoySauce.gltf",
+      "label": "Sweets Rice Dumpling Soy Sauce",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Sweets_RiceDumpling_Spring.gltf",
+      "label": "Sweets Rice Dumpling Spring",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Table_Circular.gltf",
+      "label": "Table Circular",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Tomato.gltf",
+      "label": "Tomato",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/ToriGate.gltf",
+      "label": "Tori Gate",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/Tree_RedPlum.gltf",
+      "label": "Tree Red Plum",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/WoodenBox.gltf",
+      "label": "Wooden Box",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/WoodenBox_Stack.gltf",
+      "label": "Wooden Box Stack",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/WoodenCrate_L.gltf",
+      "label": "Wooden Crate L",
+      "category": "japan"
+    },
+    {
+      "path": "/world/models/japan/WoodenCrate_S.gltf",
+      "label": "Wooden Crate S",
+      "category": "japan"
     },
     {
       "path": "/world/models/market/shop_001_mechanical_cash_register.glb",
