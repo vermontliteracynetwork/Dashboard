@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T14:17:36.881Z",
+  "generatedAt": "2026-09-13T14:26:40.064Z",
   "assets": [
     {
       "path": "/world/models/buildings/bank.glb",
@@ -120,6 +120,186 @@
       "path": "/world/models/city/trafficLight.glb",
       "label": "Traffic Light",
       "category": "city"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Avocado.gltf",
+      "label": "Food Ingredient Avocado",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Crabsticks.gltf",
+      "label": "Food Ingredient Crabsticks",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Cucumber.gltf",
+      "label": "Food Ingredient Cucumber",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Ebi.gltf",
+      "label": "Food Ingredient Ebi",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Eel.gltf",
+      "label": "Food Ingredient Eel",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Fish.gltf",
+      "label": "Food Ingredient Fish",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_FishFillet.gltf",
+      "label": "Food Ingredient Fish Fillet",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Flounder.gltf",
+      "label": "Food Ingredient Flounder",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Mackerel.gltf",
+      "label": "Food Ingredient Mackerel",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Nori.gltf",
+      "label": "Food Ingredient Nori",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Octopus.gltf",
+      "label": "Food Ingredient Octopus",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Rice.gltf",
+      "label": "Food Ingredient Rice",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Salmon.gltf",
+      "label": "Food Ingredient Salmon",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_SalmonFish.gltf",
+      "label": "Food Ingredient Salmon Fish",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_SeaUrchin.gltf",
+      "label": "Food Ingredient Sea Urchin",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_SeaUrchinOpen.gltf",
+      "label": "Food Ingredient Sea Urchin Open",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Shimesaba.gltf",
+      "label": "Food Ingredient Shimesaba",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_SlicedCucumber.gltf",
+      "label": "Food Ingredient Sliced Cucumber",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Squid.gltf",
+      "label": "Food Ingredient Squid",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Tentacle.gltf",
+      "label": "Food Ingredient Tentacle",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/FoodIngredient_Tuna.gltf",
+      "label": "Food Ingredient Tuna",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Chukaman.gltf",
+      "label": "Food Chukaman",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Dango.gltf",
+      "label": "Food Dango",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_EbiNigiri.gltf",
+      "label": "Food Ebi Nigiri",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Gyoza.gltf",
+      "label": "Food Gyoza",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_MaguroNigiri.gltf",
+      "label": "Food Maguro Nigiri",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_OctopusNigiri.gltf",
+      "label": "Food Octopus Nigiri",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Onigiri.gltf",
+      "label": "Food Onigiri",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Ramen.gltf",
+      "label": "Food Ramen",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Roll.gltf",
+      "label": "Food Roll",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_SalmonNigiri.gltf",
+      "label": "Food Salmon Nigiri",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_SalmonRoll.gltf",
+      "label": "Food Salmon Roll",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_SeaUrchinRoll.gltf",
+      "label": "Food Sea Urchin Roll",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_TamagoNigiri.gltf",
+      "label": "Food Tamago Nigiri",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Udon.gltf",
+      "label": "Food Udon",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/Food_Wasabi.gltf",
+      "label": "Food Wasabi",
+      "category": "food"
     },
     {
       "path": "/world/models/forest/rocks.glb",
@@ -2640,6 +2820,251 @@
       "path": "/world/models/prototype/wheelchair.glb",
       "label": "Wheelchair",
       "category": "prototype"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Arch.gltf",
+      "label": "Environment Arch",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Bench.gltf",
+      "label": "Environment Bench",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Bottle.gltf",
+      "label": "Environment Bottle",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Bottles.gltf",
+      "label": "Environment Bottles",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Bowl.gltf",
+      "label": "Environment Bowl",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Cabinet_Corner.gltf",
+      "label": "Environment Cabinet Corner",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Cabinet_Doors.gltf",
+      "label": "Environment Cabinet Doors",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Cabinet_Shelves.gltf",
+      "label": "Environment Cabinet Shelves",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Cabinet_Shelves_2.gltf",
+      "label": "Environment Cabinet Shelves 2",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_CanFridge.gltf",
+      "label": "Environment Can Fridge",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Chair1.gltf",
+      "label": "Environment Chair1",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Chair2.gltf",
+      "label": "Environment Chair2",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_ChukamanSteamer.gltf",
+      "label": "Environment Chukaman Steamer",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_Corner.gltf",
+      "label": "Environment Counter Corner",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_Door.gltf",
+      "label": "Environment Counter Door",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_Doors.gltf",
+      "label": "Environment Counter Doors",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_Drawers.gltf",
+      "label": "Environment Counter Drawers",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_End.gltf",
+      "label": "Environment Counter End",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_Sink.gltf",
+      "label": "Environment Counter Sink",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_Straight.gltf",
+      "label": "Environment Counter Straight",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Counter_Straight_2.gltf",
+      "label": "Environment Counter Straight 2",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_CuttingTable.gltf",
+      "label": "Environment Cutting Table",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Fridge.gltf",
+      "label": "Environment Fridge",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Oven.gltf",
+      "label": "Environment Oven",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Pan.gltf",
+      "label": "Environment Pan",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Plate.gltf",
+      "label": "Environment Plate",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Pot_1_Empty.gltf",
+      "label": "Environment Pot 1 Empty",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Pot_1_Filled.gltf",
+      "label": "Environment Pot 1 Filled",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Pot_2_Empty.gltf",
+      "label": "Environment Pot 2 Empty",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Pot_2_Filled.gltf",
+      "label": "Environment Pot 2 Filled",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Sofa.gltf",
+      "label": "Environment Sofa",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Stool.gltf",
+      "label": "Environment Stool",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_Table.gltf",
+      "label": "Environment Table",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_ToriiGate.gltf",
+      "label": "Environment Torii Gate",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_WoodenBeam.gltf",
+      "label": "Environment Wooden Beam",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Environment_WoodenBoard.gltf",
+      "label": "Environment Wooden Board",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Floor_Kitchen1.gltf",
+      "label": "Floor Kitchen1",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Floor_Kitchen2.gltf",
+      "label": "Floor Kitchen2",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Floor_Tiles.gltf",
+      "label": "Floor Tiles",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Floor_Wood.gltf",
+      "label": "Floor Wood",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Floor_Wood_Broken.gltf",
+      "label": "Floor Wood Broken",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Truck.gltf",
+      "label": "Truck",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Wall_Door.gltf",
+      "label": "Wall Door",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Wall_Normal.gltf",
+      "label": "Wall Normal",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Wall_RedWood.gltf",
+      "label": "Wall Red Wood",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Wall_Shelves.gltf",
+      "label": "Wall Shelves",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Wall_Shoji.gltf",
+      "label": "Wall Shoji",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Wall_Shoji_Interior.gltf",
+      "label": "Wall Shoji Interior",
+      "category": "restaurant"
+    },
+    {
+      "path": "/world/models/restaurant/Wall_Stains.gltf",
+      "label": "Wall Stains",
+      "category": "restaurant"
     },
     {
       "path": "/world/models/roads/road-bend-sidewalk.glb",
