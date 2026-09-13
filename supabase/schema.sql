@@ -569,13 +569,28 @@ on conflict (id) do nothing;
 --   Math: Counting & Place Value -> Addition & Subtraction -> Multi-Digit
 --     Add & Subtract -> Problem Situations -> Multiplication & Division ->
 --     Multi-Digit Multiply & Divide -> Fractions -> Money & Decimals
+--   Finance: Money & Choices -> Earning -> Saving -> Budgeting -> Smart
+--     Shopping -> Banking Basics -> Borrowing & Credit -> Staying Safe
+--     with Money
+--   (scaffolded from NGPF's Middle School 9-week course — Units 1/2/3/5/
+--   4/7 specifically, in that reordered sequence; Units 6, 8 and 9
+--   (Investing, Prepare for Success, Life After High School) are dropped
+--   as too abstract/not-yet-relevant for this population — see
+--   docs/PERSONAL_FINANCE_SCOPE.md for the full reasoning, UDL
+--   adaptations, and how each step ties into the app's own Piggy Bank/
+--   Marketplace/Bank building rather than staying purely abstract
+--   vocabulary)
 --
 -- A standard code placed at the very start of `detail` (as here) is
 -- teacher-reference-only — FocusBanner.tsx strips it before ever showing
--- `detail` to a student, so it never leaks into student-facing UI.
+-- `detail` to a student, so it never leaks into student-facing UI. Finance
+-- rows have no equivalent standard-code system (no CCSS for personal
+-- finance), so their `detail` is written student-safe as-is, no stripping
+-- needed.
 -- ---------------------------------------------------------------------------
 
 insert into focuses (id, subject, category, title, detail, word_list, duration_mode, start_date, end_date) values
   ('focus-lit-01', 'literacy', 'Phonics pattern', 'Alphabet Code', 'CCSS.ELA-LITERACY.RF.K.3.A Matching each consonant and vowel to its most common sound.', array['cat','sun','pig','mom','bug'], 'untilChanged', current_date, null),
-  ('focus-math-01', 'math', 'Fact fluency', 'Counting & Place Value', 'CCSS.MATH.CONTENT.K.NBT.A.1 Ones and tens, and what each digit in a number is worth.', array['ones','tens','count','more','fewer'], 'untilChanged', current_date, null)
+  ('focus-math-01', 'math', 'Fact fluency', 'Counting & Place Value', 'CCSS.MATH.CONTENT.K.NBT.A.1 Ones and tens, and what each digit in a number is worth.', array['ones','tens','count','more','fewer'], 'untilChanged', current_date, null),
+  ('focus-finance-01', 'finance', 'Needs vs. wants', 'Money & Choices', 'Every choice about money means picking one thing and not another. A need (food, a coat) comes before a want (a toy, a game).', array['need','want','choice','trade-off','goal'], 'untilChanged', current_date, null)
 on conflict (id) do nothing;
