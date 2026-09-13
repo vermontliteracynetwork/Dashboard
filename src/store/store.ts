@@ -108,6 +108,7 @@ import {
   rowToMarketplaceItem,
   pushAppSettings,
   pushEmotePriceOverrides,
+  pushNpcTitleOverrides,
   pushWorldObject,
   deleteWorldObjectRemote,
   rowToWorldObject,
@@ -272,6 +273,8 @@ interface AppState {
   setAssignmentCompletionReward: (reward: AssignmentCompletionReward | null) => void;
   emotePriceOverrides: Record<string, number>;
   setEmotePriceOverride: (emoteId: string, priceCents: number | null) => void;
+  npcTitleOverrides: Record<string, string>; // hand-authored Neighbor/Townsperson id -> teacher's cosmetic custom title (Roster tab); never overwrites their actual dialogue content
+  setNpcTitleOverride: (npcId: string, title: string | null) => void;
   adjustStudentBalance: (studentId: string, amountCents: number, reason: string) => void;
   setStudentBalance: (studentId: string, newBalanceCents: number, reason: string) => void;
   buyAvatar: (studentId: string, avatarId: string, needsWants?: 'need' | 'want') => boolean;
@@ -506,6 +509,7 @@ export const useStore = create<AppState>()(
       focuses: [],
       assignmentCompletionReward: null,
       emotePriceOverrides: {},
+      npcTitleOverrides: {},
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -665,6 +669,7 @@ export const useStore = create<AppState>()(
             set({
               assignmentCompletionReward: n.assignment_completion_reward ?? null,
               emotePriceOverrides: n.emote_price_overrides ?? {},
+              npcTitleOverrides: n.npc_title_overrides ?? {},
             });
           },
         });
@@ -955,6 +960,17 @@ export const useStore = create<AppState>()(
         }
         set({ emotePriceOverrides: next });
         pushEmotePriceOverrides(next);
+      },
+
+      setNpcTitleOverride: (npcId, title) => {
+        const next = { ...get().npcTitleOverrides };
+        if (title === null || title.trim() === '') {
+          delete next[npcId];
+        } else {
+          next[npcId] = title.trim();
+        }
+        set({ npcTitleOverrides: next });
+        pushNpcTitleOverrides(next);
       },
 
       createNote: (studentId) => {

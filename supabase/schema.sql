@@ -428,6 +428,12 @@ create table if not exists app_settings (
 -- Same reordering fix as notes.body_html above — this used to run before
 -- app_settings existed at all.
 alter table app_settings add column if not exists emote_price_overrides jsonb not null default '{}';
+-- The Roster's "custom title" per hand-authored Neighbor/Townsperson id —
+-- a cosmetic label shown alongside (never replacing) their canonical
+-- name/role, since their dialogue text still references the original
+-- role by name (see WorldEditor.tsx's Roster tab for why this stays
+-- display-only rather than actually reassigning who does what).
+alter table app_settings add column if not exists npc_title_overrides jsonb not null default '{}';
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

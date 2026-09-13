@@ -849,6 +849,7 @@ function Neighbor({
   onTalk,
   onApproach,
   exposePosition,
+  titleOverride,
 }: {
   n: Quest1Neighbor;
   playerPos: THREE.Vector3;
@@ -872,6 +873,9 @@ function Neighbor({
   // same click, different targeting underneath.
   onApproach: () => void;
   exposePosition: (v: THREE.Vector3) => void;
+  // A teacher's cosmetic custom title for this Neighbor (Roster tab),
+  // shown in place of n.role — undefined/empty falls back to n.role.
+  titleOverride?: string;
 }) {
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
@@ -912,7 +916,7 @@ function Neighbor({
         active
         interaction={{
           id: n.id,
-          name: `${n.name}, ${n.role}`,
+          name: `${n.name}, ${titleOverride || n.role}`,
           playerPos,
           dialogueOpen,
           pendingApproach,
@@ -950,7 +954,7 @@ function Neighbor({
               <img src={npcEmote.src} alt="" style={{ width: '76%', height: '76%' }} />
             </div>
             <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-              {n.name}, {n.role}
+              {n.name}, {titleOverride || n.role}
             </div>
           </div>
         </Html>
@@ -1418,6 +1422,13 @@ export default function TownSquare() {
   const students = useStore((s) => s.students);
   const worldObjects = useStore((s) => s.worldObjects);
   const focuses = useStore((s) => s.focuses);
+  // Roster tab (World Editor): a teacher's cosmetic custom title per
+  // hand-authored Neighbor/Townsperson id — shown next to their name
+  // instead of the built-in role, but their dialogue content is
+  // untouched (Claudia's finding: rewriting the name itself would make
+  // an NPC introduce themselves differently than their own label reads,
+  // a worse mismatch than a role/title being cosmetic).
+  const npcTitleOverrides = useStore((s) => s.npcTitleOverrides);
   // The Focuses system's dialogue-embedding half (see lib/focus.ts):
   // whichever literacy focus is current gets one word woven into roughly
   // 1-in-3 Neighbor/Townsperson conversations, never labeled as "your
@@ -1987,6 +1998,7 @@ export default function TownSquare() {
               onTalk={() => handleTalk(n)}
               onApproach={() => (metIds.includes(n.id) ? handleApproachWandering(n.id, () => handleTalk(n)) : handleApproach(n))}
               exposePosition={(v) => { wanderingPositions.current[n.id] = v; }}
+              titleOverride={npcTitleOverrides[n.id]}
             />
           ))}
           {AMBIENT_NPCS.map((npc) => {
@@ -1999,7 +2011,7 @@ export default function TownSquare() {
                 active
                 interaction={tp ? {
                   id: npc.id,
-                  name: tp.name,
+                  name: npcTitleOverrides[npc.id] ? `${tp.name}, ${npcTitleOverrides[npc.id]}` : tp.name,
                   playerPos,
                   dialogueOpen: !!activeConversation,
                   pendingApproach: pendingApproach.current === npc.id,

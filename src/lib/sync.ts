@@ -570,6 +570,7 @@ export interface HydratedState {
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
+  npcTitleOverrides: Record<string, string>;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -685,6 +686,7 @@ export async function fetchAll(): Promise<HydratedState> {
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
+    npcTitleOverrides: appSettingsRes.data?.npc_title_overrides ?? {},
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -900,6 +902,9 @@ export const pushAppSettings = (reward: AssignmentCompletionReward | null) =>
 
 export const pushEmotePriceOverrides = (overrides: Record<string, number>) =>
   upsert('app_settings', { id: 'global', emote_price_overrides: overrides, updated_at: new Date().toISOString() });
+
+export const pushNpcTitleOverrides = (overrides: Record<string, string>) =>
+  upsert('app_settings', { id: 'global', npc_title_overrides: overrides, updated_at: new Date().toISOString() });
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });

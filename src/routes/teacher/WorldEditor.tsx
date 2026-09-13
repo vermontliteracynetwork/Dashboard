@@ -8,6 +8,8 @@ import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS,
 } from '../world/townLayout';
+import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
+import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
 import type { WorldObject, WorldObjectRole } from '../../types';
 
 // Homeplot's "build mode" (Sims/Minecraft-style) — teacher-only, Town
@@ -65,6 +67,112 @@ function ReferenceScene() {
   );
 }
 
+// One row in the Roster's "Neighbors & Townspeople" table. The title field
+// is a cosmetic label only (Claudia's finding: these characters' hand-
+// authored dialogue already refers to their real role by name, so
+// reassigning the role itself would make an NPC contradict their own
+// name tag) — local draft state, committed to the store on blur rather
+// than on every keystroke.
+function NpcRosterRow({ name, canonicalRole, title, onSetTitle }: { name: string; canonicalRole: string; title: string; onSetTitle: (t: string) => void }) {
+  const [draft, setDraft] = useState(title);
+  return (
+    <div className="row-wrap space-between" style={{ padding: 10, borderBottom: '1px solid var(--content-border)', alignItems: 'center', gap: 8 }}>
+      <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
+        <strong style={{ fontSize: '0.85rem' }}>{name}</strong>
+        <span className="tag-pill" style={{ fontSize: '0.68rem' }}>Really: {canonicalRole}</span>
+      </div>
+      <input
+        value={draft}
+        placeholder="Custom title shown to students (optional)"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => onSetTitle(draft)}
+        style={{ minHeight: 40, width: 220 }}
+      />
+    </div>
+  );
+}
+
+// Claudia's roster design: the hand-authored Neighbors/Townspeople (fixed
+// dialogue, cosmetic title only) and any teacher-placed WorldObject (real
+// functional "Job" — the same role that decides what 2D page opens) stay
+// two visually distinct sections rather than one merged list, so "Title"
+// and "Job" never look interchangeable.
+function RosterTab() {
+  const npcTitleOverrides = useStore((s) => s.npcTitleOverrides);
+  const setNpcTitleOverride = useStore((s) => s.setNpcTitleOverride);
+  const worldObjects = useStore((s) => s.worldObjects);
+  const updateWorldObject = useStore((s) => s.updateWorldObject);
+  const deleteWorldObject = useStore((s) => s.deleteWorldObject);
+
+  return (
+    <div className="stack" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 16, gap: 24 }}>
+      <div className="stack" style={{ gap: 8 }}>
+        <h3 style={{ margin: 0 }}>🧑‍🤝‍🧑 Neighbors &amp; Townspeople</h3>
+        <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0, maxWidth: 640 }}>
+          These are the hand-scripted characters students talk to in Town Square. A custom title here is just a
+          label next to their name — they'll still talk about their real role in conversation, so it's best used
+          for flavor (a nickname, a fun fact) rather than actually reassigning who does what.
+        </p>
+        <div className="chrome-frame stack" style={{ padding: 0, overflow: 'hidden', gap: 0 }}>
+          {QUEST1_NEIGHBORS.map((n) => (
+            <NpcRosterRow
+              key={n.id}
+              name={n.name}
+              canonicalRole={n.role}
+              title={npcTitleOverrides[n.id] ?? ''}
+              onSetTitle={(t) => setNpcTitleOverride(n.id, t)}
+            />
+          ))}
+          {Object.values(TOWNSPEOPLE).map((tp) => (
+            <NpcRosterRow
+              key={tp.id}
+              name={tp.name}
+              canonicalRole="ambient townsperson, no fixed role"
+              title={npcTitleOverrides[tp.id] ?? ''}
+              onSetTitle={(t) => setNpcTitleOverride(tp.id, t)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="stack" style={{ gap: 8 }}>
+        <h3 style={{ margin: 0 }}>🏗️ Placed Objects</h3>
+        <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0, maxWidth: 640 }}>
+          Anything placed from Build Mode. "Job" is real and functional — it's what actually opens when a student
+          clicks it, the same setting as the properties panel over in Build Mode.
+        </p>
+        {worldObjects.length === 0 ? (
+          <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Nothing placed yet — switch to 🏗️ Build Mode to add some.</p>
+        ) : (
+          <div className="chrome-frame stack" style={{ padding: 0, overflow: 'hidden', gap: 0 }}>
+            {worldObjects.map((obj) => (
+              <div key={obj.id} className="row-wrap space-between" style={{ padding: 10, borderBottom: '1px solid var(--content-border)', alignItems: 'center', gap: 8 }}>
+                <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                  <span>🧱</span>
+                  <input
+                    defaultValue={obj.customName ?? ''}
+                    placeholder={obj.label}
+                    onBlur={(e) => updateWorldObject(obj.id, { customName: e.target.value || undefined })}
+                    style={{ minHeight: 40, width: 160 }}
+                  />
+                </div>
+                <select
+                  value={obj.role ?? ''}
+                  onChange={(e) => updateWorldObject(obj.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
+                  style={{ minHeight: 40 }}
+                >
+                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+                <button className="btn btn-sm btn-danger" style={{ minHeight: 40 }} onClick={() => deleteWorldObject(obj.id)}>🗑️</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function WorldEditor() {
   const worldObjects = useStore((s) => s.worldObjects);
   const addWorldObject = useStore((s) => s.addWorldObject);
@@ -79,6 +187,7 @@ export default function WorldEditor() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gizmoMode, setGizmoMode] = useState<GizmoMode>('translate');
   const [isDragging, setIsDragging] = useState(false);
+  const [tab, setTab] = useState<'build' | 'roster'>('build');
 
   useEffect(() => {
     fetch('/world/asset-manifest.json')
@@ -132,8 +241,27 @@ export default function WorldEditor() {
       <TeacherNav />
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))', flexShrink: 0 }}>
         <h2 style={{ margin: 0, color: '#fff' }}>🏗️ Town Square Build Mode</h2>
+        <div className="row-wrap" style={{ gap: 6 }}>
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 40, background: tab === 'build' ? '#fff' : 'transparent', color: tab === 'build' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff' }}
+            onClick={() => setTab('build')}
+          >
+            🏗️ Build
+          </button>
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 40, background: tab === 'roster' ? '#fff' : 'transparent', color: tab === 'roster' ? 'var(--purple-dark)' : '#fff', border: '2px solid #fff' }}
+            onClick={() => setTab('roster')}
+          >
+            📋 Roster
+          </button>
+        </div>
       </div>
 
+      {tab === 'roster' && <RosterTab />}
+
+      {tab === 'build' && (
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* Asset inventory */}
         <div className="chrome-frame stack" style={{ width: 260, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, borderRadius: 0 }}>
@@ -275,6 +403,7 @@ export default function WorldEditor() {
           </p>
         </div>
       </div>
+      )}
     </div>
   );
 }
