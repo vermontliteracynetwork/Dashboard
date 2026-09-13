@@ -104,10 +104,20 @@ const SCALE_PRESETS: { label: string; value: number }[] = [
 // fall back to plain character-height sizing.
 const CHARACTER_HEIGHT = 1.745;
 const CATEGORY_SCALE_TARGET: Record<string, number> = {
-  city: CHARACTER_HEIGHT * 9, // city-scale structures: 8-10x
+  // Direct teacher bug report, screenshot-confirmed: the raw manifest
+  // category named "city" is NOT city-scale buildings — it's Kenney's
+  // City Kit street-furniture pack (bench, fire hydrant, garbage bin,
+  // street light, stop/traffic sign, a car, road tiles). Targeting 9x a
+  // character exploded a garbage bin to fill the entire screen. Real
+  // city-scale buildings now live in the 'quaternius-buildings' category
+  // below instead. 'city' items are small street props, comparable to or
+  // smaller than a neighbor, same as 'props'.
+  city: CHARACTER_HEIGHT * 0.8,
   buildings: CHARACTER_HEIGHT * 4.5, // regular buildings: 4-5x
   structures: CHARACTER_HEIGHT * 4.5,
   restaurant: CHARACTER_HEIGHT * 4.5,
+  suburb: CHARACTER_HEIGHT * 4.5, // houses — regular-building scale
+  'quaternius-buildings': CHARACTER_HEIGHT * 6, // 1-6 story buildings: splits the 4-10x regular/city-scale range, since one target height can't track story count
   market: CHARACTER_HEIGHT * 3, // stalls — smaller than a full building
   interior: CHARACTER_HEIGHT * 1, // furniture, not building-scale
   forest: CHARACTER_HEIGHT * 5.5, // trees: 3-8x
@@ -575,6 +585,7 @@ function RosterTab() {
 // than actually relabel anything.
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateBy, rotateCwFine, rotateCcwFine, setScale, growHold, shrinkHold,
+  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onUpdate, onDelete, onDuplicate, deselect,
 }: {
   selected: WorldObject;
@@ -585,6 +596,10 @@ function SelectedObjectToolbar({
   setScale: (v: number) => void;
   growHold: ReturnType<typeof useHoldRepeat>;
   shrinkHold: ReturnType<typeof useHoldRepeat>;
+  nudgeNorthHold: ReturnType<typeof useHoldRepeat>;
+  nudgeSouthHold: ReturnType<typeof useHoldRepeat>;
+  nudgeEastHold: ReturnType<typeof useHoldRepeat>;
+  nudgeWestHold: ReturnType<typeof useHoldRepeat>;
   onUpdate: (patch: Partial<WorldObject>) => void;
   onDelete: () => void;
   onDuplicate: (continuous: boolean) => void;
@@ -596,7 +611,7 @@ function SelectedObjectToolbar({
   // clamped so the controls that shrink an object back down stay reachable
   // no matter how big it currently is.
   const topY = Math.min(size.y * selected.scale, 6);
-  const [openPopover, setOpenPopover] = useState<'resize' | 'color' | 'more' | null>(null);
+  const [openPopover, setOpenPopover] = useState<'resize' | 'color' | 'more' | 'move' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // Only the delete-confirm state resets on reselect — Claudia's audit:
   // resetting openPopover too meant resize/color/name were one extra tap
@@ -651,6 +666,7 @@ function SelectedObjectToolbar({
             </div>
           ) : (
             <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
+              {iconBtn('✥', 'Move (no dragging needed)', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
               {iconBtn('↺', 'Rotate left 45° (hold for 15° steps)', () => rotateBy(-45), rotateCcwFine)}
               {iconBtn('↻', 'Rotate right 45° (hold for 15° steps)', () => rotateBy(45), rotateCwFine)}
               {iconBtn('⤢', 'Resize', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
@@ -667,6 +683,23 @@ function SelectedObjectToolbar({
               >
                 ✕
               </button>
+            </div>
+          )}
+
+          {openPopover === 'move' && (
+            <div className="stack" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, alignItems: 'center' }}>
+              <p style={{ margin: 0, fontSize: '0.68rem', opacity: 0.7, textAlign: 'center', maxWidth: 170 }}>Tap or hold an arrow to move — no dragging needed.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 44px)', gridTemplateRows: 'repeat(3, 44px)', gap: 4 }}>
+                <span />
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move away from camera" {...nudgeNorthHold}>↑</button>
+                <span />
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move left" {...nudgeWestHold}>←</button>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>✥</span>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move right" {...nudgeEastHold}>→</button>
+                <span />
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward camera" {...nudgeSouthHold}>↓</button>
+                <span />
+              </div>
             </div>
           )}
 
@@ -1174,6 +1207,22 @@ export default function WorldEditor() {
   const shrinkHold = useHoldRepeat(() => nudgeScale(1 / 1.1));
   const rotateCwFine = useHoldRepeat(() => rotateBy(15));
   const rotateCcwFine = useHoldRepeat(() => rotateBy(-15));
+  // Direct teacher instruction: dragging to move a placed object is hard
+  // to do (especially on a trackpad/touchscreen) — a directional-arrow
+  // control, same press-and-hold pattern as resize/rotate above, nudges
+  // position by one grid step per tap without needing a drag gesture at
+  // all. Fixed world axes (not camera-relative), so a direction always
+  // means the same thing regardless of how the camera's been orbited.
+  const nudgePosition = (dx: number, dz: number) => {
+    if (!selected) return;
+    const nx = clampToGround(snapValue(selected.position[0] + dx, snapEnabled, gridStep));
+    const nz = clampToGround(snapValue(selected.position[2] + dz, snapEnabled, gridStep));
+    updateSelected({ position: [nx, 0, nz] });
+  };
+  const nudgeNorthHold = useHoldRepeat(() => nudgePosition(0, -gridStep));
+  const nudgeSouthHold = useHoldRepeat(() => nudgePosition(0, gridStep));
+  const nudgeEastHold = useHoldRepeat(() => nudgePosition(gridStep, 0));
+  const nudgeWestHold = useHoldRepeat(() => nudgePosition(-gridStep, 0));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
     const x = clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
@@ -1701,6 +1750,10 @@ export default function WorldEditor() {
                 setScale={setScale}
                 growHold={growHold}
                 shrinkHold={shrinkHold}
+                nudgeNorthHold={nudgeNorthHold}
+                nudgeSouthHold={nudgeSouthHold}
+                nudgeEastHold={nudgeEastHold}
+                nudgeWestHold={nudgeWestHold}
                 onUpdate={updateSelected}
                 onDelete={deleteSelected}
                 onDuplicate={duplicateSelected}
