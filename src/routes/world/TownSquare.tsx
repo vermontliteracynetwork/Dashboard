@@ -459,7 +459,6 @@ function WanderingNPC({
 
   const dist = interaction ? Math.hypot(interaction.playerPos.x - pos.current.x, interaction.playerPos.z - pos.current.z) : Infinity;
   const inRange = !!interaction && dist <= TALK_RADIUS && !interaction.dialogueOpen;
-  const noticed = !!interaction && dist <= NOTICE_RADIUS && !interaction.dialogueOpen;
 
   useEffect(() => {
     if (!interaction || !inRange) return;
@@ -535,7 +534,7 @@ function WanderingNPC({
             <cylinderGeometry args={[0.95, 0.95, 2.2, 12]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
-          {(hovered || noticed) && (
+          {hovered && (
             <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 {/* A stable "mood" emote per NPC — display only, purely
@@ -725,6 +724,10 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const facing = useRef(0);
   const isMoving = useRef(false);
   const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
+  // Direct teacher instruction: the equipped-emote thought bubble only
+  // shows on hover (a tap, on touch), same as Neighbor name tags — not
+  // shown all the time just because an emote is equipped.
+  const [hovered, setHovered] = useState(false);
 
   useFrame((_, dt) => {
     if (!groupRef.current) return;
@@ -810,6 +813,16 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         <PlayerModel isMoving={isMoving} />
       </Suspense>
       {emoteSrc && !mapView && (
+        <mesh
+          position={[0, 1, 0]}
+          onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+          onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+        >
+          <cylinderGeometry args={[0.6, 0.6, 2.2, 12]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
+      {emoteSrc && !mapView && hovered && (
         <Html center position={[0, 2.5, 0]} style={{ pointerEvents: 'none' }}>
           <div
             style={{
@@ -880,15 +893,11 @@ function Neighbor({
   const [px, pz] = n.position;
   const dist = Math.hypot(playerPos.x - px, playerPos.z - pz);
   const inRange = !wandering && dist <= TALK_RADIUS && !dialogueOpen;
-  // Caught in review: hover-only labels work for a mouse but touch screens
-  // have no hover state at all, and this app's primary device is iPad —
-  // that made every Neighbor's name invisible until a student had already
-  // walked almost all the way up to them, which cuts against this file's
-  // own "never a surprise" rule and the predictability this population
-  // needs most. NOTICE_RADIUS keeps the label appearing before arrival on
-  // every device, while hover still reveals it early for a mouse user
-  // looking around without walking closer.
-  const noticed = dist <= NOTICE_RADIUS && !dialogueOpen;
+  // Direct teacher instruction: the name tag/emote bubble only shows on
+  // hover, not just from being nearby (NOTICE_RADIUS still gates other
+  // things like the building "View/Confirm" card, just not this label
+  // anymore). onPointerOver/onPointerOut below still fire on a touch tap,
+  // so an iPad student sees it by tapping the character, not by proximity.
   const [hovered, setHovered] = useState(false);
   const npcEmote = useMemo(() => ambientEmoteFor(n.id), [n.id]);
 
@@ -947,7 +956,7 @@ function Neighbor({
         <cylinderGeometry args={[0.95, 0.95, 2.2, 12]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      {(hovered || noticed) && (
+      {hovered && (
         <Html center position={[0, 1.7, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#fff', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
