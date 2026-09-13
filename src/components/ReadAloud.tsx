@@ -41,19 +41,21 @@ export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string
   return utter;
 };
 
+// Claudia's review: an earlier version of this also grew a small voice-
+// picker popover here, but ToolsPanel already has a fully labeled "Voice
+// Skin" picker (gated the same way, ownedVoiceIds.length > 1) mounted on
+// every screen this button appears on — a second, icon-only, unlabeled way
+// to do the same thing was pure duplication and added clutter, plus its own
+// touch targets and no-dismiss-path failed the population standard outright.
+// Removed; the real fix here is speak() below resolving the student's
+// equipped voice automatically, not a second UI for picking one.
 export default function ReadAloud({ text, settings, small }: Props) {
   const [speaking, setSpeaking] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
-  const voiceItems = useStore((s) => s.marketplaceItems.filter((it) => it.kind === 'voice'));
-  const updateStudent = useStore((s) => s.updateStudent);
 
-  const ownedVoices = student ? voiceItems.filter((v) => student.ownedVoiceIds.includes(v.id)) : [];
-  const showPicker = ownedVoices.length > 1;
-
-  const readWith = (voiceSkinId?: string | null) => {
+  const handleClick = () => {
     if (!('speechSynthesis' in window)) return;
-    const utter = speak(text, settings ?? student?.ttsSettings, voiceSkinId);
+    const utter = speak(text, settings ?? student?.ttsSettings);
     if (utter) {
       utter.onstart = () => setSpeaking(true);
       utter.onend = () => setSpeaking(false);
@@ -61,56 +63,14 @@ export default function ReadAloud({ text, settings, small }: Props) {
   };
 
   return (
-    <span className="row" style={{ gap: 2, display: 'inline-flex' }}>
-      <button
-        type="button"
-        className={`btn btn-blue btn-icon ${small ? 'btn-sm' : ''}`}
-        onClick={() => readWith()}
-        aria-label="Read aloud"
-        title="Read aloud"
-      >
-        {speaking ? '🔊' : '🔈'}
-      </button>
-      {showPicker && (
-        <span style={{ position: 'relative' }}>
-          <button
-            type="button"
-            className={`btn btn-blue btn-icon ${small ? 'btn-sm' : ''}`}
-            onClick={() => setPickerOpen((v) => !v)}
-            aria-label="Choose a voice"
-            title="Choose a voice"
-            style={{ paddingLeft: 6, paddingRight: 6 }}
-          >
-            ▾
-          </button>
-          {pickerOpen && (
-            <div
-              className="chrome-frame stack"
-              style={{ position: 'absolute', top: '110%', right: 0, zIndex: 40, padding: 10, gap: 4, minWidth: 160 }}
-            >
-              {ownedVoices.map((v) => {
-                const isDefault = v.id === 'voice-default';
-                const equipped = student?.equippedVoiceId === v.id || (!student?.equippedVoiceId && isDefault);
-                return (
-                  <button
-                    key={v.id}
-                    className={`btn btn-sm ${equipped ? 'btn-primary' : ''}`}
-                    style={{ textAlign: 'left', justifyContent: 'flex-start' }}
-                    onClick={() => {
-                      const newId = isDefault ? null : v.id;
-                      if (student) updateStudent(student.id, { equippedVoiceId: newId });
-                      setPickerOpen(false);
-                      readWith(newId);
-                    }}
-                  >
-                    {equipped ? '✓ ' : ''}{v.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </span>
-      )}
-    </span>
+    <button
+      type="button"
+      className={`btn btn-blue btn-icon ${small ? 'btn-sm' : ''}`}
+      onClick={handleClick}
+      aria-label="Read aloud"
+      title="Read aloud"
+    >
+      {speaking ? '🔊' : '🔈'}
+    </button>
   );
 }
