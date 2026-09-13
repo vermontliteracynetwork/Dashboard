@@ -1508,9 +1508,15 @@ export default function WorldEditor() {
                     onPointerOver={() => setHovered({ kind: 'layout', id: item.id })}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'layout' && h.id === item.id ? null : h))}
                     onPointerDown={(e) => {
-                      if (hammerMode || paintMode) return;
-                      if (!(selection?.kind === 'layout' && selection.id === item.id)) return;
+                      // Direct instruction: moving an object used to need
+                      // two separate gestures (tap to select, THEN a
+                      // second tap-drag to move) — a single natural
+                      // click-and-drag now selects and starts the move in
+                      // one motion. A plain click (no movement past the
+                      // threshold) still just selects, same as before.
+                      if (hammerMode || paintMode || armedAsset) return;
                       e.stopPropagation();
+                      setSelection({ kind: 'layout', id: item.id });
                       setDragState({ kind: 'layout', id: item.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
                       setDragPos({ x: basePos[0], z: basePos[1] });
                     }}
@@ -1551,11 +1557,14 @@ export default function WorldEditor() {
                     onPointerOut={() => setHovered((h) => (h?.kind === 'placed' && h.id === obj.id ? null : h))}
                     onPointerDown={(e) => {
                       // Direct-drag-to-move (Sims/Webkinz-style), replacing
-                      // the old translate gizmo — only once the object is
-                      // already selected, so a first tap always just selects.
-                      if (hammerMode || paintMode) return;
-                      if (!(selection?.kind === 'placed' && selection.id === obj.id)) return;
+                      // the old translate gizmo. Direct instruction: a
+                      // single click-and-drag now selects AND starts the
+                      // move in one motion — it used to require a separate
+                      // tap-to-select gesture first. A plain click (no
+                      // movement past the threshold) still just selects.
+                      if (hammerMode || paintMode || armedAsset) return;
                       e.stopPropagation();
+                      setSelection({ kind: 'placed', id: obj.id });
                       setDragState({ kind: 'placed', id: obj.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
                       setDragPos({ x: obj.position[0], z: obj.position[2] });
                     }}

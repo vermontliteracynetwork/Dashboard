@@ -14,6 +14,18 @@ import type { WorldObject } from '../../types';
 // opacity < 1 is used for Build Mode's placement/move ghost preview — cloning
 // materials (same as the tint path) so the transparency never leaks onto the
 // cached source scene shared by every other instance of this model.
+//
+// FLAT_LIFT: a teacher-reported bug — a flat/wide model (a road tile, a
+// floor rug) placed at y=0 sits exactly coplanar with the ground plane
+// mesh (also y=0), which is the textbook z-fighting setup: the GPU can't
+// consistently decide which surface is "on top," so it flickers between
+// the two textures every frame. Detected the same way WorldEditor's own
+// auto-scale fix detects a flat model (footprint many times the height)
+// and nudged up by 2cm — invisible at normal camera distance, but enough
+// to stop the two surfaces from fighting over the same depth. A normal
+// (non-flat) object's lift stays 0, unchanged.
+const FLAT_FOOTPRINT_RATIO = 6;
+const FLAT_LIFT = 0.02;
 function useRecenteredScene(path: string, tintColor?: string, opacity?: number) {
   const { scene } = useGLTF(path);
   return useMemo(() => {
@@ -21,7 +33,9 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number) 
     const box = new THREE.Box3().setFromObject(clone);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-    clone.position.set(-center.x, -box.min.y, -center.z);
+    const footprint = Math.max(size.x, size.z);
+    const lift = size.y > 0 && footprint / size.y > FLAT_FOOTPRINT_RATIO ? FLAT_LIFT : 0;
+    clone.position.set(-center.x, -box.min.y + lift, -center.z);
     if (tintColor || opacity !== undefined) {
       const color = tintColor ? new THREE.Color(tintColor) : null;
       clone.traverse((child) => {
