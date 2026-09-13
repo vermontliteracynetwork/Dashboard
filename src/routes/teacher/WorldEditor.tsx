@@ -66,7 +66,9 @@ function writeLocalBackup(worldObjects: WorldObject[], layoutOverrides: Record<s
 // gridHelper. No Alt-hold freeform toggle (Sims' approach) since that has
 // no touchscreen equivalent — a persistent tap-to-flip pill instead.
 const GRID_SIZE = 1;
-const snapValue = (v: number, enabled: boolean) => (enabled ? Math.round(v / GRID_SIZE) * GRID_SIZE : v);
+// step defaults to a whole tile; pass GRID_SIZE/2 for the half-tile toggle
+// (direct teacher instruction: "things can be on a half tile").
+const snapValue = (v: number, enabled: boolean, step: number = GRID_SIZE) => (enabled ? Math.round(v / step) * step : v);
 
 // Discrete resize presets instead of a drag handle — Sims' `[`/`]` and
 // Paralives' direct-resize both aim for "obvious result, no fine dragging."
@@ -810,6 +812,12 @@ export default function WorldEditor() {
   const [hovered, setHovered] = useState<Sel | null>(null);
   const [tab, setTab] = useState<'build' | 'roster'>('build');
   const [snapEnabled, setSnapEnabled] = useState(true);
+  // Direct teacher instruction: placement should be tile-snapped by
+  // default, with half-tile placement available as an explicit toggle —
+  // off by default so the coarser, easier-to-land-on whole-tile grid is
+  // what a teacher gets without thinking about it.
+  const [halfTileEnabled, setHalfTileEnabled] = useState(false);
+  const gridStep = halfTileEnabled ? GRID_SIZE / 2 : GRID_SIZE;
   const [catalogOpen, setCatalogOpen] = useState(true);
   const [hammerMode, setHammerMode] = useState(false);
   // Paint tool: Brush paints one thing you click; Bucket paints every
@@ -818,6 +826,23 @@ export default function WorldEditor() {
   // direct buttons in the paint panel instead (see the panel's own JSX).
   const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | null>(null);
   const [paintColor, setPaintColor] = useState(TINT_SWATCHES[0]);
+  // Direct teacher instruction: Brush needs to actually act as a brush —
+  // paint whatever the pointer drags across while held, not just the one
+  // object tapped. isPaintingRef tracks "pointer currently held down while
+  // in brush mode" imperatively (a ref, not state, since it's read inside
+  // per-frame-ish pointer handlers and never needs to trigger a re-render
+  // itself); a window-level pointerup/pointercancel listener is the one
+  // reliable place to always catch release, even if it happens off-canvas.
+  const isPaintingRef = useRef(false);
+  useEffect(() => {
+    const stop = () => { isPaintingRef.current = false; };
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    return () => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+    };
+  }, []);
   const [shiftHeld, setShiftHeld] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
   // drei's OrbitControls ref type is awkward to name exactly (it's the
@@ -1104,8 +1129,8 @@ export default function WorldEditor() {
   // instead of two slightly different ones.
   const duplicateSelected = (continuous: boolean) => {
     if (!selected) return;
-    const offX = clampToGround(snapValue(selected.position[0] + GRID_SIZE, snapEnabled));
-    const offZ = clampToGround(snapValue(selected.position[2] + GRID_SIZE, snapEnabled));
+    const offX = clampToGround(snapValue(selected.position[0] + gridStep, snapEnabled, gridStep));
+    const offZ = clampToGround(snapValue(selected.position[2] + gridStep, snapEnabled, gridStep));
     const newId = addWorldObjectH({
       modelPath: selected.modelPath,
       label: selected.label,
@@ -1151,8 +1176,8 @@ export default function WorldEditor() {
   const rotateCcwFine = useHoldRepeat(() => rotateBy(-15));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    const x = clampToGround(snapValue(e.point.x, snapEnabled));
-    const z = clampToGround(snapValue(e.point.z, snapEnabled));
+    const x = clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
+    const z = clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
     if (armedAsset) {
       e.stopPropagation();
       setGhostPos({ x, z });
@@ -1170,8 +1195,8 @@ export default function WorldEditor() {
   const handleGroundClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (armedAsset) {
-      const x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled));
-      const z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled));
+      const x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
+      const z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
       const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY: 0, scale: armedDefaultScale, collides: defaultCollidesForCategory(armedAsset.category) });
       // ghostPos IS cleared — leaving it set to this exact spot meant the
       // next render's footprintOverlap check found the object we just
@@ -1350,7 +1375,7 @@ export default function WorldEditor() {
                 className="btn btn-sm"
                 style={{ minHeight: 44, flex: 1, background: paintMode === 'brush' ? BUILD_ACCENT : undefined, color: paintMode === 'brush' ? '#fff' : undefined, borderColor: paintMode === 'brush' ? BUILD_ACCENT : undefined }}
                 onClick={() => setPaintMode('brush')}
-                title="Brush: paints just the one thing you tap"
+                title="Brush: drag across objects to paint every one you touch"
               >
                 🖌️ Brush
               </button>
@@ -1364,7 +1389,7 @@ export default function WorldEditor() {
               </button>
             </div>
             <span style={{ fontSize: '0.68rem', opacity: 0.6 }}>
-              {paintMode === 'bucket' ? 'Bucket: fills every matching item at once (e.g. every pumpkin).' : 'Brush: paints only the one you tap.'}
+              {paintMode === 'bucket' ? 'Bucket: fills every matching item at once (e.g. every pumpkin).' : 'Brush: drag across objects to paint every one you touch.'}
             </span>
           </div>
 
@@ -1532,7 +1557,7 @@ export default function WorldEditor() {
                     cell plus a crisp wireframe cage on the exact footprint,
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
-                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
                 <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
@@ -1563,17 +1588,27 @@ export default function WorldEditor() {
                     obj={renderObj}
                     opacity={isBeingDragged ? 0.6 : 1}
                     onClick={() => {
-                      if (paintMode) {
-                        if (paintMode === 'bucket') paintAllOfModel(item.modelPath, paintColor);
-                        else setLayoutOverrideH(item.id, { tintColor: paintColor });
-                        return;
-                      }
+                      if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
+                      if (paintMode) return; // brush: painting happens on pointer down/over below, not click
                       if (hammerMode) { setLayoutOverrideH(item.id, { deleted: true }); return; }
                       setSelection({ kind: 'layout', id: item.id });
                     }}
-                    onPointerOver={() => setHovered({ kind: 'layout', id: item.id })}
+                    onPointerOver={() => {
+                      setHovered({ kind: 'layout', id: item.id });
+                      // Real freehand drag-paint (direct instruction: "Brush
+                      // needs to actually act as a brush"): while the
+                      // pointer is held down in brush mode, every object it
+                      // passes over gets painted too, not just the first one.
+                      if (paintMode === 'brush' && isPaintingRef.current) setLayoutOverrideH(item.id, { tintColor: paintColor });
+                    }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'layout' && h.id === item.id ? null : h))}
                     onPointerDown={(e) => {
+                      if (paintMode === 'brush') {
+                        e.stopPropagation();
+                        isPaintingRef.current = true;
+                        setLayoutOverrideH(item.id, { tintColor: paintColor });
+                        return;
+                      }
                       // Direct instruction: moving an object used to need
                       // two separate gestures (tap to select, THEN a
                       // second tap-drag to move) — a single natural
@@ -1611,17 +1646,23 @@ export default function WorldEditor() {
                     obj={renderObj}
                     opacity={isBeingDragged ? 0.6 : 1}
                     onClick={() => {
-                      if (paintMode) {
-                        if (paintMode === 'bucket') paintAllOfModel(obj.modelPath, paintColor);
-                        else updateWorldObjectH(obj.id, { tintColor: paintColor });
-                        return;
-                      }
+                      if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
+                      if (paintMode) return; // brush: painting happens on pointer down/over below, not click
                       if (hammerMode) { deleteWorldObjectH(obj.id); return; }
                       setSelection({ kind: 'placed', id: obj.id });
                     }}
-                    onPointerOver={() => setHovered({ kind: 'placed', id: obj.id })}
+                    onPointerOver={() => {
+                      setHovered({ kind: 'placed', id: obj.id });
+                      if (paintMode === 'brush' && isPaintingRef.current) updateWorldObjectH(obj.id, { tintColor: paintColor });
+                    }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'placed' && h.id === obj.id ? null : h))}
                     onPointerDown={(e) => {
+                      if (paintMode === 'brush') {
+                        e.stopPropagation();
+                        isPaintingRef.current = true;
+                        updateWorldObjectH(obj.id, { tintColor: paintColor });
+                        return;
+                      }
                       // Direct-drag-to-move (Sims/Webkinz-style), replacing
                       // the old translate gizmo. Direct instruction: a
                       // single click-and-drag now selects AND starts the
@@ -1690,6 +1731,16 @@ export default function WorldEditor() {
             >
               ▦ Snap: {snapEnabled ? 'ON' : 'OFF'}
             </button>
+            {snapEnabled && (
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, background: halfTileEnabled ? BUILD_ACCENT : undefined, color: halfTileEnabled ? '#fff' : undefined, borderColor: halfTileEnabled ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+                onClick={() => setHalfTileEnabled((v) => !v)}
+                title="When on, placing and moving objects snaps to half-tiles instead of whole tiles"
+              >
+                ◧ Half-tile: {halfTileEnabled ? 'ON' : 'OFF'}
+              </button>
+            )}
             <button
               className="btn btn-sm"
               style={{ minHeight: 44, background: hammerMode ? HAMMER_COLOR : undefined, color: hammerMode ? '#fff' : undefined, borderColor: hammerMode ? HAMMER_COLOR : undefined, borderRadius: 999 }}
