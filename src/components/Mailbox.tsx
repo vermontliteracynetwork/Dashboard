@@ -23,7 +23,7 @@ export default function Mailbox() {
     <div className="container stack">
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))' }}>
         <h2 style={{ margin: 0, color: '#fff' }}>📬 Mailbox</h2>
-        <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+        <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
       </div>
 
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%' }}>

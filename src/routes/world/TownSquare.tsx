@@ -924,8 +924,14 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
         const [bx, bz] = blockObstacles(pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
-        pos.current.x = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
-        pos.current.z = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        // The ground-boundary clamp above runs after building collision, so
+        // near an outward-rotated building corner the clamp alone can push a
+        // student back inside the footprint blockBuildings just cleared —
+        // one more pass catches that without needing the clamp and the
+        // building push-out to somehow run as a single combined step.
+        [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
         facing.current = Math.atan2(dx, dz);
         onMove(pos.current);
         moved = true;
@@ -945,8 +951,9 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           const ndx = tx / dist;
           const ndz = tz / dist;
           const [bx, bz] = blockObstacles(pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
-          pos.current.x = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
-          pos.current.z = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+          const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
+          const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+          [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
           facing.current = Math.atan2(ndx, ndz);
           onMove(pos.current);
           moved = true;
@@ -1738,6 +1745,7 @@ export default function TownSquare() {
   const handleTalk = (n: Quest1Neighbor) => {
     if (
       n.id === 'scout' &&
+      metIds.includes('scout') &&
       !scoutCheckInUsed.current &&
       totalTasksLeft > 0 &&
       sessionStart.current > 0 &&
@@ -2020,10 +2028,13 @@ export default function TownSquare() {
 
       <button
         onClick={() => setSettingsOpen(true)}
-        style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 8 }}
+        style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
         aria-label="Movement settings"
       >
-        <img src="/world/ui/btn-settings.png" alt="" style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
+        <img src="/world/ui/btn-settings.png" alt="" style={{ width: 26, height: 26, pointerEvents: 'none' }} />
+        <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
+          Settings
+        </span>
       </button>
 
       {/* Direct teacher instruction: a way to see the whole world from
@@ -2033,11 +2044,14 @@ export default function TownSquare() {
           renderer. */}
       <button
         onClick={() => setMapView((v) => !v)}
-        style={{ position: 'fixed', top: 82, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: mapView ? '#e2775c' : '#3e7c6b', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        style={{ position: 'fixed', top: 82, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: mapView ? '#e2775c' : '#3e7c6b', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
         aria-label={mapView ? 'Close map' : 'Open map'}
         title={mapView ? 'Close map' : 'Map'}
       >
-        {mapView ? '✕' : '🗺️'}
+        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>{mapView ? '✕' : '🗺️'}</span>
+        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
+          {mapView ? 'Close' : 'Map'}
+        </span>
       </button>
 
       {/* Direct teacher instruction: this must only ever show what the
@@ -2046,11 +2060,14 @@ export default function TownSquare() {
           the shop tabs/cart were still one click away from there). */}
       <button
         onClick={() => setShowInventory((v) => !v)}
-        style={{ position: 'fixed', top: 148, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: showInventory ? '#e2775c' : '#c2953f', color: '#fff', fontSize: '1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        style={{ position: 'fixed', top: 148, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: showInventory ? '#e2775c' : '#c2953f', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
         aria-label={showInventory ? 'Close My Stuff' : 'My stuff'}
         title="My Stuff"
       >
-        {showInventory ? '✕' : '🎒'}
+        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>{showInventory ? '✕' : '🎒'}</span>
+        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
+          {showInventory ? 'Close' : 'My Stuff'}
+        </span>
       </button>
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
 
