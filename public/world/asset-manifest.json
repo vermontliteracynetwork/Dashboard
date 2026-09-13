@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T13:59:29.322Z",
+  "generatedAt": "2026-09-13T14:07:21.879Z",
   "assets": [
     {
       "path": "/world/models/buildings/bank.glb",
@@ -132,6 +132,501 @@
       "category": "fox.glb"
     },
     {
+      "path": "/world/models/holiday/bench-short.glb",
+      "label": "Bench Short",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/bench.glb",
+      "label": "Bench",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-corner-bottom.glb",
+      "label": "Cabin Corner Bottom",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-corner-logs.glb",
+      "label": "Cabin Corner Logs",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-corner.glb",
+      "label": "Cabin Corner",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-door-rotate.glb",
+      "label": "Cabin Door Rotate",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-doorway-center.glb",
+      "label": "Cabin Doorway Center",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-doorway-left.glb",
+      "label": "Cabin Doorway Left",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-doorway-right.glb",
+      "label": "Cabin Doorway Right",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-doorway.glb",
+      "label": "Cabin Doorway",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-fence.glb",
+      "label": "Cabin Fence",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-overhang-door-rotate.glb",
+      "label": "Cabin Overhang Door Rotate",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-overhang-doorway.glb",
+      "label": "Cabin Overhang Doorway",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-chimney.glb",
+      "label": "Cabin Roof Chimney",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-corner.glb",
+      "label": "Cabin Roof Corner",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-dormer.glb",
+      "label": "Cabin Roof Dormer",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-point.glb",
+      "label": "Cabin Roof Point",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-snow-chimney.glb",
+      "label": "Cabin Roof Snow Chimney",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-snow-corner.glb",
+      "label": "Cabin Roof Snow Corner",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-snow-dormer.glb",
+      "label": "Cabin Roof Snow Dormer",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-snow-point.glb",
+      "label": "Cabin Roof Snow Point",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-snow.glb",
+      "label": "Cabin Roof Snow",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof-top.glb",
+      "label": "Cabin Roof Top",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-roof.glb",
+      "label": "Cabin Roof",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-wall-low.glb",
+      "label": "Cabin Wall Low",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-wall-roof-center.glb",
+      "label": "Cabin Wall Roof Center",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-wall-roof.glb",
+      "label": "Cabin Wall Roof",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-wall-wreath.glb",
+      "label": "Cabin Wall Wreath",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-wall.glb",
+      "label": "Cabin Wall",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-window-a.glb",
+      "label": "Cabin Window A",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-window-b.glb",
+      "label": "Cabin Window B",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-window-c.glb",
+      "label": "Cabin Window C",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/cabin-window-large.glb",
+      "label": "Cabin Window Large",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/candy-cane-green.glb",
+      "label": "Candy Cane Green",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/candy-cane-red.glb",
+      "label": "Candy Cane Red",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/festivus-pole.glb",
+      "label": "Festivus Pole",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/floor-stone.glb",
+      "label": "Floor Stone",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/floor-wood-snow.glb",
+      "label": "Floor Wood Snow",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/floor-wood.glb",
+      "label": "Floor Wood",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/gingerbread-man.glb",
+      "label": "Gingerbread Man",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/gingerbread-woman.glb",
+      "label": "Gingerbread Woman",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/hanukkah-dreidel.glb",
+      "label": "Hanukkah Dreidel",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/hanukkah-menorah-candles.glb",
+      "label": "Hanukkah Menorah Candles",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/hanukkah-menorah.glb",
+      "label": "Hanukkah Menorah",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/kwanzaa-kikombe.glb",
+      "label": "Kwanzaa Kikombe",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/kwanzaa-kinara-alternative.glb",
+      "label": "Kwanzaa Kinara Alternative",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/kwanzaa-kinara.glb",
+      "label": "Kwanzaa Kinara",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/lantern-hanging.glb",
+      "label": "Lantern Hanging",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/lantern.glb",
+      "label": "Lantern",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/lights-colored.glb",
+      "label": "Lights Colored",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/lights-green.glb",
+      "label": "Lights Green",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/lights-red.glb",
+      "label": "Lights Red",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/nutcracker.glb",
+      "label": "Nutcracker",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/present-a-cube.glb",
+      "label": "Present A Cube",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/present-a-rectangle.glb",
+      "label": "Present A Rectangle",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/present-a-round.glb",
+      "label": "Present A Round",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/present-b-cube.glb",
+      "label": "Present B Cube",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/present-b-rectangle.glb",
+      "label": "Present B Rectangle",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/present-b-round.glb",
+      "label": "Present B Round",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/reindeer.glb",
+      "label": "Reindeer",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/rocks-large.glb",
+      "label": "Rocks Large",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/rocks-medium.glb",
+      "label": "Rocks Medium",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/rocks-small.glb",
+      "label": "Rocks Small",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/sled-long.glb",
+      "label": "Sled Long",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/sled.glb",
+      "label": "Sled",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snow-bunker.glb",
+      "label": "Snow Bunker",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snow-flat-large.glb",
+      "label": "Snow Flat Large",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snow-flat.glb",
+      "label": "Snow Flat",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snow-pile.glb",
+      "label": "Snow Pile",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snowflake-a.glb",
+      "label": "Snowflake A",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snowflake-b.glb",
+      "label": "Snowflake B",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snowflake-c.glb",
+      "label": "Snowflake C",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snowman-hat.glb",
+      "label": "Snowman Hat",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/snowman.glb",
+      "label": "Snowman",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/sock-green-cane.glb",
+      "label": "Sock Green Cane",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/sock-green.glb",
+      "label": "Sock Green",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/sock-red-cane.glb",
+      "label": "Sock Red Cane",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/sock-red.glb",
+      "label": "Sock Red",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/train-locomotive.glb",
+      "label": "Train Locomotive",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/train-tender.glb",
+      "label": "Train Tender",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/train-wagon-flat-short.glb",
+      "label": "Train Wagon Flat Short",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/train-wagon-flat.glb",
+      "label": "Train Wagon Flat",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/train-wagon-logs.glb",
+      "label": "Train Wagon Logs",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/train-wagon-short.glb",
+      "label": "Train Wagon Short",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/train-wagon.glb",
+      "label": "Train Wagon",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/trainset-rail-bend.glb",
+      "label": "Trainset Rail Bend",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/trainset-rail-corner.glb",
+      "label": "Trainset Rail Corner",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/trainset-rail-detailed-bend.glb",
+      "label": "Trainset Rail Detailed Bend",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/trainset-rail-detailed-corner.glb",
+      "label": "Trainset Rail Detailed Corner",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/trainset-rail-detailed-straight.glb",
+      "label": "Trainset Rail Detailed Straight",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/trainset-rail-straight.glb",
+      "label": "Trainset Rail Straight",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/tree-decorated-snow.glb",
+      "label": "Tree Decorated Snow",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/tree-decorated.glb",
+      "label": "Tree Decorated",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/tree-snow-a.glb",
+      "label": "Tree Snow A",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/tree-snow-b.glb",
+      "label": "Tree Snow B",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/tree-snow-c.glb",
+      "label": "Tree Snow C",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/tree.glb",
+      "label": "Tree",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/wreath-decorated.glb",
+      "label": "Wreath Decorated",
+      "category": "holiday"
+    },
+    {
+      "path": "/world/models/holiday/wreath.glb",
+      "label": "Wreath",
+      "category": "holiday"
+    },
+    {
       "path": "/world/models/market/stall-green.glb",
       "label": "Stall Green",
       "category": "market"
@@ -145,6 +640,1196 @@
       "path": "/world/models/market/stall.glb",
       "label": "Stall",
       "category": "market"
+    },
+    {
+      "path": "/world/models/pets/animal-beaver.glb",
+      "label": "Animal Beaver",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-bee.glb",
+      "label": "Animal Bee",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-bunny.glb",
+      "label": "Animal Bunny",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat.glb",
+      "label": "Animal Cat",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-caterpillar.glb",
+      "label": "Animal Caterpillar",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-chick.glb",
+      "label": "Animal Chick",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cow.glb",
+      "label": "Animal Cow",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-crab.glb",
+      "label": "Animal Crab",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-deer.glb",
+      "label": "Animal Deer",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-dog.glb",
+      "label": "Animal Dog",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-elephant.glb",
+      "label": "Animal Elephant",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-fish.glb",
+      "label": "Animal Fish",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-fox.glb",
+      "label": "Animal Fox",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-giraffe.glb",
+      "label": "Animal Giraffe",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-hog.glb",
+      "label": "Animal Hog",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-koala.glb",
+      "label": "Animal Koala",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-lion.glb",
+      "label": "Animal Lion",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-monkey.glb",
+      "label": "Animal Monkey",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-panda.glb",
+      "label": "Animal Panda",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-parrot.glb",
+      "label": "Animal Parrot",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-penguin.glb",
+      "label": "Animal Penguin",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-pig.glb",
+      "label": "Animal Pig",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-polar.glb",
+      "label": "Animal Polar",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-tiger.glb",
+      "label": "Animal Tiger",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pirate/barrel.glb",
+      "label": "Barrel",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/boat-row-large.glb",
+      "label": "Boat Row Large",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/boat-row-small.glb",
+      "label": "Boat Row Small",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/bottle-large.glb",
+      "label": "Bottle Large",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/bottle.glb",
+      "label": "Bottle",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/castle-door.glb",
+      "label": "Castle Door",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/castle-gate.glb",
+      "label": "Castle Gate",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/castle-wall.glb",
+      "label": "Castle Wall",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/castle-window.glb",
+      "label": "Castle Window",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/chest.glb",
+      "label": "Chest",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/crate-bottles.glb",
+      "label": "Crate Bottles",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/crate.glb",
+      "label": "Crate",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag-high-pennant.glb",
+      "label": "Flag High Pennant",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag-high.glb",
+      "label": "Flag High",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag-pennant.glb",
+      "label": "Flag Pennant",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag-pirate-high-pennant.glb",
+      "label": "Flag Pirate High Pennant",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag-pirate-high.glb",
+      "label": "Flag Pirate High",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag-pirate-pennant.glb",
+      "label": "Flag Pirate Pennant",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag-pirate.glb",
+      "label": "Flag Pirate",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/flag.glb",
+      "label": "Flag",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/grass-patch.glb",
+      "label": "Grass Patch",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/grass-plant.glb",
+      "label": "Grass Plant",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/grass.glb",
+      "label": "Grass",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/hole.glb",
+      "label": "Hole",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/mast-ropes.glb",
+      "label": "Mast Ropes",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/mast.glb",
+      "label": "Mast",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/palm-bend.glb",
+      "label": "Palm Bend",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/palm-detailed-bend.glb",
+      "label": "Palm Detailed Bend",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/palm-detailed-straight.glb",
+      "label": "Palm Detailed Straight",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/palm-straight.glb",
+      "label": "Palm Straight",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/patch-grass-foliage.glb",
+      "label": "Patch Grass Foliage",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/patch-grass.glb",
+      "label": "Patch Grass",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/patch-sand-foliage.glb",
+      "label": "Patch Sand Foliage",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/patch-sand.glb",
+      "label": "Patch Sand",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/platform-planks.glb",
+      "label": "Platform Planks",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/platform.glb",
+      "label": "Platform",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/rocks-a.glb",
+      "label": "Rocks A",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/rocks-b.glb",
+      "label": "Rocks B",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/rocks-c.glb",
+      "label": "Rocks C",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/rocks-sand-a.glb",
+      "label": "Rocks Sand A",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/rocks-sand-b.glb",
+      "label": "Rocks Sand B",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/rocks-sand-c.glb",
+      "label": "Rocks Sand C",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-ghost.glb",
+      "label": "Ship Ghost",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-large.glb",
+      "label": "Ship Large",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-medium.glb",
+      "label": "Ship Medium",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-pirate-large.glb",
+      "label": "Ship Pirate Large",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-pirate-medium.glb",
+      "label": "Ship Pirate Medium",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-pirate-small.glb",
+      "label": "Ship Pirate Small",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-small.glb",
+      "label": "Ship Small",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/ship-wreck.glb",
+      "label": "Ship Wreck",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure-fence-sides.glb",
+      "label": "Structure Fence Sides",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure-fence.glb",
+      "label": "Structure Fence",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure-platform-dock-small.glb",
+      "label": "Structure Platform Dock Small",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure-platform-dock.glb",
+      "label": "Structure Platform Dock",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure-platform-small.glb",
+      "label": "Structure Platform Small",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure-platform.glb",
+      "label": "Structure Platform",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure-roof.glb",
+      "label": "Structure Roof",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/structure.glb",
+      "label": "Structure",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tool-paddle.glb",
+      "label": "Tool Paddle",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tool-shovel.glb",
+      "label": "Tool Shovel",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-base-door.glb",
+      "label": "Tower Base Door",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-base.glb",
+      "label": "Tower Base",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-complete-large.glb",
+      "label": "Tower Complete Large",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-complete-small.glb",
+      "label": "Tower Complete Small",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-middle-windows.glb",
+      "label": "Tower Middle Windows",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-middle.glb",
+      "label": "Tower Middle",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-roof.glb",
+      "label": "Tower Roof",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-top.glb",
+      "label": "Tower Top",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/pirate/tower-watch.glb",
+      "label": "Tower Watch",
+      "category": "pirate"
+    },
+    {
+      "path": "/world/models/platformer/barrel.glb",
+      "label": "Barrel",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-corner-low.glb",
+      "label": "Block Grass Corner Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-corner-overhang-low.glb",
+      "label": "Block Grass Corner Overhang Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-corner-overhang.glb",
+      "label": "Block Grass Corner Overhang",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-corner.glb",
+      "label": "Block Grass Corner",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-curve-half.glb",
+      "label": "Block Grass Curve Half",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-curve-low.glb",
+      "label": "Block Grass Curve Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-curve.glb",
+      "label": "Block Grass Curve",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-edge.glb",
+      "label": "Block Grass Edge",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-hexagon.glb",
+      "label": "Block Grass Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-large-slope-narrow.glb",
+      "label": "Block Grass Large Slope Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-large-slope-steep-narrow.glb",
+      "label": "Block Grass Large Slope Steep Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-large-slope-steep.glb",
+      "label": "Block Grass Large Slope Steep",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-large-slope.glb",
+      "label": "Block Grass Large Slope",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-large-tall.glb",
+      "label": "Block Grass Large Tall",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-large.glb",
+      "label": "Block Grass Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-long.glb",
+      "label": "Block Grass Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-low-hexagon.glb",
+      "label": "Block Grass Low Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-low-large.glb",
+      "label": "Block Grass Low Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-low-long.glb",
+      "label": "Block Grass Low Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-low-narrow.glb",
+      "label": "Block Grass Low Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-low.glb",
+      "label": "Block Grass Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-narrow.glb",
+      "label": "Block Grass Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-corner.glb",
+      "label": "Block Grass Overhang Corner",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-edge.glb",
+      "label": "Block Grass Overhang Edge",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-hexagon.glb",
+      "label": "Block Grass Overhang Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-large-slope-narrow.glb",
+      "label": "Block Grass Overhang Large Slope Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-large-slope-steep-narrow.glb",
+      "label": "Block Grass Overhang Large Slope Steep Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-large-slope-steep.glb",
+      "label": "Block Grass Overhang Large Slope Steep",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-large-slope.glb",
+      "label": "Block Grass Overhang Large Slope",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-large-tall.glb",
+      "label": "Block Grass Overhang Large Tall",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-large.glb",
+      "label": "Block Grass Overhang Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-long.glb",
+      "label": "Block Grass Overhang Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-low-hexagon.glb",
+      "label": "Block Grass Overhang Low Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-low-large.glb",
+      "label": "Block Grass Overhang Low Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-low-long.glb",
+      "label": "Block Grass Overhang Low Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-low-narrow.glb",
+      "label": "Block Grass Overhang Low Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-low.glb",
+      "label": "Block Grass Overhang Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass-overhang-narrow.glb",
+      "label": "Block Grass Overhang Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-grass.glb",
+      "label": "Block Grass",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-moving-blue.glb",
+      "label": "Block Moving Blue",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-moving-large.glb",
+      "label": "Block Moving Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-moving.glb",
+      "label": "Block Moving",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-corner-low.glb",
+      "label": "Block Snow Corner Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-corner-overhang-low.glb",
+      "label": "Block Snow Corner Overhang Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-corner-overhang.glb",
+      "label": "Block Snow Corner Overhang",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-corner.glb",
+      "label": "Block Snow Corner",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-curve-half.glb",
+      "label": "Block Snow Curve Half",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-curve-low.glb",
+      "label": "Block Snow Curve Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-curve.glb",
+      "label": "Block Snow Curve",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-edge.glb",
+      "label": "Block Snow Edge",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-hexagon.glb",
+      "label": "Block Snow Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-large-slope-narrow.glb",
+      "label": "Block Snow Large Slope Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-large-slope-steep-narrow.glb",
+      "label": "Block Snow Large Slope Steep Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-large-slope-steep.glb",
+      "label": "Block Snow Large Slope Steep",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-large-slope.glb",
+      "label": "Block Snow Large Slope",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-large-tall.glb",
+      "label": "Block Snow Large Tall",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-large.glb",
+      "label": "Block Snow Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-long.glb",
+      "label": "Block Snow Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-low-hexagon.glb",
+      "label": "Block Snow Low Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-low-large.glb",
+      "label": "Block Snow Low Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-low-long.glb",
+      "label": "Block Snow Low Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-low-narrow.glb",
+      "label": "Block Snow Low Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-low.glb",
+      "label": "Block Snow Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-narrow.glb",
+      "label": "Block Snow Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-corner.glb",
+      "label": "Block Snow Overhang Corner",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-edge.glb",
+      "label": "Block Snow Overhang Edge",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-hexagon.glb",
+      "label": "Block Snow Overhang Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-large-slope-narrow.glb",
+      "label": "Block Snow Overhang Large Slope Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-large-slope-steep-narrow.glb",
+      "label": "Block Snow Overhang Large Slope Steep Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-large-slope-steep.glb",
+      "label": "Block Snow Overhang Large Slope Steep",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-large-slope.glb",
+      "label": "Block Snow Overhang Large Slope",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-large-tall.glb",
+      "label": "Block Snow Overhang Large Tall",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-large.glb",
+      "label": "Block Snow Overhang Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-long.glb",
+      "label": "Block Snow Overhang Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-low-hexagon.glb",
+      "label": "Block Snow Overhang Low Hexagon",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-low-large.glb",
+      "label": "Block Snow Overhang Low Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-low-long.glb",
+      "label": "Block Snow Overhang Low Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-low-narrow.glb",
+      "label": "Block Snow Overhang Low Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-low.glb",
+      "label": "Block Snow Overhang Low",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow-overhang-narrow.glb",
+      "label": "Block Snow Overhang Narrow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/block-snow.glb",
+      "label": "Block Snow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/brick.glb",
+      "label": "Brick",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/button-round.glb",
+      "label": "Button Round",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/button-square.glb",
+      "label": "Button Square",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/character-oobi.glb",
+      "label": "Character Oobi",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/character-oodi.glb",
+      "label": "Character Oodi",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/character-ooli.glb",
+      "label": "Character Ooli",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/character-oopi.glb",
+      "label": "Character Oopi",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/character-oozi.glb",
+      "label": "Character Oozi",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/chest.glb",
+      "label": "Chest",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/coin-bronze.glb",
+      "label": "Coin Bronze",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/coin-gold.glb",
+      "label": "Coin Gold",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/coin-silver.glb",
+      "label": "Coin Silver",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/conveyor-belt.glb",
+      "label": "Conveyor Belt",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/crate-item-strong.glb",
+      "label": "Crate Item Strong",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/crate-item.glb",
+      "label": "Crate Item",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/crate-strong.glb",
+      "label": "Crate Strong",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/crate.glb",
+      "label": "Crate",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/door-large-open.glb",
+      "label": "Door Large Open",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/door-open.glb",
+      "label": "Door Open",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/door-rotate-large.glb",
+      "label": "Door Rotate Large",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/door-rotate.glb",
+      "label": "Door Rotate",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-broken.glb",
+      "label": "Fence Broken",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-corner-curved.glb",
+      "label": "Fence Corner Curved",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-corner.glb",
+      "label": "Fence Corner",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-low-broken.glb",
+      "label": "Fence Low Broken",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-low-corner-curved.glb",
+      "label": "Fence Low Corner Curved",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-low-corner.glb",
+      "label": "Fence Low Corner",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-low-straight.glb",
+      "label": "Fence Low Straight",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-rope.glb",
+      "label": "Fence Rope",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/fence-straight.glb",
+      "label": "Fence Straight",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/flag.glb",
+      "label": "Flag",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/flowers-tall.glb",
+      "label": "Flowers Tall",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/flowers.glb",
+      "label": "Flowers",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/grass.glb",
+      "label": "Grass",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/heart.glb",
+      "label": "Heart",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/hedge-corner.glb",
+      "label": "Hedge Corner",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/hedge.glb",
+      "label": "Hedge",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/jewel.glb",
+      "label": "Jewel",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/key.glb",
+      "label": "Key",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/ladder-broken.glb",
+      "label": "Ladder Broken",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/ladder-long.glb",
+      "label": "Ladder Long",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/ladder.glb",
+      "label": "Ladder",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/lever.glb",
+      "label": "Lever",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/lock.glb",
+      "label": "Lock",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/mushrooms.glb",
+      "label": "Mushrooms",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/pipe.glb",
+      "label": "Pipe",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/plant.glb",
+      "label": "Plant",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/platform-fortified.glb",
+      "label": "Platform Fortified",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/platform-overhang.glb",
+      "label": "Platform Overhang",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/platform-ramp.glb",
+      "label": "Platform Ramp",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/platform.glb",
+      "label": "Platform",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/poles.glb",
+      "label": "Poles",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/rocks.glb",
+      "label": "Rocks",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/sign.glb",
+      "label": "Sign",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/spring.glb",
+      "label": "Spring",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/star.glb",
+      "label": "Star",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/stones.glb",
+      "label": "Stones",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/tree-pine-small.glb",
+      "label": "Tree Pine Small",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/tree-pine-snow-small.glb",
+      "label": "Tree Pine Snow Small",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/tree-pine-snow.glb",
+      "label": "Tree Pine Snow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/tree-pine.glb",
+      "label": "Tree Pine",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/tree-snow.glb",
+      "label": "Tree Snow",
+      "category": "platformer"
+    },
+    {
+      "path": "/world/models/platformer/tree.glb",
+      "label": "Tree",
+      "category": "platformer"
     },
     {
       "path": "/world/models/props/bridge.glb",
@@ -240,6 +1925,716 @@
       "path": "/world/models/props/trunk.glb",
       "label": "Trunk",
       "category": "props"
+    },
+    {
+      "path": "/world/models/prototype/animal-bison.glb",
+      "label": "Animal Bison",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/animal-dog.glb",
+      "label": "Animal Dog",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/animal-horse.glb",
+      "label": "Animal Horse",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/button-floor-round-small.glb",
+      "label": "Button Floor Round Small",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/button-floor-round.glb",
+      "label": "Button Floor Round",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/button-floor-square-small.glb",
+      "label": "Button Floor Square Small",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/button-floor-square.glb",
+      "label": "Button Floor Square",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/coin.glb",
+      "label": "Coin",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/column-low.glb",
+      "label": "Column Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/column-rounded-low.glb",
+      "label": "Column Rounded Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/column-rounded.glb",
+      "label": "Column Rounded",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/column-triangle-low.glb",
+      "label": "Column Triangle Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/column-triangle.glb",
+      "label": "Column Triangle",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/column.glb",
+      "label": "Column",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/crate-color.glb",
+      "label": "Crate Color",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/crate.glb",
+      "label": "Crate",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/door-garage.glb",
+      "label": "Door Garage",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/door-rotate.glb",
+      "label": "Door Rotate",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/door-sliding-double-round.glb",
+      "label": "Door Sliding Double Round",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/door-sliding-double-wide.glb",
+      "label": "Door Sliding Double Wide",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/door-sliding-double.glb",
+      "label": "Door Sliding Double",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/door-sliding.glb",
+      "label": "Door Sliding",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/figurine-cube-detailed.glb",
+      "label": "Figurine Cube Detailed",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/figurine-cube.glb",
+      "label": "Figurine Cube",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/figurine-large.glb",
+      "label": "Figurine Large",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/figurine.glb",
+      "label": "Figurine",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/flag.glb",
+      "label": "Flag",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-diagonal.glb",
+      "label": "Floor Diagonal",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-small-diagonal.glb",
+      "label": "Floor Small Diagonal",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-small-square.glb",
+      "label": "Floor Small Square",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-square.glb",
+      "label": "Floor Square",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-thick-corner-diagonal.glb",
+      "label": "Floor Thick Corner Diagonal",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-thick-corner-round.glb",
+      "label": "Floor Thick Corner Round",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-thick-corner-rounded.glb",
+      "label": "Floor Thick Corner Rounded",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/floor-thick.glb",
+      "label": "Floor Thick",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/hat-cap.glb",
+      "label": "Hat Cap",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/hat-hard.glb",
+      "label": "Hat Hard",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-doorway.glb",
+      "label": "Indicator Doorway",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-round-a.glb",
+      "label": "Indicator Round A",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-round-b.glb",
+      "label": "Indicator Round B",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-round-c.glb",
+      "label": "Indicator Round C",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-round-d.glb",
+      "label": "Indicator Round D",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-round-e.glb",
+      "label": "Indicator Round E",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-round-f.glb",
+      "label": "Indicator Round F",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-special-area.glb",
+      "label": "Indicator Special Area",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-special-cross.glb",
+      "label": "Indicator Special Cross",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-special-lines.glb",
+      "label": "Indicator Special Lines",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-square-a.glb",
+      "label": "Indicator Square A",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-square-b.glb",
+      "label": "Indicator Square B",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-square-c.glb",
+      "label": "Indicator Square C",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-square-d.glb",
+      "label": "Indicator Square D",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-square-e.glb",
+      "label": "Indicator Square E",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/indicator-square-f.glb",
+      "label": "Indicator Square F",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/ladder-color.glb",
+      "label": "Ladder Color",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/ladder-top.glb",
+      "label": "Ladder Top",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/ladder.glb",
+      "label": "Ladder",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/lever-double.glb",
+      "label": "Lever Double",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/lever-single.glb",
+      "label": "Lever Single",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-0.glb",
+      "label": "Number 0",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-1.glb",
+      "label": "Number 1",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-2.glb",
+      "label": "Number 2",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-3.glb",
+      "label": "Number 3",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-4.glb",
+      "label": "Number 4",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-5.glb",
+      "label": "Number 5",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-6.glb",
+      "label": "Number 6",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-7.glb",
+      "label": "Number 7",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-8.glb",
+      "label": "Number 8",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-9.glb",
+      "label": "Number 9",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-0.glb",
+      "label": "Number Double 0",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-1.glb",
+      "label": "Number Double 1",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-2.glb",
+      "label": "Number Double 2",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-3.glb",
+      "label": "Number Double 3",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-4.glb",
+      "label": "Number Double 4",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-5.glb",
+      "label": "Number Double 5",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-6.glb",
+      "label": "Number Double 6",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-7.glb",
+      "label": "Number Double 7",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-8.glb",
+      "label": "Number Double 8",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/number-double-9.glb",
+      "label": "Number Double 9",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/pipe-corner.glb",
+      "label": "Pipe Corner",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/pipe-half-section.glb",
+      "label": "Pipe Half Section",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/pipe-half.glb",
+      "label": "Pipe Half",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/pipe-section.glb",
+      "label": "Pipe Section",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/pipe-split.glb",
+      "label": "Pipe Split",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/pipe.glb",
+      "label": "Pipe",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-cube-half.glb",
+      "label": "Shape Cube Half",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-cube-rounded.glb",
+      "label": "Shape Cube Rounded",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-cube.glb",
+      "label": "Shape Cube",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-cylinder-detailed.glb",
+      "label": "Shape Cylinder Detailed",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-cylinder-half-detailed.glb",
+      "label": "Shape Cylinder Half Detailed",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-cylinder-half.glb",
+      "label": "Shape Cylinder Half",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-cylinder.glb",
+      "label": "Shape Cylinder",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hexagon-half.glb",
+      "label": "Shape Hexagon Half",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hexagon.glb",
+      "label": "Shape Hexagon",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hollow-cylinder-detailed.glb",
+      "label": "Shape Hollow Cylinder Detailed",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hollow-cylinder-half-detailed.glb",
+      "label": "Shape Hollow Cylinder Half Detailed",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hollow-cylinder-half.glb",
+      "label": "Shape Hollow Cylinder Half",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hollow-cylinder.glb",
+      "label": "Shape Hollow Cylinder",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hollow-hexagon-half.glb",
+      "label": "Shape Hollow Hexagon Half",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-hollow-hexagon.glb",
+      "label": "Shape Hollow Hexagon",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-slope.glb",
+      "label": "Shape Slope",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-triangular-prism-low.glb",
+      "label": "Shape Triangular Prism Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/shape-triangular-prism.glb",
+      "label": "Shape Triangular Prism",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs-diagonal-narrow.glb",
+      "label": "Stairs Diagonal Narrow",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs-diagonal-small-narrow.glb",
+      "label": "Stairs Diagonal Small Narrow",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs-diagonal-small.glb",
+      "label": "Stairs Diagonal Small",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs-diagonal.glb",
+      "label": "Stairs Diagonal",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs-narrow.glb",
+      "label": "Stairs Narrow",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs-small-narrow.glb",
+      "label": "Stairs Small Narrow",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs-small.glb",
+      "label": "Stairs Small",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/stairs.glb",
+      "label": "Stairs",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/target-a-round.glb",
+      "label": "Target A Round",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/target-a-square.glb",
+      "label": "Target A Square",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/target-b-round.glb",
+      "label": "Target B Round",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/target-b-square.glb",
+      "label": "Target B Square",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/vehicle-convertible.glb",
+      "label": "Vehicle Convertible",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/vehicle.glb",
+      "label": "Vehicle",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-corner-low.glb",
+      "label": "Wall Corner Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-corner-rounded-low.glb",
+      "label": "Wall Corner Rounded Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-corner-rounded.glb",
+      "label": "Wall Corner Rounded",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-corner.glb",
+      "label": "Wall Corner",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-diagonal-low.glb",
+      "label": "Wall Diagonal Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-diagonal.glb",
+      "label": "Wall Diagonal",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-doorway-garage.glb",
+      "label": "Wall Doorway Garage",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-doorway-round.glb",
+      "label": "Wall Doorway Round",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-doorway-sliding.glb",
+      "label": "Wall Doorway Sliding",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-doorway-wide-sliding.glb",
+      "label": "Wall Doorway Wide Sliding",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-doorway-wide.glb",
+      "label": "Wall Doorway Wide",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-doorway.glb",
+      "label": "Wall Doorway",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-low.glb",
+      "label": "Wall Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-round-low.glb",
+      "label": "Wall Round Low",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-round.glb",
+      "label": "Wall Round",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-barred-large.glb",
+      "label": "Wall Window Barred Large",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-barred-medium.glb",
+      "label": "Wall Window Barred Medium",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-barred-small.glb",
+      "label": "Wall Window Barred Small",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-cutout-large.glb",
+      "label": "Wall Window Cutout Large",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-cutout-medium.glb",
+      "label": "Wall Window Cutout Medium",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-cutout-small.glb",
+      "label": "Wall Window Cutout Small",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-large.glb",
+      "label": "Wall Window Large",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-medium.glb",
+      "label": "Wall Window Medium",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall-window-small.glb",
+      "label": "Wall Window Small",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wall.glb",
+      "label": "Wall",
+      "category": "prototype"
+    },
+    {
+      "path": "/world/models/prototype/wheelchair.glb",
+      "label": "Wheelchair",
+      "category": "prototype"
     },
     {
       "path": "/world/models/roads/road-bend-sidewalk.glb",
