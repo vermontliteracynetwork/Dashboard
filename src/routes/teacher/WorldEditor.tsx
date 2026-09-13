@@ -43,6 +43,23 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
 const SCALE_MIN = 0.05;
 const SCALE_MAX = 20;
 
+// A local-browser safety net, on top of (not instead of) the real
+// Supabase save every edit already triggers — direct instruction after a
+// real sync failure: this write is best-effort and silent on error
+// (private browsing, storage quota) since Supabase is still the actual
+// source of truth. Written after every committed edit, every ~30s, and
+// the instant the tab is backgrounded (visibilitychange) or the teacher
+// hits the Save button, so a dropped connection or a closed tab never
+// loses more than what a genuinely failed save already risks.
+const BUILD_BACKUP_KEY = 'homeplot-build-backup-v1';
+function writeLocalBackup(worldObjects: WorldObject[], layoutOverrides: Record<string, LayoutOverride>) {
+  try {
+    localStorage.setItem(BUILD_BACKUP_KEY, JSON.stringify({ savedAt: new Date().toISOString(), worldObjects, layoutOverrides }));
+  } catch {
+    // Best-effort only — see comment above.
+  }
+}
+
 // Claudia's Build Mode redesign (referencing Sims 4/Minecraft/Webkinz/
 // Paralives): grid-snap on by default, a 1-unit cell matching the drawn
 // gridHelper. No Alt-hold freeform toggle (Sims' approach) since that has
@@ -620,6 +637,7 @@ export default function WorldEditor() {
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const setLayoutOverride = useStore((s) => s.setLayoutOverride);
   const restoreWorldEditorState = useStore((s) => s.restoreWorldEditorState);
+  const retrySyncNow = useStore((s) => s.retrySyncNow);
 
   const [manifest, setManifest] = useState<AssetManifestEntry[]>([]);
   const [manifestError, setManifestError] = useState(false);
@@ -703,6 +721,7 @@ export default function WorldEditor() {
     setShowSaved(true);
     if (savedTimeoutRef.current) window.clearTimeout(savedTimeoutRef.current);
     savedTimeoutRef.current = window.setTimeout(() => setShowSaved(false), 1200);
+    writeLocalBackup(useStore.getState().worldObjects, useStore.getState().layoutOverrides);
   };
 
   function withHistory<F extends (...args: any[]) => any>(fn: F): F {
@@ -758,6 +777,41 @@ export default function WorldEditor() {
       .then((r) => { if (!r.ok) throw new Error('not found'); return r.json(); })
       .then((data) => setManifest(data.assets ?? []))
       .catch(() => setManifestError(true));
+  }, []);
+
+  // Direct instruction: a periodic local backup (every 30s) and an
+  // immediate one the moment this tab is backgrounded (switching tabs,
+  // minimizing, closing) — on top of the flashSaved() backup that already
+  // fires after every edit, so a change made right before switching away
+  // is never the one that's missing.
+  useEffect(() => {
+    const backupNow = () => writeLocalBackup(useStore.getState().worldObjects, useStore.getState().layoutOverrides);
+    const interval = window.setInterval(backupNow, 30000);
+    const onVisibility = () => { if (document.hidden) backupNow(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
+  // Direct instruction: confirm before leaving to make sure everything's
+  // saved. Every edit already saves to Supabase immediately (see the
+  // file's own header comment — this session's answer to "draft vs.
+  // live" was to keep that), so the one real risk on leaving isn't
+  // "unsaved work," it's a save that's failed and is still retrying in
+  // the background (the red syncTrouble banner — see SyncTroubleAlert.tsx).
+  // Only warn then, not on every ordinary navigation away, so the browser's
+  // native "leave site?" prompt stays meaningful instead of becoming
+  // something to reflexively click through.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!useStore.getState().syncTrouble) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, []);
 
   // Tracks the Shift key (held while clicking the ground, or while
@@ -1348,6 +1402,14 @@ export default function WorldEditor() {
               title="Redo (Ctrl/Cmd+Shift+Z)"
             >
               ↷ Redo
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              style={{ minHeight: 44, borderRadius: 999 }}
+              onClick={() => { retrySyncNow(); flashSaved(); }}
+              title="Every edit already saves automatically — this forces a save right now and backs up a copy to this browser"
+            >
+              💾 Save
             </button>
             <button
               className="btn btn-sm"
