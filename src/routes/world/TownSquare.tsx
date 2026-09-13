@@ -1108,14 +1108,33 @@ function SkyboxBackground() {
 // tasks are waiting, both purely additive attraction with zero effect on
 // whether the student can walk away, keep talking to Neighbors, or ignore
 // it entirely. Same visual either way once you're actually using it.
+//
+// Claudia's code review flagged the original version as a genuine
+// accessibility miss: it pulsed forever with no way to pause or skip,
+// which fails this app's own "no unbounded auto-playing animation" rule
+// for a sensory-sensitive population, however soft the motion. Two fixes:
+// prefers-reduced-motion gets a flat, non-animated glow with no exception,
+// and everyone else gets a pulse that decays to a steady glow over the
+// first few seconds — a real, noticeable cue the moment it appears,
+// without motion that runs the entire time a student is anywhere nearby.
 function DeskGlow() {
   const ref = useRef<THREE.Mesh>(null);
+  const [reducedMotion] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  const startTime = useRef<number | null>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
+    const mat = ref.current.material as THREE.MeshBasicMaterial;
+    if (reducedMotion) {
+      mat.opacity = 0.5;
+      return;
+    }
+    if (startTime.current === null) startTime.current = clock.elapsedTime;
+    const decay = Math.max(0, 1 - (clock.elapsedTime - startTime.current) / 6);
     const t = clock.elapsedTime;
-    const pulse = 0.55 + Math.sin(t * 1.6) * 0.2;
-    (ref.current.material as THREE.MeshBasicMaterial).opacity = pulse;
-    const scale = 1 + Math.sin(t * 1.6) * 0.08;
+    mat.opacity = 0.5 + Math.sin(t * 1.6) * 0.2 * decay;
+    const scale = 1 + Math.sin(t * 1.6) * 0.08 * decay;
     ref.current.scale.set(scale, scale, scale);
   });
   return (
