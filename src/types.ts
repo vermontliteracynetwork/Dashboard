@@ -80,6 +80,7 @@ export interface Student {
   coins: number; // marketplace currency, earned by completing tasks
   savingsGoalLabel: string | null; // what the student is saving up for, student-set, shown as a fill-meter in the Piggy Bank (Homeplot's Bank standard — concept-only saving, no interest math)
   savingsGoalCents: number | null; // the target balance for that goal
+  countItOutEnabled: boolean; // teacher-set per student (Homeplot's Bank standard, Tier 1 skill): checkout requires tapping real bill/coin amounts up to the price instead of one Confirm tap — off by default, an explicit add-on, not everyone's normal checkout
   ownedAvatarIds: string[]; // avatar catalog ids this student has unlocked/purchased
   ownedEmoteIds: string[]; // emote catalog ids this student has unlocked/purchased
   equippedEmoteId: string | null; // currently displayed emote, if any

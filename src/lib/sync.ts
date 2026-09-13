@@ -53,6 +53,7 @@ const rowToStudent = (r: Row): Student => ({
   coins: r.coins ?? 0,
   savingsGoalLabel: r.savings_goal_label ?? null,
   savingsGoalCents: r.savings_goal_cents ?? null,
+  countItOutEnabled: r.count_it_out_enabled ?? false,
   // Grandfather in whatever avatar a student already had before this
   // marketplace system existed, so nobody who already picked an avatar
   // loses access to it.
@@ -101,6 +102,7 @@ const studentToRow = (s: Student): Row => ({
   coins: s.coins,
   savings_goal_label: s.savingsGoalLabel,
   savings_goal_cents: s.savingsGoalCents,
+  count_it_out_enabled: s.countItOutEnabled,
   owned_avatar_ids: s.ownedAvatarIds,
   owned_emote_ids: s.ownedEmoteIds,
   equipped_emote_id: s.equippedEmoteId,
@@ -735,6 +737,7 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   coins: 'coins',
   savingsGoalLabel: 'savings_goal_label',
   savingsGoalCents: 'savings_goal_cents',
+  countItOutEnabled: 'count_it_out_enabled',
   ownedAvatarIds: 'owned_avatar_ids',
   ownedEmoteIds: 'owned_emote_ids',
   equippedEmoteId: 'equipped_emote_id',

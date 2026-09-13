@@ -661,6 +661,7 @@ export const useStore = create<AppState>()(
           coins: 0,
           savingsGoalLabel: null,
           savingsGoalCents: null,
+          countItOutEnabled: false,
           ownedAvatarIds: [avatar],
           ownedEmoteIds: [...STARTER_EMOTE_IDS],
           equippedEmoteId: null,

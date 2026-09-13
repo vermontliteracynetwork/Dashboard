@@ -350,6 +350,21 @@ export default function StudentManager() {
                 </label>
 
                 <hr className="divider" />
+                <strong>Piggy Bank</strong>
+                <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+                  Off by default — an explicit add-on for a student working on recognizing and
+                  combining real bills/coins, not everyone's normal checkout.
+                </p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={st.countItOutEnabled}
+                    onChange={(e) => updateStudent(st.id, { countItOutEnabled: e.target.checked })}
+                  />{' '}
+                  "Count It Out" checkout — tap bill/coin amounts up to the price instead of one Confirm tap
+                </label>
+
+                <hr className="divider" />
                 <CustomToolsEditor student={st} />
 
                 <hr className="divider" />

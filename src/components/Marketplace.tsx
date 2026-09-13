@@ -27,6 +27,73 @@ interface ReceiptLine extends CartEntry {
   ok: boolean; // false if it failed at checkout (already owned/unaffordable by then)
 }
 
+// Homeplot's Bank standard, "Count It Out" checkout: the actual skill this
+// targets (per the €UReka currency-training precedent for ASD teens) is
+// recognizing and combining real bills/coins — money today only ever shows
+// up as a number. Tap-to-add rather than drag-to-a-tray: this population's
+// working set already leans on tap/one-thing-does-one-thing everywhere else
+// in this app, and a mis-aimed drag is a much easier miss than a mis-tapped
+// button for a student with fine-motor or motor-planning differences — an
+// accessibility call, not a shortcut past the "real bill/coin" spec.
+const DENOMINATIONS = [
+  { cents: 2000, label: '$20', kind: 'bill' as const },
+  { cents: 1000, label: '$10', kind: 'bill' as const },
+  { cents: 500, label: '$5', kind: 'bill' as const },
+  { cents: 100, label: '$1', kind: 'bill' as const },
+  { cents: 25, label: '25¢', kind: 'coin' as const },
+  { cents: 10, label: '10¢', kind: 'coin' as const },
+  { cents: 5, label: '5¢', kind: 'coin' as const },
+  { cents: 1, label: '1¢', kind: 'coin' as const },
+];
+
+function CountItOutModal({ priceCents, onConfirm, onCancel }: { priceCents: number; onConfirm: () => void; onCancel: () => void }) {
+  const [tray, setTray] = useState<number[]>([]);
+  const trayTotal = tray.reduce((sum, c) => sum + c, 0);
+  const enough = trayTotal >= priceCents;
+
+  return (
+    <div className="overlay-backdrop" onClick={onCancel}>
+      <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div className="content-well stack">
+          <div className="row space-between">
+            <h2 style={{ margin: 0 }}>💵 Count It Out</h2>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onCancel}>✕ Close</button>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.9rem' }}>Tap bills and coins until you have enough to pay <strong>{formatMoney(priceCents)}</strong>.</p>
+
+          <div className="row space-between" style={{ fontWeight: 800, fontSize: '1.1rem' }}>
+            <span>In your tray</span>
+            <span style={{ color: enough ? 'var(--success)' : undefined }}>{formatMoney(trayTotal)}</span>
+          </div>
+
+          <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
+            {DENOMINATIONS.map((d) => (
+              <button
+                key={d.cents}
+                className="btn"
+                style={{ minHeight: 52, minWidth: 52, fontWeight: 800, borderRadius: d.kind === 'coin' ? '50%' : 10, background: d.kind === 'bill' ? '#dff3e6' : '#fff6d9' }}
+                onClick={() => setTray((t) => [...t, d.cents])}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+
+          {tray.length > 0 && (
+            <button className="btn btn-sm" style={{ minHeight: 40, alignSelf: 'flex-start' }} onClick={() => setTray((t) => t.slice(0, -1))}>
+              ↩️ Remove last
+            </button>
+          )}
+
+          <button className="btn btn-primary btn-lg" disabled={!enough} onClick={onConfirm}>
+            {enough ? '✅ That\'s enough — finish buying' : `Keep counting (need ${formatMoney(priceCents - trayTotal)} more)`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function isAvailableToday(item: MarketplaceItem): boolean {
   const today = todayISO();
   if (item.availableFrom && today < item.availableFrom) return false;
@@ -114,6 +181,7 @@ export default function Marketplace() {
   const [cart, setCart] = useState<CartEntry[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptLine[] | null>(null);
+  const [showCountItOut, setShowCountItOut] = useState(false);
 
   // byKind/the three useItemFilter calls below don't depend on `student` at
   // all, so they're computed before the early-return — caught by lint as a
@@ -313,13 +381,28 @@ export default function Marketplace() {
               <button
                 className="btn btn-primary btn-lg"
                 disabled={cart.length === 0 || cartTotal > student.coins}
-                onClick={checkout}
+                onClick={() => {
+                  if (student.countItOutEnabled) {
+                    setShowCart(false);
+                    setShowCountItOut(true);
+                  } else {
+                    checkout();
+                  }
+                }}
               >
-                {cartTotal > student.coins ? '🔒 Not enough Class Cash' : '✅ Confirm Purchase'}
+                {cartTotal > student.coins ? '🔒 Not enough Class Cash' : student.countItOutEnabled ? '💵 Count It Out' : '✅ Confirm Purchase'}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {showCountItOut && (
+        <CountItOutModal
+          priceCents={cartTotal}
+          onCancel={() => setShowCountItOut(false)}
+          onConfirm={() => { setShowCountItOut(false); checkout(); }}
+        />
       )}
 
       {receipt && (

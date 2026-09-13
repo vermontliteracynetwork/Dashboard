@@ -324,6 +324,7 @@ alter table students add column if not exists dyslexia_font boolean not null def
 alter table students add column if not exists savings_goal_label text;
 alter table students add column if not exists savings_goal_cents int;
 alter table transactions add column if not exists needs_wants text;
+alter table students add column if not exists count_it_out_enabled boolean not null default false;
 
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so
