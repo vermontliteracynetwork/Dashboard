@@ -434,6 +434,13 @@ alter table app_settings add column if not exists emote_price_overrides jsonb no
 -- role by name (see WorldEditor.tsx's Roster tab for why this stays
 -- display-only rather than actually reassigning who does what).
 alter table app_settings add column if not exists npc_title_overrides jsonb not null default '{}';
+-- Build Mode edits to the ORIGINAL fixed Town Square layout (the 4
+-- buildings, market stalls, road tiles, decor/city props defined in
+-- townLayout.ts) — keyed by that item's own fixed id, e.g. 'bank' or
+-- 'stall-1'. Everything in town is deletable/movable/resizable/retintable
+-- from Build Mode now, not just objects placed after the tool existed;
+-- see LayoutOverride in types.ts.
+alter table app_settings add column if not exists layout_overrides jsonb not null default '{}';
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

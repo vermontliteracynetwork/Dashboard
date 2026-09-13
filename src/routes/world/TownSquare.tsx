@@ -18,6 +18,7 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
+import type { LayoutOverride } from '../../types';
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -171,7 +172,14 @@ const BUILDING_RAW_HALF_EXTENTS: Record<string, { hx: number; hz: number }> = {
   'post-office': { hx: 0.485, hz: 0.461 },
   'welcome-center': { hx: 0.05975, hz: 0.0521 },
 };
-const BUILDING_FOOTPRINTS = BUILDINGS.map((b) => {
+// `let`, not `const` — a teacher can delete a building from Build Mode
+// (see WorldEditor.tsx and LayoutOverride in types.ts), and a deleted
+// building must stop blocking movement here too, not just stop rendering.
+// recomputeCollisionLayout (below, called from a useEffect keyed on the
+// store's layoutOverrides) rebuilds these exactly the same way on every
+// change; nothing about the collision math itself is different from
+// before — a teacher-deleted building simply isn't in the array anymore.
+let BUILDING_FOOTPRINTS = BUILDINGS.map((b) => {
   const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
   return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
 });
@@ -203,7 +211,9 @@ const BUILDING_VIEWS: Record<string, string> = ROLE_VIEWS;
 // exists to prevent.
 const STALL_BLOCK_RADIUS = 0.75;
 const DESK_BLOCK_RADIUS = 0.9; // just the desk/chair footprint, well inside COMPUTER_RADIUS so "walk up and use" still works
-const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
+// `let`, not `const` — same reactive-to-layoutOverrides reasoning as
+// BUILDING_FOOTPRINTS above; a deleted market stall stops blocking too.
+let STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
   { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
   // Claudia's review: collision covered every building/stall/the desk but
@@ -218,6 +228,28 @@ const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   { x: 12.8, z: -2.4, radius: 1.05 }, // large_rock.glb
   { x: -1, z: -10, radius: 0.75 }, // medium_rock.glb
 ];
+
+// Rebuilds the two collision arrays above from scratch, skipping any fixed
+// building/stall a teacher has deleted from Build Mode. Called once at
+// module load (with no overrides, so first paint matches exactly what
+// shipped before this existed) and again from a useEffect inside the main
+// component whenever the store's layoutOverrides changes. Deliberately
+// DOES NOT move/resize a building's collision footprint yet — only
+// delete-awareness is wired into movement/collision this pass; a moved or
+// resized building's footprint stays at its original spot/size until a
+// follow-up pass (see the WorldEditor.tsx comment on the same limitation).
+function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>) {
+  BUILDING_FOOTPRINTS = BUILDINGS.filter((b) => !overrides[b.id]?.deleted).map((b) => {
+    const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
+    return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
+  });
+  STATIC_OBSTACLES = [
+    ...MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
+    { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
+    { x: 12.8, z: -2.4, radius: 1.05 },
+    { x: -1, z: -10, radius: 0.75 },
+  ];
+}
 
 // Point-vs-rotated-rectangle push-out: transform into the building's own
 // local (unrotated) space, and if the point lands inside the real
@@ -1208,10 +1240,12 @@ function Park({
   onGroundTap,
   onGroundHover,
   onBuildingClick,
+  layoutOverrides,
 }: {
   onGroundTap: (x: number, z: number) => void;
   onGroundHover: (pt: { x: number; z: number } | null) => void;
   onBuildingClick: (id: string) => void;
+  layoutOverrides: Record<string, LayoutOverride>;
 }) {
   // A ring of trees around the square's edge, a few pines mixed in for
   // variety, and a couple of rock clusters — real cataloged CC0 assets
@@ -1293,7 +1327,17 @@ function Park({
       {treeRing.map((t, i) =>
         t.pine ? <PineTree key={i} position={t.pos} scaleMul={t.scale} /> : <Tree key={i} position={t.pos} scaleMul={t.scale} />,
       )}
-      {BUILDINGS.map((b) => (
+      {/* Every fixed item below can be deleted from Build Mode (direct
+          teacher instruction: "everything can be deleted... including the
+          items that were originally placed on the map"), so each is
+          skipped here the moment layoutOverrides marks it deleted. Only
+          the non-building categories also apply a moved/resized/rotated
+          override to rendering this pass — a building's position/scale
+          override still only shows in the WorldEditor preview, not here,
+          until collision/approach-radius math (BuildingEntrance,
+          handleApproachBuilding below) is updated to track it too; see
+          recomputeCollisionLayout's comment. */}
+      {BUILDINGS.filter((b) => !layoutOverrides[b.id]?.deleted).map((b) => (
         // The click hitbox is the real rendered mesh, not a padded invisible
         // shape — direct teacher feedback that buildings need to actually be
         // clickable, not just something you can only walk up next to. Safe
@@ -1307,22 +1351,38 @@ function Park({
           <Prop path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={b.scale} />
         </group>
       ))}
-      {MARKET_STALLS.map((m) => (
-        <Prop key={m.id} path={m.modelPath} position={[m.position[0], 0, m.position[1]]} rotationY={m.rotationY} scale={m.scale ?? MARKET_SCALE} />
-      ))}
-      {ROAD_TILES.map((r) => (
+      {MARKET_STALLS.filter((m) => !layoutOverrides[m.id]?.deleted).map((m) => {
+        const ov = layoutOverrides[m.id];
+        const pos = ov?.position ?? m.position;
+        return (
+          <Prop key={m.id} path={m.modelPath} position={[pos[0], 0, pos[1]]} rotationY={ov?.rotationY ?? m.rotationY} scale={ov?.scale ?? (m.scale ?? MARKET_SCALE)} />
+        );
+      })}
+      {ROAD_TILES.filter((r) => !layoutOverrides[r.id]?.deleted).map((r) => {
+        const ov = layoutOverrides[r.id];
+        const pos = ov?.position ?? r.position;
         // A tiny y offset above the grass — coplanar flat meshes at the
         // exact same height is the classic z-fighting setup (flickering
         // as two surfaces fight to render on top of each other), same
         // reason Pond and the walk markers all sit slightly above 0.
-        <Prop key={r.id} path="/world/models/roads/road-straight.glb" position={[r.position[0], 0.01, r.position[1]]} rotationY={r.rotationY} scale={ROAD_SCALE} />
-      ))}
-      {DECOR_PROPS.map((d) => (
-        <Prop key={d.id} path={d.modelPath} position={[d.position[0], 0, d.position[1]]} scale={d.scale} />
-      ))}
-      {CITY_PROPS.map((c) => (
-        <CityProp key={c.id} path={c.modelPath} position={c.position} scale={c.scale} rotationY={c.rotationY} />
-      ))}
+        return (
+          <Prop key={r.id} path="/world/models/roads/road-straight.glb" position={[pos[0], 0.01, pos[1]]} rotationY={ov?.rotationY ?? r.rotationY} scale={ov?.scale ?? ROAD_SCALE} />
+        );
+      })}
+      {DECOR_PROPS.filter((d) => !layoutOverrides[d.id]?.deleted).map((d) => {
+        const ov = layoutOverrides[d.id];
+        const pos = ov?.position ?? d.position;
+        return (
+          <Prop key={d.id} path={d.modelPath} position={[pos[0], 0, pos[1]]} rotationY={ov?.rotationY ?? 0} scale={ov?.scale ?? d.scale} />
+        );
+      })}
+      {CITY_PROPS.filter((c) => !layoutOverrides[c.id]?.deleted).map((c) => {
+        const ov = layoutOverrides[c.id];
+        const pos = ov?.position ?? c.position;
+        return (
+          <CityProp key={c.id} path={c.modelPath} position={pos} scale={ov?.scale ?? c.scale} rotationY={ov?.rotationY ?? c.rotationY} />
+        );
+      })}
     </group>
   );
 }
@@ -1431,6 +1491,12 @@ export default function TownSquare() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const worldObjects = useStore((s) => s.worldObjects);
+  const layoutOverrides = useStore((s) => s.layoutOverrides);
+  // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
+  // STATIC_OBSTACLES) in sync with Build Mode edits, including a teacher's
+  // edit landing live from another tab/device via Supabase realtime — see
+  // recomputeCollisionLayout's own comment above.
+  useEffect(() => { recomputeCollisionLayout(layoutOverrides); }, [layoutOverrides]);
   const focuses = useStore((s) => s.focuses);
   // Roster tab (World Editor): a teacher's cosmetic custom title per
   // hand-authored Neighbor/Townsperson id — shown next to their name
@@ -1963,6 +2029,7 @@ export default function TownSquare() {
         <Suspense fallback={null}>
           <SkyboxBackground />
           <Park
+            layoutOverrides={layoutOverrides}
             onGroundTap={(x, z) => {
               // Caught in review: the map view has no backdrop over the
               // Canvas, so without this guard a tap meant to look around
@@ -2044,7 +2111,7 @@ export default function TownSquare() {
             reduceMotion={student.worldReduceMotion}
             onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }}
           />
-          {BUILDINGS.map((b) => {
+          {BUILDINGS.filter((b) => !layoutOverrides[b.id]?.deleted).map((b) => {
             const viewPath = BUILDING_VIEWS[b.id];
             return (
               <BuildingEntrance

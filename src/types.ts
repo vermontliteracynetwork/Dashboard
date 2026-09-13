@@ -594,6 +594,23 @@ export interface WorldObject {
   createdAt: string; // ISO
 }
 
+// A teacher-made edit to one of the ORIGINAL fixed Town Square layout items
+// (a building from BUILDINGS, a stall from MARKET_STALLS, a road tile, a
+// decor/city prop — see townLayout.ts) — keyed by that item's own fixed id
+// (e.g. 'bank', 'stall-1', 'main-st-0'). Kayden's explicit instruction:
+// everything in the town should be deletable/movable/resizable/retintable
+// from Build Mode, not just objects placed after the tool existed. Layered
+// on top of the fixed layout data at render time (in both WorldEditor and
+// the real TownSquare) rather than mutating townLayout.ts's own arrays, so
+// "reset to the original town" is always just "clear the overrides."
+export interface LayoutOverride {
+  deleted?: boolean;
+  position?: [number, number]; // x,z — matches the layout arrays' own 2-tuple convention (always y=0)
+  rotationY?: number;
+  scale?: number;
+  tintColor?: string;
+}
+
 export interface SubjectProgress {
   date: string; // ISO date this progress applies to
   activeIndex: number;

@@ -109,6 +109,7 @@ import {
   pushAppSettings,
   pushEmotePriceOverrides,
   pushNpcTitleOverrides,
+  pushLayoutOverrides,
   pushWorldObject,
   deleteWorldObjectRemote,
   rowToWorldObject,
@@ -152,6 +153,7 @@ import type {
   MarketplaceItem,
   AssignmentCompletionReward,
   WorldObject,
+  LayoutOverride,
   Focus,
   FocusSubject,
   FocusDurationMode,
@@ -206,6 +208,7 @@ interface AppState {
   notes: Note[];
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
+  layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   focuses: Focus[]; // class-wide curriculum spotlights (math/literacy/sel/finance lanes) — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;
 
@@ -254,6 +257,16 @@ interface AppState {
   addWorldObject: (obj: Omit<WorldObject, 'id' | 'createdAt'>) => string;
   updateWorldObject: (id: string, patch: Partial<WorldObject>) => void;
   deleteWorldObject: (id: string) => void;
+  // A teacher edit to one of the ORIGINAL fixed layout items (see
+  // LayoutOverride's own comment in types.ts). `patch: null` clears that
+  // item's override entirely (used by undo to fully revert a change).
+  setLayoutOverride: (layoutId: string, patch: Partial<LayoutOverride> | null) => void;
+  // Bulk-restores Build Mode's editable state to an exact prior snapshot —
+  // undo/redo's only store action. Diffs against the current worldObjects
+  // to push just what actually changed/got removed, rather than a
+  // delete-everything-then-recreate pass (which would also mint fresh ids
+  // for every restored object via addWorldObject's own id generation).
+  restoreWorldEditorState: (worldObjects: WorldObject[], layoutOverrides: Record<string, LayoutOverride>) => void;
   // Publishing a new focus for a subject lane ends whichever focus was
   // previously current for that lane (sets its endDate if it didn't have
   // one), matching the "one current focus per lane" model in types.ts.
@@ -506,6 +519,7 @@ export const useStore = create<AppState>()(
       notes: [],
       marketplaceItems: [],
       worldObjects: [],
+      layoutOverrides: {},
       focuses: [],
       assignmentCompletionReward: null,
       emotePriceOverrides: {},
@@ -670,6 +684,7 @@ export const useStore = create<AppState>()(
               assignmentCompletionReward: n.assignment_completion_reward ?? null,
               emotePriceOverrides: n.emote_price_overrides ?? {},
               npcTitleOverrides: n.npc_title_overrides ?? {},
+              layoutOverrides: n.layout_overrides ?? {},
             });
           },
         });
@@ -901,6 +916,32 @@ export const useStore = create<AppState>()(
       deleteWorldObject: (id) => {
         set((s) => ({ worldObjects: s.worldObjects.filter((o) => o.id !== id) }));
         deleteWorldObjectRemote(id);
+      },
+
+      setLayoutOverride: (layoutId, patch) => {
+        const next = { ...get().layoutOverrides };
+        if (patch === null) {
+          delete next[layoutId];
+        } else {
+          next[layoutId] = { ...next[layoutId], ...patch };
+        }
+        set({ layoutOverrides: next });
+        pushLayoutOverrides(next);
+      },
+
+      // Undo/redo's only store action — see its own interface comment.
+      restoreWorldEditorState: (worldObjects, layoutOverrides) => {
+        const prevObjects = get().worldObjects;
+        set({ worldObjects, layoutOverrides });
+        const nextIds = new Set(worldObjects.map((o) => o.id));
+        for (const obj of worldObjects) {
+          const prev = prevObjects.find((o) => o.id === obj.id);
+          if (!prev || JSON.stringify(prev) !== JSON.stringify(obj)) pushWorldObject(obj);
+        }
+        for (const prev of prevObjects) {
+          if (!nextIds.has(prev.id)) deleteWorldObjectRemote(prev.id);
+        }
+        pushLayoutOverrides(layoutOverrides);
       },
 
       publishFocus: (subject, category, title, detail, wordList, durationMode, dayCount, dateRangeStart, dateRangeEnd) => {
