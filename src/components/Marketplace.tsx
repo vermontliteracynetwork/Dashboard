@@ -80,13 +80,13 @@ function CountItOutModal({ priceCents, onConfirm, onCancel }: { priceCents: numb
           </div>
 
           {tray.length > 0 && (
-            <button className="btn btn-sm" style={{ minHeight: 40, alignSelf: 'flex-start' }} onClick={() => setTray((t) => t.slice(0, -1))}>
+            <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={() => setTray((t) => t.slice(0, -1))}>
               ↩️ Remove last
             </button>
           )}
 
           <button className="btn btn-primary btn-lg" disabled={!enough} onClick={onConfirm}>
-            {enough ? '✅ That\'s enough — finish buying' : `Keep counting (need ${formatMoney(priceCents - trayTotal)} more)`}
+            {enough ? "✅ That's enough, finish buying" : `Keep counting (need ${formatMoney(priceCents - trayTotal)} more)`}
           </button>
         </div>
       </div>
@@ -344,23 +344,23 @@ export default function Marketplace() {
                         </div>
                         <div className="row" style={{ gap: 8 }}>
                           <strong style={{ fontSize: '0.85rem' }}>{formatMoney(entry.price)}</strong>
-                          <button className="btn btn-sm btn-danger" style={{ minHeight: 36, minWidth: 36 }} aria-label={`Remove ${entry.name}`} onClick={() => removeFromCart(entry.key)}>✕</button>
+                          <button className="btn btn-sm btn-danger" style={{ minHeight: 44, minWidth: 44 }} aria-label={`Remove ${entry.name}`} onClick={() => removeFromCart(entry.key)}>✕</button>
                         </div>
                       </div>
-                      {/* Optional, non-blocking reflection prompt — never required, never
+                      {/* Optional, non-blocking reflection prompt. Never required, never
                           affects whether Confirm Purchase below is enabled. */}
                       <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
                         <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>Still want it tomorrow?</span>
                         <button
                           className="btn btn-sm"
-                          style={{ minHeight: 32, fontSize: '0.68rem', padding: '2px 8px', background: entry.needsWants === 'need' ? 'var(--success)' : undefined, color: entry.needsWants === 'need' ? '#fff' : undefined }}
+                          style={{ minHeight: 44, fontSize: '0.68rem', padding: '2px 10px', background: entry.needsWants === 'need' ? 'var(--success)' : undefined, color: entry.needsWants === 'need' ? '#fff' : undefined }}
                           onClick={() => setCartNeedsWants(entry.key, 'need')}
                         >
                           👍 Yep
                         </button>
                         <button
                           className="btn btn-sm"
-                          style={{ minHeight: 32, fontSize: '0.68rem', padding: '2px 8px', background: entry.needsWants === 'want' ? 'var(--gold, #c2953f)' : undefined, color: entry.needsWants === 'want' ? '#fff' : undefined }}
+                          style={{ minHeight: 44, fontSize: '0.68rem', padding: '2px 10px', background: entry.needsWants === 'want' ? '#8a6a2f' : undefined, color: entry.needsWants === 'want' ? '#fff' : undefined }}
                           onClick={() => setCartNeedsWants(entry.key, 'want')}
                         >
                           🤔 Not sure

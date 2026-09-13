@@ -317,8 +317,8 @@ export default function StudentManager() {
                 <hr className="divider" />
                 <strong>Town Square</strong>
                 <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
-                  All on by default. Turn any of these down or off per student — Claudia's full-game
-                  audit flagged that none of them had a teacher override yet.
+                  All on by default. Turn any of these down or off per student, since Claudia's
+                  full-game audit flagged that none of them had a teacher override yet.
                 </p>
                 <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
                   <div>
@@ -352,7 +352,7 @@ export default function StudentManager() {
                 <hr className="divider" />
                 <strong>Piggy Bank</strong>
                 <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
-                  Off by default — an explicit add-on for a student working on recognizing and
+                  Off by default. An explicit add-on for a student working on recognizing and
                   combining real bills/coins, not everyone's normal checkout.
                 </p>
                 <label>
@@ -361,7 +361,7 @@ export default function StudentManager() {
                     checked={st.countItOutEnabled}
                     onChange={(e) => updateStudent(st.id, { countItOutEnabled: e.target.checked })}
                   />{' '}
-                  "Count It Out" checkout — tap bill/coin amounts up to the price instead of one Confirm tap
+                  "Count It Out" checkout: tap bill/coin amounts up to the price instead of one Confirm tap
                 </label>
 
                 <hr className="divider" />
