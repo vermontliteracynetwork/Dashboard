@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T22:47:55.851Z",
+  "generatedAt": "2026-09-13T23:25:26.388Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -4725,6 +4725,136 @@
       "path": "/world/models/prototype/wheelchair.glb",
       "label": "Wheelchair",
       "category": "prototype"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/1Story.glb",
+      "label": "1 Story",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/1Story_GableRoof.glb",
+      "label": "1 Story Gable Roof",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/1Story_RoundRoof.glb",
+      "label": "1 Story Round Roof",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/1Story_Sign.glb",
+      "label": "1 Story Sign",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story.glb",
+      "label": "2 Story",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_2.glb",
+      "label": "2 Story 2",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Balcony.glb",
+      "label": "2 Story Balcony",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Center.glb",
+      "label": "2 Story Center",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Columns.glb",
+      "label": "2 Story Columns",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Double.glb",
+      "label": "2 Story Double",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_GableRoof.glb",
+      "label": "2 Story Gable Roof",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_RoundRoof.glb",
+      "label": "2 Story Round Roof",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Sidehouse.glb",
+      "label": "2 Story Sidehouse",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Sign.glb",
+      "label": "2 Story Sign",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Slim.glb",
+      "label": "2 Story Slim",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Stairs.glb",
+      "label": "2 Story Stairs",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Wide.glb",
+      "label": "2 Story Wide",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/2Story_Wide_2Doors.glb",
+      "label": "2 Story Wide 2 Doors",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/3Story_Balcony.glb",
+      "label": "3 Story Balcony",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/3Story_Slim.glb",
+      "label": "3 Story Slim",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/3Story_Small.glb",
+      "label": "3 Story Small",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/4Story.glb",
+      "label": "4 Story",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/4Story_Center.glb",
+      "label": "4 Story Center",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/4Story_Wide_2Doors.glb",
+      "label": "4 Story Wide 2 Doors",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/4Story_Wide_2Doors_Roof.glb",
+      "label": "4 Story Wide 2 Doors Roof",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/6Story_Stack.glb",
+      "label": "6 Story Stack",
+      "category": "quaternius-buildings"
     },
     {
       "path": "/world/models/resources/Copper_Bar.gltf",

@@ -226,14 +226,14 @@ const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
 // from the role/collision toggle regardless of the category default.
 const COLLIDING_CATEGORIES = new Set([
   'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
-  'props', 'prototype', 'toolsbits', 'misc', 'suburb',
+  'props', 'prototype', 'toolsbits', 'misc', 'suburb', 'quaternius-buildings',
 ]);
 function defaultCollidesForCategory(category: string): boolean {
   return COLLIDING_CATEGORIES.has(category);
 }
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
-  buildings: 'Buildings & Places', city: 'Buildings & Places', interior: 'Buildings & Places', market: 'Buildings & Places', restaurant: 'Buildings & Places', roads: 'Buildings & Places', structures: 'Buildings & Places', suburb: 'Buildings & Places',
+  buildings: 'Buildings & Places', city: 'Buildings & Places', interior: 'Buildings & Places', market: 'Buildings & Places', restaurant: 'Buildings & Places', roads: 'Buildings & Places', structures: 'Buildings & Places', suburb: 'Buildings & Places', 'quaternius-buildings': 'Buildings & Places',
   fantasy: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
   characters: 'Characters',
   props: 'Props & Tools', prototype: 'Props & Tools', toolsbits: 'Props & Tools', misc: 'Props & Tools',
