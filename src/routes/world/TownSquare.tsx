@@ -63,21 +63,29 @@ const MAP_HEIGHT = 46;
 const WANDER_SPEED = 1.3; // slower than the player's walk — ambient, unhurried
 const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
 // Simple flat-circle collision so the pond reads as an actual obstacle now
-// that a bridge exists specifically to cross it — not the pond's full
-// visual radius (3), so the bridge itself (which sits 3 units from the
-// pond center) stays just outside the blocked circle and is still usable.
+// that a bridge exists specifically to cross it. Sized (Claudia's scale
+// review) to clear the East Park Path's edge (x=10, half-width 1.25) with
+// margin, keeping the ~0.4 inset relationship to the pond's own visual
+// radius below.
 const POND_CENTER = { x: 6, z: 6 };
-const POND_BLOCK_RADIUS = 2.6;
+const POND_BLOCK_RADIUS = 1.8;
 
 // Scale factors, measured against each model's actual loaded bounding box
 // in a standalone render check, not guessed — the first version of this
 // scene had every character rendering under a meter tall on a 36-unit
 // field, which is what made everyone look like ants on a lawn in the
 // recording the teacher flagged. CHARACTER_SCALE brings the ~0.67-unit-
-// tall Kenney Mini Characters up to a human-reads-as-a-person height.
+// tall Kenney Mini Characters up to a human-reads-as-a-person height
+// (measured 0.6713 raw, confirmed exactly by Claudia's follow-up review).
 const CHARACTER_SCALE = 2.6;
-const TREE_SCALE = 2.8;
-const PINE_SCALE = 3.2;
+// Brought down from 2.8/3.2 in the same review: at the old values the
+// tallest ring trees (6.37 units) stood taller than every building in
+// town, which is backwards for a settlement's skyline — buildings are
+// meant to be the tallest things in view. These clear a 1.745-unit
+// character by ~2.2-3.3x while staying under every corrected building
+// height below (6.17-6.94).
+const TREE_SCALE = 2.5;
+const PINE_SCALE = 3.6;
 const ROCK_SCALE = 1.8;
 
 // The teacher's own uploaded prop pack (bridge/flower/mushroom/rocks) — a
@@ -87,7 +95,12 @@ const ROCK_SCALE = 1.8;
 // a real target size instead of guessing. The pack's snow-capped pine_tree
 // prop was measured too but left unplaced — snow doesn't match a spring/
 // summer park, so it's cataloged and waiting on a winter-themed use instead.
-const PROP_SCALE = { flower: 3.5, mushroom: 4.2, largeRock: 4.3, mediumRock: 2.9, bridge: 13 };
+// flower/mushroom brought down and largeRock/mediumRock brought UP in
+// Claudia's follow-up scale review — the originals had ground clutter
+// reading as thigh-high (mushroom was 29% of a character's height) while
+// the "large" rock was smaller than the mushrooms next to it (52% —> now
+// matched to its 1.0-unit collision radius instead of dwarfed by it).
+const PROP_SCALE = { flower: 2.8, mushroom: 3.0, largeRock: 9.0, mediumRock: 5.0, bridge: 14 };
 
 // The Kenney Furniture Kit desk/chair/computer (verified CC0, License.txt
 // bundled) — measured the same real-bounding-box way as everything else
@@ -127,26 +140,79 @@ const AMBIENT_NPCS: { id: string; modelPath: string; home: [number, number] }[] 
 // Neighbor rather than randomly placed. rotationY aims each building's
 // front toward the park center — a first-pass estimate, verified in a
 // standalone render before shipping, not guessed blind.
-const BUILDINGS: { id: string; modelPath: string; position: [number, number]; rotationY: number; label: string; scale?: number }[] = [
-  { id: 'bank', modelPath: '/world/models/buildings/bank.glb', position: [10, -7.5], rotationY: Math.atan2(-10, 7.5), label: 'Bank' },
-  { id: 'store', modelPath: '/world/models/buildings/store.glb', position: [-10, 7.5], rotationY: Math.atan2(10, -7.5), label: 'Store' },
-  // Pushed further out than the pure 1.25x-radial estimate — that landed
-  // close enough to the pond's edge to read as overlapping in a
-  // verification render (this is the spot Claudia's own spec flagged as
-  // the tightest fit and worth double-checking before finalizing).
-  { id: 'post-office', modelPath: '/world/models/buildings/post-office.glb', position: [12, 9], rotationY: Math.atan2(-12, -9), label: 'Post Office' },
+// Scale and blockRadius were both recalculated in Claudia's follow-up scale
+// review: at the old uniform BUILDING_SCALE=3, every building sat only
+// 2.2-2.9x a character's height, shorter than the tallest tree in the
+// world — the exact "buildings are so small" complaint, confirmed with
+// real measured bounding boxes rather than eyeballed. Each is now sized so
+// its roofline lands at roughly 3.5-4.0x a 1.745-unit character (the
+// target band real town-life games use), individually because each raw
+// model's bounding box is different. blockRadius replaces the old single
+// BUILDING_BLOCK_RADIUS=1.8, which was already wrong for the three
+// original buildings at the new scale and was never going to fit the
+// store's much wider footprint (a circle sized for its long axis would
+// have reached out and swallowed Pip's standing spot) — this is a
+// simplified circle sized to the SHORTER (depth) half-extent, which
+// slightly under-covers the building's long sides but never traps a
+// Neighbor and never lets a student walk through the front face, which is
+// the complaint that actually matters here. A true rotated-box collision
+// is a fuller fix than this pass covers.
+const BUILDINGS: { id: string; modelPath: string; position: [number, number]; rotationY: number; label: string; scale: number; blockRadius: number }[] = [
+  // Real-bbox rotated-rectangle math (the same check that caught the store
+  // and welcome-center overlaps below) put Penny's point only 0.15 units
+  // outside the bank's actual footprint at the original 1.25x-radial
+  // position — technically clear, but not a real margin. Bumped to 1.35x
+  // radial (same direction/rotation) for a real ~1.1-unit clearance.
+  { id: 'bank', modelPath: '/world/models/buildings/bank.glb', position: [10.8, -8.1], rotationY: Math.atan2(-10, 7.5), label: 'Bank', scale: 5.1, blockRadius: 2.4 },
+  // Caught in my own verification render (not in Claudia's numbers): the
+  // store's raw footprint is a 2.2:1 oblong (2.08 x 0.94 raw units — the
+  // other buildings are nearly square), and facing it diagonally toward
+  // the park center — same convention as the other three — swells its
+  // world-space silhouette to roughly 4.2 x 4.7 units once rotated at that
+  // oblique angle, which visually buried Pip's entire standing spot under
+  // the roof. Snapped to face due east instead (still generally "toward
+  // the park," just cardinal rather than exact-diagonal) so the long axis
+  // stops smearing across both world directions, plus a slightly smaller
+  // scale (3.2x a character instead of the full 3.5x target) for a real
+  // margin. A second real-bbox measurement after that fix still put the
+  // building's east edge only 0.21 units from Pip (position was the same
+  // [-10,7.5] the near-square buildings use, but the store's short raw
+  // axis facing Pip is still 1.79 units of half-width at this scale) — so
+  // the position moved out to [-10.6,7.8] too, which measures out to a
+  // real 0.81-unit clearance instead.
+  { id: 'store', modelPath: '/world/models/buildings/store.glb', position: [-10.6, 7.8], rotationY: Math.PI / 2, label: 'Store', scale: 3.8, blockRadius: 1.8 },
+  { id: 'post-office', modelPath: '/world/models/buildings/post-office.glb', position: [12, 8.5], rotationY: Math.atan2(-12, -8.5), label: 'Post Office', scale: 4.1, blockRadius: 2.0 },
   // The 4th building, held back until Claudia's layout review weighed in
   // on where it belonged. Her verdict: Scout's corner, at the exact same
   // 1.25x-radial rule as the other three (Scout is at [-8,-6], so
   // [-10,-7.5]) — a town with 3 of 4 corners built up and one bare forever
   // was the actual problem, not a deliberate choice worth keeping. Labeled
   // Welcome Center rather than a shop, since nothing about Scout ("shows
-  // you around") is a shopkeeper. Own scale, not BUILDING_SCALE — this
-  // model (KayKit, CC0) loads at a tiny native size unrelated to the
-  // Kenney buildings' scale, measured the same real-bounding-box way.
-  { id: 'welcome-center', modelPath: '/world/models/props/shop_building.glb', position: [-10, -7.5], rotationY: Math.atan2(10, 7.5), label: 'Welcome Center', scale: 22 },
+  // you around") is a shopkeeper. This model (KayKit, CC0) loads at a tiny
+  // native size unrelated to the Kenney buildings' scale, measured the
+  // same real-bounding-box way — scale 22 originally only reached 1.5x a
+  // character (a garden shed), corrected to the same 3.5-4x target band.
+  // blockRadius corrected from Claudia's own stated 3.1 down to 2.0 — her
+  // review separately confirmed Scout sits 2.5 units from this building's
+  // center (the same buffer used at the other three), but 3.1 would have
+  // put Scout's own standing spot inside the collision circle. 2.0 matches
+  // post-office's radius and leaves the same margin bank/Penny has.
+  //
+  // A second pass, doing the same real-rotated-rectangle math that caught
+  // the store bug (not just the AABB shortcut) rather than trusting the
+  // visual "looks fine" from the top-down render: this tiny-native-mesh
+  // model's raw x:z ratio (1.15:1) is close to square, but at scale 55 its
+  // footprint half-extents (3.29 x 2.87 units) are still large enough that
+  // Scout's point at the original 1.25x-radial position landed *inside*
+  // the rotated rectangle, not just close to its edge — a real overlap,
+  // the same class of bug as the store's, just not visually obvious from
+  // directly overhead. The fix that actually clears it without shrinking
+  // the building below the 3.5-4x-character target band: push the radial
+  // multiplier from 1.25x to 1.4x (same direction/rotation, just farther
+  // out), which measures out to a real 0.55-unit clearance along the
+  // building's short local axis instead of a negative one.
+  { id: 'welcome-center', modelPath: '/world/models/props/shop_building.glb', position: [-11.2, -8.4], rotationY: Math.atan2(10, 7.5), label: 'Welcome Center', scale: 55, blockRadius: 2.0 },
 ];
-const BUILDING_SCALE = 3;
 
 // The farmer's market — Kenney Fantasy Town Kit stalls (verified CC0; the
 // "fantasy" pack name doesn't mean the pieces read that way — the stall
@@ -154,52 +220,54 @@ const BUILDING_SCALE = 3;
 // real farmer's-market stand). Clustered in the open lawn per Claudia's
 // spec: associated with the built-up half of the park (near Penny/Scout)
 // but set back from any building into the grass, not fronting one.
-const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number }[] = [
+const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number; scale?: number }[] = [
   { id: 'stall-1', modelPath: '/world/models/market/stall-green.glb', position: [0, -4], rotationY: 0 },
-  // Widened from [2,-4] — at STALL_BLOCK_RADIUS 0.75 each, the old 2-unit
-  // gap to stall-1 left only 0.5 units of clearance, tight enough that the
-  // player's own ~0.7-unit-wide model would visually clip a stall corner
-  // even though the collision math never technically let them through
-  // (Claudia's review).
   { id: 'stall-2', modelPath: '/world/models/market/stall-red.glb', position: [2.6, -4], rotationY: 0 },
-  { id: 'stall-3', modelPath: '/world/models/market/stall.glb', position: [1, -2], rotationY: Math.PI / 6 },
+  // rotationY 0 (was PI/6) so it faces back up Market Lane instead of at an
+  // angle to it, and its own scale (was the shared MARKET_SCALE) — this
+  // specific model's raw bounding box is 3.38x shorter than the other two
+  // stalls, so the shared scale left it looking like a toy next to them
+  // (Claudia's follow-up scale review).
+  { id: 'stall-3', modelPath: '/world/models/market/stall.glb', position: [1, -2], rotationY: 0, scale: 3.0 },
 ];
 const MARKET_SCALE = 2.6;
 
-// Road/sidewalk (City Kit Roads, verified CC0). Re-read Claudia's own
-// spec more carefully after flagging this as blocked: "the sidewalk
-// should be drawn to them, not the reverse" — a Neighbor is meant to
-// stand ON the sidewalk in front of their own building, same as a real
-// shopkeeper standing outside their shop. There's no actual placement
-// conflict; a decorative floor tile has no collision and doesn't block
-// clicking or talking to anyone standing on it. One tile centered on
-// each "downtown" Neighbor (Penny/Pip/Wren, matching the buildings above
-// — Scout's corner stays open, per the same spec), rotated tangentially
-// (perpendicular to the radial line into the park) so it reads as a
-// stretch of street running past them, not a path pointing at them.
+// Road/sidewalk (City Kit Roads, verified CC0), fully rebuilt per Claudia's
+// scale/layout review — the previous 8-tile version put a sidewalk tile
+// halfway into the pond (Wren was standing in her own collision circle)
+// and left 4 "path" tiles overlapping each other by up to 40% and running
+// under the market stalls and a mushroom. ROAD_SCALE dropped from 4 to
+// 2.5 (a plaza-slab-sized tile down to a believable sidewalk width, 1.43x
+// a character) so tiles can actually be spaced edge-to-edge into a real
+// network instead of dropped as isolated slabs. The whole network reads
+// as one sentence: a street across the top of downtown, two short spurs
+// off it (to the desk and the market), and two paths down the sides of
+// the park connecting to Pip's and Wren's corners.
+const ROAD_SCALE = 2.5;
 const ROAD_TILES: { id: string; position: [number, number]; rotationY: number }[] = [
-  { id: 'road-penny', position: [8, -6], rotationY: Math.atan2(8, -6) + Math.PI / 2 },
-  { id: 'road-pip', position: [-8, 6], rotationY: Math.atan2(-8, 6) + Math.PI / 2 },
-  { id: 'road-wren', position: [8, 6], rotationY: Math.atan2(8, 6) + Math.PI / 2 },
-  // Scout's corner now has a building too (see BUILDINGS' welcome-center
-  // entry) — same tangential sidewalk-in-front-of-the-door treatment as
-  // the other three, for the same reason.
-  { id: 'road-scout', position: [-8, -6], rotationY: Math.atan2(-8, -6) + Math.PI / 2 },
-  // Claudia's review, the single most consequential finding: the market
-  // stalls and the computer desk (arguably the two busiest interaction
-  // points in the scene) sat 8+ units from the nearest sidewalk tile with
-  // nothing connecting them — sparse/disconnected rather than a real
-  // plaza. These four are stepping-stone tiles along the straight line
-  // from the desk through the market to Penny's corner (each tile's
-  // rotation points ALONG the path, unlike the sidewalk tiles above which
-  // are rotated across it), not a full continuous road, but enough to
-  // visually tie the busiest spots into the same street network.
-  { id: 'path-desk-1', position: [-2.93, -2.44], rotationY: Math.atan2(6.2, -1.33) },
-  { id: 'path-desk-2', position: [-0.87, -2.89], rotationY: Math.atan2(6.2, -1.33) },
-  { id: 'path-market-1', position: [3.47, -4.22], rotationY: Math.atan2(6.8, -2.67) },
-  { id: 'path-market-2', position: [5.73, -5.11], rotationY: Math.atan2(6.8, -2.67) },
+  // Main Street — east-west along the top of downtown at z=-6, running
+  // from the Welcome Center's door to the Bank's door. Scout and Penny
+  // each stand on its end tiles, same as before.
+  ...[-8.75, -6.25, -3.75, -1.25, 1.25, 3.75, 6.25, 8.75].map((x, i) => ({
+    id: `main-st-${i}`, position: [x, -6] as [number, number], rotationY: Math.PI / 2,
+  })),
+  // Desk Walk — one spur south off Main Street to the computer desk,
+  // arriving between the two potted-tree planters.
+  { id: 'desk-walk', position: [-5, -3.75] as [number, number], rotationY: 0 },
+  // Market Lane — one spur south off Main Street, with stall-1 and
+  // stall-2 flanking it at the curb and stall-3 closing the far end.
+  { id: 'market-lane', position: [1.3, -3.75] as [number, number], rotationY: 0 },
+  // West Park Path — north-south down the west side of the park, from
+  // Scout's corner to Pip's.
+  ...[-3.5, -1, 1.5, 4, 6.5].map((z, i) => ({
+    id: `west-path-${i}`, position: [-8, z] as [number, number], rotationY: 0,
+  })),
+  // East Park Path — north-south down the east side, from Penny's corner
+  // to Wren's. x=10 (not 8) so its edge clears the pond.
+  ...[-3.5, -1, 1.5, 4, 6.5].map((z, i) => ({
+    id: `east-path-${i}`, position: [10, z] as [number, number], rotationY: 0,
+  })),
 ];
-const ROAD_SCALE = 4;
 
 // Two more real, license-verified props (KayKit Mini-Game Variety Pack,
 // CC0 — the same pack the bridge/flower/mushroom/rocks came from) to keep
@@ -222,17 +290,16 @@ const DECOR_PROPS: { id: string; modelPath: string; position: [number, number]; 
 ];
 
 // Every building/stall/the desk now blocks movement too — walking straight
-// through a building was flagged directly as illogical. Radii are each
-// building/prop's real footprint, not its full visual scale (BUILDING_SCALE
-// and MARKET_SCALE inflate the model well past just its base), sized so a
-// building doesn't reach out and swallow its own sidewalk tile or Neighbor's
-// standing spot (e.g. the bank at [10,-7.5] and Penny's sidewalk tile at
-// [8,-6] are ~2.5 units apart — a 1.8 building radius leaves it clear).
-const BUILDING_BLOCK_RADIUS = 1.8;
+// through a building was flagged directly as illogical. Each building
+// brings its own blockRadius now (see BUILDINGS above — the old single
+// BUILDING_BLOCK_RADIUS=1.8 stopped being right the moment buildings got
+// individually-scaled). Stall/desk radii are each prop's real footprint,
+// not its full visual scale, sized so nothing reaches out and swallows its
+// own sidewalk tile or Neighbor's standing spot.
 const STALL_BLOCK_RADIUS = 0.75;
 const DESK_BLOCK_RADIUS = 0.9; // just the desk/chair footprint, well inside COMPUTER_RADIUS so "walk up and use" still works
 const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
-  ...BUILDINGS.map((b) => ({ x: b.position[0], z: b.position[1], radius: BUILDING_BLOCK_RADIUS })),
+  ...BUILDINGS.map((b) => ({ x: b.position[0], z: b.position[1], radius: b.blockRadius })),
   ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
   { x: COMPUTER_POSITION[0], z: COMPUTER_POSITION[1], radius: DESK_BLOCK_RADIUS },
   // Claudia's review: collision covered every building/stall/the desk but
@@ -240,9 +307,12 @@ const STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   // object" complaint the teacher raised, just not yet reported because
   // it wasn't named. Only the two large ones — the small Rocks() clusters
   // and every tree are thin/low enough that leaving them uncollided is a
-  // reasonable call, not an oversight.
-  { x: 10, z: -2, radius: 1.0 }, // large_rock.glb
-  { x: -1, z: -10, radius: 0.7 }, // medium_rock.glb
+  // reasonable call, not an oversight. Position/radius updated in the same
+  // pass that moved large_rock off Main Street's path (it was sitting
+  // dead center on it) and re-scaled both rocks up to match their new,
+  // no-longer-tiny PROP_SCALE values.
+  { x: 12.8, z: -2.4, radius: 1.05 }, // large_rock.glb
+  { x: -1, z: -10, radius: 0.75 }, // medium_rock.glb
 ];
 
 function blockObstacles(x: number, z: number): [number, number] {
@@ -271,6 +341,11 @@ interface ActiveConversation {
 }
 
 function blockPond(x: number, z: number): [number, number] {
+  // The footbridge (moved to lay straight across the pond east-west in
+  // Claudia's layout review, rather than stopping short of the far shore)
+  // needs a corridor exception, or the pond's own circular collision walls
+  // off the middle of a bridge built specifically to cross it.
+  if (Math.abs(z - POND_CENTER.z) <= 1.0 && Math.abs(x - POND_CENTER.x) <= 2.6) return [x, z];
   const dx = x - POND_CENTER.x;
   const dz = z - POND_CENTER.z;
   const dist = Math.hypot(dx, dz);
@@ -595,9 +670,12 @@ function Prop({
 // rather than a paint swatch. The pond now also blocks movement (see
 // blockPond) so the bridge means something instead of being decorative.
 function Pond() {
+  // Radius brought down from 3 to 2.2 in Claudia's layout review so its
+  // edge clears the East Park Path (x=10, half-width 1.25) with margin —
+  // at 3 the water was drawing over half of Wren's own sidewalk tile.
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[6, 0.02, 6]}>
-      <circleGeometry args={[3, 32]} />
+      <circleGeometry args={[2.2, 32]} />
       <meshStandardMaterial color="#5b9bd5" roughness={0.15} metalness={0.1} />
     </mesh>
   );
@@ -979,7 +1057,14 @@ function Park({
   const treeRing = useMemo(() => {
     const trees: { pos: [number, number, number]; pine: boolean; scale: number }[] = [];
     const count = 16;
+    // At the buildings' corrected (larger) scale, these 5 ring positions
+    // land inside a building's footprint or on Main Street — Claudia's
+    // scale review measured each one. Skipping them leaves real gaps in
+    // the treeline exactly where the buildings break through it, which
+    // reads as "a town in a clearing" instead of trees growing through walls.
+    const SKIP = new Set([1, 6, 9, 10, 14]);
     for (let i = 0; i < count; i++) {
+      if (SKIP.has(i)) continue;
       const angle = (i / count) * Math.PI * 2;
       const r = GROUND_HALF - 2 + Math.sin(i * 3.1) * 1.5;
       trees.push({
@@ -1012,21 +1097,34 @@ function Park({
         </Suspense>
       </mesh>
       <Pond />
-      <Prop path="/world/models/props/bridge.glb" position={[3, 0, 6]} rotationY={Math.PI / 2} scale={PROP_SCALE.bridge} />
+      {/* Straightened to run east-west across the pond's middle (was
+          angled and stopped 1.9 units short of the far shore — a bridge
+          to nowhere) — Claudia's layout review. */}
+      <Prop path="/world/models/props/bridge.glb" position={[6, 0, 6]} rotationY={0} scale={PROP_SCALE.bridge} />
       {/* Not at [8, 0, -7] / [-6, 0, 5] — those sat right on top of (or at
           the edge of) Penny and Pip in a verification render (Claudia's
-          review). Moved clear of every Neighbor's talk radius. */}
+          review). Moved clear of every Neighbor's talk radius. Second
+          cluster and large_rock repositioned again in the follow-up scale
+          review — the cluster was sitting in open lawn instead of marking
+          a boundary, and large_rock was dead center on the new Main
+          Street. */}
       <Rocks position={[8, 0, -10]} />
-      <Rocks position={[-6, 0, 3]} />
-      <Prop path="/world/models/props/large_rock.glb" position={[10, 0, -2]} scale={PROP_SCALE.largeRock} />
+      <Rocks position={[-2, 0, 9.4]} />
+      <Prop path="/world/models/props/large_rock.glb" position={[12.8, 0, -2.4]} scale={PROP_SCALE.largeRock} />
       <Prop path="/world/models/props/medium_rock.glb" position={[-1, 0, -10]} scale={PROP_SCALE.mediumRock} />
+      {/* Flowers and mushrooms moved from an even scatter across the open
+          lawn (several sitting on top of the new road network, one inside
+          the store's corrected footprint) into clumps of 2 at the
+          treeline, per Claudia's placement template: decoration belongs
+          at the wild edge, never in the walking corridor, and reads as a
+          real "patch" only when grouped rather than sprinkled evenly. */}
       {[
-        [-3, 2], [4, 9], [-9, -2], [2, -8], [9, 3], [-5, -9],
+        [-11.8, 2.2], [-12.4, 1.3], [3.2, -10.2], [5.4, -10.0], [-3.4, -10.6], [4, 9],
       ].map(([x, z], i) => (
         <Prop key={`flower-${i}`} path="/world/models/props/flower.glb" position={[x, 0, z]} scale={PROP_SCALE.flower} />
       ))}
       {[
-        [-2, -3], [5, 3], [-11, 9], [1, 10],
+        [-11.5, -1.2], [-10.8, -2.6], [-0.8, 10.4], [1, 10],
       ].map(([x, z], i) => (
         <Prop key={`mushroom-${i}`} path="/world/models/props/mushroom.glb" position={[x, 0, z]} scale={PROP_SCALE.mushroom} />
       ))}
@@ -1034,10 +1132,10 @@ function Park({
         t.pine ? <PineTree key={i} position={t.pos} scaleMul={t.scale} /> : <Tree key={i} position={t.pos} scaleMul={t.scale} />,
       )}
       {BUILDINGS.map((b) => (
-        <Prop key={b.id} path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={b.scale ?? BUILDING_SCALE} />
+        <Prop key={b.id} path={b.modelPath} position={[b.position[0], 0, b.position[1]]} rotationY={b.rotationY} scale={b.scale} />
       ))}
       {MARKET_STALLS.map((m) => (
-        <Prop key={m.id} path={m.modelPath} position={[m.position[0], 0, m.position[1]]} rotationY={m.rotationY} scale={MARKET_SCALE} />
+        <Prop key={m.id} path={m.modelPath} position={[m.position[0], 0, m.position[1]]} rotationY={m.rotationY} scale={m.scale ?? MARKET_SCALE} />
       ))}
       {ROAD_TILES.map((r) => (
         // A tiny y offset above the grass — coplanar flat meshes at the

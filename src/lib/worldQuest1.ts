@@ -161,7 +161,12 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     ],
     itemLabel: 'a string of fall leaf garland',
     itemRewardCents: 25,
-    position: [8, 6],
+    // Moved from [8,6] — Claudia's scale/layout review found Wren was
+    // literally standing inside the pond's own collision circle (distance
+    // to pond center 2.00 vs. the old POND_BLOCK_RADIUS 2.6), so walking
+    // up to her pushed a student out to the shoreline. [10,6.5] puts her
+    // on the East Park Path's own last tile instead.
+    position: [10, 6.5],
     modelPath: '/world/models/characters/neighbor-wren.glb',
   },
 ];
