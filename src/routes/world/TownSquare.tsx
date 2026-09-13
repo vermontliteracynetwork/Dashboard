@@ -193,11 +193,9 @@ const BUILDINGS: { id: string; modelPath: string; position: [number, number]; ro
   // native size unrelated to the Kenney buildings' scale, measured the
   // same real-bounding-box way — scale 22 originally only reached 1.5x a
   // character (a garden shed), corrected to the same 3.5-4x target band.
-  // blockRadius corrected from Claudia's own stated 3.1 down to 2.0 — her
-  // review separately confirmed Scout sits 2.5 units from this building's
-  // center (the same buffer used at the other three), but 3.1 would have
-  // put Scout's own standing spot inside the collision circle. 2.0 matches
-  // post-office's radius and leaves the same margin bank/Penny has.
+  // blockRadius: 2.0 matches post-office's radius and leaves Scout (now
+  // ~4.0 units from this building's center, after the 1.4x reposition
+  // below) the same kind of margin bank/Penny has.
   //
   // A second pass, doing the same real-rotated-rectangle math that caught
   // the store bug (not just the AABB shortcut) rather than trusting the
@@ -210,8 +208,10 @@ const BUILDINGS: { id: string; modelPath: string; position: [number, number]; ro
   // directly overhead. The fix that actually clears it without shrinking
   // the building below the 3.5-4x-character target band: push the radial
   // multiplier from 1.25x to 1.4x (same direction/rotation, just farther
-  // out), which measures out to a real 0.55-unit clearance along the
-  // building's short local axis instead of a negative one.
+  // out) — Claudia's follow-up review independently re-derived this from
+  // the real .glb bounding box and measured a genuine ~1.13-unit clearance
+  // at the new position (better than the ~0.55 first estimated here, not
+  // worse — the fix direction was right, this comment's arithmetic wasn't).
   { id: 'welcome-center', modelPath: '/world/models/props/shop_building.glb', position: [-11.2, -8.4], rotationY: Math.atan2(10, 7.5), label: 'Welcome Center', scale: 55, blockRadius: 2.0 },
 ];
 
@@ -1771,7 +1771,7 @@ export default function TownSquare() {
         <button
           className="btn btn-sm"
           onClick={() => setShowTodayTasks(true)}
-          style={{ background: totalTasksLeft > 0 ? '#fff' : '#e3f2e8', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+          style={{ background: totalTasksLeft > 0 ? '#fff' : '#e3f2e8', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', minHeight: 44 }}
         >
           {totalTasksLeft > 0 ? `📋 Today: ${totalTasksLeft} left` : '🎉 All done for today!'}
         </button>
@@ -1810,7 +1810,7 @@ export default function TownSquare() {
             <div className="content-well stack">
               <div className="space-between">
                 <h2 style={{ margin: 0 }}>📋 Today</h2>
-                <button className="btn btn-sm" onClick={() => setShowTodayTasks(false)}>✕</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowTodayTasks(false)}>✕</button>
               </div>
               <div className="stack" style={{ gap: 8 }}>
                 {subjectsToday.map((s) => (
@@ -1820,7 +1820,7 @@ export default function TownSquare() {
                       {s.label}: {s.total === 0 ? 'nothing assigned' : s.remaining === 0 ? 'all done!' : `${s.remaining} of ${s.total} left`}
                     </span>
                     {s.remaining > 0 && (
-                      <button className="btn btn-sm btn-primary" onClick={() => { setShowTodayTasks(false); navigate(`/student/${s.subject}`); }}>
+                      <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => { setShowTodayTasks(false); navigate(`/student/${s.subject}`); }}>
                         Go
                       </button>
                     )}
