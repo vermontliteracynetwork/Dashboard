@@ -255,6 +255,8 @@ interface AppState {
   // $200 grand-finish reward, through the same real Class Cash ledger
   // every other reward in the app already uses.
   meetQuest1Neighbor: (studentId: string, neighborId: string, itemRewardCents: number, itemLabel: string) => void;
+  recordNpcDailyTalk: (studentId: string, npcId: string, npcName: string) => void;
+  collectJoke: (studentId: string, jokeId: string) => void;
   resetAllDailySpins: () => void;
   deleteStudent: (id: string) => void;
   setFeatureToggle: (studentId: string, tool: ToolKey, enabled: boolean) => void;
@@ -1080,6 +1082,35 @@ export const useStore = create<AppState>()(
         // distinct moments they actually were (§First quest).
         if (metIds.length >= QUEST1_NEIGHBOR_COUNT) {
           get().recordTransaction(studentId, QUEST1_GRAND_PRIZE_CENTS, '🎉 Meet the Neighbors: quest complete!', '🏆', 'task');
+        }
+      },
+
+      // Small coin for the first conversation with a given NPC each real-
+      // world day — a legible, learnable rule (never random) so talking to
+      // people has a real reason beyond the one-time Neighbor quest item.
+      // Fired after the student's first response pick, not the closing
+      // line, so bailing out early with "I need a minute" is always free.
+      recordNpcDailyTalk: (studentId, npcId, npcName) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        const today = todayISO();
+        if (student.worldNpcLastTalkDates[npcId] === today) return;
+        get().updateStudent(studentId, { worldNpcLastTalkDates: { ...student.worldNpcLastTalkDates, [npcId]: today } });
+        if (student.worldTalkRewardCents > 0) {
+          get().recordTransaction(studentId, student.worldTalkRewardCents, `💬 Talked with ${npcName}`, '💬', 'task', true);
+        }
+      },
+
+      // A joke heard for the first time ever goes into the permanent Joke
+      // Book plus a one-time small bonus — never again for the same joke,
+      // and never tied to which response the student picked (Pivotal
+      // Response Treatment: reinforce the attempt, not "the best answer").
+      collectJoke: (studentId, jokeId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student || student.worldJokesHeardIds.includes(jokeId)) return;
+        get().updateStudent(studentId, { worldJokesHeardIds: [...student.worldJokesHeardIds, jokeId] });
+        if (student.worldTalkRewardCents > 0) {
+          get().recordTransaction(studentId, 5, '😄 New joke for the Joke Book!', '📖', 'task', true);
         }
       },
 

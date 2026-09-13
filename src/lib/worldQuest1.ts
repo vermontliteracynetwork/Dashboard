@@ -30,6 +30,13 @@ export interface ConversationStep {
   id?: string;
   npc: string;
   options?: (string | ConversationOption)[];
+  // Marks this step as a joke's punchline. The first time a student
+  // reaches it, the engine banks jokeBookEntry into their permanent Joke
+  // Book (viewable from the inventory hotbar) and pays a small one-time
+  // bonus — never again for the same jokeId, and never tied to which
+  // option got them here (reinforce the attempt, not "the best answer").
+  jokeId?: string;
+  jokeBookEntry?: { npcName: string; setup: string; punchline: string; explain: string };
 }
 
 export interface Quest1Neighbor {
@@ -61,10 +68,16 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     role: 'shows you around',
     dialogue: [
       { npc: "Hi! I'm Scout. Welcome to Yoglandia!", options: ["Hi Scout!", "Nice to meet you."] },
-      { npc: "How are you doing today?", options: ["Pretty good!", "A little tired.", "Excited to look around!"] },
-      { npc: "Good to hear. I show new folks around here, so if you ever get turned around, come find me.", options: ["Thanks, I will.", "Good to know."] },
-      { npc: "One tip: walk with WASD or the arrow keys, or click anywhere on the grass to walk there.", options: ["Got it!"] },
-      { npc: "Have fun exploring Yoglandia. See you around town!" },
+      { npc: "Before you run off, want to hear why my bike couldn't take me around town today?", options: ["Sure.", "What happened to it?"] },
+      { npc: "It kept tipping over. Every single time. Want to guess why?", options: ["Flat tire?", "Is it broken?", "Why?"] },
+      {
+        npc: "It was two tired.",
+        jokeId: 'scout-two-tired',
+        jokeBookEntry: { npcName: 'Scout', setup: 'Why did my bike keep tipping over?', punchline: 'It was two tired.', explain: 'A bike has two tires, and too tired means you need a nap. Two and too sound exactly the same.' },
+        options: ["Two tires!", "Too tired!", "Wait, which one?"],
+      },
+      { npc: "Both! A bike has two tires, and too tired means you need a nap. Two and too sound exactly the same.", options: ["Nice one, Scout.", "I get it."] },
+      { npc: "So we're walking. Use WASD or the arrow keys, or just click the grass where you want to go. If you ever get turned around, come find me. See you out there!" },
     ],
     itemLabel: 'a little pile of fall leaves',
     itemRewardCents: 25,
@@ -77,10 +90,17 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     role: 'the Banker',
     dialogue: [
       { npc: "Well hello there! I'm Penny.", options: ["Hi Penny!", "Nice to meet you."] },
-      { npc: "How's your day going so far?", options: ["Pretty good!", "It's okay.", "Great, thanks for asking!"] },
-      { npc: "Glad to hear it. I run the Bank right over there. Every coin you earn is really yours to keep.", options: ["That's cool!", "How do I earn coins?"] },
-      { npc: "Finish your tasks and you'll see your balance grow. Come find me anytime you want to check it.", options: ["I'll do that!"] },
-      { npc: "See you around, and good luck out there!" },
+      { npc: "I've been saving something for you. Not money this time, a riddle. Want to hear it?", options: ["A riddle? Okay!", "Let's hear it."] },
+      { npc: "Why did the penny go to school?", options: ["To learn math?", "To get smarter?", "I give up, why?"] },
+      {
+        npc: "To get a little more cents!",
+        jokeId: 'penny-more-cents',
+        jokeBookEntry: { npcName: 'Penny', setup: 'Why did the penny go to school?', punchline: 'To get a little more cents!', explain: 'Cents is money, like five cents. Sense means being smart, like good sense. They sound exactly the same.' },
+        options: ["Cents like coins?", "Oh! Cents and sense.", "Say that again?"],
+      },
+      { npc: "Cents is money, like five cents. Sense means being smart, like good sense. They sound exactly the same. That's the whole trick.", options: ["That's a good one.", "Got it."] },
+      { npc: "Speaking of cents, I run the Bank right over there. Every coin you earn is really yours to keep, and you can come check your balance anytime.", options: ["I'll do that!"] },
+      { npc: "I'll have a new joke tomorrow, free of charge. That's rare from a banker. See you around!" },
     ],
     itemLabel: 'a cozy autumn welcome mat',
     itemRewardCents: 25,
@@ -93,10 +113,27 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     role: 'the Shopkeeper',
     dialogue: [
       { npc: "Hiya! I'm Pip.", options: ["Hi Pip!", "Hey there!"] },
-      { npc: "How are you today?", options: ["Doing well!", "A bit sleepy.", "Ready for a good day!"] },
-      { npc: "Nice. I run the Store just over there. Same stuff every day, so you always know what you'll find.", options: ["Cool, I'll check it out.", "What do you sell?"] },
-      { npc: "A little bit of everything. You can spend the coins you earn there whenever you like.", options: ["Sounds fun!"] },
-      { npc: "Stop by anytime. See you later!" },
+      {
+        npc: "Oh good, a customer! Quick, guess which thing sold out at my store this morning.",
+        options: [
+          { text: "Snacks?", next: 'pip-snack' },
+          { text: "Hats?", next: 'pip-hat' },
+          { text: "No idea.", next: 'pip-shrug' },
+        ],
+      },
+      { id: 'pip-snack', npc: "Snacks? Solid guess. But no, the snacks are still sitting right there looking lonely.", options: [{ text: "Okay, tell me.", next: 'pip-reveal' }] },
+      { id: 'pip-hat', npc: "Hats? Not even close. Nobody's bought a hat since Tuesday and I'm taking it personally.", options: [{ text: "So what was it?", next: 'pip-reveal' }] },
+      { id: 'pip-shrug', npc: "That's fair, it surprised me too and I own the place.", options: [{ text: "Tell me!", next: 'pip-reveal' }] },
+      {
+        id: 'pip-reveal',
+        npc: "It was the brooms. Every single broom. They flew off the shelves.",
+        jokeId: 'pip-brooms',
+        jokeBookEntry: { npcName: 'Pip', setup: 'What sold out at my store?', punchline: 'The brooms. They flew off the shelves.', explain: 'When something sells fast, people say it flew off the shelves. And brooms fly. One sentence, two meanings.' },
+        options: ["Wait, flew?", "Because brooms fly!", "Ha!"],
+      },
+      { npc: "Exactly. When something sells fast, people say it flew off the shelves. And brooms fly. One sentence, two meanings.", options: ["That's a good one, Pip.", "I'm using that later."] },
+      { npc: "I run the Store just over there. Same stuff every day, so you always know what you'll find, and you can spend your coins there anytime.", options: ["Sounds fun!"] },
+      { npc: "Take it with you, it's free. Everything else is full price. See you later!" },
     ],
     itemLabel: 'a small pumpkin for your shelf',
     itemRewardCents: 25,
@@ -109,10 +146,18 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     role: 'the Mail Carrier',
     dialogue: [
       { npc: "Hey there! I'm Wren.", options: ["Hi Wren!", "Nice to meet you."] },
-      { npc: "How's it going with you today?", options: ["Going great!", "Pretty normal.", "Happy to be here!"] },
+      { npc: "Hey, perfect timing. I've got one knock knock joke in the bag today and it's got your name on it.", options: ["Let's hear it!", "A joke in the mail?"] },
+      { npc: "Knock knock.", options: ["Who's there?", "Who is it?"] },
+      { npc: "Letter.", options: ["Letter who?"] },
+      {
+        npc: "Letter go, I'm late for my route! Get it? Letter is a thing you mail, and let her sounds exactly the same.",
+        jokeId: 'wren-letter-go',
+        jokeBookEntry: { npcName: 'Wren', setup: 'Knock knock. Who\'s there? Letter.', punchline: 'Letter go, I\'m late for my route!', explain: 'Letter is a thing you mail, and let her sounds exactly the same.' },
+        options: ["Ha, letter go.", "That's a good one.", "I saw that coming."],
+      },
       { npc: "Good to hear it. I deliver the mail all over town, and the Post Office is right over there.", options: ["That sounds like fun.", "Do I get any mail?"] },
       { npc: "As a matter of fact, yes! Here, this is for you.", options: ["Thank you, Wren!"] },
-      { npc: "Take care, see you around!" },
+      { npc: "Ten out of ten delivery. Come find me tomorrow, I'll have a fresh one. Take care!" },
     ],
     itemLabel: 'a string of fall leaf garland',
     itemRewardCents: 25,

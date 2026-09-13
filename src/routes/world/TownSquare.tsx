@@ -1157,6 +1157,8 @@ export default function TownSquare() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const meetQuest1Neighbor = useStore((s) => s.meetQuest1Neighbor);
+  const recordNpcDailyTalk = useStore((s) => s.recordNpcDailyTalk);
+  const collectJoke = useStore((s) => s.collectJoke);
   const updateStudent = useStore((s) => s.updateStudent);
   const student = students.find((s) => s.id === currentStudentId);
 
@@ -1373,13 +1375,23 @@ export default function TownSquare() {
     const nextId = typeof picked === 'object' ? picked.next : undefined;
     const nextIndex = nextId ? activeConversation.steps.findIndex((s) => s.id === nextId) : -1;
     const resolvedIndex = nextIndex !== -1 ? nextIndex : stepIndex + 1;
-    const nextNpcLine = activeConversation.steps[resolvedIndex]?.npc;
+    const nextStep = activeConversation.steps[resolvedIndex];
     setMessageLog((log) => [
       ...log,
       ...(label ? [{ sender: 'player' as const, text: label }] : []),
-      ...(nextNpcLine ? [{ sender: 'npc' as const, text: nextNpcLine }] : []),
+      ...(nextStep?.npc ? [{ sender: 'npc' as const, text: nextStep.npc }] : []),
     ]);
     setStepIndex(resolvedIndex);
+    // Direct teacher instruction: talking to NPCs needs a real reason to
+    // do it repeatedly. A small coin fires after the student's first
+    // response pick (never the closing line, so "I need a minute" always
+    // stays free), once per NPC per real-world day. A joke lands in the
+    // permanent Joke Book the first time its punchline step is reached,
+    // regardless of which option got the student there.
+    if (student) {
+      if (stepIndex === 0) recordNpcDailyTalk(student.id, activeConversation.id, activeConversation.name);
+      if (nextStep?.jokeId && nextStep.jokeBookEntry) collectJoke(student.id, nextStep.jokeId);
+    }
   };
 
   if (!student) return null;
