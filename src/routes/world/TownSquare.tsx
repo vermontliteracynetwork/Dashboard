@@ -2218,6 +2218,23 @@ export default function TownSquare() {
               </div>
 
               <div className="stack" style={{ gap: 6 }}>
+                <span style={{ fontWeight: 700 }}>Keyboard controls</span>
+                <div className="row" style={{ gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div className="row" style={{ gap: 3 }}>
+                    {['w', 'a', 's', 'd'].map((k) => (
+                      <img key={k} src={`/ui/keys/${k}.png`} alt={k.toUpperCase()} style={{ width: 32, height: 32 }} />
+                    ))}
+                  </div>
+                  <span style={{ opacity: 0.6, fontSize: '0.8rem' }}>or</span>
+                  <div className="row" style={{ gap: 3 }}>
+                    {['arrow-left', 'arrow-up', 'arrow-down', 'arrow-right'].map((k) => (
+                      <img key={k} src={`/ui/keys/${k}.png`} alt={k.replace('arrow-', '')} style={{ width: 32, height: 32 }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="stack" style={{ gap: 6 }}>
                 <span style={{ fontWeight: 700 }}>Which side are the walk buttons on?</span>
                 <div className="row-wrap" style={{ gap: 8 }}>
                   <button
