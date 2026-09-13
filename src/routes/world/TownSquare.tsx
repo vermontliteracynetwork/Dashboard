@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { QUEST1_NEIGHBORS, pickDialogueVariant, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
+import { QUEST1_NEIGHBORS, pickDialogueVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { formatMoney } from '../../lib/money';
 import ToolsPanel from '../../components/ToolsPanel';
@@ -44,6 +44,17 @@ const TALK_RADIUS = 1.8;
 // well before they're actually in talk range — see the touch-predictability
 // note where it's used.
 const NOTICE_RADIUS = 5;
+// Tier 3 of Claudia's guardrails design: how long a student needs to have
+// been free-roaming (with real tasks still open) before Scout's rare
+// check-in becomes eligible at all — see handleTalk's use of this.
+const SCOUT_CHECKIN_THRESHOLD_MS = 15 * 60 * 1000;
+// A trivial wrapper, but a real one: keeping the Date.now() call in its
+// own top-level function (same reason todayISO() elsewhere in this app
+// works the same way) rather than inline inside the component means an
+// event handler reading "now" doesn't read as an impure render-time call.
+function msSince(start: number): number {
+  return Date.now() - start;
+}
 // Base walking speed — multiplied by the student's own sensitivity setting
 // (Settings panel, student.worldMoveSensitivity, 0.5-2x) so a student who
 // finds the default speed too fast or too slow can adjust it themselves.
@@ -1632,6 +1643,15 @@ export default function TownSquare() {
       try { sessionStorage.setItem(arrivalStorageKey, '1'); } catch { /* private browsing etc — worst case it reappears */ }
     }
   };
+
+  // Tier 3 of Claudia's guardrails design — eligibility state for
+  // SCOUT_CHECKIN_VARIANT (see handleTalk below). Deliberately in-memory
+  // only (not a Student field): "once per session" is exactly what this
+  // needs to mean, a reload starting a fresh session is the right
+  // behavior, not a bug to persist around.
+  const sessionStart = useRef(0);
+  useEffect(() => { sessionStart.current = Date.now(); }, []);
+  const scoutCheckInUsed = useRef(false);
   // Direct teacher instruction: the "click/tap to walk" instruction text
   // is onboarding, not a permanent fixture — once a student has actually
   // done it once, it just clutters an otherwise clean view.
@@ -1716,6 +1736,17 @@ export default function TownSquare() {
   };
 
   const handleTalk = (n: Quest1Neighbor) => {
+    if (
+      n.id === 'scout' &&
+      !scoutCheckInUsed.current &&
+      totalTasksLeft > 0 &&
+      sessionStart.current > 0 &&
+      msSince(sessionStart.current) > SCOUT_CHECKIN_THRESHOLD_MS
+    ) {
+      scoutCheckInUsed.current = true;
+      beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: SCOUT_CHECKIN_VARIANT });
+      return;
+    }
     beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []) });
   };
 

@@ -37,6 +37,25 @@ export interface ConversationStep {
   // option got them here (reinforce the attempt, not "the best answer").
   jokeId?: string;
   jokeBookEntry?: { npcName: string; setup: string; punchline: string; explain: string };
+  // Tags an entire variant (only meaningful when set on a variant's first
+  // step — pickDialogueVariant only ever reads it there) as eligible only
+  // during one real-world season, so a joke pool can renew itself on the
+  // calendar instead of needing a code change every few months. Omitted
+  // (every variant that exists today) means eligible year-round. Claudia's
+  // full-game audit flagged the fuller version of this as worth building
+  // once the cheap "one more joke per character" fix was shipped — this
+  // is that engine piece, ready for seasonal content to actually use.
+  variantSeason?: 'winter' | 'spring' | 'summer' | 'fall';
+}
+
+export type Season = 'winter' | 'spring' | 'summer' | 'fall';
+
+export function currentSeason(date: Date = new Date()): Season {
+  const month = date.getMonth(); // 0-11
+  if (month === 11 || month <= 1) return 'winter'; // Dec-Feb
+  if (month <= 4) return 'spring'; // Mar-May
+  if (month <= 7) return 'summer'; // Jun-Aug
+  return 'fall'; // Sep-Nov
 }
 
 export interface Quest1Neighbor {
@@ -80,13 +99,21 @@ export interface Quest1Neighbor {
 // gets its turn instead of being permanently crowded out (the other half
 // of that instruction: "not all communication needs to be jokes").
 export function pickDialogueVariant(variants: ConversationStep[][], heardJokeIds: string[]): ConversationStep[] {
-  const unheard = variants.find((v) => {
+  // A variant tagged with variantSeason only enters the pool during its
+  // own real-world season; if that ever empties the pool entirely (every
+  // remaining variant is tagged for some other season), fall back to the
+  // full list rather than crashing on an empty array — evergreen content
+  // should never actually go missing.
+  const season = currentSeason();
+  const seasonal = variants.filter((v) => !v[0]?.variantSeason || v[0].variantSeason === season);
+  const pool = seasonal.length > 0 ? seasonal : variants;
+  const unheard = pool.find((v) => {
     const jokeStep = v.find((s) => s.jokeId);
     return jokeStep && !heardJokeIds.includes(jokeStep.jokeId!);
   });
   if (unheard) return unheard;
   const dayIndex = Math.floor(Date.now() / 86400000);
-  return variants[dayIndex % variants.length];
+  return pool[dayIndex % pool.length];
 }
 
 export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
@@ -335,3 +362,28 @@ export const QUEST1_NEIGHBOR_COUNT = QUEST1_NEIGHBORS.length;
 // instead as a nice one-time "you met everyone" milestone bonus — a few
 // times a single task's reward, not an order of magnitude beyond it.
 export const QUEST1_GRAND_PRIZE_CENTS = 500; // $5
+
+// Tier 3 of Claudia's guardrails design (the "Azalea" open-world-
+// distraction scenario) — a rare, optional check-in from Scout, never a
+// popup, only ever offered inside a conversation the student already
+// chose to start by walking up to her. Eligibility (real tasks still
+// open, a real amount of free-roam time already spent this session, at
+// most once per session) lives in TownSquare.tsx, not here, since it
+// needs live session state pickDialogueVariant has no access to. The
+// exact wording got a direct tone sign-off before shipping: no repeated
+// pressure within the exchange itself, and "still exploring" is
+// validated exactly as warmly as "heading to the computer" — a
+// forced-cheerful yes, or a decline treated as the wrong answer, is the
+// failure mode this whole tier exists to avoid.
+export const SCOUT_CHECKIN_VARIANT: ConversationStep[] = [
+  { npc: "Hey! Having fun out here?", options: ["Yeah!", "Just looking around."] },
+  {
+    npc: "Me too, I love this park. Hey, no pressure at all, but I saw your task list has a couple things on it. Want a hand getting started, or are you still enjoying your walk?",
+    options: [
+      { text: "Maybe I'll head to the computer.", next: 'scout-checkin-yes' },
+      { text: "I'm still exploring, thanks.", next: 'scout-checkin-no' },
+    ],
+  },
+  { id: 'scout-checkin-yes', npc: "That works! I'll be right here if you want to talk more later." },
+  { id: 'scout-checkin-no', npc: "Totally fine, take your time. I'm not going anywhere." },
+];
