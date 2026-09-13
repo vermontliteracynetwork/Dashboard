@@ -947,6 +947,17 @@ function TTSSettingsPanel({ student }: { student: Student }) {
   return (
     <div className="stack">
       <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={student.dyslexiaFont}
+            onChange={(e) => updateStudent(student.id, { dyslexiaFont: e.target.checked })}
+          />{' '}
+          Dyslexia-friendly font (everywhere in the app)
+        </label>
+      </div>
+      <hr className="divider" />
+      <div>
         <label>Speed: {student.ttsSettings.rate.toFixed(1)}x</label>
         <input
           type="range"

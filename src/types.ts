@@ -36,7 +36,7 @@ export const ALL_TOOL_KEYS: ToolKey[] = [
 
 export const TOOL_LABELS: Record<ToolKey, string> = {
   calculator: 'Calculator',
-  tts: 'Text-to-Speech',
+  tts: 'Reading Settings',
   wordProcessor: 'Word Processor',
   whiteboard: 'Whiteboard',
   breakVisual: 'Quiet/Break Tool',
@@ -103,6 +103,7 @@ export interface Student {
   worldShowArrivalCard: boolean; // teacher override for the Tier 0 daily arrival choice card — Claudia's full-game audit flagged that none of the guardrails tiers had a per-student off switch yet
   worldShowDeskGlow: boolean; // teacher override for the Tier 2 computer-desk glow/label
   worldReduceMotion: boolean; // student/teacher-set in-app motion reduction (desk glow, etc.) independent of the OS-level prefers-reduced-motion setting, for a shared/school device a student can't change system settings on
+  dyslexiaFont: boolean; // app-wide (not just Town Square) dyslexia-friendly display mode — a standing requirement in docs/NATIVE_GAME_STANDARD.md that had no actual toggle anywhere in the app until Claudia's full-game audit found the gap
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

@@ -40,11 +40,21 @@ export default function App() {
   const hydrated = useStore((s) => s.hydrated);
   const hydrationError = useStore((s) => s.hydrationError);
   const initSync = useStore((s) => s.initSync);
+  const currentStudentId = useStore((s) => s.currentStudentId);
+  const students = useStore((s) => s.students);
 
   useEffect(() => {
     initSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // App-wide (not just one screen) so the dyslexia-friendly toggle covers
+  // every route a student can be on — quiz questions, task instructions,
+  // the world, all of it — from the one place it's set.
+  useEffect(() => {
+    const student = students.find((s) => s.id === currentStudentId);
+    document.body.classList.toggle('dyslexia-font', !!student?.dyslexiaFont);
+  }, [currentStudentId, students]);
 
   if (!isSupabaseConfigured) {
     return (

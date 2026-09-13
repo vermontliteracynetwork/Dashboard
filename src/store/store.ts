@@ -684,6 +684,7 @@ export const useStore = create<AppState>()(
           worldShowArrivalCard: true,
           worldShowDeskGlow: true,
           worldReduceMotion: false,
+          dyslexiaFont: false,
         };
         set((s) => ({
           students: [...s.students, student],

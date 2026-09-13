@@ -1559,3 +1559,24 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   border-radius: 10px;
   border: 2px solid var(--content-border);
 }
+
+/* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the
+   Reading Settings tool) — a standing requirement in
+   docs/NATIVE_GAME_STANDARD.md ("available as an option, not forced")
+   that had no actual toggle anywhere in the app. Lexend was already being
+   loaded by the @import at the top of this file but never applied
+   anywhere — it's a real typeface developed with reading researchers and
+   shown to improve reading speed, not a generic substitute. Needs to be
+   the LAST rule in this file to win on source order over every other
+   component's own font-family (badges, buttons, headings all set their
+   own), since a toggle meant to override everything shouldn't depend on
+   remembering to keep it last forever — !important makes that permanent
+   regardless of what gets added above it later. Increased letter/word/
+   line spacing follows the same British Dyslexia Association guidance
+   this population's other tools (StepGuide, TaskChecklist) are built to. */
+.dyslexia-font, .dyslexia-font * {
+  font-family: 'Lexend', system-ui, sans-serif !important;
+  letter-spacing: 0.03em !important;
+  word-spacing: 0.08em !important;
+  line-height: 1.6 !important;
+}
