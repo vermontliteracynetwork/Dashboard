@@ -233,12 +233,21 @@ const BUILDING_FOOTPRINTS = BUILDINGS.map((b) => {
 // Direct teacher clarification: buildings aren't walk-in 3D interiors
 // (only the student's own house eventually will be) — clicking one opens
 // its existing 2D page instead, the same idea as walking up to the
-// computer desk for "My Tasks". Only the two buildings with a real page to
-// send a student to are listed; Post Office and Welcome Center get a
-// label but no click action until they have somewhere to go.
+// computer desk for "My Tasks". Post Office and Welcome Center used to
+// get only a label with no click action, which Claudia's full-game audit
+// flagged as a real predictability problem for literal-thinking
+// students (a labeled, walkable, "noticed"-at-distance building that
+// turns out to be inert on arrival reads as broken, not "not yet built").
+// Post Office -> Mailbox (Wren's item-per-Neighbor deliveries, data that
+// already existed with nowhere to show up) and Welcome Center -> Passport
+// (an Animal-Crossing-Town-Hall-style summary, on-brand for Scout's
+// "shows you around" role) both reuse existing Student data rather than
+// inventing new mechanics.
 const BUILDING_VIEWS: Record<string, string> = {
   bank: '/student/piggy-bank',
   store: '/student/marketplace',
+  'post-office': '/student/mailbox',
+  'welcome-center': '/student/passport',
 };
 
 // The farmer's market — Kenney Fantasy Town Kit stalls (verified CC0; the
