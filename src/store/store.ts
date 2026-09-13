@@ -110,6 +110,8 @@ import {
   pushEmotePriceOverrides,
   pushNpcTitleOverrides,
   pushLayoutOverrides,
+  pushGroundTexture,
+  pushSkyColor,
   pushWorldObject,
   deleteWorldObjectRemote,
   rowToWorldObject,
@@ -209,6 +211,8 @@ interface AppState {
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
+  groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
+  skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
   focuses: Focus[]; // class-wide curriculum spotlights (math/literacy/sel/finance lanes) — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;
 
@@ -261,6 +265,8 @@ interface AppState {
   // LayoutOverride's own comment in types.ts). `patch: null` clears that
   // item's override entirely (used by undo to fully revert a change).
   setLayoutOverride: (layoutId: string, patch: Partial<LayoutOverride> | null) => void;
+  setGroundTexture: (path: string | null) => void;
+  setSkyColor: (color: string | null) => void;
   // Bulk-restores Build Mode's editable state to an exact prior snapshot —
   // undo/redo's only store action. Diffs against the current worldObjects
   // to push just what actually changed/got removed, rather than a
@@ -520,6 +526,8 @@ export const useStore = create<AppState>()(
       marketplaceItems: [],
       worldObjects: [],
       layoutOverrides: {},
+      groundTexture: null,
+      skyColor: null,
       focuses: [],
       assignmentCompletionReward: null,
       emotePriceOverrides: {},
@@ -685,6 +693,8 @@ export const useStore = create<AppState>()(
               emotePriceOverrides: n.emote_price_overrides ?? {},
               npcTitleOverrides: n.npc_title_overrides ?? {},
               layoutOverrides: n.layout_overrides ?? {},
+              groundTexture: n.ground_texture ?? null,
+              skyColor: n.sky_color ?? null,
             });
           },
         });
@@ -927,6 +937,16 @@ export const useStore = create<AppState>()(
         }
         set({ layoutOverrides: next });
         pushLayoutOverrides(next);
+      },
+
+      setGroundTexture: (path) => {
+        set({ groundTexture: path });
+        pushGroundTexture(path);
+      },
+
+      setSkyColor: (color) => {
+        set({ skyColor: color });
+        pushSkyColor(color);
       },
 
       // Undo/redo's only store action — see its own interface comment.

@@ -441,6 +441,12 @@ alter table app_settings add column if not exists npc_title_overrides jsonb not 
 -- from Build Mode now, not just objects placed after the tool existed;
 -- see LayoutOverride in types.ts.
 alter table app_settings add column if not exists layout_overrides jsonb not null default '{}';
+-- Build Mode's paint bucket. ground_texture is a path under
+-- /world/textures/ (null = the default grass); sky_color is a horizon fog
+-- tint layered over the real skybox photo, never replacing it (null = no
+-- tint, today's exact look). See WorldEditor.tsx's paint-mode comment.
+alter table app_settings add column if not exists ground_texture text;
+alter table app_settings add column if not exists sky_color text;
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

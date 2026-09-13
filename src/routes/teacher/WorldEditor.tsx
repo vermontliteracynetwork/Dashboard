@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Html, useGLTF } from '@react-three/drei';
+import { OrbitControls, Html, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
@@ -204,6 +204,32 @@ function GhostScaleReporter({ path, onScale }: { path: string; onScale: (s: numb
     onScale(s);
   }, [size, onScale]);
   return null;
+}
+
+// Paint mode's ground bucket — a curated set of real, already-licensed
+// texture files (the teacher's own wests_textures upload) rather than a
+// flat color swap, so "filling texture" is literal. `path: null` means
+// the original default grass.
+const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
+  { label: 'Grass', path: null },
+  { label: 'Clover', path: '/world/textures/wests/clover%201.png' },
+  { label: 'Dirt', path: '/world/textures/wests/dirt%201.png' },
+  { label: 'Sand', path: '/world/textures/wests/sand%201.png' },
+  { label: 'Snow', path: '/world/textures/wests/snow%201.png' },
+  { label: 'Stone', path: '/world/textures/wests/paving%201.png' },
+];
+// Same tiling approach as TownSquare's own GroundMaterial (which this
+// mirrors) so a texture picked here looks the same once it's real —
+// ~4 world units per tile against the visible ground diameter.
+function GroundTextureMaterial({ path }: { path: string }) {
+  const tex = useTexture(path);
+  useMemo(() => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    const tileRepeat = (GROUND_HALF * 2) / 4;
+    tex.repeat.set(tileRepeat, tileRepeat);
+    tex.colorSpace = THREE.SRGBColorSpace;
+  }, [tex]);
+  return <meshStandardMaterial map={tex} />;
 }
 
 // WASD/arrow-key camera panning — Claudia's navigation review: an
@@ -636,6 +662,10 @@ export default function WorldEditor() {
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const setLayoutOverride = useStore((s) => s.setLayoutOverride);
+  const groundTexture = useStore((s) => s.groundTexture);
+  const setGroundTexture = useStore((s) => s.setGroundTexture);
+  const skyColor = useStore((s) => s.skyColor);
+  const setSkyColor = useStore((s) => s.setSkyColor);
   const restoreWorldEditorState = useStore((s) => s.restoreWorldEditorState);
   const retrySyncNow = useStore((s) => s.retrySyncNow);
 
@@ -652,6 +682,7 @@ export default function WorldEditor() {
   const [recentAssets, setRecentAssets] = useState<AssetManifestEntry[]>([]);
   const armAsset = (a: AssetManifestEntry | null) => {
     setHammerMode(false);
+    setPaintMode(null);
     setArmedAsset(a);
     if (a) setRecentAssets((prev) => [a, ...prev.filter((r) => r.path !== a.path)].slice(0, 8));
   };
@@ -661,6 +692,12 @@ export default function WorldEditor() {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [catalogOpen, setCatalogOpen] = useState(true);
   const [hammerMode, setHammerMode] = useState(false);
+  // Paint tool: Brush paints one thing you click; Bucket paints every
+  // placed/fixed object using that same model at once. Ground and sky
+  // don't need a click target — there's only one of each — so they're
+  // direct buttons in the paint panel instead (see the panel's own JSX).
+  const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | null>(null);
+  const [paintColor, setPaintColor] = useState(TINT_SWATCHES[0]);
   const [shiftHeld, setShiftHeld] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
   // drei's OrbitControls ref type is awkward to name exactly (it's the
@@ -919,6 +956,22 @@ export default function WorldEditor() {
     else setLayoutOverrideH(selection.id, { deleted: true });
     setSelection(null);
   };
+  // Paint Bucket: every placed AND fixed object sharing this exact model —
+  // "make every pumpkin orange in one click" — not just the one clicked.
+  // Each recolor still goes through the normal update/override actions
+  // (so undo works; it just takes one Undo per object touched, not one for
+  // the whole bucket — acceptable for how infrequently a bucket-fill spans
+  // more than a couple of objects).
+  const paintAllOfModel = (modelPath: string, color: string) => {
+    worldObjects.filter((o) => o.modelPath === modelPath).forEach((o) => updateWorldObjectH(o.id, { tintColor: color }));
+    layoutItems.filter((l) => l.modelPath === modelPath && !layoutOverrides[l.id]?.deleted).forEach((l) => setLayoutOverrideH(l.id, { tintColor: color }));
+  };
+  const togglePaintMode = (mode: 'brush' | 'bucket') => {
+    setHammerMode(false);
+    setArmedAsset(null);
+    setSelection(null);
+    setPaintMode((v) => (v === mode ? null : mode));
+  };
   // One button, two behaviors (direct instruction): a plain click stamps
   // exactly one copy right next to the original and selects it — nothing
   // more happens on its own. Holding Shift while clicking additionally
@@ -1063,7 +1116,7 @@ export default function WorldEditor() {
             each tile substitutes a category icon + tint, reading as "a
             catalog card" by color/icon the way Sims 4's own category tabs
             do, rather than a plain text row. */}
-        {catalogOpen && (
+        {catalogOpen && !paintMode && (
         <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 8, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>📦 Catalog ({manifest.length})</strong>
           {manifestError && <p style={{ fontSize: '0.78rem', color: 'var(--danger)' }}>Couldn't load the asset list. Try refreshing.</p>}
@@ -1146,6 +1199,106 @@ export default function WorldEditor() {
         </div>
         )}
 
+        {/* Paint tool panel — takes the catalog's spot while active (one
+            tool, one panel, per the hammer/catalog pattern already
+            established). Brush/Bucket picks how clicking an asset in the
+            3D view behaves; Ground and Sky don't need a click target
+            (there's only one of each) so they're direct buttons here. */}
+        {paintMode && (
+        <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 14, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
+          <strong style={{ fontSize: '0.85rem' }}>🎨 Paint</strong>
+
+          <div className="stack" style={{ gap: 6 }}>
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Tap an object in the scene to paint it:</span>
+            <div className="row-wrap" style={{ gap: 4 }}>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, flex: 1, background: paintMode === 'brush' ? BUILD_ACCENT : undefined, color: paintMode === 'brush' ? '#fff' : undefined, borderColor: paintMode === 'brush' ? BUILD_ACCENT : undefined }}
+                onClick={() => setPaintMode('brush')}
+                title="Brush: paints just the one thing you tap"
+              >
+                🖌️ Brush
+              </button>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, flex: 1, background: paintMode === 'bucket' ? BUILD_ACCENT : undefined, color: paintMode === 'bucket' ? '#fff' : undefined, borderColor: paintMode === 'bucket' ? BUILD_ACCENT : undefined }}
+                onClick={() => setPaintMode('bucket')}
+                title="Bucket: paints every object using that same model at once"
+              >
+                🪣 Bucket
+              </button>
+            </div>
+            <span style={{ fontSize: '0.68rem', opacity: 0.6 }}>
+              {paintMode === 'bucket' ? 'Bucket: fills every matching item at once (e.g. every pumpkin).' : 'Brush: paints only the one you tap.'}
+            </span>
+          </div>
+
+          <div className="stack" style={{ gap: 6 }}>
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Color</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+              {TINT_SWATCHES.map((c) => (
+                <button
+                  key={c}
+                  title={c}
+                  aria-label={`Paint color ${c}`}
+                  onClick={() => setPaintColor(c)}
+                  style={{ width: 44, height: 44, padding: 6, borderRadius: 10, border: paintColor === c ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: '#fff', cursor: 'pointer' }}
+                >
+                  <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: 6, background: c }} />
+                </button>
+              ))}
+            </div>
+            <input
+              type="color"
+              value={paintColor}
+              onChange={(e) => setPaintColor(e.target.value)}
+              style={{ minHeight: 44, width: '100%' }}
+              aria-label="Custom paint color"
+            />
+          </div>
+
+          <div className="stack" style={{ gap: 6 }}>
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌤️ Sky</span>
+            <div className="row-wrap" style={{ gap: 6 }}>
+              <button className="btn btn-sm" style={{ minHeight: 44, flex: 1 }} onClick={() => { setSkyColor(paintColor); flashSaved(); }}>
+                Fill sky with this color
+              </button>
+              {skyColor && (
+                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { setSkyColor(null); flashSaved(); }} title="Back to the default sky">Reset</button>
+              )}
+            </div>
+          </div>
+
+          <div className="stack" style={{ gap: 6 }}>
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌱 Ground texture</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {GROUND_TEXTURE_OPTIONS.map((g) => {
+                const active = groundTexture === g.path;
+                return (
+                  <button
+                    key={g.label}
+                    onClick={() => { setGroundTexture(g.path); flashSaved(); }}
+                    title={g.label}
+                    style={{ minHeight: 56, padding: 4, borderRadius: 10, border: active ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}
+                  >
+                    <span
+                      style={{
+                        display: 'block', width: 28, height: 28, borderRadius: 6,
+                        backgroundImage: g.path ? `url(${g.path})` : undefined,
+                        backgroundSize: 'cover', backgroundColor: g.path ? undefined : '#8fc97a',
+                      }}
+                    />
+                    <span style={{ fontSize: 9, fontWeight: 700 }}>{g.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setPaintMode(null)}>Done painting</button>
+        </div>
+        )}
+
         {/* 3D viewport */}
         <div style={{ flex: 1, position: 'relative' }}>
           {/* Claudia's navigation review: the camera's own controls were
@@ -1198,8 +1351,8 @@ export default function WorldEditor() {
                 something is ever placed oddly again, it fades into the sky
                 instead of dominating the view, and the camera itself can't
                 be zoomed out past the town to go looking for it. */}
-            <color attach="background" args={['#bfe3ff']} />
-            <fog attach="fog" args={['#bfe3ff', 26, 46]} />
+            <color attach="background" args={[skyColor ?? '#bfe3ff']} />
+            <fog attach="fog" args={[skyColor ?? '#bfe3ff', 26, 46]} />
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 16, 8]} intensity={1.2} castShadow />
             <OrbitControls ref={controlsRef} makeDefault enabled={!isDragging} maxPolarAngle={Math.PI / 2.1} minDistance={6} maxDistance={42} />
@@ -1212,7 +1365,13 @@ export default function WorldEditor() {
               onPointerMove={handleGroundPointerMove}
             >
               <planeGeometry args={[GROUND_HALF * 2, GROUND_HALF * 2]} />
-              <meshStandardMaterial color="#8fc97a" />
+              {groundTexture ? (
+                <Suspense fallback={<meshStandardMaterial color="#8fc97a" />}>
+                  <GroundTextureMaterial path={groundTexture} />
+                </Suspense>
+              ) : (
+                <meshStandardMaterial color="#8fc97a" />
+              )}
             </mesh>
             <gridHelper args={[GROUND_HALF * 2, GROUND_HALF * 2, '#5a8f48', '#5a8f48']} position={[0, 0.02, 0]} />
 
@@ -1268,13 +1427,18 @@ export default function WorldEditor() {
                     obj={renderObj}
                     opacity={isBeingDragged ? 0.6 : 1}
                     onClick={() => {
+                      if (paintMode) {
+                        if (paintMode === 'bucket') paintAllOfModel(item.modelPath, paintColor);
+                        else setLayoutOverrideH(item.id, { tintColor: paintColor });
+                        return;
+                      }
                       if (hammerMode) { setLayoutOverrideH(item.id, { deleted: true }); return; }
                       setSelection({ kind: 'layout', id: item.id });
                     }}
                     onPointerOver={() => setHovered({ kind: 'layout', id: item.id })}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'layout' && h.id === item.id ? null : h))}
                     onPointerDown={(e) => {
-                      if (hammerMode) return;
+                      if (hammerMode || paintMode) return;
                       if (!(selection?.kind === 'layout' && selection.id === item.id)) return;
                       e.stopPropagation();
                       setDragState({ kind: 'layout', id: item.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
@@ -1305,6 +1469,11 @@ export default function WorldEditor() {
                     obj={renderObj}
                     opacity={isBeingDragged ? 0.6 : 1}
                     onClick={() => {
+                      if (paintMode) {
+                        if (paintMode === 'bucket') paintAllOfModel(obj.modelPath, paintColor);
+                        else updateWorldObjectH(obj.id, { tintColor: paintColor });
+                        return;
+                      }
                       if (hammerMode) { deleteWorldObjectH(obj.id); return; }
                       setSelection({ kind: 'placed', id: obj.id });
                     }}
@@ -1314,7 +1483,7 @@ export default function WorldEditor() {
                       // Direct-drag-to-move (Sims/Webkinz-style), replacing
                       // the old translate gizmo — only once the object is
                       // already selected, so a first tap always just selects.
-                      if (hammerMode) return;
+                      if (hammerMode || paintMode) return;
                       if (!(selection?.kind === 'placed' && selection.id === obj.id)) return;
                       e.stopPropagation();
                       setDragState({ kind: 'placed', id: obj.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
@@ -1379,10 +1548,18 @@ export default function WorldEditor() {
             <button
               className="btn btn-sm"
               style={{ minHeight: 44, background: hammerMode ? HAMMER_COLOR : undefined, color: hammerMode ? '#fff' : undefined, borderColor: hammerMode ? HAMMER_COLOR : undefined, borderRadius: 999 }}
-              onClick={() => { setHammerMode((v) => !v); setArmedAsset(null); setSelection(null); }}
+              onClick={() => { setHammerMode((v) => !v); setPaintMode(null); setArmedAsset(null); setSelection(null); }}
               title="Hammer: tap anything to delete it instantly, no confirmation"
             >
               🔨 {hammerMode ? 'Hammer: ON' : 'Hammer'}
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{ minHeight: 44, background: paintMode ? BUILD_ACCENT : undefined, color: paintMode ? '#fff' : undefined, borderColor: paintMode ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+              onClick={() => togglePaintMode('brush')}
+              title="Paint: color assets, the ground, or the sky"
+            >
+              🎨 {paintMode ? 'Paint: ON' : 'Paint'}
             </button>
             <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)' }} />
             <button

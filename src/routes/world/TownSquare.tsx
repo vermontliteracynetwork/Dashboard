@@ -1023,7 +1023,11 @@ function Neighbor({
 // the actual visible ground size, not the smaller walkable square, since
 // that's the area the tiling has to look right across.
 function GroundMaterial() {
-  const tex = useTexture('/world/textures/grass.png');
+  // Build Mode's paint bucket (WorldEditor.tsx) can swap this for one of a
+  // curated set of real texture files — falls back to the original grass
+  // the moment a teacher clears it back to null.
+  const groundTexture = useStore((s) => s.groundTexture);
+  const tex = useTexture(groundTexture ?? '/world/textures/grass.png');
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   // Tuned against a real render: ~4 world units per tile reads as a
   // believable grass scale next to a ~1.7-unit-tall character.
@@ -1492,6 +1496,7 @@ export default function TownSquare() {
   const students = useStore((s) => s.students);
   const worldObjects = useStore((s) => s.worldObjects);
   const layoutOverrides = useStore((s) => s.layoutOverrides);
+  const skyColor = useStore((s) => s.skyColor);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
   // STATIC_OBSTACLES) in sync with Build Mode edits, including a teacher's
   // edit landing live from another tab/device via Supabase realtime — see
@@ -2024,6 +2029,14 @@ export default function TownSquare() {
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
+        {/* Build Mode's paint bucket for the sky — a horizon fog tint
+            layered over the real skybox photo (SkyboxBackground below),
+            never replacing it. Only rendered when a teacher has actually
+            picked one; skyColor is null by default, so this is a no-op
+            and today's exact look is unchanged until it's used. A large
+            near/far keeps the tint to the distant horizon rather than
+            washing out nearby buildings/characters. */}
+        {skyColor && <fog attach="fog" args={[skyColor, 30, 90]} />}
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>

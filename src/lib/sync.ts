@@ -573,6 +573,8 @@ export interface HydratedState {
   emotePriceOverrides: Record<string, number>;
   npcTitleOverrides: Record<string, string>;
   layoutOverrides: Record<string, LayoutOverride>;
+  groundTexture: string | null;
+  skyColor: string | null;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -690,6 +692,8 @@ export async function fetchAll(): Promise<HydratedState> {
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
     npcTitleOverrides: appSettingsRes.data?.npc_title_overrides ?? {},
     layoutOverrides: appSettingsRes.data?.layout_overrides ?? {},
+    groundTexture: appSettingsRes.data?.ground_texture ?? null,
+    skyColor: appSettingsRes.data?.sky_color ?? null,
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -911,6 +915,12 @@ export const pushNpcTitleOverrides = (overrides: Record<string, string>) =>
 
 export const pushLayoutOverrides = (overrides: Record<string, LayoutOverride>) =>
   upsert('app_settings', { id: 'global', layout_overrides: overrides, updated_at: new Date().toISOString() });
+
+export const pushGroundTexture = (path: string | null) =>
+  upsert('app_settings', { id: 'global', ground_texture: path, updated_at: new Date().toISOString() });
+
+export const pushSkyColor = (color: string | null) =>
+  upsert('app_settings', { id: 'global', sky_color: color, updated_at: new Date().toISOString() });
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });
