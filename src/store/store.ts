@@ -108,6 +108,9 @@ import {
   rowToMarketplaceItem,
   pushAppSettings,
   pushEmotePriceOverrides,
+  pushWorldObject,
+  deleteWorldObjectRemote,
+  rowToWorldObject,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -144,6 +147,7 @@ import type {
   Note,
   MarketplaceItem,
   AssignmentCompletionReward,
+  WorldObject,
 } from '../types';
 
 function extractErrorMessage(err: unknown): string {
@@ -194,6 +198,7 @@ interface AppState {
   chatMessages: ChatMessage[]; // teacher<->student chat, newest last
   notes: Note[];
   marketplaceItems: MarketplaceItem[];
+  worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;
 
   hydrated: boolean; // initial fetch from Supabase has completed (or failed)
@@ -238,6 +243,9 @@ interface AppState {
   updateMarketplaceItem: (id: string, patch: Partial<MarketplaceItem>) => void;
   deleteMarketplaceItem: (id: string) => void;
   buyMarketplaceItem: (studentId: string, itemId: string, needsWants?: 'need' | 'want') => boolean;
+  addWorldObject: (obj: Omit<WorldObject, 'id' | 'createdAt'>) => string;
+  updateWorldObject: (id: string, patch: Partial<WorldObject>) => void;
+  deleteWorldObject: (id: string) => void;
   setAssignmentCompletionReward: (reward: AssignmentCompletionReward | null) => void;
   emotePriceOverrides: Record<string, number>;
   setEmotePriceOverride: (emoteId: string, priceCents: number | null) => void;
@@ -471,6 +479,7 @@ export const useStore = create<AppState>()(
       chatMessages: [],
       notes: [],
       marketplaceItems: [],
+      worldObjects: [],
       assignmentCompletionReward: null,
       emotePriceOverrides: {},
 
@@ -624,6 +633,7 @@ export const useStore = create<AppState>()(
             set((s) => ({ chatMessages: applyArrayRow(s.chatMessages, e, rowToChatMessage, n, o) })),
           onNote: (e, n, o) => set((s) => ({ notes: applyArrayRow(s.notes, e, rowToNote, n, o) })),
           onMarketplaceItem: (e, n, o) => set((s) => ({ marketplaceItems: applyArrayRow(s.marketplaceItems, e, rowToMarketplaceItem, n, o) })),
+          onWorldObject: (e, n, o) => set((s) => ({ worldObjects: applyArrayRow(s.worldObjects, e, rowToWorldObject, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
             if (!n) return;
@@ -835,6 +845,32 @@ export const useStore = create<AppState>()(
       deleteMarketplaceItem: (id) => {
         set((s) => ({ marketplaceItems: s.marketplaceItems.filter((it) => it.id !== id) }));
         deleteMarketplaceItemRemote(id);
+      },
+
+      // World Editor: teacher-placed objects in the shared Town Square.
+      // Every write pushes immediately (same pattern as Marketplace items) —
+      // the editor UI itself is responsible for only calling these at the
+      // end of a drag/rotate/scale gesture, never on every intermediate
+      // frame, so a teacher mid-drag never flickers live for a logged-in
+      // student.
+      addWorldObject: (obj) => {
+        const full: WorldObject = { ...obj, id: makeId(), createdAt: new Date().toISOString() };
+        set((s) => ({ worldObjects: [...s.worldObjects, full] }));
+        pushWorldObject(full);
+        return full.id;
+      },
+
+      updateWorldObject: (id, patch) => {
+        const existing = get().worldObjects.find((o) => o.id === id);
+        if (!existing) return;
+        const updated = { ...existing, ...patch };
+        set((s) => ({ worldObjects: s.worldObjects.map((o) => (o.id === id ? updated : o)) }));
+        pushWorldObject(updated);
+      },
+
+      deleteWorldObject: (id) => {
+        set((s) => ({ worldObjects: s.worldObjects.filter((o) => o.id !== id) }));
+        deleteWorldObjectRemote(id);
       },
 
       setAssignmentCompletionReward: (reward) => {

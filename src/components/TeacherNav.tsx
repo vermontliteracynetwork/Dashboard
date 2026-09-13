@@ -29,6 +29,7 @@ export default function TeacherNav() {
         <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏆 Achievements</NavLink>
         <NavLink to="/teacher/marketplace" className={({ isActive }) => (isActive ? 'active' : '')}>🛍️ Marketplace</NavLink>
         <NavLink to="/teacher/scores" className={({ isActive }) => (isActive ? 'active' : '')}>📊 Scores</NavLink>
+        <NavLink to="/teacher/world-editor" className={({ isActive }) => (isActive ? 'active' : '')}>🏗️ Build Mode</NavLink>
       </div>
       <button
         className="btn btn-sm"

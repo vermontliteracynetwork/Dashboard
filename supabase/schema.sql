@@ -326,6 +326,28 @@ alter table students add column if not exists savings_goal_cents int;
 alter table transactions add column if not exists needs_wants text;
 alter table students add column if not exists count_it_out_enabled boolean not null default false;
 
+-- The World Editor's placed objects: teacher-authored Town Square build
+-- mode (Sims/Minecraft-style). Global, not per-student — one shared table
+-- of everything a teacher has placed, since every student walks the same
+-- real town. role/custom_name let a placed building open a student-facing
+-- 2D view (Bank/Store/Mailbox/Passport) by data instead of hard-coded id.
+create table if not exists world_objects (
+  id text primary key,
+  model_path text not null,
+  label text not null,
+  custom_name text,
+  role text,
+  position jsonb not null default '[0,0,0]',
+  rotation_y numeric not null default 0,
+  scale numeric not null default 1,
+  tint_color text,
+  created_at timestamptz not null default now()
+);
+-- RLS + realtime for this table are granted by the generic loops further
+-- down this file (the tables[] arrays) — 'world_objects' is added there,
+-- not here, so this table follows the exact same anon-read/write,
+-- authenticated-delete policy every other table already uses.
+
 -- Notes word processor: one row per saved note, replacing the old
 -- single-blob scratch_text (still present in student_meta, untouched, so
 -- nothing existing breaks — the Notes tool just no longer reads/writes it).
@@ -425,7 +447,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects'
   ];
 begin
   foreach t in array tables loop
@@ -468,7 +490,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects'
   ];
 begin
   foreach t in array tables loop

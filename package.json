@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-weapon-assets.mjs && tsc -b && vite build",
+    "build": "node scripts/check-weapon-assets.mjs && node scripts/generate-asset-manifest.mjs && tsc -b && vite build",
     "lint": "oxlint",
     "check-weapons": "node scripts/check-weapon-assets.mjs",
+    "gen-asset-manifest": "node scripts/generate-asset-manifest.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

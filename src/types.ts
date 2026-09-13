@@ -530,6 +530,26 @@ export interface Transaction {
   needsWants?: 'need' | 'want';
 }
 
+// A teacher-placed object in the shared Town Square, from the World
+// Editor's "build mode" (Sims/Minecraft-style: place, move, rotate, scale,
+// tint, delete). Global/shared, not per-student — the whole point is that
+// every student sees the same real, live town. Rendered by the same
+// WorldObjectRenderer both the editor and the real student-facing scene
+// use, so what a teacher builds is exactly what a student walks around in.
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center';
+export interface WorldObject {
+  id: string;
+  modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'
+  label: string; // the asset's own generic name (from the manifest), e.g. "Street Light"
+  customName?: string; // teacher-given name for this specific placed instance, e.g. "Bank" — shown to students as the building's label when set
+  role?: WorldObjectRole; // if set, a student clicking this object opens the matching 2D view (same routing the 4 original buildings already use)
+  position: [number, number, number];
+  rotationY: number; // radians
+  scale: number; // uniform scale multiplier
+  tintColor?: string; // hex color multiplied onto the model's material — the v1 "retexture" (arbitrary UV re-texturing is a later, bigger pass)
+  createdAt: string; // ISO
+}
+
 export interface SubjectProgress {
   date: string; // ISO date this progress applies to
   activeIndex: number;

@@ -31,8 +31,10 @@ import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
 
 // Lazy-loaded: Three.js/react-three-fiber are heavy, and only the world
-// route needs them — every existing 2D screen should stay unaffected.
+// route (and the teacher's 3D Build Mode) needs them — every existing 2D
+// screen should stay unaffected.
 const TownSquare = lazy(() => import('./routes/world/TownSquare'));
+const WorldEditor = lazy(() => import('./routes/teacher/WorldEditor'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
 
@@ -126,6 +128,14 @@ export default function App() {
             <Route path="/teacher/marketplace" element={<MarketplaceManager />} />
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />
             <Route path="/teacher/scores" element={<ScoreHistory />} />
+            <Route
+              path="/teacher/world-editor"
+              element={
+                <Suspense fallback={<div className="app-shell center-screen"><p>Loading Build Mode…</p></div>}>
+                  <WorldEditor />
+                </Suspense>
+              }
+            />
           </Route>
         </Routes>
       </div>

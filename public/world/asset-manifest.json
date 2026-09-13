@@ -1,0 +1,270 @@
+{
+  "generatedAt": "2026-09-13T13:47:21.977Z",
+  "assets": [
+    {
+      "path": "/world/models/buildings/bank.glb",
+      "label": "Bank",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/post-office.glb",
+      "label": "Post Office",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/store.glb",
+      "label": "Store",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/characters/ambient-1.glb",
+      "label": "Ambient 1",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/characters/ambient-2.glb",
+      "label": "Ambient 2",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/characters/ambient-3.glb",
+      "label": "Ambient 3",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/characters/neighbor-penny.glb",
+      "label": "Neighbor Penny",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/characters/neighbor-pip.glb",
+      "label": "Neighbor Pip",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/characters/neighbor-scout.glb",
+      "label": "Neighbor Scout",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/characters/neighbor-wren.glb",
+      "label": "Neighbor Wren",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/characters/player.glb",
+      "label": "Player",
+      "category": "characters"
+    },
+    {
+      "path": "/world/models/city/bench2.glb",
+      "label": "Bench2",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/curvedRoad.glb",
+      "label": "Curved Road",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/fireHydrant.glb",
+      "label": "Fire Hydrant",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/garbageBin.glb",
+      "label": "Garbage Bin",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/garden1.glb",
+      "label": "Garden1",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/intersectionRoad.glb",
+      "label": "Intersection Road",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/redCar.glb",
+      "label": "Red Car",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/stopSign.glb",
+      "label": "Stop Sign",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/straightRoad.glb",
+      "label": "Straight Road",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/streetLight.glb",
+      "label": "Street Light",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/trafficCone.glb",
+      "label": "Traffic Cone",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/city/trafficLight.glb",
+      "label": "Traffic Light",
+      "category": "city"
+    },
+    {
+      "path": "/world/models/forest/rocks.glb",
+      "label": "Rocks",
+      "category": "forest"
+    },
+    {
+      "path": "/world/models/forest/tree.glb",
+      "label": "Tree",
+      "category": "forest"
+    },
+    {
+      "path": "/world/models/fox.glb",
+      "label": "Fox",
+      "category": "fox.glb"
+    },
+    {
+      "path": "/world/models/market/stall-green.glb",
+      "label": "Stall Green",
+      "category": "market"
+    },
+    {
+      "path": "/world/models/market/stall-red.glb",
+      "label": "Stall Red",
+      "category": "market"
+    },
+    {
+      "path": "/world/models/market/stall.glb",
+      "label": "Stall",
+      "category": "market"
+    },
+    {
+      "path": "/world/models/props/bridge.glb",
+      "label": "Bridge",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/cactus.glb",
+      "label": "Cactus",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/chair-desk.glb",
+      "label": "Chair Desk",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/computer-keyboard.glb",
+      "label": "Computer Keyboard",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/computer-screen.glb",
+      "label": "Computer Screen",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/desk.glb",
+      "label": "Desk",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/dry_tree.glb",
+      "label": "Dry Tree",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/dumpster.glb",
+      "label": "Dumpster",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/flower.glb",
+      "label": "Flower",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/large_rock.glb",
+      "label": "Large Rock",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/medium_rock.glb",
+      "label": "Medium Rock",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/mountain_map.glb",
+      "label": "Mountain Map",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/mushroom.glb",
+      "label": "Mushroom",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/pine_tree.glb",
+      "label": "Pine Tree",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/potted_tree.glb",
+      "label": "Potted Tree",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/shop_building.glb",
+      "label": "Shop Building",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/traffic_sign.glb",
+      "label": "Traffic Sign",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/tree2.glb",
+      "label": "Tree2",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/trunk.glb",
+      "label": "Trunk",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/roads/road-bend-sidewalk.glb",
+      "label": "Road Bend Sidewalk",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/road-crossroad-path.glb",
+      "label": "Road Crossroad Path",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/road-side.glb",
+      "label": "Road Side",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/road-straight.glb",
+      "label": "Road Straight",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/tree-pine.glb",
+      "label": "Tree Pine",
+      "category": "tree-pine.glb"
+    }
+  ]
+}

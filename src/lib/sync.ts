@@ -27,6 +27,7 @@ import type {
   Note,
   MarketplaceItem,
   AssignmentCompletionReward,
+  WorldObject,
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS } from './marketplaceSeed';
@@ -301,6 +302,31 @@ const transactionToRow = (t: Transaction): Row => ({
   needs_wants: t.needsWants ?? null,
 });
 
+const rowToWorldObject = (r: Row): WorldObject => ({
+  id: r.id,
+  modelPath: r.model_path,
+  label: r.label,
+  customName: r.custom_name ?? undefined,
+  role: r.role ?? undefined,
+  position: r.position ?? [0, 0, 0],
+  rotationY: r.rotation_y ?? 0,
+  scale: r.scale ?? 1,
+  tintColor: r.tint_color ?? undefined,
+  createdAt: r.created_at,
+});
+const worldObjectToRow = (o: WorldObject): Row => ({
+  id: o.id,
+  model_path: o.modelPath,
+  label: o.label,
+  custom_name: o.customName ?? null,
+  role: o.role ?? null,
+  position: o.position,
+  rotation_y: o.rotationY,
+  scale: o.scale,
+  tint_color: o.tintColor ?? null,
+  created_at: o.createdAt,
+});
+
 const annotationKey = (studentId: string, taskId: string, articleIndex: number) => `${studentId}:${taskId}:${articleIndex}`;
 
 const rowToAnnotation = (r: Row): ArticleAnnotationSet => ({
@@ -514,6 +540,7 @@ export interface HydratedState {
   chatMessages: ChatMessage[];
   notes: Note[];
   marketplaceItems: MarketplaceItem[];
+  worldObjects: WorldObject[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
@@ -531,7 +558,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes,
+    literacyFocusSetsRes, worldObjectsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -558,9 +585,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('marketplace_items').select('*'),
     supabase.from('app_settings').select('*').eq('id', 'global').maybeSingle(),
     supabase.from('literacy_focus_sets').select('*'),
+    supabase.from('world_objects').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -625,6 +653,7 @@ export async function fetchAll(): Promise<HydratedState> {
     chatMessages: (chatMessagesRes.data ?? []).map(rowToChatMessage),
     notes: (notesRes.data ?? []).map(rowToNote),
     marketplaceItems: (marketplaceItemsRes.data ?? []).map(rowToMarketplaceItem),
+    worldObjects: (worldObjectsRes.data ?? []).map(rowToWorldObject),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
     rotationModes,
@@ -823,6 +852,9 @@ export const deleteBadgeEarnRemote = (id: string) => remove('badge_earns', { id 
 
 export const pushTransaction = (t: Transaction) => upsert('transactions', transactionToRow(t));
 export const deleteTransactionRemote = (id: string) => remove('transactions', { id });
+
+export const pushWorldObject = (o: WorldObject) => upsert('world_objects', worldObjectToRow(o));
+export const deleteWorldObjectRemote = (id: string) => remove('world_objects', { id });
 export const pushAnnotation = (a: ArticleAnnotationSet) => upsert('article_annotations', annotationToRow(a));
 export const pushSbResponse = (a: SentenceBuilderResponse) => upsert('sentence_builder_responses', sbResponseToRow(a));
 export const pushChatMessage = (m: ChatMessage) => upsert('chat_messages', chatMessageToRow(m));
@@ -1009,7 +1041,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1037,6 +1069,7 @@ export interface RealtimeHandlers {
   onNote: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onMarketplaceItem: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onAppSettings: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onWorldObject: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -1077,6 +1110,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, wire(handlers.onNote))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, wire(handlers.onMarketplaceItem))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, wire(handlers.onAppSettings))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'world_objects' }, wire(handlers.onWorldObject))
     .subscribe();
 
   return () => {
