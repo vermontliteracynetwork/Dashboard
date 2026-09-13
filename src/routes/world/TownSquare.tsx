@@ -12,6 +12,7 @@ import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import InventoryHotbar from '../../components/InventoryHotbar';
+import { todayISO } from '../../lib/dates';
 
 // Yoglandia's Town Square — an open-air park (§The world, §First quest),
 // not an indoor room. This is the new post-login landing view: no more
@@ -1003,14 +1004,45 @@ function SkyboxBackground() {
   return null;
 }
 
+// Tier 2 of Claudia's guardrails design: rather than an NPC that chases a
+// student down about their assignments (her explicit "incessant reminder"
+// verdict — conditions the reminder itself as aversive and risks
+// generalized world-avoidance), the desk itself "pulls": a soft glowing
+// ring visible from across the park and a distance label naming how many
+// tasks are waiting, both purely additive attraction with zero effect on
+// whether the student can walk away, keep talking to Neighbors, or ignore
+// it entirely. Same visual either way once you're actually using it.
+function DeskGlow() {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const t = clock.elapsedTime;
+    const pulse = 0.55 + Math.sin(t * 1.6) * 0.2;
+    (ref.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    const scale = 1 + Math.sin(t * 1.6) * 0.08;
+    ref.current.scale.set(scale, scale, scale);
+  });
+  return (
+    <mesh ref={ref} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[1.3, 1.75, 32]} />
+      <meshBasicMaterial color="#ffd166" transparent opacity={0.6} depthWrite={false} />
+    </mesh>
+  );
+}
+
 // The in-world stand-in for the old "My Tasks" corner button — walking up
 // and using this opens the 2D task dashboard (subjects, header, Playground)
 // that used to be one tap away everywhere. Same in-range/hover/E-or-tap
 // pattern as a Neighbor, minus the wandering behavior (it's furniture).
-function ComputerDesk({ playerPos, onUse }: { playerPos: THREE.Vector3; onUse: () => void }) {
+function ComputerDesk({ playerPos, onUse, tasksLeft }: { playerPos: THREE.Vector3; onUse: () => void; tasksLeft: number }) {
   const [cx, cz] = COMPUTER_POSITION;
   const dist = Math.hypot(playerPos.x - cx, playerPos.z - cz);
   const inRange = dist <= COMPUTER_RADIUS;
+  // Visible from much farther out than the ordinary hover/in-range label —
+  // the whole point of a "pull" is that it can be noticed from well
+  // outside conversation/approach range, same distance a Neighbor's own
+  // NOTICE_RADIUS uses for the same reason.
+  const noticedFar = tasksLeft > 0 && dist <= NOTICE_RADIUS * 1.6;
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
@@ -1022,6 +1054,7 @@ function ComputerDesk({ playerPos, onUse }: { playerPos: THREE.Vector3; onUse: (
 
   return (
     <group position={[cx, 0, cz]}>
+      {tasksLeft > 0 && <DeskGlow />}
       <Prop path="/world/models/props/desk.glb" position={[0, 0, 0]} scale={FURNITURE_SCALE} />
       <Prop path="/world/models/props/chair-desk.glb" position={[0.1, 0, 0.2]} rotationY={Math.PI} scale={FURNITURE_SCALE} />
       <Prop path="/world/models/props/computer-screen.glb" position={[0, 0.684, -0.15]} scale={FURNITURE_SCALE} />
@@ -1034,10 +1067,10 @@ function ComputerDesk({ playerPos, onUse }: { playerPos: THREE.Vector3; onUse: (
         <cylinderGeometry args={[1.1, 1.1, 1.8, 12]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      {(hovered || inRange) && (
+      {(hovered || inRange || noticedFar) && (
         <Html center position={[0, 1.5, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-            💻 Computer
+            💻 {tasksLeft > 0 ? `${tasksLeft} task${tasksLeft === 1 ? '' : 's'} waiting` : 'Computer'}
           </div>
         </Html>
       )}
@@ -1326,7 +1359,26 @@ export default function TownSquare() {
   const recordNpcDailyTalk = useStore((s) => s.recordNpcDailyTalk);
   const collectJoke = useStore((s) => s.collectJoke);
   const updateStudent = useStore((s) => s.updateStudent);
+  const rotations = useStore((s) => s.rotations);
+  const progress = useStore((s) => s.progress);
   const student = students.find((s) => s.id === currentStudentId);
+
+  // Claudia's guardrails design (the "Azalea" distraction scenario): the
+  // open world's own gamification can out-compete the actual assignments,
+  // so the town needs to keep today's real work visible and inviting
+  // without ever gating or blocking the world itself (regulation and
+  // free-roam both stay unconditionally available — only invitation and
+  // visibility change). This reuses the exact same rotations/progress data
+  // SubjectDashboard already tracks, so "today" here can never drift from
+  // what the 2D task views show.
+  const subjectsToday = (['math', 'literacy'] as const).map((subj) => {
+    const tasks = student ? rotations[student.id]?.[subj] ?? [] : [];
+    const prog = student ? progress[student.id]?.[subj] : undefined;
+    const doneToday = prog?.date === todayISO() ? prog.completedTaskIds.length : 0;
+    const remaining = Math.max(0, tasks.length - doneToday);
+    return { subject: subj, label: subj === 'math' ? 'Math' : 'Reading', remaining, total: tasks.length };
+  });
+  const totalTasksLeft = subjectsToday.reduce((sum, s) => sum + s.remaining, 0);
 
   const [playerPos, setPlayerPos] = useState(() => new THREE.Vector3(0, 0, 6));
   const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);
@@ -1358,6 +1410,31 @@ export default function TownSquare() {
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [showTodayTasks, setShowTodayTasks] = useState(false);
+  // Tier 0 of Claudia's guardrails design: a one-time-per-day arrival
+  // choice (start Math, start Reading, or free time first) rather than
+  // dropping a student straight into the open world with no prompt at
+  // all — but "free time first" is a real, one-tap, no-explanation-needed
+  // option right there on the card, not a hidden escape hatch, since a
+  // choice that isn't genuinely offered isn't a choice. sessionStorage
+  // (not a Student field) so it naturally resets every day/new browser
+  // session without needing its own sync/schema plumbing for what's
+  // fundamentally a one-time nudge, not data anyone needs to persist.
+  const arrivalStorageKey = student ? `homeplot-arrival-shown-${student.id}-${todayISO()}` : null;
+  const [showArrival, setShowArrival] = useState(() => {
+    if (!arrivalStorageKey) return false;
+    try {
+      return !sessionStorage.getItem(arrivalStorageKey);
+    } catch {
+      return false;
+    }
+  });
+  const dismissArrival = () => {
+    setShowArrival(false);
+    if (arrivalStorageKey) {
+      try { sessionStorage.setItem(arrivalStorageKey, '1'); } catch { /* private browsing etc — worst case it reappears */ }
+    }
+  };
   // Direct teacher instruction: the "click/tap to walk" instruction text
   // is onboarding, not a permanent fixture — once a student has actually
   // done it once, it just clutters an otherwise clean view.
@@ -1577,11 +1654,77 @@ export default function TownSquare() {
         <span style={{ background: 'white', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 700, color: '#1f4238', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
           🌳 Yoglandia Town Square
         </span>
+        {/* Tier 1 of Claudia's guardrails design: today's real work stays
+            visible the whole time a student is in the open world, as an
+            ordinary chip they can tap or ignore — never a popup that
+            interrupts whatever they're doing, and never disabled or hidden
+            just because they're off exploring instead of at the desk. */}
+        <button
+          className="btn btn-sm"
+          onClick={() => setShowTodayTasks(true)}
+          style={{ background: totalTasksLeft > 0 ? '#fff' : '#e3f2e8', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+        >
+          {totalTasksLeft > 0 ? `📋 Today: ${totalTasksLeft} left` : '🎉 All done for today!'}
+        </button>
       </div>
 
       <ToolsPanel student={student} subject="both" />
 
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
+      {showArrival && totalTasksLeft > 0 && (
+        <div className="overlay-backdrop" onClick={dismissArrival}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <h2 style={{ margin: 0 }}>Welcome back, {student.name}!</h2>
+              <p style={{ margin: 0 }}>What sounds good first?</p>
+              <div className="stack" style={{ gap: 8 }}>
+                {subjectsToday.filter((s) => s.remaining > 0).map((s) => (
+                  <button
+                    key={s.subject}
+                    className="btn btn-primary btn-lg"
+                    onClick={() => { dismissArrival(); navigate(`/student/${s.subject}`); }}
+                  >
+                    {s.subject === 'math' ? '🔢' : '📖'} Start {s.label} ({s.remaining} left)
+                  </button>
+                ))}
+                <button className="btn btn-lg" onClick={dismissArrival}>
+                  🌳 Free time first
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showTodayTasks && (
+        <div className="overlay-backdrop" onClick={() => setShowTodayTasks(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <div className="space-between">
+                <h2 style={{ margin: 0 }}>📋 Today</h2>
+                <button className="btn btn-sm" onClick={() => setShowTodayTasks(false)}>✕</button>
+              </div>
+              <div className="stack" style={{ gap: 8 }}>
+                {subjectsToday.map((s) => (
+                  <div key={s.subject} className="checklist-item">
+                    <span style={{ fontSize: '1.3rem' }}>{s.subject === 'math' ? '🔢' : '📖'}</span>
+                    <span className="checklist-label" style={{ flex: 1 }}>
+                      {s.label}: {s.total === 0 ? 'nothing assigned' : s.remaining === 0 ? 'all done!' : `${s.remaining} of ${s.total} left`}
+                    </span>
+                    {s.remaining > 0 && (
+                      <button className="btn btn-sm btn-primary" onClick={() => { setShowTodayTasks(false); navigate(`/student/${s.subject}`); }}>
+                        Go
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button className="btn btn-lg" style={{ alignSelf: 'center' }} onClick={() => setShowTodayTasks(false)}>
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showWhatNow && (
         <div className="overlay-backdrop" onClick={() => setShowWhatNow(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
@@ -1736,7 +1879,7 @@ export default function TownSquare() {
               />
             );
           })}
-          <ComputerDesk playerPos={playerPos} onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }} />
+          <ComputerDesk playerPos={playerPos} tasksLeft={totalTasksLeft} onUse={() => { if (!mapView && !wasDraggingLook.current) navigate('/student/home'); }} />
           {BUILDINGS.map((b) => {
             const viewPath = BUILDING_VIEWS[b.id];
             return (
