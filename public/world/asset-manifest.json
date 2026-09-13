@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T22:38:49.230Z",
+  "generatedAt": "2026-09-13T22:44:45.867Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -5635,6 +5635,76 @@
       "path": "/world/models/structures/pack-shop.glb",
       "label": "Pack Shop",
       "category": "structures"
+    },
+    {
+      "path": "/world/models/suburb/gas-station.glb",
+      "label": "Gas Station",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-country.glb",
+      "label": "House Country",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-hill-normal.glb",
+      "label": "House Hill Normal",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-hill-small.glb",
+      "label": "House Hill Small",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-luxurious.glb",
+      "label": "House Luxurious",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-mid.glb",
+      "label": "House Mid",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-modern.glb",
+      "label": "House Modern",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-small-carport-left.glb",
+      "label": "House Small Carport Left",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-small-carport-right.glb",
+      "label": "House Small Carport Right",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-small-garage.glb",
+      "label": "House Small Garage",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-small.2.glb",
+      "label": "House Small.2",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/house-small.glb",
+      "label": "House Small",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/road-straight-house-1-low.glb",
+      "label": "Road Straight House 1 Low",
+      "category": "suburb"
+    },
+    {
+      "path": "/world/models/suburb/road-straight-house-2-low.glb",
+      "label": "Road Straight House 2 Low",
+      "category": "suburb"
     },
     {
       "path": "/world/models/toolsbits/anvil.gltf",
