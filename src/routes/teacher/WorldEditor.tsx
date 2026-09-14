@@ -1710,7 +1710,20 @@ export default function WorldEditor() {
               ✓ Saved
             </div>
           )}
-          <Canvas camera={{ position: [0, 18, 20], fov: 50 }} shadows>
+          <Canvas
+            camera={{ position: [0, 18, 20], fov: 50 }}
+            shadows
+            // Delete/[/]/-/= silently did nothing after using the search box
+            // or the brush-radius slider: clicking into the 3D view doesn't
+            // move browser keyboard focus away from whatever <input> had it,
+            // so isTypingTarget (further down) kept reading every keystroke
+            // as "still typing" and swallowing it — even though WASD panning
+            // (no such guard) kept working the whole time, which is exactly
+            // what was reported live. Any interaction with the viewport now
+            // releases focus first, the same way clicking a game world
+            // normally takes over from whatever form control had it.
+            onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+          >
             {/* A solid sky color + fog bound the visible scene to roughly
                 the walkable town square — direct teacher instruction after
                 a mis-scaled test placement produced giant shapes visible
