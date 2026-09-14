@@ -949,6 +949,12 @@ export default function WorldEditor() {
   // direct buttons in the paint panel instead (see the panel's own JSX).
   const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | null>(null);
   const [paintColor, setPaintColor] = useState(TINT_SWATCHES[0]);
+  // Brush size (direct instruction: "adjust the size of the paintbrush").
+  // 0 keeps the original "just the object under the cursor" behavior;
+  // above 0, every object within this many units of whatever's touched
+  // gets painted too — lets a teacher recolor a cluster in one drag
+  // instead of tracing each object individually.
+  const [brushRadius, setBrushRadius] = useState(0);
   // Direct teacher instruction: Brush needs to actually act as a brush —
   // paint whatever the pointer drags across while held, not just the one
   // object tapped. isPaintingRef tracks "pointer currently held down while
@@ -1236,6 +1242,26 @@ export default function WorldEditor() {
   const paintAllOfModel = (modelPath: string, color: string) => {
     worldObjects.filter((o) => o.modelPath === modelPath).forEach((o) => updateWorldObjectH(o.id, { tintColor: color }));
     layoutItems.filter((l) => l.modelPath === modelPath && !layoutOverrides[l.id]?.deleted).forEach((l) => setLayoutOverrideH(l.id, { tintColor: color }));
+  };
+  // Brush stroke with radius: paints every placed AND fixed object whose
+  // (x,z) falls within brushRadius of the touched object's own position —
+  // at radius 0 this only ever matches the touched object itself, so the
+  // original single-object brush behavior is unchanged by default.
+  const paintNear = (anchorX: number, anchorZ: number, color: string) => {
+    const r2 = brushRadius * brushRadius;
+    worldObjects.forEach((o) => {
+      const dx = o.position[0] - anchorX;
+      const dz = o.position[2] - anchorZ;
+      if (dx * dx + dz * dz <= r2) updateWorldObjectH(o.id, { tintColor: color });
+    });
+    layoutItems.forEach((item) => {
+      const ov = layoutOverrides[item.id];
+      if (ov?.deleted) return;
+      const [px, pz] = ov?.position ?? item.position;
+      const dx = px - anchorX;
+      const dz = pz - anchorZ;
+      if (dx * dx + dz * dz <= r2) setLayoutOverrideH(item.id, { tintColor: color });
+    });
   };
   const togglePaintMode = (mode: 'brush' | 'bucket') => {
     setHammerMode(false);
@@ -1532,6 +1558,22 @@ export default function WorldEditor() {
             </span>
           </div>
 
+          {paintMode === 'brush' && (
+            <div className="stack" style={{ gap: 6 }}>
+              <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Brush size {brushRadius === 0 ? '(just the object touched)' : `(${brushRadius.toFixed(1)} units around it)`}</span>
+              <input
+                type="range"
+                min={0}
+                max={6}
+                step={0.5}
+                value={brushRadius}
+                onChange={(e) => setBrushRadius(Number(e.target.value))}
+                style={{ width: '100%', minHeight: 44 }}
+                aria-label="Brush size"
+              />
+            </div>
+          )}
+
           <div className="stack" style={{ gap: 6 }}>
             <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Color</span>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
@@ -1738,14 +1780,14 @@ export default function WorldEditor() {
                       // needs to actually act as a brush"): while the
                       // pointer is held down in brush mode, every object it
                       // passes over gets painted too, not just the first one.
-                      if (paintMode === 'brush' && isPaintingRef.current) setLayoutOverrideH(item.id, { tintColor: paintColor });
+                      if (paintMode === 'brush' && isPaintingRef.current) paintNear(basePos[0], basePos[1], paintColor);
                     }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'layout' && h.id === item.id ? null : h))}
                     onPointerDown={(e) => {
                       if (paintMode === 'brush') {
                         e.stopPropagation();
                         isPaintingRef.current = true;
-                        setLayoutOverrideH(item.id, { tintColor: paintColor });
+                        paintNear(basePos[0], basePos[1], paintColor);
                         return;
                       }
                       // Direct instruction: moving an object used to need
@@ -1792,14 +1834,14 @@ export default function WorldEditor() {
                     }}
                     onPointerOver={() => {
                       setHovered({ kind: 'placed', id: obj.id });
-                      if (paintMode === 'brush' && isPaintingRef.current) updateWorldObjectH(obj.id, { tintColor: paintColor });
+                      if (paintMode === 'brush' && isPaintingRef.current) paintNear(obj.position[0], obj.position[2], paintColor);
                     }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'placed' && h.id === obj.id ? null : h))}
                     onPointerDown={(e) => {
                       if (paintMode === 'brush') {
                         e.stopPropagation();
                         isPaintingRef.current = true;
-                        updateWorldObjectH(obj.id, { tintColor: paintColor });
+                        paintNear(obj.position[0], obj.position[2], paintColor);
                         return;
                       }
                       // Direct-drag-to-move (Sims/Webkinz-style), replacing
