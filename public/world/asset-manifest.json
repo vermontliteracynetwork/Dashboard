@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T01:31:21.807Z",
+  "generatedAt": "2026-09-14T01:43:47.366Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -440,6 +440,131 @@
       "path": "/world/models/city/trafficLight.glb",
       "label": "Traffic Light",
       "category": "city"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-a.glb",
+      "label": "Building A",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-b.glb",
+      "label": "Building B",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-c.glb",
+      "label": "Building C",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-d.glb",
+      "label": "Building D",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-e.glb",
+      "label": "Building E",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-f.glb",
+      "label": "Building F",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-g.glb",
+      "label": "Building G",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-h.glb",
+      "label": "Building H",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-i.glb",
+      "label": "Building I",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-j.glb",
+      "label": "Building J",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-k.glb",
+      "label": "Building K",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-l.glb",
+      "label": "Building L",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-m.glb",
+      "label": "Building M",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-n.glb",
+      "label": "Building N",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-skyscraper-a.glb",
+      "label": "Building Skyscraper A",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-skyscraper-b.glb",
+      "label": "Building Skyscraper B",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-skyscraper-c.glb",
+      "label": "Building Skyscraper C",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-skyscraper-d.glb",
+      "label": "Building Skyscraper D",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/building-skyscraper-e.glb",
+      "label": "Building Skyscraper E",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/detail-awning-wide.glb",
+      "label": "Detail Awning Wide",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/detail-awning.glb",
+      "label": "Detail Awning",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/detail-overhang-wide.glb",
+      "label": "Detail Overhang Wide",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/detail-overhang.glb",
+      "label": "Detail Overhang",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/detail-parasol-a.glb",
+      "label": "Detail Parasol A",
+      "category": "commercial-buildings"
+    },
+    {
+      "path": "/world/models/commercial-buildings/detail-parasol-b.glb",
+      "label": "Detail Parasol B",
+      "category": "commercial-buildings"
     },
     {
       "path": "/world/models/creatures/big-Alien.gltf",
@@ -2269,6 +2394,11 @@
     {
       "path": "/world/models/interior/kitchen-sink.glb",
       "label": "Kitchen Sink",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/knife.glb",
+      "label": "Knife",
       "category": "interior"
     },
     {

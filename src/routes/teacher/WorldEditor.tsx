@@ -132,6 +132,13 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   restaurant: CHARACTER_HEIGHT * 0.8,
   suburb: CHARACTER_HEIGHT * 4.5, // houses — regular-building scale
   'quaternius-buildings': CHARACTER_HEIGHT * 8, // 1-6 story buildings, nudged toward Claudia's city-structure band since it was under-targeted at 6x
+  // Kenney City Kit Commercial (CC0): a mix of regular commercial buildings
+  // (shop/office scale, same band as 'buildings') and 5 "skyscraper"
+  // variants (caught by the cityStructure keyword below instead) plus a
+  // few small awning/overhang/parasol street-furniture pieces (caught by
+  // the furniture keyword below). This fallback only ever applies to the
+  // plain "building-*" items neither keyword list touches.
+  'commercial-buildings': CHARACTER_HEIGHT * 4.5,
   market: CHARACTER_HEIGHT * 3, // stalls — smaller than a full building
   interior: CHARACTER_HEIGHT * 1, // furniture, not building-scale
   forest: CHARACTER_HEIGHT * 5.5, // trees: 3-8x
@@ -201,12 +208,19 @@ type SizeClass = keyof typeof SIZE_CLASS_TARGET;
 // "Copper Bar"/"Iron Bar"/"Gold Bar" (resources — literal metal ingots,
 // not furniture) far more often than it matched an actual bar counter,
 // so "Back Bar A" is a manual override below instead.
+// drawer/window/bed/washing/fireplace/toilet/sink/bathtub/shower/tub/
+// mirror/column/curtain/bookshelf/trashcan/houseplant and the new
+// cityStructure/skyscraper tier were added while integrating a new
+// commercial-buildings pack — they also correctly refine 122 existing
+// 'interior' items (couches/beds/kitchen fixtures/etc.) that were
+// previously all sized by 'interior's single flat category fallback.
 const SIZE_CLASS_KEYWORDS: { cls: SizeClass; pattern: RegExp }[] = [
   { cls: 'tiny', pattern: /\b(cup|mug|bowl|bottle\b|plate|spike|card\b|coin|fork|spoon|knife|bacon|bread|burger|receipt|blender|drone|beacon|bag)/i },
-  { cls: 'smallObject', pattern: /\b(basket|sack|box|register|drawer|bin|birdbath|feeder|pot|planter|cash|checkout|charger|module|compressor|crystal|fryer)/i },
-  { cls: 'furniture', pattern: /\b(chair|stool|bench|sofa|couch|table|desk|bookcase|shelf|barrel|crate|cauldron|chest|awning|booth|seat|stand|rack|cabinet|mold|sphere|roof|floor|door)/i },
-  { cls: 'personScale', pattern: /\b(sign|post|hydrant|light|cone|fence|pillar|flag|ladder)/i },
+  { cls: 'smallObject', pattern: /\b(basket|sack|box|register|drawer|bin|trashcan|houseplant|birdbath|feeder|pot|planter|cash|checkout|charger|module|compressor|crystal|fryer)/i },
+  { cls: 'furniture', pattern: /\b(chair|stool|bench|sofa|couch|table|desk|bookcase|bookshelf|shelf|barrel|crate|cauldron|chest|awning|parasol|booth|seat|stand|rack|cabinet|mold|sphere|roof|floor|door|window|bed|washing|fireplace|toilet|sink|bathtub|shower|tub|mirror)/i },
+  { cls: 'personScale', pattern: /\b(sign|post|hydrant|light|cone|fence|pillar|flag|ladder|column|curtain)/i },
   { cls: 'smallStructure', pattern: /\b(stall|shed|cottage|hut|coop|cold\s*frame)/i },
+  { cls: 'cityStructure', pattern: /\bskyscraper\b/i },
   { cls: 'largeStructure', pattern: /\bhouse\b|\bbarn\b|castle\s*(wall|gate)|\binn\b|manor/i },
 ];
 // A handful of labels a keyword rule would get wrong on its own — e.g.
@@ -217,9 +231,20 @@ const SIZE_CLASS_OVERRIDE: Record<string, SizeClass> = {
   'Boat Row Large': 'smallStructure',
   'Boat Row Small': 'furniture',
   'Back Bar A': 'furniture',
+  // A plain "overhang" keyword was tried and dropped the same way "bar"
+  // was: it matched ~35 unrelated 'platformer' terrain blocks ("Block
+  // Grass Overhang Large Slope Steep" etc — level geometry, not a small
+  // canopy) far more often than these 2 real small awning-scale props.
+  'Detail Overhang': 'furniture',
+  'Detail Overhang Wide': 'furniture',
 };
-function classifySizeForLabel(label: string): SizeClass | null {
+function classifySizeForLabel(label: string, category?: string): SizeClass | null {
   if (SIZE_CLASS_OVERRIDE[label]) return SIZE_CLASS_OVERRIDE[label];
+  // 'interior's "Light Ceiling1"/"Light Desk"/"Light Floor2" etc are small
+  // fixtures, not the personScale tier's "light" (a street lamp post) —
+  // scoped to this one category so it can't change what "light" already
+  // correctly means for the 'city' street-furniture pack.
+  if (category === 'interior' && /^light\s/i.test(label)) return 'smallObject';
   for (const { cls, pattern } of SIZE_CLASS_KEYWORDS) {
     if (pattern.test(label)) return cls;
   }
@@ -246,7 +271,7 @@ function computeAutoScale(size: THREE.Vector3, category: string, label: string):
   if (size.y > 0 && isFinite(size.y) && footprint / size.y > FLAT_OBJECT_FOOTPRINT_RATIO) {
     return footprint > 0 ? THREE.MathUtils.clamp(FLAT_OBJECT_TARGET_WIDTH / footprint, SCALE_MIN, SCALE_MAX) : 1;
   }
-  const sizeClass = classifySizeForLabel(label);
+  const sizeClass = classifySizeForLabel(label, category);
   const targetHeight = sizeClass ? SIZE_CLASS_TARGET[sizeClass] : (CATEGORY_SCALE_TARGET[category] ?? DEFAULT_SCALE_TARGET_HEIGHT);
   return size.y > 0 && isFinite(size.y) ? THREE.MathUtils.clamp(targetHeight / size.y, SCALE_MIN, SCALE_MAX) : 1;
 }
@@ -326,13 +351,14 @@ const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
 const COLLIDING_CATEGORIES = new Set([
   'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
   'props', 'prototype', 'toolsbits', 'misc', 'suburb', 'quaternius-buildings',
+  'commercial-buildings',
 ]);
 function defaultCollidesForCategory(category: string): boolean {
   return COLLIDING_CATEGORIES.has(category);
 }
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
-  buildings: 'Buildings & Places', city: 'Buildings & Places', interior: 'Buildings & Places', market: 'Buildings & Places', restaurant: 'Buildings & Places', roads: 'Buildings & Places', structures: 'Buildings & Places', suburb: 'Buildings & Places', 'quaternius-buildings': 'Buildings & Places',
+  buildings: 'Buildings & Places', city: 'Buildings & Places', interior: 'Buildings & Places', market: 'Buildings & Places', restaurant: 'Buildings & Places', roads: 'Buildings & Places', structures: 'Buildings & Places', suburb: 'Buildings & Places', 'quaternius-buildings': 'Buildings & Places', 'commercial-buildings': 'Buildings & Places',
   fantasy: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
   characters: 'Characters',
   props: 'Props & Tools', prototype: 'Props & Tools', toolsbits: 'Props & Tools', misc: 'Props & Tools',
@@ -346,7 +372,7 @@ const CATEGORY_TO_GROUP: Record<string, string> = {
 // category gets its own distinct icon on top of that.
 const CATEGORY_ICON: Record<string, string> = {
   aquarium: '🐠', camping: '⛺', creatures: '🐾', fall: '🍂', farm: '🚜', food: '🍎', forest: '🌲', pets: '🐶', water: '💧', resources: '🪵',
-  buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', roads: '🛣️', structures: '🏗️',
+  buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', roads: '🛣️', structures: '🏗️', 'commercial-buildings': '🏬',
   fantasy: '🏰', halloween: '🎃', holiday: '🎄', japan: '⛩️', pirate: '🏴‍☠️', scifi: '🚀', platformer: '🎮',
   characters: '🧑',
   props: '🔧', prototype: '🧊', toolsbits: '🛠️', misc: '📦',
