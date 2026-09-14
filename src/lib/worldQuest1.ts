@@ -164,6 +164,24 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
         },
         { npc: "I'll have a new one whenever you're back this way. See you around!" },
       ],
+      // Claudia's conversation-content review: real small talk and real
+      // encouragement, not just jokes — a genuine back-and-forth that
+      // models asking a follow-up question, and specific-effort praise
+      // ("you kept at it") rather than a vague "good job," per the
+      // growth-mindset research she cited. Same free-response, no-wrong-
+      // answer shape as every other variant here.
+      [
+        { npc: "Hey, good to see you! How's your day going so far?", options: ["Pretty good.", "Kind of a lot today.", "Still figuring it out."] },
+        { npc: "That's a real answer, I like it. What's been the best part of your day so far?", options: ["Being outside.", "Talking to you, I guess.", "Not sure yet."] },
+        { npc: "Any of those work for me. Thanks for stopping to chat.", options: ["Sure thing!", "See you around."] },
+        { npc: "Have a good rest of your day out here!" },
+      ],
+      [
+        { npc: "Hey! I noticed you've been getting around town pretty well lately.", options: ["Yeah, I think I've got it now.", "I still get a little turned around.", "Thanks for noticing."] },
+        { npc: "Either way, that's a real skill, learning a whole new place. It takes everybody a minute.", options: ["It did take a while.", "I'm getting there."] },
+        { npc: "You're getting there, and that's what matters. Keep it up.", options: ["Thanks, Scout."] },
+        { npc: "See you out there!" },
+      ],
     ],
     itemLabel: 'a little pile of fall leaves',
     itemRewardCents: 25,
@@ -216,6 +234,18 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
           options: ["Ha, branches!", "Good one, Penny."],
         },
         { npc: "I've got branches on the brain today. Come back soon!" },
+      ],
+      [
+        { npc: "Hi there! How's everything going today?", options: ["Pretty good.", "Kind of a busy day.", "Okay, I think."] },
+        { npc: "Glad to hear it, or glad it's almost over, whichever one's true. Doing anything fun later?", options: ["Not sure yet.", "Just hanging out.", "Maybe."] },
+        { npc: "Sounds nice either way. Good talking with you.", options: ["You too, Penny.", "See you later."] },
+        { npc: "Stop by the Bank anytime, my door's always open!" },
+      ],
+      [
+        { npc: "Hey, I heard you've been keeping track of your coins pretty carefully lately.", options: ["I try to.", "I'm still learning.", "Kind of, yeah."] },
+        { npc: "That's a real skill, and it's one a lot of grown-ups still work on. You're ahead of the game.", options: ["Thanks, Penny.", "That's good to know."] },
+        { npc: "Keep it up, it adds up faster than you'd think.", options: ["I will!"] },
+        { npc: "See you around, take care!" },
       ],
     ],
     itemLabel: 'a cozy autumn welcome mat',
@@ -287,6 +317,18 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
         },
         { npc: "I'll be here every day, numbered or not. See you later!" },
       ],
+      [
+        { npc: "Hiya! How's your day treating you?", options: ["Pretty good.", "Long day.", "Can't complain."] },
+        { npc: "Fair enough. Find anything interesting out there today?", options: ["Not yet.", "Talked to a few people.", "Just looking around."] },
+        { npc: "That counts! Thanks for stopping by the shop to chat.", options: ["Sure thing, Pip.", "See you later."] },
+        { npc: "Come back anytime, the door's always open!" },
+      ],
+      [
+        { npc: "Hey, I saw you finish up your task list earlier. Nice work.", options: ["Thanks!", "It took a while.", "I almost didn't finish."] },
+        { npc: "However it happened, it happened. That's what counts.", options: ["That's true.", "I guess so."] },
+        { npc: "Sticking with something even when it's tricky is a big deal. Proud of you.", options: ["Thanks, Pip."] },
+        { npc: "See you around the shop!" },
+      ],
     ],
     itemLabel: 'a small pumpkin for your shelf',
     itemRewardCents: 25,
@@ -341,6 +383,18 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
           options: ["Ha, stuck!", "Good one, Wren."],
         },
         { npc: "Glad that one stuck with you. See you on the route!" },
+      ],
+      [
+        { npc: "Hey there! How's your day going?", options: ["Pretty good.", "Busy!", "Pretty quiet, actually."] },
+        { npc: "Sounds about right for a Yoglandia day. Doing anything else fun today?", options: ["Not sure yet.", "Just walking around.", "Talking to neighbors."] },
+        { npc: "That's a good way to spend it. Thanks for chatting with me.", options: ["You too, Wren.", "See you later."] },
+        { npc: "Take care, I've got a route to finish!" },
+      ],
+      [
+        { npc: "Hey! I heard you've been checking your task list without anybody reminding you lately.", options: ["Yeah, I've been trying.", "Most days, anyway.", "I forget sometimes."] },
+        { npc: "Even most days is a real habit forming. That's worth noticing.", options: ["Thanks, Wren.", "I didn't think about it that way."] },
+        { npc: "Keep it up, you're doing better than you think.", options: ["I will!"] },
+        { npc: "Catch you on the route!" },
       ],
     ],
     itemLabel: 'a string of fall leaf garland',
