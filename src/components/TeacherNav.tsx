@@ -17,7 +17,14 @@ export default function TeacherNav() {
   return (
     <nav className="teacher-nav space-between">
       <div className="row-wrap" style={{ alignItems: 'center' }}>
-        <NavLink to="/teacher" end className={({ isActive }) => (isActive ? 'active' : '')}>🏠 Overview</NavLink>
+        {/* pendingBreaks shows here, not on Activities/More — break
+            approval actually happens on this Overview screen
+            (TeacherHome.tsx), so that's the only place the count can
+            correctly point a teacher. It used to sit on Activities, which
+            has no break-related code at all (Claudia's audit). */}
+        <NavLink to="/teacher" end className={({ isActive }) => (isActive ? 'active' : '')}>
+          🏠 Overview{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
+        </NavLink>
         <NavLink to="/teacher/students" className={({ isActive }) => (isActive ? 'active' : '')}>🧒 Students</NavLink>
         <NavLink to="/teacher/assignments" className={({ isActive }) => (isActive ? 'active' : '')}>📋 Assignments</NavLink>
         <NavLink to="/teacher/inbox" className={({ isActive }) => (isActive ? 'active' : '')}>
@@ -29,10 +36,10 @@ export default function TeacherNav() {
             move under one grouped "More" menu (a native <details>, so it
             needs no click-outside JS) instead of crowding the main bar. */}
         <details className="teacher-nav-more">
-          <summary>⋯ More{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}</summary>
+          <summary>⋯ More</summary>
           <div className="teacher-nav-more-menu">
             <NavLink to="/teacher/activities" className={({ isActive }) => (isActive ? 'active' : '')}>
-              🎪 Activities{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
+              🎪 Activities
             </NavLink>
             <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏆 Achievements</NavLink>
             <NavLink to="/teacher/marketplace" className={({ isActive }) => (isActive ? 'active' : '')}>🛍️ Marketplace</NavLink>

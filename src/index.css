@@ -115,7 +115,10 @@ button {
 .btn-ghost { background: var(--paper); border-color: var(--content-border); color: var(--ink); }
 
 .btn-lg { padding: 16px 32px; font-size: 1.35rem; }
-.btn-sm { padding: 5px 12px; font-size: 0.85rem; border-width: 2px; }
+/* min-height/min-width baked into the class itself (Claudia's audit) —
+   before this, screens got a 44px touch target only by remembering to
+   add an inline override on every single button; most didn't. */
+.btn-sm { padding: 5px 12px; font-size: 0.85rem; border-width: 2px; min-height: 44px; min-width: 44px; }
 .btn-icon { padding: 8px 12px; font-size: 1.4rem; line-height: 1; }
 
 .tag-pill {

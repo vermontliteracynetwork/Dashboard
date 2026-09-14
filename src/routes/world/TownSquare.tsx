@@ -1264,19 +1264,23 @@ function CameraLookButtons({ cameraLook, side }: { cameraLook: React.RefObject<n
   return (
     <div style={{ position: 'absolute', bottom: 90, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <div style={{ display: 'flex', gap: 8 }}>
+        {/* Icons paired with a visible label, not icon-only (Claudia's
+            audit) — matches the D-pad's own label-under-icon pattern above. */}
         <button
           onClick={() => turn(-1)}
-          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)' }}
+          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, lineHeight: 1 }}
           aria-label="Look left"
         >
-          ↺
+          <span>↺</span>
+          <span style={{ fontSize: 7, fontWeight: 800 }}>Left</span>
         </button>
         <button
           onClick={() => turn(1)}
-          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)' }}
+          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, lineHeight: 1 }}
           aria-label="Look right"
         >
-          ↻
+          <span>↻</span>
+          <span style={{ fontSize: 7, fontWeight: 800 }}>Right</span>
         </button>
       </div>
     </div>
@@ -1940,6 +1944,17 @@ export default function TownSquare() {
                   </div>
                 </Html>
               )}
+              {/* Teacher's "Glow/label the computer desk when tasks are
+                  waiting" setting (StudentManager) — same always-visible "!"
+                  badge already used for Neighbors' focus indicator, so a
+                  student learns one meaning for it everywhere. */}
+              {obj.role === 'computer-desk' && student?.worldShowDeskGlow && totalTasksLeft > 0 && (
+                <Html center position={[obj.position[0], 3.7, obj.position[2]]} style={{ pointerEvents: 'none' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#ffb020', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#1f4238', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
+                    !
+                  </div>
+                </Html>
+              )}
               {selectedRoleObjectId === obj.id && (
                 <Html center position={[obj.position[0], 3.7, obj.position[2]]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
@@ -1986,14 +2001,21 @@ export default function TownSquare() {
           (whatnow or help, whichever lands there) rather than sharing its
           spot, now that both bottom corners are real FABs on every load
           instead of only whichever one the D-pad wasn't using. */}
-      <button
-        onClick={() => navigate('/student/home')}
-        style={{ position: 'fixed', bottom: 82, [otherSide]: 16, zIndex: 55, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
-        aria-label="Back to task dashboard"
-        title="Back to task dashboard"
-      >
-        🏠
-      </button>
+      {/* Icon paired with a visible caption underneath, not icon-only
+          (Claudia's audit) — the circle itself stays the same small,
+          secondary size so it still doesn't compete with the desk as the
+          main affordance; only the label is new. */}
+      <div style={{ position: 'fixed', bottom: 82, [otherSide]: 16, zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <button
+          onClick={() => navigate('/student/home')}
+          style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
+          aria-label="Back to task dashboard"
+          title="Back to task dashboard"
+        >
+          🏠
+        </button>
+        <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238', textShadow: '0 1px 2px rgba(255,255,255,0.7)', lineHeight: 1 }}>Tasks</span>
+      </div>
 
       {!hasWalkedOnce && (
         <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
