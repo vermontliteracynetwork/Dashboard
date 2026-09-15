@@ -16,10 +16,12 @@ import InventoryHotbar from '../../components/InventoryHotbar';
 import ReadAloud from '../../components/ReadAloud';
 import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
+import { WallMesh } from '../../components/WallMesh';
+import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import type { LayoutOverride, FocusSubject, WorldObject } from '../../types';
+import type { LayoutOverride, FocusSubject, WorldObject, WallSegment } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -200,20 +202,23 @@ const WORLD_OBJECT_COLLISION_RADIUS = (scale: number) => THREE.MathUtils.clamp(s
 let STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
 ];
+// Sims 4-style drawn walls (WorldEditor.tsx's Wall tool) — a real barrier,
+// same as a building, via the shared blockWallSegments helper below.
+let STATIC_WALLS: WallSegment[] = [];
 
-// Rebuilds the two collision arrays above from scratch, skipping any fixed
+// Rebuilds the collision arrays above from scratch, skipping any fixed
 // building/stall a teacher has deleted from Build Mode, and folding in
 // every Build Mode-placed object marked collides:true (Front 1 Phase 1 —
 // previously a teacher-placed object had zero collision at all, a real
 // "walk straight through a placed building" gap). Called once at module
 // load (with no overrides/objects, so first paint is a safe empty state)
 // and again from a useEffect inside the main component whenever the
-// store's layoutOverrides or worldObjects changes. Deliberately DOES NOT
-// move/resize a building's collision footprint yet — only delete-
+// store's layoutOverrides/worldObjects/wallSegments changes. Deliberately
+// DOES NOT move/resize a building's collision footprint yet — only delete-
 // awareness is wired into movement/collision this pass; a moved or
 // resized building's footprint stays at its original spot/size until a
 // follow-up pass (see the WorldEditor.tsx comment on the same limitation).
-function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, worldObjects: WorldObject[]) {
+function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, worldObjects: WorldObject[], wallSegments: WallSegment[]) {
   BUILDING_FOOTPRINTS = BUILDINGS.filter((b) => !overrides[b.id]?.deleted).map((b) => {
     const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
     return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
@@ -222,6 +227,7 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
     ...MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
     ...worldObjects.filter((o) => o.collides).map((o) => ({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale) })),
   ];
+  STATIC_WALLS = wallSegments;
 }
 
 // Point-vs-rotated-rectangle push-out: transform into the building's own
@@ -263,6 +269,7 @@ function blockObstacles(x: number, z: number): [number, number] {
       bz = o.z + dz * scale;
     }
   }
+  [bx, bz] = blockWallSegments(bx, bz, STATIC_WALLS);
   return [bx, bz];
 }
 
@@ -1292,14 +1299,22 @@ export default function TownSquare() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
-  const worldObjects = useStore((s) => s.worldObjects);
+  // Filtered to the shared Town Square only (studentId undefined) — a real
+  // bug this pass closes: every student's private Home Room furniture (and
+  // now walls) used to render here too, unfiltered, which is exactly the
+  // kind of cross-student visibility the Home Room design explicitly rules
+  // out (see types.ts's WorldObject.studentId comment).
+  const allWorldObjects = useStore((s) => s.worldObjects);
+  const worldObjects = useMemo(() => allWorldObjects.filter((o) => !o.studentId), [allWorldObjects]);
+  const allWallSegments = useStore((s) => s.wallSegments);
+  const wallSegments = useMemo(() => allWallSegments.filter((w) => !w.studentId), [allWallSegments]);
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const skyColor = useStore((s) => s.skyColor);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
-  // STATIC_OBSTACLES) in sync with Build Mode edits, including a teacher's
-  // edit landing live from another tab/device via Supabase realtime — see
-  // recomputeCollisionLayout's own comment above.
-  useEffect(() => { recomputeCollisionLayout(layoutOverrides, worldObjects); }, [layoutOverrides, worldObjects]);
+  // STATIC_OBSTACLES, STATIC_WALLS) in sync with Build Mode edits,
+  // including a teacher's edit landing live from another tab/device via
+  // Supabase realtime — see recomputeCollisionLayout's own comment above.
+  useEffect(() => { recomputeCollisionLayout(layoutOverrides, worldObjects, wallSegments); }, [layoutOverrides, worldObjects, wallSegments]);
   const focuses = useStore((s) => s.focuses);
   // Roster tab (World Editor): a teacher's cosmetic custom title per
   // hand-authored Neighbor/Townsperson id — shown next to their name
@@ -2005,6 +2020,13 @@ export default function TownSquare() {
                 </Html>
               )}
             </group>
+          ))}
+          {/* Sims 4-style drawn walls (WorldEditor.tsx's Wall tool) — plain
+              scenery here, no click interaction, same as a fixed prop; the
+              actual collision comes from STATIC_WALLS/blockWallSegments
+              above, not from anything on this mesh. */}
+          {wallSegments.map((wall) => (
+            <WallMesh key={wall.id} wall={wall} />
           ))}
         </Suspense>
       </Canvas>

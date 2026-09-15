@@ -610,6 +610,27 @@ export interface WorldObject {
   createdAt: string; // ISO
 }
 
+// A single straight wall segment, drawn with Sims 4-style click-drag
+// (start point, drag to end point, release) rather than placed as a whole
+// pre-built model like every other WorldObject. Two endpoints, not a
+// position+scale, since that's the one shape a wall actually needs — and
+// it's the one surface a door/window WorldObject is allowed to be placed
+// on (see WorldEditor.tsx's wall-proximity placement gate). Same
+// studentId convention as WorldObject: undefined/null = shared Town
+// Square, set = that student's own private Home Room.
+export interface WallSegment {
+  id: string;
+  x1: number;
+  z1: number;
+  x2: number;
+  z2: number;
+  height: number;
+  thickness: number;
+  color?: string;
+  studentId?: string;
+  createdAt: string; // ISO
+}
+
 // A teacher-made edit to one of the ORIGINAL fixed Town Square layout items
 // (a building from BUILDINGS, a stall from MARKET_STALLS, a road tile, a
 // decor/city prop — see townLayout.ts) — keyed by that item's own fixed id

@@ -5,13 +5,15 @@ import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
+import { WallMesh } from '../../components/WallMesh';
+import { nearestWall } from '../../lib/wallGeometry';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS,
 } from '../world/townLayout';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
-import type { WorldObject, WorldObjectRole, LayoutOverride } from '../../types';
+import type { WorldObject, WorldObjectRole, LayoutOverride, WallSegment } from '../../types';
 
 // Homeplot's "build mode" (Sims/Minecraft-style) — teacher-only, Town
 // Square only: place any uploaded asset, move/rotate/scale it with real 3D
@@ -397,6 +399,24 @@ const BUILD_ACCENT = '#22c55e';
 const BUILD_ACCENT_DARK = '#15803d';
 const OVERLAP_COLOR = '#dc2626';
 const HAMMER_COLOR = '#dc2626';
+const WALL_ACCENT = '#8b5cf6';
+
+// Sims 4-style wall defaults — a real 3-unit interior wall height (matches
+// HomeRoom.tsx's own boundary walls) and a slim 0.2-unit thickness, so a
+// drawn wall reads as a real partition without eating into the grid cell
+// it sits on.
+const WALL_DEFAULT_HEIGHT = 3;
+const WALL_DEFAULT_THICKNESS = 0.2;
+// Direct instruction: windows/doors must be placed on a wall. A click
+// within this distance of a wall's centerline counts as "on" it — wide
+// enough to be forgiving on a touchscreen, narrow enough that a click
+// clearly out in the open still gets rejected.
+const WALL_SNAP_DISTANCE = 0.8;
+// Matches the same door/window keyword group SIZE_CLASS_KEYWORDS' own
+// 'tallFurniture' tier already uses for these exact items — reused here so
+// there's one definition of "this is a door or window," not two that could
+// drift apart.
+const DOOR_WINDOW_RE = /\b(door|window)\b/i;
 
 // Curated tint swatches — Sims 4's own approach (a fixed color tray on the
 // object) instead of leading with the browser's native color-picker
@@ -1027,14 +1047,53 @@ function SelectedObjectToolbar({
   );
 }
 
-type Sel = { kind: 'placed' | 'layout'; id: string };
+// A deliberately minimal toolbar for a selected wall — just delete, no
+// rotate/resize/move (a wall's whole shape is its two endpoints; changing
+// that is delete-and-redraw with the Wall tool, not an edit gesture worth
+// building a separate control set for in this first pass).
+function SelectedWallToolbar({ wall, onDelete, deselect }: { wall: WallSegment; onDelete: () => void; deselect: () => void }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  useEffect(() => { setConfirmingDelete(false); }, [wall.id]);
+  const mx = (wall.x1 + wall.x2) / 2;
+  const mz = (wall.z1 + wall.z2) / 2;
+  const doDelete = () => { onDelete(); deselect(); };
+  return (
+    <Html position={[mx, wall.height + 0.4, mz]} center distanceFactor={8} zIndexRange={[60, 0]}>
+      {confirmingDelete ? (
+        <div className="row" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 12, boxShadow: '4px 4px 0 var(--ink)', padding: 6, fontFamily: 'system-ui, sans-serif' }}>
+          <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={doDelete}>Delete</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setConfirmingDelete(false)}>Cancel</button>
+        </div>
+      ) : (
+        <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center', fontFamily: 'system-ui, sans-serif' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0 4px' }}>🧱 Wall</span>
+          <button className="btn btn-sm" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem' }} title="Delete wall" aria-label="Delete wall" onClick={() => setConfirmingDelete(true)}>🗑️</button>
+          <button className="btn btn-sm" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem' }} title="Deselect" aria-label="Deselect" onClick={deselect}>✕</button>
+        </div>
+      )}
+    </Html>
+  );
+}
+
+type Sel = { kind: 'placed' | 'layout' | 'wall'; id: string };
 interface EditorSnapshot { worldObjects: WorldObject[]; layoutOverrides: Record<string, LayoutOverride>; }
 
 export default function WorldEditor() {
-  const worldObjects = useStore((s) => s.worldObjects);
+  // Filtered to the shared Town Square only (studentId undefined) — before
+  // this filter existed, every student's private Home Room furniture (and
+  // now walls) rendered here too, a real bug this pass also closes: a
+  // student's own room is meant to stay private, not bleed into the
+  // teacher's shared-town editing view (see types.ts's WorldObject.studentId
+  // comment). Home Room's own screen already filtered the other direction.
+  const allWorldObjects = useStore((s) => s.worldObjects);
+  const worldObjects = useMemo(() => allWorldObjects.filter((o) => !o.studentId), [allWorldObjects]);
   const addWorldObject = useStore((s) => s.addWorldObject);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
+  const allWallSegments = useStore((s) => s.wallSegments);
+  const wallSegments = useMemo(() => allWallSegments.filter((w) => !w.studentId), [allWallSegments]);
+  const addWallSegment = useStore((s) => s.addWallSegment);
+  const deleteWallSegment = useStore((s) => s.deleteWallSegment);
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const setLayoutOverride = useStore((s) => s.setLayoutOverride);
   const groundTexture = useStore((s) => s.groundTexture);
@@ -1058,11 +1117,21 @@ export default function WorldEditor() {
   const armAsset = (a: AssetManifestEntry | null) => {
     setHammerMode(false);
     setPaintMode(null);
+    setWallMode(false);
+    setWallStart(null);
     setArmedAsset(a);
     if (a) setRecentAssets((prev) => [a, ...prev.filter((r) => r.path !== a.path)].slice(0, 8));
   };
   const [selection, setSelection] = useState<Sel | null>(null);
   const [hovered, setHovered] = useState<Sel | null>(null);
+  const toggleWallMode = () => {
+    setHammerMode(false);
+    setPaintMode(null);
+    setArmedAsset(null);
+    setSelection(null);
+    setWallStart(null);
+    setWallMode((v) => !v);
+  };
   const [tab, setTab] = useState<'build' | 'roster'>('build');
   const [snapEnabled, setSnapEnabled] = useState(true);
   // Direct teacher instruction: placement should be tile-snapped by
@@ -1073,6 +1142,15 @@ export default function WorldEditor() {
   const gridStep = halfTileEnabled ? GRID_SIZE / 2 : GRID_SIZE;
   const [catalogOpen, setCatalogOpen] = useState(true);
   const [hammerMode, setHammerMode] = useState(false);
+  // Wall tool (direct instruction: "walls can be drawn/placed same as
+  // Sims 4 controls") — click-drag one segment at a time. wallStart is set
+  // on ground pointer-down while armed; wallEnd tracks the live preview
+  // while the pointer is held; releasing commits the segment and the tool
+  // stays armed for the next one (Sims 4's own chain-drawing feel), until
+  // toggled off or Escape.
+  const [wallMode, setWallMode] = useState(false);
+  const [wallStart, setWallStart] = useState<{ x: number; z: number } | null>(null);
+  const [wallEnd, setWallEnd] = useState<{ x: number; z: number } | null>(null);
   // Paint tool: Brush paints one thing you click; Bucket paints every
   // placed/fixed object using that same model at once. Ground and sky
   // don't need a click target — there's only one of each — so they're
@@ -1271,7 +1349,7 @@ export default function WorldEditor() {
         if (e.shiftKey) redoRef.current(); else undoRef.current();
         return;
       }
-      if (e.key === 'Escape') { setHammerMode(false); setArmedAsset(null); return; }
+      if (e.key === 'Escape') { setHammerMode(false); setArmedAsset(null); setWallMode(false); setWallStart(null); return; }
       if (isTypingTarget(e)) return;
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectionRef.current) {
         e.preventDefault();
@@ -1374,6 +1452,8 @@ export default function WorldEditor() {
     setHammerMode(false);
     setArmedAsset(null);
     setSelection(null);
+    setWallMode(false);
+    setWallStart(null);
     setPaintMode((v) => (v === mode ? null : mode));
   };
   // One button, two behaviors (direct instruction): a plain click stamps
@@ -1453,15 +1533,79 @@ export default function WorldEditor() {
     if (armedAsset) {
       e.stopPropagation();
       setGhostPos({ x, z });
+    } else if (wallMode && wallStart) {
+      e.stopPropagation();
+      setWallEnd({ x, z });
     }
   };
 
+  const handleGroundPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (!wallMode) return;
+    e.stopPropagation();
+    const x = clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
+    const z = clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
+    setWallStart({ x, z });
+    setWallEnd({ x, z });
+  };
+
+  // A pointer released outside the ground plane would otherwise leave the
+  // wall-draw gesture stuck forever — same window-level fallback the old
+  // object-drag used to rely on.
+  useEffect(() => {
+    if (!wallMode || !wallStart) return;
+    const commit = () => {
+      if (wallEnd) {
+        const len = Math.hypot(wallEnd.x - wallStart.x, wallEnd.z - wallStart.z);
+        // Sims 4-style chain-drawing: committing this segment immediately
+        // re-arms the next one starting from this segment's own end point,
+        // so a teacher can drag out a whole run of connected walls without
+        // re-pressing the Wall button between each one. A near-zero-length
+        // release (a stray click, not a real drag) is silently ignored
+        // rather than creating a degenerate wall.
+        if (len >= gridStep * 0.5) addWallSegment({ x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_DEFAULT_HEIGHT, thickness: WALL_DEFAULT_THICKNESS });
+      }
+      setWallStart(null);
+      setWallEnd(null);
+    };
+    window.addEventListener('pointerup', commit);
+    return () => window.removeEventListener('pointerup', commit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallMode, wallStart, wallEnd]);
+
+  // Direct instruction: windows/doors must be placed on a wall. A short-
+  // lived inline message (same pattern as the Roster tab's own transient
+  // notices) explains a blocked placement instead of just silently doing
+  // nothing, which would read as a bug rather than a rule.
+  const [wallPlacementError, setWallPlacementError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!wallPlacementError) return;
+    const t = window.setTimeout(() => setWallPlacementError(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [wallPlacementError]);
+
   const handleGroundClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    if (wallMode) return; // the wall itself is placed by the pointerdown/up drag above, not a click
     if (armedAsset) {
-      const x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
-      const z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
-      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY: 0, scale: armedDefaultScale, collides: defaultCollidesForCategory(armedAsset.category) });
+      const rawX = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
+      const rawZ = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
+      let x = rawX;
+      let z = rawZ;
+      let rotationY = 0;
+      // Direct instruction: a door or window can only be placed on a wall
+      // — snap it onto the nearest one (both position and facing), or
+      // reject the placement entirely if nothing is close enough.
+      if (DOOR_WINDOW_RE.test(armedAsset.label)) {
+        const snap = nearestWall(rawX, rawZ, wallSegments, WALL_SNAP_DISTANCE);
+        if (!snap) {
+          setWallPlacementError('Windows and doors need to be placed on a wall — draw one with 🧱 Wall first, or move closer to one.');
+          return;
+        }
+        x = snap.x;
+        z = snap.z;
+        rotationY = snap.angle;
+      }
+      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY, scale: armedDefaultScale, collides: defaultCollidesForCategory(armedAsset.category) });
       // ghostPos IS cleared — leaving it set to this exact spot meant the
       // next render's footprintOverlap check found the object we just
       // placed (distance 0) and flashed a false "overlapping itself"
@@ -1484,6 +1628,8 @@ export default function WorldEditor() {
   };
 
   const placementOverlap = armedAsset && ghostPos ? footprintOverlap(ghostPos.x, ghostPos.z, armedDefaultScale, worldObjects) : null;
+  const selectedWall = selection?.kind === 'wall' ? wallSegments.find((w) => w.id === selection.id) ?? null : null;
+  const wallPreview = wallMode && wallStart && wallEnd ? { id: '__preview__', x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_DEFAULT_HEIGHT, thickness: WALL_DEFAULT_THICKNESS, createdAt: '' } : null;
 
   return (
     <div className="stack" style={{ padding: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -1756,6 +1902,7 @@ export default function WorldEditor() {
               <div>🖱️ Scroll — zoom</div>
               <div>🖱️ Click an object — select it (no dragging)</div>
               <div>✥ Move popover — reposition selected</div>
+              <div>🧱 Wall — drag to draw; doors/windows need one</div>
               <div>⌨️ WASD / Arrows — camera</div>
               <div>⌨️ Delete — remove selected</div>
               <div>⌨️ [ / ] — rotate selected</div>
@@ -1773,6 +1920,16 @@ export default function WorldEditor() {
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', border: `2px solid ${HAMMER_COLOR}`, borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               🔨 Hammer equipped — tap any object to delete it instantly, no confirmation. <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setHammerMode(false)}>Done</button>
               <div style={{ fontSize: 11, opacity: 0.65, marginTop: 3, fontWeight: 500 }}>Made a mistake? ↶ Undo is in the bottom bar.</div>
+            </div>
+          )}
+          {wallMode && (
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', border: `2px solid ${WALL_ACCENT}`, borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
+              🧱 Wall equipped — click and drag to draw a wall. Release to place it, keep dragging for the next one. <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={toggleWallMode}>Done</button>
+            </div>
+          )}
+          {wallPlacementError && (
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff3ea', border: `2px solid ${OVERLAP_COLOR}`, borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center', color: OVERLAP_COLOR, maxWidth: 360 }}>
+              ⚠ {wallPlacementError}
             </div>
           )}
           {showSaved && (
@@ -1832,6 +1989,7 @@ export default function WorldEditor() {
               position={[0, 0, 0]}
               onClick={(e) => handleGroundClick(e)}
               onPointerMove={handleGroundPointerMove}
+              onPointerDown={handleGroundPointerDown}
             >
               <planeGeometry args={[GROUND_HALF * 2, GROUND_HALF * 2]} />
               {groundTexture ? (
@@ -1977,6 +2135,41 @@ export default function WorldEditor() {
               );
             })}
 
+            {/* Sims 4-style drawn walls — plain boxes, not GLB models (see
+                WallMesh.tsx). Interactive (select/hover/hammer-delete) only
+                when no other tool is armed, same "undefined, not a no-op,
+                so the ground click underneath still fires" gating every
+                other interactive layer in this file already uses. */}
+            {wallSegments.map((wall) => {
+              const isSelected = selection?.kind === 'wall' && selection.id === wall.id;
+              const isHovered = hovered?.kind === 'wall' && hovered.id === wall.id && !isSelected;
+              const interactive = !wallMode && !armedAsset;
+              return (
+                <WallMesh
+                  key={wall.id}
+                  wall={wall}
+                  color={isSelected ? WALL_ACCENT : isHovered ? '#fef08a' : undefined}
+                  onClick={
+                    interactive
+                      ? () => {
+                          if (paintMode) return; // walls don't participate in paint bucket/brush (no shared model to match on)
+                          if (hammerMode) { deleteWallSegment(wall.id); return; }
+                          setSelection({ kind: 'wall', id: wall.id });
+                        }
+                      : undefined
+                  }
+                  onPointerOver={interactive ? () => setHovered({ kind: 'wall', id: wall.id }) : undefined}
+                  onPointerOut={interactive ? () => setHovered((h) => (h?.kind === 'wall' && h.id === wall.id ? null : h)) : undefined}
+                />
+              );
+            })}
+            {/* Live drag preview while drawing a new wall segment. */}
+            {wallPreview && <WallMesh wall={wallPreview} color={WALL_ACCENT} opacity={0.6} />}
+
+            {selectedWall && (
+              <SelectedWallToolbar wall={selectedWall} onDelete={() => deleteWallSegment(selectedWall.id)} deselect={() => setSelection(null)} />
+            )}
+
             {selected && selection && (
               <SelectedObjectToolbar
                 selected={selected}
@@ -2034,7 +2227,7 @@ export default function WorldEditor() {
             <button
               className="btn btn-sm"
               style={{ minHeight: 44, background: hammerMode ? HAMMER_COLOR : undefined, color: hammerMode ? '#fff' : undefined, borderColor: hammerMode ? HAMMER_COLOR : undefined, borderRadius: 999 }}
-              onClick={() => { setHammerMode((v) => !v); setPaintMode(null); setArmedAsset(null); setSelection(null); }}
+              onClick={() => { setHammerMode((v) => !v); setPaintMode(null); setArmedAsset(null); setSelection(null); setWallMode(false); setWallStart(null); }}
               title="Hammer: tap anything to delete it instantly, no confirmation"
             >
               🔨 {hammerMode ? 'Hammer: ON' : 'Hammer'}
@@ -2046,6 +2239,14 @@ export default function WorldEditor() {
               title="Paint: color assets, the ground, or the sky"
             >
               🎨 {paintMode ? 'Paint: ON' : 'Paint'}
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{ minHeight: 44, background: wallMode ? WALL_ACCENT : undefined, color: wallMode ? '#fff' : undefined, borderColor: wallMode ? WALL_ACCENT : undefined, borderRadius: 999 }}
+              onClick={toggleWallMode}
+              title="Wall: click-drag to draw a wall (Sims 4-style) — doors/windows can only be placed on one"
+            >
+              🧱 {wallMode ? 'Wall: ON' : 'Wall'}
             </button>
             <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)' }} />
             <button

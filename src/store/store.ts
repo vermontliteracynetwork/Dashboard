@@ -116,6 +116,9 @@ import {
   pushWorldObject,
   deleteWorldObjectRemote,
   rowToWorldObject,
+  pushWallSegment,
+  deleteWallSegmentRemote,
+  rowToWallSegment,
   pushFocus,
   deleteFocusRemote,
   rowToFocus,
@@ -156,6 +159,7 @@ import type {
   MarketplaceItem,
   AssignmentCompletionReward,
   WorldObject,
+  WallSegment,
   LayoutOverride,
   Focus,
   FocusSubject,
@@ -211,6 +215,7 @@ interface AppState {
   notes: Note[];
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
+  wallSegments: WallSegment[]; // Sims 4-style drawn walls — shared Town Square (studentId undefined) or a student's own Home Room (studentId set), same table/convention as worldObjects
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -262,6 +267,9 @@ interface AppState {
   addWorldObject: (obj: Omit<WorldObject, 'id' | 'createdAt'>) => string;
   updateWorldObject: (id: string, patch: Partial<WorldObject>) => void;
   deleteWorldObject: (id: string) => void;
+  addWallSegment: (w: Omit<WallSegment, 'id' | 'createdAt'>) => string;
+  updateWallSegment: (id: string, patch: Partial<WallSegment>) => void;
+  deleteWallSegment: (id: string) => void;
   // A teacher edit to one of the ORIGINAL fixed layout items (see
   // LayoutOverride's own comment in types.ts). `patch: null` clears that
   // item's override entirely (used by undo to fully revert a change).
@@ -528,6 +536,7 @@ export const useStore = create<AppState>()(
       notes: [],
       marketplaceItems: [],
       worldObjects: [],
+      wallSegments: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -688,6 +697,7 @@ export const useStore = create<AppState>()(
           onNote: (e, n, o) => set((s) => ({ notes: applyArrayRow(s.notes, e, rowToNote, n, o) })),
           onMarketplaceItem: (e, n, o) => set((s) => ({ marketplaceItems: applyArrayRow(s.marketplaceItems, e, rowToMarketplaceItem, n, o) })),
           onWorldObject: (e, n, o) => set((s) => ({ worldObjects: applyArrayRow(s.worldObjects, e, rowToWorldObject, n, o) })),
+          onWallSegment: (e, n, o) => set((s) => ({ wallSegments: applyArrayRow(s.wallSegments, e, rowToWallSegment, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -931,6 +941,30 @@ export const useStore = create<AppState>()(
       deleteWorldObject: (id) => {
         set((s) => ({ worldObjects: s.worldObjects.filter((o) => o.id !== id) }));
         deleteWorldObjectRemote(id);
+      },
+
+      // Sims 4-style drawn walls — same immediate-push pattern as
+      // WorldObject above, used both by WorldEditor's Wall tool (shared
+      // Town Square, studentId undefined) and HomeRoom's own Wall tool
+      // (studentId set).
+      addWallSegment: (w) => {
+        const full: WallSegment = { ...w, id: makeId(), createdAt: new Date().toISOString() };
+        set((s) => ({ wallSegments: [...s.wallSegments, full] }));
+        pushWallSegment(full);
+        return full.id;
+      },
+
+      updateWallSegment: (id, patch) => {
+        const existing = get().wallSegments.find((w) => w.id === id);
+        if (!existing) return;
+        const updated = { ...existing, ...patch };
+        set((s) => ({ wallSegments: s.wallSegments.map((w) => (w.id === id ? updated : w)) }));
+        pushWallSegment(updated);
+      },
+
+      deleteWallSegment: (id) => {
+        set((s) => ({ wallSegments: s.wallSegments.filter((w) => w.id !== id) }));
+        deleteWallSegmentRemote(id);
       },
 
       setLayoutOverride: (layoutId, patch) => {

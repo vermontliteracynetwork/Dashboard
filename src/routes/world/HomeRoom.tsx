@@ -6,7 +6,9 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
-import type { WorldObject } from '../../types';
+import { WallMesh } from '../../components/WallMesh';
+import { blockWallSegments, nearestWall } from '../../lib/wallGeometry';
+import type { WorldObject, WallSegment } from '../../types';
 
 // The student-facing counterpart to WorldEditor.tsx's teacher Build Mode —
 // "the same build mode features the teacher has should be simplified
@@ -48,9 +50,25 @@ import type { WorldObject } from '../../types';
 
 const ROOM_HALF = 5; // a 10x10 room, centered on the origin
 const WALL_HEIGHT = 3;
+const WALL_THICKNESS = 0.2; // matches the room's own 4 boundary walls below
 const GRID_SIZE = 1;
 const OBJECT_MARGIN = 0.5; // keeps a placed item's center off the walls
 const snap = (v: number) => THREE.MathUtils.clamp(Math.round(v / GRID_SIZE) * GRID_SIZE, -ROOM_HALF + OBJECT_MARGIN, ROOM_HALF - OBJECT_MARGIN);
+// Direct instruction: windows (and doors, if a future starter item adds
+// one) must be placed on a wall — the room's own 4 boundary walls count,
+// not just a student-drawn interior one, so "next to the edge of the
+// room" already satisfies the rule without needing to draw anything first.
+const DOOR_WINDOW_RE = /\b(door|window)\b/i;
+const WALL_SNAP_DISTANCE = 0.8;
+// The room's own 4 fixed boundary walls, shaped as WallSegments purely for
+// the door/window placement-gate check below — never stored or synced,
+// just computed once from the room's own constants.
+const BOUNDARY_WALLS: WallSegment[] = [
+  { id: '__boundary-n__', x1: -ROOM_HALF, z1: -ROOM_HALF, x2: ROOM_HALF, z2: -ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
+  { id: '__boundary-s__', x1: -ROOM_HALF, z1: ROOM_HALF, x2: ROOM_HALF, z2: ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
+  { id: '__boundary-w__', x1: -ROOM_HALF, z1: -ROOM_HALF, x2: -ROOM_HALF, z2: ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
+  { id: '__boundary-e__', x1: ROOM_HALF, z1: -ROOM_HALF, x2: ROOM_HALF, z2: ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
+];
 
 type ScaleTarget = { kind: 'footprint'; value: number } | { kind: 'cube'; value: number };
 interface StarterItem {
@@ -198,7 +216,7 @@ function blockRoomObstacles(x: number, z: number, obstacles: RoomObstacle[]): [n
   return [bx, bz];
 }
 
-function RoomPlayer({ walkTarget, obstacles }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: RoomObstacle[] }) {
+function RoomPlayer({ walkTarget, obstacles, walls }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: RoomObstacle[]; walls: WallSegment[] }) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useRoomKeys();
   const { camera } = useThree();
@@ -220,7 +238,8 @@ function RoomPlayer({ walkTarget, obstacles }: { walkTarget: React.RefObject<{ x
       dz /= len;
       const nx = THREE.MathUtils.clamp(pos.current.x + dx * ROOM_MOVE_SPEED * dt, -bound, bound);
       const nz = THREE.MathUtils.clamp(pos.current.z + dz * ROOM_MOVE_SPEED * dt, -bound, bound);
-      [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
+      const [wx, wz] = blockWallSegments(nx, nz, walls);
+      [pos.current.x, pos.current.z] = blockRoomObstacles(wx, wz, obstacles);
       facing.current = Math.atan2(dx, dz);
       moved = true;
     } else if (walkTarget.current) {
@@ -234,7 +253,8 @@ function RoomPlayer({ walkTarget, obstacles }: { walkTarget: React.RefObject<{ x
         const ndz = tz / dist;
         const nx = THREE.MathUtils.clamp(pos.current.x + ndx * ROOM_MOVE_SPEED * dt, -bound, bound);
         const nz = THREE.MathUtils.clamp(pos.current.z + ndz * ROOM_MOVE_SPEED * dt, -bound, bound);
-        [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
+        const [wx, wz] = blockWallSegments(nx, nz, walls);
+        [pos.current.x, pos.current.z] = blockRoomObstacles(wx, wz, obstacles);
         facing.current = Math.atan2(ndx, ndz);
         moved = true;
       }
@@ -297,6 +317,9 @@ export default function HomeRoom() {
   const addWorldObject = useStore((s) => s.addWorldObject);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
+  const allWallSegments = useStore((s) => s.wallSegments);
+  const addWallSegment = useStore((s) => s.addWallSegment);
+  const deleteWallSegment = useStore((s) => s.deleteWallSegment);
   const updateStudent = useStore((s) => s.updateStudent);
   const student = students.find((s) => s.id === currentStudentId);
 
@@ -313,10 +336,26 @@ export default function HomeRoom() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
+  // Sims 4-style Wall tool, same shape as WorldEditor.tsx's own — click and
+  // drag to draw one segment, release to commit, stays armed for the next.
+  const [wallMode, setWallMode] = useState(false);
+  const [wallStart, setWallStart] = useState<{ x: number; z: number } | null>(null);
+  const [wallEnd, setWallEnd] = useState<{ x: number; z: number } | null>(null);
+  const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
+  const [wallPlacementError, setWallPlacementError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!wallPlacementError) return;
+    const t = window.setTimeout(() => setWallPlacementError(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [wallPlacementError]);
 
   const myObjects = useMemo(
     () => (student ? worldObjects.filter((o) => o.studentId === student.id) : []),
     [worldObjects, student]
+  );
+  const myWalls = useMemo(
+    () => (student ? allWallSegments.filter((w) => w.studentId === student.id) : []),
+    [allWallSegments, student]
   );
   const selected = myObjects.find((o) => o.id === selectedId) ?? null;
   // View-mode furniture collision (blockRoomObstacles above) — only
@@ -407,15 +446,31 @@ export default function HomeRoom() {
 
   const armedItem = STARTER_ITEMS.find((it) => it.id === armedId) ?? null;
 
+  // Direct instruction: windows (and doors, if one's ever added) can only
+  // be placed on a wall — the room's own 4 boundary walls count, not just
+  // a student-drawn one, so a new room with nothing drawn yet still works.
   const placeAt = (x: number, z: number) => {
     // Belt-and-suspenders alongside the disabled catalog buttons above —
     // never place at the raw un-calibrated scale.
     if (!armedItem || scales[armedItem.id] === undefined) return;
+    let px = snap(x);
+    let pz = snap(z);
+    let rotationY = 0;
+    if (DOOR_WINDOW_RE.test(armedItem.label)) {
+      const snapWall = nearestWall(x, z, [...BOUNDARY_WALLS, ...myWalls], WALL_SNAP_DISTANCE);
+      if (!snapWall) {
+        setWallPlacementError('Windows need to be placed on a wall — try the edge of the room, or draw one with 🧱 Wall.');
+        return;
+      }
+      px = snapWall.x;
+      pz = snapWall.z;
+      rotationY = snapWall.angle;
+    }
     addWorldObject({
       modelPath: armedItem.modelPath,
       label: armedItem.label,
-      position: [snap(x), 0, snap(z)],
-      rotationY: 0,
+      position: [px, 0, pz],
+      rotationY,
       scale: scales[armedItem.id],
       studentId: student.id,
     });
@@ -425,6 +480,7 @@ export default function HomeRoom() {
 
   const handleFloorClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    if (wallMode) return; // walls are placed by the pointerdown/up drag below, not a click
     if (mode === 'view') {
       walkTarget.current = { x: THREE.MathUtils.clamp(e.point.x, -ROOM_HALF + 0.5, ROOM_HALF - 0.5), z: THREE.MathUtils.clamp(e.point.z, -ROOM_HALF + 0.5, ROOM_HALF - 0.5) };
       return;
@@ -435,12 +491,52 @@ export default function HomeRoom() {
       setDraggingId(null);
     } else {
       setSelectedId(null);
+      setSelectedWallId(null);
     }
   };
   const handleFloorPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (mode !== 'build' || !draggingId) return;
+    if (mode !== 'build') return;
+    if (draggingId) {
+      e.stopPropagation();
+      updateWorldObject(draggingId, { position: [snap(e.point.x), 0, snap(e.point.z)] });
+    } else if (wallMode && wallStart) {
+      e.stopPropagation();
+      setWallEnd({ x: snap(e.point.x), z: snap(e.point.z) });
+    }
+  };
+  const handleFloorPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (mode !== 'build' || !wallMode) return;
     e.stopPropagation();
-    updateWorldObject(draggingId, { position: [snap(e.point.x), 0, snap(e.point.z)] });
+    const pt = { x: snap(e.point.x), z: snap(e.point.z) };
+    setWallStart(pt);
+    setWallEnd(pt);
+  };
+  // A pointer released outside the floor plane would otherwise leave the
+  // wall-draw gesture stuck forever — same window-level fallback the rest
+  // of this app's drag/draw gestures already rely on.
+  useEffect(() => {
+    if (!wallMode || !wallStart) return;
+    const commit = () => {
+      if (wallEnd) {
+        const len = Math.hypot(wallEnd.x - wallStart.x, wallEnd.z - wallStart.z);
+        if (len >= GRID_SIZE * 0.5) {
+          addWallSegment({ x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_HEIGHT, thickness: WALL_THICKNESS, studentId: student.id });
+          flashSaved();
+        }
+      }
+      setWallStart(null);
+      setWallEnd(null);
+    };
+    window.addEventListener('pointerup', commit);
+    return () => window.removeEventListener('pointerup', commit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallMode, wallStart, wallEnd]);
+  const toggleWallMode = () => {
+    setArmedId(null);
+    setSelectedId(null);
+    setSelectedWallId(null);
+    setWallStart(null);
+    setWallMode((v) => !v);
   };
 
   const rotateSelected = (deg: number) => {
@@ -472,6 +568,9 @@ export default function HomeRoom() {
     setArmedId(null);
     setSelectedId(null);
     setDraggingId(null);
+    setWallMode(false);
+    setWallStart(null);
+    setSelectedWallId(null);
     setMode('view');
   };
 
@@ -517,7 +616,7 @@ export default function HomeRoom() {
           // stays free for select/place, right-drag orbits, scroll zooms.
           <OrbitControls
             makeDefault
-            enabled={!draggingId}
+            enabled={!draggingId && !wallStart}
             maxPolarAngle={Math.PI / 2.3}
             minDistance={6}
             maxDistance={18}
@@ -525,7 +624,7 @@ export default function HomeRoom() {
           />
         ) : (
           <>
-            <RoomPlayer walkTarget={walkTarget} obstacles={roomObstacles} />
+            <RoomPlayer walkTarget={walkTarget} obstacles={roomObstacles} walls={myWalls} />
             <WalkTargetMarker walkTarget={walkTarget} />
           </>
         )}
@@ -537,7 +636,7 @@ export default function HomeRoom() {
         </Suspense>
 
         {/* Floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={handleFloorClick} onPointerMove={handleFloorPointerMove}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={handleFloorClick} onPointerMove={handleFloorPointerMove} onPointerDown={handleFloorPointerDown}>
           <planeGeometry args={[ROOM_HALF * 2, ROOM_HALF * 2]} />
           {student.homeFloorTexture ? (
             <Suspense fallback={<meshStandardMaterial color={DEFAULT_FLOOR_COLOR} />}>
@@ -561,6 +660,31 @@ export default function HomeRoom() {
             <meshStandardMaterial color={student.homeWallColor || DEFAULT_WALL_COLOR} />
           </mesh>
         ))}
+
+        {/* Student-drawn interior walls (🧱 Wall tool) — same simplified
+            "click just selects" interaction the furniture below uses;
+            handlers are left undefined entirely (not a no-op) whenever
+            another tool is active, so pointer events pass through to the
+            floor underneath instead of being silently swallowed. */}
+        {myWalls.map((wall) => {
+          const interactive = mode === 'build' && !wallMode && !armedItem;
+          const isSelected = selectedWallId === wall.id;
+          return (
+            <WallMesh
+              key={wall.id}
+              wall={wall}
+              color={isSelected ? '#e2775c' : undefined}
+              onClick={interactive ? () => setSelectedWallId(wall.id) : undefined}
+            />
+          );
+        })}
+        {wallMode && wallStart && wallEnd && (
+          <WallMesh
+            wall={{ id: '__preview__', x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' }}
+            color="#e2775c"
+            opacity={0.6}
+          />
+        )}
 
         {myObjects.map((obj) => (
           <WorldObjectRenderer
@@ -588,7 +712,7 @@ export default function HomeRoom() {
               <button
                 key={item.id}
                 disabled={!scalesReady}
-                onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); }}
+                onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setWallMode(false); setWallStart(null); setSelectedWallId(null); }}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
                   padding: '6px 8px', borderRadius: 12, cursor: scalesReady ? 'pointer' : 'default', fontFamily: 'system-ui, sans-serif',
@@ -606,6 +730,20 @@ export default function HomeRoom() {
                 Getting furniture ready…
               </span>
             )}
+            <span style={{ width: 2, alignSelf: 'stretch', background: '#ddd' }} />
+            <button
+              onClick={toggleWallMode}
+              title="Wall: drag on the floor to draw one — windows need a wall"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
+                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
+                border: wallMode ? '3px solid #8b5cf6' : '2px solid var(--content-border, #ccc)',
+                background: wallMode ? '#f1eafe' : '#fff',
+              }}
+            >
+              <span style={{ fontSize: 22 }}>🧱</span>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>Wall</span>
+            </button>
           </div>
 
           {armedItem && (
@@ -615,7 +753,27 @@ export default function HomeRoom() {
             </div>
           )}
 
-          {selected && !armedItem && (
+          {wallMode && (
+            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', border: '2px solid #8b5cf6', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
+              🧱 Drag on the floor to draw a wall. <button className="btn btn-sm" style={{ minHeight: 36, marginLeft: 8 }} onClick={toggleWallMode}>Done</button>
+            </div>
+          )}
+
+          {wallPlacementError && (
+            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff3ea', border: '2px solid #dc2626', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center', color: '#dc2626', maxWidth: 300 }}>
+              ⚠ {wallPlacementError}
+            </div>
+          )}
+
+          {selectedWallId && (
+            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, alignItems: 'center', fontFamily: 'system-ui, sans-serif' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, padding: '0 4px' }}>🧱 Wall</span>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { deleteWallSegment(selectedWallId); setSelectedWallId(null); flashSaved(); }}>🗑️ Remove</button>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setSelectedWallId(null)}>Done</button>
+            </div>
+          )}
+
+          {selected && !armedItem && !selectedWallId && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, alignItems: 'center' }}>
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate left" onClick={() => rotateSelected(-15)}>↺</button>
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate right" onClick={() => rotateSelected(15)}>↻</button>

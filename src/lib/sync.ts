@@ -28,6 +28,7 @@ import type {
   MarketplaceItem,
   AssignmentCompletionReward,
   WorldObject,
+  WallSegment,
   LayoutOverride,
   Focus,
 } from '../types';
@@ -337,6 +338,31 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   created_at: o.createdAt,
 });
 
+const rowToWallSegment = (r: Row): WallSegment => ({
+  id: r.id,
+  x1: r.x1,
+  z1: r.z1,
+  x2: r.x2,
+  z2: r.z2,
+  height: r.height ?? 3,
+  thickness: r.thickness ?? 0.2,
+  color: r.color ?? undefined,
+  studentId: r.student_id ?? undefined,
+  createdAt: r.created_at,
+});
+const wallSegmentToRow = (w: WallSegment): Row => ({
+  id: w.id,
+  x1: w.x1,
+  z1: w.z1,
+  x2: w.x2,
+  z2: w.z2,
+  height: w.height,
+  thickness: w.thickness,
+  color: w.color ?? null,
+  student_id: w.studentId ?? null,
+  created_at: w.createdAt,
+});
+
 const rowToFocus = (r: Row): Focus => ({
   id: r.id,
   subject: r.subject,
@@ -576,6 +602,7 @@ export interface HydratedState {
   notes: Note[];
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[];
+  wallSegments: WallSegment[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
@@ -599,7 +626,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -628,9 +655,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('literacy_focus_sets').select('*'),
     supabase.from('world_objects').select('*'),
     supabase.from('focuses').select('*'),
+    supabase.from('wall_segments').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -696,6 +724,7 @@ export async function fetchAll(): Promise<HydratedState> {
     notes: (notesRes.data ?? []).map(rowToNote),
     marketplaceItems: (marketplaceItemsRes.data ?? []).map(rowToMarketplaceItem),
     worldObjects: (worldObjectsRes.data ?? []).map(rowToWorldObject),
+    wallSegments: (wallSegmentsRes.data ?? []).map(rowToWallSegment),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
@@ -906,6 +935,9 @@ export const deleteTransactionRemote = (id: string) => remove('transactions', { 
 export const pushWorldObject = (o: WorldObject) => upsert('world_objects', worldObjectToRow(o));
 export const deleteWorldObjectRemote = (id: string) => remove('world_objects', { id });
 
+export const pushWallSegment = (w: WallSegment) => upsert('wall_segments', wallSegmentToRow(w));
+export const deleteWallSegmentRemote = (id: string) => remove('wall_segments', { id });
+
 export const pushFocus = (f: Focus) => upsert('focuses', focusToRow(f));
 export const deleteFocusRemote = (id: string) => remove('focuses', { id });
 export const pushAnnotation = (a: ArticleAnnotationSet) => upsert('article_annotations', annotationToRow(a));
@@ -1109,7 +1141,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToFocus };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1138,6 +1170,7 @@ export interface RealtimeHandlers {
   onMarketplaceItem: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onAppSettings: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onWorldObject: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onWallSegment: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onFocus: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
@@ -1180,6 +1213,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, wire(handlers.onMarketplaceItem))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, wire(handlers.onAppSettings))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'world_objects' }, wire(handlers.onWorldObject))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'wall_segments' }, wire(handlers.onWallSegment))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'focuses' }, wire(handlers.onFocus))
     .subscribe();
 

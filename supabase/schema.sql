@@ -364,6 +364,25 @@ alter table world_objects add column if not exists student_id text;
 -- not here, so this table follows the exact same anon-read/write,
 -- authenticated-delete policy every other table already uses.
 
+-- Wall segments: Sims 4-style drawn walls (two endpoints, not a placed
+-- model), used both in the shared Town Square and inside a student's own
+-- Home Room. A door/window WorldObject is only placeable when it snaps
+-- onto one of these (see WorldEditor.tsx/HomeRoom.tsx's wall-proximity
+-- placement gate). Same student_id convention as world_objects: null =
+-- shared Town Square, a student id = that student's own private room.
+create table if not exists wall_segments (
+  id text primary key,
+  x1 numeric not null,
+  z1 numeric not null,
+  x2 numeric not null,
+  z2 numeric not null,
+  height numeric not null default 3,
+  thickness numeric not null default 0.2,
+  color text,
+  student_id text,
+  created_at timestamptz not null default now()
+);
+
 -- Class-wide curriculum "Focuses" (see types.ts's Focus interface) — one
 -- current focus per subject lane (math/literacy/sel/finance), teacher-set
 -- from the Assignments page, woven into gameplay (Neighbor/Townsperson
@@ -507,7 +526,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments'
   ];
 begin
   foreach t in array tables loop
@@ -550,7 +569,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments'
   ];
 begin
   foreach t in array tables loop
