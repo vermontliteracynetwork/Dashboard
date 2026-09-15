@@ -49,6 +49,7 @@ import {
   rowToProgress,
   rowToBreakRequest,
   rowToHelpPing,
+  rowToStudentFeedback,
   rowToOffscreenReview,
   rowToQuizAttempt,
   rowToBadge,
@@ -72,6 +73,7 @@ import {
   pushBreakRequest,
   deleteBreakRequestRemote,
   pushHelpPing,
+  pushStudentFeedback,
   pushOffscreenReview,
   pushQuizAttempt,
   pushBadge,
@@ -133,6 +135,7 @@ import type {
   SubjectProgress,
   BreakRequest,
   HelpPing,
+  StudentFeedback,
   OffscreenReview,
   QuizAttemptRecord,
   BadgeDef,
@@ -188,6 +191,9 @@ interface AppState {
   progress: ProgressMap;
   breakRequests: BreakRequest[];
   helpPings: HelpPing[];
+  studentFeedback: StudentFeedback[];
+  submitFeedback: (studentId: string, category: StudentFeedback['category'], subcategoryLabel: string | undefined, customLabel: string | undefined, text: string) => void;
+  resolveFeedback: (id: string) => void;
   offscreenReviews: OffscreenReview[];
   quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
@@ -509,6 +515,7 @@ export const useStore = create<AppState>()(
       progress: {},
       breakRequests: [],
       helpPings: [],
+      studentFeedback: [],
       offscreenReviews: [],
       quizAttempts: [],
       badges: DEFAULT_BADGES,
@@ -632,6 +639,7 @@ export const useStore = create<AppState>()(
           onBreakRequest: (e, n, o) =>
             set((s) => ({ breakRequests: applyArrayRow(s.breakRequests, e, rowToBreakRequest, n, o) })),
           onHelpPing: (e, n, o) => set((s) => ({ helpPings: applyArrayRow(s.helpPings, e, rowToHelpPing, n, o) })),
+          onStudentFeedback: (e, n, o) => set((s) => ({ studentFeedback: applyArrayRow(s.studentFeedback, e, rowToStudentFeedback, n, o) })),
           onOffscreenReview: (e, n, o) =>
             set((s) => ({ offscreenReviews: applyArrayRow(s.offscreenReviews, e, rowToOffscreenReview, n, o) })),
           onQuizAttempt: (e, n, o) =>
@@ -1874,6 +1882,27 @@ export const useStore = create<AppState>()(
         set((s) => ({ helpPings: s.helpPings.map((h) => (h.id === id ? { ...h, resolved: true } : h)) }));
         const updated = get().helpPings.find((h) => h.id === id);
         if (updated) pushHelpPing(updated);
+      },
+
+      submitFeedback: (studentId, category, subcategoryLabel, customLabel, text) => {
+        const feedback: StudentFeedback = {
+          id: makeId(),
+          studentId,
+          category,
+          subcategoryLabel,
+          customLabel,
+          text,
+          createdAt: new Date().toISOString(),
+          resolved: false,
+        };
+        set((s) => ({ studentFeedback: [feedback, ...s.studentFeedback] }));
+        pushStudentFeedback(feedback);
+      },
+
+      resolveFeedback: (id) => {
+        set((s) => ({ studentFeedback: s.studentFeedback.map((f) => (f.id === id ? { ...f, resolved: true } : f)) }));
+        const updated = get().studentFeedback.find((f) => f.id === id);
+        if (updated) pushStudentFeedback(updated);
       },
 
       verifyOffscreen: (id) => {

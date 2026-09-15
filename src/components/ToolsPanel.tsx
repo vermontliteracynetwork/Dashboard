@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
+import FeedbackTool from './FeedbackTool';
 import { SOUND_WALL } from '../lib/wordData';
 import { fetchDefinition, fetchSynonyms, fetchAntonyms, isBlockedTerm } from '../lib/wordLookup';
 import type { WordLookupResult } from '../lib/wordLookup';
@@ -1087,6 +1088,7 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
   const [menuOpen, setMenuOpen] = useState(false);
   const [open, setOpen] = useState<ToolKey | null>(null);
   const [customOpen, setCustomOpen] = useState<CustomTool | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const recordToolUsage = useStore((s) => s.recordToolUsage);
 
   const subjectTools = (subject === 'both' ? [...SUBJECT_TOOLS.math, ...SUBJECT_TOOLS.literacy] : SUBJECT_TOOLS[subject]).filter(
@@ -1173,10 +1175,20 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
                   </div>
                 </div>
               )}
+              <hr className="divider" />
+              <button
+                className="btn btn-sm btn-teal"
+                style={{ minHeight: 44, alignSelf: 'flex-start' }}
+                onClick={() => { setFeedbackOpen(true); setMenuOpen(false); }}
+              >
+                💬 Give Feedback
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {feedbackOpen && <FeedbackTool student={student} onClose={() => setFeedbackOpen(false)} />}
 
       {open && (
         <div className="overlay-backdrop" onClick={() => setOpen(null)}>

@@ -675,6 +675,27 @@ export interface HelpPing {
   resolved: boolean;
 }
 
+// A student's own feedback about the game, submitted through the
+// structured, quiz-like Feedback tool (not free-typed cold) — designed
+// specifically for students with communication disorders: pick a category,
+// drill down as far as it goes (Game Play -> Build Mode -> Asset to add,
+// for instance), then explain in their own words, typed or spoken.
+// category is the top-level pick; subcategoryLabel is a plain-language
+// breadcrumb of every step taken after that (e.g. "Build Mode > Asset to
+// add") so a teacher reading the inbox sees the whole path at a glance
+// without a lookup table. customLabel only exists for category 'other',
+// where the student names their own category instead of picking one.
+export interface StudentFeedback {
+  id: string;
+  studentId: string;
+  category: 'gameplay' | 'visuals' | 'assignments' | 'other';
+  subcategoryLabel?: string;
+  customLabel?: string;
+  text: string;
+  createdAt: string;
+  resolved: boolean;
+}
+
 // A single teacher<->student chat message, opened from a help ping (or any
 // time from either side). One flat list per student — small classrooms
 // don't need threading, just "everything said with this student."

@@ -151,6 +151,22 @@ create table if not exists chat_messages (
   created_at timestamptz not null default now()
 );
 
+-- A student's own feedback about the game, submitted through the
+-- structured Feedback tool (ToolsPanel.tsx) — category is the top-level
+-- pick (gameplay/visuals/assignments/other), subcategory_label is a plain-
+-- language breadcrumb of every drill-down step after that, custom_label is
+-- only set for category 'other' (the student's own typed-in category).
+create table if not exists student_feedback (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  category text not null,
+  subcategory_label text,
+  custom_label text,
+  text text not null default '',
+  created_at timestamptz not null default now(),
+  resolved boolean not null default false
+);
+
 create table if not exists break_pool_items (
   id text primary key,
   title text not null,
@@ -526,7 +542,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback'
   ];
 begin
   foreach t in array tables loop
@@ -569,7 +585,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback'
   ];
 begin
   foreach t in array tables loop

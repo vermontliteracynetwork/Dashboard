@@ -14,14 +14,27 @@ type InboxItem =
       taskTitle: string;
       subject: string;
       photoUrl?: string;
+    }
+  | {
+      kind: 'feedback';
+      id: string;
+      studentId: string;
+      timestamp: string;
+      done: boolean;
+      category: string;
+      subcategoryLabel?: string;
+      customLabel?: string;
+      text: string;
     };
 
 export default function ReviewInbox() {
   const students = useStore((s) => s.students);
   const offscreenReviews = useStore((s) => s.offscreenReviews);
   const helpPings = useStore((s) => s.helpPings);
+  const studentFeedback = useStore((s) => s.studentFeedback);
   const verifyOffscreen = useStore((s) => s.verifyOffscreen);
   const resolveHelp = useStore((s) => s.resolveHelp);
+  const resolveFeedback = useStore((s) => s.resolveFeedback);
 
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const avatarFor = (id: string) => students.find((s) => s.id === id)?.avatar ?? '❓';
@@ -39,7 +52,20 @@ export default function ReviewInbox() {
       subject: o.subject,
       photoUrl: o.photoUrl,
     })),
+    ...studentFeedback.map((f): InboxItem => ({
+      kind: 'feedback',
+      id: f.id,
+      studentId: f.studentId,
+      timestamp: f.createdAt,
+      done: f.resolved,
+      category: f.category,
+      subcategoryLabel: f.subcategoryLabel,
+      customLabel: f.customLabel,
+      text: f.text,
+    })),
   ].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
+
+  const CATEGORY_LABEL: Record<string, string> = { gameplay: '🎮 Game Play', visuals: '🎨 Visuals & Design', assignments: '📋 Assignments & Focuses', other: '✏️ Other' };
 
   return (
     <div className="app-shell">
@@ -66,8 +92,15 @@ export default function ReviewInbox() {
                   <div className="inbox-subject">
                     {item.kind === 'help' ? (
                       <>{nameFor(item.studentId)} asked for help</>
-                    ) : (
+                    ) : item.kind === 'offscreen' ? (
                       <>{nameFor(item.studentId)} marked "{item.taskTitle}" done ({item.subject}){item.photoUrl ? ' · 📸 photo attached' : ''}</>
+                    ) : (
+                      <>
+                        {nameFor(item.studentId)} sent feedback — {CATEGORY_LABEL[item.category] ?? item.category}
+                        {item.customLabel ? ` (${item.customLabel})` : ''}
+                        {item.subcategoryLabel ? <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{item.subcategoryLabel}</div> : null}
+                        {item.text && <div style={{ fontSize: '0.85rem', marginTop: 4, fontStyle: 'italic' }}>"{item.text}"</div>}
+                      </>
                     )}
                   </div>
                   <div className="inbox-time">{new Date(item.timestamp).toLocaleString()}</div>
@@ -77,9 +110,9 @@ export default function ReviewInbox() {
                 ) : (
                   <button
                     className="btn btn-sm btn-success"
-                    onClick={() => (item.kind === 'help' ? resolveHelp(item.id) : verifyOffscreen(item.id))}
+                    onClick={() => (item.kind === 'help' ? resolveHelp(item.id) : item.kind === 'offscreen' ? verifyOffscreen(item.id) : resolveFeedback(item.id))}
                   >
-                    {item.kind === 'help' ? 'Got it' : 'Verify'}
+                    {item.kind === 'help' ? 'Got it' : item.kind === 'offscreen' ? 'Verify' : 'Got it'}
                   </button>
                 )}
               </div>
