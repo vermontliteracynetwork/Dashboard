@@ -129,6 +129,34 @@ export default function HomeRoom() {
     [worldObjects, student]
   );
   const selected = myObjects.find((o) => o.id === selectedId) ?? null;
+  // All 5 starter models measure in the high hundreds of raw units (this
+  // pack's own native scale — the exact same "wildly different native
+  // units per pack" bug devThumbRender.ts already documents), so a
+  // correctly calibrated scale is always a small fraction. Placing before
+  // that measurement finishes would otherwise silently fall back to a
+  // literal scale of 1 — a couch (or worse, the bed) rendered at its
+  // ~200-400-raw-unit native size, dwarfing the whole 10-unit room. Both
+  // guards below close that hole: buttons stay disabled until every
+  // starter model has actually been measured, and any already-placed
+  // object whose scale doesn't match what its model should calibrate to
+  // (off by more than 3x either way — comfortably outside anything a
+  // couple of the resize buttons' 1.15x taps could produce) gets silently
+  // corrected on load, since every object here comes from this fixed,
+  // known 5-item catalog — there's no legitimate reason one would ever
+  // carry its raw, unscaled size.
+  const scalesReady = STARTER_ITEMS.every((it) => scales[it.id] !== undefined);
+  useEffect(() => {
+    if (!scalesReady) return;
+    for (const obj of myObjects) {
+      const item = STARTER_ITEMS.find((it) => it.modelPath === obj.modelPath);
+      if (!item) continue;
+      const correct = scales[item.id];
+      if (obj.scale > correct * 3 || obj.scale < correct / 3) {
+        updateWorldObject(obj.id, { scale: correct });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scalesReady, myObjects]);
 
   // A pointer released off the floor mesh (over the dragged object itself,
   // or outside the canvas) would otherwise leave the drag stuck forever —
@@ -145,13 +173,15 @@ export default function HomeRoom() {
   const armedItem = STARTER_ITEMS.find((it) => it.id === armedId) ?? null;
 
   const placeAt = (x: number, z: number) => {
-    if (!armedItem) return;
+    // Belt-and-suspenders alongside the disabled catalog buttons above —
+    // never place at the raw un-calibrated scale.
+    if (!armedItem || scales[armedItem.id] === undefined) return;
     addWorldObject({
       modelPath: armedItem.modelPath,
       label: armedItem.label,
       position: [snap(x), 0, snap(z)],
       rotationY: 0,
-      scale: scales[armedItem.id] ?? 1,
+      scale: scales[armedItem.id],
       studentId: student.id,
     });
     setArmedId(null);
@@ -278,18 +308,25 @@ export default function HomeRoom() {
         {STARTER_ITEMS.map((item) => (
           <button
             key={item.id}
+            disabled={!scalesReady}
             onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); }}
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
-              padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
+              padding: '6px 8px', borderRadius: 12, cursor: scalesReady ? 'pointer' : 'default', fontFamily: 'system-ui, sans-serif',
               border: armedId === item.id ? '3px solid #e2775c' : '2px solid var(--content-border, #ccc)',
               background: armedId === item.id ? '#fff3ea' : '#fff',
+              opacity: scalesReady ? 1 : 0.4,
             }}
           >
             <img src={item.thumbnail} alt="" style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
             <span style={{ fontSize: 11, fontWeight: 700 }}>{item.label}</span>
           </button>
         ))}
+        {!scalesReady && (
+          <span style={{ display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#666', fontFamily: 'system-ui, sans-serif' }}>
+            Getting furniture ready…
+          </span>
+        )}
       </div>
 
       {armedItem && (
