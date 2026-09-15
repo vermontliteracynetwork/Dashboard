@@ -886,7 +886,7 @@ function SelectedObjectToolbar({
             </div>
           ) : (
             <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
-              {iconBtn('✥', 'Move (no dragging needed)', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
+              {iconBtn('✥', 'Move — the only way to reposition; click just selects, dragging is off', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
               {iconBtn('↺', 'Rotate left 45° (hold for 15° steps)', () => rotateBy(-45), rotateCcwFine)}
               {iconBtn('↻', 'Rotate right 45° (hold for 15° steps)', () => rotateBy(45), rotateCwFine)}
               {iconBtn('⤢', 'Resize', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
@@ -1124,19 +1124,14 @@ export default function WorldEditor() {
   const layoutItems = useMemo(() => buildLayoutItems(), []);
 
   // Placement ghost (armed asset following the pointer before it's real —
-  // Minecraft's hover-preview) and the live drag-preview for repositioning
-  // an already-placed/already-fixed object (Sims/Webkinz-style direct
-  // drag). Only one of these is ever active at once.
+  // Minecraft's hover-preview). Direct instruction: click-and-drag to
+  // reposition an already-placed object was removed entirely — a plain
+  // click now only ever selects, never moves, and repositioning happens
+  // exclusively through the ✥ Move crosshair/D-pad popover (nudgePosition
+  // below). Dragging was hard to do precisely on a trackpad/touchscreen,
+  // and a stray drag while just trying to select something used to move
+  // it by accident; the crosshair removes both problems at once.
   const [ghostPos, setGhostPos] = useState<{ x: number; z: number } | null>(null);
-  const [dragState, setDragState] = useState<{ kind: 'placed' | 'layout'; id: string; startClientX: number; startClientY: number; moved: boolean } | null>(null);
-  const [dragPos, setDragPos] = useState<{ x: number; z: number } | null>(null);
-  // Claudia's focus-group audit: this used to be `dragState !== null`, which
-  // went true the instant a pointer went down on an already-selected object
-  // — even a plain re-click, well under the 8px move threshold — hiding the
-  // floating toolbar and disabling camera orbit for every ordinary click,
-  // not just real drags. Gated on dragState.moved instead, so only an
-  // actual drag (past the threshold) does either of those things.
-  const isDragging = dragState?.moved === true;
 
   // Undo/redo — a plain history of full editor-state snapshots (what's
   // placed + what's overridden on the fixed layout), not per-field inverse
@@ -1296,24 +1291,6 @@ export default function WorldEditor() {
       window.removeEventListener('keyup', onKeyUp);
     };
   }, []);
-
-  // A pointer released outside the ground plane (dragged off the visible
-  // floor) would otherwise leave the drag stuck forever — a window-level
-  // fallback guarantees the drag always ends and commits.
-  useEffect(() => {
-    if (!dragState) return;
-    const commit = () => {
-      if (dragState.moved && dragPos) {
-        if (dragState.kind === 'placed') updateWorldObjectH(dragState.id, { position: [dragPos.x, 0, dragPos.z] });
-        else setLayoutOverrideH(dragState.id, { position: [dragPos.x, dragPos.z] });
-      }
-      setDragState(null);
-      setDragPos(null);
-    };
-    window.addEventListener('pointerup', commit);
-    return () => window.removeEventListener('pointerup', commit);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragState, dragPos]);
 
   // Claudia's focus-group audit: a native <select> for category filtering
   // was the single biggest "this is a web form, not a game" tell. Only 5
@@ -1476,14 +1453,6 @@ export default function WorldEditor() {
     if (armedAsset) {
       e.stopPropagation();
       setGhostPos({ x, z });
-    } else if (dragState) {
-      e.stopPropagation();
-      setDragPos({ x, z });
-      if (!dragState.moved) {
-        const dx = e.nativeEvent.clientX - dragState.startClientX;
-        const dy = e.nativeEvent.clientY - dragState.startClientY;
-        if (Math.hypot(dx, dy) > 8) setDragState((s) => (s ? { ...s, moved: true } : s));
-      }
     }
   };
 
@@ -1515,7 +1484,6 @@ export default function WorldEditor() {
   };
 
   const placementOverlap = armedAsset && ghostPos ? footprintOverlap(ghostPos.x, ghostPos.z, armedDefaultScale, worldObjects) : null;
-  const dragOverlap = dragState && dragState.moved && dragPos ? footprintOverlap(dragPos.x, dragPos.z, selected?.scale ?? 1, worldObjects, dragState.id) : null;
 
   return (
     <div className="stack" style={{ padding: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -1786,7 +1754,9 @@ export default function WorldEditor() {
               <div>🖱️ Right-drag — look around</div>
               <div>🖱️ Middle-drag — pan</div>
               <div>🖱️ Scroll — zoom</div>
-              <div>⌨️ WASD / Arrows — move</div>
+              <div>🖱️ Click an object — select it (no dragging)</div>
+              <div>✥ Move popover — reposition selected</div>
+              <div>⌨️ WASD / Arrows — camera</div>
               <div>⌨️ Delete — remove selected</div>
               <div>⌨️ [ / ] — rotate selected</div>
               <div>⌨️ - / = — resize selected</div>
@@ -1803,11 +1773,6 @@ export default function WorldEditor() {
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', border: `2px solid ${HAMMER_COLOR}`, borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               🔨 Hammer equipped — tap any object to delete it instantly, no confirmation. <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setHammerMode(false)}>Done</button>
               <div style={{ fontSize: 11, opacity: 0.65, marginTop: 3, fontWeight: 500 }}>Made a mistake? ↶ Undo is in the bottom bar.</div>
-            </div>
-          )}
-          {dragOverlap && (
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff3ea', borderRadius: 10, padding: '6px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 600, fontSize: 12, color: OVERLAP_COLOR }}>
-              ⚠ Overlapping {dragOverlap} — that's OK, just checking
             </div>
           )}
           {showSaved && (
@@ -1855,7 +1820,6 @@ export default function WorldEditor() {
             <OrbitControls
               ref={controlsRef}
               makeDefault
-              enabled={!isDragging}
               maxPolarAngle={Math.PI / 2.1}
               minDistance={6}
               maxDistance={42}
@@ -1913,24 +1877,22 @@ export default function WorldEditor() {
             {layoutItems.map((item) => {
               const ov = layoutOverrides[item.id];
               if (ov?.deleted) return null;
-              const isBeingDragged = dragState?.kind === 'layout' && dragState.id === item.id && dragState.moved && !!dragPos;
               const isSelected = selection?.kind === 'layout' && selection.id === item.id;
               const isHovered = hovered?.kind === 'layout' && hovered.id === item.id && !isSelected;
               const basePos: [number, number] = ov?.position ?? item.position;
-              const livePos: [number, number, number] = isBeingDragged ? [dragPos!.x, 0, dragPos!.z] : [basePos[0], 0, basePos[1]];
+              const livePos: [number, number, number] = [basePos[0], 0, basePos[1]];
               const rotationY = ov?.rotationY ?? item.rotationY;
               const scale = ov?.scale ?? item.scale;
               const renderObj: WorldObject = {
                 id: item.id, modelPath: item.modelPath, label: item.label,
                 position: livePos, rotationY, scale,
-                tintColor: isBeingDragged && dragOverlap ? OVERLAP_COLOR : ov?.tintColor,
+                tintColor: ov?.tintColor,
                 createdAt: '',
               };
               return (
                 <group key={item.id}>
                   <WorldObjectRenderer
                     obj={renderObj}
-                    opacity={isBeingDragged ? 0.6 : 1}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -1947,27 +1909,22 @@ export default function WorldEditor() {
                     }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'layout' && h.id === item.id ? null : h))}
                     onPointerDown={(e) => {
+                      // Direct instruction: dragging to move a placed object
+                      // is gone entirely — a click here only ever selects
+                      // (via onClick above), never starts a move. The only
+                      // way to reposition anything now is the ✥ Move
+                      // crosshair/D-pad popover (nudgePosition), once
+                      // selected. onPointerDown only still matters for the
+                      // paint brush below.
                       if (paintMode === 'brush') {
                         e.stopPropagation();
                         isPaintingRef.current = true;
                         paintNear(basePos[0], basePos[1], paintColor);
-                        return;
                       }
-                      // Direct instruction: moving an object used to need
-                      // two separate gestures (tap to select, THEN a
-                      // second tap-drag to move) — a single natural
-                      // click-and-drag now selects and starts the move in
-                      // one motion. A plain click (no movement past the
-                      // threshold) still just selects, same as before.
-                      if (hammerMode || paintMode || armedAsset) return;
-                      e.stopPropagation();
-                      setSelection({ kind: 'layout', id: item.id });
-                      setDragState({ kind: 'layout', id: item.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
-                      setDragPos({ x: basePos[0], z: basePos[1] });
                     }}
                   />
                   {isSelected && (
-                    <FootprintOutline modelPath={item.modelPath} x={livePos[0]} z={livePos[2]} rotationY={rotationY} scale={scale} color={isBeingDragged && dragOverlap ? OVERLAP_COLOR : BUILD_ACCENT} lineWidth={2.5} />
+                    <FootprintOutline modelPath={item.modelPath} x={livePos[0]} z={livePos[2]} rotationY={rotationY} scale={scale} color={BUILD_ACCENT} lineWidth={2.5} />
                   )}
                   {isHovered && (
                     <FootprintOutline modelPath={item.modelPath} x={basePos[0]} z={basePos[1]} rotationY={rotationY} scale={scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
@@ -1977,18 +1934,12 @@ export default function WorldEditor() {
             })}
 
             {worldObjects.map((obj) => {
-              const isBeingDragged = dragState?.kind === 'placed' && dragState.id === obj.id && dragState.moved && !!dragPos;
               const isSelected = selection?.kind === 'placed' && selection.id === obj.id;
               const isHovered = hovered?.kind === 'placed' && hovered.id === obj.id && !isSelected;
-              const livePos: [number, number, number] = isBeingDragged ? [dragPos!.x, 0, dragPos!.z] : obj.position;
-              const renderObj = isBeingDragged
-                ? { ...obj, position: livePos, tintColor: dragOverlap ? OVERLAP_COLOR : obj.tintColor }
-                : obj;
               return (
                 <group key={obj.id}>
                   <WorldObjectRenderer
-                    obj={renderObj}
-                    opacity={isBeingDragged ? 0.6 : 1}
+                    obj={obj}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -2001,23 +1952,14 @@ export default function WorldEditor() {
                     }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'placed' && h.id === obj.id ? null : h))}
                     onPointerDown={(e) => {
+                      // Same removal as layoutItems above — click-and-drag
+                      // to move no longer exists; only the ✥ Move crosshair
+                      // popover repositions a selected object now.
                       if (paintMode === 'brush') {
                         e.stopPropagation();
                         isPaintingRef.current = true;
                         paintNear(obj.position[0], obj.position[2], paintColor);
-                        return;
                       }
-                      // Direct-drag-to-move (Sims/Webkinz-style), replacing
-                      // the old translate gizmo. Direct instruction: a
-                      // single click-and-drag now selects AND starts the
-                      // move in one motion — it used to require a separate
-                      // tap-to-select gesture first. A plain click (no
-                      // movement past the threshold) still just selects.
-                      if (hammerMode || paintMode || armedAsset) return;
-                      e.stopPropagation();
-                      setSelection({ kind: 'placed', id: obj.id });
-                      setDragState({ kind: 'placed', id: obj.id, startClientX: e.nativeEvent.clientX, startClientY: e.nativeEvent.clientY, moved: false });
-                      setDragPos({ x: obj.position[0], z: obj.position[2] });
                     }}
                   />
                   {/* Selection/hover feedback lives in-scene, at the object
@@ -2026,7 +1968,7 @@ export default function WorldEditor() {
                       panel, which this closes. Color is reinforcement, the
                       outline geometry itself is the primary signal. */}
                   {isSelected && (
-                    <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={isBeingDragged && dragOverlap ? OVERLAP_COLOR : BUILD_ACCENT} lineWidth={2.5} />
+                    <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
                   )}
                   {isHovered && (
                     <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
@@ -2035,7 +1977,7 @@ export default function WorldEditor() {
               );
             })}
 
-            {selected && selection && !isDragging && (
+            {selected && selection && (
               <SelectedObjectToolbar
                 selected={selected}
                 allowNameRole={selection.kind === 'placed'}
