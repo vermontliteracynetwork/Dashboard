@@ -73,9 +73,16 @@ const FLOOR_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
 const DEFAULT_FLOOR_COLOR = '#dfd2b6';
 const DEFAULT_WALL_COLOR = '#f3ece0';
 
+// Claudia's asset-sizing audit: a 0.05 floor here (matching WorldEditor's
+// old bound, since fixed to 0.0005 for the same reason) silently
+// overrode every one of these 5 starter items' real calibration — all 5
+// have raw sizes in the hundreds of units, so their true ideal scale
+// (target ÷ raw) is smaller than 0.05, e.g. the bed's ideal 2/394≈0.005
+// was being forced up to 0.05, a bed nearly twice the room's own width.
+const SCALE_FLOOR = 0.0005;
 function computeStarterScale(size: THREE.Vector3, target: ScaleTarget): number {
   const dim = target.kind === 'cube' ? Math.max(size.x, size.y, size.z) : Math.max(size.x, size.z);
-  return dim > 0 && isFinite(dim) ? THREE.MathUtils.clamp(target.value / dim, 0.05, 20) : 1;
+  return dim > 0 && isFinite(dim) ? THREE.MathUtils.clamp(target.value / dim, SCALE_FLOOR, 20) : 1;
 }
 
 // Measures each starter model's real bounding box once (via the same

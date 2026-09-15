@@ -41,7 +41,19 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'welcome-center', label: `Welcome Center → ${ROLE_VIEWS['welcome-center']}` },
   { value: 'computer-desk', label: `Computer Desk (task list) → ${ROLE_VIEWS['computer-desk']}` },
 ];
-const SCALE_MIN = 0.05;
+// Claudia's asset-sizing audit: this floor was silently overriding the
+// entire size-class system for any pack whose raw model units run into
+// the hundreds (most of interior/aquarium/structures) — the *correctly
+// calibrated* scale for those (targetHeight ÷ a raw height in the
+// hundreds) is smaller than 0.05, so the clamp forced them back up to a
+// flat 0.05 regardless of what tier/category target said, exhaustively
+// confirmed on 224 of 1252 assets (17.9%) — e.g. an Anglerfish rendering
+// ~20m tall next to a 1.745-unit avatar. Lowered far enough that no
+// legitimately-scaled pack (ideal scale typically 0.4-2) ever gets near
+// it; only ever engages as a true last-resort floor now, not a silent
+// override. See HomeRoom.tsx's own computeStarterScale for the second,
+// independently-duplicated copy of this same bound — keep both in sync.
+const SCALE_MIN = 0.0005;
 const SCALE_MAX = 20;
 
 // A local-browser safety net, on top of (not instead of) the real
@@ -144,7 +156,14 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   forest: CHARACTER_HEIGHT * 5.5, // trees: 3-8x
   farm: CHARACTER_HEIGHT * 3,
   camping: CHARACTER_HEIGHT * 1.5,
-  fall: CHARACTER_HEIGHT * 1.2,
+  // Claudia's asset-sizing audit: 'food' (36 items) had no entry at all,
+  // so anything not caught by a tiny/smallObject keyword fell to the
+  // plain character-height default — an 8.85-unit-tall cucumber,
+  // measured. A single ingredient/dish is always small; the real keyword
+  // list below (extended in the same audit) now catches most named
+  // produce/food items before this fallback is even reached, this is
+  // just the backstop for whatever isn't named specifically.
+  food: CHARACTER_HEIGHT * 0.15,
   creatures: CHARACTER_HEIGHT * 0.8, // animals — neighbor-comparable
   pets: CHARACTER_HEIGHT * 0.6,
   aquarium: CHARACTER_HEIGHT * 0.4,
@@ -184,8 +203,23 @@ const KAYDEN_UNIT = CHARACTER_HEIGHT / 2; // ≈0.8725 real units
 const SIZE_CLASS_TARGET = {
   tiny: KAYDEN_UNIT * 0.25, // handheld/countertop: a cup, a card, a receipt
   smallObject: KAYDEN_UNIT * 0.5, // countertop appliance/small furniture piece: a basket, a register
-  furniture: KAYDEN_UNIT * 1, // washing machine/couch/chair/table scale
-  personScale: CHARACTER_HEIGHT, // matches a neighbor — signs, posts, fences, doors
+  furniture: KAYDEN_UNIT * 1, // washing machine/couch/chair/table scale — floor-height items only
+  // Claudia's asset-sizing audit: doors/windows/bookshelves were sharing
+  // the furniture tier's floor-height target (≈0.87 units) — a Door01
+  // came out exactly half the CHARACTER_HEIGHT avatar's own height,
+  // measured. Same numeric target as personScale (a real door/window/
+  // bookshelf genuinely is roughly avatar height), kept as its own class
+  // for a clearer name at the keyword list below.
+  tallFurniture: CHARACTER_HEIGHT,
+  personScale: CHARACTER_HEIGHT, // matches a neighbor — signs, posts, fences
+  // Claudia's audit: a light POST forced down to exactly avatar height
+  // defeats being a post at all (a real street lamp stands well above a
+  // person) — measured Street Light final height was 1.74 units, i.e.
+  // avatar height on the nose, clearly wrong for something meant to
+  // loom overhead. Interior light FIXTURES are already excepted before
+  // this tier is ever reached (see classifySizeForLabel's category
+  // check below), so this only ever catches genuine outdoor lamp posts.
+  pole: KAYDEN_UNIT * 5,
   smallStructure: KAYDEN_UNIT * 6, // middle of her 4-8-unit house range: sheds, stalls, small houses
   largeStructure: CHARACTER_HEIGHT * 4.5, // her original "regular buildings 4-5x a neighbor"
   cityStructure: CHARACTER_HEIGHT * 9, // her original "city-scale 8-10x a neighbor"
@@ -215,10 +249,36 @@ type SizeClass = keyof typeof SIZE_CLASS_TARGET;
 // 'interior' items (couches/beds/kitchen fixtures/etc.) that were
 // previously all sized by 'interior's single flat category fallback.
 const SIZE_CLASS_KEYWORDS: { cls: SizeClass; pattern: RegExp }[] = [
-  { cls: 'tiny', pattern: /\b(cup|mug|bowl|bottle\b|plate|spike|card\b|coin|fork|spoon|knife|bacon|bread|burger|receipt|blender|drone|beacon|bag)/i },
-  { cls: 'smallObject', pattern: /\b(basket|sack|box|register|drawer|bin|trashcan|houseplant|birdbath|feeder|pot|planter|cash|checkout|charger|module|compressor|crystal|fryer)/i },
-  { cls: 'furniture', pattern: /\b(chair|stool|bench|sofa|couch|table|desk|bookcase|bookshelf|shelf|barrel|crate|cauldron|chest|awning|parasol|booth|seat|stand|rack|cabinet|mold|sphere|roof|floor|door|window|bed|washing|fireplace|toilet|sink|bathtub|shower|tub|mirror)/i },
-  { cls: 'personScale', pattern: /\b(sign|post|hydrant|light|cone|fence|pillar|flag|ladder|column|curtain)/i },
+  // Food/produce nouns added by Claudia's asset-sizing audit — 'food'
+  // (36 items, no category target of its own) was falling to plain
+  // character-height sizing, e.g. an 8.85-unit cucumber; these also
+  // catch stray produce props placed in other categories (a loose
+  // "Tomato" in 'japan' was hitting that category's building-scale
+  // fallback and coming out a 4-meter tomato).
+  // 'corn' needs a trailing \b (found the same way 'card'/'bottle' did
+  // originally): without it, "corn" matched inside "Corner" across
+  // camping/holiday/platformer/prototype/restaurant — 35 unrelated level-
+  // geometry pieces, verified against the full manifest before shipping.
+  // 'orange' and 'apple' were tried and dropped for the same reason: no
+  // genuine orange/apple-fruit prop exists in this manifest yet, only
+  // false positives ("Tree Pine Orange", "Apple Tree A", "Apple Sorter"
+  // — trees and farm equipment, not tiny fruit).
+  { cls: 'tiny', pattern: /\b(cup|mug|bowl|bottle\b|plate|spike|card\b|coin|fork|spoon|knife|bacon|bread|burger|receipt|blender|drone|beacon|bag|avocado|cucumber|tomato|carrot|corn\b|lettuce|cheese|banana|pepper|onion|potato|strawberry|grape|melon|pumpkin|egg|sausage|steak|pizza|donut|cookie|cake|pie|taco|sandwich|fries|noodle|sushi|watermelon|pineapple|broccoli|mushroom)/i },
+  // hydrant/backpack/canister/target added by the same audit: a fire
+  // hydrant matched personScale's full avatar-height target (real ones
+  // are knee-to-hip height), and camping gear a person would carry
+  // (backpack/canister) was hitting 'camping's whole-category fallback
+  // (2.6 units — a backpack taller than the avatar wearing it).
+  { cls: 'smallObject', pattern: /\b(basket|sack|box|register|drawer|bin|trashcan|houseplant|birdbath|feeder|pot|planter|cash|checkout|charger|module|compressor|crystal|fryer|hydrant|backpack|canister|target)/i },
+  { cls: 'furniture', pattern: /\b(chair|stool|bench|sofa|couch|table|desk|shelf|barrel|crate|cauldron|chest|awning|parasol|booth|seat|stand|rack|cabinet|mold|sphere|roof|floor|bed|washing|toilet|sink|bathtub|shower|tub|mirror)/i },
+  // door/window/bookcase/bookshelf/wardrobe/fireplace moved out of
+  // furniture into tallFurniture (avatar-height, not floor-height) —
+  // Claudia's audit, see SIZE_CLASS_TARGET's own comment.
+  { cls: 'tallFurniture', pattern: /\b(bookcase|bookshelf|wardrobe|door|window|fireplace)/i },
+  { cls: 'personScale', pattern: /\b(sign|post|cone|fence|pillar|flag|ladder|column|curtain)/i },
+  // 'light' moved here from personScale — a genuine outdoor lamp post,
+  // not avatar height (see SIZE_CLASS_TARGET's own comment on 'pole').
+  { cls: 'pole', pattern: /\blight\b/i },
   { cls: 'smallStructure', pattern: /\b(stall|shed|cottage|hut|coop|cold\s*frame)/i },
   { cls: 'cityStructure', pattern: /\bskyscraper\b/i },
   { cls: 'largeStructure', pattern: /\bhouse\b|\bbarn\b|castle\s*(wall|gate)|\binn\b|manor/i },
@@ -245,6 +305,19 @@ function classifySizeForLabel(label: string, category?: string): SizeClass | nul
   // scoped to this one category so it can't change what "light" already
   // correctly means for the 'city' street-furniture pack.
   if (category === 'interior' && /^light\s/i.test(label)) return 'smallObject';
+  // Claudia's audit: a bare "column" keyword hits personScale (full
+  // avatar height) even for a label explicitly saying it's short —
+  // "Column Low" measured out to exactly avatar height regardless of
+  // its own name. Scoped narrowly (both words must appear) so it can't
+  // change what a genuinely tall column already correctly means.
+  if (/\blow\b/i.test(label) && /\bcolumn\b/i.test(label)) return 'smallObject';
+  // "Big Mushroom King" (creatures) is a decorative fantasy creature, not
+  // a food-prop mushroom — the bare 'mushroom' keyword below is meant
+  // for 'props'/'platformer's small mushroom props, and would otherwise
+  // drag this one down to tiny/countertop scale despite its own name
+  // saying "Big." Scoped to 'creatures' only, so it can't change what
+  // 'mushroom' already correctly means everywhere else.
+  if (category === 'creatures' && /mushroom/i.test(label)) return null;
   for (const { cls, pattern } of SIZE_CLASS_KEYWORDS) {
     if (pattern.test(label)) return cls;
   }
