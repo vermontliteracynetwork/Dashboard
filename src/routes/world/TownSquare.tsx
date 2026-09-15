@@ -18,7 +18,7 @@ import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment } from '../../types';
@@ -1571,6 +1571,10 @@ export default function TownSquare() {
   // "View X? Confirm" card immediately, direct-click rather than
   // walk-then-confirm, until real footprints are measured for them too.
   const [selectedRoleObjectId, setSelectedRoleObjectId] = useState<string | null>(null);
+  // A tapped sign/notice-board "enlarges" into a readable popup with TTS —
+  // Claudia's standing accessibility principle applied to any text a
+  // teacher writes in-world, not just quiz/task copy.
+  const [viewingSignId, setViewingSignId] = useState<string | null>(null);
   const [isDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches);
   const touchDir = useRef({ x: 0, z: 0 });
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
@@ -2148,7 +2152,11 @@ export default function TownSquare() {
             <group key={obj.id}>
               <WorldObjectRenderer
                 obj={obj.role === 'home' && student?.houseExteriorPath ? { ...obj, modelPath: student.houseExteriorPath } : obj}
-                onClick={obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id) : undefined}
+                onClick={
+                  obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
+                  : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
+                  : undefined
+                }
               />
               {obj.role && (
                 <Html center position={[obj.position[0], 3.2, obj.position[2]]} style={{ pointerEvents: 'none' }}>
@@ -2186,6 +2194,33 @@ export default function TownSquare() {
                         Not now
                       </button>
                     </div>
+                  </div>
+                </Html>
+              )}
+              {/* A sign's text "enlarges" into a readable, TTS-able popup
+                  instead of navigating anywhere — same in-world confirm-
+                  menu styling as the role popup above, per Claudia's
+                  standing accessibility principle (any teacher-written
+                  in-world text gets a read-aloud option, not just
+                  quiz/task copy). */}
+              {viewingSignId === obj.id && (
+                <Html center position={[obj.position[0], 3.7, obj.position[2]]}>
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '14px 18px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 220, maxWidth: 320, fontFamily: 'system-ui, sans-serif' }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{obj.customName || obj.label}</div>
+                    <p style={{ margin: '0 0 10px', fontSize: '1rem', lineHeight: 1.4, color: '#1f2937', whiteSpace: 'pre-wrap' }}>
+                      {obj.signText || "This sign doesn't have any words on it yet."}
+                    </p>
+                    {obj.signText && (
+                      <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
+                        <ReadAloud text={obj.signText} settings={student?.ttsSettings} />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setViewingSignId(null)}
+                      style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                    >
+                      Close
+                    </button>
                   </div>
                 </Html>
               )}

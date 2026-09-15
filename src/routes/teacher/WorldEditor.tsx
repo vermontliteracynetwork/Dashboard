@@ -8,7 +8,7 @@ import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall } from '../../lib/wallGeometry';
 import {
-  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS,
+  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel,
 } from '../world/townLayout';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
@@ -1344,6 +1344,10 @@ export default function WorldEditor() {
   const savedTimeoutRef = useRef<number | null>(null);
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // Minecraft-sign-style text editor: double-click a placed sign/notice-
+  // board to open it, same idea as the game the teacher asked for by name.
+  const [editingSignId, setEditingSignId] = useState<string | null>(null);
+  const [signDraft, setSignDraft] = useState('');
   const flashSaved = () => {
     setShowSaved(true);
     if (savedTimeoutRef.current) window.clearTimeout(savedTimeoutRef.current);
@@ -2307,6 +2311,11 @@ export default function WorldEditor() {
                       if (hammerMode) { deleteWorldObjectH(obj.id); return; }
                       setSelection({ kind: 'placed', id: obj.id });
                     }}
+                    onDoubleClick={
+                      isSignModel(obj.modelPath) && !paintMode && !hammerMode
+                        ? () => { setSignDraft(obj.signText ?? ''); setEditingSignId(obj.id); }
+                        : undefined
+                    }
                     onPointerOver={() => {
                       setHovered({ kind: 'placed', id: obj.id });
                       if (paintMode === 'brush' && isPaintingRef.current) paintNear(obj.position[0], obj.position[2], paintColor);
@@ -2498,6 +2507,34 @@ export default function WorldEditor() {
           </div>
         </div>
       </div>
+      )}
+
+      {editingSignId && (
+        <div className="overlay-backdrop" onClick={() => setEditingSignId(null)}>
+          <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 380, gap: 10 }} onClick={(e) => e.stopPropagation()}>
+            <strong>✍️ Sign text</strong>
+            <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>What a student sees (and can hear read aloud) when they tap this sign.</p>
+            <textarea
+              value={signDraft}
+              onChange={(e) => setSignDraft(e.target.value)}
+              maxLength={280}
+              rows={4}
+              autoFocus
+              placeholder="e.g. Welcome to Yoglandia Park! Be kind, have fun."
+              style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.95rem', padding: 8, boxSizing: 'border-box' }}
+            />
+            <div className="row-wrap" style={{ gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setEditingSignId(null)}>Cancel</button>
+              <button
+                className="btn btn-sm btn-success"
+                style={{ minHeight: 44 }}
+                onClick={() => { updateWorldObject(editingSignId, { signText: signDraft.trim() || undefined }); flashSaved(); setEditingSignId(null); }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -95,6 +95,22 @@ export const HOUSE_EXTERIOR_OPTIONS: { id: string; label: string; modelPath: str
   { id: 'cottage', label: 'Cabin', modelPath: '/world/models/buildings/cabin-shed.glb' },
 ];
 
+// Which placed-object models can carry teacher-written sign text (double-
+// click in Build Mode to write it, tap in Town Square to read it with
+// TTS) — an explicit allowlist rather than a name/keyword guess, so a
+// "Story Board" game or a literal cutting board never gets mistaken for a
+// readable sign.
+export const SIGN_MODEL_PATHS = new Set([
+  '/world/models/props/wooden-sign-1.glb',
+  '/world/models/props/wooden-sign-2.glb',
+  '/world/models/props/wooden-sign-3.glb',
+  '/world/models/props/sandwich-board.glb',
+  '/world/models/props/park-info-board.glb',
+]);
+export function isSignModel(modelPath: string): boolean {
+  return SIGN_MODEL_PATHS.has(modelPath);
+}
+
 // Cleared along with BUILDINGS above — rebuilt from Build Mode now.
 export const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number; scale?: number }[] = [];
 export const MARKET_SCALE = 2.6;

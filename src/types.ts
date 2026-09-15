@@ -634,6 +634,10 @@ export interface WorldObject {
   // undefined = this object has no published version yet (created this
   // draft cycle) — Discard on it means "never existed."
   publishedSnapshot?: WorldObject;
+  // Teacher-written body text for a sign/notice-board asset (see
+  // SIGN_MODEL_PATHS in townLayout.ts) — double-click in Build Mode to
+  // edit, tap in Town Square to read (with TTS).
+  signText?: string;
 }
 
 // A single straight wall segment, drawn with Sims 4-style click-drag

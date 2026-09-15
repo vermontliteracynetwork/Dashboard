@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T18:03:37.909Z",
+  "generatedAt": "2026-09-15T18:07:34.144Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3052,6 +3052,11 @@
       "category": "pets"
     },
     {
+      "path": "/world/models/pets/animal-shiba-inu.glb",
+      "label": "Animal Shiba Inu",
+      "category": "pets"
+    },
+    {
       "path": "/world/models/pets/animal-tiger.glb",
       "label": "Animal Tiger",
       "category": "pets"
@@ -4157,6 +4162,11 @@
       "category": "props"
     },
     {
+      "path": "/world/models/props/doggi-statue.glb",
+      "label": "Doggi Statue",
+      "category": "props"
+    },
+    {
       "path": "/world/models/props/dry_tree.glb",
       "label": "Dry Tree",
       "category": "props"
@@ -4199,6 +4209,11 @@
     {
       "path": "/world/models/props/pine_tree.glb",
       "label": "Pine Tree",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/playground-slide.glb",
+      "label": "Playground Slide",
       "category": "props"
     },
     {
@@ -5874,6 +5889,11 @@
     {
       "path": "/world/models/structures/classroom.glb",
       "label": "Classroom",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/gazebo.glb",
+      "label": "Gazebo",
       "category": "structures"
     },
     {

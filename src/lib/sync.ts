@@ -371,6 +371,7 @@ const rowToWorldObject = (r: Row): WorldObject => ({
   status: r.status ?? 'published',
   pendingDelete: r.pending_delete ?? false,
   publishedSnapshot: r.published_snapshot ?? undefined,
+  signText: r.sign_text ?? undefined,
 });
 const worldObjectToRow = (o: WorldObject): Row => ({
   id: o.id,
@@ -388,6 +389,7 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   status: o.status ?? 'published',
   pending_delete: o.pendingDelete ?? false,
   published_snapshot: o.publishedSnapshot ?? null,
+  sign_text: o.signText ?? null,
 });
 
 const rowToWallSegment = (r: Row): WallSegment => ({

@@ -72,13 +72,14 @@ const HIT_PADDING = 1.3;
 export const WorldObjectRenderer = forwardRef<THREE.Group, {
   obj: WorldObject;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   onPointerOver?: () => void;
   onPointerOut?: () => void;
   onPointerDown?: (e: { stopPropagation: () => void; nativeEvent: PointerEvent }) => void;
   opacity?: number;
-}>(function WorldObjectRenderer({ obj, onClick, onPointerOver, onPointerOut, onPointerDown, opacity }, ref) {
+}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity }, ref) {
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity);
-  const interactive = !!(onClick || onPointerOver || onPointerOut || onPointerDown);
+  const interactive = !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
   return (
     <group ref={ref} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={obj.scale}>
       <primitive object={recentered} />
@@ -86,6 +87,7 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
         <mesh
           position={[0, size.y / 2, 0]}
           onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
+          onDoubleClick={onDoubleClick ? (e) => { e.stopPropagation(); onDoubleClick(); } : undefined}
           onPointerOver={onPointerOver ? (e) => { e.stopPropagation(); onPointerOver(); } : undefined}
           onPointerOut={onPointerOut}
           onPointerDown={onPointerDown ? (e) => { e.stopPropagation(); onPointerDown(e); } : undefined}

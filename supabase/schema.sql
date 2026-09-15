@@ -403,6 +403,10 @@ alter table world_objects add column if not exists student_id text;
 alter table world_objects add column if not exists status text not null default 'published';
 alter table world_objects add column if not exists pending_delete boolean not null default false;
 alter table world_objects add column if not exists published_snapshot jsonb;
+-- Teacher-written text for a sign/notice-board asset (SIGN_MODEL_PATHS in
+-- townLayout.ts) — double-click to edit in Build Mode, tap to read in
+-- Town Square (with TTS).
+alter table world_objects add column if not exists sign_text text;
 
 -- Wall segments: Sims 4-style drawn walls (two endpoints, not a placed
 -- model), used both in the shared Town Square and inside a student's own
