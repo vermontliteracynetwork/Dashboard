@@ -109,6 +109,7 @@ export interface Student {
   dyslexiaFont: boolean; // app-wide (not just Town Square) dyslexia-friendly display mode — a standing requirement in docs/NATIVE_GAME_STANDARD.md that had no actual toggle anywhere in the app until Claudia's full-game audit found the gap
   homeWallColor?: string; // Home Room paint bucket — hex color for the room's 4 walls; undefined = default
   homeFloorTexture?: string | null; // Home Room floor — a path from HOME_FLOOR_OPTIONS in HomeRoom.tsx; null/undefined = default
+  houseExteriorPath?: string | null; // student-picked model path from HOUSE_EXTERIOR_OPTIONS in townLayout.ts — rendered on the shared 'home'-role building in Town Square whenever this student is the one viewing it; null/undefined = that building's own placed model (the teacher's default)
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

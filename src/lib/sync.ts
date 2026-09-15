@@ -91,6 +91,7 @@ const rowToStudent = (r: Row): Student => ({
   dyslexiaFont: r.dyslexia_font ?? false,
   homeWallColor: r.home_wall_color ?? undefined,
   homeFloorTexture: r.home_floor_texture ?? undefined,
+  houseExteriorPath: r.house_exterior_path ?? undefined,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -139,6 +140,7 @@ const studentToRow = (s: Student): Row => ({
   dyslexia_font: s.dyslexiaFont,
   home_wall_color: s.homeWallColor ?? null,
   home_floor_texture: s.homeFloorTexture ?? null,
+  house_exterior_path: s.houseExteriorPath ?? null,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -922,6 +924,7 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   dyslexiaFont: 'dyslexia_font',
   homeWallColor: 'home_wall_color',
   homeFloorTexture: 'home_floor_texture',
+  houseExteriorPath: 'house_exterior_path',
 };
 
 // Writes only the changed columns (a real SQL UPDATE), instead of

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T17:48:05.746Z",
+  "generatedAt": "2026-09-15T17:55:06.550Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -262,6 +262,11 @@
       "category": "aquarium"
     },
     {
+      "path": "/world/models/buildings/apartment-building.glb",
+      "label": "Apartment Building",
+      "category": "buildings"
+    },
+    {
       "path": "/world/models/buildings/bank.glb",
       "label": "Bank",
       "category": "buildings"
@@ -269,6 +274,11 @@
     {
       "path": "/world/models/buildings/building-extra.glb",
       "label": "Building Extra",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/cabin-shed.glb",
+      "label": "Cabin Shed",
       "category": "buildings"
     },
     {
@@ -282,6 +292,16 @@
       "category": "buildings"
     },
     {
+      "path": "/world/models/buildings/house-2.glb",
+      "label": "House 2",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/house-quaternius.glb",
+      "label": "House Quaternius",
+      "category": "buildings"
+    },
+    {
       "path": "/world/models/buildings/house.glb",
       "label": "House",
       "category": "buildings"
@@ -289,6 +309,11 @@
     {
       "path": "/world/models/buildings/office-building-2.glb",
       "label": "Office Building 2",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/office-building-3.glb",
+      "label": "Office Building 3",
       "category": "buildings"
     },
     {
@@ -304,6 +329,11 @@
     {
       "path": "/world/models/buildings/store.glb",
       "label": "Store",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/windmill-cottage.glb",
+      "label": "Windmill Cottage",
       "category": "buildings"
     },
     {
@@ -5039,6 +5069,11 @@
     {
       "path": "/world/models/quaternius-buildings/TownHouse.glb",
       "label": "Town House",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/TownHouseB.glb",
+      "label": "Town House B",
       "category": "quaternius-buildings"
     },
     {

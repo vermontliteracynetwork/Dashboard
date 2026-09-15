@@ -54,6 +54,17 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   home: '/world/home-room',
 };
 
+// A student's choice of what their own house looks like from the outside —
+// picked in their Home Room's Build Mode, then swapped onto the shared
+// 'home'-role WorldObject in Town Square whenever THAT student is the one
+// looking at it (same per-viewer idea 'computer-desk' already uses: one
+// shared object, personalized per student). See Student.houseExteriorPath.
+export const HOUSE_EXTERIOR_OPTIONS: { id: string; label: string; modelPath: string }[] = [
+  { id: 'classic', label: 'Classic House', modelPath: '/world/models/buildings/house.glb' },
+  { id: 'towncenter', label: 'Town House', modelPath: '/world/models/quaternius-buildings/TownHouseB.glb' },
+  { id: 'cottage', label: 'Cabin', modelPath: '/world/models/buildings/cabin-shed.glb' },
+];
+
 // Cleared along with BUILDINGS above — rebuilt from Build Mode now.
 export const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number; scale?: number }[] = [];
 export const MARKET_SCALE = 2.6;

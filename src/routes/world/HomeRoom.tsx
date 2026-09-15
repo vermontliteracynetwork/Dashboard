@@ -8,6 +8,7 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments, nearestWall } from '../../lib/wallGeometry';
+import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import type { WorldObject, WallSegment } from '../../types';
 
 // The student-facing counterpart to WorldEditor.tsx's teacher Build Mode —
@@ -900,6 +901,19 @@ export default function HomeRoom() {
                   className="btn btn-sm"
                   style={{ minHeight: 32, fontSize: 11, background: (student.homeFloorTexture ?? null) === opt.path ? '#3e7c6b' : undefined, color: (student.homeFloorTexture ?? null) === opt.path ? '#fff' : undefined }}
                   onClick={() => { updateStudent(student.id, { homeFloorTexture: opt.path }); flashSaved(); }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, margin: '8px 0 4px' }}>🏠 House</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {HOUSE_EXTERIOR_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  className="btn btn-sm"
+                  style={{ minHeight: 32, fontSize: 11, background: (student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath) === opt.modelPath ? '#3e7c6b' : undefined, color: (student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath) === opt.modelPath ? '#fff' : undefined }}
+                  onClick={() => { updateStudent(student.id, { houseExteriorPath: opt.modelPath }); flashSaved(); }}
                 >
                   {opt.label}
                 </button>

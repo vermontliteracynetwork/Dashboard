@@ -358,6 +358,10 @@ alter table students add column if not exists count_it_out_enabled boolean not n
 -- Homeplot per-student room paint bucket (see world_objects.student_id above).
 alter table students add column if not exists home_wall_color text;
 alter table students add column if not exists home_floor_texture text;
+-- Student's chosen house exterior model (HOUSE_EXTERIOR_OPTIONS in
+-- townLayout.ts), rendered on the shared 'home'-role WorldObject in Town
+-- Square whenever this student is the one viewing it.
+alter table students add column if not exists house_exterior_path text;
 
 -- The World Editor's placed objects: teacher-authored Town Square build
 -- mode (Sims/Minecraft-style). Global, not per-student — one shared table

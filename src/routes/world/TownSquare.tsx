@@ -2135,7 +2135,7 @@ export default function TownSquare() {
           {worldObjects.map((obj) => (
             <group key={obj.id}>
               <WorldObjectRenderer
-                obj={obj}
+                obj={obj.role === 'home' && student?.houseExteriorPath ? { ...obj, modelPath: student.houseExteriorPath } : obj}
                 onClick={obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id) : undefined}
               />
               {obj.role && (
