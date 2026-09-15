@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T18:57:17.418Z",
+  "generatedAt": "2026-09-15T18:59:55.246Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -832,6 +832,11 @@
       "category": "creatures"
     },
     {
+      "path": "/world/models/creatures/butter-character.glb",
+      "label": "Butter Character",
+      "category": "creatures"
+    },
+    {
       "path": "/world/models/creatures/cactoro-quaternius.glb",
       "label": "Cactoro Quaternius",
       "category": "creatures"
@@ -919,6 +924,21 @@
     {
       "path": "/world/models/creatures/flying-Tribal.gltf",
       "label": "Flying Tribal",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/potato-character.glb",
+      "label": "Potato Character",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/sussy-imposter.glb",
+      "label": "Sussy Imposter",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/wizardus-maximus.glb",
+      "label": "Wizardus Maximus",
       "category": "creatures"
     },
     {
