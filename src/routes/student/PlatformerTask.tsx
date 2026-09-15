@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
-import ReadAloud from '../../components/ReadAloud';
+import ReadAloud, { speak } from '../../components/ReadAloud';
 import { MatchingBoard } from './QuizTask';
 import { formatMoney } from '../../lib/money';
 import type { Student, Subject, Task } from '../../types';
@@ -606,6 +606,18 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   // ---------- Answer handling (reuses the same mastery/retry loop as QuizTask) ----------
   const submitAnswer = (correct: boolean) => setPendingCorrect(correct);
 
+  // Same read-the-choices fix as QuizTask.tsx (Claudia's quiz-mode audit)
+  // — MC choices here render in plain order, no shuffle, so no separate
+  // order array to thread through like QuizTask's mcOrder.
+  const readChoices = () => {
+    if (!activeQ) return;
+    if (activeQ.kind === 'mc') {
+      speak(activeQ.choices.map((c, i) => `${String.fromCharCode(65 + i)}: ${c}`).join('. '), student.ttsSettings);
+    } else if (activeQ.kind === 'fill' && activeQ.wordBank && activeQ.wordBank.length > 0) {
+      speak(activeQ.wordBank.join('. '), student.ttsSettings);
+    }
+  };
+
   // Converts collected in-game coins into real Class Cash and shows the
   // payout before handing off to onDone. The falling-coins animation and
   // sound (CoinDropOverlay, mounted globally in App.tsx) fires on its own
@@ -949,7 +961,12 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                   </div>
                   {gauntletMissed && (
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 700 }}>
-                      That one broke the streak. Hearts back to zero, starting over.
+                      {/* Stale copy caught while wiring read-aloud here: this
+                          used to say "Hearts back to zero, starting over,"
+                          left over from before the reset-to-zero-on-miss
+                          behavior was changed to a one-heart decrement
+                          earlier this session — corrected to match. */}
+                      That one didn't count — lost a heart, try the next one.
                     </p>
                   )}
                 </>
@@ -958,6 +975,11 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 <h2 style={{ margin: 0 }}>{activeQ.prompt}</h2>
                 <ReadAloud text={activeQ.prompt} settings={student.ttsSettings} />
               </div>
+              {(activeQ.kind === 'mc' || (activeQ.kind === 'fill' && activeQ.wordBank && activeQ.wordBank.length > 0)) && (
+                <button type="button" className="btn btn-sm btn-blue" onClick={readChoices}>
+                  🔈 Read the choices
+                </button>
+              )}
               {activeQ.imageUrl && <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 10 }} />}
 
               {/* Claudia's quiz-mode audit: white on --success/--orange is

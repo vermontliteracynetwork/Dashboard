@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
-import ReadAloud from '../../components/ReadAloud';
+import ReadAloud, { speak } from '../../components/ReadAloud';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import QuizThemePicker from '../../components/QuizThemePicker';
 import type { Student, Subject, Task, MatchingQuestion } from '../../types';
@@ -151,6 +151,22 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
 
   const submitAnswer = (correct: boolean) => setPendingCorrect(correct);
 
+  // Claudia's quiz-mode audit: the prompt was read-aloud-able but the
+  // answer choices themselves never were — for a non/emerging-reader
+  // student that means hearing the question but having no way to
+  // independently pick a correct answer they can't decode. Reads every
+  // choice/word-bank option in one pass (labeled A/B/C… so "pick A" makes
+  // sense after hearing it) rather than adding a separate read-aloud
+  // button on every single choice, which risked cramming/overflowing the
+  // existing answer-grid layout.
+  const readChoices = () => {
+    if (activeQ.kind === 'mc' && mcOrder) {
+      speak(mcOrder.map((idx, i) => `${String.fromCharCode(65 + i)}: ${activeQ.choices[idx]}`).join('. '), student.ttsSettings);
+    } else if (activeQ.kind === 'fill' && activeQ.wordBank && activeQ.wordBank.length > 0) {
+      speak(activeQ.wordBank.join('. '), student.ttsSettings);
+    }
+  };
+
   const goNext = () => {
     if (pendingCorrect === null) return;
     // The local "move to the next question" reset must never get skipped —
@@ -204,6 +220,11 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
             <h2 style={{ margin: 0 }}>{activeQ.prompt}</h2>
             <ReadAloud text={activeQ.prompt} settings={student.ttsSettings} />
           </div>
+          {((activeQ.kind === 'mc' && mcOrder) || (activeQ.kind === 'fill' && activeQ.wordBank && activeQ.wordBank.length > 0)) && (
+            <button type="button" className="btn btn-sm btn-blue" onClick={readChoices}>
+              🔈 Read the choices
+            </button>
+          )}
           {activeQ.imageUrl && (
             <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
           )}
