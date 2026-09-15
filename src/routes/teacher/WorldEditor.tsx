@@ -433,7 +433,14 @@ const TINT_SWATCHES = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#
 // Sims 4's own category tabs are, even without a picture of each item.
 const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
   'Nature & Animals': { icon: '🌳', bg: '#e8f5e0' },
-  'Buildings & Places': { icon: '🏠', bg: '#e6f0fb' },
+  'Buildings': { icon: '🏠', bg: '#e6f0fb' },
+  // Direct instruction: split out of "Buildings & Places" into their own
+  // main categories, each with real subcategories (see FURNITURE_SUB_*/
+  // transportSubcategory below) — "main category like buildings or
+  // furniture... transportation category should have subcategories for
+  // cars, boats."
+  'Furniture': { icon: '🛋️', bg: '#fbeee3' },
+  'Transportation': { icon: '🚗', bg: '#e4eef6' },
   'Seasonal & Themed': { icon: '🎃', bg: '#fdeee0' },
   'Characters': { icon: '🧑', bg: '#f3e8fb' },
   'Props & Tools': { icon: '🔧', bg: '#eef0f2' },
@@ -456,11 +463,61 @@ function defaultCollidesForCategory(category: string): boolean {
 }
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
-  buildings: 'Buildings & Places', city: 'Buildings & Places', interior: 'Buildings & Places', market: 'Buildings & Places', restaurant: 'Buildings & Places', roads: 'Buildings & Places', structures: 'Buildings & Places', suburb: 'Buildings & Places', 'quaternius-buildings': 'Buildings & Places', 'commercial-buildings': 'Buildings & Places',
+  // 'interior' moved out to its own 'Furniture' main category (below) —
+  // direct instruction. Everything else structural stays under Buildings.
+  buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', roads: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
+  interior: 'Furniture',
   fantasy: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
   characters: 'Characters',
   props: 'Props & Tools', prototype: 'Props & Tools', toolsbits: 'Props & Tools', misc: 'Props & Tools',
 };
+
+// Furniture subcategories — direct instruction: "subcategories for
+// kitchen, bathroom furniture." Every 'interior' item's own label is
+// already prefixed with its room ("Bathroom Sink", "Kitchen Oven"),
+// verified against the full manifest — matched first before any looser
+// keyword, so the accurate case wins over a guess.
+function furnitureSubcategory(label: string): string {
+  if (/^bathroom\b/i.test(label)) return 'Bathroom';
+  if (/^kitchen\b/i.test(label) || /\b(fork|knife|spoon|plate)\b/i.test(label)) return 'Kitchen';
+  if (/^bed\b|night\s*stand/i.test(label)) return 'Bedroom';
+  if (/^couch|sofa/i.test(label)) return 'Living Room';
+  if (/^light\b/i.test(label)) return 'Lighting';
+  if (/^door|^window/i.test(label)) return 'Doors & Windows';
+  return 'Storage & Decor';
+}
+const FURNITURE_SUBCATEGORIES = ['Kitchen', 'Bathroom', 'Bedroom', 'Living Room', 'Lighting', 'Doors & Windows', 'Storage & Decor'];
+
+// Transportation — direct instruction: "transportation category should
+// have subcategories for cars, boats, etc." Real vehicles are scattered
+// across several raw categories (pirate ships, a holiday train set, a
+// lone city car, an aquarium boat) rather than living in one — pulled out
+// by a label-keyword override checked ahead of the plain category lookup,
+// same "keyword overrides category default" pattern the size-class system
+// already uses. Excludes "Boat House"/"Boat Stand"/"Boat Wash Station"
+// (water-recreation structures, not vehicles — verified against the real
+// manifest labels before shipping this, the same false-positive check the
+// original size-class keyword list document had to do for its own terms).
+const TRANSPORT_EXCLUDE_RE = /boat house|boat stand|boat wash/i;
+function transportSubcategory(label: string): string | null {
+  if (TRANSPORT_EXCLUDE_RE.test(label)) return null;
+  if (/\b(train|locomotive|tender)\b/i.test(label)) return 'Trains';
+  if (/\b(boat|ship)\b/i.test(label)) return 'Boats';
+  if (/\b(car|truck|van|bus)\b/i.test(label)) return 'Cars';
+  return null;
+}
+const TRANSPORT_SUBCATEGORIES = ['Cars', 'Boats', 'Trains'];
+
+// The real main-category + subcategory for one manifest asset — checks
+// the Transportation override first (it can pull an item out of any raw
+// category), then falls back to the plain CATEGORY_TO_GROUP lookup,
+// computing a Furniture subcategory only when that's where it landed.
+function mainCategoryFor(a: { category: string; label: string }): { main: string; sub: string | null } {
+  const transportSub = transportSubcategory(a.label);
+  if (transportSub) return { main: 'Transportation', sub: transportSub };
+  const main = CATEGORY_TO_GROUP[a.category] ?? 'Other';
+  return { main, sub: main === 'Furniture' ? furnitureSubcategory(a.label) : null };
+}
 // Claudia's focus-group audit: collapsing all 29 raw manifest categories
 // down to just 6 group icons meant ~40 completely different "Props & Tools"
 // items (a wrench, a prototype cube, a random misc prop) all rendered as
@@ -1111,6 +1168,7 @@ export default function WorldEditor() {
   const [manifestError, setManifestError] = useState(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
   const [armedAsset, setArmedAsset] = useState<AssetManifestEntry | null>(null);
   const [armedDefaultScale, setArmedDefaultScale] = useState(1);
   // Claudia's navigation review: re-finding the same item in a 1186-model
@@ -1412,16 +1470,28 @@ export default function WorldEditor() {
   }, []);
 
   // Claudia's focus-group audit: a native <select> for category filtering
-  // was the single biggest "this is a web form, not a game" tell. Only 5
-  // real groups exist (CATEGORY_GROUP_STYLE), short enough to render as a
-  // row of chips instead — `category` now holds a group label, not a raw
-  // manifest category, and search narrows further within a group.
+  // was the single biggest "this is a web form, not a game" tell. Real
+  // main categories are short enough to render as a row of chips instead
+  // — `category` holds a main-category label (mainCategoryFor, above),
+  // and Furniture/Transportation additionally get a second row of
+  // subcategory chips (`subcategory`) once selected. Search narrows
+  // further within whichever level is active.
   const presentGroups = useMemo(() => {
-    const set = new Set(manifest.map((a) => CATEGORY_TO_GROUP[a.category] ?? 'Other'));
+    const set = new Set(manifest.map((a) => mainCategoryFor(a).main));
     return Object.keys(CATEGORY_GROUP_STYLE).filter((g) => set.has(g));
   }, [manifest]);
+  const presentSubcategories = useMemo(() => {
+    if (category !== 'Furniture' && category !== 'Transportation') return [];
+    const order = category === 'Furniture' ? FURNITURE_SUBCATEGORIES : TRANSPORT_SUBCATEGORIES;
+    const set = new Set(manifest.filter((a) => mainCategoryFor(a).main === category).map((a) => mainCategoryFor(a).sub));
+    return order.filter((s) => set.has(s));
+  }, [manifest, category]);
   const filtered = manifest.filter((a) => {
-    if (category && (CATEGORY_TO_GROUP[a.category] ?? 'Other') !== category) return false;
+    if (category || subcategory) {
+      const mc = mainCategoryFor(a);
+      if (category && mc.main !== category) return false;
+      if (subcategory && mc.sub !== subcategory) return false;
+    }
     if (search && !a.label.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
   });
@@ -1751,7 +1821,7 @@ export default function WorldEditor() {
             <button
               className="btn btn-sm"
               style={{ minHeight: 44, background: category === '' ? BUILD_ACCENT : undefined, color: category === '' ? '#fff' : undefined, borderColor: category === '' ? BUILD_ACCENT : undefined }}
-              onClick={() => setCategory('')}
+              onClick={() => { setCategory(''); setSubcategory(''); }}
             >
               All
             </button>
@@ -1760,13 +1830,37 @@ export default function WorldEditor() {
                 key={g}
                 className="btn btn-sm"
                 style={{ minHeight: 44, background: category === g ? BUILD_ACCENT : undefined, color: category === g ? '#fff' : undefined, borderColor: category === g ? BUILD_ACCENT : undefined }}
-                onClick={() => setCategory(category === g ? '' : g)}
+                onClick={() => { setCategory(category === g ? '' : g); setSubcategory(''); }}
                 title={g}
               >
                 {CATEGORY_GROUP_STYLE[g].icon} {g}
               </button>
             ))}
           </div>
+          {/* Direct instruction: Furniture/Transportation get a second row
+              of subcategory chips (kitchen/bathroom/etc, cars/boats/etc)
+              once their main category is selected. */}
+          {presentSubcategories.length > 0 && (
+            <div className="row-wrap" style={{ gap: 4, paddingLeft: 8 }}>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 36, fontSize: '0.78rem', background: subcategory === '' ? WALL_ACCENT : undefined, color: subcategory === '' ? '#fff' : undefined, borderColor: subcategory === '' ? WALL_ACCENT : undefined }}
+                onClick={() => setSubcategory('')}
+              >
+                All {category}
+              </button>
+              {presentSubcategories.map((sub) => (
+                <button
+                  key={sub}
+                  className="btn btn-sm"
+                  style={{ minHeight: 36, fontSize: '0.78rem', background: subcategory === sub ? WALL_ACCENT : undefined, color: subcategory === sub ? '#fff' : undefined, borderColor: subcategory === sub ? WALL_ACCENT : undefined }}
+                  onClick={() => setSubcategory(subcategory === sub ? '' : sub)}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          )}
           <p style={{ fontSize: '0.72rem', opacity: 0.7, margin: 0 }}>
             Tap an item, then tap the ground to place it. It places once and puts the catalog away — hold Shift while tapping the ground to keep placing more.
           </p>
