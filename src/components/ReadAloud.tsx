@@ -84,6 +84,14 @@ export default function ReadAloud({ text, settings, small, npcVoiceProfile }: Pr
     }
   };
 
+  // Claudia's quiz-mode audit: this was icon-only everywhere except the
+  // aria-label, the one confirmed holdout against the app's own "icons
+  // always get a visible text label" rule (already applied to every other
+  // icon button this session — Exit, catalog tools, etc). Labeled in the
+  // normal size; the `small` inline variant (used tucked next to short
+  // titles all over the app) keeps just the icon to avoid overflowing
+  // those tight layouts, same tradeoff already made for other small-icon
+  // spots — aria-label still covers it there.
   return (
     <button
       type="button"
@@ -91,8 +99,9 @@ export default function ReadAloud({ text, settings, small, npcVoiceProfile }: Pr
       onClick={handleClick}
       aria-label="Read aloud"
       title="Read aloud"
+      style={small ? undefined : { display: 'inline-flex', alignItems: 'center', gap: 6, width: 'auto' }}
     >
-      {speaking ? '🔊' : '🔈'}
+      {speaking ? '🔊' : '🔈'}{!small && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Listen</span>}
     </button>
   );
 }

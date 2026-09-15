@@ -960,11 +960,14 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
               </div>
               {activeQ.imageUrl && <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 10 }} />}
 
+              {/* Claudia's quiz-mode audit: white on --success/--orange is
+                  ~2.3:1 contrast, under WCAG AA's 4.5:1 minimum — switched
+                  to --ink text, same fix as QuizTask's identical pills. */}
               {pendingCorrect === true && (
-                <div className="tag-pill" style={{ background: 'var(--success)', color: 'white' }}>✅ Correct!</div>
+                <div className="tag-pill" style={{ background: 'var(--success)', color: 'var(--ink)' }}>✅ Correct!</div>
               )}
               {pendingCorrect === false && (
-                <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white' }}>💛 Not quite!</div>
+                <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)' }}>💛 Not quite!</div>
               )}
 
               {activeQ.kind === 'mc' && (
@@ -1002,8 +1005,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                       ))}
                     </div>
                   ) : (
-                    <div className="row">
-                      <input value={fillValue} onChange={(e) => setFillValue(e.target.value)} placeholder="Type your answer" disabled={pendingCorrect !== null} />
+                    <div className="stack" style={{ alignItems: 'center', gap: 4 }}>
+                      <label htmlFor="platformer-fill-answer" style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.75 }}>Your answer</label>
+                      <div className="row">
+                      <input id="platformer-fill-answer" value={fillValue} onChange={(e) => setFillValue(e.target.value)} placeholder="Type your answer" disabled={pendingCorrect !== null} />
                       <button
                         className="btn btn-primary"
                         disabled={pendingCorrect !== null || !fillValue.trim()}
@@ -1011,6 +1016,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                       >
                         Check
                       </button>
+                      </div>
                     </div>
                   )}
                 </div>

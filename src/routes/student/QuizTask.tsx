@@ -208,11 +208,18 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
             <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
           )}
 
+          {/* Claudia's quiz-mode audit: white text on --success/--orange
+              computes to ~2.3:1 contrast, well under WCAG AA's 4.5:1 — on
+              exactly the two states a student needs to read instantly.
+              Switched to --ink text (keeps the color-as-signal + icon
+              pairing, only the text color changes) rather than touching
+              the shared --success/--orange tokens or .btn-success, which
+              are used for real buttons elsewhere in the app too. */}
           {pendingCorrect === true && (
-            <div className="tag-pill" style={{ background: 'var(--success)', color: 'white', fontSize: '1rem' }}>✅ Correct!</div>
+            <div className="tag-pill" style={{ background: 'var(--success)', color: 'var(--ink)', fontSize: '1rem' }}>✅ Correct!</div>
           )}
           {pendingCorrect === false && (
-            <div className="tag-pill" style={{ background: 'var(--orange)', color: 'white', fontSize: '1rem' }}>
+            <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)', fontSize: '1rem' }}>
               💛 {(state.log.filter((l) => l.questionId === activeQ.id && !l.correct).length >= 2)
                 ? "Not quite, that's okay, let's keep going!"
                 : "Not quite, you'll see this one again"}
@@ -266,8 +273,14 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
                   ))}
                 </div>
               ) : (
-                <div className="row">
+                <div className="stack" style={{ alignItems: 'center', gap: 4 }}>
+                  {/* Claudia's quiz-mode audit: a placeholder alone is not
+                      a label (it disappears once typing starts — WCAG
+                      3.3.2) — a persistent visible label fixes it. */}
+                  <label htmlFor="quiz-fill-answer" style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.75 }}>Your answer</label>
+                  <div className="row">
                   <input
+                    id="quiz-fill-answer"
                     value={fillValue}
                     onChange={(e) => setFillValue(e.target.value)}
                     placeholder="Type your answer"
@@ -280,6 +293,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
                   >
                     Check
                   </button>
+                  </div>
                 </div>
               )}
             </div>
