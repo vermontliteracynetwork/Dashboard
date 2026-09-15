@@ -89,7 +89,13 @@ export default function PiggyBank() {
     <div className="container stack">
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))' }}>
         <h2 style={{ margin: 0, color: '#fff' }}>🐷 Piggy Bank</h2>
-        <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+        {/* Reached by walking up to the Bank in Town Square — same fix as
+            Mailbox.tsx/Passport.tsx, a direct way back instead of a forced
+            round trip through the 2D task list. */}
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn btn-sm" onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
+          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+        </div>
       </div>
 
       <FocusBanner subjects={['finance', 'math']} />

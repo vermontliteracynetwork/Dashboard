@@ -23,7 +23,15 @@ export default function Mailbox() {
     <div className="container stack">
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))' }}>
         <h2 style={{ margin: 0, color: '#fff' }}>📬 Mailbox</h2>
-        <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
+        {/* This screen is normally reached by walking up to the Post
+            Office in Town Square — only a Home button here (dev log's own
+            flagged gap) forced a round trip through the 2D task list just
+            to get back. Reuses SubjectDashboard's own "🌳 Town Square"
+            label/button for consistency. */}
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
+        </div>
       </div>
 
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%' }}>

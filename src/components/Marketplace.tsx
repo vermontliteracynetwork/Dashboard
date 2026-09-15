@@ -472,6 +472,10 @@ export default function Marketplace() {
                   </span>
                 )}
               </button>
+              {/* Reached by walking up to the Store in Town Square — same
+                  dev-log-flagged gap as Mailbox/Passport/PiggyBank: needs a
+                  direct way back, not just the 2D task list. */}
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
               <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
             </div>
           </div>
