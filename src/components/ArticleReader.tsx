@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
 import { makeId } from '../lib/id';
 import { speak } from './ReadAloud';
+import MicButton from './MicButton';
 import type { ArticleTaskContent, Highlight, TTSSettings } from '../types';
 
 interface Props {
@@ -235,6 +236,7 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
                 value={noteDraft}
                 onChange={(e) => setNoteDraft(e.target.value)}
               />
+              <MicButton onText={(text) => setNoteDraft((d) => (d && !/\s$/.test(d) ? d + ' ' : d) + text)} />
               <div className="row-wrap">
                 <button
                   className="btn btn-sm btn-primary"

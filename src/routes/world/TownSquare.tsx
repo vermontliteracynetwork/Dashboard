@@ -752,6 +752,11 @@ interface PlayerProps {
   sensitivity: number;
   cameraLook: React.RefObject<number>;
   mapView: boolean;
+  // Direct teacher request: double-clicking a grid square in Map view
+  // instantly moves the student there (a teleport, not a walk) and drops
+  // back into the normal live view. Set once by the parent's ground
+  // double-click handler, consumed and cleared on the very next frame.
+  teleportTarget: React.RefObject<{ x: number; z: number } | null>;
   // The student's currently-equipped emote (set from the Inventory hotbar,
   // the same one used everywhere else — Student Home, the to-do list),
   // shown as a thought bubble above their own character. Direct teacher
@@ -760,7 +765,7 @@ interface PlayerProps {
   emoteSrc?: string | null;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, emoteSrc }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, teleportTarget, emoteSrc }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -775,6 +780,18 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
 
   useFrame((_, dt) => {
     if (!groupRef.current) return;
+    // Map-view teleport (direct teacher request: double-click a grid
+    // square to jump there and drop back into live view) — an instant
+    // snap, not a walk, so it's handled before the normal movement branch
+    // and regardless of `frozen` (mapView is still true for this one
+    // frame; the parent's setMapView(false) hasn't re-rendered yet).
+    if (teleportTarget.current) {
+      pos.current.x = teleportTarget.current.x;
+      pos.current.z = teleportTarget.current.z;
+      walkTarget.current = null;
+      teleportTarget.current = null;
+      onMove(pos.current);
+    }
     let moved = false;
     if (!frozen) {
       const k = keys.current;
@@ -1183,11 +1200,13 @@ function BuildingEntrance({
 
 function Park({
   onGroundTap,
+  onGroundDoubleTap,
   onGroundHover,
   onBuildingClick,
   layoutOverrides,
 }: {
   onGroundTap: (x: number, z: number) => void;
+  onGroundDoubleTap?: (x: number, z: number) => void;
   onGroundHover: (pt: { x: number; z: number } | null) => void;
   onBuildingClick: (id: string) => void;
   layoutOverrides: Record<string, LayoutOverride>;
@@ -1200,6 +1219,10 @@ function Park({
         onClick={(e) => {
           e.stopPropagation();
           onGroundTap(e.point.x, e.point.z);
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onGroundDoubleTap?.(e.point.x, e.point.z);
         }}
         onPointerMove={(e) => {
           e.stopPropagation();
@@ -1522,6 +1545,9 @@ export default function TownSquare() {
   // keyboard both still work and take over instantly if used.
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
   const hoverTarget = useRef<{ x: number; z: number } | null>(null);
+  // Direct teacher request: double-clicking a grid square in Map view
+  // instantly teleports the student there and drops back into live view.
+  const teleportTarget = useRef<{ x: number; z: number } | null>(null);
   const cameraLook = useRef(0);
   // Mouse press-and-drag look, desktop only (mirrors the ↺/↻ buttons but
   // continuous) — direct teacher request: hold the mouse down and drag to
@@ -2006,6 +2032,23 @@ export default function TownSquare() {
                   }
                 : null;
             }}
+            onGroundDoubleTap={(x, z) => {
+              // Direct teacher request: double-clicking a grid square on
+              // the coordinate-plane Map view teleports the student there
+              // instantly and drops back into the normal live view — only
+              // active in Map view, same guard shape as onGroundTap's own
+              // mapView check (just inverted).
+              if (!mapView) return;
+              const cx = THREE.MathUtils.clamp(x, -GROUND_HALF + 1, GROUND_HALF - 1);
+              const cz = THREE.MathUtils.clamp(z, -GROUND_HALF + 1, GROUND_HALF - 1);
+              const [bx, bz] = blockBuildings(cx, cz);
+              hoverTarget.current = null;
+              walkTarget.current = null;
+              pendingApproach.current = null;
+              setHasWalkedOnce(true);
+              teleportTarget.current = { x: bx, z: bz };
+              setMapView(false);
+            }}
             onBuildingClick={handleApproachBuilding}
           />
           {mapView && <CoordinateGrid />}
@@ -2019,6 +2062,7 @@ export default function TownSquare() {
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}
             mapView={mapView}
+            teleportTarget={teleportTarget}
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
           />
           {QUEST1_NEIGHBORS.map((n) => (
