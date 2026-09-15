@@ -1196,6 +1196,20 @@ export default function WorldEditor() {
     controls.target.set(0, 0, 0);
     controls.update();
   };
+  // Direct instruction: pressing T shows a straight-down bird's-eye view —
+  // same top-down framing Town Square's own Map view already uses (a
+  // camera repositioning, not a separate 2D map), just reused here so a
+  // teacher can see the whole layout from above while placing things. The
+  // tiny z=0.01 offset avoids the same straight-down gimbal-lock quirk
+  // TownSquare's mapView comment already documents.
+  const TOP_VIEW_HEIGHT = 46;
+  const topView = () => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    controls.object.position.set(0, TOP_VIEW_HEIGHT, 0.01);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  };
 
   // Every fixed town item (buildings/stalls/roads/props), normalized once —
   // the underlying townLayout.ts arrays never change at runtime.
@@ -1282,6 +1296,7 @@ export default function WorldEditor() {
   // stale closure.
   const undoRef = useRef(undo); undoRef.current = undo;
   const redoRef = useRef(redo); redoRef.current = redo;
+  const topViewRef = useRef(topView); topViewRef.current = topView;
   const selectionRef = useRef<Sel | null>(null);
   const deleteSelectedRef = useRef<() => void>(() => {});
   const rotateByRef = useRef<(deg: number) => void>(() => {});
@@ -1360,6 +1375,7 @@ export default function WorldEditor() {
       if (e.key === ']') { rotateByRef.current(15); return; }
       if (e.key === '-') { nudgeScaleByRef.current(-0.5); return; }
       if (e.key === '=') { nudgeScaleByRef.current(0.5); return; }
+      if (e.key.toLowerCase() === 't') { topViewRef.current(); return; }
     };
     const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(false); };
     window.addEventListener('keydown', onKeyDown);
@@ -2282,6 +2298,14 @@ export default function WorldEditor() {
               title="Reset the camera back to the default overview"
             >
               ⟲ Reset View
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{ minHeight: 44, borderRadius: 999 }}
+              onClick={topView}
+              title="Straight-down bird's-eye view (or just press T)"
+            >
+              🔼 Top View
             </button>
             {!showLegend && (
               <button className="btn btn-sm" style={{ minHeight: 44, borderRadius: 999 }} onClick={() => setShowLegend(true)} title="Show camera controls">

@@ -343,6 +343,12 @@ export default function HomeRoom() {
   const [wallEnd, setWallEnd] = useState<{ x: number; z: number } | null>(null);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [wallPlacementError, setWallPlacementError] = useState<string | null>(null);
+  // Direct instruction: students get the same Hammer tool the teacher's
+  // own Build Mode already has (WorldEditor.tsx) — equip it, then tap any
+  // placed item or wall to delete it instantly, no confirm step.
+  const [hammerMode, setHammerMode] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const controlsRef = useRef<any>(null);
   useEffect(() => {
     if (!wallPlacementError) return;
     const t = window.setTimeout(() => setWallPlacementError(null), 3200);
@@ -536,7 +542,26 @@ export default function HomeRoom() {
     setSelectedId(null);
     setSelectedWallId(null);
     setWallStart(null);
+    setHammerMode(false);
     setWallMode((v) => !v);
+  };
+  const toggleHammerMode = () => {
+    setArmedId(null);
+    setSelectedId(null);
+    setSelectedWallId(null);
+    setWallMode(false);
+    setWallStart(null);
+    setHammerMode((v) => !v);
+  };
+  // Same straight-down bird's-eye camera trick as WorldEditor.tsx's own
+  // Top View / T shortcut, sized for this room's much smaller footprint
+  // (a 10x10 room, not an open town square).
+  const topView = () => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    controls.object.position.set(0, ROOM_HALF * 3.5, 0.01);
+    controls.target.set(0, 0, 0);
+    controls.update();
   };
 
   const rotateSelected = (deg: number) => {
@@ -571,6 +596,7 @@ export default function HomeRoom() {
     setWallMode(false);
     setWallStart(null);
     setSelectedWallId(null);
+    setHammerMode(false);
     setMode('view');
   };
 
@@ -615,6 +641,7 @@ export default function HomeRoom() {
           // Same Sims-4-convention binding as Build Mode's own fix: left
           // stays free for select/place, right-drag orbits, scroll zooms.
           <OrbitControls
+            ref={controlsRef}
             makeDefault
             enabled={!draggingId && !wallStart}
             maxPolarAngle={Math.PI / 2.3}
@@ -674,7 +701,7 @@ export default function HomeRoom() {
               key={wall.id}
               wall={wall}
               color={isSelected ? '#e2775c' : undefined}
-              onClick={interactive ? () => setSelectedWallId(wall.id) : undefined}
+              onClick={interactive ? () => { if (hammerMode) { deleteWallSegment(wall.id); flashSaved(); return; } setSelectedWallId(wall.id); } : undefined}
             />
           );
         })}
@@ -697,8 +724,8 @@ export default function HomeRoom() {
             // view mode these must be left undefined entirely, not just a
             // no-op callback, or clicking near a piece of furniture would
             // silently swallow the walk-there tap.
-            onClick={mode === 'build' && !armedItem ? () => setSelectedId(obj.id) : undefined}
-            onPointerDown={mode === 'build' && !armedItem ? () => { setSelectedId(obj.id); setDraggingId(obj.id); } : undefined}
+            onClick={mode === 'build' && !armedItem ? () => { if (hammerMode) { deleteWorldObject(obj.id); flashSaved(); return; } setSelectedId(obj.id); } : undefined}
+            onPointerDown={mode === 'build' && !armedItem && !hammerMode ? () => { setSelectedId(obj.id); setDraggingId(obj.id); } : undefined}
           />
         ))}
       </Canvas>
@@ -712,7 +739,7 @@ export default function HomeRoom() {
               <button
                 key={item.id}
                 disabled={!scalesReady}
-                onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setWallMode(false); setWallStart(null); setSelectedWallId(null); }}
+                onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setWallMode(false); setWallStart(null); setSelectedWallId(null); setHammerMode(false); }}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
                   padding: '6px 8px', borderRadius: 12, cursor: scalesReady ? 'pointer' : 'default', fontFamily: 'system-ui, sans-serif',
@@ -744,7 +771,38 @@ export default function HomeRoom() {
               <span style={{ fontSize: 22 }}>🧱</span>
               <span style={{ fontSize: 11, fontWeight: 700 }}>Wall</span>
             </button>
+            <button
+              onClick={toggleHammerMode}
+              title="Hammer: tap anything to delete it instantly, no confirmation"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
+                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
+                border: hammerMode ? '3px solid #dc2626' : '2px solid var(--content-border, #ccc)',
+                background: hammerMode ? '#fde8e8' : '#fff',
+              }}
+            >
+              <span style={{ fontSize: 22 }}>🔨</span>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>Hammer</span>
+            </button>
+            <button
+              onClick={topView}
+              title="Top view: see your room from above"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
+                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
+                border: '2px solid var(--content-border, #ccc)', background: '#fff',
+              }}
+            >
+              <span style={{ fontSize: 22 }}>🔼</span>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>Top View</span>
+            </button>
           </div>
+
+          {hammerMode && (
+            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', border: '2px solid #dc2626', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center', color: '#dc2626' }}>
+              🔨 Hammer equipped — tap anything to delete it instantly. <button className="btn btn-sm" style={{ minHeight: 36, marginLeft: 8 }} onClick={() => setHammerMode(false)}>Done</button>
+            </div>
+          )}
 
           {armedItem && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>

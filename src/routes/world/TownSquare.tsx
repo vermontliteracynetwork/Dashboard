@@ -263,10 +263,20 @@ function blockObstacles(x: number, z: number): [number, number] {
     const dx = bx - o.x;
     const dz = bz - o.z;
     const dist = Math.hypot(dx, dz);
-    if (dist < o.radius && dist > 0) {
-      const scale = o.radius / dist;
-      bx = o.x + dx * scale;
-      bz = o.z + dz * scale;
+    // Direct instruction: a player/Neighbor must never end up caught
+    // inside an asset. The old `dist > 0` guard meant a position landing
+    // EXACTLY on an obstacle's center (e.g. an object placed right where
+    // someone is already standing) skipped the push-out entirely — dist
+    // was 0, so dx/dist was a NaN direction, and the branch was simply
+    // never taken, leaving them stuck dead center forever. Now any
+    // dist-0 case still gets pushed clear, just along an arbitrary fixed
+    // direction (+x) since there's no real direction to push exactly
+    // from a shared center point.
+    if (dist < o.radius) {
+      const ux = dist > 0 ? dx / dist : 1;
+      const uz = dist > 0 ? dz / dist : 0;
+      bx = o.x + ux * o.radius;
+      bz = o.z + uz * o.radius;
     }
   }
   [bx, bz] = blockWallSegments(bx, bz, STATIC_WALLS);
