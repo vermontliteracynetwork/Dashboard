@@ -236,6 +236,17 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
 // penetration — the standard nearest-edge response, not just clamping to
 // one axis, so a student pushed out near a corner slides along the edge
 // instead of snapping across the whole building.
+// Direct teacher report, screenshot-confirmed: the player's animated model
+// (arms swinging mid-walk-cycle) was visibly poking through a building's
+// wall when pushed out — the old push-out placed the player's collision
+// point exactly ON the building's true geometric surface, zero clearance,
+// which is fine for a bare point but not for a character with real visual
+// volume around it. BUILDING_COLLISION_MARGIN pads the push-out target
+// past the true surface by roughly the character's own capsule radius
+// (0.35, see the Player/WanderingNPC fallback capsuleGeometry) plus a
+// little extra for arm-swing reach, so the visible model actually clears
+// the wall instead of just the collision anchor point.
+const BUILDING_COLLISION_MARGIN = 0.55;
 function blockBuildings(x: number, z: number): [number, number] {
   let [bx, bz] = [x, z];
   for (const f of BUILDING_FOOTPRINTS) {
@@ -248,8 +259,8 @@ function blockBuildings(x: number, z: number): [number, number] {
     if (Math.abs(localX) >= f.hx || Math.abs(localZ) >= f.hz) continue;
     const penX = f.hx - Math.abs(localX);
     const penZ = f.hz - Math.abs(localZ);
-    const pushedLocalX = penX < penZ ? Math.sign(localX || 1) * f.hx : localX;
-    const pushedLocalZ = penX < penZ ? localZ : Math.sign(localZ || 1) * f.hz;
+    const pushedLocalX = penX < penZ ? Math.sign(localX || 1) * (f.hx + BUILDING_COLLISION_MARGIN) : localX;
+    const pushedLocalZ = penX < penZ ? localZ : Math.sign(localZ || 1) * (f.hz + BUILDING_COLLISION_MARGIN);
     // Rotate the pushed-out local point back to world space.
     bx = f.x + pushedLocalX * c - pushedLocalZ * s;
     bz = f.z + pushedLocalX * s + pushedLocalZ * c;

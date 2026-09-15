@@ -49,6 +49,20 @@ export default function SubjectDashboard() {
   // "I'm done" from any task view never completes it immediately — it
   // always asks "are you sure?" first, same as the checklist checkbox does.
   const [confirmDone, setConfirmDone] = useState<{ photoUrl?: string } | null>(null);
+  // Real bug Claudia's gameplay review caught: this screen's own ✕/📋
+  // chrome buttons closed a platformer task instantly, completely
+  // bypassing the game's own "Leave this game? Progress won't be saved"
+  // confirmation (PlatformerTask.tsx manages that dialog as private local
+  // state, so this screen has no way to trigger it directly) — a student
+  // could tap either button mid-game with zero warning. Gated here
+  // instead of closing immediately for any task type that needs a real
+  // "are you sure" before leaving (currently just platformer).
+  const [confirmExitGame, setConfirmExitGame] = useState(false);
+  const requestClose = (task: Task | null | undefined) => {
+    if (task?.type === 'platformer') { setConfirmExitGame(true); return; }
+    setConfirmDone(null);
+    setSelectedTaskId(null);
+  };
   // Bumped on every checklist-row tap, even re-taps of the already-selected
   // row, so a link activity's popup reliably reopens every single time.
   const [openToken, setOpenToken] = useState(0);
@@ -230,7 +244,7 @@ export default function SubjectDashboard() {
               style={{ background: 'var(--ink)', width: 36, height: 36, fontSize: '1rem' }}
               aria-label="Close and go back to my to-do list"
               title="Close and go back to my to-do list"
-              onClick={() => { setConfirmDone(null); setSelectedTaskId(null); }}
+              onClick={() => requestClose(activeTask)}
             >
               ✕
             </button>
@@ -252,10 +266,31 @@ export default function SubjectDashboard() {
           style={{ position: 'fixed', top: 16, left: 16, zIndex: 200 }}
           aria-label="Back to my to-do list"
           title="Back to my to-do list"
-          onClick={() => { setConfirmDone(null); setSelectedTaskId(null); }}
+          onClick={() => requestClose(activeTask)}
         >
           📋
         </button>
+      )}
+
+      {confirmExitGame && activeTask && (
+        <div className="overlay-backdrop" onClick={() => setConfirmExitGame(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h2 style={{ margin: 0 }}>Leave this game?</h2>
+              <p style={{ margin: 0 }}>
+                This activity won't be marked done. You'll need to come back and finish every question before you
+                can check it off your to-do list.
+              </p>
+              <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.75 }}>
+                (Any questions you already got right are still saved, so you won't have to redo those.)
+              </p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-lg" onClick={() => { setConfirmExitGame(false); setConfirmDone(null); setSelectedTaskId(null); }}>Yes, go to my to-do list</button>
+                <button className="btn btn-lg" onClick={() => setConfirmExitGame(false)}>Keep playing</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {subj === 'math' && <FocusBanner subjects={['math']} />}

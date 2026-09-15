@@ -318,8 +318,15 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (pausedRef.current) return;
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keysRef.current.left = true;
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keysRef.current.right = true;
+      // Direct teacher report: pressing a movement button visibly
+      // "flashed"/jolted the screen. Root cause, confirmed by reading the
+      // handler: only the jump key ever called preventDefault(), so
+      // Left/Right arrow presses still ran the browser's own default
+      // action (page scroll / scroll-into-view) — that's the flash, not a
+      // CSS focus-outline (already handled cleanly elsewhere). Blocking
+      // the default here the same way jump already does fixes it.
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keysRef.current.left = true; e.preventDefault(); }
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keysRef.current.right = true; e.preventDefault(); }
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') { keysRef.current.jump = true; e.preventDefault(); }
     };
     const up = (e: KeyboardEvent) => {
@@ -415,9 +422,19 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         const right = Math.floor((p.x + PLAYER_W) / TILE);
         const top = Math.floor(p.y / TILE);
         const bottom = Math.floor((p.y + PLAYER_H - 1) / TILE);
+        // Real boundary walls at the level's left/right edges — "think
+        // Mario controls" (direct instruction). isSolid() deliberately
+        // treats every out-of-bounds column as open air (needed so a
+        // mid-level gap still falls through correctly, see its own
+        // comment) — that's right for the vertical/fall check but wrong
+        // here: with no wall at all, a student could walk left straight
+        // past the level's own start column and drift off-camera with
+        // nothing stopping them. `right >= level.cols` / `left < 0` are
+        // checked alongside isSolid so this step adds the missing wall
+        // without touching the gap-falls-through behavior anywhere else.
         for (let r = top; r <= bottom; r++) {
-          if (p.vx > 0 && isSolid(level, right, r)) { p.x = right * TILE - PLAYER_W; p.vx = 0; }
-          if (p.vx < 0 && isSolid(level, left, r)) { p.x = (left + 1) * TILE; p.vx = 0; }
+          if (p.vx > 0 && (right >= level.cols || isSolid(level, right, r))) { p.x = right * TILE - PLAYER_W; p.vx = 0; }
+          if (p.vx < 0 && (left < 0 || isSolid(level, left, r))) { p.x = (left + 1) * TILE; p.vx = 0; }
         }
 
         // Vertical move + collision
@@ -443,7 +460,15 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         const feetCol = Math.floor((p.x + PLAYER_W / 2) / TILE);
         const feetRow = Math.floor((p.y + PLAYER_H - 1) / TILE);
         const hitSpike = level.spikeCols.has(feetCol) && feetRow === GROUND_TOP_ROW - 1;
-        const fellOff = p.y > ROWS * TILE + 40;
+        // Direct teacher report: the player must always stay visible on
+        // screen. There's no vertical camera scroll in this game (the
+        // canvas always shows world rows 0..ROWS-1, i.e. y 0..CANVAS_H) —
+        // the old threshold waited until the player fell 40px BELOW that,
+        // so a student fell fully off-screen and stayed invisible for a
+        // beat before losing a heart. Triggering the instant the player's
+        // top edge clears the bottom of the visible canvas keeps them
+        // seen right up to the moment the fall registers.
+        const fellOff = p.y > CANVAS_H;
 
         // Rolling checkpoint — standing safely (on the ground, not on a
         // spike) makes this the spot a single heart loss resumes at.
@@ -488,7 +513,14 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           p.y = (GROUND_TOP_ROW - 2) * TILE;
           p.vx = 0;
           p.vy = 0;
-          const nextLevel = Math.min(levelIndex + 1, LEVEL_PLANS.length - 1);
+          // Fragile-state guard (docs/NATIVE_GAME_STANDARD.md §3.5: hold
+          // difficulty flat while a student is down on hearts, never ramp
+          // it up on them) — only advance to the next, harder/faster level
+          // at full hearts. Below full, replay the same level instead
+          // (still celebrates the lap) so reaching the flag is never
+          // itself the moment things get harder for a student who's
+          // already struggling.
+          const nextLevel = livesRef.current >= MAX_LIVES ? Math.min(levelIndex + 1, LEVEL_PLANS.length - 1) : levelIndex;
           if (nextLevel !== levelIndex) {
             setLevelIndex(nextLevel);
             flashLevelBanner(nextLevel);
@@ -656,10 +688,15 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         // question is already showing (activeQ reflects the live queue).
         return;
       }
-      // A miss wipes the hearts-back streak completely — starts over from
-      // 0, stays paused, and the next question shows automatically.
-      livesRef.current = 0;
-      setLives(0);
+      // Claudia's review: a miss used to wipe the whole hearts-back streak
+      // to 0 — an open-ended, compounding penalty docs/NATIVE_GAME_STANDARD.md
+      // §3.2 explicitly warns against for this population (never let a
+      // recovery mechanic feel uncapped). A miss now costs one heart back
+      // instead of the whole streak — still a real setback, never a
+      // spiral — and stays paused with the next question showing
+      // automatically.
+      livesRef.current = Math.max(0, livesRef.current - 1);
+      setLives(livesRef.current);
       setGauntletMissed(true);
       return;
     }
@@ -770,8 +807,14 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             <span className="tag-pill" style={{ fontSize: '0.75rem', background: 'var(--yellow)' }}>🪙 {collectedCoins}</span>
             <span className="tag-pill" style={{ fontSize: '0.75rem', background: 'var(--blue)', color: '#fff' }}>🚩 Level {levelIndex + 1}</span>
           </div>
-          <button className="fab-style-btn" aria-label="Exit game" title="Exit game" onClick={() => setConfirmExit(true)}>
-            ✕
+          {/* Direct instruction: this button should look like the break/
+              tools circular FABs everywhere else, especially in gameplay
+              — fab-style-btn-todo is that exact match (58px, blue), not
+              the smaller bare/red fab-style-btn this used before. Visible
+              text label added too (docs/NATIVE_GAME_STANDARD.md §5: an
+              icon-only control with only an aria-label isn't compliant). */}
+          <button className="fab-style-btn fab-style-btn-todo" style={{ width: 'auto', height: 44, minHeight: 44, borderRadius: 999, padding: '0 16px', fontSize: '0.95rem', gap: 6 }} aria-label="Exit game" title="Exit game" onClick={() => setConfirmExit(true)}>
+            ✕ Exit
           </button>
         </div>
 
@@ -848,23 +891,25 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             <div className="row" style={{ gap: 8 }}>
               <button
                 className="btn btn-lg"
-                style={{ minWidth: 60, minHeight: 60, fontSize: '1.4rem', touchAction: 'none' }}
+                style={{ minWidth: 60, minHeight: 60, fontSize: '1rem', touchAction: 'none', display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1 }}
                 onPointerDown={holdKey('left', true)}
                 onPointerUp={holdKey('left', false)}
                 onPointerLeave={holdKey('left', false)}
                 aria-label="Move left"
               >
-                ⬅️
+                <span style={{ fontSize: '1.4rem' }}>⬅️</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Left</span>
               </button>
               <button
                 className="btn btn-lg"
-                style={{ minWidth: 60, minHeight: 60, fontSize: '1.4rem', touchAction: 'none' }}
+                style={{ minWidth: 60, minHeight: 60, fontSize: '1rem', touchAction: 'none', display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1 }}
                 onPointerDown={holdKey('right', true)}
                 onPointerUp={holdKey('right', false)}
                 onPointerLeave={holdKey('right', false)}
                 aria-label="Move right"
               >
-                ➡️
+                <span style={{ fontSize: '1.4rem' }}>➡️</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Right</span>
               </button>
             </div>
             <button

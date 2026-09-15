@@ -53,10 +53,13 @@ export function nearestWall(px: number, pz: number, walls: WallSegment[], maxDis
 // nearest-edge response TownSquare.tsx's own blockBuildings already uses
 // for real building footprints, generalized here so both TownSquare and
 // HomeRoom can block movement through a drawn wall without duplicating the
-// math. `margin` pads the wall's own thickness (roughly half a student's
-// collision radius), so a wall reads as a real barrier, not a paper-thin
-// line a fast walk can clip through.
-export function blockWallSegments(x: number, z: number, walls: WallSegment[], margin = 0.35): [number, number] {
+// math. `margin` pads the wall's own thickness so a wall reads as a real
+// barrier, not a paper-thin line a fast walk can clip through — sized past
+// the player's own capsule radius (0.35) plus clearance for an animated
+// model's arm-swing reach (same real bug/fix as blockBuildings' own
+// BUILDING_COLLISION_MARGIN: pushing out to exactly the wall's surface
+// left an animated character's arms visibly poking through it).
+export function blockWallSegments(x: number, z: number, walls: WallSegment[], margin = 0.55): [number, number] {
   let [bx, bz] = [x, z];
   for (const w of walls) {
     const [mx, mz] = wallMidpoint(w);

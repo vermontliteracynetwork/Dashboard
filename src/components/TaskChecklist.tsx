@@ -182,16 +182,21 @@ export default function TaskChecklist({
         // link/offscreen task could be checked off sight-unseen.
         const opened = openedIds.has(t.id);
         // A plain external link is always a manual, self-reported completion
-        // (confirmed via the dialog below). The platformer game gets the
-        // same manual-override option as a deliberate safety valve. In
-        // overrideMode (teacher Live View) every type is direct-complete,
-        // since the teacher is deliberately marking it done on the
-        // student's behalf, not opening it. Otherwise every other type
-        // must be finished through its own activity screen (a quiz
-        // mastered, a drill flipped through, a required photo attached),
-        // so tapping the checkbox for those opens/reopens the activity
-        // instead of silently checking it off.
-        const directComplete = overrideMode || t.type === 'link' || t.type === 'platformer';
+        // (confirmed via the dialog below). In overrideMode (teacher Live
+        // View) every type is direct-complete, since the teacher is
+        // deliberately marking it done on the student's behalf, not
+        // opening it. Otherwise every other type must be finished through
+        // its own activity screen (a quiz mastered, a drill flipped
+        // through, a required photo attached), so tapping the checkbox for
+        // those opens/reopens the activity instead of silently checking it
+        // off. Direct instruction: the platformer used to get the same
+        // self-report shortcut as `link` — a real bug Claudia's gameplay
+        // review caught (a student could mark it done just by opening it
+        // once, with the question set still unfinished and the coin
+        // payout never firing) — removed here so a platformer task always
+        // routes back into the game to actually finish it, same as quiz/
+        // drill/etc. already do.
+        const directComplete = overrideMode || t.type === 'link';
         const handleClick = () => {
           // A completed row stays clickable — tapping it double-checks
           // before undoing anything, rather than being locked out entirely.

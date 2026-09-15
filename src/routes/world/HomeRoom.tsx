@@ -201,16 +201,25 @@ function RoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
 // (see computeStarterScale) than the "scale tracks real-world size"
 // assumption Town Square's own WORLD_OBJECT_COLLISION_RADIUS relies on.
 interface RoomObstacle { x: number; z: number; radius: number }
+// Same two real bugs fixed here as TownSquare.tsx's own blockObstacles/
+// blockBuildings (direct teacher report, screenshot-confirmed there): a
+// `dist > 0` guard alone left a student mathematically stuck if their
+// position ever landed exactly on a furniture piece's center (push
+// direction divides by zero), and pushing out to exactly the object's
+// collision radius — zero clearance — let an animated model's arms
+// visibly poke through it.
+const ROOM_OBSTACLE_CLEARANCE = 0.55;
 function blockRoomObstacles(x: number, z: number, obstacles: RoomObstacle[]): [number, number] {
   let [bx, bz] = [x, z];
   for (const o of obstacles) {
     const dx = bx - o.x;
     const dz = bz - o.z;
     const dist = Math.hypot(dx, dz);
-    if (dist < o.radius && dist > 0) {
-      const scale = o.radius / dist;
-      bx = o.x + dx * scale;
-      bz = o.z + dz * scale;
+    if (dist < o.radius) {
+      const ux = dist > 0 ? dx / dist : 1;
+      const uz = dist > 0 ? dz / dist : 0;
+      bx = o.x + ux * (o.radius + ROOM_OBSTACLE_CLEARANCE);
+      bz = o.z + uz * (o.radius + ROOM_OBSTACLE_CLEARANCE);
     }
   }
   return [bx, bz];
@@ -555,13 +564,32 @@ export default function HomeRoom() {
   };
   // Same straight-down bird's-eye camera trick as WorldEditor.tsx's own
   // Top View / T shortcut, sized for this room's much smaller footprint
-  // (a 10x10 room, not an open town square).
+  // (a 10x10 room, not an open town square). Direct instruction: pressing
+  // the button again while already in Top View returns to exactly where
+  // the camera was, a real toggle.
+  const [isTopView, setIsTopView] = useState(false);
+  const preTopViewCamera = useRef<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const topView = () => {
     const controls = controlsRef.current;
     if (!controls) return;
+    if (isTopView) {
+      const prev = preTopViewCamera.current;
+      if (prev) {
+        controls.object.position.set(...prev.position);
+        controls.target.set(...prev.target);
+        controls.update();
+      }
+      setIsTopView(false);
+      return;
+    }
+    preTopViewCamera.current = {
+      position: [controls.object.position.x, controls.object.position.y, controls.object.position.z],
+      target: [controls.target.x, controls.target.y, controls.target.z],
+    };
     controls.object.position.set(0, ROOM_HALF * 3.5, 0.01);
     controls.target.set(0, 0, 0);
     controls.update();
+    setIsTopView(true);
   };
 
   const rotateSelected = (deg: number) => {
@@ -597,6 +625,7 @@ export default function HomeRoom() {
     setWallStart(null);
     setSelectedWallId(null);
     setHammerMode(false);
+    setIsTopView(false);
     setMode('view');
   };
 
@@ -786,15 +815,16 @@ export default function HomeRoom() {
             </button>
             <button
               onClick={topView}
-              title="Top view: see your room from above"
+              title="Top view: see your room from above — tap again to go back"
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
                 padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
-                border: '2px solid var(--content-border, #ccc)', background: '#fff',
+                border: isTopView ? '3px solid #3e7c6b' : '2px solid var(--content-border, #ccc)',
+                background: isTopView ? '#e6f2ee' : '#fff',
               }}
             >
-              <span style={{ fontSize: 22 }}>🔼</span>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>Top View</span>
+              <span style={{ fontSize: 22 }}>{isTopView ? '🔽' : '🔼'}</span>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>{isTopView ? 'Regular' : 'Top View'}</span>
             </button>
           </div>
 

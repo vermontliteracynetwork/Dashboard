@@ -399,6 +399,10 @@ const BUILD_ACCENT = '#22c55e';
 const BUILD_ACCENT_DARK = '#15803d';
 const OVERLAP_COLOR = '#dc2626';
 const HAMMER_COLOR = '#dc2626';
+// Direct instruction: the bottom toolbar needed to be "much smaller" —
+// one shared compact style for every button in that pill so it doesn't
+// dominate the screen the way the old 44px-min-height row did.
+const TOOLBAR_BTN = { minHeight: 32, padding: '4px 9px', fontSize: '0.76rem', borderRadius: 999 };
 const WALL_ACCENT = '#8b5cf6';
 
 // Sims 4-style wall defaults — a real 3-unit interior wall height (matches
@@ -1195,20 +1199,41 @@ export default function WorldEditor() {
     controls.object.position.set(...DEFAULT_CAMERA_POS);
     controls.target.set(0, 0, 0);
     controls.update();
+    setIsTopView(false);
   };
   // Direct instruction: pressing T shows a straight-down bird's-eye view —
   // same top-down framing Town Square's own Map view already uses (a
   // camera repositioning, not a separate 2D map), just reused here so a
   // teacher can see the whole layout from above while placing things. The
   // tiny z=0.01 offset avoids the same straight-down gimbal-lock quirk
-  // TownSquare's mapView comment already documents.
+  // TownSquare's mapView comment already documents. Direct follow-up
+  // instruction: pressing T (or the button) again while already in Top
+  // View returns to exactly wherever the camera was before, a real
+  // toggle rather than a one-way jump.
   const TOP_VIEW_HEIGHT = 46;
+  const [isTopView, setIsTopView] = useState(false);
+  const preTopViewCamera = useRef<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const topView = () => {
     const controls = controlsRef.current;
     if (!controls) return;
+    if (isTopView) {
+      const prev = preTopViewCamera.current;
+      if (prev) {
+        controls.object.position.set(...prev.position);
+        controls.target.set(...prev.target);
+        controls.update();
+      }
+      setIsTopView(false);
+      return;
+    }
+    preTopViewCamera.current = {
+      position: [controls.object.position.x, controls.object.position.y, controls.object.position.z],
+      target: [controls.target.x, controls.target.y, controls.target.z],
+    };
     controls.object.position.set(0, TOP_VIEW_HEIGHT, 0.01);
     controls.target.set(0, 0, 0);
     controls.update();
+    setIsTopView(true);
   };
 
   // Every fixed town item (buildings/stalls/roads/props), normalized once —
@@ -1653,19 +1678,19 @@ export default function WorldEditor() {
       {/* Build Mode's own accent (green, per Claudia's Sims-4-referenced
           redesign — each Sims 4 mode gets its own color) replaces this
           screen's earlier purple; nowhere else in the app changes. */}
-      <div className="subject-header space-between" style={{ background: `linear-gradient(120deg, ${BUILD_ACCENT}, ${BUILD_ACCENT_DARK})`, flexShrink: 0 }}>
-        <h2 style={{ margin: 0, color: '#fff' }}>🏗️ Town Square Build Mode</h2>
-        <div className="row-wrap" style={{ gap: 6 }}>
+      <div className="subject-header space-between" style={{ background: `linear-gradient(120deg, ${BUILD_ACCENT}, ${BUILD_ACCENT_DARK})`, flexShrink: 0, padding: '8px 16px' }}>
+        <h2 style={{ margin: 0, color: '#fff', fontSize: '1.05rem' }}>🏗️ Town Square Build Mode</h2>
+        <div className="row-wrap" style={{ gap: 5 }}>
           <button
             className="btn btn-sm btn-flat"
-            style={{ minHeight: 44, background: tab === 'build' ? '#fff' : 'transparent', color: tab === 'build' ? BUILD_ACCENT_DARK : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: tab === 'build' ? '#fff' : 'transparent', color: tab === 'build' ? BUILD_ACCENT_DARK : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
             onClick={() => setTab('build')}
           >
             🏗️ Build
           </button>
           <button
             className="btn btn-sm btn-flat"
-            style={{ minHeight: 44, background: tab === 'roster' ? '#fff' : 'transparent', color: tab === 'roster' ? BUILD_ACCENT_DARK : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: tab === 'roster' ? '#fff' : 'transparent', color: tab === 'roster' ? BUILD_ACCENT_DARK : '#fff', border: '2px solid #fff', boxShadow: 'none' }}
             onClick={() => setTab('roster')}
           >
             📋 Roster
@@ -1680,11 +1705,29 @@ export default function WorldEditor() {
             target="_blank"
             rel="noreferrer"
             className="btn btn-sm btn-flat"
-            style={{ minHeight: 44, background: 'transparent', color: '#fff', border: '2px solid #fff', boxShadow: 'none', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: 'transparent', color: '#fff', border: '2px solid #fff', boxShadow: 'none', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             title="Open Town Square in a new tab, exactly as a student sees it"
           >
             👀 Preview as Student
           </a>
+          <span style={{ width: 2, alignSelf: 'stretch', background: 'rgba(255,255,255,0.4)' }} />
+          {/* Direct instruction: the header itself should carry a
+              save/publish entry point, not just the bottom toolbar. Wired
+              to the same force-save-now behavior the bottom toolbar's own
+              Save button already uses — every edit already syncs live the
+              instant it's made (see this file's "draft vs. live" header
+              comment); a real draft-then-publish flow that actually holds
+              changes back from students until confirmed is a bigger,
+              separate data-model change Claudia's Build Mode audit scoped
+              as its own large follow-up, not done here. */}
+          <button
+            className="btn btn-sm btn-flat"
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: '#fff', color: BUILD_ACCENT_DARK, border: '2px solid #fff', boxShadow: 'none', fontWeight: 800 }}
+            onClick={() => { retrySyncNow(); flashSaved(); }}
+            title="Every edit already saves automatically — this forces a save right now"
+          >
+            💾 Save
+          </button>
         </div>
       </div>
 
@@ -2213,10 +2256,10 @@ export default function WorldEditor() {
               than the 1186-item catalog (Claudia's spec section 5: cramming
               that many items into a short horizontal strip would force more
               scrolling than the docked grid panel, not less). */}
-          <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '3px solid var(--ink)', borderRadius: 999, boxShadow: '4px 4px 0 var(--ink)', padding: '6px 10px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100vw - 40px)' }}>
+          <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', alignItems: 'center', gap: 4, background: '#fff', border: '2px solid var(--ink)', borderRadius: 999, boxShadow: '3px 3px 0 var(--ink)', padding: '4px 8px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100vw - 40px)' }}>
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, background: catalogOpen ? BUILD_ACCENT : undefined, color: catalogOpen ? '#fff' : undefined, borderColor: catalogOpen ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+              style={{ ...TOOLBAR_BTN, background: catalogOpen ? BUILD_ACCENT : undefined, color: catalogOpen ? '#fff' : undefined, borderColor: catalogOpen ? BUILD_ACCENT : undefined }}
               onClick={() => setCatalogOpen((v) => !v)}
               title="Show or hide the catalog"
             >
@@ -2224,7 +2267,7 @@ export default function WorldEditor() {
             </button>
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, background: snapEnabled ? BUILD_ACCENT : undefined, color: snapEnabled ? '#fff' : undefined, borderColor: snapEnabled ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+              style={{ ...TOOLBAR_BTN, background: snapEnabled ? BUILD_ACCENT : undefined, color: snapEnabled ? '#fff' : undefined, borderColor: snapEnabled ? BUILD_ACCENT : undefined }}
               onClick={() => setSnapEnabled((v) => !v)}
               title="When on, placing and moving objects snaps to the grid"
             >
@@ -2233,7 +2276,7 @@ export default function WorldEditor() {
             {snapEnabled && (
               <button
                 className="btn btn-sm"
-                style={{ minHeight: 44, background: halfTileEnabled ? BUILD_ACCENT : undefined, color: halfTileEnabled ? '#fff' : undefined, borderColor: halfTileEnabled ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+                style={{ ...TOOLBAR_BTN, background: halfTileEnabled ? BUILD_ACCENT : undefined, color: halfTileEnabled ? '#fff' : undefined, borderColor: halfTileEnabled ? BUILD_ACCENT : undefined }}
                 onClick={() => setHalfTileEnabled((v) => !v)}
                 title="When on, placing and moving objects snaps to half-tiles instead of whole tiles"
               >
@@ -2242,7 +2285,7 @@ export default function WorldEditor() {
             )}
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, background: hammerMode ? HAMMER_COLOR : undefined, color: hammerMode ? '#fff' : undefined, borderColor: hammerMode ? HAMMER_COLOR : undefined, borderRadius: 999 }}
+              style={{ ...TOOLBAR_BTN, background: hammerMode ? HAMMER_COLOR : undefined, color: hammerMode ? '#fff' : undefined, borderColor: hammerMode ? HAMMER_COLOR : undefined }}
               onClick={() => { setHammerMode((v) => !v); setPaintMode(null); setArmedAsset(null); setSelection(null); setWallMode(false); setWallStart(null); }}
               title="Hammer: tap anything to delete it instantly, no confirmation"
             >
@@ -2250,7 +2293,7 @@ export default function WorldEditor() {
             </button>
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, background: paintMode ? BUILD_ACCENT : undefined, color: paintMode ? '#fff' : undefined, borderColor: paintMode ? BUILD_ACCENT : undefined, borderRadius: 999 }}
+              style={{ ...TOOLBAR_BTN, background: paintMode ? BUILD_ACCENT : undefined, color: paintMode ? '#fff' : undefined, borderColor: paintMode ? BUILD_ACCENT : undefined }}
               onClick={() => togglePaintMode('brush')}
               title="Paint: color assets, the ground, or the sky"
             >
@@ -2258,63 +2301,55 @@ export default function WorldEditor() {
             </button>
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, background: wallMode ? WALL_ACCENT : undefined, color: wallMode ? '#fff' : undefined, borderColor: wallMode ? WALL_ACCENT : undefined, borderRadius: 999 }}
+              style={{ ...TOOLBAR_BTN, background: wallMode ? WALL_ACCENT : undefined, color: wallMode ? '#fff' : undefined, borderColor: wallMode ? WALL_ACCENT : undefined }}
               onClick={toggleWallMode}
               title="Wall: click-drag to draw a wall (Sims 4-style) — doors/windows can only be placed on one"
             >
               🧱 {wallMode ? 'Wall: ON' : 'Wall'}
             </button>
-            <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)' }} />
+            <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--content-border)' }} />
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, borderRadius: 999, opacity: past.length ? 1 : 0.4, cursor: past.length ? 'pointer' : 'default' }}
+              style={{ ...TOOLBAR_BTN, opacity: past.length ? 1 : 0.4, cursor: past.length ? 'pointer' : 'default' }}
               onClick={undo}
               disabled={!past.length}
               title="Undo (Ctrl/Cmd+Z)"
             >
-              ↶ Undo
+              ↶
             </button>
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, borderRadius: 999, opacity: future.length ? 1 : 0.4, cursor: future.length ? 'pointer' : 'default' }}
+              style={{ ...TOOLBAR_BTN, opacity: future.length ? 1 : 0.4, cursor: future.length ? 'pointer' : 'default' }}
               onClick={redo}
               disabled={!future.length}
               title="Redo (Ctrl/Cmd+Shift+Z)"
             >
-              ↷ Redo
-            </button>
-            <button
-              className="btn btn-sm btn-primary"
-              style={{ minHeight: 44, borderRadius: 999 }}
-              onClick={() => { retrySyncNow(); flashSaved(); }}
-              title="Every edit already saves automatically — this forces a save right now and backs up a copy to this browser"
-            >
-              💾 Save
+              ↷
             </button>
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, borderRadius: 999 }}
+              style={TOOLBAR_BTN}
               onClick={resetView}
               title="Reset the camera back to the default overview"
             >
-              ⟲ Reset View
+              ⟲
             </button>
             <button
               className="btn btn-sm"
-              style={{ minHeight: 44, borderRadius: 999 }}
+              style={{ ...TOOLBAR_BTN, background: isTopView ? '#3e7c6b' : undefined, color: isTopView ? '#fff' : undefined }}
               onClick={topView}
-              title="Straight-down bird's-eye view (or just press T)"
+              title="Straight-down bird's-eye view — press again (or T) to go back"
             >
-              🔼 Top View
+              {isTopView ? '🔽' : '🔼'}
             </button>
             {!showLegend && (
-              <button className="btn btn-sm" style={{ minHeight: 44, borderRadius: 999 }} onClick={() => setShowLegend(true)} title="Show camera controls">
-                🕹️ Controls
+              <button className="btn btn-sm" style={TOOLBAR_BTN} onClick={() => setShowLegend(true)} title="Show camera controls">
+                🕹️
               </button>
             )}
-            <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)' }} />
-            <span style={{ fontSize: '0.72rem', opacity: 0.65, padding: '0 6px', whiteSpace: 'nowrap' }}>
-              {worldObjects.length} object{worldObjects.length === 1 ? '' : 's'} placed
+            <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--content-border)' }} />
+            <span style={{ fontSize: '0.66rem', opacity: 0.65, padding: '0 4px', whiteSpace: 'nowrap' }}>
+              {worldObjects.length} placed
             </span>
           </div>
         </div>
