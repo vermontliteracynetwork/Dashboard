@@ -1,6 +1,6 @@
 import { Suspense, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Html, useTexture, useAnimations } from '@react-three/drei';
+import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
@@ -626,6 +626,75 @@ function CityProp({
   return (
     <group position={[position[0], 0, position[1]]} rotation={[0, rotationY, 0]} scale={scale}>
       <primitive object={recentered} />
+    </group>
+  );
+}
+
+// Direct teacher instruction: her students love Minecraft's coordinate
+// display, and the class is learning graphing (coordinate planes) plus
+// directions/geography alongside it — so the overhead Map view (the same
+// top-down camera Player's mapView branch already uses, not a separate 2D
+// map, see that comment) gets laid out as a real, labeled coordinate
+// plane. World Z is shown to students as "Y" (displayY = -z), matching
+// how a coordinate plane is actually taught: X increases to the right,
+// Y increases toward the top of the screen — which lines up exactly with
+// this world's fixed top-down camera (position (0, MAP_HEIGHT, 0.01)
+// looking at the origin, never rotating), so "up on screen" is always
+// north/-Z and this mapping never drifts.
+const GRID_MINOR_STEP = 2;
+const GRID_MAJOR_STEP = 4;
+const GRID_Y = 0.04; // just above the ground plane, avoids z-fighting
+const AXIS_X_COLOR = '#e63946';
+const AXIS_Y_COLOR = '#2a6df4';
+
+function CoordinateGrid() {
+  const minorLines = useMemo(() => {
+    const lines: [number, number, number][][] = [];
+    for (let x = -GROUND_HALF; x <= GROUND_HALF; x += GRID_MINOR_STEP) {
+      if (x === 0) continue; // the real axis line is drawn separately, bolder
+      lines.push([[x, GRID_Y, -GROUND_HALF], [x, GRID_Y, GROUND_HALF]]);
+    }
+    for (let z = -GROUND_HALF; z <= GROUND_HALF; z += GRID_MINOR_STEP) {
+      if (z === 0) continue;
+      lines.push([[-GROUND_HALF, GRID_Y, z], [GROUND_HALF, GRID_Y, z]]);
+    }
+    return lines;
+  }, []);
+  const majorTicks = useMemo(() => {
+    const ticks: number[] = [];
+    for (let v = -GROUND_HALF; v <= GROUND_HALF; v += GRID_MAJOR_STEP) if (v !== 0) ticks.push(v);
+    return ticks;
+  }, []);
+  const quadrantLabelStyle = { fontSize: 1.5, color: '#1f4238', fillOpacity: 0.16, anchorX: 'center' as const, anchorY: 'middle' as const, rotation: [-Math.PI / 2, 0, 0] as [number, number, number] };
+
+  return (
+    <group>
+      {minorLines.map((pts, i) => (
+        <Line key={i} points={pts} color="#ffffff" transparent opacity={0.3} lineWidth={1} />
+      ))}
+      {/* X axis (world Z=0) */}
+      <Line points={[[-GROUND_HALF, GRID_Y, 0], [GROUND_HALF, GRID_Y, 0]]} color={AXIS_X_COLOR} lineWidth={2.5} />
+      {/* "Y" axis (world X=0) — Z is renamed Y for students, per the header comment */}
+      <Line points={[[0, GRID_Y, -GROUND_HALF], [0, GRID_Y, GROUND_HALF]]} color={AXIS_Y_COLOR} lineWidth={2.5} />
+      {majorTicks.map((x) => (
+        <Text key={`x${x}`} position={[x, GRID_Y + 0.01, 0.7]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.7} color={AXIS_X_COLOR} anchorX="center" anchorY="middle">{x}</Text>
+      ))}
+      {majorTicks.map((z) => (
+        <Text key={`z${z}`} position={[0.7, GRID_Y + 0.01, z]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.7} color={AXIS_Y_COLOR} anchorX="center" anchorY="middle">{-z}</Text>
+      ))}
+      <Text position={[0.75, GRID_Y + 0.01, 0.75]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.55} color="#1f4238" anchorX="left" anchorY="middle">(0, 0)</Text>
+      {/* Quadrant numerals — ties directly to the classroom quadrant concept */}
+      <Text position={[GROUND_HALF * 0.55, GRID_Y, -GROUND_HALF * 0.55]} {...quadrantLabelStyle}>I</Text>
+      <Text position={[-GROUND_HALF * 0.55, GRID_Y, -GROUND_HALF * 0.55]} {...quadrantLabelStyle}>II</Text>
+      <Text position={[-GROUND_HALF * 0.55, GRID_Y, GROUND_HALF * 0.55]} {...quadrantLabelStyle}>III</Text>
+      <Text position={[GROUND_HALF * 0.55, GRID_Y, GROUND_HALF * 0.55]} {...quadrantLabelStyle}>IV</Text>
+      {/* Cardinal directions — direct teacher tie-in to geography/directions.
+          North is fixed at -Z since this camera never rotates (see header
+          comment), so these never drift out of alignment. */}
+      <Text position={[0, GRID_Y, -GROUND_HALF - 1.6]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">N</Text>
+      <Text position={[0, GRID_Y, GROUND_HALF + 1.6]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">S</Text>
+      <Text position={[GROUND_HALF + 1.6, GRID_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">E</Text>
+      <Text position={[-GROUND_HALF - 1.6, GRID_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">W</Text>
     </group>
   );
 }
@@ -1805,6 +1874,18 @@ export default function TownSquare() {
           D-pad below is now raised off the very bottom edge, leaving both
           standard corners free for the exact same shared classes every
           other student screen uses. */}
+      {/* Minecraft-style coordinate readout — direct teacher request, tied
+          to graphing/coordinate-plane math and to the labeled grid the Map
+          view shows (CoordinateGrid, above). Z is shown as "Y" (displayY =
+          -z) to match how the class is taught to read a coordinate plane —
+          visible in both the normal walking view and the Map view, per
+          instruction ("in the live view when they're walking and when
+          they are in the map view especially"). Top-left is the one corner
+          with no other fixed overlay (everything else sits top-right or
+          bottom, see the corner-FAB comment below). */}
+      <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 55, background: 'rgba(255,255,255,0.92)', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, fontSize: 13, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', pointerEvents: 'none' }}>
+        📍 ({Math.round(playerPos.x)}, {Math.round(-playerPos.z)})
+      </div>
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
         <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>❓</span>
         <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>What now?</span>
@@ -1927,6 +2008,7 @@ export default function TownSquare() {
             }}
             onBuildingClick={handleApproachBuilding}
           />
+          {mapView && <CoordinateGrid />}
           <WalkTargetMarker walkTarget={walkTarget} />
           <HoverPreviewMarker hoverTarget={hoverTarget} />
           <Player

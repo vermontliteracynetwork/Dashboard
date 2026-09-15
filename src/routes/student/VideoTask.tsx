@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReadAloud from '../../components/ReadAloud';
+import TheaterFrame from '../../components/TheaterFrame';
 import { extractYouTubeId, loadYouTubeApi } from '../../lib/youtube';
 import type { Student, Task } from '../../types';
 
@@ -54,18 +55,20 @@ export default function VideoTask({ student, task, onDone }: Props) {
       {task.video?.note && <p>{task.video.note}</p>}
 
       {videoId ? (
-        <div style={{ width: '100%', maxWidth: 560, aspectRatio: '16 / 9' }}>
-          <iframe
-            id={frameId}
-            width="100%"
-            height="100%"
-            src={`https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&playsinline=1`}
-            title={task.title}
-            style={{ border: '3px solid var(--ink)', borderRadius: 14 }}
-            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
+        <TheaterFrame>
+          <div style={{ width: '100%', aspectRatio: '16 / 9' }}>
+            <iframe
+              id={frameId}
+              width="100%"
+              height="100%"
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&playsinline=1`}
+              title={task.title}
+              style={{ border: 'none', display: 'block' }}
+              allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </TheaterFrame>
       ) : (
         <p>Ask your teacher to add a video link!</p>
       )}
