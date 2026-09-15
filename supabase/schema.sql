@@ -450,6 +450,10 @@ alter table app_settings add column if not exists emote_price_overrides jsonb no
 -- role by name (see WorldEditor.tsx's Roster tab for why this stays
 -- display-only rather than actually reassigning who does what).
 alter table app_settings add column if not exists npc_title_overrides jsonb not null default '{}';
+-- Teacher voice-preset override per Neighbor/Townsperson id (Roster tab),
+-- on top of each character's own hand-picked default in worldQuest1.ts/
+-- worldTownspeople.ts. See lib/npcVoices.ts for the preset catalog.
+alter table app_settings add column if not exists npc_voice_overrides jsonb not null default '{}';
 -- Build Mode edits to the ORIGINAL fixed Town Square layout (the 4
 -- buildings, market stalls, road tiles, decor/city props defined in
 -- townLayout.ts) — keyed by that item's own fixed id, e.g. 'bank' or

@@ -109,6 +109,7 @@ import {
   pushAppSettings,
   pushEmotePriceOverrides,
   pushNpcTitleOverrides,
+  pushNpcVoiceOverrides,
   pushLayoutOverrides,
   pushGroundTexture,
   pushSkyColor,
@@ -294,6 +295,8 @@ interface AppState {
   setEmotePriceOverride: (emoteId: string, priceCents: number | null) => void;
   npcTitleOverrides: Record<string, string>; // hand-authored Neighbor/Townsperson id -> teacher's cosmetic custom title (Roster tab); never overwrites their actual dialogue content
   setNpcTitleOverride: (npcId: string, title: string | null) => void;
+  npcVoiceOverrides: Record<string, string>; // Neighbor/Townsperson id -> lib/npcVoices.ts preset id, teacher override on top of each character's own hand-picked default (Roster tab)
+  setNpcVoiceOverride: (npcId: string, presetId: string | null) => void;
   adjustStudentBalance: (studentId: string, amountCents: number, reason: string) => void;
   setStudentBalance: (studentId: string, newBalanceCents: number, reason: string) => void;
   buyAvatar: (studentId: string, avatarId: string, needsWants?: 'need' | 'want') => boolean;
@@ -532,6 +535,7 @@ export const useStore = create<AppState>()(
       assignmentCompletionReward: null,
       emotePriceOverrides: {},
       npcTitleOverrides: {},
+      npcVoiceOverrides: {},
 
       hydrated: !isSupabaseConfigured,
       hydrationError: null,
@@ -692,6 +696,7 @@ export const useStore = create<AppState>()(
               assignmentCompletionReward: n.assignment_completion_reward ?? null,
               emotePriceOverrides: n.emote_price_overrides ?? {},
               npcTitleOverrides: n.npc_title_overrides ?? {},
+              npcVoiceOverrides: n.npc_voice_overrides ?? {},
               layoutOverrides: n.layout_overrides ?? {},
               groundTexture: n.ground_texture ?? null,
               skyColor: n.sky_color ?? null,
@@ -1032,6 +1037,17 @@ export const useStore = create<AppState>()(
         }
         set({ npcTitleOverrides: next });
         pushNpcTitleOverrides(next);
+      },
+
+      setNpcVoiceOverride: (npcId, presetId) => {
+        const next = { ...get().npcVoiceOverrides };
+        if (presetId === null) {
+          delete next[npcId];
+        } else {
+          next[npcId] = presetId;
+        }
+        set({ npcVoiceOverrides: next });
+        pushNpcVoiceOverrides(next);
       },
 
       createNote: (studentId) => {

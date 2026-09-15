@@ -10,6 +10,7 @@ import {
 } from '../world/townLayout';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
+import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import type { WorldObject, WorldObjectRole, LayoutOverride } from '../../types';
 
 // Homeplot's "build mode" (Sims/Minecraft-style) — teacher-only, Town
@@ -646,7 +647,12 @@ function applyLayoutOverride(item: LayoutItem, overrides: Record<string, LayoutO
 // reassigning the role itself would make an NPC contradict their own
 // name tag) — local draft state, committed to the store on blur rather
 // than on every keystroke.
-function NpcRosterRow({ name, canonicalRole, title, onSetTitle }: { name: string; canonicalRole: string; title: string; onSetTitle: (t: string) => void }) {
+function NpcRosterRow({
+  name, canonicalRole, title, onSetTitle, defaultVoicePresetId, voiceOverrideId, onSetVoice,
+}: {
+  name: string; canonicalRole: string; title: string; onSetTitle: (t: string) => void;
+  defaultVoicePresetId: string; voiceOverrideId: string | undefined; onSetVoice: (presetId: string | null) => void;
+}) {
   const [draft, setDraft] = useState(title);
   return (
     <div className="row-wrap space-between" style={{ padding: 10, borderBottom: '1px solid var(--content-border)', alignItems: 'center', gap: 8 }}>
@@ -654,13 +660,30 @@ function NpcRosterRow({ name, canonicalRole, title, onSetTitle }: { name: string
         <strong style={{ fontSize: '0.85rem' }}>{name}</strong>
         <span className="tag-pill" style={{ fontSize: '0.68rem' }}>Really: {canonicalRole}</span>
       </div>
-      <input
-        value={draft}
-        placeholder="Custom title shown to students (optional)"
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => onSetTitle(draft)}
-        style={{ minHeight: 44, width: 220 }}
-      />
+      <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
+        <input
+          value={draft}
+          placeholder="Custom title shown to students (optional)"
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => onSetTitle(draft)}
+          style={{ minHeight: 44, width: 220 }}
+        />
+        {/* Direct instruction: Claude/Claudia set each character's default
+            voice first (worldQuest1.ts/worldTownspeople.ts), no two
+            repeated — this lets a teacher pick a different named preset
+            afterward, same override-on-top-of-a-default shape as the
+            title field to its left. */}
+        <select
+          value={voiceOverrideId ?? defaultVoicePresetId}
+          onChange={(e) => onSetVoice(e.target.value === defaultVoicePresetId ? null : e.target.value)}
+          style={{ minHeight: 44, width: 190 }}
+          aria-label={`${name}'s voice`}
+        >
+          {Object.entries(NPC_VOICE_PRESETS).map(([id, preset]) => (
+            <option key={id} value={id}>{preset.label}{id === defaultVoicePresetId ? ' (default)' : ''}</option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
@@ -673,6 +696,8 @@ function NpcRosterRow({ name, canonicalRole, title, onSetTitle }: { name: string
 function RosterTab() {
   const npcTitleOverrides = useStore((s) => s.npcTitleOverrides);
   const setNpcTitleOverride = useStore((s) => s.setNpcTitleOverride);
+  const npcVoiceOverrides = useStore((s) => s.npcVoiceOverrides);
+  const setNpcVoiceOverride = useStore((s) => s.setNpcVoiceOverride);
   const worldObjects = useStore((s) => s.worldObjects);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
@@ -694,6 +719,9 @@ function RosterTab() {
               canonicalRole={n.role}
               title={npcTitleOverrides[n.id] ?? ''}
               onSetTitle={(t) => setNpcTitleOverride(n.id, t)}
+              defaultVoicePresetId={n.voicePresetId}
+              voiceOverrideId={npcVoiceOverrides[n.id]}
+              onSetVoice={(presetId) => setNpcVoiceOverride(n.id, presetId)}
             />
           ))}
           {Object.values(TOWNSPEOPLE).map((tp) => (
@@ -703,6 +731,9 @@ function RosterTab() {
               canonicalRole="ambient townsperson, no fixed role"
               title={npcTitleOverrides[tp.id] ?? ''}
               onSetTitle={(t) => setNpcTitleOverride(tp.id, t)}
+              defaultVoicePresetId={tp.voicePresetId}
+              voiceOverrideId={npcVoiceOverrides[tp.id]}
+              onSetVoice={(presetId) => setNpcVoiceOverride(tp.id, presetId)}
             />
           ))}
         </div>

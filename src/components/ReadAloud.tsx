@@ -2,11 +2,20 @@ import { useState } from 'react';
 import type { TTSSettings } from '../types';
 import { pickSystemVoice } from '../lib/voiceCatalog';
 import { useStore } from '../store/store';
+import type { NpcVoiceProfile } from '../lib/npcVoices';
 
 interface Props {
   text: string;
   settings?: TTSSettings;
   small?: boolean;
+  // A specific Neighbor/Townsperson's assigned voice (lib/npcVoices.ts) —
+  // takes priority over the signed-in student's own equipped voice, since
+  // this line isn't the student's. Direct instruction: "whatever they
+  // have set their default text-to-speech to be what reads their
+  // messages" (the student's own bubbles, no override) "and then the
+  // default for each character voice be" the Neighbor's own (their
+  // bubbles, this prop set).
+  npcVoiceProfile?: NpcVoiceProfile;
 }
 
 function currentStudent() {
@@ -20,12 +29,25 @@ function currentStudent() {
 // site that only ever passed (text, settings) still gets the student's
 // picked voice automatically, with no risk of a call site "forgetting"
 // to thread equippedVoiceId through by hand (the bug this replaces).
-export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null) => {
+//
+// npcVoiceProfile, when set, wins over everything else — it's a specific
+// Neighbor/Townsperson's own assigned voice (lib/npcVoices.ts), not the
+// student's equipped marketplace voice skin, so it must never fall back
+// to the student's own pick.
+export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null, npcVoiceProfile?: NpcVoiceProfile) => {
   if (!('speechSynthesis' in window) || !text) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   const student = currentStudent();
   const resolvedSettings = settings ?? student?.ttsSettings;
+  if (npcVoiceProfile) {
+    utter.rate = npcVoiceProfile.rate;
+    utter.pitch = npcVoiceProfile.pitch;
+    const npcVoice = pickSystemVoice(npcVoiceProfile.hints);
+    if (npcVoice) utter.voice = npcVoice;
+    window.speechSynthesis.speak(utter);
+    return utter;
+  }
   const resolvedVoiceSkinId = voiceSkinId !== undefined ? voiceSkinId : (student?.equippedVoiceId ?? null);
   const skin = resolvedVoiceSkinId ? useStore.getState().marketplaceItems.find((it) => it.id === resolvedVoiceSkinId && it.kind === 'voice') : undefined;
   utter.rate = (resolvedSettings?.rate ?? 1) * (skin?.voiceRate ?? 1);
@@ -49,13 +71,13 @@ export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string
 // touch targets and no-dismiss-path failed the population standard outright.
 // Removed; the real fix here is speak() below resolving the student's
 // equipped voice automatically, not a second UI for picking one.
-export default function ReadAloud({ text, settings, small }: Props) {
+export default function ReadAloud({ text, settings, small, npcVoiceProfile }: Props) {
   const [speaking, setSpeaking] = useState(false);
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
 
   const handleClick = () => {
     if (!('speechSynthesis' in window)) return;
-    const utter = speak(text, settings ?? student?.ttsSettings);
+    const utter = speak(text, settings ?? student?.ttsSettings, undefined, npcVoiceProfile);
     if (utter) {
       utter.onstart = () => setSpeaking(true);
       utter.onend = () => setSpeaking(false);

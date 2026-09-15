@@ -580,6 +580,7 @@ export interface HydratedState {
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
   npcTitleOverrides: Record<string, string>;
+  npcVoiceOverrides: Record<string, string>;
   layoutOverrides: Record<string, LayoutOverride>;
   groundTexture: string | null;
   skyColor: string | null;
@@ -699,6 +700,7 @@ export async function fetchAll(): Promise<HydratedState> {
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
     npcTitleOverrides: appSettingsRes.data?.npc_title_overrides ?? {},
+    npcVoiceOverrides: appSettingsRes.data?.npc_voice_overrides ?? {},
     layoutOverrides: appSettingsRes.data?.layout_overrides ?? {},
     groundTexture: appSettingsRes.data?.ground_texture ?? null,
     skyColor: appSettingsRes.data?.sky_color ?? null,
@@ -922,6 +924,9 @@ export const pushEmotePriceOverrides = (overrides: Record<string, number>) =>
 
 export const pushNpcTitleOverrides = (overrides: Record<string, string>) =>
   upsert('app_settings', { id: 'global', npc_title_overrides: overrides, updated_at: new Date().toISOString() });
+
+export const pushNpcVoiceOverrides = (overrides: Record<string, string>) =>
+  upsert('app_settings', { id: 'global', npc_voice_overrides: overrides, updated_at: new Date().toISOString() });
 
 export const pushLayoutOverrides = (overrides: Record<string, LayoutOverride>) =>
   upsert('app_settings', { id: 'global', layout_overrides: overrides, updated_at: new Date().toISOString() });

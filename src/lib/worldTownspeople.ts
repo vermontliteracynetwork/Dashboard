@@ -11,6 +11,9 @@ import type { ConversationStep } from './worldQuest1';
 export interface Townsperson {
   id: string;
   name: string;
+  // Default text-to-speech voice — same distinct-per-character rule as
+  // Quest1Neighbor.voicePresetId (see that file and lib/npcVoices.ts).
+  voicePresetId: string;
   // Several complete conversations, not one fixed script — same reasoning
   // as Quest1Neighbor.dialogues (see worldQuest1.ts's pickDialogueVariant):
   // keeps jokes fresh across repeat talks and keeps some visits joke-free.
@@ -22,6 +25,7 @@ export const TOWNSPEOPLE: Record<string, Townsperson> = {
   'amb-1': {
     id: 'amb-1',
     name: 'Miller',
+    voicePresetId: 'warm-gravelly',
     dialogues: [
       [
         { npc: "Oh, hello! I'm Miller.", options: ["Hi Miller!", "Hey there!"] },
@@ -81,6 +85,7 @@ export const TOWNSPEOPLE: Record<string, Townsperson> = {
   'amb-2': {
     id: 'amb-2',
     name: 'Rosa',
+    voicePresetId: 'light-cheerful',
     dialogues: [
       [
         { npc: "Hi there, I'm Rosa!", options: ["Hi Rosa!", "Nice to meet you."] },
@@ -143,6 +148,7 @@ export const TOWNSPEOPLE: Record<string, Townsperson> = {
   'amb-3': {
     id: 'amb-3',
     name: 'Jasper',
+    voicePresetId: 'calm-slow',
     dialogues: [
       [
         { npc: "Hey, I'm Jasper.", options: ["Hi Jasper!", "Hey!"] },

@@ -62,6 +62,12 @@ export interface Quest1Neighbor {
   id: string;
   name: string;
   role: string;
+  // Default text-to-speech voice for this Neighbor's dialogue lines —
+  // direct instruction: every Neighbor/Townsperson gets their own
+  // distinct voice, no two repeated. A preset id from
+  // lib/npcVoices.ts's NPC_VOICE_PRESETS; teacher-overridable afterward
+  // in Build Mode's Roster tab (see npcVoiceOverrides).
+  voicePresetId: string;
   // Several complete, independent conversations rather than one fixed
   // script — direct teacher feedback that every talk being a joke got
   // stale, and that jokes should stay fresh across repeat visits instead
@@ -121,6 +127,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     id: 'scout',
     name: 'Scout',
     role: 'shows you around',
+    voicePresetId: 'friendly-upbeat',
     dialogues: [
       [
         { npc: "Hi! I'm Scout. Welcome to Yoglandia!", options: ["Hi Scout!", "Nice to meet you."] },
@@ -192,6 +199,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     id: 'penny',
     name: 'Penny',
     role: 'the Banker',
+    voicePresetId: 'crisp-precise',
     dialogues: [
       [
         { npc: "Well hello there! I'm Penny.", options: ["Hi Penny!", "Nice to meet you."] },
@@ -257,6 +265,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     id: 'pip',
     name: 'Pip',
     role: 'the Shopkeeper',
+    voicePresetId: 'deep-steady',
     dialogues: [
       [
         { npc: "Hiya! I'm Pip.", options: ["Hi Pip!", "Hey there!"] },
@@ -339,6 +348,7 @@ export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
     id: 'wren',
     name: 'Wren',
     role: 'the Mail Carrier',
+    voicePresetId: 'bright-friendly',
     dialogues: [
       [
         { npc: "Hey there! I'm Wren.", options: ["Hi Wren!", "Nice to meet you."] },

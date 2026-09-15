@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
+import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
 import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
@@ -1307,6 +1308,7 @@ export default function TownSquare() {
   // an NPC introduce themselves differently than their own label reads,
   // a worse mismatch than a role/title being cosmetic).
   const npcTitleOverrides = useStore((s) => s.npcTitleOverrides);
+  const npcVoiceOverrides = useStore((s) => s.npcVoiceOverrides);
   // The Focuses system's dialogue-embedding half (see lib/focus.ts):
   // whichever focus is current for a Neighbor's matched lane
   // (NEIGHBOR_FOCUS_LANE — Penny/finance, Pip/math, Wren/literacy,
@@ -2073,42 +2075,65 @@ export default function TownSquare() {
               ✕
             </button>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
-                <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
-                {(() => {
-                  const lastNpcLine = [...messageLog].reverse().find((m) => m.sender === 'npc');
-                  return lastNpcLine ? <ReadAloud text={lastNpcLine.text} small /> : null;
-                })()}
-              </div>
-              {activeConversation.role && <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeConversation.role}</p>}
-              {/* Direct teacher instruction: read like a phone messaging
-                  app — the other person's lines on the left, yours on the
-                  right, the whole conversation kept visible to scroll back
-                  through, not just the current line. */}
-              <div
-                ref={chatScrollRef}
-                style={{ width: '100%', maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 2px', textAlign: 'left' }}
-              >
-                {messageLog.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: m.sender === 'player' ? 'flex-end' : 'flex-start' }}>
-                    <div
-                      style={{
-                        maxWidth: '78%',
-                        padding: '8px 13px',
-                        borderRadius: 16,
-                        fontSize: '0.95rem',
-                        lineHeight: 1.35,
-                        background: m.sender === 'player' ? '#3e7c6b' : '#e9e6df',
-                        color: m.sender === 'player' ? '#fff' : '#1f4238',
-                        borderBottomRightRadius: m.sender === 'player' ? 4 : 16,
-                        borderBottomLeftRadius: m.sender === 'player' ? 16 : 4,
-                      }}
-                    >
-                      {m.text}
+              {(() => {
+                // Direct instruction: every Neighbor/Townsperson reads in
+                // their own distinct voice, never the student's — resolved
+                // once per open conversation, teacher override (Roster
+                // tab) on top of that character's own hand-picked default.
+                const defaultPresetId =
+                  QUEST1_NEIGHBORS.find((n) => n.id === activeConversation.id)?.voicePresetId
+                  ?? TOWNSPEOPLE[activeConversation.id]?.voicePresetId
+                  ?? 'plain-default';
+                const npcVoiceProfile = resolveNpcVoiceProfile(activeConversation.id, defaultPresetId, npcVoiceOverrides);
+                return (
+                  <>
+                    <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
+                      <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
+                      {(() => {
+                        const lastNpcLine = [...messageLog].reverse().find((m) => m.sender === 'npc');
+                        return lastNpcLine ? <ReadAloud text={lastNpcLine.text} small npcVoiceProfile={npcVoiceProfile} /> : null;
+                      })()}
                     </div>
-                  </div>
-                ))}
-              </div>
+                    {activeConversation.role && <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeConversation.role}</p>}
+                    {/* Direct teacher instruction: read like a phone
+                        messaging app — the other person's lines on the
+                        left, yours on the right, the whole conversation
+                        kept visible to scroll back through, not just the
+                        current line. Each bubble is individually
+                        replayable: a Neighbor's own bubbles always speak
+                        in their assigned voice, the student's own bubbles
+                        always speak in whatever voice the student has set
+                        as their own default (ReadAloud's own fallback,
+                        untouched here). */}
+                    <div
+                      ref={chatScrollRef}
+                      style={{ width: '100%', maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 2px', textAlign: 'left' }}
+                    >
+                      {messageLog.map((m, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: m.sender === 'player' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 4 }}>
+                          {m.sender === 'npc' && <ReadAloud text={m.text} small npcVoiceProfile={npcVoiceProfile} />}
+                          <div
+                            style={{
+                              maxWidth: '78%',
+                              padding: '8px 13px',
+                              borderRadius: 16,
+                              fontSize: '0.95rem',
+                              lineHeight: 1.35,
+                              background: m.sender === 'player' ? '#3e7c6b' : '#e9e6df',
+                              color: m.sender === 'player' ? '#fff' : '#1f4238',
+                              borderBottomRightRadius: m.sender === 'player' ? 4 : 16,
+                              borderBottomLeftRadius: m.sender === 'player' ? 16 : 4,
+                            }}
+                          >
+                            {m.text}
+                          </div>
+                          {m.sender === 'player' && <ReadAloud text={m.text} small />}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
               {activeStep.options && !isLastStep ? (
                 <div className="stack" style={{ gap: 8, width: '100%' }}>
                   {activeStep.options.map((opt) => {
