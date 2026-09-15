@@ -1851,14 +1851,21 @@ export default function TownSquare() {
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
-        {/* Build Mode's paint bucket for the sky — a horizon fog tint
-            layered over the real skybox photo (SkyboxBackground below),
-            never replacing it. Only rendered when a teacher has actually
-            picked one; skyColor is null by default, so this is a no-op
-            and today's exact look is unchanged until it's used. A large
-            near/far keeps the tint to the distant horizon rather than
-            washing out nearby buildings/characters. */}
-        {skyColor && <fog attach="fog" args={[skyColor, 30, 90]} />}
+        {/* Direct teacher report, live screenshot: dark jagged shapes on
+            the horizon in Town Square. Root cause — this fog was only
+            ever rendered when a teacher had explicitly picked a sky tint
+            (skyColor set); with no tint chosen (the default), there was
+            NO fog at all here, unlike WorldEditor's own Canvas which
+            always has one (`skyColor ?? '#bfe3ff'`, unconditional). Any
+            object sitting far outside the walkable town — a stray/oddly-
+            placed asset — fades to nothing in Build Mode (where the
+            teacher would have caught it) but rendered as an unfaded dark
+            silhouette here in Live Mode, since nothing ever faded it.
+            Same numbers as the paint-bucket tint below, now always on
+            with the same '#bfe3ff' default the skybox itself uses, so a
+            teacher who hasn't picked a color sees no visible change
+            except stray-object fade — only the always-on default. */}
+        <fog attach="fog" args={[skyColor ?? '#bfe3ff', 30, 90]} />
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
