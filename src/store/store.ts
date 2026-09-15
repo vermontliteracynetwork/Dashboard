@@ -123,6 +123,9 @@ import {
   pushWallSegment,
   deleteWallSegmentRemote,
   rowToWallSegment,
+  pushGroundPatch,
+  deleteGroundPatchRemote,
+  rowToGroundPatch,
   pushFocus,
   deleteFocusRemote,
   rowToFocus,
@@ -166,6 +169,7 @@ import type {
   AssignmentCompletionReward,
   WorldObject,
   WallSegment,
+  GroundPatch,
   LayoutOverride,
   Focus,
   FocusSubject,
@@ -242,6 +246,7 @@ interface AppState {
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
   wallSegments: WallSegment[]; // Sims 4-style drawn walls — shared Town Square (studentId undefined) or a student's own Home Room (studentId set), same table/convention as worldObjects
+  groundPatches: GroundPatch[]; // painted patches of alternate ground texture (grass/water mixed regions) — shared Town Square only, live-instant like groundTexture/skyColor
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -296,6 +301,8 @@ interface AppState {
   addWallSegment: (w: Omit<WallSegment, 'id' | 'createdAt'>) => string;
   updateWallSegment: (id: string, patch: Partial<WallSegment>) => void;
   deleteWallSegment: (id: string) => void;
+  addGroundPatch: (p: Omit<GroundPatch, 'id' | 'createdAt'>) => string;
+  deleteGroundPatch: (id: string) => void;
   // Build Mode Publish flow: commits every shared-Town-Square draft
   // (worldObjects + wallSegments) so students see it, finalizing any
   // pending deletion; Discard reverts every shared draft back to its last
@@ -571,6 +578,7 @@ export const useStore = create<AppState>()(
       marketplaceItems: [],
       worldObjects: [],
       wallSegments: [],
+      groundPatches: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -734,6 +742,7 @@ export const useStore = create<AppState>()(
           onMarketplaceItem: (e, n, o) => set((s) => ({ marketplaceItems: applyArrayRow(s.marketplaceItems, e, rowToMarketplaceItem, n, o) })),
           onWorldObject: (e, n, o) => set((s) => ({ worldObjects: applyArrayRow(s.worldObjects, e, rowToWorldObject, n, o) })),
           onWallSegment: (e, n, o) => set((s) => ({ wallSegments: applyArrayRow(s.wallSegments, e, rowToWallSegment, n, o) })),
+          onGroundPatch: (e, n, o) => set((s) => ({ groundPatches: applyArrayRow(s.groundPatches, e, rowToGroundPatch, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -1090,6 +1099,22 @@ export const useStore = create<AppState>()(
         };
         set((s) => ({ wallSegments: s.wallSegments.map((w) => (w.id === id ? updated : w)) }));
         pushWallSegment(updated);
+      },
+
+      // Ground-type per-tile system: painted patches of alternate ground
+      // texture, same live-instant behavior as groundTexture/skyColor
+      // above rather than the draft/publish system — a teacher repainting
+      // ground is low-stakes the same way a sky-color change already is.
+      addGroundPatch: (p) => {
+        const full: GroundPatch = { ...p, id: makeId(), createdAt: new Date().toISOString() };
+        set((s) => ({ groundPatches: [...s.groundPatches, full] }));
+        pushGroundPatch(full);
+        return full.id;
+      },
+
+      deleteGroundPatch: (id) => {
+        set((s) => ({ groundPatches: s.groundPatches.filter((p) => p.id !== id) }));
+        deleteGroundPatchRemote(id);
       },
 
       setLayoutOverride: (layoutId, patch) => {

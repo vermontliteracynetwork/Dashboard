@@ -13,7 +13,7 @@ import {
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
-import type { WorldObject, WorldObjectRole, LayoutOverride, WallSegment } from '../../types';
+import type { WorldObject, WorldObjectRole, LayoutOverride, WallSegment, GroundPatch } from '../../types';
 
 // Homeplot's "build mode" (Sims/Minecraft-style) — teacher-only, Town
 // Square only: place any uploaded asset, move/rotate/scale it with real 3D
@@ -622,6 +622,28 @@ function GroundTextureMaterial({ path }: { path: string }) {
   return <meshStandardMaterial map={tex} />;
 }
 
+// A single painted ground patch (#97's grass/water mixed-region system) —
+// a small textured circle lifted just above the base ground plane, the
+// same z-fighting fix WorldObjectRenderer's own FLAT_LIFT already uses for
+// flat objects. raycast disabled so hovering/clicking an existing patch
+// still reaches the ground plane underneath — painting and erasing both
+// depend on that same pointer hitting the ground, not the patch mesh.
+function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
+  const tex = useTexture(patch.texturePath);
+  useMemo(() => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    const tileRepeat = Math.max((patch.radius * 2) / 2, 1);
+    tex.repeat.set(tileRepeat, tileRepeat);
+    tex.colorSpace = THREE.SRGBColorSpace;
+  }, [tex, patch.radius]);
+  return (
+    <mesh position={[patch.x, 0.012, patch.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+      <circleGeometry args={[patch.radius, 24]} />
+      <meshStandardMaterial map={tex} />
+    </mesh>
+  );
+}
+
 // WASD/arrow-key camera panning — Claudia's navigation review: an
 // orbit-only camera with no keyboard travel is the standard "hard to
 // navigate" complaint versus Sims 4 (WASD pans the lot camera) and
@@ -1161,6 +1183,9 @@ export default function WorldEditor() {
   const deleteWallSegment = useStore((s) => s.deleteWallSegment);
   const publishWorldDraft = useStore((s) => s.publishWorldDraft);
   const discardWorldDraft = useStore((s) => s.discardWorldDraft);
+  const groundPatches = useStore((s) => s.groundPatches);
+  const addGroundPatch = useStore((s) => s.addGroundPatch);
+  const deleteGroundPatch = useStore((s) => s.deleteGroundPatch);
   // How many shared-Town-Square edits are held back from students right
   // now — the header's "You're in Draft" indicator and what Publish/
   // Discard act on. A pendingDelete row still counts (it's an unpublished
@@ -1231,7 +1256,14 @@ export default function WorldEditor() {
   // placed/fixed object using that same model at once. Ground and sky
   // don't need a click target — there's only one of each — so they're
   // direct buttons in the paint panel instead (see the panel's own JSX).
-  const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | null>(null);
+  const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | 'groundPatch' | null>(null);
+  // Ground-type per-tile system (#97): a teacher paints circular patches of
+  // an alternate ground texture directly onto the ground plane — a "grass/
+  // water mixed regions" look — reusing the same GROUND_TEXTURE_OPTIONS
+  // list the whole-map ground texture picker already uses.
+  const [groundPatchTexture, setGroundPatchTexture] = useState<string>('/world/textures/water.png');
+  const [groundPatchRadius, setGroundPatchRadius] = useState(3);
+  const [groundPatchErase, setGroundPatchErase] = useState(false);
   const [paintColor, setPaintColor] = useState(TINT_SWATCHES[0]);
   // Brush size (direct instruction: "adjust the size of the paintbrush").
   // 0 keeps the original "just the object under the cursor" behavior;
@@ -1579,7 +1611,32 @@ export default function WorldEditor() {
       if (dx * dx + dz * dz <= r2) setLayoutOverrideH(item.id, { tintColor: color });
     });
   };
-  const togglePaintMode = (mode: 'brush' | 'bucket') => {
+  // Ground-type per-tile system: paints (or, with the Erase toggle,
+  // removes) a circular patch of the currently-picked ground texture at
+  // this point. Throttled against the last patch placed while dragging so
+  // a slow drag doesn't stamp dozens of overlapping patches — a new one
+  // only lands once the pointer has moved at least half the brush radius.
+  const lastGroundPaintRef = useRef<{ x: number; z: number } | null>(null);
+  const paintGroundAt = (x: number, z: number) => {
+    if (groundPatchErase) {
+      const hit = groundPatches.find((p) => {
+        const dx = p.x - x;
+        const dz = p.z - z;
+        return dx * dx + dz * dz <= p.radius * p.radius;
+      });
+      if (hit) deleteGroundPatch(hit.id);
+      return;
+    }
+    const last = lastGroundPaintRef.current;
+    if (last) {
+      const dx = last.x - x;
+      const dz = last.z - z;
+      if (dx * dx + dz * dz < (groundPatchRadius / 2) * (groundPatchRadius / 2)) return;
+    }
+    lastGroundPaintRef.current = { x, z };
+    addGroundPatch({ x, z, radius: groundPatchRadius, texturePath: groundPatchTexture });
+  };
+  const togglePaintMode = (mode: 'brush' | 'bucket' | 'groundPatch') => {
     setHammerMode(false);
     setArmedAsset(null);
     setSelection(null);
@@ -1667,10 +1724,21 @@ export default function WorldEditor() {
     } else if (wallMode && wallStart) {
       e.stopPropagation();
       setWallEnd({ x, z });
+    } else if (paintMode === 'groundPatch' && isPaintingRef.current) {
+      // Unsnapped — a pond or patch of dirt reads more natural free-form
+      // than grid-locked, unlike every other placed object in Build Mode.
+      paintGroundAt(clampToGround(e.point.x), clampToGround(e.point.z));
     }
   };
 
   const handleGroundPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (paintMode === 'groundPatch') {
+      e.stopPropagation();
+      isPaintingRef.current = true;
+      lastGroundPaintRef.current = null;
+      paintGroundAt(clampToGround(e.point.x), clampToGround(e.point.z));
+      return;
+    }
     if (!wallMode) return;
     e.stopPropagation();
     const x = clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
@@ -1717,6 +1785,7 @@ export default function WorldEditor() {
   const handleGroundClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (wallMode) return; // the wall itself is placed by the pointerdown/up drag above, not a click
+    if (paintMode === 'groundPatch') return; // already painted on pointer-down above
     if (armedAsset) {
       const rawX = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
       const rawZ = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
@@ -2003,9 +2072,17 @@ export default function WorldEditor() {
               >
                 🪣 Bucket
               </button>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, flex: 1, background: paintMode === 'groundPatch' ? BUILD_ACCENT : undefined, color: paintMode === 'groundPatch' ? '#fff' : undefined, borderColor: paintMode === 'groundPatch' ? BUILD_ACCENT : undefined }}
+                onClick={() => setPaintMode('groundPatch')}
+                title="Ground: paint patches of a different ground texture, like a water pond in the grass"
+              >
+                🌱 Ground
+              </button>
             </div>
             <span style={{ fontSize: '0.68rem', opacity: 0.6 }}>
-              {paintMode === 'bucket' ? 'Bucket: fills every matching item at once (e.g. every pumpkin).' : 'Brush: drag across objects to paint every one you touch.'}
+              {paintMode === 'bucket' ? 'Bucket: fills every matching item at once (e.g. every pumpkin).' : paintMode === 'groundPatch' ? 'Ground: paint or erase patches of texture right on the ground.' : 'Brush: drag across objects to paint every one you touch.'}
             </span>
           </div>
 
@@ -2025,6 +2102,52 @@ export default function WorldEditor() {
             </div>
           )}
 
+          {paintMode === 'groundPatch' && (
+            <>
+              <label className="row" style={{ gap: 8, alignItems: 'center', margin: 0 }}>
+                <input type="checkbox" checked={groundPatchErase} onChange={(e) => setGroundPatchErase(e.target.checked)} />
+                <span style={{ fontSize: '0.8rem' }}>🧽 Erase patches instead of painting</span>
+              </label>
+              {!groundPatchErase && (
+                <div className="stack" style={{ gap: 6 }}>
+                  <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Texture</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    {GROUND_TEXTURE_OPTIONS.map((g) => {
+                      const path = g.path ?? '/world/textures/grass.png';
+                      const active = groundPatchTexture === path;
+                      return (
+                        <button
+                          key={g.label}
+                          onClick={() => setGroundPatchTexture(path)}
+                          title={g.label}
+                          style={{ minHeight: 56, padding: 4, borderRadius: 10, border: active ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}
+                        >
+                          <span style={{ display: 'block', width: 28, height: 28, borderRadius: 6, backgroundImage: `url(${path})`, backgroundSize: 'cover' }} />
+                          <span style={{ fontSize: 9, fontWeight: 700 }}>{g.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="stack" style={{ gap: 6 }}>
+                <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Patch size ({groundPatchRadius.toFixed(1)} units)</span>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={10}
+                  step={0.5}
+                  value={groundPatchRadius}
+                  onChange={(e) => setGroundPatchRadius(Number(e.target.value))}
+                  style={{ width: '100%', minHeight: 44 }}
+                  aria-label="Ground patch size"
+                />
+              </div>
+            </>
+          )}
+
+          {paintMode !== 'groundPatch' && (
+          <>
           <div className="stack" style={{ gap: 6 }}>
             <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Color</span>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
@@ -2060,6 +2183,8 @@ export default function WorldEditor() {
               )}
             </div>
           </div>
+          </>
+          )}
 
           <div className="stack" style={{ gap: 6 }}>
             <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌱 Ground texture</span>
@@ -2208,6 +2333,9 @@ export default function WorldEditor() {
               )}
             </mesh>
             <gridHelper args={[GROUND_HALF * 2, GROUND_HALF * 2, '#5a8f48', '#5a8f48']} position={[0, 0.02, 0]} />
+            <Suspense fallback={null}>
+              {groundPatches.map((p) => <GroundPatchMesh key={p.id} patch={p} />)}
+            </Suspense>
 
             {armedAsset && <GhostScaleReporter path={armedAsset.path} category={armedAsset.category} label={armedAsset.label} onScale={setArmedDefaultScale} />}
 

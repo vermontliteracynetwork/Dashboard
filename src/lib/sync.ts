@@ -31,6 +31,7 @@ import type {
   AssignmentCompletionReward,
   WorldObject,
   WallSegment,
+  GroundPatch,
   LayoutOverride,
   Focus,
 } from '../types';
@@ -423,6 +424,23 @@ const wallSegmentToRow = (w: WallSegment): Row => ({
   published_snapshot: w.publishedSnapshot ?? null,
 });
 
+const rowToGroundPatch = (r: Row): GroundPatch => ({
+  id: r.id,
+  x: r.x,
+  z: r.z,
+  radius: r.radius ?? 3,
+  texturePath: r.texture_path,
+  createdAt: r.created_at,
+});
+const groundPatchToRow = (p: GroundPatch): Row => ({
+  id: p.id,
+  x: p.x,
+  z: p.z,
+  radius: p.radius,
+  texture_path: p.texturePath,
+  created_at: p.createdAt,
+});
+
 const rowToFocus = (r: Row): Focus => ({
   id: r.id,
   subject: r.subject,
@@ -665,6 +683,7 @@ export interface HydratedState {
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[];
   wallSegments: WallSegment[];
+  groundPatches: GroundPatch[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
@@ -688,7 +707,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -720,9 +739,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('wall_segments').select('*'),
     supabase.from('student_feedback').select('*'),
     supabase.from('quiz_struggles').select('*'),
+    supabase.from('ground_patches').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes]) {
     if (res.error) throw res.error;
   }
 
@@ -791,6 +811,7 @@ export async function fetchAll(): Promise<HydratedState> {
     marketplaceItems: (marketplaceItemsRes.data ?? []).map(rowToMarketplaceItem),
     worldObjects: (worldObjectsRes.data ?? []).map(rowToWorldObject),
     wallSegments: (wallSegmentsRes.data ?? []).map(rowToWallSegment),
+    groundPatches: (groundPatchesRes.data ?? []).map(rowToGroundPatch),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
@@ -1008,6 +1029,8 @@ export const deleteWorldObjectRemote = (id: string) => remove('world_objects', {
 
 export const pushWallSegment = (w: WallSegment) => upsert('wall_segments', wallSegmentToRow(w));
 export const deleteWallSegmentRemote = (id: string) => remove('wall_segments', { id });
+export const pushGroundPatch = (p: GroundPatch) => upsert('ground_patches', groundPatchToRow(p));
+export const deleteGroundPatchRemote = (id: string) => remove('ground_patches', { id });
 
 export const pushFocus = (f: Focus) => upsert('focuses', focusToRow(f));
 export const deleteFocusRemote = (id: string) => remove('focuses', { id });
@@ -1212,7 +1235,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1222,6 +1245,7 @@ export interface RealtimeHandlers {
   onHelpPing: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onStudentFeedback: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onQuizStruggle: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onGroundPatch: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onOffscreenReview: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onQuizAttempt: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onBadge: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1267,6 +1291,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'help_pings' }, wire(handlers.onHelpPing))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_feedback' }, wire(handlers.onStudentFeedback))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_struggles' }, wire(handlers.onQuizStruggle))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'ground_patches' }, wire(handlers.onGroundPatch))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'offscreen_reviews' }, wire(handlers.onOffscreenReview))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_attempts' }, wire(handlers.onQuizAttempt))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'badges' }, wire(handlers.onBadge))

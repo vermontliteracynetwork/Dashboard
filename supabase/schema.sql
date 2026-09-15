@@ -408,6 +408,21 @@ alter table world_objects add column if not exists published_snapshot jsonb;
 -- Town Square (with TTS).
 alter table world_objects add column if not exists sign_text text;
 
+-- Ground-type per-tile system: patches of alternate ground texture painted
+-- over the base Town Square ground plane (grass/water/sand/etc mixed
+-- regions), same GROUND_TEXTURE_OPTIONS list the whole-map groundTexture
+-- setting already uses. Shared Town Square only — live-instant like
+-- groundTexture/skyColor, not part of the world_objects/wall_segments
+-- draft/publish system.
+create table if not exists ground_patches (
+  id text primary key,
+  x numeric not null,
+  z numeric not null,
+  radius numeric not null default 3,
+  texture_path text not null,
+  created_at timestamptz not null default now()
+);
+
 -- Wall segments: Sims 4-style drawn walls (two endpoints, not a placed
 -- model), used both in the shared Town Square and inside a student's own
 -- Home Room. A door/window WorldObject is only placeable when it snaps
@@ -574,7 +589,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches'
   ];
 begin
   foreach t in array tables loop
@@ -617,7 +632,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches'
   ];
 begin
   foreach t in array tables loop

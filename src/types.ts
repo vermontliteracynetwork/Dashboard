@@ -667,6 +667,21 @@ export interface WallSegment {
   publishedSnapshot?: WallSegment;
 }
 
+// A patch of alternate ground texture painted over the base Town Square
+// ground plane — the "grass/water mixed regions" ground-type system.
+// Shared Town Square only (same live-instant behavior as the whole-map
+// groundTexture/skyColor settings it extends, not part of the WorldObject/
+// WallSegment draft/publish system — a scope this app can revisit if a
+// teacher wants patches held back too).
+export interface GroundPatch {
+  id: string;
+  x: number;
+  z: number;
+  radius: number; // meters — the painted circle's radius
+  texturePath: string; // one of GROUND_TEXTURE_OPTIONS' real paths (never null — a Grass patch stores the literal grass.png path)
+  createdAt: string; // ISO
+}
+
 // A teacher-made edit to one of the ORIGINAL fixed Town Square layout items
 // (a building from BUILDINGS, a stall from MARKET_STALLS, a road tile, a
 // decor/city prop — see townLayout.ts) — keyed by that item's own fixed id

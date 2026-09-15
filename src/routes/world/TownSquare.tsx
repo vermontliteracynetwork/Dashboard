@@ -21,7 +21,7 @@ import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import type { LayoutOverride, FocusSubject, WorldObject, WallSegment } from '../../types';
+import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -1122,6 +1122,24 @@ function GroundMaterial() {
   return <meshStandardMaterial map={tex} />;
 }
 
+// A single painted ground patch (Build Mode's #97 grass/water mixed-region
+// system) — same tiny lift-above-ground z-fighting fix used throughout
+// this file, raycast disabled so it never blocks a click-to-walk target
+// on the ground underneath it.
+function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
+  const tex = useTexture(patch.texturePath);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  const tileRepeat = Math.max((patch.radius * 2) / 2, 1);
+  tex.repeat.set(tileRepeat, tileRepeat);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return (
+    <mesh position={[patch.x, 0.012, patch.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+      <circleGeometry args={[patch.radius, 24]} />
+      <meshStandardMaterial map={tex} />
+    </mesh>
+  );
+}
+
 // The real Kenney day skybox (equirectangular, CC0) as the scene
 // background, replacing drei's procedural <Sky> — the teacher's explicit
 // ask was a realistic modern-town look, and a photographed/painted real
@@ -1232,6 +1250,7 @@ function Park({
   onBuildingClick: (id: string) => void;
   layoutOverrides: Record<string, LayoutOverride>;
 }) {
+  const groundPatches = useStore((s) => s.groundPatches);
   return (
     <group>
       <mesh
@@ -1256,6 +1275,9 @@ function Park({
           <GroundMaterial />
         </Suspense>
       </mesh>
+      <Suspense fallback={null}>
+        {groundPatches.map((p) => <GroundPatchMesh key={p.id} patch={p} />)}
+      </Suspense>
       {/* Every fixed item below can be deleted from Build Mode (direct
           teacher instruction: "everything can be deleted... including the
           items that were originally placed on the map"), so each is
