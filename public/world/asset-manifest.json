@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T18:07:34.144Z",
+  "generatedAt": "2026-09-15T18:11:19.655Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -2952,6 +2952,11 @@
       "category": "pets"
     },
     {
+      "path": "/world/models/pets/animal-cat-2.glb",
+      "label": "Animal Cat 2",
+      "category": "pets"
+    },
+    {
       "path": "/world/models/pets/animal-cat.glb",
       "label": "Animal Cat",
       "category": "pets"
@@ -3012,6 +3017,11 @@
       "category": "pets"
     },
     {
+      "path": "/world/models/pets/animal-husky.glb",
+      "label": "Animal Husky",
+      "category": "pets"
+    },
+    {
       "path": "/world/models/pets/animal-koala.glb",
       "label": "Animal Koala",
       "category": "pets"
@@ -3049,6 +3059,11 @@
     {
       "path": "/world/models/pets/animal-polar.glb",
       "label": "Animal Polar",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-pug.glb",
+      "label": "Animal Pug",
       "category": "pets"
     },
     {
