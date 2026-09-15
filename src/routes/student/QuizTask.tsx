@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import ReadAloud, { speak } from '../../components/ReadAloud';
+import { isCloseEnoughAnswer } from '../../lib/answerMatch';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import QuizThemePicker from '../../components/QuizThemePicker';
 import type { Student, Subject, Task, MatchingQuestion } from '../../types';
@@ -310,7 +311,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
                   <button
                     className="btn btn-primary"
                     disabled={answered || !fillValue.trim()}
-                    onClick={() => submitAnswer(fillValue.trim().toLowerCase() === activeQ.answer.trim().toLowerCase())}
+                    onClick={() => submitAnswer(isCloseEnoughAnswer(fillValue, activeQ.answer))}
                   >
                     Check
                   </button>

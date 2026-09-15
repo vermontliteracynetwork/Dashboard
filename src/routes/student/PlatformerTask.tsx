@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import ReadAloud, { speak } from '../../components/ReadAloud';
+import { isCloseEnoughAnswer } from '../../lib/answerMatch';
 import { MatchingBoard } from './QuizTask';
 import { formatMoney } from '../../lib/money';
 import type { Student, Subject, Task } from '../../types';
@@ -1034,7 +1035,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                       <button
                         className="btn btn-primary"
                         disabled={pendingCorrect !== null || !fillValue.trim()}
-                        onClick={() => submitAnswer(fillValue.trim().toLowerCase() === activeQ.answer.trim().toLowerCase())}
+                        onClick={() => submitAnswer(isCloseEnoughAnswer(fillValue, activeQ.answer))}
                       >
                         Check
                       </button>
