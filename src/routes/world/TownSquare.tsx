@@ -874,19 +874,30 @@ function Neighbor({
   // character, not by proximity.
   const [hovered, setHovered] = useState(false);
   const npcEmote = useMemo(() => ambientEmoteFor(n.id), [n.id]);
-  // Direct teacher request: a Neighbor tied to whatever curriculum focus is
-  // currently live should show a small "!" so a student can spot who has
-  // something new to talk about, the same way a to-do badge works. Each
-  // Quest Neighbor's role maps to one Focus lane (finance/math/literacy/sel
-  // above are the only four lanes that exist) — Penny the Banker to
-  // finance, Pip the Shopkeeper to math, Wren the Mail Carrier to literacy,
-  // Scout (general welcome/check-ins) to SEL.
-  const focuses = useStore((s) => s.focuses);
+  // Direct instruction: narrowed from the original "Focus lane currently
+  // active" rule (below in git history), which was true almost every day
+  // for every Neighbor and read as noise, not a priority signal. The "!"
+  // now means one specific thing — "this Neighbor has an unfinished
+  // assignment to remind you about" — and clears the moment that subject's
+  // work is actually done today, the same mathDone/litDone check
+  // Marketplace.tsx's goPickActivityToSkip already uses. Only Pip (math)
+  // and Wren (literacy) map onto a real per-day task queue; Penny
+  // (finance) and Scout (general/SEL) have no equivalent assignment list
+  // to remind about, so they never show a mark under this rule.
+  const currentStudentId = useStore((s) => s.currentStudentId);
+  const rotations = useStore((s) => s.rotations);
+  const progress = useStore((s) => s.progress);
   const focusFlag = useMemo(() => {
+    if (!currentStudentId) return false;
     const lane = NEIGHBOR_FOCUS_LANE[n.id];
-    if (!lane) return false;
-    return !!getCurrentFocus(focuses, lane, todayISO());
-  }, [focuses, n.id]);
+    if (lane !== 'math' && lane !== 'literacy') return false;
+    const tasks = rotations[currentStudentId]?.[lane] ?? [];
+    if (tasks.length === 0) return false;
+    const today = todayISO();
+    const prog = progress[currentStudentId]?.[lane];
+    const done = prog?.date === today && prog.subjectComplete;
+    return !done;
+  }, [currentStudentId, rotations, progress, n.id]);
 
   useEffect(() => {
     if (!inRange) return;

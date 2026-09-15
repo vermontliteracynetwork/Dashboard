@@ -6,6 +6,7 @@ import { EMOTE_CATALOG } from '../lib/emoteCatalog';
 import { ALL_JOKES } from '../lib/worldJokes';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../lib/worldTownspeople';
+import { BookPanel } from './BookPanel';
 import type { Student } from '../types';
 
 // Direct teacher instruction: the backpack button was opening the full
@@ -17,7 +18,12 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
   const updateStudent = useStore((s) => s.updateStudent);
   const equipEmote = useStore((s) => s.equipEmote);
   const [tab, setTab] = useState<'stuff' | 'jokes' | 'friends'>('stuff');
-  const [openJokeId, setOpenJokeId] = useState<string | null>(null);
+  // Direct instruction: the Joke Book should look like an actual book a
+  // student pages through (Minecraft book&quill / Sims 4 spellbook), not a
+  // flat clickable list — see BookPanel.tsx. Turning to the next page IS
+  // the reveal now, so each page shows its joke's punchline/explain
+  // directly rather than needing a separate open/closed tap first.
+  const [jokePageIndex, setJokePageIndex] = useState(0);
 
   const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
@@ -133,31 +139,23 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
             )}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
-            {heardJokes.length === 0 && (
-              <p style={{ opacity: 0.7, fontSize: '0.85rem', margin: '10px 4px' }}>
-                No jokes yet. Talk to a Neighbor or Townsperson to hear one!
-              </p>
-            )}
-            {heardJokes.map(({ id, entry }) => {
-              const open = openJokeId === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => setOpenJokeId(open ? null : id)}
-                  style={{ textAlign: 'left', background: '#f7f5ef', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '8px 12px', cursor: 'pointer' }}
-                >
-                  <strong style={{ fontSize: '0.85rem' }}>{entry.npcName}: {entry.setup}</strong>
-                  {open && (
-                    <div style={{ marginTop: 4, fontSize: '0.85rem' }}>
-                      <p style={{ margin: '2px 0', fontWeight: 700 }}>{entry.punchline}</p>
-                      <p style={{ margin: '2px 0', opacity: 0.75 }}>{entry.explain}</p>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <BookPanel
+            title="Joke Book"
+            pageIndex={jokePageIndex}
+            onPageChange={setJokePageIndex}
+            emptyMessage="No jokes yet. Talk to a Neighbor or Townsperson to hear one!"
+            pages={heardJokes.map(({ id, entry }) => ({
+              key: id,
+              content: (
+                <div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.6, marginBottom: 6 }}>{entry.npcName} said...</div>
+                  <p style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700 }}>{entry.setup}</p>
+                  <p style={{ margin: '0 0 6px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{entry.punchline}</p>
+                  <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.75 }}>{entry.explain}</p>
+                </div>
+              ),
+            }))}
+          />
         )}
       </div>
     </div>
