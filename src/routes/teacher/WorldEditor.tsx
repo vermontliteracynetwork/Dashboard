@@ -1679,7 +1679,8 @@ export default function WorldEditor() {
                 <strong style={{ fontSize: 12 }}>🕹️ Camera controls</strong>
                 <button aria-label="Hide controls" title="Hide" onClick={() => setShowLegend(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 2 }}>✕</button>
               </div>
-              <div>🖱️ Drag — look around</div>
+              <div>🖱️ Right-drag — look around</div>
+              <div>🖱️ Middle-drag — pan</div>
               <div>🖱️ Scroll — zoom</div>
               <div>⌨️ WASD / Arrows — move</div>
               <div>⌨️ Delete — remove selected</div>
@@ -1736,7 +1737,26 @@ export default function WorldEditor() {
             <fog attach="fog" args={[skyColor ?? '#bfe3ff', 26, 46]} />
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 16, 8]} intensity={1.2} castShadow />
-            <OrbitControls ref={controlsRef} makeDefault enabled={!isDragging} maxPolarAngle={Math.PI / 2.1} minDistance={6} maxDistance={42} />
+            {/* Claudia's controls audit: the default three.js binding (left-
+                drag orbits, right-drag pans) contradicted the teacher's own
+                named reference — Sims 4 keeps left-click free for
+                select/place and uses right-drag to orbit, specifically so
+                an imprecise placement click can never be mistaken for a
+                camera gesture. Left is left unbound here (three-stdlib
+                treats a missing entry as "no camera action," so clicks
+                still reach the ground/object meshes underneath exactly as
+                before); middle-drag pans as a mouse alternative to
+                CameraPanner's WASD. Scroll-wheel zoom is a separate listener
+                inside OrbitControls, unaffected by this mapping. */}
+            <OrbitControls
+              ref={controlsRef}
+              makeDefault
+              enabled={!isDragging}
+              maxPolarAngle={Math.PI / 2.1}
+              minDistance={6}
+              maxDistance={42}
+              mouseButtons={{ MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE }}
+            />
             <CameraPanner controlsRef={controlsRef} />
 
             <mesh

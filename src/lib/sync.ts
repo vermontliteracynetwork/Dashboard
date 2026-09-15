@@ -86,6 +86,8 @@ const rowToStudent = (r: Row): Student => ({
   worldShowDeskGlow: r.world_show_desk_glow ?? true,
   worldReduceMotion: r.world_reduce_motion ?? false,
   dyslexiaFont: r.dyslexia_font ?? false,
+  homeWallColor: r.home_wall_color ?? undefined,
+  homeFloorTexture: r.home_floor_texture ?? undefined,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -132,6 +134,8 @@ const studentToRow = (s: Student): Row => ({
   world_show_desk_glow: s.worldShowDeskGlow,
   world_reduce_motion: s.worldReduceMotion,
   dyslexia_font: s.dyslexiaFont,
+  home_wall_color: s.homeWallColor ?? null,
+  home_floor_texture: s.homeFloorTexture ?? null,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -315,6 +319,7 @@ const rowToWorldObject = (r: Row): WorldObject => ({
   scale: r.scale ?? 1,
   tintColor: r.tint_color ?? undefined,
   collides: r.collides ?? undefined,
+  studentId: r.student_id ?? undefined,
   createdAt: r.created_at,
 });
 const worldObjectToRow = (o: WorldObject): Row => ({
@@ -328,6 +333,7 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   scale: o.scale,
   tint_color: o.tintColor ?? null,
   collides: o.collides ?? null,
+  student_id: o.studentId ?? null,
   created_at: o.createdAt,
 });
 
@@ -833,6 +839,8 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   worldShowDeskGlow: 'world_show_desk_glow',
   worldReduceMotion: 'world_reduce_motion',
   dyslexiaFont: 'dyslexia_font',
+  homeWallColor: 'home_wall_color',
+  homeFloorTexture: 'home_floor_texture',
 };
 
 // Writes only the changed columns (a real SQL UPDATE), instead of

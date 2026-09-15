@@ -107,6 +107,8 @@ export interface Student {
   worldShowDeskGlow: boolean; // teacher override for the Tier 2 computer-desk glow/label
   worldReduceMotion: boolean; // student/teacher-set in-app motion reduction (desk glow, etc.) independent of the OS-level prefers-reduced-motion setting, for a shared/school device a student can't change system settings on
   dyslexiaFont: boolean; // app-wide (not just Town Square) dyslexia-friendly display mode — a standing requirement in docs/NATIVE_GAME_STANDARD.md that had no actual toggle anywhere in the app until Claudia's full-game audit found the gap
+  homeWallColor?: string; // Home Room paint bucket — hex color for the room's 4 walls; undefined = default
+  homeFloorTexture?: string | null; // Home Room floor — a path from HOME_FLOOR_OPTIONS in HomeRoom.tsx; null/undefined = default
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';
@@ -598,6 +600,13 @@ export interface WorldObject {
   // placed back when nothing collided — so only NEWLY placed objects
   // default to colliding; an older object needs a teacher to opt it in.
   collides?: boolean;
+  // undefined/null = a shared Town Square object (the teacher's WorldEditor
+  // usage, everyone sees it); set to a Student.id = that student's own
+  // private Home Room — same table, same sync plumbing, just scoped by
+  // this field (this app has no per-row RLS anywhere, so filtering by
+  // studentId happens client-side, same trust model every other table here
+  // already uses).
+  studentId?: string;
   createdAt: string; // ISO
 }
 

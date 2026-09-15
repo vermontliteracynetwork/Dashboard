@@ -34,6 +34,7 @@ import StudentChatAlert from './components/StudentChatAlert';
 // route (and the teacher's 3D Build Mode) needs them — every existing 2D
 // screen should stay unaffected.
 const TownSquare = lazy(() => import('./routes/world/TownSquare'));
+const HomeRoom = lazy(() => import('./routes/world/HomeRoom'));
 const WorldEditor = lazy(() => import('./routes/teacher/WorldEditor'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
@@ -102,6 +103,14 @@ export default function App() {
             element={
               <Suspense fallback={<div className="app-shell center-screen"><p>Loading Yoglandia…</p></div>}>
                 <TownSquare />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/world/home-room"
+            element={
+              <Suspense fallback={<div className="app-shell center-screen"><p>Loading your room…</p></div>}>
+                <HomeRoom />
               </Suspense>
             }
           />

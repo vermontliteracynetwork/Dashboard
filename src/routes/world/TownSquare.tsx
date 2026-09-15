@@ -1814,6 +1814,25 @@ export default function TownSquare() {
         </span>
       </button>
 
+      {/* Direct teacher instruction: a way to reach a student's own private
+          Homeplot room ("click on the map and have a little home icon") —
+          the real overhead map is a later build, so this stays visible and
+          reachable directly (a real map isn't the only place a home icon
+          should live for this population anyway; a persistent, always-
+          discoverable icon matches how every other core destination here
+          — Map, My Stuff — already works). */}
+      <button
+        onClick={() => navigate('/world/home-room')}
+        style={{ position: 'fixed', top: 214, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#c26a3e', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
+        aria-label="My Home"
+        title="My Home"
+      >
+        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🏠</span>
+        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
+          My Home
+        </span>
+      </button>
+
       {/* Direct teacher instruction: this must only ever show what the
           student owns, never the shop — a separate hotbar-style overlay,
           not a trip to the Marketplace page (even on its "My Stuff" tab,
@@ -1988,7 +2007,13 @@ export default function TownSquare() {
         <DpadButton rotate={0} label="Right" dx={1} dz={0} style={{ right: 0, top: 57 }} touchDir={touchDir} />
       </div>
 
-      {isDesktop && <CameraLookButtons cameraLook={cameraLook} side={dpadSide} />}
+      {/* Claudia's controls audit: gating this to isDesktop meant touch
+          devices — this app's own primary device per the D-pad/dyslexia-
+          font comments elsewhere in this file — had NO way to look around
+          without walking first. These are discrete tap buttons (not a
+          drag gesture), so there's no conflict with touch scrolling/
+          panning; safe to show everywhere. */}
+      <CameraLookButtons cameraLook={cameraLook} side={dpadSide} />
 
       {/* A small, deliberately secondary way back to the task dashboard —
           the computer desk in the world is the primary path now, but every

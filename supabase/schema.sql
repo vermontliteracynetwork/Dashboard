@@ -325,6 +325,9 @@ alter table students add column if not exists savings_goal_label text;
 alter table students add column if not exists savings_goal_cents int;
 alter table transactions add column if not exists needs_wants text;
 alter table students add column if not exists count_it_out_enabled boolean not null default false;
+-- Homeplot per-student room paint bucket (see world_objects.student_id above).
+alter table students add column if not exists home_wall_color text;
+alter table students add column if not exists home_floor_texture text;
 
 -- The World Editor's placed objects: teacher-authored Town Square build
 -- mode (Sims/Minecraft-style). Global, not per-student — one shared table
@@ -349,6 +352,13 @@ create table if not exists world_objects (
 -- collides. See types.ts's WorldObject.collides comment for why old
 -- objects deliberately aren't retroactively defaulted to true.
 alter table world_objects add column if not exists collides boolean;
+-- Homeplot per-student room: null = shared Town Square object (unchanged
+-- behavior); a Student id here means it belongs to that student's own
+-- private Home Room instead. Same table/sync/realtime plumbing as Town
+-- Square objects — filtering by student is done client-side, matching
+-- this app's existing anon-read/write trust model (no other table has
+-- per-row RLS either).
+alter table world_objects add column if not exists student_id text;
 -- RLS + realtime for this table are granted by the generic loops further
 -- down this file (the tables[] arrays) — 'world_objects' is added there,
 -- not here, so this table follows the exact same anon-read/write,
