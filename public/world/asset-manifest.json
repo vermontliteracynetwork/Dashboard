@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T17:55:06.550Z",
+  "generatedAt": "2026-09-15T18:03:37.909Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -4192,6 +4192,11 @@
       "category": "props"
     },
     {
+      "path": "/world/models/props/park-info-board.glb",
+      "label": "Park Info Board",
+      "category": "props"
+    },
+    {
       "path": "/world/models/props/pine_tree.glb",
       "label": "Pine Tree",
       "category": "props"
@@ -4199,6 +4204,11 @@
     {
       "path": "/world/models/props/potted_tree.glb",
       "label": "Potted Tree",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/sandwich-board.glb",
+      "label": "Sandwich Board",
       "category": "props"
     },
     {
@@ -4219,6 +4229,21 @@
     {
       "path": "/world/models/props/trunk.glb",
       "label": "Trunk",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/wooden-sign-1.glb",
+      "label": "Wooden Sign 1",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/wooden-sign-2.glb",
+      "label": "Wooden Sign 2",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/wooden-sign-3.glb",
+      "label": "Wooden Sign 3",
       "category": "props"
     },
     {
@@ -5064,6 +5089,11 @@
     {
       "path": "/world/models/quaternius-buildings/BigBuilding.glb",
       "label": "Big Building",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/TownCenter.glb",
+      "label": "Town Center",
       "category": "quaternius-buildings"
     },
     {

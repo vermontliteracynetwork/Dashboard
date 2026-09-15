@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
@@ -18,7 +18,7 @@ import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment } from '../../types';
@@ -1428,10 +1428,22 @@ export default function TownSquare() {
   // now walls) used to render here too, unfiltered, which is exactly the
   // kind of cross-student visibility the Home Room design explicitly rules
   // out (see types.ts's WorldObject.studentId comment).
+  // previewDraft=1 is Build Mode's own "Preview as Student" link — it shows
+  // a teacher's unpublished work-in-progress instead of what's actually
+  // live. Every other visitor (every real student) gets published-only,
+  // holding a half-finished edit back until the teacher hits Publish.
+  const [searchParams] = useSearchParams();
+  const previewDraft = searchParams.get('previewDraft') === '1';
   const allWorldObjects = useStore((s) => s.worldObjects);
-  const worldObjects = useMemo(() => allWorldObjects.filter((o) => !o.studentId), [allWorldObjects]);
+  const worldObjects = useMemo(
+    () => resolveDraftRows(allWorldObjects.filter((o) => !o.studentId), previewDraft),
+    [allWorldObjects, previewDraft]
+  );
   const allWallSegments = useStore((s) => s.wallSegments);
-  const wallSegments = useMemo(() => allWallSegments.filter((w) => !w.studentId), [allWallSegments]);
+  const wallSegments = useMemo(
+    () => resolveDraftRows(allWallSegments.filter((w) => !w.studentId), previewDraft),
+    [allWallSegments, previewDraft]
+  );
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const skyColor = useStore((s) => s.skyColor);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,

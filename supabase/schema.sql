@@ -397,6 +397,12 @@ alter table world_objects add column if not exists student_id text;
 -- down this file (the tables[] arrays) — 'world_objects' is added there,
 -- not here, so this table follows the exact same anon-read/write,
 -- authenticated-delete policy every other table already uses.
+-- Build Mode draft/publish (only meaningful when student_id is null — a
+-- Home Room object is always 'published'). Existing rows default to
+-- 'published' so nothing already-placed vanishes from students on migration.
+alter table world_objects add column if not exists status text not null default 'published';
+alter table world_objects add column if not exists pending_delete boolean not null default false;
+alter table world_objects add column if not exists published_snapshot jsonb;
 
 -- Wall segments: Sims 4-style drawn walls (two endpoints, not a placed
 -- model), used both in the shared Town Square and inside a student's own
@@ -416,6 +422,10 @@ create table if not exists wall_segments (
   student_id text,
   created_at timestamptz not null default now()
 );
+-- Same Build Mode draft/publish convention as world_objects above.
+alter table wall_segments add column if not exists status text not null default 'published';
+alter table wall_segments add column if not exists pending_delete boolean not null default false;
+alter table wall_segments add column if not exists published_snapshot jsonb;
 
 -- Class-wide curriculum "Focuses" (see types.ts's Focus interface) — one
 -- current focus per subject lane (math/literacy/sel/finance), teacher-set

@@ -301,6 +301,9 @@ const SIZE_CLASS_OVERRIDE: Record<string, SizeClass> = {
   // canopy) far more often than these 2 real small awning-scale props.
   'Detail Overhang': 'furniture',
   'Detail Overhang Wide': 'furniture',
+  // "Sandwich Board" false-hit the tiny food-keyword list on "sandwich" —
+  // it's a person-height A-frame sign, not a snack.
+  'Sandwich Board': 'personScale',
 };
 function classifySizeForLabel(label: string, category?: string): SizeClass | null {
   if (SIZE_CLASS_OVERRIDE[label]) return SIZE_CLASS_OVERRIDE[label];
@@ -1156,6 +1159,16 @@ export default function WorldEditor() {
   const wallSegments = useMemo(() => allWallSegments.filter((w) => !w.studentId), [allWallSegments]);
   const addWallSegment = useStore((s) => s.addWallSegment);
   const deleteWallSegment = useStore((s) => s.deleteWallSegment);
+  const publishWorldDraft = useStore((s) => s.publishWorldDraft);
+  const discardWorldDraft = useStore((s) => s.discardWorldDraft);
+  // How many shared-Town-Square edits are held back from students right
+  // now — the header's "You're in Draft" indicator and what Publish/
+  // Discard act on. A pendingDelete row still counts (it's an unpublished
+  // change too, just one a student hasn't lost yet).
+  const draftCount = useMemo(
+    () => worldObjects.filter((o) => o.status === 'draft').length + wallSegments.filter((w) => w.status === 'draft').length,
+    [worldObjects, wallSegments]
+  );
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const setLayoutOverride = useStore((s) => s.setLayoutOverride);
   const groundTexture = useStore((s) => s.groundTexture);
@@ -1329,6 +1342,8 @@ export default function WorldEditor() {
   // which are real saves too) closes that gap cheaply.
   const [showSaved, setShowSaved] = useState(false);
   const savedTimeoutRef = useRef<number | null>(null);
+  const [confirmPublish, setConfirmPublish] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const flashSaved = () => {
     setShowSaved(true);
     if (savedTimeoutRef.current) window.clearTimeout(savedTimeoutRef.current);
@@ -1770,30 +1785,64 @@ export default function WorldEditor() {
               review: nothing in this screen let a teacher check her work
               in context without leaving the editor entirely. Opens in a
               new tab so Build Mode's own state (armed asset, selection,
-              undo history) never gets lost. */}
+              undo history) never gets lost. previewDraft=1 shows the
+              CURRENT draft values (what Publish would produce) instead of
+              what's actually live for students right now — this is a QA
+              preview of the work in progress, not the real student view. */}
           <a
-            href="/#/world/town"
+            href="/#/world/town?previewDraft=1"
             target="_blank"
             rel="noreferrer"
             className="btn btn-sm btn-flat"
             style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: 'transparent', color: '#fff', border: '2px solid #fff', boxShadow: 'none', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-            title="Open Town Square in a new tab, exactly as a student sees it"
+            title="Open Town Square in a new tab, showing your unpublished changes as they'll look once you publish"
           >
             👀 Preview as Student
           </a>
           <span style={{ width: 2, alignSelf: 'stretch', background: 'rgba(255,255,255,0.4)' }} />
-          {/* Direct instruction: the header itself should carry a
-              save/publish entry point, not just the bottom toolbar. Wired
-              to the same force-save-now behavior the bottom toolbar's own
-              Save button already uses — every edit already syncs live the
-              instant it's made (see this file's "draft vs. live" header
-              comment); a real draft-then-publish flow that actually holds
-              changes back from students until confirmed is a bigger,
-              separate data-model change Claudia's Build Mode audit scoped
-              as its own large follow-up, not done here. */}
+          {/* Every edit still saves to Supabase instantly (see flashSaved
+              below) — what Publish/Discard control is only whether a
+              shared-Town-Square change has reached students yet. A Home
+              Room edit never enters this at all (see store.ts's
+              addWorldObject/updateWorldObject comments) — it's still
+              exactly as live as before this system existed. */}
+          {draftCount > 0 && (
+            <span
+              style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.18)', borderRadius: 8, color: '#fff', fontWeight: 700 }}
+              title="These changes are only visible here in Build Mode — students still see what was last published"
+            >
+              ✏️ Draft: {draftCount} unpublished change{draftCount === 1 ? '' : 's'}
+            </span>
+          )}
           <button
             className="btn btn-sm btn-flat"
-            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: '#fff', color: BUILD_ACCENT_DARK, border: '2px solid #fff', boxShadow: 'none', fontWeight: 800 }}
+            disabled={draftCount === 0}
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: confirmDiscard ? '#c0392b' : 'transparent', color: '#fff', border: '2px solid #fff', boxShadow: 'none', opacity: draftCount === 0 ? 0.5 : 1 }}
+            onClick={() => {
+              if (confirmDiscard) { discardWorldDraft(); setConfirmDiscard(false); flashSaved(); return; }
+              setConfirmDiscard(true);
+              setConfirmPublish(false);
+            }}
+            title="Undo every unpublished change back to what's currently live for students"
+          >
+            {confirmDiscard ? 'Discard? Tap again' : '↩️ Discard'}
+          </button>
+          <button
+            className="btn btn-sm btn-flat"
+            disabled={draftCount === 0}
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: confirmPublish ? '#22c55e' : '#fff', color: confirmPublish ? '#fff' : BUILD_ACCENT_DARK, border: '2px solid #fff', boxShadow: 'none', fontWeight: 800, opacity: draftCount === 0 ? 0.5 : 1 }}
+            onClick={() => {
+              if (confirmPublish) { publishWorldDraft(); setConfirmPublish(false); flashSaved(); return; }
+              setConfirmPublish(true);
+              setConfirmDiscard(false);
+            }}
+            title="Make every unpublished change visible to students"
+          >
+            {confirmPublish ? 'Sure? Tap again' : '🚀 Publish'}
+          </button>
+          <button
+            className="btn btn-sm btn-flat"
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: 'transparent', color: '#fff', border: '2px solid #fff', boxShadow: 'none' }}
             onClick={() => { retrySyncNow(); flashSaved(); }}
             title="Every edit already saves automatically — this forces a save right now"
           >

@@ -172,6 +172,20 @@ import type {
   FocusDurationMode,
 } from '../types';
 
+// Draft/publish for shared Town Square objects: the first time a currently-
+// published WorldObject/WallSegment is touched in a new draft cycle, this
+// captures its pre-edit values so a student keeps seeing them (and Discard
+// can restore them) until the teacher actually hits Publish.
+function snapshotForDraft<T extends { status?: 'draft' | 'published'; pendingDelete?: boolean; publishedSnapshot?: T }>(existing: T): T | undefined {
+  if (existing.status === 'draft' && existing.publishedSnapshot) return existing.publishedSnapshot; // already have the real baseline
+  if (existing.status === 'draft' && !existing.publishedSnapshot) return undefined; // never published — nothing to protect
+  const clone: T = { ...existing };
+  delete (clone as { status?: unknown }).status;
+  delete (clone as { pendingDelete?: unknown }).pendingDelete;
+  delete (clone as { publishedSnapshot?: unknown }).publishedSnapshot;
+  return clone;
+}
+
 function extractErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (err && typeof err === 'object' && 'message' in err) return String((err as { message: unknown }).message);
@@ -282,6 +296,12 @@ interface AppState {
   addWallSegment: (w: Omit<WallSegment, 'id' | 'createdAt'>) => string;
   updateWallSegment: (id: string, patch: Partial<WallSegment>) => void;
   deleteWallSegment: (id: string) => void;
+  // Build Mode Publish flow: commits every shared-Town-Square draft
+  // (worldObjects + wallSegments) so students see it, finalizing any
+  // pending deletion; Discard reverts every shared draft back to its last
+  // published snapshot (or deletes it, if it was never published).
+  publishWorldDraft: () => void;
+  discardWorldDraft: () => void;
   // A teacher edit to one of the ORIGINAL fixed layout items (see
   // LayoutOverride's own comment in types.ts). `patch: null` clears that
   // item's override entirely (used by undo to fully revert a change).
@@ -940,7 +960,17 @@ export const useStore = create<AppState>()(
       // frame, so a teacher mid-drag never flickers live for a logged-in
       // student.
       addWorldObject: (obj) => {
-        const full: WorldObject = { ...obj, id: makeId(), createdAt: new Date().toISOString() };
+        // Shared Town Square objects start life as a draft — students keep
+        // seeing whatever was last published until the teacher hits
+        // Publish. A Home Room object (studentId set) skips drafting
+        // entirely and is published immediately, same as before this
+        // system existed.
+        const full: WorldObject = {
+          ...obj,
+          id: makeId(),
+          createdAt: new Date().toISOString(),
+          status: obj.studentId ? 'published' : 'draft',
+        };
         set((s) => ({ worldObjects: [...s.worldObjects, full] }));
         pushWorldObject(full);
         return full.id;
@@ -949,14 +979,73 @@ export const useStore = create<AppState>()(
       updateWorldObject: (id, patch) => {
         const existing = get().worldObjects.find((o) => o.id === id);
         if (!existing) return;
-        const updated = { ...existing, ...patch };
+        const updated = existing.studentId
+          ? { ...existing, ...patch }
+          : { ...existing, ...patch, status: 'draft' as const, publishedSnapshot: snapshotForDraft(existing) };
         set((s) => ({ worldObjects: s.worldObjects.map((o) => (o.id === id ? updated : o)) }));
         pushWorldObject(updated);
       },
 
       deleteWorldObject: (id) => {
-        set((s) => ({ worldObjects: s.worldObjects.filter((o) => o.id !== id) }));
-        deleteWorldObjectRemote(id);
+        const existing = get().worldObjects.find((o) => o.id === id);
+        if (!existing) return;
+        // Home Room, or a draft that was never published — nothing a
+        // student has seen yet, so a real delete is safe right now.
+        if (existing.studentId || (existing.status !== 'published' && !existing.publishedSnapshot)) {
+          set((s) => ({ worldObjects: s.worldObjects.filter((o) => o.id !== id) }));
+          deleteWorldObjectRemote(id);
+          return;
+        }
+        // Already published and visible to students — hold the deletion
+        // back until Publish; Discard can still bring it back.
+        const updated: WorldObject = {
+          ...existing,
+          status: 'draft',
+          pendingDelete: true,
+          publishedSnapshot: existing.publishedSnapshot ?? snapshotForDraft(existing),
+        };
+        set((s) => ({ worldObjects: s.worldObjects.map((o) => (o.id === id ? updated : o)) }));
+        pushWorldObject(updated);
+      },
+
+      publishWorldDraft: () => {
+        const nextObjects: WorldObject[] = [];
+        for (const o of get().worldObjects) {
+          if (o.studentId || o.status !== 'draft') { nextObjects.push(o); continue; }
+          if (o.pendingDelete) { deleteWorldObjectRemote(o.id); continue; }
+          const published: WorldObject = { ...o, status: 'published', pendingDelete: false, publishedSnapshot: undefined };
+          nextObjects.push(published);
+          pushWorldObject(published);
+        }
+        const nextWalls: WallSegment[] = [];
+        for (const w of get().wallSegments) {
+          if (w.studentId || w.status !== 'draft') { nextWalls.push(w); continue; }
+          if (w.pendingDelete) { deleteWallSegmentRemote(w.id); continue; }
+          const published: WallSegment = { ...w, status: 'published', pendingDelete: false, publishedSnapshot: undefined };
+          nextWalls.push(published);
+          pushWallSegment(published);
+        }
+        set({ worldObjects: nextObjects, wallSegments: nextWalls });
+      },
+
+      discardWorldDraft: () => {
+        const nextObjects: WorldObject[] = [];
+        for (const o of get().worldObjects) {
+          if (o.studentId || o.status !== 'draft') { nextObjects.push(o); continue; }
+          if (!o.publishedSnapshot) { deleteWorldObjectRemote(o.id); continue; }
+          const restored: WorldObject = { ...o.publishedSnapshot, status: 'published', pendingDelete: false, publishedSnapshot: undefined };
+          nextObjects.push(restored);
+          pushWorldObject(restored);
+        }
+        const nextWalls: WallSegment[] = [];
+        for (const w of get().wallSegments) {
+          if (w.studentId || w.status !== 'draft') { nextWalls.push(w); continue; }
+          if (!w.publishedSnapshot) { deleteWallSegmentRemote(w.id); continue; }
+          const restored: WallSegment = { ...w.publishedSnapshot, status: 'published', pendingDelete: false, publishedSnapshot: undefined };
+          nextWalls.push(restored);
+          pushWallSegment(restored);
+        }
+        set({ worldObjects: nextObjects, wallSegments: nextWalls });
       },
 
       // Sims 4-style drawn walls — same immediate-push pattern as
@@ -964,7 +1053,12 @@ export const useStore = create<AppState>()(
       // Town Square, studentId undefined) and HomeRoom's own Wall tool
       // (studentId set).
       addWallSegment: (w) => {
-        const full: WallSegment = { ...w, id: makeId(), createdAt: new Date().toISOString() };
+        const full: WallSegment = {
+          ...w,
+          id: makeId(),
+          createdAt: new Date().toISOString(),
+          status: w.studentId ? 'published' : 'draft',
+        };
         set((s) => ({ wallSegments: [...s.wallSegments, full] }));
         pushWallSegment(full);
         return full.id;
@@ -973,14 +1067,29 @@ export const useStore = create<AppState>()(
       updateWallSegment: (id, patch) => {
         const existing = get().wallSegments.find((w) => w.id === id);
         if (!existing) return;
-        const updated = { ...existing, ...patch };
+        const updated = existing.studentId
+          ? { ...existing, ...patch }
+          : { ...existing, ...patch, status: 'draft' as const, publishedSnapshot: snapshotForDraft(existing) };
         set((s) => ({ wallSegments: s.wallSegments.map((w) => (w.id === id ? updated : w)) }));
         pushWallSegment(updated);
       },
 
       deleteWallSegment: (id) => {
-        set((s) => ({ wallSegments: s.wallSegments.filter((w) => w.id !== id) }));
-        deleteWallSegmentRemote(id);
+        const existing = get().wallSegments.find((w) => w.id === id);
+        if (!existing) return;
+        if (existing.studentId || (existing.status !== 'published' && !existing.publishedSnapshot)) {
+          set((s) => ({ wallSegments: s.wallSegments.filter((w) => w.id !== id) }));
+          deleteWallSegmentRemote(id);
+          return;
+        }
+        const updated: WallSegment = {
+          ...existing,
+          status: 'draft',
+          pendingDelete: true,
+          publishedSnapshot: existing.publishedSnapshot ?? snapshotForDraft(existing),
+        };
+        set((s) => ({ wallSegments: s.wallSegments.map((w) => (w.id === id ? updated : w)) }));
+        pushWallSegment(updated);
       },
 
       setLayoutOverride: (layoutId, patch) => {

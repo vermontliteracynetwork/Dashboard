@@ -368,6 +368,9 @@ const rowToWorldObject = (r: Row): WorldObject => ({
   collides: r.collides ?? undefined,
   studentId: r.student_id ?? undefined,
   createdAt: r.created_at,
+  status: r.status ?? 'published',
+  pendingDelete: r.pending_delete ?? false,
+  publishedSnapshot: r.published_snapshot ?? undefined,
 });
 const worldObjectToRow = (o: WorldObject): Row => ({
   id: o.id,
@@ -382,6 +385,9 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   collides: o.collides ?? null,
   student_id: o.studentId ?? null,
   created_at: o.createdAt,
+  status: o.status ?? 'published',
+  pending_delete: o.pendingDelete ?? false,
+  published_snapshot: o.publishedSnapshot ?? null,
 });
 
 const rowToWallSegment = (r: Row): WallSegment => ({
@@ -395,6 +401,9 @@ const rowToWallSegment = (r: Row): WallSegment => ({
   color: r.color ?? undefined,
   studentId: r.student_id ?? undefined,
   createdAt: r.created_at,
+  status: r.status ?? 'published',
+  pendingDelete: r.pending_delete ?? false,
+  publishedSnapshot: r.published_snapshot ?? undefined,
 });
 const wallSegmentToRow = (w: WallSegment): Row => ({
   id: w.id,
@@ -407,6 +416,9 @@ const wallSegmentToRow = (w: WallSegment): Row => ({
   color: w.color ?? null,
   student_id: w.studentId ?? null,
   created_at: w.createdAt,
+  status: w.status ?? 'published',
+  pending_delete: w.pendingDelete ?? false,
+  published_snapshot: w.publishedSnapshot ?? null,
 });
 
 const rowToFocus = (r: Row): Focus => ({

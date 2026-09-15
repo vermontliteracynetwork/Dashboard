@@ -49,6 +49,9 @@ const SIZE_CLASS_OVERRIDE = {
   'Back Bar A': 'furniture',
   'Detail Overhang': 'furniture',
   'Detail Overhang Wide': 'furniture',
+  // "Sandwich Board" false-hit the tiny food-keyword list on "sandwich" —
+  // it's a person-height A-frame sign, not a snack.
+  'Sandwich Board': 'personScale',
 };
 function classifySizeForLabel(label, category) {
   if (SIZE_CLASS_OVERRIDE[label]) return SIZE_CLASS_OVERRIDE[label];

@@ -12,6 +12,36 @@
 // here keeps both call sites cheap.
 import type { WorldObjectRole } from '../../types';
 
+// Draft/publish resolution for the shared Town Square (never applies to a
+// student's own Home Room — those rows are always studentId-set and always
+// 'published', filtered out before this ever runs). A teacher's Build Mode
+// edit doesn't reach students until Publish; until then, a student still
+// sees whatever was last actually published — never a half-finished edit,
+// and never a building vanishing mid-edit. previewDraft=true is Build
+// Mode's own "Preview as Student" link: it shows the CURRENT draft values
+// (what publishing would produce) instead of falling back to the old
+// published snapshot, so a teacher can QA her WIP before committing it.
+export function resolveDraftRows<T extends { status?: 'draft' | 'published'; pendingDelete?: boolean; publishedSnapshot?: T }>(
+  rows: T[],
+  previewDraft: boolean
+): T[] {
+  const out: T[] = [];
+  for (const r of rows) {
+    if (previewDraft) {
+      if (r.status === 'draft' && r.pendingDelete) continue; // simulates the delete Publish would finalize
+      out.push(r);
+      continue;
+    }
+    if (r.status !== 'draft') {
+      out.push(r);
+      continue;
+    }
+    if (r.publishedSnapshot) out.push(r.publishedSnapshot); // last published truth, edits held back
+    // else: created this draft cycle, never published — nothing to show yet
+  }
+  return out;
+}
+
 export const GROUND_HALF = 14; // meters — the walkable square (movement/placement bounds)
 
 // Direct teacher instruction: Town Square was wiped down to bare ground —

@@ -618,6 +618,22 @@ export interface WorldObject {
   // already uses).
   studentId?: string;
   createdAt: string; // ISO
+  // Draft/publish for the shared Town Square (see docs on Build Mode's
+  // Publish flow). Only meaningful when studentId is unset — a Home Room
+  // object is always created 'published' and never enters this state.
+  // undefined on an old row (created before this field existed) reads as
+  // 'published', matching what students already see.
+  status?: 'draft' | 'published';
+  // A published object queued for removal — held back (still rendered to
+  // students from publishedSnapshot) until Publish actually deletes it, so
+  // Discard can still undo the deletion.
+  pendingDelete?: boolean;
+  // Captured the first time a currently-published object is touched in a
+  // new draft cycle (add/move/resize/role/delete/...) — the pre-edit
+  // values a student keeps seeing until Publish, and what Discard restores.
+  // undefined = this object has no published version yet (created this
+  // draft cycle) — Discard on it means "never existed."
+  publishedSnapshot?: WorldObject;
 }
 
 // A single straight wall segment, drawn with Sims 4-style click-drag
@@ -639,6 +655,12 @@ export interface WallSegment {
   color?: string;
   studentId?: string;
   createdAt: string; // ISO
+  // Same draft/publish convention as WorldObject — see its own field
+  // comments for the full explanation. Only meaningful when studentId is
+  // unset; a Home Room wall is always 'published'.
+  status?: 'draft' | 'published';
+  pendingDelete?: boolean;
+  publishedSnapshot?: WallSegment;
 }
 
 // A teacher-made edit to one of the ORIGINAL fixed Town Square layout items
