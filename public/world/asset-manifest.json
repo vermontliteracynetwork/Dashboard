@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T18:32:14.029Z",
+  "generatedAt": "2026-09-15T18:57:17.418Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -622,6 +622,16 @@
       "category": "commercial-buildings"
     },
     {
+      "path": "/world/models/creatures/animal-african-wild-dog.glb",
+      "label": "Animal African Wild Dog",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/banana-guy.glb",
+      "label": "Banana Guy",
+      "category": "creatures"
+    },
+    {
       "path": "/world/models/creatures/big-Alien.gltf",
       "label": "Big Alien",
       "category": "creatures"
@@ -819,6 +829,11 @@
     {
       "path": "/world/models/creatures/blob-yeti.glb",
       "label": "Blob Yeti",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/cactoro-quaternius.glb",
+      "label": "Cactoro Quaternius",
       "category": "creatures"
     },
     {
@@ -2937,6 +2952,11 @@
       "category": "market"
     },
     {
+      "path": "/world/models/pets/animal-beagle.glb",
+      "label": "Animal Beagle",
+      "category": "pets"
+    },
+    {
       "path": "/world/models/pets/animal-beaver.glb",
       "label": "Animal Beaver",
       "category": "pets"
@@ -2944,6 +2964,11 @@
     {
       "path": "/world/models/pets/animal-bee.glb",
       "label": "Animal Bee",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-bunny-2.glb",
+      "label": "Animal Bunny 2",
       "category": "pets"
     },
     {
@@ -3012,6 +3037,11 @@
       "category": "pets"
     },
     {
+      "path": "/world/models/pets/animal-great-dane.glb",
+      "label": "Animal Great Dane",
+      "category": "pets"
+    },
+    {
       "path": "/world/models/pets/animal-hog.glb",
       "label": "Animal Hog",
       "category": "pets"
@@ -3059,6 +3089,11 @@
     {
       "path": "/world/models/pets/animal-polar.glb",
       "label": "Animal Polar",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-poodle.glb",
+      "label": "Animal Poodle",
       "category": "pets"
     },
     {
@@ -4174,6 +4209,11 @@
     {
       "path": "/world/models/props/desk.glb",
       "label": "Desk",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/dog-in-plane.glb",
+      "label": "Dog In Plane",
       "category": "props"
     },
     {
