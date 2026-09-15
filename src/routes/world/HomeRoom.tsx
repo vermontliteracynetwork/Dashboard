@@ -94,6 +94,11 @@ function computeStarterScale(size: THREE.Vector3, target: ScaleTarget): number {
   const dim = target.kind === 'cube' ? Math.max(size.x, size.y, size.z) : Math.max(size.x, size.z);
   return dim > 0 && isFinite(dim) ? THREE.MathUtils.clamp(target.value / dim, SCALE_FLOOR, 20) : 1;
 }
+// Half of each item's real-world target size, for the view-mode collision
+// circle below — a plant shouldn't block movement over as wide a radius
+// as a couch, and the room is small enough that the flat radius Town
+// Square uses for its own placed objects would feel cramped here.
+const ROOM_OBJECT_COLLISION_RADIUS = (target: ScaleTarget) => THREE.MathUtils.clamp(target.value / 2, 0.3, 1.2);
 
 // Measures each starter model's real bounding box once (via the same
 // Suspense-friendly useGLTF technique WorldEditor's GhostScaleReporter
@@ -167,7 +172,33 @@ function RoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
   );
 }
 
-function RoomPlayer({ walkTarget }: { walkTarget: React.RefObject<{ x: number; z: number } | null> }) {
+// Furniture collision in view mode, ported from Town Square's own
+// STATIC_OBSTACLES circle-push-out (TownSquare.tsx's blockObstacles) —
+// same nearest-point push-out math, just a plain function here instead of
+// module-level state, since a room's furniture list is already scoped to
+// one student and doesn't need Town Square's teacher-edit-driven rebuild.
+// Radius comes from each starter item's own real-world target size (half
+// its footprint/cube value), not the tiny GLB scale multiplier stored on
+// the object — that multiplier means something different in this file
+// (see computeStarterScale) than the "scale tracks real-world size"
+// assumption Town Square's own WORLD_OBJECT_COLLISION_RADIUS relies on.
+interface RoomObstacle { x: number; z: number; radius: number }
+function blockRoomObstacles(x: number, z: number, obstacles: RoomObstacle[]): [number, number] {
+  let [bx, bz] = [x, z];
+  for (const o of obstacles) {
+    const dx = bx - o.x;
+    const dz = bz - o.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < o.radius && dist > 0) {
+      const scale = o.radius / dist;
+      bx = o.x + dx * scale;
+      bz = o.z + dz * scale;
+    }
+  }
+  return [bx, bz];
+}
+
+function RoomPlayer({ walkTarget, obstacles }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: RoomObstacle[] }) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useRoomKeys();
   const { camera } = useThree();
@@ -187,8 +218,9 @@ function RoomPlayer({ walkTarget }: { walkTarget: React.RefObject<{ x: number; z
       walkTarget.current = null;
       dx /= len;
       dz /= len;
-      pos.current.x = THREE.MathUtils.clamp(pos.current.x + dx * ROOM_MOVE_SPEED * dt, -bound, bound);
-      pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * ROOM_MOVE_SPEED * dt, -bound, bound);
+      const nx = THREE.MathUtils.clamp(pos.current.x + dx * ROOM_MOVE_SPEED * dt, -bound, bound);
+      const nz = THREE.MathUtils.clamp(pos.current.z + dz * ROOM_MOVE_SPEED * dt, -bound, bound);
+      [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
       facing.current = Math.atan2(dx, dz);
       moved = true;
     } else if (walkTarget.current) {
@@ -200,8 +232,9 @@ function RoomPlayer({ walkTarget }: { walkTarget: React.RefObject<{ x: number; z
       } else {
         const ndx = tx / dist;
         const ndz = tz / dist;
-        pos.current.x = THREE.MathUtils.clamp(pos.current.x + ndx * ROOM_MOVE_SPEED * dt, -bound, bound);
-        pos.current.z = THREE.MathUtils.clamp(pos.current.z + ndz * ROOM_MOVE_SPEED * dt, -bound, bound);
+        const nx = THREE.MathUtils.clamp(pos.current.x + ndx * ROOM_MOVE_SPEED * dt, -bound, bound);
+        const nz = THREE.MathUtils.clamp(pos.current.z + ndz * ROOM_MOVE_SPEED * dt, -bound, bound);
+        [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
         facing.current = Math.atan2(ndx, ndz);
         moved = true;
       }
@@ -286,6 +319,19 @@ export default function HomeRoom() {
     [worldObjects, student]
   );
   const selected = myObjects.find((o) => o.id === selectedId) ?? null;
+  // View-mode furniture collision (blockRoomObstacles above) — only
+  // matters while walking around, so it's fine to recompute whenever the
+  // room's own objects change rather than gating on mode.
+  const roomObstacles = useMemo(
+    () =>
+      myObjects
+        .map((o) => {
+          const item = STARTER_ITEMS.find((it) => it.modelPath === o.modelPath);
+          return item ? { x: o.position[0], z: o.position[2], radius: ROOM_OBJECT_COLLISION_RADIUS(item.target) } : null;
+        })
+        .filter((o): o is { x: number; z: number; radius: number } => o !== null),
+    [myObjects]
+  );
 
   // Direct instruction: "Build mode must save if the student toggles
   // between tabs or apps. It must have an auto save, but there must
@@ -479,7 +525,7 @@ export default function HomeRoom() {
           />
         ) : (
           <>
-            <RoomPlayer walkTarget={walkTarget} />
+            <RoomPlayer walkTarget={walkTarget} obstacles={roomObstacles} />
             <WalkTargetMarker walkTarget={walkTarget} />
           </>
         )}
