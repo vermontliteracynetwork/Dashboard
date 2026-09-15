@@ -5,11 +5,19 @@ interface Props {
   label: string;
   value?: string;
   onChange: (url: string) => void;
+  // Opt-in alt-text field — only shown when the caller passes both props,
+  // so every other use of this component (decorative images) is
+  // unaffected. For a place an uploaded image can BE the question content
+  // (Claudia's quiz-mode audit flagged this exact gap), not just
+  // decoration, a teacher can describe what's in it for a screen-reader
+  // student.
+  altValue?: string;
+  onAltChange?: (alt: string) => void;
 }
 
 // Replaces "paste an image URL" everywhere in the app with a click/drag
 // file picker that uploads straight to Supabase Storage.
-export default function ImageUploadField({ label, value, onChange }: Props) {
+export default function ImageUploadField({ label, value, onChange, altValue, onAltChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +50,18 @@ export default function ImageUploadField({ label, value, onChange }: Props) {
           <button type="button" className="btn btn-sm btn-danger" onClick={() => onChange('')}>
             ✕ Remove
           </button>
+          {onAltChange && (
+            <div className="stack" style={{ gap: 2, marginTop: 6 }}>
+              <label style={{ fontSize: '0.75rem', opacity: 0.75 }}>
+                Describe this image for students who can't see it (leave blank if it's just decoration)
+              </label>
+              <input
+                value={altValue ?? ''}
+                onChange={(e) => onAltChange(e.target.value)}
+                placeholder="e.g. A red apple on a wooden table"
+              />
+            </div>
+          )}
         </div>
       ) : (
         <div

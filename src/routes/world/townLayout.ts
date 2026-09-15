@@ -51,6 +51,7 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   'post-office': '/student/mailbox',
   'welcome-center': '/student/passport',
   'computer-desk': '/student/home',
+  home: '/world/home-room',
 };
 
 // Cleared along with BUILDINGS above — rebuilt from Build Mode now.

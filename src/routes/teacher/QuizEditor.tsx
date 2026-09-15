@@ -104,7 +104,13 @@ function QuestionRow({
           placeholder="Type the question here"
         />
       </div>
-      <ImageUploadField label="Image (optional)" value={q.imageUrl} onChange={(imageUrl) => onUpdate({ ...q, imageUrl: imageUrl || undefined })} />
+      <ImageUploadField
+        label="Image (optional)"
+        value={q.imageUrl}
+        onChange={(imageUrl) => onUpdate({ ...q, imageUrl: imageUrl || undefined })}
+        altValue={q.imageAlt}
+        onAltChange={(imageAlt) => onUpdate({ ...q, imageAlt: imageAlt || undefined })}
+      />
 
       {q.kind === 'mc' && (
         <div className="stack">

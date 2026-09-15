@@ -142,6 +142,13 @@ export interface MCQuestion {
   kind: 'mc';
   prompt: string;
   imageUrl?: string;
+  // Set only when imageUrl carries real question content (e.g. "which
+  // picture matches the word?") rather than decoration — Claudia's
+  // quiz-mode audit: every question image rendered with alt="" even when
+  // the image WAS the question, leaving a screen-reader-dependent student
+  // with nothing. Teacher-authored, optional; falls back to empty (still
+  // correct for a genuinely decorative image) when unset.
+  imageAlt?: string;
   choices: string[];
   correctIndex: number;
 }
@@ -151,6 +158,7 @@ export interface MatchingQuestion {
   kind: 'matching';
   prompt: string;
   imageUrl?: string;
+  imageAlt?: string;
   pairs: { left: string; right: string }[];
 }
 
@@ -159,6 +167,7 @@ export interface FillBlankQuestion {
   kind: 'fill';
   prompt: string;
   imageUrl?: string;
+  imageAlt?: string;
   answer: string;
   wordBank?: string[];
 }
@@ -582,7 +591,7 @@ export interface Transaction {
 // every student sees the same real, live town. Rendered by the same
 // WorldObjectRenderer both the editor and the real student-facing scene
 // use, so what a teacher builds is exactly what a student walks around in.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'
@@ -671,6 +680,24 @@ export interface BreakRequest {
 export interface HelpPing {
   id: string;
   studentId: string;
+  timestamp: string;
+  resolved: boolean;
+}
+
+// A question a student got wrong three times in a row and that the quiz
+// engine has now permanently retired for this attempt (see
+// submitQuizAnswer's 2-retry cap) — flagged here so the teacher actually
+// finds out, instead of the question just quietly disappearing. Claudia's
+// quiz-mode audit: the retry-cap-and-fallback principle already written
+// for native games (docs/NATIVE_GAME_STANDARD.md) applies just as much to
+// the shared quiz engine, since both go through the same function.
+export interface QuizStruggle {
+  id: string;
+  studentId: string;
+  subject: Subject;
+  taskId: string;
+  taskTitle: string;
+  questionPrompt: string;
   timestamp: string;
   resolved: boolean;
 }

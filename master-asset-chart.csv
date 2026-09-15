@@ -53,6 +53,11 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/aquarium/zebra-clown-fish.glb,Zebra Clown Fish,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/buildings/bank.glb,Bank,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/building-extra.glb,Building Extra,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/cinema.glb,Cinema,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/hospital.glb,Hospital,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/house.glb,House,buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/office-building-2.glb,Office Building 2,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/office-building.glb,Office Building,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/post-office.glb,Post Office,buildings,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/store.glb,Store,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/camping/Archery_Target.glb,Archery Target,camping,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,no,yes,no,static click-to-collect
@@ -187,6 +192,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/farm/Cabbage_Patch_A.glb,Cabbage Patch A,farm,Nature & Animals,personScale,category-fallback,5.235,walkable (walk-through),yes,800,8.00,paid,yes,no,no,"placed decoration only, not clickable"
 /world/models/farm/Chicken_Coop_A.glb,Chicken Coop A,farm,Nature & Animals,smallStructure,keyword,5.235,solid (blocks movement),yes,2000,20.00,paid,yes,no,no,"placed decoration only, not clickable"
 /world/models/farm/Cold_Frame_A.glb,Cold Frame A,farm,Nature & Animals,smallStructure,keyword,5.235,solid (blocks movement),yes,2000,20.00,paid,yes,no,no,"placed decoration only, not clickable"
+/world/models/farm/Crops.glb,Crops,farm,Nature & Animals,personScale,category-fallback,5.235,walkable (walk-through),yes,800,8.00,paid,yes,no,no,"placed decoration only, not clickable"
 /world/models/farm/Egg_Basket.glb,Egg Basket,farm,Nature & Animals,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,yes,yes,no,static click-to-collect
 /world/models/farm/Feed_Sack_A.glb,Feed Sack A,farm,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/farm/Garden_Bench_A.glb,Garden Bench A,farm,Nature & Animals,furniture,keyword,0.873,walkable (walk-through),yes,500,5.00,paid,yes,no,no,"placed decoration only, not clickable"
@@ -443,6 +449,8 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/interior/couch-small2.glb,Couch Small2,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/curtains-double.glb,Curtains Double,interior,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/curtains-single.glb,Curtains Single,interior,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/interior/desk-1.glb,Desk 1,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/interior/desk-2.glb,Desk 2,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/door-1.glb,Door 1,interior,Buildings & Places,tallFurniture,keyword,1.745,solid (blocks movement),yes,0,0.00,free-starter (one per student — Sims4 lot-requirement precedent),no,no,no,"placed decoration only, not clickable"
 /world/models/interior/door-2.glb,Door 2,interior,Buildings & Places,tallFurniture,keyword,1.745,solid (blocks movement),yes,0,0.00,free-starter (one per student — Sims4 lot-requirement precedent),no,no,no,"placed decoration only, not clickable"
 /world/models/interior/door-3.glb,Door 3,interior,Buildings & Places,tallFurniture,keyword,1.745,solid (blocks movement),yes,0,0.00,free-starter (one per student — Sims4 lot-requirement precedent),no,no,no,"placed decoration only, not clickable"
@@ -512,6 +520,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/interior/shelf-small2.glb,Shelf Small2,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/shelf-small3.glb,Shelf Small3,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/spoon.glb,Spoon,interior,Buildings & Places,tiny,keyword,0.218,solid (blocks movement),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/interior/standing-desk.glb,Standing Desk,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/stool.glb,Stool,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/table-round-large.glb,Table Round Large,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/table-round-small.glb,Table Round Small,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
@@ -996,6 +1005,8 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/quaternius-buildings/4Story_Wide_2Doors.glb,4 Story Wide 2 Doors,quaternius-buildings,Buildings & Places,tallFurniture,keyword,1.745,solid (blocks movement),yes,600,6.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/quaternius-buildings/4Story_Wide_2Doors_Roof.glb,4 Story Wide 2 Doors Roof,quaternius-buildings,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/quaternius-buildings/6Story_Stack.glb,6 Story Stack,quaternius-buildings,Buildings & Places,cityStructure,category-fallback,13.960,solid (blocks movement),yes,5000,50.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/quaternius-buildings/BigBuilding.glb,Big Building,quaternius-buildings,Buildings & Places,cityStructure,category-fallback,13.960,solid (blocks movement),yes,5000,50.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/quaternius-buildings/TownHouse.glb,Town House,quaternius-buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/resources/Copper_Bar.gltf,Copper Bar,resources,Nature & Animals,furniture,category-fallback,1.396,walkable (walk-through),yes,500,5.00,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/resources/Copper_Bars.gltf,Copper Bars,resources,Nature & Animals,furniture,category-fallback,1.396,walkable (walk-through),yes,500,5.00,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/resources/Copper_Bars_Stack_Large.gltf,Copper Bars Stack Large,resources,Nature & Animals,furniture,category-fallback,1.396,walkable (walk-through),yes,500,5.00,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
@@ -1149,6 +1160,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/scifi/Bowl.glb,Bowl,scifi,Seasonal & Themed,tiny,keyword,0.218,walkable (walk-through),yes,63,0.63,paid,no,yes,no,static click-to-collect
 /world/models/scifi/Camera_Drone.glb,Camera Drone,scifi,Seasonal & Themed,tiny,keyword,0.218,walkable (walk-through),yes,63,0.63,paid,no,yes,no,static click-to-collect
 /world/models/scifi/Coffee_Brewer.glb,Coffee Brewer,scifi,Seasonal & Themed,personScale,category-fallback,3.490,walkable (walk-through),yes,1000,10.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/structures/classroom.glb,Classroom,structures,Buildings & Places,personScale,category-fallback,4.363,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/modular-chimney.glb,Modular Chimney,structures,Buildings & Places,personScale,category-fallback,4.363,solid (blocks movement),yes,480,4.80,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/modular-door01.glb,Modular Door01,structures,Buildings & Places,tallFurniture,keyword,1.745,solid (blocks movement),yes,360,3.60,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/modular-door02.glb,Modular Door02,structures,Buildings & Places,tallFurniture,keyword,1.745,solid (blocks movement),yes,360,3.60,paid,no,no,no,"placed decoration only, not clickable"

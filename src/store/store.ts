@@ -50,6 +50,7 @@ import {
   rowToBreakRequest,
   rowToHelpPing,
   rowToStudentFeedback,
+  rowToQuizStruggle,
   rowToOffscreenReview,
   rowToQuizAttempt,
   rowToBadge,
@@ -74,6 +75,7 @@ import {
   deleteBreakRequestRemote,
   pushHelpPing,
   pushStudentFeedback,
+  pushQuizStruggle,
   pushOffscreenReview,
   pushQuizAttempt,
   pushBadge,
@@ -136,6 +138,7 @@ import type {
   BreakRequest,
   HelpPing,
   StudentFeedback,
+  QuizStruggle,
   OffscreenReview,
   QuizAttemptRecord,
   BadgeDef,
@@ -194,6 +197,9 @@ interface AppState {
   studentFeedback: StudentFeedback[];
   submitFeedback: (studentId: string, category: StudentFeedback['category'], subcategoryLabel: string | undefined, customLabel: string | undefined, text: string) => void;
   resolveFeedback: (id: string) => void;
+  quizStruggles: QuizStruggle[];
+  flagQuizStruggle: (studentId: string, subject: Subject, task: Task, questionPrompt: string) => void;
+  resolveQuizStruggle: (id: string) => void;
   offscreenReviews: OffscreenReview[];
   quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
@@ -516,6 +522,7 @@ export const useStore = create<AppState>()(
       breakRequests: [],
       helpPings: [],
       studentFeedback: [],
+      quizStruggles: [],
       offscreenReviews: [],
       quizAttempts: [],
       badges: DEFAULT_BADGES,
@@ -640,6 +647,7 @@ export const useStore = create<AppState>()(
             set((s) => ({ breakRequests: applyArrayRow(s.breakRequests, e, rowToBreakRequest, n, o) })),
           onHelpPing: (e, n, o) => set((s) => ({ helpPings: applyArrayRow(s.helpPings, e, rowToHelpPing, n, o) })),
           onStudentFeedback: (e, n, o) => set((s) => ({ studentFeedback: applyArrayRow(s.studentFeedback, e, rowToStudentFeedback, n, o) })),
+          onQuizStruggle: (e, n, o) => set((s) => ({ quizStruggles: applyArrayRow(s.quizStruggles, e, rowToQuizStruggle, n, o) })),
           onOffscreenReview: (e, n, o) =>
             set((s) => ({ offscreenReviews: applyArrayRow(s.offscreenReviews, e, rowToOffscreenReview, n, o) })),
           onQuizAttempt: (e, n, o) =>
@@ -1764,6 +1772,8 @@ export const useStore = create<AppState>()(
           const priorWrongAttempts = state.log.filter((l) => l.questionId === questionId && !l.correct).length;
           if (priorWrongAttempts >= 2) {
             masteredIds = [...masteredIds, questionId];
+            const retiredPrompt = task.quiz?.questions.find((q) => q.id === questionId)?.prompt;
+            if (retiredPrompt) get().flagQuizStruggle(studentId, subject, task, retiredPrompt);
           } else {
             // reinsert at a random spot further back so it isn't asked again immediately
             const insertAt = remainingIds.length === 0 ? 0 : Math.floor(Math.random() * remainingIds.length) + 1;
@@ -1903,6 +1913,27 @@ export const useStore = create<AppState>()(
         set((s) => ({ studentFeedback: s.studentFeedback.map((f) => (f.id === id ? { ...f, resolved: true } : f)) }));
         const updated = get().studentFeedback.find((f) => f.id === id);
         if (updated) pushStudentFeedback(updated);
+      },
+
+      flagQuizStruggle: (studentId, subject, task, questionPrompt) => {
+        const struggle: QuizStruggle = {
+          id: makeId(),
+          studentId,
+          subject,
+          taskId: task.id,
+          taskTitle: task.title,
+          questionPrompt,
+          timestamp: new Date().toISOString(),
+          resolved: false,
+        };
+        set((s) => ({ quizStruggles: [struggle, ...s.quizStruggles] }));
+        pushQuizStruggle(struggle);
+      },
+
+      resolveQuizStruggle: (id) => {
+        set((s) => ({ quizStruggles: s.quizStruggles.map((q) => (q.id === id ? { ...q, resolved: true } : q)) }));
+        const updated = get().quizStruggles.find((q) => q.id === id);
+        if (updated) pushQuizStruggle(updated);
       },
 
       verifyOffscreen: (id) => {

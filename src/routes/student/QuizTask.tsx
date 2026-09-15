@@ -227,7 +227,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
             </button>
           )}
           {activeQ.imageUrl && (
-            <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
+            <img src={activeQ.imageUrl} alt={activeQ.imageAlt ?? ''} style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
           )}
 
           {/* Claudia's quiz-mode audit: white text on --success/--orange

@@ -981,7 +981,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                   🔈 Read the choices
                 </button>
               )}
-              {activeQ.imageUrl && <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 10 }} />}
+              {activeQ.imageUrl && <img src={activeQ.imageUrl} alt={activeQ.imageAlt ?? ''} style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 10 }} />}
 
               {/* Claudia's quiz-mode audit: white on --success/--orange is
                   ~2.3:1 contrast, under WCAG AA's 4.5:1 minimum — switched

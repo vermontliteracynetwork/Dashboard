@@ -67,6 +67,20 @@ create table if not exists help_pings (
   resolved boolean not null default false
 );
 
+-- A question retired after 3 wrong attempts in a row (see submitQuizAnswer's
+-- 2-retry cap) — flagged for the teacher instead of just quietly
+-- disappearing from the queue, per Claudia's quiz-mode audit.
+create table if not exists quiz_struggles (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  subject text not null check (subject in ('math', 'literacy')),
+  task_id text not null,
+  task_title text not null default '',
+  question_prompt text not null default '',
+  occurred_at timestamptz not null default now(),
+  resolved boolean not null default false
+);
+
 create table if not exists offscreen_reviews (
   id text primary key,
   student_id text not null references students(id) on delete cascade,
@@ -542,7 +556,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles'
   ];
 begin
   foreach t in array tables loop
@@ -585,7 +599,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles'
   ];
 begin
   foreach t in array tables loop

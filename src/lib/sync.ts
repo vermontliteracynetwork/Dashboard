@@ -7,6 +7,7 @@ import type {
   BreakRequest,
   HelpPing,
   StudentFeedback,
+  QuizStruggle,
   OffscreenReview,
   QuizAttemptRecord,
   BadgeDef,
@@ -176,6 +177,27 @@ const rowToHelpPing = (r: Row): HelpPing => ({
   studentId: r.student_id,
   timestamp: r.occurred_at,
   resolved: r.resolved,
+});
+
+const rowToQuizStruggle = (r: Row): QuizStruggle => ({
+  id: r.id,
+  studentId: r.student_id,
+  subject: r.subject,
+  taskId: r.task_id,
+  taskTitle: r.task_title,
+  questionPrompt: r.question_prompt ?? '',
+  timestamp: r.occurred_at,
+  resolved: r.resolved,
+});
+const quizStruggleToRow = (q: QuizStruggle): Row => ({
+  id: q.id,
+  student_id: q.studentId,
+  subject: q.subject,
+  task_id: q.taskId,
+  task_title: q.taskTitle,
+  question_prompt: q.questionPrompt,
+  occurred_at: q.timestamp,
+  resolved: q.resolved,
 });
 
 const rowToStudentFeedback = (r: Row): StudentFeedback => ({
@@ -607,6 +629,7 @@ export interface HydratedState {
   breakRequests: BreakRequest[];
   helpPings: HelpPing[];
   studentFeedback: StudentFeedback[];
+  quizStruggles: QuizStruggle[];
   offscreenReviews: OffscreenReview[];
   quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
@@ -649,7 +672,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -680,9 +703,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('focuses').select('*'),
     supabase.from('wall_segments').select('*'),
     supabase.from('student_feedback').select('*'),
+    supabase.from('quiz_struggles').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes]) {
     if (res.error) throw res.error;
   }
 
@@ -727,6 +751,7 @@ export async function fetchAll(): Promise<HydratedState> {
     breakRequests: (breaksRes.data ?? []).map(rowToBreakRequest),
     helpPings: (pingsRes.data ?? []).map(rowToHelpPing),
     studentFeedback: (studentFeedbackRes.data ?? []).map(rowToStudentFeedback),
+    quizStruggles: (quizStrugglesRes.data ?? []).map(rowToQuizStruggle),
     offscreenReviews: (reviewsRes.data ?? []).map(rowToOffscreenReview),
     quizAttempts: (quizAttemptsRes.data ?? []).map(rowToQuizAttempt),
     badges: (badgesRes.data ?? []).map(rowToBadge),
@@ -934,6 +959,8 @@ export const pushHelpPing = (h: HelpPing) =>
   upsert('help_pings', { id: h.id, student_id: h.studentId, occurred_at: h.timestamp, resolved: h.resolved });
 
 export const pushStudentFeedback = (f: StudentFeedback) => upsert('student_feedback', studentFeedbackToRow(f));
+
+export const pushQuizStruggle = (q: QuizStruggle) => upsert('quiz_struggles', quizStruggleToRow(q));
 
 export const pushOffscreenReview = (o: OffscreenReview) =>
   upsert('offscreen_reviews', {
@@ -1168,7 +1195,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1177,6 +1204,7 @@ export interface RealtimeHandlers {
   onBreakRequest: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onHelpPing: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onStudentFeedback: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onQuizStruggle: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onOffscreenReview: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onQuizAttempt: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onBadge: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1221,6 +1249,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'break_requests' }, wire(handlers.onBreakRequest))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'help_pings' }, wire(handlers.onHelpPing))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_feedback' }, wire(handlers.onStudentFeedback))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_struggles' }, wire(handlers.onQuizStruggle))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'offscreen_reviews' }, wire(handlers.onOffscreenReview))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_attempts' }, wire(handlers.onQuizAttempt))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'badges' }, wire(handlers.onBadge))

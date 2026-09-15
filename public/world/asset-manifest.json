@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T17:26:36.308Z",
+  "generatedAt": "2026-09-15T17:48:05.746Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -269,6 +269,31 @@
     {
       "path": "/world/models/buildings/building-extra.glb",
       "label": "Building Extra",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/cinema.glb",
+      "label": "Cinema",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/hospital.glb",
+      "label": "Hospital",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/house.glb",
+      "label": "House",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/office-building-2.glb",
+      "label": "Office Building 2",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/office-building.glb",
+      "label": "Office Building",
       "category": "buildings"
     },
     {
@@ -939,6 +964,11 @@
     {
       "path": "/world/models/farm/Cold_Frame_A.glb",
       "label": "Cold Frame A",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/Crops.glb",
+      "label": "Crops",
       "category": "farm"
     },
     {
@@ -2222,6 +2252,16 @@
       "category": "interior"
     },
     {
+      "path": "/world/models/interior/desk-1.glb",
+      "label": "Desk 1",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/desk-2.glb",
+      "label": "Desk 2",
+      "category": "interior"
+    },
+    {
       "path": "/world/models/interior/door-1.glb",
       "label": "Door 1",
       "category": "interior"
@@ -2564,6 +2604,11 @@
     {
       "path": "/world/models/interior/spoon.glb",
       "label": "Spoon",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/standing-desk.glb",
+      "label": "Standing Desk",
       "category": "interior"
     },
     {
@@ -4987,6 +5032,16 @@
       "category": "quaternius-buildings"
     },
     {
+      "path": "/world/models/quaternius-buildings/BigBuilding.glb",
+      "label": "Big Building",
+      "category": "quaternius-buildings"
+    },
+    {
+      "path": "/world/models/quaternius-buildings/TownHouse.glb",
+      "label": "Town House",
+      "category": "quaternius-buildings"
+    },
+    {
       "path": "/world/models/resources/Copper_Bar.gltf",
       "label": "Copper Bar",
       "category": "resources"
@@ -5750,6 +5805,11 @@
       "path": "/world/models/scifi/Coffee_Brewer.glb",
       "label": "Coffee Brewer",
       "category": "scifi"
+    },
+    {
+      "path": "/world/models/structures/classroom.glb",
+      "label": "Classroom",
+      "category": "structures"
     },
     {
       "path": "/world/models/structures/modular-chimney.glb",
