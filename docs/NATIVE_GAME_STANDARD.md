@@ -1,220 +1,186 @@
 # Native Game Standard — Independent Work Dashboard
 
-**Applies to:** any homework activity built as an original mini-game (Canvas/JS or equivalent), with an embedded question set, modeled loosely on Blooket's homework mode.
-**Reference implementation:** the side-scrolling platformer (`PlatformerTask.tsx`) — its tested, teacher-approved design is the baseline this standard generalizes from.
-**Status:** required reading before starting any new native game. Every rule below is a build requirement, not a suggestion, unless explicitly marked "recommended pattern, may vary."
+**Status:** required reading before touching any native game. Every rule below is a build requirement, not a suggestion, unless marked "recommended pattern."
+
+**Scope note (superseding the original version of this document):** this standard originally covered only from-scratch Canvas/JS games built inside this codebase (the platformer being the reference build). Per Kayden's direct instruction, the standard's primary focus is now **uploaded/downloaded third-party HTML5 games wrapped with a real question set** — that's the default pipeline going forward. From-scratch, natively-designed games (the platformer, and any future one built the same way) are still covered, but as a secondary case, called out explicitly wherever their rules differ. See §11 for the legacy from-scratch rules that no longer apply to the primary path.
 
 ---
 
 ## 0. Purpose
 
-Native games exist to make retrieval practice tolerable and motivating for students who would disengage from a plain quiz. The game is the spoonful of sugar. It is never the medicine. This document exists so that every future native game gets that relationship right on the first build, instead of re-learning it through a round of classroom feedback the way the platformer did.
+Native games exist to make retrieval practice tolerable and motivating for students who would disengage from a plain quiz. The game is the spoonful of sugar. It is never the medicine. Whether the game was built from scratch or downloaded from itch.io, the same relationship holds: gameplay serves the question set, never the reverse.
 
 ---
 
-## 1. What Makes a Game "Native," and When to Build One
+## 1. What Counts as a Native Game
 
-A **native game** is a from-scratch Canvas/JS (or equivalent) mini-game, owned and rendered inside this app, that embeds one of the teacher's real question sets as its core loop — not an iframed third-party tool, not a generic quiz with a skin swapped on.
+A **native game** is any game that runs embedded inside this app (not linked out to an external site) with a real teacher question set wired in as an interrupt layer. Two origins:
 
-**Build a native game when:**
-- The question-answering moment benefits from being wrapped in *anticipation* — a chase, a countdown, a physical action — that a static quiz card can't provide, and that wrapper is worth the build cost.
-- You can guarantee the game loop can pause, interrupt, and resume around a question without breaking immersion or losing progress (see §6).
-- The mechanic is expected to be played more than a handful of times per student (novelty decay math only pays off with reuse — see §3).
+- **Uploaded/downloaded game (primary path).** An HTML5 build sourced from itch.io, Kenney, or similar, uploaded into the repo and wrapped by our overlay. We do not control its internal code, its difficulty, or its win condition — see §8.
+- **Native-designed game (secondary/legacy path).** Built from scratch in this codebase, like the existing platformer. Still supported, still has its own in-game economy where applicable (§9), but is no longer the primary path new games are expected to take.
 
-**Do not build a native game — use the existing generic quiz/drill/link task types instead — when:**
-- The "game" would just be cosmetic skinning around what a quiz already does (progress bar reskinned as a race track, etc.). That's engagement theater, not a native game, and it costs build time for zero additional motivational value.
-- The content doesn't lend itself to interrupt-style delivery (long-form reading comprehension, multi-step written work) — forcing those into a game wrapper degrades the content more than it helps engagement.
-- It would only ever be used once or twice per student. One-time novelty is real but shallow (see novelty decay, §3) — a heavy Canvas build isn't worth it for a single-use activity; a generic task type with a one-time badge/animation gets the same short-term lift for far less engineering cost.
-
-**Every native game is content-agnostic.** It must accept *any* teacher-authored question set from the Question Sets library, the same way `QuizTask` and `DrillTask` do. A native game hard-coded to one subject's content is not shippable — it doesn't scale across the classroom's actual question library, and it can't be Playground-eligible (§7).
+**Every native game, either origin, always runs against a real question set.** There is no such thing as a native game with no question set attached — see §2.
 
 ---
 
-## 2. The Non-Negotiable: Gameplay Serves the Question Set, Never the Reverse
+## 2. Question Sets: Where They Come From
 
-This is the one rule every other section in this document exists to enforce. If a future design decision seems to conflict with it, the question set wins, full stop.
+A question set wired into a native game can come from any of these, and a teacher can mix sources across different games:
 
-### 2.1 Done-condition rule
+1. **Teacher-authored**, through the existing Question Sets library (CSV import included) — same system every other task type already uses.
+2. **AI-generated from the teacher's uploaded curriculum, stated focus areas, and Common Core standards.** Claude/Claudia builds the set from that material directly, not from a generic grade-level guess.
+3. **AI-generated referencing uploaded workbook files.** Kayden can drop workbook pages, curriculum PDFs, or standards documents into `docs/curriculum-reference/` (see that folder's own README for the convention), and a question set can be built by reading those files directly rather than writing questions from scratch.
 
-**"Done" is always: every question in the embedded set answered correctly at least once (full mastery).** Never distance traveled, score, level number, time survived, or any other in-game proxy.
-
-- Concretely: a level's end-goal, a boss fight, a finish line — these are **pacing beats**, not win conditions. Reaching one may advance the student to a new (harder) section and loop the game, but it must never mark the activity as done on its own.
-- A game may absolutely *display* score/coins/distance as flavor and feedback, but the to-do-list checkbox, teacher dashboard, and mastery record must key off the same `submitQuizAnswer`-style mastery state every other task type uses — never off a game-internal counter.
-- **Test for compliance:** if a student could theoretically finish the game (reach the end, beat the boss, max the score) while several questions in the set are still unmastered, the design is wrong. Fix the loop so game completion and question completion are the same event, or so the game keeps running (looping/re-spawning content) until mastery is reached.
-
-### 2.2 Difficulty rule
-
-Game difficulty (speed, hazard density, timer length, enemy count, whatever the genre's version of "harder" is) is allowed to ramp **as a pacing/engagement device**, but it must never be the thing that determines whether a question gets asked, how hard the question is, or whether an answer counts.
-
-- Never let visual/mechanical difficulty gate access to a question — every student sees the full question set regardless of how well they're playing the game layer.
-- Never let game difficulty silently change question difficulty (e.g., harder game level = harder distractors). Question difficulty is controlled by the question set/mastery system, not the game shell.
-
-### 2.3 Lives/penalty rule tie-in
-
-Penalties for in-game failure (losing a life, resetting a level, whatever the genre calls for) are allowed to add stakes and tension, but they can **never**:
-- Delete or reset mastery progress already earned on any question. A student who has correctly answered 12 of 20 questions keeps those 12 forever, no matter what happens in the game layer afterward.
-- Block access to remaining questions. However harsh the penalty gets, the path back to "keep answering questions" must always be open (see §3 for the shape this should take).
+Regardless of source, every question set a native game uses must be the same real object the rest of the app's mastery/retry tracking reads from — never a disconnected copy, a hand-typed duplicate, or a "game-only" subset. A student who answers every question a game presents them, across any number of sessions, must show that progress in the real mastery record. This is non-negotiable and doesn't change with the wrapping model.
 
 ---
 
-## 3. Lives & Penalty Model (Recommended Pattern)
+## 3. Question-Break Timing (Teacher-Configurable)
 
-### 3.1 Why this needs a standard at all
+Two settings, both teacher-adjustable, no code change needed once built:
 
-Failure/penalty design is the single highest-risk area for this population. Get it wrong and a game reads as fail-heavy or anxiety-inducing for exactly the students least equipped to tolerate that — the opposite of the app's stated purpose.
+- **Break-interval slider.** How often a question break becomes eligible to fire: 30 seconds, 1, 2, 3 minutes, up to 10 minutes. Set per assignment or per student.
+- **Questions-per-break slider.** How many questions appear when a break fires: 1 up to 5 in a row, then back to the game.
 
-**Precedent worth reasoning from, not copying blindly:**
-- **Blooket** runs two very different penalty philosophies under one brand. *Homework/Café-style modes* (self-paced, no opponents, wrong answers just get requeued) carry almost no punitive weight — they're built for solo mastery, not competition. *Battle Royale* (elimination, opponents, visible knockouts) is deliberately higher-stakes and is the mode most associated with stress complaints in classroom use. Since this app's native games are the homework/independent-work equivalent, they should always be built closer to Blooket's Café end of that spectrum, never the Battle Royale end.
-- **Baamboozle** has **no lives system at all** — wrong answers just don't score, and play continues. This is a legitimate design point on the spectrum, not a lesser one: for some content types and some students, "no penalty, just no reward" is the right call, and a future native game is allowed to ship with zero lives/penalty mechanic if that fits the genre better. A penalty system is a default recommendation, not a mandatory feature.
-- **Self-Determination Theory** (Deci & Ryan): penalties should never threaten *autonomy* (the student always has an obvious, ungated path forward) or *competence* (the student should never be made to feel incapable — a penalty that compounds with rising difficulty right when a student is struggling attacks competence at the worst possible moment).
-- **Research on neurodivergent learners and gamification** consistently shows that badges, narrative, and personal-progress rewards land well with ASD/ADHD students, while *comparative/competitive* pressure (leaderboards, visible knockouts, timed elimination) is the recurring risk factor. A lives system that is purely personal (no peer visibility, no ranking) sidesteps that risk category entirely — see §7 and the checklist item on peer-facing features.
-- **Immediate feedback as a regulation tool**: for ADHD/ASD learners specifically, prompt, structured feedback (a life visibly lost, a heart visibly refilled) supports emotional regulation *if* the feedback is calm and informative rather than alarming. A life-loss should read as "that one didn't count, try the next one," not as a failure state with harsh audio/visual punishment.
-
-### 3.2 The recommended pattern
-
-This is the platformer's tested shape, stated generally so the next game can follow it or deliberately vary from it with reasoning written down in that game's own spec.
-
-**Two-tier penalty, not one:**
-
-| Tier | Trigger | Cost | Recovery |
-|---|---|---|---|
-| **Soft hit** | A single in-game mistake (hit a hazard, wrong-ish move, miss a beat) | Small, local cost only (one of N lives/hearts/tries) | Immediate — play resumes at the same spot, no progress lost, no separate recovery task required |
-| **Hard reset** | All soft-hit budget exhausted (e.g., 0 lives remaining) | A real, visible stakes-raise — but never mastery progress | A defined, in-game recovery task pulling from the **same real question queue** (never a side pool — see §3.4), with visible incremental progress as the student completes it |
-
-**Calibration rules for this population:**
-- **A single mistake should always be cheap.** One wrong answer or one hazard hit should never feel like "starting over." It costs one unit of a multi-unit buffer (3 lives is a reasonable default — enough buffer that one bad moment doesn't spiral, few enough that it still carries real weight) and nothing else.
-- **"Losing everything" is allowed to cost something real** — that's what gives lives meaning — but it must **never** cost mastery progress on questions already answered correctly, and it must never be uncapped or open-ended. The platformer's model (losing all hearts sends you back to level 1, but only after a defined, achievable comeback task, and every question already mastered stays mastered) is the right shape: real stakes, bounded cost, immediate path back.
-- **The recovery task itself must stay inside the real mastery loop.** Do not invent a disconnected "penalty box" mini-challenge. Reuse the same question queue mechanism (`submitQuizAnswer` and its retry/mastery semantics) so that even a student's worst moment in the game is still productive practice, not busywork.
-- **Recovery should show visible, incremental progress as it happens** (each correct answer fills in one heart/refills one bar segment, live) — this is the immediate-feedback/regulation piece: the student needs to *see* the path back shortening, not just a final pass/fail gate.
-
-### 3.3 The retry-cap and difficulty-step-down mandate
-
-An early review of the platformer caught an uncapped, same-difficulty retry loop with no fallback for a struggling student. Generalized as a permanent rule for every native game:
-
-- **No question moment may retry a struggling student indefinitely at the same difficulty with no change.** After a defined cap of consecutive misses **on the same question** (recommended: 2–3), the game must do at least one of the following before asking again:
-  - Step down presentation difficulty (fewer distractors, a hint, read-aloud support, simplified phrasing) — not the underlying content, just the access to it, consistent with UDL's "multiple means of representation."
-  - Surface a "needs help" signal to the teacher's live monitoring view, so a human can intervene rather than the system just cycling the student.
-  - Never both silently do nothing *and* keep cycling the same unmodified question at the student indefinitely. That combination is the one hard failure mode this rule exists to prevent.
-
-### 3.4 The single-source-of-truth mandate for question moments
-
-A prior bug let a disconnected question pool resurface already-mastered questions, so a student's whole play session could produce zero real progress. Generalized as a permanent rule:
-
-- **Every in-game question moment — however it's triggered** (death, timer, level-end, recovery streak, bonus round, anything) **must pull from, and write its result back to, the one real mastery/retry queue for that question set.** No native game may maintain a separate pool, a shuffled copy, or a "game-only" subset that isn't the same object the app's mastery tracking reads from.
-- Practically: if you're tempted to build a local array of questions for convenience inside the game component, that array must be derived live from the same store state `QuizTask`/`DrillTask` read from — never hand-copied, never filtered down and forgotten about, never reset independently of the real queue.
-- **Test for compliance:** a student who answers every question the game presents them, even across multiple sessions, must reach real 100% mastery on the underlying set. If that's not guaranteed by construction, the game has a disconnected-pool bug.
-
-### 3.5 The compounding-severity anti-pattern
-
-A prior version of the platformer let difficulty ramp (denser hazards, faster movement) compound with penalty severity at exactly the moment a student was already struggling — harder gameplay right when the stakes of failing are highest. Generalized as a permanent rule:
-
-- **Difficulty and penalty severity must not both be rising at the same time for the same student.** If a student is in a fragile state — low on lives, mid-recovery-streak, or has just hit a hard reset — the game must **hold difficulty flat** (don't advance to a harder level/section) until the student has stabilized (recovered lives, or completed a few soft-hit rounds without another failure).
-- This doesn't mean difficulty can never ramp — pacing/engagement ramps are fine and expected (§2.2) — it means the ramp must be *paused*, not accelerated, during a recovery window.
+**Recommended pattern for exactly when within that window a break actually fires** (not a hard rule, but worth keeping): rather than firing the instant the interval elapses, wait for a short window of no keyboard/mouse input on the game (roughly 1.5-2.5 seconds) so the break lands between actions instead of interrupting one mid-motion, with a hard ceiling past the interval so a student who never stops moving still gets the break. A brief, predictable heads-up before the break fires (a small on-screen cue) is also a good default — it isn't a countdown timer on the question itself (that's banned outright, see §4), it's just advance notice that play is about to pause, which reduces dysregulation risk for this population.
 
 ---
 
-## 4. Reward Economy Rules
+## 4. Zero Time Pressure During a Question — Hard Rule
 
-Native games may include in-game collectibles (coins, gems, stickers picked up during play) as flavor and short-term feedback. These are **cosmetic during play only** and convert to the app's real practice currency (Piggy Bank) under strict rules:
+Once a question break has started and a question is on screen:
 
-- **Conversion happens once, at the moment of full mastery** — the same "done" event defined in §2.1 — never continuously, never per-level, never per-life.
-- **Conversion must be visible and confirmed**, not silent — a payout confirmation ("coins added to your Piggy Bank") with a brief animation before the activity closes, matching the platformer's tested pattern. This closes the loop for the student between in-game effort and real reward, which matters for competence/autonomy motivation — the payoff needs to be legible, not assumed.
-- **Never let in-game collectibles be redeemable for anything on their own** (no parallel in-game shop, no separate currency track) — there is exactly one real currency in this app, and native games feed it, they don't fork it.
-- **Never gate the payout on performance quality** (perfect run, no deaths, high score). Payout is tied to mastery completion, full stop — see §3.2's "reward growth, not just correctness/speed" principle. A student who needed every retry queue and every recovery streak gets the same coin payout as one who breezed through, because they did the same real work: mastering the set.
-- **Ungraded Playground sessions never pay out real currency** — see §7.4.
+- **No countdown timer, ever**, visible or implied.
+- **No answer-time limit of any kind.** A student takes as long as they need.
+- **Full access to the app's normal toolset** during the question — TTS, any assistive tool the app already offers elsewhere, never restricted just because a game is paused underneath.
 
----
-
-## 5. Required Accessibility/UI Baseline
-
-Every native game screen must pass every item below before it ships. These are pass/fail, matching the app's existing Visual & Interaction Design Standards — a screen that fails one doesn't ship until it's fixed.
-
-**Controls & labels**
-- [ ] Every interactive control (button, icon, in-game action prompt) has a **visible on-screen text label**, not just an `aria-label`. An icon-only button with only a screen-reader label is not compliant — a prior review caught exactly this on the platformer's controls, and it's now a permanent rule for every native game.
-- [ ] Icons are always paired with visible text, never standing alone.
-- [ ] Minimum touch target 44×44px; default to oversized, obviously-tappable buttons over minimal ones.
-
-**Color & contrast**
-- [ ] All body text and question/answer text meets **4.5:1 contrast minimum (WCAG AA)** against its background, including inside the game canvas itself, not just the surrounding UI chrome. A prior review flagged specific color combinations failing this — treat contrast-checking the in-canvas palette as a required build step, not an afterthought caught in QA.
-- [ ] Color is never the only signal for meaning — correct/incorrect, locked/unlocked, low-lives-warning, etc. must always pair color with an icon or text (e.g., a heart outline change + "1 life left" text, not just a color shift).
-- [ ] A dyslexia-friendly font toggle is available for all in-game text (questions, answers, instructions, HUD labels) — available as an option, not forced.
-
-**Motion & interruption**
-- [ ] No auto-playing animation, video, or sound anywhere in the game, including on load/idle screens. Motion starts only on direct interaction, with a visible pause/skip control.
-- [ ] Question interrupts (the one intentional exception to "no pop-ups mid-task") are only used during designated game moments (death, timer, level transition) — never sprung mid-motion in a way that could cause a preventable in-game death the student couldn't react to.
-- [ ] Important state changes (low lives, hard reset, mastery complete) are shown with bold text/size/a contained visual element — never flashing, blinking, or rapid color change.
-
-**Navigation & instructions**
-- [ ] The same navigation elements (home, back, help) appear in the same position as every other screen in the app — the game canvas doesn't get to invent its own nav paradigm.
-- [ ] The task-starting screen has a visual instruction (icon + short text or mascot) before play begins, not text alone.
-- [ ] Instructions are written at or below the youngest intended user's reading level, regardless of the question content's actual grade level.
-
-**Layout**
-- [ ] One primary action per screen/moment — a question interrupt asks one thing at a time, HUD doesn't force multiple simultaneous decisions.
+This applies to every native game regardless of origin. The break-interval sliders in §3 control *when* a break starts; nothing controls how long a student has to answer once it does.
 
 ---
 
-## 6. Exit/Interruption Handling & Teacher-Override Expectations
+## 5. Unlimited Replay
 
-- **Exiting mid-activity always shows a confirm dialog** before leaving, so a student can't accidentally lose their place with a stray tap.
-- **Leaving mid-activity never marks the activity done.** The to-do-list checkbox only flips on real mastery completion (or teacher override, below) — a partial session leaves the item outstanding so the student is prompted to return and finish.
-- **Leaving mid-activity never loses progress already earned.** Every question mastered before exit stays mastered (this follows directly from §3.4 — since the game reads/writes the one real queue, there's no separate game-state to lose on exit). When the student returns, they resume with exactly the mastery state they left with; the game may restart the *visual* level/run from a sensible point, but never re-asks already-mastered questions as if they didn't happen.
-- **A teacher can always manually mark the activity done from their live monitoring view**, bypassing play entirely. This is an intentional override valve for accommodations, time constraints, or a student who's regulated poorly with this particular game — it must remain available on every native game, not just the platformer. Document it the same way in every game's teacher-facing view so teachers don't have to relearn an override path per game.
-- **The calm-down/regulation path (Help button, break request) must remain reachable during native game play at all times** — a game screen never suppresses or hides the app's standard help/break affordances just because it's "in game mode."
+Games and their paired question sets can be played an unlimited number of times. No play-count cap, no daily limit, no cooldown between sessions. Since replay is unlimited, losing progress on one incomplete session (§10) is low-stakes — the student just starts again.
 
 ---
 
-## 7. The Playground Free-Play Pattern
+## 6. Teacher Reporting
 
-### 7.1 When a native game should be Playground-eligible
+Every completed play session (a game plus its question set) generates a full report delivered to the teacher's inbox, the same place review/approval items already land. The report includes at minimum:
 
-A native game should be added to the Playground (the unlocked, reward-tier free-play area) when:
-- It's already content-agnostic (§1) — accepts any saved question set, not just a teacher-fixed one for a specific assignment.
-- It's been through at least one round of live classroom testing in its graded/assigned form first. Don't ship a brand-new mechanic straight into ungraded free play before it's been validated in the lower-stakes, teacher-supervised assigned context.
-- Its penalty model (§3) is calibrated appropriately for *voluntary* play — since Playground access is itself already a reward the student earned by finishing real work, a game that feels punishing here actively undercuts the reward it's supposed to represent. If anything, err toward the Baamboozle end of the penalty spectrum (lighter or no lives system) for Playground contexts, even if the graded version uses the fuller lives/recovery model.
+- Which game and which question set were played
+- Every question asked in that session, and whether it was answered correctly
+- Session duration and timestamp
+- Whatever reward was earned (§9)
 
-### 7.2 What "pick your own question set" is allowed to do
-
-- The student may freely choose **which of the teacher's saved question sets** to play against — this is real autonomy (SDT) and is the whole point of Playground existing as a reward tier.
-- The student may **not** choose or edit question content itself, add their own questions, or otherwise author content — Playground is a practice/reward space, not an authoring tool.
-
-### 7.3 What free play should never affect
-
-- **Playground sessions have zero to-do-list involvement.** They never appear on the assignment checklist, never require completion, never block anything.
-- **Playground sessions never require a teacher override to "finish"** — there's no done-state to override, because there's no grading gate to begin with.
-
-### 7.4 Mastery records: always ungraded, with one narrow exception worth flagging for a future decision
-
-- **Default rule: Playground play never counts toward the real mastery record used for grading/to-do-list purposes**, and never pays out real Piggy Bank currency (§4). This keeps the reward tier honest — it's a genuinely optional, low-stakes space, not a backdoor way to grind currency or game the mastery system.
-- **However:** if a student answers a question correctly during free play that was previously unmastered in the real queue, the *practice value* is real even though the context is ungraded. A future native game (or a platformer update) may choose to let Playground answers **silently strengthen mastery state without unlocking rewards or checklist credit** — i.e., the retrieval practice still "counts" toward learning even though nothing is unlocked or paid out. This is a deliberate design choice to be made per-game, not assumed; whichever way a given game goes, it must be stated explicitly in that game's own spec and be consistent (don't let it vary silently between sessions). The one thing that must never happen either way: Playground play must never *pay out currency* or *check off a to-do item*, regardless of whether it's allowed to quietly help mastery in the background.
+This is in addition to, not a replacement for, the existing per-question mastery tracking. The inbox report is the human-readable summary; the mastery record is the source of truth the rest of the app reads from.
 
 ---
 
-## Appendix: One-Page Build Checklist
+## 7. What Counts as "Done" (Teacher-Configurable)
 
-Copy this into the spec for every new native game before writing code.
+Teacher-configurable per assignment/game, one of:
 
-- [ ] Done-condition is full question-set mastery, not score/distance/level (§2.1)
-- [ ] Game accepts any teacher-authored question set (content-agnostic) (§1)
-- [ ] Every question moment reads/writes the one real mastery/retry queue — no disconnected pool (§3.4)
-- [ ] Difficulty ramp never gates question access or changes question difficulty (§2.2)
-- [ ] Penalty model chosen deliberately (lives/recovery, or none, Baamboozle-style) and stated with reasoning (§3.2)
-- [ ] A single mistake costs little; "losing everything" costs something real but never mastery progress (§3.2)
-- [ ] Recovery task (if any) pulls from the real queue and shows live incremental progress (§3.2)
-- [ ] Retry cap + fallback (difficulty step-down or teacher flag) after repeated misses on one question (§3.3)
-- [ ] Difficulty never ramps during a student's fragile/recovery window (§3.5)
-- [ ] Collectibles convert to Piggy Bank once, at mastery completion, with a visible confirmation (§4)
-- [ ] No performance-based payout gating (§4)
-- [ ] Every control has a visible text label, not just aria-label (§5)
-- [ ] In-canvas contrast checked at 4.5:1, color never the sole signal (§5)
-- [ ] Dyslexia-friendly font toggle available in-game (§5)
-- [ ] No autoplay animation/sound; motion only on interaction with pause/skip (§5)
-- [ ] Consistent nav (home/back/help) matches rest of app (§5, §6)
-- [ ] Exit confirm dialog; leaving never marks done, never loses mastered progress (§6)
-- [ ] Teacher live-view override to mark done exists (§6)
-- [ ] Help/break path always reachable during play (§6)
-- [ ] If Playground-eligible: student picks question set only, no authoring (§7.2)
-- [ ] If Playground-eligible: no to-do-list involvement, no currency payout ever (§7.3, §7.4)
-- [ ] If Playground-eligible: mastery-record behavior (silent-strengthen vs. fully inert) decided and documented, not left implicit (§7.4)
-- [ ] No leaderboard, no cross-student comparison, anywhere in the game
-- [ ] Playground penalty model checked separately — even lighter than the graded version if the graded model uses hard resets (§7.1)
+- **All questions attempted at least once** (lightest bar — exposure, not mastery)
+- **A set number correct, or a percent-correct threshold** (teacher sets the number/percent)
+- **Full mastery** — every question answered correctly at least once (the strictest bar, and the default if nothing else is set)
+- **Game completion** — only meaningful where the game itself has a real end-state (a native-designed game with a win condition, or an uploaded game with a natural finish); for a game with no natural end this option shouldn't be offered
+
+This replaces the old rule that "done" was always full mastery with no exceptions. Full mastery is still the default; it's just no longer the only option.
+
+---
+
+## 8. Difficulty
+
+- **Uploaded/downloaded games:** difficulty is whatever the game itself ships with. We do not attempt to normalize it, gate content behind it, or otherwise control it from outside — we can't reach into a third-party build's internals to do that anyway (see the Tier A / Tier B distinction in Claudia's wrapping review). Question difficulty is controlled entirely by the question set, same as always, completely independent of whatever's happening in the game layer.
+- **Native-designed (legacy) games:** the old rule still applies — see §11.
+
+---
+
+## 9. Where Games Live, and What They Pay
+
+**All native games, both origins, live in the Playground.** This is a direct, explicit override of this standard's prior rule that Playground activities never pay currency — that rule stays in force for every *other* Playground activity, but native games are the one exception, by direct instruction.
+
+Reward differs by origin, and the Playground card for each game must visibly tell the student which kind applies:
+
+- **Native-designed games with their own in-game economy** (the platformer today, and any future game built the same way): in-game earnings convert to the student's real Piggy Bank exactly as they already do. The Playground card shows a note like *"Money you earn in this game goes straight to your bank!"*
+- **Uploaded/downloaded third-party games:** a flat **$5 reward per completed play session**, regardless of anything the third-party game itself displays as in-game currency (that's cosmetic/fictional and never connects to real money). The Playground card shows a note like *"Finish a play session to earn $5!"*
+
+A session only counts as completed, and only pays out, once it reaches the "done" state configured in §7. Leaving early forfeits it — see §10.
+
+---
+
+## 10. Leaving Mid-Game
+
+- **Any attempt to exit while a game is in progress shows a confirmation dialog first** — no accidental exits.
+- **Confirming the exit forfeits that session**: no in-game progress is saved for that playthrough, and no reward (bank money or the flat $5) is paid for it.
+- This is specifically about the game session's own progress and reward, not about erasing history — any individual question the student already answered and that was logged to the teacher report (§6) before they left stays logged; the underlying mastery record for that question is not undone.
+- Because replay is unlimited (§5), forfeiting an incomplete session costs the student nothing but time — they can start over immediately.
+
+---
+
+## 11. Accessibility, Save Safety, and Selection — Still Binding
+
+These carry forward and apply to every native game regardless of origin:
+
+**Accessibility.** Everything we render ourselves — the entry screen, the question modal, the exit-confirm dialog, the reward confirmation — must pass the full accessibility baseline every other screen in this app follows (visible text labels not just aria-labels, 44×44px minimum touch targets, 4.5:1 contrast, color never the sole signal, dyslexia-friendly font toggle, no autoplay animation/sound, consistent nav). For an uploaded third-party game, we usually cannot edit the game's own surface to meet these (can't add a dyslexia toggle to its canvas text, can't force-mute its music, can't fix its contrast). Per Claudia's review: **the fix is selection, not editing.** A candidate game that fails hard on accessibility (unreadable text, no way to mute, flashing/strobing visuals) gets rejected before it's ever uploaded — see the selection checklist below. This keeps every screen a student is required to use fully compliant, while accepting that the third-party game's own interior is vetted rather than modified.
+
+**Selection checklist** for any downloaded game before it's uploaded — reject if any of these fail:
+- Interruption-tolerant genre: no clock-based fail state, no enemies, no timed survival (sim, farming, builder, puzzle, idle, turn-based, gentle exploration only)
+- Failure is gentle or absent — no permadeath, no progress wipes, no harsh fail audio/flash
+- Natural idle moments exist in normal play
+- Resumable in short sessions
+- Low visual density — no strobe, no rapid color change, no screen shake
+- Runs fine muted — no information conveyed by sound alone
+- Manageable control scheme — a printed/on-screen control reference is provided regardless
+- Content is clean: no chat/multiplayer, no ads, no external links, no account signup, no purchase prompts, no gambling/loot-box mechanics, no violence toward characters
+- Fully offline — no CDN/API calls at runtime
+- Performs on the actual classroom devices, not just a dev machine
+
+**Save safety.** Third-party HTML5 builds frequently key their save data to the page's own path in the browser's localStorage. Standing rules for every uploaded game:
+- The game's URL/path is frozen permanently once it ships to a student — never renamed, never moved.
+- The wrapper never navigates, reloads, or unmounts the game's iframe mid-session; the question overlay sits on top of a permanently-mounted iframe, never a conditionally-rendered one.
+- Check for localStorage key collisions before a second game shares the same origin.
+- Run a save-safety test (play, make progress, trigger breaks, exit through the confirm dialog, re-enter, hard-refresh, re-enter again, repeat after an overnight gap) on the actual student device before any game reaches a student.
+
+---
+
+## 12. Functionality Check (Ongoing)
+
+Before any native game (either origin) ships to students, confirm end-to-end that the question-set wiring actually works for them: questions display correctly, answers submit and record correctly, the break-interval and questions-per-break settings actually fire as configured, the "done" condition set in §7 actually triggers at the right moment, the reward in §9 actually pays out, and the exit-confirm in §10 actually blocks an accidental loss. This is a pass/fail gate, not a nice-to-have — a native game that's mechanically fun but has broken question wiring hasn't shipped anything of value.
+
+---
+
+## 13. Injection Reality for Uploaded Games (Reference)
+
+Most uploaded HTML5 builds are single bundled/minified files — we can't hook their internal events or pause their loop directly. The wrapper hides the game under an opaque overlay during a question break (pointer-events off, focus moved to the modal, keyboard trapped, audio muted) rather than truly pausing it, which is why §11's selection checklist rules out any genre where the game running unseen for a few seconds could hurt the student (dying to an unseen hazard, a timer running out). Where a game's own source is readable and unminified (small jam entries, plain JS/Phaser builds), a real pause and real event hooks become possible and produce a much better experience — worth actively seeking out, but not assumed available by default.
+
+---
+
+## Appendix: One-Page Checklist
+
+Copy into the spec/PR for every new native game before it ships.
+
+- [ ] A real question set is wired in — teacher-authored, AI-from-curriculum, or AI-from-`docs/curriculum-reference/` (§2)
+- [ ] Break-interval and questions-per-break are teacher-configurable, not hardcoded (§3)
+- [ ] Zero countdown, zero time limit, full toolset access during a question (§4)
+- [ ] No play-count cap anywhere (§5)
+- [ ] A full session report reaches the teacher inbox on completion (§6)
+- [ ] "Done" definition is teacher-configurable among the four modes (§7)
+- [ ] Uploaded-game difficulty is left alone, not normalized by us (§8)
+- [ ] Game lives in the Playground with the correct reward note shown (native-economy vs. flat $5) (§9)
+- [ ] Exit mid-game shows a confirm dialog; confirming forfeits progress and reward for that session only (§10)
+- [ ] Everything we render passes the full accessibility baseline; the game's own surface was vetted at selection instead (§11)
+- [ ] Selection checklist was run before upload (§11)
+- [ ] Save-safety test protocol passed on an actual student device (§11)
+- [ ] End-to-end functionality check passed: questions display, answers record, timing fires, done-state triggers, reward pays, exit-confirm blocks (§12)
+
+---
+
+## Legacy Section (From-Scratch Native-Designed Games Only)
+
+The rules below applied to the original from-scratch build model (the platformer). They no longer apply to uploaded/downloaded games, since we don't control those games' internals. Keep following them for any future game built the same way as the platformer.
+
+**Difficulty/lives model:** game difficulty may ramp as a pacing device but must never gate question access or change question difficulty. A two-tier penalty (a cheap "soft hit" that costs a small local resource with instant recovery, and a rare "hard reset" that never deletes mastery progress and always has a defined recovery path pulling from the real question queue) is the tested pattern from the platformer. No question moment may retry a student indefinitely at the same difficulty with no change — after 2-3 consecutive misses on the same question, step down presentation difficulty or flag the teacher's live view. Difficulty must never ramp during a student's fragile/recovery window.
+
+**Reward conversion:** in-game collectibles are cosmetic during play and convert to real Piggy Bank currency once at full mastery/completion, with a visible confirmation, never gated on performance quality (perfect run, high score).
