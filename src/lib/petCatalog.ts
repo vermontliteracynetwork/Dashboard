@@ -151,13 +151,13 @@ const PET_CATALOG_ALL: PetDef[] = [
   { id: 'pet-wizardus', name: 'Wizardus', modelPath: '/world/models/creatures/wizardus-maximus.glb', priceCents: 35000, category: 'fun', targetHeight: 0.55 },
 ];
 
-// Direct teacher instruction: for now, adoptable pets are limited to real
-// animals — specifically dogs and cats — not the novelty "fun" characters
-// (Butter Buddy, Potato Pal, etc.) and not yet the wider animal roster
-// (farm/wild/bird/aquatic/small critters). Everything else stays defined
-// in PET_CATALOG_ALL above, ready to re-enable later by widening this list
-// — nothing was deleted, just held back from adoption.
-const ADOPTABLE_CATEGORIES: PetCategory[] = ['dog', 'cat'];
+// Direct teacher instruction: "all animals can be pets" — every real-
+// animal category is adoptable now (dogs, cats, small critters, farm,
+// birds, aquatic, wild). The novelty "fun" characters (Butter Buddy,
+// Potato Pal, Wizardus, etc.) are food/humanoid props, not animals, and
+// stay held back per the literal instruction — still defined in
+// PET_CATALOG_ALL above, ready to re-enable the same way if ever asked.
+const ADOPTABLE_CATEGORIES: PetCategory[] = ['dog', 'cat', 'small', 'farm', 'bird', 'aquatic', 'wild'];
 
 // The adoptable roster — what students can actually adopt, see in the Pet
 // Shelter/Journal, and pull from the Mystery Box or daily spin wheel.
