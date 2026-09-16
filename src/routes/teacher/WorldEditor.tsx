@@ -963,9 +963,10 @@ function RosterTab() {
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
-  onUpdate, onDelete, onDuplicate, deselect,
+  onUpdate, onDelete, onDuplicate, deselect, onMoveArmedChange,
 }: {
   selected: WorldObject;
+  onMoveArmedChange: (id: string | null) => void;
   allowNameRole: boolean;
   rotateCwFine: ReturnType<typeof useHoldRepeat>;
   rotateCcwFine: ReturnType<typeof useHoldRepeat>;
@@ -999,6 +1000,16 @@ function SelectedObjectToolbar({
   // itself — exactly the "no fresh click needed" case the teacher is now
   // ruling out. Every popover now closes on every reselect.
   useEffect(() => { setConfirmingDelete(false); setOpenPopover(null); }, [selected.id]);
+
+  // Reports whether this object's Move popover is open up to the parent,
+  // which is the actual drag gate on the 3D object itself — see
+  // moveArmedId in the main component. Also clears on unmount (full
+  // deselect) so a drag never stays armed for an object that's no longer
+  // even selected.
+  useEffect(() => {
+    onMoveArmedChange(openPopover === 'move' ? selected.id : null);
+  }, [openPopover, selected.id, onMoveArmedChange]);
+  useEffect(() => () => onMoveArmedChange(null), [onMoveArmedChange]);
 
   const doDelete = () => { onDelete(); deselect(); };
 
@@ -1047,7 +1058,7 @@ function SelectedObjectToolbar({
             </div>
           ) : (
             <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
-              {iconBtn('✥', 'Move — the only way to reposition; click just selects, dragging is off', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
+              {iconBtn('✥', 'Move — drag the object itself, or use the arrows below', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
               {iconBtn('↺', 'Rotate left 90° (hold for 15° fine steps)', undefined, rotateCcwFine)}
               {iconBtn('↻', 'Rotate right 90° (hold for 15° fine steps)', undefined, rotateCwFine)}
               {iconBtn('⤢', 'Resize', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
@@ -1069,7 +1080,7 @@ function SelectedObjectToolbar({
 
           {openPopover === 'move' && (
             <div className="stack" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, alignItems: 'center' }}>
-              <p style={{ margin: 0, fontSize: '0.68rem', opacity: 0.7, textAlign: 'center', maxWidth: 170 }}>Tap or hold an arrow to move — no dragging needed.</p>
+              <p style={{ margin: 0, fontSize: '0.68rem', opacity: 0.7, textAlign: 'center', maxWidth: 170 }}>Drag the object itself, or tap/hold an arrow below.</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 44px)', gridTemplateRows: 'repeat(3, 44px)', gap: 4 }}>
                 <span />
                 <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move away from camera" {...nudgeNorthHold}>↑</button>
@@ -1277,6 +1288,19 @@ export default function WorldEditor() {
   const [subcategory, setSubcategory] = useState('');
   const [armedAsset, setArmedAsset] = useState<AssetManifestEntry | null>(null);
   const [armedDefaultScale, setArmedDefaultScale] = useState(1);
+  // Direct teacher instruction, reversing the earlier "dragging is gone
+  // entirely" decision: once a selected object's own ✥ Move popover is
+  // open, the object itself becomes draggable — click it and drag it to a
+  // new spot on the ground, not just the D-pad arrows. moveArmedId is which
+  // object is currently drag-eligible (reported up by SelectedObjectToolbar
+  // whenever its Move popover opens/closes); dragObjectId+dragPos track an
+  // actual drag gesture in progress, same pattern as wallStart/wallEnd
+  // above (pointerdown arms it, the ground's pointermove tracks it, a
+  // window-level pointerup commits it — so a release off the ground plane
+  // still ends the drag instead of leaving it stuck).
+  const [moveArmedId, setMoveArmedId] = useState<string | null>(null);
+  const [dragObjectId, setDragObjectId] = useState<string | null>(null);
+  const [dragPos, setDragPos] = useState<{ x: number; z: number } | null>(null);
   // Claudia's navigation review: re-finding the same item in a 1186-model
   // catalog to place a 6th/7th/8th copy meant re-searching every time —
   // Minecraft's hotbar and Sims 4's "recently used" tab both solve this.
@@ -1810,8 +1834,27 @@ export default function WorldEditor() {
       // Unsnapped — a pond or patch of dirt reads more natural free-form
       // than grid-locked, unlike every other placed object in Build Mode.
       paintGroundAt(clampToGround(e.point.x), clampToGround(e.point.z));
+    } else if (dragObjectId) {
+      e.stopPropagation();
+      setDragPos({ x, z });
     }
   };
+
+  // Commits a drag-to-move gesture on release, wherever the pointer lets go
+  // (mirrors the wall-draw commit effect below it) — so letting go off the
+  // ground plane still ends the drag instead of leaving the object stuck
+  // following the cursor.
+  useEffect(() => {
+    if (!dragObjectId) return;
+    const commit = () => {
+      if (dragPos) updateWorldObjectH(dragObjectId, { position: [dragPos.x, 0, dragPos.z] });
+      setDragObjectId(null);
+      setDragPos(null);
+    };
+    window.addEventListener('pointerup', commit);
+    return () => window.removeEventListener('pointerup', commit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragObjectId, dragPos]);
 
   const handleGroundPointerDown = (e: ThreeEvent<PointerEvent>) => {
     if (paintMode === 'groundPatch') {
@@ -2498,10 +2541,11 @@ export default function WorldEditor() {
                     }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'layout' && h.id === item.id ? null : h))}
                     onPointerDown={(e) => {
-                      // Direct instruction: dragging to move a placed object
-                      // is gone entirely — a click here only ever selects
-                      // (via onClick above), never starts a move. The only
-                      // way to reposition anything now is the ✥ Move
+                      // Fixed layout items (BUILDINGS/MARKET_STALLS/etc.)
+                      // don't support the drag-to-move gesture placed
+                      // objects now do below — these arrays are empty since
+                      // Town Square was wiped for Build Mode, so this is
+                      // dormant either way. Reposition via the ✥ Move
                       // crosshair/D-pad popover (nudgePosition), once
                       // selected. onPointerDown only still matters for the
                       // paint brush below.
@@ -2535,10 +2579,17 @@ export default function WorldEditor() {
               if (obj.pendingDelete) return null;
               const isSelected = selection?.kind === 'placed' && selection.id === obj.id;
               const isHovered = hovered?.kind === 'placed' && hovered.id === obj.id && !isSelected;
+              // While this object is being dragged, render it at the live
+              // drag position instead of its last-committed store position
+              // — the store only gets the final position on release (see
+              // the commit effect by handleGroundPointerMove above).
+              const isDragging = dragObjectId === obj.id && dragPos;
+              const livePos: [number, number, number] = isDragging ? [dragPos!.x, 0, dragPos!.z] : obj.position;
+              const liveObj: WorldObject = isDragging ? { ...obj, position: livePos } : obj;
               return (
                 <group key={obj.id}>
                   <WorldObjectRenderer
-                    obj={obj}
+                    obj={liveObj}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -2556,13 +2607,23 @@ export default function WorldEditor() {
                     }}
                     onPointerOut={() => setHovered((h) => (h?.kind === 'placed' && h.id === obj.id ? null : h))}
                     onPointerDown={(e) => {
-                      // Same removal as layoutItems above — click-and-drag
-                      // to move no longer exists; only the ✥ Move crosshair
-                      // popover repositions a selected object now.
                       if (paintMode === 'brush') {
                         e.stopPropagation();
                         isPaintingRef.current = true;
                         paintNear(obj.position[0], obj.position[2], paintColor);
+                        return;
+                      }
+                      // Direct teacher instruction: once this object is
+                      // selected AND its ✥ Move popover is open
+                      // (moveArmedId), grabbing the object itself now drags
+                      // it — reversing the earlier "dragging is gone
+                      // entirely" decision. Still gated behind that
+                      // explicit arm step so an ordinary click elsewhere in
+                      // Build Mode never accidentally starts a drag.
+                      if (moveArmedId === obj.id) {
+                        e.stopPropagation();
+                        setDragObjectId(obj.id);
+                        setDragPos({ x: obj.position[0], z: obj.position[2] });
                       }
                     }}
                   />
@@ -2572,7 +2633,7 @@ export default function WorldEditor() {
                       panel, which this closes. Color is reinforcement, the
                       outline geometry itself is the primary signal. */}
                   {isSelected && (
-                    <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
+                    <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
                   )}
                   {isHovered && (
                     <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
@@ -2631,6 +2692,7 @@ export default function WorldEditor() {
                 nudgeEastHold={nudgeEastHold}
                 nudgeWestHold={nudgeWestHold}
                 onUpdate={updateSelected}
+                onMoveArmedChange={setMoveArmedId}
                 onDelete={deleteSelected}
                 onDuplicate={duplicateSelected}
                 deselect={() => setSelection(null)}
