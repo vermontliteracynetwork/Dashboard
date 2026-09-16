@@ -2282,13 +2282,12 @@ export default function TownSquare() {
 
   const dpadSide = student.worldDpadSide;
   const otherSide = dpadSide === 'left' ? 'right' : 'left';
-  // Direct teacher instruction: the D-pad was floating with a big unused
-  // gap below it down to the true bottom edge. That gap only exists to
-  // clear the two stacked corner FABs (.help-fab/.whatnow-fab, both fixed
-  // to the bottom-right) when the D-pad shares that same corner — on the
-  // left (this app's default dpadSide), nothing else lives down there, so
-  // it can sit right down near the true bottom edge instead.
-  const dpadBottom = dpadSide === 'right' ? 150 : 20;
+  // Direct teacher instruction: every floating icon (Help, What now?,
+  // Tasks) now lives inside the top-right pie menu instead of its own
+  // corner FAB — the bottom-right corner that used to need extra D-pad
+  // clearance for .help-fab/.whatnow-fab is empty again, so the D-pad sits
+  // at the same close-to-the-edge distance on either side now.
+  const dpadBottom = 20;
 
   return (
     <div
@@ -2312,18 +2311,6 @@ export default function TownSquare() {
         <span style={{ background: 'white', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 700, color: '#1f4238', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
           🌳 Yoglandia Town Square
         </span>
-        {/* Tier 1 of Claudia's guardrails design: today's real work stays
-            visible the whole time a student is in the open world, as an
-            ordinary chip they can tap or ignore — never a popup that
-            interrupts whatever they're doing, and never disabled or hidden
-            just because they're off exploring instead of at the desk. */}
-        <button
-          className="btn btn-sm"
-          onClick={() => setShowTodayTasks(true)}
-          style={{ background: totalTasksLeft > 0 ? '#fff' : '#e3f2e8', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', minHeight: 44 }}
-        >
-          {totalTasksLeft > 0 ? `📋 Today: ${totalTasksLeft} left` : '🎉 All done for today!'}
-        </button>
       </div>
 
       <ToolsPanel student={student} subject="both" />
@@ -2470,12 +2457,15 @@ export default function TownSquare() {
           style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 130, paddingRight: 130 }}
           onClick={() => setShowSelfMenu(false)}
         >
-          <div style={{ position: 'relative', width: 240, height: 240 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ position: 'relative', width: 260, height: 260 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 90, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#fff', pointerEvents: 'none' }}>
               Menu
             </div>
             {(() => {
               const wedges: { id: string; icon: string; label: string; bg: string; onSelect: () => void }[] = [
+                { id: 'tasks', icon: '📋', label: totalTasksLeft > 0 ? `Tasks (${totalTasksLeft})` : 'Tasks', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
+                { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
+                { id: 'help', icon: '🧘', label: 'Help', bg: '#7c9c6b', onSelect: () => setShowHelp(true) },
                 { id: 'settings', icon: '⚙️', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },
                 { id: 'map', icon: mapView ? '✕' : '🗺️', label: mapView ? 'Close Map' : 'Map', bg: mapView ? '#e2775c' : '#3e7c6b', onSelect: () => setMapView((v) => !v) },
                 { id: 'stuff', icon: showInventory ? '✕' : '🎒', label: showInventory ? 'Close' : 'My Stuff', bg: showInventory ? '#e2775c' : '#c2953f', onSelect: () => setShowInventory((v) => !v) },
@@ -2484,7 +2474,7 @@ export default function TownSquare() {
               ];
               return wedges.map((w, i) => {
                 const angle = (i / wedges.length) * Math.PI * 2 - Math.PI / 2;
-                const r = 92;
+                const r = 100;
                 const x = Math.cos(angle) * r;
                 const y = Math.sin(angle) * r;
                 return (
@@ -2509,7 +2499,7 @@ export default function TownSquare() {
               title="Cancel"
               onClick={() => setShowSelfMenu(false)}
               style={{
-                position: 'absolute', left: '50%', top: 'calc(50% + 155px)', transform: 'translate(-50%, -50%)',
+                position: 'absolute', left: '50%', top: 'calc(50% + 168px)', transform: 'translate(-50%, -50%)',
                 minHeight: 44, borderRadius: 20, border: '2px solid var(--ink)', background: '#fff',
                 fontSize: '0.7rem', fontWeight: 700, padding: '4px 12px', cursor: 'pointer',
               }}
@@ -2608,15 +2598,15 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {/* Claudia's full-game audit: this file used to place its own
-          What-do-I-do?/Help buttons at one-off spots (top-left/top-right)
-          specifically to dodge the D-pad, which broke WCAG 3.2.3's
-          "same control, same place, every screen" rule the rest of the
-          app follows via .whatnow-fab/.help-fab. The actual fix is
-          shrinking the real conflict instead of moving the buttons: the
-          D-pad below is now raised off the very bottom edge, leaving both
-          standard corners free for the exact same shared classes every
-          other student screen uses. */}
+      {/* Direct teacher instruction (superseding the WCAG 3.2.3 "same
+          control, same place, every screen" reasoning this file used to
+          follow via .whatnow-fab/.help-fab): every floating icon in Town
+          Square specifically — Help, What now?, and Tasks — now lives as a
+          wedge inside the top-right pie menu below, not its own corner FAB.
+          Other student screens (StudentHome, SubjectDashboard) keep the
+          standard fixed FABs; only Town Square, which already has the pie
+          menu built for Settings/Map/My Stuff/My Home, consolidates into
+          it. */}
       {/* Minecraft-style coordinate readout — direct teacher request, tied
           to graphing/coordinate-plane math and to the labeled grid the Map
           view shows (CoordinateGrid, above). Z is shown as "Y" (displayY =
@@ -2629,34 +2619,30 @@ export default function TownSquare() {
       <div style={{ position: 'fixed', top: 60, left: 16, zIndex: 55, background: 'rgba(255,255,255,0.92)', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, fontSize: 13, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', pointerEvents: 'none' }}>
         📍 ({Math.round(playerPos.x)}, {Math.round(-playerPos.z)})
       </div>
-      <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
-        <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>❓</span>
-        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>What now?</span>
-      </button>
-      <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">
-        <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>🧘</span>
-        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>Help</span>
-      </button>
-
-      {/* Direct teacher instruction: "Pie menu format should be adopted
-          for all buttons on the right hand side." Settings/Map/My Stuff/
-          My Home used to be 4 separate stacked corner buttons; they're now
-          wedges of one Sims-4-style radial menu opened from a single
-          trigger, reusing the exact visual pattern the companion-swap pie
-          menu (below) already established in this file. Help/What now?
-          stay separate, standard corner FABs — the app's own standing
-          rule is those never get hidden behind an extra tap (regulation
-          tools are never gated), and they're shared across every student
-          screen (WCAG 3.2.3 "same control, same place"), not just this one. */}
+      {/* Direct teacher instruction: every floating icon in Town Square —
+          Help, What now?, and Tasks — now lives as a wedge inside the
+          top-right pie menu below, not its own corner FAB. Settings/Map/My
+          Stuff/My Home were already consolidated the same way; this
+          extends it to the remaining three. A small badge on the trigger
+          itself (below) keeps the "tasks remaining" count glanceable
+          without opening the menu. */}
       <button
         onClick={() => setShowSelfMenu(true)}
         style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
-        aria-label="Menu"
+        aria-label={totalTasksLeft > 0 ? `Menu, ${totalTasksLeft} tasks left today` : 'Menu'}
       >
         <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🧭</span>
         <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
           Menu
         </span>
+        {totalTasksLeft > 0 && (
+          <span
+            aria-hidden
+            style={{ position: 'absolute', top: -6, right: -6, minWidth: 22, height: 22, borderRadius: '50%', background: '#e2775c', border: '2px solid var(--ink, #1f4238)', color: '#fff', fontSize: 11, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', pointerEvents: 'none' }}
+          >
+            {totalTasksLeft}
+          </span>
+        )}
       </button>
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
       {customRoleLink && (
