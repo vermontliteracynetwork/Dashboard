@@ -110,6 +110,12 @@ export interface Student {
   // locked by default and only reachable once a teacher explicitly
   // unlocks it per student. Defaults false everywhere it's read.
   islandBuildUnlocked?: boolean;
+  // Which changelog entry (see src/lib/changelog.ts) this student has
+  // already seen — the "what's new" book auto-opens in Town Square the
+  // moment this no longer matches the newest entry's id, then gets set to
+  // it on close. undefined = never seen any entry (a brand-new student
+  // sees the whole book the first time, same as everyone else).
+  lastSeenChangelogId?: string | null;
   worldReduceMotion: boolean; // student/teacher-set in-app motion reduction (desk glow, etc.) independent of the OS-level prefers-reduced-motion setting, for a shared/school device a student can't change system settings on
   dyslexiaFont: boolean; // app-wide (not just Town Square) dyslexia-friendly display mode — a standing requirement in docs/NATIVE_GAME_STANDARD.md that had no actual toggle anywhere in the app until Claudia's full-game audit found the gap
   homeWallColor?: string; // Home Room paint bucket — hex color for the room's 4 walls; undefined = default

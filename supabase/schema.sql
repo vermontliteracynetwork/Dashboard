@@ -543,6 +543,7 @@ alter table notes add column if not exists body_html text;
 alter table notes add column if not exists kind text not null default 'note';
 -- Creative Island: locked by default, a teacher explicitly unlocks it per student.
 alter table students add column if not exists island_build_unlocked boolean not null default false;
+alter table students add column if not exists last_seen_changelog_id text;
 
 -- Every non-character, non-emote thing a student can buy: fonts, text
 -- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended

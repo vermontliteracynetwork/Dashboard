@@ -13,6 +13,8 @@ import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import InventoryHotbar from '../../components/InventoryHotbar';
+import { BookPanel } from '../../components/BookPanel';
+import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
 import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
@@ -541,29 +543,32 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path
   );
 }
 
-function PetCompanion({ playerPos, modelPath, floating, targetHeight }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number }) {
+function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number; facingRef: React.RefObject<number> }) {
   const groupRef = useRef<THREE.Group>(null);
   const pos = useRef(new THREE.Vector3(playerPos.x - PET_FOLLOW_OFFSET, 0, playerPos.z - PET_FOLLOW_OFFSET));
   const elapsed = useRef(0);
   const isMovingRef = useRef(false);
   useFrame((_, dt) => {
     if (!groupRef.current) return;
-    const targetX = playerPos.x - PET_FOLLOW_OFFSET;
-    const targetZ = playerPos.z - PET_FOLLOW_OFFSET;
+    // Direct teacher instruction: no player, Neighbor, or pet can ever
+    // leave the map — the same -GROUND_HALF+1..GROUND_HALF-1 clamp Player's
+    // own movement already uses everywhere. The follow offset is diagonal
+    // (both x and z shifted), so a target right at the edge could compute
+    // just past the boundary without this — the one place in the file that
+    // was still unclamped.
+    const targetX = THREE.MathUtils.clamp(playerPos.x - PET_FOLLOW_OFFSET, -GROUND_HALF + 1, GROUND_HALF - 1);
+    const targetZ = THREE.MathUtils.clamp(playerPos.z - PET_FOLLOW_OFFSET, -GROUND_HALF + 1, GROUND_HALF - 1);
     const t = 1 - Math.pow(0.0005, dt);
     const prevX = pos.current.x;
     const prevZ = pos.current.z;
-    pos.current.x += (targetX - pos.current.x) * t;
-    pos.current.z += (targetZ - pos.current.z) * t;
-    const moveDx = pos.current.x - prevX;
-    const moveDz = pos.current.z - prevZ;
-    const moveDist = Math.hypot(moveDx, moveDz);
+    pos.current.x = THREE.MathUtils.clamp(pos.current.x + (targetX - pos.current.x) * t, -GROUND_HALF + 1, GROUND_HALF - 1);
+    pos.current.z = THREE.MathUtils.clamp(pos.current.z + (targetZ - pos.current.z) * t, -GROUND_HALF + 1, GROUND_HALF - 1);
+    const moveDist = Math.hypot(pos.current.x - prevX, pos.current.z - prevZ);
     isMovingRef.current = moveDist > 0.0006;
-    // Direct teacher instruction: pets face the direction they're actually
-    // walking, the same Math.atan2(dx, dz) convention Player/NPCs already
-    // use elsewhere in this file — never left at whatever rotation the
-    // model exported with.
-    if (moveDist > 0.0006) groupRef.current.rotation.y = Math.atan2(moveDx, moveDz);
+    // Direct teacher instruction: a following pet faces the same direction
+    // the PLAYER is currently facing (not its own travel direction) —
+    // continuously, including while it's still catching up/repositioning.
+    groupRef.current.rotation.y = facingRef.current;
     if (floating) {
       elapsed.current += dt;
       const y = PET_HOVER_HEIGHT + Math.sin(elapsed.current * PET_HOVER_BOB_SPEED) * PET_HOVER_BOB_AMPLITUDE;
@@ -958,9 +963,17 @@ interface PlayerProps {
   // undefined (not a no-op) when there's nothing to swap, same gating
   // pattern every other optional interactive layer in this file uses.
   onSelfClick?: () => void;
+  // Direct teacher instruction: a following companion pet must face the
+  // same direction the PLAYER is currently facing, not its own travel
+  // direction — so the parent needs read access to Player's own facing
+  // angle. A ref, not a callback/state (the header comment on `facing`
+  // below already explains why: this updates every frame, and a state
+  // update that often would be a lot of unnecessary re-renders), written
+  // here and read by PetCompanion elsewhere in this same render tree.
+  facingRef?: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, teleportTarget, emoteSrc, onSelfClick }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1045,6 +1058,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     isMoving.current = moved;
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
+    if (facingRef) facingRef.current = facing.current;
 
     if (mapView) {
       // A fixed bird's-eye view of the whole walkable area, centered on
@@ -1791,6 +1805,26 @@ export default function TownSquare() {
       return false;
     }
   });
+  // Direct teacher instruction: a "what's new" book that auto-appears the
+  // moment a student logs in after something new that affects them has
+  // shipped — held back until the arrival card (if any) has resolved, so
+  // two full-screen cards never compete for attention on the very first
+  // frame. changelogOfferedRef stops it from re-triggering every time
+  // showArrival happens to re-render true->false->true within one mount.
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [changelogPageIndex, setChangelogPageIndex] = useState(0);
+  const changelogOfferedRef = useRef(false);
+  useEffect(() => {
+    if (!student || changelogOfferedRef.current || showArrival) return;
+    if (!hasUnseenChangelog(student.lastSeenChangelogId)) return;
+    changelogOfferedRef.current = true;
+    setShowChangelog(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showArrival, student?.lastSeenChangelogId]);
+  const closeChangelog = () => {
+    setShowChangelog(false);
+    if (student && LATEST_CHANGELOG_ID) updateStudent(student.id, { lastSeenChangelogId: LATEST_CHANGELOG_ID });
+  };
   const dismissArrival = () => {
     setShowArrival(false);
     if (arrivalStorageKey) {
@@ -1814,6 +1848,7 @@ export default function TownSquare() {
   // movement or any other feature while waiting.
   const lastActivityRef = useRef(Date.now());
   const petCheckInUsed = useRef(false);
+  const playerFacingRef = useRef(0);
   const [showPetCheckIn, setShowPetCheckIn] = useState(false);
   useEffect(() => {
     if (!followingPet || !followingPetDef) return;
@@ -2530,6 +2565,38 @@ export default function TownSquare() {
         </span>
       </button>
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
+      {/* Direct teacher instruction: a "what's new" book, one change per
+          page with the same real page-turn as the Joke Book/Pet Book,
+          auto-opening for a student the first time they log in after
+          something new that affects them has shipped. */}
+      {showChangelog && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 240, background: 'rgba(31,17,71,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={closeChangelog}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <button
+              aria-label="Close what's new"
+              onClick={closeChangelog}
+              style={{ position: 'absolute', top: -14, right: -14, width: 36, height: 36, borderRadius: '50%', border: '2px solid #3d2612', background: '#f3e6c4', color: '#3d2612', fontWeight: 800, cursor: 'pointer', zIndex: 1 }}
+            >
+              ✕
+            </button>
+            <BookPanel
+              title="What's New"
+              pageIndex={changelogPageIndex}
+              onPageChange={setChangelogPageIndex}
+              pages={CHANGELOG_ENTRIES.map((entry) => ({
+                key: entry.id,
+                content: (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    <span style={{ fontSize: '2.2rem', marginBottom: 6 }}>{entry.icon}</span>
+                    <p style={{ margin: '0 0 8px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{entry.title}</p>
+                    <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.body}</p>
+                  </div>
+                ),
+              }))}
+            />
+          </div>
+        </div>
+      )}
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
         {/* Direct teacher report, live screenshot: dark jagged shapes on
@@ -2607,12 +2674,13 @@ export default function TownSquare() {
             frozen={!!activeConversation || mapView || showWizardLock}
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}
+            facingRef={playerFacingRef}
             mapView={mapView}
             teleportTarget={teleportTarget}
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
             onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
           />
-          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic'} targetHeight={followingPetDef.targetHeight} />}
+          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic'} targetHeight={followingPetDef.targetHeight} facingRef={playerFacingRef} />}
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
               key={n.id}
