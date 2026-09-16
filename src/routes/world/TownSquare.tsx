@@ -21,7 +21,8 @@ import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import { petDefById, PET_DECAY_TICK_MS } from '../../lib/petCatalog';
+import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor } from '../../lib/petCatalog';
+import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
@@ -470,17 +471,25 @@ function WanderBodyModel({ path, scale, isMoving }: { path: string; scale: numbe
 // don't ship a walk clip) if nothing matches.
 const PET_SCALE = 1.3;
 const PET_FOLLOW_OFFSET = 1.4;
-function PetCompanionModel({ path }: { path: string }) {
+// A fish (aquatic-category) companion has no legs to walk with — direct
+// teacher instruction: it should float beside the player at roughly chest
+// height with a gentle bob, never triggering a walk/idle ground animation
+// the way every other companion does.
+const PET_HOVER_HEIGHT = 1.1;
+const PET_HOVER_BOB_AMPLITUDE = 0.12;
+const PET_HOVER_BOB_SPEED = 2.2;
+function PetCompanionModel({ path, floating }: { path: string; floating: boolean }) {
   const { scene, animations } = useGLTF(path);
   const cloned = useMemo(() => cloneSkinned(scene), [scene]);
   const group = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
   useEffect(() => {
+    if (floating) return; // no walk/idle animation for a hovering fish companion
     const idleName = Object.keys(actions).find((k) => k.toLowerCase().includes('idle'));
     const idle = idleName ? actions[idleName] : undefined;
     idle?.reset().play();
     return () => { idle?.stop(); };
-  }, [actions]);
+  }, [actions, floating]);
   return (
     <group ref={group}>
       <primitive object={cloned} scale={PET_SCALE} />
@@ -488,9 +497,10 @@ function PetCompanionModel({ path }: { path: string }) {
   );
 }
 
-function PetCompanion({ playerPos, modelPath }: { playerPos: THREE.Vector3; modelPath: string }) {
+function PetCompanion({ playerPos, modelPath, floating }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const pos = useRef(new THREE.Vector3(playerPos.x - PET_FOLLOW_OFFSET, 0, playerPos.z - PET_FOLLOW_OFFSET));
+  const elapsed = useRef(0);
   useFrame((_, dt) => {
     if (!groupRef.current) return;
     const targetX = playerPos.x - PET_FOLLOW_OFFSET;
@@ -498,14 +508,36 @@ function PetCompanion({ playerPos, modelPath }: { playerPos: THREE.Vector3; mode
     const t = 1 - Math.pow(0.0005, dt);
     pos.current.x += (targetX - pos.current.x) * t;
     pos.current.z += (targetZ - pos.current.z) * t;
-    groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+    if (floating) {
+      elapsed.current += dt;
+      const y = PET_HOVER_HEIGHT + Math.sin(elapsed.current * PET_HOVER_BOB_SPEED) * PET_HOVER_BOB_AMPLITUDE;
+      groupRef.current.position.set(pos.current.x, y, pos.current.z);
+    } else {
+      groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+    }
   });
   return (
     <group ref={groupRef}>
       <Suspense fallback={null}>
-        <PetCompanionModel path={modelPath} />
+        <PetCompanionModel path={modelPath} floating={floating} />
       </Suspense>
     </group>
+  );
+}
+
+// A plain DOM (not 3D) pet portrait for the companion pie menu — same real
+// rendered-thumbnail-with-emoji-fallback treatment as the Pet Shelter/
+// Journal, just a standalone copy since this lives outside those files.
+function CompanionThumb({ pet, size }: { pet: PetDef; size: number }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span style={{ fontSize: size * 0.5 }}>🐾</span>;
+  return (
+    <img
+      src={thumbnailFor(pet)}
+      alt={pet.name}
+      onError={() => setFailed(true)}
+      style={{ width: size, height: size, objectFit: 'contain' }}
+    />
   );
 }
 
@@ -866,9 +898,13 @@ interface PlayerProps {
   // request: an equipped emote should visibly "pop up above them" in the
   // world, not just live in the 2D inventory screen.
   emoteSrc?: string | null;
+  // Sims 4-style "click yourself to swap companion" pie menu trigger —
+  // undefined (not a no-op) when there's nothing to swap, same gating
+  // pattern every other optional interactive layer in this file uses.
+  onSelfClick?: () => void;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, teleportTarget, emoteSrc }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, teleportTarget, emoteSrc, onSelfClick }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -976,6 +1012,15 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#e2775c" /></mesh>}>
         <PlayerModel isMoving={isMoving} />
       </Suspense>
+      {onSelfClick && !mapView && (
+        <mesh
+          position={[0, 0.7, 0]}
+          onClick={(e) => { e.stopPropagation(); onSelfClick(); }}
+        >
+          <cylinderGeometry args={[0.45, 0.45, 1.4, 12]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
+        </mesh>
+      )}
       {emoteSrc && !mapView && (
         <mesh
           position={[0, 1, 0]}
@@ -1584,9 +1629,18 @@ export default function TownSquare() {
   const progress = useStore((s) => s.progress);
   const pets = useStore((s) => s.pets);
   const tickPetDecay = useStore((s) => s.tickPetDecay);
+  const setFollowingPet = useStore((s) => s.setFollowingPet);
   const student = students.find((s) => s.id === currentStudentId);
-  const followingPet = student ? pets.find((p) => p.studentId === student.id && p.following) : undefined;
+  const ownedPets = student ? pets.filter((p) => p.studentId === student.id) : [];
+  const followingPet = ownedPets.find((p) => p.following);
   const followingPetDef = followingPet ? petDefById(followingPet.petDefId) : undefined;
+  // Sims 4-style pie menu: click your own character in Town Square to
+  // swap which trained pet is walking beside you, without a trip back to
+  // Home Room. setFollowingPet already enforces "only one companion at a
+  // time" at the store layer (it flips every other owned pet's `following`
+  // to false in the same write), so this menu is purely a faster way to
+  // call that same action, not new following-limit logic.
+  const [showCompanionMenu, setShowCompanionMenu] = useState(false);
 
   // Soft need-decay only ticks while a student is actively here in Town
   // Square (direct teacher spec: "only decrease when playing the game, not
@@ -2086,6 +2140,62 @@ export default function TownSquare() {
           </div>
         </div>
       )}
+      {/* Sims 4-style pie menu — click your own character to swap which
+          trained pet is walking beside you. setFollowingPet already
+          enforces "only one companion at once" (it flips every other
+          owned pet's `following` off in the same write), so picking a
+          new one here automatically drops whichever pet was following
+          before. */}
+      {showCompanionMenu && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowCompanionMenu(false)}
+        >
+          <div style={{ position: 'relative', width: 240, height: 240 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 90, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#fff', pointerEvents: 'none' }}>
+              Choose a companion
+            </div>
+            {ownedPets.map((pet, i) => {
+              const def = petDefById(pet.petDefId);
+              if (!def) return null;
+              const eligible = canPetFollow(pet.trainingProgress);
+              const angle = (i / ownedPets.length) * Math.PI * 2 - Math.PI / 2;
+              const r = 92;
+              const x = Math.cos(angle) * r;
+              const y = Math.sin(angle) * r;
+              return (
+                <button
+                  key={pet.id}
+                  disabled={!eligible}
+                  title={eligible ? pet.customName : `${pet.customName} isn't trained enough to follow yet`}
+                  onClick={() => { setFollowingPet(student.id, pet.following ? null : pet.id); setShowCompanionMenu(false); }}
+                  style={{
+                    position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)',
+                    width: 60, height: 60, borderRadius: '50%',
+                    border: pet.following ? '3px solid var(--success)' : '2px solid var(--ink)',
+                    background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: eligible ? 'pointer' : 'not-allowed', opacity: eligible ? 1 : 0.4,
+                    boxShadow: '0 3px 10px rgba(0,0,0,0.35)', padding: 4,
+                  }}
+                >
+                  <CompanionThumb pet={def} size={40} />
+                </button>
+              );
+            })}
+            <button
+              title="No companion"
+              onClick={() => { setFollowingPet(student.id, null); setShowCompanionMenu(false); }}
+              style={{
+                position: 'absolute', left: '50%', top: 'calc(50% + 155px)', transform: 'translate(-50%, -50%)',
+                minHeight: 44, borderRadius: 20, border: '2px solid var(--ink)', background: '#fff',
+                fontSize: '0.7rem', fontWeight: 700, padding: '4px 12px', cursor: 'pointer',
+              }}
+            >
+              🚫 None
+            </button>
+          </div>
+        </div>
+      )}
       {showTodayTasks && (
         <div className="overlay-backdrop" onClick={() => setShowTodayTasks(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
@@ -2308,8 +2418,9 @@ export default function TownSquare() {
             mapView={mapView}
             teleportTarget={teleportTarget}
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
+            onSelfClick={ownedPets.length > 0 && !activeConversation ? () => setShowCompanionMenu(true) : undefined}
           />
-          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} />}
+          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic'} />}
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
               key={n.id}

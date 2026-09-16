@@ -2457,6 +2457,16 @@ export default function WorldEditor() {
             })}
 
             {worldObjects.map((obj) => {
+              // Teacher-reported bug: hammering an already-published object
+              // marks it pendingDelete (held back until Publish, so Discard
+              // can still restore it — see deleteWorldObject in store.ts)
+              // but this loop kept rendering it completely unchanged, so
+              // the hammer visibly did nothing. Skip it here the same way
+              // a layoutOverride-deleted item is skipped above, so the
+              // object disappears from Build Mode immediately like every
+              // other hammer target; Publish/Discard still act on the
+              // underlying pendingDelete flag exactly as before.
+              if (obj.pendingDelete) return null;
               const isSelected = selection?.kind === 'placed' && selection.id === obj.id;
               const isHovered = hovered?.kind === 'placed' && hovered.id === obj.id && !isSelected;
               return (
@@ -2511,6 +2521,7 @@ export default function WorldEditor() {
                 so the ground click underneath still fires" gating every
                 other interactive layer in this file already uses. */}
             {wallSegments.map((wall) => {
+              if (wall.pendingDelete) return null; // same hammer-visibility fix as worldObjects above
               const isSelected = selection?.kind === 'wall' && selection.id === wall.id;
               const isHovered = hovered?.kind === 'wall' && hovered.id === wall.id && !isSelected;
               const interactive = !wallMode && !armedAsset;

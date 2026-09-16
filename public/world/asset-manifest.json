@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T01:48:31.501Z",
+  "generatedAt": "2026-09-16T13:31:57.895Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -84,6 +84,11 @@
     {
       "path": "/world/models/aquarium/dock-wide.glb",
       "label": "Dock Wide",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/fish-tank.glb",
+      "label": "Fish Tank",
       "category": "aquarium"
     },
     {
@@ -3062,6 +3067,11 @@
       "category": "pets"
     },
     {
+      "path": "/world/models/pets/animal-hamster.glb",
+      "label": "Animal Hamster",
+      "category": "pets"
+    },
+    {
       "path": "/world/models/pets/animal-hog.glb",
       "label": "Animal Hog",
       "category": "pets"
@@ -4304,6 +4314,11 @@
     {
       "path": "/world/models/props/shop_building.glb",
       "label": "Shop Building",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/shopping-cart.glb",
+      "label": "Shopping Cart",
       "category": "props"
     },
     {

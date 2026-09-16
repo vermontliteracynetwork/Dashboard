@@ -8,7 +8,7 @@ import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import { playCashRegister } from '../lib/chime';
 import FocusBanner from './FocusBanner';
-import { PET_CATALOG } from '../lib/petCatalog';
+import { petDefById } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
 type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'pets' | 'mystuff' | 'receipts';
@@ -699,7 +699,7 @@ export default function Marketplace() {
                     <strong style={{ fontSize: '0.85rem' }}>🐾 Your Pets</strong>
                     <div className="shop-item-grid" style={{ marginTop: 8 }}>
                       {ownedPets.map((pet) => {
-                        const def = PET_CATALOG.find((d) => d.id === pet.petDefId);
+                        const def = petDefById(pet.petDefId);
                         return (
                           <div key={pet.id} className="shop-item-card">
                             <div className="shop-item-icon-frame" style={{ outline: pet.following ? '3px solid var(--purple)' : 'none' }}>

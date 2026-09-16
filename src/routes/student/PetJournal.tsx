@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { PET_CATALOG, type PetCategory, bioFor, rarityFor } from '../../lib/petCatalog';
+import { PET_CATALOG, type PetCategory, type PetDef, bioFor, rarityFor, thumbnailFor } from '../../lib/petCatalog';
+
+// A real rendered picture of the pet, matching the Pet Shelter's own
+// treatment — falls back to the plain paw icon on a 404.
+function PetThumb({ pet }: { pet: PetDef }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span style={{ fontSize: '2rem' }}>🐾</span>;
+  return <img src={thumbnailFor(pet)} alt={pet.name} onError={() => setFailed(true)} style={{ width: 48, height: 48, objectFit: 'contain' }} />;
+}
 
 // The Pet Journal — a Pokédex/Webkinz-shelf hybrid (Claudia's plan, Phase
 // 1). Every species a student has EVER discovered stays a filled card
@@ -68,7 +76,7 @@ export default function PetJournal() {
             return (
               <div key={pet.id} className="shop-item-card" style={{ width: 160, opacity: isDiscovered ? 1 : 0.55 }}>
                 <div className="shop-item-icon-frame" style={{ background: isDiscovered ? undefined : 'repeating-linear-gradient(45deg, #ddd, #ddd 6px, #eee 6px, #eee 12px)' }}>
-                  <span style={{ fontSize: '2rem' }}>{isDiscovered ? '🐾' : '❓'}</span>
+                  {isDiscovered ? <PetThumb pet={pet} /> : <span style={{ fontSize: '2rem' }}>❓</span>}
                 </div>
                 {isDiscovered ? (
                   <>

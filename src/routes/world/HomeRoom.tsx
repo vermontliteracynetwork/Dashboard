@@ -8,7 +8,7 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { PET_CATALOG, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone } from '../../lib/petCatalog';
+import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import type { WorldObject, WallSegment, HomeRoomKind } from '../../types';
 
@@ -841,7 +841,7 @@ export default function HomeRoom() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {myPets.map((pet) => {
-                const def = PET_CATALOG.find((d) => d.id === pet.petDefId);
+                const def = petDefById(pet.petDefId);
                 const canFollow = canPetFollow(pet.trainingProgress);
                 return (
                   <div key={pet.id} style={{ border: '2px solid var(--content-border, #ccc)', borderRadius: 10, padding: 8 }}>

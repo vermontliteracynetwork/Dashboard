@@ -138,26 +138,46 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
               <p style={{ opacity: 0.7, fontSize: '0.85rem', margin: '10px 4px' }}>Nothing here yet.</p>
             )}
           </div>
-        ) : (
-          <BookPanel
-            title="Joke Book"
-            pageIndex={jokePageIndex}
-            onPageChange={setJokePageIndex}
-            emptyMessage="No jokes yet. Talk to a Neighbor or Townsperson to hear one!"
-            pages={heardJokes.map(({ id, entry }) => ({
-              key: id,
-              content: (
-                <div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.6, marginBottom: 6 }}>{entry.npcName} said...</div>
-                  <p style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700 }}>{entry.setup}</p>
-                  <p style={{ margin: '0 0 6px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{entry.punchline}</p>
-                  <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.75 }}>{entry.explain}</p>
-                </div>
-              ),
-            }))}
-          />
-        )}
+        ) : null}
       </div>
+      {/* Direct teacher instruction: a book (Joke Book today, anything
+          book-shaped later) should open centered on screen like an actual
+          book you're reading, not stay pinned inside the bottom bar where
+          this whole panel otherwise lives. Its own z-index (220) sits above
+          the bottom-bar wrapper's (210) so it reads as a real pop-up. */}
+      {tab === 'jokes' && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 220, background: 'rgba(31, 17, 71, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, pointerEvents: 'auto' }}
+          onClick={() => setTab('stuff')}
+        >
+          <div style={{ position: 'relative', width: '100%', maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <button
+              aria-label="Close Joke Book"
+              onClick={() => setTab('stuff')}
+              style={{ position: 'absolute', top: -14, right: -14, width: 36, height: 36, borderRadius: '50%', border: '2px solid #3d2612', background: '#f3e6c4', color: '#3d2612', fontWeight: 800, cursor: 'pointer', zIndex: 1 }}
+            >
+              ✕
+            </button>
+            <BookPanel
+              title="Joke Book"
+              pageIndex={jokePageIndex}
+              onPageChange={setJokePageIndex}
+              emptyMessage="No jokes yet. Talk to a Neighbor or Townsperson to hear one!"
+              pages={heardJokes.map(({ id, entry }) => ({
+                key: id,
+                content: (
+                  <div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.6, marginBottom: 6 }}>{entry.npcName} said...</div>
+                    <p style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700 }}>{entry.setup}</p>
+                    <p style={{ margin: '0 0 6px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{entry.punchline}</p>
+                    <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.75 }}>{entry.explain}</p>
+                  </div>
+                ),
+              }))}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

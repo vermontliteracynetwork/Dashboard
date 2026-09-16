@@ -37,6 +37,15 @@ export function rarityFor(pet: PetDef): PetRarity {
   return CATEGORY_RARITY[pet.category];
 }
 
+// Real rendered picture of the actual model — same offline-generated PNGs
+// and slug rule Build Mode's own AssetThumb uses (WorldEditor.tsx), so a
+// pet's shelter/journal card shows an actual photo-like image of that pet,
+// not just an icon. Not guaranteed to exist for every model; every render
+// site falls back to a plain paw icon on a 404 rather than a broken image.
+export function thumbnailFor(pet: PetDef): string {
+  return '/world/thumbnails/' + pet.modelPath.replace(/^\/world\/models\//, '').replace(/\.(glb|gltf)$/, '').replace(/[/\s]/g, '_') + '.png';
+}
+
 export const PET_OWNERSHIP_CAP = 4; // direct teacher spec: "Students can have up to 4 pets each"
 
 // Task completions logged (via trainingProgress) before a pet unlocks
@@ -52,7 +61,12 @@ export const PET_STAT_FLOOR = 20;
 export const PET_DECAY_TICK_MS = 3 * 60 * 1000; // every 3 real minutes of active play
 export const PET_DECAY_AMOUNT = 4;
 
-export const PET_CATALOG: PetDef[] = [
+// Every pet model ever shipped, dogs/cats and the wider animal roster and
+// the non-animal "fun" characters alike. Kept as the full lookup table (see
+// petDefById below) so a pet a student already owns from before this
+// restriction shipped still resolves correctly in Home Room/My Stuff —
+// nothing already adopted disappears or breaks.
+const PET_CATALOG_ALL: PetDef[] = [
   // Dogs
   { id: 'pet-dog', name: 'Dog', modelPath: '/world/models/pets/animal-dog.glb', priceCents: 15000, category: 'dog' },
   { id: 'pet-pug', name: 'Pug', modelPath: '/world/models/pets/animal-pug.glb', priceCents: 18000, category: 'dog' },
@@ -69,6 +83,7 @@ export const PET_CATALOG: PetDef[] = [
   { id: 'pet-blob-cat', name: 'Blob Cat', modelPath: '/world/models/creatures/blob-cat.glb', priceCents: 15000, category: 'cat' },
 
   // Small critters
+  { id: 'pet-hamster', name: 'Hamster', modelPath: '/world/models/pets/animal-hamster.glb', priceCents: 13000, category: 'small' },
   { id: 'pet-bunny', name: 'Bunny', modelPath: '/world/models/pets/animal-bunny.glb', priceCents: 15000, category: 'small' },
   { id: 'pet-bunny-2', name: 'Fluffy Bunny', modelPath: '/world/models/pets/animal-bunny-2.glb', priceCents: 15000, category: 'small' },
   { id: 'pet-beaver', name: 'Beaver', modelPath: '/world/models/pets/animal-beaver.glb', priceCents: 17000, category: 'small' },
@@ -110,8 +125,24 @@ export const PET_CATALOG: PetDef[] = [
   { id: 'pet-wizardus', name: 'Wizardus', modelPath: '/world/models/creatures/wizardus-maximus.glb', priceCents: 35000, category: 'fun' },
 ];
 
+// Direct teacher instruction: for now, adoptable pets are limited to real
+// animals — specifically dogs and cats — not the novelty "fun" characters
+// (Butter Buddy, Potato Pal, etc.) and not yet the wider animal roster
+// (farm/wild/bird/aquatic/small critters). Everything else stays defined
+// in PET_CATALOG_ALL above, ready to re-enable later by widening this list
+// — nothing was deleted, just held back from adoption.
+const ADOPTABLE_CATEGORIES: PetCategory[] = ['dog', 'cat'];
+
+// The adoptable roster — what students can actually adopt, see in the Pet
+// Shelter/Journal, and pull from the Mystery Box or daily spin wheel.
+export const PET_CATALOG: PetDef[] = PET_CATALOG_ALL.filter((p) => ADOPTABLE_CATEGORIES.includes(p.category));
+
+// Looks up ANY pet ever shipped, including ones outside the current
+// adoptable roster — so a pet a student already owns from before this
+// restriction always still resolves (Home Room, My Stuff), even though it
+// can no longer be newly adopted.
 export function petDefById(id: string): PetDef | undefined {
-  return PET_CATALOG.find((p) => p.id === id);
+  return PET_CATALOG_ALL.find((p) => p.id === id);
 }
 
 export function canPetFollow(trainingProgress: number): boolean {

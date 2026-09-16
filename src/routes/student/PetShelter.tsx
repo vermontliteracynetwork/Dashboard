@@ -1,10 +1,30 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { PET_CATALOG, PET_OWNERSHIP_CAP, MYSTERY_PACK_PRICE_CENTS, bioFor, rarityFor } from '../../lib/petCatalog';
+import { PET_CATALOG, PET_OWNERSHIP_CAP, MYSTERY_PACK_PRICE_CENTS, bioFor, rarityFor, thumbnailFor } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import type { PetDef } from '../../lib/petCatalog';
+
+// A real rendered picture of the pet, per direct teacher instruction
+// ("make sure students can see images of pets in pet store"). Not every
+// model has a thumbnail PNG yet, so this falls back to the plain paw icon
+// on a 404 rather than a broken image, same pattern as Build Mode's own
+// AssetThumb (WorldEditor.tsx).
+function PetThumb({ pet, size }: { pet: PetDef; size: number }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <span style={{ fontSize: size * 0.55, lineHeight: 1 }}>🐾</span>;
+  }
+  return (
+    <img
+      src={thumbnailFor(pet)}
+      alt={pet.name}
+      onError={() => setFailed(true)}
+      style={{ width: size, height: size, objectFit: 'contain' }}
+    />
+  );
+}
 
 // The Pet Shelter — a real place in Town Square (WorldObjectRole
 // 'pet-shelter'), not a tab buried in the Marketplace. Direct teacher
@@ -56,8 +76,16 @@ export default function PetShelter() {
     window.setTimeout(() => setPattedId((cur) => (cur === petId ? null : cur)), 700);
   };
 
+  // Guards against a double-charge from a rapid double-tap (the button's
+  // own `disabled` only updates once React re-renders with the new
+  // balance, so two taps inside that window could otherwise both go
+  // through and draw the price twice — easy to hit on a touchscreen).
+  const adoptingRef = useRef(false);
   const handleAdopt = (pet: PetDef) => {
+    if (adoptingRef.current) return;
+    adoptingRef.current = true;
     const ok = adoptPet(studentId, pet.id, !canAdoptFree);
+    adoptingRef.current = false;
     if (!ok) return;
     if (canAdoptFree) updateStudent(studentId, { petCouponRedeemed: true });
     else playCashRegister();
@@ -98,7 +126,7 @@ export default function PetShelter() {
               {reveal.isNew && (
                 <span className="tag-pill" style={{ background: 'var(--success)', color: '#fff', fontWeight: 800 }}>✨ New species!</span>
               )}
-              <span style={{ fontSize: '3rem' }}>🐾</span>
+              <PetThumb pet={reveal.pet} size={96} />
               <h2 style={{ margin: 0 }}>{reveal.pet.name}</h2>
               <span className="tag-pill" style={{ background: RARITY_COLOR[rarityFor(reveal.pet)], color: '#fff' }}>
                 {RARITY_LABEL[rarityFor(reveal.pet)]}
@@ -183,9 +211,12 @@ export default function PetShelter() {
                 <div key={pet.id} className="shop-item-card" style={{ width: 150 }}>
                   <div
                     className="shop-item-icon-frame"
-                    style={{ transform: isPatted ? 'scale(1.08)' : 'scale(1)', transition: 'transform 0.2s' }}
+                    style={{ position: 'relative', transform: isPatted ? 'scale(1.08)' : 'scale(1)', transition: 'transform 0.2s' }}
                   >
-                    <span style={{ fontSize: '2rem' }}>{isPatted ? '💛' : '🐾'}</span>
+                    <PetThumb pet={pet} size={56} />
+                    {isPatted && (
+                      <span style={{ position: 'absolute', top: -4, right: -4, fontSize: '1.2rem' }}>💛</span>
+                    )}
                   </div>
                   <strong style={{ fontSize: '0.75rem' }}>{pet.name}</strong>
                   <span className="tag-pill" style={{ fontSize: '0.58rem', background: RARITY_COLOR[rarityFor(pet)], color: '#fff' }}>
