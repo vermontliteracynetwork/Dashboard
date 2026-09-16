@@ -63,6 +63,17 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
 const SCALE_MIN = 0.0005;
 const SCALE_MAX = 20;
 
+// Claudia's completeness review of the new 'custom' role: a bare domain
+// typed with no scheme (e.g. "example.com") gets passed straight to
+// window.open, which resolves it as relative to this app's own origin
+// instead of the real site — silently broken. Auto-prepends https://
+// only when no scheme is present at all.
+function normalizeCustomRoleUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  return /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 // A local-browser safety net, on top of (not instead of) the real
 // Supabase save every edit already triggers — direct instruction after a
 // real sync failure: this write is best-effort and silent on error
@@ -1133,6 +1144,7 @@ function SelectedObjectToolbar({
                     value={selected.customRoleUrl ?? ''}
                     placeholder="https://..."
                     onChange={(e) => onUpdate({ customRoleUrl: e.target.value || undefined })}
+                    onBlur={(e) => { const v = normalizeCustomRoleUrl(e.target.value); if (v !== e.target.value) onUpdate({ customRoleUrl: v || undefined }); }}
                     style={{ minHeight: 44, width: '100%' }}
                   />
                 </label>

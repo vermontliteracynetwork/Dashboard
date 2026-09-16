@@ -142,6 +142,20 @@ const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
   'Props & Tools': { icon: '🔧', bg: '#eef0f2' },
   'Other': { icon: '📦', bg: '#eef0f2' },
 };
+// Claudia's completeness review: newly-placed Island objects never got a
+// `collides` value at all, so View mode's new collision system (below)
+// had nothing to block against by default. Same COLLIDING_CATEGORIES set
+// WorldEditor.tsx's own defaultCollidesForCategory uses — duplicated per
+// this file's own established "each build surface keeps its own copy"
+// precedent (see the SCALE_MIN comment at the top of this file).
+const COLLIDING_CATEGORIES = new Set([
+  'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
+  'props', 'prototype', 'toolsbits', 'misc', 'suburb', 'quaternius-buildings',
+  'commercial-buildings',
+]);
+function defaultCollidesForCategory(category: string): boolean {
+  return COLLIDING_CATEGORIES.has(category);
+}
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
   buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', roads: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
@@ -214,6 +228,18 @@ function GhostScaleReporter({ path, category, label, onScale }: { path: string; 
     onScale(computeAutoScale(size, category, label));
   }, [size, category, label, onScale]);
   return null;
+}
+
+// Claudia's completeness review: a bare domain typed with no scheme (e.g.
+// "example.com") gets passed straight to window.open, which resolves it
+// as relative to this app's own origin instead of the real site — a
+// silent, confusing "broken link" for a student. Auto-prepends https://
+// only when no scheme is present at all; leaves an explicit http://
+// alone rather than guessing wrong.
+function normalizeCustomRoleUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  return /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
 const ISLAND_RADIUS = 24;
@@ -332,13 +358,31 @@ function IslandPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> })
   );
 }
 const ISLAND_MOVE_SPEED = 5;
-function IslandPlayer({ walkTarget }: { walkTarget: React.RefObject<{ x: number; z: number } | null> }) {
+// Claudia's completeness review: View mode had zero collision against
+// placed objects — a student could walk straight through everything
+// they'd built, the single biggest gap against "interact like they do
+// on town square" (Town Square's own Player runs every move through
+// blockObstaclesSlide). Same circle-obstacle-with-axis-slide approach as
+// TownSquare.tsx's own blockObstaclesSlide/WORLD_OBJECT_COLLISION_RADIUS,
+// just scoped to this file's own dynamic islandObjects list instead of
+// TownSquare's static building/wall data.
+type IslandObstacle = { x: number; z: number; radius: number };
+const ISLAND_OBJECT_COLLISION_RADIUS = (scale: number) => THREE.MathUtils.clamp(scale * 0.4, 0.4, 1.6);
+function blockIslandObstacles(curX: number, curZ: number, targetX: number, targetZ: number, obstacles: IslandObstacle[]): [number, number] {
+  const inside = (x: number, z: number) => obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
+  if (!inside(targetX, targetZ)) return [targetX, targetZ];
+  if (!inside(targetX, curZ)) return [targetX, curZ];
+  if (!inside(curX, targetZ)) return [curX, targetZ];
+  return [curX, curZ];
+}
+function IslandPlayer({ walkTarget, obstacles, sensitivity }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: IslandObstacle[]; sensitivity: number }) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const keys = useIslandKeys();
   const pos = useRef(new THREE.Vector3(0, 0, ISLAND_RADIUS * 0.5));
   const facing = useRef(0);
   const isMoving = useRef(false);
+  const moveSpeed = ISLAND_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
   useFrame((_, dt) => {
     if (!groupRef.current) return;
     const k = keys.current;
@@ -350,7 +394,8 @@ function IslandPlayer({ walkTarget }: { walkTarget: React.RefObject<{ x: number;
       walkTarget.current = null;
       dx /= len;
       dz /= len;
-      const { x, z } = clampToIsland(pos.current.x + dx * ISLAND_MOVE_SPEED * dt, pos.current.z + dz * ISLAND_MOVE_SPEED * dt);
+      const [bx, bz] = blockIslandObstacles(pos.current.x, pos.current.z, pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt, obstacles);
+      const { x, z } = clampToIsland(bx, bz);
       pos.current.x = x;
       pos.current.z = z;
       facing.current = Math.atan2(dx, dz);
@@ -364,7 +409,8 @@ function IslandPlayer({ walkTarget }: { walkTarget: React.RefObject<{ x: number;
       } else {
         const ndx = tx / dist;
         const ndz = tz / dist;
-        const { x, z } = clampToIsland(pos.current.x + ndx * ISLAND_MOVE_SPEED * dt, pos.current.z + ndz * ISLAND_MOVE_SPEED * dt);
+        const [bx, bz] = blockIslandObstacles(pos.current.x, pos.current.z, pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt, obstacles);
+        const { x, z } = clampToIsland(bx, bz);
         pos.current.x = x;
         pos.current.z = z;
         facing.current = Math.atan2(ndx, ndz);
@@ -406,6 +452,10 @@ export default function IslandBuild() {
     () => (student ? allWorldObjects.filter((o) => o.studentId === student.id && o.roomId === 'island') : []),
     [allWorldObjects, student]
   );
+  const islandObstacles = useMemo(
+    () => islandObjects.filter((o) => o.collides).map((o) => ({ x: o.position[0], z: o.position[2], radius: ISLAND_OBJECT_COLLISION_RADIUS(o.scale) })),
+    [islandObjects]
+  );
 
   const [manifest, setManifest] = useState<AssetManifestEntry[]>([]);
   const [manifestError, setManifestError] = useState(false);
@@ -434,6 +484,14 @@ export default function IslandBuild() {
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
   const [viewSelectedRoleId, setViewSelectedRoleId] = useState<string | null>(null);
   const [customRoleLink, setCustomRoleLink] = useState<{ url: string; title: string } | null>(null);
+  // Claudia's completeness review: role === 'custom' with no URL set yet
+  // used to just silently close the confirm card — a real dead end.
+  const [customRoleNotSet, setCustomRoleNotSet] = useState(false);
+  useEffect(() => {
+    if (!customRoleNotSet) return;
+    const t = window.setTimeout(() => setCustomRoleNotSet(false), 3200);
+    return () => window.clearTimeout(t);
+  }, [customRoleNotSet]);
 
   // A brief themed transition on arrival — direct teacher framing: "boat
   // transportation is how the student will get to the creative island."
@@ -490,6 +548,7 @@ export default function IslandBuild() {
         position: [x, 0, z],
         rotationY: 0,
         scale: armedDefaultScale,
+        collides: defaultCollidesForCategory(armedAsset.category),
         studentId: student.id,
         roomId: 'island',
       });
@@ -584,7 +643,7 @@ export default function IslandBuild() {
 
       {mode === 'view' && (
         <div style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: 'rgba(255,255,255,0.92)', borderRadius: 12, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center' }}>
-          Click, or tap, anywhere to walk there. Or use WASD/arrow keys. Click something you gave a role to open it.
+          🚶 Click, or tap, anywhere to walk there. Or use WASD/arrow keys. Click something you gave a role to open it.
         </div>
       )}
 
@@ -623,7 +682,7 @@ export default function IslandBuild() {
             <select
               value={selected.role ?? ''}
               onChange={(e) => updateWorldObject(selected.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
-              style={{ minHeight: 40, width: '100%', fontSize: '0.75rem' }}
+              style={{ minHeight: 44, width: '100%', fontSize: '0.75rem' }}
             >
               {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
@@ -636,11 +695,12 @@ export default function IslandBuild() {
                 value={selected.customRoleUrl ?? ''}
                 placeholder="https://..."
                 onChange={(e) => updateWorldObject(selected.id, { customRoleUrl: e.target.value || undefined })}
-                style={{ minHeight: 40, width: '100%', fontSize: '0.75rem' }}
+                onBlur={(e) => { const v = normalizeCustomRoleUrl(e.target.value); if (v !== e.target.value) updateWorldObject(selected.id, { customRoleUrl: v || undefined }); }}
+                style={{ minHeight: 44, width: '100%', fontSize: '0.75rem' }}
               />
             </label>
           )}
-          <button className="btn btn-sm" style={{ minHeight: 40, width: '100%', background: 'var(--danger, #c94141)', color: '#fff' }} onClick={deleteSelected}>
+          <button className="btn btn-sm" style={{ minHeight: 44, width: '100%', background: 'var(--danger, #c94141)', color: '#fff' }} onClick={deleteSelected}>
             🗑️ Delete
           </button>
         </div>
@@ -721,6 +781,7 @@ export default function IslandBuild() {
       )}
 
       <Canvas
+        key={mode}
         camera={{ position: mode === 'view' ? [0, 7, ISLAND_RADIUS * 0.5 + 10] : [0, 22, 26], fov: 50 }}
         shadows
         onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
@@ -770,7 +831,11 @@ export default function IslandBuild() {
           </group>
         ))}
 
-        {mode === 'view' && <Suspense fallback={null}><IslandPlayer walkTarget={walkTarget} /></Suspense>}
+        {mode === 'view' && (
+          <Suspense fallback={null}>
+            <IslandPlayer walkTarget={walkTarget} obstacles={islandObstacles} sensitivity={student.worldMoveSensitivity} />
+          </Suspense>
+        )}
       </Canvas>
 
       {mode === 'view' && viewSelectedRoleId && (() => {
@@ -786,6 +851,7 @@ export default function IslandBuild() {
                     setViewSelectedRoleId(null);
                     if (obj.role === 'custom') {
                       if (obj.customRoleUrl) setCustomRoleLink({ url: obj.customRoleUrl, title: obj.customName || obj.label });
+                      else setCustomRoleNotSet(true);
                       return;
                     }
                     const path = obj.role ? ROLE_VIEWS[obj.role] : null;
@@ -809,6 +875,11 @@ export default function IslandBuild() {
 
       {customRoleLink && (
         <InternalBrowser url={customRoleLink.url} title={customRoleLink.title} onClose={() => setCustomRoleLink(null)} />
+      )}
+      {customRoleNotSet && (
+        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 66, background: '#fff', border: '2px solid var(--danger, #c94141)', borderRadius: 10, padding: '8px 16px', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--danger, #c94141)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          Not set up yet — add a link in Build mode!
+        </div>
       )}
     </div>
   );

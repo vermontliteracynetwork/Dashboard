@@ -1967,6 +1967,15 @@ export default function TownSquare() {
   // Direct teacher instruction: a "custom" role opens a teacher/student-
   // typed link instead of one of the fixed built-in screens.
   const [customRoleLink, setCustomRoleLink] = useState<{ url: string; title: string } | null>(null);
+  // Claudia's completeness review: role === 'custom' with no URL set yet
+  // used to just silently close the confirm card — a real dead end for a
+  // literal-thinking student ("I tapped Confirm and nothing happened").
+  const [customRoleNotSet, setCustomRoleNotSet] = useState(false);
+  useEffect(() => {
+    if (!customRoleNotSet) return;
+    const t = window.setTimeout(() => setCustomRoleNotSet(false), 3200);
+    return () => window.clearTimeout(t);
+  }, [customRoleNotSet]);
   // A tapped sign/notice-board "enlarges" into a readable popup with TTS —
   // Claudia's standing accessibility principle applied to any text a
   // teacher writes in-world, not just quiz/task copy.
@@ -2588,6 +2597,11 @@ export default function TownSquare() {
       {customRoleLink && (
         <InternalBrowser url={customRoleLink.url} title={customRoleLink.title} onClose={() => setCustomRoleLink(null)} />
       )}
+      {customRoleNotSet && (
+        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 65, background: '#fff', border: '2px solid var(--danger, #c94141)', borderRadius: 10, padding: '8px 16px', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--danger, #c94141)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          Not set up yet — ask your teacher!
+        </div>
+      )}
       {/* Direct teacher instruction: a "what's new" book, one change per
           page with the same real page-turn as the Joke Book/Pet Book,
           auto-opening for a student the first time they log in after
@@ -2815,6 +2829,7 @@ export default function TownSquare() {
                           setSelectedRoleObjectId(null);
                           if (obj.role === 'custom') {
                             if (obj.customRoleUrl) setCustomRoleLink({ url: obj.customRoleUrl, title: obj.customName || obj.label });
+                            else setCustomRoleNotSet(true);
                             return;
                           }
                           const path = obj.role ? ROLE_VIEWS[obj.role] : null;
