@@ -84,6 +84,7 @@ const rowToStudent = (r: Row): Student => ({
   quizTheme: r.quiz_theme ?? 'standard',
   bonusSpinAvailable: r.bonus_spin_available ?? false,
   worldQuest1MetIds: r.world_quest1_met_ids ?? [],
+  favoriteCinemaVideoIds: r.favorite_cinema_video_ids ?? [],
   worldMoveSensitivity: r.world_move_sensitivity ?? 1,
   worldDpadSide: r.world_dpad_side ?? 'left',
   worldNpcLastTalkDates: r.world_npc_last_talk_dates ?? {},
@@ -138,6 +139,7 @@ const studentToRow = (s: Student): Row => ({
   quiz_theme: s.quizTheme,
   bonus_spin_available: s.bonusSpinAvailable,
   world_quest1_met_ids: s.worldQuest1MetIds,
+  favorite_cinema_video_ids: s.favoriteCinemaVideoIds ?? [],
   world_move_sensitivity: s.worldMoveSensitivity,
   world_dpad_side: s.worldDpadSide,
   world_npc_last_talk_dates: s.worldNpcLastTalkDates,
@@ -588,6 +590,7 @@ const rowToCinemaVideo = (r: Row): CinemaVideo => ({
   title: r.title,
   source: r.source,
   url: r.url,
+  coverImageUrl: r.cover_image_url ?? undefined,
   createdAt: r.created_at,
 });
 
@@ -1028,6 +1031,7 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   quizTheme: 'quiz_theme',
   bonusSpinAvailable: 'bonus_spin_available',
   worldQuest1MetIds: 'world_quest1_met_ids',
+  favoriteCinemaVideoIds: 'favorite_cinema_video_ids',
   worldMoveSensitivity: 'world_move_sensitivity',
   worldNpcLastTalkDates: 'world_npc_last_talk_dates',
   worldJokesHeardIds: 'world_jokes_heard_ids',
@@ -1176,6 +1180,7 @@ export const pushCinemaVideo = (v: CinemaVideo) =>
     title: v.title,
     source: v.source,
     url: v.url,
+    cover_image_url: v.coverImageUrl ?? null,
     created_at: v.createdAt,
   });
 export const deleteCinemaVideoRemote = (id: string) => remove('cinema_videos', { id });

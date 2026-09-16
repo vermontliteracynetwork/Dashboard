@@ -12,6 +12,7 @@ import { makeId } from '../../lib/id';
 import { getCurrentFocus, getFocusHistory } from '../../lib/focus';
 import { FOCUS_SUBJECT_LABELS, FOCUS_CATEGORY_SUGGESTIONS } from '../../types';
 import type { Assignment, PlanTemplate, Student, Subject, Task, Focus, FocusSubject, FocusDurationMode } from '../../types';
+import { MATH_STANDARDS, LITERACY_STANDARDS } from '../../lib/commonCoreStandards';
 
 interface AssignmentGroup {
   key: string;
@@ -417,6 +418,34 @@ function FocusLaneEditor({ subject, current }: { subject: FocusSubject; current:
           </label>
         )}
       </div>
+
+      {(subject === 'math' || subject === 'literacy') && (
+        <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
+          Common Core standard (optional)
+          <select
+            value=""
+            onChange={(e) => {
+              const code = e.target.value;
+              if (!code) return;
+              const list = subject === 'math' ? MATH_STANDARDS : LITERACY_STANDARDS;
+              const std = list.find((s) => s.code === code);
+              if (std) setDetail(`${std.code} ${std.description}`);
+              e.target.value = '';
+            }}
+          >
+            <option value="">Pick a standard to fill in Details below…</option>
+            {Array.from(new Set((subject === 'math' ? MATH_STANDARDS : LITERACY_STANDARDS).map((s) => s.grade))).map((g) => (
+              <optgroup key={g} label={`Grade ${g}`}>
+                {(subject === 'math' ? MATH_STANDARDS : LITERACY_STANDARDS)
+                  .filter((s) => s.grade === g)
+                  .map((s) => (
+                    <option key={s.code} value={s.code}>{`${s.domain} · ${s.code}`}</option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="stack" style={{ gap: 2, fontSize: '0.78rem', fontWeight: 700 }}>
         Title

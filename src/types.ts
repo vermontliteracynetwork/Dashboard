@@ -98,6 +98,7 @@ export interface Student {
   quizTheme: QuizTheme; // student-picked visual skin for the quiz view
   bonusSpinAvailable: boolean; // earned a re-spin today for finishing the whole assignment (assignmentCompletionReward type 'spin') — shown as a distinct "Bonus Spin!" on the wheel, cleared once used
   worldQuest1MetIds: string[]; // Neighbor ids met so far in Homeplot's launch quest ("Meet the Neighbors") — grows to 4, then the quest is complete
+  favoriteCinemaVideoIds?: string[]; // CinemaVideo ids this student has hearted — shown first on the Now Showing shelf
   worldMoveSensitivity: number; // Town Square movement-speed multiplier, student-adjustable in-world Settings (0.5-2, default 1)
   worldDpadSide: 'left' | 'right'; // which corner the on-screen D-pad sits in, student-adjustable
   worldNpcLastTalkDates: Record<string, string>; // NPC id -> ISO date of the last conversation that paid the daily talk coin, so each NPC pays at most once per real-world day
@@ -420,6 +421,7 @@ export interface CinemaVideo {
   title: string;
   source: 'youtube' | 'upload';
   url: string; // a youtube.com/watch or youtu.be URL when source is 'youtube'; a Supabase Storage public URL when 'upload'
+  coverImageUrl?: string; // teacher-uploaded poster shown on the Now Showing shelf; falls back to the YouTube auto-thumbnail when unset and source is 'youtube', or a generic icon otherwise
   createdAt: string;
 }
 
