@@ -2268,7 +2268,17 @@ export default function TownSquare() {
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0' }}
+      // Direct teacher report: on iPad the whole page would scroll/pan
+      // under a student's touch, throwing every fixed-position control
+      // (D-pad, buttons) out of alignment with where their finger actually
+      // was. touchAction 'none' stops the browser from treating a touch
+      // here as its own native scroll/pan/pinch gesture — this element
+      // already handles every touch itself (D-pad, camera-look drag,
+      // click-to-walk). 100dvh (with a 100vh fallback via the className
+      // below) avoids the same jump/resize iOS does to 100vh whenever its
+      // address bar shows or hides mid-session.
+      className="world-viewport-fix"
+      style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0', touchAction: 'none', overscrollBehavior: 'none' }}
       onPointerDown={handleLookPointerDown}
       onPointerMove={handleLookPointerMove}
       onPointerUp={handleLookPointerUp}

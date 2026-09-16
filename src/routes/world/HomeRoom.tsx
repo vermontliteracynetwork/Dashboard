@@ -751,7 +751,7 @@ export default function HomeRoom() {
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: isYard ? YARD_SKY_COLOR : '#dce8ee' }}>
+    <div className="world-viewport-fix" style={{ width: '100vw', height: '100vh', position: 'relative', background: isYard ? YARD_SKY_COLOR : '#dce8ee', touchAction: 'none', overscrollBehavior: 'none' }}>
       <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 60, display: 'flex', gap: 10, alignItems: 'center' }}>
         <button
           className="btn btn-sm"

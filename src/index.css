@@ -1,5 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Lexend:wght@400;600;700&display=swap');
 
+/* Full-screen 3D world views (Town Square, Home Room, Creative Island) set
+   an inline 100vh as a fallback for browsers with no dvh support, then this
+   overrides it with the dynamic viewport height — iOS Safari resizes 100vh
+   every time its address bar shows/hides mid-session, which visibly
+   jumped/resized the world and threw off fixed-position controls (a direct
+   teacher report from a student on iPad). @supports guards it so nothing
+   changes on a browser that doesn't understand dvh. */
+@supports (height: 100dvh) {
+  .world-viewport-fix { height: 100dvh; }
+}
+
 :root {
   --purple: #7c3aed;
   --purple-dark: #5b21b6;
@@ -130,6 +141,12 @@ button {
   border: 2px solid var(--ink);
   background: white;
 }
+/* Compact variant for dense chip rows (question-set card tags, filter
+   rows on the teacher-only Question Sets library) — that screen is a
+   management list, not K-8 in-world UI, so these skip the 44px touch
+   floor .btn-sm bakes in for student-facing controls. */
+.tag-pill-sm { font-size: 0.62rem; padding: 2px 7px; border-width: 1.5px; }
+.chip-filter-sm { padding: 3px 10px; font-size: 0.74rem; min-height: 30px; min-width: unset; border-width: 2px; }
 
 /* ---------- Layout helpers ---------- */
 .container { max-width: 1040px; margin: 0 auto; padding: 32px 28px; width: 100%; }

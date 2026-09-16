@@ -40,19 +40,19 @@ export default function QuestionSetsManager() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="row-wrap">
+        <div className="row-wrap" style={{ gap: 6 }}>
           {(['all', 'math', 'literacy'] as const).map((f) => (
-            <button key={f} className={`btn btn-sm ${subjectFilter === f ? 'btn-primary' : ''}`} onClick={() => setSubjectFilter(f)}>
+            <button key={f} className={`btn chip-filter-sm ${subjectFilter === f ? 'btn-primary' : ''}`} onClick={() => setSubjectFilter(f)}>
               {f === 'all' ? 'All subjects' : f === 'math' ? '🔢 Math' : '📚 Literacy'}
             </button>
           ))}
         </div>
         {allTags.length > 0 && (
-          <div className="row-wrap">
+          <div className="row-wrap" style={{ gap: 6 }}>
             {allTags.map((t) => (
               <button
                 key={t}
-                className={`btn btn-sm ${tagFilter === t ? 'btn-primary' : ''}`}
+                className={`btn chip-filter-sm ${tagFilter === t ? 'btn-primary' : ''}`}
                 onClick={() => setTagFilter(tagFilter === t ? null : t)}
               >
                 🏷️ {t}
@@ -88,9 +88,9 @@ export default function QuestionSetsManager() {
                     {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
                   </div>
                   {(set.tags ?? []).length > 0 && (
-                    <div className="row-wrap" style={{ marginTop: 4 }}>
+                    <div className="row-wrap" style={{ marginTop: 4, gap: 4 }}>
                       {(set.tags ?? []).map((t) => (
-                        <span key={t} className="tag-pill" style={{ fontSize: '0.7rem' }}>{t}</span>
+                        <span key={t} className="tag-pill tag-pill-sm">{t}</span>
                       ))}
                     </div>
                   )}

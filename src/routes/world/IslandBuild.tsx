@@ -599,7 +599,7 @@ export default function IslandBuild() {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#7fd0e8' }}>
+    <div className="world-viewport-fix" style={{ width: '100vw', height: '100vh', position: 'relative', background: '#7fd0e8', touchAction: 'none', overscrollBehavior: 'none' }}>
       {!arrived && (
         <div
           className="overlay-backdrop"
