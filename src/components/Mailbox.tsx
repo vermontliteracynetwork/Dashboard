@@ -29,6 +29,10 @@ export default function Mailbox() {
             to get back. Reuses SubjectDashboard's own "🌳 Town Square"
             label/button for consistency. */}
         <div className="row" style={{ gap: 8 }}>
+          {/* Direct teacher instruction: the What's New book must always be
+              reachable from here too, not just the one-time popup in Town
+              Square. */}
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town?openChangelog=1')}>📖 What's New</button>
           <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
           <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
         </div>

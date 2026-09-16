@@ -267,6 +267,17 @@ export default function StudentHome() {
               >
                 🌳 Town Square
               </button>
+              {/* Direct teacher instruction: the What's New book must
+                  always be reachable from the computer, not just the
+                  one-time popup in Town Square. */}
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
+                onClick={() => navigate('/world/town?openChangelog=1')}
+                aria-label="What's New"
+              >
+                📖 What's New
+              </button>
             </div>
           </div>
         </div>

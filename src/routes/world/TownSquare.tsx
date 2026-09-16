@@ -1690,7 +1690,7 @@ export default function TownSquare() {
   // a teacher's unpublished work-in-progress instead of what's actually
   // live. Every other visitor (every real student) gets published-only,
   // holding a half-finished edit back until the teacher hits Publish.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const previewDraft = searchParams.get('previewDraft') === '1';
   const allWorldObjects = useStore((s) => s.worldObjects);
   const worldObjects = useMemo(
@@ -1860,6 +1860,20 @@ export default function TownSquare() {
     setShowChangelog(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showArrival, student?.lastSeenChangelogId]);
+  // On-demand reopen, direct teacher instruction: the What's New book must
+  // always be reachable, not just the one-time auto-popup — the computer
+  // (StudentHome) and Mailbox both link here with ?openChangelog=1. Clears
+  // the param right after consuming it so a later refresh of this same URL
+  // doesn't reopen it every time.
+  useEffect(() => {
+    if (searchParams.get('openChangelog') !== '1') return;
+    setChangelogPageIndex(0);
+    setShowChangelog(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('openChangelog');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const closeChangelog = () => {
     setShowChangelog(false);
     if (student && LATEST_CHANGELOG_ID) updateStudent(student.id, { lastSeenChangelogId: LATEST_CHANGELOG_ID });
