@@ -99,6 +99,14 @@ const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
 const CAMERA_LOOK_CAP = Math.PI * 0.6;
 const DRAG_LOOK_SENSITIVITY = 0.005;
+// Vertical look ("look up/down") is a pure tilt, not an orbit like the
+// horizontal look above — it shifts where the camera points (the lookAt
+// target's height), not where the camera itself sits, so it can never dip
+// the camera underground or flip it over the player at the extremes. Units
+// are world-space height offset from the normal look target (1, roughly
+// chest height), not radians.
+const CAMERA_PITCH_CAP = 5.5;
+const DRAG_PITCH_SENSITIVITY = 0.01;
 // Height for the overhead map view. The first value (34) only checked
 // vertical framing — horizontal FOV is vertical FOV times aspect ratio, so
 // on an iPad's portrait aspect (~0.7-0.75, the primary device for this
@@ -964,6 +972,7 @@ interface PlayerProps {
   frozen: boolean;
   sensitivity: number;
   cameraLook: React.RefObject<number>;
+  cameraPitch: React.RefObject<number>;
   mapView: boolean;
   // Direct teacher request: double-clicking a grid square in Map view
   // instantly moves the student there (a teleport, not a walk) and drops
@@ -990,7 +999,7 @@ interface PlayerProps {
   facingRef?: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1033,6 +1042,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         // "always predictable, never a surprise" rule as everything else
         // here; free-look is for standing still and peeking around.
         cameraLook.current = 0;
+        cameraPitch.current = 0;
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
         const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
@@ -1060,6 +1070,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           walkTarget.current = null;
         } else {
           cameraLook.current = 0;
+          cameraPitch.current = 0;
           const ndx = tx / dist;
           const ndz = tz / dist;
           const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
@@ -1090,7 +1101,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE;
       const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE;
       camera.position.lerp(new THREE.Vector3(camX, CAMERA_HEIGHT, camZ), 1 - Math.pow(0.001, dt));
-      camera.lookAt(pos.current.x, 1, pos.current.z);
+      camera.lookAt(pos.current.x, 1 + cameraPitch.current, pos.current.z);
     }
   });
 
@@ -1622,31 +1633,42 @@ function DpadButton({
 // same shape as every other control in this app. Capped well short of a
 // full spin so a student can peek around without ever losing their sense
 // of which way they're actually facing; moving snaps it back to normal.
-function CameraLookButtons({ cameraLook, side, bottom }: { cameraLook: React.RefObject<number>; side: 'left' | 'right'; bottom: number }) {
+function CameraLookButtons({ cameraLook, cameraPitch, side, bottom }: { cameraLook: React.RefObject<number>; cameraPitch: React.RefObject<number>; side: 'left' | 'right'; bottom: number }) {
   const [, forceTick] = useState(0);
   const STEP = Math.PI / 6;
+  const PITCH_STEP = CAMERA_PITCH_CAP / 4;
   const turn = (dir: 1 | -1) => {
     cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dir * STEP, -CAMERA_LOOK_CAP, CAMERA_LOOK_CAP);
     forceTick((n) => n + 1);
   };
+  const tilt = (dir: 1 | -1) => {
+    cameraPitch.current = THREE.MathUtils.clamp(cameraPitch.current + dir * PITCH_STEP, -CAMERA_PITCH_CAP, CAMERA_PITCH_CAP);
+    forceTick((n) => n + 1);
+  };
+  const btnStyle: React.CSSProperties = { width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, lineHeight: 1 };
   return (
     <div style={{ position: 'absolute', bottom, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      {/* Icons paired with a visible label, not icon-only (Claudia's
+          audit) — matches the D-pad's own label-under-icon pattern above.
+          Look up/down sits in its own row above left/right so it reads as
+          a separate axis, not a 4-way pad (which would imply it also
+          moves the player, which it never does — this only ever looks). */}
       <div style={{ display: 'flex', gap: 8 }}>
-        {/* Icons paired with a visible label, not icon-only (Claudia's
-            audit) — matches the D-pad's own label-under-icon pattern above. */}
-        <button
-          onClick={() => turn(-1)}
-          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, lineHeight: 1 }}
-          aria-label="Look left"
-        >
+        <button onClick={() => tilt(1)} style={btnStyle} aria-label="Look up">
+          <span>⇧</span>
+          <span style={{ fontSize: 7, fontWeight: 800 }}>Up</span>
+        </button>
+        <button onClick={() => tilt(-1)} style={btnStyle} aria-label="Look down">
+          <span>⇩</span>
+          <span style={{ fontSize: 7, fontWeight: 800 }}>Down</span>
+        </button>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => turn(-1)} style={btnStyle} aria-label="Look left">
           <span>↺</span>
           <span style={{ fontSize: 7, fontWeight: 800 }}>Left</span>
         </button>
-        <button
-          onClick={() => turn(1)}
-          style={{ width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, lineHeight: 1 }}
-          aria-label="Look right"
-        >
+        <button onClick={() => turn(1)} style={btnStyle} aria-label="Look right">
           <span>↻</span>
           <span style={{ fontSize: 7, fontWeight: 800 }}>Right</span>
         </button>
@@ -1991,6 +2013,7 @@ export default function TownSquare() {
   // instantly teleports the student there and drops back into live view.
   const teleportTarget = useRef<{ x: number; z: number } | null>(null);
   const cameraLook = useRef(0);
+  const cameraPitch = useRef(0);
   // Mouse press-and-drag look, desktop only (mirrors the ↺/↻ buttons but
   // continuous) — direct teacher request: hold the mouse down and drag to
   // turn the view, dragging right turning right same as the "Look right"
@@ -2007,6 +2030,7 @@ export default function TownSquare() {
   // one click immediately after an actual drag is ever suppressed.
   const isDraggingLook = useRef(false);
   const dragLastX = useRef(0);
+  const dragLastY = useRef(0);
   const dragDistanceAccum = useRef(0);
   const wasDraggingLook = useRef(false);
   const handleLookPointerDown = (e: React.PointerEvent) => {
@@ -2015,14 +2039,21 @@ export default function TownSquare() {
     if (!isDesktop || e.pointerType !== 'mouse' || e.button !== 0) return;
     isDraggingLook.current = true;
     dragLastX.current = e.clientX;
+    dragLastY.current = e.clientY;
   };
   const handleLookPointerMove = (e: React.PointerEvent) => {
     if (!isDraggingLook.current) return;
     const dx = e.clientX - dragLastX.current;
+    const dy = e.clientY - dragLastY.current;
     dragLastX.current = e.clientX;
-    dragDistanceAccum.current += Math.abs(dx);
+    dragLastY.current = e.clientY;
+    dragDistanceAccum.current += Math.abs(dx) + Math.abs(dy);
     if (dragDistanceAccum.current > 5) wasDraggingLook.current = true;
     cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dx * DRAG_LOOK_SENSITIVITY, -CAMERA_LOOK_CAP, CAMERA_LOOK_CAP);
+    // Dragging up (negative dy, mouse moves toward top of screen) tilts the
+    // view up, same "drag the world the direction you'd drag a camera"
+    // convention as the horizontal look above.
+    cameraPitch.current = THREE.MathUtils.clamp(cameraPitch.current - dy * DRAG_PITCH_SENSITIVITY, -CAMERA_PITCH_CAP, CAMERA_PITCH_CAP);
   };
   const handleLookPointerUp = () => { isDraggingLook.current = false; };
   // Set by clicking a Neighbor directly (see handleApproach) — names which
@@ -2711,6 +2742,7 @@ export default function TownSquare() {
             frozen={!!activeConversation || mapView || showWizardLock}
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}
+            cameraPitch={cameraPitch}
             facingRef={playerFacingRef}
             mapView={mapView}
             teleportTarget={teleportTarget}
@@ -2901,7 +2933,7 @@ export default function TownSquare() {
           without walking first. These are discrete tap buttons (not a
           drag gesture), so there's no conflict with touch scrolling/
           panning; safe to show everywhere. */}
-      <CameraLookButtons cameraLook={cameraLook} side={dpadSide} bottom={dpadBottom} />
+      <CameraLookButtons cameraLook={cameraLook} cameraPitch={cameraPitch} side={dpadSide} bottom={dpadBottom} />
 
       {/* A small, deliberately secondary way back to the task dashboard —
           the computer desk in the world is the primary path now, but every

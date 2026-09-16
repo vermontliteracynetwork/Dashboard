@@ -16,18 +16,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-16-camera-look-up-down',
+    date: '2026-09-16',
+    icon: '🔭',
+    title: 'Look up and down now too!',
+    body: 'The camera can tilt up and down while you play, not just side to side. Use the new Up and Down buttons, or drag with your mouse.',
+  },
+  {
     id: '2026-09-16-pie-menu',
     date: '2026-09-16',
     icon: '🧭',
     title: 'Tap yourself for a quick menu!',
-    body: 'Tap your own character to open a quick menu for Settings, the Map, My Stuff, and My Home — no more hunting around the screen for buttons.',
+    body: 'Tap your own character to open a quick menu for Settings, the Map, My Stuff, and My Home. No more hunting around the screen for buttons.',
   },
   {
     id: '2026-09-16-pet-book',
     date: '2026-09-16',
     icon: '🐾',
     title: 'A new Pet Book!',
-    body: 'Open your backpack and look for the Pet Book — flip through every pet you own, just like the Joke Book.',
+    body: 'Open your backpack and look for the Pet Book. Flip through every pet you own, just like the Joke Book.',
   },
   {
     id: '2026-09-16-pet-walk',
@@ -41,7 +48,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: '2026-09-16',
     icon: '🏝️',
     title: 'A brand new Creative Island!',
-    body: 'Ask your teacher to unlock your very own Creative Island — a free-build space where you can place anything from the whole catalog, no limits.',
+    body: 'Ask your teacher to unlock your very own Creative Island, a free-build space where you can place anything from the whole catalog, no limits.',
   },
   {
     id: '2026-09-16-wizard',
