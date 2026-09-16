@@ -562,7 +562,8 @@ export type TransactionKind =
   | 'teacher-adjustment'
   | 'assignment-complete'
   | 'purchase-pet'
-  | 'sell-pet';
+  | 'sell-pet'
+  | 'purchase-yard';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from
@@ -646,6 +647,12 @@ export interface WorldObject {
   // SIGN_MODEL_PATHS in townLayout.ts) — double-click in Build Mode to
   // edit, tap in Town Square to read (with TTS).
   signText?: string;
+  // Which of a student's own HomeRoomDef rows this piece of furniture/yard
+  // décor belongs to (see HomeRoomDef below) — only meaningful alongside
+  // studentId; a shared Town Square object never sets this. Undefined on a
+  // row placed before the room system existed = still assigned to that
+  // student's migrated default room the first time HomeRoom.tsx loads.
+  roomId?: string;
 }
 
 // A single straight wall segment, drawn with Sims 4-style click-drag
@@ -687,6 +694,25 @@ export interface GroundPatch {
   z: number;
   radius: number; // meters — the painted circle's radius
   texturePath: string; // one of GROUND_TEXTURE_OPTIONS' real paths (never null — a Grass patch stores the literal grass.png path)
+  createdAt: string; // ISO
+}
+
+// A student's own private Home Room floor plan is a set of these — replaces
+// the old single fixed 10x10 room + freeform student-drawn walls. Each row
+// is one discrete room (or the one 'yard' row every student gets), sized by
+// its fixed `kind` (see HOME_ROOM_SIZES in HomeRoom.tsx: large 10x10,
+// medium 8x8, small 6x6, xsmall 4x4, closet 1x2, yard 5x5) rather than a
+// freely-resizable footprint — students place discrete rooms and decorate
+// them, they don't draw wall geometry anymore. WorldObject.roomId scopes
+// furniture/yard décor to one of these.
+export type HomeRoomKind = 'large' | 'medium' | 'small' | 'xsmall' | 'closet' | 'yard';
+export interface HomeRoomDef {
+  id: string;
+  studentId: string;
+  kind: HomeRoomKind;
+  name: string; // student-given or picked from HomeRoom.tsx's ROOM_NAME_SUGGESTIONS; defaults to a generic label at creation
+  wallColor?: string | null; // per-room now, not per-student — undefined/null = default
+  floorTexture?: string | null; // per-room now, not per-student — undefined/null = default
   createdAt: string; // ISO
 }
 

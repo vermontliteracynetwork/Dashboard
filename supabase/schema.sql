@@ -393,6 +393,11 @@ alter table world_objects add column if not exists collides boolean;
 -- this app's existing anon-read/write trust model (no other table has
 -- per-row RLS either).
 alter table world_objects add column if not exists student_id text;
+-- Home Room's room system: which of a student's own home_rooms rows this
+-- object/décor piece belongs to. Null on a row placed before this existed
+-- — HomeRoom.tsx migrates those to a newly-created default room the first
+-- time it loads for that student, so nothing already placed is lost.
+alter table world_objects add column if not exists room_id text;
 -- RLS + realtime for this table are granted by the generic loops further
 -- down this file (the tables[] arrays) — 'world_objects' is added there,
 -- not here, so this table follows the exact same anon-read/write,
@@ -444,6 +449,21 @@ create table if not exists student_pets (
 -- Pets system: the one-time free-pet coupon every student gets the first
 -- time pets ship — pick any catalog pet, no cost, once ever.
 alter table students add column if not exists pet_coupon_redeemed boolean not null default false;
+
+-- Home Room's room system (replaces the old single fixed 10x10 room + a
+-- freeform student wall-drawing tool): each row is one discrete room a
+-- student added, or the one 'yard' row every student gets automatically.
+-- kind fixes the room's real-world size (HOME_ROOM_SIZES in HomeRoom.tsx),
+-- not a freely-resizable footprint.
+create table if not exists home_rooms (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  kind text not null,
+  name text not null default '',
+  wall_color text,
+  floor_texture text,
+  created_at timestamptz not null default now()
+);
 
 -- Wall segments: Sims 4-style drawn walls (two endpoints, not a placed
 -- model), used both in the shared Town Square and inside a student's own
@@ -611,7 +631,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms'
   ];
 begin
   foreach t in array tables loop
@@ -654,7 +674,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms'
   ];
 begin
   foreach t in array tables loop

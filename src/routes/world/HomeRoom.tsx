@@ -6,20 +6,22 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
-import { WallMesh } from '../../components/WallMesh';
-import { blockWallSegments, nearestWall } from '../../lib/wallGeometry';
+import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { PET_CATALOG, PET_OWNERSHIP_CAP, canPetFollow } from '../../lib/petCatalog';
-import type { WorldObject, WallSegment } from '../../types';
+import { formatMoney } from '../../lib/money';
+import type { WorldObject, WallSegment, HomeRoomKind } from '../../types';
 
 // The student-facing counterpart to WorldEditor.tsx's teacher Build Mode —
 // "the same build mode features the teacher has should be simplified
-// slightly and presented to the student," direct instruction, scoped to
-// exactly one private 10x10 room per student instead of the shared Town.
-// Reuses the same WorldObject type/table (see types.ts's studentId comment)
-// and the same WorldObjectRenderer every other scene uses, so a placed
-// couch here looks identical to one the teacher places in Town Square —
-// just filtered to this one student's own rows.
+// slightly and presented to the student." A student's Home is now a real
+// floor plan: several discrete rooms (fixed sizes, not freeform walls) plus
+// one fixed Yard, not the single fixed 10x10 room + a wall-drawing tool
+// this file used to be. Reuses the same WorldObject type/table (see
+// types.ts's studentId comment) and the same WorldObjectRenderer every
+// other scene uses, so a placed couch here looks identical to one the
+// teacher places in Town Square — just filtered to this one student's own
+// rows, and now further scoped by which HomeRoomDef row (roomId) it's in.
 //
 // Direct teacher instruction, verbatim on scale: "a couch should be about
 // two square units long and one square unit high... a bed should be about
@@ -29,69 +31,112 @@ import type { WorldObject, WallSegment } from '../../types';
 // model's actual GLB bounding box (StarterScaleLoader), not a guessed flat
 // number — same technique as WorldEditor's own computeAutoScale.
 //
-// Direct instruction: only a small STARTER set is available right now
-// ("one couch, one bed, one window... they don't need any of the other
-// things yet, they have not earned them") — a fixed 5-item catalog, not
-// the full multi-hundred-asset browser Build Mode has. A real earn-to-
-// unlock system (tied to assignments/daily wheel) is intentionally NOT
-// built here yet — deliberately out of scope for this pass, flagged as
-// next work, same "don't build blind" caution this project already
-// applies elsewhere (see the ground-type and texture-painting tasks).
+// Direct instruction: only a small STARTER set is available right now for
+// interior rooms ("one couch, one bed, one window... they don't need any
+// of the other things yet, they have not earned them") — a fixed 5-item
+// catalog, not the full multi-hundred-asset browser Build Mode has. A real
+// earn-to-unlock system (tied to assignments/daily wheel) is intentionally
+// NOT built here yet — same "don't build blind" caution this project
+// already applies elsewhere.
 //
 // No roof (direct instruction).
 //
-// Direct follow-up instruction: the room opens in a VIEW mode by default —
-// the student's own character standing in the room, walkable, seeing
-// everything placed — not straight into Build Mode. A button switches
-// into Build Mode (today's catalog/paint/place UI) and back out; Build
-// Mode is never the landing state. Uses the exact same player model/
-// idle-walk animation as Town Square's Player (RoomPlayer below is a
-// smaller, room-bounded version of the same thing — no click-to-walk
-// obstacle avoidance needed here, it's one small empty-ish room, not a
-// town with buildings).
+// Direct follow-up instruction: every room opens in a VIEW mode by
+// default — the student's own character standing in it, walkable, seeing
+// everything placed — not straight into Build Mode. A button switches into
+// Build Mode (catalog/paint/place UI) and back out. Uses the exact same
+// player model/idle-walk animation as Town Square's Player (RoomPlayer
+// below is a smaller, room-bounded version of the same thing).
+//
+// Room system (direct teacher instruction, replacing the old wall tool):
+// rooms come in 5 fixed sizes (large 10x10, medium 8x8, small 6x6, xsmall
+// 4x4, closet 1x2) a student adds from Build Mode — no freeform wall
+// drawing anymore. Every student also gets one fixed Yard (5x5), modeled
+// as an open flat-grass/sky scene like Town Square rather than a walled
+// room, showing their picked house exterior model just outside the 5x5
+// placeable grid (still on the grass) — solid to collide with, and
+// clickable in view mode to walk back inside. Each room (yard included for
+// the exterior's own House swatch) can be renamed (typed or picked from a
+// suggestion list) and, for interior rooms, painted with its own wall
+// color and floor texture independently of every other room.
 
-const ROOM_HALF = 5; // a 10x10 room, centered on the origin
+const HOME_ROOM_SIZES: Record<HomeRoomKind, { w: number; d: number }> = {
+  large: { w: 10, d: 10 },
+  medium: { w: 8, d: 8 },
+  small: { w: 6, d: 6 },
+  xsmall: { w: 4, d: 4 },
+  closet: { w: 1, d: 2 },
+  yard: { w: 5, d: 5 },
+};
+const HOME_ROOM_SIZE_LABELS: Record<HomeRoomKind, string> = {
+  large: 'Large (10×10)',
+  medium: 'Medium (8×8)',
+  small: 'Small (6×6)',
+  xsmall: 'X-Small (4×4)',
+  closet: 'Closet (1×2)',
+  yard: 'Yard (5×5)',
+};
+const ADDABLE_ROOM_KINDS: HomeRoomKind[] = ['large', 'medium', 'small', 'xsmall', 'closet'];
+const ROOM_NAME_SUGGESTIONS = ['Bedroom', 'Kitchen', 'Bathroom', 'Living Room', 'Game Room', 'Office', 'Closet', 'Playroom', 'Dining Room'];
+
 const WALL_HEIGHT = 3;
-const WALL_THICKNESS = 0.2; // matches the room's own 4 boundary walls below
 const GRID_SIZE = 1;
 const OBJECT_MARGIN = 0.5; // keeps a placed item's center off the walls
-const snap = (v: number) => THREE.MathUtils.clamp(Math.round(v / GRID_SIZE) * GRID_SIZE, -ROOM_HALF + OBJECT_MARGIN, ROOM_HALF - OBJECT_MARGIN);
+function snapAxis(v: number, half: number): number {
+  return THREE.MathUtils.clamp(Math.round(v / GRID_SIZE) * GRID_SIZE, -half + OBJECT_MARGIN, half - OBJECT_MARGIN);
+}
 // Direct instruction: windows (and doors, if a future starter item adds
-// one) must be placed on a wall — the room's own 4 boundary walls count,
-// not just a student-drawn interior one, so "next to the edge of the
-// room" already satisfies the rule without needing to draw anything first.
+// one) must be placed on a wall — the room's own 4 boundary walls count.
 const DOOR_WINDOW_RE = /\b(door|window)\b/i;
 const WALL_SNAP_DISTANCE = 0.8;
-// The room's own 4 fixed boundary walls, shaped as WallSegments purely for
-// the door/window placement-gate check below — never stored or synced,
-// just computed once from the room's own constants.
-const BOUNDARY_WALLS: WallSegment[] = [
-  { id: '__boundary-n__', x1: -ROOM_HALF, z1: -ROOM_HALF, x2: ROOM_HALF, z2: -ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
-  { id: '__boundary-s__', x1: -ROOM_HALF, z1: ROOM_HALF, x2: ROOM_HALF, z2: ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
-  { id: '__boundary-w__', x1: -ROOM_HALF, z1: -ROOM_HALF, x2: -ROOM_HALF, z2: ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
-  { id: '__boundary-e__', x1: ROOM_HALF, z1: -ROOM_HALF, x2: ROOM_HALF, z2: ROOM_HALF, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' },
-];
+// The active room's own 4 fixed boundary walls, shaped as WallSegments
+// purely for the door/window placement-gate check below — never stored or
+// synced, computed fresh whenever the active room's size changes.
+function boundaryWallsFor(halfW: number, halfD: number): WallSegment[] {
+  return [
+    { id: '__boundary-n__', x1: -halfW, z1: -halfD, x2: halfW, z2: -halfD, height: WALL_HEIGHT, thickness: 0.2, createdAt: '' },
+    { id: '__boundary-s__', x1: -halfW, z1: halfD, x2: halfW, z2: halfD, height: WALL_HEIGHT, thickness: 0.2, createdAt: '' },
+    { id: '__boundary-w__', x1: -halfW, z1: -halfD, x2: -halfW, z2: halfD, height: WALL_HEIGHT, thickness: 0.2, createdAt: '' },
+    { id: '__boundary-e__', x1: halfW, z1: -halfD, x2: halfW, z2: halfD, height: WALL_HEIGHT, thickness: 0.2, createdAt: '' },
+  ];
+}
 
 type ScaleTarget = { kind: 'footprint'; value: number } | { kind: 'cube'; value: number };
-interface StarterItem {
+interface PlaceableItem {
   id: string;
   modelPath: string;
   label: string;
-  thumbnail: string;
+  thumbnail?: string;
+  icon?: string; // fallback catalog-button art when no rendered thumbnail exists yet
   target: ScaleTarget;
+  priceCents?: number; // undefined = free (interior starter catalog); set = a real yard purchase, charged on placement
 }
 // Real, already-licensed models this project already ships under
 // public/world/models/interior/ (the same Quaternius house-furniture pack
 // WorldEditor's own 'interior' category uses) — picked as the single most
 // standard/plain option per category, matching "one couch, one bed, one
 // window" rather than offering the teacher's whole interior catalog.
-const STARTER_ITEMS: StarterItem[] = [
+const STARTER_ITEMS: PlaceableItem[] = [
   { id: 'couch', modelPath: '/world/models/interior/couch-medium1.glb', label: 'Couch', thumbnail: '/world/thumbnails/interior_couch-medium1.png', target: { kind: 'footprint', value: 2 } },
   { id: 'bed', modelPath: '/world/models/interior/bed-single.glb', label: 'Bed', thumbnail: '/world/thumbnails/interior_bed-single.png', target: { kind: 'footprint', value: 2 } },
   { id: 'cabinet', modelPath: '/world/models/interior/kitchen-cabinet1.glb', label: 'Cabinet', thumbnail: '/world/thumbnails/interior_kitchen-cabinet1.png', target: { kind: 'cube', value: 1 } },
   { id: 'houseplant', modelPath: '/world/models/interior/houseplant-1.glb', label: 'Plant', thumbnail: '/world/thumbnails/interior_houseplant-1.png', target: { kind: 'footprint', value: 0.6 } },
   { id: 'window', modelPath: '/world/models/interior/window-large1.glb', label: 'Window', thumbnail: '/world/thumbnails/interior_window-large1.png', target: { kind: 'cube', value: 1.2 } },
 ];
+// Yard décor — a real Class Cash purchase (direct instruction: "students
+// can purchase playground assets for yard such as swings"). The asset
+// library doesn't have a dedicated swing-set model yet (checked before
+// building this list), so this starts from the closest real assets already
+// uploaded — a slide plus a few real yard/garden props — rather than
+// inventing a model path that doesn't exist; more playground packs can
+// extend this list the same way every other catalog in this app grows.
+const YARD_ITEMS: PlaceableItem[] = [
+  { id: 'yard-slide', modelPath: '/world/models/props/playground-slide.glb', label: 'Slide', icon: '🛝', target: { kind: 'footprint', value: 2.2 }, priceCents: 15000 },
+  { id: 'yard-bench', modelPath: '/world/models/city/bench2.glb', label: 'Bench', icon: '🪑', thumbnail: '/world/thumbnails/city_bench2.png', target: { kind: 'footprint', value: 1.4 }, priceCents: 6000 },
+  { id: 'yard-garden', modelPath: '/world/models/city/garden1.glb', label: 'Garden', icon: '🌷', thumbnail: '/world/thumbnails/city_garden1.png', target: { kind: 'footprint', value: 1.6 }, priceCents: 8000 },
+  { id: 'yard-fence', modelPath: '/world/models/farm/fence.glb', label: 'Fence', icon: '🚧', thumbnail: '/world/thumbnails/farm_fence.png', target: { kind: 'footprint', value: 2 }, priceCents: 5000 },
+];
+const CATALOG_ITEMS: PlaceableItem[] = [...STARTER_ITEMS, ...YARD_ITEMS];
 
 const WALL_COLOR_OPTIONS = ['#f3ece0', '#cfe6f2', '#d9f0d6', '#fbe3ea', '#fdf1c9', '#e6ddf5'];
 const FLOOR_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
@@ -102,13 +147,21 @@ const FLOOR_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
 ];
 const DEFAULT_FLOOR_COLOR = '#dfd2b6';
 const DEFAULT_WALL_COLOR = '#f3ece0';
+const YARD_GRASS_COLOR = '#5fae4c';
+const YARD_SKY_COLOR = '#8ecbef';
+// How far outside the yard's own 5x5 placeable grid the exterior house
+// model sits — "the exterior sits separate from the yard grid, but still
+// placed on grass" (direct instruction) — plus its own click-to-collide
+// footprint, so a student can't walk through or around it.
+const EXTERIOR_CLEARANCE = 3;
+const EXTERIOR_SCALE = 3;
+const EXTERIOR_COLLISION_RADIUS = 3;
 
 // Claudia's asset-sizing audit: a 0.05 floor here (matching WorldEditor's
 // old bound, since fixed to 0.0005 for the same reason) silently
-// overrode every one of these 5 starter items' real calibration — all 5
-// have raw sizes in the hundreds of units, so their true ideal scale
-// (target ÷ raw) is smaller than 0.05, e.g. the bed's ideal 2/394≈0.005
-// was being forced up to 0.05, a bed nearly twice the room's own width.
+// overrode every one of these starter items' real calibration — most have
+// raw sizes in the hundreds of units, so their true ideal scale (target ÷
+// raw) is smaller than 0.05.
 const SCALE_FLOOR = 0.0005;
 function computeStarterScale(size: THREE.Vector3, target: ScaleTarget): number {
   const dim = target.kind === 'cube' ? Math.max(size.x, size.y, size.z) : Math.max(size.x, size.z);
@@ -116,16 +169,16 @@ function computeStarterScale(size: THREE.Vector3, target: ScaleTarget): number {
 }
 // Half of each item's real-world target size, for the view-mode collision
 // circle below — a plant shouldn't block movement over as wide a radius
-// as a couch, and the room is small enough that the flat radius Town
-// Square uses for its own placed objects would feel cramped here.
+// as a couch or a slide.
 const ROOM_OBJECT_COLLISION_RADIUS = (target: ScaleTarget) => THREE.MathUtils.clamp(target.value / 2, 0.3, 1.2);
 
-// Measures each starter model's real bounding box once (via the same
+// Measures each catalog model's real bounding box once (via the same
 // Suspense-friendly useGLTF technique WorldEditor's GhostScaleReporter
-// uses) and reports its calibrated scale back up — computed once per
-// model load, cached by the parent, so placing several of the same item
-// doesn't redo the measurement.
-function StarterScaleLoader({ item, onScale }: { item: StarterItem; onScale: (id: string, scale: number) => void }) {
+// uses) and reports its calibrated scale back up — measured once for the
+// WHOLE combined interior+yard catalog regardless of which room is active,
+// so switching between a bedroom and the yard never re-triggers a loading
+// flash.
+function StarterScaleLoader({ item, onScale }: { item: PlaceableItem; onScale: (id: string, scale: number) => void }) {
   const { scene } = useGLTF(item.modelPath);
   useEffect(() => {
     const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
@@ -151,7 +204,6 @@ const CHARACTER_SCALE = 2.6;
 const ROOM_MOVE_SPEED = 3.0;
 const ROOM_CAMERA_HEIGHT = 2.3;
 const ROOM_CAMERA_DISTANCE = 3.4;
-const ROOM_SPAWN = { x: 0, z: ROOM_HALF - 1.2 };
 
 function useRoomKeys() {
   const keys = useRef<Record<string, boolean>>({});
@@ -196,20 +248,16 @@ function RoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
 // STATIC_OBSTACLES circle-push-out (TownSquare.tsx's blockObstacles) —
 // same nearest-point push-out math, just a plain function here instead of
 // module-level state, since a room's furniture list is already scoped to
-// one student and doesn't need Town Square's teacher-edit-driven rebuild.
-// Radius comes from each starter item's own real-world target size (half
-// its footprint/cube value), not the tiny GLB scale multiplier stored on
-// the object — that multiplier means something different in this file
-// (see computeStarterScale) than the "scale tracks real-world size"
-// assumption Town Square's own WORLD_OBJECT_COLLISION_RADIUS relies on.
+// one student's one room. Radius comes from each catalog item's own
+// real-world target size (half its footprint/cube value), not the tiny GLB
+// scale multiplier stored on the object.
 interface RoomObstacle { x: number; z: number; radius: number }
 // Same two real bugs fixed here as TownSquare.tsx's own blockObstacles/
 // blockBuildings (direct teacher report, screenshot-confirmed there): a
 // `dist > 0` guard alone left a student mathematically stuck if their
-// position ever landed exactly on a furniture piece's center (push
-// direction divides by zero), and pushing out to exactly the object's
-// collision radius — zero clearance — let an animated model's arms
-// visibly poke through it.
+// position ever landed exactly on an obstacle's center, and pushing out to
+// exactly the collision radius — zero clearance — let an animated model's
+// arms visibly poke through it.
 const ROOM_OBSTACLE_CLEARANCE = 0.55;
 function blockRoomObstacles(x: number, z: number, obstacles: RoomObstacle[]): [number, number] {
   let [bx, bz] = [x, z];
@@ -227,14 +275,26 @@ function blockRoomObstacles(x: number, z: number, obstacles: RoomObstacle[]): [n
   return [bx, bz];
 }
 
-function RoomPlayer({ walkTarget, obstacles, walls }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: RoomObstacle[]; walls: WallSegment[] }) {
+// halfW/halfD/spawn vary per active room (and the yard has no boundary
+// walls at all — its own bounds are just wider open grass), so the parent
+// renders this with `key={activeRoomId}` to force a fresh mount (and a
+// fresh spawn position) on every room switch instead of trying to migrate
+// position state across completely different room geometries.
+function RoomPlayer({ walkTarget, obstacles, halfW, halfD, spawn }: {
+  walkTarget: React.RefObject<{ x: number; z: number } | null>;
+  obstacles: RoomObstacle[];
+  halfW: number;
+  halfD: number;
+  spawn: { x: number; z: number };
+}) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useRoomKeys();
   const { camera } = useThree();
-  const pos = useRef(new THREE.Vector3(ROOM_SPAWN.x, 0, ROOM_SPAWN.z));
+  const pos = useRef(new THREE.Vector3(spawn.x, 0, spawn.z));
   const facing = useRef(0);
   const isMoving = useRef(false);
-  const bound = ROOM_HALF - 0.5;
+  const boundX = Math.max(0, halfW - 0.5);
+  const boundZ = Math.max(0, halfD - 0.5);
 
   useFrame((_, dt) => {
     if (!groupRef.current) return;
@@ -247,10 +307,9 @@ function RoomPlayer({ walkTarget, obstacles, walls }: { walkTarget: React.RefObj
       walkTarget.current = null;
       dx /= len;
       dz /= len;
-      const nx = THREE.MathUtils.clamp(pos.current.x + dx * ROOM_MOVE_SPEED * dt, -bound, bound);
-      const nz = THREE.MathUtils.clamp(pos.current.z + dz * ROOM_MOVE_SPEED * dt, -bound, bound);
-      const [wx, wz] = blockWallSegments(nx, nz, walls);
-      [pos.current.x, pos.current.z] = blockRoomObstacles(wx, wz, obstacles);
+      const nx = THREE.MathUtils.clamp(pos.current.x + dx * ROOM_MOVE_SPEED * dt, -boundX, boundX);
+      const nz = THREE.MathUtils.clamp(pos.current.z + dz * ROOM_MOVE_SPEED * dt, -boundZ, boundZ);
+      [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
       facing.current = Math.atan2(dx, dz);
       moved = true;
     } else if (walkTarget.current) {
@@ -262,10 +321,9 @@ function RoomPlayer({ walkTarget, obstacles, walls }: { walkTarget: React.RefObj
       } else {
         const ndx = tx / dist;
         const ndz = tz / dist;
-        const nx = THREE.MathUtils.clamp(pos.current.x + ndx * ROOM_MOVE_SPEED * dt, -bound, bound);
-        const nz = THREE.MathUtils.clamp(pos.current.z + ndz * ROOM_MOVE_SPEED * dt, -bound, bound);
-        const [wx, wz] = blockWallSegments(nx, nz, walls);
-        [pos.current.x, pos.current.z] = blockRoomObstacles(wx, wz, obstacles);
+        const nx = THREE.MathUtils.clamp(pos.current.x + ndx * ROOM_MOVE_SPEED * dt, -boundX, boundX);
+        const nz = THREE.MathUtils.clamp(pos.current.z + ndz * ROOM_MOVE_SPEED * dt, -boundZ, boundZ);
+        [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
         facing.current = Math.atan2(ndx, ndz);
         moved = true;
       }
@@ -328,10 +386,12 @@ export default function HomeRoom() {
   const addWorldObject = useStore((s) => s.addWorldObject);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
-  const allWallSegments = useStore((s) => s.wallSegments);
-  const addWallSegment = useStore((s) => s.addWallSegment);
-  const deleteWallSegment = useStore((s) => s.deleteWallSegment);
   const updateStudent = useStore((s) => s.updateStudent);
+  const recordTransaction = useStore((s) => s.recordTransaction);
+  const homeRooms = useStore((s) => s.homeRooms);
+  const addHomeRoom = useStore((s) => s.addHomeRoom);
+  const updateHomeRoom = useStore((s) => s.updateHomeRoom);
+  const deleteHomeRoom = useStore((s) => s.deleteHomeRoom);
   const pets = useStore((s) => s.pets);
   const carePet = useStore((s) => s.carePet);
   const renamePet = useStore((s) => s.renamePet);
@@ -352,53 +412,116 @@ export default function HomeRoom() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
-  // Sims 4-style Wall tool, same shape as WorldEditor.tsx's own — click and
-  // drag to draw one segment, release to commit, stays armed for the next.
-  const [wallMode, setWallMode] = useState(false);
-  const [wallStart, setWallStart] = useState<{ x: number; z: number } | null>(null);
-  const [wallEnd, setWallEnd] = useState<{ x: number; z: number } | null>(null);
-  const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
-  const [wallPlacementError, setWallPlacementError] = useState<string | null>(null);
   // Direct instruction: students get the same Hammer tool the teacher's
   // own Build Mode already has (WorldEditor.tsx) — equip it, then tap any
-  // placed item or wall to delete it instantly, no confirm step.
+  // placed item to delete it instantly, no confirm step.
   const [hammerMode, setHammerMode] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
+  const [placementError, setPlacementError] = useState<string | null>(null);
   useEffect(() => {
-    if (!wallPlacementError) return;
-    const t = window.setTimeout(() => setWallPlacementError(null), 3200);
+    if (!placementError) return;
+    const t = window.setTimeout(() => setPlacementError(null), 3200);
     return () => window.clearTimeout(t);
-  }, [wallPlacementError]);
+  }, [placementError]);
+
+  // Room system state.
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [roomPanelOpen, setRoomPanelOpen] = useState(false);
+  const [addRoomOpen, setAddRoomOpen] = useState(false);
+  const [confirmDeleteRoom, setConfirmDeleteRoom] = useState(false);
+  const ensuredDefaultRoomRef = useRef(false);
+  const ensuredYardRef = useRef(false);
+
+  const [petPanelOpen, setPetPanelOpen] = useState(false);
+  const [petConfirmSellId, setPetConfirmSellId] = useState<string | null>(null);
+
+  // Declared up here (not down by topView's own definition below) so these
+  // two hook calls always run before either of this component's early
+  // returns (!student / !activeRoom) — calling a hook only on some renders
+  // of the same mounted instance is a real React rules-of-hooks violation,
+  // and !activeRoom briefly true (new student, migration effect still
+  // settling) makes that transition a lot more likely to actually happen
+  // here than it looks.
+  const [isTopView, setIsTopView] = useState(false);
+  const preTopViewCamera = useRef<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
 
   const myObjects = useMemo(
     () => (student ? worldObjects.filter((o) => o.studentId === student.id) : []),
     [worldObjects, student]
   );
-  const myWalls = useMemo(
-    () => (student ? allWallSegments.filter((w) => w.studentId === student.id) : []),
-    [allWallSegments, student]
+  const myRooms = useMemo(
+    () => (student ? homeRooms.filter((r) => r.studentId === student.id) : []),
+    [homeRooms, student]
   );
-  const selected = myObjects.find((o) => o.id === selectedId) ?? null;
+  const interiorRooms = useMemo(
+    () => myRooms.filter((r) => r.kind !== 'yard').sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1)),
+    [myRooms]
+  );
+  const yardRoom = myRooms.find((r) => r.kind === 'yard') ?? null;
+  const activeRoom = myRooms.find((r) => r.id === activeRoomId) ?? null;
+  const isYard = activeRoom?.kind === 'yard';
+
+  // One-time migration: a student with no rooms yet either just started
+  // (brand new) or is an existing student from before the room system
+  // shipped (their furniture still has studentId set but no roomId) — both
+  // get a real default "My Room" (large, 10x10 — matching the old fixed
+  // room's own size so nothing already placed changes size/position) with
+  // every un-roomed object of theirs migrated into it. Every student also
+  // always gets exactly one Yard. The ref guards stop StrictMode's double-
+  // invoke (or a slow round-trip render) from creating two default rooms.
+  useEffect(() => {
+    if (!student) return;
+    if (interiorRooms.length === 0 && !ensuredDefaultRoomRef.current) {
+      ensuredDefaultRoomRef.current = true;
+      const legacyObjectIds = worldObjects.filter((o) => o.studentId === student.id && !o.roomId).map((o) => o.id);
+      const newRoomId = addHomeRoom(student.id, 'large', 'My Room');
+      legacyObjectIds.forEach((id) => updateWorldObject(id, { roomId: newRoomId }));
+      setActiveRoomId(newRoomId);
+    } else if (interiorRooms.length > 0 && !activeRoomId) {
+      setActiveRoomId(interiorRooms[0].id);
+    }
+    if (!yardRoom && !ensuredYardRef.current) {
+      ensuredYardRef.current = true;
+      addHomeRoom(student.id, 'yard', 'Yard');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student, interiorRooms, yardRoom, worldObjects]);
+
+  const roomObjects = useMemo(
+    () => (activeRoomId ? myObjects.filter((o) => o.roomId === activeRoomId) : []),
+    [myObjects, activeRoomId]
+  );
+  const selected = roomObjects.find((o) => o.id === selectedId) ?? null;
+
+  const { w: roomW, d: roomD } = activeRoom ? HOME_ROOM_SIZES[activeRoom.kind] : { w: 10, d: 10 };
+  const halfW = roomW / 2;
+  const halfD = roomD / 2;
+  const boundaryWalls = useMemo(() => boundaryWallsFor(halfW, halfD), [halfW, halfD]);
+  const roomSpawn = useMemo(
+    () => ({ x: 0, z: THREE.MathUtils.clamp(halfD - 1.2, -halfD + 0.5, halfD - 0.5) }),
+    [halfD]
+  );
+  const activeCatalog: PlaceableItem[] = isYard ? YARD_ITEMS : STARTER_ITEMS;
+
+  const exteriorObstacle: RoomObstacle | null = isYard ? { x: 0, z: -(halfD + EXTERIOR_CLEARANCE), radius: EXTERIOR_COLLISION_RADIUS } : null;
   // View-mode furniture collision (blockRoomObstacles above) — only
   // matters while walking around, so it's fine to recompute whenever the
-  // room's own objects change rather than gating on mode.
-  const roomObstacles = useMemo(
-    () =>
-      myObjects
-        .map((o) => {
-          const item = STARTER_ITEMS.find((it) => it.modelPath === o.modelPath);
-          return item ? { x: o.position[0], z: o.position[2], radius: ROOM_OBJECT_COLLISION_RADIUS(item.target) } : null;
-        })
-        .filter((o): o is { x: number; z: number; radius: number } => o !== null),
-    [myObjects]
-  );
+  // active room's own objects change rather than gating on mode.
+  const roomObstacles = useMemo(() => {
+    const base = roomObjects
+      .map((o) => {
+        const item = CATALOG_ITEMS.find((it) => it.modelPath === o.modelPath);
+        return item ? { x: o.position[0], z: o.position[2], radius: ROOM_OBJECT_COLLISION_RADIUS(item.target) } : null;
+      })
+      .filter((o): o is RoomObstacle => o !== null);
+    return exteriorObstacle ? [...base, exteriorObstacle] : base;
+  }, [roomObjects, exteriorObstacle]);
+
   const myPets = useMemo(
     () => (student ? pets.filter((p) => p.studentId === student.id) : []),
     [pets, student]
   );
-  const [petPanelOpen, setPetPanelOpen] = useState(false);
-  const [petConfirmSellId, setPetConfirmSellId] = useState<string | null>(null);
 
   // Direct instruction: "Build mode must save if the student toggles
   // between tabs or apps. It must have an auto save, but there must
@@ -431,26 +554,19 @@ export default function HomeRoom() {
     };
   }, [student, myObjects]);
 
-  // All 5 starter models measure in the high hundreds of raw units (this
-  // pack's own native scale — the exact same "wildly different native
-  // units per pack" bug devThumbRender.ts already documents), so a
-  // correctly calibrated scale is always a small fraction. Placing before
-  // that measurement finishes would otherwise silently fall back to a
-  // literal scale of 1 — a couch (or worse, the bed) rendered at its
-  // ~200-400-raw-unit native size, dwarfing the whole 10-unit room. Both
-  // guards below close that hole: buttons stay disabled until every
-  // starter model has actually been measured, and any already-placed
-  // object whose scale doesn't match what its model should calibrate to
-  // (off by more than 3x either way — comfortably outside anything a
-  // couple of the resize buttons' 1.15x taps could produce) gets silently
-  // corrected on load, since every object here comes from this fixed,
-  // known 5-item catalog — there's no legitimate reason one would ever
-  // carry its raw, unscaled size.
-  const scalesReady = STARTER_ITEMS.every((it) => scales[it.id] !== undefined);
+  // Every catalog model (interior + yard, ~9 total) measures wildly
+  // different raw native units per pack, so a correctly calibrated scale
+  // is always a small fraction. Placing before that measurement finishes
+  // would otherwise silently fall back to a literal scale of 1. Both
+  // guards below close that hole: catalog buttons stay disabled until
+  // every model has actually been measured, and any already-placed object
+  // whose scale doesn't match what its model should calibrate to (off by
+  // more than 3x either way) gets silently corrected on load.
+  const scalesReady = CATALOG_ITEMS.every((it) => scales[it.id] !== undefined);
   useEffect(() => {
     if (!scalesReady) return;
     for (const obj of myObjects) {
-      const item = STARTER_ITEMS.find((it) => it.modelPath === obj.modelPath);
+      const item = CATALOG_ITEMS.find((it) => it.modelPath === obj.modelPath);
       if (!item) continue;
       const correct = scales[item.id];
       if (obj.scale > correct * 3 || obj.scale < correct / 3) {
@@ -471,23 +587,66 @@ export default function HomeRoom() {
   }, [draggingId]);
 
   if (!student) return null;
+  if (!activeRoom) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#dce8ee', fontFamily: 'system-ui, sans-serif', fontWeight: 700, color: '#1f4238' }}>
+        Getting your home ready…
+      </div>
+    );
+  }
 
-  const armedItem = STARTER_ITEMS.find((it) => it.id === armedId) ?? null;
+  const armedItem = CATALOG_ITEMS.find((it) => it.id === armedId) ?? null;
+
+  const switchRoom = (id: string) => {
+    setActiveRoomId(id);
+    setArmedId(null);
+    setSelectedId(null);
+    setDraggingId(null);
+    setConfirmDeleteId(null);
+    setHammerMode(false);
+    setIsTopView(false);
+    setRoomPanelOpen(false);
+    setAddRoomOpen(false);
+    setConfirmDeleteRoom(false);
+    walkTarget.current = null;
+  };
+
+  const handleAddRoom = (kind: HomeRoomKind) => {
+    const id = addHomeRoom(student.id, kind);
+    flashSaved();
+    switchRoom(id);
+  };
+
+  const handleDeleteRoom = () => {
+    if (isYard || interiorRooms.length <= 1) return;
+    if (!confirmDeleteRoom) {
+      setConfirmDeleteRoom(true);
+      setTimeout(() => setConfirmDeleteRoom(false), 2500);
+      return;
+    }
+    const remaining = interiorRooms.filter((r) => r.id !== activeRoom.id);
+    deleteHomeRoom(activeRoom.id);
+    setConfirmDeleteRoom(false);
+    if (remaining[0]) switchRoom(remaining[0].id);
+  };
 
   // Direct instruction: windows (and doors, if one's ever added) can only
-  // be placed on a wall — the room's own 4 boundary walls count, not just
-  // a student-drawn one, so a new room with nothing drawn yet still works.
+  // be placed on a wall — the active room's own 4 boundary walls count.
   const placeAt = (x: number, z: number) => {
     // Belt-and-suspenders alongside the disabled catalog buttons above —
     // never place at the raw un-calibrated scale.
     if (!armedItem || scales[armedItem.id] === undefined) return;
-    let px = snap(x);
-    let pz = snap(z);
+    if (armedItem.priceCents && student.coins < armedItem.priceCents) {
+      setPlacementError("You don't have enough Class Cash for that yet.");
+      return;
+    }
+    let px = snapAxis(x, halfW);
+    let pz = snapAxis(z, halfD);
     let rotationY = 0;
     if (DOOR_WINDOW_RE.test(armedItem.label)) {
-      const snapWall = nearestWall(x, z, [...BOUNDARY_WALLS, ...myWalls], WALL_SNAP_DISTANCE);
+      const snapWall = nearestWall(x, z, boundaryWalls, WALL_SNAP_DISTANCE);
       if (!snapWall) {
-        setWallPlacementError('Windows need to be placed on a wall — try the edge of the room, or draw one with 🧱 Wall.');
+        setPlacementError('Windows need to be placed against a wall — try the edge of the room.');
         return;
       }
       px = snapWall.x;
@@ -501,16 +660,19 @@ export default function HomeRoom() {
       rotationY,
       scale: scales[armedItem.id],
       studentId: student.id,
+      roomId: activeRoom.id,
     });
+    if (armedItem.priceCents) {
+      recordTransaction(student.id, -armedItem.priceCents, `Yard: ${armedItem.label}`, armedItem.icon ?? '🌳', 'purchase-yard');
+    }
     setArmedId(null);
     flashSaved();
   };
 
   const handleFloorClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    if (wallMode) return; // walls are placed by the pointerdown/up drag below, not a click
     if (mode === 'view') {
-      walkTarget.current = { x: THREE.MathUtils.clamp(e.point.x, -ROOM_HALF + 0.5, ROOM_HALF - 0.5), z: THREE.MathUtils.clamp(e.point.z, -ROOM_HALF + 0.5, ROOM_HALF - 0.5) };
+      walkTarget.current = { x: THREE.MathUtils.clamp(e.point.x, -halfW + 0.5, halfW - 0.5), z: THREE.MathUtils.clamp(e.point.z, -halfD + 0.5, halfD - 0.5) };
       return;
     }
     if (armedItem) {
@@ -519,69 +681,22 @@ export default function HomeRoom() {
       setDraggingId(null);
     } else {
       setSelectedId(null);
-      setSelectedWallId(null);
     }
   };
   const handleFloorPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (mode !== 'build') return;
-    if (draggingId) {
-      e.stopPropagation();
-      updateWorldObject(draggingId, { position: [snap(e.point.x), 0, snap(e.point.z)] });
-    } else if (wallMode && wallStart) {
-      e.stopPropagation();
-      setWallEnd({ x: snap(e.point.x), z: snap(e.point.z) });
-    }
-  };
-  const handleFloorPointerDown = (e: ThreeEvent<PointerEvent>) => {
-    if (mode !== 'build' || !wallMode) return;
+    if (mode !== 'build' || !draggingId) return;
     e.stopPropagation();
-    const pt = { x: snap(e.point.x), z: snap(e.point.z) };
-    setWallStart(pt);
-    setWallEnd(pt);
-  };
-  // A pointer released outside the floor plane would otherwise leave the
-  // wall-draw gesture stuck forever — same window-level fallback the rest
-  // of this app's drag/draw gestures already rely on.
-  useEffect(() => {
-    if (!wallMode || !wallStart) return;
-    const commit = () => {
-      if (wallEnd) {
-        const len = Math.hypot(wallEnd.x - wallStart.x, wallEnd.z - wallStart.z);
-        if (len >= GRID_SIZE * 0.5) {
-          addWallSegment({ x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_HEIGHT, thickness: WALL_THICKNESS, studentId: student.id });
-          flashSaved();
-        }
-      }
-      setWallStart(null);
-      setWallEnd(null);
-    };
-    window.addEventListener('pointerup', commit);
-    return () => window.removeEventListener('pointerup', commit);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallMode, wallStart, wallEnd]);
-  const toggleWallMode = () => {
-    setArmedId(null);
-    setSelectedId(null);
-    setSelectedWallId(null);
-    setWallStart(null);
-    setHammerMode(false);
-    setWallMode((v) => !v);
+    updateWorldObject(draggingId, { position: [snapAxis(e.point.x, halfW), 0, snapAxis(e.point.z, halfD)] });
   };
   const toggleHammerMode = () => {
     setArmedId(null);
     setSelectedId(null);
-    setSelectedWallId(null);
-    setWallMode(false);
-    setWallStart(null);
     setHammerMode((v) => !v);
   };
   // Same straight-down bird's-eye camera trick as WorldEditor.tsx's own
-  // Top View / T shortcut, sized for this room's much smaller footprint
-  // (a 10x10 room, not an open town square). Direct instruction: pressing
-  // the button again while already in Top View returns to exactly where
-  // the camera was, a real toggle.
-  const [isTopView, setIsTopView] = useState(false);
-  const preTopViewCamera = useRef<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
+  // Top View / T shortcut, sized for the active room's own footprint.
+  // Direct instruction: pressing the button again while already in Top
+  // View returns to exactly where the camera was, a real toggle.
   const topView = () => {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -599,7 +714,7 @@ export default function HomeRoom() {
       position: [controls.object.position.x, controls.object.position.y, controls.object.position.z],
       target: [controls.target.x, controls.target.y, controls.target.z],
     };
-    controls.object.position.set(0, ROOM_HALF * 3.5, 0.01);
+    controls.object.position.set(0, Math.max(halfW, halfD) * 3.5, 0.01);
     controls.target.set(0, 0, 0);
     controls.update();
     setIsTopView(true);
@@ -634,16 +749,15 @@ export default function HomeRoom() {
     setArmedId(null);
     setSelectedId(null);
     setDraggingId(null);
-    setWallMode(false);
-    setWallStart(null);
-    setSelectedWallId(null);
     setHammerMode(false);
     setIsTopView(false);
+    setRoomPanelOpen(false);
+    setAddRoomOpen(false);
     setMode('view');
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#dce8ee' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: isYard ? YARD_SKY_COLOR : '#dce8ee' }}>
       <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 60, display: 'flex', gap: 10, alignItems: 'center' }}>
         <button
           className="btn btn-sm"
@@ -656,6 +770,43 @@ export default function HomeRoom() {
           🏠 {student.name}'s Home
         </span>
       </div>
+
+      {/* Room switcher — always available, in either mode; "+ Add Room" only in Build. */}
+      <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: '60vw', justifyContent: 'center' }}>
+        {interiorRooms.map((r) => (
+          <button
+            key={r.id}
+            className="btn btn-sm"
+            style={{ minHeight: 36, fontSize: 12, background: activeRoomId === r.id ? '#3e7c6b' : '#fff', color: activeRoomId === r.id ? '#fff' : undefined, fontWeight: 700 }}
+            onClick={() => switchRoom(r.id)}
+          >
+            {r.name}
+          </button>
+        ))}
+        {yardRoom && (
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 36, fontSize: 12, background: activeRoomId === yardRoom.id ? '#3e7c6b' : '#fff', color: activeRoomId === yardRoom.id ? '#fff' : undefined, fontWeight: 700 }}
+            onClick={() => switchRoom(yardRoom.id)}
+          >
+            🌳 Yard
+          </button>
+        )}
+        {mode === 'build' && (
+          <button className="btn btn-sm" style={{ minHeight: 36, fontSize: 12, fontWeight: 700 }} onClick={() => setAddRoomOpen((v) => !v)}>
+            + Add Room
+          </button>
+        )}
+      </div>
+      {addRoomOpen && (
+        <div style={{ position: 'fixed', top: 58, left: '50%', transform: 'translateX(-50%)', zIndex: 61, background: '#fff', borderRadius: 12, padding: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 300, justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
+          {ADDABLE_ROOM_KINDS.map((k) => (
+            <button key={k} className="btn btn-sm" style={{ minHeight: 40, fontSize: 11 }} onClick={() => handleAddRoom(k)}>
+              {HOME_ROOM_SIZE_LABELS[k]}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: 8 }}>
         <button
@@ -746,8 +897,8 @@ export default function HomeRoom() {
         </div>
       )}
 
-      <Canvas camera={{ position: [0, 9, 11], fov: 50 }} shadows>
-        <color attach="background" args={['#dce8ee']} />
+      <Canvas key={activeRoom.id} camera={{ position: [0, 9, 11], fov: 50 }} shadows>
+        <color attach="background" args={[isYard ? YARD_SKY_COLOR : '#dce8ee']} />
         <ambientLight intensity={0.9} />
         <directionalLight position={[6, 12, 6]} intensity={1.1} castShadow />
         {mode === 'build' ? (
@@ -756,7 +907,7 @@ export default function HomeRoom() {
           <OrbitControls
             ref={controlsRef}
             makeDefault
-            enabled={!draggingId && !wallStart}
+            enabled={!draggingId}
             maxPolarAngle={Math.PI / 2.3}
             minDistance={6}
             maxDistance={18}
@@ -764,69 +915,73 @@ export default function HomeRoom() {
           />
         ) : (
           <>
-            <RoomPlayer walkTarget={walkTarget} obstacles={roomObstacles} walls={myWalls} />
+            <RoomPlayer walkTarget={walkTarget} obstacles={roomObstacles} halfW={halfW} halfD={halfD} spawn={roomSpawn} />
             <WalkTargetMarker walkTarget={walkTarget} />
           </>
         )}
 
         <Suspense fallback={null}>
-          {STARTER_ITEMS.map((item) => (
+          {CATALOG_ITEMS.map((item) => (
             <StarterScaleLoader key={item.id} item={item} onScale={(id, scale) => setScales((s) => (s[id] === scale ? s : { ...s, [id]: scale }))} />
           ))}
         </Suspense>
 
-        {/* Floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={handleFloorClick} onPointerMove={handleFloorPointerMove} onPointerDown={handleFloorPointerDown}>
-          <planeGeometry args={[ROOM_HALF * 2, ROOM_HALF * 2]} />
-          {student.homeFloorTexture ? (
-            <Suspense fallback={<meshStandardMaterial color={DEFAULT_FLOOR_COLOR} />}>
-              <FloorMaterial path={student.homeFloorTexture} />
-            </Suspense>
-          ) : (
-            <meshStandardMaterial color={DEFAULT_FLOOR_COLOR} />
-          )}
-        </mesh>
-        {mode === 'build' && <gridHelper args={[ROOM_HALF * 2, ROOM_HALF * 2, '#8a9a8e', '#8a9a8e']} position={[0, 0.02, 0]} />}
-
-        {/* 4 walls, no roof (direct instruction) */}
-        {[
-          { pos: [0, WALL_HEIGHT / 2, -ROOM_HALF] as [number, number, number], size: [ROOM_HALF * 2, WALL_HEIGHT, 0.2] as [number, number, number] },
-          { pos: [0, WALL_HEIGHT / 2, ROOM_HALF] as [number, number, number], size: [ROOM_HALF * 2, WALL_HEIGHT, 0.2] as [number, number, number] },
-          { pos: [-ROOM_HALF, WALL_HEIGHT / 2, 0] as [number, number, number], size: [0.2, WALL_HEIGHT, ROOM_HALF * 2] as [number, number, number] },
-          { pos: [ROOM_HALF, WALL_HEIGHT / 2, 0] as [number, number, number], size: [0.2, WALL_HEIGHT, ROOM_HALF * 2] as [number, number, number] },
-        ].map((wall, i) => (
-          <mesh key={i} position={wall.pos}>
-            <boxGeometry args={wall.size} />
-            <meshStandardMaterial color={student.homeWallColor || DEFAULT_WALL_COLOR} />
-          </mesh>
-        ))}
-
-        {/* Student-drawn interior walls (🧱 Wall tool) — same simplified
-            "click just selects" interaction the furniture below uses;
-            handlers are left undefined entirely (not a no-op) whenever
-            another tool is active, so pointer events pass through to the
-            floor underneath instead of being silently swallowed. */}
-        {myWalls.map((wall) => {
-          const interactive = mode === 'build' && !wallMode && !armedItem;
-          const isSelected = selectedWallId === wall.id;
-          return (
-            <WallMesh
-              key={wall.id}
-              wall={wall}
-              color={isSelected ? '#e2775c' : undefined}
-              onClick={interactive ? () => { if (hammerMode) { deleteWallSegment(wall.id); flashSaved(); return; } setSelectedWallId(wall.id); } : undefined}
+        {isYard ? (
+          <>
+            {/* Open flat grass, modeled after Town Square's own ground —
+                bigger than the 5x5 placeable grid so the exterior model
+                (outside that grid) still visibly sits "on grass." */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={handleFloorClick} onPointerMove={handleFloorPointerMove}>
+              <planeGeometry args={[24, 24]} />
+              <meshStandardMaterial color={YARD_GRASS_COLOR} />
+            </mesh>
+            {mode === 'build' && <gridHelper args={[roomW, roomW, '#2f6b2a', '#2f6b2a']} position={[0, 0.02, 0]} />}
+            {/* The exterior house model — outside the 5x5 grid, still on
+                the grass, solid (collision above) and click-to-enter. */}
+            <WorldObjectRenderer
+              obj={{
+                id: '__exterior__',
+                modelPath: student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath,
+                label: 'House',
+                position: [0, 0, -(halfD + EXTERIOR_CLEARANCE)],
+                rotationY: Math.PI,
+                scale: EXTERIOR_SCALE,
+                createdAt: '',
+              }}
+              onClick={mode === 'view' ? () => { const back = interiorRooms[0]; if (back) switchRoom(back.id); } : undefined}
             />
-          );
-        })}
-        {wallMode && wallStart && wallEnd && (
-          <WallMesh
-            wall={{ id: '__preview__', x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_HEIGHT, thickness: WALL_THICKNESS, createdAt: '' }}
-            color="#e2775c"
-            opacity={0.6}
-          />
+          </>
+        ) : (
+          <>
+            {/* Floor */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={handleFloorClick} onPointerMove={handleFloorPointerMove}>
+              <planeGeometry args={[roomW, roomD]} />
+              {activeRoom.floorTexture ? (
+                <Suspense fallback={<meshStandardMaterial color={DEFAULT_FLOOR_COLOR} />}>
+                  <FloorMaterial path={activeRoom.floorTexture} />
+                </Suspense>
+              ) : (
+                <meshStandardMaterial color={DEFAULT_FLOOR_COLOR} />
+              )}
+            </mesh>
+            {mode === 'build' && <gridHelper args={[Math.max(roomW, roomD), Math.max(roomW, roomD), '#8a9a8e', '#8a9a8e']} position={[0, 0.02, 0]} />}
+
+            {/* 4 walls, no roof (direct instruction) */}
+            {[
+              { pos: [0, WALL_HEIGHT / 2, -halfD] as [number, number, number], size: [roomW, WALL_HEIGHT, 0.2] as [number, number, number] },
+              { pos: [0, WALL_HEIGHT / 2, halfD] as [number, number, number], size: [roomW, WALL_HEIGHT, 0.2] as [number, number, number] },
+              { pos: [-halfW, WALL_HEIGHT / 2, 0] as [number, number, number], size: [0.2, WALL_HEIGHT, roomD] as [number, number, number] },
+              { pos: [halfW, WALL_HEIGHT / 2, 0] as [number, number, number], size: [0.2, WALL_HEIGHT, roomD] as [number, number, number] },
+            ].map((wall, i) => (
+              <mesh key={i} position={wall.pos}>
+                <boxGeometry args={wall.size} />
+                <meshStandardMaterial color={activeRoom.wallColor || DEFAULT_WALL_COLOR} />
+              </mesh>
+            ))}
+          </>
         )}
 
-        {myObjects.map((obj) => (
+        {roomObjects.map((obj) => (
           <WorldObjectRenderer
             key={obj.id}
             obj={obj}
@@ -845,45 +1000,41 @@ export default function HomeRoom() {
 
       {mode === 'build' && (
         <>
-          {/* Starter catalog — a fixed, small "unlocked" set (direct
-              instruction), not the full teacher catalog. */}
+          {/* Catalog — interior starter set or yard purchases, depending on
+              the active room. */}
           <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60, background: 'rgba(255,255,255,0.95)', borderTop: '3px solid var(--ink, #1f4238)', padding: '10px 12px', display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {STARTER_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                disabled={!scalesReady}
-                onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setWallMode(false); setWallStart(null); setSelectedWallId(null); setHammerMode(false); }}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                  padding: '6px 8px', borderRadius: 12, cursor: scalesReady ? 'pointer' : 'default', fontFamily: 'system-ui, sans-serif',
-                  border: armedId === item.id ? '3px solid #e2775c' : '2px solid var(--content-border, #ccc)',
-                  background: armedId === item.id ? '#fff3ea' : '#fff',
-                  opacity: scalesReady ? 1 : 0.4,
-                }}
-              >
-                <img src={item.thumbnail} alt="" style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
-                <span style={{ fontSize: 11, fontWeight: 700 }}>{item.label}</span>
-              </button>
-            ))}
+            {activeCatalog.map((item) => {
+              const affordable = !item.priceCents || student.coins >= item.priceCents;
+              const disabled = !scalesReady || !affordable;
+              return (
+                <button
+                  key={item.id}
+                  disabled={disabled}
+                  onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setHammerMode(false); }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
+                    padding: '6px 8px', borderRadius: 12, cursor: disabled ? 'default' : 'pointer', fontFamily: 'system-ui, sans-serif',
+                    border: armedId === item.id ? '3px solid #e2775c' : '2px solid var(--content-border, #ccc)',
+                    background: armedId === item.id ? '#fff3ea' : '#fff',
+                    opacity: disabled ? 0.4 : 1,
+                  }}
+                >
+                  {item.thumbnail ? (
+                    <img src={item.thumbnail} alt="" style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
+                  ) : (
+                    <span style={{ fontSize: 28 }}>{item.icon}</span>
+                  )}
+                  <span style={{ fontSize: 11, fontWeight: 700 }}>{item.label}</span>
+                  {item.priceCents !== undefined && <span style={{ fontSize: 10, opacity: 0.7 }}>{formatMoney(item.priceCents)}</span>}
+                </button>
+              );
+            })}
             {!scalesReady && (
               <span style={{ display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#666', fontFamily: 'system-ui, sans-serif' }}>
                 Getting furniture ready…
               </span>
             )}
             <span style={{ width: 2, alignSelf: 'stretch', background: '#ddd' }} />
-            <button
-              onClick={toggleWallMode}
-              title="Wall: drag on the floor to draw one — windows need a wall"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
-                border: wallMode ? '3px solid #8b5cf6' : '2px solid var(--content-border, #ccc)',
-                background: wallMode ? '#f1eafe' : '#fff',
-              }}
-            >
-              <span style={{ fontSize: 22 }}>🧱</span>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>Wall</span>
-            </button>
             <button
               onClick={toggleHammerMode}
               title="Hammer: tap anything to delete it instantly, no confirmation"
@@ -910,6 +1061,19 @@ export default function HomeRoom() {
               <span style={{ fontSize: 22 }}>{isTopView ? '🔽' : '🔼'}</span>
               <span style={{ fontSize: 11, fontWeight: 700 }}>{isTopView ? 'Regular' : 'Top View'}</span>
             </button>
+            <button
+              onClick={() => setRoomPanelOpen((v) => !v)}
+              title="Rename this room, or paint its walls and floor"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
+                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
+                border: roomPanelOpen ? '3px solid #8b5cf6' : '2px solid var(--content-border, #ccc)',
+                background: roomPanelOpen ? '#f1eafe' : '#fff',
+              }}
+            >
+              <span style={{ fontSize: 22 }}>🎨</span>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>Room</span>
+            </button>
           </div>
 
           {hammerMode && (
@@ -925,27 +1089,13 @@ export default function HomeRoom() {
             </div>
           )}
 
-          {wallMode && (
-            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', border: '2px solid #8b5cf6', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
-              🧱 Drag on the floor to draw a wall. <button className="btn btn-sm" style={{ minHeight: 36, marginLeft: 8 }} onClick={toggleWallMode}>Done</button>
-            </div>
-          )}
-
-          {wallPlacementError && (
+          {placementError && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff3ea', border: '2px solid #dc2626', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center', color: '#dc2626', maxWidth: 300 }}>
-              ⚠ {wallPlacementError}
+              ⚠ {placementError}
             </div>
           )}
 
-          {selectedWallId && (
-            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, alignItems: 'center', fontFamily: 'system-ui, sans-serif' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, padding: '0 4px' }}>🧱 Wall</span>
-              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { deleteWallSegment(selectedWallId); setSelectedWallId(null); flashSaved(); }}>🗑️ Remove</button>
-              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setSelectedWallId(null)}>Done</button>
-            </div>
-          )}
-
-          {selected && !armedItem && !selectedWallId && (
+          {selected && !armedItem && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, alignItems: 'center' }}>
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate left" onClick={() => rotateSelected(-15)}>↺</button>
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate right" onClick={() => rotateSelected(15)}>↻</button>
@@ -962,47 +1112,79 @@ export default function HomeRoom() {
             </div>
           )}
 
-          {/* Paint bucket: wall color + floor texture, same "fill" idea as
-              Build Mode's own ground paint bucket, simplified to swatch rows. */}
-          <div style={{ position: 'fixed', top: 70, right: 16, zIndex: 60, background: 'rgba(255,255,255,0.95)', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif', maxWidth: 190 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>🎨 Walls</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-              {WALL_COLOR_OPTIONS.map((c) => (
-                <button
-                  key={c}
-                  aria-label={`Wall color ${c}`}
-                  onClick={() => { updateStudent(student.id, { homeWallColor: c }); flashSaved(); }}
-                  style={{ width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer', border: (student.homeWallColor || DEFAULT_WALL_COLOR) === c ? '3px solid #1f4238' : '2px solid #ccc' }}
-                />
-              ))}
+          {/* Room panel: rename (typed or picked from suggestions) + for an
+              interior room, its own wall/floor paint + a delete button; for
+              the Yard, the house-exterior picker instead. */}
+          {roomPanelOpen && (
+            <div style={{ position: 'fixed', top: 70, left: 16, zIndex: 60, background: 'rgba(255,255,255,0.95)', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif', maxWidth: 200 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>📛 Name</div>
+              <input
+                list="home-room-name-suggestions"
+                value={activeRoom.name}
+                onChange={(e) => { updateHomeRoom(activeRoom.id, { name: e.target.value }); flashSaved(); }}
+                style={{ width: '100%', minHeight: 32, fontSize: 12, marginBottom: 8 }}
+              />
+              <datalist id="home-room-name-suggestions">
+                {ROOM_NAME_SUGGESTIONS.map((n) => <option key={n} value={n} />)}
+              </datalist>
+
+              {!isYard && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>🎨 Walls</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {WALL_COLOR_OPTIONS.map((c) => (
+                      <button
+                        key={c}
+                        aria-label={`Wall color ${c}`}
+                        onClick={() => { updateHomeRoom(activeRoom.id, { wallColor: c }); flashSaved(); }}
+                        style={{ width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer', border: (activeRoom.wallColor || DEFAULT_WALL_COLOR) === c ? '3px solid #1f4238' : '2px solid #ccc' }}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>🪣 Floor</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {FLOOR_TEXTURE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.label}
+                        className="btn btn-sm"
+                        style={{ minHeight: 32, fontSize: 11, background: (activeRoom.floorTexture ?? null) === opt.path ? '#3e7c6b' : undefined, color: (activeRoom.floorTexture ?? null) === opt.path ? '#fff' : undefined }}
+                        onClick={() => { updateHomeRoom(activeRoom.id, { floorTexture: opt.path }); flashSaved(); }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {interiorRooms.length > 1 && (
+                    <button
+                      className="btn btn-sm"
+                      style={{ minHeight: 32, fontSize: 11, width: '100%', background: confirmDeleteRoom ? '#c0392b' : undefined, color: confirmDeleteRoom ? '#fff' : undefined }}
+                      onClick={handleDeleteRoom}
+                    >
+                      {confirmDeleteRoom ? 'Sure? Tap again' : '🗑️ Delete Room'}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {isYard && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 800, margin: '4px 0' }}>🏠 House</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {HOUSE_EXTERIOR_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        className="btn btn-sm"
+                        style={{ minHeight: 32, fontSize: 11, background: (student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath) === opt.modelPath ? '#3e7c6b' : undefined, color: (student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath) === opt.modelPath ? '#fff' : undefined }}
+                        onClick={() => { updateStudent(student.id, { houseExteriorPath: opt.modelPath }); flashSaved(); }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>🪣 Floor</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {FLOOR_TEXTURE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.label}
-                  className="btn btn-sm"
-                  style={{ minHeight: 32, fontSize: 11, background: (student.homeFloorTexture ?? null) === opt.path ? '#3e7c6b' : undefined, color: (student.homeFloorTexture ?? null) === opt.path ? '#fff' : undefined }}
-                  onClick={() => { updateStudent(student.id, { homeFloorTexture: opt.path }); flashSaved(); }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 800, margin: '8px 0 4px' }}>🏠 House</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {HOUSE_EXTERIOR_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  className="btn btn-sm"
-                  style={{ minHeight: 32, fontSize: 11, background: (student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath) === opt.modelPath ? '#3e7c6b' : undefined, color: (student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath) === opt.modelPath ? '#fff' : undefined }}
-                  onClick={() => { updateStudent(student.id, { houseExteriorPath: opt.modelPath }); flashSaved(); }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
         </>
       )}
 
@@ -1014,7 +1196,7 @@ export default function HomeRoom() {
 
       {mode === 'view' && (
         <p style={{ position: 'fixed', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 60, fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
-          Click, or tap, anywhere to walk there. Or use WASD/arrow keys.
+          {isYard ? 'Click, or tap, anywhere to walk there. Walk up to your house to go back inside.' : 'Click, or tap, anywhere to walk there. Or use WASD/arrow keys.'}
         </p>
       )}
     </div>

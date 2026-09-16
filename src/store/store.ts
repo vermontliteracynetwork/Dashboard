@@ -130,6 +130,9 @@ import {
   pushStudentPet,
   deleteStudentPetRemote,
   rowToStudentPet,
+  pushHomeRoom,
+  deleteHomeRoomRemote,
+  rowToHomeRoom,
   pushFocus,
   deleteFocusRemote,
   rowToFocus,
@@ -175,6 +178,8 @@ import type {
   WallSegment,
   GroundPatch,
   StudentPet,
+  HomeRoomDef,
+  HomeRoomKind,
   LayoutOverride,
   Focus,
   FocusSubject,
@@ -253,6 +258,7 @@ interface AppState {
   wallSegments: WallSegment[]; // Sims 4-style drawn walls — shared Town Square (studentId undefined) or a student's own Home Room (studentId set), same table/convention as worldObjects
   groundPatches: GroundPatch[]; // painted patches of alternate ground texture (grass/water mixed regions) — shared Town Square only, live-instant like groundTexture/skyColor
   pets: StudentPet[]; // every student's owned pets — see StudentPet in types.ts
+  homeRooms: HomeRoomDef[]; // every student's own Home Room floor plan (discrete rooms + one yard) — see HomeRoomDef in types.ts
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -325,6 +331,15 @@ interface AppState {
   // Square (see TownSquare.tsx's own interval), never on a timer that runs
   // while they're away. "Pets never die," so stats floor at PET_STAT_FLOOR.
   tickPetDecay: (studentId: string) => void;
+  // Home Room's room system — see HomeRoomDef in types.ts. addHomeRoom
+  // defaults kind 'yard' to the fixed name "Yard" and every other kind to a
+  // sensible generic label; students can rename freely afterward.
+  addHomeRoom: (studentId: string, kind: HomeRoomKind, name?: string) => string;
+  updateHomeRoom: (id: string, patch: Partial<Pick<HomeRoomDef, 'name' | 'wallColor' | 'floorTexture'>>) => void;
+  // Deleting a room never cascades to the furniture inside it — those
+  // WorldObject rows just become inaccessible (their roomId points nowhere
+  // rendered) rather than being destructively deleted alongside it.
+  deleteHomeRoom: (id: string) => void;
   // Build Mode Publish flow: commits every shared-Town-Square draft
   // (worldObjects + wallSegments) so students see it, finalizing any
   // pending deletion; Discard reverts every shared draft back to its last
@@ -602,6 +617,7 @@ export const useStore = create<AppState>()(
       wallSegments: [],
       groundPatches: [],
       pets: [],
+      homeRooms: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -767,6 +783,7 @@ export const useStore = create<AppState>()(
           onWallSegment: (e, n, o) => set((s) => ({ wallSegments: applyArrayRow(s.wallSegments, e, rowToWallSegment, n, o) })),
           onGroundPatch: (e, n, o) => set((s) => ({ groundPatches: applyArrayRow(s.groundPatches, e, rowToGroundPatch, n, o) })),
           onStudentPet: (e, n, o) => set((s) => ({ pets: applyArrayRow(s.pets, e, rowToStudentPet, n, o) })),
+          onHomeRoom: (e, n, o) => set((s) => ({ homeRooms: applyArrayRow(s.homeRooms, e, rowToHomeRoom, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -1228,6 +1245,40 @@ export const useStore = create<AppState>()(
           set((s) => ({ pets: s.pets.map((p) => (p.id === pet.id ? updated : p)) }));
           pushStudentPet(updated);
         });
+      },
+
+      addHomeRoom: (studentId, kind, name) => {
+        const defaultNames: Record<HomeRoomKind, string> = {
+          large: 'Large Room',
+          medium: 'Medium Room',
+          small: 'Small Room',
+          xsmall: 'Small Room',
+          closet: 'Closet',
+          yard: 'Yard',
+        };
+        const room: HomeRoomDef = {
+          id: makeId(),
+          studentId,
+          kind,
+          name: name?.trim() || defaultNames[kind],
+          createdAt: new Date().toISOString(),
+        };
+        set((s) => ({ homeRooms: [...s.homeRooms, room] }));
+        pushHomeRoom(room);
+        return room.id;
+      },
+
+      updateHomeRoom: (id, patch) => {
+        const room = get().homeRooms.find((r) => r.id === id);
+        if (!room) return;
+        const updated: HomeRoomDef = { ...room, ...patch };
+        set((s) => ({ homeRooms: s.homeRooms.map((r) => (r.id === id ? updated : r)) }));
+        pushHomeRoom(updated);
+      },
+
+      deleteHomeRoom: (id) => {
+        set((s) => ({ homeRooms: s.homeRooms.filter((r) => r.id !== id) }));
+        deleteHomeRoomRemote(id);
       },
 
       setLayoutOverride: (layoutId, patch) => {

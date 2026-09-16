@@ -35,6 +35,7 @@ import type {
   LayoutOverride,
   Focus,
   StudentPet,
+  HomeRoomDef,
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS } from './marketplaceSeed';
@@ -376,6 +377,7 @@ const rowToWorldObject = (r: Row): WorldObject => ({
   pendingDelete: r.pending_delete ?? false,
   publishedSnapshot: r.published_snapshot ?? undefined,
   signText: r.sign_text ?? undefined,
+  roomId: r.room_id ?? undefined,
 });
 const worldObjectToRow = (o: WorldObject): Row => ({
   id: o.id,
@@ -394,6 +396,7 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   pending_delete: o.pendingDelete ?? false,
   published_snapshot: o.publishedSnapshot ?? null,
   sign_text: o.signText ?? null,
+  room_id: o.roomId ?? null,
 });
 
 const rowToWallSegment = (r: Row): WallSegment => ({
@@ -467,6 +470,25 @@ const studentPetToRow = (p: StudentPet): Row => ({
   food: p.food,
   social: p.social,
   health: p.health,
+});
+
+const rowToHomeRoom = (r: Row): HomeRoomDef => ({
+  id: r.id,
+  studentId: r.student_id,
+  kind: r.kind,
+  name: r.name ?? '',
+  wallColor: r.wall_color ?? undefined,
+  floorTexture: r.floor_texture ?? undefined,
+  createdAt: r.created_at,
+});
+const homeRoomToRow = (rm: HomeRoomDef): Row => ({
+  id: rm.id,
+  student_id: rm.studentId,
+  kind: rm.kind,
+  name: rm.name,
+  wall_color: rm.wallColor ?? null,
+  floor_texture: rm.floorTexture ?? null,
+  created_at: rm.createdAt,
 });
 
 const rowToFocus = (r: Row): Focus => ({
@@ -713,6 +735,7 @@ export interface HydratedState {
   wallSegments: WallSegment[];
   groundPatches: GroundPatch[];
   pets: StudentPet[];
+  homeRooms: HomeRoomDef[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
@@ -736,7 +759,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -770,9 +793,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('quiz_struggles').select('*'),
     supabase.from('ground_patches').select('*'),
     supabase.from('student_pets').select('*'),
+    supabase.from('home_rooms').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -843,6 +867,7 @@ export async function fetchAll(): Promise<HydratedState> {
     wallSegments: (wallSegmentsRes.data ?? []).map(rowToWallSegment),
     groundPatches: (groundPatchesRes.data ?? []).map(rowToGroundPatch),
     pets: (studentPetsRes.data ?? []).map(rowToStudentPet),
+    homeRooms: (homeRoomsRes.data ?? []).map(rowToHomeRoom),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
@@ -1065,6 +1090,8 @@ export const pushGroundPatch = (p: GroundPatch) => upsert('ground_patches', grou
 export const deleteGroundPatchRemote = (id: string) => remove('ground_patches', { id });
 export const pushStudentPet = (p: StudentPet) => upsert('student_pets', studentPetToRow(p));
 export const deleteStudentPetRemote = (id: string) => remove('student_pets', { id });
+export const pushHomeRoom = (rm: HomeRoomDef) => upsert('home_rooms', homeRoomToRow(rm));
+export const deleteHomeRoomRemote = (id: string) => remove('home_rooms', { id });
 
 export const pushFocus = (f: Focus) => upsert('focuses', focusToRow(f));
 export const deleteFocusRemote = (id: string) => remove('focuses', { id });
@@ -1269,7 +1296,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1281,6 +1308,7 @@ export interface RealtimeHandlers {
   onQuizStruggle: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onGroundPatch: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onStudentPet: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onHomeRoom: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onOffscreenReview: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onQuizAttempt: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onBadge: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1328,6 +1356,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_struggles' }, wire(handlers.onQuizStruggle))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ground_patches' }, wire(handlers.onGroundPatch))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_pets' }, wire(handlers.onStudentPet))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'home_rooms' }, wire(handlers.onHomeRoom))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'offscreen_reviews' }, wire(handlers.onOffscreenReview))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_attempts' }, wire(handlers.onQuizAttempt))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'badges' }, wire(handlers.onBadge))
