@@ -2680,7 +2680,10 @@ export default function TownSquare() {
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
             onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
           />
-          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic'} targetHeight={followingPetDef.targetHeight} facingRef={playerFacingRef} />}
+          {/* Direct teacher instruction: only birds (they fly) and fish
+              (they have no legs) float beside the player — every other
+              category walks on the ground. */}
+          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic' || followingPetDef.category === 'bird'} targetHeight={followingPetDef.targetHeight} facingRef={playerFacingRef} />}
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
               key={n.id}
