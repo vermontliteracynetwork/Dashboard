@@ -10,7 +10,7 @@ import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } fr
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
-import { petDefById, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS } from '../lib/petCatalog';
+import { petDefById, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_MILESTONES } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
@@ -1963,11 +1963,16 @@ export const useStore = create<AppState>()(
         }
         pushMetaFor(get, studentId);
 
-        // Pet training: every task completion nudges every owned,
-        // not-yet-trained pet toward the "walk beside you" unlock — direct
+        // Pet training: every task completion nudges every owned pet that
+        // hasn't yet reached the top of the milestone ladder — direct
         // teacher spec ties training to assignment/question-set completion,
-        // never to care actions (feed/pet/play don't touch this).
-        get().pets.filter((p) => p.studentId === studentId && !canPetFollow(p.trainingProgress)).forEach((pet) => {
+        // never to care actions (feed/pet/play don't touch this). Caught in
+        // review: filtering on canPetFollow() (the 5-completion follow
+        // unlock) instead of the ladder's actual top threshold froze
+        // trainingProgress at 5 forever, silently killing the later
+        // "Best Friends"/"Bonded for Life" milestones.
+        const trainingCap = PET_MILESTONES[PET_MILESTONES.length - 1].threshold;
+        get().pets.filter((p) => p.studentId === studentId && p.trainingProgress < trainingCap).forEach((pet) => {
           const updated: StudentPet = { ...pet, trainingProgress: pet.trainingProgress + 1 };
           set((s) => ({ pets: s.pets.map((p) => (p.id === pet.id ? updated : p)) }));
           pushStudentPet(updated);

@@ -13,7 +13,9 @@ const CATEGORY_LABEL: Record<PetCategory, string> = {
   dog: 'Dog', cat: 'Cat', small: 'Small Critter', farm: 'Farm', bird: 'Bird', aquatic: 'Aquatic', wild: 'Wild', fun: 'Fun & Silly',
 };
 const RARITY_LABEL: Record<string, string> = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', ultra: 'Ultra-Rare' };
-const RARITY_COLOR: Record<string, string> = { common: '#8a9a8e', uncommon: '#3e7c6b', rare: '#8b5cf6', ultra: '#e2775c' };
+// Darkened from the initial palette after a contrast review found white text
+// on the first three tiers fell below WCAG AA (4.5:1) at this small a size.
+const RARITY_COLOR: Record<string, string> = { common: '#5f6f64', uncommon: '#3e7c6b', rare: '#6d3fd1', ultra: '#b8492f' };
 
 export default function PetJournal() {
   const navigate = useNavigate();
@@ -45,14 +47,14 @@ export default function PetJournal() {
         </div>
 
         <div className="row-wrap" style={{ gap: 4, padding: '10px 0' }}>
-          <button className="btn btn-sm" style={{ minHeight: 40, background: category === '' ? 'var(--purple)' : undefined, color: category === '' ? '#fff' : undefined }} onClick={() => setCategory('')}>
+          <button className="btn btn-sm" style={{ minHeight: 44, background: category === '' ? 'var(--purple)' : undefined, color: category === '' ? '#fff' : undefined }} onClick={() => setCategory('')}>
             All
           </button>
           {categories.map((c) => (
             <button
               key={c}
               className="btn btn-sm"
-              style={{ minHeight: 40, background: category === c ? 'var(--purple)' : undefined, color: category === c ? '#fff' : undefined }}
+              style={{ minHeight: 44, background: category === c ? 'var(--purple)' : undefined, color: category === c ? '#fff' : undefined }}
               onClick={() => setCategory(category === c ? '' : c)}
             >
               {CATEGORY_LABEL[c]}

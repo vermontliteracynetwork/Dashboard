@@ -666,11 +666,11 @@ export default function Marketplace() {
                 <h3 style={{ margin: 0 }}>Pets moved to the Pet Shelter!</h3>
                 {!student.petCouponRedeemed && (
                   <div className="content-well" style={{ background: 'linear-gradient(120deg, var(--yellow), var(--orange))', textAlign: 'center' }}>
-                    <strong>🎁 You still have a free pet coupon — pick any pet at the Shelter to redeem it.</strong>
+                    <strong>🎁 You still have a free pet coupon. Pick any pet at the Shelter to redeem it.</strong>
                   </div>
                 )}
                 <p style={{ opacity: 0.75, margin: 0 }}>
-                  Adopt a pet, meet the animals up for adoption, or try a Mystery Adoption Box — all at the Pet Shelter in Town Square.
+                  Adopt a pet, meet the animals up for adoption, or try a Mystery Adoption Box, all at the Pet Shelter in Town Square.
                 </p>
                 <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/pet-shelter')}>
                   🏠 Visit the Shelter →

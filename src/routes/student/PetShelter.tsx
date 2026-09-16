@@ -17,7 +17,9 @@ import type { PetDef } from '../../lib/petCatalog';
 const DONATION_AMOUNTS = [500, 1000, 2500]; // $5 / $10 / $25 — a real, reward-free coin sink
 
 const RARITY_LABEL: Record<string, string> = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', ultra: 'Ultra-Rare' };
-const RARITY_COLOR: Record<string, string> = { common: '#8a9a8e', uncommon: '#3e7c6b', rare: '#8b5cf6', ultra: '#e2775c' };
+// Darkened from the initial palette after a contrast review found white text
+// on the first three tiers fell below WCAG AA (4.5:1) at this small a size.
+const RARITY_COLOR: Record<string, string> = { common: '#5f6f64', uncommon: '#3e7c6b', rare: '#6d3fd1', ultra: '#b8492f' };
 
 export default function PetShelter() {
   const navigate = useNavigate();
@@ -34,6 +36,12 @@ export default function PetShelter() {
   const [opening, setOpening] = useState(false);
   const [reveal, setReveal] = useState<{ pet: PetDef; isNew: boolean } | null>(null);
   const [thankYou, setThankYou] = useState(false);
+  // Claudia's review: Donate was sitting shoulder-to-shoulder with the
+  // Mystery Box as an equally-weighted primary action, which put four
+  // different decision types (adopt / mystery pull / donate / pat) on one
+  // screen. Tucking it behind a toggle keeps Adopt + Mystery Box as the
+  // page's one real primary action.
+  const [donateOpen, setDonateOpen] = useState(false);
 
   const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
@@ -131,32 +139,38 @@ export default function PetShelter() {
             </div>
           )}
 
-          {/* Mystery Adoption Box + free donation — Claudia's plan */}
-          <div className="row-wrap" style={{ gap: 12 }}>
-            <div className="content-well stack" style={{ flex: '1 1 240px', alignItems: 'center', textAlign: 'center', gap: 8 }}>
-              <strong>🎁 Mystery Adoption Box</strong>
-              <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>You'll always get a pet — which one is the surprise!</p>
-              <button
-                className="btn btn-primary btn-lg"
-                disabled={opening || petHomeFull || student.coins < MYSTERY_PACK_PRICE_CENTS}
-                onClick={handleOpenPack}
-              >
-                {opening ? 'Opening…' : petHomeFull ? '🏠 Pet home full' : `🎁 Open — ${formatMoney(MYSTERY_PACK_PRICE_CENTS)}`}
-              </button>
-            </div>
-            <div className="content-well stack" style={{ flex: '1 1 240px', alignItems: 'center', textAlign: 'center', gap: 8 }}>
-              <strong>💛 Donate to the Shelter</strong>
-              <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-                {thankYou ? 'Thank you for your donation! 💛' : `Lifetime donated: ${formatMoney(student.shelterDonationsCents ?? 0)}`}
-              </p>
-              <div className="row" style={{ gap: 6 }}>
-                {DONATION_AMOUNTS.map((amt) => (
-                  <button key={amt} className="btn btn-sm" style={{ minHeight: 44 }} disabled={student.coins < amt} onClick={() => handleDonate(amt)}>
-                    {formatMoney(amt)}
-                  </button>
-                ))}
+          {/* Mystery Adoption Box — the page's one featured action, per Claudia's review */}
+          <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center', gap: 8 }}>
+            <strong>🎁 Mystery Adoption Box</strong>
+            <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>You'll always get a pet. Which one is the surprise!</p>
+            <button
+              className="btn btn-primary btn-lg"
+              disabled={opening || petHomeFull || student.coins < MYSTERY_PACK_PRICE_CENTS}
+              onClick={handleOpenPack}
+            >
+              {opening ? 'Opening…' : petHomeFull ? '🏠 Pet home full' : `🎁 Open for ${formatMoney(MYSTERY_PACK_PRICE_CENTS)}`}
+            </button>
+          </div>
+
+          {/* Donate — a secondary, reward-free coin sink, tucked behind a toggle */}
+          <div className="content-well stack" style={{ gap: 8 }}>
+            <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={() => setDonateOpen((v) => !v)}>
+              {donateOpen ? '▾' : '▸'} 💛 Donate to the Shelter
+            </button>
+            {donateOpen && (
+              <div className="stack" style={{ gap: 8, alignItems: 'center', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+                  {thankYou ? 'Thank you for your donation! 💛' : `Lifetime donated: ${formatMoney(student.shelterDonationsCents ?? 0)}`}
+                </p>
+                <div className="row" style={{ gap: 6 }}>
+                  {DONATION_AMOUNTS.map((amt) => (
+                    <button key={amt} className="btn btn-sm" style={{ minHeight: 44 }} disabled={student.coins < amt} onClick={() => handleDonate(amt)}>
+                      {formatMoney(amt)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Kennel grid — every catalog pet, pettable whether or not you can afford it */}
@@ -169,9 +183,7 @@ export default function PetShelter() {
                 <div key={pet.id} className="shop-item-card" style={{ width: 150 }}>
                   <div
                     className="shop-item-icon-frame"
-                    style={{ cursor: 'pointer', transform: isPatted ? 'scale(1.08)' : 'scale(1)', transition: 'transform 0.2s' }}
-                    onClick={() => givePat(pet.id)}
-                    title="Give a pat"
+                    style={{ transform: isPatted ? 'scale(1.08)' : 'scale(1)', transition: 'transform 0.2s' }}
                   >
                     <span style={{ fontSize: '2rem' }}>{isPatted ? '💛' : '🐾'}</span>
                   </div>
@@ -179,14 +191,14 @@ export default function PetShelter() {
                   <span className="tag-pill" style={{ fontSize: '0.58rem', background: RARITY_COLOR[rarityFor(pet)], color: '#fff' }}>
                     {RARITY_LABEL[rarityFor(pet)]}
                   </span>
-                  <button className="btn btn-sm" style={{ minHeight: 32, fontSize: '0.68rem' }} onClick={() => givePat(pet.id)}>
+                  <button className="btn btn-sm" style={{ minHeight: 44, fontSize: '0.68rem' }} onClick={() => givePat(pet.id)}>
                     🤗 Give a pat
                   </button>
                   <button
                     className={`shop-price-chip ${canAdoptFree ? 'btn-primary' : ''}`}
                     style={{
                       border: '2px solid var(--ink)',
-                      minHeight: 40,
+                      minHeight: 44,
                       cursor: disabled ? 'not-allowed' : 'pointer',
                       opacity: disabled ? 0.5 : 1,
                       background: canAdoptFree && !disabled ? 'var(--success)' : undefined,

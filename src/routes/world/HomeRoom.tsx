@@ -837,7 +837,7 @@ export default function HomeRoom() {
             <button className="btn btn-sm" style={{ minHeight: 26, fontSize: 10, padding: '2px 8px' }} onClick={() => navigate('/student/pet-journal')}>📖 Journal</button>
           </div>
           {myPets.length === 0 ? (
-            <p style={{ fontSize: 11, opacity: 0.7 }}>No pets yet — adopt one at the 🐾 Pet Shelter in Town Square!</p>
+            <p style={{ fontSize: 11, opacity: 0.7 }}>No pets yet. Adopt one at the 🐾 Pet Shelter in Town Square!</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {myPets.map((pet) => {
@@ -859,7 +859,7 @@ export default function HomeRoom() {
                     {([['🍗 Food', pet.food, 'Hungry'], ['💞 Social', pet.social, 'Lonely'], ['❤️ Health', pet.health, 'Not feeling well']] as const).map(([label, value, feeling]) => (
                       <div key={label} style={{ marginBottom: 3 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
-                          <span>{label}{value < 40 ? ` — ${feeling}` : ''}</span><span>{Math.round(value)}</span>
+                          <span>{label}{value < 40 ? ` (${feeling})` : ''}</span><span>{Math.round(value)}</span>
                         </div>
                         <div style={{ height: 5, borderRadius: 3, background: '#eee', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e' }} />
@@ -867,7 +867,7 @@ export default function HomeRoom() {
                       </div>
                     ))}
                     <div style={{ fontSize: 9, opacity: 0.7, margin: '4px 0' }}>
-                      🎓 Training: {pet.trainingProgress} {canFollow ? '— ready to walk with you!' : `— ${PET_FOLLOW_TRAINING_THRESHOLD - pet.trainingProgress} more assignments to unlock`}
+                      🎓 Training: {pet.trainingProgress} {canFollow ? '(ready to walk with you!)' : `(${PET_FOLLOW_TRAINING_THRESHOLD - pet.trainingProgress} more assignments to unlock)`}
                     </div>
                     {/* ABA shaping ladder (Claudia's plan, Phase 4) —
                         successive milestones on the same counter, purely
