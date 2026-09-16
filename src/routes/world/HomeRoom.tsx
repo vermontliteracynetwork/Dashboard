@@ -9,6 +9,7 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments, nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
+import { PET_CATALOG, PET_OWNERSHIP_CAP, canPetFollow } from '../../lib/petCatalog';
 import type { WorldObject, WallSegment } from '../../types';
 
 // The student-facing counterpart to WorldEditor.tsx's teacher Build Mode —
@@ -331,6 +332,11 @@ export default function HomeRoom() {
   const addWallSegment = useStore((s) => s.addWallSegment);
   const deleteWallSegment = useStore((s) => s.deleteWallSegment);
   const updateStudent = useStore((s) => s.updateStudent);
+  const pets = useStore((s) => s.pets);
+  const carePet = useStore((s) => s.carePet);
+  const renamePet = useStore((s) => s.renamePet);
+  const setFollowingPet = useStore((s) => s.setFollowingPet);
+  const sellPet = useStore((s) => s.sellPet);
   const student = students.find((s) => s.id === currentStudentId);
 
   useEffect(() => {
@@ -387,6 +393,12 @@ export default function HomeRoom() {
         .filter((o): o is { x: number; z: number; radius: number } => o !== null),
     [myObjects]
   );
+  const myPets = useMemo(
+    () => (student ? pets.filter((p) => p.studentId === student.id) : []),
+    [pets, student]
+  );
+  const [petPanelOpen, setPetPanelOpen] = useState(false);
+  const [petConfirmSellId, setPetConfirmSellId] = useState<string | null>(null);
 
   // Direct instruction: "Build mode must save if the student toggles
   // between tabs or apps. It must have an auto save, but there must
@@ -645,22 +657,93 @@ export default function HomeRoom() {
         </span>
       </div>
 
-      {mode === 'view' ? (
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: 8 }}>
         <button
           className="btn btn-sm"
-          style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, minHeight: 44, background: '#3e7c6b', color: '#fff', fontWeight: 800 }}
-          onClick={enterBuild}
+          style={{ minHeight: 44, background: petPanelOpen ? '#a855f7' : '#fff', color: petPanelOpen ? '#fff' : undefined, fontWeight: 800 }}
+          onClick={() => setPetPanelOpen((v) => !v)}
         >
-          🔨 Build
+          🐾 Pets{myPets.length > 0 ? ` (${myPets.length})` : ''}
         </button>
-      ) : (
-        <button
-          className="btn btn-sm"
-          style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, minHeight: 44, background: '#22c55e', color: '#fff', fontWeight: 800 }}
-          onClick={exitBuild}
-        >
-          ✅ Done Building
-        </button>
+        {mode === 'view' ? (
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 44, background: '#3e7c6b', color: '#fff', fontWeight: 800 }}
+            onClick={enterBuild}
+          >
+            🔨 Build
+          </button>
+        ) : (
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 44, background: '#22c55e', color: '#fff', fontWeight: 800 }}
+            onClick={exitBuild}
+          >
+            ✅ Done Building
+          </button>
+        )}
+      </div>
+
+      {petPanelOpen && (
+        <div style={{ position: 'fixed', top: 68, right: 16, zIndex: 60, background: 'rgba(255,255,255,0.97)', borderRadius: 12, padding: '10px 12px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', width: 240, maxHeight: '70vh', overflowY: 'auto' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 6 }}>🐾 Your Pets ({myPets.length}/{PET_OWNERSHIP_CAP})</div>
+          {myPets.length === 0 ? (
+            <p style={{ fontSize: 11, opacity: 0.7 }}>No pets yet — adopt one in the 🐾 Pets tab of the Marketplace!</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {myPets.map((pet) => {
+                const def = PET_CATALOG.find((d) => d.id === pet.petDefId);
+                const canFollow = canPetFollow(pet.trainingProgress);
+                return (
+                  <div key={pet.id} style={{ border: '2px solid var(--content-border, #ccc)', borderRadius: 10, padding: 8 }}>
+                    <input
+                      value={pet.customName}
+                      onChange={(e) => renamePet(pet.id, e.target.value)}
+                      style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 30 }}
+                    />
+                    <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>{def?.name}{pet.following ? ' • 🚶 walking with you' : ''}</div>
+                    {([['🍗 Food', pet.food], ['💞 Social', pet.social], ['❤️ Health', pet.health]] as const).map(([label, value]) => (
+                      <div key={label} style={{ marginBottom: 3 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
+                          <span>{label}</span><span>{Math.round(value)}</span>
+                        </div>
+                        <div style={{ height: 5, borderRadius: 3, background: '#eee', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e' }} />
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 9, opacity: 0.7, margin: '4px 0' }}>
+                      🎓 Training: {pet.trainingProgress}/5 {canFollow ? '— ready to walk with you!' : '— finish more assignments to unlock'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'feed')}>🍗 Feed</button>
+                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'pet')}>🤗 Pet</button>
+                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'play')}>🎾 Play</button>
+                      <button
+                        className="btn btn-sm"
+                        style={{ minHeight: 32, fontSize: 10, padding: '2px 8px', opacity: canFollow ? 1 : 0.4, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
+                        disabled={!canFollow}
+                        onClick={() => setFollowingPet(student.id, pet.following ? null : pet.id)}
+                      >
+                        {pet.following ? '🚶 Unset companion' : '🚶 Set as companion'}
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        style={{ minHeight: 32, fontSize: 10, padding: '2px 8px', background: petConfirmSellId === pet.id ? '#c0392b' : undefined, color: petConfirmSellId === pet.id ? '#fff' : undefined }}
+                        onClick={() => {
+                          if (petConfirmSellId === pet.id) { sellPet(pet.id); setPetConfirmSellId(null); }
+                          else { setPetConfirmSellId(pet.id); setTimeout(() => setPetConfirmSellId((cur) => (cur === pet.id ? null : cur)), 2500); }
+                        }}
+                      >
+                        {petConfirmSellId === pet.id ? 'Sure? Tap again' : '💰 Sell'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       <Canvas camera={{ position: [0, 9, 11], fov: 50 }} shadows>

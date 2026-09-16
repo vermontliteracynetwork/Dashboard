@@ -110,6 +110,12 @@ export interface Student {
   homeWallColor?: string; // Home Room paint bucket — hex color for the room's 4 walls; undefined = default
   homeFloorTexture?: string | null; // Home Room floor — a path from HOME_FLOOR_OPTIONS in HomeRoom.tsx; null/undefined = default
   houseExteriorPath?: string | null; // student-picked model path from HOUSE_EXTERIOR_OPTIONS in townLayout.ts — rendered on the shared 'home'-role building in Town Square whenever this student is the one viewing it; null/undefined = that building's own placed model (the teacher's default)
+  // Pets system (Claudia's brainstorm, answered by direct teacher spec).
+  // A brand-new student — or an existing one the first time pets ship —
+  // has a one-time free-pet coupon: pick any catalog pet in the
+  // Marketplace's Pets tab at no cost. Redeeming it (adoptPet's free path)
+  // flips this true forever; never reset.
+  petCouponRedeemed?: boolean;
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';
@@ -554,7 +560,9 @@ export type TransactionKind =
   | 'purchase-voice'
   | 'purchase-prize'
   | 'teacher-adjustment'
-  | 'assignment-complete';
+  | 'assignment-complete'
+  | 'purchase-pet'
+  | 'sell-pet';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from
@@ -742,6 +750,26 @@ export interface QuizStruggle {
   questionPrompt: string;
   timestamp: string;
   resolved: boolean;
+}
+
+// A student's owned pet instance — PetDef in lib/petCatalog.ts is the
+// static catalog (model/price/category); this is the per-student row: one
+// per adopted pet, up to PET_OWNERSHIP_CAP each. Direct teacher spec: pets
+// live at Home, gain a trainable "walk beside you" unlock from ordinary
+// task completion (not from care actions), and have soft food/social/
+// health needs that only fall while the student is actively in the world
+// — never while they're away, and never to zero ("pets never die").
+export interface StudentPet {
+  id: string;
+  studentId: string;
+  petDefId: string; // PET_CATALOG entry id
+  customName: string; // student-given name, defaults to the catalog pet's own name at adoption
+  acquiredAt: string; // ISO
+  following: boolean; // this pet is the one companion walking beside the student right now — at most one true per student, enforced by setFollowingPet
+  trainingProgress: number; // task completions logged since adoption; canFollowPet() in petCatalog.ts gates the "walk beside" unlock on this
+  food: number; // 0-100, soft floor (never 0)
+  social: number; // 0-100, soft floor
+  health: number; // 0-100, soft floor — falls only as a consequence of food/social running low, not decayed independently
 }
 
 // A student's own feedback about the game, submitted through the

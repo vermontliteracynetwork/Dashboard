@@ -423,6 +423,28 @@ create table if not exists ground_patches (
   created_at timestamptz not null default now()
 );
 
+-- A student's owned pet — one row per adopted pet, up to PET_OWNERSHIP_CAP
+-- (4) each. PET_CATALOG (src/lib/petCatalog.ts) is the static catalog this
+-- references by pet_def_id; food/social/health only fall while the
+-- student is actively in Town Square (client-side tick), never below a
+-- soft floor — pets never die, per direct teacher spec.
+create table if not exists student_pets (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  pet_def_id text not null,
+  custom_name text not null default '',
+  acquired_at timestamptz not null default now(),
+  following boolean not null default false,
+  training_progress int not null default 0,
+  food numeric not null default 100,
+  social numeric not null default 100,
+  health numeric not null default 100
+);
+
+-- Pets system: the one-time free-pet coupon every student gets the first
+-- time pets ship — pick any catalog pet, no cost, once ever.
+alter table students add column if not exists pet_coupon_redeemed boolean not null default false;
+
 -- Wall segments: Sims 4-style drawn walls (two endpoints, not a placed
 -- model), used both in the shared Town Square and inside a student's own
 -- Home Room. A door/window WorldObject is only placeable when it snaps
@@ -589,7 +611,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets'
   ];
 begin
   foreach t in array tables loop
@@ -632,7 +654,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets'
   ];
 begin
   foreach t in array tables loop

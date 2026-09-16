@@ -8,9 +8,10 @@ import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import { playCashRegister } from '../lib/chime';
 import FocusBanner from './FocusBanner';
+import { PET_CATALOG, PET_OWNERSHIP_CAP } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
-type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'mystuff' | 'receipts';
+type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'pets' | 'mystuff' | 'receipts';
 
 interface CartEntry {
   key: string; // `${source}-${id}`, unique per cart
@@ -178,11 +179,14 @@ export default function Marketplace() {
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
   const updateStudent = useStore((s) => s.updateStudent);
+  const pets = useStore((s) => s.pets);
+  const adoptPet = useStore((s) => s.adoptPet);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [cart, setCart] = useState<CartEntry[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptLine[] | null>(null);
   const [showCountItOut, setShowCountItOut] = useState(false);
+  const [petAdoptedFlash, setPetAdoptedFlash] = useState<string | null>(null);
 
   // byKind/the three useItemFilter calls below don't depend on `student` at
   // all, so they're computed before the early-return — caught by lint as a
@@ -207,6 +211,8 @@ export default function Marketplace() {
 
   const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
+  const ownedPets = pets.filter((p) => p.studentId === studentId);
+  const petHomeFull = ownedPets.length >= PET_OWNERSHIP_CAP;
   // Sends the student straight to whichever subject's to-do list still has
   // unfinished work, so using a Skip Pass from the inventory doesn't dump
   // them at Home to go hunt for it themselves.
@@ -506,6 +512,9 @@ export default function Marketplace() {
             <button className={`shop-tab-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
               🎫 Power-Ups
             </button>
+            <button className={`shop-tab-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
+              🐾 Pets
+            </button>
             <button className={`shop-tab-btn ${tab === 'mystuff' ? 'active' : ''}`} onClick={() => setTab('mystuff')}>
               🎒 My Stuff
             </button>
@@ -654,6 +663,64 @@ export default function Marketplace() {
               </div>
             )}
 
+            {tab === 'pets' && (
+              <div className="stack" style={{ gap: 12 }}>
+                {!student.petCouponRedeemed && (
+                  <div className="content-well" style={{ background: 'linear-gradient(120deg, var(--yellow), var(--orange))', textAlign: 'center' }}>
+                    <strong>🎁 You have a free pet coupon! Pick any pet below to redeem it — first one's on the house.</strong>
+                  </div>
+                )}
+                {petHomeFull && (
+                  <div className="content-well" style={{ textAlign: 'center', opacity: 0.85 }}>
+                    🏠 Your pet home is full ({PET_OWNERSHIP_CAP}/{PET_OWNERSHIP_CAP}). Visit Home to care for, rename, or sell a pet before adopting another.
+                  </div>
+                )}
+                {petAdoptedFlash && (
+                  <div className="content-well" style={{ background: 'var(--success)', color: '#fff', textAlign: 'center' }}>
+                    🎉 {petAdoptedFlash} is home! Head to your Home Room to feed, play, and name your new pet.
+                  </div>
+                )}
+                <div className="shop-item-grid">
+                  {PET_CATALOG.map((pet) => {
+                    const affordable = student.coins >= pet.priceCents;
+                    const canAdoptFree = !student.petCouponRedeemed;
+                    const disabled = petHomeFull || (!canAdoptFree && !affordable);
+                    return (
+                      <div key={pet.id} className="shop-item-card" style={{ width: 140 }}>
+                        <div className="shop-item-icon-frame">
+                          <span style={{ fontSize: '2rem' }}>🐾</span>
+                        </div>
+                        <strong style={{ fontSize: '0.75rem' }}>{pet.name}</strong>
+                        <span className="tag-pill" style={{ fontSize: '0.6rem' }}>{pet.category}</span>
+                        <button
+                          className={`shop-price-chip ${canAdoptFree ? 'btn-primary' : ''}`}
+                          style={{
+                            border: '2px solid var(--ink)',
+                            minHeight: 40,
+                            cursor: disabled ? 'not-allowed' : 'pointer',
+                            opacity: disabled ? 0.5 : 1,
+                            background: canAdoptFree && !disabled ? 'var(--success)' : undefined,
+                            color: canAdoptFree && !disabled ? '#fff' : undefined,
+                          }}
+                          disabled={disabled}
+                          onClick={() => {
+                            const ok = adoptPet(studentId, pet.id, !canAdoptFree);
+                            if (!ok) return;
+                            if (canAdoptFree) updateStudent(studentId, { petCouponRedeemed: true });
+                            else playCashRegister();
+                            setPetAdoptedFlash(pet.name);
+                            window.setTimeout(() => setPetAdoptedFlash(null), 4000);
+                          }}
+                        >
+                          {canAdoptFree ? '🎁 Adopt free!' : `🐾 ${formatMoney(pet.priceCents)}`}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {tab === 'mystuff' && (
               <div className="stack" style={{ gap: 16 }}>
                 {student.skipTokens > 0 && (
@@ -668,6 +735,28 @@ export default function Marketplace() {
                     <button className="btn btn-primary btn-lg" onClick={goPickActivityToSkip}>
                       Use it →
                     </button>
+                  </div>
+                )}
+                {ownedPets.length > 0 && (
+                  <div>
+                    <strong style={{ fontSize: '0.85rem' }}>🐾 Your Pets</strong>
+                    <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                      {ownedPets.map((pet) => {
+                        const def = PET_CATALOG.find((d) => d.id === pet.petDefId);
+                        return (
+                          <div key={pet.id} className="shop-item-card">
+                            <div className="shop-item-icon-frame" style={{ outline: pet.following ? '3px solid var(--purple)' : 'none' }}>
+                              <span style={{ fontSize: '1.8rem' }}>🐾</span>
+                            </div>
+                            <strong style={{ fontSize: '0.75rem' }}>{pet.customName || def?.name}</strong>
+                            {pet.following && <span className="tag-pill" style={{ fontSize: '0.6rem', background: 'var(--purple)', color: '#fff' }}>Walking with you</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize: '0.72rem', opacity: 0.7, margin: '6px 0 0' }}>
+                      🏠 Feed, play, name, and pick your companion pet at Home.
+                    </p>
                   </div>
                 )}
                 <div>

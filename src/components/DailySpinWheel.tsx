@@ -6,6 +6,7 @@ import { getDailySpinSegments, type DailySpinSegment } from '../lib/dailySpin';
 import { emoteById } from '../lib/emoteCatalog';
 import { avatarById } from '../lib/avatarCatalog';
 import { marketplaceItemDisplayName } from '../lib/marketplaceDisplay';
+import { petDefById } from '../lib/petCatalog';
 import { playWheelSpin, playAchievementChime } from '../lib/chime';
 import type { MarketplaceItem } from '../types';
 
@@ -37,6 +38,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 function itemDisplay(itemKind: string, itemId: string, marketplaceItems: MarketplaceItem[]): { name: string; imageUrl?: string } | null {
   if (itemKind === 'avatar') { const a = avatarById(itemId); return a ? { name: a.name } : null; }
   if (itemKind === 'emote') { const e = emoteById(itemId); return e ? { name: e.name, imageUrl: e.src } : null; }
+  if (itemKind === 'pet') { const p = petDefById(itemId); return p ? { name: p.name } : null; }
   const item = marketplaceItems.find((it) => it.id === itemId);
   if (!item) return null;
   return { name: marketplaceItemDisplayName(item), imageUrl: item.icon.startsWith('/') || item.icon.startsWith('http') ? item.icon : undefined };

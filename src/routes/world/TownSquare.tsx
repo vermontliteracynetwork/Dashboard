@@ -21,6 +21,7 @@ import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
+import { petDefById, PET_DECAY_TICK_MS } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
@@ -423,6 +424,55 @@ function WanderBodyModel({ path, scale, isMoving }: { path: string; scale: numbe
   return (
     <group ref={group}>
       <primitive object={cloned} scale={scale} />
+    </group>
+  );
+}
+
+// The student's trained "walk beside you" pet (see StudentPet.following in
+// types.ts) — smooth-follows a step behind the Player. glTF exporters name
+// their idle clip wildly differently pack to pack (confirmed by reading a
+// Pug's raw glTF JSON: "Armature|Idle", not the player/NPC models' bare
+// "idle"), so unlike CharacterModel/WanderBodyModel above this does a
+// case-insensitive "contains idle" scan instead of an exact-match lookup,
+// and just renders statically (no console warning — most pet packs simply
+// don't ship a walk clip) if nothing matches.
+const PET_SCALE = 1.3;
+const PET_FOLLOW_OFFSET = 1.4;
+function PetCompanionModel({ path }: { path: string }) {
+  const { scene, animations } = useGLTF(path);
+  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
+  const group = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, group);
+  useEffect(() => {
+    const idleName = Object.keys(actions).find((k) => k.toLowerCase().includes('idle'));
+    const idle = idleName ? actions[idleName] : undefined;
+    idle?.reset().play();
+    return () => { idle?.stop(); };
+  }, [actions]);
+  return (
+    <group ref={group}>
+      <primitive object={cloned} scale={PET_SCALE} />
+    </group>
+  );
+}
+
+function PetCompanion({ playerPos, modelPath }: { playerPos: THREE.Vector3; modelPath: string }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const pos = useRef(new THREE.Vector3(playerPos.x - PET_FOLLOW_OFFSET, 0, playerPos.z - PET_FOLLOW_OFFSET));
+  useFrame((_, dt) => {
+    if (!groupRef.current) return;
+    const targetX = playerPos.x - PET_FOLLOW_OFFSET;
+    const targetZ = playerPos.z - PET_FOLLOW_OFFSET;
+    const t = 1 - Math.pow(0.0005, dt);
+    pos.current.x += (targetX - pos.current.x) * t;
+    pos.current.z += (targetZ - pos.current.z) * t;
+    groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+  });
+  return (
+    <group ref={groupRef}>
+      <Suspense fallback={null}>
+        <PetCompanionModel path={modelPath} />
+      </Suspense>
     </group>
   );
 }
@@ -1500,7 +1550,37 @@ export default function TownSquare() {
   const updateStudent = useStore((s) => s.updateStudent);
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
+  const pets = useStore((s) => s.pets);
+  const tickPetDecay = useStore((s) => s.tickPetDecay);
   const student = students.find((s) => s.id === currentStudentId);
+  const followingPet = student ? pets.find((p) => p.studentId === student.id && p.following) : undefined;
+  const followingPetDef = followingPet ? petDefById(followingPet.petDefId) : undefined;
+
+  // Soft need-decay only ticks while a student is actively here in Town
+  // Square (direct teacher spec: "only decrease when playing the game, not
+  // while gone") — a real setInterval scoped to this component's mount,
+  // never a background timer that could run while the tab/app is closed.
+  useEffect(() => {
+    if (!student) return;
+    const id = window.setInterval(() => tickPetDecay(student.id), PET_DECAY_TICK_MS);
+    return () => window.clearInterval(id);
+  }, [student, tickPetDecay]);
+
+  // One-time-per-session announcement for the starter free-pet coupon
+  // (direct teacher spec: "announced with a confirmation message... only
+  // the first time"). Re-shows once per browser session for as long as the
+  // coupon is unredeemed — never again once petCouponRedeemed flips true.
+  const petCouponStorageKey = student ? `homeplot-pet-coupon-announced-${student.id}` : null;
+  const [showPetCoupon, setShowPetCoupon] = useState(() => {
+    if (!petCouponStorageKey) return false;
+    try { return !sessionStorage.getItem(petCouponStorageKey); } catch { return false; }
+  });
+  const dismissPetCoupon = () => {
+    setShowPetCoupon(false);
+    if (petCouponStorageKey) {
+      try { sessionStorage.setItem(petCouponStorageKey, '1'); } catch { /* private browsing etc */ }
+    }
+  };
 
   // Claudia's guardrails design (the "Azalea" distraction scenario): the
   // open world's own gamification can out-compete the actual assignments,
@@ -1901,6 +1981,24 @@ export default function TownSquare() {
           </div>
         </div>
       )}
+      {!showArrival && showPetCoupon && !student.petCouponRedeemed && (
+        <div className="overlay-backdrop" onClick={dismissPetCoupon}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <span style={{ fontSize: '2.4rem' }}>🎁</span>
+              <h2 style={{ margin: 0 }}>You have a free pet coupon!</h2>
+              <p style={{ margin: 0 }}>Pick ANY pet in the Marketplace, totally free — this only works once, so choose your favorite!</p>
+              <button
+                className="btn btn-primary btn-lg"
+                onClick={() => { dismissPetCoupon(); navigate('/student/marketplace', { state: { tab: 'pets' } }); }}
+              >
+                🐾 Pick your pet →
+              </button>
+              <button className="btn btn-sm" onClick={dismissPetCoupon}>Later</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showTodayTasks && (
         <div className="overlay-backdrop" onClick={() => setShowTodayTasks(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
@@ -2124,6 +2222,7 @@ export default function TownSquare() {
             teleportTarget={teleportTarget}
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
           />
+          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} />}
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
               key={n.id}

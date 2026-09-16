@@ -10,6 +10,7 @@ import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } fr
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
+import { petDefById, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT } from '../lib/petCatalog';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -126,6 +127,9 @@ import {
   pushGroundPatch,
   deleteGroundPatchRemote,
   rowToGroundPatch,
+  pushStudentPet,
+  deleteStudentPetRemote,
+  rowToStudentPet,
   pushFocus,
   deleteFocusRemote,
   rowToFocus,
@@ -170,6 +174,7 @@ import type {
   WorldObject,
   WallSegment,
   GroundPatch,
+  StudentPet,
   LayoutOverride,
   Focus,
   FocusSubject,
@@ -247,6 +252,7 @@ interface AppState {
   worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
   wallSegments: WallSegment[]; // Sims 4-style drawn walls — shared Town Square (studentId undefined) or a student's own Home Room (studentId set), same table/convention as worldObjects
   groundPatches: GroundPatch[]; // painted patches of alternate ground texture (grass/water mixed regions) — shared Town Square only, live-instant like groundTexture/skyColor
+  pets: StudentPet[]; // every student's owned pets — see StudentPet in types.ts
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -303,6 +309,22 @@ interface AppState {
   deleteWallSegment: (id: string) => void;
   addGroundPatch: (p: Omit<GroundPatch, 'id' | 'createdAt'>) => string;
   deleteGroundPatch: (id: string) => void;
+  // Pets system — see StudentPet in types.ts and PET_CATALOG in
+  // lib/petCatalog.ts. `charge` true (adoptPet's default) deducts coins;
+  // false is a free grant, used by the one-time coupon (Marketplace also
+  // flips petCouponRedeemed itself right after) and by daily-spin/quest
+  // wins. Every action here fails harmlessly (false/no-op) rather than
+  // throwing, since they're all called straight from click handlers.
+  adoptPet: (studentId: string, petDefId: string, charge?: boolean) => boolean;
+  carePet: (petId: string, action: 'feed' | 'pet' | 'play') => void;
+  renamePet: (petId: string, name: string) => void;
+  // petId: null unsets whichever pet was following (goes back to no companion).
+  setFollowingPet: (studentId: string, petId: string | null) => void;
+  sellPet: (petId: string) => void;
+  // Soft need-decay — only ever called while a student is actively in Town
+  // Square (see TownSquare.tsx's own interval), never on a timer that runs
+  // while they're away. "Pets never die," so stats floor at PET_STAT_FLOOR.
+  tickPetDecay: (studentId: string) => void;
   // Build Mode Publish flow: commits every shared-Town-Square draft
   // (worldObjects + wallSegments) so students see it, finalizing any
   // pending deletion; Discard reverts every shared draft back to its last
@@ -579,6 +601,7 @@ export const useStore = create<AppState>()(
       worldObjects: [],
       wallSegments: [],
       groundPatches: [],
+      pets: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -743,6 +766,7 @@ export const useStore = create<AppState>()(
           onWorldObject: (e, n, o) => set((s) => ({ worldObjects: applyArrayRow(s.worldObjects, e, rowToWorldObject, n, o) })),
           onWallSegment: (e, n, o) => set((s) => ({ wallSegments: applyArrayRow(s.wallSegments, e, rowToWallSegment, n, o) })),
           onGroundPatch: (e, n, o) => set((s) => ({ groundPatches: applyArrayRow(s.groundPatches, e, rowToGroundPatch, n, o) })),
+          onStudentPet: (e, n, o) => set((s) => ({ pets: applyArrayRow(s.pets, e, rowToStudentPet, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -813,6 +837,7 @@ export const useStore = create<AppState>()(
           worldShowDeskGlow: true,
           worldReduceMotion: false,
           dyslexiaFont: false,
+          petCouponRedeemed: false,
         };
         set((s) => ({
           students: [...s.students, student],
@@ -1117,6 +1142,94 @@ export const useStore = create<AppState>()(
         deleteGroundPatchRemote(id);
       },
 
+      adoptPet: (studentId, petDefId, charge = true) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const def = petDefById(petDefId);
+        if (!student || !def) return false;
+        const owned = get().pets.filter((p) => p.studentId === studentId);
+        if (owned.length >= PET_OWNERSHIP_CAP) return false;
+        if (charge && student.coins < def.priceCents) return false;
+        const pet: StudentPet = {
+          id: makeId(),
+          studentId,
+          petDefId,
+          customName: def.name,
+          acquiredAt: new Date().toISOString(),
+          following: false,
+          trainingProgress: 0,
+          food: 100,
+          social: 100,
+          health: 100,
+        };
+        set((s) => ({ pets: [...s.pets, pet] }));
+        pushStudentPet(pet);
+        if (charge) get().recordTransaction(studentId, -def.priceCents, `Adopted a pet: ${def.name}`, '🐾', 'purchase-pet');
+        return true;
+      },
+
+      carePet: (petId, action) => {
+        const pet = get().pets.find((p) => p.id === petId);
+        if (!pet) return;
+        const clamp = (n: number) => Math.max(0, Math.min(100, n));
+        const updated: StudentPet =
+          action === 'feed'
+            ? { ...pet, food: clamp(pet.food + 25) }
+            : action === 'pet'
+              ? { ...pet, social: clamp(pet.social + 20), health: clamp(pet.health + 5) }
+              : { ...pet, social: clamp(pet.social + 15), health: clamp(pet.health + 15) }; // play
+        set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
+        pushStudentPet(updated);
+      },
+
+      renamePet: (petId, name) => {
+        const pet = get().pets.find((p) => p.id === petId);
+        const trimmed = name.trim();
+        if (!pet || !trimmed) return;
+        const updated: StudentPet = { ...pet, customName: trimmed };
+        set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
+        pushStudentPet(updated);
+      },
+
+      setFollowingPet: (studentId, petId) => {
+        if (petId) {
+          const pet = get().pets.find((p) => p.id === petId && p.studentId === studentId);
+          if (!pet || !canPetFollow(pet.trainingProgress)) return;
+        }
+        set((s) => ({
+          pets: s.pets.map((p) => (p.studentId === studentId ? { ...p, following: p.id === petId } : p)),
+        }));
+        get().pets.filter((p) => p.studentId === studentId).forEach((p) => pushStudentPet(p));
+      },
+
+      sellPet: (petId) => {
+        const pet = get().pets.find((p) => p.id === petId);
+        if (!pet) return;
+        const def = petDefById(pet.petDefId);
+        // Resale, not a refund — a real economy consequence, same reasoning
+        // as any other "trade it in" mechanic. "Pets never die," they just
+        // move on.
+        const refund = def ? Math.round(def.priceCents * 0.4) : 0;
+        set((s) => ({ pets: s.pets.filter((p) => p.id !== petId) }));
+        deleteStudentPetRemote(petId);
+        if (refund > 0) get().recordTransaction(pet.studentId, refund, `Sold pet: ${pet.customName}`, '🐾', 'sell-pet');
+      },
+
+      tickPetDecay: (studentId) => {
+        const owned = get().pets.filter((p) => p.studentId === studentId);
+        owned.forEach((pet) => {
+          const food = Math.max(PET_STAT_FLOOR, pet.food - PET_DECAY_AMOUNT);
+          const social = Math.max(PET_STAT_FLOOR, pet.social - PET_DECAY_AMOUNT);
+          // Health only falls as a consequence of food/social running low,
+          // never decayed independently (see StudentPet's own comment).
+          const neglected = food <= PET_STAT_FLOOR + 5 || social <= PET_STAT_FLOOR + 5;
+          const health = neglected ? Math.max(PET_STAT_FLOOR, pet.health - PET_DECAY_AMOUNT) : pet.health;
+          if (food === pet.food && social === pet.social && health === pet.health) return;
+          const updated: StudentPet = { ...pet, food, social, health };
+          set((s) => ({ pets: s.pets.map((p) => (p.id === pet.id ? updated : p)) }));
+          pushStudentPet(updated);
+        });
+      },
+
       setLayoutOverride: (layoutId, patch) => {
         const next = { ...get().layoutOverrides };
         if (patch === null) {
@@ -1412,8 +1525,34 @@ export const useStore = create<AppState>()(
           };
         }
 
-        // Every remaining kind is a marketplace item (avatar/emote/font/color/voice/prize).
-        const itemKind = segment.kind as SpinItemKind;
+        // The dedicated pet wedge doesn't fit the ownedField/marketplace-item
+        // path below at all — pets are their own table, not a Student
+        // ownedXIds array — so it's handled as its own branch, same
+        // already-full-so-cash-consolation shape as the "already owned" path.
+        if (segment.kind === 'pet') {
+          const petId = segment.itemId!;
+          const def = petDefById(petId);
+          const atCap = get().pets.filter((p) => p.studentId === studentId).length >= PET_OWNERSHIP_CAP;
+          if (!def || atCap) {
+            get().updateStudent(studentId, spinPatch);
+            get().recordTransaction(studentId, ITEM_ALREADY_OWNED_CONSOLATION_CENTS, `🎡 Daily Spin (pet home is full!)`, '🎡', 'spin-cash', true);
+            return {
+              type: 'item',
+              amountCents: ITEM_ALREADY_OWNED_CONSOLATION_CENTS,
+              label: `Your pet home is full! Here's ${formatMoney(ITEM_ALREADY_OWNED_CONSOLATION_CENTS)} instead!`,
+              segmentIndex,
+            };
+          }
+          get().updateStudent(studentId, spinPatch);
+          get().adoptPet(studentId, petId, false);
+          get().recordTransaction(studentId, 0, `🎡 Daily Spin: won a pet, ${def.name}!`, '🐾', 'spin-cash', true);
+          return { type: 'item', amountCents: 0, label: `🐾 ${def.name}!`, segmentIndex, itemKind: 'pet', itemId: petId };
+        }
+
+        // Every remaining kind is a marketplace item (avatar/emote/font/color/voice/prize) —
+        // 'pet' already returned above, so TS narrows segment.kind down to exactly this set
+        // without needing an unsafe cast (the old `as SpinItemKind` here defeated that).
+        const itemKind = segment.kind;
         const itemId = segment.itemId!;
         const ownedField = (
           {
@@ -1724,6 +1863,16 @@ export const useStore = create<AppState>()(
           set((s) => ({ badgeCounters: { ...s.badgeCounters, [studentId]: { ...counters, finalChecksPassed } } }));
         }
         pushMetaFor(get, studentId);
+
+        // Pet training: every task completion nudges every owned,
+        // not-yet-trained pet toward the "walk beside you" unlock — direct
+        // teacher spec ties training to assignment/question-set completion,
+        // never to care actions (feed/pet/play don't touch this).
+        get().pets.filter((p) => p.studentId === studentId && !canPetFollow(p.trainingProgress)).forEach((pet) => {
+          const updated: StudentPet = { ...pet, trainingProgress: pet.trainingProgress + 1 };
+          set((s) => ({ pets: s.pets.map((p) => (p.id === pet.id ? updated : p)) }));
+          pushStudentPet(updated);
+        });
 
         const student = get().students.find((st) => st.id === studentId);
 

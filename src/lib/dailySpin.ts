@@ -2,9 +2,10 @@ import { AVATAR_CATALOG } from '../store/badges';
 import { EMOTE_CATALOG } from './emoteCatalog';
 import { formatMoney } from './money';
 import { marketplaceItemDisplayName } from './marketplaceDisplay';
+import { PET_CATALOG } from './petCatalog';
 import type { MarketplaceItem } from '../types';
 
-export type SpinItemKind = 'avatar' | 'emote' | 'font' | 'color' | 'voice' | 'prize';
+export type SpinItemKind = 'avatar' | 'emote' | 'font' | 'color' | 'voice' | 'prize' | 'pet';
 
 export interface DailySpinSegment {
   id: string; // stable across the day, used as the React/canvas key and to match a result back to its segment
@@ -44,13 +45,13 @@ function isAvailableOn(item: MarketplaceItem, dateISO: string): boolean {
 }
 
 // Every spin is a win — no empty outcome — so the 10 segments are always:
-// 1 Skip Pass, 1 cashback tier (3% or 5%), 4 distinct cash amounts, and 4
-// random marketplace items (avatar/emote/font/color/voice/teacher prize —
-// power-ups are excluded since the dedicated Skip Pass segment already
-// covers that). If a student already owns an item they land on,
-// spinDailyWheel falls back to a small cash consolation so nothing is ever
-// a dead spin. A seasonal/limited-time item only enters the pool on the
-// days it's actually available.
+// 1 Skip Pass, 1 cashback tier (3% or 5%), 1 pet, 4 distinct cash amounts,
+// and 3 random marketplace items (avatar/emote/font/color/voice/teacher
+// prize — power-ups are excluded since the dedicated Skip Pass segment
+// already covers that). If a student already owns an item they land on (or
+// their pet home is already full), spinDailyWheel falls back to a small
+// cash consolation so nothing is ever a dead spin. A seasonal/limited-time
+// item only enters the pool on the days it's actually available.
 export function getDailySpinSegments(dateISO: string, marketplaceItems: MarketplaceItem[]): DailySpinSegment[] {
   const rand = seededRandom(hashString(dateISO));
 
@@ -59,6 +60,14 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
 
   const cashbackPct = rand() < 0.5 ? 3 : 5;
   segments.push({ id: `cashback-${cashbackPct}`, kind: 'cashback', percent: cashbackPct, label: `💰 ${cashbackPct}% Cashback` });
+
+  // One dedicated pet slot per day (its own wedge, like Skip/Cashback) —
+  // pets are highly reinforcing per direct teacher spec, so every student
+  // gets a real daily shot at one without pets crowding out every other
+  // prize kind by sheer catalog size (~37 pets vs. a handful of each other
+  // kind) if they were just mixed into the general item pool below.
+  const pet = PET_CATALOG[Math.floor(rand() * PET_CATALOG.length)];
+  segments.push({ id: `pet-${pet.id}`, kind: 'pet', itemId: pet.id, label: `🐾 ${pet.name}` });
 
   const cashPool = [...CASH_AMOUNTS_CENTS];
   for (let i = 0; i < 4 && cashPool.length > 0; i++) {
@@ -81,7 +90,7 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
         imageUrl: it.icon.startsWith('/') || it.icon.startsWith('http') ? it.icon : undefined,
       })),
   ];
-  for (let i = 0; i < 4 && candidates.length > 0; i++) {
+  for (let i = 0; i < 3 && candidates.length > 0; i++) {
     const idx = Math.floor(rand() * candidates.length);
     const c = candidates.splice(idx, 1)[0];
     segments.push({ id: `item-${c.kind}-${c.itemId}`, kind: c.kind, itemId: c.itemId, label: c.label, imageUrl: c.imageUrl });
