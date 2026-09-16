@@ -200,6 +200,17 @@ create table if not exists question_sets (
   created_at timestamptz not null default now()
 );
 
+-- Videos shown in the in-world Cinema — either an external link (YouTube)
+-- or a file the teacher uploaded to the 'videos' Storage bucket below. Pure
+-- watch-for-fun content, unlimited replay, no mastery/task tracking.
+create table if not exists cinema_videos (
+  id text primary key,
+  title text not null,
+  source text not null check (source in ('youtube', 'upload')),
+  url text not null,
+  created_at timestamptz not null default now()
+);
+
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged
 -- for the shared Playground pool. Same content shape as a Task, plus a
@@ -635,6 +646,27 @@ create policy images_delete on storage.objects
   for delete to authenticated
   using (bucket_id = 'images');
 
+-- A "videos" bucket for teacher-uploaded Cinema videos, same open-access
+-- shape as "images" above.
+insert into storage.buckets (id, name, public)
+values ('videos', 'videos', true)
+on conflict (id) do nothing;
+
+drop policy if exists videos_public_read on storage.objects;
+create policy videos_public_read on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'videos');
+
+drop policy if exists videos_upload on storage.objects;
+create policy videos_upload on storage.objects
+  for insert to anon, authenticated
+  with check (bucket_id = 'videos');
+
+drop policy if exists videos_delete on storage.objects;
+create policy videos_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'videos');
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
@@ -646,7 +678,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos'
   ];
 begin
   foreach t in array tables loop
@@ -689,7 +721,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos'
   ];
 begin
   foreach t in array tables loop

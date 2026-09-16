@@ -137,6 +137,9 @@ import {
   pushFocus,
   deleteFocusRemote,
   rowToFocus,
+  pushCinemaVideo,
+  deleteCinemaVideoRemote,
+  rowToCinemaVideo,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -160,6 +163,7 @@ import type {
   StudentStatus,
   RotationMode,
   QuestionSet,
+  CinemaVideo,
   ActivityLibraryItem,
   PlanTemplate,
   WeeklyScheduleEntry,
@@ -260,6 +264,7 @@ interface AppState {
   groundPatches: GroundPatch[]; // painted patches of alternate ground texture (grass/water mixed regions) — shared Town Square only, live-instant like groundTexture/skyColor
   pets: StudentPet[]; // every student's owned pets — see StudentPet in types.ts
   homeRooms: HomeRoomDef[]; // every student's own Home Room floor plan (discrete rooms + one yard) — see HomeRoomDef in types.ts
+  cinemaVideos: CinemaVideo[]; // videos shown in the in-world Cinema — teacher-authored, unlimited replay, no mastery tracking
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -473,6 +478,11 @@ interface AppState {
   updateQuestionSet: (id: string, patch: Partial<QuestionSet>) => void;
   deleteQuestionSet: (id: string) => void;
 
+  // Cinema videos — teacher-authored external links or uploaded files
+  addCinemaVideo: (video: Omit<CinemaVideo, 'id' | 'createdAt'>) => string;
+  updateCinemaVideo: (id: string, patch: Partial<CinemaVideo>) => void;
+  deleteCinemaVideo: (id: string) => void;
+
   // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
   updateLibraryActivity: (id: string, patch: Partial<ActivityLibraryItem>) => void;
@@ -625,6 +635,7 @@ export const useStore = create<AppState>()(
       groundPatches: [],
       pets: [],
       homeRooms: [],
+      cinemaVideos: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -791,6 +802,7 @@ export const useStore = create<AppState>()(
           onGroundPatch: (e, n, o) => set((s) => ({ groundPatches: applyArrayRow(s.groundPatches, e, rowToGroundPatch, n, o) })),
           onStudentPet: (e, n, o) => set((s) => ({ pets: applyArrayRow(s.pets, e, rowToStudentPet, n, o) })),
           onHomeRoom: (e, n, o) => set((s) => ({ homeRooms: applyArrayRow(s.homeRooms, e, rowToHomeRoom, n, o) })),
+          onCinemaVideo: (e, n, o) => set((s) => ({ cinemaVideos: applyArrayRow(s.cinemaVideos, e, rowToCinemaVideo, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -2514,6 +2526,25 @@ export const useStore = create<AppState>()(
       deleteQuestionSet: (id) => {
         set((s) => ({ questionSets: s.questionSets.filter((qs) => qs.id !== id) }));
         deleteQuestionSetRemote(id);
+      },
+
+      addCinemaVideo: (video) => {
+        const id = makeId();
+        const full: CinemaVideo = { ...video, id, createdAt: new Date().toISOString() };
+        set((s) => ({ cinemaVideos: [full, ...s.cinemaVideos] }));
+        pushCinemaVideo(full);
+        return id;
+      },
+
+      updateCinemaVideo: (id, patch) => {
+        set((s) => ({ cinemaVideos: s.cinemaVideos.map((v) => (v.id === id ? { ...v, ...patch } : v)) }));
+        const updated = get().cinemaVideos.find((v) => v.id === id);
+        if (updated) pushCinemaVideo(updated);
+      },
+
+      deleteCinemaVideo: (id) => {
+        set((s) => ({ cinemaVideos: s.cinemaVideos.filter((v) => v.id !== id) }));
+        deleteCinemaVideoRemote(id);
       },
 
       addLibraryActivity: (activity) => {

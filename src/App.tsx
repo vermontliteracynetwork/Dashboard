@@ -16,6 +16,7 @@ import Mailbox from './components/Mailbox';
 import Passport from './components/Passport';
 import PetShelter from './routes/student/PetShelter';
 import PetJournal from './routes/student/PetJournal';
+import Cinema from './routes/student/Cinema';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
 import StudentManager from './routes/teacher/StudentManager';
@@ -135,6 +136,7 @@ export default function App() {
           <Route path="/student/passport" element={<Passport />} />
           <Route path="/student/pet-shelter" element={<PetShelter />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
+          <Route path="/student/cinema" element={<Cinema />} />
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>
             <Route path="/teacher" element={<TeacherHome />} />

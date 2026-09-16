@@ -14,6 +14,7 @@ import type {
   BadgeEarn,
   BreakPoolItem,
   QuestionSet,
+  CinemaVideo,
   RotationMode,
   ToolKey,
   ProgressMap,
@@ -582,6 +583,14 @@ const rowToQuestionSet = (r: Row): QuestionSet => ({
   tags: r.tags ?? [],
 });
 
+const rowToCinemaVideo = (r: Row): CinemaVideo => ({
+  id: r.id,
+  title: r.title,
+  source: r.source,
+  url: r.url,
+  createdAt: r.created_at,
+});
+
 const rowToActivity = (r: Row): ActivityLibraryItem => ({
   id: r.id,
   subject: r.subject,
@@ -748,6 +757,7 @@ export interface HydratedState {
   groundPatches: GroundPatch[];
   pets: StudentPet[];
   homeRooms: HomeRoomDef[];
+  cinemaVideos: CinemaVideo[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
@@ -771,7 +781,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -806,9 +816,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('ground_patches').select('*'),
     supabase.from('student_pets').select('*'),
     supabase.from('home_rooms').select('*'),
+    supabase.from('cinema_videos').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes]) {
     if (res.error) throw res.error;
   }
 
@@ -880,6 +891,7 @@ export async function fetchAll(): Promise<HydratedState> {
     groundPatches: (groundPatchesRes.data ?? []).map(rowToGroundPatch),
     pets: (studentPetsRes.data ?? []).map(rowToStudentPet),
     homeRooms: (homeRoomsRes.data ?? []).map(rowToHomeRoom),
+    cinemaVideos: (cinemaVideosRes.data ?? []).map(rowToCinemaVideo),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
@@ -1158,6 +1170,16 @@ export const pushQuestionSet = (q: QuestionSet) =>
   });
 export const deleteQuestionSetRemote = (id: string) => remove('question_sets', { id });
 
+export const pushCinemaVideo = (v: CinemaVideo) =>
+  upsert('cinema_videos', {
+    id: v.id,
+    title: v.title,
+    source: v.source,
+    url: v.url,
+    created_at: v.createdAt,
+  });
+export const deleteCinemaVideoRemote = (id: string) => remove('cinema_videos', { id });
+
 export const pushRotationMode = (studentId: string, subject: Subject, mode: RotationMode) =>
   upsert('rotation_modes', { student_id: studentId, subject, mode });
 
@@ -1312,7 +1334,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1348,6 +1370,7 @@ export interface RealtimeHandlers {
   onWorldObject: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onWallSegment: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onFocus: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onCinemaVideo: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -1396,6 +1419,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'world_objects' }, wire(handlers.onWorldObject))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'wall_segments' }, wire(handlers.onWallSegment))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'focuses' }, wire(handlers.onFocus))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cinema_videos' }, wire(handlers.onCinemaVideo))
     .subscribe();
 
   return () => {

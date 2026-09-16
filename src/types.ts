@@ -409,6 +409,20 @@ export interface QuestionSet {
   tags?: string[]; // teacher-authored, for searching/filtering the Question Sets library
 }
 
+// A video shown in the in-world Cinema — either an external link (YouTube,
+// same extractYouTubeId path VideoTask already uses) or a file the teacher
+// uploaded straight to Supabase Storage. Unlimited replay, no task/mastery
+// tracking attached — this is a pure watch-for-fun feature, not an
+// assignment; a video someone should be graded on watching still belongs
+// on a real Task with type 'video' instead.
+export interface CinemaVideo {
+  id: string;
+  title: string;
+  source: 'youtube' | 'upload';
+  url: string; // a youtube.com/watch or youtu.be URL when source is 'youtube'; a Supabase Storage public URL when 'upload'
+  createdAt: string;
+}
+
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks
 
 // A reusable activity, created once and dragged into any student's daily
@@ -630,7 +644,7 @@ export interface Transaction {
 // routing to a hardcoded app screen (see ROLE_VIEWS in townLayout.ts), it
 // opens WorldObject.customRoleUrl in the same internal browser a task's
 // own external link already uses.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'custom';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'custom';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'
