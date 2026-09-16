@@ -47,6 +47,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
   { value: 'island-dock', label: `Island Dock (boat to Creative Island) → ${ROLE_VIEWS['island-dock']}` },
   { value: 'cinema', label: `Cinema (watch videos) → ${ROLE_VIEWS.cinema}` },
+  { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];
 // Claudia's asset-sizing audit: this floor was silently overriding the

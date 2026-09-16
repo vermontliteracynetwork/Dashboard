@@ -2012,6 +2012,16 @@ export default function TownSquare() {
     const t = window.setTimeout(() => setCustomRoleNotSet(false), 3200);
     return () => window.clearTimeout(t);
   }, [customRoleNotSet]);
+  // Direct teacher instruction: a building placed with role === 'closed'
+  // (nothing built for it yet) shows this instead of the normal "View X?"
+  // confirm card — an honest "not open yet" beats silence, which read as
+  // broken rather than "not built yet" for this population.
+  const [closedBuildingName, setClosedBuildingName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!closedBuildingName) return;
+    const t = window.setTimeout(() => setClosedBuildingName(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [closedBuildingName]);
   // A tapped sign/notice-board "enlarges" into a readable popup with TTS —
   // Claudia's standing accessibility principle applied to any text a
   // teacher writes in-world, not just quiz/task copy.
@@ -2657,6 +2667,11 @@ export default function TownSquare() {
           Not set up yet — ask your teacher!
         </div>
       )}
+      {closedBuildingName && (
+        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 65, background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, padding: '8px 16px', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+          😴 {closedBuildingName} is closed. Come back later!
+        </div>
+      )}
       {/* Direct teacher instruction: a "what's new" book, one change per
           page with the same real page-turn as the Joke Book/Pet Book,
           auto-opening for a student the first time they log in after
@@ -2852,7 +2867,8 @@ export default function TownSquare() {
                     : obj
                 }
                 onClick={
-                  obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
+                  obj.role === 'closed' && !mapView && !wasDraggingLook.current ? () => setClosedBuildingName(obj.customName || obj.label)
+                  : obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
                   : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
                   : undefined
                 }

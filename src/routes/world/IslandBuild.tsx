@@ -311,6 +311,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'home', label: `Home (their room) → ${ROLE_VIEWS.home}` },
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
   { value: 'cinema', label: `Cinema (watch videos) → ${ROLE_VIEWS.cinema}` },
+  { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];
 
@@ -493,6 +494,12 @@ export default function IslandBuild() {
     const t = window.setTimeout(() => setCustomRoleNotSet(false), 3200);
     return () => window.clearTimeout(t);
   }, [customRoleNotSet]);
+  const [closedBuildingName, setClosedBuildingName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!closedBuildingName) return;
+    const t = window.setTimeout(() => setClosedBuildingName(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [closedBuildingName]);
 
   // A brief themed transition on arrival — direct teacher framing: "boat
   // transportation is how the student will get to the creative island."
@@ -825,6 +832,7 @@ export default function IslandBuild() {
               obj={obj}
               onClick={() => {
                 if (mode === 'build') { if (!armedAsset) setSelectedId(obj.id); return; }
+                if (obj.role === 'closed') { setClosedBuildingName(obj.customName || obj.label); return; }
                 if (obj.role) setViewSelectedRoleId(obj.id);
               }}
             />
@@ -880,6 +888,11 @@ export default function IslandBuild() {
       {customRoleNotSet && (
         <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 66, background: '#fff', border: '2px solid var(--danger, #c94141)', borderRadius: 10, padding: '8px 16px', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--danger, #c94141)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
           Not set up yet — add a link in Build mode!
+        </div>
+      )}
+      {closedBuildingName && (
+        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 66, background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, padding: '8px 16px', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+          😴 {closedBuildingName} is closed. Come back later!
         </div>
       )}
     </div>
