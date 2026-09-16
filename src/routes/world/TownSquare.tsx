@@ -1968,7 +1968,7 @@ export default function TownSquare() {
           they are in the map view especially"). Top-left is the one corner
           with no other fixed overlay (everything else sits top-right or
           bottom, see the corner-FAB comment below). */}
-      <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 55, background: 'rgba(255,255,255,0.92)', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, fontSize: 13, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', pointerEvents: 'none' }}>
+      <div style={{ position: 'fixed', top: 60, left: 16, zIndex: 55, background: 'rgba(255,255,255,0.92)', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, fontSize: 13, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', pointerEvents: 'none' }}>
         📍 ({Math.round(playerPos.x)}, {Math.round(-playerPos.z)})
       </div>
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
@@ -2288,14 +2288,14 @@ export default function TownSquare() {
           (Claudia's audit) — the circle itself stays the same small,
           secondary size so it still doesn't compete with the desk as the
           main affordance; only the label is new. */}
-      <div style={{ position: 'fixed', bottom: 82, [otherSide]: 16, zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      <div style={{ position: 'fixed', bottom: 148, [otherSide]: 16, zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
         <button
           onClick={() => navigate('/student/home')}
           style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
           aria-label="Back to task dashboard"
           title="Back to task dashboard"
         >
-          🏠
+          📋
         </button>
         <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238', textShadow: '0 1px 2px rgba(255,255,255,0.7)', lineHeight: 1 }}>Tasks</span>
       </div>
