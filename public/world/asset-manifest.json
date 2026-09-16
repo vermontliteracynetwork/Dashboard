@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T14:01:22.278Z",
+  "generatedAt": "2026-09-16T14:02:33.474Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -5917,6 +5917,141 @@
       "category": "restaurant"
     },
     {
+      "path": "/world/models/roads/modular-bush-1.glb",
+      "label": "Modular Bush 1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-hazzard-cone-1.glb",
+      "label": "Modular Hazzard Cone 1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-lamp-1.glb",
+      "label": "Modular Lamp 1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-lamp-2.glb",
+      "label": "Modular Lamp 2",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road-barier-2a.glb",
+      "label": "Modular Road Barier 2a",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road-barier-2b.glb",
+      "label": "Modular Road Barier 2b",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road-barrier-1.glb",
+      "label": "Modular Road Barrier 1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road1-curve1.glb",
+      "label": "Modular Road1 Curve1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road1-curve2.glb",
+      "label": "Modular Road1 Curve2",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road1-curve3.glb",
+      "label": "Modular Road1 Curve3",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road1-curve4.glb",
+      "label": "Modular Road1 Curve4",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road1.glb",
+      "label": "Modular Road1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road10-90angle-corner.glb",
+      "label": "Modular Road10 90angle Corner",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road11-y-splitter-45.glb",
+      "label": "Modular Road11 Y Splitter 45",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road11-y-splitter.glb",
+      "label": "Modular Road11 Y Splitter",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road12-diagonal-splitter-l.glb",
+      "label": "Modular Road12 Diagonal Splitter L",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road12-diagonal-splitter-r.glb",
+      "label": "Modular Road12 Diagonal Splitter R",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road2-t.glb",
+      "label": "Modular Road2 T",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road2-x.glb",
+      "label": "Modular Road2 X",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-road6-end.glb",
+      "label": "Modular Road6 End",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-traffic-barell-1.glb",
+      "label": "Modular Traffic Barell 1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-traffic-light-1.glb",
+      "label": "Modular Traffic Light 1",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-traffic-light-2.glb",
+      "label": "Modular Traffic Light 2",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-traffic-light-3.glb",
+      "label": "Modular Traffic Light 3",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-tree-1-a.glb",
+      "label": "Modular Tree 1 A",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-tree3.glb",
+      "label": "Modular Tree3",
+      "category": "roads"
+    },
+    {
+      "path": "/world/models/roads/modular-tree4.glb",
+      "label": "Modular Tree4",
+      "category": "roads"
+    },
+    {
       "path": "/world/models/roads/road-bend-sidewalk.glb",
       "label": "Road Bend Sidewalk",
       "category": "roads"
@@ -6454,6 +6589,11 @@
     {
       "path": "/world/models/vehicles/car-armor.glb",
       "label": "Car Armor",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-banana.glb",
+      "label": "Car Banana",
       "category": "vehicles"
     },
     {
