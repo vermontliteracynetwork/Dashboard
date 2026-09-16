@@ -6,7 +6,7 @@ import { EMOTE_CATALOG } from '../lib/emoteCatalog';
 import { ALL_JOKES } from '../lib/worldJokes';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../lib/worldTownspeople';
-import { petDefById, thumbnailFor, bioFor, nextMilestone, milestonesReached } from '../lib/petCatalog';
+import { petDefById, thumbnailFor, bioFor, nextMilestone, milestonesReached, growthStageFor, growthStageLabel, growthStageIcon } from '../lib/petCatalog';
 import { BookPanel } from './BookPanel';
 import type { Student } from '../types';
 
@@ -226,7 +226,10 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
                         </div>
                       )}
                       <p style={{ margin: '0 0 2px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{pet.customName}</p>
-                      {def && <p style={{ margin: '0 0 10px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.6 }}>{def.name}</p>}
+                      {def && <p style={{ margin: '0 0 4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.6 }}>{def.name}</p>}
+                      <p style={{ margin: '0 0 10px', fontSize: '0.8rem', fontWeight: 800 }}>
+                        {growthStageIcon(growthStageFor(pet.trainingProgress))} {growthStageLabel(growthStageFor(pet.trainingProgress))}
+                      </p>
                       {def && <p style={{ margin: '0 0 10px', fontSize: '0.85rem' }}>{bioFor(def)}</p>}
                       <div style={{ display: 'flex', gap: 10, fontSize: '0.72rem', fontWeight: 700, opacity: 0.75, marginBottom: 8 }}>
                         <span>🍗 {Math.round(pet.food)}</span>

@@ -220,6 +220,51 @@ export function nextMilestone(trainingProgress: number): PetMilestone | null {
 }
 
 // ---------------------------------------------------------------------------
+// Growth stages — direct teacher spec: "pets should start out as babies/
+// puppies/kittens and grow to be full adults with attention, love, and
+// native games." Reuses the SAME trainingProgress counter and thresholds
+// the milestone ladder above already uses (attention/love comes through as
+// real academic engagement, per this app's own established rule that
+// training comes from finishing assignments/question sets — native games
+// included — not from clicking a care button) rather than a second,
+// parallel counter: a newly adopted pet's trainingProgress already starts
+// at 0, so "starts as a baby" is true for free. Baby -> Juvenile lines up
+// with the existing "Walks with you" unlock (a pet that hasn't bonded
+// enough yet doesn't follow you as a baby), Juvenile -> Adult lines up
+// with "Best Friends." Purely a render-time scale multiplier on top of a
+// pet's own real targetHeight — no new stored field, no schema change.
+export type PetGrowthStage = 'baby' | 'juvenile' | 'adult';
+const GROWTH_STAGE_SCALE: Record<PetGrowthStage, number> = {
+  baby: 0.5,
+  juvenile: 0.75,
+  adult: 1,
+};
+const GROWTH_STAGE_LABEL: Record<PetGrowthStage, string> = {
+  baby: 'Baby',
+  juvenile: 'Growing up',
+  adult: 'Adult',
+};
+const GROWTH_STAGE_ICON: Record<PetGrowthStage, string> = {
+  baby: '🍼',
+  juvenile: '🌱',
+  adult: '⭐',
+};
+export function growthStageFor(trainingProgress: number): PetGrowthStage {
+  if (trainingProgress >= 10) return 'adult';
+  if (trainingProgress >= PET_FOLLOW_TRAINING_THRESHOLD) return 'juvenile';
+  return 'baby';
+}
+export function growthScaleFactor(stage: PetGrowthStage): number {
+  return GROWTH_STAGE_SCALE[stage];
+}
+export function growthStageLabel(stage: PetGrowthStage): string {
+  return GROWTH_STAGE_LABEL[stage];
+}
+export function growthStageIcon(stage: PetGrowthStage): string {
+  return GROWTH_STAGE_ICON[stage];
+}
+
+// ---------------------------------------------------------------------------
 // Mystery Adoption Box (Claudia's plan, Phase 3/2) — a real Class Cash
 // purchase, alongside (never replacing) direct catalog purchase and the
 // daily spin's own pet wedge. Priced as a middle ground between the

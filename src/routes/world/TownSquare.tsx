@@ -23,7 +23,7 @@ import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor } from '../../lib/petCatalog';
+import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch } from '../../types';
 
@@ -494,7 +494,16 @@ const PET_HOVER_BOB_SPEED = 2.2;
 // as WorldEditor's useModelSize) and scales it to that pet's own
 // PetDef.targetHeight (real-world-proportional, see petCatalog.ts) instead
 // of a blind multiplier on whatever units the source pack happens to use.
-const PET_SCALE_MIN = 0.05;
+// Claudia's pet audit, ground-truth-measured against the actual GLBs (not
+// inferred from filenames): a 0.05 floor was silently overriding 9 of 44
+// pets whose real required scale (targetHeight ÷ their own raw export
+// height) is smaller than that — several ship raw geometry in the tens to
+// hundreds of units, the exact same "floor clamp masquerading as the real
+// scale" bug WorldEditor.tsx's own SCALE_MIN comment already documents for
+// placed objects (measured worst case here: Blob Cat's real needed scale
+// is ≈0.0014). Lowered with real margin below that; PET_SCALE_MAX=3 was
+// never approached by anything in this catalog and is unchanged.
+const PET_SCALE_MIN = 0.001;
 const PET_SCALE_MAX = 3;
 function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path: string; floating: boolean; targetHeight: number; isMovingRef: React.RefObject<boolean> }) {
   const { scene, animations } = useGLTF(path);
@@ -521,11 +530,18 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path
   const current = useRef<'idle' | 'walk'>('idle');
   useEffect(() => {
     if (floating) return; // no walk/idle animation for a hovering fish companion
+    // Claudia's pet audit: this was silent by design (most pet packs simply
+    // don't ship a walk clip), but that made 13 of 44 pets render fully
+    // frozen in rest pose with zero warning anywhere. Matches the same
+    // console.warn Player/WanderBodyModel already use for a missing idle
+    // clip — QA visibility, not a user-facing message.
+    if (!clipNames.idle) console.warn(`[TownSquare] pet ${path}: no "idle" animation clip found`);
+    if (!clipNames.walk) console.warn(`[TownSquare] pet ${path}: no "walk"/"run" animation clip found — will not animate while moving`);
     const idle = clipNames.idle ? actions[clipNames.idle] : undefined;
     idle?.reset().play();
     current.current = 'idle';
     return () => { idle?.stop(); };
-  }, [actions, floating, clipNames]);
+  }, [actions, floating, clipNames, path]);
   useFrame(() => {
     if (floating || !clipNames.walk) return; // no walk clip in this pack — stay on idle rather than a hard pose-snap
     const next = isMovingRef.current ? 'walk' : 'idle';
@@ -2682,8 +2698,19 @@ export default function TownSquare() {
           />
           {/* Direct teacher instruction: only birds (they fly) and fish
               (they have no legs) float beside the player — every other
-              category walks on the ground. */}
-          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic' || followingPetDef.category === 'bird'} targetHeight={followingPetDef.targetHeight} facingRef={playerFacingRef} />}
+              category walks on the ground. Direct teacher instruction:
+              pets grow from baby to adult with real engagement — the same
+              growth-stage scale multiplier every other pet render site
+              (Pet Book, care panel) uses. */}
+          {followingPet && followingPetDef && (
+            <PetCompanion
+              playerPos={playerPos}
+              modelPath={followingPetDef.modelPath}
+              floating={followingPetDef.category === 'aquatic' || followingPetDef.category === 'bird'}
+              targetHeight={followingPetDef.targetHeight * growthScaleFactor(growthStageFor(followingPet.trainingProgress))}
+              facingRef={playerFacingRef}
+            />
+          )}
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
               key={n.id}

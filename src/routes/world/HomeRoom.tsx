@@ -8,7 +8,7 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone } from '../../lib/petCatalog';
+import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import type { WorldObject, WallSegment, HomeRoomKind } from '../../types';
 
@@ -862,7 +862,10 @@ export default function HomeRoom() {
                       onChange={(e) => renamePet(pet.id, e.target.value)}
                       style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 30 }}
                     />
-                    <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>{def?.name}{pet.following ? ' • 🚶 walking with you' : ''}</div>
+                    <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>
+                      {def?.name} • {growthStageIcon(growthStageFor(pet.trainingProgress))} {growthStageLabel(growthStageFor(pet.trainingProgress))}
+                      {pet.following ? ' • 🚶 walking with you' : ''}
+                    </div>
                     {/* SEL: a feelings-word tag alongside the number, not
                         just a low bar — naming the internal state tied to
                         its visible cause is the actual SEL rep (Claudia's
@@ -874,7 +877,7 @@ export default function HomeRoom() {
                           <span>{label}{value < 40 ? ` (${feeling})` : ''}</span><span>{Math.round(value)}</span>
                         </div>
                         <div style={{ height: 5, borderRadius: 3, background: '#eee', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e' }} />
+                          <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e', transition: 'width 0.3s ease-out' }} />
                         </div>
                       </div>
                     ))}
@@ -896,10 +899,16 @@ export default function HomeRoom() {
                         Next: {nextMilestone(pet.trainingProgress)!.icon} {nextMilestone(pet.trainingProgress)!.label} at {nextMilestone(pet.trainingProgress)!.threshold}
                       </div>
                     )}
+                    {/* Claudia's pet audit: Feed/Pet/Play were the only
+                        interactive controls in this whole panel that never
+                        called flashSaved() — every other action here does
+                        (room name, wall color, floor texture, house
+                        exterior), so these read as weaker/less confirmed
+                        than everything around them. */}
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'feed')}>🍗 Feed</button>
-                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'pet')}>🤗 Pet</button>
-                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'play')}>🎾 Play</button>
+                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
+                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
+                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'play'); flashSaved(); }}>🎾 Play</button>
                       <button
                         className="btn btn-sm"
                         style={{ minHeight: 32, fontSize: 10, padding: '2px 8px', opacity: canFollow ? 1 : 0.4, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
