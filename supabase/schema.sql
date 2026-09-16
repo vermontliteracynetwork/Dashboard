@@ -208,9 +208,14 @@ create table if not exists cinema_videos (
   title text not null,
   source text not null check (source in ('youtube', 'upload')),
   url text not null,
-  cover_image_url text,
   created_at timestamptz not null default now()
 );
+-- The table above was live before cover_image_url was added to it, and
+-- `create table if not exists` is a no-op on a table that already exists
+-- (it never adds a missing column) — that silently left every live project
+-- stuck without this column no matter how many times schema.sql re-ran.
+-- This explicit `alter` is what actually adds it to an existing table.
+alter table cinema_videos add column if not exists cover_image_url text;
 
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged
