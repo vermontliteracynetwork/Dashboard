@@ -594,6 +594,8 @@ const rowToCinemaVideo = (r: Row): CinemaVideo => ({
   url: r.url,
   coverImageUrl: r.cover_image_url ?? undefined,
   createdAt: r.created_at,
+  tags: r.tags ?? [],
+  durationSeconds: r.duration_seconds ?? undefined,
 });
 
 const rowToActivity = (r: Row): ActivityLibraryItem => ({
@@ -1185,6 +1187,8 @@ export const pushCinemaVideo = (v: CinemaVideo) =>
     url: v.url,
     cover_image_url: v.coverImageUrl ?? null,
     created_at: v.createdAt,
+    tags: v.tags ?? [],
+    duration_seconds: v.durationSeconds ?? null,
   });
 export const deleteCinemaVideoRemote = (id: string) => remove('cinema_videos', { id });
 

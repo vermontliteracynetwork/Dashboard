@@ -216,6 +216,8 @@ create table if not exists cinema_videos (
 -- stuck without this column no matter how many times schema.sql re-ran.
 -- This explicit `alter` is what actually adds it to an existing table.
 alter table cinema_videos add column if not exists cover_image_url text;
+alter table cinema_videos add column if not exists tags jsonb not null default '[]';
+alter table cinema_videos add column if not exists duration_seconds integer;
 
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged

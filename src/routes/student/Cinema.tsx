@@ -16,6 +16,13 @@ import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 // into place on both a touch swipe (iPad) and a mouse-wheel/trackpad
 // scroll; the arrow buttons are the equivalent for a mouse-only desktop
 // where nothing naturally scrolls a horizontal row.
+// Rounds up to a whole minute (a 40-second clip should read "1 min," never
+// "0 min") — the estimate only needs to give a kid a rough sense of length
+// before they tap play, not a stopwatch-accurate readout.
+function formatDuration(seconds: number): string {
+  return `${Math.max(1, Math.round(seconds / 60))} min`;
+}
+
 export default function Cinema() {
   const navigate = useNavigate();
   const cinemaVideos = useStore((s) => s.cinemaVideos);
@@ -25,20 +32,37 @@ export default function Cinema() {
   const student = students.find((s) => s.id === currentStudentId);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
+  // Direct teacher request: categories/tags so kids can search the Cinema
+  // shelf — a plain text search plus one-tap category chips, same idea as
+  // the teacher's own Question Sets library search.
+  const [search, setSearch] = useState('');
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   const favoriteIds = student?.favoriteCinemaVideoIds ?? [];
+  const allTags = useMemo(
+    () => Array.from(new Set(cinemaVideos.flatMap((v) => v.tags ?? []))).sort(),
+    [cinemaVideos],
+  );
+
   // Direct teacher instruction: a student can heart a video to keep it at
   // the front of the shelf — a stable sort (favorites first, otherwise the
   // teacher's own add order) so nothing else jumps around when one video
-  // gets hearted.
+  // gets hearted. Search/tag filtering happens on top of that same order.
   const sortedVideos = useMemo(() => {
-    return [...cinemaVideos].sort((a, b) => {
-      const fa = favoriteIds.includes(a.id);
-      const fb = favoriteIds.includes(b.id);
-      return fa === fb ? 0 : fa ? -1 : 1;
-    });
+    const q = search.trim().toLowerCase();
+    return [...cinemaVideos]
+      .filter((v) => {
+        if (tagFilter && !(v.tags ?? []).includes(tagFilter)) return false;
+        if (q && !v.title.toLowerCase().includes(q) && !(v.tags ?? []).some((t) => t.toLowerCase().includes(q))) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const fa = favoriteIds.includes(a.id);
+        const fb = favoriteIds.includes(b.id);
+        return fa === fb ? 0 : fa ? -1 : 1;
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cinemaVideos, favoriteIds.join(',')]);
+  }, [cinemaVideos, favoriteIds.join(','), search, tagFilter]);
 
   const toggleFavorite = (id: string) => {
     if (!student) return;
@@ -110,7 +134,10 @@ export default function Cinema() {
             )}
           </div>
           <div className="row" style={{ alignItems: 'center', gap: 10, background: '#fff', borderRadius: 10, padding: '8px 16px' }}>
-            <p style={{ margin: 0, fontWeight: 700, color: '#5c1219', fontFamily: 'system-ui, sans-serif' }}>{playing.title}</p>
+            <p style={{ margin: 0, fontWeight: 700, color: '#5c1219', fontFamily: 'system-ui, sans-serif' }}>
+              {playing.title}
+              {playing.durationSeconds ? <span style={{ fontWeight: 500, opacity: 0.65 }}> · ⏱️ {formatDuration(playing.durationSeconds)}</span> : null}
+            </p>
             <button
               onClick={() => toggleFavorite(playing.id)}
               aria-label={favoriteIds.includes(playing.id) ? 'Remove from favorites' : 'Add to favorites'}
@@ -124,8 +151,39 @@ export default function Cinema() {
         <div style={{ margin: '32px auto 0', width: '100%', maxWidth: 1000 }}>
           <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: '20px 0', boxShadow: '0 6px 20px rgba(0,0,0,0.35)' }}>
             <h2 style={{ margin: '0 20px 14px', color: '#5c1219', fontFamily: 'system-ui, sans-serif' }}>Now Showing</h2>
+            {cinemaVideos.length > 0 && (
+              <div className="stack" style={{ gap: 8, margin: '0 20px 14px' }}>
+                <input
+                  className="input"
+                  placeholder="🔍 Search videos…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ minHeight: 44 }}
+                />
+                {allTags.length > 0 && (
+                  <div className="row-wrap" style={{ gap: 6 }}>
+                    {allTags.map((t) => (
+                      <button
+                        key={t}
+                        className="btn btn-sm"
+                        style={{
+                          minHeight: 40,
+                          background: tagFilter === t ? 'var(--purple)' : undefined,
+                          color: tagFilter === t ? '#fff' : undefined,
+                        }}
+                        onClick={() => setTagFilter(tagFilter === t ? null : t)}
+                      >
+                        🏷️ {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {sortedVideos.length === 0 ? (
-              <p style={{ opacity: 0.7, margin: '0 20px' }}>Nothing playing yet. Ask your teacher to add a video!</p>
+              <p style={{ opacity: 0.7, margin: '0 20px' }}>
+                {cinemaVideos.length === 0 ? 'Nothing playing yet. Ask your teacher to add a video!' : "No videos match your search. Try a different word or tag!"}
+              </p>
             ) : (
               <div style={{ position: 'relative' }}>
                 <button
@@ -170,13 +228,20 @@ export default function Cinema() {
                           style={{ display: 'block', width: '100%', border: 'none', background: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
                           aria-label={`Watch ${v.title}`}
                         >
-                          {cover ? (
-                            <img src={cover} alt="" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }} />
-                          ) : (
-                            <div style={{ width: '100%', aspectRatio: '16 / 9', background: 'linear-gradient(135deg, var(--purple), var(--teal))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.4rem' }}>
-                              🎬
-                            </div>
-                          )}
+                          <div style={{ position: 'relative' }}>
+                            {cover ? (
+                              <img src={cover} alt="" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }} />
+                            ) : (
+                              <div style={{ width: '100%', aspectRatio: '16 / 9', background: 'linear-gradient(135deg, var(--purple), var(--teal))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.4rem' }}>
+                                🎬
+                              </div>
+                            )}
+                            {v.durationSeconds ? (
+                              <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: 6 }}>
+                                ⏱️ {formatDuration(v.durationSeconds)}
+                              </span>
+                            ) : null}
+                          </div>
                           <div style={{ padding: '8px 10px', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'system-ui, sans-serif', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             🎟️ {v.title}
                           </div>

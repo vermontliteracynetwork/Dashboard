@@ -424,6 +424,8 @@ export interface CinemaVideo {
   url: string; // a youtube.com/watch or youtu.be URL when source is 'youtube'; a Supabase Storage public URL when 'upload'
   coverImageUrl?: string; // teacher-uploaded poster shown on the Now Showing shelf; falls back to the YouTube auto-thumbnail when unset and source is 'youtube', or a generic icon otherwise
   createdAt: string;
+  tags?: string[]; // teacher-authored, free-form (e.g. "Math", "Silly", "Calm-down") — so kids can search/filter the Cinema shelf, same pattern as QuestionSet tags
+  durationSeconds?: number; // real length for an uploaded file (read from the file itself), or a teacher-entered estimate for a YouTube link (no API key configured to fetch it) — shown to students as "~N min" before they tap play
 }
 
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks

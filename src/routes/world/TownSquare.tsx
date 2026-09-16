@@ -2303,6 +2303,24 @@ export default function TownSquare() {
   // at the same close-to-the-edge distance on either side now.
   const dpadBottom = 20;
 
+  // Direct teacher instruction: a role-having building should be reachable
+  // straight from the Map view too, via a double-click/double-tap, not
+  // only by walking up to it in the normal 3D view. Shared with the normal
+  // walk-up Confirm button below so both paths open the exact same way.
+  // The double-click itself is the confirming gesture on the map (there's
+  // no walk-up-and-confirm equivalent when you're looking top-down), so
+  // this skips straight to opening rather than showing another card.
+  const openRoleObject = (obj: WorldObject) => {
+    if (obj.role === 'closed') { setClosedBuildingName(obj.customName || obj.label); return; }
+    if (obj.role === 'custom') {
+      if (obj.customRoleUrl) setCustomRoleLink({ url: obj.customRoleUrl, title: obj.customName || obj.label });
+      else setCustomRoleNotSet(true);
+      return;
+    }
+    const path = obj.role ? ROLE_VIEWS[obj.role] : null;
+    if (path) navigate(path);
+  };
+
   return (
     <div
       // Direct teacher report: on iPad the whole page would scroll/pan
@@ -2924,6 +2942,14 @@ export default function TownSquare() {
                   : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
                   : undefined
                 }
+                // Direct teacher instruction: a role-having building should
+                // be double-click/double-tap-able straight from the Map
+                // view, not only reachable by walking up to it. The map is
+                // otherwise pure look-around (mapView disables every other
+                // click above), so this is gated to ONLY fire there —
+                // walking around normally still goes through the one-tap
+                // Confirm card, per the existing "never auto-open" rule.
+                onDoubleClick={obj.role && mapView ? () => openRoleObject(obj) : undefined}
               />
               {obj.role && (
                 <Html center position={[obj.position[0], 3.2, obj.position[2]]} style={{ pointerEvents: 'none' }}>
@@ -2949,16 +2975,7 @@ export default function TownSquare() {
                     <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>View {obj.customName || obj.label}?</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
-                        onClick={() => {
-                          setSelectedRoleObjectId(null);
-                          if (obj.role === 'custom') {
-                            if (obj.customRoleUrl) setCustomRoleLink({ url: obj.customRoleUrl, title: obj.customName || obj.label });
-                            else setCustomRoleNotSet(true);
-                            return;
-                          }
-                          const path = obj.role ? ROLE_VIEWS[obj.role] : null;
-                          if (path) navigate(path);
-                        }}
+                        onClick={() => { setSelectedRoleObjectId(null); openRoleObject(obj); }}
                         style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
                         ✅ Confirm

@@ -52,3 +52,34 @@ export function captureVideoThumbnail(file: File): Promise<Blob> {
     });
   });
 }
+
+// Reads an uploaded video file's real length, so a teacher never has to
+// type it in by hand — direct teacher request: show kids roughly how long
+// a video is before they tap play. YouTube links have no local file to
+// read, so CinemaVideosManager collects that one as a manual estimate
+// instead (this function is upload-only).
+export function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = url;
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      video.remove();
+    };
+
+    video.addEventListener('error', () => {
+      cleanup();
+      reject(new Error('Could not read that video file.'));
+    });
+
+    video.addEventListener('loadedmetadata', () => {
+      const seconds = video.duration;
+      cleanup();
+      if (Number.isFinite(seconds) && seconds > 0) resolve(seconds);
+      else reject(new Error('Could not read that video’s length.'));
+    });
+  });
+}
