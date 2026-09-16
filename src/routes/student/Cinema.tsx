@@ -1,7 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import TheaterFrame from '../../components/TheaterFrame';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 
 // The in-world Cinema — direct teacher request: a themed video-viewing
@@ -18,7 +16,6 @@ import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 // scroll; the arrow buttons are the equivalent for a mouse-only desktop
 // where nothing naturally scrolls a horizontal row.
 export default function Cinema() {
-  const navigate = useNavigate();
   const cinemaVideos = useStore((s) => s.cinemaVideos);
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -77,35 +74,30 @@ export default function Cinema() {
               ⬅️ Now Showing
             </button>
           )}
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">
-            🌳 Town Square
-          </button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>
-            🏠 Home
-          </button>
         </div>
       </div>
 
       {playing ? (
         <div className="stack" style={{ alignItems: 'center', marginTop: 20 }}>
-          <TheaterFrame>
-            <div style={{ width: '100%', aspectRatio: '16 / 9' }}>
-              {ytId ? (
-                <iframe
-                  width="100%"
-                  height="100%"
-                  src={`https://www.youtube-nocookie.com/embed/${ytId}?playsinline=1`}
-                  title={playing.title}
-                  style={{ border: 'none', display: 'block' }}
-                  allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                // eslint-disable-next-line jsx-a11y/media-has-caption
-                <video src={playing.url} controls playsInline style={{ width: '100%', height: '100%', display: 'block', background: '#000' }} />
-              )}
-            </div>
-          </TheaterFrame>
+          {/* Direct teacher instruction: no frame around the video itself —
+              the real curtain photo behind is the only framing this view
+              gets, so the video just sits directly on it. */}
+          <div style={{ width: '100%', maxWidth: 640, aspectRatio: '16 / 9', boxShadow: '0 10px 30px rgba(0,0,0,0.45)' }}>
+            {ytId ? (
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube-nocookie.com/embed/${ytId}?playsinline=1`}
+                title={playing.title}
+                style={{ border: 'none', display: 'block' }}
+                allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <video src={playing.url} controls playsInline style={{ width: '100%', height: '100%', display: 'block', background: '#000' }} />
+            )}
+          </div>
           <div className="row" style={{ alignItems: 'center', gap: 10, background: '#fff', borderRadius: 10, padding: '8px 16px' }}>
             <p style={{ margin: 0, fontWeight: 700, color: '#5c1219', fontFamily: 'system-ui, sans-serif' }}>{playing.title}</p>
             <button

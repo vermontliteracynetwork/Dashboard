@@ -1853,10 +1853,17 @@ export default function TownSquare() {
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelogPageIndex, setChangelogPageIndex] = useState(0);
   const changelogOfferedRef = useRef(false);
+  // Direct teacher report: the book showed every entry every time with no
+  // way to tell what was actually new — snapshotting lastSeenChangelogId at
+  // the moment the book opens (closeChangelog overwrites the real field
+  // immediately) lets each page say "New!" only for entries the student
+  // hadn't seen as of THIS open, not a stale/moving target.
+  const changelogOpenedSeenIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!student || changelogOfferedRef.current || showArrival) return;
     if (!hasUnseenChangelog(student.lastSeenChangelogId)) return;
     changelogOfferedRef.current = true;
+    changelogOpenedSeenIdRef.current = student.lastSeenChangelogId ?? null;
     setShowChangelog(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showArrival, student?.lastSeenChangelogId]);
@@ -1867,6 +1874,7 @@ export default function TownSquare() {
   // doesn't reopen it every time.
   useEffect(() => {
     if (searchParams.get('openChangelog') !== '1') return;
+    changelogOpenedSeenIdRef.current = student?.lastSeenChangelogId ?? null;
     setChangelogPageIndex(0);
     setShowChangelog(true);
     const next = new URLSearchParams(searchParams);
@@ -2676,16 +2684,29 @@ export default function TownSquare() {
               title="What's New"
               pageIndex={changelogPageIndex}
               onPageChange={setChangelogPageIndex}
-              pages={CHANGELOG_ENTRIES.map((entry) => ({
-                key: entry.id,
-                content: (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                    <span style={{ fontSize: '2.2rem', marginBottom: 6 }}>{entry.icon}</span>
-                    <p style={{ margin: '0 0 8px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{entry.title}</p>
-                    <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.body}</p>
-                  </div>
-                ),
-              }))}
+              pages={CHANGELOG_ENTRIES.map((entry, i) => {
+                // Newest-first array: everything before the entry matching
+                // what the student had seen when the book opened is new.
+                // No match at all (never seen anything) means every entry
+                // shown here is new to them.
+                const seenIndex = CHANGELOG_ENTRIES.findIndex((e) => e.id === changelogOpenedSeenIdRef.current);
+                const isNew = seenIndex === -1 || i < seenIndex;
+                return {
+                  key: entry.id,
+                  content: (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                      <span style={{ fontSize: '2.2rem', marginBottom: 6 }}>{entry.icon}</span>
+                      {isNew && (
+                        <span style={{ background: '#e2775c', color: '#fff', fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 999, marginBottom: 6, letterSpacing: '0.03em' }}>
+                          🆕 NEW
+                        </span>
+                      )}
+                      <p style={{ margin: '0 0 8px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{entry.title}</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.body}</p>
+                    </div>
+                  ),
+                };
+              })}
             />
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // A real page-turning book, Minecraft book&quill / Sims 4 spellbook style —
 // direct instruction, replacing the flat clickable-list look every "book"
@@ -28,18 +28,61 @@ export function BookPanel({
   title?: string;
 }) {
   const [flipDir, setFlipDir] = useState<'next' | 'prev' | null>(null);
+  // Direct teacher report: pages would eventually stop turning entirely.
+  // Root cause — the flipping leaf used to mount with its FINAL rotateY
+  // already set, so the browser had no "before" value to transition from
+  // and sometimes just snapped straight to the end state with no animation
+  // frame at all — which means no transitionend event either, which is
+  // the one thing that clears flipDir. Once that happened once, flipDir
+  // stayed stuck non-null forever and goTo's own guard (`if (flipDir) ...
+  // return`) silently ate every future tap. `flipping` now starts false
+  // (leaf mounts flat, matching the settled page underneath) and only
+  // switches to the rotated target a frame later, via a double
+  // requestAnimationFrame — the standard, reliable way to force the
+  // browser to paint the "before" state before the "after" state so the
+  // CSS transition — and therefore transitionend — actually fires. A
+  // setTimeout safety net (fireEndOnce) is a second, independent
+  // guarantee: even if a transition is somehow still skipped (a
+  // backgrounded tab, a slow device), the book un-sticks itself instead
+  // of staying broken until a page reload.
+  const [flipping, setFlipping] = useState(false);
   const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+  const endedRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+
+  const clearFlipTimers = () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
+    rafRef.current = null;
+    timeoutRef.current = null;
+  };
+
+  useEffect(() => clearFlipTimers, []);
 
   const goTo = (next: number, dir: 'next' | 'prev') => {
     if (flipDir || next < 0 || next >= pages.length) return;
+    clearFlipTimers();
+    endedRef.current = false;
     setPendingIndex(next);
     setFlipDir(dir);
+    setFlipping(false);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = requestAnimationFrame(() => setFlipping(true));
+    });
+    timeoutRef.current = window.setTimeout(onFlipEnd, FLIP_MS + 250);
   };
 
   const onFlipEnd = () => {
-    if (pendingIndex !== null) onPageChange(pendingIndex);
+    if (endedRef.current) return;
+    endedRef.current = true;
+    clearFlipTimers();
+    setPendingIndex((p) => {
+      if (p !== null) onPageChange(p);
+      return null;
+    });
     setFlipDir(null);
-    setPendingIndex(null);
+    setFlipping(false);
   };
 
   if (pages.length === 0) {
@@ -78,7 +121,7 @@ export function BookPanel({
               transformOrigin: 'left center',
               transformStyle: 'preserve-3d',
               transition: `transform ${FLIP_MS}ms ease-in-out`,
-              transform: `rotateY(${flipDir === 'next' ? -179 : 179}deg)`,
+              transform: flipping ? `rotateY(${flipDir === 'next' ? -179 : 179}deg)` : 'rotateY(0deg)',
               zIndex: 2,
             }}
           >
