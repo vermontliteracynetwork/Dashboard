@@ -204,8 +204,22 @@ export default function StudentManager() {
   const updateStudent = useStore((s) => s.updateStudent);
   const deleteStudent = useStore((s) => s.deleteStudent);
   const setFeatureToggle = useStore((s) => s.setFeatureToggle);
+  const retrySyncNow = useStore((s) => s.retrySyncNow);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // Direct teacher instruction after seeing a stuck "didn't save after
+  // several tries" banner: an explicit Save per student, not just the
+  // global red-banner Retry. Every field here already writes on every
+  // change (this app has no separate draft state to commit) — what this
+  // button actually does is force retrySyncNow's queued-write retry right
+  // now instead of waiting for its own backoff timer, with visible
+  // confirmation, so a teacher never has to just trust a silent write.
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const saveStudent = (id: string) => {
+    retrySyncNow();
+    setSavedId(id);
+    window.setTimeout(() => setSavedId((v) => (v === id ? null : v)), 2000);
+  };
 
   return (
     <div className="app-shell">
@@ -225,6 +239,11 @@ export default function StudentManager() {
                 <button className="btn btn-sm" onClick={() => setExpanded(expanded === st.id ? null : st.id)}>
                   {expanded === st.id ? 'Close' : 'Edit'}
                 </button>
+                {expanded === st.id && (
+                  <button className="btn btn-sm btn-primary" onClick={() => saveStudent(st.id)}>
+                    {savedId === st.id ? '✓ Saved' : '💾 Save'}
+                  </button>
+                )}
                 {confirmDelete === st.id ? (
                   <>
                     <span style={{ fontSize: '0.85rem' }}>Delete for good?</span>

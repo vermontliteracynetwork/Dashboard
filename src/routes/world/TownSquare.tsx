@@ -1591,7 +1591,7 @@ function DpadButton({
 // same shape as every other control in this app. Capped well short of a
 // full spin so a student can peek around without ever losing their sense
 // of which way they're actually facing; moving snaps it back to normal.
-function CameraLookButtons({ cameraLook, side }: { cameraLook: React.RefObject<number>; side: 'left' | 'right' }) {
+function CameraLookButtons({ cameraLook, side, bottom }: { cameraLook: React.RefObject<number>; side: 'left' | 'right'; bottom: number }) {
   const [, forceTick] = useState(0);
   const STEP = Math.PI / 6;
   const turn = (dir: 1 | -1) => {
@@ -1599,7 +1599,7 @@ function CameraLookButtons({ cameraLook, side }: { cameraLook: React.RefObject<n
     forceTick((n) => n + 1);
   };
   return (
-    <div style={{ position: 'absolute', bottom: 90, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+    <div style={{ position: 'absolute', bottom, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         {/* Icons paired with a visible label, not icon-only (Claudia's
             audit) — matches the D-pad's own label-under-icon pattern above. */}
@@ -1697,6 +1697,7 @@ export default function TownSquare() {
   // to false in the same write), so this menu is purely a faster way to
   // call that same action, not new following-limit logic.
   const [showCompanionMenu, setShowCompanionMenu] = useState(false);
+  const [showSelfMenu, setShowSelfMenu] = useState(false);
 
   // Soft need-decay only ticks while a student is actively here in Town
   // Square (direct teacher spec: "only decrease when playing the game, not
@@ -2162,6 +2163,13 @@ export default function TownSquare() {
 
   const dpadSide = student.worldDpadSide;
   const otherSide = dpadSide === 'left' ? 'right' : 'left';
+  // Direct teacher instruction: the D-pad was floating with a big unused
+  // gap below it down to the true bottom edge. That gap only exists to
+  // clear the two stacked corner FABs (.help-fab/.whatnow-fab, both fixed
+  // to the bottom-right) when the D-pad shares that same corner — on the
+  // left (this app's default dpadSide), nothing else lives down there, so
+  // it can sit right down near the true bottom edge instead.
+  const dpadBottom = dpadSide === 'right' ? 150 : 20;
 
   return (
     <div
@@ -2321,6 +2329,67 @@ export default function TownSquare() {
           </div>
         </div>
       )}
+      {/* Direct teacher instruction: "Pie menu format should be adopted
+          for all buttons on the right hand side" — the same radial wedge
+          pattern as the companion-swap menu above, now the single entry
+          point for the navigation buttons that used to sit stacked in the
+          top-right corner (Settings/Map/My Stuff/My Home), plus Companion
+          when the student owns a pet. Capped at 5 wedges per Claudia's own
+          navigation standard elsewhere in this app. */}
+      {showSelfMenu && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 130, paddingRight: 130 }}
+          onClick={() => setShowSelfMenu(false)}
+        >
+          <div style={{ position: 'relative', width: 240, height: 240 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 90, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#fff', pointerEvents: 'none' }}>
+              Menu
+            </div>
+            {(() => {
+              const wedges: { id: string; icon: string; label: string; bg: string; onSelect: () => void }[] = [
+                { id: 'settings', icon: '⚙️', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },
+                { id: 'map', icon: mapView ? '✕' : '🗺️', label: mapView ? 'Close Map' : 'Map', bg: mapView ? '#e2775c' : '#3e7c6b', onSelect: () => setMapView((v) => !v) },
+                { id: 'stuff', icon: showInventory ? '✕' : '🎒', label: showInventory ? 'Close' : 'My Stuff', bg: showInventory ? '#e2775c' : '#c2953f', onSelect: () => setShowInventory((v) => !v) },
+                { id: 'home', icon: '🏠', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
+                ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
+              ];
+              return wedges.map((w, i) => {
+                const angle = (i / wedges.length) * Math.PI * 2 - Math.PI / 2;
+                const r = 92;
+                const x = Math.cos(angle) * r;
+                const y = Math.sin(angle) * r;
+                return (
+                  <button
+                    key={w.id}
+                    title={w.label}
+                    onClick={() => { setShowSelfMenu(false); w.onSelect(); }}
+                    style={{
+                      position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)',
+                      width: 60, height: 60, borderRadius: '50%', border: '2px solid var(--ink)', background: w.bg, color: '#fff',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
+                      cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.35)', padding: 4,
+                    }}
+                  >
+                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{w.icon}</span>
+                    <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>{w.label}</span>
+                  </button>
+                );
+              });
+            })()}
+            <button
+              title="Cancel"
+              onClick={() => setShowSelfMenu(false)}
+              style={{
+                position: 'absolute', left: '50%', top: 'calc(50% + 155px)', transform: 'translate(-50%, -50%)',
+                minHeight: 44, borderRadius: 20, border: '2px solid var(--ink)', background: '#fff',
+                fontSize: '0.7rem', fontWeight: 700, padding: '4px 12px', cursor: 'pointer',
+              }}
+            >
+              ✕ Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {/* Wizard ThunderSword — a real lock, direct teacher instruction: no
           backdrop-dismiss onClick, no X button, nothing but the one path
           out (go actually do an assignment). Calm-down/help stay reachable
@@ -2440,66 +2509,24 @@ export default function TownSquare() {
         <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>Help</span>
       </button>
 
+      {/* Direct teacher instruction: "Pie menu format should be adopted
+          for all buttons on the right hand side." Settings/Map/My Stuff/
+          My Home used to be 4 separate stacked corner buttons; they're now
+          wedges of one Sims-4-style radial menu opened from a single
+          trigger, reusing the exact visual pattern the companion-swap pie
+          menu (below) already established in this file. Help/What now?
+          stay separate, standard corner FABs — the app's own standing
+          rule is those never get hidden behind an extra tap (regulation
+          tools are never gated), and they're shared across every student
+          screen (WCAG 3.2.3 "same control, same place"), not just this one. */}
       <button
-        onClick={() => setSettingsOpen(true)}
+        onClick={() => setShowSelfMenu(true)}
         style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
-        aria-label="Movement settings"
+        aria-label="Menu"
       >
-        <img src="/world/ui/btn-settings.png" alt="" style={{ width: 26, height: 26, pointerEvents: 'none' }} />
+        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🧭</span>
         <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
-          Settings
-        </span>
-      </button>
-
-      {/* Direct teacher instruction: a way to see the whole world from
-          overhead. Toggles the Canvas camera to a fixed top-down view
-          (see Player's mapView branch) instead of opening a separate 2D
-          minimap — reuses the same 3D scene rather than building a second
-          renderer. */}
-      <button
-        onClick={() => setMapView((v) => !v)}
-        style={{ position: 'fixed', top: 82, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: mapView ? '#e2775c' : '#3e7c6b', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
-        aria-label={mapView ? 'Close map' : 'Open map'}
-        title={mapView ? 'Close map' : 'Map'}
-      >
-        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>{mapView ? '✕' : '🗺️'}</span>
-        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
-          {mapView ? 'Close' : 'Map'}
-        </span>
-      </button>
-
-      {/* Direct teacher instruction: a way to reach a student's own private
-          Homeplot room ("click on the map and have a little home icon") —
-          the real overhead map is a later build, so this stays visible and
-          reachable directly (a real map isn't the only place a home icon
-          should live for this population anyway; a persistent, always-
-          discoverable icon matches how every other core destination here
-          — Map, My Stuff — already works). */}
-      <button
-        onClick={() => navigate('/world/home-room')}
-        style={{ position: 'fixed', top: 214, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#c26a3e', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
-        aria-label="My Home"
-        title="My Home"
-      >
-        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🏠</span>
-        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
-          My Home
-        </span>
-      </button>
-
-      {/* Direct teacher instruction: this must only ever show what the
-          student owns, never the shop — a separate hotbar-style overlay,
-          not a trip to the Marketplace page (even on its "My Stuff" tab,
-          the shop tabs/cart were still one click away from there). */}
-      <button
-        onClick={() => setShowInventory((v) => !v)}
-        style={{ position: 'fixed', top: 148, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: showInventory ? '#e2775c' : '#c2953f', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: 'pointer', boxShadow: '5px 5px 0 var(--ink, #1f4238)' }}
-        aria-label={showInventory ? 'Close My Stuff' : 'My stuff'}
-        title="My Stuff"
-      >
-        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>{showInventory ? '✕' : '🎒'}</span>
-        <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
-          {showInventory ? 'Close' : 'My Stuff'}
+          Menu
         </span>
       </button>
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
@@ -2583,7 +2610,7 @@ export default function TownSquare() {
             mapView={mapView}
             teleportTarget={teleportTarget}
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
-            onSelfClick={ownedPets.length > 0 && !activeConversation ? () => setShowCompanionMenu(true) : undefined}
+            onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
           />
           {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic'} targetHeight={followingPetDef.targetHeight} />}
           {QUEST1_NEIGHBORS.map((n) => (
@@ -2733,7 +2760,7 @@ export default function TownSquare() {
         </Suspense>
       </Canvas>
 
-      <div style={{ position: 'absolute', [dpadSide]: 16, bottom: 90, width: 170, height: 170, zIndex: 10 }}>
+      <div style={{ position: 'absolute', [dpadSide]: 16, bottom: dpadBottom, width: 170, height: 170, zIndex: 10 }}>
         <DpadButton rotate={-90} label="Up" dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
         <DpadButton rotate={90} label="Down" dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
         <DpadButton rotate={180} label="Left" dx={-1} dz={0} style={{ left: 0, top: 57 }} touchDir={touchDir} />
@@ -2746,7 +2773,7 @@ export default function TownSquare() {
           without walking first. These are discrete tap buttons (not a
           drag gesture), so there's no conflict with touch scrolling/
           panning; safe to show everywhere. */}
-      <CameraLookButtons cameraLook={cameraLook} side={dpadSide} />
+      <CameraLookButtons cameraLook={cameraLook} side={dpadSide} bottom={dpadBottom} />
 
       {/* A small, deliberately secondary way back to the task dashboard —
           the computer desk in the world is the primary path now, but every

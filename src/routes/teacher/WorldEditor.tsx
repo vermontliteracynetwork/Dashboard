@@ -942,11 +942,16 @@ function SelectedObjectToolbar({
   const topY = Math.min(size.y * selected.scale, 6);
   const [openPopover, setOpenPopover] = useState<'resize' | 'color' | 'more' | 'move' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  // Only the delete-confirm state resets on reselect — Claudia's audit:
-  // resetting openPopover too meant resize/color/name were one extra tap
-  // to reopen every single time a teacher moved to the next object, a real
-  // speed loss for "place and adjust several in a row."
-  useEffect(() => { setConfirmingDelete(false); }, [selected.id]);
+  // Direct teacher instruction, reversing an earlier Claudia-audited
+  // tradeoff: a placed-and-deselected object must stay exactly as it is no
+  // matter what happens to any other object — interacting with it again
+  // always requires a fresh click. The old behavior (only confirmingDelete
+  // reset on reselect, openPopover carried over) meant selecting a new
+  // object with Move/Resize/Color still open silently kept acting on that
+  // panel for whatever got selected next, with no new click on the tool
+  // itself — exactly the "no fresh click needed" case the teacher is now
+  // ruling out. Every popover now closes on every reselect.
+  useEffect(() => { setConfirmingDelete(false); setOpenPopover(null); }, [selected.id]);
 
   const doDelete = () => { onDelete(); deselect(); };
 
@@ -996,8 +1001,8 @@ function SelectedObjectToolbar({
           ) : (
             <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
               {iconBtn('✥', 'Move — the only way to reposition; click just selects, dragging is off', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
-              {iconBtn('↺', 'Rotate left 45° (hold for 15° steps)', () => rotateBy(-45), rotateCcwFine)}
-              {iconBtn('↻', 'Rotate right 45° (hold for 15° steps)', () => rotateBy(45), rotateCwFine)}
+              {iconBtn('↺', 'Rotate left 90° (hold for 15° fine steps)', () => rotateBy(-90), rotateCcwFine)}
+              {iconBtn('↻', 'Rotate right 90° (hold for 15° fine steps)', () => rotateBy(90), rotateCwFine)}
               {iconBtn('⤢', 'Resize', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
               {iconBtn('🎨', 'Color tint', () => setOpenPopover((v) => (v === 'color' ? null : 'color')), undefined, openPopover === 'color')}
               {allowNameRole && iconBtn('⋯', 'Name & role', () => setOpenPopover((v) => (v === 'more' ? null : 'more')), undefined, openPopover === 'more')}

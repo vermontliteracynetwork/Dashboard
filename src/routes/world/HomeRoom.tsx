@@ -786,6 +786,19 @@ export default function HomeRoom() {
             🌳 Yard
           </button>
         )}
+        {/* Direct teacher instruction: the Creative Island (once a teacher
+            has unlocked it for this student) should be reachable from
+            Home Room too, a room-switcher button same as Yard — not only
+            by walking to the Island Dock in Town Square. */}
+        {student.islandBuildUnlocked && (
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 36, fontSize: 12, fontWeight: 700 }}
+            onClick={() => navigate('/world/island')}
+          >
+            🏝️ Island
+          </button>
+        )}
         {mode === 'build' && (
           <button className="btn btn-sm" style={{ minHeight: 36, fontSize: 12, fontWeight: 700 }} onClick={() => setAddRoomOpen((v) => !v)}>
             + Add Room

@@ -258,7 +258,7 @@ function SelectionRing({ x, z }: { x: number; z: number }) {
 }
 
 const NUDGE_STEP = 0.5;
-const ROTATE_STEP = Math.PI / 12; // 15deg
+const ROTATE_STEP = Math.PI / 2; // 90deg per click, matching WorldEditor's rotate-button convention
 
 export default function IslandBuild() {
   const navigate = useNavigate();
