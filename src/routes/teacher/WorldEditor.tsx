@@ -408,6 +408,42 @@ function useHoldRepeat(fn: () => void) {
   return { onPointerDown: start, onPointerUp: stop, onPointerLeave: stop };
 }
 
+// Tap-vs-hold for the rotate buttons: a quick tap fires onTap once (the 90°
+// step); holding past the same 400ms delay used above switches to
+// onRepeatTick every 150ms instead (the 15° fine steps) and never also
+// fires onTap. Rotate used to pair useHoldRepeat (which fires its fn
+// immediately on pointerdown) with a separate onClick for the 90° step, so
+// every single tap fired both the immediate 15° tick AND the 90° click —
+// landing on 105°, never a clean 90°. This hook owns both behaviors so only
+// one of them ever fires per press.
+function useTapOrHold(onTap: () => void, onRepeatTick: () => void) {
+  const timeoutRef = useRef<number | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const heldRef = useRef(false);
+  const stop = () => {
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+  };
+  const onPointerDown = () => {
+    heldRef.current = false;
+    timeoutRef.current = window.setTimeout(() => {
+      heldRef.current = true;
+      onRepeatTick();
+      intervalRef.current = window.setInterval(onRepeatTick, 150);
+    }, 400);
+  };
+  const onPointerUp = () => {
+    stop();
+    if (!heldRef.current) onTap();
+    heldRef.current = false;
+  };
+  const onPointerLeave = () => {
+    stop();
+    heldRef.current = false;
+  };
+  return { onPointerDown, onPointerUp, onPointerLeave };
+}
+
 // Build Mode's own accent (Claudia's Sims-4-inspired redesign: each Sims 4
 // mode gets its own color; this reuses the app's existing --success green
 // rather than inventing a new token) — kept as plain hex here since this
@@ -925,13 +961,12 @@ function RosterTab() {
 // of), so reassigning it here would silently break that binding rather
 // than actually relabel anything.
 function SelectedObjectToolbar({
-  selected, allowNameRole, rotateBy, rotateCwFine, rotateCcwFine, setScale, growHold, shrinkHold,
+  selected, allowNameRole, rotateCwFine, rotateCcwFine, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onUpdate, onDelete, onDuplicate, deselect,
 }: {
   selected: WorldObject;
   allowNameRole: boolean;
-  rotateBy: (deg: number) => void;
   rotateCwFine: ReturnType<typeof useHoldRepeat>;
   rotateCcwFine: ReturnType<typeof useHoldRepeat>;
   setScale: (v: number) => void;
@@ -1013,8 +1048,8 @@ function SelectedObjectToolbar({
           ) : (
             <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
               {iconBtn('✥', 'Move — the only way to reposition; click just selects, dragging is off', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
-              {iconBtn('↺', 'Rotate left 90° (hold for 15° fine steps)', () => rotateBy(-90), rotateCcwFine)}
-              {iconBtn('↻', 'Rotate right 90° (hold for 15° fine steps)', () => rotateBy(90), rotateCwFine)}
+              {iconBtn('↺', 'Rotate left 90° (hold for 15° fine steps)', undefined, rotateCcwFine)}
+              {iconBtn('↻', 'Rotate right 90° (hold for 15° fine steps)', undefined, rotateCwFine)}
               {iconBtn('⤢', 'Resize', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
               {iconBtn('🎨', 'Color tint', () => setOpenPopover((v) => (v === 'color' ? null : 'color')), undefined, openPopover === 'color')}
               {allowNameRole && iconBtn('⋯', 'Name & role', () => setOpenPopover((v) => (v === 'more' ? null : 'more')), undefined, openPopover === 'more')}
@@ -1733,8 +1768,8 @@ export default function WorldEditor() {
   };
   const growHold = useHoldRepeat(() => nudgeScale(1.1));
   const shrinkHold = useHoldRepeat(() => nudgeScale(1 / 1.1));
-  const rotateCwFine = useHoldRepeat(() => rotateBy(15));
-  const rotateCcwFine = useHoldRepeat(() => rotateBy(-15));
+  const rotateCwFine = useTapOrHold(() => rotateBy(90), () => rotateBy(15));
+  const rotateCcwFine = useTapOrHold(() => rotateBy(-90), () => rotateBy(-15));
   // Direct teacher instruction: dragging to move a placed object is hard
   // to do (especially on a trackpad/touchscreen) — a directional-arrow
   // control, same press-and-hold pattern as resize/rotate above, nudges
@@ -2586,7 +2621,6 @@ export default function WorldEditor() {
               <SelectedObjectToolbar
                 selected={selected}
                 allowNameRole={selection.kind === 'placed'}
-                rotateBy={rotateBy}
                 rotateCwFine={rotateCwFine}
                 rotateCcwFine={rotateCcwFine}
                 setScale={setScale}
