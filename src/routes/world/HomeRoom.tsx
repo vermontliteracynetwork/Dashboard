@@ -640,7 +640,7 @@ export default function HomeRoom() {
     if (DOOR_WINDOW_RE.test(armedItem.label)) {
       const snapWall = nearestWall(x, z, boundaryWalls, WALL_SNAP_DISTANCE);
       if (!snapWall) {
-        setPlacementError('Windows need to be placed against a wall — try the edge of the room.');
+        setPlacementError('Windows need to be placed against a wall. Try the edge of the room.');
         return;
       }
       px = snapWall.x;
@@ -860,7 +860,7 @@ export default function HomeRoom() {
                     <input
                       value={pet.customName}
                       onChange={(e) => renamePet(pet.id, e.target.value)}
-                      style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 30 }}
+                      style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 44 }}
                     />
                     <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>
                       {def?.name} • {growthStageIcon(growthStageFor(pet.trainingProgress))} {growthStageLabel(growthStageFor(pet.trainingProgress))}
@@ -906,12 +906,12 @@ export default function HomeRoom() {
                         exterior), so these read as weaker/less confirmed
                         than everything around them. */}
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
-                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
-                      <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'play'); flashSaved(); }}>🎾 Play</button>
+                      <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
+                      <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
+                      <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'play'); flashSaved(); }}>🎾 Play</button>
                       <button
                         className="btn btn-sm"
-                        style={{ minHeight: 32, fontSize: 10, padding: '2px 8px', opacity: canFollow ? 1 : 0.4, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
+                        style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', opacity: canFollow ? 1 : 0.4, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
                         disabled={!canFollow}
                         onClick={() => setFollowingPet(student.id, pet.following ? null : pet.id)}
                       >
@@ -919,7 +919,7 @@ export default function HomeRoom() {
                       </button>
                       <button
                         className="btn btn-sm"
-                        style={{ minHeight: 32, fontSize: 10, padding: '2px 8px', background: petConfirmSellId === pet.id ? '#c0392b' : undefined, color: petConfirmSellId === pet.id ? '#fff' : undefined }}
+                        style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', background: petConfirmSellId === pet.id ? '#c0392b' : undefined, color: petConfirmSellId === pet.id ? '#fff' : undefined }}
                         onClick={() => {
                           if (petConfirmSellId === pet.id) { sellPet(pet.id); setPetConfirmSellId(null); }
                           else { setPetConfirmSellId(pet.id); setTimeout(() => setPetConfirmSellId((cur) => (cur === pet.id ? null : cur)), 2500); }
@@ -1143,7 +1143,7 @@ export default function HomeRoom() {
 
           {hammerMode && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', border: '2px solid #dc2626', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center', color: '#dc2626' }}>
-              🔨 Hammer equipped — tap anything to delete it instantly. <button className="btn btn-sm" style={{ minHeight: 36, marginLeft: 8 }} onClick={() => setHammerMode(false)}>Done</button>
+              🔨 Hammer equipped. Tap anything to delete it instantly. <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setHammerMode(false)}>Done</button>
             </div>
           )}
 

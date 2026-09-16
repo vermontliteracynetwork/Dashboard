@@ -4,6 +4,7 @@ import { useStore } from '../../store/store';
 import { PET_CATALOG, PET_OWNERSHIP_CAP, MYSTERY_PACK_PRICE_CENTS, bioFor, rarityFor, thumbnailFor } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
+import { todayISO } from '../../lib/dates';
 import type { PetDef } from '../../lib/petCatalog';
 
 // A real rendered picture of the pet, per direct teacher instruction
@@ -70,6 +71,11 @@ export default function PetShelter() {
   const ownedPets = pets.filter((p) => p.studentId === studentId);
   const petHomeFull = ownedPets.length >= PET_OWNERSHIP_CAP;
   const canAdoptFree = !student.petCouponRedeemed;
+  // Claudia's audit (M3): the guaranteed-pull design is sound and stays,
+  // but nothing capped how many times a student could open one back-to-
+  // back in one sitting. One per real-world day, mirroring the Daily
+  // Spin Wheel's own lastSpinDate gate.
+  const mysteryOpenedToday = student.lastMysteryPackOpenedDate === todayISO();
 
   const givePat = (petId: string) => {
     setPattedId(petId);
@@ -94,7 +100,7 @@ export default function PetShelter() {
   };
 
   const handleOpenPack = () => {
-    if (opening || petHomeFull || student.coins < MYSTERY_PACK_PRICE_CENTS) return;
+    if (opening || petHomeFull || mysteryOpenedToday || student.coins < MYSTERY_PACK_PRICE_CENTS) return;
     setOpening(true);
     // A brief beat before the reveal — the actual "unboxing moment" Claudia's
     // plan calls out as the transferable Webkinz/Pokémon mechanic, not just
@@ -173,10 +179,10 @@ export default function PetShelter() {
             <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>You'll always get a pet. Which one is the surprise!</p>
             <button
               className="btn btn-primary btn-lg"
-              disabled={opening || petHomeFull || student.coins < MYSTERY_PACK_PRICE_CENTS}
+              disabled={opening || petHomeFull || mysteryOpenedToday || student.coins < MYSTERY_PACK_PRICE_CENTS}
               onClick={handleOpenPack}
             >
-              {opening ? 'Opening…' : petHomeFull ? '🏠 Pet home full' : `🎁 Open for ${formatMoney(MYSTERY_PACK_PRICE_CENTS)}`}
+              {opening ? 'Opening…' : petHomeFull ? '🏠 Pet home full' : mysteryOpenedToday ? '🎁 Come back tomorrow!' : `🎁 Open for ${formatMoney(MYSTERY_PACK_PRICE_CENTS)}`}
             </button>
           </div>
 

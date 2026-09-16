@@ -1220,9 +1220,17 @@ export const useStore = create<AppState>()(
       // the pet home is already full, rather than charging for a pull that
       // couldn't land anywhere — simpler and fairer than a consolation
       // prize for a purchase that was never going to work.
+      //
+      // Claudia's audit (M3): the guaranteed-pull design is sound and stays
+      // as-is, but a real-currency weighted-rarity pull with no cap at all
+      // could still become a repeated-tap impulse loop in one sitting for
+      // this population. One open per real-world day, mirroring the daily
+      // spin wheel's own lastSpinDate gate.
       openMysteryPack: (studentId) => {
         const student = get().students.find((st) => st.id === studentId);
         if (!student) return null;
+        const today = todayISO();
+        if (student.lastMysteryPackOpenedDate === today) return null;
         if (student.coins < MYSTERY_PACK_PRICE_CENTS) return null;
         const owned = get().pets.filter((p) => p.studentId === studentId);
         if (owned.length >= PET_OWNERSHIP_CAP) return null;
@@ -1230,6 +1238,7 @@ export const useStore = create<AppState>()(
         const def = rollMysteryPet(ownedDefIds);
         get().recordTransaction(studentId, -MYSTERY_PACK_PRICE_CENTS, `🎁 Mystery Adoption Box: got ${def.name}!`, '🎁', 'purchase-pet');
         get().adoptPet(studentId, def.id, false);
+        get().updateStudent(studentId, { lastMysteryPackOpenedDate: today });
         return def;
       },
 

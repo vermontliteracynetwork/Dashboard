@@ -99,6 +99,7 @@ export interface Student {
   bonusSpinAvailable: boolean; // earned a re-spin today for finishing the whole assignment (assignmentCompletionReward type 'spin') — shown as a distinct "Bonus Spin!" on the wheel, cleared once used
   worldQuest1MetIds: string[]; // Neighbor ids met so far in Homeplot's launch quest ("Meet the Neighbors") — grows to 4, then the quest is complete
   favoriteCinemaVideoIds?: string[]; // CinemaVideo ids this student has hearted — shown first on the Now Showing shelf
+  lastMysteryPackOpenedDate?: string | null; // ISO date of the last Mystery Adoption Box open, one per real-world day — Claudia's audit (M3): the guaranteed-pull design is sound, but nothing stopped a same-sitting open-repeat loop before this
   worldMoveSensitivity: number; // Town Square movement-speed multiplier, student-adjustable in-world Settings (0.5-2, default 1)
   worldDpadSide: 'left' | 'right'; // which corner the on-screen D-pad sits in, student-adjustable
   worldNpcLastTalkDates: Record<string, string>; // NPC id -> ISO date of the last conversation that paid the daily talk coin, so each NPC pays at most once per real-world day

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 
@@ -16,6 +17,7 @@ import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 // scroll; the arrow buttons are the equivalent for a mouse-only desktop
 // where nothing naturally scrolls a horizontal row.
 export default function Cinema() {
+  const navigate = useNavigate();
   const cinemaVideos = useStore((s) => s.cinemaVideos);
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -64,6 +66,13 @@ export default function Cinema() {
         boxSizing: 'border-box',
       }}
     >
+      {/* Claudia's audit (H1): every other student screen (Marketplace,
+          Pet Shelter, Pet Journal) keeps a Town Square / Home exit always
+          visible in its header. Cinema's only had one — "Now Showing" —
+          and only while a video was actually playing, so the default
+          browse screen (the one a student actually lands on) was a real
+          dead end. These two are now always here, matching every sibling
+          screen. */}
       <div className="space-between" style={{ alignItems: 'center' }}>
         <span style={{ background: '#fff', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 800, color: '#5c1219', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
           🎬 Cinema
@@ -74,6 +83,8 @@ export default function Cinema() {
               ⬅️ Now Showing
             </button>
           )}
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
         </div>
       </div>
 
@@ -114,13 +125,13 @@ export default function Cinema() {
           <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: '20px 0', boxShadow: '0 6px 20px rgba(0,0,0,0.35)' }}>
             <h2 style={{ margin: '0 20px 14px', color: '#5c1219', fontFamily: 'system-ui, sans-serif' }}>Now Showing</h2>
             {sortedVideos.length === 0 ? (
-              <p style={{ opacity: 0.7, margin: '0 20px' }}>Nothing playing yet — ask your teacher to add a video!</p>
+              <p style={{ opacity: 0.7, margin: '0 20px' }}>Nothing playing yet. Ask your teacher to add a video!</p>
             ) : (
               <div style={{ position: 'relative' }}>
                 <button
                   aria-label="Scroll left"
                   onClick={() => scrollRow(-1)}
-                  style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 2, width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--ink)', background: '#fff', fontSize: '1.1rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}
+                  style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 2, width: 44, height: 44, borderRadius: '50%', border: '2px solid var(--ink)', background: '#fff', fontSize: '1.1rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}
                 >
                   ‹
                 </button>
@@ -173,7 +184,7 @@ export default function Cinema() {
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(v.id); }}
                           aria-label={isFavorite ? `Remove ${v.title} from favorites` : `Add ${v.title} to favorites`}
-                          style={{ position: 'absolute', top: 6, right: 6, width: 32, height: 32, borderRadius: '50%', border: '2px solid var(--ink)', background: '#fff', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}
+                          style={{ position: 'absolute', top: 6, right: 6, width: 44, height: 44, borderRadius: '50%', border: '2px solid var(--ink)', background: '#fff', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}
                         >
                           {isFavorite ? '❤️' : '🤍'}
                         </button>
@@ -184,7 +195,7 @@ export default function Cinema() {
                 <button
                   aria-label="Scroll right"
                   onClick={() => scrollRow(1)}
-                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 2, width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--ink)', background: '#fff', fontSize: '1.1rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}
+                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 2, width: 44, height: 44, borderRadius: '50%', border: '2px solid var(--ink)', background: '#fff', fontSize: '1.1rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}
                 >
                   ›
                 </button>

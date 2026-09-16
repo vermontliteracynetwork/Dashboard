@@ -36,7 +36,7 @@ export default function CinemaVideosManager() {
     const u = linkUrl.trim();
     if (!t || !u) return;
     if (!extractYouTubeId(u)) {
-      setError("That doesn't look like a YouTube link — paste the full video URL.");
+      setError("That doesn't look like a YouTube link. Paste the full video URL.");
       return;
     }
     setError(null);
@@ -75,7 +75,7 @@ export default function CinemaVideosManager() {
     <div className="content-well stack">
       <strong>🎬 Cinema Videos</strong>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        Videos shown in the in-world Cinema. Add a YouTube link or upload your own file — students can watch any of these anytime, unlimited replay, and heart their favorites.
+        Videos shown in the in-world Cinema. Add a YouTube link or upload your own file, and students can watch any of these anytime, unlimited replay, and heart their favorites.
       </p>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -116,7 +116,7 @@ export default function CinemaVideosManager() {
           <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>Set a title above first, or it'll use the file name</span>
         </div>
         <div style={{ maxWidth: 280 }}>
-          <ImageUploadField label="Cover image (optional — falls back to the YouTube thumbnail)" value={coverUrl} onChange={setCoverUrl} />
+          <ImageUploadField label="Cover image (optional, falls back to the YouTube thumbnail)" value={coverUrl} onChange={setCoverUrl} />
         </div>
         {error && <p style={{ color: '#c0392b', fontSize: '0.8rem', margin: 0 }}>{error}</p>}
       </div>

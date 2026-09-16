@@ -355,6 +355,7 @@ alter table activity_library add column if not exists reward jsonb;
 alter table assignments add column if not exists deleted_at timestamptz;
 alter table students add column if not exists world_quest1_met_ids jsonb not null default '[]';
 alter table students add column if not exists favorite_cinema_video_ids jsonb not null default '[]';
+alter table students add column if not exists last_mystery_pack_opened_date date;
 alter table students add column if not exists world_move_sensitivity numeric not null default 1;
 alter table students add column if not exists world_dpad_side text not null default 'left';
 alter table students add column if not exists world_npc_last_talk_dates jsonb not null default '{}';

@@ -1751,6 +1751,12 @@ export default function TownSquare() {
   // call that same action, not new following-limit logic.
   const [showCompanionMenu, setShowCompanionMenu] = useState(false);
   const [showSelfMenu, setShowSelfMenu] = useState(false);
+  // Claudia's audit (H3): the pie menu had grown to 7-8 wedges, past her
+  // own 5-6 cap and hard to scan under time pressure. Settings/Map/My
+  // Stuff are the least time-critical of the bunch, so they move behind
+  // one "More" wedge (a plain list, same overlay pattern as Today's Tasks
+  // below) instead of each getting their own slot in the radial fan.
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // Soft need-decay only ticks while a student is actively here in Town
   // Square (direct teacher spec: "only decrease when playing the game, not
@@ -2357,7 +2363,7 @@ export default function TownSquare() {
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <span style={{ fontSize: '2.4rem' }}>🎁</span>
               <h2 style={{ margin: 0 }}>You have a free pet coupon!</h2>
-              <p style={{ margin: 0 }}>Pick ANY pet in the Marketplace, totally free — this only works once, so choose your favorite!</p>
+              <p style={{ margin: 0 }}>Pick ANY pet in the Marketplace, totally free. This only works once, so choose your favorite!</p>
               <button
                 className="btn btn-primary btn-lg"
                 onClick={() => { dismissPetCoupon(); navigate('/student/marketplace', { state: { tab: 'pets' } }); }}
@@ -2455,14 +2461,17 @@ export default function TownSquare() {
       )}
       {/* Direct teacher instruction: "Pie menu format should be adopted
           for all buttons on the right hand side" — the same radial wedge
-          pattern as the companion-swap menu above, now the single entry
-          point for the navigation buttons that used to sit stacked in the
-          top-right corner (Settings/Map/My Stuff/My Home), plus Companion
-          when the student owns a pet. Capped at 5 wedges per Claudia's own
-          navigation standard elsewhere in this app. */}
+          pattern as the companion-swap menu above, the entry point for
+          navigation buttons that used to sit stacked in the top-right
+          corner. Help is NOT in here (see the standalone Help button
+          below — Claudia's audit H2: regulation tools are never gated
+          behind an extra tap+scan, on this screen or any other). Settings/
+          Map/My Stuff are grouped under one "More" wedge (opened below)
+          rather than each taking a wedge, keeping this at genuinely 4-5
+          wedges per Claudia's cap (H3), not 7-8. */}
       {showSelfMenu && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 130, paddingRight: 130 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 198, paddingRight: 130 }}
           onClick={() => setShowSelfMenu(false)}
         >
           <div style={{ position: 'relative', width: 260, height: 260 }} onClick={(e) => e.stopPropagation()}>
@@ -2473,10 +2482,7 @@ export default function TownSquare() {
               const wedges: { id: string; icon: string; label: string; bg: string; onSelect: () => void }[] = [
                 { id: 'tasks', icon: '📋', label: totalTasksLeft > 0 ? `Tasks (${totalTasksLeft})` : 'Tasks', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
                 { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
-                { id: 'help', icon: '🧘', label: 'Help', bg: '#7c9c6b', onSelect: () => setShowHelp(true) },
-                { id: 'settings', icon: '⚙️', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },
-                { id: 'map', icon: mapView ? '✕' : '🗺️', label: mapView ? 'Close Map' : 'Map', bg: mapView ? '#e2775c' : '#3e7c6b', onSelect: () => setMapView((v) => !v) },
-                { id: 'stuff', icon: showInventory ? '✕' : '🎒', label: showInventory ? 'Close' : 'My Stuff', bg: showInventory ? '#e2775c' : '#c2953f', onSelect: () => setShowInventory((v) => !v) },
+                { id: 'more', icon: '⚙️', label: 'More', bg: '#5b6b8a', onSelect: () => setShowMoreMenu(true) },
                 { id: 'home', icon: '🏠', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
                 ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
               ];
@@ -2492,13 +2498,16 @@ export default function TownSquare() {
                     onClick={() => { setShowSelfMenu(false); w.onSelect(); }}
                     style={{
                       position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)',
-                      width: 60, height: 60, borderRadius: '50%', border: '2px solid var(--ink)', background: w.bg, color: '#fff',
+                      width: 68, height: 68, borderRadius: '50%', border: '2px solid var(--ink)', background: w.bg, color: '#fff',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                       cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.35)', padding: 4,
                     }}
                   >
                     <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{w.icon}</span>
-                    <span style={{ fontSize: 8, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1 }}>{w.label}</span>
+                    {/* Bumped from 8px (Claudia's audit H3 — unreadable at a
+                        glance for a dyslexic/low-vision student scanning a
+                        radial layout under time pressure) to 11px. */}
+                    <span style={{ fontSize: 11, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1.1, textAlign: 'center' }}>{w.label}</span>
                   </button>
                 );
               });
@@ -2514,6 +2523,25 @@ export default function TownSquare() {
             >
               ✕ Cancel
             </button>
+          </div>
+        </div>
+      )}
+      {/* The "More" list — Settings/Map/My Stuff, pulled out of the radial
+          fan itself (see the wedges comment above) so the fan stays at
+          Claudia's 4-5-wedge cap. Same overlay-backdrop/content-well
+          pattern as Today's Tasks below, for visual consistency. */}
+      {showMoreMenu && (
+        <div className="overlay-backdrop" onClick={() => setShowMoreMenu(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <div className="space-between">
+                <h2 style={{ margin: 0 }}>⚙️ More</h2>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowMoreMenu(false)}>✕</button>
+              </div>
+              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setSettingsOpen(true); }}>⚙️ Settings</button>
+              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setMapView((v) => !v); }}>{mapView ? '✕ Close Map' : '🗺️ Map'}</button>
+              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setShowInventory((v) => !v); }}>{showInventory ? '✕ Close My Stuff' : '🎒 My Stuff'}</button>
+            </div>
           </div>
         </div>
       )}
@@ -2606,15 +2634,29 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {/* Direct teacher instruction (superseding the WCAG 3.2.3 "same
-          control, same place, every screen" reasoning this file used to
-          follow via .whatnow-fab/.help-fab): every floating icon in Town
-          Square specifically — Help, What now?, and Tasks — now lives as a
-          wedge inside the top-right pie menu below, not its own corner FAB.
-          Other student screens (StudentHome, SubjectDashboard) keep the
-          standard fixed FABs; only Town Square, which already has the pie
-          menu built for Settings/Map/My Stuff/My Home, consolidates into
-          it. */}
+      {/* Claudia's audit (H2): Help is a regulation tool, and this app's
+          standing rule is that regulation is never gated behind an extra
+          tap+scan through a menu — pulled back out to its own always-
+          visible button below, matching StudentHome/SubjectDashboard's
+          .help-fab in everything but position (TownSquare's D-pad can sit
+          on either side per student, so a hardcoded bottom-right would
+          get swallowed by a right-side D-pad — this sits at the bottom
+          corner OPPOSITE the D-pad instead). What now? and Tasks are
+          check-ins, not the one tool a dysregulated student needs
+          fastest, so those stay as wedges in the pie menu below. */}
+      <button
+        onClick={() => setShowHelp(true)}
+        aria-label="Help"
+        title="Help"
+        style={{
+          position: 'fixed', [otherSide]: 16, bottom: 16, zIndex: 50,
+          width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)',
+          background: 'var(--orange)', color: '#fff', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4,
+        }}
+      >
+        <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>🧘</span>
+      </button>
       {/* Minecraft-style coordinate readout — direct teacher request, tied
           to graphing/coordinate-plane math and to the labeled grid the Map
           view shows (CoordinateGrid, above). Z is shown as "Y" (displayY =
@@ -2627,16 +2669,19 @@ export default function TownSquare() {
       <div style={{ position: 'fixed', top: 60, left: 16, zIndex: 55, background: 'rgba(255,255,255,0.92)', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, fontSize: 13, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', pointerEvents: 'none' }}>
         📍 ({Math.round(playerPos.x)}, {Math.round(-playerPos.z)})
       </div>
-      {/* Direct teacher instruction: every floating icon in Town Square —
-          Help, What now?, and Tasks — now lives as a wedge inside the
-          top-right pie menu below, not its own corner FAB. Settings/Map/My
-          Stuff/My Home were already consolidated the same way; this
-          extends it to the remaining three. A small badge on the trigger
-          itself (below) keeps the "tasks remaining" count glanceable
-          without opening the menu. */}
+      {/* Direct teacher instruction: What now? and Tasks live as wedges
+          inside the pie menu below, not their own corner FAB. Settings/Map/
+          My Stuff/My Home were already consolidated the same way (Help is
+          the one exception — see the standalone button above).
+          Positioned at top:84 rather than top:16 — a real bug found while
+          fixing Claudia's audit: ToolsPanel's own .tools-fab ("My Tools",
+          rendered a few lines up) sits at the app-wide standard top:16/
+          right:16 with a higher z-index, so this trigger used to sit
+          exactly underneath it, completely covered and unclickable. This
+          stacks the two 58px buttons vertically with an 8px gap instead. */}
       <button
         onClick={() => setShowSelfMenu(true)}
-        style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
+        style={{ position: 'fixed', top: 84, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
         aria-label={totalTasksLeft > 0 ? `Menu, ${totalTasksLeft} tasks left today` : 'Menu'}
       >
         <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🧭</span>
@@ -2658,7 +2703,7 @@ export default function TownSquare() {
       )}
       {customRoleNotSet && (
         <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 65, background: '#fff', border: '2px solid var(--danger, #c94141)', borderRadius: 10, padding: '8px 16px', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--danger, #c94141)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-          Not set up yet — ask your teacher!
+          Not set up yet. Ask your teacher!
         </div>
       )}
       {closedBuildingName && (
