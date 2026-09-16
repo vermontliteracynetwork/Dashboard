@@ -45,7 +45,12 @@ const DISPLAY_SCALE = 3;
 const QUESTION_TIMER_MS = 60_000; // ask a question every 1 minute of active play, even with no mistakes
 
 // ---------- Lives / gauntlet ----------
-const MAX_LIVES = 3; // also how many correct answers in a row (no misses) it takes to earn all hearts back once they're gone
+const MAX_LIVES = 3; // starting hearts
+// Direct teacher spec: once all hearts are gone, recovery takes 5 correct
+// answers IN A ROW — a fixed streak, independent of MAX_LIVES, not "hearts
+// filled back up." Any miss resets the streak to 0, not a partial-credit
+// decrement, since "in a row" is the explicit requirement.
+const GAUNTLET_RECOVERY_STREAK = 5;
 const CENTS_PER_COIN = 5; // in-game coins convert to Class Cash the moment the activity is finished
 
 // ---------- Level ----------
@@ -195,6 +200,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const [restartBanner, setRestartBanner] = useState(false);
   const [lives, setLives] = useState(MAX_LIVES);
   const [gauntletMissed, setGauntletMissed] = useState(false);
+  // Correct-in-a-row counter for gauntlet recovery — separate from the
+  // 3-heart HUD, which stays empty the whole time all lives are lost.
+  const gauntletStreakRef = useRef(0);
+  const [gauntletStreak, setGauntletStreak] = useState(0);
   const [payout, setPayout] = useState<{ coins: number; cents: number } | null>(null);
 
   // Quiz answer widget local state (mirrors QuizTask's pattern)
@@ -361,6 +370,8 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     setPauseReason('gauntlet');
     setPaused(true);
     setGauntletMissed(false);
+    gauntletStreakRef.current = 0;
+    setGauntletStreak(0);
     setPicked(null);
     setFillValue('');
     setPendingCorrect(null);
@@ -673,18 +684,23 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
     if (pauseReason === 'gauntlet') {
       if (wasCorrect) {
-        // One heart back per correct answer, shown live in the gauntlet
-        // panel below.
-        livesRef.current = Math.min(MAX_LIVES, livesRef.current + 1);
-        setLives(livesRef.current);
+        // Direct teacher spec: recovery takes GAUNTLET_RECOVERY_STREAK (5)
+        // correct answers in a row — a fixed streak counter, not the
+        // 3-heart HUD (which stays empty the whole time every life is
+        // lost; hearts only come back once the streak is complete).
+        gauntletStreakRef.current += 1;
+        setGauntletStreak(gauntletStreakRef.current);
         setGauntletMissed(false);
-        if (livesRef.current >= MAX_LIVES) {
-          // Full hearts again — hide the question modal, then a "Starting
+        if (gauntletStreakRef.current >= GAUNTLET_RECOVERY_STREAK) {
+          // Streak complete — hide the question modal, then a "Starting
           // Over!" message, then the LEVEL ONE banner, before gameplay
-          // resumes back at the very start of level 1. flashLevelBanner is
-          // called explicitly (not inferred from a levelIndex change) so
-          // the LEVEL ONE banner always shows here, even if the student
-          // was already on level 1 when the last heart went.
+          // resumes back at the very start of level 1 with hearts full
+          // again. flashLevelBanner is called explicitly (not inferred
+          // from a levelIndex change) so the LEVEL ONE banner always shows
+          // here, even if the student was already on level 1 when the
+          // last heart went.
+          livesRef.current = MAX_LIVES;
+          setLives(MAX_LIVES);
           setPauseReason(null);
           setPaused(false);
           setRestartBanner(true);
@@ -707,15 +723,12 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
         // question is already showing (activeQ reflects the live queue).
         return;
       }
-      // Claudia's review: a miss used to wipe the whole hearts-back streak
-      // to 0 — an open-ended, compounding penalty docs/NATIVE_GAME_STANDARD.md
-      // §3.2 explicitly warns against for this population (never let a
-      // recovery mechanic feel uncapped). A miss now costs one heart back
-      // instead of the whole streak — still a real setback, never a
-      // spiral — and stays paused with the next question showing
-      // automatically.
-      livesRef.current = Math.max(0, livesRef.current - 1);
-      setLives(livesRef.current);
+      // "5 in a row" means exactly that — any miss resets the streak to 0,
+      // not a partial-credit decrement, and stays paused with the next
+      // question showing automatically. Hearts stay at 0 the whole time;
+      // only completing the streak brings them back (see above).
+      gauntletStreakRef.current = 0;
+      setGauntletStreak(0);
       setGauntletMissed(true);
       return;
     }
@@ -958,22 +971,26 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                   : pauseReason === 'fall'
                     ? '🕳️ You fell! Answer to keep going.'
                     : pauseReason === 'gauntlet'
-                      ? `💔 Out of hearts! Answer ${MAX_LIVES} in a row to earn them all back.`
+                      ? `💔 Out of hearts! Answer ${GAUNTLET_RECOVERY_STREAK} in a row to earn them all back.`
                       : '⏰ Quick question break!'}
               </div>
               {pauseReason === 'gauntlet' && (
                 <>
-                  <div className="tag-pill" style={{ background: '#fff' }}>
-                    {renderHearts(lives, 30)}
+                  <div className="row" style={{ gap: 5 }} aria-label={`${gauntletStreak} of ${GAUNTLET_RECOVERY_STREAK} correct in a row`}>
+                    {Array.from({ length: GAUNTLET_RECOVERY_STREAK }, (_, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          border: '2px solid var(--ink)',
+                          background: i < gauntletStreak ? 'var(--success)' : '#fff',
+                        }}
+                      />
+                    ))}
                   </div>
                   {gauntletMissed && (
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 700 }}>
-                      {/* Stale copy caught while wiring read-aloud here: this
-                          used to say "Hearts back to zero, starting over,"
-                          left over from before the reset-to-zero-on-miss
-                          behavior was changed to a one-heart decrement
-                          earlier this session — corrected to match. */}
-                      That one didn't count — lost a heart, try the next one.
+                      That one didn't count. Streak reset, try the next one.
                     </p>
                   )}
                 </>
@@ -1055,10 +1072,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 <button className="btn btn-primary btn-lg pulse-cta" onClick={resumeAfterQuestion}>
                   {/* A correct answer only actually returns to gameplay once it either isn't the
                       gauntlet (hit/fall/timer questions always resume immediately) or it's the
-                      one that completes the full MAX_LIVES-in-a-row streak — otherwise clicking
-                      this just shows the next gauntlet question, so the label says so instead of
-                      falsely promising "back to the game." */}
-                  {pendingCorrect && !(pauseReason === 'gauntlet' && lives + 1 < MAX_LIVES)
+                      one that completes the full GAUNTLET_RECOVERY_STREAK-in-a-row streak —
+                      otherwise clicking this just shows the next gauntlet question, so the label
+                      says so instead of falsely promising "back to the game." */}
+                  {pendingCorrect && !(pauseReason === 'gauntlet' && gauntletStreak + 1 < GAUNTLET_RECOVERY_STREAK)
                     ? '▶️ Back to the game!'
                     : '➡️ Next question'}
                 </button>
