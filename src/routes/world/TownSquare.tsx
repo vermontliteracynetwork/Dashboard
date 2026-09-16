@@ -18,7 +18,7 @@ import { todayISO } from '../../lib/dates';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor } from '../../lib/petCatalog';
@@ -76,9 +76,11 @@ const SCOUT_CHECKIN_THRESHOLD_MS = 15 * 60 * 1000;
 const PET_CHECKIN_THRESHOLD_MS = 15 * 60 * 1000;
 // Direct teacher instruction: unlike the pet check-in above (a dismissible
 // suggestion), Wizard ThunderSword is a real lock — given noticeably more
-// idle time than the pet nudge gets first, so the soft nudge has a real
-// chance to work before this fires.
-const WIZARD_LOCK_THRESHOLD_MS = 25 * 60 * 1000;
+// time than the pet nudge gets first, so the soft nudge has a real chance
+// to work before this fires. Direct teacher spec: 30 minutes of playing
+// without progress on an active assignment (question sets/native games
+// completed), not 30 minutes of idle/AFK time — see lastProgressAtRef.
+const WIZARD_LOCK_THRESHOLD_MS = 30 * 60 * 1000;
 // A trivial wrapper, but a real one: keeping the Date.now() call in its
 // own top-level function (same reason todayISO() elsewhere in this app
 // works the same way) rather than inline inside the component means an
@@ -474,7 +476,6 @@ function WanderBodyModel({ path, scale, isMoving }: { path: string; scale: numbe
 // case-insensitive "contains idle" scan instead of an exact-match lookup,
 // and just renders statically (no console warning — most pet packs simply
 // don't ship a walk clip) if nothing matches.
-const PET_SCALE = 1.3;
 const PET_FOLLOW_OFFSET = 1.4;
 // A fish (aquatic-category) companion has no legs to walk with — direct
 // teacher instruction: it should float beside the player at roughly chest
@@ -483,36 +484,86 @@ const PET_FOLLOW_OFFSET = 1.4;
 const PET_HOVER_HEIGHT = 1.1;
 const PET_HOVER_BOB_AMPLITUDE = 0.12;
 const PET_HOVER_BOB_SPEED = 2.2;
-function PetCompanionModel({ path, floating }: { path: string; floating: boolean }) {
+// Direct teacher bug report ("HUGE BUG"): a single flat PET_SCALE=1.3
+// applied to every pet's own raw export units made a Great Dane render no
+// bigger than a Hamster — same root cause WorldEditor's whole auto-scale
+// system exists to fix for placed objects, just never applied to
+// companions. Measures the model's real bounding box (same Box3 approach
+// as WorldEditor's useModelSize) and scales it to that pet's own
+// PetDef.targetHeight (real-world-proportional, see petCatalog.ts) instead
+// of a blind multiplier on whatever units the source pack happens to use.
+const PET_SCALE_MIN = 0.05;
+const PET_SCALE_MAX = 3;
+function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path: string; floating: boolean; targetHeight: number; isMovingRef: React.RefObject<boolean> }) {
   const { scene, animations } = useGLTF(path);
   const cloned = useMemo(() => cloneSkinned(scene), [scene]);
+  const scale = useMemo(() => {
+    const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
+    if (!(size.y > 0) || !isFinite(size.y)) return 1;
+    return THREE.MathUtils.clamp(targetHeight / size.y, PET_SCALE_MIN, PET_SCALE_MAX);
+  }, [scene, targetHeight]);
   const group = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
+  // Direct teacher instruction: a pet with legs should actually WALK beside
+  // the student, not just idle-glide into position — same case-insensitive
+  // "contains idle/walk" clip lookup PetCompanion's own header comment
+  // already documented needing (pet packs name clips very differently pack
+  // to pack, unlike this app's own player/NPC models' exact "idle"/"walk").
+  const clipNames = useMemo(() => {
+    const keys = Object.keys(actions);
+    return {
+      idle: keys.find((k) => k.toLowerCase().includes('idle')),
+      walk: keys.find((k) => k.toLowerCase().includes('walk') || k.toLowerCase().includes('run')),
+    };
+  }, [actions]);
+  const current = useRef<'idle' | 'walk'>('idle');
   useEffect(() => {
     if (floating) return; // no walk/idle animation for a hovering fish companion
-    const idleName = Object.keys(actions).find((k) => k.toLowerCase().includes('idle'));
-    const idle = idleName ? actions[idleName] : undefined;
+    const idle = clipNames.idle ? actions[clipNames.idle] : undefined;
     idle?.reset().play();
+    current.current = 'idle';
     return () => { idle?.stop(); };
-  }, [actions, floating]);
+  }, [actions, floating, clipNames]);
+  useFrame(() => {
+    if (floating || !clipNames.walk) return; // no walk clip in this pack — stay on idle rather than a hard pose-snap
+    const next = isMovingRef.current ? 'walk' : 'idle';
+    if (next === current.current) return;
+    const from = clipNames[current.current];
+    const to = clipNames[next];
+    if (from) actions[from]?.fadeOut(0.15);
+    if (to) actions[to]?.reset().fadeIn(0.15).play();
+    current.current = next;
+  });
   return (
     <group ref={group}>
-      <primitive object={cloned} scale={PET_SCALE} />
+      <primitive object={cloned} scale={scale} />
     </group>
   );
 }
 
-function PetCompanion({ playerPos, modelPath, floating }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean }) {
+function PetCompanion({ playerPos, modelPath, floating, targetHeight }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number }) {
   const groupRef = useRef<THREE.Group>(null);
   const pos = useRef(new THREE.Vector3(playerPos.x - PET_FOLLOW_OFFSET, 0, playerPos.z - PET_FOLLOW_OFFSET));
   const elapsed = useRef(0);
+  const isMovingRef = useRef(false);
   useFrame((_, dt) => {
     if (!groupRef.current) return;
     const targetX = playerPos.x - PET_FOLLOW_OFFSET;
     const targetZ = playerPos.z - PET_FOLLOW_OFFSET;
     const t = 1 - Math.pow(0.0005, dt);
+    const prevX = pos.current.x;
+    const prevZ = pos.current.z;
     pos.current.x += (targetX - pos.current.x) * t;
     pos.current.z += (targetZ - pos.current.z) * t;
+    const moveDx = pos.current.x - prevX;
+    const moveDz = pos.current.z - prevZ;
+    const moveDist = Math.hypot(moveDx, moveDz);
+    isMovingRef.current = moveDist > 0.0006;
+    // Direct teacher instruction: pets face the direction they're actually
+    // walking, the same Math.atan2(dx, dz) convention Player/NPCs already
+    // use elsewhere in this file — never left at whatever rotation the
+    // model exported with.
+    if (moveDist > 0.0006) groupRef.current.rotation.y = Math.atan2(moveDx, moveDz);
     if (floating) {
       elapsed.current += dt;
       const y = PET_HOVER_HEIGHT + Math.sin(elapsed.current * PET_HOVER_BOB_SPEED) * PET_HOVER_BOB_AMPLITUDE;
@@ -524,7 +575,7 @@ function PetCompanion({ playerPos, modelPath, floating }: { playerPos: THREE.Vec
   return (
     <group ref={groupRef}>
       <Suspense fallback={null}>
-        <PetCompanionModel path={modelPath} floating={floating} />
+        <PetCompanionModel path={modelPath} floating={floating} targetHeight={targetHeight} isMovingRef={isMovingRef} />
       </Suspense>
     </group>
   );
@@ -1807,7 +1858,20 @@ export default function TownSquare() {
     }
   });
   const showWizardLock = wizardLockBaseline !== null && totalCompletedToday <= wizardLockBaseline;
+  // Direct teacher clarification: the Wizard's 30-minute clock tracks time
+  // WITHOUT progress on active assignments — question sets/native games
+  // completed, i.e. totalCompletedToday going up — not general idle/AFK
+  // time. A student who keeps moving around, exploring, or chatting for 30
+  // straight minutes without finishing anything must still trip this; the
+  // earlier version keyed off lastActivityRef (movement) instead, which
+  // meant a continuously-exploring student (exactly the reported case)
+  // could never trip it, since their "idle" time never grew. Resets to now
+  // every time totalCompletedToday actually increases.
+  const lastProgressAtRef = useRef(Date.now());
+  const prevCompletedRef = useRef(totalCompletedToday);
   useEffect(() => {
+    if (totalCompletedToday > prevCompletedRef.current) lastProgressAtRef.current = Date.now();
+    prevCompletedRef.current = totalCompletedToday;
     // Real progress since the lock triggered — clear it for good today.
     if (wizardLockBaseline !== null && totalCompletedToday > wizardLockBaseline) {
       setWizardLockBaseline(null);
@@ -1824,7 +1888,7 @@ export default function TownSquare() {
         totalTasksLeft === 0 ||
         activeConversation ||
         showArrival ||
-        msSince(lastActivityRef.current) < WIZARD_LOCK_THRESHOLD_MS
+        Date.now() - lastProgressAtRef.current < WIZARD_LOCK_THRESHOLD_MS
       ) {
         return;
       }
@@ -2275,17 +2339,23 @@ export default function TownSquare() {
               />
               <h2 style={{ margin: 0 }}>⚡ Wizard ThunderSword says: hold on!</h2>
               <p style={{ margin: 0 }}>
-                You still have {totalTasksLeft} thing{totalTasksLeft === 1 ? '' : 's'} to do today. Finish one activity to keep exploring.
+                You still have {totalTasksLeft} thing{totalTasksLeft === 1 ? '' : 's'} to do today. Pick one below to keep exploring.
               </p>
-              <button
-                className="btn btn-primary btn-lg pulse-cta"
-                onClick={() => {
-                  const next = subjectsToday.find((s) => s.remaining > 0);
-                  if (next) navigate(`/student/${next.subject}`);
-                }}
-              >
-                📋 Go finish an activity
-              </button>
+              {/* Direct teacher instruction: an assignment is a collection of
+                  activities — one button per assignment still needing work,
+                  not one generic "go finish an activity" button, so a
+                  student can choose which to jump into. */}
+              <div className="stack" style={{ gap: 8, width: '100%' }}>
+                {subjectsToday.filter((s) => s.remaining > 0).map((s) => (
+                  <button
+                    key={s.subject}
+                    className="btn btn-primary btn-lg pulse-cta"
+                    onClick={() => navigate(`/student/${s.subject}`)}
+                  >
+                    📋 {s.label} ({s.remaining} left)
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -2515,7 +2585,7 @@ export default function TownSquare() {
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
             onSelfClick={ownedPets.length > 0 && !activeConversation ? () => setShowCompanionMenu(true) : undefined}
           />
-          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic'} />}
+          {followingPetDef && <PetCompanion playerPos={playerPos} modelPath={followingPetDef.modelPath} floating={followingPetDef.category === 'aquatic'} targetHeight={followingPetDef.targetHeight} />}
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
               key={n.id}
@@ -2565,7 +2635,20 @@ export default function TownSquare() {
           {worldObjects.map((obj) => (
             <group key={obj.id}>
               <WorldObjectRenderer
-                obj={obj.role === 'home' && student?.houseExteriorPath ? { ...obj, modelPath: student.houseExteriorPath } : obj}
+                obj={
+                  obj.role === 'home' && student?.houseExteriorPath
+                    ? (() => {
+                        // Claudia's asset-sizing audit: swapping the model
+                        // without also swapping the scale reused whatever
+                        // number was tuned for a DIFFERENT model's raw
+                        // bounding box — the house-relative-size bug. Each
+                        // exterior option carries its own real scale now;
+                        // always look it up alongside the model it belongs to.
+                        const exterior = HOUSE_EXTERIOR_OPTIONS.find((o) => o.modelPath === student.houseExteriorPath);
+                        return exterior ? { ...obj, modelPath: exterior.modelPath, scale: exterior.scale } : obj;
+                      })()
+                    : obj
+                }
                 onClick={
                   obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
                   : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)

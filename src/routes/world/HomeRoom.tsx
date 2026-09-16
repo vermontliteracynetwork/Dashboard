@@ -154,7 +154,6 @@ const YARD_SKY_COLOR = '#8ecbef';
 // placed on grass" (direct instruction) — plus its own click-to-collide
 // footprint, so a student can't walk through or around it.
 const EXTERIOR_CLEARANCE = 3;
-const EXTERIOR_SCALE = 3;
 const EXTERIOR_COLLISION_RADIUS = 3;
 
 // Claudia's asset-sizing audit: a 0.05 floor here (matching WorldEditor's
@@ -967,11 +966,11 @@ export default function HomeRoom() {
             <WorldObjectRenderer
               obj={{
                 id: '__exterior__',
-                modelPath: student.houseExteriorPath ?? HOUSE_EXTERIOR_OPTIONS[0].modelPath,
+                modelPath: (HOUSE_EXTERIOR_OPTIONS.find((o) => o.modelPath === student.houseExteriorPath) ?? HOUSE_EXTERIOR_OPTIONS[0]).modelPath,
                 label: 'House',
                 position: [0, 0, -(halfD + EXTERIOR_CLEARANCE)],
                 rotationY: Math.PI,
-                scale: EXTERIOR_SCALE,
+                scale: (HOUSE_EXTERIOR_OPTIONS.find((o) => o.modelPath === student.houseExteriorPath) ?? HOUSE_EXTERIOR_OPTIONS[0]).scale,
                 createdAt: '',
               }}
               onClick={mode === 'view' ? () => { const back = interiorRooms[0]; if (back) switchRoom(back.id); } : undefined}

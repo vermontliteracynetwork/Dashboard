@@ -6,8 +6,20 @@ import { EMOTE_CATALOG } from '../lib/emoteCatalog';
 import { ALL_JOKES } from '../lib/worldJokes';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../lib/worldTownspeople';
+import { petDefById, thumbnailFor, bioFor, nextMilestone, milestonesReached } from '../lib/petCatalog';
 import { BookPanel } from './BookPanel';
 import type { Student } from '../types';
+
+// Direct teacher instruction: pets should be viewable in a book in the
+// backpack — same real-book-you-page-through treatment the Joke Book
+// already established (BookPanel), not a flat list. A rendered thumbnail
+// falls back to a paw emoji on a 404, the same graceful-fallback pattern
+// every other pet-picture render site in this app already uses.
+function PetPortrait({ src, size }: { src: string; size: number }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span style={{ fontSize: size * 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size }}>🐾</span>;
+  return <img src={src} alt="" onError={() => setFailed(true)} style={{ width: size, height: size, objectFit: 'contain' }} />;
+}
 
 // Direct teacher instruction: the backpack button was opening the full
 // Marketplace (shop tabs, prices, cart still one click away) even on its
@@ -17,14 +29,17 @@ import type { Student } from '../types';
 export default function InventoryHotbar({ student, onClose }: { student: Student; onClose: () => void }) {
   const updateStudent = useStore((s) => s.updateStudent);
   const equipEmote = useStore((s) => s.equipEmote);
-  const [tab, setTab] = useState<'stuff' | 'jokes' | 'friends'>('stuff');
+  const allPets = useStore((s) => s.pets);
+  const [tab, setTab] = useState<'stuff' | 'jokes' | 'friends' | 'pets'>('stuff');
   // Direct instruction: the Joke Book should look like an actual book a
   // student pages through (Minecraft book&quill / Sims 4 spellbook), not a
   // flat clickable list — see BookPanel.tsx. Turning to the next page IS
   // the reveal now, so each page shows its joke's punchline/explain
   // directly rather than needing a separate open/closed tap first.
   const [jokePageIndex, setJokePageIndex] = useState(0);
+  const [petPageIndex, setPetPageIndex] = useState(0);
 
+  const myPets = allPets.filter((p) => p.studentId === student.id);
   const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
   const heardJokes = student.worldJokesHeardIds.map((id) => ({ id, entry: ALL_JOKES[id] })).filter((j) => j.entry);
@@ -67,6 +82,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
           <div className="row" style={{ gap: 6 }}>
             <button className={`btn btn-sm${tab === 'stuff' ? ' btn-primary' : ''}`} onClick={() => setTab('stuff')}>🎒 My Stuff</button>
             <button className={`btn btn-sm${tab === 'jokes' ? ' btn-primary' : ''}`} onClick={() => setTab('jokes')}>📖 Joke Book ({heardJokes.length})</button>
+            <button className={`btn btn-sm${tab === 'pets' ? ' btn-primary' : ''}`} onClick={() => setTab('pets')}>🐾 Pet Book ({myPets.length})</button>
             <button className={`btn btn-sm${tab === 'friends' ? ' btn-primary' : ''}`} onClick={() => setTab('friends')}>🧑‍🤝‍🧑 Friends ({metNpcs.length})</button>
           </div>
           <button className="btn btn-sm" onClick={onClose} aria-label="Close">✕</button>
@@ -174,6 +190,62 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
                   </div>
                 ),
               }))}
+            />
+          </div>
+        </div>
+      )}
+      {tab === 'pets' && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 220, background: 'rgba(31, 17, 71, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, pointerEvents: 'auto' }}
+          onClick={() => setTab('stuff')}
+        >
+          <div style={{ position: 'relative', width: '100%', maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <button
+              aria-label="Close Pet Book"
+              onClick={() => setTab('stuff')}
+              style={{ position: 'absolute', top: -14, right: -14, width: 36, height: 36, borderRadius: '50%', border: '2px solid #3d2612', background: '#f3e6c4', color: '#3d2612', fontWeight: 800, cursor: 'pointer', zIndex: 1 }}
+            >
+              ✕
+            </button>
+            <BookPanel
+              title="Pet Book"
+              pageIndex={petPageIndex}
+              onPageChange={setPetPageIndex}
+              emptyMessage="No pets yet. Visit the Pet Shelter or Marketplace to adopt one!"
+              pages={myPets.map((pet) => {
+                const def = petDefById(pet.petDefId);
+                const next = nextMilestone(pet.trainingProgress);
+                const reached = def ? milestonesReached(pet.trainingProgress) : [];
+                return {
+                  key: pet.id,
+                  content: (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                      {def && (
+                        <div style={{ width: 96, height: 96, marginBottom: 8, background: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <PetPortrait src={thumbnailFor(def)} size={88} />
+                        </div>
+                      )}
+                      <p style={{ margin: '0 0 2px', fontSize: '1.05rem', fontWeight: 800, color: '#8a5a1f' }}>{pet.customName}</p>
+                      {def && <p style={{ margin: '0 0 10px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.6 }}>{def.name}</p>}
+                      {def && <p style={{ margin: '0 0 10px', fontSize: '0.85rem' }}>{bioFor(def)}</p>}
+                      <div style={{ display: 'flex', gap: 10, fontSize: '0.72rem', fontWeight: 700, opacity: 0.75, marginBottom: 8 }}>
+                        <span>🍗 {Math.round(pet.food)}</span>
+                        <span>💛 {Math.round(pet.social)}</span>
+                        <span>❤️ {Math.round(pet.health)}</span>
+                      </div>
+                      {pet.following && <p style={{ margin: '0 0 4px', fontSize: '0.8rem', fontWeight: 800, color: '#3e7c6b' }}>🚶 Walking beside you</p>}
+                      {reached.length > 0 && (
+                        <p style={{ margin: 0, fontSize: '0.78rem' }}>{reached.map((m) => `${m.icon} ${m.label}`).join('  ')}</p>
+                      )}
+                      {next && (
+                        <p style={{ margin: '4px 0 0', fontSize: '0.72rem', opacity: 0.65 }}>
+                          {next.threshold - pet.trainingProgress} more completed {next.threshold - pet.trainingProgress === 1 ? 'activity' : 'activities'} to {next.icon} {next.label}
+                        </p>
+                      )}
+                    </div>
+                  ),
+                };
+              })}
             />
           </div>
         </div>

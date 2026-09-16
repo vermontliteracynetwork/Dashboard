@@ -541,6 +541,8 @@ alter table notes add column if not exists body_html text;
 -- Personal Journal: a journal entry is a Note with kind='journal' — same
 -- word-processor base, just a distinct creation flow/empty-state.
 alter table notes add column if not exists kind text not null default 'note';
+-- Creative Island: locked by default, a teacher explicitly unlocks it per student.
+alter table students add column if not exists island_build_unlocked boolean not null default false;
 
 -- Every non-character, non-emote thing a student can buy: fonts, text
 -- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended

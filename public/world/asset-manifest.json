@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T14:02:33.474Z",
+  "generatedAt": "2026-09-16T14:30:17.907Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -69,6 +69,11 @@
     {
       "path": "/world/models/aquarium/dock-long-no-rope.glb",
       "label": "Dock Long No Rope",
+      "category": "aquarium"
+    },
+    {
+      "path": "/world/models/aquarium/dock-long-quaternius.glb",
+      "label": "Dock Long Quaternius",
       "category": "aquarium"
     },
     {
@@ -1314,6 +1319,21 @@
     {
       "path": "/world/models/food/Food_Wasabi.gltf",
       "label": "Food Wasabi",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/pizza-corner.glb",
+      "label": "Pizza Corner",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/pizza-slice.glb",
+      "label": "Pizza Slice",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/pizza-whole.glb",
+      "label": "Pizza Whole",
       "category": "food"
     },
     {
@@ -4312,8 +4332,48 @@
       "category": "props"
     },
     {
+      "path": "/world/models/props/park/park-bench.glb",
+      "label": "Park Bench",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/park/park-carousel.glb",
+      "label": "Park Carousel",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/park/park-picnic-table.glb",
+      "label": "Park Picnic Table",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/park/park-seesaw.glb",
+      "label": "Park Seesaw",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/park/park-slide.glb",
+      "label": "Park Slide",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/park/park-swings.glb",
+      "label": "Park Swings",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/park/park-trampoline.glb",
+      "label": "Park Trampoline",
+      "category": "props"
+    },
+    {
       "path": "/world/models/props/pine_tree.glb",
       "label": "Pine Tree",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/pizza-hat.glb",
+      "label": "Pizza Hat",
       "category": "props"
     },
     {
@@ -6132,6 +6192,11 @@
       "category": "scifi"
     },
     {
+      "path": "/world/models/space/moon.glb",
+      "label": "Moon",
+      "category": "space"
+    },
+    {
       "path": "/world/models/structures/classroom.glb",
       "label": "Classroom",
       "category": "structures"
@@ -6587,6 +6652,16 @@
       "category": "misc"
     },
     {
+      "path": "/world/models/vehicles/airplane-toy.glb",
+      "label": "Airplane Toy",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/boat.glb",
+      "label": "Boat",
+      "category": "vehicles"
+    },
+    {
       "path": "/world/models/vehicles/car-armor.glb",
       "label": "Car Armor",
       "category": "vehicles"
@@ -6649,6 +6724,26 @@
     {
       "path": "/world/models/vehicles/car-van.glb",
       "label": "Car Van",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/drone.glb",
+      "label": "Drone",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/helicopter.glb",
+      "label": "Helicopter",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/hot-air-balloon-2.glb",
+      "label": "Hot Air Balloon 2",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/hot-air-balloon.glb",
+      "label": "Hot Air Balloon",
       "category": "vehicles"
     },
     {

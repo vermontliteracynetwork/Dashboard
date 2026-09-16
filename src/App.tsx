@@ -37,6 +37,7 @@ import StudentChatAlert from './components/StudentChatAlert';
 // screen should stay unaffected.
 const TownSquare = lazy(() => import('./routes/world/TownSquare'));
 const HomeRoom = lazy(() => import('./routes/world/HomeRoom'));
+const IslandBuild = lazy(() => import('./routes/world/IslandBuild'));
 const WorldEditor = lazy(() => import('./routes/teacher/WorldEditor'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
@@ -113,6 +114,14 @@ export default function App() {
             element={
               <Suspense fallback={<div className="app-shell center-screen"><p>Loading your room…</p></div>}>
                 <HomeRoom />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/world/island"
+            element={
+              <Suspense fallback={<div className="app-shell center-screen"><p>Sailing to your island…</p></div>}>
+                <IslandBuild />
               </Suspense>
             }
           />

@@ -105,6 +105,11 @@ export interface Student {
   worldTalkRewardCents: number; // per-NPC daily talk coin amount; a teacher can set to 0 to turn off all NPC-talk payouts for a student without hiding the jokes/Joke Book
   worldShowArrivalCard: boolean; // teacher override for the Tier 0 daily arrival choice card — Claudia's full-game audit flagged that none of the guardrails tiers had a per-student off switch yet
   worldShowDeskGlow: boolean; // teacher override for the Tier 2 computer-desk glow/label
+  // Creative Island — direct teacher spec: "Minecraft-style creative free
+  // build," full catalog, full build-mode parity with the teacher, but
+  // locked by default and only reachable once a teacher explicitly
+  // unlocks it per student. Defaults false everywhere it's read.
+  islandBuildUnlocked?: boolean;
   worldReduceMotion: boolean; // student/teacher-set in-app motion reduction (desk glow, etc.) independent of the OS-level prefers-reduced-motion setting, for a shared/school device a student can't change system settings on
   dyslexiaFont: boolean; // app-wide (not just Town Square) dyslexia-friendly display mode — a standing requirement in docs/NATIVE_GAME_STANDARD.md that had no actual toggle anywhere in the app until Claudia's full-game audit found the gap
   homeWallColor?: string; // Home Room paint bucket — hex color for the room's 4 walls; undefined = default
@@ -613,7 +618,7 @@ export interface Transaction {
 // every student sees the same real, live town. Rendered by the same
 // WorldObjectRenderer both the editor and the real student-facing scene
 // use, so what a teacher builds is exactly what a student walks around in.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'

@@ -348,6 +348,14 @@ export default function StudentManager() {
                   />{' '}
                   Glow/label the computer desk when tasks are waiting
                 </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={st.islandBuildUnlocked ?? false}
+                    onChange={(e) => updateStudent(st.id, { islandBuildUnlocked: e.target.checked })}
+                  />{' '}
+                  🏝️ Unlock the Creative Island (full-catalog free build, reached by boat from Town Square)
+                </label>
 
                 <hr className="divider" />
                 <strong>Piggy Bank</strong>

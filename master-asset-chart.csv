@@ -13,6 +13,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/aquarium/coral-grouper.glb,Coral Grouper,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/aquarium/cowfish.glb,Cowfish,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/aquarium/dock-long-no-rope.glb,Dock Long No Rope,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
+/world/models/aquarium/dock-long-quaternius.glb,Dock Long Quaternius,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/aquarium/dock-long.glb,Dock Long,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/aquarium/dock-stairs.glb,Dock Stairs,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/aquarium/dock-wide.glb,Dock Wide,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
@@ -262,6 +263,9 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/food/Food_TamagoNigiri.gltf,Food Tamago Nigiri,food,Nature & Animals,tiny,category-fallback,0.262,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/food/Food_Udon.gltf,Food Udon,food,Nature & Animals,tiny,category-fallback,0.262,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/food/Food_Wasabi.gltf,Food Wasabi,food,Nature & Animals,tiny,category-fallback,0.262,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
+/world/models/food/pizza-corner.glb,Pizza Corner,food,Nature & Animals,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
+/world/models/food/pizza-slice.glb,Pizza Slice,food,Nature & Animals,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
+/world/models/food/pizza-whole.glb,Pizza Whole,food,Nature & Animals,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/forest/rocks.glb,Rocks,forest,Nature & Animals,largeStructure,category-fallback,9.598,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/forest/tree.glb,Tree,forest,Nature & Animals,largeStructure,category-fallback,9.598,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/fox.glb,Fox,misc,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
@@ -861,7 +865,15 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/props/mountain_map.glb,Mountain Map,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/mushroom.glb,Mushroom,props,Props & Tools,tiny,keyword,0.218,solid (blocks movement),yes,50,0.50,paid,no,yes,no,static click-to-collect
 /world/models/props/park-info-board.glb,Park Info Board,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/park/park-bench.glb,Park Bench,props,Props & Tools,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/park/park-carousel.glb,Park Carousel,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/park/park-picnic-table.glb,Park Picnic Table,props,Props & Tools,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/park/park-seesaw.glb,Park Seesaw,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/park/park-slide.glb,Park Slide,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/park/park-swings.glb,Park Swings,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/park/park-trampoline.glb,Park Trampoline,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/pine_tree.glb,Pine Tree,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/pizza-hat.glb,Pizza Hat,props,Props & Tools,tiny,keyword,0.218,solid (blocks movement),yes,50,0.50,paid,no,yes,no,static click-to-collect
 /world/models/props/playground-slide.glb,Playground Slide,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/potted_tree.glb,Potted Tree,props,Props & Tools,smallObject,keyword,0.436,solid (blocks movement),yes,150,1.50,paid,no,yes,no,static click-to-collect
 /world/models/props/sandwich-board.glb,Sandwich Board,props,Props & Tools,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
@@ -1182,6 +1194,33 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/restaurant/Wall_Shoji.gltf,Wall Shoji,restaurant,Buildings & Places,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/restaurant/Wall_Shoji_Interior.gltf,Wall Shoji Interior,restaurant,Buildings & Places,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/restaurant/Wall_Stains.gltf,Wall Stains,restaurant,Buildings & Places,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-bush-1.glb,Modular Bush 1,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-hazzard-cone-1.glb,Modular Hazzard Cone 1,roads,Buildings & Places,personScale,keyword,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-lamp-1.glb,Modular Lamp 1,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-lamp-2.glb,Modular Lamp 2,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road-barier-2a.glb,Modular Road Barier 2a,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road-barier-2b.glb,Modular Road Barier 2b,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road-barrier-1.glb,Modular Road Barrier 1,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road1-curve1.glb,Modular Road1 Curve1,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road1-curve2.glb,Modular Road1 Curve2,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road1-curve3.glb,Modular Road1 Curve3,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road1-curve4.glb,Modular Road1 Curve4,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road1.glb,Modular Road1,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road10-90angle-corner.glb,Modular Road10 90angle Corner,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road11-y-splitter-45.glb,Modular Road11 Y Splitter 45,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road11-y-splitter.glb,Modular Road11 Y Splitter,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road12-diagonal-splitter-l.glb,Modular Road12 Diagonal Splitter L,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road12-diagonal-splitter-r.glb,Modular Road12 Diagonal Splitter R,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road2-t.glb,Modular Road2 T,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road2-x.glb,Modular Road2 X,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-road6-end.glb,Modular Road6 End,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-traffic-barell-1.glb,Modular Traffic Barell 1,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-traffic-light-1.glb,Modular Traffic Light 1,roads,Buildings & Places,pole,keyword,4.363,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-traffic-light-2.glb,Modular Traffic Light 2,roads,Buildings & Places,pole,keyword,4.363,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-traffic-light-3.glb,Modular Traffic Light 3,roads,Buildings & Places,pole,keyword,4.363,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-tree-1-a.glb,Modular Tree 1 A,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-tree3.glb,Modular Tree3,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
+/world/models/roads/modular-tree4.glb,Modular Tree4,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
 /world/models/roads/road-bend-sidewalk.glb,Road Bend Sidewalk,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
 /world/models/roads/road-crossroad-path.glb,Road Crossroad Path,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
 /world/models/roads/road-side.glb,Road Side,roads,Buildings & Places,furniture,category-fallback,1.745,walkable (walk-through),yes,0,0.00,free-infrastructure,no,no,no,"placed decoration only, not clickable"
@@ -1198,6 +1237,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/scifi/Bowl.glb,Bowl,scifi,Seasonal & Themed,tiny,keyword,0.218,walkable (walk-through),yes,63,0.63,paid,no,yes,no,static click-to-collect
 /world/models/scifi/Camera_Drone.glb,Camera Drone,scifi,Seasonal & Themed,tiny,keyword,0.218,walkable (walk-through),yes,63,0.63,paid,no,yes,no,static click-to-collect
 /world/models/scifi/Coffee_Brewer.glb,Coffee Brewer,scifi,Seasonal & Themed,personScale,category-fallback,3.490,walkable (walk-through),yes,1000,10.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/space/moon.glb,Moon,space,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/classroom.glb,Classroom,structures,Buildings & Places,personScale,category-fallback,4.363,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/gazebo.glb,Gazebo,structures,Buildings & Places,personScale,category-fallback,4.363,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/modular-chimney.glb,Modular Chimney,structures,Buildings & Places,personScale,category-fallback,4.363,solid (blocks movement),yes,480,4.80,paid,no,no,no,"placed decoration only, not clickable"
@@ -1289,7 +1329,10 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/toolsbits/wrench_A.gltf,Wrench A,toolsbits,Props & Tools,smallObject,category-fallback,0.873,solid (blocks movement),yes,150,1.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/toolsbits/wrench_B.gltf,Wrench B,toolsbits,Props & Tools,smallObject,category-fallback,0.873,solid (blocks movement),yes,150,1.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/tree-pine.glb,Tree Pine,misc,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/vehicles/airplane-toy.glb,Airplane Toy,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/vehicles/boat.glb,Boat,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/vehicles/car-armor.glb,Car Armor,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/vehicles/car-banana.glb,Car Banana,vehicles,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
 /world/models/vehicles/car-coupe.glb,Car Coupe,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/vehicles/car-fenyr.glb,Car Fenyr,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/vehicles/car-ghini.glb,Car Ghini,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
@@ -1301,6 +1344,10 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/vehicles/car-police.glb,Car Police,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/vehicles/car-rally.glb,Car Rally,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/vehicles/car-van.glb,Car Van,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/vehicles/drone.glb,Drone,vehicles,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/vehicles/helicopter.glb,Helicopter,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/vehicles/hot-air-balloon-2.glb,Hot Air Balloon 2,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/vehicles/hot-air-balloon.glb,Hot Air Balloon,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/water/Anchor_A.glb,Anchor A,water,Nature & Animals,furniture,category-fallback,1.396,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/water/Bait_Box_A.glb,Bait Box A,water,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,no,yes,no,static click-to-collect
 /world/models/water/Bell_Stand_A.glb,Bell Stand A,water,Nature & Animals,furniture,keyword,0.873,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"

@@ -83,6 +83,7 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   'computer-desk': '/student/home',
   home: '/world/home-room',
   'pet-shelter': '/student/pet-shelter',
+  'island-dock': '/world/island',
 };
 
 // A student's choice of what their own house looks like from the outside —
@@ -90,10 +91,22 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
 // 'home'-role WorldObject in Town Square whenever THAT student is the one
 // looking at it (same per-viewer idea 'computer-desk' already uses: one
 // shared object, personalized per student). See Student.houseExteriorPath.
-export const HOUSE_EXTERIOR_OPTIONS: { id: string; label: string; modelPath: string }[] = [
-  { id: 'classic', label: 'Classic House', modelPath: '/world/models/buildings/house.glb' },
-  { id: 'towncenter', label: 'Town House', modelPath: '/world/models/quaternius-buildings/TownHouseB.glb' },
-  { id: 'cottage', label: 'Cabin', modelPath: '/world/models/buildings/cabin-shed.glb' },
+// Claudia's asset-sizing audit: each of these 3 GLBs ships in wildly
+// different raw native units (measured: house.glb 1.46 tall, TownHouseB.glb
+// 4.66 tall, cabin-shed.glb 0.35 tall — a ~13x spread) — the exact same
+// "one scale reused across models with different raw dimensions" failure
+// WorldEditor.tsx's own category-scale system exists to prevent, just never
+// applied here. A flat shared scale made the cabin a dollhouse and the town
+// house a skyscraper next to the same avatar. `scale` is each model's own
+// real-world-proportional value (targeting CHARACTER_HEIGHT*4.5, the same
+// "regular buildings" band WorldEditor's CATEGORY_SCALE_TARGET uses) —
+// every render site (HomeRoom's yard exterior, Town Square's per-viewer
+// swap) must use THIS scale, never a shared constant or an inherited value
+// computed for a different model.
+export const HOUSE_EXTERIOR_OPTIONS: { id: string; label: string; modelPath: string; scale: number }[] = [
+  { id: 'classic', label: 'Classic House', modelPath: '/world/models/buildings/house.glb', scale: 5.36 },
+  { id: 'towncenter', label: 'Town House', modelPath: '/world/models/quaternius-buildings/TownHouseB.glb', scale: 1.68 },
+  { id: 'cottage', label: 'Cabin', modelPath: '/world/models/buildings/cabin-shed.glb', scale: 22.41 },
 ];
 
 // Which placed-object models can carry teacher-written sign text (double-

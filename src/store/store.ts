@@ -859,6 +859,7 @@ export const useStore = create<AppState>()(
           worldTalkRewardCents: 5,
           worldShowArrivalCard: true,
           worldShowDeskGlow: true,
+          islandBuildUnlocked: false,
           worldReduceMotion: false,
           dyslexiaFont: false,
           petCouponRedeemed: false,
