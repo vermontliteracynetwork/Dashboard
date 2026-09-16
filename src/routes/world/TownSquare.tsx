@@ -74,6 +74,11 @@ const SCOUT_CHECKIN_THRESHOLD_MS = 15 * 60 * 1000;
 // Tracked via genuine idle time (last onMove, not session-elapsed time)
 // since this has to fire during quiet wandering, not just NPC talk.
 const PET_CHECKIN_THRESHOLD_MS = 15 * 60 * 1000;
+// Direct teacher instruction: unlike the pet check-in above (a dismissible
+// suggestion), Wizard ThunderSword is a real lock — given noticeably more
+// idle time than the pet nudge gets first, so the soft nudge has a real
+// chance to work before this fires.
+const WIZARD_LOCK_THRESHOLD_MS = 25 * 60 * 1000;
 // A trivial wrapper, but a real one: keeping the Date.now() call in its
 // own top-level function (same reason todayISO() elsewhere in this app
 // works the same way) rather than inline inside the component means an
@@ -1776,6 +1781,62 @@ export default function TownSquare() {
     }, 30 * 1000);
     return () => window.clearInterval(id);
   }, [followingPet, followingPetDef, totalTasksLeft, activeConversation, showArrival, showPetCheckIn]);
+
+  // Wizard ThunderSword — direct teacher instruction: appears and locks
+  // all gameplay when a student has real assignments open but has gone
+  // well past a soft nudge without making any progress, only free-roaming
+  // or exploring. This is a real lock, not a dismissible suggestion: once
+  // triggered it has to survive navigating away to a task and back (a
+  // student bailing out of a task without finishing it must not un-stick
+  // the lock), so the "still locked" state lives in sessionStorage —
+  // same lightweight per-day mechanism the arrival card already uses,
+  // since this only ever needs to mean "today, this session" — rather
+  // than local component state that would reset on remount. It clears
+  // itself the moment totalCompletedToday actually goes up past the
+  // count captured when it triggered, never on a timer and never on a
+  // dismiss tap (there isn't one).
+  const totalCompletedToday = subjectsToday.reduce((sum, s) => sum + (s.total - s.remaining), 0);
+  const wizardLockStorageKey = student ? `homeplot-wizard-lock-${student.id}-${todayISO()}` : null;
+  const [wizardLockBaseline, setWizardLockBaseline] = useState<number | null>(() => {
+    if (!wizardLockStorageKey) return null;
+    try {
+      const raw = sessionStorage.getItem(wizardLockStorageKey);
+      return raw !== null ? Number(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const showWizardLock = wizardLockBaseline !== null && totalCompletedToday <= wizardLockBaseline;
+  useEffect(() => {
+    // Real progress since the lock triggered — clear it for good today.
+    if (wizardLockBaseline !== null && totalCompletedToday > wizardLockBaseline) {
+      setWizardLockBaseline(null);
+      if (wizardLockStorageKey) {
+        try { sessionStorage.removeItem(wizardLockStorageKey); } catch { /* private browsing etc */ }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalCompletedToday]);
+  useEffect(() => {
+    if (wizardLockBaseline !== null) return; // already locked, nothing to arm
+    const id = window.setInterval(() => {
+      if (
+        totalTasksLeft === 0 ||
+        activeConversation ||
+        showArrival ||
+        msSince(lastActivityRef.current) < WIZARD_LOCK_THRESHOLD_MS
+      ) {
+        return;
+      }
+      setWizardLockBaseline(totalCompletedToday);
+      if (wizardLockStorageKey) {
+        try { sessionStorage.setItem(wizardLockStorageKey, String(totalCompletedToday)); } catch { /* private browsing etc */ }
+      }
+    }, 30 * 1000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wizardLockBaseline, totalTasksLeft, activeConversation, showArrival, totalCompletedToday]);
+
   // Direct teacher instruction: the "click/tap to walk" instruction text
   // is onboarding, not a permanent fixture — once a student has actually
   // done it once, it just clutters an otherwise clean view.
@@ -2196,6 +2257,40 @@ export default function TownSquare() {
           </div>
         </div>
       )}
+      {/* Wizard ThunderSword — a real lock, direct teacher instruction: no
+          backdrop-dismiss onClick, no X button, nothing but the one path
+          out (go actually do an assignment). Calm-down/help stay reachable
+          the whole time (ToolsPanel + the help/what-now FABs are rendered
+          outside this block, untouched) — this app's own standing rule is
+          that regulation tools are never gated, only free exploration is. */}
+      {showWizardLock && (
+        <div className="overlay-backdrop" style={{ background: 'rgba(20, 10, 40, 0.75)', zIndex: 300 }}>
+          <div className="overlay-panel chrome-frame wizard-lock-flyin" style={{ padding: 24, maxWidth: 420 }}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <img
+                src="/world/thumbnails/creatures_wizard-thundersword.png"
+                alt=""
+                style={{ width: 120, height: 120, objectFit: 'contain' }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              />
+              <h2 style={{ margin: 0 }}>⚡ Wizard ThunderSword says: hold on!</h2>
+              <p style={{ margin: 0 }}>
+                You still have {totalTasksLeft} thing{totalTasksLeft === 1 ? '' : 's'} to do today. Finish one activity to keep exploring.
+              </p>
+              <button
+                className="btn btn-primary btn-lg pulse-cta"
+                onClick={() => {
+                  const next = subjectsToday.find((s) => s.remaining > 0);
+                  if (next) navigate(`/student/${next.subject}`);
+                }}
+              >
+                📋 Go finish an activity
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTodayTasks && (
         <div className="overlay-backdrop" onClick={() => setShowTodayTasks(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
@@ -2412,7 +2507,7 @@ export default function TownSquare() {
             touchDir={touchDir}
             walkTarget={walkTarget}
             onMove={(p) => { setPlayerPos(p.clone()); lastActivityRef.current = Date.now(); }}
-            frozen={!!activeConversation || mapView}
+            frozen={!!activeConversation || mapView || showWizardLock}
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}
             mapView={mapView}
