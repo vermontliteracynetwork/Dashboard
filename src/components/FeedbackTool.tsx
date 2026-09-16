@@ -39,6 +39,12 @@ const ROOT_OPTIONS: FeedbackOption[] = [
   { id: 'visuals', label: 'Visuals & Design', icon: '🎨', category: 'visuals' },
   { id: 'assignments', label: 'Assignments & Focuses', icon: '📋', category: 'assignments' },
   { id: 'other', label: 'Other', icon: '✏️', category: 'other', customLabel: true },
+  // Direct teacher instruction: a dedicated Wishlist button — a place for
+  // "features, items/assets, etc." a student wants, distinct from a bug
+  // report or a one-off theme idea. No sub-questions (skips straight to
+  // free text below) since a wishlist is naturally an open list, not a
+  // drill-down category.
+  { id: 'wishlist', label: 'Wishlist', icon: '🌟', category: 'wishlist' },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -87,7 +87,7 @@ export default function ReviewInbox() {
     })),
   ].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
 
-  const CATEGORY_LABEL: Record<string, string> = { gameplay: '🎮 Game Play', visuals: '🎨 Visuals & Design', assignments: '📋 Assignments & Focuses', other: '✏️ Other' };
+  const CATEGORY_LABEL: Record<string, string> = { gameplay: '🎮 Game Play', visuals: '🎨 Visuals & Design', assignments: '📋 Assignments & Focuses', other: '✏️ Other', wishlist: '🌟 Wishlist' };
 
   return (
     <div className="app-shell">

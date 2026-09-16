@@ -374,10 +374,19 @@ export default function SubjectDashboard() {
       {/* A video task embeds a real YouTube iframe underneath the "are you
           sure?" dialog. pointer-events alone wasn't reliable enough to stop
           a click meant for the dialog from landing on the iframe instead in
-          some browsers, so the whole activity is unmounted outright while
-          that dialog is open — the dialog's own translucent backdrop is all
-          that needs to show behind it at that point anyway. */}
-      {activeTask && !confirmDone && renderTask(activeTask)}
+          some browsers, so a video task is unmounted outright while that
+          dialog is open — the dialog's own translucent backdrop is all that
+          needs to show behind it at that point anyway.
+          Caught in Claudia's review: this used to unmount EVERY task type,
+          not just video. For a quiz/platformer task that just finished (the
+          exact case that opens this dialog), unmounting and then
+          remounting on "Not yet" or a backdrop tap re-fires that task's
+          mount-time ensureQuizState() — which can't tell a genuine retake
+          apart from this remount, and silently reshuffled every
+          already-correct answer back into the queue. Keeping the task
+          mounted behind the dialog for every non-video type avoids that
+          entirely; the dialog's own backdrop is still all that's visible. */}
+      {activeTask && (!confirmDone || activeTask.type !== 'video') && renderTask(activeTask)}
 
       <ToolsPanel student={student} subject={subj} hideCalculator={activeTask?.type === 'quiz'} />
 

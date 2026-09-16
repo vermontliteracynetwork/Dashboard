@@ -823,7 +823,7 @@ export interface StudentPet {
 export interface StudentFeedback {
   id: string;
   studentId: string;
-  category: 'gameplay' | 'visuals' | 'assignments' | 'other';
+  category: 'gameplay' | 'visuals' | 'assignments' | 'other' | 'wishlist';
   subcategoryLabel?: string;
   customLabel?: string;
   text: string;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import ReadAloud, { speak } from '../../components/ReadAloud';
 import { isCloseEnoughAnswer } from '../../lib/answerMatch';
@@ -83,6 +83,13 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
   const [usedWords, setUsedWords] = useState<string[]>([]);
   const [pendingCorrect, setPendingCorrect] = useState<boolean | null>(null); // null = this question not yet answered
   const [confirmExit, setConfirmExit] = useState(false);
+  // Claudia's review: a double-tap/key-repeat on "Next Question" before
+  // React commits the pendingCorrect reset could fire submitQuizAnswer
+  // twice for the same question — harmless most of the time, but on the
+  // LAST question it could hit the exact same finished-quiz reset path
+  // the SubjectDashboard fix above addresses, this time with no dialog
+  // involved at all. A simple reentrancy guard closes that off too.
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     ensureQuizState(student.id, subject, task);
@@ -169,7 +176,8 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
   };
 
   const goNext = () => {
-    if (pendingCorrect === null) return;
+    if (pendingCorrect === null || submittingRef.current) return;
+    submittingRef.current = true;
     // The local "move to the next question" reset must never get skipped —
     // if recording the answer throws for any reason, the student would
     // otherwise be stuck staring at an already-answered question with a
@@ -179,6 +187,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
     } catch (err) {
       console.error('submitQuizAnswer failed', err);
     }
+    submittingRef.current = false;
     setPendingCorrect(null);
     setPicked(null);
     setFillValue('');

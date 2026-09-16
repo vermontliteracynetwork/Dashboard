@@ -201,6 +201,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   const [picked, setPicked] = useState<number | null>(null);
   const [fillValue, setFillValue] = useState('');
   const [pendingCorrect, setPendingCorrect] = useState<boolean | null>(null);
+  // Claudia's review: same reentrancy guard as QuizTask's goNext, so a
+  // double-tap on "Back to the game!" can't submit the same answer twice
+  // and risk hitting the finished-quiz reset path on the last question.
+  const submittingRef = useRef(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<Record<string, HTMLImageElement>>({});
@@ -634,7 +638,8 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   };
 
   const resumeAfterQuestion = () => {
-    if (pendingCorrect === null || !masteryQ) return;
+    if (pendingCorrect === null || !masteryQ || submittingRef.current) return;
+    submittingRef.current = true;
     const wasCorrect = pendingCorrect;
 
     // Every question — gauntlet or not — is a real mastery-queue question,
@@ -651,6 +656,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     } catch (err) {
       console.error('submitQuizAnswer failed', err);
     }
+    submittingRef.current = false;
     const remaining = useStore.getState().progress[student.id]?.[subject]?.quizState?.[task.id]?.remainingIds;
     setPendingCorrect(null);
     setPicked(null);
