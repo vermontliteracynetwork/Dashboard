@@ -79,23 +79,27 @@ export const PET_DECAY_AMOUNT = 4;
 // restriction shipped still resolves correctly in Home Room/My Stuff —
 // nothing already adopted disappears or breaks.
 const PET_CATALOG_ALL: PetDef[] = [
-  // Dogs — kept close together on purpose (direct teacher spec: "great
-  // danes should be slightly bigger than poodles"), not real-world breed
-  // proportions where the gap is much larger.
-  { id: 'pet-dog', name: 'Dog', modelPath: '/world/models/pets/animal-dog.glb', priceCents: 15000, category: 'dog', targetHeight: 0.42 },
-  { id: 'pet-pug', name: 'Pug', modelPath: '/world/models/pets/animal-pug.glb', priceCents: 18000, category: 'dog', targetHeight: 0.32 },
-  { id: 'pet-husky', name: 'Husky', modelPath: '/world/models/pets/animal-husky.glb', priceCents: 20000, category: 'dog', targetHeight: 0.46 },
-  { id: 'pet-poodle', name: 'Poodle', modelPath: '/world/models/pets/animal-poodle.glb', priceCents: 20000, category: 'dog', targetHeight: 0.42 },
-  { id: 'pet-beagle', name: 'Beagle', modelPath: '/world/models/pets/animal-beagle.glb', priceCents: 18000, category: 'dog', targetHeight: 0.38 },
-  { id: 'pet-great-dane', name: 'Great Dane', modelPath: '/world/models/pets/animal-great-dane.glb', priceCents: 22000, category: 'dog', targetHeight: 0.48 },
-  { id: 'pet-shiba-inu', name: 'Shiba Inu', modelPath: '/world/models/pets/animal-shiba-inu.glb', priceCents: 20000, category: 'dog', targetHeight: 0.4 },
-  { id: 'pet-blob-dog', name: 'Blob Dog', modelPath: '/world/models/creatures/blob-dog.glb', priceCents: 15000, category: 'dog', targetHeight: 0.42 },
-  { id: 'pet-dog-pink', name: 'Pink Dog', modelPath: '/world/models/pets/animal-dog-pink.glb', priceCents: 16000, category: 'dog', targetHeight: 0.42 },
+  // Dogs — direct teacher spec, a precise player-relative ratio scale
+  // (player character = 1): Great Dane = 0.8, other (medium) dogs = 0.6,
+  // small dogs = 0.5. targetHeight = ratio * CHARACTER_HEIGHT (1.745).
+  // Supersedes an earlier, much-more-compressed pass at these same
+  // numbers — this is the real scale now. (Teacher also gave a Horse
+  // ratio of 2.0 for future reference; no horse pet exists in this
+  // catalog yet, so it's not applied to anything today.)
+  { id: 'pet-dog', name: 'Dog', modelPath: '/world/models/pets/animal-dog.glb', priceCents: 15000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-pug', name: 'Pug', modelPath: '/world/models/pets/animal-pug.glb', priceCents: 18000, category: 'dog', targetHeight: 0.8725 },
+  { id: 'pet-husky', name: 'Husky', modelPath: '/world/models/pets/animal-husky.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-poodle', name: 'Poodle', modelPath: '/world/models/pets/animal-poodle.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-beagle', name: 'Beagle', modelPath: '/world/models/pets/animal-beagle.glb', priceCents: 18000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-great-dane', name: 'Great Dane', modelPath: '/world/models/pets/animal-great-dane.glb', priceCents: 22000, category: 'dog', targetHeight: 1.396 },
+  { id: 'pet-shiba-inu', name: 'Shiba Inu', modelPath: '/world/models/pets/animal-shiba-inu.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-blob-dog', name: 'Blob Dog', modelPath: '/world/models/creatures/blob-dog.glb', priceCents: 15000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-dog-pink', name: 'Pink Dog', modelPath: '/world/models/pets/animal-dog-pink.glb', priceCents: 16000, category: 'dog', targetHeight: 1.047 },
 
-  // Cats
-  { id: 'pet-cat', name: 'Cat', modelPath: '/world/models/pets/animal-cat.glb', priceCents: 15000, category: 'cat', targetHeight: 0.28 },
-  { id: 'pet-cat-2', name: 'Tabby Cat', modelPath: '/world/models/pets/animal-cat-2.glb', priceCents: 15000, category: 'cat', targetHeight: 0.28 },
-  { id: 'pet-blob-cat', name: 'Blob Cat', modelPath: '/world/models/creatures/blob-cat.glb', priceCents: 15000, category: 'cat', targetHeight: 0.28 },
+  // Cats — direct teacher spec, same ratio scale as small dogs: 0.5.
+  { id: 'pet-cat', name: 'Cat', modelPath: '/world/models/pets/animal-cat.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-2', name: 'Tabby Cat', modelPath: '/world/models/pets/animal-cat-2.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-blob-cat', name: 'Blob Cat', modelPath: '/world/models/creatures/blob-cat.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
 
   // Small critters — genuinely tiny, per direct teacher spec ("fish should
   // be small," applied consistently to the rest of this tier too).
