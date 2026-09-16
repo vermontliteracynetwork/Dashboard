@@ -33,6 +33,10 @@ A question set wired into a native game can come from any of these, and a teache
 
 Regardless of source, every question set a native game uses must be the same real object the rest of the app's mastery/retry tracking reads from — never a disconnected copy, a hand-typed duplicate, or a "game-only" subset. A student who answers every question a game presents them, across any number of sessions, must show that progress in the real mastery record. This is non-negotiable and doesn't change with the wrapping model.
 
+**Choosing which set a session uses (direct teacher instruction).** Before a game session starts, the student picks how their question set is chosen, one of two ways:
+- **Dice / Random button.** Presents as a random pick to the student, but is not actually random — it's weighted to pull from whichever set(s) the teacher currently has flagged as the student's focus. This means a question set needs a teacher-settable "current focus" flag, and the dice button reads from sets carrying that flag.
+- **Manual pick**, from a list shown under **student-friendly titles**, not the teacher's own authoring name. This means every question set needs a separate kid-facing display title (e.g. "Fraction Frenzy" rather than "Ch4 Fractions Quiz") in addition to its real teacher-facing name — same object, two labels, one for each audience.
+
 ---
 
 ## 3. Question-Break Timing (Teacher-Configurable)
@@ -43,6 +47,8 @@ Two settings, both teacher-adjustable, no code change needed once built:
 - **Questions-per-break slider.** How many questions appear when a break fires: 1 up to 5 in a row, then back to the game.
 
 **Recommended pattern for exactly when within that window a break actually fires** (not a hard rule, but worth keeping): rather than firing the instant the interval elapses, wait for a short window of no keyboard/mouse input on the game (roughly 1.5-2.5 seconds) so the break lands between actions instead of interrupting one mid-motion, with a hard ceiling past the interval so a student who never stops moving still gets the break. A brief, predictable heads-up before the break fires (a small on-screen cue) is also a good default — it isn't a countdown timer on the question itself (that's banned outright, see §4), it's just advance notice that play is about to pause, which reduces dysregulation risk for this population.
+
+**Direct teacher decision: this "scheduled + warned" behavior is the only mode.** No per-student alternate modes (student-initiated break requests, bookend-only) at launch, and no "one more minute" deferral/snooze button — both considered and explicitly rejected as an unnecessary abuse surface. Every student gets the same scheduled-and-warned timing, tuned only by the two sliders above.
 
 ---
 
@@ -123,9 +129,11 @@ A session only counts as completed, and only pays out, once it reaches the "done
 
 These carry forward and apply to every native game regardless of origin:
 
-**Accessibility.** Everything we render ourselves — the entry screen, the question modal, the exit-confirm dialog, the reward confirmation — must pass the full accessibility baseline every other screen in this app follows (visible text labels not just aria-labels, 44×44px minimum touch targets, 4.5:1 contrast, color never the sole signal, dyslexia-friendly font toggle, no autoplay animation/sound, consistent nav). For an uploaded third-party game, we usually cannot edit the game's own surface to meet these (can't add a dyslexia toggle to its canvas text, can't force-mute its music, can't fix its contrast). Per Claudia's review: **the fix is selection, not editing.** A candidate game that fails hard on accessibility (unreadable text, no way to mute, flashing/strobing visuals) gets rejected before it's ever uploaded — see the selection checklist below. This keeps every screen a student is required to use fully compliant, while accepting that the third-party game's own interior is vetted rather than modified.
+**Accessibility.** Everything we render ourselves — the entry screen, the question modal, the exit-confirm dialog, the reward confirmation — must pass the full accessibility baseline every other screen in this app follows (visible text labels not just aria-labels, 44×44px minimum touch targets, 4.5:1 contrast, color never the sole signal, dyslexia-friendly font toggle, no autoplay animation/sound, consistent nav). For an uploaded third-party game, we usually cannot edit the game's own surface to meet these (can't add a dyslexia toggle to its canvas text, can't force-mute its music, can't fix its contrast).
 
-**Selection checklist** for any downloaded game before it's uploaded — reject if any of these fail:
+**Direct teacher decision: "vet at selection" means Kayden's own judgment, not an automated reject gate.** Any game Kayden uploads and hands over gets used — we don't run a checklist against his picks and refuse them. Reading load, text density, and general fit are things he's already screening for before a game reaches us ("all games I upload are fine"). The checklist below is kept as reference/guidance for *his own* picking process, not as a filter we apply after the fact.
+
+**Selection guidance** (for Kayden's own reference when picking a game, not an automatic rejection filter once he's chosen one):
 - Interruption-tolerant genre: no clock-based fail state, no enemies, no timed survival (sim, farming, builder, puzzle, idle, turn-based, gentle exploration only)
 - Failure is gentle or absent — no permadeath, no progress wipes, no harsh fail audio/flash
 - Natural idle moments exist in normal play
@@ -137,7 +145,7 @@ These carry forward and apply to every native game regardless of origin:
 - Fully offline — no CDN/API calls at runtime
 - Performs on the actual classroom devices, not just a dev machine
 
-**Save safety.** Third-party HTML5 builds frequently key their save data to the page's own path in the browser's localStorage. Standing rules for every uploaded game:
+**Save safety.** Third-party HTML5 builds frequently key their save data to the page's own path in the browser's localStorage. Students are mostly on their own personal iPads (consistent device per student), which lowers this risk significantly compared to shared devices, but the standing rules still apply for every uploaded game:
 - The game's URL/path is frozen permanently once it ships to a student — never renamed, never moved.
 - The wrapper never navigates, reloads, or unmounts the game's iframe mid-session; the question overlay sits on top of a permanently-mounted iframe, never a conditionally-rendered one.
 - Check for localStorage key collisions before a second game shares the same origin.
