@@ -84,6 +84,12 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   home: '/world/home-room',
   'pet-shelter': '/student/pet-shelter',
   'island-dock': '/world/island',
+  // Never actually read — a 'custom' role opens WorldObject.customRoleUrl
+  // in the internal browser instead of navigating to an app route (see
+  // TownSquare.tsx/IslandBuild.tsx's role click handlers, both special-
+  // case 'custom' before ever consulting this map). Present only so this
+  // stays a total Record<WorldObjectRole, string>.
+  custom: '',
 };
 
 // A student's choice of what their own house looks like from the outside —

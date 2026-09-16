@@ -46,6 +46,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'home', label: `Home (their room) → ${ROLE_VIEWS.home}` },
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
   { value: 'island-dock', label: `Island Dock (boat to Creative Island) → ${ROLE_VIEWS['island-dock']}` },
+  { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];
 // Claudia's asset-sizing audit: this floor was silently overriding the
 // entire size-class system for any pack whose raw model units run into
@@ -1124,6 +1125,18 @@ function SelectedObjectToolbar({
                   {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </label>
+              {selected.role === 'custom' && (
+                <label style={{ margin: 0 }}>
+                  <span style={{ fontSize: '0.72rem' }}>Custom link (opens for a student)</span>
+                  <input
+                    type="url"
+                    value={selected.customRoleUrl ?? ''}
+                    placeholder="https://..."
+                    onChange={(e) => onUpdate({ customRoleUrl: e.target.value || undefined })}
+                    style={{ minHeight: 44, width: '100%' }}
+                  />
+                </label>
+              )}
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, margin: 0 }} title="Whether students/NPCs can walk through this object">
                 <input
                   type="checkbox"

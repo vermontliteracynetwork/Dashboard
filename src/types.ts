@@ -624,13 +624,20 @@ export interface Transaction {
 // every student sees the same real, live town. Rendered by the same
 // WorldObjectRenderer both the editor and the real student-facing scene
 // use, so what a teacher builds is exactly what a student walks around in.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock';
+// Direct teacher instruction: "teachers (and students on creative island)
+// can give roles including custom roles to any asset" — 'custom' is a
+// free-form role, not one of the fixed built-in destinations: instead of
+// routing to a hardcoded app screen (see ROLE_VIEWS in townLayout.ts), it
+// opens WorldObject.customRoleUrl in the same internal browser a task's
+// own external link already uses.
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'custom';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'
   label: string; // the asset's own generic name (from the manifest), e.g. "Street Light"
   customName?: string; // teacher-given name for this specific placed instance, e.g. "Bank" — shown to students as the building's label when set
   role?: WorldObjectRole; // if set, a student clicking this object opens the matching 2D view (same routing the 4 original buildings already use)
+  customRoleUrl?: string; // only meaningful when role === 'custom' — the URL a click opens, in the same internal browser a task's own external link uses
   position: [number, number, number];
   rotationY: number; // radians
   scale: number; // uniform scale multiplier

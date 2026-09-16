@@ -388,6 +388,7 @@ const rowToWorldObject = (r: Row): WorldObject => ({
   publishedSnapshot: r.published_snapshot ?? undefined,
   signText: r.sign_text ?? undefined,
   roomId: r.room_id ?? undefined,
+  customRoleUrl: r.custom_role_url ?? undefined,
 });
 const worldObjectToRow = (o: WorldObject): Row => ({
   id: o.id,
@@ -407,6 +408,7 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   published_snapshot: o.publishedSnapshot ?? null,
   sign_text: o.signText ?? null,
   room_id: o.roomId ?? null,
+  custom_role_url: o.customRoleUrl ?? null,
 });
 
 const rowToWallSegment = (r: Row): WallSegment => ({

@@ -13,6 +13,7 @@ import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import InventoryHotbar from '../../components/InventoryHotbar';
+import InternalBrowser from '../../components/InternalBrowser';
 import { BookPanel } from '../../components/BookPanel';
 import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
@@ -1963,6 +1964,9 @@ export default function TownSquare() {
   // "View X? Confirm" card immediately, direct-click rather than
   // walk-then-confirm, until real footprints are measured for them too.
   const [selectedRoleObjectId, setSelectedRoleObjectId] = useState<string | null>(null);
+  // Direct teacher instruction: a "custom" role opens a teacher/student-
+  // typed link instead of one of the fixed built-in screens.
+  const [customRoleLink, setCustomRoleLink] = useState<{ url: string; title: string } | null>(null);
   // A tapped sign/notice-board "enlarges" into a readable popup with TTS —
   // Claudia's standing accessibility principle applied to any text a
   // teacher writes in-world, not just quiz/task copy.
@@ -2581,6 +2585,9 @@ export default function TownSquare() {
         </span>
       </button>
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
+      {customRoleLink && (
+        <InternalBrowser url={customRoleLink.url} title={customRoleLink.title} onClose={() => setCustomRoleLink(null)} />
+      )}
       {/* Direct teacher instruction: a "what's new" book, one change per
           page with the same real page-turn as the Joke Book/Pet Book,
           auto-opening for a student the first time they log in after
@@ -2804,7 +2811,15 @@ export default function TownSquare() {
                     <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>View {obj.customName || obj.label}?</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
-                        onClick={() => { setSelectedRoleObjectId(null); const path = obj.role ? ROLE_VIEWS[obj.role] : null; if (path) navigate(path); }}
+                        onClick={() => {
+                          setSelectedRoleObjectId(null);
+                          if (obj.role === 'custom') {
+                            if (obj.customRoleUrl) setCustomRoleLink({ url: obj.customRoleUrl, title: obj.customName || obj.label });
+                            return;
+                          }
+                          const path = obj.role ? ROLE_VIEWS[obj.role] : null;
+                          if (path) navigate(path);
+                        }}
                         style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
                         ✅ Confirm

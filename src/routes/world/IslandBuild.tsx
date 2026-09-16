@@ -1,11 +1,14 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Canvas, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, useGLTF, useTexture } from '@react-three/drei';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
-import type { WorldObject } from '../../types';
+import { ROLE_VIEWS } from './townLayout';
+import InternalBrowser from '../../components/InternalBrowser';
+import type { WorldObject, WorldObjectRole } from '../../types';
 
 // Direct teacher instruction: "Allow custom build area that students can
 // 'creative' free build. think minecraft where they have unlimited access.
@@ -15,13 +18,21 @@ import type { WorldObject } from '../../types';
 // catalog, same real-bounding-box auto-scale system, same category
 // grouping — but scoped to one student's own island rather than the shared
 // Town Square, and deliberately smaller in tool surface: no walls, paint
-// brush, ground-patch painting, role assignment, or draft/publish (every
-// edit here has studentId set, so per the app's own established rule it
-// writes live-instant, same as Home Room furniture — see store.ts's
-// addWorldObject/updateWorldObject/deleteWorldObject). Undo/redo, the wall
-// tool, and paint are teacher-only power tools intentionally held back for
-// v1, same scoping call HomeRoom.tsx's own lighter student build mode
-// already made relative to the full teacher tool.
+// brush, ground-patch painting, or draft/publish (every edit here has
+// studentId set, so per the app's own established rule it writes live-
+// instant, same as Home Room furniture — see store.ts's addWorldObject/
+// updateWorldObject/deleteWorldObject). Undo/redo, the wall tool, and
+// paint are teacher-only power tools intentionally held back for v1, same
+// scoping call HomeRoom.tsx's own lighter student build mode already made
+// relative to the full teacher tool.
+//
+// Direct teacher instruction: "teachers (and students on creative island)
+// can give roles including custom roles to any asset" — role assignment
+// (the same fixed built-in destinations WorldEditor.tsx offers, plus a
+// free-form 'custom' role that opens a typed link) is available here too,
+// and a real View mode (below) lets a student walk their island and click
+// those role-tagged objects "like they do on town square" instead of only
+// ever seeing it from the orbit-camera Build view.
 //
 // The scale/category systems below are a deliberate, independently-
 // maintained DUPLICATE of WorldEditor.tsx's own copies, not a shared
@@ -260,6 +271,124 @@ function SelectionRing({ x, z }: { x: number; z: number }) {
 const NUDGE_STEP = 0.5;
 const ROTATE_STEP = Math.PI / 2; // 90deg per click, matching WorldEditor's rotate-button convention
 
+// Same fixed built-in destinations WorldEditor.tsx's own ROLE_OPTIONS
+// offers (every one of them is a student-scoped 2D screen — Piggy Bank,
+// Marketplace, Mailbox, etc. — so routing to them from an Island object
+// works identically to routing from a Town Square one), plus 'custom'.
+const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
+  { value: '', label: 'No role (just decoration)' },
+  { value: 'bank', label: `Bank → ${ROLE_VIEWS.bank}` },
+  { value: 'store', label: `Store → ${ROLE_VIEWS.store}` },
+  { value: 'post-office', label: `Post Office → ${ROLE_VIEWS['post-office']}` },
+  { value: 'welcome-center', label: `Welcome Center → ${ROLE_VIEWS['welcome-center']}` },
+  { value: 'computer-desk', label: `Computer Desk (task list) → ${ROLE_VIEWS['computer-desk']}` },
+  { value: 'home', label: `Home (their room) → ${ROLE_VIEWS.home}` },
+  { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
+  { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
+];
+
+// A light walking avatar for Island's View mode — WASD + click-to-walk
+// only (no touch D-pad, no camera free-look, no NPCs/collision — this is
+// a deliberately smaller slice than Town Square's own Player, matching
+// the same "lighter tool surface" scoping this whole file already uses).
+// Reuses the exact same player.glb model and idle/walk clip names Town
+// Square's own PlayerModel uses.
+const ISLAND_CHARACTER_SCALE = 1;
+function useIslandKeys() {
+  const keys = useRef<Record<string, boolean>>({});
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { keys.current[e.key.toLowerCase()] = true; };
+    const up = (e: KeyboardEvent) => { keys.current[e.key.toLowerCase()] = false; };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, []);
+  return keys;
+}
+function IslandPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
+  const { scene, animations } = useGLTF('/world/models/characters/player.glb');
+  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
+  const group = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, group);
+  const current = useRef<'idle' | 'walk'>('idle');
+  useEffect(() => {
+    actions['idle']?.reset().play();
+    return () => { actions['idle']?.stop(); };
+  }, [actions]);
+  useFrame(() => {
+    const next = isMoving.current ? 'walk' : 'idle';
+    if (next === current.current) return;
+    actions[current.current]?.fadeOut(0.15);
+    actions[next]?.reset().fadeIn(0.15).play();
+    current.current = next;
+  });
+  return (
+    <group ref={group}>
+      <primitive object={cloned} scale={ISLAND_CHARACTER_SCALE} />
+    </group>
+  );
+}
+const ISLAND_MOVE_SPEED = 5;
+function IslandPlayer({ walkTarget }: { walkTarget: React.RefObject<{ x: number; z: number } | null> }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+  const keys = useIslandKeys();
+  const pos = useRef(new THREE.Vector3(0, 0, ISLAND_RADIUS * 0.5));
+  const facing = useRef(0);
+  const isMoving = useRef(false);
+  useFrame((_, dt) => {
+    if (!groupRef.current) return;
+    const k = keys.current;
+    let dx = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0);
+    let dz = (k['s'] || k['arrowdown'] ? 1 : 0) - (k['w'] || k['arrowup'] ? 1 : 0);
+    const len = Math.hypot(dx, dz);
+    let moved = false;
+    if (len > 0.001) {
+      walkTarget.current = null;
+      dx /= len;
+      dz /= len;
+      const { x, z } = clampToIsland(pos.current.x + dx * ISLAND_MOVE_SPEED * dt, pos.current.z + dz * ISLAND_MOVE_SPEED * dt);
+      pos.current.x = x;
+      pos.current.z = z;
+      facing.current = Math.atan2(dx, dz);
+      moved = true;
+    } else if (walkTarget.current) {
+      const tx = walkTarget.current.x - pos.current.x;
+      const tz = walkTarget.current.z - pos.current.z;
+      const dist = Math.hypot(tx, tz);
+      if (dist < 0.15) {
+        walkTarget.current = null;
+      } else {
+        const ndx = tx / dist;
+        const ndz = tz / dist;
+        const { x, z } = clampToIsland(pos.current.x + ndx * ISLAND_MOVE_SPEED * dt, pos.current.z + ndz * ISLAND_MOVE_SPEED * dt);
+        pos.current.x = x;
+        pos.current.z = z;
+        facing.current = Math.atan2(ndx, ndz);
+        moved = true;
+      }
+    }
+    isMoving.current = moved;
+    groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+    groupRef.current.rotation.y = facing.current;
+    const camAngle = facing.current;
+    const camX = pos.current.x - Math.sin(camAngle) * 10;
+    const camZ = pos.current.z - Math.cos(camAngle) * 10;
+    camera.position.lerp(new THREE.Vector3(camX, 7, camZ), 1 - Math.pow(0.001, dt));
+    camera.lookAt(pos.current.x, 1, pos.current.z);
+  });
+  return (
+    <group ref={groupRef}>
+      <Suspense fallback={null}>
+        <IslandPlayerModel isMoving={isMoving} />
+      </Suspense>
+    </group>
+  );
+}
+
 export default function IslandBuild() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
@@ -295,6 +424,16 @@ export default function IslandBuild() {
   const [armedDefaultScale, setArmedDefaultScale] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [ghostPos, setGhostPos] = useState<{ x: number; z: number } | null>(null);
+
+  // Direct teacher instruction: a View mode where the student walks their
+  // island and interacts with it "like they do on town square" — Build
+  // mode (orbit camera, place/select/edit) stays the default landing mode
+  // since that's the actual point of this page, View is an explicit
+  // opt-in toggle.
+  const [mode, setMode] = useState<'build' | 'view'>('build');
+  const walkTarget = useRef<{ x: number; z: number } | null>(null);
+  const [viewSelectedRoleId, setViewSelectedRoleId] = useState<string | null>(null);
+  const [customRoleLink, setCustomRoleLink] = useState<{ url: string; title: string } | null>(null);
 
   // A brief themed transition on arrival — direct teacher framing: "boat
   // transportation is how the student will get to the creative island."
@@ -359,6 +498,11 @@ export default function IslandBuild() {
     }
   };
 
+  const handleViewGroundClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    walkTarget.current = clampToIsland(e.point.x, e.point.z);
+  };
+
   const nudgeSelected = (dx: number, dz: number) => {
     if (!selected) return;
     const clamped = clampToIsland(selected.position[0] + dx, selected.position[2] + dz);
@@ -420,20 +564,38 @@ export default function IslandBuild() {
         </span>
       </div>
 
-      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60 }}>
-        <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} onClick={() => setCatalogOpen((v) => !v)}>
-          {catalogOpen ? '📦 Hide Catalog' : '📦 Show Catalog'}
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: 8 }}>
+        {/* Direct teacher instruction: a View mode where the student walks
+            around and interacts with their island the way they do in Town
+            Square, alongside the Build mode this page already had. */}
+        <button
+          className="btn btn-sm"
+          style={{ minHeight: 44, background: mode === 'view' ? '#3e7c6b' : '#fff', color: mode === 'view' ? '#fff' : undefined, fontWeight: 800 }}
+          onClick={() => { setMode((m) => (m === 'build' ? 'view' : 'build')); setArmedAsset(null); setSelectedId(null); setViewSelectedRoleId(null); }}
+        >
+          {mode === 'build' ? '🚶 Walk My Island' : '🏗️ Back to Build'}
         </button>
+        {mode === 'build' && (
+          <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} onClick={() => setCatalogOpen((v) => !v)}>
+            {catalogOpen ? '📦 Hide Catalog' : '📦 Show Catalog'}
+          </button>
+        )}
       </div>
 
-      {armedAsset && (
+      {mode === 'view' && (
+        <div style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: 'rgba(255,255,255,0.92)', borderRadius: 12, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center' }}>
+          Click, or tap, anywhere to walk there. Or use WASD/arrow keys. Click something you gave a role to open it.
+        </div>
+      )}
+
+      {mode === 'build' && armedAsset && (
         <div style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 12, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif', display: 'flex', gap: 10, alignItems: 'center' }}>
           <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>✋ Placing: {armedAsset.label} — tap the island to place, tap again to place more</span>
           <button className="btn btn-sm" onClick={() => armAsset(null)}>Stop</button>
         </div>
       )}
 
-      {selected && (
+      {mode === 'build' && selected && (
         <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 60, background: '#fff', borderRadius: 14, padding: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', width: 220 }}>
           <div className="space-between" style={{ marginBottom: 8 }}>
             <strong style={{ fontSize: '0.85rem' }}>{selected.label}</strong>
@@ -456,13 +618,35 @@ export default function IslandBuild() {
             <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => scaleSelected(1.1)}>Bigger</button>
             <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => rotateSelected(ROTATE_STEP)}>↻</button>
           </div>
+          <label style={{ display: 'block', margin: '0 0 8px' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Role (what opens when clicked)</span>
+            <select
+              value={selected.role ?? ''}
+              onChange={(e) => updateWorldObject(selected.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
+              style={{ minHeight: 40, width: '100%', fontSize: '0.75rem' }}
+            >
+              {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </label>
+          {selected.role === 'custom' && (
+            <label style={{ display: 'block', margin: '0 0 8px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Custom link</span>
+              <input
+                type="url"
+                value={selected.customRoleUrl ?? ''}
+                placeholder="https://..."
+                onChange={(e) => updateWorldObject(selected.id, { customRoleUrl: e.target.value || undefined })}
+                style={{ minHeight: 40, width: '100%', fontSize: '0.75rem' }}
+              />
+            </label>
+          )}
           <button className="btn btn-sm" style={{ minHeight: 40, width: '100%', background: 'var(--danger, #c94141)', color: '#fff' }} onClick={deleteSelected}>
             🗑️ Delete
           </button>
         </div>
       )}
 
-      {catalogOpen && (
+      {mode === 'build' && catalogOpen && (
         <div style={{ position: 'fixed', top: 70, left: 16, bottom: 16, width: 280, zIndex: 55, background: 'rgba(255,255,255,0.97)', borderRadius: 14, padding: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
           <input
             type="text"
@@ -536,22 +720,29 @@ export default function IslandBuild() {
         </div>
       )}
 
-      <Canvas camera={{ position: [0, 22, 26], fov: 50 }} shadows onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}>
+      <Canvas
+        camera={{ position: mode === 'view' ? [0, 7, ISLAND_RADIUS * 0.5 + 10] : [0, 22, 26], fov: 50 }}
+        shadows
+        onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+      >
         <color attach="background" args={['#7fd0e8']} />
         <fog attach="fog" args={['#7fd0e8', 34, 70]} />
         <ambientLight intensity={0.85} />
         <directionalLight position={[12, 18, 8]} intensity={1.25} castShadow />
-        <OrbitControls makeDefault maxPolarAngle={Math.PI / 2.1} minDistance={6} maxDistance={60} />
+        {mode === 'build' && <OrbitControls makeDefault maxPolarAngle={Math.PI / 2.1} minDistance={6} maxDistance={60} />}
 
         <Suspense fallback={<meshStandardMaterial color="#e8d9a8" />}>
-          <SandGround onClick={handleGroundClick} onPointerMove={handleGroundPointerMove} />
+          <SandGround
+            onClick={mode === 'build' ? handleGroundClick : handleViewGroundClick}
+            onPointerMove={mode === 'build' ? handleGroundPointerMove : () => {}}
+          />
         </Suspense>
         <Suspense fallback={null}>
           <WaterSurround />
         </Suspense>
 
-        {armedAsset && <GhostScaleReporter path={armedAsset.path} category={armedAsset.category} label={armedAsset.label} onScale={setArmedDefaultScale} />}
-        {armedAsset && ghostPos && (
+        {mode === 'build' && armedAsset && <GhostScaleReporter path={armedAsset.path} category={armedAsset.category} label={armedAsset.label} onScale={setArmedDefaultScale} />}
+        {mode === 'build' && armedAsset && ghostPos && (
           <WorldObjectRenderer
             obj={{
               id: '__ghost__',
@@ -568,11 +759,57 @@ export default function IslandBuild() {
 
         {islandObjects.map((obj) => (
           <group key={obj.id}>
-            <WorldObjectRenderer obj={obj} onClick={() => { if (!armedAsset) setSelectedId(obj.id); }} />
-            {selectedId === obj.id && <SelectionRing x={obj.position[0]} z={obj.position[2]} />}
+            <WorldObjectRenderer
+              obj={obj}
+              onClick={() => {
+                if (mode === 'build') { if (!armedAsset) setSelectedId(obj.id); return; }
+                if (obj.role) setViewSelectedRoleId(obj.id);
+              }}
+            />
+            {mode === 'build' && selectedId === obj.id && <SelectionRing x={obj.position[0]} z={obj.position[2]} />}
           </group>
         ))}
+
+        {mode === 'view' && <Suspense fallback={null}><IslandPlayer walkTarget={walkTarget} /></Suspense>}
       </Canvas>
+
+      {mode === 'view' && viewSelectedRoleId && (() => {
+        const obj = islandObjects.find((o) => o.id === viewSelectedRoleId);
+        if (!obj) return null;
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 65, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)' }} onClick={() => setViewSelectedRoleId(null)}>
+            <div style={{ background: '#fff', borderRadius: 14, padding: '14px 20px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 200, fontFamily: 'system-ui, sans-serif' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10, color: '#1f4238' }}>Open {obj.customName || obj.label}?</div>
+              <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
+                <button
+                  onClick={() => {
+                    setViewSelectedRoleId(null);
+                    if (obj.role === 'custom') {
+                      if (obj.customRoleUrl) setCustomRoleLink({ url: obj.customRoleUrl, title: obj.customName || obj.label });
+                      return;
+                    }
+                    const path = obj.role ? ROLE_VIEWS[obj.role] : null;
+                    if (path) navigate(path);
+                  }}
+                  style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                >
+                  ✅ Confirm
+                </button>
+                <button
+                  onClick={() => setViewSelectedRoleId(null)}
+                  style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {customRoleLink && (
+        <InternalBrowser url={customRoleLink.url} title={customRoleLink.title} onClose={() => setCustomRoleLink(null)} />
+      )}
     </div>
   );
 }
