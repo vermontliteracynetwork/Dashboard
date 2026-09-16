@@ -670,6 +670,12 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   min-width: 58px;
   min-height: 58px;
   background: var(--blue);
+  /* Caught in Claudia's review: white text on this lighter blue is
+     ~3.7:1, under WCAG AA's 4.5:1 for normal text — only became a real
+     issue once a visible text label was added here (an icon alone isn't
+     held to the same text-contrast ratio). Dark ink text on this blue
+     comfortably clears AA. */
+  color: var(--ink);
   font-size: 1.6rem;
   box-shadow: 5px 5px 0 var(--ink);
 }

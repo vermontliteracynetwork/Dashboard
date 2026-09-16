@@ -841,12 +841,18 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           </div>
           {/* Direct instruction: this button should look like the break/
               tools circular FABs everywhere else, especially in gameplay
-              — fab-style-btn-todo is that exact match (58px, blue), not
-              the smaller bare/red fab-style-btn this used before. Visible
-              text label added too (docs/NATIVE_GAME_STANDARD.md §5: an
-              icon-only control with only an aria-label isn't compliant). */}
-          <button className="fab-style-btn fab-style-btn-todo" style={{ width: 'auto', height: 44, minHeight: 44, borderRadius: 999, padding: '0 16px', fontSize: '0.95rem', gap: 6 }} aria-label="Exit game" title="Exit game" onClick={() => setConfirmExit(true)}>
-            ✕ Exit
+              — fab-style-btn-todo is that exact match (58px, blue). Caught
+              in Claudia's review: the previous inline styles (width:auto,
+              pill borderRadius) silently overrode the class's real circle
+              shape, so it rendered as a blue pill instead. Dropped every
+              shape-overriding inline style; icon+small-label stacked in a
+              column is the same layout .whatnow-fab already uses to fit a
+              visible label inside these same circular FABs
+              (docs/NATIVE_GAME_STANDARD.md §5: icon-only + aria-label
+              alone isn't compliant). */}
+          <button className="fab-style-btn fab-style-btn-todo" style={{ flexDirection: 'column', gap: 1, padding: 4 }} aria-label="Exit game" title="Exit game" onClick={() => setConfirmExit(true)}>
+            <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>✕</span>
+            <span style={{ fontSize: '0.6rem', fontWeight: 800, lineHeight: 1 }}>Exit</span>
           </button>
         </div>
 
@@ -906,6 +912,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             onPointerDown={holdKey('left', true)}
             onPointerUp={holdKey('left', false)}
             onPointerLeave={holdKey('left', false)}
+            onPointerCancel={holdKey('left', false)}
             aria-label="Move left (touch and hold)"
             role="button"
           />
@@ -914,6 +921,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             onPointerDown={holdKey('right', true)}
             onPointerUp={holdKey('right', false)}
             onPointerLeave={holdKey('right', false)}
+            onPointerCancel={holdKey('right', false)}
             aria-label="Move right (touch and hold)"
             role="button"
           />
@@ -927,6 +935,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 onPointerDown={holdKey('left', true)}
                 onPointerUp={holdKey('left', false)}
                 onPointerLeave={holdKey('left', false)}
+                onPointerCancel={holdKey('left', false)}
                 aria-label="Move left"
               >
                 <span style={{ fontSize: '1.4rem' }}>⬅️</span>
@@ -938,6 +947,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 onPointerDown={holdKey('right', true)}
                 onPointerUp={holdKey('right', false)}
                 onPointerLeave={holdKey('right', false)}
+                onPointerCancel={holdKey('right', false)}
                 aria-label="Move right"
               >
                 <span style={{ fontSize: '1.4rem' }}>➡️</span>
@@ -950,6 +960,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
               onPointerDown={holdKey('jump', true)}
               onPointerUp={holdKey('jump', false)}
               onPointerLeave={holdKey('jump', false)}
+              onPointerCancel={holdKey('jump', false)}
               aria-label="Jump"
             >
               ⬆️ Jump

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T13:38:54.414Z",
+  "generatedAt": "2026-09-16T14:01:22.278Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -939,6 +939,11 @@
     {
       "path": "/world/models/creatures/sussy-imposter.glb",
       "label": "Sussy Imposter",
+      "category": "creatures"
+    },
+    {
+      "path": "/world/models/creatures/wizard-thundersword.glb",
+      "label": "Wizard Thundersword",
       "category": "creatures"
     },
     {
@@ -6445,6 +6450,66 @@
       "path": "/world/models/tree-pine.glb",
       "label": "Tree Pine",
       "category": "misc"
+    },
+    {
+      "path": "/world/models/vehicles/car-armor.glb",
+      "label": "Car Armor",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-coupe.glb",
+      "label": "Car Coupe",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-fenyr.glb",
+      "label": "Car Fenyr",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-ghini.glb",
+      "label": "Car Ghini",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-italia.glb",
+      "label": "Car Italia",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-jeep.glb",
+      "label": "Car Jeep",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-kamaro.glb",
+      "label": "Car Kamaro",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-lamb.glb",
+      "label": "Car Lamb",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-mobil.glb",
+      "label": "Car Mobil",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-police.glb",
+      "label": "Car Police",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-rally.glb",
+      "label": "Car Rally",
+      "category": "vehicles"
+    },
+    {
+      "path": "/world/models/vehicles/car-van.glb",
+      "label": "Car Van",
+      "category": "vehicles"
     },
     {
       "path": "/world/models/water/Anchor_A.glb",
