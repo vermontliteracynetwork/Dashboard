@@ -10,7 +10,8 @@ import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } fr
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
-import { petDefById, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT } from '../lib/petCatalog';
+import { petDefById, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS } from '../lib/petCatalog';
+import type { PetDef } from '../lib/petCatalog';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -331,6 +332,12 @@ interface AppState {
   // Square (see TownSquare.tsx's own interval), never on a timer that runs
   // while they're away. "Pets never die," so stats floor at PET_STAT_FLOOR.
   tickPetDecay: (studentId: string) => void;
+  // Mystery Adoption Box — always returns the pet def it granted (never
+  // null except on a genuine refusal: unaffordable or pet home full).
+  openMysteryPack: (studentId: string) => PetDef | null;
+  // Pet Shelter's free donate action — false if the student can't afford
+  // the (voluntary) amount; never grants anything back.
+  donateToShelter: (studentId: string, amountCents: number) => boolean;
   // Home Room's room system — see HomeRoomDef in types.ts. addHomeRoom
   // defaults kind 'yard' to the fixed name "Yard" and every other kind to a
   // sensible generic label; students can rename freely afterward.
@@ -855,6 +862,8 @@ export const useStore = create<AppState>()(
           worldReduceMotion: false,
           dyslexiaFont: false,
           petCouponRedeemed: false,
+          discoveredPetDefIds: [],
+          shelterDonationsCents: 0,
         };
         set((s) => ({
           students: [...s.students, student],
@@ -1181,6 +1190,45 @@ export const useStore = create<AppState>()(
         set((s) => ({ pets: [...s.pets, pet] }));
         pushStudentPet(pet);
         if (charge) get().recordTransaction(studentId, -def.priceCents, `Adopted a pet: ${def.name}`, '🐾', 'purchase-pet');
+        // Pet Journal: every adoption — free, paid, or from a Mystery Box —
+        // marks that species discovered forever, even if this exact pet is
+        // later sold.
+        if (!student.discoveredPetDefIds?.includes(petDefId)) {
+          get().updateStudent(studentId, { discoveredPetDefIds: [...(student.discoveredPetDefIds ?? []), petDefId] });
+        }
+        return true;
+      },
+
+      // Mystery Adoption Box (Claudia's plan) — a flat-priced pack that
+      // always yields a pet (never an empty pull, the line between a fun
+      // surprise and a loot-box mechanic). Charges the pack price directly
+      // here, then grants the rolled pet through adoptPet's free path since
+      // payment already happened. Refuses outright (no charge at all) when
+      // the pet home is already full, rather than charging for a pull that
+      // couldn't land anywhere — simpler and fairer than a consolation
+      // prize for a purchase that was never going to work.
+      openMysteryPack: (studentId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return null;
+        if (student.coins < MYSTERY_PACK_PRICE_CENTS) return null;
+        const owned = get().pets.filter((p) => p.studentId === studentId);
+        if (owned.length >= PET_OWNERSHIP_CAP) return null;
+        const ownedDefIds = new Set(owned.map((p) => p.petDefId));
+        const def = rollMysteryPet(ownedDefIds);
+        get().recordTransaction(studentId, -MYSTERY_PACK_PRICE_CENTS, `🎁 Mystery Adoption Box: got ${def.name}!`, '🎁', 'purchase-pet');
+        get().adoptPet(studentId, def.id, false);
+        return def;
+      },
+
+      // Pet Shelter's free "donate" action — a real coin sink, deliberately
+      // reward-free (no coins back, no item, nothing pet-related unlocked)
+      // so it stays a genuine prosocial/SEL beat and never quietly becomes
+      // a second way to buy something.
+      donateToShelter: (studentId, amountCents) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student || student.coins < amountCents) return false;
+        get().recordTransaction(studentId, -amountCents, '💛 Donated to the Pet Shelter', '💛', 'donation');
+        get().updateStudent(studentId, { shelterDonationsCents: (student.shelterDonationsCents ?? 0) + amountCents });
         return true;
       },
 

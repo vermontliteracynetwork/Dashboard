@@ -5,6 +5,23 @@
 // see docs/ASSET_PIPELINE.md-adjacent notes in the commit this shipped in.
 
 export type PetCategory = 'dog' | 'cat' | 'small' | 'farm' | 'bird' | 'aquatic' | 'wild' | 'fun';
+export type PetRarity = 'common' | 'uncommon' | 'rare' | 'ultra';
+
+// Category -> rarity, matching the price tiers the catalog already uses —
+// small/aquatic critters are cheapest and most common, wild/fun pets are
+// the priciest and rarest. Used by the Mystery Adoption Box (Claudia's
+// plan) to weight pulls; every category still keeps its own real price for
+// direct-purchase/daily-spin, unaffected by this.
+const CATEGORY_RARITY: Record<PetCategory, PetRarity> = {
+  small: 'common',
+  aquatic: 'common',
+  dog: 'uncommon',
+  cat: 'uncommon',
+  farm: 'uncommon',
+  bird: 'uncommon',
+  wild: 'rare',
+  fun: 'ultra',
+};
 
 export interface PetDef {
   id: string;
@@ -12,6 +29,12 @@ export interface PetDef {
   modelPath: string;
   priceCents: number;
   category: PetCategory;
+}
+
+// Rarity is fully derived from category (see CATEGORY_RARITY above) rather
+// than stored per-entry — one place to keep in sync instead of 37.
+export function rarityFor(pet: PetDef): PetRarity {
+  return CATEGORY_RARITY[pet.category];
 }
 
 export const PET_OWNERSHIP_CAP = 4; // direct teacher spec: "Students can have up to 4 pets each"
@@ -94,3 +117,87 @@ export function petDefById(id: string): PetDef | undefined {
 export function canPetFollow(trainingProgress: number): boolean {
   return trainingProgress >= PET_FOLLOW_TRAINING_THRESHOLD;
 }
+
+// ---------------------------------------------------------------------------
+// Pet Journal (Claudia's collection-identity plan) — a short, per-category
+// flavor bio rather than 37 hand-authored ones, so every pet reads as a
+// real character without an inconsistent quality spread under time
+// pressure. Templated on the pet's own name, not generic.
+// ---------------------------------------------------------------------------
+const CATEGORY_BIO: Record<PetCategory, string> = {
+  dog: 'is a loyal, playful companion who loves fetch and cuddles.',
+  cat: 'is independent and curious, happiest napping in a sunbeam or chasing string.',
+  small: 'is tiny and energetic, always exploring every corner it can find.',
+  farm: 'is gentle and hardworking, happiest out in the fresh morning air.',
+  bird: 'is cheerful and chatty, always ready with a song or a short flight.',
+  aquatic: 'is calm and graceful, gliding through the water without a care.',
+  wild: 'is bold and adventurous, always up for exploring somewhere new.',
+  fun: 'is silly and one-of-a-kind, and loves making everyone laugh.',
+};
+export function bioFor(pet: PetDef): string {
+  return `${pet.name} ${CATEGORY_BIO[pet.category]}`;
+}
+
+// ---------------------------------------------------------------------------
+// ABA shaping ladder (Claudia's plan, Phase 4) — successive approximations
+// toward a fully-bonded companion, reusing the existing trainingProgress
+// counter rather than new plumbing. Purely presentational milestones (a
+// badge in the Home pet-care panel) — no new mechanic gated behind them,
+// since new 3D animations/accessories aren't in scope for this pass.
+// ---------------------------------------------------------------------------
+export interface PetMilestone {
+  threshold: number;
+  label: string;
+  icon: string;
+}
+export const PET_MILESTONES: PetMilestone[] = [
+  { threshold: PET_FOLLOW_TRAINING_THRESHOLD, label: 'Walks with you', icon: '🚶' },
+  { threshold: 10, label: 'Best Friends', icon: '💛' },
+  { threshold: 15, label: 'Bonded for Life', icon: '⭐' },
+];
+export function milestonesReached(trainingProgress: number): PetMilestone[] {
+  return PET_MILESTONES.filter((m) => trainingProgress >= m.threshold);
+}
+export function nextMilestone(trainingProgress: number): PetMilestone | null {
+  return PET_MILESTONES.find((m) => trainingProgress < m.threshold) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Mystery Adoption Box (Claudia's plan, Phase 3/2) — a real Class Cash
+// purchase, alongside (never replacing) direct catalog purchase and the
+// daily spin's own pet wedge. Priced as a middle ground between the
+// catalog's cheapest and priciest direct pets: you're paying for a chance
+// at a rare pull, not a guaranteed one.
+// ---------------------------------------------------------------------------
+export const MYSTERY_PACK_PRICE_CENTS = 20000;
+const RARITY_WEIGHTS: Record<PetRarity, number> = { common: 45, uncommon: 30, rare: 18, ultra: 7 };
+
+function weightedPool(pets: PetDef[]): PetDef[] {
+  const pool: PetDef[] = [];
+  for (const p of pets) {
+    for (let i = 0; i < RARITY_WEIGHTS[rarityFor(p)]; i++) pool.push(p);
+  }
+  return pool;
+}
+
+// Always returns a pet — there is no "empty pack" outcome. That's the line
+// between a fun surprise (a variable-ratio reinforcement schedule on WHICH
+// pet) and a loot-box mechanic (a schedule on WHETHER you're reinforced at
+// all) — never blur it. Re-rolls within not-currently-owned species first,
+// so a pull rarely feels wasted; only falls back to the full catalog once a
+// student already owns every species in reach.
+export function rollMysteryPet(ownedDefIds: Set<string>): PetDef {
+  const notOwned = PET_CATALOG.filter((p) => !ownedDefIds.has(p.id));
+  const pool = weightedPool(notOwned.length > 0 ? notOwned : PET_CATALOG);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ---------------------------------------------------------------------------
+// Novelty-rotation scaffolding (Claudia's plan, Phase 7 — deliberately
+// scoped down). The app has no "season" concept yet, so this is data-
+// structure support only, not a live feature: a teacher tool could someday
+// populate this with a few species' ids to temporarily boost, and
+// rollMysteryPet could check it first before falling through to the normal
+// weighted pool. Left empty and unwired until that teacher tool exists.
+// ---------------------------------------------------------------------------
+export const SEASONAL_BOOST_PET_IDS: string[] = [];

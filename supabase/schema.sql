@@ -450,6 +450,14 @@ create table if not exists student_pets (
 -- time pets ship — pick any catalog pet, no cost, once ever.
 alter table students add column if not exists pet_coupon_redeemed boolean not null default false;
 
+-- Pet Journal: every pet species ever adopted, lifetime — added to on
+-- adoption, never removed when a pet is sold. Lets "collect them all" mean
+-- something even with the 4-live-pet cap.
+alter table students add column if not exists discovered_pet_def_ids jsonb not null default '[]';
+-- Pet Shelter's free "donate" action — a lifetime running total, purely a
+-- prosocial/SEL display stat, never tied to any reward.
+alter table students add column if not exists shelter_donations_cents int not null default 0;
+
 -- Home Room's room system (replaces the old single fixed 10x10 room + a
 -- freeform student wall-drawing tool): each row is one discrete room a
 -- student added, or the one 'yard' row every student gets automatically.

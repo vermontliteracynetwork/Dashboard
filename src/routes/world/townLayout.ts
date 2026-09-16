@@ -82,6 +82,7 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   'welcome-center': '/student/passport',
   'computer-desk': '/student/home',
   home: '/world/home-room',
+  'pet-shelter': '/student/pet-shelter',
 };
 
 // A student's choice of what their own house looks like from the outside —

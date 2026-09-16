@@ -8,7 +8,7 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { PET_CATALOG, PET_OWNERSHIP_CAP, canPetFollow } from '../../lib/petCatalog';
+import { PET_CATALOG, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import type { WorldObject, WallSegment, HomeRoomKind } from '../../types';
 
@@ -832,9 +832,12 @@ export default function HomeRoom() {
 
       {petPanelOpen && (
         <div style={{ position: 'fixed', top: 68, right: 16, zIndex: 60, background: 'rgba(255,255,255,0.97)', borderRadius: 12, padding: '10px 12px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', width: 240, maxHeight: '70vh', overflowY: 'auto' }}>
-          <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 6 }}>🐾 Your Pets ({myPets.length}/{PET_OWNERSHIP_CAP})</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 800 }}>🐾 Your Pets ({myPets.length}/{PET_OWNERSHIP_CAP})</div>
+            <button className="btn btn-sm" style={{ minHeight: 26, fontSize: 10, padding: '2px 8px' }} onClick={() => navigate('/student/pet-journal')}>📖 Journal</button>
+          </div>
           {myPets.length === 0 ? (
-            <p style={{ fontSize: 11, opacity: 0.7 }}>No pets yet — adopt one in the 🐾 Pets tab of the Marketplace!</p>
+            <p style={{ fontSize: 11, opacity: 0.7 }}>No pets yet — adopt one at the 🐾 Pet Shelter in Town Square!</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {myPets.map((pet) => {
@@ -848,10 +851,15 @@ export default function HomeRoom() {
                       style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 30 }}
                     />
                     <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>{def?.name}{pet.following ? ' • 🚶 walking with you' : ''}</div>
-                    {([['🍗 Food', pet.food], ['💞 Social', pet.social], ['❤️ Health', pet.health]] as const).map(([label, value]) => (
+                    {/* SEL: a feelings-word tag alongside the number, not
+                        just a low bar — naming the internal state tied to
+                        its visible cause is the actual SEL rep (Claudia's
+                        plan, Phase 5), displaced onto a companion instead
+                        of the student's own face. */}
+                    {([['🍗 Food', pet.food, 'Hungry'], ['💞 Social', pet.social, 'Lonely'], ['❤️ Health', pet.health, 'Not feeling well']] as const).map(([label, value, feeling]) => (
                       <div key={label} style={{ marginBottom: 3 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
-                          <span>{label}</span><span>{Math.round(value)}</span>
+                          <span>{label}{value < 40 ? ` — ${feeling}` : ''}</span><span>{Math.round(value)}</span>
                         </div>
                         <div style={{ height: 5, borderRadius: 3, background: '#eee', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e' }} />
@@ -859,8 +867,23 @@ export default function HomeRoom() {
                       </div>
                     ))}
                     <div style={{ fontSize: 9, opacity: 0.7, margin: '4px 0' }}>
-                      🎓 Training: {pet.trainingProgress}/5 {canFollow ? '— ready to walk with you!' : '— finish more assignments to unlock'}
+                      🎓 Training: {pet.trainingProgress} {canFollow ? '— ready to walk with you!' : `— ${PET_FOLLOW_TRAINING_THRESHOLD - pet.trainingProgress} more assignments to unlock`}
                     </div>
+                    {/* ABA shaping ladder (Claudia's plan, Phase 4) —
+                        successive milestones on the same counter, purely
+                        presentational badges. */}
+                    {milestonesReached(pet.trainingProgress).length > 0 && (
+                      <div className="row-wrap" style={{ gap: 3, marginBottom: 4 }}>
+                        {milestonesReached(pet.trainingProgress).map((m) => (
+                          <span key={m.label} className="tag-pill" style={{ fontSize: 8, background: '#f1eafe' }}>{m.icon} {m.label}</span>
+                        ))}
+                      </div>
+                    )}
+                    {nextMilestone(pet.trainingProgress) && (
+                      <div style={{ fontSize: 8, opacity: 0.6, marginBottom: 4 }}>
+                        Next: {nextMilestone(pet.trainingProgress)!.icon} {nextMilestone(pet.trainingProgress)!.label} at {nextMilestone(pet.trainingProgress)!.threshold}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'feed')}>🍗 Feed</button>
                       <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 10, padding: '2px 8px' }} onClick={() => carePet(pet.id, 'pet')}>🤗 Pet</button>

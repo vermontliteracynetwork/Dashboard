@@ -67,6 +67,12 @@ const TALK_RADIUS = 1.8;
 // been free-roaming (with real tasks still open) before Scout's rare
 // check-in becomes eligible at all — see handleTalk's use of this.
 const SCOUT_CHECKIN_THRESHOLD_MS = 15 * 60 * 1000;
+// Claudia's reshaped replacement for the student-suggested "pet barks and
+// locks the game" idea: a trained companion can gently nudge once per
+// session after real idle free-roam time, never block or gate anything.
+// Tracked via genuine idle time (last onMove, not session-elapsed time)
+// since this has to fire during quiet wandering, not just NPC talk.
+const PET_CHECKIN_THRESHOLD_MS = 15 * 60 * 1000;
 // A trivial wrapper, but a real one: keeping the Date.now() call in its
 // own top-level function (same reason todayISO() elsewhere in this app
 // works the same way) rather than inline inside the component means an
@@ -1689,6 +1695,33 @@ export default function TownSquare() {
   const sessionStart = useRef(0);
   useEffect(() => { sessionStart.current = Date.now(); }, []);
   const scoutCheckInUsed = useRef(false);
+
+  // Phase 6 companion check-in nudge (Claudia's plan) — genuine idle
+  // tracking via the Player's own onMove callback, not session-elapsed
+  // time. Once-per-session like the Scout variant above, and only ever
+  // considered while there's real work still open today; never disables
+  // movement or any other feature while waiting.
+  const lastActivityRef = useRef(Date.now());
+  const petCheckInUsed = useRef(false);
+  const [showPetCheckIn, setShowPetCheckIn] = useState(false);
+  useEffect(() => {
+    if (!followingPet || !followingPetDef) return;
+    const id = window.setInterval(() => {
+      if (
+        petCheckInUsed.current ||
+        totalTasksLeft === 0 ||
+        activeConversation ||
+        showArrival ||
+        showPetCheckIn ||
+        msSince(lastActivityRef.current) < PET_CHECKIN_THRESHOLD_MS
+      ) {
+        return;
+      }
+      petCheckInUsed.current = true;
+      setShowPetCheckIn(true);
+    }, 30 * 1000);
+    return () => window.clearInterval(id);
+  }, [followingPet, followingPetDef, totalTasksLeft, activeConversation, showArrival, showPetCheckIn]);
   // Direct teacher instruction: the "click/tap to walk" instruction text
   // is onboarding, not a permanent fixture — once a student has actually
   // done it once, it just clutters an otherwise clean view.
@@ -2025,6 +2058,34 @@ export default function TownSquare() {
           </div>
         </div>
       )}
+      {showPetCheckIn && followingPetDef && (
+        <div className="overlay-backdrop" onClick={() => setShowPetCheckIn(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <span style={{ fontSize: '2.4rem' }}>🐾</span>
+              <h2 style={{ margin: 0 }}>{followingPet?.customName} nudges your hand!</h2>
+              <p style={{ margin: 0 }}>
+                {totalTasksLeft} thing{totalTasksLeft === 1 ? '' : 's'} left for today. Want to go work on {subjectsToday.find((s) => s.remaining > 0)?.label ?? 'it'} together?
+              </p>
+              <div className="stack" style={{ gap: 8, width: '100%' }}>
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={() => {
+                    setShowPetCheckIn(false);
+                    const next = subjectsToday.find((s) => s.remaining > 0);
+                    if (next) navigate(`/student/${next.subject}`);
+                  }}
+                >
+                  🐾 Yes, let's go!
+                </button>
+                <button className="btn btn-lg" onClick={() => setShowPetCheckIn(false)}>
+                  Not yet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showTodayTasks && (
         <div className="overlay-backdrop" onClick={() => setShowTodayTasks(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
@@ -2240,7 +2301,7 @@ export default function TownSquare() {
           <Player
             touchDir={touchDir}
             walkTarget={walkTarget}
-            onMove={(p) => setPlayerPos(p.clone())}
+            onMove={(p) => { setPlayerPos(p.clone()); lastActivityRef.current = Date.now(); }}
             frozen={!!activeConversation || mapView}
             sensitivity={student.worldMoveSensitivity}
             cameraLook={cameraLook}

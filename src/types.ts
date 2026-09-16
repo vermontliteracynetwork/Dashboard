@@ -116,6 +116,17 @@ export interface Student {
   // Marketplace's Pets tab at no cost. Redeeming it (adoptPet's free path)
   // flips this true forever; never reset.
   petCouponRedeemed?: boolean;
+  // Pet Journal (Claudia's collection-identity plan): every pet species
+  // ever adopted, lifetime — added to on adoptPet, NEVER removed on
+  // sellPet. This is what makes "collect them all" mean something even
+  // though only 4 pets can be live-owned at once: a rehomed pet still
+  // counts as discovered forever.
+  discoveredPetDefIds?: string[];
+  // Lifetime running total given to the Pet Shelter's free "donate"
+  // action — a real prosocial/SEL beat, deliberately reward-free (no
+  // coins, no items, no pet unlocked by donating) so it never quietly
+  // becomes a second way to buy something.
+  shelterDonationsCents?: number;
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';
@@ -563,7 +574,8 @@ export type TransactionKind =
   | 'assignment-complete'
   | 'purchase-pet'
   | 'sell-pet'
-  | 'purchase-yard';
+  | 'purchase-yard'
+  | 'donation';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from
@@ -601,7 +613,7 @@ export interface Transaction {
 // every student sees the same real, live town. Rendered by the same
 // WorldObjectRenderer both the editor and the real student-facing scene
 // use, so what a teacher builds is exactly what a student walks around in.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'

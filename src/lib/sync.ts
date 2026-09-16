@@ -96,6 +96,8 @@ const rowToStudent = (r: Row): Student => ({
   homeFloorTexture: r.home_floor_texture ?? undefined,
   houseExteriorPath: r.house_exterior_path ?? undefined,
   petCouponRedeemed: r.pet_coupon_redeemed ?? false,
+  discoveredPetDefIds: r.discovered_pet_def_ids ?? [],
+  shelterDonationsCents: r.shelter_donations_cents ?? 0,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -146,6 +148,8 @@ const studentToRow = (s: Student): Row => ({
   home_floor_texture: s.homeFloorTexture ?? null,
   house_exterior_path: s.houseExteriorPath ?? null,
   pet_coupon_redeemed: s.petCouponRedeemed ?? false,
+  discovered_pet_def_ids: s.discoveredPetDefIds ?? [],
+  shelter_donations_cents: s.shelterDonationsCents ?? 0,
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -1017,6 +1021,8 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   homeFloorTexture: 'home_floor_texture',
   houseExteriorPath: 'house_exterior_path',
   petCouponRedeemed: 'pet_coupon_redeemed',
+  discoveredPetDefIds: 'discovered_pet_def_ids',
+  shelterDonationsCents: 'shelter_donations_cents',
 };
 
 // Writes only the changed columns (a real SQL UPDATE), instead of

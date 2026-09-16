@@ -44,6 +44,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'welcome-center', label: `Welcome Center → ${ROLE_VIEWS['welcome-center']}` },
   { value: 'computer-desk', label: `Computer Desk (task list) → ${ROLE_VIEWS['computer-desk']}` },
   { value: 'home', label: `Home (their room) → ${ROLE_VIEWS.home}` },
+  { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
 ];
 // Claudia's asset-sizing audit: this floor was silently overriding the
 // entire size-class system for any pack whose raw model units run into
