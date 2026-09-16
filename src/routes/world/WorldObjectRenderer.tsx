@@ -48,7 +48,19 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number) 
           if (opacity !== undefined) {
             cloned.transparent = true;
             cloned.opacity = opacity;
-            cloned.depthWrite = opacity >= 1;
+            // Direct teacher report: a translucent ghost placement preview
+            // of a hollow building shell (a house, a shed) could read as
+            // "showing its interior" — a classic transparency artifact.
+            // With depthWrite off, the ghost's own near wall never occludes
+            // its own far wall, so both render at once and you see straight
+            // through the exterior into whatever's behind it. Always
+            // writing depth means the nearest surface still blocks what's
+            // behind it, same as an opaque object, so a ghost preview shows
+            // only the exterior facing the camera — the one real cost
+            // (imperfect back-to-front blending against OTHER transparent
+            // objects) never applies here since the ghost is always the
+            // only translucent thing on screen at once.
+            cloned.depthWrite = true;
           }
           return cloned;
         };

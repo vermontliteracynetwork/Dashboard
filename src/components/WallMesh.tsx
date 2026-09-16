@@ -29,6 +29,16 @@ export function WallMesh({
   if (len <= 0) return null;
   const [mx, mz] = wallMidpoint(wall);
   const angle = wallAngle(wall);
+  // Direct teacher report: two walls meeting at a corner left a visible
+  // gap/notch, since each wall's box was rendered at its exact drawn
+  // length — neither one's geometry actually reached into the other's
+  // thickness. Extending the rendered box by its own thickness (half at
+  // each end, since the box is centered on the wall's midpoint) makes
+  // every wall overlap slightly into whatever it meets at either end,
+  // covering the seam — the same corner-overlap trick most grid-based
+  // wall systems (Sims 4 included) use, without touching the underlying
+  // x1/z1/x2/z2 endpoints collision and door/window snapping still rely on.
+  const renderedLen = len + wall.thickness;
   return (
     <mesh
       position={[mx, wall.height / 2, mz]}
@@ -40,7 +50,7 @@ export function WallMesh({
       castShadow
       receiveShadow
     >
-      <boxGeometry args={[wall.thickness, wall.height, len]} />
+      <boxGeometry args={[wall.thickness, wall.height, renderedLen]} />
       <meshStandardMaterial color={color ?? wall.color ?? '#e8e2d5'} transparent={opacity < 1} opacity={opacity} />
     </mesh>
   );

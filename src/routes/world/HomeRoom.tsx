@@ -252,27 +252,22 @@ function RoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
 // real-world target size (half its footprint/cube value), not the tiny GLB
 // scale multiplier stored on the object.
 interface RoomObstacle { x: number; z: number; radius: number }
-// Same two real bugs fixed here as TownSquare.tsx's own blockObstacles/
-// blockBuildings (direct teacher report, screenshot-confirmed there): a
-// `dist > 0` guard alone left a student mathematically stuck if their
-// position ever landed exactly on an obstacle's center, and pushing out to
-// exactly the collision radius — zero clearance — let an animated model's
-// arms visibly poke through it.
-const ROOM_OBSTACLE_CLEARANCE = 0.55;
-function blockRoomObstacles(x: number, z: number, obstacles: RoomObstacle[]): [number, number] {
-  let [bx, bz] = [x, z];
-  for (const o of obstacles) {
-    const dx = bx - o.x;
-    const dz = bz - o.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist < o.radius) {
-      const ux = dist > 0 ? dx / dist : 1;
-      const uz = dist > 0 ? dz / dist : 0;
-      bx = o.x + ux * (o.radius + ROOM_OBSTACLE_CLEARANCE);
-      bz = o.z + uz * (o.radius + ROOM_OBSTACLE_CLEARANCE);
-    }
-  }
-  return [bx, bz];
+// Direct teacher report: walking close to a placed piece of furniture (a
+// bed, say) — already correctly solid, never walkable-through — could
+// visibly "glitch" right at its edge, the classic symptom of a radial
+// push-out fighting the player's own intended direction near a corner.
+// Same fix as TownSquare.tsx's own blockObstaclesSlide: try the real step,
+// and if that lands inside an obstacle, slide along just one axis, or —
+// if even that's blocked — don't move at all this frame ("move the player
+// slightly over or stop all movement," direct instruction). Only ever
+// changes position by an amount the player's own input already implied,
+// so it can't glitch the way a radial push-out could.
+function blockRoomObstacles(curX: number, curZ: number, targetX: number, targetZ: number, obstacles: RoomObstacle[]): [number, number] {
+  const insideObstacle = (x: number, z: number) => obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
+  if (!insideObstacle(targetX, targetZ)) return [targetX, targetZ];
+  if (!insideObstacle(targetX, curZ)) return [targetX, curZ];
+  if (!insideObstacle(curX, targetZ)) return [curX, targetZ];
+  return [curX, curZ];
 }
 
 // halfW/halfD/spawn vary per active room (and the yard has no boundary
@@ -309,7 +304,7 @@ function RoomPlayer({ walkTarget, obstacles, halfW, halfD, spawn }: {
       dz /= len;
       const nx = THREE.MathUtils.clamp(pos.current.x + dx * ROOM_MOVE_SPEED * dt, -boundX, boundX);
       const nz = THREE.MathUtils.clamp(pos.current.z + dz * ROOM_MOVE_SPEED * dt, -boundZ, boundZ);
-      [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
+      [pos.current.x, pos.current.z] = blockRoomObstacles(pos.current.x, pos.current.z, nx, nz, obstacles);
       facing.current = Math.atan2(dx, dz);
       moved = true;
     } else if (walkTarget.current) {
@@ -323,7 +318,7 @@ function RoomPlayer({ walkTarget, obstacles, halfW, halfD, spawn }: {
         const ndz = tz / dist;
         const nx = THREE.MathUtils.clamp(pos.current.x + ndx * ROOM_MOVE_SPEED * dt, -boundX, boundX);
         const nz = THREE.MathUtils.clamp(pos.current.z + ndz * ROOM_MOVE_SPEED * dt, -boundZ, boundZ);
-        [pos.current.x, pos.current.z] = blockRoomObstacles(nx, nz, obstacles);
+        [pos.current.x, pos.current.z] = blockRoomObstacles(pos.current.x, pos.current.z, nx, nz, obstacles);
         facing.current = Math.atan2(ndx, ndz);
         moved = true;
       }
@@ -897,7 +892,15 @@ export default function HomeRoom() {
         </div>
       )}
 
-      <Canvas key={activeRoom.id} camera={{ position: [0, 9, 11], fov: 50 }} shadows>
+      <Canvas
+        key={activeRoom.id}
+        camera={{ position: [0, 9, 11], fov: 50 }}
+        shadows
+        // Right-drag is the deliberate Sims 4-style rotate gesture (see
+        // OrbitControls below) — without this, the browser's own
+        // right-click menu ate the click before a drag could start.
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <color attach="background" args={[isYard ? YARD_SKY_COLOR : '#dce8ee']} />
         <ambientLight intensity={0.9} />
         <directionalLight position={[6, 12, 6]} intensity={1.1} castShadow />
@@ -1000,12 +1003,29 @@ export default function HomeRoom() {
 
       {mode === 'build' && (
         <>
-          {/* Catalog — interior starter set or yard purchases, depending on
-              the active room. */}
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60, background: 'rgba(255,255,255,0.95)', borderTop: '3px solid var(--ink, #1f4238)', padding: '10px 12px', display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* Catalog — same visual language as the teacher's own Build Mode
+              catalog (tinted tile per category, armed = accent border), so
+              the two build modes read as the same tool. Interior starter
+              set or yard purchases, depending on the active room — only
+              what this student already has access to, never the teacher's
+              full asset library. */}
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60, background: 'rgba(255,255,255,0.95)', borderTop: '3px solid var(--ink, #1f4238)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'system-ui, sans-serif' }}>
+              <strong style={{ fontSize: 12 }}>{isYard ? '🌳' : '📦'} Catalog ({activeCatalog.length})</strong>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 30, fontSize: 11, padding: '2px 10px' }}
+                onClick={() => navigate('/student/marketplace')}
+                title="Earn or buy more in the Marketplace"
+              >
+                🛍️ Marketplace
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             {activeCatalog.map((item) => {
               const affordable = !item.priceCents || student.coins >= item.priceCents;
               const disabled = !scalesReady || !affordable;
+              const armed = armedId === item.id;
               return (
                 <button
                   key={item.id}
@@ -1014,8 +1034,8 @@ export default function HomeRoom() {
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
                     padding: '6px 8px', borderRadius: 12, cursor: disabled ? 'default' : 'pointer', fontFamily: 'system-ui, sans-serif',
-                    border: armedId === item.id ? '3px solid #e2775c' : '2px solid var(--content-border, #ccc)',
-                    background: armedId === item.id ? '#fff3ea' : '#fff',
+                    border: armed ? '3px solid #e2775c' : '2px solid var(--content-border, #ccc)',
+                    background: armed ? '#fff3ea' : isYard ? '#e8f5e0' : '#fbeee3',
                     opacity: disabled ? 0.4 : 1,
                   }}
                 >
@@ -1074,6 +1094,7 @@ export default function HomeRoom() {
               <span style={{ fontSize: 22 }}>🎨</span>
               <span style={{ fontSize: 11, fontWeight: 700 }}>Room</span>
             </button>
+            </div>
           </div>
 
           {hammerMode && (

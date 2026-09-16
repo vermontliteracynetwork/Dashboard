@@ -295,6 +295,32 @@ function blockObstacles(x: number, z: number): [number, number] {
   return [bx, bz];
 }
 
+// Direct teacher report: walking close to a placed asset (a bed, say) —
+// already correctly solid, never walkable-through — could visibly "glitch"
+// right at its edge, especially moving diagonally past it. The cause is
+// blockObstacles' own radial push-out chained with blockBuildings/ground-
+// clamp/blockBuildings-again right after (each pass can re-violate what the
+// previous one just fixed, near a tight corner). Every per-frame MOVEMENT
+// call site (not the one-shot "is this random wander target valid" check,
+// which still wants the plain radial version above) uses this instead:
+// try the real diagonal step, and if that lands inside an obstacle, slide
+// along just one axis, or — if even that's blocked — don't move at all
+// this frame. Same "move the player slightly over or stop all movement"
+// shape as a platformer's own wall-slide, and only ever changes position
+// by an amount the player's own input already implied, so it can't glitch.
+function blockObstaclesSlide(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
+  const insideObstacle = (x: number, z: number) => STATIC_OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
+  let [bx, bz] = blockBuildings(targetX, targetZ);
+  if (insideObstacle(bx, bz)) {
+    const slideX = blockBuildings(targetX, curZ);
+    const slideZ = blockBuildings(curX, targetZ);
+    if (!insideObstacle(slideX[0], slideX[1])) [bx, bz] = slideX;
+    else if (!insideObstacle(slideZ[0], slideZ[1])) [bx, bz] = slideZ;
+    else [bx, bz] = [curX, curZ];
+  }
+  return blockWallSegments(bx, bz, STATIC_WALLS);
+}
+
 // Either a quest Neighbor or a Townsperson, once talking starts — the
 // modal doesn't need to know which, just the name/steps to show.
 interface ActiveConversation {
@@ -574,7 +600,7 @@ function WanderingNPC({
         } else {
           const ndx = dx / dist;
           const ndz = dz / dist;
-          const [bx, bz] = blockObstacles(pos.current.x + ndx * WANDER_SPEED * dt, pos.current.z + ndz * WANDER_SPEED * dt);
+          const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + ndx * WANDER_SPEED * dt, pos.current.z + ndz * WANDER_SPEED * dt);
           pos.current.x = bx;
           pos.current.z = bz;
           facing.current = Math.atan2(ndx, ndz);
@@ -881,7 +907,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         cameraLook.current = 0;
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
-        const [bx, bz] = blockObstacles(pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
+        const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
         const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
         const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
         // The ground-boundary clamp above runs after building collision, so
@@ -908,7 +934,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           cameraLook.current = 0;
           const ndx = tx / dist;
           const ndz = tz / dist;
-          const [bx, bz] = blockObstacles(pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
+          const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
           const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
           const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
           [pos.current.x, pos.current.z] = blockBuildings(cx, cz);

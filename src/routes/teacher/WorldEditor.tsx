@@ -1352,7 +1352,12 @@ export default function WorldEditor() {
   // below). Dragging was hard to do precisely on a trackpad/touchscreen,
   // and a stray drag while just trying to select something used to move
   // it by accident; the crosshair removes both problems at once.
-  const [ghostPos, setGhostPos] = useState<{ x: number; z: number } | null>(null);
+  // rotationY/wallSnapped only matter for a door/window (see DOOR_WINDOW_RE
+  // below) — wallSnapped false means "not close enough to a wall right
+  // now," tracked separately from rotationY (which defaults to 0) so the
+  // click handler can tell "no wall nearby, reject" apart from "snapped
+  // onto a wall with a 0-radian facing" without re-deriving it.
+  const [ghostPos, setGhostPos] = useState<{ x: number; z: number; rotationY: number; wallSnapped: boolean } | null>(null);
 
   // Undo/redo — a plain history of full editor-state snapshots (what's
   // placed + what's overridden on the fixed layout), not per-field inverse
@@ -1720,7 +1725,17 @@ export default function WorldEditor() {
     const z = clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
     if (armedAsset) {
       e.stopPropagation();
-      setGhostPos({ x, z });
+      // Direct teacher report: a door/window's ghost used to just float at
+      // the raw cursor position — it only ever snapped onto a wall at the
+      // moment of the actual click, so while moving the mouse it never
+      // looked like it was "on" a wall at all. Snapping the ghost itself
+      // live means what you see while aiming is exactly what you'll get.
+      if (DOOR_WINDOW_RE.test(armedAsset.label)) {
+        const snap = nearestWall(x, z, wallSegments, WALL_SNAP_DISTANCE);
+        setGhostPos(snap ? { x: snap.x, z: snap.z, rotationY: snap.angle, wallSnapped: true } : { x, z, rotationY: 0, wallSnapped: false });
+      } else {
+        setGhostPos({ x, z, rotationY: 0, wallSnapped: false });
+      }
     } else if (wallMode && wallStart) {
       e.stopPropagation();
       setWallEnd({ x, z });
@@ -1787,16 +1802,19 @@ export default function WorldEditor() {
     if (wallMode) return; // the wall itself is placed by the pointerdown/up drag above, not a click
     if (paintMode === 'groundPatch') return; // already painted on pointer-down above
     if (armedAsset) {
-      const rawX = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
-      const rawZ = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
-      let x = rawX;
-      let z = rawZ;
-      let rotationY = 0;
-      // Direct instruction: a door or window can only be placed on a wall
-      // — snap it onto the nearest one (both position and facing), or
-      // reject the placement entirely if nothing is close enough.
-      if (DOOR_WINDOW_RE.test(armedAsset.label)) {
-        const snap = nearestWall(rawX, rawZ, wallSegments, WALL_SNAP_DISTANCE);
+      // Direct instruction: a door or window can only be placed on a wall.
+      // The ghost preview above already tracks whether it's currently
+      // snapped onto one (wallSnapped) — reusing that here instead of
+      // re-deriving it means the placed object always lands exactly where
+      // the ghost was showing, never a slightly different re-computed spot.
+      // A direct tap with no preceding hover (touch devices) never
+      // populated the ghost at all, so that case still falls back to a
+      // fresh snap check right here rather than being rejected outright.
+      let x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
+      let z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
+      let rotationY = ghostPos?.rotationY ?? 0;
+      if (DOOR_WINDOW_RE.test(armedAsset.label) && !ghostPos?.wallSnapped) {
+        const snap = nearestWall(x, z, wallSegments, WALL_SNAP_DISTANCE);
         if (!snap) {
           setWallPlacementError('Windows and doors need to be placed on a wall — draw one with 🧱 Wall first, or move closer to one.');
           return;
@@ -1828,6 +1846,10 @@ export default function WorldEditor() {
   };
 
   const placementOverlap = armedAsset && ghostPos ? footprintOverlap(ghostPos.x, ghostPos.z, armedDefaultScale, worldObjects) : null;
+  // A door/window ghost not currently near any wall reads as invalid the
+  // same way an overlapping placement already does — visual feedback for
+  // exactly the state that's about to reject the click.
+  const placementNeedsWall = !!(armedAsset && ghostPos && DOOR_WINDOW_RE.test(armedAsset.label) && !ghostPos.wallSnapped);
   const selectedWall = selection?.kind === 'wall' ? wallSegments.find((w) => w.id === selection.id) ?? null : null;
   const wallPreview = wallMode && wallStart && wallEnd ? { id: '__preview__', x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_DEFAULT_HEIGHT, thickness: WALL_DEFAULT_THICKNESS, createdAt: '' } : null;
 
@@ -2282,6 +2304,13 @@ export default function WorldEditor() {
             // releases focus first, the same way clicking a game world
             // normally takes over from whatever form control had it.
             onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+            // Right-drag is the deliberate Sims 4-style rotate gesture (see
+            // OrbitControls' own mouseButtons below) — without this, the
+            // browser's native right-click menu popped up the instant the
+            // button went down, which ate the click before a drag could
+            // even start, so "click-drag to spin" looked completely broken
+            // even though the binding itself was always correct.
+            onContextMenu={(e) => e.preventDefault()}
           >
             {/* A solid sky color + fog bound the visible scene to roughly
                 the walkable town square — direct teacher instruction after
@@ -2347,10 +2376,10 @@ export default function WorldEditor() {
                     modelPath: armedAsset.path,
                     label: armedAsset.label,
                     position: [ghostPos.x, 0, ghostPos.z],
-                    rotationY: 0,
+                    rotationY: ghostPos.rotationY,
                     scale: armedDefaultScale,
                     createdAt: '',
-                    tintColor: placementOverlap ? OVERLAP_COLOR : undefined,
+                    tintColor: placementOverlap || placementNeedsWall ? OVERLAP_COLOR : undefined,
                   }}
                   opacity={0.55}
                 />
@@ -2358,8 +2387,8 @@ export default function WorldEditor() {
                     cell plus a crisp wireframe cage on the exact footprint,
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
-                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
-                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap || placementNeedsWall ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
+                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap || placementNeedsWall ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
 
