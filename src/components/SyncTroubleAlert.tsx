@@ -20,11 +20,21 @@ export default function SyncTroubleAlert() {
         style={{ pointerEvents: 'auto', background: 'var(--danger)', color: '#fff', border: '3px solid var(--ink)', borderRadius: 'var(--radius)', boxShadow: '4px 4px 0 var(--ink)', padding: '12px 18px', maxWidth: 480, alignItems: 'center' }}
       >
         <span style={{ fontSize: '1.3rem' }}>⚠️</span>
-        <p style={{ margin: 0, fontSize: '0.85rem', flex: 1 }}>
-          A change didn't save after several tries. It's still saved on this screen and will keep trying in the
-          background, so check the connection and tap Retry, or let your teacher/developer know if this keeps
-          happening.
-        </p>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: 0, fontSize: '0.85rem' }}>
+            A change didn't save after several tries. It's still saved on this screen and will keep trying in the
+            background, so check the connection and tap Retry, or let your teacher/developer know if this keeps
+            happening.
+          </p>
+          {/* The exact table + error the failed save hit — shown so a teacher
+              reporting this can paste the real reason (a missing column, a
+              missing Storage bucket) instead of only this generic banner
+              text, which is all a console.error nobody's watching used to
+              give anyone to go on. */}
+          <p style={{ margin: '4px 0 0', fontSize: '0.7rem', opacity: 0.85, fontFamily: 'monospace' }}>
+            {syncTrouble.label}: {syncTrouble.message}
+          </p>
+        </div>
         <button className="btn btn-sm btn-flat" style={{ background: '#fff' }} onClick={retrySyncNow}>Retry</button>
         <button className="btn btn-sm btn-flat" style={{ background: '#fff' }} onClick={dismissSyncTrouble} aria-label="Dismiss">✕</button>
       </div>

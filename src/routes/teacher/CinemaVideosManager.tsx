@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
-import { uploadVideo } from '../../lib/upload';
+import { uploadImage, uploadVideo } from '../../lib/upload';
+import { captureVideoThumbnail } from '../../lib/videoThumbnail';
 import ImageUploadField from '../../components/ImageUploadField';
 import type { CinemaVideo } from '../../types';
 
@@ -49,7 +50,19 @@ export default function CinemaVideosManager() {
     setError(null);
     try {
       const url = await uploadVideo(file);
-      addCinemaVideo({ title: t, source: 'upload', url, coverImageUrl: coverUrl || undefined });
+      // No cover picked by hand — grab a real still frame from the video
+      // file itself so it doesn't sit with just a generic icon.
+      let cover = coverUrl || undefined;
+      if (!cover) {
+        try {
+          const thumbBlob = await captureVideoThumbnail(file);
+          cover = await uploadImage(thumbBlob);
+        } catch {
+          // Thumbnail capture is best-effort — the video itself already
+          // uploaded fine, so a failed auto-thumbnail shouldn't block it.
+        }
+      }
+      addCinemaVideo({ title: t, source: 'upload', url, coverImageUrl: cover });
       resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
@@ -163,7 +176,17 @@ function CinemaVideoRow({ video, onDelete }: { video: CinemaVideo; onDelete: () 
     setError(null);
     try {
       const url = await uploadVideo(file);
-      updateCinemaVideo(video.id, { url });
+      const patch: Partial<CinemaVideo> = { url };
+      if (!editCover) {
+        try {
+          const thumbBlob = await captureVideoThumbnail(file);
+          patch.coverImageUrl = await uploadImage(thumbBlob);
+          setEditCover(patch.coverImageUrl);
+        } catch {
+          // Best-effort — a failed auto-thumbnail shouldn't block the file swap.
+        }
+      }
+      updateCinemaVideo(video.id, patch);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
     } finally {
