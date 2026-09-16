@@ -76,6 +76,7 @@ const PET_CATALOG_ALL: PetDef[] = [
   { id: 'pet-great-dane', name: 'Great Dane', modelPath: '/world/models/pets/animal-great-dane.glb', priceCents: 22000, category: 'dog' },
   { id: 'pet-shiba-inu', name: 'Shiba Inu', modelPath: '/world/models/pets/animal-shiba-inu.glb', priceCents: 20000, category: 'dog' },
   { id: 'pet-blob-dog', name: 'Blob Dog', modelPath: '/world/models/creatures/blob-dog.glb', priceCents: 15000, category: 'dog' },
+  { id: 'pet-dog-pink', name: 'Pink Dog', modelPath: '/world/models/pets/animal-dog-pink.glb', priceCents: 16000, category: 'dog' },
 
   // Cats
   { id: 'pet-cat', name: 'Cat', modelPath: '/world/models/pets/animal-cat.glb', priceCents: 15000, category: 'cat' },
@@ -99,6 +100,8 @@ const PET_CATALOG_ALL: PetDef[] = [
 
   // Birds
   { id: 'pet-parrot', name: 'Parrot', modelPath: '/world/models/pets/animal-parrot.glb', priceCents: 22000, category: 'bird' },
+  { id: 'pet-parrot-2', name: 'Tropical Parrot', modelPath: '/world/models/pets/animal-parrot-2.glb', priceCents: 22000, category: 'bird' },
+  { id: 'pet-duck', name: 'Duck', modelPath: '/world/models/pets/animal-duck.glb', priceCents: 14000, category: 'bird' },
   { id: 'pet-penguin', name: 'Penguin', modelPath: '/world/models/pets/animal-penguin.glb', priceCents: 24000, category: 'bird' },
 
   // Aquatic

@@ -564,8 +564,8 @@ function WordProcessor({ student }: { student: Student }) {
   const activeHighlight = highlightItems.find((c) => c.id === (selected?.highlightColorId ?? student.equippedHighlightColorId));
   const wordCount = selected?.body.trim() ? selected.body.trim().split(/\s+/).length : 0;
 
-  const handleNew = () => {
-    const id = createNote(student.id);
+  const handleNew = (kind: 'note' | 'journal' = 'note') => {
+    const id = createNote(student.id, kind);
     setSelectedId(id);
   };
 
@@ -639,7 +639,12 @@ function WordProcessor({ student }: { student: Student }) {
   return (
     <div className="row" style={{ height: '100%', minHeight: 0, gap: 12, alignItems: 'stretch' }}>
       <div className="stack" style={{ width: 170, flex: '0 0 auto', gap: 6, overflowY: 'auto' }}>
-        <button className="btn btn-sm btn-primary" onClick={handleNew}>➕ New Note</button>
+        <button className="btn btn-sm btn-primary" onClick={() => handleNew('note')}>➕ New Note</button>
+        {/* Personal Journal (direct teacher instruction): an option on this
+            same word processor, not a separate tool — a journal entry is
+            just a Note with kind 'journal', pre-titled with today's date
+            like a real diary's date header. */}
+        <button className="btn btn-sm" onClick={() => handleNew('journal')}>📔 New Journal Entry</button>
         {myNotes.length === 0 && <p style={{ fontSize: '0.78rem', opacity: 0.65 }}>No notes yet!</p>}
         {myNotes.map((n) => (
           <div key={n.id} className="stack" style={{ gap: 2 }}>
@@ -650,7 +655,7 @@ function WordProcessor({ student }: { student: Student }) {
             >
               <div className="stack" style={{ gap: 0 }}>
                 <strong style={{ fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
-                  {n.title || 'Untitled'}
+                  {n.kind === 'journal' ? '📔 ' : ''}{n.title || 'Untitled'}
                 </strong>
                 <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
               </div>
@@ -781,7 +786,7 @@ function WordProcessor({ student }: { student: Student }) {
                 contentEditable
                 suppressContentEditableWarning
                 onInput={syncBodyFromDom}
-                data-placeholder="Start writing..."
+                data-placeholder={selected.kind === 'journal' ? 'Dear diary...' : 'Start writing...'}
                 style={{
                   width: '100%',
                   flex: 1,

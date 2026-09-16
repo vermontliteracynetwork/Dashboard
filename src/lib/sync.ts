@@ -286,6 +286,7 @@ const rowToNote = (r: Row): Note => ({
   colorId: r.color_id ?? null,
   highlightColorId: r.highlight_color_id ?? null,
   updatedAt: r.updated_at,
+  kind: r.kind === 'journal' ? 'journal' : 'note',
 });
 const noteToRow = (n: Note): Row => ({
   id: n.id,
@@ -293,6 +294,7 @@ const noteToRow = (n: Note): Row => ({
   title: n.title,
   body: n.body,
   body_html: n.bodyHtml ?? null,
+  kind: n.kind ?? 'note',
   highlight_color_id: n.highlightColorId,
   font_id: n.fontId,
   color_id: n.colorId,

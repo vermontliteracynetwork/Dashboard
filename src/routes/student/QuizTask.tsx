@@ -242,7 +242,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
           )}
           {pendingCorrect === false && (
             <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)', fontSize: '1rem' }}>
-              💛 {(state.log.filter((l) => l.questionId === activeQ.id && !l.correct).length >= 2)
+              💛 {(state.log.filter((l) => l.questionId === activeQ.id && !l.correct).length >= 1)
                 ? "Not quite, that's okay, let's keep going!"
                 : "Not quite, you'll see this one again"}
             </div>

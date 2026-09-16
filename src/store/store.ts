@@ -301,7 +301,7 @@ interface AppState {
   setHighlightNote: (studentId: string, taskId: string, articleIndex: number, highlightId: string, note: string) => void;
   setSentenceBuilderAnswer: (studentId: string, taskId: string, partId: string, text: string) => void;
   sendChatMessage: (studentId: string, sender: 'student' | 'teacher', text: string) => void;
-  createNote: (studentId: string) => string;
+  createNote: (studentId: string, kind?: 'note' | 'journal') => string;
   updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'bodyHtml' | 'fontId' | 'colorId' | 'highlightColorId'>>) => void;
   deleteNote: (id: string) => void;
   addMarketplaceItem: (item: Omit<MarketplaceItem, 'id' | 'createdAt'>) => void;
@@ -1446,9 +1446,14 @@ export const useStore = create<AppState>()(
         pushNpcVoiceOverrides(next);
       },
 
-      createNote: (studentId) => {
+      // Personal Journal (direct teacher instruction): built as an option
+      // on the same Notes word processor, not a separate tool — only the
+      // creation flow differs, an auto-dated title standing in for a real
+      // diary's date header.
+      createNote: (studentId, kind = 'note') => {
         const id = makeId();
-        const note: Note = { id, studentId, title: 'Untitled', body: '', fontId: null, colorId: null, highlightColorId: null, updatedAt: new Date().toISOString() };
+        const title = kind === 'journal' ? new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Untitled';
+        const note: Note = { id, studentId, title, body: '', fontId: null, colorId: null, highlightColorId: null, updatedAt: new Date().toISOString(), kind };
         set((s) => ({ notes: [...s.notes, note] }));
         pushNote(note);
         return id;
@@ -2150,14 +2155,14 @@ export const useStore = create<AppState>()(
             get().evaluateBadgeRules(studentId);
           }
         } else {
-          // A missed question gets requeued so the student can try again —
-          // but only up to 2 more times. Looping forever on one question a
-          // student can't get is a dead end, not practice, so after the 2nd
-          // retry (3 wrong attempts total) it's let go and the quiz moves
-          // on; the score still reflects it as missed (see the first-result
-          // scoring below), so nothing is silently hidden from the teacher.
+          // A missed question gets requeued exactly once — direct teacher
+          // spec: "students have one more try to see and answer a question
+          // only if it was answered wrong the first time," a total of two
+          // attempts, never more. Caught in review: this previously allowed
+          // up to 2 retries (3 wrong attempts total) before retiring a
+          // question, one retry too many against that spec.
           const priorWrongAttempts = state.log.filter((l) => l.questionId === questionId && !l.correct).length;
-          if (priorWrongAttempts >= 2) {
+          if (priorWrongAttempts >= 1) {
             masteredIds = [...masteredIds, questionId];
             const retiredPrompt = task.quiz?.questions.find((q) => q.id === questionId)?.prompt;
             if (retiredPrompt) get().flagQuizStruggle(studentId, subject, task, retiredPrompt);

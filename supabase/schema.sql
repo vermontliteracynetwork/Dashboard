@@ -538,6 +538,9 @@ create table if not exists notes (
 -- app_settings below ever got created. Moved here, after the table it
 -- actually belongs to, so the file is safe to run top to bottom in one go.
 alter table notes add column if not exists body_html text;
+-- Personal Journal: a journal entry is a Note with kind='journal' — same
+-- word-processor base, just a distinct creation flow/empty-state.
+alter table notes add column if not exists kind text not null default 'note';
 
 -- Every non-character, non-emote thing a student can buy: fonts, text
 -- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended

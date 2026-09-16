@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T13:31:57.895Z",
+  "generatedAt": "2026-09-16T13:38:54.414Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3037,8 +3037,18 @@
       "category": "pets"
     },
     {
+      "path": "/world/models/pets/animal-dog-pink.glb",
+      "label": "Animal Dog Pink",
+      "category": "pets"
+    },
+    {
       "path": "/world/models/pets/animal-dog.glb",
       "label": "Animal Dog",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-duck.glb",
+      "label": "Animal Duck",
       "category": "pets"
     },
     {
@@ -3099,6 +3109,11 @@
     {
       "path": "/world/models/pets/animal-panda.glb",
       "label": "Animal Panda",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-parrot-2.glb",
+      "label": "Animal Parrot 2",
       "category": "pets"
     },
     {

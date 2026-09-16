@@ -855,6 +855,13 @@ export interface Note {
   colorId: string | null; // default text color for anything not individually colored
   highlightColorId: string | null; // default note background/highlight color
   updatedAt: string;
+  // Personal Journal (direct teacher instruction: "personal journal should
+  // be option, word processor should be base, think of a diary") — a
+  // journal entry is just a Note with kind 'journal': same rich-text editor,
+  // same storage, only the creation flow differs (auto-dated title, a
+  // diary-style empty-state prompt). undefined on every note saved before
+  // this existed, treated the same as 'note'.
+  kind?: 'note' | 'journal';
 }
 
 // Every non-character, non-emote thing a student can buy — a font, a text
