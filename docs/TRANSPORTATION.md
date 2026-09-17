@@ -8,6 +8,8 @@ Direct teacher brief: a functional transportation element referencing Minecraft,
 
 ## 1. Universal vehicle interaction pattern (build once, reuse for every vehicle)
 
+**Superseded for Cars, and for Boats going forward:** the single-tap-mount/persistent-top-left-Exit-button pattern below was the plan before any vehicle existed. What actually shipped for Cars, per direct teacher instruction, is a confirm-card mount ("Drive?") and click-the-vehicle-again-to-exit-with-a-confirm-card, not a bare tap or a persistent Exit button. `BOATS_DESIGN.md` §1 reconciles this in detail and recommends Boats follow the as-built car convention for platform consistency. Treat the two paragraphs immediately below as historical/superseded, not current spec.
+
 **States:** Idle/Parked → Occupied → Idle/Parked. No "broken" or "out of fuel" state in v1, no timers.
 
 **Mount:** a proximity affordance (icon + text, e.g. "Enter Boat," "Drive Car") appears when a student is near a vehicle. A single tap/click mounts it, no confirmation screen. The player avatar fades out (~0.3s, gentle, never a pop/flash) while the camera eases into the vehicle's own camera preset (~0.5s). Inventory/menu access is hidden while mounted, keeping one primary action (driving) on screen.

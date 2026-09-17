@@ -15,6 +15,7 @@
 | [`LITERACY_MANIPULATIVES_FEATURE_AUDIT.md`](./LITERACY_MANIPULATIVES_FEATURE_AUDIT.md) | Code-review feature audit of the shipped Literacy Manipulatives sandbox (`GrammarSandbox.tsx`) against Polypad's real feature set and the teacher's literacy-specific asks (UFLI grapheme tiles, Morpheme Web, Word Lists panel, Montessori shapes) — what's built vs. not, per-item build-effort estimates, and a recommended next-build order. |
 | [`TRANSPORTATION.md`](./TRANSPORTATION.md) | The design spec for the Homeplot vehicle system (cars, boats, trains, planes, drone) — mount/drive/dismount pattern, per-vehicle mechanics, placement rules, sound design, build order. |
 | [`DRIVING_UX_RESEARCH.md`](./DRIVING_UX_RESEARCH.md) | Comparable-title research (Minecraft, Mario Kart, Roblox Bloxburg/Adopt Me, Stardew Valley, Animal Crossing, LEGO games) and prioritized GUI/interaction upgrade recommendations for the driving feature's next build layer, beyond the shipped Gas/Brake pedal and bigger-driving-area fixes. |
+| [`BOATS_DESIGN.md`](./BOATS_DESIGN.md) | Boats (Transportation Phase 2) design extension — reconciles the as-built car mount/exit pattern into the original spec, comparable-title research for water vehicles, water-body/dock placement rules, and a sub-phased build order. Ready for build. |
 | [`NATIVE_GAME_STANDARD.md`](./NATIVE_GAME_STANDARD.md) | Policy for any native/embedded game (uploaded HTML5 or built from scratch) wired to a real question set. |
 | [`ASSET_PIPELINE.md`](./ASSET_PIPELINE.md) | How 3D asset packs get added to the Build Mode catalog. |
 | [`PERSONAL_FINANCE_SCOPE.md`](./PERSONAL_FINANCE_SCOPE.md) | Scope for the personal-finance curriculum Focus lane. |
@@ -117,7 +118,7 @@ Full design finalized in `LITERACY_WORKSPACE.md` after a teacher Q&A round with 
 
 ### Transportation System
 
-Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`. Recommended build order: Cars → Boats → Trains → Planes, with a Drone added alongside Planes (same mechanics/camera/controls as the plane, per direct teacher instruction). **Phase 1 (Cars) is shipped** — see A16. Boats is the next not-started phase.
+Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`. Recommended build order: Cars → Boats → Trains → Planes, with a Drone added alongside Planes (same mechanics/camera/controls as the plane, per direct teacher instruction). **Phase 1 (Cars) is shipped** — see A16. **Boats (Phase 2) has a ready-to-build design** in `BOATS_DESIGN.md` — reconciles the as-built car confirm-card mount/exit pattern, flags wake VFX/splash SFX as Phase-1 scope (not deferred polish, per the teacher's original brief), water-body/dock placement rules, and a 4-part sub-phased build order (2a core loop → 2b sound/VFX → 2c placement tooling → 2d accessibility closeout). Not yet built.
 
 ### Pets — remaining phases of Claudia's 7-phase plan
 
