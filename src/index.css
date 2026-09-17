@@ -155,6 +155,18 @@ button {
 .row-wrap { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .space-between { display: flex; align-items: center; justify-content: space-between; }
 .grow { flex: 1; }
+/* Direct teacher report: student dashboard screens needed a scroll to see
+   everything on iPad. This app's own vertical padding/gaps were sized for
+   a laptop-height screen; an iPad in landscape (or even portrait, once a
+   header's own buttons wrap to extra rows) is shorter, so the same
+   spacing pushes real content below the fold. Trims the two biggest
+   universal space-eaters on short viewports only — desktop is untouched.
+   Placed after the base rules above so it actually overrides them (equal
+   specificity, so source order decides). */
+@media (max-height: 900px) {
+  .container { padding: 18px 20px; }
+  .stack { gap: 14px; }
+}
 .center-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 
 input, textarea, select {

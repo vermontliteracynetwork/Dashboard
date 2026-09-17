@@ -18,6 +18,7 @@ import { BookPanel } from '../../components/BookPanel';
 import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
 import { todayISO } from '../../lib/dates';
+import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
@@ -1706,6 +1707,7 @@ function CameraLookButtons({ cameraLook, cameraPitch, side, bottom }: { cameraLo
 }
 
 export default function TownSquare() {
+  useLockBodyScroll();
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -2354,14 +2356,16 @@ export default function TownSquare() {
       // Direct teacher report: on iPad the whole page would scroll/pan
       // under a student's touch, throwing every fixed-position control
       // (D-pad, buttons) out of alignment with where their finger actually
-      // was. touchAction 'none' stops the browser from treating a touch
-      // here as its own native scroll/pan/pinch gesture — this element
-      // already handles every touch itself (D-pad, camera-look drag,
-      // click-to-walk). 100dvh (with a 100vh fallback via the className
-      // below) avoids the same jump/resize iOS does to 100vh whenever its
-      // address bar shows or hides mid-session.
+      // was — and the view itself needed a scroll to see the whole thing.
+      // touchAction 'none' stops the browser from treating a touch here as
+      // its own native scroll/pan/pinch gesture (this element already
+      // handles every touch itself: D-pad, camera-look drag, click-to-
+      // walk). position:fixed + inset:0 pins this to the real visual
+      // viewport directly (immune to iOS's address-bar show/hide resizing
+      // a plain 100vh/100dvh box), and useLockBodyScroll below stops the
+      // page itself from ever rubber-band-scrolling behind it.
       className="world-viewport-fix"
-      style={{ width: '100vw', height: '100vh', position: 'relative', background: '#bfe3f0', touchAction: 'none', overscrollBehavior: 'none' }}
+      style={{ position: 'fixed', inset: 0, background: '#bfe3f0', touchAction: 'none', overscrollBehavior: 'none' }}
       onPointerDown={handleLookPointerDown}
       onPointerMove={handleLookPointerMove}
       onPointerUp={handleLookPointerUp}

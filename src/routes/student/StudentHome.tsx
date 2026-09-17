@@ -203,7 +203,7 @@ export default function StudentHome() {
       {showSpinWheel && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
       {showChat && <ChatPanel studentId={student.id} role="student" onClose={() => setShowChat(false)} />}
 
-      <div className="chrome-frame space-between" style={{ padding: '18px 24px' }}>
+      <div className="chrome-frame space-between" style={{ padding: '14px 20px' }}>
         <div className="row">
           <AvatarWithEmote student={student} size={70} onChangeAvatar={() => setShowAvatarPicker(true)} />
           <div>

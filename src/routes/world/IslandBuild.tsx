@@ -8,6 +8,7 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { ROLE_VIEWS } from './townLayout';
 import InternalBrowser from '../../components/InternalBrowser';
+import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import type { WorldObject, WorldObjectRole } from '../../types';
 
 // Direct teacher instruction: "Allow custom build area that students can
@@ -438,6 +439,7 @@ function IslandPlayer({ walkTarget, obstacles, sensitivity }: { walkTarget: Reac
 }
 
 export default function IslandBuild() {
+  useLockBodyScroll();
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -607,7 +609,7 @@ export default function IslandBuild() {
   }
 
   return (
-    <div className="world-viewport-fix" style={{ width: '100vw', height: '100vh', position: 'relative', background: '#7fd0e8', touchAction: 'none', overscrollBehavior: 'none' }}>
+    <div className="world-viewport-fix" style={{ position: 'fixed', inset: 0, background: '#7fd0e8', touchAction: 'none', overscrollBehavior: 'none' }}>
       {!arrived && (
         <div
           className="overlay-backdrop"

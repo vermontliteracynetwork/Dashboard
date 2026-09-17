@@ -11,6 +11,7 @@ import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
+import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import type { WorldObject, WallSegment, HomeRoomKind, StudentPet } from '../../types';
 
 // The student-facing counterpart to WorldEditor.tsx's teacher Build Mode —
@@ -521,6 +522,7 @@ function writeLocalBackup(studentId: string, objects: WorldObject[]) {
 }
 
 export default function HomeRoom() {
+  useLockBodyScroll();
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -894,7 +896,7 @@ export default function HomeRoom() {
   };
 
   return (
-    <div className="world-viewport-fix" style={{ width: '100vw', height: '100vh', position: 'relative', background: isYard ? YARD_SKY_COLOR : '#dce8ee', touchAction: 'none', overscrollBehavior: 'none' }}>
+    <div className="world-viewport-fix" style={{ position: 'fixed', inset: 0, background: isYard ? YARD_SKY_COLOR : '#dce8ee', touchAction: 'none', overscrollBehavior: 'none' }}>
       <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 60, display: 'flex', gap: 10, alignItems: 'center' }}>
         <button
           className="btn btn-sm"
