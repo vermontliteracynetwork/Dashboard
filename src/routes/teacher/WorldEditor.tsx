@@ -1004,10 +1004,9 @@ function RosterTab() {
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
-  onUpdate, onDelete, onDuplicate, deselect, onMoveArmedChange,
+  onUpdate, onDelete, onDuplicate, deselect,
 }: {
   selected: WorldObject;
-  onMoveArmedChange: (id: string | null) => void;
   allowNameRole: boolean;
   rotateCwFine: ReturnType<typeof useHoldRepeat>;
   rotateCcwFine: ReturnType<typeof useHoldRepeat>;
@@ -1041,16 +1040,6 @@ function SelectedObjectToolbar({
   // itself — exactly the "no fresh click needed" case the teacher is now
   // ruling out. Every popover now closes on every reselect.
   useEffect(() => { setConfirmingDelete(false); setOpenPopover(null); }, [selected.id]);
-
-  // Reports whether this object's Move popover is open up to the parent,
-  // which is the actual drag gate on the 3D object itself — see
-  // moveArmedId in the main component. Also clears on unmount (full
-  // deselect) so a drag never stays armed for an object that's no longer
-  // even selected.
-  useEffect(() => {
-    onMoveArmedChange(openPopover === 'move' ? selected.id : null);
-  }, [openPopover, selected.id, onMoveArmedChange]);
-  useEffect(() => () => onMoveArmedChange(null), [onMoveArmedChange]);
 
   const doDelete = () => { onDelete(); deselect(); };
 
@@ -1348,17 +1337,15 @@ export default function WorldEditor() {
   const [subcategory, setSubcategory] = useState('');
   const [armedAsset, setArmedAsset] = useState<AssetManifestEntry | null>(null);
   const [armedDefaultScale, setArmedDefaultScale] = useState(1);
-  // Direct teacher instruction, reversing the earlier "dragging is gone
-  // entirely" decision: once a selected object's own ✥ Move popover is
-  // open, the object itself becomes draggable — click it and drag it to a
-  // new spot on the ground, not just the D-pad arrows. moveArmedId is which
-  // object is currently drag-eligible (reported up by SelectedObjectToolbar
-  // whenever its Move popover opens/closes); dragObjectId+dragPos track an
-  // actual drag gesture in progress, same pattern as wallStart/wallEnd
-  // above (pointerdown arms it, the ground's pointermove tracks it, a
-  // window-level pointerup commits it — so a release off the ground plane
-  // still ends the drag instead of leaving it stuck).
-  const [moveArmedId, setMoveArmedId] = useState<string | null>(null);
+  // Direct teacher report: a selected object is drag-eligible immediately
+  // (no extra tap on the ✥ Move popover first) — click-and-drag the
+  // object itself to a new spot on the ground, same as any other editor.
+  // The D-pad arrows in the Move popover remain, for precision nudging.
+  // dragObjectId+dragPos track an actual drag gesture in progress, same
+  // pattern as wallStart/wallEnd above (pointerdown arms it, the ground's
+  // pointermove tracks it, a window-level pointerup commits it — so a
+  // release off the ground plane still ends the drag instead of leaving
+  // it stuck).
   const [dragObjectId, setDragObjectId] = useState<string | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; z: number } | null>(null);
   // Claudia's navigation review: re-finding the same item in a 1186-model
@@ -2679,14 +2666,19 @@ export default function WorldEditor() {
                         paintNear(obj.position[0], obj.position[2], paintColor);
                         return;
                       }
-                      // Direct teacher instruction: once this object is
-                      // selected AND its ✥ Move popover is open
-                      // (moveArmedId), grabbing the object itself now drags
-                      // it — reversing the earlier "dragging is gone
-                      // entirely" decision. Still gated behind that
-                      // explicit arm step so an ordinary click elsewhere in
-                      // Build Mode never accidentally starts a drag.
-                      if (moveArmedId === obj.id) {
+                      // Direct teacher report: requiring the ✥ Move
+                      // popover open before a drag would even start made
+                      // "just drag it" a 3-tap process (select, open Move,
+                      // then finally drag) — this drops that middle step.
+                      // Gated on isSelected, not moveArmedId, so a drag
+                      // works the moment the object is selected; a plain
+                      // tap-to-select still can't accidentally move
+                      // anything, since onPointerDown fires before the
+                      // object is selected on a first click (selection
+                      // itself happens in onClick, one tick later) — only
+                      // a second interaction, once selected, can drag.
+                      // moveArmedId now only gates the D-pad popover.
+                      if (isSelected) {
                         e.stopPropagation();
                         setDragObjectId(obj.id);
                         setDragPos({ x: obj.position[0], z: obj.position[2] });
@@ -2758,7 +2750,6 @@ export default function WorldEditor() {
                 nudgeEastHold={nudgeEastHold}
                 nudgeWestHold={nudgeWestHold}
                 onUpdate={updateSelected}
-                onMoveArmedChange={setMoveArmedId}
                 onDelete={deleteSelected}
                 onDuplicate={duplicateSelected}
                 deselect={() => setSelection(null)}
