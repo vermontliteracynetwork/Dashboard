@@ -5,13 +5,18 @@ interface Props {
   studentId: string;
   role: 'teacher' | 'student';
   onClose: () => void;
+  // See the same prop on HelpOverlay — a student can reach this from
+  // "I need my teacher" while HelpOverlay itself was boosted above the
+  // Wizard ThunderSword lock; without threading the boost through here
+  // too, tapping "Chat with your teacher" would drop back behind the lock.
+  aboveLock?: boolean;
 }
 
 // One shared chat UI for both sides — a teacher opens it from the help
 // alert (or any time) to talk with one student; a student opens the same
 // component from their own Chat button. Same message list, same store
 // action, just flipped bubble alignment/labels.
-export default function ChatPanel({ studentId, role, onClose }: Props) {
+export default function ChatPanel({ studentId, role, onClose, aboveLock }: Props) {
   const students = useStore((s) => s.students);
   const chatMessages = useStore((s) => s.chatMessages);
   const sendChatMessage = useStore((s) => s.sendChatMessage);
@@ -34,7 +39,7 @@ export default function ChatPanel({ studentId, role, onClose }: Props) {
   if (!student) return null;
 
   return (
-    <div className="overlay-backdrop" onClick={onClose}>
+    <div className="overlay-backdrop" style={aboveLock ? { zIndex: 310 } : undefined} onClick={onClose}>
       <div
         className="chrome-frame stack"
         style={{ width: '95vw', maxWidth: 440, height: '70vh', maxHeight: 560, padding: 0, gap: 0, overflow: 'hidden' }}

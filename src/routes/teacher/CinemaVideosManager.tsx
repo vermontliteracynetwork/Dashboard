@@ -190,7 +190,7 @@ export default function CinemaVideosManager() {
               <button className="btn chip-filter-sm" disabled={!tagInput.trim()} onClick={addTagToForm}>+ Add</button>
             </div>
             <label style={{ fontSize: '0.78rem', fontWeight: 700, marginTop: 4 }}>
-              Length in minutes (YouTube only — uploads read their own length automatically)
+              Length in minutes (YouTube only, uploads read their own length automatically)
             </label>
             <input
               className="input"

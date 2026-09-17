@@ -6,9 +6,16 @@ import ReadAloud from './ReadAloud';
 interface Props {
   studentId: string;
   onClose: () => void;
+  // Claudia's daily-review audit: the Wizard ThunderSword lock (Town
+  // Square) renders at zIndex 300, above the default .overlay-backdrop's
+  // zIndex 100 this component normally uses — so opening Help from inside
+  // that lock rendered it BEHIND the lock, invisible and unclickable,
+  // directly contradicting this app's own "regulation is always reachable"
+  // rule. Set true only when opening from inside a z-index-300+ overlay.
+  aboveLock?: boolean;
 }
 
-export default function HelpOverlay({ studentId, onClose }: Props) {
+export default function HelpOverlay({ studentId, onClose, aboveLock }: Props) {
   const pingHelp = useStore((s) => s.pingHelp);
   const requestBreak = useStore((s) => s.requestBreak);
   const pets = useStore((s) => s.pets);
@@ -16,7 +23,7 @@ export default function HelpOverlay({ studentId, onClose }: Props) {
   const [breakRequested, setBreakRequested] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
-  if (showChat) return <ChatPanel studentId={studentId} role="student" onClose={() => setShowChat(false)} />;
+  if (showChat) return <ChatPanel studentId={studentId} role="student" onClose={() => setShowChat(false)} aboveLock={aboveLock} />;
 
   // SEL co-regulation, strictly opt-in (Claudia's plan, Phase 5): a
   // trained companion shows up here purely as a passive comfort presence
@@ -26,7 +33,7 @@ export default function HelpOverlay({ studentId, onClose }: Props) {
   const companion = pets.find((p) => p.studentId === studentId && p.following);
 
   return (
-    <div className="overlay-backdrop" onClick={onClose}>
+    <div className="overlay-backdrop" style={aboveLock ? { zIndex: 310 } : undefined} onClick={onClose}>
       <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
           <div className="row" style={{ gap: 8, justifyContent: 'center' }}>

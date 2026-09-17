@@ -402,7 +402,14 @@ function PetCareCard({
 
   return (
     <div style={{ border: '2px solid var(--content-border, #ccc)', borderRadius: 10, padding: 8 }}>
+      {/* Claudia's daily-review audit: this field had no visible label and
+          no aria-label — a plain "pet's name is somewhere on this card"
+          field a screen-reader user couldn't identify. */}
+      <label htmlFor={`pet-name-${pet.id}`} style={{ display: 'block', fontSize: 9, fontWeight: 700, opacity: 0.65, marginBottom: 2 }}>
+        Pet's name
+      </label>
       <input
+        id={`pet-name-${pet.id}`}
         value={nameDraft}
         onChange={(e) => setNameDraft(e.target.value)}
         onBlur={commitName}

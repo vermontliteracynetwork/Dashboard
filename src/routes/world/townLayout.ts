@@ -113,15 +113,19 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
 // WorldEditor.tsx's own category-scale system exists to prevent, just never
 // applied here. A flat shared scale made the cabin a dollhouse and the town
 // house a skyscraper next to the same avatar. `scale` is each model's own
-// real-world-proportional value (targeting CHARACTER_HEIGHT*4.5, the same
-// "regular buildings" band WorldEditor's CATEGORY_SCALE_TARGET uses) —
-// every render site (HomeRoom's yard exterior, Town Square's per-viewer
-// swap) must use THIS scale, never a shared constant or an inherited value
-// computed for a different model.
+// real-world-proportional value (targeting CHARACTER_HEIGHT*2.2, the
+// STANDARD_HOUSE_HEIGHT band WorldEditor's CATEGORY_SCALE_TARGET uses —
+// Claudia's later size-unit audit corrected the "regular buildings" band
+// from 4.5x to 2.2x a person per direct teacher spec, but this file was
+// missed in that pass; these three values are that same correction
+// applied here, each original scale x (2.2/4.5)) — every render site
+// (HomeRoom's yard exterior, Town Square's per-viewer swap) must use THIS
+// scale, never a shared constant or an inherited value computed for a
+// different model.
 export const HOUSE_EXTERIOR_OPTIONS: { id: string; label: string; modelPath: string; scale: number }[] = [
-  { id: 'classic', label: 'Classic House', modelPath: '/world/models/buildings/house.glb', scale: 5.36 },
-  { id: 'towncenter', label: 'Town House', modelPath: '/world/models/quaternius-buildings/TownHouseB.glb', scale: 1.68 },
-  { id: 'cottage', label: 'Cabin', modelPath: '/world/models/buildings/cabin-shed.glb', scale: 22.41 },
+  { id: 'classic', label: 'Classic House', modelPath: '/world/models/buildings/house.glb', scale: 2.62 },
+  { id: 'towncenter', label: 'Town House', modelPath: '/world/models/quaternius-buildings/TownHouseB.glb', scale: 0.82 },
+  { id: 'cottage', label: 'Cabin', modelPath: '/world/models/buildings/cabin-shed.glb', scale: 10.96 },
 ];
 
 // Which placed-object models can carry teacher-written sign text (double-

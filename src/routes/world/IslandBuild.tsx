@@ -705,22 +705,28 @@ export default function IslandBuild() {
             <strong style={{ fontSize: '0.85rem' }}>{selected.label}</strong>
             <button className="btn btn-sm" style={{ minHeight: 32, minWidth: 32 }} onClick={() => setSelectedId(null)}>✕</button>
           </div>
+          {/* Claudia's daily-review audit: these inline minHeight/minWidth:40
+              overrode .btn-sm's own 44px minimum DOWNWARD, under the
+              platform's touch-target floor — removed so the class wins.
+              The arrow/rotate buttons also had no visible text and no
+              aria-label; added aria-label to each since there's no room
+              for a text label in this tight grid. */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 8, justifyItems: 'center' }}>
             <span />
-            <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40 }} onClick={() => nudgeSelected(0, -NUDGE_STEP)}>⬆️</button>
+            <button className="btn btn-sm" aria-label="Move up" onClick={() => nudgeSelected(0, -NUDGE_STEP)}>⬆️</button>
             <span />
-            <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40 }} onClick={() => nudgeSelected(-NUDGE_STEP, 0)}>⬅️</button>
+            <button className="btn btn-sm" aria-label="Move left" onClick={() => nudgeSelected(-NUDGE_STEP, 0)}>⬅️</button>
             <span style={{ fontSize: '1.1rem' }}>✥</span>
-            <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40 }} onClick={() => nudgeSelected(NUDGE_STEP, 0)}>➡️</button>
+            <button className="btn btn-sm" aria-label="Move right" onClick={() => nudgeSelected(NUDGE_STEP, 0)}>➡️</button>
             <span />
-            <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40 }} onClick={() => nudgeSelected(0, NUDGE_STEP)}>⬇️</button>
+            <button className="btn btn-sm" aria-label="Move down" onClick={() => nudgeSelected(0, NUDGE_STEP)}>⬇️</button>
             <span />
           </div>
           <div className="row" style={{ gap: 4, marginBottom: 8, justifyContent: 'center' }}>
-            <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => rotateSelected(-ROTATE_STEP)}>↺</button>
-            <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => scaleSelected(0.9)}>Smaller</button>
-            <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => scaleSelected(1.1)}>Bigger</button>
-            <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => rotateSelected(ROTATE_STEP)}>↻</button>
+            <button className="btn btn-sm" aria-label="Rotate left" onClick={() => rotateSelected(-ROTATE_STEP)}>↺</button>
+            <button className="btn btn-sm" onClick={() => scaleSelected(0.9)}>Smaller</button>
+            <button className="btn btn-sm" onClick={() => scaleSelected(1.1)}>Bigger</button>
+            <button className="btn btn-sm" aria-label="Rotate right" onClick={() => rotateSelected(ROTATE_STEP)}>↻</button>
           </div>
           <div className="row" style={{ justifyContent: 'center', marginBottom: 8 }}>
             <SelectedSizeReadout modelPath={selected.modelPath} scale={selected.scale} />
@@ -761,7 +767,7 @@ export default function IslandBuild() {
             placeholder="Search assets..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ minHeight: 40, borderRadius: 8, border: '2px solid var(--ink, #1f4238)', padding: '6px 10px', marginBottom: 8 }}
+            style={{ minHeight: 44, borderRadius: 8, border: '2px solid var(--ink, #1f4238)', padding: '6px 10px', marginBottom: 8 }}
           />
           <div className="row-wrap" style={{ gap: 4, marginBottom: 6 }}>
             <button

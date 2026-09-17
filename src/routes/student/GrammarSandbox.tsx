@@ -17,9 +17,42 @@ import type { FillBlankQuestion, GrammarPiece, Task } from '../../types';
 // Claudia's own recommendation: predictability of the mastery loop across
 // the whole platform is itself an executive-function support for this
 // population. What's genuinely new here is the EVALUATION: "correct" means
-// the placed noun and verb pieces agree in number, not a stored
-// answer-index match.
+// the placed noun and verb pieces are EXACTLY the prompt's target pair
+// (correctSubjectId/correctVerbId), not just any mutually-agreeing pair —
+// Claudia's audit caught a real bug where checking agreement alone let a
+// student always pick the singular pair and score 100% without ever
+// practicing a plural sentence, since a wrong-number pair that agreed with
+// ITSELF still passed. See grammarContent.ts's own comment on why each
+// prompt alternates its target number.
 const RUNG = GRAMMAR_RUNG_1;
+
+// Claudia's audit (H3): the reward for finishing a rung was tracked in
+// plain component state, which resets to false on every fresh mount — a
+// student who already finished the rung and reopens the screen re-reads
+// the old "fully mastered" state on first render and gets paid again,
+// indefinitely, every time. Persisting which attempt was already paid
+// (keyed by the store's own attemptStartedAt, which only changes when
+// ensureQuizState genuinely starts a brand-new attempt after a full
+// replay) makes this durable across remounts without needing a schema
+// change — a real replay still pays once it's genuinely re-earned.
+function rewardedAttemptKey(studentId: string, taskId: string) {
+  return `homeplot-grammar-rewarded:${studentId}:${taskId}`;
+}
+function getRewardedAttempt(studentId: string, taskId: string): string | null {
+  try {
+    return localStorage.getItem(rewardedAttemptKey(studentId, taskId));
+  } catch {
+    return null;
+  }
+}
+function setRewardedAttempt(studentId: string, taskId: string, attemptStartedAt: string) {
+  try {
+    localStorage.setItem(rewardedAttemptKey(studentId, taskId), attemptStartedAt);
+  } catch {
+    // Best-effort only — worst case a student gets paid again on a device/
+    // browser where storage is unavailable, not worth blocking on.
+  }
+}
 
 // A stable id per rung (not per session/open) so reopening this screen
 // tomorrow continues the same mastery queue instead of restarting it —
@@ -93,24 +126,40 @@ export default function GrammarSandbox() {
   const [pendingCorrect, setPendingCorrect] = useState<boolean | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [rewardPaid, setRewardPaid] = useState(false);
-
-  // Computed before any hook that depends on them so every hook below is
-  // called unconditionally on every render, whether or not `student` has
-  // resolved yet — student-scoped state read via currentStudentId directly
-  // (safe pre-hydration) rather than student.id.
+  // Claudia's audit (H1): every hook below must run on every render, in
+  // the same order, whether or not `student` has resolved yet — the old
+  // `if (!student) return null` sat ABOVE a later useEffect, so the first
+  // render (before student data loads) ran fewer hooks than every render
+  // after, which React does not allow (crashes with "Rendered more hooks
+  // than during the previous render"). Every hook is declared up here now,
+  // before any early return, and every value they depend on is computed
+  // from currentStudentId/progress directly (safe pre-hydration) instead
+  // of from `student`.
   const state = progress[currentStudentId ?? '']?.literacy?.quizState?.[GRAMMAR_TASK.id];
   const total = RUNG.prompts.length;
   const activeId = state?.remainingIds[0];
   const activePrompt = RUNG.prompts.find((p) => p.id === activeId);
   const allMastered = !!state && state.remainingIds.length === 0;
+  const subjectPiece = activePrompt?.pieces.find((p) => p.id === subjectPieceId) ?? null;
+  const verbPiece = activePrompt?.pieces.find((p) => p.id === verbPieceId) ?? null;
 
   useEffect(() => {
     if (!currentStudentId) navigate('/student/login');
   }, [currentStudentId, navigate]);
 
+  // Claudia's audit (H3, part 2): ensureQuizState's own reset-to-a-fresh-
+  // attempt (when a fully-mastered set is reopened) runs inside an effect,
+  // so the very first render after mounting can still show the OLD,
+  // already-finished state for a fraction of a second — flashing "Rung 1
+  // complete!" before snapping to a fresh attempt with no explanation,
+  // which this population reads as the app breaking. Nothing renders
+  // until this has run at least once for the current mount.
+  const [ensured, setEnsured] = useState(false);
   useEffect(() => {
-    if (student) ensureQuizState(student.id, 'literacy', GRAMMAR_TASK);
+    if (student) {
+      ensureQuizState(student.id, 'literacy', GRAMMAR_TASK);
+      setEnsured(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [student?.id]);
 
@@ -123,36 +172,44 @@ export default function GrammarSandbox() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [student?.id, activeId]);
 
+  // Claudia's audit (H1 + H3): moved above the early return so hook order
+  // never changes, and rewritten to persist which attempt was already
+  // paid (see getRewardedAttempt/setRewardedAttempt above) instead of
+  // component state that resets on every remount.
   useEffect(() => {
-    if (student && allMastered && !rewardPaid) {
-      setRewardPaid(true);
+    if (student && allMastered && state?.attemptStartedAt && getRewardedAttempt(student.id, GRAMMAR_TASK.id) !== state.attemptStartedAt) {
+      setRewardedAttempt(student.id, GRAMMAR_TASK.id, state.attemptStartedAt);
       recordTransaction(student.id, RUNG_COMPLETE_REWARD_CENTS, `${RUNG.title} complete!`, '✏️', 'task');
       updateStudent(student.id, { bonusSpinAvailable: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student?.id, allMastered, rewardPaid]);
+  }, [student?.id, allMastered, state?.attemptStartedAt]);
 
-  if (!student) return null;
+  // Two-stage validation, per Claudia's spec: shape/socket match (handled
+  // for free here — a noun can only ever land in the subject slot, a verb
+  // only in the verb slot) then the real grammar rule. Claudia's audit
+  // (M1): this used to only check that the two pieces agreed WITH EACH
+  // OTHER, so a student who always picked the singular pair could score
+  // 100% and never once practice a plural sentence — a self-consistent
+  // pair still isn't correct unless it's the specific pair this prompt is
+  // asking for. Checks against the prompt's own target ids instead.
+  useEffect(() => {
+    if (!activePrompt || pendingCorrect !== null) return;
+    if (!subjectPiece || !verbPiece) return;
+    setPendingCorrect(subjectPiece.id === activePrompt.correctSubjectId && verbPiece.id === activePrompt.correctVerbId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjectPieceId, verbPieceId]);
 
-  const subjectPiece = activePrompt?.pieces.find((p) => p.id === subjectPieceId) ?? null;
-  const verbPiece = activePrompt?.pieces.find((p) => p.id === verbPieceId) ?? null;
+  if (!student || !ensured) return null;
+
+  const targetSubject = activePrompt?.pieces.find((p) => p.id === activePrompt.correctSubjectId);
+  const targetLabel = targetSubject?.number === 'singular' ? 'just ONE' : 'MORE THAN ONE';
 
   const pickPiece = (p: GrammarPiece) => {
     if (pendingCorrect !== null) return; // locked until Next is pressed
     if (p.wordClass === 'noun') setSubjectPieceId(p.id);
     else setVerbPieceId(p.id);
   };
-
-  // Two-stage validation, per Claudia's spec: shape/socket match (handled
-  // for free here — a noun can only ever land in the subject slot, a verb
-  // only in the verb slot) then the real grammar rule, subject-verb
-  // number agreement.
-  useEffect(() => {
-    if (!activePrompt || pendingCorrect !== null) return;
-    if (!subjectPiece || !verbPiece) return;
-    setPendingCorrect(subjectPiece.number === verbPiece.number);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subjectPieceId, verbPieceId]);
 
   const goNext = () => {
     if (!activePrompt || pendingCorrect === null) return;
@@ -214,6 +271,16 @@ export default function GrammarSandbox() {
             </div>
             <p style={{ maxWidth: 480, textAlign: 'center', fontWeight: 600 }}>{RUNG.ruleSummary}</p>
 
+            {/* Claudia's audit (M1): without naming the target number, a
+                student has no explicit way to know which pairing this
+                prompt wants — this population needs direct, explicit
+                instruction, not trial and error. */}
+            {targetSubject && (
+              <div className="tag-pill" style={{ background: 'var(--blue)', color: 'white' }}>
+                Build it about: {targetLabel}
+              </div>
+            )}
+
             {/* The two labeled sockets — color-coded and text-labeled
                 (never color alone), matching Claudia's two-layer color
                 spec: yellow = naming word, coral = action word. */}
@@ -263,9 +330,11 @@ export default function GrammarSandbox() {
             )}
             {pendingCorrect === false && (
               <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)', fontSize: '1rem', textAlign: 'center' }}>
-                💛 Not quite. {subjectPiece?.number === 'singular'
-                  ? `"${subjectPiece?.text}" is one, so the action word needs to end in -s.`
-                  : `"${subjectPiece?.text}" is more than one, so the action word should NOT end in -s.`}
+                💛 Not quite. {subjectPiece?.number === verbPiece?.number
+                  ? `That naming word and action word agree with each other, but this sentence needs to be about ${targetLabel}. Try the other naming word.`
+                  : subjectPiece?.number === 'singular'
+                    ? `"${subjectPiece?.text}" is one, so the action word needs to end in -s.`
+                    : `"${subjectPiece?.text}" is more than one, so the action word should NOT end in -s.`}
               </div>
             )}
 

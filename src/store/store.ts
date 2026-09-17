@@ -6,7 +6,7 @@ import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById, emotePriceFor } from '../lib/emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
 import { avatarById } from '../lib/avatarCatalog';
-import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
+import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, PLAYGROUND_REWARD_CENTS, formatMoney } from '../lib/money';
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
@@ -2081,7 +2081,7 @@ export const useStore = create<AppState>()(
           get().updateStudent(studentId, { bonusSpinAvailable: true });
           get().recordTransaction(studentId, 0, `${taskLabel}: bonus spin!`, '🎡', 'task');
         } else {
-          const rewardCents = task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS;
+          const rewardCents = task.rewardCents ?? PLAYGROUND_REWARD_CENTS;
           get().recordTransaction(studentId, rewardCents, taskLabel, task.icon ?? '🎮', 'task');
         }
       },

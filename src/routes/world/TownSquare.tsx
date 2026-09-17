@@ -2379,7 +2379,15 @@ export default function TownSquare() {
 
       <ToolsPanel student={student} subject="both" />
 
-      {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
+      {/* aboveLock: Claudia's daily-review audit found the Wizard
+          ThunderSword lock (zIndex 300, below) sat above every existing
+          path to Help (the Menu trigger at zIndex 60, the pie menu's own
+          overlay at zIndex 230, and HelpOverlay's default zIndex 100) —
+          contradicting this file's own comment that regulation stays
+          reachable through the lock. Boosting Help above the lock
+          whenever the lock is showing, regardless of how it got opened,
+          fixes that without touching the lock's own stacking. */}
+      {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} aboveLock={showWizardLock} />}
       {showArrival && totalTasksLeft > 0 && student.worldShowArrivalCard && (
         <div className="overlay-backdrop" onClick={dismissArrival}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
@@ -2579,7 +2587,9 @@ export default function TownSquare() {
       )}
       {/* The "More" list — Settings/Map/My Stuff, pulled out of the radial
           fan itself (see the wedges comment above) so the fan stays at
-          Claudia's 4-5-wedge cap. Same overlay-backdrop/content-well
+          5 wedges (6 once a student owns a pet) — Claudia's daily-review
+          audit: this is the ceiling, not room to grow; nothing more goes
+          in this pie without regrouping. Same overlay-backdrop/content-well
           pattern as Today's Tasks below, for visual consistency. */}
       {showMoreMenu && (
         <div className="overlay-backdrop" onClick={() => setShowMoreMenu(false)}>
@@ -2598,10 +2608,17 @@ export default function TownSquare() {
       )}
       {/* Wizard ThunderSword — a real lock, direct teacher instruction: no
           backdrop-dismiss onClick, no X button, nothing but the one path
-          out (go actually do an assignment). Calm-down/help stay reachable
-          the whole time (ToolsPanel + the help/what-now FABs are rendered
-          outside this block, untouched) — this app's own standing rule is
-          that regulation tools are never gated, only free exploration is. */}
+          out (go actually do an assignment) OR Help/calm-down, which this
+          panel itself now offers a real button for — Claudia's daily-
+          review audit found the old comment's claim ("Calm-down/help stay
+          reachable... rendered outside this block, untouched") was false
+          in practice: every existing entry point to Help sits at a lower
+          zIndex than this lock's 300, so nothing outside this block was
+          actually clickable while it's showing, regardless of being
+          "rendered." A real button inside the lock's own panel is
+          guaranteed reachable since it shares this panel's stacking
+          context; see the aboveLock prop above for keeping Help itself
+          visible once opened. */}
       {showWizardLock && (
         <div className="overlay-backdrop" style={{ background: 'rgba(20, 10, 40, 0.75)', zIndex: 300 }}>
           <div className="overlay-panel chrome-frame wizard-lock-flyin" style={{ padding: 24, maxWidth: 420 }}>
@@ -2616,6 +2633,9 @@ export default function TownSquare() {
               <p style={{ margin: 0 }}>
                 You still have {totalTasksLeft} thing{totalTasksLeft === 1 ? '' : 's'} to do today. Pick one below to keep exploring.
               </p>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowHelp(true)} aria-label="Help">
+                🧘 Help / I need a break
+              </button>
               {/* Direct teacher instruction: an assignment is a collection of
                   activities — one button per assignment still needing work,
                   not one generic "go finish an activity" button, so a
@@ -2697,10 +2717,9 @@ export default function TownSquare() {
       <div style={{ position: 'fixed', top: 60, left: 16, zIndex: 55, background: 'rgba(255,255,255,0.92)', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, fontSize: 13, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', pointerEvents: 'none' }}>
         📍 ({Math.round(playerPos.x)}, {Math.round(-playerPos.z)})
       </div>
-      {/* Direct teacher instruction: What now? and Tasks live as wedges
-          inside the pie menu below, not their own corner FAB. Settings/Map/
-          My Stuff/My Home were already consolidated the same way (Help is
-          the one exception — see the standalone button above).
+      {/* Direct teacher instruction: What now?, Tasks, and (later) Help all
+          live as wedges inside the pie menu below, not their own corner
+          FAB — only Tools (above) and this Menu trigger stay standalone.
           Positioned at top:84 rather than top:16 — a real bug found while
           fixing Claudia's audit: ToolsPanel's own .tools-fab ("My Tools",
           rendered a few lines up) sits at the app-wide standard top:16/
@@ -2713,7 +2732,10 @@ export default function TownSquare() {
         aria-label={totalTasksLeft > 0 ? `Menu, ${totalTasksLeft} tasks left today` : 'Menu'}
       >
         <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🧭</span>
-        <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
+        {/* Claudia's daily-review audit: the wedge labels inside this same
+            menu were bumped from 8px to 11px for readability, but this
+            trigger's own "Menu" label was missed in that pass. */}
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
           Menu
         </span>
         {totalTasksLeft > 0 && (
