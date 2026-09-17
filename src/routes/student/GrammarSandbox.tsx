@@ -27,7 +27,7 @@ const RUNG = GRAMMAR_RUNG_1;
 const GRAMMAR_TASK: Task = {
   id: `grammar-${RUNG.id}`,
   title: RUNG.title,
-  icon: '✏️',
+  icon: '🧩',
   type: 'quiz',
   quiz: {
     questions: RUNG.prompts.map((p): FillBlankQuestion => ({
@@ -183,7 +183,7 @@ export default function GrammarSandbox() {
       )}
 
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--yellow), var(--pink))' }}>
-        <h2 style={{ margin: 0 }}>✏️ Grammar Builder</h2>
+        <h2 style={{ margin: 0 }}>🧩 Literacy Manipulatives</h2>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowHelp(true)} aria-label="Help">🧘 Help</button>
           <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setConfirmExit(true)}>✕ Exit</button>

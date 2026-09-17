@@ -104,6 +104,11 @@ const snapValue = (v: number, enabled: boolean, step: number = GRID_SIZE) => (en
 
 // Discrete resize presets instead of a drag handle — Sims' `[`/`]` and
 // Paralives' direct-resize both aim for "obvious result, no fine dragging."
+// Direct teacher spec: "1 unit = the same height as a player/Neighbor" —
+// these values ARE that unit scale (Normal = 1.0 = person height), not a
+// raw multiplier on the model's own native size. See scaleToUnits/
+// unitsToScale below for the conversion that makes this literally true
+// regardless of which source pack a model came from.
 const SCALE_PRESETS: { label: string; value: number }[] = [
   { label: 'Tiny', value: 0.25 },
   { label: 'Small', value: 0.5 },
@@ -112,6 +117,22 @@ const SCALE_PRESETS: { label: string; value: number }[] = [
   { label: 'Huge', value: 2.5 },
   { label: 'Giant', value: 5 },
 ];
+
+// Claudia's size-unit audit: the stored WorldObject.scale is a raw
+// Three.js multiplier on each model's OWN arbitrary native bounding-box
+// size — a scale of "1.0" means a different real-world height on every
+// different source pack. These convert between that raw number and the
+// real, person-height-relative unit the teacher actually wants to see
+// and set (1.0 = same height as a player/Neighbor), using the object's
+// own measured native height (nativeHeight, from useModelSize) — no
+// migration of stored data needed, this is a display/input-layer
+// conversion only, computed fresh every time from the live model.
+function scaleToUnits(scale: number, nativeHeight: number): number {
+  return nativeHeight > 0 && isFinite(nativeHeight) ? (scale * nativeHeight) / CHARACTER_HEIGHT : scale;
+}
+function unitsToScale(units: number, nativeHeight: number): number {
+  return nativeHeight > 0 && isFinite(nativeHeight) ? (units * CHARACTER_HEIGHT) / nativeHeight : units;
+}
 
 // A freshly-armed asset used to place at a flat scale of 1 regardless of
 // the source pack's own native units — fine for Kenney-family models (this
@@ -135,6 +156,13 @@ const SCALE_PRESETS: { label: string; value: number }[] = [
 // literal "8x-tall raccoon" would be its own bug. Categories not listed
 // fall back to plain character-height sizing.
 const CHARACTER_HEIGHT = 1.745;
+// Claudia's size-unit audit (direct teacher spec: "1 unit = a player/
+// Neighbor's standing height, a standard dog is .5x, a standard house is
+// 2 units"): 'buildings'/'suburb'/'commercial-buildings' were all sizing
+// a "regular house" at 4.5x a person — more than double the teacher's
+// stated 2x. See docs/SIZE_REFERENCE.md for the full chart this and every
+// other number below was checked against.
+const STANDARD_HOUSE_HEIGHT = CHARACTER_HEIGHT * 2.2; // direct teacher spec: houses = 2 units, +0.2 slack for "standard" vs. "small" houses in the same pack
 const CATEGORY_SCALE_TARGET: Record<string, number> = {
   // Direct teacher bug report, screenshot-confirmed: the raw manifest
   // category named "city" is NOT city-scale buildings — it's Kenney's
@@ -145,7 +173,13 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   // below instead. 'city' items are small street props, comparable to or
   // smaller than a neighbor, same as 'props'.
   city: CHARACTER_HEIGHT * 0.8,
-  buildings: CHARACTER_HEIGHT * 4.5, // regular buildings: 4-5x
+  buildings: STANDARD_HOUSE_HEIGHT, // regular buildings: teacher spec, 2x a person
+  // Claudia's audit: no keyword or category caught toy cars/boats/planes
+  // at all (the manifest's 'vehicles' category), so every one of them was
+  // silently falling to DEFAULT_SCALE_TARGET_HEIGHT — a toy car sized as
+  // tall as the player standing next to it. A sedan's roofline sits
+  // roughly chest-to-head height on a standing adult.
+  vehicles: CHARACTER_HEIGHT * 0.65,
   // INTERIM fix, pending Claudia's proper per-item size-class system
   // (dispatched — a flat per-category number can't work here, same root
   // cause as the 'city' bug above). 'restaurant' (61 items) is almost
@@ -162,7 +196,7 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   // controls.
   structures: CHARACTER_HEIGHT * 2.5,
   restaurant: CHARACTER_HEIGHT * 0.8,
-  suburb: CHARACTER_HEIGHT * 4.5, // houses — regular-building scale
+  suburb: STANDARD_HOUSE_HEIGHT, // houses — direct teacher spec, 2x a person
   'quaternius-buildings': CHARACTER_HEIGHT * 8, // 1-6 story buildings, nudged toward Claudia's city-structure band since it was under-targeted at 6x
   // Kenney City Kit Commercial (CC0): a mix of regular commercial buildings
   // (shop/office scale, same band as 'buildings') and 5 "skyscraper"
@@ -170,7 +204,7 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   // few small awning/overhang/parasol street-furniture pieces (caught by
   // the furniture keyword below). This fallback only ever applies to the
   // plain "building-*" items neither keyword list touches.
-  'commercial-buildings': CHARACTER_HEIGHT * 4.5,
+  'commercial-buildings': STANDARD_HOUSE_HEIGHT,
   market: CHARACTER_HEIGHT * 3, // stalls — smaller than a full building
   interior: CHARACTER_HEIGHT * 1, // furniture, not building-scale
   forest: CHARACTER_HEIGHT * 5.5, // trees: 3-8x
@@ -210,26 +244,25 @@ const DEFAULT_SCALE_TARGET_HEIGHT = CHARACTER_HEIGHT;
 // both a cafe table and a coffee cup, 'structures' has both a whole
 // building and a single fence post). Classifies by matching the asset's
 // own label against a keyword list, falling back to the old
-// category-average target only when nothing matches. Target heights are
-// her stated unit scale (a neighbor = 2 of her units = CHARACTER_HEIGHT,
-// so 1 of her units = CHARACTER_HEIGHT / 2 ≈ 0.8725 real units):
-// washing machine/couch = 1 unit, houseplant = 0.5-1, countertop items =
-// 0.25, houses = 4-8 of her units. Two separate structure bands exist on
-// purpose, not by mistake — her "house sizes 4-8" statement (new small
-// unit scale) and her earlier same-session "buildings 4-5x/city 8-10x a
-// neighbor" statement are two different judgments (a modest house vs. a
-// large/city building), not one range said twice.
-const KAYDEN_UNIT = CHARACTER_HEIGHT / 2; // ≈0.8725 real units
+// category-average target only when nothing matches.
+//
+// Claudia's size-unit audit found a real bug here: this used to be keyed
+// off a SECOND "unit" (KAYDEN_UNIT = CHARACTER_HEIGHT / 2, i.e. "1 unit =
+// half a person") that silently conflicted with the teacher's later,
+// explicit "1 unit = a full player/Neighbor's height" spec — off by
+// exactly 2x. Retired; every target below is now a plain multiple of
+// CHARACTER_HEIGHT directly, see docs/SIZE_REFERENCE.md for the full
+// reference chart this was checked against.
 const SIZE_CLASS_TARGET = {
-  tiny: KAYDEN_UNIT * 0.25, // handheld/countertop: a cup, a card, a receipt
-  smallObject: KAYDEN_UNIT * 0.5, // countertop appliance/small furniture piece: a basket, a register
-  furniture: KAYDEN_UNIT * 1, // washing machine/couch/chair/table scale — floor-height items only
+  tiny: CHARACTER_HEIGHT * 0.125, // handheld/countertop: a cup, a card, a receipt
+  smallObject: CHARACTER_HEIGHT * 0.25, // countertop appliance/small furniture piece: a basket, a register
+  furniture: CHARACTER_HEIGHT * 0.5, // washing machine/couch/chair/table scale — floor-height items only
   // Claudia's asset-sizing audit: doors/windows/bookshelves were sharing
-  // the furniture tier's floor-height target (≈0.87 units) — a Door01
-  // came out exactly half the CHARACTER_HEIGHT avatar's own height,
-  // measured. Same numeric target as personScale (a real door/window/
-  // bookshelf genuinely is roughly avatar height), kept as its own class
-  // for a clearer name at the keyword list below.
+  // the furniture tier's floor-height target — a Door01 came out exactly
+  // half the CHARACTER_HEIGHT avatar's own height, measured. Same
+  // numeric target as personScale (a real door/window/bookshelf genuinely
+  // is roughly avatar height), kept as its own class for a clearer name
+  // at the keyword list below.
   tallFurniture: CHARACTER_HEIGHT,
   personScale: CHARACTER_HEIGHT, // matches a neighbor — signs, posts, fences
   // Claudia's audit: a light POST forced down to exactly avatar height
@@ -239,10 +272,15 @@ const SIZE_CLASS_TARGET = {
   // loom overhead. Interior light FIXTURES are already excepted before
   // this tier is ever reached (see classifySizeForLabel's category
   // check below), so this only ever catches genuine outdoor lamp posts.
-  pole: KAYDEN_UNIT * 5,
-  smallStructure: KAYDEN_UNIT * 6, // middle of her 4-8-unit house range: sheds, stalls, small houses
-  largeStructure: CHARACTER_HEIGHT * 4.5, // her original "regular buildings 4-5x a neighbor"
-  cityStructure: CHARACTER_HEIGHT * 9, // her original "city-scale 8-10x a neighbor"
+  pole: CHARACTER_HEIGHT * 2.5,
+  // Claudia's size-unit audit: this was sized at 3x a person — ABOVE the
+  // corrected 2.2x "standard house" target just above, backwards for
+  // something meant to read as smaller than a real house (a shed/stall/
+  // small cottage). Direct teacher spec: 2 units = a standard house, so
+  // this sits clearly under that.
+  smallStructure: CHARACTER_HEIGHT * 1.3,
+  largeStructure: STANDARD_HOUSE_HEIGHT, // regular buildings — same target as 'buildings'/'suburb' above
+  cityStructure: CHARACTER_HEIGHT * 9, // city-scale: 8-10x a neighbor
 } as const;
 type SizeClass = keyof typeof SIZE_CLASS_TARGET;
 // Order matters — tested top to bottom, first match wins, so a label
@@ -1097,27 +1135,39 @@ function SelectedObjectToolbar({
             </div>
           )}
 
-          {openPopover === 'resize' && (
-            <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 220 }}>
-              <div className="row-wrap" style={{ gap: 4, justifyContent: 'center' }}>
-                {SCALE_PRESETS.map((p) => (
-                  <button
-                    key={p.label}
-                    className={`btn btn-sm ${Math.abs(selected.scale - p.value) < 0.001 ? 'btn-primary' : ''}`}
-                    style={{ minHeight: 44 }}
-                    onClick={() => setScale(p.value)}
-                  >
-                    {Math.abs(selected.scale - p.value) < 0.001 ? '✓ ' : ''}{p.label}
-                  </button>
-                ))}
+          {openPopover === 'resize' && (() => {
+            // Claudia's size-unit audit: presets and the readout below now
+            // both operate in real person-height units via the object's
+            // own measured native height (`size`, from useModelSize just
+            // above) — "1.0" always means "same height as a player/
+            // Neighbor" here, regardless of which source pack this
+            // specific model came from, per the teacher's direct spec.
+            const currentUnits = scaleToUnits(selected.scale, size.y);
+            return (
+              <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 220 }}>
+                <div className="row-wrap" style={{ gap: 4, justifyContent: 'center' }}>
+                  {SCALE_PRESETS.map((p) => (
+                    <button
+                      key={p.label}
+                      className={`btn btn-sm ${Math.abs(currentUnits - p.value) < 0.02 ? 'btn-primary' : ''}`}
+                      style={{ minHeight: 44 }}
+                      onClick={() => setScale(unitsToScale(p.value, size.y))}
+                    >
+                      {Math.abs(currentUnits - p.value) < 0.02 ? '✓ ' : ''}{p.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="row" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                  <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...shrinkHold}>−</button>
+                  <span style={{ fontSize: '0.78rem', minWidth: 72, textAlign: 'center' }} title="1.0 = same height as a player/Neighbor">
+                    {currentUnits.toFixed(2)}x
+                  </span>
+                  <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...growHold}>+</button>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.62rem', opacity: 0.65, textAlign: 'center' }}>1.0 = same height as a player</p>
               </div>
-              <div className="row" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-                <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...shrinkHold}>−</button>
-                <span style={{ fontSize: '0.78rem', minWidth: 56, textAlign: 'center' }}>{Math.round(selected.scale * 100)}%</span>
-                <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...growHold}>+</button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {openPopover === 'color' && (
             <div className="stack" style={{ gap: 8, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 232 }}>
@@ -1606,8 +1656,8 @@ export default function WorldEditor() {
       }
       if (e.key === '[') { rotateByRef.current(-15); return; }
       if (e.key === ']') { rotateByRef.current(15); return; }
-      if (e.key === '-') { nudgeScaleByRef.current(-0.5); return; }
-      if (e.key === '=') { nudgeScaleByRef.current(0.5); return; }
+      if (e.key === '-') { nudgeScaleByRef.current(-1); return; }
+      if (e.key === '=') { nudgeScaleByRef.current(1); return; }
       if (e.key.toLowerCase() === 't') { topViewRef.current(); return; }
     };
     const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(false); };
@@ -1776,13 +1826,19 @@ export default function WorldEditor() {
     if (!selected) return;
     updateSelected({ scale: THREE.MathUtils.clamp(value, SCALE_MIN, SCALE_MAX) });
   };
-  // Direct instruction: -/= nudge the selected object's scale by a flat
-  // 0.5 units per press (additive, unlike the resize popover's percentage-
-  // based hold-repeat +/- below — a flat step is easier to predict and
-  // land on a round number when typing quickly).
-  const nudgeScaleBy = (delta: number) => {
+  // Claudia's size-unit audit: this used to add/subtract a flat 0.5 to
+  // the raw scale per keypress. Harmless on an object whose correctly-
+  // calibrated scale is near 1, but several packs are correctly scaled as
+  // low as ~0.05 (see SCALE_MIN's own comment) — a single '=' press on
+  // one of those could multiply it ~11x in one keystroke, reproducing the
+  // exact "giant shapes" bug this whole sizing system exists to prevent.
+  // Percentage-based instead (same ×1.1/÷1.1 step the popover's own
+  // hold-repeat +/- buttons already use), so a nudge is always
+  // proportional to the object's current size, never a fixed jump that
+  // can dwarf a tiny object. `dir` is a sign (-1 or 1), not a magnitude.
+  const nudgeScaleBy = (dir: number) => {
     if (!selected) return;
-    setScale(selected.scale + delta);
+    setScale(dir > 0 ? selected.scale * 1.1 : selected.scale / 1.1);
   };
   selectionRef.current = selection;
   deleteSelectedRef.current = deleteSelected;

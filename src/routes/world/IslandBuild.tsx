@@ -45,14 +45,21 @@ type AssetManifestEntry = { path: string; label: string; category: string };
 const SCALE_MIN = 0.0005;
 const SCALE_MAX = 20;
 const CHARACTER_HEIGHT = 1.745;
+// Claudia's size-unit audit (kept in sync with WorldEditor.tsx's own
+// copy of these constants — see docs/SIZE_REFERENCE.md for the full
+// reference chart and audit this was checked against). Direct teacher
+// spec: 1 unit = a player/Neighbor's standing height, a standard house
+// is 2 units.
+const STANDARD_HOUSE_HEIGHT = CHARACTER_HEIGHT * 2.2;
 const CATEGORY_SCALE_TARGET: Record<string, number> = {
   city: CHARACTER_HEIGHT * 0.8,
-  buildings: CHARACTER_HEIGHT * 4.5,
+  buildings: STANDARD_HOUSE_HEIGHT,
+  vehicles: CHARACTER_HEIGHT * 0.65,
   structures: CHARACTER_HEIGHT * 2.5,
   restaurant: CHARACTER_HEIGHT * 0.8,
-  suburb: CHARACTER_HEIGHT * 4.5,
+  suburb: STANDARD_HOUSE_HEIGHT,
   'quaternius-buildings': CHARACTER_HEIGHT * 8,
-  'commercial-buildings': CHARACTER_HEIGHT * 4.5,
+  'commercial-buildings': STANDARD_HOUSE_HEIGHT,
   market: CHARACTER_HEIGHT * 3,
   interior: CHARACTER_HEIGHT * 1,
   forest: CHARACTER_HEIGHT * 5.5,
@@ -79,16 +86,19 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   roads: CHARACTER_HEIGHT * 0.15,
 };
 const DEFAULT_SCALE_TARGET_HEIGHT = CHARACTER_HEIGHT;
-const KAYDEN_UNIT = CHARACTER_HEIGHT / 2;
+// KAYDEN_UNIT (= CHARACTER_HEIGHT / 2) retired — see WorldEditor.tsx's own
+// copy of this comment: it silently conflicted 2x with the teacher's
+// later, explicit "1 unit = a full person's height" spec. Every target
+// below is a plain multiple of CHARACTER_HEIGHT directly now.
 const SIZE_CLASS_TARGET = {
-  tiny: KAYDEN_UNIT * 0.25,
-  smallObject: KAYDEN_UNIT * 0.5,
-  furniture: KAYDEN_UNIT * 1,
+  tiny: CHARACTER_HEIGHT * 0.125,
+  smallObject: CHARACTER_HEIGHT * 0.25,
+  furniture: CHARACTER_HEIGHT * 0.5,
   tallFurniture: CHARACTER_HEIGHT,
   personScale: CHARACTER_HEIGHT,
-  pole: KAYDEN_UNIT * 5,
-  smallStructure: KAYDEN_UNIT * 6,
-  largeStructure: CHARACTER_HEIGHT * 4.5,
+  pole: CHARACTER_HEIGHT * 2.5,
+  smallStructure: CHARACTER_HEIGHT * 1.3, // below the 2.2x house target — a shed/stall reads smaller than a standard house
+  largeStructure: STANDARD_HOUSE_HEIGHT,
   cityStructure: CHARACTER_HEIGHT * 9,
 } as const;
 type SizeClass = keyof typeof SIZE_CLASS_TARGET;
@@ -222,6 +232,31 @@ function AssetThumb({ modelPath, category, size, iconSize }: { modelPath: string
 function useModelSize(path: string): THREE.Vector3 {
   const { scene } = useGLTF(path);
   return useMemo(() => new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3()), [scene]);
+}
+// Claudia's size-unit audit — kept in sync with WorldEditor.tsx's own
+// copy of this helper (that file also has the inverse, unitsToScale,
+// for its preset buttons; this simpler student-side UI only ever
+// displays the unit, so only this direction is needed here). Converts
+// the stored raw scale multiplier to a real person-height-relative unit
+// (1.0 = same height as a player/Neighbor) computed fresh from the
+// selected object's own measured native height, with no stored-data
+// migration needed.
+function scaleToUnits(scale: number, nativeHeight: number): number {
+  return nativeHeight > 0 && isFinite(nativeHeight) ? (scale * nativeHeight) / CHARACTER_HEIGHT : scale;
+}
+// Claudia's audit (item 9): the teacher-side resize popover shows a
+// numeric readout, the student side showed none at all — same control,
+// reduced feedback. This small component (mounted only while something
+// is selected, matching GhostScaleReporter's own pattern just below) so
+// calling useModelSize here never risks a conditional-hook violation.
+function SelectedSizeReadout({ modelPath, scale }: { modelPath: string; scale: number }) {
+  const size = useModelSize(modelPath);
+  const units = scaleToUnits(scale, size.y);
+  return (
+    <span style={{ fontSize: '0.75rem', fontWeight: 700, minWidth: 44, textAlign: 'center' }} title="1.0 = same height as a player">
+      {units.toFixed(2)}x
+    </span>
+  );
 }
 function GhostScaleReporter({ path, category, label, onScale }: { path: string; category: string; label: string; onScale: (s: number) => void }) {
   const size = useModelSize(path);
@@ -686,6 +721,9 @@ export default function IslandBuild() {
             <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => scaleSelected(0.9)}>Smaller</button>
             <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => scaleSelected(1.1)}>Bigger</button>
             <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => rotateSelected(ROTATE_STEP)}>↻</button>
+          </div>
+          <div className="row" style={{ justifyContent: 'center', marginBottom: 8 }}>
+            <SelectedSizeReadout modelPath={selected.modelPath} scale={selected.scale} />
           </div>
           <label style={{ display: 'block', margin: '0 0 8px' }}>
             <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Role (what opens when clicked)</span>

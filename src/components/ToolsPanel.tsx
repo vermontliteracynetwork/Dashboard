@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
@@ -1105,6 +1106,7 @@ interface Props {
 // internal browser (variant="inline") so tools stay one tap away even
 // while a student is inside an embedded external activity.
 export default function ToolsPanel({ student, subject, variant = 'fab', hideCalculator = false }: Props) {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [open, setOpen] = useState<ToolKey | null>(null);
   const [customOpen, setCustomOpen] = useState<CustomTool | null>(null);
@@ -1175,6 +1177,25 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
             <div className="stack">
               <ToolRow tools={subjectTools} label="Subject Tools" />
               <ToolRow tools={accessTools} label="Accessibility Toolbar" />
+              {/* Direct teacher instruction: the Writing/Grammar Sandbox
+                  ("Literacy Manipulatives") lives in Tools, not its own
+                  Home button — a full screen (drag-and-drop puzzle
+                  pieces), so it navigates out rather than opening in the
+                  small popup every other tool here uses. */}
+              {(subject === 'literacy' || subject === 'both') && (
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.75, marginBottom: 6 }}>Literacy</div>
+                  <div className="row-wrap">
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => { setMenuOpen(false); navigate('/student/grammar'); }}
+                      title="Literacy Manipulatives"
+                    >
+                      🧩 Literacy Manipulatives
+                    </button>
+                  </div>
+                </div>
+              )}
               {customTools.length > 0 && (
                 <div>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.75, marginBottom: 6 }}>More Tools</div>
