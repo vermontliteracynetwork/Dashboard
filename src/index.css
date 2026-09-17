@@ -1661,34 +1661,110 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   border: 2px solid var(--content-border);
 }
 
-/* ---------- Literacy Manipulatives: open-whiteboard visual structure ----------
-   Direct teacher instruction: "visually structured like an open
-   whiteboard, for a specific question set" — a Polypad-style dotted
-   canvas the sockets/pieces sit on, with the piece bank styled as a
-   physical tray along the bottom, rather than a plain centered content
-   card. Frame uses this app's existing chunky-border/drop-shadow visual
-   language (see chrome-frame, tag-pill) rather than inventing a new one. */
-.grammar-board {
-  background: #ecdfc4;
-  border: var(--chunk, 4px) solid var(--ink);
-  border-radius: 20px;
-  padding: 10px;
-  box-shadow: 6px 6px 0 var(--ink);
+/* ---------- Literacy Manipulatives: Polypad-modeled layout ----------
+   Direct teacher instruction, after seeing the first build: "i need it
+   to model as closely to polypad as possible." Persistent left sidebar
+   holds every tile category (Polypad's own "Tiles" panel), the canvas
+   is one open workspace instead of a boxed card, and tools live in a
+   slim always-visible toolbar rather than full-screen mode switches.
+   The chunky-border/drop-shadow visual language this app uses
+   elsewhere (chrome-frame, tag-pill) moves to the sidebar/toolbar
+   chrome — the canvas itself stays plain and open, matching Polypad,
+   since that's specifically what read as "boxed in" before. Every
+   control keeps an icon+text label (this platform's standing rule) even
+   though Polypad's own toolbar is icon-only — that part is deliberately
+   not copied. */
+.lm-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  background: var(--paper);
 }
-.grammar-board-surface {
-  background-color: #fdfcf7;
-  background-image: radial-gradient(circle, rgba(31, 17, 71, 0.12) 1.5px, transparent 1.5px);
-  background-size: 26px 26px;
-  border: 2px solid var(--content-border);
+.lm-sidebar {
+  width: 280px;
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: #fffaf0;
+  border-right: var(--chunk, 4px) solid var(--ink);
+  overflow-y: auto;
+}
+.lm-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--content-border);
+}
+.lm-sidebar-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+.lm-category {
+  border: 2px solid var(--ink);
   border-radius: 14px;
-  padding: 22px;
+  overflow: hidden;
+  background: white;
 }
-.grammar-board-tray {
-  margin-top: 10px;
-  background: #ddc9a0;
-  border-top: 3px dashed var(--ink);
-  border-radius: 0 0 12px 12px;
-  padding: 14px 18px;
+.lm-category-header {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 8px 12px;
+  color: var(--ink);
+}
+.lm-category-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.lm-category-sub {
+  font-size: 0.68rem;
+  font-weight: 800;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.lm-tile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lm-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.lm-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 2px solid var(--content-border);
+  background: white;
+}
+.lm-toolbar-divider {
+  width: 2px;
+  align-self: stretch;
+  background: var(--content-border);
+  margin: 4px 2px;
+}
+.lm-canvas {
+  flex: 1;
+  min-height: 420px;
+  background-color: #fdfdfb;
+  overflow: hidden;
+}
+@media (max-width: 760px) {
+  .lm-shell { flex-direction: column; min-height: unset; }
+  .lm-sidebar { width: auto; flex: 0 0 auto; max-height: 40vh; border-right: none; border-bottom: var(--chunk, 4px) solid var(--ink); }
 }
 
 /* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the
