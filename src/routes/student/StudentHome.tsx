@@ -254,6 +254,14 @@ export default function StudentHome() {
               <button
                 className="btn btn-sm"
                 style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
+                onClick={() => navigate('/student/grammar')}
+                aria-label="Grammar Builder"
+              >
+                ✏️ Grammar Builder
+              </button>
+              <button
+                className="btn btn-sm"
+                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
                 onClick={() => setShowChat(true)}
                 aria-label="Chat with your teacher"
               >
