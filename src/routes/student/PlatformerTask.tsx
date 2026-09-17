@@ -869,7 +869,26 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
           </button>
         </div>
 
-        <div style={{ position: 'relative', width: '100%', maxWidth: CANVAS_W * DISPLAY_SCALE, alignSelf: 'center' }}>
+        <div style={{ width: '100%', maxWidth: CANVAS_W * DISPLAY_SCALE, alignSelf: 'center' }}>
+          {/* Bug fix: this inner box must wrap ONLY the canvas and its
+              overlays (hearts/coins HUD, banners, corner-touch zones) — the
+              corner-touch zones below use bottom:0 + height:55% to size
+              themselves, which resolves against WHATEVER element contains
+              them. When the touch-control button row and the arrow-key
+              hint paragraph used to live inside this same relatively-
+              positioned box, "55% height from the bottom" was 55% of
+              (canvas + buttons + paragraph) combined, not just the canvas
+              — so the invisible corner-touch zones stretched down over the
+              real Left/Right/Jump buttons and silently ate their taps
+              (an absolutely-positioned sibling always hit-tests above a
+              static one, regardless of DOM order). Direct teacher report:
+              "right arrow goes left, jump goes right" — exactly what
+              happens when the right-side corner zone (bound to 'right')
+              sits on top of the Jump button, and the left-side zone (bound
+              to 'left') sits on top of both Left and Right. Scoping this
+              box to the canvas alone means 55% is 55% of the canvas only,
+              so the corner zones stay confined to the game view. */}
+          <div style={{ position: 'relative' }}>
           <canvas
             ref={canvasRef}
             width={CANVAS_W}
@@ -938,6 +957,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
             aria-label="Move right (touch and hold)"
             role="button"
           />
+          </div>
 
           {/* Touch controls */}
           <div className="row space-between" style={{ marginTop: 8 }}>
