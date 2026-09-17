@@ -96,6 +96,19 @@ function msSince(start: number): number {
 // (Settings panel, student.worldMoveSensitivity, 0.5-2x) so a student who
 // finds the default speed too fast or too slow can adjust it themselves.
 const BASE_MOVE_SPEED = 3.6;
+// Real gas/brake pedal physics for driving (docs/TRANSPORTATION.md's Cars
+// spec) — direct teacher follow-up: the arrows alone weren't "real" pedals.
+// Steering (left/right) turns the car's own heading; Gas accelerates along
+// it, Brake decelerates, and letting go of both coasts to a stop rather
+// than holding speed forever — a car should feel like it has pedals, not
+// like walking with a reskinned model. Max speed set for "noticeably
+// faster than walking" per the design doc, without a road/grass surface
+// differential yet (that's a follow-up, not this pass).
+const CAR_MAX_SPEED = 7.5;
+const CAR_ACCEL = 6; // units/s² while Gas is held
+const CAR_BRAKE_DECEL = 11; // units/s² while Brake is held — brakes bite harder than they coast off
+const CAR_COAST_DECEL = 3; // units/s² friction when neither pedal is held
+const CAR_TURN_RATE = 2.3; // rad/s at a standstill
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
 const CAMERA_LOOK_CAP = Math.PI * 0.6;
@@ -112,11 +125,10 @@ const DRAG_PITCH_SENSITIVITY = 0.01;
 // vertical framing — horizontal FOV is vertical FOV times aspect ratio, so
 // on an iPad's portrait aspect (~0.7-0.75, the primary device for this
 // app) that height cropped the Neighbors sitting out at x=±8. Sized here
-// for a 16-unit horizontal half-extent at a 0.7 aspect (margin past
-// GROUND_HALF=14), which only makes the landscape view a bit less zoomed
-// in — a much smaller cost than cropping the map on the device that
-// matters most.
-const MAP_HEIGHT = 46;
+// with the same margin-past-GROUND_HALF ratio as before, scaled up now
+// that GROUND_HALF itself grew (14 -> 22, more room to drive) — otherwise
+// the map view would crop the newly-expanded edges of the square.
+const MAP_HEIGHT = 46 * (GROUND_HALF / 14);
 const WANDER_SPEED = 1.3; // slower than the player's walk — ambient, unhurried
 const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
 
@@ -1007,7 +1019,7 @@ interface PlayerProps {
   // instantly moves the student there (a teleport, not a walk) and drops
   // back into the normal live view. Set once by the parent's ground
   // double-click handler, consumed and cleared on the very next frame.
-  teleportTarget: React.RefObject<{ x: number; z: number } | null>;
+  teleportTarget: React.RefObject<{ x: number; z: number; facing?: number } | null>;
   // The student's currently-equipped emote (set from the Inventory hotbar,
   // the same one used everywhere else — Student Home, the to-do list),
   // shown as a thought bubble above their own character. Direct teacher
@@ -1019,11 +1031,19 @@ interface PlayerProps {
   // pattern every other optional interactive layer in this file uses.
   onSelfClick?: () => void;
   // Driving a car (docs/TRANSPORTATION.md): the player's own avatar hides
-  // while a vehicle is mounted — movement/collision/camera math is
-  // unchanged, only what's rendered at that position changes (the parent
-  // renders the car there instead; see the driving-aliased worldObjects
-  // render below).
+  // while a vehicle is mounted — collision/camera math is unchanged, only
+  // what's rendered at that position changes (the parent renders the car
+  // there instead; see the driving-aliased worldObjects render below).
   hideAvatar?: boolean;
+  // Real gas/brake pedal physics take over from free 2D movement while
+  // true — see CAR_MAX_SPEED etc above. gasRef/brakeRef are held-down
+  // states from the two pedal buttons (same simple ref-toggle pattern
+  // DpadButton already uses for touchDir); left/right steering reuses the
+  // ordinary x-axis input (touchDir.x / A-D / arrow keys), same source as
+  // walking, just interpreted as a turn instead of a direction.
+  driving?: boolean;
+  gasRef?: React.RefObject<boolean>;
+  brakeRef?: React.RefObject<boolean>;
   // Direct teacher instruction: a following companion pet must face the
   // same direction the PLAYER is currently facing, not its own travel
   // direction — so the parent needs read access to Player's own facing
@@ -1034,7 +1054,7 @@ interface PlayerProps {
   facingRef?: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1042,6 +1062,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const facing = useRef(0);
   const isMoving = useRef(false);
   const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
+  const carSpeed = useRef(0);
   // Direct teacher instruction: the equipped-emote thought bubble only
   // shows on hover (a tap, on touch), same as Neighbor name tags — not
   // shown all the time just because an emote is equipped.
@@ -1057,12 +1078,46 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     if (teleportTarget.current) {
       pos.current.x = teleportTarget.current.x;
       pos.current.z = teleportTarget.current.z;
+      if (teleportTarget.current.facing !== undefined) facing.current = teleportTarget.current.facing;
+      carSpeed.current = 0;
       walkTarget.current = null;
       teleportTarget.current = null;
       onMove(pos.current);
     }
     let moved = false;
-    if (!frozen) {
+    if (!frozen && driving) {
+      // Real gas/brake pedal physics (docs/TRANSPORTATION.md's Cars spec,
+      // direct teacher follow-up) — steering turns the car's own heading,
+      // Gas accelerates along it, Brake decelerates, neither coasts to a
+      // stop. Deliberately NOT the free omnidirectional walk model below.
+      const k = keys.current;
+      walkTarget.current = null;
+      cameraLook.current = 0;
+      cameraPitch.current = 0;
+      const steer = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
+      const gasHeld = !!gasRef?.current || k['w'] || k['arrowup'];
+      const brakeHeld = !!brakeRef?.current || k['s'] || k['arrowdown'] || k[' '];
+      if (gasHeld) carSpeed.current = Math.min(CAR_MAX_SPEED, carSpeed.current + CAR_ACCEL * dt);
+      else if (brakeHeld) carSpeed.current = Math.max(0, carSpeed.current - CAR_BRAKE_DECEL * dt);
+      else carSpeed.current = Math.max(0, carSpeed.current - CAR_COAST_DECEL * dt);
+      if (Math.abs(steer) > 0.01) {
+        // Turn rate scales down at higher speed (design doc: "so sharp
+        // spins at road speed don't feel unstable") rather than a fixed
+        // rate at every speed.
+        const turnScale = 1 - 0.4 * Math.min(1, carSpeed.current / CAR_MAX_SPEED);
+        facing.current += Math.sign(steer) * CAR_TURN_RATE * turnScale * dt;
+      }
+      if (carSpeed.current > 0.01) {
+        const dx = Math.sin(facing.current);
+        const dz = Math.cos(facing.current);
+        const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * carSpeed.current * dt, pos.current.z + dz * carSpeed.current * dt);
+        const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
+        onMove(pos.current);
+        moved = true;
+      }
+    } else if (!frozen) {
       const k = keys.current;
       let dx = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
       let dz = (k['s'] || k['arrowdown'] ? 1 : 0) - (k['w'] || k['arrowup'] ? 1 : 0) + touchDir.current.z;
@@ -1579,7 +1634,7 @@ function Park({
         // as two surfaces fight to render on top of each other), same
         // reason Pond and the walk markers all sit slightly above 0.
         return (
-          <Prop key={r.id} path="/world/models/roads/road-straight.glb" position={[pos[0], 0.01, pos[1]]} rotationY={ov?.rotationY ?? r.rotationY} scale={ov?.scale ?? ROAD_SCALE} />
+          <Prop key={r.id} path="/world/models/transportation/road-straight.glb" position={[pos[0], 0.01, pos[1]]} rotationY={ov?.rotationY ?? r.rotationY} scale={ov?.scale ?? ROAD_SCALE} />
         );
       })}
       {DECOR_PROPS.filter((d) => !layoutOverrides[d.id]?.deleted).map((d) => {
@@ -1655,6 +1710,60 @@ function DpadButton({
         style={{ width: 26, height: 26, transform: `rotate(${rotate}deg)`, pointerEvents: 'none' }}
       />
       <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+// Real Gas/Brake pedal buttons (docs/TRANSPORTATION.md's Cars spec, direct
+// teacher follow-up: the walk arrows alone didn't feel like "real" pedals).
+// Same held-down ref-toggle pattern as DpadButton, just a plain boolean
+// instead of a 2D vector — Player's driving branch reads gasRef/brakeRef
+// every frame. Replaces the Up/Down D-pad buttons while driving; Left/
+// Right stay in place for steering.
+function PedalButton({
+  label,
+  icon,
+  color,
+  pressedRef,
+  style,
+}: {
+  label: string;
+  icon: string;
+  color: string;
+  pressedRef: React.RefObject<boolean>;
+  style: React.CSSProperties;
+}) {
+  return (
+    <button
+      style={{
+        position: 'absolute',
+        width: 70,
+        height: 56,
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: 14,
+        border: 'var(--chunk, 3px) solid var(--ink, #1f4238)',
+        background: color,
+        boxShadow: '3px 3px 0 var(--ink, #1f4238)',
+        touchAction: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1,
+        ...style,
+      }}
+      onPointerDown={(e) => { e.preventDefault(); pressedRef.current = true; }}
+      onPointerUp={() => { pressedRef.current = false; }}
+      onPointerLeave={() => { pressedRef.current = false; }}
+      aria-label={label}
+    >
+      <span style={{ fontSize: 18, lineHeight: 1, pointerEvents: 'none' }}>{icon}</span>
+      <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
         {label}
       </span>
     </button>
@@ -2096,6 +2205,11 @@ export default function TownSquare() {
   const [viewingSignId, setViewingSignId] = useState<string | null>(null);
   const [isDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches);
   const touchDir = useRef({ x: 0, z: 0 });
+  // Real gas/brake pedal held-down states — same simple ref-toggle
+  // pointerdown/pointerup pattern touchDir already uses, read every
+  // frame by Player's driving branch.
+  const gasRef = useRef(false);
+  const brakeRef = useRef(false);
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
   // there — the primary cross-device movement method; the D-pad and
   // keyboard both still work and take over instantly if used.
@@ -2103,7 +2217,7 @@ export default function TownSquare() {
   const hoverTarget = useRef<{ x: number; z: number } | null>(null);
   // Direct teacher request: double-clicking a grid square in Map view
   // instantly teleports the student there and drops back into live view.
-  const teleportTarget = useRef<{ x: number; z: number } | null>(null);
+  const teleportTarget = useRef<{ x: number; z: number; facing?: number } | null>(null);
   const cameraLook = useRef(0);
   const cameraPitch = useRef(0);
   // Mouse press-and-drag look, desktop only (mirrors the ↺/↻ buttons but
@@ -2381,7 +2495,7 @@ export default function TownSquare() {
   // render the car at wherever the player's position goes from here — the
   // same movement/collision engine, just steering a different model.
   const startDriving = (obj: WorldObject) => {
-    teleportTarget.current = { x: obj.position[0], z: obj.position[2] };
+    teleportTarget.current = { x: obj.position[0], z: obj.position[2], facing: obj.rotationY };
     setDrivingObjectId(obj.id);
     setDriveConfirmId(null);
   };
@@ -2942,6 +3056,9 @@ export default function TownSquare() {
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
             onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
             hideAvatar={!!drivingObjectId}
+            driving={!!drivingObjectId}
+            gasRef={gasRef}
+            brakeRef={brakeRef}
           />
           {/* Direct teacher instruction: only birds (they fly) and fish
               (they have no legs) float beside the player — every other
@@ -3178,8 +3295,17 @@ export default function TownSquare() {
       </Canvas>
 
       <div style={{ position: 'absolute', [dpadSide]: 16, bottom: dpadBottom, width: 170, height: 170, zIndex: 10 }}>
-        <DpadButton rotate={-90} label="Up" dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
-        <DpadButton rotate={90} label="Down" dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
+        {drivingObjectId ? (
+          <>
+            <PedalButton label="Gas" icon="⛽" color="#2f9e44" pressedRef={gasRef} style={{ top: 0, left: 50 }} />
+            <PedalButton label="Brake" icon="🛑" color="#c0392b" pressedRef={brakeRef} style={{ bottom: 0, left: 50 }} />
+          </>
+        ) : (
+          <>
+            <DpadButton rotate={-90} label="Up" dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
+            <DpadButton rotate={90} label="Down" dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
+          </>
+        )}
         <DpadButton rotate={180} label="Left" dx={-1} dz={0} style={{ left: 0, top: 57 }} touchDir={touchDir} />
         <DpadButton rotate={0} label="Right" dx={1} dz={0} style={{ right: 0, top: 57 }} touchDir={touchDir} />
       </div>

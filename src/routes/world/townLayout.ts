@@ -42,7 +42,11 @@ export function resolveDraftRows<T extends { status?: 'draft' | 'published'; pen
   return out;
 }
 
-export const GROUND_HALF = 14; // meters — the walkable square (movement/placement bounds)
+// meters — the walkable square (movement/placement bounds). Was 14; direct
+// teacher request for more room to drive cars in bumped it up — every
+// existing placed building/prop/NPC keeps its own fixed coordinate, so
+// this only adds open space around the edges, nothing already placed moves.
+export const GROUND_HALF = 22;
 
 // Direct teacher instruction: Town Square was wiped down to bare ground —
 // every building, stall, road tile, and prop that used to be hand-placed

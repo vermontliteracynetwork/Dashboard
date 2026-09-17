@@ -815,7 +815,7 @@ function buildLayoutItems(): LayoutItem[] {
   return [
     ...BUILDINGS.map((b) => ({ id: b.id, modelPath: b.modelPath, position: b.position, rotationY: b.rotationY, scale: b.scale, label: b.label })),
     ...MARKET_STALLS.map((m) => ({ id: m.id, modelPath: m.modelPath, position: m.position, rotationY: m.rotationY, scale: m.scale ?? MARKET_SCALE, label: 'Market Stall' })),
-    ...ROAD_TILES.map((r) => ({ id: r.id, modelPath: '/world/models/roads/road-straight.glb', position: r.position, rotationY: r.rotationY, scale: ROAD_SCALE, label: 'Road' })),
+    ...ROAD_TILES.map((r) => ({ id: r.id, modelPath: '/world/models/transportation/road-straight.glb', position: r.position, rotationY: r.rotationY, scale: ROAD_SCALE, label: 'Road' })),
     ...DECOR_PROPS.map((d) => ({ id: d.id, modelPath: d.modelPath, position: d.position, rotationY: 0, scale: d.scale, label: 'Decoration' })),
     ...CITY_PROPS.map((c) => ({ id: c.id, modelPath: c.modelPath, position: c.position, rotationY: c.rotationY ?? 0, scale: c.scale, label: 'Street Prop' })),
   ];

@@ -1085,11 +1085,24 @@ export const useStore = create<AppState>()(
 
       // A driven car's parked position when a student exits it — ordinary
       // gameplay state, not a Build Mode content edit, so it deliberately
-      // bypasses updateWorldObject's draft/publish gate (status/
-      // publishedSnapshot untouched) instead of turning every parked car
-      // into an "unpublished change" the teacher would have to Publish.
+      // bypasses updateWorldObject's draft/publish gate (status untouched)
+      // instead of turning every parked car into an "unpublished change"
+      // the teacher would have to Publish. Real bug this fixes: if the
+      // object happened to already be mid-draft for an unrelated reason
+      // (a teacher's own pending Build Mode edit on it), resolveDraftRows
+      // shows publishedSnapshot instead of the live object for students —
+      // so the parked position would silently revert to wherever it was
+      // before the drive. Nudging position/rotationY on the snapshot too
+      // (when one exists) keeps the car exactly where it was left either
+      // way, without touching or force-publishing anything else pending.
       parkVehicle: (id, position, rotationY) => {
-        set((s) => ({ worldObjects: s.worldObjects.map((o) => (o.id === id ? { ...o, position, rotationY } : o)) }));
+        set((s) => ({
+          worldObjects: s.worldObjects.map((o) =>
+            o.id === id
+              ? { ...o, position, rotationY, publishedSnapshot: o.publishedSnapshot ? { ...o.publishedSnapshot, position, rotationY } : o.publishedSnapshot }
+              : o
+          ),
+        }));
         const updated = get().worldObjects.find((o) => o.id === id);
         if (updated) pushWorldObject(updated);
       },
