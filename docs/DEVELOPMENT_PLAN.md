@@ -72,7 +72,7 @@ A Minecraft-style free-build space, full teacher-parity catalog, locked by defau
 
 ### A10. Build Mode / World Editor (teacher-facing)
 
-Catalog: 1000+ real 3D models across dozens of packs, each with a generated thumbnail and a real-world size class (see `SIZE_REFERENCE.md` — 1.0 unit = player height, houses = ~2.2x, vehicles = ~0.65x, etc., with a live per-object unit readout on the resize control). Placement: ghost-preview, crosshair/D-pad move, 90-degree rotate, percentage-based resize +/- (fixed from a flat-add bug that could 11x a tiny object in one keypress), hammer delete. Undo/redo; Draft → Publish/Discard; local backup safety net. Paint brush (adjustable radius) and bucket for ground/sky/asset color and per-tile ground type; half-tile grid. Top View toggle, Preview-as-Student, recently-used row. Custom roles on any asset. Teacher Roster tab for NPC roles/titles.
+Catalog: 1000+ real 3D models across dozens of packs, each with a generated thumbnail and a real-world size class (see `SIZE_REFERENCE.md` — 1.0 unit = player height, houses = ~2.2x, vehicles = ~0.65x, etc., with a live per-object unit readout on the resize control). Placement: ghost-preview, crosshair/D-pad move, 90-degree rotate, percentage-based resize +/- (fixed from a flat-add bug that could 11x a tiny object in one keypress), size presets (Mini through Giant) plus a free-typed exact-size number field for any precise size in one step, hammer delete. Undo/redo; Draft → Publish/Discard; local backup safety net. Paint brush (adjustable radius) and bucket for ground/sky/asset color and per-tile ground type; half-tile grid. Top View toggle, Preview-as-Student, recently-used row. Custom roles on any asset. Teacher Roster tab for NPC roles/titles.
 
 ### A11. Pets System
 
@@ -94,6 +94,14 @@ Supabase (Postgres + Storage + realtime) backend, Zustand client store with loca
 
 The first shipped piece of what's now the larger Literacy Workspace plan (see `LITERACY_WORKSPACE.md`). Reachable from the Tools menu (subject: literacy/both). Explicit-instruction mode, one rung (subject-verb agreement): color-coded word-class puzzle pieces (currently color-only — Montessori shapes are planned but not yet added, see `LITERACY_WORKSPACE.md`) snap into labeled WHO?/DID WHAT? sockets on an open-whiteboard-styled canvas (dot-grid board surface, word-piece tray along the bottom). Reuses the platform's existing quiz mastery/retry-once-then-retire state machine rather than a second progress system. Rung completion pays into the bank register and grants a bonus spin.
 
+### A16. Transportation System (Phase 1 — Cars)
+
+Full design in `TRANSPORTATION.md`; UX research/upgrade recommendations in `DRIVING_UX_RESEARCH.md`. Any placed car-model object (filename-matched, not an allow-list) is driveable: click to mount, real steering/gas/brake physics (not the free-walk 2D movement), the driven car excluded from its own collision layer, click again to dismount with a confirm step, dismounting parks the car exactly where it was left (including for a draft-status object, via a `publishedSnapshot` patch). Town Square's walkable area was expanded for more driving room. Boats/trains/planes/drone are the next phases, not yet started.
+
+### A17. Music & Radio
+
+A shared, teacher-authored music library (title + YouTube link + tags), reachable from the new teacher "Game" tab (which also now holds Cinema and Arcade, moved out of Activities since all three are the same "play for fun, no task tracking" shape). Students start music by clicking the Concert Hall building, a placeable Boom Box prop, or a radio button that appears only while driving a car; playback is always audio-only (a visually hidden YouTube IFrame Player API embed, never a visible video surface). A Spotify-style Now Playing bar gives real play/pause, previous/next (cycling the full library), a draggable seek bar, and a volume slider; tag chips let students filter the picker the same way the teacher's Music manager does. Music stops automatically when a student exits the car it was started from.
+
 ---
 
 ## PART B — Open Backlog, by Feature Front
@@ -109,7 +117,7 @@ Full design finalized in `LITERACY_WORKSPACE.md` after a teacher Q&A round with 
 
 ### Transportation System
 
-Full design in `TRANSPORTATION.md`. Recommended build order: Cars → Boats → Trains → Planes, with a Drone added alongside Planes (same mechanics/camera/controls as the plane, per direct teacher instruction). **Not started** — no vehicle type has been built yet. Phase 1 cut = cars only, fully working mount/steer/gas-brake/road-vs-ground-speed/dismount loop, before starting boats.
+Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`. Recommended build order: Cars → Boats → Trains → Planes, with a Drone added alongside Planes (same mechanics/camera/controls as the plane, per direct teacher instruction). **Phase 1 (Cars) is shipped** — see A16. Boats is the next not-started phase.
 
 ### Pets — remaining phases of Claudia's 7-phase plan
 
