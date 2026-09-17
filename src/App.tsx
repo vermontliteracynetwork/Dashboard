@@ -26,6 +26,7 @@ import AssignmentsIndex from './routes/teacher/AssignmentsIndex';
 import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
 import PlaygroundManager from './routes/teacher/PlaygroundManager';
+import GameManager from './routes/teacher/GameManager';
 import QuestionSetDetail from './routes/teacher/QuestionSetDetail';
 import BadgeManager from './routes/teacher/BadgeManager';
 import MarketplaceManager from './routes/teacher/MarketplaceManager';
@@ -150,6 +151,7 @@ export default function App() {
             <Route path="/teacher/live/:studentId" element={<StudentLiveView />} />
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
             <Route path="/teacher/activities" element={<PlaygroundManager />} />
+            <Route path="/teacher/game" element={<GameManager />} />
             <Route path="/teacher/question-sets/:setId" element={<QuestionSetDetail />} />
             <Route path="/teacher/playground" element={<Navigate to="/teacher/activities" replace />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />

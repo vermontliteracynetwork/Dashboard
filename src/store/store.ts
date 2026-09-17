@@ -143,6 +143,9 @@ import {
   pushScratchGame,
   deleteScratchGameRemote,
   rowToScratchGame,
+  pushMusicTrack,
+  deleteMusicTrackRemote,
+  rowToMusicTrack,
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
@@ -169,6 +172,7 @@ import type {
   QuestionSet,
   CinemaVideo,
   ScratchGame,
+  MusicTrack,
   ActivityLibraryItem,
   PlanTemplate,
   WeeklyScheduleEntry,
@@ -271,6 +275,7 @@ interface AppState {
   homeRooms: HomeRoomDef[]; // every student's own Home Room floor plan (discrete rooms + one yard) — see HomeRoomDef in types.ts
   cinemaVideos: CinemaVideo[]; // videos shown in the in-world Cinema — teacher-authored, unlimited replay, no mastery tracking
   scratchGames: ScratchGame[]; // games shown in the in-world Arcade — teacher-authored MIT Scratch project links, unlimited replay, no mastery tracking
+  musicTracks: MusicTrack[]; // shared music library — car radio, Concert Hall building, and Boom Box all draw from this same list, audio only
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -499,6 +504,9 @@ interface AppState {
   addScratchGame: (game: Omit<ScratchGame, 'id' | 'createdAt'>) => string;
   updateScratchGame: (id: string, patch: Partial<ScratchGame>) => void;
   deleteScratchGame: (id: string) => void;
+  addMusicTrack: (track: Omit<MusicTrack, 'id' | 'createdAt'>) => string;
+  updateMusicTrack: (id: string, patch: Partial<MusicTrack>) => void;
+  deleteMusicTrack: (id: string) => void;
 
   // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
@@ -654,6 +662,7 @@ export const useStore = create<AppState>()(
       homeRooms: [],
       cinemaVideos: [],
       scratchGames: [],
+      musicTracks: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -822,6 +831,7 @@ export const useStore = create<AppState>()(
           onHomeRoom: (e, n, o) => set((s) => ({ homeRooms: applyArrayRow(s.homeRooms, e, rowToHomeRoom, n, o) })),
           onCinemaVideo: (e, n, o) => set((s) => ({ cinemaVideos: applyArrayRow(s.cinemaVideos, e, rowToCinemaVideo, n, o) })),
           onScratchGame: (e, n, o) => set((s) => ({ scratchGames: applyArrayRow(s.scratchGames, e, rowToScratchGame, n, o) })),
+          onMusicTrack: (e, n, o) => set((s) => ({ musicTracks: applyArrayRow(s.musicTracks, e, rowToMusicTrack, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -2645,6 +2655,25 @@ export const useStore = create<AppState>()(
       deleteScratchGame: (id) => {
         set((s) => ({ scratchGames: s.scratchGames.filter((g) => g.id !== id) }));
         deleteScratchGameRemote(id);
+      },
+
+      addMusicTrack: (track) => {
+        const id = makeId();
+        const full: MusicTrack = { ...track, id, createdAt: new Date().toISOString() };
+        set((s) => ({ musicTracks: [full, ...s.musicTracks] }));
+        pushMusicTrack(full);
+        return id;
+      },
+
+      updateMusicTrack: (id, patch) => {
+        set((s) => ({ musicTracks: s.musicTracks.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
+        const updated = get().musicTracks.find((t) => t.id === id);
+        if (updated) pushMusicTrack(updated);
+      },
+
+      deleteMusicTrack: (id) => {
+        set((s) => ({ musicTracks: s.musicTracks.filter((t) => t.id !== id) }));
+        deleteMusicTrackRemote(id);
       },
 
       addLibraryActivity: (activity) => {

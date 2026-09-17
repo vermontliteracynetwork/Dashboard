@@ -16,6 +16,7 @@ import type {
   QuestionSet,
   CinemaVideo,
   ScratchGame,
+  MusicTrack,
   RotationMode,
   ToolKey,
   ProgressMap,
@@ -619,6 +620,14 @@ const rowToScratchGame = (r: Row): ScratchGame => ({
   tags: r.tags ?? [],
 });
 
+const rowToMusicTrack = (r: Row): MusicTrack => ({
+  id: r.id,
+  title: r.title,
+  url: r.url,
+  createdAt: r.created_at,
+  tags: r.tags ?? [],
+});
+
 const rowToActivity = (r: Row): ActivityLibraryItem => ({
   id: r.id,
   subject: r.subject,
@@ -787,6 +796,7 @@ export interface HydratedState {
   homeRooms: HomeRoomDef[];
   cinemaVideos: CinemaVideo[];
   scratchGames: ScratchGame[];
+  musicTracks: MusicTrack[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
@@ -810,7 +820,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -847,9 +857,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('home_rooms').select('*'),
     supabase.from('cinema_videos').select('*'),
     supabase.from('scratch_games').select('*'),
+    supabase.from('music_tracks').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes]) {
     if (res.error) throw res.error;
   }
 
@@ -923,6 +934,7 @@ export async function fetchAll(): Promise<HydratedState> {
     homeRooms: (homeRoomsRes.data ?? []).map(rowToHomeRoom),
     cinemaVideos: (cinemaVideosRes.data ?? []).map(rowToCinemaVideo),
     scratchGames: (scratchGamesRes.data ?? []).map(rowToScratchGame),
+    musicTracks: (musicTracksRes.data ?? []).map(rowToMusicTrack),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
@@ -1227,6 +1239,16 @@ export const pushScratchGame = (g: ScratchGame) =>
   });
 export const deleteScratchGameRemote = (id: string) => remove('scratch_games', { id });
 
+export const pushMusicTrack = (m: MusicTrack) =>
+  upsert('music_tracks', {
+    id: m.id,
+    title: m.title,
+    url: m.url,
+    created_at: m.createdAt,
+    tags: m.tags ?? [],
+  });
+export const deleteMusicTrackRemote = (id: string) => remove('music_tracks', { id });
+
 export const pushRotationMode = (studentId: string, subject: Subject, mode: RotationMode) =>
   upsert('rotation_modes', { student_id: studentId, subject, mode });
 
@@ -1381,7 +1403,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1419,6 +1441,7 @@ export interface RealtimeHandlers {
   onFocus: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onCinemaVideo: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onScratchGame: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onMusicTrack: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -1469,6 +1492,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'focuses' }, wire(handlers.onFocus))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cinema_videos' }, wire(handlers.onCinemaVideo))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'scratch_games' }, wire(handlers.onScratchGame))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'music_tracks' }, wire(handlers.onMusicTrack))
     .subscribe();
 
   return () => {

@@ -479,6 +479,19 @@ export interface ScratchGame {
   tags?: string[]; // teacher-authored, free-form — same search/filter pattern as CinemaVideo.tags
 }
 
+// A shared music library — direct teacher request: a car radio, the
+// Concert Hall building, and a placeable Boom Box all draw from this same
+// list. Audio only, always — unlike CinemaVideo, there is no video
+// surface anywhere this plays (a hidden YouTube embed, sound only), so
+// unlike Cinema there's no source/upload/cover-image split to make here.
+export interface MusicTrack {
+  id: string;
+  title: string;
+  url: string; // a youtube.com/watch or youtu.be URL
+  createdAt: string;
+  tags?: string[]; // teacher-authored, free-form — same search/filter pattern as CinemaVideo.tags
+}
+
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks
 
 // A reusable activity, created once and dragged into any student's daily

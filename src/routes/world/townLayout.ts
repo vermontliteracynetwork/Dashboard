@@ -161,6 +161,15 @@ export function isCarModel(modelPath: string): boolean {
   return /\/vehicles\/car-[^/]+\.glb$/i.test(modelPath) || /\bredcar\.glb$/i.test(modelPath);
 }
 
+// Music sources — direct teacher request: the Concert Hall building and a
+// placeable Boom Box both play from the shared music library on click
+// (see MusicTrack in types.ts). Matched by filename, same pattern as
+// isCarModel above, so any future object named similarly picks this up
+// with no manifest edit.
+export function isMusicSourceModel(modelPath: string): boolean {
+  return /\bconcert-hall\.glb$/i.test(modelPath) || /\bboom-box\.glb$/i.test(modelPath);
+}
+
 // Cleared along with BUILDINGS above — rebuilt from Build Mode now.
 export const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number; scale?: number }[] = [];
 export const MARKET_SCALE = 2.6;

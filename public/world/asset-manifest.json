@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T18:28:53.790Z",
+  "generatedAt": "2026-09-17T18:44:22.303Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -4235,6 +4235,11 @@
       "path": "/world/models/platformer/tree.glb",
       "label": "Tree",
       "category": "platformer"
+    },
+    {
+      "path": "/world/models/props/boom-box.glb",
+      "label": "Boom Box",
+      "category": "props"
     },
     {
       "path": "/world/models/props/bridge.glb",

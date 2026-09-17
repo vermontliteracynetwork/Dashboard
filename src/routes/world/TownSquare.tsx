@@ -22,7 +22,8 @@ import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
+import { extractYouTubeId } from '../../lib/youtube';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
@@ -1471,40 +1472,49 @@ function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
   );
 }
 
-// A real sky texture (blue sky + clouds), direct teacher request.
-// IMPORTANT CONTEXT for whoever touches this next: two earlier attempts
-// at a photographic skybox both broke on the horizon — a runtime canvas
-// gradient, then a cloud photo — and a third, a Kenney skybox with actual
-// mountains/terrain baked in, never matched the real scenery either.
-// EquirectangularReflectionMapping assumes the image IS a true 360°
-// spherical panorama (pixel rows converging to a point at the top/bottom
-// pole); none of those three source images were actually authored that
-// way (flat seamless-tile photos or ordinary scenery shots, not real
-// panorama captures), so the pole convergence itself produced jagged
-// dark shapes — a projection/UV artifact, not leftover content, and no
-// photo swap could have fixed it. That's why this sat as a flat color
-// for a while ("make the horizon a solid sky").
-// This texture (kenney_skyboxes.zip's skybox-day.png) is different:
-// 4096x2048 (the textbook 2:1 equirect ratio), and visually inspected
-// before use — its top and bottom rows are smooth, uniform gradients
-// with no baked-in scene detail (clouds/sun sit only in the horizon
-// band, the middle of the image), exactly what clean pole convergence
-// needs. Worth a live look after this ships regardless, given the
-// history — if it still looks wrong, the fix is a different sky image,
-// not this mapping technique (the technique is the right one for a
-// correctly-authored panorama).
+// FOUR attempts at a photographic/equirect sky have now visibly broken on
+// the horizon once actually seen live: a runtime canvas gradient, a cloud
+// photo, a Kenney skybox with mountains/terrain baked in, and — despite
+// this file being visually pre-inspected for smooth, detail-free poles
+// before use — the kenney_skyboxes.zip day texture too (student report:
+// jagged translucent blue wedge shapes on the horizon, same failure
+// family as the first two). EquirectangularReflectionMapping keeps
+// producing this exact artifact class in this codebase regardless of how
+// "clean" a candidate panorama looks on static inspection, which this
+// environment cannot fully verify without a live render. Do not retry
+// this technique with a new image without an actual live visual check —
+// prefer drei's procedural <Sky> (a real shader, no image/UV mapping,
+// structurally cannot produce a pole-seam artifact) if a dynamic sky is
+// wanted again. Flat color is what has reliably worked here.
 function SkyboxBackground() {
   const { scene } = useThree();
-  const texture = useTexture('/world/sky/skybox-day.png');
   useEffect(() => {
-    texture.mapping = THREE.EquirectangularReflectionMapping;
-    texture.colorSpace = THREE.SRGBColorSpace;
-    scene.background = texture;
+    scene.background = new THREE.Color('#bfe3ff');
     return () => {
       scene.background = null;
     };
-  }, [scene, texture]);
+  }, [scene]);
   return null;
+}
+
+// Audio-only playback for the shared music library (car radio, Concert
+// Hall, Boom Box) — direct teacher instruction: always audio, never
+// video. A visually hidden YouTube embed is genuinely audio-only from the
+// student's perspective (no video surface anywhere on screen); autoplay
+// works here because mounting this iframe is itself the direct result of
+// a button tap, which satisfies the browser's autoplay-needs-a-user-
+// gesture policy. Lives outside the R3F <Canvas> (plain DOM), same as
+// every other 2D overlay in this file.
+function MusicPlayer({ ytId, title }: { ytId: string; title: string }) {
+  return (
+    <iframe
+      key={ytId}
+      title={`Now playing: ${title}`}
+      src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&playsinline=1`}
+      allow="autoplay; encrypted-media"
+      style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 'none' }}
+    />
+  );
 }
 
 // Same proximity-based label/button pattern buildings/Neighbors already
@@ -1878,6 +1888,15 @@ export default function TownSquare() {
   const [drivingObjectId, setDrivingObjectId] = useState<string | null>(null);
   const [exitConfirmActive, setExitConfirmActive] = useState(false);
   const parkVehicle = useStore((s) => s.parkVehicle);
+  // Shared music library (docs: car radio, Concert Hall, Boom Box all draw
+  // from the same list) — direct teacher request. Audio only: the actual
+  // sound comes from a visually hidden YouTube embed (see MusicPlayer
+  // above), never a video surface. One plain overlay picker (not 3D-
+  // anchored) serves all three triggers, same as every other full-screen
+  // panel in this file (showTodayTasks, showMoreMenu, ...).
+  const musicTracks = useStore((s) => s.musicTracks);
+  const [showMusicPicker, setShowMusicPicker] = useState(false);
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
   // STATIC_OBSTACLES, STATIC_WALLS) in sync with Build Mode edits,
   // including a teacher's edit landing live from another tab/device via
@@ -2785,6 +2804,54 @@ export default function TownSquare() {
           </div>
         </div>
       )}
+      {/* Shared music picker — car radio, Concert Hall, Boom Box all open
+          this same list. Direct teacher request: audio only, so tapping a
+          track just starts the hidden player below and shows a small
+          persistent Now Playing bar with a Stop button — no video ever
+          shown here. */}
+      {showMusicPicker && (
+        <div className="overlay-backdrop" onClick={() => setShowMusicPicker(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <div className="space-between">
+                <h2 style={{ margin: 0 }}>🎵 Music</h2>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowMusicPicker(false)}>✕</button>
+              </div>
+              {musicTracks.length === 0 ? (
+                <p style={{ opacity: 0.7, margin: 0 }}>No music yet. Ask your teacher to add some!</p>
+              ) : (
+                <div className="stack" style={{ gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+                  {musicTracks.map((t) => (
+                    <button
+                      key={t.id}
+                      className={`btn btn-lg ${playingTrackId === t.id ? 'btn-primary' : ''}`}
+                      style={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                      onClick={() => { setPlayingTrackId(t.id); setShowMusicPicker(false); }}
+                    >
+                      🎵 {t.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {playingTrackId && (() => {
+        const playing = musicTracks.find((t) => t.id === playingTrackId);
+        const ytId = playing ? extractYouTubeId(playing.url) : null;
+        if (!playing || !ytId) return null;
+        return (
+          <>
+            <MusicPlayer ytId={ytId} title={playing.title} />
+            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '2px solid var(--ink, #1f4238)', borderRadius: 999, boxShadow: '3px 3px 0 var(--ink, #1f4238)', padding: '6px 10px 6px 14px', fontFamily: 'system-ui, sans-serif' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎵 {playing.title}</span>
+              <button className="btn btn-sm" style={{ minHeight: 36, minWidth: 36, padding: 0 }} onClick={() => setShowMusicPicker(true)} aria-label="Change track">⏭️</button>
+              <button className="btn btn-sm btn-danger" style={{ minHeight: 36, minWidth: 36, padding: 0 }} onClick={() => setPlayingTrackId(null)} aria-label="Stop music">⏹️</button>
+            </div>
+          </>
+        );
+      })()}
       {/* Wizard ThunderSword — a real lock, direct teacher instruction: no
           backdrop-dismiss onClick, no X button, nothing but the one path
           out (go actually do an assignment) OR Help/calm-down, which this
@@ -3162,6 +3229,7 @@ export default function TownSquare() {
               ? { ...baseObj, position: [playerPos.x, 0, playerPos.z] as [number, number, number], rotationY: playerFacingRef.current }
               : baseObj;
             const isCar = isCarModel(obj.modelPath);
+            const isMusicSource = isMusicSourceModel(obj.modelPath);
             return (
             <group key={obj.id}>
               <WorldObjectRenderer
@@ -3176,6 +3244,8 @@ export default function TownSquare() {
                         if (drivingObjectId) return; // already driving a different car
                         setDriveConfirmId(obj.id);
                       }
+                  : isMusicSource && !mapView && !wasDraggingLook.current
+                    ? () => setShowMusicPicker(true)
                   : undefined
                 }
                 // Direct teacher instruction: a role-having building should
@@ -3362,6 +3432,25 @@ export default function TownSquare() {
         </button>
         <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238', textShadow: '0 1px 2px rgba(255,255,255,0.7)', lineHeight: 1 }}>Tasks</span>
       </div>
+
+      {/* Car radio — direct teacher request ("while in the car, students
+          should have a radio button"), same music picker Concert Hall and
+          the Boom Box open. Stacked above the Tasks FAB on the same corner
+          rather than crowding the Gas/Brake pedals on the opposite side,
+          and only rendered while actually driving. */}
+      {drivingObjectId && (
+        <div style={{ position: 'fixed', bottom: 204, [otherSide]: 16, zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <button
+            onClick={() => setShowMusicPicker(true)}
+            style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
+            aria-label="Play radio music"
+            title="Play radio music"
+          >
+            📻
+          </button>
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238', textShadow: '0 1px 2px rgba(255,255,255,0.7)', lineHeight: 1 }}>Radio</span>
+        </div>
+      )}
 
       {drivingObjectId ? (
         <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>

@@ -41,6 +41,9 @@ export default function TeacherNav() {
             <NavLink to="/teacher/activities" className={({ isActive }) => (isActive ? 'active' : '')}>
               🎪 Activities
             </NavLink>
+            <NavLink to="/teacher/game" className={({ isActive }) => (isActive ? 'active' : '')}>
+              🎮 Game
+            </NavLink>
             <NavLink to="/teacher/badges" className={({ isActive }) => (isActive ? 'active' : '')}>🏆 Achievements</NavLink>
             <NavLink to="/teacher/marketplace" className={({ isActive }) => (isActive ? 'active' : '')}>🛍️ Marketplace</NavLink>
             <NavLink to="/teacher/scores" className={({ isActive }) => (isActive ? 'active' : '')}>📊 Scores</NavLink>
