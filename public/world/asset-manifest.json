@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T15:20:21.280Z",
+  "generatedAt": "2026-09-17T18:12:29.053Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -294,6 +294,11 @@
     {
       "path": "/world/models/buildings/cinema.glb",
       "label": "Cinema",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/concert-hall.glb",
+      "label": "Concert Hall",
       "category": "buildings"
     },
     {
