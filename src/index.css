@@ -1661,6 +1661,36 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   border: 2px solid var(--content-border);
 }
 
+/* ---------- Literacy Manipulatives: open-whiteboard visual structure ----------
+   Direct teacher instruction: "visually structured like an open
+   whiteboard, for a specific question set" — a Polypad-style dotted
+   canvas the sockets/pieces sit on, with the piece bank styled as a
+   physical tray along the bottom, rather than a plain centered content
+   card. Frame uses this app's existing chunky-border/drop-shadow visual
+   language (see chrome-frame, tag-pill) rather than inventing a new one. */
+.grammar-board {
+  background: #ecdfc4;
+  border: var(--chunk, 4px) solid var(--ink);
+  border-radius: 20px;
+  padding: 10px;
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.grammar-board-surface {
+  background-color: #fdfcf7;
+  background-image: radial-gradient(circle, rgba(31, 17, 71, 0.12) 1.5px, transparent 1.5px);
+  background-size: 26px 26px;
+  border: 2px solid var(--content-border);
+  border-radius: 14px;
+  padding: 22px;
+}
+.grammar-board-tray {
+  margin-top: 10px;
+  background: #ddc9a0;
+  border-top: 3px dashed var(--ink);
+  border-radius: 0 0 12px 12px;
+  padding: 14px 18px;
+}
+
 /* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the
    Reading Settings tool) — a standing requirement in
    docs/NATIVE_GAME_STANDARD.md ("available as an option, not forced")

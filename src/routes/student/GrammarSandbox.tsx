@@ -197,74 +197,90 @@ export default function GrammarSandbox() {
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}>🏠 Back to Home</button>
         </div>
       ) : (
-        <div className="content-well stack" style={{ alignItems: 'center' }}>
-          <SubjectProgressBar done={state?.masteredIds.length ?? 0} total={total} />
+        // Direct teacher instruction: visually structured like an open
+        // whiteboard, for a specific question set — a dotted-grid board
+        // surface (grammar-board-surface) holding the sockets and the
+        // sentence being built, with the word-piece bank styled as a
+        // physical tray along the bottom (grammar-board-tray), Polypad-
+        // style, instead of a plain centered card. The underlying rung/
+        // mastery logic is unchanged — this is a visual restructure only.
+        <div className="grammar-board">
+          <div className="grammar-board-surface stack" style={{ alignItems: 'center' }}>
+            <SubjectProgressBar done={state?.masteredIds.length ?? 0} total={total} />
 
-          <div className="row-wrap" style={{ justifyContent: 'center' }}>
-            <div className="tag-pill" style={{ background: 'var(--purple)', color: 'white' }}>{RUNG.title}</div>
-            <ReadAloud text={RUNG.ruleSummary} settings={student.ttsSettings} />
-          </div>
-          <p style={{ maxWidth: 480, textAlign: 'center', fontWeight: 600 }}>{RUNG.ruleSummary}</p>
+            <div className="row-wrap" style={{ justifyContent: 'center' }}>
+              <div className="tag-pill" style={{ background: 'var(--purple)', color: 'white' }}>{RUNG.title}</div>
+              <ReadAloud text={RUNG.ruleSummary} settings={student.ttsSettings} />
+            </div>
+            <p style={{ maxWidth: 480, textAlign: 'center', fontWeight: 600 }}>{RUNG.ruleSummary}</p>
 
-          {/* The two labeled sockets — color-coded and text-labeled (never
-              color alone), matching Claudia's two-layer color spec: yellow
-              = naming word, coral = action word. */}
-          <div className="row-wrap" style={{ justifyContent: 'center', gap: 20 }}>
-            {RUNG.sockets.map((socket) => {
-              const filled = socket.id === 'subject' ? subjectPiece : verbPiece;
-              const color = GRAMMAR_WORD_CLASS_COLORS[socket.wordClass];
-              return (
-                <div key={socket.id} className="stack" style={{ alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.75 }}>{socket.label}</span>
-                  <div
-                    style={{
-                      minWidth: 130,
-                      minHeight: 64,
-                      borderRadius: 14,
-                      border: `4px dashed ${color}`,
-                      background: filled ? color : 'rgba(0,0,0,0.03)',
-                      color: filled ? GRAMMAR_WORD_CLASS_TEXT_COLORS[socket.wordClass] : 'inherit',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.2rem',
-                      fontWeight: 800,
-                      padding: '4px 14px',
-                    }}
-                  >
-                    {filled ? filled.text : '?'}
+            {/* The two labeled sockets — color-coded and text-labeled
+                (never color alone), matching Claudia's two-layer color
+                spec: yellow = naming word, coral = action word. */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 20 }}>
+              {RUNG.sockets.map((socket) => {
+                const filled = socket.id === 'subject' ? subjectPiece : verbPiece;
+                const color = GRAMMAR_WORD_CLASS_COLORS[socket.wordClass];
+                return (
+                  <div key={socket.id} className="stack" style={{ alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.75 }}>{socket.label}</span>
+                    <div
+                      style={{
+                        minWidth: 130,
+                        minHeight: 64,
+                        borderRadius: 14,
+                        border: `4px dashed ${color}`,
+                        background: filled ? color : 'rgba(255,255,255,0.6)',
+                        color: filled ? GRAMMAR_WORD_CLASS_TEXT_COLORS[socket.wordClass] : 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.2rem',
+                        fontWeight: 800,
+                        padding: '4px 14px',
+                      }}
+                    >
+                      {filled ? filled.text : '?'}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {sentenceReadout && (
+              <div className="row" style={{ justifyContent: 'center' }}>
+                <p style={{ fontWeight: 700, fontSize: '1.1rem', margin: 0 }}>{sentenceReadout}</p>
+                <ReadAloud text={sentenceReadout} settings={student.ttsSettings} />
+              </div>
+            )}
+
+            {pendingCorrect === true && (
+              <div className="tag-pill" style={{ background: 'var(--success)', color: 'var(--ink)', fontSize: '1rem' }}>
+                ✅ {subjectPiece?.number === 'singular'
+                  ? `${subjectPiece?.text} is one, so the action word gets an -s. Nice agreement!`
+                  : `More than one ${subjectPiece?.text.replace(/s$/, '')}, so the action word drops the -s. Nice agreement!`}
+              </div>
+            )}
+            {pendingCorrect === false && (
+              <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)', fontSize: '1rem', textAlign: 'center' }}>
+                💛 Not quite. {subjectPiece?.number === 'singular'
+                  ? `"${subjectPiece?.text}" is one, so the action word needs to end in -s.`
+                  : `"${subjectPiece?.text}" is more than one, so the action word should NOT end in -s.`}
+              </div>
+            )}
+
+            {pendingCorrect !== null && (
+              <button className="btn btn-primary btn-lg pulse-cta" onClick={goNext}>
+                {(state?.remainingIds.length ?? 0) <= 1 ? '✅ Finish' : '➡️ Next Sentence'}
+              </button>
+            )}
           </div>
 
-          {sentenceReadout && (
-            <div className="row" style={{ justifyContent: 'center' }}>
-              <p style={{ fontWeight: 700, fontSize: '1.1rem', margin: 0 }}>{sentenceReadout}</p>
-              <ReadAloud text={sentenceReadout} settings={student.ttsSettings} />
-            </div>
-          )}
-
-          {pendingCorrect === true && (
-            <div className="tag-pill" style={{ background: 'var(--success)', color: 'var(--ink)', fontSize: '1rem' }}>
-              ✅ {subjectPiece?.number === 'singular'
-                ? `${subjectPiece?.text} is one, so the action word gets an -s. Nice agreement!`
-                : `More than one ${subjectPiece?.text.replace(/s$/, '')}, so the action word drops the -s. Nice agreement!`}
-            </div>
-          )}
-          {pendingCorrect === false && (
-            <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)', fontSize: '1rem', textAlign: 'center' }}>
-              💛 Not quite. {subjectPiece?.number === 'singular'
-                ? `"${subjectPiece?.text}" is one, so the action word needs to end in -s.`
-                : `"${subjectPiece?.text}" is more than one, so the action word should NOT end in -s.`}
-            </div>
-          )}
-
-          {/* Piece bank, grouped by word class, tap to place into that
+          {/* Piece tray, grouped by word class, tap to place into that
               class's socket. Re-tapping a different piece of the same
               class swaps it freely before the pair is checked. */}
-          <div className="stack" style={{ alignItems: 'center', gap: 10 }}>
+          <div className="grammar-board-tray stack" style={{ alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Word Tray</span>
             <div className="row-wrap" style={{ justifyContent: 'center' }}>
               {activePrompt?.pieces.filter((p) => p.wordClass === 'noun').map((p) => (
                 <GrammarPieceChip key={p.id} p={p} selected={p.id === subjectPieceId} disabled={pendingCorrect !== null} onClick={() => pickPiece(p)} />
@@ -283,12 +299,6 @@ export default function GrammarSandbox() {
               🔈 Read the words
             </button>
           </div>
-
-          {pendingCorrect !== null && (
-            <button className="btn btn-primary btn-lg pulse-cta" onClick={goNext}>
-              {(state?.remainingIds.length ?? 0) <= 1 ? '✅ Finish' : '➡️ Next Sentence'}
-            </button>
-          )}
         </div>
       )}
     </div>
