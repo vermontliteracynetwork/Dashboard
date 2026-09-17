@@ -111,6 +111,7 @@ const snapValue = (v: number, enabled: boolean, step: number = GRID_SIZE) => (en
 // unitsToScale below for the conversion that makes this literally true
 // regardless of which source pack a model came from.
 const SCALE_PRESETS: { label: string; value: number }[] = [
+  { label: 'Mini', value: 0.05 },
   { label: 'Tiny', value: 0.25 },
   { label: 'Small', value: 0.5 },
   { label: 'Normal', value: 1 },
@@ -133,6 +134,44 @@ function scaleToUnits(scale: number, nativeHeight: number): number {
 }
 function unitsToScale(units: number, nativeHeight: number): number {
   return nativeHeight > 0 && isFinite(nativeHeight) ? (units * CHARACTER_HEIGHT) / nativeHeight : units;
+}
+
+// Direct teacher request: presets (Mini..Giant) and the +/- nudge only
+// ever land on round numbers or 10% steps, so getting an exact size (e.g.
+// a boom box much smaller than "Mini") took many repeated taps. This is a
+// free-typed number in the same person-height unit as everything else in
+// the resize popover — kept as local edit-buffer state so a mid-typing
+// value like "0." or "" isn't immediately stomped by the live currentUnits
+// prop on every keystroke; it only commits (and clamps via setScale's own
+// SCALE_MIN/SCALE_MAX) on blur or Enter.
+function ExactSizeInput({ currentUnits, onCommit }: { currentUnits: number; onCommit: (units: number) => void }) {
+  const [text, setText] = useState(currentUnits.toFixed(3));
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setText(currentUnits.toFixed(3));
+  }, [currentUnits]);
+  const commit = () => {
+    const n = Number(text);
+    if (isFinite(n) && n > 0) onCommit(n);
+    else setText(currentUnits.toFixed(3));
+  };
+  return (
+    <div className="row" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+      <label style={{ fontSize: '0.7rem', opacity: 0.75 }} htmlFor="exact-size-input">Exact size</label>
+      <input
+        id="exact-size-input"
+        className="input"
+        inputMode="decimal"
+        style={{ width: 80, fontSize: '0.8rem', padding: '4px 6px', textAlign: 'center' }}
+        value={text}
+        onFocus={() => { focused.current = true; }}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => { focused.current = false; commit(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+      />
+      <span style={{ fontSize: '0.7rem', opacity: 0.75 }}>x</span>
+    </div>
+  );
 }
 
 // A freshly-armed asset used to place at a flat scale of 1 regardless of
@@ -1161,6 +1200,17 @@ function SelectedObjectToolbar({
                   </span>
                   <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...growHold}>+</button>
                 </div>
+                {/* Direct teacher request: presets and the +/- nudge only
+                    land on round numbers/10% steps — a free-typed exact
+                    value is the only way to get "much smaller than Tiny"
+                    or any other precise size in one step. Uses the same
+                    unit space (1.0 = player height) as everything else
+                    here, so it stays meaningful across every source pack. */}
+                <ExactSizeInput
+                  key={selected.id}
+                  currentUnits={currentUnits}
+                  onCommit={(units) => setScale(unitsToScale(units, size.y))}
+                />
                 <p style={{ margin: 0, fontSize: '0.62rem', opacity: 0.65, textAlign: 'center' }}>1.0 = same height as a player</p>
               </div>
             );

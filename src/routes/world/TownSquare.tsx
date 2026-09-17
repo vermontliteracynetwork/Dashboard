@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState, useEffect, useMemo } from 'react';
+import { Suspense, useRef, useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -23,12 +23,12 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { extractYouTubeId } from '../../lib/youtube';
+import { extractYouTubeId, loadYouTubeApi } from '../../lib/youtube';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
-import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch } from '../../types';
+import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MusicTrack } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -1505,15 +1505,214 @@ function SkyboxBackground() {
 // a button tap, which satisfies the browser's autoplay-needs-a-user-
 // gesture policy. Lives outside the R3F <Canvas> (plain DOM), same as
 // every other 2D overlay in this file.
-function MusicPlayer({ ytId, title }: { ytId: string; title: string }) {
+//
+// Uses the real YouTube IFrame Player API (same loadYouTubeApi() helper
+// VideoTask already uses) rather than a plain <iframe autoplay> — direct
+// teacher request for "full music controls like Spotify" needs real
+// play/pause/seek/volume, which a bare iframe can't offer (mount=play,
+// unmount=stop was the old, simpler tradeoff). MusicControlBar below
+// drives this via the exposed ref.
+export interface MusicPlayerHandle {
+  play: () => void;
+  pause: () => void;
+  seekTo: (seconds: number) => void;
+  setVolume: (v: number) => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+}
+const MusicPlayer = forwardRef<MusicPlayerHandle, { ytId: string; title: string; volume: number; onEnded: () => void; onReady: () => void }>(
+  function MusicPlayer({ ytId, title, volume, onEnded, onReady }, ref) {
+    const frameId = `yt-music-${ytId}`;
+    const playerObjRef = useRef<any>(null);
+    const onEndedRef = useRef(onEnded);
+    onEndedRef.current = onEnded;
+    const onReadyRef = useRef(onReady);
+    onReadyRef.current = onReady;
+
+    useEffect(() => {
+      let cancelled = false;
+      loadYouTubeApi().then(() => {
+        if (cancelled) return;
+        playerObjRef.current = new window.YT.Player(frameId, {
+          events: {
+            onReady: (e: any) => {
+              e.target.setVolume?.(volume);
+              onReadyRef.current();
+            },
+            onStateChange: (e: any) => {
+              if (e.data === window.YT.PlayerState.ENDED) onEndedRef.current();
+            },
+          },
+        });
+      });
+      return () => {
+        cancelled = true;
+        try {
+          playerObjRef.current?.destroy?.();
+        } catch {
+          // player may already be torn down
+        }
+        playerObjRef.current = null;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ytId]);
+
+    useImperativeHandle(ref, () => ({
+      play: () => playerObjRef.current?.playVideo?.(),
+      pause: () => playerObjRef.current?.pauseVideo?.(),
+      seekTo: (seconds: number) => playerObjRef.current?.seekTo?.(seconds, true),
+      setVolume: (v: number) => playerObjRef.current?.setVolume?.(v),
+      getCurrentTime: () => playerObjRef.current?.getCurrentTime?.() ?? 0,
+      getDuration: () => playerObjRef.current?.getDuration?.() ?? 0,
+    }), []);
+
+    return (
+      <iframe
+        id={frameId}
+        title={`Now playing: ${title}`}
+        src={`https://www.youtube-nocookie.com/embed/${ytId}?enablejsapi=1&autoplay=1&playsinline=1`}
+        allow="autoplay; encrypted-media"
+        style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 'none' }}
+      />
+    );
+  }
+);
+
+// Spotify-style transport bar for the Now Playing state — direct teacher
+// request ("full music controls like Spotify UI"): play/pause, previous/
+// next (cycling the full shared library, not just whatever tag filter the
+// picker happens to have active — filtering only affects browsing, never
+// silently unmounts the player mid-song), a draggable seek bar with
+// elapsed/total time, and a volume slider, instead of the old play-only
+// pill with just Stop.
+function MusicControlBar({
+  tracks,
+  playingTrackId,
+  setPlayingTrackId,
+  onOpenPicker,
+}: {
+  tracks: MusicTrack[];
+  playingTrackId: string;
+  setPlayingTrackId: (id: string | null) => void;
+  onOpenPicker: () => void;
+}) {
+  const playing = tracks.find((t) => t.id === playingTrackId);
+  const ytId = playing ? extractYouTubeId(playing.url) : null;
+  const playerRef = useRef<MusicPlayerHandle>(null);
+  const [paused, setPaused] = useState(false);
+  const [volume, setVolumeState] = useState(80);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setPaused(false);
+    setReady(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [playingTrackId]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const iv = setInterval(() => {
+      setCurrentTime(playerRef.current?.getCurrentTime() ?? 0);
+      setDuration(playerRef.current?.getDuration() ?? 0);
+    }, 500);
+    return () => clearInterval(iv);
+  }, [ready]);
+
+  const trackIndex = tracks.findIndex((t) => t.id === playingTrackId);
+  const goRelative = (dir: 1 | -1) => {
+    if (tracks.length === 0) return;
+    const next = tracks[(trackIndex + dir + tracks.length) % tracks.length];
+    setPlayingTrackId(next.id);
+  };
+
+  const formatTime = (s: number) => {
+    if (!isFinite(s) || s < 0) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  if (!playing || !ytId) return null;
+
   return (
-    <iframe
-      key={ytId}
-      title={`Now playing: ${title}`}
-      src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&playsinline=1`}
-      allow="autoplay; encrypted-media"
-      style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 'none' }}
-    />
+    <>
+      <MusicPlayer
+        ref={playerRef}
+        ytId={ytId}
+        title={playing.title}
+        volume={volume}
+        onReady={() => setReady(true)}
+        onEnded={() => goRelative(1)}
+      />
+      <div
+        style={{
+          position: 'fixed', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 60,
+          display: 'flex', flexDirection: 'column', gap: 4, background: '#fff',
+          border: '2px solid var(--ink, #1f4238)', borderRadius: 16,
+          boxShadow: '3px 3px 0 var(--ink, #1f4238)', padding: '8px 14px', fontFamily: 'system-ui, sans-serif',
+          width: 280, maxWidth: '90vw',
+        }}
+      >
+        <div className="space-between" style={{ alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎵 {playing.title}</span>
+          <button className="btn btn-sm btn-danger" style={{ minHeight: 32, minWidth: 32, padding: 0, flexShrink: 0 }} onClick={() => setPlayingTrackId(null)} aria-label="Stop music">✕</button>
+        </div>
+        <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 10, opacity: 0.7, minWidth: 30, textAlign: 'right' }}>{formatTime(currentTime)}</span>
+          <input
+            type="range"
+            min={0}
+            max={duration || 1}
+            step={1}
+            value={Math.min(currentTime, duration || 0)}
+            onChange={(e) => {
+              const t = Number(e.target.value);
+              setCurrentTime(t);
+              playerRef.current?.seekTo(t);
+            }}
+            style={{ flex: 1 }}
+            aria-label="Seek"
+          />
+          <span style={{ fontSize: 10, opacity: 0.7, minWidth: 30 }}>{formatTime(duration)}</span>
+        </div>
+        <div className="row" style={{ gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+          <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40, padding: 0 }} onClick={() => goRelative(-1)} aria-label="Previous track">⏮️</button>
+          <button
+            className="btn btn-sm btn-primary"
+            style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }}
+            onClick={() => {
+              if (paused) { playerRef.current?.play(); setPaused(false); } else { playerRef.current?.pause(); setPaused(true); }
+            }}
+            aria-label={paused ? 'Play' : 'Pause'}
+          >
+            {paused ? '▶️' : '⏸️'}
+          </button>
+          <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40, padding: 0 }} onClick={() => goRelative(1)} aria-label="Next track">⏭️</button>
+          <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40, padding: 0 }} onClick={onOpenPicker} aria-label="Choose a track">📻</button>
+        </div>
+        <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 12 }} aria-hidden>🔈</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={volume}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setVolumeState(v);
+              playerRef.current?.setVolume(v);
+            }}
+            style={{ flex: 1 }}
+            aria-label="Volume"
+          />
+          <span style={{ fontSize: 12 }} aria-hidden>🔊</span>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -2869,21 +3068,14 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {playingTrackId && (() => {
-        const playing = musicTracks.find((t) => t.id === playingTrackId);
-        const ytId = playing ? extractYouTubeId(playing.url) : null;
-        if (!playing || !ytId) return null;
-        return (
-          <>
-            <MusicPlayer ytId={ytId} title={playing.title} />
-            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '2px solid var(--ink, #1f4238)', borderRadius: 999, boxShadow: '3px 3px 0 var(--ink, #1f4238)', padding: '6px 10px 6px 14px', fontFamily: 'system-ui, sans-serif' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎵 {playing.title}</span>
-              <button className="btn btn-sm" style={{ minHeight: 36, minWidth: 36, padding: 0 }} onClick={() => setShowMusicPicker(true)} aria-label="Change track">⏭️</button>
-              <button className="btn btn-sm btn-danger" style={{ minHeight: 36, minWidth: 36, padding: 0 }} onClick={() => setPlayingTrackId(null)} aria-label="Stop music">⏹️</button>
-            </div>
-          </>
-        );
-      })()}
+      {playingTrackId && (
+        <MusicControlBar
+          tracks={musicTracks}
+          playingTrackId={playingTrackId}
+          setPlayingTrackId={setPlayingTrackId}
+          onOpenPicker={() => setShowMusicPicker(true)}
+        />
+      )}
       {/* Wizard ThunderSword — a real lock, direct teacher instruction: no
           backdrop-dismiss onClick, no X button, nothing but the one path
           out (go actually do an assignment) OR Help/calm-down, which this
