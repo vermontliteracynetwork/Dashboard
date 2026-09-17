@@ -234,7 +234,15 @@ const STALL_BLOCK_RADIUS = 0.75;
 // size, per computeAutoScale in WorldEditor.tsx), clamped to a sane
 // range so a tiny or huge scale can't produce a degenerate obstacle. A
 // real per-object rotated-footprint system is Phase 1b, not this pass.
-const WORLD_OBJECT_COLLISION_RADIUS = (scale: number) => THREE.MathUtils.clamp(scale * 0.4, 0.4, 1.6);
+// A role-having object (Cinema, Arcade, Bank, ...) gets a taller ceiling
+// and a steeper scale-to-radius ratio — direct teacher report: these were
+// walkable/driveable straight through. A functional building is a much
+// bigger obstacle than a typical decorative prop, and role-buildings are
+// often placed at a large scale (targeting real building-height per
+// computeAutoScale), which hit the ordinary 1.6 ceiling almost
+// immediately and left most of the model's visible footprint unblocked.
+const WORLD_OBJECT_COLLISION_RADIUS = (scale: number, hasRole?: boolean) =>
+  hasRole ? THREE.MathUtils.clamp(scale * 0.55, 0.6, 3.5) : THREE.MathUtils.clamp(scale * 0.4, 0.4, 1.6);
 // `let`, not `const` — same reactive-to-layoutOverrides/worldObjects
 // reasoning as BUILDING_FOOTPRINTS above; a deleted market stall or
 // deleted/un-solid Build Mode object stops blocking too.
@@ -264,7 +272,13 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
   });
   STATIC_OBSTACLES = [
     ...MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
-    ...worldObjects.filter((o) => o.collides).map((o) => ({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale) })),
+    // Any object with a role assigned (Cinema, Arcade, Bank, Store, ...)
+    // collides regardless of its own `collides` flag — a functional
+    // building should always be solid, including ones placed before the
+    // per-object collision toggle existed (never retroactively defaulted,
+    // by design, for ordinary decorative props — but a role IS the
+    // signal that this one is a real building, not decor).
+    ...worldObjects.filter((o) => o.collides || o.role).map((o) => ({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale, !!o.role) })),
   ];
   STATIC_WALLS = wallSegments;
 }

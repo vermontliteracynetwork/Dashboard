@@ -83,7 +83,7 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   prototype: CHARACTER_HEIGHT * 1,
   toolsbits: CHARACTER_HEIGHT * 0.5,
   misc: CHARACTER_HEIGHT * 0.8,
-  roads: CHARACTER_HEIGHT * 0.15,
+  transportation: CHARACTER_HEIGHT * 0.15,
 };
 const DEFAULT_SCALE_TARGET_HEIGHT = CHARACTER_HEIGHT;
 // KAYDEN_UNIT (= CHARACTER_HEIGHT / 2) retired — see WorldEditor.tsx's own
@@ -169,7 +169,7 @@ function defaultCollidesForCategory(category: string): boolean {
 }
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
-  buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', roads: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
+  buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', transportation: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
   interior: 'Furniture',
   fantasy: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
   characters: 'Characters',
@@ -202,7 +202,7 @@ function mainCategoryFor(a: { category: string; label: string }): { main: string
 }
 const CATEGORY_ICON: Record<string, string> = {
   aquarium: '🐠', camping: '⛺', creatures: '🐾', fall: '🍂', farm: '🚜', food: '🍎', forest: '🌲', pets: '🐶', water: '💧', resources: '🪵',
-  buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', roads: '🛣️', structures: '🏗️', 'commercial-buildings': '🏬',
+  buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', transportation: '🛣️', structures: '🏗️', 'commercial-buildings': '🏬',
   fantasy: '🏰', halloween: '🎃', holiday: '🎄', japan: '⛩️', pirate: '🏴‍☠️', scifi: '🚀', platformer: '🎮',
   characters: '🧑',
   props: '🔧', prototype: '🧊', toolsbits: '🛠️', misc: '📦', vehicles: '🚗',

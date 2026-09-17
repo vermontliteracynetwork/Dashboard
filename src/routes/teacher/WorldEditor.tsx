@@ -560,7 +560,7 @@ const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
   // 'interior' moved out to its own 'Furniture' main category (below) —
   // direct instruction. Everything else structural stays under Buildings.
-  buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', roads: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
+  buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', transportation: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
   interior: 'Furniture',
   fantasy: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
   characters: 'Characters',
@@ -622,7 +622,7 @@ function mainCategoryFor(a: { category: string; label: string }): { main: string
 // category gets its own distinct icon on top of that.
 const CATEGORY_ICON: Record<string, string> = {
   aquarium: '🐠', camping: '⛺', creatures: '🐾', fall: '🍂', farm: '🚜', food: '🍎', forest: '🌲', pets: '🐶', water: '💧', resources: '🪵',
-  buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', roads: '🛣️', structures: '🏗️', 'commercial-buildings': '🏬',
+  buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', transportation: '🛣️', structures: '🏗️', 'commercial-buildings': '🏬',
   fantasy: '🏰', halloween: '🎃', holiday: '🎄', japan: '⛩️', pirate: '🏴‍☠️', scifi: '🚀', platformer: '🎮',
   characters: '🧑',
   props: '🔧', prototype: '🧊', toolsbits: '🛠️', misc: '📦',
