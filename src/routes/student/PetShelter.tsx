@@ -99,8 +99,17 @@ export default function PetShelter() {
     window.setTimeout(() => setAdoptedFlash(null), 4000);
   };
 
+  // Claudia's pets stock-review (M2): this used to guard only with the
+  // `opening` state var, the exact pattern the Adopt button's own comment
+  // above calls out as unsafe — React's `disabled` prop doesn't update
+  // until a re-render lands, so two taps inside that window can both pass
+  // the check. A ref (same fix as adoptingRef) closes that gap for real,
+  // rather than relying incidentally on openMysteryPack's own same-tick
+  // daily-cap check to reject the second call.
+  const openingRef = useRef(false);
   const handleOpenPack = () => {
-    if (opening || petHomeFull || mysteryOpenedToday || student.coins < MYSTERY_PACK_PRICE_CENTS) return;
+    if (openingRef.current || petHomeFull || mysteryOpenedToday || student.coins < MYSTERY_PACK_PRICE_CENTS) return;
+    openingRef.current = true;
     setOpening(true);
     // A brief beat before the reveal — the actual "unboxing moment" Claudia's
     // plan calls out as the transferable Webkinz/Pokémon mechanic, not just
@@ -108,6 +117,7 @@ export default function PetShelter() {
     window.setTimeout(() => {
       const before = new Set(student.discoveredPetDefIds ?? []);
       const won = openMysteryPack(studentId);
+      openingRef.current = false;
       setOpening(false);
       if (won) {
         playCashRegister();

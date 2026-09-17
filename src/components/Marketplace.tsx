@@ -8,7 +8,8 @@ import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import { playCashRegister } from '../lib/chime';
 import FocusBanner from './FocusBanner';
-import { petDefById } from '../lib/petCatalog';
+import { petDefById, thumbnailFor } from '../lib/petCatalog';
+import type { PetDef } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
 type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'pets' | 'mystuff' | 'receipts';
@@ -94,6 +95,16 @@ function CountItOutModal({ priceCents, onConfirm, onCancel }: { priceCents: numb
       </div>
     </div>
   );
+}
+
+// Claudia's pets stock-review (L2): every other pet-render site (Pet
+// Shelter, Pet Journal, the Home Room care panel) uses the real model
+// thumbnail with a paw-icon fallback on a 404 — this was the one spot
+// still showing a plain emoji regardless of which pet it was.
+function OwnedPetThumb({ def }: { def: PetDef }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span style={{ fontSize: '1.8rem' }}>🐾</span>;
+  return <img src={thumbnailFor(def)} alt={def.name} onError={() => setFailed(true)} style={{ width: 40, height: 40, objectFit: 'contain' }} />;
 }
 
 function isAvailableToday(item: MarketplaceItem): boolean {
@@ -703,7 +714,7 @@ export default function Marketplace() {
                         return (
                           <div key={pet.id} className="shop-item-card">
                             <div className="shop-item-icon-frame" style={{ outline: pet.following ? '3px solid var(--purple)' : 'none' }}>
-                              <span style={{ fontSize: '1.8rem' }}>🐾</span>
+                              {def ? <OwnedPetThumb def={def} /> : <span style={{ fontSize: '1.8rem' }}>🐾</span>}
                             </div>
                             <strong style={{ fontSize: '0.75rem' }}>{pet.customName || def?.name}</strong>
                             {pet.following && <span className="tag-pill" style={{ fontSize: '0.6rem', background: 'var(--purple)', color: '#fff' }}>Walking with you</span>}

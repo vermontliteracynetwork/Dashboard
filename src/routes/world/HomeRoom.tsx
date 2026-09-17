@@ -8,9 +8,10 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon } from '../../lib/petCatalog';
+import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor } from '../../lib/petCatalog';
+import type { PetDef } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
-import type { WorldObject, WallSegment, HomeRoomKind } from '../../types';
+import type { WorldObject, WallSegment, HomeRoomKind, StudentPet } from '../../types';
 
 // The student-facing counterpart to WorldEditor.tsx's teacher Build Mode —
 // "the same build mode features the teacher has should be simplified
@@ -363,6 +364,153 @@ function WalkTargetMarker({ walkTarget }: { walkTarget: React.RefObject<{ x: num
   );
 }
 
+// Claudia's pets stock-review (H1/H2): the rename field used to be a
+// controlled input bound straight to `pet.customName`, firing a full
+// Supabase upsert on every keystroke and, since renamePet no-ops on an
+// empty/whitespace name, silently refusing to let a student clear the
+// field to retype it (React snaps the input back to the old name the
+// instant the store ignores an empty update). Local draft state fixes
+// both: typing is free and local, and the store/network write only
+// happens once, on blur or Enter.
+function PetCareCard({
+  pet,
+  def,
+  studentId,
+  flashSaved,
+}: {
+  pet: StudentPet;
+  def: PetDef | undefined;
+  studentId: string;
+  flashSaved: () => void;
+}) {
+  const carePet = useStore((s) => s.carePet);
+  const renamePet = useStore((s) => s.renamePet);
+  const setFollowingPet = useStore((s) => s.setFollowingPet);
+  const sellPet = useStore((s) => s.sellPet);
+  const [nameDraft, setNameDraft] = useState(pet.customName);
+  const [confirmSell, setConfirmSell] = useState(false);
+  const canFollow = canPetFollow(pet.trainingProgress);
+
+  useEffect(() => setNameDraft(pet.customName), [pet.customName]);
+
+  const commitName = () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) { setNameDraft(pet.customName); return; }
+    if (trimmed !== pet.customName) renamePet(pet.id, trimmed);
+  };
+
+  return (
+    <div style={{ border: '2px solid var(--content-border, #ccc)', borderRadius: 10, padding: 8 }}>
+      <input
+        value={nameDraft}
+        onChange={(e) => setNameDraft(e.target.value)}
+        onBlur={commitName}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 44 }}
+      />
+      <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>
+        {def?.name} • {growthStageIcon(growthStageFor(pet.trainingProgress))} {growthStageLabel(growthStageFor(pet.trainingProgress))}
+        {pet.following ? ' • 🚶 walking with you' : ''}
+      </div>
+      {/* SEL: a feelings-word tag alongside the number, not just a low bar —
+          naming the internal state tied to its visible cause is the actual
+          SEL rep (Claudia's plan, Phase 5), displaced onto a companion
+          instead of the student's own face. Claudia's stock-review: this
+          used to only ever name the NEGATIVE feeling (below 40) — a
+          one-directional vocabulary lesson that never taught the positive
+          words (Happy/Loved/Healthy) a high stat deserves just as much. */}
+      {([
+        ['🍗 Food', pet.food, 'Hungry', 'Full'],
+        ['💞 Social', pet.social, 'Lonely', 'Loved'],
+        ['❤️ Health', pet.health, 'Not feeling well', 'Healthy'],
+      ] as const).map(([label, value, lowFeeling, highFeeling]) => (
+        <div key={label} style={{ marginBottom: 3 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
+            <span>{label}{value < 40 ? ` (${lowFeeling})` : value >= 80 ? ` (${highFeeling})` : ''}</span><span>{Math.round(value)}</span>
+          </div>
+          <div style={{ height: 5, borderRadius: 3, background: '#eee', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e', transition: 'width 0.3s ease-out' }} />
+          </div>
+        </div>
+      ))}
+      <div style={{ fontSize: 9, opacity: 0.7, margin: '4px 0' }}>
+        🎓 Training: {pet.trainingProgress} {canFollow ? '(ready to walk with you!)' : `(${PET_FOLLOW_TRAINING_THRESHOLD - pet.trainingProgress} more assignments to unlock)`}
+      </div>
+      {/* ABA shaping ladder (Claudia's plan, Phase 4) — successive
+          milestones on the same counter, purely presentational badges. */}
+      {milestonesReached(pet.trainingProgress).length > 0 && (
+        <div className="row-wrap" style={{ gap: 3, marginBottom: 4 }}>
+          {milestonesReached(pet.trainingProgress).map((m) => (
+            <span key={m.label} className="tag-pill" style={{ fontSize: 8, background: '#f1eafe' }}>{m.icon} {m.label}</span>
+          ))}
+        </div>
+      )}
+      {nextMilestone(pet.trainingProgress) && (
+        <div style={{ fontSize: 8, opacity: 0.6, marginBottom: 4 }}>
+          Next: {nextMilestone(pet.trainingProgress)!.icon} {nextMilestone(pet.trainingProgress)!.label} at {nextMilestone(pet.trainingProgress)!.threshold}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
+        <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
+        <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'play'); flashSaved(); }}>🎾 Play</button>
+        <button
+          className="btn btn-sm"
+          style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', opacity: canFollow ? 1 : 0.4, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
+          disabled={!canFollow}
+          onClick={() => setFollowingPet(studentId, pet.following ? null : pet.id)}
+        >
+          {pet.following ? '🚶 Unset companion' : '🚶 Set as companion'}
+        </button>
+        <button
+          className="btn btn-sm"
+          style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', background: confirmSell ? '#c0392b' : undefined, color: confirmSell ? '#fff' : undefined }}
+          onClick={() => {
+            if (confirmSell) { sellPet(pet.id); setConfirmSell(false); }
+            else { setConfirmSell(true); setTimeout(() => setConfirmSell(false), 2500); }
+          }}
+        >
+          {confirmSell ? 'Sure? Tap again' : '💰 Sell'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Claudia's pets stock-review (open item, upgraded to MEDIUM given pets
+// are the current priority): a newly adopted pet had zero 3D presence
+// anywhere until trained enough to follow in Town Square — Home Room only
+// ever showed a 2D stat card. Per the Webkinz/Neopets comparison in that
+// review, a just-adopted pet should be visible and "there" immediately,
+// even before it's grown. Static/idle-only is fine here (no follow logic,
+// no walk clip needed) — this is presence, not the companion mechanic.
+const HOME_PET_SCALE_MIN = 0.001;
+const HOME_PET_SCALE_MAX = 3;
+function HomePetPresence({ pet, def, position }: { pet: StudentPet; def: PetDef; position: [number, number, number] }) {
+  const { scene, animations } = useGLTF(def.modelPath);
+  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
+  const stage = growthStageFor(pet.trainingProgress);
+  const scale = useMemo(() => {
+    const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
+    if (!(size.y > 0) || !isFinite(size.y)) return 1;
+    const target = def.targetHeight * growthScaleFactor(stage);
+    return THREE.MathUtils.clamp(target / size.y, HOME_PET_SCALE_MIN, HOME_PET_SCALE_MAX);
+  }, [scene, def, stage]);
+  const group = useRef<THREE.Group>(null);
+  const { actions } = useAnimations(animations, group);
+  useEffect(() => {
+    const idleKey = Object.keys(actions).find((k) => k.toLowerCase().includes('idle'));
+    const idle = idleKey ? actions[idleKey] : undefined;
+    idle?.reset().play();
+    return () => { idle?.stop(); };
+  }, [actions]);
+  return (
+    <group ref={group} position={position}>
+      <primitive object={cloned} scale={scale} />
+    </group>
+  );
+}
+
 const BACKUP_KEY = 'homeplot-home-room-backup-v1';
 function writeLocalBackup(studentId: string, objects: WorldObject[]) {
   try {
@@ -387,10 +535,6 @@ export default function HomeRoom() {
   const updateHomeRoom = useStore((s) => s.updateHomeRoom);
   const deleteHomeRoom = useStore((s) => s.deleteHomeRoom);
   const pets = useStore((s) => s.pets);
-  const carePet = useStore((s) => s.carePet);
-  const renamePet = useStore((s) => s.renamePet);
-  const setFollowingPet = useStore((s) => s.setFollowingPet);
-  const sellPet = useStore((s) => s.sellPet);
   const student = students.find((s) => s.id === currentStudentId);
 
   useEffect(() => {
@@ -428,7 +572,6 @@ export default function HomeRoom() {
   const ensuredYardRef = useRef(false);
 
   const [petPanelOpen, setPetPanelOpen] = useState(false);
-  const [petConfirmSellId, setPetConfirmSellId] = useState<string | null>(null);
 
   // Declared up here (not down by topView's own definition below) so these
   // two hook calls always run before either of this component's early
@@ -852,85 +995,9 @@ export default function HomeRoom() {
             <p style={{ fontSize: 11, opacity: 0.7 }}>No pets yet. Adopt one at the 🐾 Pet Shelter in Town Square!</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {myPets.map((pet) => {
-                const def = petDefById(pet.petDefId);
-                const canFollow = canPetFollow(pet.trainingProgress);
-                return (
-                  <div key={pet.id} style={{ border: '2px solid var(--content-border, #ccc)', borderRadius: 10, padding: 8 }}>
-                    <input
-                      value={pet.customName}
-                      onChange={(e) => renamePet(pet.id, e.target.value)}
-                      style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 44 }}
-                    />
-                    <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>
-                      {def?.name} • {growthStageIcon(growthStageFor(pet.trainingProgress))} {growthStageLabel(growthStageFor(pet.trainingProgress))}
-                      {pet.following ? ' • 🚶 walking with you' : ''}
-                    </div>
-                    {/* SEL: a feelings-word tag alongside the number, not
-                        just a low bar — naming the internal state tied to
-                        its visible cause is the actual SEL rep (Claudia's
-                        plan, Phase 5), displaced onto a companion instead
-                        of the student's own face. */}
-                    {([['🍗 Food', pet.food, 'Hungry'], ['💞 Social', pet.social, 'Lonely'], ['❤️ Health', pet.health, 'Not feeling well']] as const).map(([label, value, feeling]) => (
-                      <div key={label} style={{ marginBottom: 3 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
-                          <span>{label}{value < 40 ? ` (${feeling})` : ''}</span><span>{Math.round(value)}</span>
-                        </div>
-                        <div style={{ height: 5, borderRadius: 3, background: '#eee', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e', transition: 'width 0.3s ease-out' }} />
-                        </div>
-                      </div>
-                    ))}
-                    <div style={{ fontSize: 9, opacity: 0.7, margin: '4px 0' }}>
-                      🎓 Training: {pet.trainingProgress} {canFollow ? '(ready to walk with you!)' : `(${PET_FOLLOW_TRAINING_THRESHOLD - pet.trainingProgress} more assignments to unlock)`}
-                    </div>
-                    {/* ABA shaping ladder (Claudia's plan, Phase 4) —
-                        successive milestones on the same counter, purely
-                        presentational badges. */}
-                    {milestonesReached(pet.trainingProgress).length > 0 && (
-                      <div className="row-wrap" style={{ gap: 3, marginBottom: 4 }}>
-                        {milestonesReached(pet.trainingProgress).map((m) => (
-                          <span key={m.label} className="tag-pill" style={{ fontSize: 8, background: '#f1eafe' }}>{m.icon} {m.label}</span>
-                        ))}
-                      </div>
-                    )}
-                    {nextMilestone(pet.trainingProgress) && (
-                      <div style={{ fontSize: 8, opacity: 0.6, marginBottom: 4 }}>
-                        Next: {nextMilestone(pet.trainingProgress)!.icon} {nextMilestone(pet.trainingProgress)!.label} at {nextMilestone(pet.trainingProgress)!.threshold}
-                      </div>
-                    )}
-                    {/* Claudia's pet audit: Feed/Pet/Play were the only
-                        interactive controls in this whole panel that never
-                        called flashSaved() — every other action here does
-                        (room name, wall color, floor texture, house
-                        exterior), so these read as weaker/less confirmed
-                        than everything around them. */}
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
-                      <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
-                      <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'play'); flashSaved(); }}>🎾 Play</button>
-                      <button
-                        className="btn btn-sm"
-                        style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', opacity: canFollow ? 1 : 0.4, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
-                        disabled={!canFollow}
-                        onClick={() => setFollowingPet(student.id, pet.following ? null : pet.id)}
-                      >
-                        {pet.following ? '🚶 Unset companion' : '🚶 Set as companion'}
-                      </button>
-                      <button
-                        className="btn btn-sm"
-                        style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', background: petConfirmSellId === pet.id ? '#c0392b' : undefined, color: petConfirmSellId === pet.id ? '#fff' : undefined }}
-                        onClick={() => {
-                          if (petConfirmSellId === pet.id) { sellPet(pet.id); setPetConfirmSellId(null); }
-                          else { setPetConfirmSellId(pet.id); setTimeout(() => setPetConfirmSellId((cur) => (cur === pet.id ? null : cur)), 2500); }
-                        }}
-                      >
-                        {petConfirmSellId === pet.id ? 'Sure? Tap again' : '💰 Sell'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {myPets.map((pet) => (
+                <PetCareCard key={pet.id} pet={pet} def={petDefById(pet.petDefId)} studentId={student.id} flashSaved={flashSaved} />
+              ))}
             </div>
           )}
         </div>
@@ -997,6 +1064,21 @@ export default function HomeRoom() {
               }}
               onClick={mode === 'view' ? () => { const back = interiorRooms[0]; if (back) switchRoom(back.id); } : undefined}
             />
+            <Suspense fallback={null}>
+              {myPets.map((pet, i) => {
+                const def = petDefById(pet.petDefId);
+                if (!def) return null;
+                const spread = (i - (myPets.length - 1) / 2) * 1.4;
+                return (
+                  <HomePetPresence
+                    key={pet.id}
+                    pet={pet}
+                    def={def}
+                    position={[spread, 0, -(halfD + EXTERIOR_CLEARANCE) + 2.2]}
+                  />
+                );
+              })}
+            </Suspense>
           </>
         ) : (
           <>

@@ -537,6 +537,16 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path
     };
   }, [actions]);
   const current = useRef<'idle' | 'walk'>('idle');
+  // Claudia's pets stock-review (M1): 9 of the 38 adoptable companions ship
+  // with no walk/run clip at all (confirmed by parsing every catalog GLB's
+  // own animation list), so those pets used to glide across the ground in
+  // a rigid rest pose while "following" — a real, visible break in the one
+  // moment the companion is supposed to feel alive. A lightweight
+  // procedural bob (bounce height + a little lean into the turn) covers
+  // every such pet immediately, without waiting on re-exported GLBs with
+  // real walk clips.
+  const bobPhase = useRef(0);
+  const bobGroup = useRef<THREE.Group>(null);
   useEffect(() => {
     if (floating) return; // no walk/idle animation for a hovering fish companion
     // Claudia's pet audit: this was silent by design (most pet packs simply
@@ -545,14 +555,30 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path
     // console.warn Player/WanderBodyModel already use for a missing idle
     // clip — QA visibility, not a user-facing message.
     if (!clipNames.idle) console.warn(`[TownSquare] pet ${path}: no "idle" animation clip found`);
-    if (!clipNames.walk) console.warn(`[TownSquare] pet ${path}: no "walk"/"run" animation clip found — will not animate while moving`);
+    if (!clipNames.walk) console.warn(`[TownSquare] pet ${path}: no "walk"/"run" animation clip found — using a procedural bob fallback while moving`);
     const idle = clipNames.idle ? actions[clipNames.idle] : undefined;
     idle?.reset().play();
     current.current = 'idle';
     return () => { idle?.stop(); };
   }, [actions, floating, clipNames, path]);
-  useFrame(() => {
-    if (floating || !clipNames.walk) return; // no walk clip in this pack — stay on idle rather than a hard pose-snap
+  useFrame((_, dt) => {
+    if (floating) return;
+    if (!clipNames.walk) {
+      // No real walk clip — bounce/lean the whole model instead of a hard
+      // pose-snap or a motionless glide.
+      if (bobGroup.current) {
+        if (isMovingRef.current) {
+          bobPhase.current += dt * 8;
+          bobGroup.current.position.y = Math.abs(Math.sin(bobPhase.current)) * 0.06 * scale;
+          bobGroup.current.rotation.z = Math.sin(bobPhase.current) * 0.08;
+        } else if (bobGroup.current.position.y !== 0 || bobGroup.current.rotation.z !== 0) {
+          bobPhase.current = 0;
+          bobGroup.current.position.y = 0;
+          bobGroup.current.rotation.z = 0;
+        }
+      }
+      return;
+    }
     const next = isMovingRef.current ? 'walk' : 'idle';
     if (next === current.current) return;
     const from = clipNames[current.current];
@@ -563,7 +589,9 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path
   });
   return (
     <group ref={group}>
-      <primitive object={cloned} scale={scale} />
+      <group ref={bobGroup}>
+        <primitive object={cloned} scale={scale} />
+      </group>
     </group>
   );
 }
