@@ -8,7 +8,7 @@ import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall } from '../../lib/wallGeometry';
 import {
-  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel,
+  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt,
 } from '../world/townLayout';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
@@ -2063,6 +2063,12 @@ export default function WorldEditor() {
   // same way an overlapping placement already does — visual feedback for
   // exactly the state that's about to reject the click.
   const placementNeedsWall = !!(armedAsset && ghostPos && DOOR_WINDOW_RE.test(armedAsset.label) && !ghostPos.wallSnapped);
+  // Boats (docs/BOATS_DESIGN.md §5) work anywhere on land visually, but
+  // only actually drive within painted water — same soft, non-blocking
+  // warning as placementNeedsWall above (a teacher can still place off
+  // water on purpose, e.g. staging a boat before painting the pond around
+  // it; this never hard-blocks the click).
+  const placementNeedsWater = !!(armedAsset && ghostPos && isBoatModel(armedAsset.path) && !isWaterAt(ghostPos.x, ghostPos.z, groundPatches));
   const selectedWall = selection?.kind === 'wall' ? wallSegments.find((w) => w.id === selection.id) ?? null : null;
   const wallPreview = wallMode && wallStart && wallEnd ? { id: '__preview__', x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_DEFAULT_HEIGHT, thickness: WALL_DEFAULT_THICKNESS, createdAt: '' } : null;
 
@@ -2481,6 +2487,7 @@ export default function WorldEditor() {
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: placementOverlap ? '#fff3ea' : '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
               {placementOverlap && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Overlapping {placementOverlap} — that's OK, just checking</div>}
+              {placementNeedsWater && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Needs water to actually drive — paint some with the ground brush</div>}
             </div>
           )}
           {hammerMode && (
@@ -2592,7 +2599,7 @@ export default function WorldEditor() {
                     rotationY: ghostPos.rotationY,
                     scale: armedDefaultScale,
                     createdAt: '',
-                    tintColor: placementOverlap || placementNeedsWall ? OVERLAP_COLOR : undefined,
+                    tintColor: placementOverlap || placementNeedsWall || placementNeedsWater ? OVERLAP_COLOR : undefined,
                   }}
                   opacity={0.55}
                 />
@@ -2600,8 +2607,8 @@ export default function WorldEditor() {
                     cell plus a crisp wireframe cage on the exact footprint,
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
-                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap || placementNeedsWall ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
-                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap || placementNeedsWall ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap || placementNeedsWall || placementNeedsWater ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
+                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap || placementNeedsWall || placementNeedsWater ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
 

@@ -22,7 +22,7 @@ import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { extractYouTubeId, loadYouTubeApi } from '../../lib/youtube';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
@@ -110,6 +110,19 @@ const CAR_ACCEL = 6; // units/s² while Gas is held
 const CAR_BRAKE_DECEL = 11; // units/s² while Brake is held — brakes bite harder than they coast off
 const CAR_COAST_DECEL = 3; // units/s² friction when neither pedal is held
 const CAR_TURN_RATE = 2.3; // rad/s at a standstill
+// Boats (docs/BOATS_DESIGN.md, Transportation Phase 2) — reuse the same
+// D-pad as walking rather than a separate pedal control surface, per the
+// design doc's "no new control surface" spec: up/down is throttle
+// forward/reverse, left/right is turn, exactly like ordinary movement
+// input, just interpreted as throttle+turn instead of a direction. ~1.3x
+// walking speed, gentle accel ramp, reverse capped slower than forward
+// (real boats reverse more cautiously), turn rate a touch gentler than a
+// car's for a calmer, less twitchy feel on open water.
+const BOAT_MAX_SPEED = BASE_MOVE_SPEED * 1.3;
+const BOAT_REVERSE_MAX_SPEED = BASE_MOVE_SPEED * 0.6;
+const BOAT_ACCEL = 9; // units/s² — reaches top speed in ~0.5s per the design doc
+const BOAT_COAST_DECEL = 3; // units/s² — drifts down to a stop rather than braking hard
+const BOAT_TURN_RATE = 1.8; // rad/s at a standstill
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
 const CAMERA_LOOK_CAP = Math.PI * 0.6;
@@ -372,6 +385,18 @@ function blockObstaclesSlide(curX: number, curZ: number, targetX: number, target
     else [bx, bz] = [curX, curZ];
   }
   return blockWallSegments(bx, bz, STATIC_WALLS);
+}
+
+// Boats (docs/BOATS_DESIGN.md §1/§4): bump-and-slide against the water
+// boundary instead of a hard wall or a dead stop — mirrors
+// blockObstaclesSlide's own "try the full move, then try sliding along
+// one axis, then stay put" shape, just constraining TO water (isWaterAt)
+// rather than avoiding circular obstacles.
+function slideWithinWater(curX: number, curZ: number, targetX: number, targetZ: number, groundPatches: GroundPatch[]): [number, number] {
+  if (isWaterAt(targetX, targetZ, groundPatches)) return [targetX, targetZ];
+  if (isWaterAt(targetX, curZ, groundPatches)) return [targetX, curZ];
+  if (isWaterAt(curX, targetZ, groundPatches)) return [curX, targetZ];
+  return [curX, curZ];
 }
 
 // Either a quest Neighbor or a Townsperson, once talking starts — the
@@ -1059,6 +1084,17 @@ interface PlayerProps {
   driving?: boolean;
   gasRef?: React.RefObject<boolean>;
   brakeRef?: React.RefObject<boolean>;
+  // Which vehicle physics `driving` should use — cars keep the gas/brake
+  // pedal model above; boats (docs/BOATS_DESIGN.md) reuse the ordinary
+  // D-pad/touchDir input as throttle+turn instead, so they read `touchDir`/
+  // keys directly rather than gasRef/brakeRef. Defaults to 'car' so every
+  // existing call site (which only ever drove cars before boats existed)
+  // keeps working unchanged.
+  vehicleKind?: 'car' | 'boat';
+  // Boats only: the painted water patches driving must stay inside of (see
+  // isWaterAt in townLayout.ts) — a bump-and-slide boundary, never a hard
+  // wall or a crash, per the design doc.
+  groundPatches?: GroundPatch[];
   // Direct teacher instruction: a following companion pet must face the
   // same direction the PLAYER is currently facing, not its own travel
   // direction — so the parent needs read access to Player's own facing
@@ -1069,7 +1105,7 @@ interface PlayerProps {
   facingRef?: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, vehicleKind, groundPatches }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1078,6 +1114,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const isMoving = useRef(false);
   const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
   const carSpeed = useRef(0);
+  const boatSpeed = useRef(0);
   // Direct teacher instruction: the equipped-emote thought bubble only
   // shows on hover (a tap, on touch), same as Neighbor name tags — not
   // shown all the time just because an emote is equipped.
@@ -1095,12 +1132,48 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       pos.current.z = teleportTarget.current.z;
       if (teleportTarget.current.facing !== undefined) facing.current = teleportTarget.current.facing;
       carSpeed.current = 0;
+      boatSpeed.current = 0;
       walkTarget.current = null;
       teleportTarget.current = null;
       onMove(pos.current);
     }
     let moved = false;
-    if (!frozen && driving) {
+    if (!frozen && driving && vehicleKind === 'boat') {
+      // Boat throttle+turn physics (docs/BOATS_DESIGN.md §1/§4) — reuses
+      // the ordinary D-pad/touchDir/WASD input, up/down as throttle
+      // forward/reverse, left/right as turn, rather than the car's
+      // dedicated gas/brake pedals (no new control surface, per the design
+      // doc). Releasing throttle coasts down instead of stopping dead.
+      const k = keys.current;
+      walkTarget.current = null;
+      cameraLook.current = 0;
+      cameraPitch.current = 0;
+      const steer = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
+      const throttle = THREE.MathUtils.clamp(
+        (k['w'] || k['arrowup'] ? 1 : 0) - (k['s'] || k['arrowdown'] ? 1 : 0) - touchDir.current.z,
+        -1,
+        1
+      );
+      if (throttle > 0.01) boatSpeed.current = Math.min(BOAT_MAX_SPEED, boatSpeed.current + BOAT_ACCEL * dt);
+      else if (throttle < -0.01) boatSpeed.current = Math.max(-BOAT_REVERSE_MAX_SPEED, boatSpeed.current - BOAT_ACCEL * dt);
+      else if (boatSpeed.current > 0) boatSpeed.current = Math.max(0, boatSpeed.current - BOAT_COAST_DECEL * dt);
+      else if (boatSpeed.current < 0) boatSpeed.current = Math.min(0, boatSpeed.current + BOAT_COAST_DECEL * dt);
+      if (Math.abs(steer) > 0.01) {
+        const turnScale = 1 - 0.4 * Math.min(1, Math.abs(boatSpeed.current) / BOAT_MAX_SPEED);
+        facing.current += Math.sign(steer) * BOAT_TURN_RATE * turnScale * dt;
+      }
+      if (Math.abs(boatSpeed.current) > 0.01) {
+        const dx = Math.sin(facing.current);
+        const dz = Math.cos(facing.current);
+        const [bx, bz] = slideWithinWater(pos.current.x, pos.current.z, pos.current.x + dx * boatSpeed.current * dt, pos.current.z + dz * boatSpeed.current * dt, groundPatches ?? []);
+        const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        pos.current.x = cx;
+        pos.current.z = cz;
+        onMove(pos.current);
+        moved = true;
+      }
+    } else if (!frozen && driving) {
       // Real gas/brake pedal physics (docs/TRANSPORTATION.md's Cars spec,
       // direct teacher follow-up) — steering turns the car's own heading,
       // Gas accelerates along it, Brake decelerates, neither coasts to a
@@ -2087,6 +2160,13 @@ export default function TownSquare() {
   const [drivingObjectId, setDrivingObjectId] = useState<string | null>(null);
   const [exitConfirmActive, setExitConfirmActive] = useState(false);
   const parkVehicle = useStore((s) => s.parkVehicle);
+  // Boats (docs/BOATS_DESIGN.md, Transportation Phase 2) need to know which
+  // painted patches are water, both to drive within them (Player's own
+  // slideWithinWater) and to tell a car apart from a boat for the
+  // mount/exit copy and HUD below.
+  const groundPatches = useStore((s) => s.groundPatches);
+  const drivingObj = drivingObjectId ? worldObjects.find((o) => o.id === drivingObjectId) : undefined;
+  const drivingIsBoat = !!drivingObj && isBoatModel(drivingObj.modelPath);
   // Shared music library (docs: car radio, Concert Hall, Boom Box all draw
   // from the same list) — direct teacher request. Audio only: the actual
   // sound comes from a visually hidden YouTube embed (see MusicPlayer
@@ -3366,6 +3446,8 @@ export default function TownSquare() {
             onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
             hideAvatar={!!drivingObjectId}
             driving={!!drivingObjectId}
+            vehicleKind={drivingIsBoat ? 'boat' : 'car'}
+            groundPatches={groundPatches}
             gasRef={gasRef}
             brakeRef={brakeRef}
           />
@@ -3453,6 +3535,8 @@ export default function TownSquare() {
               ? { ...baseObj, position: [playerPos.x, 0, playerPos.z] as [number, number, number], rotationY: playerFacingRef.current }
               : baseObj;
             const isCar = isCarModel(obj.modelPath);
+            const isBoat = isBoatModel(obj.modelPath);
+            const isVehicle = isCar || isBoat;
             const isMusicSource = isMusicSourceModel(obj.modelPath);
             return (
             <group key={obj.id}>
@@ -3462,10 +3546,10 @@ export default function TownSquare() {
                   obj.role === 'closed' && !mapView && !wasDraggingLook.current ? () => setClosedBuildingName(obj.customName || obj.label)
                   : obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
                   : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
-                  : isCar && !mapView && !wasDraggingLook.current
+                  : isVehicle && !mapView && !wasDraggingLook.current
                     ? () => {
                         if (isDriving) { setExitConfirmActive(true); return; }
-                        if (drivingObjectId) return; // already driving a different car
+                        if (drivingObjectId) return; // already driving a different vehicle
                         setDriveConfirmId(obj.id);
                       }
                   : isMusicSource && !mapView && !wasDraggingLook.current
@@ -3547,20 +3631,23 @@ export default function TownSquare() {
                   </div>
                 </Html>
               )}
-              {/* Driveable cars (docs/TRANSPORTATION.md) — direct teacher
-                  spec: a confirmation before mounting, and another before
-                  exiting, same visual pattern as the role-object Confirm
-                  card above. */}
+              {/* Driveable cars/boats (docs/TRANSPORTATION.md,
+                  docs/BOATS_DESIGN.md §1) — direct teacher spec: a
+                  confirmation before mounting, and another before exiting,
+                  same visual pattern as the role-object Confirm card above.
+                  Boats reuse the exact same confirm-card pattern as cars,
+                  per BOATS_DESIGN.md's platform-consistency recommendation
+                  — only the copy/icon changes. */}
               {driveConfirmId === obj.id && (
                 <Html center position={[obj.position[0], 2.4, obj.position[2]]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>Drive {obj.customName || obj.label}?</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? `Board ${obj.customName || obj.label}?` : `Drive ${obj.customName || obj.label}?`}</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
                         onClick={() => startDriving(obj)}
                         style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        🚗 Drive!
+                        {isBoat ? '⛵ Board!' : '🚗 Drive!'}
                       </button>
                       <button
                         onClick={() => setDriveConfirmId(null)}
@@ -3575,7 +3662,7 @@ export default function TownSquare() {
               {isDriving && exitConfirmActive && (
                 <Html center position={[playerPos.x, 2.4, playerPos.z]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>Exit the car?</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? 'Get off the boat?' : 'Exit the car?'}</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
                         onClick={() => stopDriving(obj)}
@@ -3587,7 +3674,7 @@ export default function TownSquare() {
                         onClick={() => setExitConfirmActive(false)}
                         style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        Keep driving
+                        {isBoat ? 'Keep sailing' : 'Keep driving'}
                       </button>
                     </div>
                   </div>
@@ -3607,15 +3694,18 @@ export default function TownSquare() {
       </Canvas>
 
       <div style={{ position: 'absolute', [dpadSide]: 16, bottom: dpadBottom, width: 170, height: 170, zIndex: 10 }}>
-        {drivingObjectId ? (
+        {drivingObjectId && !drivingIsBoat ? (
           <>
             <PedalButton label="Gas" icon="⛽" color="#2f9e44" pressedRef={gasRef} style={{ top: 0, left: 50 }} />
             <PedalButton label="Brake" icon="🛑" color="#c0392b" pressedRef={brakeRef} style={{ bottom: 0, left: 50 }} />
           </>
         ) : (
+          // Boats deliberately reuse this same Up/Down D-pad as throttle
+          // forward/reverse (docs/BOATS_DESIGN.md §4: "no new control
+          // surface") instead of the car's dedicated Gas/Brake pedals.
           <>
-            <DpadButton rotate={-90} label="Up" dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
-            <DpadButton rotate={90} label="Down" dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
+            <DpadButton rotate={-90} label={drivingIsBoat ? 'Forward' : 'Up'} dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
+            <DpadButton rotate={90} label={drivingIsBoat ? 'Reverse' : 'Down'} dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
           </>
         )}
         <DpadButton rotate={180} label="Left" dx={-1} dz={0} style={{ left: 0, top: 57 }} touchDir={touchDir} />
@@ -3678,7 +3768,9 @@ export default function TownSquare() {
 
       {drivingObjectId ? (
         <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
-          🚗 Driving! Use WASD/arrow keys/the buttons to steer. Click the car to get out.
+          {drivingIsBoat
+            ? '⛵ Sailing! Use WASD/arrow keys/the buttons to steer. Click the boat to get off.'
+            : '🚗 Driving! Use WASD/arrow keys/the buttons to steer. Click the car to get out.'}
         </p>
       ) : !hasWalkedOnce && (
         <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>

@@ -10,7 +10,7 @@
 // tripled, from ~540KB to ~1.57MB, the moment WorldEditor first imported
 // BUILDINGS directly from TownSquare.tsx). Splitting the plain data out
 // here keeps both call sites cheap.
-import type { WorldObjectRole } from '../../types';
+import type { WorldObjectRole, GroundPatch } from '../../types';
 
 // Draft/publish resolution for the shared Town Square (never applies to a
 // student's own Home Room — those rows are always studentId-set and always
@@ -168,6 +168,35 @@ export function isCarModel(modelPath: string): boolean {
 // with no manifest edit.
 export function isMusicSourceModel(modelPath: string): boolean {
   return /\bconcert-hall\.glb$/i.test(modelPath) || /\bboom-box\.glb$/i.test(modelPath);
+}
+
+// Driveable boats — Phase 2 of docs/TRANSPORTATION.md's transportation
+// system (see docs/BOATS_DESIGN.md for the full Phase 2 design, which
+// reconciles this with what actually shipped for cars). Same filename-
+// pattern matching as isCarModel, not an allow-list.
+export function isBoatModel(modelPath: string): boolean {
+  return /\/vehicles\/boat(-[^/]+)?\.glb$/i.test(modelPath);
+}
+
+// The one ground-paint texture (WorldEditor's paint bucket, #97's grass/
+// water mixed-region system) that counts as "water" for boat placement and
+// driving — see isWaterAt below. Kept here, not re-declared per call site,
+// so WorldEditor.tsx and TownSquare.tsx can never drift out of sync on
+// which literal path means water.
+export const WATER_TEXTURE_PATH = '/world/textures/water.png';
+
+// A point counts as "on water" when it falls inside any painted water
+// GroundPatch circle — same circle-membership test WorldEditor.tsx's own
+// paint-bucket erase/hit-test already uses (see paintGroundAt there),
+// reused here so boat driving/placement and the paint tool never disagree
+// about what water is.
+export function isWaterAt(x: number, z: number, groundPatches: GroundPatch[]): boolean {
+  return groundPatches.some((p) => {
+    if (p.texturePath !== WATER_TEXTURE_PATH) return false;
+    const dx = p.x - x;
+    const dz = p.z - z;
+    return dx * dx + dz * dz <= p.radius * p.radius;
+  });
 }
 
 // Cleared along with BUILDINGS above — rebuilt from Build Mode now.
