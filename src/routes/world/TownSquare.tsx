@@ -1896,6 +1896,14 @@ export default function TownSquare() {
   // panel in this file (showTodayTasks, showMoreMenu, ...).
   const musicTracks = useStore((s) => s.musicTracks);
   const [showMusicPicker, setShowMusicPicker] = useState(false);
+  // Teacher's tags sort the library into categories for students too, not
+  // just on the teacher's own management screen — direct teacher request.
+  const [musicTagFilter, setMusicTagFilter] = useState<string | null>(null);
+  const musicTags = useMemo(
+    () => Array.from(new Set(musicTracks.flatMap((t) => t.tags ?? []))).sort(),
+    [musicTracks],
+  );
+  const visibleMusicTracks = musicTagFilter ? musicTracks.filter((t) => (t.tags ?? []).includes(musicTagFilter)) : musicTracks;
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
   // STATIC_OBSTACLES, STATIC_WALLS) in sync with Build Mode edits,
@@ -2547,6 +2555,9 @@ export default function TownSquare() {
     setDrivingObjectId(null);
     setExitConfirmActive(false);
     teleportTarget.current = { x: playerPos.x + 1.3, z: playerPos.z };
+    // Direct teacher instruction: the radio is part of the car, so getting
+    // out stops whatever's playing rather than leaving it running.
+    setPlayingTrackId(null);
   };
 
   return (
@@ -2820,18 +2831,39 @@ export default function TownSquare() {
               {musicTracks.length === 0 ? (
                 <p style={{ opacity: 0.7, margin: 0 }}>No music yet. Ask your teacher to add some!</p>
               ) : (
-                <div className="stack" style={{ gap: 6, maxHeight: 320, overflowY: 'auto' }}>
-                  {musicTracks.map((t) => (
-                    <button
-                      key={t.id}
-                      className={`btn btn-lg ${playingTrackId === t.id ? 'btn-primary' : ''}`}
-                      style={{ justifyContent: 'flex-start', textAlign: 'left' }}
-                      onClick={() => { setPlayingTrackId(t.id); setShowMusicPicker(false); }}
-                    >
-                      🎵 {t.title}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  {musicTags.length > 0 && (
+                    <div className="row-wrap" style={{ gap: 6 }}>
+                      <button
+                        className={`btn chip-filter-sm ${musicTagFilter === null ? 'btn-primary' : ''}`}
+                        onClick={() => setMusicTagFilter(null)}
+                      >
+                        All
+                      </button>
+                      {musicTags.map((tag) => (
+                        <button
+                          key={tag}
+                          className={`btn chip-filter-sm ${musicTagFilter === tag ? 'btn-primary' : ''}`}
+                          onClick={() => setMusicTagFilter(musicTagFilter === tag ? null : tag)}
+                        >
+                          🏷️ {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="stack" style={{ gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+                    {visibleMusicTracks.map((t) => (
+                      <button
+                        key={t.id}
+                        className={`btn btn-lg ${playingTrackId === t.id ? 'btn-primary' : ''}`}
+                        style={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                        onClick={() => { setPlayingTrackId(t.id); setShowMusicPicker(false); }}
+                      >
+                        🎵 {t.title}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>

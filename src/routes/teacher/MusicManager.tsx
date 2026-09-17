@@ -49,7 +49,11 @@ export default function MusicManager() {
       return;
     }
     setError(null);
-    addMusicTrack({ title: t, url: u, tags });
+    // A tag typed but not explicitly "+ Add"-ed shouldn't be silently
+    // dropped when Add Track is pressed — direct teacher report.
+    const pending = tagInput.trim();
+    const finalTags = pending && !tags.includes(pending) ? [...tags, pending] : tags;
+    addMusicTrack({ title: t, url: u, tags: finalTags });
     resetForm();
   };
 
@@ -175,7 +179,9 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
       setError("That doesn't look like a YouTube link.");
       return;
     }
-    updateMusicTrack(track.id, { title: t, url: u, tags: editTags });
+    const pending = tagInput.trim();
+    const finalTags = pending && !editTags.includes(pending) ? [...editTags, pending] : editTags;
+    updateMusicTrack(track.id, { title: t, url: u, tags: finalTags });
     setEditing(false);
   };
 
