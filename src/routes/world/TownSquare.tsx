@@ -2510,15 +2510,15 @@ export default function TownSquare() {
         </div>
       )}
       {/* Direct teacher instruction: "Pie menu format should be adopted
-          for all buttons on the right hand side" — the same radial wedge
-          pattern as the companion-swap menu above, the entry point for
-          navigation buttons that used to sit stacked in the top-right
-          corner. Help is NOT in here (see the standalone Help button
-          below — Claudia's audit H2: regulation tools are never gated
-          behind an extra tap+scan, on this screen or any other). Settings/
-          Map/My Stuff are grouped under one "More" wedge (opened below)
-          rather than each taking a wedge, keeping this at genuinely 4-5
-          wedges per Claudia's cap (H3), not 7-8. */}
+          for all buttons on the right hand side," including Tasks and
+          Help/break — only Tools and Menu stay as standalone buttons,
+          everything else (including Help) lives as a wedge here. This is
+          a deliberate, explicit override of Claudia's earlier H2 finding
+          ("regulation tools are never gated behind an extra tap+scan") —
+          the teacher was shown that tradeoff directly and chose this
+          anyway, so Help costs one extra tap now (open Menu, then Help)
+          instead of zero. Settings/Map/My Stuff are still grouped under
+          one "More" wedge rather than each taking their own. */}
       {showSelfMenu && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 198, paddingRight: 130 }}
@@ -2531,6 +2531,7 @@ export default function TownSquare() {
             {(() => {
               const wedges: { id: string; icon: string; label: string; bg: string; onSelect: () => void }[] = [
                 { id: 'tasks', icon: '📋', label: totalTasksLeft > 0 ? `Tasks (${totalTasksLeft})` : 'Tasks', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
+                { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
                 { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
                 { id: 'more', icon: '⚙️', label: 'More', bg: '#5b6b8a', onSelect: () => setShowMoreMenu(true) },
                 { id: 'home', icon: '🏠', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
@@ -2684,29 +2685,6 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {/* Claudia's audit (H2): Help is a regulation tool, and this app's
-          standing rule is that regulation is never gated behind an extra
-          tap+scan through a menu — pulled back out to its own always-
-          visible button below, matching StudentHome/SubjectDashboard's
-          .help-fab in everything but position (TownSquare's D-pad can sit
-          on either side per student, so a hardcoded bottom-right would
-          get swallowed by a right-side D-pad — this sits at the bottom
-          corner OPPOSITE the D-pad instead). What now? and Tasks are
-          check-ins, not the one tool a dysregulated student needs
-          fastest, so those stay as wedges in the pie menu below. */}
-      <button
-        onClick={() => setShowHelp(true)}
-        aria-label="Help"
-        title="Help"
-        style={{
-          position: 'fixed', [otherSide]: 16, bottom: 16, zIndex: 50,
-          width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)',
-          background: 'var(--orange)', color: '#fff', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4,
-        }}
-      >
-        <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>🧘</span>
-      </button>
       {/* Minecraft-style coordinate readout — direct teacher request, tied
           to graphing/coordinate-plane math and to the labeled grid the Map
           view shows (CoordinateGrid, above). Z is shown as "Y" (displayY =
