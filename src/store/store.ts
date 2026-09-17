@@ -322,6 +322,7 @@ interface AppState {
   addWorldObject: (obj: Omit<WorldObject, 'id' | 'createdAt'>) => string;
   updateWorldObject: (id: string, patch: Partial<WorldObject>) => void;
   deleteWorldObject: (id: string) => void;
+  parkVehicle: (id: string, position: [number, number, number], rotationY: number) => void;
   addWallSegment: (w: Omit<WallSegment, 'id' | 'createdAt'>) => string;
   updateWallSegment: (id: string, patch: Partial<WallSegment>) => void;
   deleteWallSegment: (id: string) => void;
@@ -1080,6 +1081,17 @@ export const useStore = create<AppState>()(
           : { ...existing, ...patch, status: 'draft' as const, publishedSnapshot: snapshotForDraft(existing) };
         set((s) => ({ worldObjects: s.worldObjects.map((o) => (o.id === id ? updated : o)) }));
         pushWorldObject(updated);
+      },
+
+      // A driven car's parked position when a student exits it — ordinary
+      // gameplay state, not a Build Mode content edit, so it deliberately
+      // bypasses updateWorldObject's draft/publish gate (status/
+      // publishedSnapshot untouched) instead of turning every parked car
+      // into an "unpublished change" the teacher would have to Publish.
+      parkVehicle: (id, position, rotationY) => {
+        set((s) => ({ worldObjects: s.worldObjects.map((o) => (o.id === id ? { ...o, position, rotationY } : o)) }));
+        const updated = get().worldObjects.find((o) => o.id === id);
+        if (updated) pushWorldObject(updated);
       },
 
       deleteWorldObject: (id) => {

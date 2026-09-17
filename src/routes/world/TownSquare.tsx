@@ -22,7 +22,7 @@ import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
@@ -1018,6 +1018,12 @@ interface PlayerProps {
   // undefined (not a no-op) when there's nothing to swap, same gating
   // pattern every other optional interactive layer in this file uses.
   onSelfClick?: () => void;
+  // Driving a car (docs/TRANSPORTATION.md): the player's own avatar hides
+  // while a vehicle is mounted — movement/collision/camera math is
+  // unchanged, only what's rendered at that position changes (the parent
+  // renders the car there instead; see the driving-aliased worldObjects
+  // render below).
+  hideAvatar?: boolean;
   // Direct teacher instruction: a following companion pet must face the
   // same direction the PLAYER is currently facing, not its own travel
   // direction — so the parent needs read access to Player's own facing
@@ -1028,7 +1034,7 @@ interface PlayerProps {
   facingRef?: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1136,10 +1142,12 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
 
   return (
     <group ref={groupRef}>
-      <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#e2775c" /></mesh>}>
-        <PlayerModel isMoving={isMoving} />
-      </Suspense>
-      {onSelfClick && !mapView && (
+      {!hideAvatar && (
+        <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#e2775c" /></mesh>}>
+          <PlayerModel isMoving={isMoving} />
+        </Suspense>
+      )}
+      {!hideAvatar && onSelfClick && !mapView && (
         <mesh
           position={[0, 0.7, 0]}
           onClick={(e) => { e.stopPropagation(); onSelfClick(); }}
@@ -1148,7 +1156,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
       )}
-      {emoteSrc && !mapView && (
+      {!hideAvatar && emoteSrc && !mapView && (
         <mesh
           position={[0, 1, 0]}
           onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
@@ -1158,7 +1166,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
-      {emoteSrc && !mapView && hovered && (
+      {!hideAvatar && emoteSrc && !mapView && hovered && (
         <Html center position={[0, 2.5, 0]} style={{ pointerEvents: 'none' }}>
           <div
             style={{
@@ -1734,11 +1742,27 @@ export default function TownSquare() {
   );
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const skyColor = useStore((s) => s.skyColor);
+  // Driveable cars (docs/TRANSPORTATION.md, Phase 1) — declared up here
+  // (rather than alongside the rest of the interaction state further
+  // down) since the collision-layout effect right below needs
+  // drivingObjectId. See startDriving/stopDriving further down for the
+  // mount/dismount flow this feeds.
+  const [driveConfirmId, setDriveConfirmId] = useState<string | null>(null);
+  const [drivingObjectId, setDrivingObjectId] = useState<string | null>(null);
+  const [exitConfirmActive, setExitConfirmActive] = useState(false);
+  const parkVehicle = useStore((s) => s.parkVehicle);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
   // STATIC_OBSTACLES, STATIC_WALLS) in sync with Build Mode edits,
   // including a teacher's edit landing live from another tab/device via
   // Supabase realtime — see recomputeCollisionLayout's own comment above.
-  useEffect(() => { recomputeCollisionLayout(layoutOverrides, worldObjects, wallSegments); }, [layoutOverrides, worldObjects, wallSegments]);
+  // The currently-driven car is excluded from its own collision layout —
+  // otherwise the very first frame of driving would immediately collide
+  // with the car's own static collision circle sitting right where the
+  // player just mounted it.
+  useEffect(() => {
+    const forCollision = drivingObjectId ? worldObjects.filter((o) => o.id !== drivingObjectId) : worldObjects;
+    recomputeCollisionLayout(layoutOverrides, forCollision, wallSegments);
+  }, [layoutOverrides, worldObjects, wallSegments, drivingObjectId]);
   const focuses = useStore((s) => s.focuses);
   // Roster tab (World Editor): a teacher's cosmetic custom title per
   // hand-authored Neighbor/Townsperson id — shown next to their name
@@ -2351,6 +2375,29 @@ export default function TownSquare() {
     if (path) navigate(path);
   };
 
+  // Driveable cars (docs/TRANSPORTATION.md, Phase 1). Mount: snap the
+  // player (and camera, which follows the player's own position) onto the
+  // car via the existing teleport mechanism, then hide the avatar and
+  // render the car at wherever the player's position goes from here — the
+  // same movement/collision engine, just steering a different model.
+  const startDriving = (obj: WorldObject) => {
+    teleportTarget.current = { x: obj.position[0], z: obj.position[2] };
+    setDrivingObjectId(obj.id);
+    setDriveConfirmId(null);
+  };
+
+  // Dismount: park the car exactly where it was driven to (a real
+  // gameplay state change, not a Build Mode edit — see parkVehicle's own
+  // comment in store.ts for why it bypasses the draft/publish gate), then
+  // step the player out to one side of it rather than leaving them
+  // standing inside the car model.
+  const stopDriving = (obj: WorldObject) => {
+    parkVehicle(obj.id, [playerPos.x, 0, playerPos.z], playerFacingRef.current ?? obj.rotationY);
+    setDrivingObjectId(null);
+    setExitConfirmActive(false);
+    teleportTarget.current = { x: playerPos.x + 1.3, z: playerPos.z };
+  };
+
   return (
     <div
       // Direct teacher report: on iPad the whole page would scroll/pan
@@ -2881,7 +2928,12 @@ export default function TownSquare() {
             walkTarget={walkTarget}
             onMove={(p) => { setPlayerPos(p.clone()); lastActivityRef.current = Date.now(); }}
             frozen={!!activeConversation || mapView || showWizardLock}
-            sensitivity={student.worldMoveSensitivity}
+            // Driving is "noticeably faster than walking" (docs/
+            // TRANSPORTATION.md's Cars spec) — reusing the existing
+            // sensitivity-driven speed math rather than a second speed
+            // system, capped at the same 2x ceiling every other student's
+            // own movement setting already respects.
+            sensitivity={drivingObjectId ? Math.min(2, student.worldMoveSensitivity * 1.6) : student.worldMoveSensitivity}
             cameraLook={cameraLook}
             cameraPitch={cameraPitch}
             facingRef={playerFacingRef}
@@ -2889,6 +2941,7 @@ export default function TownSquare() {
             teleportTarget={teleportTarget}
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
             onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
+            hideAvatar={!!drivingObjectId}
           />
           {/* Direct teacher instruction: only birds (they fly) and fish
               (they have no legs) float beside the player — every other
@@ -2951,27 +3004,43 @@ export default function TownSquare() {
               />
             );
           })}
-          {worldObjects.map((obj) => (
+          {worldObjects.map((obj) => {
+            const baseObj =
+              obj.role === 'home' && student?.houseExteriorPath
+                ? (() => {
+                    // Claudia's asset-sizing audit: swapping the model
+                    // without also swapping the scale reused whatever
+                    // number was tuned for a DIFFERENT model's raw
+                    // bounding box — the house-relative-size bug. Each
+                    // exterior option carries its own real scale now;
+                    // always look it up alongside the model it belongs to.
+                    const exterior = HOUSE_EXTERIOR_OPTIONS.find((o) => o.modelPath === student.houseExteriorPath);
+                    return exterior ? { ...obj, modelPath: exterior.modelPath, scale: exterior.scale } : obj;
+                  })()
+                : obj;
+            // Driving a car (docs/TRANSPORTATION.md): render it at the
+            // player's own live position/facing instead of its last-parked
+            // one — the exact "render at the live drag position" pattern
+            // Build Mode already uses for a placed object being dragged.
+            const isDriving = drivingObjectId === obj.id;
+            const liveObj = isDriving
+              ? { ...baseObj, position: [playerPos.x, 0, playerPos.z] as [number, number, number], rotationY: playerFacingRef.current }
+              : baseObj;
+            const isCar = isCarModel(obj.modelPath);
+            return (
             <group key={obj.id}>
               <WorldObjectRenderer
-                obj={
-                  obj.role === 'home' && student?.houseExteriorPath
-                    ? (() => {
-                        // Claudia's asset-sizing audit: swapping the model
-                        // without also swapping the scale reused whatever
-                        // number was tuned for a DIFFERENT model's raw
-                        // bounding box — the house-relative-size bug. Each
-                        // exterior option carries its own real scale now;
-                        // always look it up alongside the model it belongs to.
-                        const exterior = HOUSE_EXTERIOR_OPTIONS.find((o) => o.modelPath === student.houseExteriorPath);
-                        return exterior ? { ...obj, modelPath: exterior.modelPath, scale: exterior.scale } : obj;
-                      })()
-                    : obj
-                }
+                obj={liveObj}
                 onClick={
                   obj.role === 'closed' && !mapView && !wasDraggingLook.current ? () => setClosedBuildingName(obj.customName || obj.label)
                   : obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
                   : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
+                  : isCar && !mapView && !wasDraggingLook.current
+                    ? () => {
+                        if (isDriving) { setExitConfirmActive(true); return; }
+                        if (drivingObjectId) return; // already driving a different car
+                        setDriveConfirmId(obj.id);
+                      }
                   : undefined
                 }
                 // Direct teacher instruction: a role-having building should
@@ -3049,8 +3118,55 @@ export default function TownSquare() {
                   </div>
                 </Html>
               )}
+              {/* Driveable cars (docs/TRANSPORTATION.md) — direct teacher
+                  spec: a confirmation before mounting, and another before
+                  exiting, same visual pattern as the role-object Confirm
+                  card above. */}
+              {driveConfirmId === obj.id && (
+                <Html center position={[obj.position[0], 2.4, obj.position[2]]}>
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>Drive {obj.customName || obj.label}?</div>
+                    <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
+                      <button
+                        onClick={() => startDriving(obj)}
+                        style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        🚗 Drive!
+                      </button>
+                      <button
+                        onClick={() => setDriveConfirmId(null)}
+                        style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  </div>
+                </Html>
+              )}
+              {isDriving && exitConfirmActive && (
+                <Html center position={[playerPos.x, 2.4, playerPos.z]}>
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>Exit the car?</div>
+                    <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
+                      <button
+                        onClick={() => stopDriving(obj)}
+                        style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        🚪 Exit
+                      </button>
+                      <button
+                        onClick={() => setExitConfirmActive(false)}
+                        style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        Keep driving
+                      </button>
+                    </div>
+                  </div>
+                </Html>
+              )}
             </group>
-          ))}
+            );
+          })}
           {/* Sims 4-style drawn walls (WorldEditor.tsx's Wall tool) — plain
               scenery here, no click interaction, same as a fixed prop; the
               actual collision comes from STATIC_WALLS/blockWallSegments
@@ -3103,7 +3219,11 @@ export default function TownSquare() {
         <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238', textShadow: '0 1px 2px rgba(255,255,255,0.7)', lineHeight: 1 }}>Tasks</span>
       </div>
 
-      {!hasWalkedOnce && (
+      {drivingObjectId ? (
+        <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
+          🚗 Driving! Use WASD/arrow keys/the buttons to steer. Click the car to get out.
+        </p>
+      ) : !hasWalkedOnce && (
         <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
           🖱️ Click, or 👆 tap, anywhere on the grass to walk there. Or use WASD/arrow keys/the buttons.
           <br />Click a Neighbor to walk right up and start talking!

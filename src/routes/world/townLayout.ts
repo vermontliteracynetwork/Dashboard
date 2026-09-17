@@ -145,6 +145,18 @@ export function isSignModel(modelPath: string): boolean {
   return SIGN_MODEL_PATHS.has(modelPath);
 }
 
+// Driveable cars — Phase 1 of docs/TRANSPORTATION.md's transportation
+// system (recommended build order: cars first, proves the universal
+// mount/drive/dismount pattern on infrastructure — ground collision,
+// movement — that already exists). Matched by filename pattern rather
+// than an allow-list, so future car models (public/world/models/vehicles/
+// car-*.glb, plus the one stray car under city/) are automatically
+// driveable without a manifest edit. Boats/planes/trains are NOT cars —
+// those are later phases with their own mechanics per the design doc.
+export function isCarModel(modelPath: string): boolean {
+  return /\/vehicles\/car-[^/]+\.glb$/i.test(modelPath) || /\bredcar\.glb$/i.test(modelPath);
+}
+
 // Cleared along with BUILDINGS above — rebuilt from Build Mode now.
 export const MARKET_STALLS: { id: string; modelPath: string; position: [number, number]; rotationY: number; scale?: number }[] = [];
 export const MARKET_SCALE = 2.6;
