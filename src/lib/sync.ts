@@ -349,7 +349,17 @@ const marketplaceItemToRow = (it: MarketplaceItem): Row => ({
   voice_hints: it.voiceHints ?? null,
 });
 
-const rowToAppSettings = (r: Row): AssignmentCompletionReward | null => r.assignment_completion_reward ?? null;
+// Direct teacher request: every assignment should default to popping a
+// bonus wheel spin on completion, not require a teacher to opt in first.
+// A student's row genuinely never having this configured and a teacher
+// explicitly turning it off both store as a null column (setAssignmentCompletionReward(null)
+// is exactly how the "off" checkbox in MarketplaceManager works) — there's
+// no way to tell those two states apart today. Defaulting the unset case
+// to a spin (rather than null) accepts that a never-touched teacher
+// account gets the default they asked for; any FUTURE explicit opt-off
+// still writes a real null and is honored from then on.
+export const DEFAULT_ASSIGNMENT_COMPLETION_REWARD: AssignmentCompletionReward = { type: 'spin' };
+const rowToAppSettings = (r: Row): AssignmentCompletionReward | null => r.assignment_completion_reward ?? DEFAULT_ASSIGNMENT_COMPLETION_REWARD;
 
 const rowToTransaction = (r: Row): Transaction => ({
   id: r.id,
@@ -900,7 +910,7 @@ export async function fetchAll(): Promise<HydratedState> {
     homeRooms: (homeRoomsRes.data ?? []).map(rowToHomeRoom),
     cinemaVideos: (cinemaVideosRes.data ?? []).map(rowToCinemaVideo),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
-    assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : null,
+    assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
     npcTitleOverrides: appSettingsRes.data?.npc_title_overrides ?? {},
     npcVoiceOverrides: appSettingsRes.data?.npc_voice_overrides ?? {},

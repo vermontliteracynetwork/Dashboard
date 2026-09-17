@@ -140,6 +140,7 @@ import {
   pushCinemaVideo,
   deleteCinemaVideoRemote,
   rowToCinemaVideo,
+  DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
 import { ruleMet } from '../lib/badgeRules';
@@ -427,6 +428,13 @@ interface AppState {
   getActiveTask: (studentId: string, subject: Subject) => Task | null;
   completeTask: (studentId: string, subject: Subject, taskId: string) => void;
   uncompleteTask: (studentId: string, subject: Subject, taskId: string) => void;
+  // Direct teacher request: a question set finished in the Playground
+  // (Free Play, or any Activity Library entry flagged for the Playground)
+  // should pay into the bank register the same way a real assignment
+  // does — it just doesn't touch rotation/checklist progress the way
+  // completeTask does, since Playground content was deliberately built as
+  // ungraded/no-checkbox.
+  completePlaygroundActivity: (studentId: string, task: Task) => void;
   markOffscreenDone: (studentId: string, subject: Subject, task: Task, photoUrl?: string) => void;
   recordToolUsage: (studentId: string, tool: ToolKey) => void;
 
@@ -640,7 +648,7 @@ export const useStore = create<AppState>()(
       groundTexture: null,
       skyColor: null,
       focuses: [],
-      assignmentCompletionReward: null,
+      assignmentCompletionReward: DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
       emotePriceOverrides: {},
       npcTitleOverrides: {},
       npcVoiceOverrides: {},
@@ -808,7 +816,12 @@ export const useStore = create<AppState>()(
             if (e === 'DELETE') return;
             if (!n) return;
             set({
-              assignmentCompletionReward: n.assignment_completion_reward ?? null,
+              // Direct teacher request: every assignment defaults to a
+              // bonus wheel spin on completion — see the matching comment
+              // on DEFAULT_ASSIGNMENT_COMPLETION_REWARD in sync.ts for why
+              // this can't perfectly distinguish "never configured" from a
+              // teacher's own explicit opt-out (both are a null column).
+              assignmentCompletionReward: n.assignment_completion_reward ?? DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
               emotePriceOverrides: n.emote_price_overrides ?? {},
               npcTitleOverrides: n.npc_title_overrides ?? {},
               npcVoiceOverrides: n.npc_voice_overrides ?? {},
@@ -2047,6 +2060,30 @@ export const useStore = create<AppState>()(
           }
         }
         get().evaluateBadgeRules(studentId);
+      },
+
+      // Direct teacher request: Playground/Free Play question sets should
+      // pay into the bank register on completion, same as a real
+      // assignment — mirrors completeTask's own reward branch exactly
+      // (money/marketplaceItem/customItem/spin) but deliberately skips
+      // every rotation/progress/streak/badge/pet-training side effect
+      // completeTask has, since Playground content was built ungraded on
+      // purpose (no to-do checkbox, not tied to a specific day's plan).
+      completePlaygroundActivity: (studentId, task) => {
+        const taskLabel = task.title || 'Playground activity completed';
+        const reward = task.reward ?? { type: 'money' as const };
+        if (reward.type === 'marketplaceItem' && reward.itemId) {
+          const item = grantFreeMarketplaceItem(get, studentId, reward.itemId);
+          get().recordTransaction(studentId, 0, item ? `${taskLabel}: won ${item.name}!` : taskLabel, item?.icon ?? task.icon ?? '🎁', 'task');
+        } else if (reward.type === 'customItem') {
+          get().recordTransaction(studentId, 0, `${taskLabel}: won ${reward.customName || 'a prize'}!`, reward.customIcon || '🎁', 'task');
+        } else if (reward.type === 'spin') {
+          get().updateStudent(studentId, { bonusSpinAvailable: true });
+          get().recordTransaction(studentId, 0, `${taskLabel}: bonus spin!`, '🎡', 'task');
+        } else {
+          const rewardCents = task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS;
+          get().recordTransaction(studentId, rewardCents, taskLabel, task.icon ?? '🎮', 'task');
+        }
       },
 
       // A student unchecking a mistaken tap — just removes it from today's

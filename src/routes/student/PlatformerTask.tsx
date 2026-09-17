@@ -779,8 +779,21 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   );
 
   // ---------- Touch controls ----------
-  const holdKey = (key: 'left' | 'right' | 'jump', on: boolean) => (e: React.SyntheticEvent) => {
+  // Direct teacher report: the arrow/jump buttons "don't work" on a
+  // touchscreen. Root cause — these are hold-to-move buttons wired up on
+  // onPointerDown/Up/Leave/Cancel, but onPointerLeave fires the instant a
+  // finger drifts even a few px outside the button's own bounds (very
+  // easy on a small button, or while also trying to watch the game), which
+  // immediately released the "held" key — so a press could read as barely
+  // a flicker instead of continuous movement, exactly like "doesn't work."
+  // Capturing the pointer on press makes this element keep receiving that
+  // pointer's up/cancel events regardless of where the finger physically
+  // wanders, so a held press stays held until the finger actually lifts.
+  const holdKey = (key: 'left' | 'right' | 'jump', on: boolean) => (e: React.PointerEvent) => {
     e.preventDefault();
+    if (on) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not supported — falls back to the old bounds-based behavior */ }
+    }
     keysRef.current[key] = on;
   };
 

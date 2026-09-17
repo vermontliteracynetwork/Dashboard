@@ -57,6 +57,7 @@ export default function PlaygroundView() {
   const progress = useStore((s) => s.progress);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const questionSets = useStore((s) => s.questionSets);
+  const completePlaygroundActivity = useStore((s) => s.completePlaygroundActivity);
   const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
 
   const [openEntry, setOpenEntry] = useState<{ task: Task; subject: Subject } | null>(null);
@@ -93,6 +94,17 @@ export default function PlaygroundView() {
 
   const close = () => setOpenEntry(null);
 
+  // Direct teacher request: a question set genuinely finished in the
+  // Playground (Free Play or any teacher-added Playground activity) pays
+  // into the bank register the same way a real assignment does — only on
+  // an actual onDone (real completion), never on onExit/backdrop-close
+  // (an early exit), so closing out of something half-finished never
+  // pays out.
+  const finishActivity = () => {
+    if (openEntry) completePlaygroundActivity(student.id, openEntry.task);
+    close();
+  };
+
   if (!access.unlocked) {
     return (
       <div className="container stack" style={{ alignItems: 'center', textAlign: 'center' }}>
@@ -128,14 +140,14 @@ export default function PlaygroundView() {
               <strong>{openEntry.task.icon} {openEntry.task.title}</strong>
               <button className="btn btn-sm" onClick={close}>✕ Close</button>
             </div>
-            {openEntry.task.type === 'quiz' && <QuizTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}
-            {openEntry.task.type === 'platformer' && <PlatformerTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}
-            {openEntry.task.type === 'offscreen' && <OffscreenTask student={student} task={openEntry.task} onDone={close} />}
-            {openEntry.task.type === 'video' && <VideoTask student={student} task={openEntry.task} onDone={close} />}
-            {openEntry.task.type === 'passage' && <PassageTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={close} onExit={close} />}
-            {openEntry.task.type === 'drill' && <DrillTask student={student} task={openEntry.task} onDone={close} />}
-            {openEntry.task.type === 'wordchain' && <WordChainTask student={student} task={openEntry.task} onDone={close} />}
-            {openEntry.task.type === 'sentenceEdit' && <SentenceEditTask student={student} task={openEntry.task} onDone={close} />}
+            {openEntry.task.type === 'quiz' && <QuizTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={finishActivity} onExit={close} />}
+            {openEntry.task.type === 'platformer' && <PlatformerTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={finishActivity} onExit={close} />}
+            {openEntry.task.type === 'offscreen' && <OffscreenTask student={student} task={openEntry.task} onDone={finishActivity} />}
+            {openEntry.task.type === 'video' && <VideoTask student={student} task={openEntry.task} onDone={finishActivity} />}
+            {openEntry.task.type === 'passage' && <PassageTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={finishActivity} onExit={close} />}
+            {openEntry.task.type === 'drill' && <DrillTask student={student} task={openEntry.task} onDone={finishActivity} />}
+            {openEntry.task.type === 'wordchain' && <WordChainTask student={student} task={openEntry.task} onDone={finishActivity} />}
+            {openEntry.task.type === 'sentenceEdit' && <SentenceEditTask student={student} task={openEntry.task} onDone={finishActivity} />}
           </div>
         </div>
       )}
