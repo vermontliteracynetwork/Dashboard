@@ -397,12 +397,12 @@ export interface Task {
   required?: boolean; // teacher-marked "cannot be skipped with a Skip Pass under any circumstances"
 }
 
-// Writing/Grammar Sandbox (Claudia's design spec, Phase 1: Explicit
-// Instruction mode, Rung 1 — subject-verb agreement). A "word class" is a
-// fixed lexical category (noun/verb/...); it is kept separate from
-// grammatical ROLE (e.g. "subject") because the same noun is the same
-// word class whether it's a subject or an object — role is shown with the
-// socket's own label/chip, not baked into the piece's color.
+// Literacy Workspace — open-exploration sandbox (direct teacher
+// instruction: no rungs, no mastery gating, no rewards, just a freeform
+// canvas of draggable word pieces). A "word class" is a fixed lexical
+// category (noun/verb/...); it is kept separate from grammatical ROLE
+// (e.g. "subject") since the same noun is the same word class whether
+// it's a subject or an object.
 export type GrammarWordClass = 'noun' | 'verb';
 
 export const GRAMMAR_WORD_CLASS_COLORS: Record<GrammarWordClass, string> = {
@@ -420,41 +420,16 @@ export const GRAMMAR_WORD_CLASS_LABELS: Record<GrammarWordClass, string> = {
   verb: 'Action word (verb)',
 };
 
-// One draggable/tappable piece. `number` is the grammatical feature Rung 1
-// enforces — a subject and its verb only "click together" when these match
-// (subject-verb agreement).
+// One draggable piece on the open canvas. `number` is what the snap
+// mechanic checks — a noun and a verb only click together when these
+// match (subject-verb agreement), the one grammar rule the sandbox
+// quietly enforces while everything else (which words, in what order)
+// stays completely free.
 export interface GrammarPiece {
   id: string;
   text: string;
   wordClass: GrammarWordClass;
   number: 'singular' | 'plural';
-}
-
-// A labeled, colored empty slot — Hochman's own "who/what did what"
-// question language, matching the Writing Revolution scaffold Claudia's
-// spec ties this rung to.
-export interface GrammarSocket {
-  id: 'subject' | 'verb';
-  label: string;
-  wordClass: GrammarWordClass;
-}
-
-// One build-a-sentence prompt: a small, closed piece bank (the correct
-// noun/verb plus one wrong-number distractor for each), so the only real
-// decision is the agreement rule itself, not vocabulary.
-export interface GrammarPrompt {
-  id: string;
-  pieces: GrammarPiece[]; // exactly 2 nouns + 2 verbs for Rung 1: one correct pair, one wrong-number distractor each
-  correctSubjectId: string;
-  correctVerbId: string;
-}
-
-export interface GrammarRung {
-  id: string;
-  title: string;
-  ruleSummary: string; // the "I do" explanation, shown once per rung
-  sockets: GrammarSocket[];
-  prompts: GrammarPrompt[];
 }
 
 export type RotationMode = 'sequence' | 'choiceboard';

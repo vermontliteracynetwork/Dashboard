@@ -835,7 +835,10 @@ const WHITEBOARD_SIZES: { size: number; label: string }[] = [
 // 'marker') so a teacher can add seasonal/limited ones — but the app
 // still needs a color to draw with even before any are owned, so this
 // falls back to plain black rather than leaving the canvas colorless.
-function Whiteboard({ student }: { student: Student }) {
+// Exported so the Literacy Workspace's Draw mode can reuse this exact
+// component (including owned-marker-color logic) instead of a second
+// drawing implementation with its own color set.
+export function Whiteboard({ student }: { student: Student }) {
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const updateStudent = useStore((s) => s.updateStudent);
   const markerColors = marketplaceItems.filter((it) => it.kind === 'color' && it.colorUse === 'marker' && student.ownedColorIds.includes(it.id));

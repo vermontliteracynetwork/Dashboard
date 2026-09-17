@@ -1,111 +1,83 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import ReadAloud, { speak } from '../../components/ReadAloud';
-import SubjectProgressBar from '../../components/SubjectProgressBar';
+import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
-import { GRAMMAR_RUNG_1 } from '../../lib/grammarContent';
+import { Whiteboard } from '../../components/ToolsPanel';
+import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS } from '../../lib/grammarContent';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS } from '../../types';
-import { formatMoney } from '../../lib/money';
-import type { FillBlankQuestion, GrammarPiece, Task } from '../../types';
+import type { GrammarPiece } from '../../types';
 
-// Claudia's Writing/Grammar Sandbox design spec, Phase 1 MVP: Explicit
-// Instruction mode, one rung (subject-verb agreement). Reuses the SAME
-// mastery/retry-once-then-retire state machine every quiz on the platform
-// already uses (ensureQuizState/submitQuizAnswer, keyed on a stable pseudo-
-// task id) instead of inventing a second, different progress system —
-// Claudia's own recommendation: predictability of the mastery loop across
-// the whole platform is itself an executive-function support for this
-// population. What's genuinely new here is the EVALUATION: "correct" means
-// the placed noun and verb pieces are EXACTLY the prompt's target pair
-// (correctSubjectId/correctVerbId), not just any mutually-agreeing pair —
-// Claudia's audit caught a real bug where checking agreement alone let a
-// student always pick the singular pair and score 100% without ever
-// practicing a plural sentence, since a wrong-number pair that agreed with
-// ITSELF still passed. See grammarContent.ts's own comment on why each
-// prompt alternates its target number.
-const RUNG = GRAMMAR_RUNG_1;
+// Literacy Workspace — Direct teacher instruction: "proceed with only
+// the open sandbox concept. no explicit activities, learning, etc. just
+// open exploration." This replaces the earlier Phase 1 Explicit
+// Instruction build (fixed rung, mastery tracking, rewards) entirely —
+// no lessons, no scoring, no completion state, no payout. A student
+// drags word pieces from the tray onto an open canvas; a naming word and
+// an action word that agree in number "click together" on their own
+// when dropped near each other (the one rule quietly enforced), same
+// mechanic the very first brief for this feature asked for: "visual
+// puzzle pieces of words and morphemes can combine and click into each
+// other if a correct sentence is used." Nothing here is saved between
+// visits, same as the platform's existing Whiteboard tool ("Just for
+// scratch work, not saved") — this is a toy to play with, not a task to
+// finish.
+const TILE_W = 130;
+const TILE_H = 64;
+const SNAP_GAP = 14;
+const SNAP_THRESHOLD = 160;
 
-// Claudia's audit (H3): the reward for finishing a rung was tracked in
-// plain component state, which resets to false on every fresh mount — a
-// student who already finished the rung and reopens the screen re-reads
-// the old "fully mastered" state on first render and gets paid again,
-// indefinitely, every time. Persisting which attempt was already paid
-// (keyed by the store's own attemptStartedAt, which only changes when
-// ensureQuizState genuinely starts a brand-new attempt after a full
-// replay) makes this durable across remounts without needing a schema
-// change — a real replay still pays once it's genuinely re-earned.
-function rewardedAttemptKey(studentId: string, taskId: string) {
-  return `homeplot-grammar-rewarded:${studentId}:${taskId}`;
-}
-function getRewardedAttempt(studentId: string, taskId: string): string | null {
-  try {
-    return localStorage.getItem(rewardedAttemptKey(studentId, taskId));
-  } catch {
-    return null;
-  }
-}
-function setRewardedAttempt(studentId: string, taskId: string, attemptStartedAt: string) {
-  try {
-    localStorage.setItem(rewardedAttemptKey(studentId, taskId), attemptStartedAt);
-  } catch {
-    // Best-effort only — worst case a student gets paid again on a device/
-    // browser where storage is unavailable, not worth blocking on.
-  }
+interface PlacedPiece {
+  instanceId: string;
+  pieceId: string;
+  x: number;
+  y: number;
 }
 
-// A stable id per rung (not per session/open) so reopening this screen
-// tomorrow continues the same mastery queue instead of restarting it —
-// the exact bug class fixed in Free Play's buildFreePlayTask.
-const GRAMMAR_TASK: Task = {
-  id: `grammar-${RUNG.id}`,
-  title: RUNG.title,
-  icon: '🧩',
-  type: 'quiz',
-  quiz: {
-    questions: RUNG.prompts.map((p): FillBlankQuestion => ({
-      id: p.id,
-      kind: 'fill',
-      prompt: 'Build the sentence: pick the naming word and the action word that match.',
-      answer: '',
-    })),
-    shuffleQuestions: true,
-  },
-};
+const pieceById = (id: string): GrammarPiece | undefined => SANDBOX_PIECES.find((p) => p.id === id);
 
-const RUNG_COMPLETE_REWARD_CENTS = 200;
-
-function GrammarPieceChip({
-  p,
-  selected,
-  disabled,
-  onClick,
-}: {
-  p: GrammarPiece;
-  selected: boolean;
-  disabled: boolean;
-  onClick: () => void;
+function GrammarPieceTile({ piece, style, onPointerDown, onPointerMove, onPointerUp, glowing }: {
+  piece: GrammarPiece;
+  style: CSSProperties;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onPointerMove?: (e: React.PointerEvent) => void;
+  onPointerUp?: (e: React.PointerEvent) => void;
+  glowing?: boolean;
 }) {
-  const bg = GRAMMAR_WORD_CLASS_COLORS[p.wordClass];
-  const fg = GRAMMAR_WORD_CLASS_TEXT_COLORS[p.wordClass];
+  const bg = GRAMMAR_WORD_CLASS_COLORS[piece.wordClass];
+  const fg = GRAMMAR_WORD_CLASS_TEXT_COLORS[piece.wordClass];
   return (
-    <button
-      className="btn btn-lg"
-      disabled={disabled}
-      onClick={onClick}
+    <div
+      role="button"
+      tabIndex={0}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
       style={{
+        touchAction: 'none',
+        userSelect: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: TILE_W,
+        minHeight: TILE_H,
+        padding: '6px 16px',
+        borderRadius: piece.wordClass === 'noun' ? 14 : 999,
+        border: glowing ? '4px solid var(--success)' : '4px solid transparent',
         background: bg,
         color: fg,
-        minHeight: 60,
-        minWidth: 90,
-        fontSize: '1.15rem',
+        fontFamily: "'Baloo 2', sans-serif",
         fontWeight: 800,
-        border: selected ? '4px solid var(--ink)' : '4px solid transparent',
-        opacity: disabled && !selected ? 0.55 : 1,
+        fontSize: '1.05rem',
+        cursor: 'grab',
+        boxShadow: glowing ? '0 0 0 6px rgba(34,197,94,0.35)' : '2px 2px 0 rgba(31,17,71,0.25)',
+        transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+        ...style,
       }}
     >
-      {p.text}
-    </button>
+      {piece.text}
+    </div>
   );
 }
 
@@ -113,113 +85,98 @@ export default function GrammarSandbox() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
-  const ensureQuizState = useStore((s) => s.ensureQuizState);
-  const submitQuizAnswer = useStore((s) => s.submitQuizAnswer);
-  const recordTransaction = useStore((s) => s.recordTransaction);
-  const updateStudent = useStore((s) => s.updateStudent);
-  const progress = useStore((s) => s.progress);
-
   const student = students.find((s) => s.id === currentStudentId);
 
-  const [subjectPieceId, setSubjectPieceId] = useState<string | null>(null);
-  const [verbPieceId, setVerbPieceId] = useState<string | null>(null);
-  const [pendingCorrect, setPendingCorrect] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<'move' | 'draw'>('move');
+  const [placed, setPlaced] = useState<PlacedPiece[]>([]);
+  const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  // Claudia's audit (H1): every hook below must run on every render, in
-  // the same order, whether or not `student` has resolved yet — the old
-  // `if (!student) return null` sat ABOVE a later useEffect, so the first
-  // render (before student data loads) ran fewer hooks than every render
-  // after, which React does not allow (crashes with "Rendered more hooks
-  // than during the previous render"). Every hook is declared up here now,
-  // before any early return, and every value they depend on is computed
-  // from currentStudentId/progress directly (safe pre-hydration) instead
-  // of from `student`.
-  const state = progress[currentStudentId ?? '']?.literacy?.quizState?.[GRAMMAR_TASK.id];
-  const total = RUNG.prompts.length;
-  const activeId = state?.remainingIds[0];
-  const activePrompt = RUNG.prompts.find((p) => p.id === activeId);
-  const allMastered = !!state && state.remainingIds.length === 0;
-  const subjectPiece = activePrompt?.pieces.find((p) => p.id === subjectPieceId) ?? null;
-  const verbPiece = activePrompt?.pieces.find((p) => p.id === verbPieceId) ?? null;
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const dragInstanceRef = useRef<string | null>(null);
+  const glowTimerRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (!currentStudentId) navigate('/student/login');
-  }, [currentStudentId, navigate]);
+  if (!currentStudentId) {
+    navigate('/student/login');
+    return null;
+  }
+  if (!student) return null;
 
-  // Claudia's audit (H3, part 2): ensureQuizState's own reset-to-a-fresh-
-  // attempt (when a fully-mastered set is reopened) runs inside an effect,
-  // so the very first render after mounting can still show the OLD,
-  // already-finished state for a fraction of a second — flashing "Rung 1
-  // complete!" before snapping to a fresh attempt with no explanation,
-  // which this population reads as the app breaking. Nothing renders
-  // until this has run at least once for the current mount.
-  const [ensured, setEnsured] = useState(false);
-  useEffect(() => {
-    if (student) {
-      ensureQuizState(student.id, 'literacy', GRAMMAR_TASK);
-      setEnsured(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student?.id]);
-
-  // Direct teacher spec: never a dead end. If a prompt id ever goes stale
-  // (content changed under a student mid-run), skip it rather than stall.
-  useEffect(() => {
-    if (student && state && !activePrompt && state.remainingIds.length > 0) {
-      submitQuizAnswer(student.id, 'literacy', GRAMMAR_TASK, state.remainingIds[0], true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student?.id, activeId]);
-
-  // Claudia's audit (H1 + H3): moved above the early return so hook order
-  // never changes, and rewritten to persist which attempt was already
-  // paid (see getRewardedAttempt/setRewardedAttempt above) instead of
-  // component state that resets on every remount.
-  useEffect(() => {
-    if (student && allMastered && state?.attemptStartedAt && getRewardedAttempt(student.id, GRAMMAR_TASK.id) !== state.attemptStartedAt) {
-      setRewardedAttempt(student.id, GRAMMAR_TASK.id, state.attemptStartedAt);
-      recordTransaction(student.id, RUNG_COMPLETE_REWARD_CENTS, `${RUNG.title} complete!`, '✏️', 'task');
-      updateStudent(student.id, { bonusSpinAvailable: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student?.id, allMastered, state?.attemptStartedAt]);
-
-  // Two-stage validation, per Claudia's spec: shape/socket match (handled
-  // for free here — a noun can only ever land in the subject slot, a verb
-  // only in the verb slot) then the real grammar rule. Claudia's audit
-  // (M1): this used to only check that the two pieces agreed WITH EACH
-  // OTHER, so a student who always picked the singular pair could score
-  // 100% and never once practice a plural sentence — a self-consistent
-  // pair still isn't correct unless it's the specific pair this prompt is
-  // asking for. Checks against the prompt's own target ids instead.
-  useEffect(() => {
-    if (!activePrompt || pendingCorrect !== null) return;
-    if (!subjectPiece || !verbPiece) return;
-    setPendingCorrect(subjectPiece.id === activePrompt.correctSubjectId && verbPiece.id === activePrompt.correctVerbId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subjectPieceId, verbPieceId]);
-
-  if (!student || !ensured) return null;
-
-  const targetSubject = activePrompt?.pieces.find((p) => p.id === activePrompt.correctSubjectId);
-  const targetLabel = targetSubject?.number === 'singular' ? 'just ONE' : 'MORE THAN ONE';
-
-  const pickPiece = (p: GrammarPiece) => {
-    if (pendingCorrect !== null) return; // locked until Next is pressed
-    if (p.wordClass === 'noun') setSubjectPieceId(p.id);
-    else setVerbPieceId(p.id);
+  const canvasRelative = (clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
-  const goNext = () => {
-    if (!activePrompt || pendingCorrect === null) return;
-    submitQuizAnswer(student.id, 'literacy', GRAMMAR_TASK, activePrompt.id, pendingCorrect);
-    setSubjectPieceId(null);
-    setVerbPieceId(null);
-    setPendingCorrect(null);
+  // Snap check: a dropped/moved piece looks for the nearest OTHER piece
+  // of the opposite word class whose number agrees — that's the whole
+  // rule. Word choice, order, and how silly the result is are entirely
+  // up to the student.
+  const runSnapCheck = (instanceId: string) => {
+    setPlaced((current) => {
+      const dragged = current.find((p) => p.instanceId === instanceId);
+      const draggedPiece = dragged && pieceById(dragged.pieceId);
+      if (!dragged || !draggedPiece) return current;
+
+      let bestId: string | null = null;
+      let bestDist = SNAP_THRESHOLD;
+      for (const other of current) {
+        if (other.instanceId === instanceId) continue;
+        const otherPiece = pieceById(other.pieceId);
+        if (!otherPiece || otherPiece.wordClass === draggedPiece.wordClass || otherPiece.number !== draggedPiece.number) continue;
+        const dist = Math.hypot(other.x - dragged.x, other.y - dragged.y);
+        if (dist < bestDist) { bestDist = dist; bestId = other.instanceId; }
+      }
+      if (!bestId) return current;
+
+      const other = current.find((p) => p.instanceId === bestId)!;
+      const nounEntry = draggedPiece.wordClass === 'noun' ? dragged : other;
+      const verbEntry = draggedPiece.wordClass === 'verb' ? dragged : other;
+
+      if (glowTimerRef.current) window.clearTimeout(glowTimerRef.current);
+      setGlowIds(new Set([nounEntry.instanceId, verbEntry.instanceId]));
+      glowTimerRef.current = window.setTimeout(() => setGlowIds(new Set()), 900);
+
+      return current.map((p) => (p.instanceId === verbEntry.instanceId ? { ...p, x: nounEntry.x + TILE_W + SNAP_GAP, y: nounEntry.y } : p));
+    });
   };
 
-  const sentenceReadout = subjectPiece && verbPiece ? `The ${subjectPiece.text} ${verbPiece.text}.` : null;
+  const startDragFromTray = (piece: GrammarPiece) => (e: React.PointerEvent) => {
+    e.preventDefault();
+    const { x, y } = canvasRelative(e.clientX, e.clientY);
+    const instanceId = `${piece.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setPlaced((p) => [...p, { instanceId, pieceId: piece.id, x: x - TILE_W / 2, y: y - TILE_H / 2 }]);
+    dragInstanceRef.current = instanceId;
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, drag still works via mouse move */ }
+  };
+
+  const startDragPlaced = (instanceId: string) => (e: React.PointerEvent) => {
+    e.preventDefault();
+    dragInstanceRef.current = instanceId;
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported */ }
+  };
+
+  const onDragMove = (e: React.PointerEvent) => {
+    const id = dragInstanceRef.current;
+    if (!id) return;
+    const { x, y } = canvasRelative(e.clientX, e.clientY);
+    setPlaced((p) => p.map((pp) => (pp.instanceId === id ? { ...pp, x: x - TILE_W / 2, y: y - TILE_H / 2 } : pp)));
+  };
+
+  const onDragEnd = () => {
+    const id = dragInstanceRef.current;
+    dragInstanceRef.current = null;
+    if (id) runSnapCheck(id);
+  };
+
+  const readBoard = () => {
+    const words = [...placed]
+      .sort((a, b) => a.x - b.x)
+      .map((p) => pieceById(p.pieceId)?.text)
+      .filter(Boolean);
+    if (words.length === 0) return;
+    speak(words.join('. '), student.ttsSettings);
+  };
 
   return (
     <div className="container stack">
@@ -228,11 +185,11 @@ export default function GrammarSandbox() {
         <div className="overlay-backdrop" onClick={() => setConfirmExit(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h2 style={{ margin: 0 }}>Leave the Grammar Builder?</h2>
-              <p style={{ margin: 0 }}>Your progress is saved. You can pick up right where you left off.</p>
+              <h2 style={{ margin: 0 }}>Leave Literacy Manipulatives?</h2>
+              <p style={{ margin: 0 }}>Your board isn't saved. Leaving will clear it.</p>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}>Yes, go home</button>
-                <button className="btn btn-lg" onClick={() => setConfirmExit(false)}>Keep going</button>
+                <button className="btn btn-lg" onClick={() => setConfirmExit(false)}>Keep playing</button>
               </div>
             </div>
           </div>
@@ -247,126 +204,87 @@ export default function GrammarSandbox() {
         </div>
       </div>
 
-      {allMastered ? (
-        <div className="chrome-frame stack" style={{ padding: 28, alignItems: 'center', textAlign: 'center' }}>
-          <h1 style={{ color: 'var(--purple)' }}>🎉 Rung 1 complete!</h1>
-          <p>Every naming word and action word matched. You earned {formatMoney(RUNG_COMPLETE_REWARD_CENTS)} and a bonus spin!</p>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}>🏠 Back to Home</button>
+      {/* Mode toggle: Move Pieces (the open word canvas) vs Draw (the
+          existing Whiteboard tool, reused as-is so owned Marketplace
+          pens apply here too, per direct teacher instruction). */}
+      <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
+        <button
+          className={`btn btn-lg ${mode === 'move' ? 'btn-primary' : ''}`}
+          style={{ minHeight: 48 }}
+          onClick={() => setMode('move')}
+        >
+          🔤 Word Pieces
+        </button>
+        <button
+          className={`btn btn-lg ${mode === 'draw' ? 'btn-primary' : ''}`}
+          style={{ minHeight: 48 }}
+          onClick={() => setMode('draw')}
+        >
+          🎨 Draw
+        </button>
+      </div>
+
+      {mode === 'draw' ? (
+        <div className="grammar-board">
+          <div className="grammar-board-surface" style={{ minHeight: 460 }}>
+            <Whiteboard student={student} />
+          </div>
         </div>
       ) : (
-        // Direct teacher instruction: visually structured like an open
-        // whiteboard, for a specific question set — a dotted-grid board
-        // surface (grammar-board-surface) holding the sockets and the
-        // sentence being built, with the word-piece bank styled as a
-        // physical tray along the bottom (grammar-board-tray), Polypad-
-        // style, instead of a plain centered card. The underlying rung/
-        // mastery logic is unchanged — this is a visual restructure only.
         <div className="grammar-board">
-          <div className="grammar-board-surface stack" style={{ alignItems: 'center' }}>
-            <SubjectProgressBar done={state?.masteredIds.length ?? 0} total={total} />
-
-            <div className="row-wrap" style={{ justifyContent: 'center' }}>
-              <div className="tag-pill" style={{ background: 'var(--purple)', color: 'white' }}>{RUNG.title}</div>
-              <ReadAloud text={RUNG.ruleSummary} settings={student.ttsSettings} />
-            </div>
-            <p style={{ maxWidth: 480, textAlign: 'center', fontWeight: 600 }}>{RUNG.ruleSummary}</p>
-
-            {/* Claudia's audit (M1): without naming the target number, a
-                student has no explicit way to know which pairing this
-                prompt wants — this population needs direct, explicit
-                instruction, not trial and error. */}
-            {targetSubject && (
-              <div className="tag-pill" style={{ background: 'var(--blue)', color: 'white' }}>
-                Build it about: {targetLabel}
-              </div>
+          {/* Open canvas — no sockets, no target, no right/wrong. Any
+              naming word dropped near an action word that agrees in
+              number clicks together on its own. */}
+          <div
+            ref={canvasRef}
+            className="grammar-board-surface"
+            style={{ position: 'relative', minHeight: 380, padding: 0, overflow: 'hidden' }}
+            onPointerMove={onDragMove}
+            onPointerUp={onDragEnd}
+            onPointerCancel={onDragEnd}
+          >
+            {placed.length === 0 && (
+              <p style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', margin: 0, padding: 40, fontWeight: 700, color: 'var(--ink)', opacity: 0.5, pointerEvents: 'none' }}>
+                Drag words up here from the tray below and build something silly!
+              </p>
             )}
-
-            {/* The two labeled sockets — color-coded and text-labeled
-                (never color alone), matching Claudia's two-layer color
-                spec: yellow = naming word, coral = action word. */}
-            <div className="row-wrap" style={{ justifyContent: 'center', gap: 20 }}>
-              {RUNG.sockets.map((socket) => {
-                const filled = socket.id === 'subject' ? subjectPiece : verbPiece;
-                const color = GRAMMAR_WORD_CLASS_COLORS[socket.wordClass];
-                return (
-                  <div key={socket.id} className="stack" style={{ alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.75 }}>{socket.label}</span>
-                    <div
-                      style={{
-                        minWidth: 130,
-                        minHeight: 64,
-                        borderRadius: 14,
-                        border: `4px dashed ${color}`,
-                        background: filled ? color : 'rgba(255,255,255,0.6)',
-                        color: filled ? GRAMMAR_WORD_CLASS_TEXT_COLORS[socket.wordClass] : 'inherit',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '1.2rem',
-                        fontWeight: 800,
-                        padding: '4px 14px',
-                      }}
-                    >
-                      {filled ? filled.text : '?'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {sentenceReadout && (
-              <div className="row" style={{ justifyContent: 'center' }}>
-                <p style={{ fontWeight: 700, fontSize: '1.1rem', margin: 0 }}>{sentenceReadout}</p>
-                <ReadAloud text={sentenceReadout} settings={student.ttsSettings} />
-              </div>
-            )}
-
-            {pendingCorrect === true && (
-              <div className="tag-pill" style={{ background: 'var(--success)', color: 'var(--ink)', fontSize: '1rem' }}>
-                ✅ {subjectPiece?.number === 'singular'
-                  ? `${subjectPiece?.text} is one, so the action word gets an -s. Nice agreement!`
-                  : `More than one ${subjectPiece?.text.replace(/s$/, '')}, so the action word drops the -s. Nice agreement!`}
-              </div>
-            )}
-            {pendingCorrect === false && (
-              <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)', fontSize: '1rem', textAlign: 'center' }}>
-                💛 Not quite. {subjectPiece?.number === verbPiece?.number
-                  ? `That naming word and action word agree with each other, but this sentence needs to be about ${targetLabel}. Try the other naming word.`
-                  : subjectPiece?.number === 'singular'
-                    ? `"${subjectPiece?.text}" is one, so the action word needs to end in -s.`
-                    : `"${subjectPiece?.text}" is more than one, so the action word should NOT end in -s.`}
-              </div>
-            )}
-
-            {pendingCorrect !== null && (
-              <button className="btn btn-primary btn-lg pulse-cta" onClick={goNext}>
-                {(state?.remainingIds.length ?? 0) <= 1 ? '✅ Finish' : '➡️ Next Sentence'}
-              </button>
-            )}
+            {placed.map((p) => {
+              const piece = pieceById(p.pieceId);
+              if (!piece) return null;
+              return (
+                <GrammarPieceTile
+                  key={p.instanceId}
+                  piece={piece}
+                  glowing={glowIds.has(p.instanceId)}
+                  style={{ position: 'absolute', left: p.x, top: p.y }}
+                  onPointerDown={startDragPlaced(p.instanceId)}
+                  onPointerMove={onDragMove}
+                  onPointerUp={onDragEnd}
+                />
+              );
+            })}
           </div>
 
-          {/* Piece tray, grouped by word class, tap to place into that
-              class's socket. Re-tapping a different piece of the same
-              class swaps it freely before the pair is checked. */}
           <div className="grammar-board-tray stack" style={{ alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Word Tray</span>
-            <div className="row-wrap" style={{ justifyContent: 'center' }}>
-              {activePrompt?.pieces.filter((p) => p.wordClass === 'noun').map((p) => (
-                <GrammarPieceChip key={p.id} p={p} selected={p.id === subjectPieceId} disabled={pendingCorrect !== null} onClick={() => pickPiece(p)} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Word Tray — drag any word up onto the board</span>
+            <div className="row-wrap" style={{ justifyContent: 'center', maxWidth: 900 }}>
+              {SANDBOX_NOUNS.map((p) => (
+                <GrammarPieceTile key={p.id} piece={p} style={{}} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
+              ))}
+            </div>
+            <div className="row-wrap" style={{ justifyContent: 'center', maxWidth: 900 }}>
+              {SANDBOX_VERBS.map((p) => (
+                <GrammarPieceTile key={p.id} piece={p} style={{}} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
               ))}
             </div>
             <div className="row-wrap" style={{ justifyContent: 'center' }}>
-              {activePrompt?.pieces.filter((p) => p.wordClass === 'verb').map((p) => (
-                <GrammarPieceChip key={p.id} p={p} selected={p.id === verbPieceId} disabled={pendingCorrect !== null} onClick={() => pickPiece(p)} />
-              ))}
+              <button type="button" className="btn btn-sm btn-blue" onClick={readBoard} disabled={placed.length === 0}>
+                🔈 Read my board
+              </button>
+              <button type="button" className="btn btn-sm" onClick={() => setPlaced([])} disabled={placed.length === 0}>
+                🗑️ Clear board
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn btn-sm btn-blue"
-              onClick={() => activePrompt && speak(activePrompt.pieces.map((p) => p.text).join('. '), student.ttsSettings)}
-            >
-              🔈 Read the words
-            </button>
           </div>
         </div>
       )}
