@@ -1471,35 +1471,39 @@ function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
   );
 }
 
-// The real Kenney day skybox (equirectangular, CC0) as the scene
-// background, replacing drei's procedural <Sky> — the teacher's explicit
-// ask was a realistic modern-town look, and a photographed/painted real
-// sky reads more like that than a procedural gradient does.
-// Direct teacher instruction: the old photographic skybox had actual
-// scenery — mountains/terrain — baked into the image far off on the
-// horizon, which never matches whatever's really out there and reads as
-// a broken/mismatched background. Two earlier attempts at a replacement
-// both turned out wrong once actually seen live: a runtime canvas
-// gradient, then a real cloud photo — both applied via
-// EquirectangularReflectionMapping, which assumes the image IS a true
-// 360° spherical panorama (pixel rows converging to a point at the top/
-// bottom pole). Neither source image was actually authored that way (a
-// flat seamless-tile photo, not a real panorama capture), so the
-// wrapping itself produced the jagged dark shapes the teacher kept
-// seeing on the horizon — a projection/UV artifact, not leftover
-// content, and no photo swap could have fixed it. Direct teacher
-// instruction after seeing it live: "make the horizon a solid sky" — a
-// flat color background has no image, no mapping, no seams, so nothing
-// can ever distort. Matches the same '#bfe3ff' sky Build Mode's own
-// default already uses elsewhere in this app.
+// A real sky texture (blue sky + clouds), direct teacher request.
+// IMPORTANT CONTEXT for whoever touches this next: two earlier attempts
+// at a photographic skybox both broke on the horizon — a runtime canvas
+// gradient, then a cloud photo — and a third, a Kenney skybox with actual
+// mountains/terrain baked in, never matched the real scenery either.
+// EquirectangularReflectionMapping assumes the image IS a true 360°
+// spherical panorama (pixel rows converging to a point at the top/bottom
+// pole); none of those three source images were actually authored that
+// way (flat seamless-tile photos or ordinary scenery shots, not real
+// panorama captures), so the pole convergence itself produced jagged
+// dark shapes — a projection/UV artifact, not leftover content, and no
+// photo swap could have fixed it. That's why this sat as a flat color
+// for a while ("make the horizon a solid sky").
+// This texture (kenney_skyboxes.zip's skybox-day.png) is different:
+// 4096x2048 (the textbook 2:1 equirect ratio), and visually inspected
+// before use — its top and bottom rows are smooth, uniform gradients
+// with no baked-in scene detail (clouds/sun sit only in the horizon
+// band, the middle of the image), exactly what clean pole convergence
+// needs. Worth a live look after this ships regardless, given the
+// history — if it still looks wrong, the fix is a different sky image,
+// not this mapping technique (the technique is the right one for a
+// correctly-authored panorama).
 function SkyboxBackground() {
   const { scene } = useThree();
+  const texture = useTexture('/world/sky/skybox-day.png');
   useEffect(() => {
-    scene.background = new THREE.Color('#bfe3ff');
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    scene.background = texture;
     return () => {
       scene.background = null;
     };
-  }, [scene]);
+  }, [scene, texture]);
   return null;
 }
 
