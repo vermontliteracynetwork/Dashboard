@@ -1,6 +1,8 @@
 # Literacy Workspace (v2 — supersedes Phase 1 Literacy Manipulatives)
 
-**Status:** final, settled design — every decision below was reviewed and confirmed by the teacher (Kayden) directly, via a structured Q&A with Claudia. Nothing here is a placeholder. Grounded in `src/components/ToolsPanel.tsx` (existing Whiteboard tool), `src/types.ts` (`LiteracyFocusSet`), and `src/lib/grammarContent.ts` / `src/routes/student/GrammarSandbox.tsx` (the existing Rung 1 sentence mechanic) — all reused, not rebuilt.
+**Status:** design remains the settled long-term direction for Phases 2-5, but Phase 1 below was overridden before it shipped. Direct teacher instruction: "proceed with only the open sandbox concept. no explicit activity, learning, etc. just open exploration." What actually shipped is `src/routes/student/GrammarSandbox.tsx` — a pure open-exploration canvas with no rung, no correct/incorrect validation, no mastery gating, and no reward payout. See "Phase 1 — what actually shipped" below for the real, current state; everything else in this document (Morpheme Web, multiple canvases, assignment mode, Montessori shapes) is still future work, unstarted.
+
+**Note on scope:** the sentence-grammar tiles (`src/lib/grammarContent.ts`) are now a flat, unscored pool (`SANDBOX_NOUNS` / `SANDBOX_VERBS`) with a proximity-based visual "snap" when number agrees — not the validation-against-a-target mechanic described elsewhere in this doc (e.g. the Morpheme Web section's "connects or doesn't" feedback). That validation approach was part of the old, now-dropped Rung 1 design; if Phase 3 (Morpheme Web) is built later, it should be designed fresh against the open-sandbox model actually shipped, not assumed to reuse Rung 1 code that no longer exists.
 
 **Note on outside references:** Kayden supplied several external reference links (phonicsandstuff.com/morpheme-webs, a Genially interactive, membean.com/roots, etymonline.com, and East Bay Montessori's grammar-symbols page). All were blocked by this environment's network policy and could not be fetched directly. The design below is built from the well-established, standard structure of each named tool/convention (morpheme webs, Membean's root-family pages, Etymonline's function, and the real, standardized Montessori grammar symbol system), not from personally-verified page content — worth a quick visual sanity-check against the live pages before final art pass.
 
@@ -18,7 +20,7 @@ Simplified from Polypad's dense original: a small number of top-level categories
 
 1. **Letters & Sounds** — individual letter tiles and phonics-pattern tiles (single letters, digraphs, the phonics patterns already tracked per student in `LiteracyFocusSet.phonicsPatterns`), for spelling/decoding play.
 2. **Morphemes (Word Web)** — see full redesign below. Root/base tiles, prefix tiles, suffix tiles.
-3. **Sentence Grammar** — the existing Rung 1 subject-verb-agreement tile set (`GRAMMAR_RUNG_1`), now living here as one tile category inside the open sandbox rather than its own gated activity. Always available, not assignment-locked.
+3. **Sentence Grammar** — shipped, but as an unscored tile pool (`SANDBOX_NOUNS` / `SANDBOX_VERBS` in `grammarContent.ts`), not the old Rung 1 target-validation set (that code was removed). Always available, not assignment-locked.
 4. **Word Lists** — the student's current ambient reference words, pulled live from their active `LiteracyFocusSet.practiceWords` / `.morphemes`, shown as a scrollable reference shelf, not draggable tiles themselves — a lookup panel, not a mechanic.
 5. **Whiteboard** — full reuse of the existing Whiteboard tool (see Canvas section below). Not a new drawing engine.
 
@@ -117,7 +119,7 @@ Pure focused-work zone. No Blooket/Baamboozle-style retrieval-practice interrupt
 
 Given how much this now covers (new canvas persistence model, morpheme web redesign, whiteboard integration, assignment-authoring extension, Montessori dual-channel visual system), build one full vertical slice before expanding width:
 
-**Phase 1 — Core sandbox + Sentence Grammar + Whiteboard reuse.** Ship the canvas shell (single saved canvas only, to start), the Sentence Grammar tile category (reusing `GRAMMAR_RUNG_1` content, now with the Montessori shape+color dual system applied), and the Whiteboard category wired directly to the existing `Whiteboard`/marketplace-marker code — zero new drawing or color logic.
+**Phase 1 — what actually shipped (open sandbox, not the plan below).** A single, unsaved canvas: drag noun/verb tiles from a tray anywhere onto the board, with a proximity + number-agreement visual snap (no right/wrong feedback, no validation-against-a-target, no scoring). A "🎨 Draw" mode reuses the existing `Whiteboard` component and its marketplace-marker-color logic directly, exactly as planned. **Not built, and explicitly out of scope for now:** canvas save/name/switch/delete, the Montessori shape+color dual system, and any mastery/reward hook. This was a deliberate teacher override of the Phase 1 plan immediately below, not a partial implementation of it — the plan below is retained for reference if Phases 2+ are picked back up, but Phase 1's own description (Rung 1 reuse, Montessori shapes) does not reflect what's live.
 
 **Phase 2 — Multiple named canvases + Word Lists panel.** Add save/name/switch/delete canvas flow, and the ambient Word Lists reference panel pulling from `LiteracyFocusSet`.
 
