@@ -15,7 +15,6 @@ import WordChainTask from './WordChainTask';
 import SentenceEditTask from './SentenceEditTask';
 import { todayISO } from '../../lib/dates';
 import { getPlaygroundAccess } from '../../lib/playgroundAccess';
-import { makeId } from '../../lib/id';
 import type { QuestionSet, Subject, Task } from '../../types';
 
 // Turns a saved question set into a standalone, ungraded Platformer run —
@@ -26,9 +25,23 @@ import type { QuestionSet, Subject, Task } from '../../types';
 // the app doesn't keep a record linking a task's questions back to the
 // saved set they came from, so "assigned before" isn't something it can
 // reliably answer yet.
+//
+// Direct bug report: "questions repeat even if answered correctly,
+// student stuck in a loop." Root cause traced here — this used to give
+// every Free Play run a brand-new random id (makeId()), and the whole
+// mastery/repeat-avoidance system (submitQuizAnswer's remainingIds/
+// masteredIds queue) is keyed on task.id. A fresh random id every time a
+// student opened the SAME practice set meant the store could never
+// recognize it as a continuation — every open looked like the very first
+// attempt, so a set the student had already fully mastered came back
+// with every question live again, and even mid-session progress (e.g.
+// closing the picker and reopening the same set) reset to a full deck.
+// A stable id derived from the set's own id fixes this: the exact same
+// remainingIds/masteredIds queue (and its "fully mastered -> reshuffle a
+// real new attempt" logic in ensureQuizState) now applies correctly.
 function buildFreePlayTask(set: QuestionSet): Task {
   return {
-    id: makeId(),
+    id: `free-play-${set.id}`,
     title: `🎮 Free Play: ${set.name}`,
     icon: '🎮',
     type: 'platformer',
