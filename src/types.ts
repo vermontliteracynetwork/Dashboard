@@ -99,6 +99,7 @@ export interface Student {
   bonusSpinAvailable: boolean; // earned a re-spin today for finishing the whole assignment (assignmentCompletionReward type 'spin') — shown as a distinct "Bonus Spin!" on the wheel, cleared once used
   worldQuest1MetIds: string[]; // Neighbor ids met so far in Homeplot's launch quest ("Meet the Neighbors") — grows to 4, then the quest is complete
   favoriteCinemaVideoIds?: string[]; // CinemaVideo ids this student has hearted — shown first on the Now Showing shelf
+  favoriteScratchGameIds?: string[]; // ScratchGame ids this student has hearted — shown first on the Arcade shelf
   lastMysteryPackOpenedDate?: string | null; // ISO date of the last Mystery Adoption Box open, one per real-world day — Claudia's audit (M3): the guaranteed-pull design is sound, but nothing stopped a same-sitting open-repeat loop before this
   worldMoveSensitivity: number; // Town Square movement-speed multiplier, student-adjustable in-world Settings (0.5-2, default 1)
   worldDpadSide: 'left' | 'right'; // which corner the on-screen D-pad sits in, student-adjustable
@@ -412,7 +413,7 @@ export const GRAMMAR_WORD_CLASS_COLORS: Record<GrammarWordClass, string> = {
 
 export const GRAMMAR_WORD_CLASS_TEXT_COLORS: Record<GrammarWordClass, string> = {
   noun: '#241a05', // dark text on the yellow pastel fill (WCAG contrast)
-  verb: '#ffffff', // light text on the saturated coral fill
+  verb: '#241a05', // dark text on the saturated coral fill — Claudia's audit: white-on-coral read at ~3.68:1, below the WCAG 4.5:1 floor; this dark ink matches the noun tile's own text color and clears contrast comfortably
 };
 
 export const GRAMMAR_WORD_CLASS_LABELS: Record<GrammarWordClass, string> = {
@@ -461,6 +462,21 @@ export interface CinemaVideo {
   createdAt: string;
   tags?: string[]; // teacher-authored, free-form (e.g. "Math", "Silly", "Calm-down") — so kids can search/filter the Cinema shelf, same pattern as QuestionSet tags
   durationSeconds?: number; // real length for an uploaded file (read from the file itself), or a teacher-entered estimate for a YouTube link (no API key configured to fetch it) — shown to students as "~N min" before they tap play
+}
+
+// Shown in the in-world Arcade — direct teacher request: her students are
+// "obsessed with Scratch," and want a Cinema-style browse-and-play screen
+// for MIT Scratch (scratch.mit.edu) projects. A teacher pastes any public
+// project's URL; Scratch's own CDN serves a real thumbnail with no key or
+// upload needed (see src/lib/scratch.ts), and the project plays inline via
+// Scratch's own officially-supported embed path. Pure play-for-fun, same as
+// Cinema: unlimited replay, no task/mastery tracking attached.
+export interface ScratchGame {
+  id: string;
+  title: string;
+  projectId: string; // the numeric id from a scratch.mit.edu/projects/<id> URL
+  createdAt: string;
+  tags?: string[]; // teacher-authored, free-form — same search/filter pattern as CinemaVideo.tags
 }
 
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks
@@ -684,7 +700,7 @@ export interface Transaction {
 // routing to a hardcoded app screen (see ROLE_VIEWS in townLayout.ts), it
 // opens WorldObject.customRoleUrl in the same internal browser a task's
 // own external link already uses.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'closed' | 'custom';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'arcade' | 'closed' | 'custom';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'

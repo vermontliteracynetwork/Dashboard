@@ -110,7 +110,14 @@ export default function GrammarSandbox() {
     navigate('/student/login');
     return null;
   }
-  if (!student) return null;
+  if (!student) {
+    // Claudia's audit: currentStudentId can point at a student that no
+    // longer resolves (e.g. sync hasn't caught up yet) — this used to
+    // render a blank screen with no way out. Same redirect as the
+    // no-id case above it.
+    navigate('/student/login');
+    return null;
+  }
 
   const pushHistory = () => {
     historyRef.current = [...historyRef.current.slice(-(HISTORY_LIMIT - 1)), placed];

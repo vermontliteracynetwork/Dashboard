@@ -17,6 +17,7 @@ import Passport from './components/Passport';
 import PetShelter from './routes/student/PetShelter';
 import PetJournal from './routes/student/PetJournal';
 import Cinema from './routes/student/Cinema';
+import Arcade from './routes/student/Arcade';
 import GrammarSandbox from './routes/student/GrammarSandbox';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
@@ -138,6 +139,7 @@ export default function App() {
           <Route path="/student/pet-shelter" element={<PetShelter />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />
+          <Route path="/student/arcade" element={<Arcade />} />
           <Route path="/student/grammar" element={<GrammarSandbox />} />
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>

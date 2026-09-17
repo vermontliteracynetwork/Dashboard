@@ -1,6 +1,7 @@
 import { ActivityLibraryBrowse, CreateActivityForm, PlaygroundPool } from './ActivityLibrary';
 import QuestionSetsManager from './QuestionSetsManager';
 import CinemaVideosManager from './CinemaVideosManager';
+import ScratchGamesManager from './ScratchGamesManager';
 import TeacherNav from '../../components/TeacherNav';
 
 // One comprehensive Activities page, covering both subjects at once —
@@ -25,6 +26,8 @@ export default function PlaygroundManager() {
         <QuestionSetsManager />
 
         <CinemaVideosManager />
+
+        <ScratchGamesManager />
       </div>
     </div>
   );

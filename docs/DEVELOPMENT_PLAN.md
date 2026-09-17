@@ -12,6 +12,7 @@
 |---|---|
 | [`SIZE_REFERENCE.md`](./SIZE_REFERENCE.md) | Build Mode's unit system (1.0 = player height), the full category size chart, and the audit/fixes applied to it. |
 | [`LITERACY_WORKSPACE.md`](./LITERACY_WORKSPACE.md) | The final, teacher-approved design for the Literacy Workspace (Polypad-style open sandbox superseding Phase 1 "Literacy Manipulatives") — tile categories, morpheme web, Montessori grammar symbols, canvas/whiteboard behavior, assignment mode, 5-phase build order. |
+| [`LITERACY_MANIPULATIVES_FEATURE_AUDIT.md`](./LITERACY_MANIPULATIVES_FEATURE_AUDIT.md) | Code-review feature audit of the shipped Literacy Manipulatives sandbox (`GrammarSandbox.tsx`) against Polypad's real feature set and the teacher's literacy-specific asks (UFLI grapheme tiles, Morpheme Web, Word Lists panel, Montessori shapes) — what's built vs. not, per-item build-effort estimates, and a recommended next-build order. |
 | [`TRANSPORTATION.md`](./TRANSPORTATION.md) | The design spec for the Homeplot vehicle system (cars, boats, trains, planes, drone) — mount/drive/dismount pattern, per-vehicle mechanics, placement rules, sound design, build order. |
 | [`NATIVE_GAME_STANDARD.md`](./NATIVE_GAME_STANDARD.md) | Policy for any native/embedded game (uploaded HTML5 or built from scratch) wired to a real question set. |
 | [`ASSET_PIPELINE.md`](./ASSET_PIPELINE.md) | How 3D asset packs get added to the Build Mode catalog. |

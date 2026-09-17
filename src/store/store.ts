@@ -140,6 +140,9 @@ import {
   pushCinemaVideo,
   deleteCinemaVideoRemote,
   rowToCinemaVideo,
+  pushScratchGame,
+  deleteScratchGameRemote,
+  rowToScratchGame,
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
@@ -165,6 +168,7 @@ import type {
   RotationMode,
   QuestionSet,
   CinemaVideo,
+  ScratchGame,
   ActivityLibraryItem,
   PlanTemplate,
   WeeklyScheduleEntry,
@@ -266,6 +270,7 @@ interface AppState {
   pets: StudentPet[]; // every student's owned pets — see StudentPet in types.ts
   homeRooms: HomeRoomDef[]; // every student's own Home Room floor plan (discrete rooms + one yard) — see HomeRoomDef in types.ts
   cinemaVideos: CinemaVideo[]; // videos shown in the in-world Cinema — teacher-authored, unlimited replay, no mastery tracking
+  scratchGames: ScratchGame[]; // games shown in the in-world Arcade — teacher-authored MIT Scratch project links, unlimited replay, no mastery tracking
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -490,6 +495,9 @@ interface AppState {
   addCinemaVideo: (video: Omit<CinemaVideo, 'id' | 'createdAt'>) => string;
   updateCinemaVideo: (id: string, patch: Partial<CinemaVideo>) => void;
   deleteCinemaVideo: (id: string) => void;
+  addScratchGame: (game: Omit<ScratchGame, 'id' | 'createdAt'>) => string;
+  updateScratchGame: (id: string, patch: Partial<ScratchGame>) => void;
+  deleteScratchGame: (id: string) => void;
 
   // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
@@ -644,6 +652,7 @@ export const useStore = create<AppState>()(
       pets: [],
       homeRooms: [],
       cinemaVideos: [],
+      scratchGames: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -811,6 +820,7 @@ export const useStore = create<AppState>()(
           onStudentPet: (e, n, o) => set((s) => ({ pets: applyArrayRow(s.pets, e, rowToStudentPet, n, o) })),
           onHomeRoom: (e, n, o) => set((s) => ({ homeRooms: applyArrayRow(s.homeRooms, e, rowToHomeRoom, n, o) })),
           onCinemaVideo: (e, n, o) => set((s) => ({ cinemaVideos: applyArrayRow(s.cinemaVideos, e, rowToCinemaVideo, n, o) })),
+          onScratchGame: (e, n, o) => set((s) => ({ scratchGames: applyArrayRow(s.scratchGames, e, rowToScratchGame, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -2591,6 +2601,25 @@ export const useStore = create<AppState>()(
       deleteCinemaVideo: (id) => {
         set((s) => ({ cinemaVideos: s.cinemaVideos.filter((v) => v.id !== id) }));
         deleteCinemaVideoRemote(id);
+      },
+
+      addScratchGame: (game) => {
+        const id = makeId();
+        const full: ScratchGame = { ...game, id, createdAt: new Date().toISOString() };
+        set((s) => ({ scratchGames: [full, ...s.scratchGames] }));
+        pushScratchGame(full);
+        return id;
+      },
+
+      updateScratchGame: (id, patch) => {
+        set((s) => ({ scratchGames: s.scratchGames.map((g) => (g.id === id ? { ...g, ...patch } : g)) }));
+        const updated = get().scratchGames.find((g) => g.id === id);
+        if (updated) pushScratchGame(updated);
+      },
+
+      deleteScratchGame: (id) => {
+        set((s) => ({ scratchGames: s.scratchGames.filter((g) => g.id !== id) }));
+        deleteScratchGameRemote(id);
       },
 
       addLibraryActivity: (activity) => {

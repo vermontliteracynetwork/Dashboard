@@ -219,6 +219,20 @@ alter table cinema_videos add column if not exists cover_image_url text;
 alter table cinema_videos add column if not exists tags jsonb not null default '[]';
 alter table cinema_videos add column if not exists duration_seconds integer;
 
+-- Games shown in the in-world Arcade — direct teacher request: her
+-- students are "obsessed with Scratch" (scratch.mit.edu). A teacher pastes
+-- a public project's URL; only its numeric project id is stored (Scratch's
+-- own CDN serves the thumbnail, and its own embed path plays the project,
+-- so nothing else needs to live here). Same pure play-for-fun shape as
+-- cinema_videos: unlimited replay, no mastery/task tracking.
+create table if not exists scratch_games (
+  id text primary key,
+  title text not null,
+  project_id text not null,
+  created_at timestamptz not null default now(),
+  tags jsonb not null default '[]'
+);
+
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged
 -- for the shared Playground pool. Same content shape as a Task, plus a
@@ -362,6 +376,7 @@ alter table activity_library add column if not exists reward jsonb;
 alter table assignments add column if not exists deleted_at timestamptz;
 alter table students add column if not exists world_quest1_met_ids jsonb not null default '[]';
 alter table students add column if not exists favorite_cinema_video_ids jsonb not null default '[]';
+alter table students add column if not exists favorite_scratch_game_ids jsonb not null default '[]';
 alter table students add column if not exists last_mystery_pack_opened_date date;
 alter table students add column if not exists world_move_sensitivity numeric not null default 1;
 alter table students add column if not exists world_dpad_side text not null default 'left';
@@ -688,7 +703,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games'
   ];
 begin
   foreach t in array tables loop
@@ -731,7 +746,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games'
   ];
 begin
   foreach t in array tables loop

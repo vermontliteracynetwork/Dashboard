@@ -15,6 +15,7 @@ import type {
   BreakPoolItem,
   QuestionSet,
   CinemaVideo,
+  ScratchGame,
   RotationMode,
   ToolKey,
   ProgressMap,
@@ -85,6 +86,7 @@ const rowToStudent = (r: Row): Student => ({
   bonusSpinAvailable: r.bonus_spin_available ?? false,
   worldQuest1MetIds: r.world_quest1_met_ids ?? [],
   favoriteCinemaVideoIds: r.favorite_cinema_video_ids ?? [],
+  favoriteScratchGameIds: r.favorite_scratch_game_ids ?? [],
   lastMysteryPackOpenedDate: r.last_mystery_pack_opened_date ?? null,
   worldMoveSensitivity: r.world_move_sensitivity ?? 1,
   worldDpadSide: r.world_dpad_side ?? 'left',
@@ -141,6 +143,7 @@ const studentToRow = (s: Student): Row => ({
   bonus_spin_available: s.bonusSpinAvailable,
   world_quest1_met_ids: s.worldQuest1MetIds,
   favorite_cinema_video_ids: s.favoriteCinemaVideoIds ?? [],
+  favorite_scratch_game_ids: s.favoriteScratchGameIds ?? [],
   last_mystery_pack_opened_date: s.lastMysteryPackOpenedDate ?? null,
   world_move_sensitivity: s.worldMoveSensitivity,
   world_dpad_side: s.worldDpadSide,
@@ -608,6 +611,14 @@ const rowToCinemaVideo = (r: Row): CinemaVideo => ({
   durationSeconds: r.duration_seconds ?? undefined,
 });
 
+const rowToScratchGame = (r: Row): ScratchGame => ({
+  id: r.id,
+  title: r.title,
+  projectId: r.project_id,
+  createdAt: r.created_at,
+  tags: r.tags ?? [],
+});
+
 const rowToActivity = (r: Row): ActivityLibraryItem => ({
   id: r.id,
   subject: r.subject,
@@ -775,6 +786,7 @@ export interface HydratedState {
   pets: StudentPet[];
   homeRooms: HomeRoomDef[];
   cinemaVideos: CinemaVideo[];
+  scratchGames: ScratchGame[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
@@ -798,7 +810,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -834,9 +846,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('student_pets').select('*'),
     supabase.from('home_rooms').select('*'),
     supabase.from('cinema_videos').select('*'),
+    supabase.from('scratch_games').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes]) {
     if (res.error) throw res.error;
   }
 
@@ -909,6 +922,7 @@ export async function fetchAll(): Promise<HydratedState> {
     pets: (studentPetsRes.data ?? []).map(rowToStudentPet),
     homeRooms: (homeRoomsRes.data ?? []).map(rowToHomeRoom),
     cinemaVideos: (cinemaVideosRes.data ?? []).map(rowToCinemaVideo),
+    scratchGames: (scratchGamesRes.data ?? []).map(rowToScratchGame),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
@@ -1046,6 +1060,7 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   bonusSpinAvailable: 'bonus_spin_available',
   worldQuest1MetIds: 'world_quest1_met_ids',
   favoriteCinemaVideoIds: 'favorite_cinema_video_ids',
+  favoriteScratchGameIds: 'favorite_scratch_game_ids',
   lastMysteryPackOpenedDate: 'last_mystery_pack_opened_date',
   worldMoveSensitivity: 'world_move_sensitivity',
   worldNpcLastTalkDates: 'world_npc_last_talk_dates',
@@ -1202,6 +1217,16 @@ export const pushCinemaVideo = (v: CinemaVideo) =>
   });
 export const deleteCinemaVideoRemote = (id: string) => remove('cinema_videos', { id });
 
+export const pushScratchGame = (g: ScratchGame) =>
+  upsert('scratch_games', {
+    id: g.id,
+    title: g.title,
+    project_id: g.projectId,
+    created_at: g.createdAt,
+    tags: g.tags ?? [],
+  });
+export const deleteScratchGameRemote = (id: string) => remove('scratch_games', { id });
+
 export const pushRotationMode = (studentId: string, subject: Subject, mode: RotationMode) =>
   upsert('rotation_modes', { student_id: studentId, subject, mode });
 
@@ -1356,7 +1381,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1393,6 +1418,7 @@ export interface RealtimeHandlers {
   onWallSegment: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onFocus: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onCinemaVideo: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onScratchGame: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -1442,6 +1468,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'wall_segments' }, wire(handlers.onWallSegment))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'focuses' }, wire(handlers.onFocus))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cinema_videos' }, wire(handlers.onCinemaVideo))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'scratch_games' }, wire(handlers.onScratchGame))
     .subscribe();
 
   return () => {

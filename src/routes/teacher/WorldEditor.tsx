@@ -47,6 +47,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
   { value: 'island-dock', label: `Island Dock (boat to Creative Island) → ${ROLE_VIEWS['island-dock']}` },
   { value: 'cinema', label: `Cinema (watch videos) → ${ROLE_VIEWS.cinema}` },
+  { value: 'arcade', label: `Arcade (play Scratch games) → ${ROLE_VIEWS.arcade}` },
   { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];
@@ -1089,8 +1090,15 @@ function SelectedObjectToolbar({
         </button>
       </Html>
 
-      <Html position={[selected.position[0], topY + 0.5, selected.position[2]]} center distanceFactor={8} zIndexRange={[60, 0]}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif' }}>
+      {/* Anchored bottom-center (not drei's `center`, which splits the
+          panel's height evenly above/below the point) — with `center` a
+          tall panel (delete-confirm chip, or the Move popover's D-pad)
+          dipped back down over the object itself, exactly what a small
+          placed object needs clearance from. translate(-50%,-100%) keeps
+          the whole stack growing upward from topY, never covering
+          what's below it, however tall it gets. */}
+      <Html position={[selected.position[0], topY + 0.5, selected.position[2]]} distanceFactor={8} zIndexRange={[60, 0]}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif', transform: 'translate(-50%, -100%)' }}>
           {confirmingDelete ? (
             <div className="row" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 12, boxShadow: '4px 4px 0 var(--ink)', padding: 6 }}>
               <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={doDelete}>Delete</button>
