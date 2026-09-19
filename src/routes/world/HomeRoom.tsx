@@ -388,6 +388,7 @@ function PetCareCard({
   const renamePet = useStore((s) => s.renamePet);
   const setFollowingPet = useStore((s) => s.setFollowingPet);
   const sellPet = useStore((s) => s.sellPet);
+  const tintPet = useStore((s) => s.tintPet);
   const [nameDraft, setNameDraft] = useState(pet.customName);
   const [confirmSell, setConfirmSell] = useState(false);
   const canFollow = canPetFollow(pet.trainingProgress);
@@ -458,6 +459,27 @@ function PetCareCard({
           Next: {nextMilestone(pet.trainingProgress)!.icon} {nextMilestone(pet.trainingProgress)!.label} at {nextMilestone(pet.trainingProgress)!.threshold}
         </div>
       )}
+      {/* Pet paint-brush customization (Part B backlog item, directly
+          requested) — same swatch/tint mechanism Build Mode already uses
+          for world objects, applied here to the student's own pet. Purely
+          cosmetic autonomy, no cost, no cap, reversible any time. */}
+      <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.65, marginBottom: 2 }}>🎨 Color</div>
+      <div className="row-wrap" style={{ gap: 4, marginBottom: 4 }}>
+        {PET_TINT_SWATCHES.map((c) => (
+          <button
+            key={c}
+            title={c}
+            aria-label={`Color your pet ${c}`}
+            onClick={() => tintPet(pet.id, pet.tintColor === c ? null : c)}
+            style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, padding: 0, borderRadius: 6, background: c, border: pet.tintColor === c ? '2px solid var(--ink, #1f4238)' : '1px solid #0002', cursor: 'pointer' }}
+          />
+        ))}
+        {pet.tintColor && (
+          <button className="btn btn-sm" style={{ minHeight: 22, fontSize: 9, padding: '0 6px' }} onClick={() => tintPet(pet.id, null)}>
+            ✕ Reset
+          </button>
+        )}
+      </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
         <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
@@ -494,9 +516,35 @@ function PetCareCard({
 // no walk clip needed) — this is presence, not the companion mechanic.
 const HOME_PET_SCALE_MIN = 0.001;
 const HOME_PET_SCALE_MAX = 3;
+// Same 12-color palette WorldEditor.tsx's Build Mode paint tool uses (not
+// cross-imported — that file is teacher-only and pulls in Build Mode's own
+// heavy code, see this file's own bundle-splitting concerns above), so a
+// student's pet color and a teacher's asset tint always look consistent.
+const PET_TINT_SWATCHES = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#78350f', '#64748b', '#ffffff'];
 function HomePetPresence({ pet, def, position }: { pet: StudentPet; def: PetDef; position: [number, number, number] }) {
   const { scene, animations } = useGLTF(def.modelPath);
-  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
+  const cloned = useMemo(() => {
+    const c = cloneSkinned(scene);
+    // Pet paint-brush customization — same clone-material-and-override-
+    // color approach WorldObjectRenderer's useRecenteredScene uses for
+    // WorldObject.tintColor, so this pet's shared cached GLTF scene (every
+    // other instance of this species) is never mutated in place.
+    if (pet.tintColor) {
+      const color = new THREE.Color(pet.tintColor);
+      c.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const applyTint = (mat: THREE.Material) => {
+          const clonedMat = mat.clone();
+          if (clonedMat instanceof THREE.MeshStandardMaterial || clonedMat instanceof THREE.MeshPhongMaterial || clonedMat instanceof THREE.MeshBasicMaterial) {
+            clonedMat.color = color;
+          }
+          return clonedMat;
+        };
+        child.material = Array.isArray(child.material) ? child.material.map(applyTint) : applyTint(child.material);
+      });
+    }
+    return c;
+  }, [scene, pet.tintColor]);
   const stage = growthStageFor(pet.trainingProgress);
   const scale = useMemo(() => {
     const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());

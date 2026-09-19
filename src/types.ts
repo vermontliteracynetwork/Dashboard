@@ -909,6 +909,7 @@ export interface StudentPet {
   food: number; // 0-100, soft floor (never 0)
   social: number; // 0-100, soft floor
   health: number; // 0-100, soft floor — falls only as a consequence of food/social running low, not decayed independently
+  tintColor?: string; // student-picked recolor of the pet's own model (paint-brush customization), same swatch mechanism as WorldObject.tintColor; undefined = original model color
 }
 
 // A student's own feedback about the game, submitted through the

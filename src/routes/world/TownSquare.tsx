@@ -567,9 +567,29 @@ const PET_HOVER_BOB_SPEED = 2.2;
 // never approached by anything in this catalog and is unchanged.
 const PET_SCALE_MIN = 0.001;
 const PET_SCALE_MAX = 3;
-function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path: string; floating: boolean; targetHeight: number; isMovingRef: React.RefObject<boolean> }) {
+function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColor }: { path: string; floating: boolean; targetHeight: number; isMovingRef: React.RefObject<boolean>; tintColor?: string }) {
   const { scene, animations } = useGLTF(path);
-  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
+  const cloned = useMemo(() => {
+    const c = cloneSkinned(scene);
+    // Pet paint-brush customization — same clone-material-and-override-color
+    // approach used everywhere else a tinted model renders (WorldObjectRenderer,
+    // HomeRoom's HomePetPresence).
+    if (tintColor) {
+      const color = new THREE.Color(tintColor);
+      c.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const applyTint = (mat: THREE.Material) => {
+          const clonedMat = mat.clone();
+          if (clonedMat instanceof THREE.MeshStandardMaterial || clonedMat instanceof THREE.MeshPhongMaterial || clonedMat instanceof THREE.MeshBasicMaterial) {
+            clonedMat.color = color;
+          }
+          return clonedMat;
+        };
+        child.material = Array.isArray(child.material) ? child.material.map(applyTint) : applyTint(child.material);
+      });
+    }
+    return c;
+  }, [scene, tintColor]);
   const scale = useMemo(() => {
     const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
     if (!(size.y > 0) || !isFinite(size.y)) return 1;
@@ -649,7 +669,7 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef }: { path
   );
 }
 
-function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number; facingRef: React.RefObject<number> }) {
+function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef, tintColor }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number; facingRef: React.RefObject<number>; tintColor?: string }) {
   const groupRef = useRef<THREE.Group>(null);
   const pos = useRef(new THREE.Vector3(playerPos.x - PET_FOLLOW_OFFSET, 0, playerPos.z - PET_FOLLOW_OFFSET));
   const elapsed = useRef(0);
@@ -686,7 +706,7 @@ function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef 
   return (
     <group ref={groupRef}>
       <Suspense fallback={null}>
-        <PetCompanionModel path={modelPath} floating={floating} targetHeight={targetHeight} isMovingRef={isMovingRef} />
+        <PetCompanionModel path={modelPath} floating={floating} targetHeight={targetHeight} isMovingRef={isMovingRef} tintColor={tintColor} />
       </Suspense>
     </group>
   );
@@ -3479,6 +3499,7 @@ export default function TownSquare() {
               floating={followingPetDef.category === 'aquatic' || followingPetDef.category === 'bird'}
               targetHeight={followingPetDef.targetHeight * growthScaleFactor(growthStageFor(followingPet.trainingProgress))}
               facingRef={playerFacingRef}
+              tintColor={followingPet.tintColor}
             />
           )}
           {QUEST1_NEIGHBORS.map((n) => (

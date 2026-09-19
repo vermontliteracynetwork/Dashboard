@@ -494,6 +494,11 @@ create table if not exists student_pets (
   health numeric not null default 100
 );
 
+-- Pet paint-brush/color-fill customization (Part B backlog item) — a
+-- student-picked recolor of their own pet's model, same swatch/tint
+-- mechanism world_objects.tint_color already uses.
+alter table student_pets add column if not exists tint_color text;
+
 -- Pets system: the one-time free-pet coupon every student gets the first
 -- time pets ship — pick any catalog pet, no cost, once ever.
 alter table students add column if not exists pet_coupon_redeemed boolean not null default false;

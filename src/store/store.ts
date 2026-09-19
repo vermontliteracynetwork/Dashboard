@@ -342,6 +342,11 @@ interface AppState {
   adoptPet: (studentId: string, petDefId: string, charge?: boolean) => boolean;
   carePet: (petId: string, action: 'feed' | 'pet' | 'play') => void;
   renamePet: (petId: string, name: string) => void;
+  // Pet paint-brush customization (Part B backlog item) — reuses the exact
+  // color-tint mechanism WorldObject/Build Mode already uses, applied to a
+  // pet's own model wherever it renders. null clears back to the model's
+  // original color.
+  tintPet: (petId: string, tintColor: string | null) => void;
   // petId: null unsets whichever pet was following (goes back to no companion).
   setFollowingPet: (studentId: string, petId: string | null) => void;
   sellPet: (petId: string) => void;
@@ -1331,6 +1336,14 @@ export const useStore = create<AppState>()(
         const trimmed = name.trim();
         if (!pet || !trimmed) return;
         const updated: StudentPet = { ...pet, customName: trimmed };
+        set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
+        pushStudentPet(updated);
+      },
+
+      tintPet: (petId, tintColor) => {
+        const pet = get().pets.find((p) => p.id === petId);
+        if (!pet) return;
+        const updated: StudentPet = { ...pet, tintColor: tintColor ?? undefined };
         set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
         pushStudentPet(updated);
       },
