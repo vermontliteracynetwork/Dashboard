@@ -125,7 +125,7 @@ Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`
 ### Pets — remaining phases of Claudia's 7-phase plan
 
 - **Phase 5 — SEL regulation layer:** PARTIALLY BUILT. The Home Room care panel already shows feelings-word tags. Not yet built: any explicit tie-in between pet care and the calm-down/regulation tools (e.g. "check on your pet" as an offered regulation-break activity).
-- **Phase 6 — Companion check-in nudge:** NOT BUILT. A gentle, non-punitive prompt encouraging a student to check on their pet. Needs a trigger decision (time/session/stat-threshold-based) and a delivery decision (notification? mailbox letter? pie-menu badge?).
+- **Phase 6 — Companion check-in nudge:** SHIPPED. Stat-threshold-based (any owned pet under 40/100 on food/social/health), delivered as a "(count)" suffix on the Town Square pie menu's Companion wedge (same pattern the Tasks wedge already uses) plus a small heart icon on that pet's thumbnail in the companion-picker wheel. Purely informational, never a popup, never gates anything, and costs a student nothing if they never look.
 - **Pet paint-brush/color-fill customization:** NOT BUILT. Directly requested. Would likely reuse Build Mode's tint-color mechanism, but `StudentPet` is a separate data model from `WorldObject`, so this needs its own small design pass.
 - **Companion visible in Home Room before training threshold:** SUGGESTED, NOT BUILT. A newly adopted, not-yet-trained pet has no 3D presence until trained enough to follow in Town Square — suggested fix: render at baby scale in Home Room regardless of training stage.
 

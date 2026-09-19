@@ -2229,6 +2229,15 @@ export default function TownSquare() {
   const student = students.find((s) => s.id === currentStudentId);
   const ownedPets = student ? pets.filter((p) => p.studentId === student.id) : [];
   const followingPet = ownedPets.find((p) => p.following);
+  // Pets Phase 6 (docs/DEVELOPMENT_PLAN.md Part B) — a gentle, non-punitive
+  // companion check-in nudge: no popup or interruption, just the same
+  // "(count)" label the Tasks wedge already uses when something needs
+  // attention. Stat-threshold-based (any pet under 40/100 on food/social/
+  // health), not time-based, so it only ever reflects real care state, and
+  // it's purely informational — nothing here gates or costs the student
+  // anything if they never look.
+  const PET_NEEDS_ATTENTION_THRESHOLD = 40;
+  const petsNeedingAttention = ownedPets.filter((p) => p.food < PET_NEEDS_ATTENTION_THRESHOLD || p.social < PET_NEEDS_ATTENTION_THRESHOLD || p.health < PET_NEEDS_ATTENTION_THRESHOLD).length;
   const followingPetDef = followingPet ? petDefById(followingPet.petDefId) : undefined;
   // Sims 4-style pie menu: click your own character in Town Square to
   // swap which trained pet is walking beside you, without a trip back to
@@ -2968,6 +2977,7 @@ export default function TownSquare() {
               const def = petDefById(pet.petDefId);
               if (!def) return null;
               const eligible = canPetFollow(pet.trainingProgress);
+              const needsAttention = pet.food < PET_NEEDS_ATTENTION_THRESHOLD || pet.social < PET_NEEDS_ATTENTION_THRESHOLD || pet.health < PET_NEEDS_ATTENTION_THRESHOLD;
               const angle = (i / ownedPets.length) * Math.PI * 2 - Math.PI / 2;
               const r = 92;
               const x = Math.cos(angle) * r;
@@ -2976,7 +2986,7 @@ export default function TownSquare() {
                 <button
                   key={pet.id}
                   disabled={!eligible}
-                  title={eligible ? pet.customName : `${pet.customName} isn't trained enough to follow yet`}
+                  title={eligible ? (needsAttention ? `${pet.customName} could use some care at home` : pet.customName) : `${pet.customName} isn't trained enough to follow yet`}
                   onClick={() => { setFollowingPet(student.id, pet.following ? null : pet.id); setShowCompanionMenu(false); }}
                   style={{
                     position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)',
@@ -2988,6 +2998,11 @@ export default function TownSquare() {
                   }}
                 >
                   <CompanionThumb pet={def} size={40} />
+                  {/* Icon, not just a color dot (Part D: color is never the
+                      only signal) — paired with the title above too. */}
+                  {needsAttention && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, fontSize: 15, lineHeight: 1 }} aria-hidden>💛</span>
+                  )}
                 </button>
               );
             })}
@@ -3031,7 +3046,7 @@ export default function TownSquare() {
                 { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
                 { id: 'more', icon: '⚙️', label: 'More', bg: '#5b6b8a', onSelect: () => setShowMoreMenu(true) },
                 { id: 'home', icon: '🏠', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
-                ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
+                ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
               ];
               return wedges.map((w, i) => {
                 const angle = (i / wedges.length) * Math.PI * 2 - Math.PI / 2;
