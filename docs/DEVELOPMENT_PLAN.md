@@ -26,84 +26,228 @@
 
 ## PART A — Shipped Features (the platform as it exists today)
 
-### A1. Academic Task Engine & Content Types
+Organized into four groups per direct teacher instruction: **Game & Play**, **Educational/Academic**, **ABA/SEL/Behavioral**, and **Platform/Other**. Every individual feature gets its own entry: what it is, exactly how a student or teacher interacts with it, and why it exists. A feature that touches more than one group (pets, for example, are a play feature whose training system is also a real ABA design) is written up in full once, under whichever group is its primary purpose, and cross-referenced by name from the other group rather than repeated.
 
-The core unit of work is a **Task**, assembled by the teacher into a student's daily **Rotation** (per subject, per day). Task types: Quiz (multiple choice, typed answers with typo tolerance, shuffling, Blooket-style tiles, read-aloud, retake-and-record), External link (opens in an in-app browser), Off-screen/paper, Video (completion gated on watching, themed movie-theater frame), Reading passage + questions, Flashcard drill, Word chain, Sentence editing, Article Reader (real web article, cleaned/annotatable), Sentence Builder (drag-and-drop graphic organizer), Pick One (2-4 video/link choices), Platformer Game + Quiz (native side-scroller with Blooket-style check-ins).
+### GROUP 1: GAME & PLAY FEATURES
 
-Infrastructure: reusable Activity Library, daily plan builder (Draft → Upcoming → Active → Deleted lifecycle), Plan Templates, weekly literacy Focus Sets with an 8-week Common-Core-aligned scope & sequence, a 286-entry Common Core standards picker, reference image/link per task, Playground-eligibility flag and per-student unlock threshold, required-task flag, Final Check completion mode, badge auto-award rules, interactive checklist with progress bar, "What do I do?" step-guide overlay, numbered stepping-stones and Choice Board modes, CSV import for quiz/drill content.
+#### A1. The 3D World: Town Square
 
-### A2. Accessibility & Study Tools
+The open-air hub every student lands in after login (not a 2D task list first, by direct teacher instruction after reviewing an earlier version). A student walks their avatar around using a repositionable on-screen D-pad, keyboard arrows, or click/tap-to-walk with a hover-preview marker showing exactly where they'll land. The camera follows behind and above the avatar; a student can drag to look around, use explicit look buttons, and tilt the camera vertically, with movement speed adjustable per student (0.5x to 2x) in Settings. Every wandering character (Player, Neighbors, ambient Townspeople) is scaled to read as a real person (Kenney Mini Character models brought up to human height after an early version had everyone looking like ants on the lawn).
 
-A floating "My Tools" panel on every screen: Calculator, TTS read-aloud everywhere (per-NPC voice skins, teacher override), Word Processor (rich-text Notes with per-word color-coding), calm-down/breathing QuietTool (always reachable, never gated), Multiplication table, Hundreds chart, Number line, Thesaurus & Dictionary (with morpheme breakdown), Sound Wall, Whiteboard (marker-color picker, tied to owned Marketplace marker colors), and now **Literacy Manipulatives** (see A15 below). App-wide dyslexia-friendly font toggle, voice-to-text everywhere a student types, a structured visual Feedback tool, "Count It Out" checkout mode for Piggy Bank/Marketplace purchases.
+Every building in the square (Bank, Store, Post Office, Welcome Center, Computer Desk, Home, Pet Shelter, Island Dock, Cinema, Arcade, or a teacher-custom role/external link) can be walked up to and opened with a one-tap Confirm card; a "Closed/Coming Soon" role exists so an unfinished building reads as intentional, not broken. Collision is real: buildings block movement using their actual rotated footprint (not a generic circle), so a student can never clip through a wall. A Map view shows an overhead grid with double-click-to-teleport or double-click-to-open-a-building.
 
-### A3. Question Sets, Content Library & Curriculum Tools
+Navigation/HUD: a single top-right radial pie menu holds Tasks, What now?, Help/Break, Settings/Map/My Stuff (under "More"), My Home, and Companion, all in one place per direct teacher instruction (a deliberate, teacher-approved override of the general "Help must never be gated behind a menu" rule elsewhere in the app, see Part D). Clicking the player's own avatar opens the same pie ("master menu" behavior). A "What's New" changelog book (see A39) auto-opens the first time something new ships that affects a student.
 
-Question Sets library (searchable/filterable, cover images, card-grid view), full editor per set, teacher "Focuses" curriculum-spotlight system with guardrail tiers, Score History per student per attempt, the Native Game Standard policy (see `NATIVE_GAME_STANDARD.md`).
+A computer desk placed in the square is the task entry point (a retro browser-styled frame opens the student's daily rotation), so "go do my schoolwork" is a real in-world action, not a separate app section. The world-object catalog enforces a hard zero-weapons rule automatically. A Wizard ThunderSword prop is the visual/interaction surface for the Tier 3 regulation lock described in A28; Help/calm-down always stays reachable through it even while it's otherwise non-dismissable.
 
-### A4. Native Games
+#### A2. Home Room (Private Room)
 
-Platformer (lives/hearts, hole-falls cost a heart, gauntlet-mode recovery via 5 correct answers in a row, level flash-cards, coin payout, touch controls with pointer capture so held buttons can't drop mid-press), Serenitrove (uploaded third-party HTML5 pilot), embeddable third-party games via the internal browser.
+Each student's own private room, picked from a catalog of real-scaled house exteriors visible on their shared "home" building in Town Square. Opens in a read-only View mode by default with a real Build Mode toggle for decorating. Walls are drawn Sims-4-style (click, drag, release) into multi-room floor plans; doors and windows snap to walls. Students paint their own walls and floors, and place furniture/yard decor from the same catalog Build Mode uses (see A4), scoped privately to their own room only. The Pet Care panel (see A5) lives here: feed/pet/play/rename/set-companion/sell, with feelings-word tags and a save-confirmation flash so an action always visibly registers.
 
-### A5. Economy, Rewards & Motivation Systems
+#### A3. Creative Island
 
-**Piggy Bank / Class Cash:** real dollars-and-cents currency, teacher-set rewards, streak interest, balance history, savings goals with needs-vs-wants reflection, full teacher admin controls, "Count It Out" checkout.
-**Marketplace:** unified catalog (avatars, emotes, fonts, colors, custom prizes, Skip Passes), cart/checkout/receipts, coin-earn animations.
-**Daily Spin Wheel:** 10-item prize wheel, once-per-day gate, bonus spin unlocked by finishing the day's assignments (now defaults ON for any teacher who hasn't explicitly turned it off).
-**Badges & Streaks:** auto-award rule engine, daily streak tracking tied to Piggy Bank interest.
-**Playground/Free-Play earnings:** completing a Free Play question set (or any Playground activity) now pays into the bank register the same way a real assignment does.
+A Minecraft-style free-build space with the full teacher-parity object catalog, reachable by boat from Town Square's dock or directly from Home Room. Locked by default; a teacher unlocks it per student (`islandBuildUnlocked`, see A40's Student Manager). Same real collision, View mode, and custom-role support as the rest of the world. Exists specifically so building/arranging (constructionist play, the thing Minecraft Education does well) has a home that isn't scoped to the confines of one student's own room.
 
-### A6. Communication & Social-Emotional Tools
+#### A4. Build Mode / World Editor
 
-Teacher↔student real-time chat, ambient NPC "Townspeople" and named "Neighbors" with real multi-exchange branching dialogue (iMessage-style log), social-script/encouragement variants and a Joke Book (jokes earned by talking to NPCs), per-NPC TTS voices, Help/calm-down always reachable, "What do I do?" overlay, Focus Guardrail Tiers 0-3.
+The placement/decorating tool underlying Town Square, Home Room, and Creative Island. Catalog: 1,000+ real 3D models across dozens of packs, each with a generated thumbnail and a real-world size class (1.0 unit = player height; see `SIZE_REFERENCE.md`). A student or teacher places an object with a ghost preview, moves it with a crosshair/D-pad, rotates it in 90-degree steps, and resizes it either with size presets (Mini through Giant) or a free-typed exact number, with a live per-object unit readout. Undo/redo is available; the teacher's shared-world changes go through a Draft to Publish/Discard cycle (so students never see a half-finished edit); a student's own room/island changes are always live. A paint brush and bucket recolor ground, sky, and asset tint, with a half-tile grid for precision. Every asset can carry a custom role (see A1), and a teacher can retint, resize, move, or delete even the game's own original fixed layout (buildings, market stalls, road tiles), not just objects placed after the tool existed.
 
-### A7. Homeplot World — Town Square
+#### A5. Pets System
 
-**Movement & camera:** click/tap-to-walk, repositionable D-pad, keyboard, adjustable sensitivity, mouse drag-look plus explicit look buttons, vertical camera tilt, hover-preview walk marker, iPad-specific viewport/scroll fixes (`position: fixed; inset: 0` + `useLockBodyScroll`, immune to iOS address-bar resize).
-**Buildings & roles:** any placed building can carry a role (Bank, Store, Post Office, Welcome Center, Computer Desk, Home, Pet Shelter, Island Dock, Cinema, Closed/Coming-Soon, or a custom external link); persistent name labels; one-tap Confirm before entering; real rotated-footprint collision; Map view with coordinate grid and double-click-to-teleport or double-click-to-open-a-building; a "Closed/Coming Soon" role for unfinished buildings.
-**Menus/HUD:** a single top-right radial pie menu now holds Tasks, What now?, Help/Break, Settings/Map/My Stuff (under "More"), My Home, and Companion — every right-hand button except Tools and Menu itself lives in this one pie, per direct teacher instruction (this is a deliberate override of the earlier "Help must never be gated" rule — the teacher was shown that tradeoff and chose it). Self-clicking the player avatar opens the same pie ("master menu" behavior). A "What's New" changelog book.
-**Other:** computer desk as task entry point (retro browser frame), zero-weapons catalog rule, editable sign text, Wizard ThunderSword progress-based lock (Help always still reachable through it).
+A full adoptable-animal system: dogs, cats, small critters, farm animals, birds, aquatic animals, and wild animals (37 species across those categories), each modeled at a real player-relative scale (a Great Dane reads noticeably bigger than a Chihuahua, a fish stays genuinely tiny). Every species is open to every student (no per-student scarcity) unless a future teacher tool locks one down.
 
-### A8. Homeplot World — Home Room
+**Pet Shelter** (Town Square building): every catalog pet is shown and pettable ("give a pat," a small animation) whether or not a student can afford it. A brand-new student has a one-time free-pet coupon: pick any pet, no cost, ever again. After that, pets are purchased directly with Class Cash, or pulled from the **Mystery Adoption Box** ($200, one open per real calendar day) — see A27 for its variable-ratio design. Up to 4 pets can be owned at once (`PET_OWNERSHIP_CAP`); the Shelter also offers a reward-free **Donate** option (see A35).
 
-A student's private room; house exterior pickable from real-scaled models; View mode by default with a real Build Mode toggle; Sims-4-style drawn walls, multi-room floor plans, snap-to-wall doors/windows; the pet care panel (feed/pet/play/rename/companion/sell) with feelings-word tags and a save-confirmation flash.
+**Pet Journal**: a permanent, Pokédex-style log of every species a student has ever adopted, even ones later sold, filterable by category. An undiscovered species shows as a "???" silhouette. This is what makes "collect them all" mean something even though only 4 pets can be live-owned at once.
 
-### A9. Homeplot World — Creative Island
+**Care loop** (Home Room): Food, Social, and Health bars (0-100), each paired with a plain-language feelings word at low and high values (e.g. Food low = "Hungry," high = "Full") rather than just a number. Stats decay softly, only while the student is actively in Town Square (never while they're away), floored at 20 so a pet is never neglected to zero, and pets never die. A student feeds, pets, and plays with their pet from a care card; a pet can be renamed anytime and sold back (with a confirm-tap safety) if a student's 4-pet home is full.
 
-A Minecraft-style free-build space, full teacher-parity catalog, locked by default and unlockable per student; real View mode; custom roles; real collision; reachable via an in-world dock and directly from Home Room.
+**Companion/follow mechanic**: a pet unlocks "walk beside you" in Town Square only after 5 logged task completions (`PET_FOLLOW_TRAINING_THRESHOLD`), tracked by the same counter used for the ABA shaping ladder (see A26). Training comes exclusively from finishing real assignments and question sets, never from clicking care buttons repeatedly, so the companion unlock reflects genuine engagement rather than idle spam. Only one pet can be the active companion at a time.
 
-### A10. Build Mode / World Editor (teacher-facing)
+**Growth stages**: a pet renders visibly smaller as a Baby (0-4 training), Juvenile (5-9), and full-size Adult (10+), using the same training counter, so "raising" a pet from puppy to adult is a real, free visual payoff of ordinary schoolwork, exactly per the teacher's original spec ("pets should start out as babies... and grow to be full adults with attention, love, and native games").
 
-Catalog: 1000+ real 3D models across dozens of packs, each with a generated thumbnail and a real-world size class (see `SIZE_REFERENCE.md` — 1.0 unit = player height, houses = ~2.2x, vehicles = ~0.65x, etc., with a live per-object unit readout on the resize control). Placement: ghost-preview, crosshair/D-pad move, 90-degree rotate, percentage-based resize +/- (fixed from a flat-add bug that could 11x a tiny object in one keypress), size presets (Mini through Giant) plus a free-typed exact-size number field for any precise size in one step, hammer delete. Undo/redo; Draft → Publish/Discard; local backup safety net. Paint brush (adjustable radius) and bucket for ground/sky/asset color and per-tile ground type; half-tile grid. Top View toggle, Preview-as-Student, recently-used row. Custom roles on any asset. Teacher Roster tab for NPC roles/titles.
+#### A6. Transportation System (Cars, Boats)
 
-### A11. Pets System
+Full design in `TRANSPORTATION.md` and `BOATS_DESIGN.md`. Any placed car-model object is driveable: click to mount, real steering/gas/brake pedal physics (acceleration, braking, coasting friction, a real turning radius), click again to dismount with a confirm step. A dismounted car parks exactly where it was left. Boats use the same mount/dismount confirm-card pattern ("Board the boat?"/"Get off the boat?") but reuse the ordinary D-pad/WASD as throttle-and-turn rather than a dedicated pedal control surface (the design doc's explicit "no new control surface" rule), and stay within painted water via a gentle bump-and-slide boundary rather than a hard wall. Not yet shipped: wake/splash effects and engine sound (no audio assets exist yet); boats and cars aren't placeable on Creative Island yet; trains, planes, and a drone are designed but not started.
 
-Full adoptable catalog across every real-animal category, per-species real player-relative scale ratios. Pet Shelter (pettable, direct-purchase, one-time free-first-pet coupon, Mystery Adoption Box — always yields a pet, re-rolls toward undiscovered species, capped at one open per real day). Pet Journal (permanent Pokédex-style discovery log). Care loop with Food/Social/Health bars, soft decay only while actively in Town Square, floored above zero, never dies. Growth stages tied to the same training-progress counter as the ABA shaping ladder (Walks with you → Best Friends → Bonded for Life). Companion/follow mechanic unlocked by training from real task completion only (never care-button-spamming). 4-pet cap enforced at the store layer. A donation option at the Shelter (reward-free coin sink for SEL practice).
+#### A7. Cinema
 
-### A12. Cinema
+A pure watch-for-fun video room, reached by walking up to the Cinema building. A teacher stocks it (YouTube links or direct Supabase uploads, see A40's Game/Cinema Videos manager); the student browses a Netflix-style horizontally scrolling "Now Showing" poster shelf, with search, tag-chip filtering, an estimated runtime shown before pressing play, and a heart to favorite a video (favorites sort first, everything else keeps the teacher's own add order). Unlimited replay, no completion tracking, no mastery attached; a video a student should be graded on watching belongs on a real Video task (A17) instead.
 
-A pure watch-for-fun video room. Teacher-managed library (YouTube link or Supabase Storage upload), auto-captured cover images, Netflix-style "Now Showing" poster shelf with favorites, tags/search/filter, estimated video length shown to students, always-visible exit buttons.
+#### A8. Arcade (Scratch Games)
 
-### A13. Teacher Portal
+A Cinema-styled browse-and-play screen for MIT Scratch (scratch.mit.edu) projects, built on direct teacher request ("my students are obsessed with Scratch"). A teacher pastes a public Scratch project URL; the Arcade shows its real Scratch-hosted thumbnail and plays it inline via Scratch's own official embed, with the same shelf/search/tag/favorite pattern as Cinema. Pure play-for-fun, unlimited replay, no tracking.
 
-Home/Live Overview, Student Manager, Assignments/Activities (full daily-plan builder, Activity Library, Question Sets, Cinema Videos, templates), Review Inbox, Badge Manager, Marketplace Manager, Piggy Bank admin, World Editor/Build Mode, Focuses authoring, Student Live View, Score History, teacher↔student chat.
+#### A9. Music & Radio
 
-### A14. Data, Sync & Platform Infrastructure
+A shared, teacher-authored music library (title, YouTube link, tags). A student starts music by clicking the Concert Hall building, a placeable Boom Box prop, or a radio button that only appears while driving a car. Playback is always audio-only (a visually hidden YouTube player, never a video surface). A Spotify-styled Now Playing bar gives real play/pause, previous/next (cycling the whole library), a draggable seek bar, a volume slider, and the same tag-chip filtering the picker uses. Music automatically stops when a student exits the car it was started from.
 
-Supabase (Postgres + Storage + realtime) backend, Zustand client store with local persistence, retry-with-backoff on every write plus a persistent-failure queue and a sync-trouble banner with manual Retry, realtime subscriptions, Vercel auto-deploy on push to `main`.
+#### A10. NPCs, Dialogue, Mailbox & Passport
 
-### A15. Literacy Manipulatives (Phase 1 — Sentence Grammar)
+Two tiers of non-player characters: 4 named **Neighbors** (Scout, Penny, Pip, Wren) tied to a launch "Meet the Neighbors" quest, and ambient **Townspeople** who wander the square with no quest attached. Every NPC has a real multi-exchange branching conversation, several complete variants per character (not one fixed script), and a distinct assigned text-to-speech voice. Talking to an NPC shows the exchange as a phone-style chat log (NPC left, student right), with the student picking short response options rather than just tapping Continue. Repeat visits deliberately surface a different variant so conversations stay fresh (a direct novelty-decay countermeasure); once every joke a character knows has been heard, the system falls back to a rotating pool including a plain, joke-free option too, since "not all communication needs to be jokes" was a direct teacher instruction.
 
-The first shipped piece of what's now the larger Literacy Workspace plan (see `LITERACY_WORKSPACE.md`). Reachable from the Tools menu (subject: literacy/both). Explicit-instruction mode, one rung (subject-verb agreement): color-coded word-class puzzle pieces (currently color-only — Montessori shapes are planned but not yet added, see `LITERACY_WORKSPACE.md`) snap into labeled WHO?/DID WHAT? sockets on an open-whiteboard-styled canvas (dot-grid board surface, word-piece tray along the bottom). Reuses the platform's existing quiz mastery/retry-once-then-retire state machine rather than a second progress system. Rung completion pays into the bank register and grants a bonus spin.
+Certain punchlines are tagged as jokes: the first time a student reaches one, it's permanently banked into their **Joke Book**, a real page-turning book (CSS 3D page flip, not a flat list) viewable from the backpack inventory (A11), alongside a **Friends** list of every NPC ever talked to.
 
-### A16. Transportation System (Phase 1 — Cars; Phase 2 — Boats core loop)
+**Mailbox** (Post Office building): shows the themed item each Neighbor "sends" the first time a student meets them, so the Post Office isn't a walkable-but-inert building. **Passport** (Welcome Center building): a Town-Hall-style summary of the student's own identity, streak, Neighbors met, jokes collected, and earned badges, an Animal-Crossing-style equivalent to Scout's "shows you around" role.
 
-Full design in `TRANSPORTATION.md`; UX research/upgrade recommendations in `DRIVING_UX_RESEARCH.md`. Any placed car-model object (filename-matched, not an allow-list) is driveable: click to mount, real steering/gas/brake physics (not the free-walk 2D movement), the driven car excluded from its own collision layer, click again to dismount with a confirm step, dismounting parks the car exactly where it was left (including for a draft-status object, via a `publishedSnapshot` patch). Town Square's walkable area was expanded for more driving room.
+#### A11. Avatars & Emotes
 
-**Boats (Phase 2, per `BOATS_DESIGN.md`):** core loop shipped. Any placed boat-model object is driveable via the same confirm-card mount/exit pattern as cars ("Board the boat?"/"Get off the boat?"), but throttle+turn reuses the ordinary D-pad/WASD input rather than the car's dedicated Gas/Brake pedals, per the design doc's "no new control surface" spec. Boats stay within painted water via a bump-and-slide boundary, never a hard wall; Build Mode warns (non-blocking) when a boat is placed off water. **Not yet shipped:** wake/splash VFX, engine/splash SFX, and the shared per-vehicle sound/reduced-motion toggle (`BOATS_DESIGN.md` §8 phases 2b/2d) — no audio assets exist yet and this environment can't live-test sound, so audio was deliberately deferred rather than shipped unverified. Boats aren't placeable on Creative Island yet (same existing limit as cars). Trains/planes/drone are the next phases, not yet started.
+A student picks and customizes their in-world character from a catalog of avatars (purchased with Class Cash, worn instantly) and a catalog of emote images that pop up over their head (Happy, Love It, Great Job, LOL, Sad, Frustrated, Idea, and more). Six of the emotes are free starters, including all four that name a genuinely hard feeling (Sad, Frustrated, Heartbroken, Grr): a deliberate design choice so a student having a hard day doesn't have to pay for the word for it while every positive feeling is free. A backpack **Inventory Hotbar** (opened from the pie menu's "My Stuff") shows everything a student owns without the full shop attached: characters, emotes, the Joke Book, Friends list, and pets.
 
-### A17. Music & Radio
+#### A12. Marketplace
 
-A shared, teacher-authored music library (title + YouTube link + tags), reachable from the new teacher "Game" tab (which also now holds Cinema and Arcade, moved out of Activities since all three are the same "play for fun, no task tracking" shape). Students start music by clicking the Concert Hall building, a placeable Boom Box prop, or a radio button that appears only while driving a car; playback is always audio-only (a visually hidden YouTube IFrame Player API embed, never a visible video surface). A Spotify-style Now Playing bar gives real play/pause, previous/next (cycling the full library), a draggable seek bar, and a volume slider; tag chips let students filter the picker the same way the teacher's Music manager does. Music stops automatically when a student exits the car it was started from.
+The unified cosmetic/power-up shop, reached by walking up to the Store. Tabs: Characters (avatars), Emotes, Writing (fonts and text/highlight colors for Notes), Whiteboard (marker colors), Voices (read-aloud voice skins), Prizes (teacher-defined real-world or in-game rewards, redeemed by showing the screen to the teacher), Power-Ups (Skip Passes, which let a student cross one non-required task off their list without doing it), Pets (a redirect to the Pet Shelter, A5), My Stuff, and Receipts (a full purchase history). Every purchase goes into a real shopping cart first, with a running total and balance check, before a final Confirm Purchase; a receipt screen afterward shows what was bought and the new balance. A student who can't afford something sees exactly how much more they need, never just a disabled button. See A31 for the optional "Count It Out" checkout mode and A32 for the cart's needs-vs-wants reflection prompt.
+
+#### A13. Daily Spin Wheel
+
+A real spinning prize wheel (rendered with a physics-accurate spin library, not a fake animation), available once per real calendar day. Every spin is a guaranteed win across 10 segments: a Skip Pass, a cashback percentage (3% or 5% of balance), one dedicated pet slot, four distinct cash amounts, and three random marketplace items, all deterministically the same for every student on a given date (so it's fair, not exploitable) and freshly rerolled the next day. If a student lands on something they already own, or their pet home is already full, it silently falls back to a small cash consolation rather than a true dead spin. Finishing the whole day's assignment (both subjects) earns a second **Bonus Spin**, now defaulted on for every teacher who hasn't explicitly turned it off.
+
+#### A14. Quiz Theme Picker
+
+A small "change my quiz's look" button inside any quiz activity, letting a student pick a visual skin (Standard, Pixel, Adventure, Fantasy) for the quiz screen's chrome. The choice is saved to the student, not just the session, on the explicit design principle that predictability matters more than novelty for this population: a themed quiz should look the same every time a student opens it, not re-skin itself randomly.
+
+#### A15. The Platformer Game
+
+A native, from-scratch side-scroller (Blooket-style: gameplay wraps a real question set, see A24 for the retrieval-practice rationale and the Native Game Standard). A student picks a character skin, then runs, jumps, and dodges spike hazards and gaps across 4 increasingly difficult levels (tighter ground, more spikes, wider gaps, and a faster player as levels rise) while collecting coins. Three starting hearts; falling in a hole costs a heart. If all hearts are lost, recovery is a fixed gauntlet: 5 correct question answers in a row (not partial credit, and independent of how many hearts were lost), any miss resets the streak to zero. A question interrupt fires automatically at least once a minute of active play, even with zero mistakes, so retrieval practice keeps happening regardless of how well the platforming itself is going. In-game coins convert to real Piggy Bank money the moment the activity finishes. Touch controls use pointer capture so a held button can't accidentally drop mid-press, a real accessibility fix for imprecise touch input.
+
+---
+
+### GROUP 2: EDUCATIONAL/ACADEMIC FEATURES
+
+#### A16. The Task Engine & Daily Rotation
+
+The core unit of academic work is a **Task**, assembled by the teacher into a student's daily **Rotation**, one list per subject (Math, Literacy) per day. A task can be marked required (can never be skipped with a Skip Pass), daily (repeats every day, starred in the library), or a **Final Check** (completing it marks the whole subject done for the day and triggers the streak/Playground unlock, instead of requiring every other task to also be checked off). Tasks display as **numbered stepping-stones**: any task with an explicit order number must be completed in ascending sequence; once every numbered task is done, every remaining (unordered) task unlocks as a free-choice **Choice Board**, pick anything in any order. A Final Check is automatically forced to the very end of the sequence regardless of how the teacher ordered everything else. Each task can carry a reference image/link, a teacher-authored or auto-generated visual step-by-step guide ("What do I do?"), and its own reward (money by default, or a specific free marketplace item, a one-off custom prize, or a bonus spin). A task must actually be opened before its checkbox becomes tappable, so nothing can be checked off sight-unseen; checking one off always asks "are you sure?" first, and unchecking asks the same in reverse.
+
+#### A17. Task Types
+
+Every content shape a teacher can assign, each its own screen:
+- **Quiz**: one question at a time, multiple choice (with optional shuffled questions/answers and teacher-set images with real alt text), matching, or fill-in-the-blank with typo tolerance. Answering freezes on the current question with a clear right/wrong result before advancing; a wrong answer gets requeued to come back around rather than just marked and dropped. A question missed 3 times in a row is permanently retired for that attempt and flagged to the teacher's Review Inbox (a "Quiz Struggle") rather than silently disappearing.
+- **External Link**: opens in an in-app browser frame; since most real external sites (Amplify, Polypad, YouTube, etc.) block being shown inside an iframe, the default behavior is an honest "here's where you're headed" card with an explicit tap to actually leave the app, rather than a broken embedded frame. A teacher can flag specific embed-friendly URLs (like Scratch's own embed links) to play truly inline instead.
+- **Off-screen/Paper**: a plain-language instruction card for work done away from the screen, with an optional required photo upload of the finished work before it can be checked off.
+- **Video**: a themed movie-theater-framed YouTube player; "I watched it!" only becomes tappable once the player itself reports the video played through to the end, not just on a manual tap.
+- **Reading Passage + Questions**: a passage (with an optional image) read in place, then flows straight into an attached Quiz.
+- **Flashcard Drill**: front/back cards a student flips through and self-checks.
+- **Word Chain**: a word-ladder style chain of hint-and-answer steps.
+- **Sentence Editing**: a student retypes/corrects a broken sentence to match a target, with an optional hint.
+- **Article Reader**: a real web article, cleaned of ads/nav/site chrome, with student-adjustable font size/line height, tappable text highlighting in distinct colors per open tab, and per-highlight notes.
+- **Sentence Builder**: a colored-slot graphic organizer (colourful-semantics style) where each blank keeps a consistent color for its sentence role across every organizer a student ever sees, so color becomes a reliable structural cue rather than decoration; connector words the teacher fixes (like "because," "and") sit between blanks automatically.
+- **Pick One**: 2-4 video/link options a student freely picks between, never required to do more than one.
+- **Platformer Game + Quiz**: see A15/A24.
+
+#### A18. Question Sets, Content Library & CSV Import
+
+A searchable, filterable library of reusable Question Sets (quiz or drill kind), each with a cover image and tags, browsable as a card grid. A full editor lets a teacher build a set by hand, or upload a CSV in a fixed template format that both inserts straight into the activity being edited and saves as a new named set in the library in one step, so nothing has to be entered twice.
+
+#### A19. Common Core Standards Picker
+
+A curated reference set of official Common Core State Standards (CCSS) for Math and English Language Arts/Literacy, grades K-8, sourced and trimmed from the official standard text (not paraphrased), used when a teacher tags a task or a Focus (A20) with a specific standard code. A standard code a teacher puts at the front of a Focus's own detail text is automatically stripped before that text is ever shown to a student, since the code itself is teacher reference, not student-facing content.
+
+#### A20. Focus Sets / Curriculum Spotlight System
+
+Two related systems, both teacher-authored:
+
+**Literacy Focus Sets**: a per-student weekly window of phonics patterns, morphemes, and spelling practice words, shown as a quick reference while the student works on Literacy.
+
+**Focuses**: a class-wide curriculum spotlight across four independent lanes (Math, Literacy, Social-Emotional, Personal Finance), one active focus per lane at a time. A Focus is deliberately never shown to a student as "your weak spot" or "you need to work on this"; it surfaces as a quiet "This week in our classroom" banner on relevant screens (Piggy Bank, Marketplace, subject dashboards), and its word list occasionally (about 1 in 3 conversations, never every single time) drops naturally into NPC small talk instead of an explicit on-screen callout. This framing is a direct, explicit design guardrail against surveillance/deficit framing for a population where an on-screen "target" can land very differently than intended.
+
+#### A21. Activity Library, Plan Templates & Weekly Schedule
+
+A reusable Activity Library (create an activity once, drag it into any student's plan, which copies it fresh rather than linking it live, so editing the library original later never breaks an already-assigned copy). Plan Templates save a whole named daily plan for reuse. A Weekly Schedule maps a template to a specific subject and weekday per student, auto-loading fresh every matching day; an Assignment can instead span a date range, loading once and carrying the student's progress forward across the whole window. A daily plan itself moves through a Draft, Upcoming, Active, Deleted lifecycle in the teacher's Assignments view.
+
+#### A22. Score History & Mastery Tracking
+
+Every full pass through a quiz (every question answered correctly at least once) logs a record: which task, when, how long it took, and how many were answered correctly on the very first try. A teacher reviews this per student in Score History. Questions a student is genuinely struggling with (3 misses in a row) surface privately in the teacher's Review Inbox rather than just disappearing from the quiz, so a real difficulty never goes unseen just because the retry cap protected the student from getting stuck on it in the moment.
+
+#### A23. Literacy Manipulatives / Grammar Sandbox
+
+An open, unscored, un-gated exploration sandbox for sentence grammar (the first shipped piece of a larger planned Literacy Workspace, see `LITERACY_WORKSPACE.md`). A student drags color-coded word-class tiles (naming words/nouns in yellow, action words/verbs in coral) from a sidebar onto an open dot-grid canvas; a noun and verb that agree in number "click together" when dropped near each other, the one rule the sandbox quietly enforces. No lessons, no scoring, no completion state, no reward, by direct teacher instruction: "just open exploration." Reuses the same Whiteboard drawing tool as the rest of the app rather than a second drawing engine.
+
+#### A24. Native Games & the Native Game Standard
+
+Governed by `NATIVE_GAME_STANDARD.md`. A native game (the Platformer today, plus a planned pipeline for uploading third-party HTML5 games from sites like itch.io) exists specifically to make retrieval practice (being asked to recall an answer, not just review content, one of the most robust findings in learning science) tolerable and motivating for a student who would disengage from a plain quiz: the game is the wrapper, the question set underneath is the actual point, and gameplay always serves the question set, never the reverse. Hard rules that apply regardless of which game: a question break, once started, has zero time pressure (no countdown, no answer time limit, full access to every accessibility tool); replay is unlimited (no play-count cap, no daily limit); leaving mid-game always shows a confirm dialog first, and confirming forfeits that session's progress and reward (but never erases mastery already logged before leaving); every completed session generates a full report to the teacher's inbox in addition to the normal mastery record. A teacher configures how often a question break becomes eligible and how many questions appear per break.
+
+#### A25. Playground / Free Play
+
+An ungraded, no-to-do-list space a student can use once the day's real assignment is finished (see A28 for exactly when it unlocks) or during a teacher-granted timed break. A student can free-play any teacher-flagged Playground activity, or pick any saved quiz-kind Question Set to run as a standalone, ungraded Platformer session (A15) with no checkbox waiting on it. Finishing a Playground activity still pays into the real Piggy Bank exactly like a real assignment would (a direct teacher request), just without touching streak, badges, or pet training, since Playground content is deliberately not tied to a specific day's required plan.
+
+---
+
+### GROUP 3: ABA/SEL/BEHAVIORAL FEATURES
+
+Grounded in the standing principles in Part D: no leaderboards or cross-student comparison anywhere, reinforcement schedules follow real ABA principles (continuous reinforcement for shaping, variable-ratio mechanics designed to never produce an empty outcome), regulation is never gated behind currency or "good behavior," and pets/the economy never punish absence.
+
+#### A26. Pets' ABA Shaping Ladder & Growth Stages
+
+Cross-reference: the pet catalog, adoption, and care loop are described in full under A5 (Game & Play). The training system underneath is a deliberate successive-approximation shaping design: a single counter (`trainingProgress`), incremented only by genuine task completions (never by tapping care buttons), gates three visible milestones shown as badges on the pet's care card: "Walks with you" at 5 completions (the companion/follow unlock), "Best Friends" at 10, and "Bonded for Life" at 15. The same counter also drives the pet's visible growth from Baby to Juvenile to Adult, so the reinforcement isn't abstract, a bonded, mature-looking companion is the literal, visible shape of consistent academic effort. Because training only ever moves forward from real work, "I taught it a trick" and "it's the thing I check on first" (both named directly in the original teacher brief) are earned outcomes, not shortcuts.
+
+#### A27. Mystery Adoption Box's Variable-Ratio Design
+
+Cross-reference: reachable from the Pet Shelter (A5). A $200 purchase that always yields a real pet, no empty or "nothing" outcome ever possible. This is the deliberate, load-bearing line between a genuine variable-ratio reinforcement schedule (uncertainty about *which* pet, a fun surprise) and a loot-box mechanic (uncertainty about *whether* you're reinforced at all, which this platform will not build). Rarity is weighted by category (common species pull far more often than rare/ultra-rare ones), and a pull preferentially rerolls toward species the student hasn't discovered yet, so a pull rarely feels wasted. Capped at one open per real calendar day to prevent a same-sitting repeat-open loop.
+
+#### A28. Focus Guardrail Tiers
+
+A tiered system (Claudia's guardrails design) that keeps a student's real assignments visible and inviting inside an open, highly gameified world, without ever gating or blocking the world itself, regulation, or free-roam play. Every tier has a per-student teacher override.
+
+- **Tier 0, Arrival Card**: once per real day, a student lands on a genuine three-way choice: start Math, start Reading, or free time first, with "free time first" a real one-tap option, not a hidden escape hatch. Teacher-toggleable off per student.
+- **Tier 1, Count It Out**: see A31 (a financial-literacy skill-building toggle, not a guardrail against distraction, but grouped under this same per-student-override design pattern).
+- **Tier 2, Desk Glow**: while a student has unfinished tasks for the day, the computer desk (the task entry point in Town Square) gets a subtle visual glow/label. Teacher-toggleable off per student.
+- **Tier 3, Companion Check-In & Wizard Lock**: after roughly 15 minutes of genuinely idle free-roaming (tracked by real movement, not session time) with real tasks still open, a trained companion pet (if the student has one following them) gently surfaces once per session, a dismissible suggestion, never a block, never required, and costs nothing if ignored. Separately, Scout (one of the Neighbors) has a similarly gentle, once-per-session check-in variant available after the same idle window. If a student instead goes a full 30 minutes with real tasks open and makes zero actual academic progress (not just idle time, genuine time without finishing any question set or native game, even while actively exploring or chatting), the **Wizard ThunderSword** appears as a real, non-dismissable lock on general gameplay, the one intentionally hard guardrail in this system. Even then, Help/calm-down (A29) stays reachable through it, per the standing rule that regulation is never gated. The lock clears itself automatically the instant real progress resumes, never on a timer or a dismiss tap.
+
+#### A29. Take a Moment (Calm-Down/QuietTool), Help Ping & Break Request
+
+The regulation path, reachable from the same fixed spot on every screen (folded into Town Square's pie menu, plus a floating button everywhere else), and never gated behind currency, streaks, or task completion. Opening it shows a breathing visual (a circle that grows on the in-breath, shrinks on the out-breath) with optional looping calm ambient sounds (ocean, waves, bubbles, rain), and, if the student has a bonded companion pet, that pet appears as a passive comfort presence, strictly opt-in and only for a student who already has one. From here, a student can quietly ping their teacher for help (which raises a full-screen, impossible-to-miss alert on the teacher's own screen, see A38) or request a break (which a teacher approves or grants for the student's own configured break length, temporarily unlocking the Playground, A25, for that timed window). Both are one tap, never a form, and the tool always confirms what happened ("your teacher has been quietly let know") rather than leaving a student wondering if anything registered.
+
+#### A30. Piggy Bank: Real-Money Economy & Savings Goal
+
+A real dollars-and-cents currency ("Class Cash") a student earns by completing tasks, badges, streaks, and Playground activities, and can view as a full running register (every transaction, income and spending, with icons and dates) or as charts over time. A **streak interest** bonus pays automatically the moment a student's daily streak ticks up: 1% of the current balance per consecutive day, capped at 20%, mirroring how a real savings account compounds, so a longer streak is worth more in a very concrete way beyond the underlying streak badge itself. A **Savings Goal** is entirely student-set (a label like "new bike" and a target amount) and shown as a fill-meter toward that amount; it's concept-only (no real interest math tied to the goal itself), never a teacher requirement, and never blocks spending elsewhere. This exists to make earning and saving legible and motivating (competence and autonomy, in Self-Determination Theory terms) rather than an abstract number going up.
+
+#### A31. Count It Out Checkout
+
+An explicit, opt-in, per-student teacher toggle (off by default) that changes Marketplace checkout from a single Confirm tap into tapping real bill and coin denominations ($20 down to 1 cent) until the tray total covers the price. This targets a specific, concrete skill (recognizing and combining real currency) for a student working on that as a goal, rather than money only ever appearing as an abstract number on screen. Tap-to-add rather than drag-to-a-tray, a deliberate accessibility call: a mis-aimed drag is a much easier miss than a mis-tapped button for a student with fine-motor or motor-planning differences.
+
+#### A32. Needs vs. Wants Reflection Prompt
+
+An optional, non-blocking tap in the Marketplace cart ("Still want it tomorrow? Yep / Not sure") attached to any purchase. It never gates or delays Confirm Purchase either way; it's purely a light reflection prompt, logged alongside the purchase in the register for the student (and teacher) to look back on, building the "needs vs. wants" reasoning habit without turning a purchase into a quiz.
+
+#### A33. Badges & Streaks
+
+Teacher-authored achievements, each either hand-awarded or governed by an auto-award rule (streak reaches N days, lifetime or today's activities completed reaches N, a subject fully finished N times, N Final Checks passed, N distinct tools ever used, N missed-then-corrected questions), each paying its own configurable Class Cash reward on earn. A daily streak (both subjects finished) is the backbone metric multiple systems key off of: it drives streak interest (A30), a "showed up" badge, and is visible on the student's own Passport (A10). No leaderboard or cross-student comparison exists anywhere; every one of these is a personal-progress metric only, per the standing platform rule.
+
+#### A34. Feedback Tool
+
+A structured, quiz-like feedback flow (never a blank "type your feedback" box), built specifically for students whose communication needs, including communication disorders, make free-form typing a real barrier. A student picks a big-icon category (Game Play, Visuals & Design, Assignments & Focuses, Wishlist, or Other), drills down through follow-up icon questions as far as that branch goes (e.g. Game Play to Build Mode to Asset to Add), then explains in their own words, typed or spoken through the browser's own voice-to-text. Every step is one big-icon question at a time, never a form with multiple fields at once. The full path taken (e.g. "Game Play > Build Mode > Asset to Add") is shown to the teacher as a plain-language breadcrumb in the Review Inbox, so context is never lost to a lookup table.
+
+#### A35. Pet Shelter Donation
+
+A real, deliberately reward-free coin sink at the Pet Shelter: a student can donate $5, $10, or $25 of their own Class Cash, with a running lifetime-donated total shown back to them and a simple thank-you message. No coins, items, or pets are ever granted for donating, on purpose, so it can never quietly become a second way to buy something. This is a genuine prosocial/SEL rep (practicing giving, not just earning and spending) rather than another transaction.
+
+#### A36. No Leaderboards / Personal Progress Only
+
+Not a single feature so much as a platform-wide constraint enforced across every system above: nowhere in Homeplot does a student see another student's score, streak, balance, or rank. Every motivational system here (badges, streaks, Score History, Piggy Bank charts) reports only on that one student's own history. This is a direct response to the specific research risk named in Claudia's standing brief: leaderboards are the single most consistently flagged risk factor for unhealthy competition and reduced intrinsic motivation in neurodivergent learners, even when badges, narrative, and other reward mechanics land well with the same population.
+
+---
+
+### GROUP 4: PLATFORM/OTHER FEATURES
+
+#### A37. My Tools Panel & Accessibility Toolbar
+
+A floating "My Tools" button, present on every student screen (and as a smaller inline button inside the internal browser, so tools stay one tap away even inside an embedded external activity). Opens a menu grouped into Subject Tools (Multiplication Table, Hundreds Chart, and Number Line for math; Thesaurus, Dictionary with a visual morpheme/word-parts breakdown, and Sound Wall for literacy) and an Accessibility Toolbar available everywhere: Calculator, read-aloud (TTS) settings including an app-wide dyslexia-friendly font toggle, a Word Processor, a Whiteboard, and the calm-down tool (cross-referenced in full at A29). The **Word Processor** doubles as a Notes app (multiple independently saved, named documents, not one shared scratch blob) with per-word/phrase rich-text color-coding and highlighting drawn only from colors/fonts the student has actually unlocked in the Marketplace, plus a **Personal Journal** mode (the same editor, pre-dated like a diary, direct teacher instruction: "word processor should be base, think of a diary"). Voice-to-text (the browser's own Web Speech API) is available anywhere a student would otherwise have to type at length, including inside Notes and the Feedback tool. A teacher can turn off any individual tool per student in Student Manager, everything defaults on.
+
+#### A38. Teacher-Student Chat & Alert System
+
+A real-time, one-thread-per-student chat between a teacher and student, opened from either side. On the student side, an incoming teacher message never interrupts whatever the student is doing (mid-quiz, mid-drawing, anywhere); it shows as a small, dismissible "new message" toast the student opens on their own terms, an explicit design choice since an unannounced full-screen interrupt is exactly the kind of unpredictable change this population needs protected against. On the teacher side, a student's help ping (from A29) raises a large, impossible-to-miss full-screen alert regardless of which teacher page is currently open, with the next-oldest unresolved ping automatically taking its place once one is resolved.
+
+#### A39. First-Login Onboarding & What's New Book
+
+A one-time walkthrough (plain-language, icon-paired) shown the very first time a student logs in, covering the stepping-stone task flow, the always-available Tools panel, the calm-down button, and the "no rushing, no timers, ever" completion model. Separately, a "What's New" changelog book (the same page-turning book UI as the Joke Book, A10) automatically opens in Town Square the first time something new ships that affects a student, and stays reachable afterward from Town Square, Mailbox, and the computer desk, marking only genuinely-unseen entries as new rather than replaying the whole book every time.
+
+#### A40. Teacher Portal
+
+The full teacher-facing admin surface, all behind its own login: Home/Live Overview (a real-time roster of what every student is doing right now), Student Manager (per-student settings: feature toggles, guardrail-tier overrides, Count It Out, custom tool links, Literacy Focus Sets, Creative Island unlock), Assignments (daily-plan builder, Activity Library, Question Sets, Plan Templates, weekly schedule), a Game tab (Cinema Videos, Arcade/Scratch Games, and Music libraries, split out from academic Activities since all three share the same "play for fun, no tracking" shape), Review Inbox (help pings, off-screen photo submissions awaiting verification, student Feedback submissions, and Quiz Struggle flags, all in one queue), Badge Manager (the auto-award rule engine described in A33), Marketplace Manager (the full cosmetic/prize/power-up catalog), Piggy Bank admin (per-student balance adjustments, streak overrides, and the same register/charts view a student sees), World Editor/Build Mode (A4), Focuses authoring (A20), Student Live View (a read-only mirror of exactly what one student currently sees), Score History (A22), and the same real-time chat as A38.
+
+#### A41. Data, Sync & Platform Infrastructure
+
+Supabase (Postgres, Storage, and realtime subscriptions) as the backend, with a Zustand client store that keeps a local, persisted copy of everything so the app stays usable through a flaky connection. Every write retries with backoff automatically; a write that still fails after every retry surfaces a visible, dismissible banner (not just a silent console error) naming the exact table and error so a teacher reporting it has something concrete to relay, with a manual Retry button and a background retry queue that keeps trying regardless. Vercel auto-deploys on every push to `main`, so a shipped fix or feature reaches students without a separate release step.
 
 ---
 
@@ -112,7 +256,7 @@ A shared, teacher-authored music library (title + YouTube link + tags), reachabl
 ### Literacy Workspace (superseding Literacy Manipulatives)
 
 Full design finalized in `LITERACY_WORKSPACE.md` after a teacher Q&A round with Claudia. Five-phase build order:
-1. **Not started.** Core sandbox shell + Sentence Grammar category (port A15's Rung 1 content in, add the Montessori shape+color dual system) + Whiteboard category (reuse the existing `ToolsPanel.tsx` Whiteboard component and owned-marker-color logic directly, no new drawing engine).
+1. **Not started.** Core sandbox shell + Sentence Grammar category (port A23's content in, add the Montessori shape+color dual system) + Whiteboard category (reuse the existing `ToolsPanel.tsx` Whiteboard component and owned-marker-color logic directly, no new drawing engine).
 2. **Not started.** Multiple saved/named canvases + ambient Word Lists panel pulling from `LiteracyFocusSet`.
 3. **Not started.** Morpheme Web tile category (root-centered web, prefix/suffix branch tiles, live-validation attach).
 4. **Not started.** Assignment mode (Polypad/GeoGebra-style visibility slicing) + extended Focus/LiteracyFocusSet teacher editor.
@@ -120,7 +264,7 @@ Full design finalized in `LITERACY_WORKSPACE.md` after a teacher Q&A round with 
 
 ### Transportation System
 
-Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`. Recommended build order: Cars → Boats → Trains → Planes, with a Drone added alongside Planes (same mechanics/camera/controls as the plane, per direct teacher instruction). **Phase 1 (Cars) is shipped** — see A16. **Boats (Phase 2)**, designed in `BOATS_DESIGN.md` (4-part sub-phased build order: 2a core loop → 2b sound/VFX → 2c placement tooling → 2d accessibility closeout) — **2a (core loop) and a placement-warning slice of 2c are shipped**, see A16. Still open: 2b (wake/splash VFX and engine/splash SFX — deliberately deferred, no audio assets exist yet and this environment can't live-test sound) and 2d (shared sound/reduced-motion toggle, also still open for Cars).
+Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`. Recommended build order: Cars → Boats → Trains → Planes, with a Drone added alongside Planes (same mechanics/camera/controls as the plane, per direct teacher instruction). **Phase 1 (Cars) is shipped** — see A6. **Boats (Phase 2)**, designed in `BOATS_DESIGN.md` (4-part sub-phased build order: 2a core loop → 2b sound/VFX → 2c placement tooling → 2d accessibility closeout) — **2a (core loop) and a placement-warning slice of 2c are shipped**, see A6. Still open: 2b (wake/splash VFX and engine/splash SFX — deliberately deferred, no audio assets exist yet and this environment can't live-test sound) and 2d (shared sound/reduced-motion toggle, also still open for Cars).
 
 ### Pets — remaining phases of Claudia's 7-phase plan
 
@@ -135,6 +279,7 @@ Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`
 - **HomeRoom.tsx's own size system:** KNOWN LIMITATION, not yet reconciled with the `SIZE_REFERENCE.md` person-height unit standard (see that doc's §3) — a student's own furniture is fit to a footprint/bounding-cube target, not a real height target, and making "1.0 = person height" literally true there needs a real per-item height derivation, not a relabeling.
 - **Native-game accessibility vetting:** POLICY DECIDED, TOOLING NOT BUILT. Currently the teacher's own judgment call at upload time; an automated pre-flight checklist could be worth building if volume grows.
 - **YouTube duration auto-fetch:** WORKAROUND SHIPPED. Cinema shows a teacher-typed estimate for YouTube links since no YouTube Data API key is configured; uploads already auto-read real duration.
+- **Stale `playgroundThreshold` field:** Claudia's A25 audit traced the Playground unlock all the way through the real code (`src/lib/playgroundAccess.ts`) and found the per-student `playgroundThreshold` field (an "activities completed today" number) still exists in the schema and syncs, but nothing in the actual gating logic reads it anymore — the real rule is exactly two paths (both subjects done today, or a teacher-granted timed break). Either wire it back in for real, or retire the field; it's currently dead weight.
 
 ### General notes for the next planning pass
 
@@ -196,7 +341,7 @@ Preserved close to verbatim so intent isn't lost in summarization. Status notes 
 
 ### Regulation & safety
 
-- Help/calm-down (QuietTool) lives inside the Town Square pie menu now (a deliberate, teacher-confirmed override of the earlier "never gated" rule — see A7). Outside that one specific override, the general principle still holds everywhere else: a student's path to help should never require more than the standard navigation depth every other screen uses.
+- Help/calm-down (QuietTool) lives inside the Town Square pie menu now (a deliberate, teacher-confirmed override of the earlier "never gated" rule — see A1). Outside that one specific override, the general principle still holds everywhere else: a student's path to help should never require more than the standard navigation depth every other screen uses.
 - Zero-weapons rule enforced automatically in the world-object catalog.
 - A hard interruption (Wizard ThunderSword) always still leaves Help/calm-down reachable, even while otherwise non-dismissable.
 - Reinforcement schedules follow real ABA principles: continuous reinforcement for shaping (pet training only from genuine task completion), and any variable-ratio mechanic (Mystery Adoption Box) is designed to never produce an empty/"nothing" outcome.
