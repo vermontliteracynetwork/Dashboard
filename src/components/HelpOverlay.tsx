@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import ChatPanel from './ChatPanel';
 import ReadAloud from './ReadAloud';
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function HelpOverlay({ studentId, onClose, aboveLock }: Props) {
+  const navigate = useNavigate();
   const pingHelp = useStore((s) => s.pingHelp);
   const requestBreak = useStore((s) => s.requestBreak);
   const pets = useStore((s) => s.pets);
@@ -31,6 +33,12 @@ export default function HelpOverlay({ studentId, onClose, aboveLock }: Props) {
   // this already-free calm-down path, and never shown at all for a
   // student with no companion.
   const companion = pets.find((p) => p.studentId === studentId && p.following);
+  // Direct tie-in the Part B backlog asked for: "check on your pet" as an
+  // offered regulation-break activity, not just the passive comfort line
+  // above — any owned pet counts (not only a trained companion), and it's
+  // exactly as opt-in as everything else here: a suggestion, never a
+  // requirement, and closing this panel without tapping it costs nothing.
+  const ownedPets = pets.filter((p) => p.studentId === studentId);
 
   return (
     <div className="overlay-backdrop" style={aboveLock ? { zIndex: 310 } : undefined} onClick={onClose}>
@@ -46,6 +54,15 @@ export default function HelpOverlay({ studentId, onClose, aboveLock }: Props) {
             <p style={{ fontSize: '0.85rem', opacity: 0.75 }}>🐾 {companion.customName} is here with you.</p>
           )}
           <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>No rush. Stay here as long as you'd like.</p>
+          {ownedPets.length > 0 && (
+            <button
+              className="btn btn-sm"
+              style={{ minHeight: 44 }}
+              onClick={() => { onClose(); navigate('/world/home-room'); }}
+            >
+              🐾 Check on your pet
+            </button>
+          )}
           <hr className="divider" style={{ width: '100%' }} />
           {pinged ? (
             <>
