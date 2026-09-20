@@ -288,6 +288,22 @@ alter table farmer_market_offers add column if not exists wants_pet_rarity text;
 alter table farmer_market_offers add column if not exists accepted_with_pet_id text;
 alter table farmer_market_offers alter column wants_item_id drop not null;
 
+-- Silly Personality Quizzes — the second half of the Playground-gallery
+-- brainstorm's "memes/mini games/personality quizzes" ask, built after a
+-- Claudia design pass rejected the classic "which type are you" sorter
+-- shape for this population. Teacher-authored, same shape as
+-- cinema_videos/gallery_items: shared across the class, no student_id.
+-- Deliberately no results table — a quiz result is private to the
+-- student taking it and computed client-side, never persisted or shown
+-- to anyone else, per the standing no-leaderboard rule.
+create table if not exists silly_quizzes (
+  id text primary key,
+  title text not null,
+  questions jsonb not null default '[]',
+  outcomes jsonb not null default '[]',
+  created_at timestamptz not null default now()
+);
+
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged
 -- for the shared Playground pool. Same content shape as a Task, plus a
@@ -768,7 +784,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
   ];
 begin
   foreach t in array tables loop
@@ -811,7 +827,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
   ];
 begin
   foreach t in array tables loop

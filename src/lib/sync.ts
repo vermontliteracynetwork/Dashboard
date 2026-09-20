@@ -18,6 +18,7 @@ import type {
   ScratchGame,
   MusicTrack,
   GalleryItem,
+  SillyQuiz,
   FarmerMarketOffer,
   RotationMode,
   ToolKey,
@@ -632,6 +633,14 @@ const rowToGalleryItem = (r: Row): GalleryItem => ({
   tags: r.tags ?? [],
 });
 
+const rowToSillyQuiz = (r: Row): SillyQuiz => ({
+  id: r.id,
+  title: r.title,
+  questions: r.questions ?? [],
+  outcomes: r.outcomes ?? [],
+  createdAt: r.created_at,
+});
+
 const rowToFarmerMarketOffer = (r: Row): FarmerMarketOffer => ({
   id: r.id,
   studentId: r.student_id,
@@ -824,6 +833,7 @@ export interface HydratedState {
   scratchGames: ScratchGame[];
   musicTracks: MusicTrack[];
   galleryItems: GalleryItem[];
+  sillyQuizzes: SillyQuiz[];
   farmerMarketOffers: FarmerMarketOffer[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
@@ -848,7 +858,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, galleryItemsRes, farmerMarketOffersRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, galleryItemsRes, farmerMarketOffersRes, sillyQuizzesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -888,6 +898,7 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('music_tracks').select('*'),
     supabase.from('gallery_items').select('*'),
     supabase.from('farmer_market_offers').select('*'),
+    supabase.from('silly_quizzes').select('*'),
   ]);
 
   for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes]) {
@@ -966,6 +977,7 @@ export async function fetchAll(): Promise<HydratedState> {
     scratchGames: (scratchGamesRes.data ?? []).map(rowToScratchGame),
     musicTracks: (musicTracksRes.data ?? []).map(rowToMusicTrack),
     galleryItems: (galleryItemsRes.data ?? []).map(rowToGalleryItem),
+    sillyQuizzes: (sillyQuizzesRes.data ?? []).map(rowToSillyQuiz),
     farmerMarketOffers: (farmerMarketOffersRes.data ?? []).map(rowToFarmerMarketOffer),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
@@ -1290,6 +1302,16 @@ export const pushGalleryItem = (g: GalleryItem) =>
   });
 export const deleteGalleryItemRemote = (id: string) => remove('gallery_items', { id });
 
+export const pushSillyQuiz = (q: SillyQuiz) =>
+  upsert('silly_quizzes', {
+    id: q.id,
+    title: q.title,
+    questions: q.questions,
+    outcomes: q.outcomes,
+    created_at: q.createdAt,
+  });
+export const deleteSillyQuizRemote = (id: string) => remove('silly_quizzes', { id });
+
 export const pushFarmerMarketOffer = (o: FarmerMarketOffer) =>
   upsert('farmer_market_offers', {
     id: o.id,
@@ -1482,7 +1504,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToGalleryItem, rowToFarmerMarketOffer };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToGalleryItem, rowToFarmerMarketOffer, rowToSillyQuiz };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1523,6 +1545,7 @@ export interface RealtimeHandlers {
   onMusicTrack: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onGalleryItem: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onFarmerMarketOffer: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onSillyQuiz: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -1576,6 +1599,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'music_tracks' }, wire(handlers.onMusicTrack))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery_items' }, wire(handlers.onGalleryItem))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'farmer_market_offers' }, wire(handlers.onFarmerMarketOffer))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'silly_quizzes' }, wire(handlers.onSillyQuiz))
     .subscribe();
 
   return () => {

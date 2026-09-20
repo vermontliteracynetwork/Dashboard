@@ -149,6 +149,9 @@ import {
   pushGalleryItem,
   deleteGalleryItemRemote,
   rowToGalleryItem,
+  pushSillyQuiz,
+  deleteSillyQuizRemote,
+  rowToSillyQuiz,
   pushFarmerMarketOffer,
   deleteFarmerMarketOfferRemote,
   acceptFarmerMarketOfferRemote,
@@ -181,6 +184,7 @@ import type {
   ScratchGame,
   MusicTrack,
   GalleryItem,
+  SillyQuiz,
   FarmerMarketOffer,
   ActivityLibraryItem,
   PlanTemplate,
@@ -286,6 +290,7 @@ interface AppState {
   scratchGames: ScratchGame[]; // games shown in the in-world Arcade — teacher-authored MIT Scratch project links, unlimited replay, no mastery tracking
   musicTracks: MusicTrack[]; // shared music library — car radio, Concert Hall building, and Boom Box all draw from this same list, audio only
   galleryItems: GalleryItem[]; // Playground Gallery images — teacher-curated, unlimited browse, no mastery tracking
+  sillyQuizzes: SillyQuiz[]; // Playground silly personality quizzes — teacher-authored, results private/client-side only, see SillyQuiz in types.ts
   farmerMarketOffers: FarmerMarketOffer[]; // student-to-student barter offers — async/turn-based, see FarmerMarketOffer in types.ts
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
@@ -530,6 +535,9 @@ interface AppState {
   addGalleryItem: (item: Omit<GalleryItem, 'id' | 'createdAt'>) => string;
   updateGalleryItem: (id: string, patch: Partial<GalleryItem>) => void;
   deleteGalleryItem: (id: string) => void;
+  addSillyQuiz: (quiz: Omit<SillyQuiz, 'id' | 'createdAt'>) => string;
+  updateSillyQuiz: (id: string, patch: Partial<SillyQuiz>) => void;
+  deleteSillyQuiz: (id: string) => void;
 
   // Farmer's Market — async student-to-student barter, see FarmerMarketOffer in types.ts
   postFarmerMarketOffer: (studentId: string, offeredItemId: string, wantsItemId: string) => string;
@@ -693,6 +701,7 @@ export const useStore = create<AppState>()(
       scratchGames: [],
       musicTracks: [],
       galleryItems: [],
+      sillyQuizzes: [],
       farmerMarketOffers: [],
       layoutOverrides: {},
       groundTexture: null,
@@ -864,6 +873,7 @@ export const useStore = create<AppState>()(
           onScratchGame: (e, n, o) => set((s) => ({ scratchGames: applyArrayRow(s.scratchGames, e, rowToScratchGame, n, o) })),
           onMusicTrack: (e, n, o) => set((s) => ({ musicTracks: applyArrayRow(s.musicTracks, e, rowToMusicTrack, n, o) })),
           onGalleryItem: (e, n, o) => set((s) => ({ galleryItems: applyArrayRow(s.galleryItems, e, rowToGalleryItem, n, o) })),
+          onSillyQuiz: (e, n, o) => set((s) => ({ sillyQuizzes: applyArrayRow(s.sillyQuizzes, e, rowToSillyQuiz, n, o) })),
           onFarmerMarketOffer: (e, n, o) => set((s) => ({ farmerMarketOffers: applyArrayRow(s.farmerMarketOffers, e, rowToFarmerMarketOffer, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
@@ -2741,6 +2751,25 @@ export const useStore = create<AppState>()(
       deleteGalleryItem: (id) => {
         set((s) => ({ galleryItems: s.galleryItems.filter((g) => g.id !== id) }));
         deleteGalleryItemRemote(id);
+      },
+
+      addSillyQuiz: (quiz) => {
+        const id = makeId();
+        const full: SillyQuiz = { ...quiz, id, createdAt: new Date().toISOString() };
+        set((s) => ({ sillyQuizzes: [full, ...s.sillyQuizzes] }));
+        pushSillyQuiz(full);
+        return id;
+      },
+
+      updateSillyQuiz: (id, patch) => {
+        set((s) => ({ sillyQuizzes: s.sillyQuizzes.map((q) => (q.id === id ? { ...q, ...patch } : q)) }));
+        const updated = get().sillyQuizzes.find((q) => q.id === id);
+        if (updated) pushSillyQuiz(updated);
+      },
+
+      deleteSillyQuiz: (id) => {
+        set((s) => ({ sillyQuizzes: s.sillyQuizzes.filter((q) => q.id !== id) }));
+        deleteSillyQuizRemote(id);
       },
 
       postFarmerMarketOffer: (studentId, offeredItemId, wantsItemId) => {

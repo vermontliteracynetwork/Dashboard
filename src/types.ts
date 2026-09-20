@@ -509,6 +509,45 @@ export interface GalleryItem {
   tags?: string[]; // same free-form tag pattern as CinemaVideo.tags
 }
 
+// The "silly personality quizzes" half of the same Playground-gallery
+// brainstorm, built this hour after Claudia's design pass. Deliberately
+// NOT a Buzzfeed-style "which type are you" sorter — she rejected that
+// shape outright for this population (a literal-thinking or anxious
+// student could fixate on being "labeled," and a peer-visible "silly"
+// result still functions as informal ranking even when nothing in the
+// app itself ranks it). Every question is a low-stakes silly pick (a
+// snack, a sound), never about the student's real personality/mood/
+// social behavior; every outcome is an equally-enthusiastic silly
+// object or vibe, never a trait or role. Scoring is a simple client-side
+// tag tally with a random tiebreak — no backend logic, no persistence
+// of results, since results are private to the taking student only and
+// are never shown to teachers or peers (the platform's standing no-
+// leaderboard/no-cross-student-comparison rule, see PART D of the dev
+// plan). Same teacher-authored-static-content shape as Cinema/Gallery.
+export interface QuizOutcome {
+  tag: string; // matches QuizOption.outcomeTag
+  title: string; // e.g. "Disco Waffle" — an object/vibe, never a personality label
+  funText: string; // one enthusiastic sentence, same energy as every other outcome
+  icon: string; // emoji, or an uploaded image URL (same convention as MarketplaceItem.icon)
+}
+export interface QuizOption {
+  id: string;
+  text: string;
+  outcomeTag: string;
+}
+export interface SillyQuizQuestion {
+  id: string;
+  text: string;
+  options: QuizOption[];
+}
+export interface SillyQuiz {
+  id: string;
+  title: string;
+  questions: SillyQuizQuestion[]; // 4-6, teacher-authored
+  outcomes: QuizOutcome[]; // 4-8, teacher-authored
+  createdAt: string;
+}
+
 // A shared music library — direct teacher request: a car radio, the
 // Concert Hall building, and a placeable Boom Box all draw from this same
 // list. Audio only, always — unlike CinemaVideo, there is no video

@@ -210,6 +210,12 @@ export default function PlaygroundView() {
             <span className="choice-icon">🎉</span>
             <span>Gallery</span>
           </button>
+          {/* Direct teacher request: silly personality quizzes, built
+              after Claudia's design pass — see SillyQuizManager.tsx. */}
+          <button className="choice-tile" onClick={() => navigate('/student/quizzes')}>
+            <span className="choice-icon">🔮</span>
+            <span>Silly Quizzes</span>
+          </button>
           {entries.map(({ task, subject }) => (
             <button key={`${subject}-${task.id}`} className="choice-tile" onClick={() => setOpenEntry({ task, subject })}>
               {task.referenceImageUrl ? (
