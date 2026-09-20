@@ -2870,8 +2870,20 @@ export const useStore = create<AppState>()(
         // away, those would otherwise sit on the board as a dead offer no
         // one can ever complete, with no explanation. Auto-withdrawing
         // them keeps the board honest instead of leaving a silent dead end.
+        // Claudia's follow-up review (this hour, MEDIUM #3 on the pet
+        // extension): the ACCEPTING student can also spend a pet that's
+        // the subject of one of their own other open offers — that side
+        // wasn't covered by the filter above (it only looked at the
+        // offer just accepted, not at whatever the acceptor gave up), so
+        // that offer would dangle on the board showing a pet its poster
+        // no longer owns. Folded into the same stale-offer sweep.
         const staleOfferIds = get()
-          .farmerMarketOffers.filter((o) => o.id !== id && o.status === 'open' && o.studentId === offer.studentId && o.offeredItemId === offer.offeredItemId)
+          .farmerMarketOffers.filter((o) => {
+            if (o.id === id || o.status !== 'open') return false;
+            if (o.studentId === offer.studentId && o.offeredItemId === offer.offeredItemId) return true;
+            if (offer.kind === 'pet' && acceptingPetId && o.studentId === acceptingStudentId && o.offeredItemId === acceptingPetId) return true;
+            return false;
+          })
           .map((o) => o.id);
         set((s) => ({
           farmerMarketOffers: s.farmerMarketOffers

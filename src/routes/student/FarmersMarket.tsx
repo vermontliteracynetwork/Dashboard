@@ -95,14 +95,13 @@ export default function FarmersMarket() {
 
   const handleAcceptCatalog = (offer: FarmerMarketOffer) => finishAccept(offer);
 
-  // A pet offer asks for a RARITY TIER, not a specific pet, so accepting
-  // may mean picking which of several eligible pets to give up — only
-  // shown when there's a real choice to make.
-  const handleAcceptPet = (offer: FarmerMarketOffer) => {
-    const eligible = pets.filter((p) => p.studentId === student.id && petDefById(p.petDefId) && rarityFor(petDefById(p.petDefId)!) === offer.wantsPetRarity);
-    if (eligible.length === 1) finishAccept(offer, eligible[0].id);
-    else setPickingPetFor(offer);
-  };
+  // A pet offer asks for a RARITY TIER, not a specific pet — always show
+  // the picker before completing, even with just one eligible pet, so
+  // the exact pet being given away is always visible right before it
+  // happens (Claudia's review: auto-completing a single-option trade
+  // meant a student could give away their only eligible pet without
+  // ever seeing its name on the accept action itself).
+  const handleAcceptPet = (offer: FarmerMarketOffer) => setPickingPetFor(offer);
 
   return (
     <div className="container stack">
