@@ -151,6 +151,14 @@ export default function StudentHome() {
   const lastChatMessage = chatThread[chatThread.length - 1];
 
   return (
+    // Direct teacher ask, with a reference image: "the student can see
+    // the computer as if it was a frame for the current view" — a real
+    // physical laptop bezel wraps the whole screen now, not just the
+    // browser-chrome header inside it. Decorative only (no interaction),
+    // so every existing fixed-position overlay/FAB below still escapes it
+    // exactly as before.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
     <div className="container stack">
       {/* Direct teacher instruction: this screen is reached by using the
           in-world computer, so it should read as an actual old computer/
@@ -473,6 +481,9 @@ export default function StudentHome() {
       <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">
         🧘
       </button>
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

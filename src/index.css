@@ -896,6 +896,50 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 .widget-cinema { background: linear-gradient(160deg, #3a2f52, #1a1526); }
 .widget-playground { background: linear-gradient(120deg, var(--purple), var(--pink)); color: white; }
 
+/* ---------- Laptop bezel (Computer screen) ---------- */
+/* Direct teacher ask, reference image: the Computer screen framed as an
+   actual physical laptop, not just a browser-chrome header floating in
+   the page. Purely decorative — nothing inside it changes layout or
+   interaction, and every fixed-position overlay (modals, FABs) still
+   escapes it normally. */
+.laptop-frame {
+  max-width: 920px;
+  width: 100%;
+  margin: 12px auto 0;
+  background: linear-gradient(160deg, #3a3a42, #17171b);
+  border-radius: 20px 20px 6px 6px;
+  padding: 16px 16px 0;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+}
+.laptop-screen {
+  background: #e9e5d8;
+  border-radius: 8px;
+  padding: 12px;
+  overflow: hidden;
+}
+.laptop-deck {
+  position: relative;
+  height: 20px;
+  margin-top: 10px;
+  background: linear-gradient(180deg, #46464e, #1c1c20);
+  border-radius: 0 0 12px 12px;
+}
+.laptop-deck::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 7px;
+  background: #101012;
+  border-radius: 0 0 7px 7px;
+}
+@media (max-width: 640px) {
+  .laptop-frame { border-radius: 14px 14px 5px 5px; padding: 10px 8px 0; margin-top: 6px; }
+  .laptop-screen { padding: 8px; border-radius: 6px; }
+}
+
 /* ---------- Choice board ---------- */
 .choice-board {
   display: grid;
