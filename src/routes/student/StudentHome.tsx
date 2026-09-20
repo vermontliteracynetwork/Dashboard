@@ -271,6 +271,28 @@ export default function StudentHome() {
           <div className="widget-calendar-day">{new Date().getDate()}</div>
           <div className="widget-calendar-weekday">{new Date().toLocaleDateString([], { weekday: 'long' })}</div>
         </div>
+        {!bothDone && (
+          <>
+            <button
+              className={`widget-card widget-card-lg widget-icon-card widget-math ${mathDone && mathTasks.length > 0 ? 'widget-done' : ''}`}
+              disabled={mathTasks.length === 0}
+              onClick={() => navigate('/student/math')}
+              aria-label={`Math${mathDone && mathTasks.length > 0 ? ', done' : ''}`}
+            >
+              <span className="widget-icon">🔢</span>
+              <span className="widget-label">Math {mathDone && mathTasks.length > 0 ? '✓' : ''}</span>
+            </button>
+            <button
+              className={`widget-card widget-card-lg widget-icon-card widget-literacy ${litDone && litTasks.length > 0 ? 'widget-done' : ''}`}
+              disabled={litTasks.length === 0}
+              onClick={() => navigate('/student/literacy')}
+              aria-label={`Literacy${litDone && litTasks.length > 0 ? ', done' : ''}`}
+            >
+              <span className="widget-icon">📚</span>
+              <span className="widget-label">Literacy {litDone && litTasks.length > 0 ? '✓' : ''}</span>
+            </button>
+          </>
+        )}
         <button
           className="widget-card widget-icon-card widget-mail"
           onClick={() => navigate('/student/mailbox')}
@@ -342,9 +364,29 @@ export default function StudentHome() {
           <span className="widget-icon">🌳</span>
           <span className="widget-label">Town Square</span>
         </button>
+        {hasPlaygroundItems && access.unlocked && (
+          <div className="widget-card widget-card-wide widget-playground">
+            <p className="widget-label" style={{ margin: 0 }}>🎉 The Playground is unlocked!</p>
+            {!access.unlimited && access.remainingMs !== null && (
+              <BreakTimer
+                remainingMs={access.remainingMs}
+                totalMinutes={access.totalMinutes}
+                label={access.source === 'granted' ? 'Break time left' : 'Playground time left'}
+                onExpire={playCalmChime}
+              />
+            )}
+            <button
+              className="btn btn-lg pulse-cta"
+              style={{ background: 'white', color: 'var(--purple-dark)' }}
+              onClick={() => navigate('/student/playground/view')}
+            >
+              🎪 Go to the Playground
+            </button>
+          </div>
+        )}
       </div>
 
-      {bothDone ? (
+      {bothDone && (
         <div className="chrome-frame stack" style={{ padding: 28, alignItems: 'center', textAlign: 'center' }}>
           <h1 style={{ color: 'var(--purple)' }}>🎉 All done for today!</h1>
           <p>You finished Math and Literacy. Great work today.</p>
@@ -353,49 +395,9 @@ export default function StudentHome() {
             Done
           </button>
         </div>
-      ) : (
-        <div className="subject-tile-grid">
-          <button
-            className={`subject-tile tile-math ${mathDone && mathTasks.length > 0 ? 'tile-done' : ''}`}
-            disabled={mathTasks.length === 0}
-            onClick={() => navigate('/student/math')}
-          >
-            <span className="subject-tile-icon">🔢</span>
-            <span>Math {mathDone && mathTasks.length > 0 ? '✓' : ''}</span>
-          </button>
-          <button
-            className={`subject-tile tile-literacy ${litDone && litTasks.length > 0 ? 'tile-done' : ''}`}
-            disabled={litTasks.length === 0}
-            onClick={() => navigate('/student/literacy')}
-          >
-            <span className="subject-tile-icon">📚</span>
-            <span>Literacy {litDone && litTasks.length > 0 ? '✓' : ''}</span>
-          </button>
-        </div>
       )}
       {mathTasks.length === 0 && litTasks.length === 0 && (
         <p style={{ textAlign: 'center' }}>Ask your teacher to set up your tasks!</p>
-      )}
-
-      {hasPlaygroundItems && access.unlocked && (
-        <div className="chrome-frame stack" style={{ padding: 16, alignItems: 'center', textAlign: 'center' }}>
-          <p style={{ fontWeight: 800, margin: 0 }}>🎉 The Playground is unlocked!</p>
-          {!access.unlimited && access.remainingMs !== null && (
-            <BreakTimer
-              remainingMs={access.remainingMs}
-              totalMinutes={access.totalMinutes}
-              label={access.source === 'granted' ? 'Break time left' : 'Playground time left'}
-              onExpire={playCalmChime}
-            />
-          )}
-          <button
-            className="btn btn-lg pulse-cta"
-            style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', color: 'white' }}
-            onClick={() => navigate('/student/playground/view')}
-          >
-            🎪 Go to the Playground
-          </button>
-        </div>
       )}
 
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">

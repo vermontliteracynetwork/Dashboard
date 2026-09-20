@@ -119,6 +119,7 @@ import {
   pushLayoutOverrides,
   pushGroundTexture,
   pushSkyColor,
+  pushSkyTexture,
   pushWorldObject,
   deleteWorldObjectRemote,
   rowToWorldObject,
@@ -295,6 +296,7 @@ interface AppState {
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
+  skyTexture: string | null; // Build Mode's Fill Sky texture picker — a real equirectangular sky image path (see SkyboxBackground in TownSquare.tsx); null = no texture, skyColor/default flat color still applies
   focuses: Focus[]; // class-wide curriculum spotlights (math/literacy/sel/finance lanes) — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;
 
@@ -401,6 +403,7 @@ interface AppState {
   setLayoutOverride: (layoutId: string, patch: Partial<LayoutOverride> | null) => void;
   setGroundTexture: (path: string | null) => void;
   setSkyColor: (color: string | null) => void;
+  setSkyTexture: (path: string | null) => void;
   // Bulk-restores Build Mode's editable state to an exact prior snapshot —
   // undo/redo's only store action. Diffs against the current worldObjects
   // to push just what actually changed/got removed, rather than a
@@ -706,6 +709,7 @@ export const useStore = create<AppState>()(
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
+      skyTexture: null,
       focuses: [],
       assignmentCompletionReward: DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
       emotePriceOverrides: {},
@@ -892,6 +896,7 @@ export const useStore = create<AppState>()(
               layoutOverrides: n.layout_overrides ?? {},
               groundTexture: n.ground_texture ?? null,
               skyColor: n.sky_color ?? null,
+              skyTexture: n.sky_texture ?? null,
             });
           },
         });
@@ -1486,6 +1491,11 @@ export const useStore = create<AppState>()(
       setSkyColor: (color) => {
         set({ skyColor: color });
         pushSkyColor(color);
+      },
+
+      setSkyTexture: (path) => {
+        set({ skyTexture: path });
+        pushSkyTexture(path);
       },
 
       // Undo/redo's only store action — see its own interface comment.

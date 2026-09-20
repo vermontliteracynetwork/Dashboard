@@ -731,40 +731,6 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   padding: 4px;
 }
 
-/* ---------- Subject tiles (student home) ---------- */
-.subject-tile-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 20px;
-  max-width: 480px;
-  width: 100%;
-  margin: 4px auto 0;
-}
-.subject-tile {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: var(--chunk) solid var(--ink);
-  border-radius: 24px;
-  box-shadow: 6px 6px 0 var(--ink);
-  cursor: pointer;
-  font-family: 'Baloo 2', sans-serif;
-  font-weight: 800;
-  font-size: 1.25rem;
-  color: white;
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
-}
-.subject-tile:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--ink); }
-.subject-tile:active { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--ink); }
-.subject-tile:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 6px 6px 0 var(--ink); }
-.subject-tile .subject-tile-icon { font-size: 3.4rem; }
-.subject-tile.tile-math { background: var(--blue); }
-.subject-tile.tile-literacy { background: var(--pink); }
-.subject-tile.tile-done { opacity: 0.65; }
-
 /* ---------- Computer desktop widgets (student Home) ---------- */
 /* Direct teacher ask: a card/widget-based "Mac desktop" style computer
    screen (a calendar widget, an analog clock, app cards for mail/
@@ -801,9 +767,33 @@ button.widget-card {
 }
 button.widget-card:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
 button.widget-card:active { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--ink); }
+button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 5px 5px 0 var(--ink); }
+.widget-card.widget-done { opacity: 0.7; }
 .widget-icon-card { position: relative; }
 .widget-icon { font-size: 2.1rem; line-height: 1; }
 .widget-label { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 0.92rem; }
+
+/* Large (2x2) and wide (full-row) size variants so Math/Literacy/
+   Playground read as bigger widgets on the same desktop, not a
+   separate visual system — direct teacher ask to unify them. */
+.widget-card-lg {
+  grid-column: span 2;
+  grid-row: span 2;
+  min-height: 228px;
+}
+.widget-card-lg .widget-icon { font-size: 3.6rem; }
+.widget-card-lg .widget-label { font-size: 1.2rem; }
+.widget-card-wide {
+  grid-column: 1 / -1;
+  min-height: auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  text-align: left;
+  padding: 14px 20px;
+  gap: 12px;
+}
+.widget-card-wide .widget-label { font-size: 1rem; }
 .widget-badge {
   position: absolute;
   top: 8px;
@@ -848,6 +838,10 @@ button.widget-card:active { transform: translate(1px, 1px); box-shadow: 3px 3px 
 .widget-chat { background: linear-gradient(160deg, var(--blue), #1e4fa8); }
 .widget-whatsnew { background: linear-gradient(160deg, var(--teal), #0d7f70); }
 .widget-town { background: linear-gradient(160deg, #5fa86b, #3d7c47); }
+.widget-math { background: linear-gradient(160deg, var(--blue), #1e4fa8); }
+.widget-literacy { background: linear-gradient(160deg, var(--pink), #a8306f); }
+.widget-cinema { background: linear-gradient(160deg, #3a2f52, #1a1526); }
+.widget-playground { background: linear-gradient(120deg, var(--purple), var(--pink)); color: white; }
 
 /* ---------- Choice board ---------- */
 .choice-board {

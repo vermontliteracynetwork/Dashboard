@@ -1583,19 +1583,51 @@ function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
 // translucent shards across the sky, not a clean gradient) the standing
 // "no retry without live visual QA" comment above was warning about.
 // Direct teacher instruction after seeing it live: "one cohesive color
-// of sky texture." Reverted to a single flat color always — the one
-// approach that's actually been live-verified (it's the same technique
-// WorldEditor's own Build Mode preview already uses) — for both the
-// default look and any teacher-picked sky tint. No shader, no texture,
-// no seam or artifact class possible.
-function SkyboxBackground({ skyColor }: { skyColor?: string | null }) {
+// of sky texture." Reverted to a single flat color as the default and
+// fallback — the one approach that's actually been live-verified (it's
+// the same technique WorldEditor's own Build Mode preview already uses).
+//
+// Sixth attempt: a real equirect texture is back, but opt-in only this
+// time, not a default. Direct teacher instruction ("add the sky textures
+// i've added to build mode for fill sky") — she can now pick one of her
+// own uploaded sky images (public/world/sky/, public/world/textures/
+// space/) from Build Mode's Fill Sky panel, same EquirectangularReflection-
+// Mapping technique every prior attempt used, which is unavoidable for a
+// texture that has to wrap correctly as the camera turns. Given this
+// exact technique's documented 4-for-4 failure history above, this
+// deliberately ships gated behind an explicit teacher choice (default
+// stays null = flat color) rather than a new forced default, and Build
+// Mode's own viewport is a real live render she can check before it ever
+// reaches Town Square — do not flip skyTexture's default away from null
+// without her confirming it actually looks right there first.
+function SkyboxBackground({ skyColor, skyTexture }: { skyColor?: string | null; skyTexture?: string | null }) {
   const { scene } = useThree();
   useEffect(() => {
-    scene.background = new THREE.Color(skyColor ?? '#bfe3ff');
+    // Only actually applies when skyTexture is unset — SkyboxTexture below
+    // takes over scene.background the moment it mounts. Kept as a real
+    // effect (not skipped) so switching FROM a texture back to null
+    // restores the flat color immediately without a stale texture stuck
+    // as the background.
+    if (!skyTexture) scene.background = new THREE.Color(skyColor ?? '#bfe3ff');
     return () => {
       scene.background = null;
     };
-  }, [scene, skyColor]);
+  }, [scene, skyColor, skyTexture]);
+  return skyTexture ? <SkyboxTexture path={skyTexture} /> : null;
+}
+
+// Split out so useTexture (a real network fetch + Suspense) only ever runs
+// while a teacher has actually picked a sky texture — skyTexture is null
+// by default, and loading a ~1MB image on every single Town Square visit
+// for a feature almost nobody has turned on would be pure waste.
+function SkyboxTexture({ path }: { path: string }) {
+  const { scene } = useThree();
+  const texture = useTexture(path);
+  useEffect(() => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    scene.background = texture;
+  }, [scene, texture]);
   return null;
 }
 
@@ -2180,6 +2212,7 @@ export default function TownSquare() {
   );
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const skyColor = useStore((s) => s.skyColor);
+  const skyTexture = useStore((s) => s.skyTexture);
   // Driveable cars (docs/TRANSPORTATION.md, Phase 1) — declared up here
   // (rather than alongside the rest of the interaction state further
   // down) since the collision-layout effect right below needs
@@ -3444,7 +3477,7 @@ export default function TownSquare() {
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
-          <SkyboxBackground skyColor={skyColor} />
+          <SkyboxBackground skyColor={skyColor} skyTexture={skyTexture} />
           <Park
             layoutOverrides={layoutOverrides}
             onGroundTap={(x, z) => {
@@ -3612,15 +3645,24 @@ export default function TownSquare() {
               <WorldObjectRenderer
                 obj={liveObj}
                 onClick={
-                  obj.role === 'closed' && !mapView && !wasDraggingLook.current ? () => setClosedBuildingName(obj.customName || obj.label)
-                  : obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
-                  : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
-                  : isVehicle && !mapView && !wasDraggingLook.current
+                  // A car/boat model always drives, even if it was also
+                  // (accidentally or from an old edit) given a role in
+                  // WorldEditor's role dropdown — a bug found while
+                  // debugging a teacher report of driving "not working":
+                  // any role, including a stray one, used to win this
+                  // ternary and show the generic "View X?" popup instead
+                  // of the drive-confirm card, with no ROLE_VIEWS entry
+                  // to actually open, silently dead-ending the click.
+                  // Vehicles are checked first now so that can't happen.
+                  isVehicle && !mapView && !wasDraggingLook.current
                     ? () => {
                         if (isDriving) { setExitConfirmActive(true); return; }
                         if (drivingObjectId) return; // already driving a different vehicle
                         setDriveConfirmId(obj.id);
                       }
+                  : obj.role === 'closed' && !mapView && !wasDraggingLook.current ? () => setClosedBuildingName(obj.customName || obj.label)
+                  : obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
+                  : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
                   : isMusicSource && !mapView && !wasDraggingLook.current
                     ? () => setShowMusicPicker(true)
                   : undefined

@@ -723,6 +723,13 @@ alter table app_settings add column if not exists layout_overrides jsonb not nul
 -- tint, today's exact look). See WorldEditor.tsx's paint-mode comment.
 alter table app_settings add column if not exists ground_texture text;
 alter table app_settings add column if not exists sky_color text;
+-- A real equirectangular sky image (null = no texture, sky_color/default
+-- flat color still applies) — direct teacher request to make her own
+-- uploaded sky textures (public/world/sky/, public/world/textures/space/)
+-- selectable from Build Mode's Fill Sky tool. See TownSquare.tsx's
+-- SkyboxBackground for this codebase's documented history of this exact
+-- equirect-mapping technique failing live QA on other source images.
+alter table app_settings add column if not exists sky_texture text;
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

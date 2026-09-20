@@ -1,12 +1,12 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
-import { nearestWall } from '../../lib/wallGeometry';
+import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt,
 } from '../world/townLayout';
@@ -739,6 +739,37 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
   { label: 'Arcade Carpet', path: '/world/textures/arcade-carpet.png' },
   { label: 'Water', path: '/world/textures/water.png' },
 ];
+// Direct teacher request ("add the sky textures i've added to build mode
+// for fill sky") — real equirectangular images she's added to the app
+// (public/world/sky/, public/world/textures/space/), selectable from the
+// Fill Sky panel instead of only a flat color tint. See TownSquare.tsx's
+// SkyboxBackground for this codebase's own documented history of this
+// exact mapping technique breaking on other source images — this ships
+// opt-in only (default stays the flat color) so it's the teacher's own
+// live look here in Build Mode's viewport that decides whether it's kept.
+const SKY_TEXTURE_OPTIONS: { label: string; path: string }[] = [
+  { label: 'Day', path: '/world/sky/skybox-day.png' },
+  { label: 'Starry Night', path: '/world/textures/space/stars.jpg' },
+];
+// Build Mode's own live preview of a picked sky texture — this is the
+// real check the SKY_TEXTURE_OPTIONS panel above tells the teacher to use
+// before trusting a photo sky, so it needs to actually render one, not
+// just offer the picker. Mirrors TownSquare.tsx's SkyboxTexture exactly.
+function BuildSkyTexture({ path }: { path: string }) {
+  const { scene } = useThree();
+  const texture = useTexture(path);
+  useMemo(() => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+  }, [texture]);
+  useEffect(() => {
+    scene.background = texture;
+    return () => {
+      scene.background = null;
+    };
+  }, [scene, texture]);
+  return null;
+}
 // Same tiling approach as TownSquare's own GroundMaterial (which this
 // mirrors) so a texture picked here looks the same once it's real —
 // ~4 world units per tile against the visible ground diameter.
@@ -1395,6 +1426,7 @@ export default function WorldEditor() {
   const wallSegments = useMemo(() => allWallSegments.filter((w) => !w.studentId), [allWallSegments]);
   const addWallSegment = useStore((s) => s.addWallSegment);
   const deleteWallSegment = useStore((s) => s.deleteWallSegment);
+  const updateWallSegment = useStore((s) => s.updateWallSegment);
   const publishWorldDraft = useStore((s) => s.publishWorldDraft);
   const discardWorldDraft = useStore((s) => s.discardWorldDraft);
   const groundPatches = useStore((s) => s.groundPatches);
@@ -1414,6 +1446,8 @@ export default function WorldEditor() {
   const setGroundTexture = useStore((s) => s.setGroundTexture);
   const skyColor = useStore((s) => s.skyColor);
   const setSkyColor = useStore((s) => s.setSkyColor);
+  const skyTexture = useStore((s) => s.skyTexture);
+  const setSkyTexture = useStore((s) => s.setSkyTexture);
   const restoreWorldEditorState = useStore((s) => s.restoreWorldEditorState);
   const retrySyncNow = useStore((s) => s.retrySyncNow);
 
@@ -1817,14 +1851,24 @@ export default function WorldEditor() {
   // (so undo works; it just takes one Undo per object touched, not one for
   // the whole bucket — acceptable for how infrequently a bucket-fill spans
   // more than a couple of objects).
+  // Direct teacher report: walls didn't participate in paint mode at all
+  // ("acts as a bucket, not a brush... needs to work on grass/ground,
+  // walls, floors") — Brush/Bucket only ever matched worldObjects/
+  // layoutItems, which share a modelPath to bucket-match on; a wall has no
+  // model, just its own persisted `color` field (WallSegment.color,
+  // already read as WallMesh's base render color, just never written to
+  // by either paint tool until now).
+  const paintAllWalls = (color: string) => {
+    wallSegments.forEach((w) => updateWallSegment(w.id, { color }));
+  };
   const paintAllOfModel = (modelPath: string, color: string) => {
     worldObjects.filter((o) => o.modelPath === modelPath).forEach((o) => updateWorldObjectH(o.id, { tintColor: color }));
     layoutItems.filter((l) => l.modelPath === modelPath && !layoutOverrides[l.id]?.deleted).forEach((l) => setLayoutOverrideH(l.id, { tintColor: color }));
   };
-  // Brush stroke with radius: paints every placed AND fixed object whose
-  // (x,z) falls within brushRadius of the touched object's own position —
-  // at radius 0 this only ever matches the touched object itself, so the
-  // original single-object brush behavior is unchanged by default.
+  // Brush stroke with radius: paints every placed AND fixed object, and
+  // every wall, whose position falls within brushRadius of the touched
+  // point — at radius 0 this only ever matches the touched object itself,
+  // so the original single-object brush behavior is unchanged by default.
   const paintNear = (anchorX: number, anchorZ: number, color: string) => {
     const r2 = brushRadius * brushRadius;
     worldObjects.forEach((o) => {
@@ -1839,6 +1883,12 @@ export default function WorldEditor() {
       const dx = px - anchorX;
       const dz = pz - anchorZ;
       if (dx * dx + dz * dz <= r2) setLayoutOverrideH(item.id, { tintColor: color });
+    });
+    wallSegments.forEach((w) => {
+      const [mx, mz] = wallMidpoint(w);
+      const dx = mx - anchorX;
+      const dz = mz - anchorZ;
+      if (dx * dx + dz * dz <= r2) updateWallSegment(w.id, { color });
     });
   };
   // Ground-type per-tile system: paints (or, with the Erase toggle,
@@ -2332,13 +2382,13 @@ export default function WorldEditor() {
           <strong style={{ fontSize: '0.85rem' }}>🎨 Paint</strong>
 
           <div className="stack" style={{ gap: 6 }}>
-            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Tap an object in the scene to paint it:</span>
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Tap an object or wall in the scene to paint it:</span>
             <div className="row-wrap" style={{ gap: 4 }}>
               <button
                 className="btn btn-sm"
                 style={{ minHeight: 44, flex: 1, background: paintMode === 'brush' ? BUILD_ACCENT : undefined, color: paintMode === 'brush' ? '#fff' : undefined, borderColor: paintMode === 'brush' ? BUILD_ACCENT : undefined }}
                 onClick={() => setPaintMode('brush')}
-                title="Brush: drag across objects to paint every one you touch"
+                title="Brush: drag across objects and walls to paint every one you touch, within the size set below"
               >
                 🖌️ Brush
               </button>
@@ -2346,7 +2396,7 @@ export default function WorldEditor() {
                 className="btn btn-sm"
                 style={{ minHeight: 44, flex: 1, background: paintMode === 'bucket' ? BUILD_ACCENT : undefined, color: paintMode === 'bucket' ? '#fff' : undefined, borderColor: paintMode === 'bucket' ? BUILD_ACCENT : undefined }}
                 onClick={() => setPaintMode('bucket')}
-                title="Bucket: paints every object using that same model at once"
+                title="Bucket: tap one object to paint every object using that same model at once, or tap any wall to paint every wall at once"
               >
                 🪣 Bucket
               </button>
@@ -2453,19 +2503,50 @@ export default function WorldEditor() {
           <div className="stack" style={{ gap: 6 }}>
             <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌤️ Sky</span>
             <div className="row-wrap" style={{ gap: 6 }}>
-              <button className="btn btn-sm" style={{ minHeight: 44, flex: 1 }} onClick={() => { setSkyColor(paintColor); flashSaved(); }}>
+              <button className="btn btn-sm" style={{ minHeight: 44, flex: 1 }} onClick={() => { setSkyTexture(null); setSkyColor(paintColor); flashSaved(); }}>
                 Fill sky with this color
               </button>
-              {skyColor && (
-                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { setSkyColor(null); flashSaved(); }} title="Back to the default sky">Reset</button>
+              {(skyColor || skyTexture) && (
+                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { setSkyColor(null); setSkyTexture(null); flashSaved(); }} title="Back to the default sky">Reset</button>
               )}
+            </div>
+          </div>
+
+          <div className="stack" style={{ gap: 6 }}>
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌌 Sky texture (your uploaded images)</span>
+            <p style={{ fontSize: '0.68rem', opacity: 0.65, margin: 0 }}>
+              Check how this looks right here before it goes live in Town Square — real photo skies have broken on the horizon in this app before.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {SKY_TEXTURE_OPTIONS.map((s) => {
+                const active = skyTexture === s.path;
+                return (
+                  <button
+                    key={s.label}
+                    onClick={() => { setSkyTexture(s.path); flashSaved(); }}
+                    title={s.label}
+                    style={{ minHeight: 56, padding: 4, borderRadius: 10, border: active ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}
+                  >
+                    <span style={{ display: 'block', width: 28, height: 28, borderRadius: 6, backgroundImage: `url(${s.path})`, backgroundSize: 'cover' }} />
+                    <span style={{ fontSize: 9, fontWeight: 700 }}>{s.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
           </>
           )}
 
           <div className="stack" style={{ gap: 6 }}>
-            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌱 Ground texture</span>
+            {/* Direct teacher report: this whole-map fill sat right next to
+                the groundPatch tool's own circular-brush texture swatches
+                above (same look), which read as "the brush acts like a
+                bucket" — it's a different, always-available tool (fills
+                every tile at once, no radius, no dragging), now labeled to
+                say so plainly instead of implying it's brush-scoped. Use
+                the 🖌️ Ground brush above (paintMode 'groundPatch') for an
+                actual sized, radius-limited stroke. */}
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌱 Fill whole ground with this texture</span>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
               {GROUND_TEXTURE_OPTIONS.map((g) => {
                 const active = groundTexture === g.path;
@@ -2577,7 +2658,13 @@ export default function WorldEditor() {
                 something is ever placed oddly again, it fades into the sky
                 instead of dominating the view, and the camera itself can't
                 be zoomed out past the town to go looking for it. */}
-            <color attach="background" args={[skyColor ?? '#bfe3ff']} />
+            {skyTexture ? (
+              <Suspense fallback={<color attach="background" args={[skyColor ?? '#bfe3ff']} />}>
+                <BuildSkyTexture path={skyTexture} />
+              </Suspense>
+            ) : (
+              <color attach="background" args={[skyColor ?? '#bfe3ff']} />
+            )}
             <fog attach="fog" args={[skyColor ?? '#bfe3ff', 26, 46]} />
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 16, 8]} intensity={1.2} castShadow />
@@ -2812,14 +2899,35 @@ export default function WorldEditor() {
                   onClick={
                     interactive
                       ? () => {
-                          if (paintMode) return; // walls don't participate in paint bucket/brush (no shared model to match on)
+                          if (paintMode === 'bucket') { paintAllWalls(paintColor); return; }
+                          if (paintMode) return; // brush: painting happens on pointer down/over below, not click
                           if (hammerMode) { deleteWallSegment(wall.id); return; }
                           setSelection({ kind: 'wall', id: wall.id });
                         }
                       : undefined
                   }
-                  onPointerOver={interactive ? () => setHovered({ kind: 'wall', id: wall.id }) : undefined}
+                  onPointerOver={
+                    interactive
+                      ? () => {
+                          setHovered({ kind: 'wall', id: wall.id });
+                          if (paintMode === 'brush' && isPaintingRef.current) {
+                            const [mx, mz] = wallMidpoint(wall);
+                            paintNear(mx, mz, paintColor);
+                          }
+                        }
+                      : undefined
+                  }
                   onPointerOut={interactive ? () => setHovered((h) => (h?.kind === 'wall' && h.id === wall.id ? null : h)) : undefined}
+                  onPointerDown={
+                    interactive && paintMode === 'brush'
+                      ? (e) => {
+                          e.stopPropagation();
+                          isPaintingRef.current = true;
+                          const [mx, mz] = wallMidpoint(wall);
+                          paintNear(mx, mz, paintColor);
+                        }
+                      : undefined
+                  }
                 />
               );
             })}

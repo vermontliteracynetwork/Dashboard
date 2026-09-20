@@ -843,6 +843,7 @@ export interface HydratedState {
   layoutOverrides: Record<string, LayoutOverride>;
   groundTexture: string | null;
   skyColor: string | null;
+  skyTexture: string | null;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -987,6 +988,7 @@ export async function fetchAll(): Promise<HydratedState> {
     layoutOverrides: appSettingsRes.data?.layout_overrides ?? {},
     groundTexture: appSettingsRes.data?.ground_texture ?? null,
     skyColor: appSettingsRes.data?.sky_color ?? null,
+    skyTexture: appSettingsRes.data?.sky_texture ?? null,
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -1240,6 +1242,9 @@ export const pushGroundTexture = (path: string | null) =>
 
 export const pushSkyColor = (color: string | null) =>
   upsert('app_settings', { id: 'global', sky_color: color, updated_at: new Date().toISOString() });
+
+export const pushSkyTexture = (path: string | null) =>
+  upsert('app_settings', { id: 'global', sky_texture: path, updated_at: new Date().toISOString() });
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });
