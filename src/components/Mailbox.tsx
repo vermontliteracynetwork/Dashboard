@@ -23,19 +23,11 @@ export default function Mailbox() {
     <div className="container stack">
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))' }}>
         <h2 style={{ margin: 0, color: '#fff' }}>📬 Mailbox</h2>
-        {/* This screen is normally reached by walking up to the Post
-            Office in Town Square — only a Home button here (dev log's own
-            flagged gap) forced a round trip through the 2D task list just
-            to get back. Reuses SubjectDashboard's own "🌳 Town Square"
-            label/button for consistency. */}
-        <div className="row" style={{ gap: 8 }}>
-          {/* Direct teacher instruction: the What's New book must always be
-              reachable from here too, not just the one-time popup in Town
-              Square. */}
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town?openChangelog=1')}>📖 What's New</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
-        </div>
+        {/* Direct teacher instruction: Mail is now reached from the
+            Computer's own widget grid, so the way back is a single Back
+            button to that screen instead of the old three-button row
+            (What's New/Town Square/Home). */}
+        <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>⬅️ Back</button>
       </div>
 
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%' }}>

@@ -82,8 +82,14 @@ export default function Cinema() {
     <div
       className="stack"
       style={{
+        position: 'relative',
         minHeight: '100vh',
-        backgroundImage: `url(/world/cinema/${playing ? 'curtain-screen' : 'curtain-closed'}.png)`,
+        // Direct teacher request: use the plain curtain photo, not the
+        // version with a painted-on fake screen baked into it — the real
+        // video below is sized/positioned (see the absolute box below)
+        // to sit exactly where that painted screen used to be, so it now
+        // reads as the actual screen instead of floating next to it.
+        backgroundImage: 'url(/world/cinema/curtain-closed.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         padding: 20,
@@ -113,11 +119,14 @@ export default function Cinema() {
       </div>
 
       {playing ? (
-        <div className="stack" style={{ alignItems: 'center', marginTop: 20 }}>
-          {/* Direct teacher instruction: no frame around the video itself —
-              the real curtain photo behind is the only framing this view
-              gets, so the video just sits directly on it. */}
-          <div style={{ width: '100%', maxWidth: 640, aspectRatio: '16 / 9', boxShadow: '0 10px 30px rgba(0,0,0,0.45)' }}>
+        <>
+          {/* Direct teacher instruction: no frame graphic around the video —
+              positioned/sized to exactly match the screen-shaped area that
+              used to be painted into curtain-screen.png (measured from that
+              retired image: a centered rectangle at 24.5%/24.5% of the
+              curtain photo, 50.9% wide, 50.8% tall — a true 16:9 box), so
+              the real video now reads as sitting right on the stage. */}
+          <div style={{ position: 'absolute', left: '24.53%', top: '24.54%', width: '50.89%', height: '50.83%', boxShadow: '0 10px 30px rgba(0,0,0,0.45)' }}>
             {ytId ? (
               <iframe
                 width="100%"
@@ -133,7 +142,7 @@ export default function Cinema() {
               <video src={playing.url} controls playsInline style={{ width: '100%', height: '100%', display: 'block', background: '#000' }} />
             )}
           </div>
-          <div className="row" style={{ alignItems: 'center', gap: 10, background: '#fff', borderRadius: 10, padding: '8px 16px' }}>
+          <div className="row" style={{ position: 'absolute', left: '24.53%', top: 'calc(24.54% + 50.83% + 14px)', width: '50.89%', alignItems: 'center', justifyContent: 'center', gap: 10, background: '#fff', borderRadius: 10, padding: '8px 16px' }}>
             <p style={{ margin: 0, fontWeight: 700, color: '#5c1219', fontFamily: 'system-ui, sans-serif' }}>
               {playing.title}
               {playing.durationSeconds ? <span style={{ fontWeight: 500, opacity: 0.65 }}> · ⏱️ {formatDuration(playing.durationSeconds)}</span> : null}
@@ -146,7 +155,7 @@ export default function Cinema() {
               {favoriteIds.includes(playing.id) ? '❤️' : '🤍'}
             </button>
           </div>
-        </div>
+        </>
       ) : (
         <div style={{ margin: '32px auto 0', width: '100%', maxWidth: 1000 }}>
           <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: '20px 0', boxShadow: '0 6px 20px rgba(0,0,0,0.35)' }}>
