@@ -6,6 +6,7 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
+import { SkyTextureBoundary } from '../../components/SkyTextureBoundary';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt,
@@ -751,10 +752,12 @@ const SKY_TEXTURE_OPTIONS: { label: string; path: string }[] = [
   { label: 'Day', path: '/world/sky/skybox-day.png' },
   { label: 'Starry Night', path: '/world/textures/space/stars.jpg' },
 ];
-// Build Mode's own live preview of a picked sky texture — this is the
-// real check the SKY_TEXTURE_OPTIONS panel above tells the teacher to use
-// before trusting a photo sky, so it needs to actually render one, not
-// just offer the picker. Mirrors TownSquare.tsx's SkyboxTexture exactly.
+// Build Mode's own live render of a picked sky texture — offers a real
+// first look at the image, though setSkyTexture (WorldEditor's own
+// onClick below) pushes it live to every student's Town Square in the
+// same tap, same instant-apply behavior skyColor/groundTexture already
+// have; this isn't a staged preview that holds it back. Mirrors
+// TownSquare.tsx's SkyboxTexture exactly, including the error boundary.
 function BuildSkyTexture({ path }: { path: string }) {
   const { scene } = useThree();
   const texture = useTexture(path);
@@ -2515,7 +2518,7 @@ export default function WorldEditor() {
           <div className="stack" style={{ gap: 6 }}>
             <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌌 Sky texture (your uploaded images)</span>
             <p style={{ fontSize: '0.68rem', opacity: 0.65, margin: 0 }}>
-              Check how this looks right here before it goes live in Town Square — real photo skies have broken on the horizon in this app before.
+              Picking one shows live to every student in Town Square right away — real photo skies have broken on the horizon in this app before, so take a look here first and use Reset if it looks wrong.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
               {SKY_TEXTURE_OPTIONS.map((s) => {
@@ -2659,9 +2662,11 @@ export default function WorldEditor() {
                 instead of dominating the view, and the camera itself can't
                 be zoomed out past the town to go looking for it. */}
             {skyTexture ? (
-              <Suspense fallback={<color attach="background" args={[skyColor ?? '#bfe3ff']} />}>
-                <BuildSkyTexture path={skyTexture} />
-              </Suspense>
+              <SkyTextureBoundary key={skyTexture} fallback={<color attach="background" args={[skyColor ?? '#bfe3ff']} />}>
+                <Suspense fallback={<color attach="background" args={[skyColor ?? '#bfe3ff']} />}>
+                  <BuildSkyTexture path={skyTexture} />
+                </Suspense>
+              </SkyTextureBoundary>
             ) : (
               <color attach="background" args={[skyColor ?? '#bfe3ff']} />
             )}

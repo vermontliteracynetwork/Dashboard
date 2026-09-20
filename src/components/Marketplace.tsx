@@ -14,7 +14,7 @@ import { petDefById, thumbnailFor } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 
-type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'pets' | 'mystuff' | 'receipts';
+type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'furniture' | 'pets' | 'mystuff' | 'receipts';
 
 interface CartEntry {
   key: string; // `${source}-${id}`, unique per cart
@@ -225,10 +225,12 @@ export default function Marketplace() {
   const voiceItems = byKind('voice');
   const prizeItems = byKind('prize');
   const powerupItems = byKind('powerup');
+  const furnitureItems = byKind('furniture');
 
   const prizeFilter = useItemFilter(prizeItems);
   const fontFilter = useItemFilter(fontItems);
   const voiceFilter = useItemFilter(voiceItems);
+  const furnitureFilter = useItemFilter(furnitureItems);
 
   const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
@@ -266,6 +268,7 @@ export default function Marketplace() {
     if (kind === 'color') return 'ownedColorIds';
     if (kind === 'voice') return 'ownedVoiceIds';
     if (kind === 'prize') return 'ownedPrizeIds';
+    if (kind === 'furniture') return 'ownedHomeItemIds';
     return null;
   };
 
@@ -536,6 +539,11 @@ export default function Marketplace() {
             <button className={`shop-tab-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
               🎫 Power-Ups
             </button>
+            {furnitureItems.length > 0 && (
+              <button className={`shop-tab-btn ${tab === 'furniture' ? 'active' : ''}`} onClick={() => setTab('furniture')}>
+                🛋️ Home
+              </button>
+            )}
             <button className={`shop-tab-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
               🐾 Pets
             </button>
@@ -696,6 +704,23 @@ export default function Marketplace() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {tab === 'furniture' && (
+              <div>
+                {/* Claudia's audit: HomeRoom.tsx's own locked-catalog tiles
+                    already sent a student straight here on tap — this tab
+                    used to not exist, a real dead end (a teacher could
+                    create a furniture item and it would show locked in
+                    Build Mode with no way to ever actually buy it). */}
+                <ItemFilterBar items={furnitureItems} category={furnitureFilter.category} onCategory={furnitureFilter.setCategory} tag={furnitureFilter.tag} onTag={furnitureFilter.setTag} query={furnitureFilter.query} onQuery={furnitureFilter.setQuery} />
+                <div className="shop-item-grid">
+                  {furnitureFilter.filtered.map((f) => renderBuyableItem(f))}
+                </div>
+                <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
+                  🏠 Bought a home item? Find it in Build Mode at your house, ready to place.
+                </p>
               </div>
             )}
 

@@ -21,6 +21,7 @@ import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
+import { SkyTextureBoundary } from '../../components/SkyTextureBoundary';
 import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { extractYouTubeId, loadYouTubeApi } from '../../lib/youtube';
@@ -1596,10 +1597,16 @@ function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
 // texture that has to wrap correctly as the camera turns. Given this
 // exact technique's documented 4-for-4 failure history above, this
 // deliberately ships gated behind an explicit teacher choice (default
-// stays null = flat color) rather than a new forced default, and Build
-// Mode's own viewport is a real live render she can check before it ever
-// reaches Town Square — do not flip skyTexture's default away from null
-// without her confirming it actually looks right there first.
+// stays null = flat color) rather than a new forced default.
+// Claudia's review caught an overclaim here: setSkyTexture pushes to
+// app_settings immediately (same instant-apply behavior skyColor/
+// groundTexture already have) and Town Square is realtime-subscribed, so
+// picking a texture in Build Mode goes live to every student in the same
+// moment the teacher sees it — it is NOT a staged/checked-first preview,
+// just a genuinely useful first look. Do not flip skyTexture's default
+// away from null without the teacher confirming it actually looks right.
+// SkyboxTexture is wrapped in a real error boundary below, since a bad
+// image should fall back to the flat color, not break the scene.
 function SkyboxBackground({ skyColor, skyTexture }: { skyColor?: string | null; skyTexture?: string | null }) {
   const { scene } = useThree();
   useEffect(() => {
@@ -1613,7 +1620,20 @@ function SkyboxBackground({ skyColor, skyTexture }: { skyColor?: string | null; 
       scene.background = null;
     };
   }, [scene, skyColor, skyTexture]);
-  return skyTexture ? <SkyboxTexture path={skyTexture} /> : null;
+  if (!skyTexture) return null;
+  return (
+    <SkyTextureBoundary key={skyTexture} fallback={<SkyFallbackColor color={skyColor ?? '#bfe3ff'} />}>
+      <SkyboxTexture path={skyTexture} />
+    </SkyTextureBoundary>
+  );
+}
+
+function SkyFallbackColor({ color }: { color: string }) {
+  const { scene } = useThree();
+  useEffect(() => {
+    scene.background = new THREE.Color(color);
+  }, [scene, color]);
+  return null;
 }
 
 // Split out so useTexture (a real network fetch + Suspense) only ever runs
@@ -2905,7 +2925,13 @@ export default function TownSquare() {
       return;
     }
     const path = obj.role ? ROLE_VIEWS[obj.role] : null;
-    if (path) navigate(path);
+    // Claudia's audit: WebpageFrame's single Back button defaults to the
+    // Computer, so a student who walked their avatar up to a building in
+    // Town Square and then taps Back used to land on the Computer desktop
+    // instead of back where their avatar is standing — this state flag is
+    // what Mailbox/PiggyBank/Marketplace read to send Back to Town Square
+    // instead, only when that's really where the student came from.
+    if (path) navigate(path, { state: { from: 'town' } });
   };
 
   // Driveable cars (docs/TRANSPORTATION.md, Phase 1). Mount: snap the
@@ -3610,7 +3636,7 @@ export default function TownSquare() {
                 key={b.id}
                 building={b}
                 playerPos={playerPos}
-                onEnter={viewPath ? () => { if (!mapView && !wasDraggingLook.current) navigate(viewPath); } : undefined}
+                onEnter={viewPath ? () => { if (!mapView && !wasDraggingLook.current) navigate(viewPath, { state: { from: 'town' } }); } : undefined}
               />
             );
           })}

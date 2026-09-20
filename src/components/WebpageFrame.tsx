@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // The one "browser chrome" header every screen a student reaches from the
 // Computer shares — direct teacher instruction: "still having a website
@@ -8,16 +8,31 @@ import { useNavigate } from 'react-router-dom';
 // uses the exact same component instead of a bespoke re-typed header per
 // page, per Claudia's "consistent navigation" standard (WCAG 3.2.3): same
 // look, same position, same label, every time.
+//
+// Claudia's audit: collapsing to a single Back button (replacing the old
+// per-screen Town Square/Home button pairs) dropped the "walk up to a
+// building, get sent back to where you were standing" path for Mailbox/
+// PiggyBank/Marketplace — every walk-up entry now lands back on the
+// Computer instead. TownSquare.tsx's own navigate() calls into these
+// screens pass `state: { from: 'town' }` specifically so this component
+// can restore that path automatically, without every screen having to
+// know or care how it was reached. A caller that passes its own explicit
+// backTo/backLabel (StudentHome's own "Close, back to Town Square") is
+// left alone — this only fills in the default.
 export default function WebpageFrame({
   url,
-  backTo = '/student/home',
-  backLabel = '⬅️ Back to Computer',
+  backTo,
+  backLabel,
 }: {
   url: string;
   backTo?: string;
   backLabel?: string;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
+  const effectiveBackTo = backTo ?? (cameFromTown ? '/world/town' : '/student/home');
+  const effectiveBackLabel = backLabel ?? (cameFromTown ? '🌳 Back to Town Square' : '⬅️ Back to Computer');
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(#e9e5d8, #cfc9b7)', border: '2px solid #8a8574', borderRadius: '8px 8px 0 0', padding: '6px 10px', fontFamily: '"Courier New", monospace', fontSize: 13, color: '#3a362b' }}>
       <span style={{ display: 'flex', gap: 4 }}>
@@ -30,10 +45,10 @@ export default function WebpageFrame({
       </div>
       <button
         className="btn btn-sm"
-        style={{ minHeight: 32, fontFamily: 'system-ui, sans-serif', background: '#3e7c6b', color: '#fff' }}
-        onClick={() => navigate(backTo)}
+        style={{ fontFamily: 'system-ui, sans-serif', background: '#3e7c6b', color: '#fff' }}
+        onClick={() => navigate(effectiveBackTo)}
       >
-        {backLabel}
+        {effectiveBackLabel}
       </button>
     </div>
   );
