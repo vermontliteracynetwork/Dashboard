@@ -470,8 +470,32 @@ export default function GrammarSandbox() {
         </div>
 
         {tool === 'draw' && (
-          <div className="lm-canvas">
+          <div className="lm-canvas" style={{ position: 'relative' }}>
             <Whiteboard student={student} />
+            {/* Claudia's design pass on "simultaneous draw+tiles": true
+                pointer-level coexistence (dragging a tile and drawing a
+                stroke from the same canvas) would force a gesture-
+                disambiguation rule, a real regression against this file's
+                own "one primary action per screen" finding. Scoped
+                alternative: the already-placed sentence shows through as
+                a non-interactive reference layer while drawing, so a
+                student can see and draw around it without losing it and
+                without a second live interaction mode. */}
+            {placed.length > 0 && (
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                {placed.map((p) => {
+                  const piece = pieceById(p.pieceId);
+                  if (!piece) return null;
+                  return (
+                    <GrammarPieceTile
+                      key={p.instanceId}
+                      piece={piece}
+                      style={{ position: 'absolute', left: p.x, top: p.y, opacity: 0.9 }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
