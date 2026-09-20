@@ -62,8 +62,8 @@ export default function FarmersMarket() {
   const openBoardOffers = farmerMarketOffers.filter((o) => o.status === 'open' && o.studentId !== student.id);
   const myOffers = farmerMarketOffers.filter((o) => o.studentId === student.id || o.acceptedByStudentId === student.id);
 
-  const handleAccept = (offer: FarmerMarketOffer) => {
-    const result = acceptFarmerMarketOffer(offer.id, student.id);
+  const handleAccept = async (offer: FarmerMarketOffer) => {
+    const result = await acceptFarmerMarketOffer(offer.id, student.id);
     setMessage(result.ok ? 'Trade complete! Check My Offers.' : result.reason ?? 'That trade could not be completed.');
   };
 
@@ -82,7 +82,7 @@ export default function FarmersMarket() {
       {message && (
         <div className="chrome-frame" style={{ padding: 12, textAlign: 'center', fontWeight: 700 }}>
           {message}{' '}
-          <button className="btn chip-filter-sm" onClick={() => setMessage(null)}>OK</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setMessage(null)}>OK</button>
         </div>
       )}
 
@@ -155,7 +155,7 @@ export default function FarmersMarket() {
                   {o.status === 'accepted' && `Traded with ${studentName(isMine ? (o.acceptedByStudentId ?? '') : o.studentId)}!`}
                 </div>
                 {o.status === 'open' && isMine && (
-                  <button className="btn chip-filter-sm" style={{ marginTop: 8 }} onClick={() => withdrawFarmerMarketOffer(o.id)}>✕ Withdraw</button>
+                  <button className="btn btn-sm" style={{ minHeight: 44, marginTop: 8 }} onClick={() => withdrawFarmerMarketOffer(o.id)}>✕ Withdraw</button>
                 )}
               </div>
             );
@@ -220,7 +220,7 @@ function PostTradeModal({
             <div className="row" style={{ gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: '0.85rem' }}>Giving:</span>
               {offeredItem && <ItemChip item={offeredItem} />}
-              <button className="btn chip-filter-sm" onClick={() => setStep(1)}>Change</button>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setStep(1)}>Change</button>
             </div>
             {wantOptions.length === 0 ? (
               <p style={{ opacity: 0.75 }}>There's nothing left of this same type to ask for, try a different item.</p>

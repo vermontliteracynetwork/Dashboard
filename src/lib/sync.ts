@@ -1300,6 +1300,28 @@ export const pushFarmerMarketOffer = (o: FarmerMarketOffer) =>
   });
 export const deleteFarmerMarketOfferRemote = (id: string) => remove('farmer_market_offers', { id });
 
+// Claudia's review (HIGH #1): a plain upsert here would let two students
+// who both tap Accept on the same still-open offer within the realtime-
+// sync latency window each pass local validation and locally trade away
+// an item, with only one of the two upserts "winning" remotely — the
+// loser's item silently changes with no explanation, a bad failure mode
+// for this population. This is a real conditional write instead: only an
+// UPDATE that still finds status = 'open' actually applies, so exactly
+// one of two simultaneous accepts can ever succeed. Returns whether THIS
+// call won the race — the caller must not touch local student ownership
+// unless this returns true.
+export async function acceptFarmerMarketOfferRemote(id: string, acceptedByStudentId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+  const { data, error } = await supabase
+    .from('farmer_market_offers')
+    .update({ status: 'accepted', accepted_by_student_id: acceptedByStudentId, responded_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('status', 'open')
+    .select();
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
 export const pushRotationMode = (studentId: string, subject: Subject, mode: RotationMode) =>
   upsert('rotation_modes', { student_id: studentId, subject, mode });
 

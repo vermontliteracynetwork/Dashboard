@@ -47,7 +47,7 @@ export default function GalleryManager() {
     <div className="content-well stack">
       <strong>🎉 Gallery</strong>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        A fun, teacher-curated feed of images shown in the Playground — silly pictures, memes, anything kids can just look through. Videos belong in Cinema instead.
+        A fun, teacher-curated feed of images shown in the Playground: silly pictures, memes, anything kids can just look through. Videos belong in Cinema instead.
       </p>
 
       <div className="stack" style={{ gap: 8 }}>

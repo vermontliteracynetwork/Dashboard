@@ -151,6 +151,7 @@ import {
   rowToGalleryItem,
   pushFarmerMarketOffer,
   deleteFarmerMarketOfferRemote,
+  acceptFarmerMarketOfferRemote,
   rowToFarmerMarketOffer,
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
@@ -533,7 +534,7 @@ interface AppState {
   // Farmer's Market — async student-to-student barter, see FarmerMarketOffer in types.ts
   postFarmerMarketOffer: (studentId: string, offeredItemId: string, wantsItemId: string) => string;
   withdrawFarmerMarketOffer: (id: string) => void;
-  acceptFarmerMarketOffer: (id: string, acceptingStudentId: string) => { ok: boolean; reason?: string };
+  acceptFarmerMarketOffer: (id: string, acceptingStudentId: string) => Promise<{ ok: boolean; reason?: string }>;
 
   // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
@@ -2763,7 +2764,16 @@ export const useStore = create<AppState>()(
       // swap (circumstances can change between when an offer was posted
       // and when someone accepts it, since this is async/turn-based, not
       // a live session) rather than trusting stale state.
-      acceptFarmerMarketOffer: (id, acceptingStudentId) => {
+      //
+      // Claudia's review (HIGH #1): local status checks alone can't stop
+      // two students both tapping Accept on the same offer within the
+      // realtime-sync latency window — acceptFarmerMarketOfferRemote does
+      // a real conditional DB write (only succeeds if the row is still
+      // 'open'), and only the caller that wins that race is allowed to
+      // touch either student's owned items. The loser gets a plain-
+      // language "someone already took this" message instead of silently
+      // losing/duplicating an item.
+      acceptFarmerMarketOffer: async (id, acceptingStudentId) => {
         const offer = get().farmerMarketOffers.find((o) => o.id === id);
         if (!offer || offer.status !== 'open') return { ok: false, reason: 'This offer is no longer available.' };
         if (offer.studentId === acceptingStudentId) return { ok: false, reason: "You can't accept your own offer." };
@@ -2780,6 +2790,14 @@ export const useStore = create<AppState>()(
         if (!offering[ownedField].includes(offer.offeredItemId)) return { ok: false, reason: `${offering.name} no longer has that item to trade.` };
         if (!accepting[ownedField].includes(offer.wantsItemId)) return { ok: false, reason: "You don't have the item this trade is asking for." };
 
+        let won = true;
+        try {
+          won = await acceptFarmerMarketOfferRemote(id, acceptingStudentId);
+        } catch {
+          return { ok: false, reason: "Couldn't complete this trade right now, try again in a moment." };
+        }
+        if (!won) return { ok: false, reason: 'Someone else already took this trade.' };
+
         get().updateStudent(offer.studentId, {
           [ownedField]: [...offering[ownedField].filter((x: string) => x !== offer.offeredItemId), offer.wantsItemId],
         } as Partial<Student>);
@@ -2788,8 +2806,21 @@ export const useStore = create<AppState>()(
         } as Partial<Student>);
 
         const updated: FarmerMarketOffer = { ...offer, status: 'accepted', acceptedByStudentId: acceptingStudentId, respondedAt: new Date().toISOString() };
-        set((s) => ({ farmerMarketOffers: s.farmerMarketOffers.map((o) => (o.id === id ? updated : o)) }));
+        // Claudia's review (MEDIUM #3): the offering student may have
+        // other still-open offers for this SAME item — once it's traded
+        // away, those would otherwise sit on the board as a dead offer no
+        // one can ever complete, with no explanation. Auto-withdrawing
+        // them keeps the board honest instead of leaving a silent dead end.
+        const staleOfferIds = get()
+          .farmerMarketOffers.filter((o) => o.id !== id && o.status === 'open' && o.studentId === offer.studentId && o.offeredItemId === offer.offeredItemId)
+          .map((o) => o.id);
+        set((s) => ({
+          farmerMarketOffers: s.farmerMarketOffers
+            .filter((o) => !staleOfferIds.includes(o.id))
+            .map((o) => (o.id === id ? updated : o)),
+        }));
         pushFarmerMarketOffer(updated);
+        staleOfferIds.forEach((staleId) => deleteFarmerMarketOfferRemote(staleId));
         return { ok: true };
       },
 
