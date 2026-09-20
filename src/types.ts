@@ -75,7 +75,6 @@ export interface Student {
   breakMinutes: number; // teacher-set default micro-break length (informational, not shown as a countdown to the student)
   ttsSettings: TTSSettings;
   createdAt: string;
-  playgroundThreshold: number; // activities completed today needed to unlock the Playground (repeatable)
   customTools: CustomTool[]; // teacher-added external link tools (e.g. Amplify, Polypad, research links)
   coins: number; // marketplace currency, earned by completing tasks
   savingsGoalLabel: string | null; // what the student is saving up for, student-set, shown as a fill-meter in the Piggy Bank (Homeplot's Bank standard — concept-only saving, no interest math)

@@ -878,7 +878,6 @@ export const useStore = create<AppState>()(
           badgeIds: [],
           featureToggles: { ...DEFAULT_FEATURE_TOGGLES },
           breakMinutes: 3,
-          playgroundThreshold: 4,
           ttsSettings: { rate: 1, voiceURI: null },
           createdAt: new Date().toISOString(),
           customTools: [],
