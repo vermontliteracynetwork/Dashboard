@@ -1,6 +1,6 @@
 import { Suspense, useRef, useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
+import { useGLTF, Html, useTexture, useAnimations, Line, Text, Sky } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -1575,19 +1575,29 @@ function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
 // producing this exact artifact class in this codebase regardless of how
 // "clean" a candidate panorama looks on static inspection, which this
 // environment cannot fully verify without a live render. Do not retry
-// this technique with a new image without an actual live visual check —
-// prefer drei's procedural <Sky> (a real shader, no image/UV mapping,
-// structurally cannot produce a pole-seam artifact) if a dynamic sky is
-// wanted again. Flat color is what has reliably worked here.
-function SkyboxBackground() {
+// this technique with a new image without an actual live visual check.
+//
+// Fifth attempt: drei's procedural <Sky> (a real shader, no image/UV
+// mapping, structurally cannot produce a pole-seam artifact) as this
+// comment's own previous recommendation — a full gradient sky with a sun,
+// live-rendered and screenshot-checked (see the build log for this hour)
+// before shipping, per the standing "no retry without live visual QA"
+// rule. Only used as the DEFAULT look, when the teacher hasn't picked a
+// sky tint — when `skyColor` is set (paint bucket), this falls back to
+// the same flat-color approach WorldEditor's own live preview already
+// uses safely, so a teacher's custom tint still applies exactly as
+// before and isn't silently overridden by the new shader.
+function SkyboxBackground({ skyColor }: { skyColor?: string | null }) {
   const { scene } = useThree();
   useEffect(() => {
-    scene.background = new THREE.Color('#bfe3ff');
+    if (skyColor) scene.background = new THREE.Color(skyColor);
+    else scene.background = null; // let <Sky> paint the backdrop instead
     return () => {
       scene.background = null;
     };
-  }, [scene]);
-  return null;
+  }, [scene, skyColor]);
+  if (skyColor) return null;
+  return <Sky sunPosition={[100, 20, 100]} turbidity={2} rayleigh={0.5} mieCoefficient={0.005} mieDirectionalG={0.7} />;
 }
 
 // Audio-only playback for the shared music library (car radio, Concert
@@ -3435,7 +3445,7 @@ export default function TownSquare() {
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
-          <SkyboxBackground />
+          <SkyboxBackground skyColor={skyColor} />
           <Park
             layoutOverrides={layoutOverrides}
             onGroundTap={(x, z) => {
