@@ -16,6 +16,34 @@ import ToolsPanel from '../../components/ToolsPanel';
 import ChatPanel from '../../components/ChatPanel';
 import { formatMoney } from '../../lib/money';
 
+// A live analog clock face for the Computer's widget desktop — direct
+// teacher ask ("an analog clock... visual as a widget"). Takes the current
+// time as a prop rather than running its own interval so it stays in sync
+// with the single 1s tick StudentHome already runs for the Playground
+// countdown, instead of a second independent timer.
+function AnalogClock({ now }: { now: Date }) {
+  const s = now.getSeconds() * 6;
+  const m = now.getMinutes() * 6 + now.getSeconds() * 0.1;
+  const h = (now.getHours() % 12) * 30 + now.getMinutes() * 0.5;
+  return (
+    <svg viewBox="0 0 100 100" className="widget-clock-face" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.6)" strokeWidth="3" />
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * 30 * Math.PI) / 180;
+        const x1 = 50 + Math.sin(angle) * 39;
+        const y1 = 50 - Math.cos(angle) * 39;
+        const x2 = 50 + Math.sin(angle) * 44;
+        const y2 = 50 - Math.cos(angle) * 44;
+        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" />;
+      })}
+      <line x1="50" y1="50" x2="50" y2="26" stroke="#fff" strokeWidth="4" strokeLinecap="round" transform={`rotate(${h} 50 50)`} />
+      <line x1="50" y1="50" x2="50" y2="16" stroke="#fff" strokeWidth="3" strokeLinecap="round" transform={`rotate(${m} 50 50)`} />
+      <line x1="50" y1="50" x2="50" y2="12" stroke="var(--pink)" strokeWidth="1.5" strokeLinecap="round" transform={`rotate(${s} 50 50)`} />
+      <circle cx="50" cy="50" r="3" fill="#fff" />
+    </svg>
+  );
+}
+
 export default function StudentHome() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
@@ -208,81 +236,111 @@ export default function StudentHome() {
           <AvatarWithEmote student={student} size={70} onChangeAvatar={() => setShowAvatarPicker(true)} />
           <div>
             <h2 style={{ margin: 0 }}>Hi, {student.name}! 👋</h2>
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-              {!student.streakHidden && (
-                <div className="tag-pill" style={{ background: 'var(--yellow)' }}>
-                  🔥 {student.streak}-day streak
-                </div>
-              )}
-              <button
-                className="tag-pill"
-                style={{ background: 'var(--yellow)', border: 'none', cursor: 'pointer', minHeight: 44 }}
-                onClick={() => navigate('/student/piggy-bank')}
-                aria-label={`Balance ${formatMoney(student.coins)}, open Piggy Bank`}
-              >
-                🐷 {formatMoney(student.coins)}
-              </button>
-              <button
-                className="btn btn-sm"
-                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
-                onClick={() => setShowBadges(true)}
-                aria-label="Your achievements"
-              >
-                🏆 Achievements
-              </button>
-              <button
-                className="btn btn-sm"
-                style={{
-                  minHeight: 44,
-                  minWidth: 44,
-                  padding: '4px 10px',
-                  outline: student.lastSpinDate !== todayISO() ? '3px solid var(--purple)' : 'none',
-                }}
-                onClick={() => setShowSpinWheel(true)}
-                aria-label="Daily Spin"
-              >
-                🎡 Spin
-              </button>
-              <button
-                className="btn btn-sm"
-                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
-                onClick={() => navigate('/student/marketplace')}
-                aria-label="Marketplace"
-              >
-                🛍️ Marketplace
-              </button>
-              <button
-                className="btn btn-sm"
-                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
-                onClick={() => setShowChat(true)}
-                aria-label="Chat with your teacher"
-              >
-                💬 Chat
-              </button>
-              <button
-                className="btn btn-sm"
-                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
-                onClick={() => navigate('/world/town')}
-                aria-label="Go to Town Square"
-              >
-                🌳 Town Square
-              </button>
-              {/* Direct teacher instruction: the What's New book must
-                  always be reachable from the computer, not just the
-                  one-time popup in Town Square. */}
-              <button
-                className="btn btn-sm"
-                style={{ minHeight: 44, minWidth: 44, padding: '4px 10px' }}
-                onClick={() => navigate('/world/town?openChangelog=1')}
-                aria-label="What's New"
-              >
-                📖 What's New
-              </button>
-            </div>
+            {!student.streakHidden && (
+              <div className="tag-pill" style={{ background: 'var(--yellow)' }}>
+                🔥 {student.streak}-day streak
+              </div>
+            )}
           </div>
         </div>
         <button className="btn btn-sm" onClick={() => { logoutStudent(); navigate('/'); }}>
           Log out
+        </button>
+      </div>
+
+      {/* Direct teacher ask (with reference images): the computer should
+          show "a frame, and a simple background... card based design,
+          dashboard style... each thing should look like widgets on a
+          Mac" — a calendar, an analog clock, and app cards, instead of a
+          row of small text buttons. v1: a static widget grid using data
+          that's all already real (mail count, balance, badge count, spin
+          state) plus two brand-new widgets (clock, calendar) that didn't
+          exist anywhere in the app before. Drag-to-rearrange and
+          per-student theming from the same request are a real later phase
+          (they need new persisted layout/theme state on Student) — not
+          built this hour. */}
+      <div className="desktop-widget-grid">
+        <div className="widget-card widget-clock">
+          <AnalogClock now={new Date()} />
+          <div className="widget-clock-digital">
+            {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </div>
+        </div>
+        <div className="widget-card widget-calendar">
+          <div className="widget-calendar-month">{new Date().toLocaleDateString([], { month: 'long' })}</div>
+          <div className="widget-calendar-day">{new Date().getDate()}</div>
+          <div className="widget-calendar-weekday">{new Date().toLocaleDateString([], { weekday: 'long' })}</div>
+        </div>
+        <button
+          className="widget-card widget-icon-card widget-mail"
+          onClick={() => navigate('/student/mailbox')}
+          aria-label={`Mail, ${student.worldQuest1MetIds.length} received`}
+        >
+          {student.worldQuest1MetIds.length > 0 && (
+            <span className="widget-badge">{student.worldQuest1MetIds.length}</span>
+          )}
+          <span className="widget-icon">📬</span>
+          <span className="widget-label">Mail</span>
+        </button>
+        <button
+          className="widget-card widget-icon-card widget-bank"
+          onClick={() => navigate('/student/piggy-bank')}
+          aria-label={`Piggy Bank, balance ${formatMoney(student.coins)}`}
+        >
+          <span className="widget-icon">🏦</span>
+          <span className="widget-label">{formatMoney(student.coins)}</span>
+        </button>
+        <button
+          className="widget-card widget-icon-card widget-market"
+          onClick={() => navigate('/student/marketplace')}
+          aria-label="Marketplace"
+        >
+          <span className="widget-icon">🛍️</span>
+          <span className="widget-label">Marketplace</span>
+        </button>
+        <button
+          className="widget-card widget-icon-card widget-badges"
+          onClick={() => setShowBadges(true)}
+          aria-label="Your achievements"
+        >
+          <span className="widget-icon">🏆</span>
+          <span className="widget-label">{earnedBadges.length} Badges</span>
+        </button>
+        <button
+          className="widget-card widget-icon-card widget-spin"
+          onClick={() => setShowSpinWheel(true)}
+          aria-label="Daily Spin"
+          style={student.lastSpinDate !== todayISO() ? { outline: '3px solid var(--yellow)', outlineOffset: 2 } : undefined}
+        >
+          <span className="widget-icon">🎡</span>
+          <span className="widget-label">Spin</span>
+        </button>
+        <button
+          className="widget-card widget-icon-card widget-chat"
+          onClick={() => setShowChat(true)}
+          aria-label="Chat with your teacher"
+        >
+          <span className="widget-icon">💬</span>
+          <span className="widget-label">Chat</span>
+        </button>
+        {/* Direct teacher instruction: the What's New book must always be
+            reachable from the computer, not just the one-time popup in
+            Town Square. */}
+        <button
+          className="widget-card widget-icon-card widget-whatsnew"
+          onClick={() => navigate('/world/town?openChangelog=1')}
+          aria-label="What's New"
+        >
+          <span className="widget-icon">📖</span>
+          <span className="widget-label">What's New</span>
+        </button>
+        <button
+          className="widget-card widget-icon-card widget-town"
+          onClick={() => navigate('/world/town')}
+          aria-label="Go to Town Square"
+        >
+          <span className="widget-icon">🌳</span>
+          <span className="widget-label">Town Square</span>
         </button>
       </div>
 

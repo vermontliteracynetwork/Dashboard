@@ -765,6 +765,90 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
 .subject-tile.tile-literacy { background: var(--pink); }
 .subject-tile.tile-done { opacity: 0.65; }
 
+/* ---------- Computer desktop widgets (student Home) ---------- */
+/* Direct teacher ask: a card/widget-based "Mac desktop" style computer
+   screen (a calendar widget, an analog clock, app cards for mail/
+   banking/marketplace) instead of a row of small text buttons. This is
+   the static v1 grid — drag-to-rearrange and per-student theming from the
+   same request are a later phase, noted in the dev plan. */
+.desktop-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 14px;
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+}
+.widget-card {
+  border: var(--chunk) solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 5px 5px 0 var(--ink);
+  background: var(--paper);
+  padding: 10px;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+button.widget-card {
+  cursor: pointer;
+  font-family: inherit;
+  color: white;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+button.widget-card:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
+button.widget-card:active { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--ink); }
+.widget-icon-card { position: relative; }
+.widget-icon { font-size: 2.1rem; line-height: 1; }
+.widget-label { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 0.92rem; }
+.widget-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--danger);
+  color: white;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.widget-clock { background: linear-gradient(160deg, #2b2440, #17132a); }
+.widget-clock-face { width: 74px; height: 74px; }
+.widget-clock-digital { font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 0.85rem; color: white; opacity: 0.9; }
+
+.widget-calendar { background: white; padding: 0; overflow: hidden; }
+.widget-calendar-month {
+  width: 100%;
+  background: var(--danger);
+  color: white;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+.widget-calendar-day { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 2.5rem; line-height: 1; color: var(--ink); margin-top: 4px; }
+.widget-calendar-weekday { font-size: 0.78rem; font-weight: 700; color: var(--ink); opacity: 0.75; padding-bottom: 8px; }
+
+.widget-mail { background: linear-gradient(160deg, var(--orange), #d9591f); }
+.widget-bank { background: linear-gradient(160deg, var(--success), #16803c); }
+.widget-market { background: linear-gradient(160deg, var(--pink), var(--purple-dark)); }
+.widget-badges { background: linear-gradient(160deg, var(--yellow), var(--orange)); color: var(--ink); }
+.widget-badges .widget-label { color: var(--ink); }
+.widget-spin { background: linear-gradient(160deg, var(--purple), var(--purple-dark)); }
+.widget-chat { background: linear-gradient(160deg, var(--blue), #1e4fa8); }
+.widget-whatsnew { background: linear-gradient(160deg, var(--teal), #0d7f70); }
+.widget-town { background: linear-gradient(160deg, #5fa86b, #3d7c47); }
+
 /* ---------- Choice board ---------- */
 .choice-board {
   display: grid;
