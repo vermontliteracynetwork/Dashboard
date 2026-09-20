@@ -5,6 +5,7 @@ import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
 import { Whiteboard } from '../../components/ToolsPanel';
 import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS, MADLIB_TEMPLATES } from '../../lib/grammarContent';
+import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_AFFIXES, MORPHEME_COMBOS, type MorphemeAffix } from '../../lib/morphemeContent';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS, GRAMMAR_WORD_CLASS_SHAPES } from '../../types';
 import type { GrammarPiece, GrammarMontessoriShape } from '../../types';
 import { todayISO } from '../../lib/dates';
@@ -123,7 +124,7 @@ export default function GrammarSandbox() {
   const student = students.find((s) => s.id === currentStudentId);
   const literacyFocusSets = useStore((s) => s.literacyFocusSets);
 
-  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs'>('select');
+  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs' | 'web'>('select');
   const [placed, setPlaced] = useState<PlacedPiece[]>([]);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [confirmExit, setConfirmExit] = useState(false);
@@ -136,11 +137,20 @@ export default function GrammarSandbox() {
   const [madlibFills, setMadlibFills] = useState<Record<number, string>>({});
   const [madlibGlow, setMadlibGlow] = useState<number | null>(null);
   const madlibGlowTimerRef = useRef<number | null>(null);
+  // Morpheme Web mode — one root active at a time; attachedAffixIds is
+  // only ever affixes that validly connect to the CURRENT root (switching
+  // roots clears it). No punitive feedback for an invalid tap: webShake
+  // briefly flags a tile for a neutral "didn't connect" wobble, never a
+  // red/wrong color.
+  const [morphemeRootId, setMorphemeRootId] = useState(MORPHEME_ROOTS[0].id);
+  const [attachedAffixIds, setAttachedAffixIds] = useState<Set<string>>(new Set());
+  const [webShakeId, setWebShakeId] = useState<string | null>(null);
+  const webShakeTimerRef = useRef<number | null>(null);
   // Per-category collapse — now that there are two sidebar categories
-  // (Sentence Grammar, Word Lists), with Morpheme Web/Letters & Sounds
-  // still to come, letting a student collapse the ones they're not using
-  // keeps the sidebar scannable instead of one long scroll. Both open
-  // by default so nothing looks hidden on first visit.
+  // (Sentence Grammar, Word Lists), with Letters & Sounds still to come,
+  // letting a student collapse the ones they're not using keeps the
+  // sidebar scannable instead of one long scroll. Both open by default
+  // so nothing looks hidden on first visit.
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({ grammar: true, wordLists: true });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [canUndo, setCanUndo] = useState(false);
@@ -301,6 +311,38 @@ export default function GrammarSandbox() {
     speak(sentence, student.ttsSettings);
   };
 
+  const currentRoot = MORPHEME_ROOTS.find((r) => r.id === morphemeRootId) ?? MORPHEME_ROOTS[0];
+
+  const selectMorphemeRoot = (rootId: string) => {
+    setMorphemeRootId(rootId);
+    setAttachedAffixIds(new Set());
+  };
+
+  const toggleMorphemeAffix = (affix: MorphemeAffix) => {
+    const comboKey = `${morphemeRootId}:${affix.id}`;
+    if (attachedAffixIds.has(affix.id)) {
+      setAttachedAffixIds((s) => { const next = new Set(s); next.delete(affix.id); return next; });
+      return;
+    }
+    if (!MORPHEME_COMBOS[comboKey]) {
+      // Doesn't connect — a brief, neutral wobble, never a red/wrong signal.
+      if (webShakeTimerRef.current) window.clearTimeout(webShakeTimerRef.current);
+      setWebShakeId(affix.id);
+      webShakeTimerRef.current = window.setTimeout(() => setWebShakeId(null), 400);
+      return;
+    }
+    setAttachedAffixIds((s) => new Set(s).add(affix.id));
+  };
+
+  const readMorphemeWords = () => {
+    const words = MORPHEME_AFFIXES
+      .filter((a) => attachedAffixIds.has(a.id))
+      .map((a) => MORPHEME_COMBOS[`${morphemeRootId}:${a.id}`])
+      .filter(Boolean);
+    if (words.length === 0) { speak(currentRoot.text, student.ttsSettings); return; }
+    speak(words.join('. '), student.ttsSettings);
+  };
+
   return (
     <div className="lm-shell">
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
@@ -430,11 +472,15 @@ export default function GrammarSandbox() {
             </div>
           )}
 
-          {/* Reserved for future categories (Letters & Sounds / UFLI
-              grapheme tiles, Morphemes Word Web, Montessori grammar
-              shapes) — deliberately not rendered yet. A tile a student
-              can tap that does nothing is a dead end, not a placeholder;
-              these ship as soon as there's real content behind them. */}
+          {/* Reserved for a future category (Letters & Sounds / UFLI
+              grapheme tiles) — deliberately not rendered yet, parked on
+              a real blocker (needs the teacher's real UFLI reference,
+              see DEVELOPMENT_PLAN.md). A tile a student can tap that
+              does nothing is a dead end, not a placeholder; this ships
+              as soon as there's real content behind it. Morpheme Web
+              and the Montessori shape system both shipped, as a
+              toolbar mode and a tile icon overlay respectively rather
+              than sidebar categories. */}
         </aside>
       )}
 
@@ -453,12 +499,18 @@ export default function GrammarSandbox() {
           <button className={`btn btn-sm ${tool === 'select' ? 'btn-primary' : ''}`} onClick={() => setTool('select')}>🔤 Words</button>
           <button className={`btn btn-sm ${tool === 'draw' ? 'btn-primary' : ''}`} onClick={() => setTool('draw')}>🎨 Draw</button>
           <button className={`btn btn-sm ${tool === 'madlibs' ? 'btn-primary' : ''}`} onClick={() => setTool('madlibs')}>🎭 Mad Libs</button>
+          <button className={`btn btn-sm ${tool === 'web' ? 'btn-primary' : ''}`} onClick={() => setTool('web')}>🕸️ Morpheme Web</button>
           <span className="lm-toolbar-divider" />
           {tool === 'madlibs' ? (
             <>
               <button className="btn btn-sm" onClick={newMadlibSentence}>🔀 New sentence</button>
               <button className="btn btn-sm" onClick={readMadlib}>🔈 Read it</button>
               <button className="btn btn-sm" onClick={clearMadlibBlanks} disabled={Object.keys(madlibFills).length === 0}>↺ Clear blanks</button>
+            </>
+          ) : tool === 'web' ? (
+            <>
+              <button className="btn btn-sm" onClick={readMorphemeWords}>🔈 Read words</button>
+              <button className="btn btn-sm" onClick={() => setAttachedAffixIds(new Set())} disabled={attachedAffixIds.size === 0}>↺ Clear branches</button>
             </>
           ) : (
             <>
@@ -543,6 +595,83 @@ export default function GrammarSandbox() {
             </div>
             <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
               {Object.keys(madlibFills).length === 0 ? 'Tap a word below to fill in the story!' : 'Tap a filled word to swap it out.'}
+            </p>
+          </div>
+        )}
+
+        {tool === 'web' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 24, overflowY: 'auto' }}>
+            {/* Root picker — one root active at a time, per
+                LITERACY_WORKSPACE.md's "a root/base tile sits centrally"
+                spec. Switching roots clears attached branches. */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
+              {MORPHEME_ROOTS.map((r) => (
+                <button
+                  key={r.id}
+                  className={`btn btn-sm ${r.id === morphemeRootId ? 'btn-primary' : ''}`}
+                  onClick={() => selectMorphemeRoot(r.id)}
+                >
+                  {r.text}
+                </button>
+              ))}
+            </div>
+
+            {/* Root + attached branches, radiating outward: prefixes to
+                the left, suffixes to the right, each showing the real
+                word it forms with the root. */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, flexWrap: 'wrap', minHeight: 100 }}>
+              <div className="stack" style={{ gap: 8, alignItems: 'flex-end' }}>
+                {MORPHEME_PREFIXES.filter((a) => attachedAffixIds.has(a.id)).map((a) => (
+                  <span key={a.id} className="tag-pill" style={{ background: 'var(--blue)', color: '#fff' }}>
+                    {a.text} → {MORPHEME_COMBOS[`${morphemeRootId}:${a.id}`]}
+                  </span>
+                ))}
+              </div>
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  minWidth: 110, minHeight: 64, padding: '10px 22px', borderRadius: 999,
+                  background: 'var(--purple)', color: '#fff', fontFamily: "'Baloo 2', sans-serif",
+                  fontWeight: 800, fontSize: '1.3rem', border: '3px solid var(--ink)',
+                  boxShadow: '2px 2px 0 rgba(31,17,71,0.2)',
+                }}
+              >
+                {currentRoot.text}
+              </div>
+              <div className="stack" style={{ gap: 8, alignItems: 'flex-start' }}>
+                {MORPHEME_SUFFIXES.filter((a) => attachedAffixIds.has(a.id)).map((a) => (
+                  <span key={a.id} className="tag-pill" style={{ background: 'var(--blue)', color: '#fff' }}>
+                    {a.text} → {MORPHEME_COMBOS[`${morphemeRootId}:${a.id}`]}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Affix tray — tap to attach/detach. An invalid tap gets a
+                brief neutral wobble, never a red/wrong signal. */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 8, maxWidth: 500 }}>
+              {MORPHEME_AFFIXES.map((a) => {
+                const attached = attachedAffixIds.has(a.id);
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className={`tag-pill${webShakeId === a.id ? ' lm-web-shake' : ''}`}
+                    style={{
+                      cursor: 'pointer',
+                      background: attached ? 'var(--success)' : 'white',
+                      color: attached ? '#fff' : 'var(--ink)',
+                      opacity: attached ? 1 : 0.85,
+                    }}
+                    onClick={() => toggleMorphemeAffix(a)}
+                  >
+                    {a.text}
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
+              Tap a word part to see if it connects to "{currentRoot.text}"!
             </p>
           </div>
         )}

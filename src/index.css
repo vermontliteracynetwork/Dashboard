@@ -1244,8 +1244,21 @@ nav.teacher-nav a.active, nav.teacher-nav a:hover { background: var(--purple); }
   70% { transform: translateX(-12px) rotate(3deg) scale(1.03); opacity: 1; }
   100% { transform: translateX(0) rotate(0deg) scale(1); opacity: 1; }
 }
+/* Morpheme Web — a neutral "didn't connect" wobble for an invalid
+   root+affix tap, never a red/wrong color (LITERACY_WORKSPACE.md:
+   "invalid combinations simply don't connect, no punitive error
+   state"). */
+.lm-web-shake {
+  animation: lm-web-wobble 0.4s ease;
+}
+@keyframes lm-web-wobble {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
 @media (prefers-reduced-motion: reduce) {
   .wizard-lock-flyin { animation: none; }
+  .lm-web-shake { animation: none; }
   .platformer-level-banner { animation: none; opacity: 1; }
 }
 
