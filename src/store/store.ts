@@ -10,7 +10,7 @@ import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, PLAYGROUND_REWAR
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
-import { petDefById, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_MILESTONES } from '../lib/petCatalog';
+import { petDefById, rarityFor, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_MILESTONES } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
@@ -533,8 +533,9 @@ interface AppState {
 
   // Farmer's Market — async student-to-student barter, see FarmerMarketOffer in types.ts
   postFarmerMarketOffer: (studentId: string, offeredItemId: string, wantsItemId: string) => string;
+  postPetTradeOffer: (studentId: string, offeredPetId: string) => string;
   withdrawFarmerMarketOffer: (id: string) => void;
-  acceptFarmerMarketOffer: (id: string, acceptingStudentId: string) => Promise<{ ok: boolean; reason?: string }>;
+  acceptFarmerMarketOffer: (id: string, acceptingStudentId: string, acceptingPetId?: string) => Promise<{ ok: boolean; reason?: string }>;
 
   // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
@@ -2744,7 +2745,23 @@ export const useStore = create<AppState>()(
 
       postFarmerMarketOffer: (studentId, offeredItemId, wantsItemId) => {
         const id = makeId();
-        const full: FarmerMarketOffer = { id, studentId, offeredItemId, wantsItemId, status: 'open', createdAt: new Date().toISOString() };
+        const full: FarmerMarketOffer = { id, studentId, kind: 'catalog', offeredItemId, wantsItemId, status: 'open', createdAt: new Date().toISOString() };
+        set((s) => ({ farmerMarketOffers: [full, ...s.farmerMarketOffers] }));
+        pushFarmerMarketOffer(full);
+        return id;
+      },
+
+      // Pet-for-pet barter — completes Part C's "pets... can be traded"
+      // line. Same fairness rule as catalog trades, applied to PetRarity
+      // instead of MarketplaceItemKind: wantsPetRarity is always derived
+      // from the offered pet's own rarity, never a student's free choice,
+      // so there's no way to post "give me something better."
+      postPetTradeOffer: (studentId, offeredPetId) => {
+        const pet = get().pets.find((p) => p.id === offeredPetId && p.studentId === studentId);
+        const def = pet ? petDefById(pet.petDefId) : undefined;
+        if (!pet || !def) return '';
+        const id = makeId();
+        const full: FarmerMarketOffer = { id, studentId, kind: 'pet', offeredItemId: offeredPetId, wantsPetRarity: rarityFor(def), status: 'open', createdAt: new Date().toISOString() };
         set((s) => ({ farmerMarketOffers: [full, ...s.farmerMarketOffers] }));
         pushFarmerMarketOffer(full);
         return id;
@@ -2773,39 +2790,81 @@ export const useStore = create<AppState>()(
       // touch either student's owned items. The loser gets a plain-
       // language "someone already took this" message instead of silently
       // losing/duplicating an item.
-      acceptFarmerMarketOffer: async (id, acceptingStudentId) => {
+      acceptFarmerMarketOffer: async (id, acceptingStudentId, acceptingPetId) => {
         const offer = get().farmerMarketOffers.find((o) => o.id === id);
         if (!offer || offer.status !== 'open') return { ok: false, reason: 'This offer is no longer available.' };
         if (offer.studentId === acceptingStudentId) return { ok: false, reason: "You can't accept your own offer." };
         const offering = get().students.find((s) => s.id === offer.studentId);
         const accepting = get().students.find((s) => s.id === acceptingStudentId);
         if (!offering || !accepting) return { ok: false, reason: 'Student not found.' };
-        const offeredItem = get().marketplaceItems.find((m) => m.id === offer.offeredItemId);
-        const wantsItem = get().marketplaceItems.find((m) => m.id === offer.wantsItemId);
-        if (!offeredItem || !wantsItem || offeredItem.kind !== wantsItem.kind) {
-          return { ok: false, reason: 'This trade is no longer valid.' };
+
+        let ownedField: 'ownedFontIds' | 'ownedColorIds' | 'ownedVoiceIds' | undefined;
+        if (offer.kind === 'catalog') {
+          const offeredItem = get().marketplaceItems.find((m) => m.id === offer.offeredItemId);
+          const wantsItem = get().marketplaceItems.find((m) => m.id === offer.wantsItemId);
+          if (!offeredItem || !wantsItem || offeredItem.kind !== wantsItem.kind) {
+            return { ok: false, reason: 'This trade is no longer valid.' };
+          }
+          ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds' } as const)[offeredItem.kind as 'font' | 'color' | 'voice'];
+          if (!ownedField) return { ok: false, reason: 'This item type cannot be traded.' };
+          if (!offering[ownedField].includes(offer.offeredItemId)) return { ok: false, reason: `${offering.name} no longer has that item to trade.` };
+          if (!accepting[ownedField].includes(offer.wantsItemId!)) return { ok: false, reason: "You don't have the item this trade is asking for." };
+        } else {
+          if (!acceptingPetId) return { ok: false, reason: 'Pick one of your own pets to trade first.' };
+          const offeredPet = get().pets.find((p) => p.id === offer.offeredItemId);
+          const acceptingPet = get().pets.find((p) => p.id === acceptingPetId);
+          if (!offeredPet || offeredPet.studentId !== offer.studentId) return { ok: false, reason: `${offering.name} no longer has that pet to trade.` };
+          if (!acceptingPet || acceptingPet.studentId !== acceptingStudentId) return { ok: false, reason: "That's not one of your pets." };
+          const offeredDef = petDefById(offeredPet.petDefId);
+          const acceptingDef = petDefById(acceptingPet.petDefId);
+          if (!offeredDef || !acceptingDef || rarityFor(offeredDef) !== rarityFor(acceptingDef) || rarityFor(acceptingDef) !== offer.wantsPetRarity) {
+            return { ok: false, reason: 'This trade needs a pet of the same rarity tier.' };
+          }
         }
-        const ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds' } as const)[offeredItem.kind as 'font' | 'color' | 'voice'];
-        if (!ownedField) return { ok: false, reason: 'This item type cannot be traded.' };
-        if (!offering[ownedField].includes(offer.offeredItemId)) return { ok: false, reason: `${offering.name} no longer has that item to trade.` };
-        if (!accepting[ownedField].includes(offer.wantsItemId)) return { ok: false, reason: "You don't have the item this trade is asking for." };
 
         let won = true;
         try {
-          won = await acceptFarmerMarketOfferRemote(id, acceptingStudentId);
+          won = await acceptFarmerMarketOfferRemote(id, acceptingStudentId, offer.kind === 'pet' ? acceptingPetId : undefined);
         } catch {
           return { ok: false, reason: "Couldn't complete this trade right now, try again in a moment." };
         }
         if (!won) return { ok: false, reason: 'Someone else already took this trade.' };
 
-        get().updateStudent(offer.studentId, {
-          [ownedField]: [...offering[ownedField].filter((x: string) => x !== offer.offeredItemId), offer.wantsItemId],
-        } as Partial<Student>);
-        get().updateStudent(acceptingStudentId, {
-          [ownedField]: [...accepting[ownedField].filter((x: string) => x !== offer.wantsItemId), offer.offeredItemId],
-        } as Partial<Student>);
+        if (offer.kind === 'catalog' && ownedField) {
+          get().updateStudent(offer.studentId, {
+            [ownedField]: [...offering[ownedField].filter((x: string) => x !== offer.offeredItemId), offer.wantsItemId],
+          } as Partial<Student>);
+          get().updateStudent(acceptingStudentId, {
+            [ownedField]: [...accepting[ownedField].filter((x: string) => x !== offer.wantsItemId!), offer.offeredItemId],
+          } as Partial<Student>);
+        } else if (offer.kind === 'pet' && acceptingPetId) {
+          // Transfers ownership by reassigning studentId, not a
+          // remove-and-recreate — the pet keeps its name, tint,
+          // training progress, and learned tricks through the trade.
+          // 'following' is forced off on both sides: it's meaningless
+          // for a pet's NEW owner until they choose it themselves, and
+          // leaving it on could put a student at their 4-pet follow cap
+          // (setFollowingPet's own invariant) without them asking for it.
+          set((s) => ({
+            pets: s.pets.map((p) => {
+              if (p.id === offer.offeredItemId) return { ...p, studentId: acceptingStudentId, following: false };
+              if (p.id === acceptingPetId) return { ...p, studentId: offer.studentId, following: false };
+              return p;
+            }),
+          }));
+          const offeredPet = get().pets.find((p) => p.id === offer.offeredItemId);
+          const acceptedPet = get().pets.find((p) => p.id === acceptingPetId);
+          if (offeredPet) pushStudentPet(offeredPet);
+          if (acceptedPet) pushStudentPet(acceptedPet);
+        }
 
-        const updated: FarmerMarketOffer = { ...offer, status: 'accepted', acceptedByStudentId: acceptingStudentId, respondedAt: new Date().toISOString() };
+        const updated: FarmerMarketOffer = {
+          ...offer,
+          status: 'accepted',
+          acceptedByStudentId: acceptingStudentId,
+          acceptedWithPetId: offer.kind === 'pet' ? acceptingPetId : undefined,
+          respondedAt: new Date().toISOString(),
+        };
         // Claudia's review (MEDIUM #3): the offering student may have
         // other still-open offers for this SAME item — once it's traded
         // away, those would otherwise sit on the board as a dead offer no

@@ -635,10 +635,13 @@ const rowToGalleryItem = (r: Row): GalleryItem => ({
 const rowToFarmerMarketOffer = (r: Row): FarmerMarketOffer => ({
   id: r.id,
   studentId: r.student_id,
+  kind: r.kind ?? 'catalog',
   offeredItemId: r.offered_item_id,
-  wantsItemId: r.wants_item_id,
+  wantsItemId: r.wants_item_id ?? undefined,
+  wantsPetRarity: r.wants_pet_rarity ?? undefined,
   status: r.status,
   acceptedByStudentId: r.accepted_by_student_id ?? undefined,
+  acceptedWithPetId: r.accepted_with_pet_id ?? undefined,
   createdAt: r.created_at,
   respondedAt: r.responded_at ?? undefined,
 });
@@ -1291,10 +1294,13 @@ export const pushFarmerMarketOffer = (o: FarmerMarketOffer) =>
   upsert('farmer_market_offers', {
     id: o.id,
     student_id: o.studentId,
+    kind: o.kind,
     offered_item_id: o.offeredItemId,
-    wants_item_id: o.wantsItemId,
+    wants_item_id: o.wantsItemId ?? null,
+    wants_pet_rarity: o.wantsPetRarity ?? null,
     status: o.status,
     accepted_by_student_id: o.acceptedByStudentId ?? null,
+    accepted_with_pet_id: o.acceptedWithPetId ?? null,
     created_at: o.createdAt,
     responded_at: o.respondedAt ?? null,
   });
@@ -1310,11 +1316,11 @@ export const deleteFarmerMarketOfferRemote = (id: string) => remove('farmer_mark
 // one of two simultaneous accepts can ever succeed. Returns whether THIS
 // call won the race — the caller must not touch local student ownership
 // unless this returns true.
-export async function acceptFarmerMarketOfferRemote(id: string, acceptedByStudentId: string): Promise<boolean> {
+export async function acceptFarmerMarketOfferRemote(id: string, acceptedByStudentId: string, acceptedWithPetId?: string): Promise<boolean> {
   if (!isSupabaseConfigured) return true;
   const { data, error } = await supabase
     .from('farmer_market_offers')
-    .update({ status: 'accepted', accepted_by_student_id: acceptedByStudentId, responded_at: new Date().toISOString() })
+    .update({ status: 'accepted', accepted_by_student_id: acceptedByStudentId, accepted_with_pet_id: acceptedWithPetId ?? null, responded_at: new Date().toISOString() })
     .eq('id', id)
     .eq('status', 'open')
     .select();

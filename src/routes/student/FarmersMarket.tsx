@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import type { MarketplaceItem, MarketplaceItemKind, FarmerMarketOffer } from '../../types';
+import { petDefById, rarityFor, thumbnailFor } from '../../lib/petCatalog';
+import type { MarketplaceItem, MarketplaceItemKind, FarmerMarketOffer, StudentPet, Student } from '../../types';
 
 // The Farmer's Market — direct teacher request, explicitly framed as a
-// way to practice negotiation as a real skill: students trade items with
-// each other instead of paying coins. Async/turn-based, not a live
-// haggling session (see FarmerMarketOffer in types.ts for why) — a
-// student posts an offer, any other student can accept it whenever they
-// next look, same shape the Mailbox already uses for async delivery.
-// Restricted to fonts/colors/voices, the app's only real "owned item"
-// pools besides avatars/prizes, and only same-kind trades (font-for-font
-// etc.) as a simple built-in fairness rule — no free-typed haggling, no
-// value scoring, no trade ever reads as one student "winning."
+// way to practice negotiation as a real skill: students trade with each
+// other instead of paying coins. Async/turn-based, not a live haggling
+// session (see FarmerMarketOffer in types.ts for why) — a student posts
+// an offer, any other student can accept it whenever they next look,
+// same shape the Mailbox already uses for async delivery.
+//
+// Two trade kinds, same fairness rule applied to two owned-item pools:
+// 'catalog' — fonts/colors/voices, same-kind trades only (font-for-font
+// etc.); 'pet' — a StudentPet for another of the SAME rarity tier (see
+// rarityFor in petCatalog.ts). No free-typed haggling, no value scoring,
+// no trade ever reads as one student "winning."
 const TRADEABLE_KINDS: MarketplaceItemKind[] = ['font', 'color', 'voice'];
 const OWNED_FIELD: Record<'font' | 'color' | 'voice', 'ownedFontIds' | 'ownedColorIds' | 'ownedVoiceIds'> = {
   font: 'ownedFontIds',
@@ -20,6 +23,7 @@ const OWNED_FIELD: Record<'font' | 'color' | 'voice', 'ownedFontIds' | 'ownedCol
   voice: 'ownedVoiceIds',
 };
 const KIND_LABEL: Record<MarketplaceItemKind, string> = { font: '🔤 Font', color: '🎨 Color', voice: '🔊 Voice', powerup: '🎫 Power-Up', prize: '🎁 Prize' };
+const RARITY_LABEL: Record<string, string> = { common: '⭐ Common', uncommon: '⭐⭐ Uncommon', rare: '⭐⭐⭐ Rare', ultra: '⭐⭐⭐⭐ Ultra' };
 
 function ItemChip({ item }: { item: MarketplaceItem }) {
   const isImg = item.icon.startsWith('/') || item.icon.startsWith('http');
@@ -39,32 +43,65 @@ function ItemChip({ item }: { item: MarketplaceItem }) {
   );
 }
 
+function PetChip({ pet }: { pet: StudentPet }) {
+  const def = petDefById(pet.petDefId);
+  if (!def) return <span style={{ fontSize: '0.9rem' }}>🐾 (unknown pet)</span>;
+  return (
+    <span className="row" style={{ gap: 6, alignItems: 'center' }}>
+      <img
+        src={thumbnailFor(def)}
+        alt=""
+        style={{ width: 26, height: 26, objectFit: 'cover', borderRadius: 6 }}
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      />
+      <strong style={{ fontSize: '0.9rem' }}>{pet.customName}</strong>
+      <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>({def.name})</span>
+    </span>
+  );
+}
+
 export default function FarmersMarket() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const pets = useStore((s) => s.pets);
   const farmerMarketOffers = useStore((s) => s.farmerMarketOffers);
   const postFarmerMarketOffer = useStore((s) => s.postFarmerMarketOffer);
+  const postPetTradeOffer = useStore((s) => s.postPetTradeOffer);
   const withdrawFarmerMarketOffer = useStore((s) => s.withdrawFarmerMarketOffer);
   const acceptFarmerMarketOffer = useStore((s) => s.acceptFarmerMarketOffer);
   const student = students.find((s) => s.id === currentStudentId);
 
   const [tab, setTab] = useState<'board' | 'mine'>('board');
   const [posting, setPosting] = useState(false);
+  const [pickingPetFor, setPickingPetFor] = useState<FarmerMarketOffer | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   if (!student) return null;
 
   const itemsById = new Map(marketplaceItems.map((m) => [m.id, m]));
+  const petsById = new Map(pets.map((p) => [p.id, p]));
   const studentName = (id: string) => students.find((s) => s.id === id)?.name ?? 'A student';
 
   const openBoardOffers = farmerMarketOffers.filter((o) => o.status === 'open' && o.studentId !== student.id);
   const myOffers = farmerMarketOffers.filter((o) => o.studentId === student.id || o.acceptedByStudentId === student.id);
 
-  const handleAccept = async (offer: FarmerMarketOffer) => {
-    const result = await acceptFarmerMarketOffer(offer.id, student.id);
+  const finishAccept = async (offer: FarmerMarketOffer, acceptingPetId?: string) => {
+    const result = await acceptFarmerMarketOffer(offer.id, student.id, acceptingPetId);
+    setPickingPetFor(null);
     setMessage(result.ok ? 'Trade complete! Check My Offers.' : result.reason ?? 'That trade could not be completed.');
+  };
+
+  const handleAcceptCatalog = (offer: FarmerMarketOffer) => finishAccept(offer);
+
+  // A pet offer asks for a RARITY TIER, not a specific pet, so accepting
+  // may mean picking which of several eligible pets to give up — only
+  // shown when there's a real choice to make.
+  const handleAcceptPet = (offer: FarmerMarketOffer) => {
+    const eligible = pets.filter((p) => p.studentId === student.id && petDefById(p.petDefId) && rarityFor(petDefById(p.petDefId)!) === offer.wantsPetRarity);
+    if (eligible.length === 1) finishAccept(offer, eligible[0].id);
+    else setPickingPetFor(offer);
   };
 
   return (
@@ -96,11 +133,25 @@ export default function FarmersMarket() {
         <PostTradeModal
           student={student}
           marketplaceItems={marketplaceItems}
+          pets={pets.filter((p) => p.studentId === student.id)}
           onClose={() => setPosting(false)}
-          onPost={(offeredItemId, wantsItemId) => {
+          onPostItem={(offeredItemId, wantsItemId) => {
             postFarmerMarketOffer(student.id, offeredItemId, wantsItemId);
             setPosting(false);
           }}
+          onPostPet={(offeredPetId) => {
+            postPetTradeOffer(student.id, offeredPetId);
+            setPosting(false);
+          }}
+        />
+      )}
+
+      {pickingPetFor && (
+        <PickPetModal
+          offer={pickingPetFor}
+          eligiblePets={pets.filter((p) => p.studentId === student.id && petDefById(p.petDefId) && rarityFor(petDefById(p.petDefId)!) === pickingPetFor.wantsPetRarity)}
+          onClose={() => setPickingPetFor(null)}
+          onPick={(petId) => finishAccept(pickingPetFor, petId)}
         />
       )}
 
@@ -110,10 +161,32 @@ export default function FarmersMarket() {
         ) : (
           <div className="stack" style={{ gap: 10, maxWidth: 560, margin: '0 auto', width: '100%' }}>
             {openBoardOffers.map((o) => {
+              if (o.kind === 'pet') {
+                const offeredPet = petsById.get(o.offeredItemId);
+                if (!offeredPet) return null;
+                const canAccept = pets.some((p) => p.studentId === student.id && petDefById(p.petDefId) && rarityFor(petDefById(p.petDefId)!) === o.wantsPetRarity);
+                return (
+                  <div key={o.id} className="chrome-frame" style={{ padding: 14 }}>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.75, marginBottom: 6 }}>{studentName(o.studentId)} is offering:</div>
+                    <div className="row space-between" style={{ alignItems: 'center' }}>
+                      <PetChip pet={offeredPet} />
+                      <span style={{ fontWeight: 800 }}>for</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{RARITY_LABEL[o.wantsPetRarity ?? ''] ?? 'a pet'} pet</span>
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      {canAccept ? (
+                        <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => handleAcceptPet(o)}>🤝 Accept Trade</button>
+                      ) : (
+                        <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>You need a {RARITY_LABEL[o.wantsPetRarity ?? '']?.replace(/⭐/g, '').trim()} pet to accept this trade.</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
               const offered = itemsById.get(o.offeredItemId);
-              const wants = itemsById.get(o.wantsItemId);
+              const wants = o.wantsItemId ? itemsById.get(o.wantsItemId) : undefined;
               if (!offered || !wants) return null;
-              const canAccept = student[OWNED_FIELD[offered.kind as 'font' | 'color' | 'voice']]?.includes(o.wantsItemId);
+              const canAccept = student[OWNED_FIELD[offered.kind as 'font' | 'color' | 'voice']]?.includes(wants.id);
               return (
                 <div key={o.id} className="chrome-frame" style={{ padding: 14 }}>
                   <div style={{ fontSize: '0.8rem', opacity: 0.75, marginBottom: 6 }}>{studentName(o.studentId)} is offering:</div>
@@ -124,7 +197,7 @@ export default function FarmersMarket() {
                   </div>
                   <div style={{ marginTop: 10 }}>
                     {canAccept ? (
-                      <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => handleAccept(o)}>🤝 Accept Trade</button>
+                      <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => handleAcceptCatalog(o)}>🤝 Accept Trade</button>
                     ) : (
                       <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>You need "{wants.name}" to accept this trade.</p>
                     )}
@@ -139,10 +212,31 @@ export default function FarmersMarket() {
       ) : (
         <div className="stack" style={{ gap: 10, maxWidth: 560, margin: '0 auto', width: '100%' }}>
           {myOffers.map((o) => {
-            const offered = itemsById.get(o.offeredItemId);
-            const wants = itemsById.get(o.wantsItemId);
-            if (!offered || !wants) return null;
             const isMine = o.studentId === student.id;
+            if (o.kind === 'pet') {
+              const offeredPet = petsById.get(o.offeredItemId);
+              const receivedPet = o.acceptedWithPetId ? petsById.get(o.acceptedWithPetId) : undefined;
+              if (!offeredPet) return null;
+              return (
+                <div key={o.id} className="chrome-frame" style={{ padding: 14 }}>
+                  <div className="row space-between" style={{ alignItems: 'center' }}>
+                    <PetChip pet={offeredPet} />
+                    <span style={{ fontWeight: 800 }}>{o.status === 'accepted' ? '↔️ traded for' : 'for'}</span>
+                    {o.status === 'accepted' && receivedPet ? <PetChip pet={receivedPet} /> : <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{RARITY_LABEL[o.wantsPetRarity ?? ''] ?? 'a pet'} pet</span>}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: '0.78rem', opacity: 0.75 }}>
+                    {o.status === 'open' && isMine && 'Waiting for someone to accept…'}
+                    {o.status === 'accepted' && `Traded with ${studentName(isMine ? (o.acceptedByStudentId ?? '') : o.studentId)}!`}
+                  </div>
+                  {o.status === 'open' && isMine && (
+                    <button className="btn btn-sm" style={{ minHeight: 44, marginTop: 8 }} onClick={() => withdrawFarmerMarketOffer(o.id)}>✕ Withdraw</button>
+                  )}
+                </div>
+              );
+            }
+            const offered = itemsById.get(o.offeredItemId);
+            const wants = o.wantsItemId ? itemsById.get(o.wantsItemId) : undefined;
+            if (!offered || !wants) return null;
             return (
               <div key={o.id} className="chrome-frame" style={{ padding: 14 }}>
                 <div className="row space-between" style={{ alignItems: 'center' }}>
@@ -166,17 +260,53 @@ export default function FarmersMarket() {
   );
 }
 
+function PickPetModal({
+  offer,
+  eligiblePets,
+  onClose,
+  onPick,
+}: {
+  offer: FarmerMarketOffer;
+  eligiblePets: StudentPet[];
+  onClose: () => void;
+  onPick: (petId: string) => void;
+}) {
+  return (
+    <div className="overlay-backdrop" onClick={onClose}>
+      <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div className="space-between" style={{ marginBottom: 4 }}>
+          <strong>Which pet do you want to give?</strong>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+        </div>
+        <p style={{ fontSize: '0.78rem', opacity: 0.75, margin: 0 }}>Any of these works, they're all {RARITY_LABEL[offer.wantsPetRarity ?? ''] ?? 'the same'} tier.</p>
+        <div className="stack" style={{ gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+          {eligiblePets.map((p) => (
+            <button key={p.id} className="btn btn-primary" style={{ justifyContent: 'flex-start', minHeight: 44 }} onClick={() => onPick(p.id)}>
+              <PetChip pet={p} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PostTradeModal({
   student,
   marketplaceItems,
+  pets,
   onClose,
-  onPost,
+  onPostItem,
+  onPostPet,
 }: {
-  student: import('../../types').Student;
+  student: Student;
   marketplaceItems: MarketplaceItem[];
+  pets: StudentPet[];
   onClose: () => void;
-  onPost: (offeredItemId: string, wantsItemId: string) => void;
+  onPostItem: (offeredItemId: string, wantsItemId: string) => void;
+  onPostPet: (offeredPetId: string) => void;
 }) {
+  const [kindChoice, setKindChoice] = useState<'item' | 'pet' | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [offeredItemId, setOfferedItemId] = useState<string | null>(null);
 
@@ -190,12 +320,58 @@ function PostTradeModal({
     ? marketplaceItems.filter((m) => m.kind === kind && m.id !== offeredItemId && !student[OWNED_FIELD[kind]].includes(m.id))
     : [];
 
+  if (kindChoice === null) {
+    return (
+      <div className="overlay-backdrop" onClick={onClose}>
+        <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+          <div className="space-between" style={{ marginBottom: 4 }}>
+            <strong>What do you want to trade?</strong>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+          </div>
+          <div className="stack" style={{ gap: 8 }}>
+            <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('item')}>🎁 A font, color, or voice</button>
+            <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('pet')}>🐾 A pet</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (kindChoice === 'pet') {
+    return (
+      <div className="overlay-backdrop" onClick={onClose}>
+        <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+          <div className="space-between" style={{ marginBottom: 4 }}>
+            <strong>Pick a pet to give</strong>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+          </div>
+          <p style={{ fontSize: '0.78rem', opacity: 0.75, margin: 0 }}>You'll get back a pet of the same rarity tier in return.</p>
+          {pets.length === 0 ? (
+            <p style={{ opacity: 0.75 }}>You don't have any pets yet. Visit the Pet Shelter first!</p>
+          ) : (
+            <div className="stack" style={{ gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+              {pets.map((p) => {
+                const def = petDefById(p.petDefId);
+                return (
+                  <button key={p.id} className="btn" style={{ justifyContent: 'space-between', minHeight: 44 }} onClick={() => onPostPet(p.id)}>
+                    <PetChip pet={p} />
+                    {def && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{RARITY_LABEL[rarityFor(def)]}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overlay-backdrop" onClick={onClose}>
       <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
         <div className="space-between" style={{ marginBottom: 4 }}>
           <strong>{step === 1 ? 'Step 1: Pick what to give' : 'Step 2: Pick what you want'}</strong>
-          <button className="btn btn-sm" onClick={onClose}>✕ Close</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
         </div>
         {step === 1 ? (
           myTradeableItems.length === 0 ? (
@@ -231,7 +407,7 @@ function PostTradeModal({
                     key={m.id}
                     className="btn btn-primary"
                     style={{ justifyContent: 'flex-start', minHeight: 44 }}
-                    onClick={() => offeredItemId && onPost(offeredItemId, m.id)}
+                    onClick={() => offeredItemId && onPostItem(offeredItemId, m.id)}
                   >
                     <ItemChip item={m} />
                   </button>

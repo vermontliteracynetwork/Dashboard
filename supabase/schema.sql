@@ -276,6 +276,17 @@ create table if not exists farmer_market_offers (
   created_at timestamptz not null default now(),
   responded_at timestamptz
 );
+-- Added this hour: pet-for-pet trades alongside the original catalog-item
+-- trades, same table/mechanism, same "same-tier only" fairness rule
+-- applied to PetRarity instead of MarketplaceItemKind. wants_item_id was
+-- originally not-null (every catalog trade names a specific wanted item);
+-- a pet trade instead names a wanted RARITY, not a specific pet instance
+-- (the offering student can't know what pets other students own), so
+-- that constraint has to relax rather than tighten.
+alter table farmer_market_offers add column if not exists kind text not null default 'catalog';
+alter table farmer_market_offers add column if not exists wants_pet_rarity text;
+alter table farmer_market_offers add column if not exists accepted_with_pet_id text;
+alter table farmer_market_offers alter column wants_item_id drop not null;
 
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged

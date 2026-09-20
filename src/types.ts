@@ -1037,18 +1037,25 @@ export interface MarketplaceItem {
 // session — there's no presence/online-status system anywhere in this
 // app, so this is async and turn-based instead, the same shape
 // chat_messages already uses: a student posts an offer, any other
-// student can Accept it whenever they next look. Restricted to items
-// of the SAME MarketplaceItemKind on both sides (font-for-font,
-// color-for-color, voice-for-voice) as a simple built-in fairness
-// check, per Claudia's "no lopsided trades" rule — no free-typed
-// haggling, no cross-kind trades, no rarity/value scoring.
+// student can Accept it whenever they next look.
+//
+// Two kinds, same fairness principle applied to two different owned-item
+// pools: 'catalog' trades a MarketplaceItem for another of the SAME
+// MarketplaceItemKind (font-for-font, color-for-color, voice-for-voice);
+// 'pet' trades a StudentPet for another of the SAME PetRarity tier (see
+// rarityFor in lib/petCatalog.ts), completing Part C's "pets... can be
+// traded" line. Either way: no free-typed haggling, no cross-tier
+// trades, no rarity/value scoring beyond the tier match itself.
 export interface FarmerMarketOffer {
   id: string;
   studentId: string; // the student offering to give something up
-  offeredItemId: string; // a MarketplaceItem id this student currently owns and is willing to trade away
-  wantsItemId: string; // a MarketplaceItem id of the SAME kind this student wants in return
+  kind: 'catalog' | 'pet';
+  offeredItemId: string; // catalog: a MarketplaceItem id this student owns; pet: a StudentPet id (the actual owned instance) this student owns
+  wantsItemId?: string; // catalog kind only — a MarketplaceItem id of the SAME kind this student wants in return
+  wantsPetRarity?: string; // pet kind only — a PetRarity string; always the SAME tier as the offered pet, never chosen freely
   status: 'open' | 'accepted' | 'withdrawn';
   acceptedByStudentId?: string; // the student who accepted, once status is 'accepted'
+  acceptedWithPetId?: string; // pet kind only — which of the accepting student's own pets they gave up
   createdAt: string;
   respondedAt?: string;
 }
