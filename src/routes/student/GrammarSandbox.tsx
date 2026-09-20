@@ -7,6 +7,7 @@ import { Whiteboard } from '../../components/ToolsPanel';
 import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS } from '../../lib/grammarContent';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS } from '../../types';
 import type { GrammarPiece } from '../../types';
+import { todayISO } from '../../lib/dates';
 
 // Literacy Workspace — Direct teacher instruction: "proceed with only
 // the open sandbox concept. no explicit activities, learning, etc. just
@@ -88,11 +89,23 @@ function GrammarPieceTile({ piece, style, onPointerDown, onPointerMove, onPointe
   );
 }
 
+// Read-only reference pill — the Word Lists panel per LITERACY_WORKSPACE.md's
+// own spec ("a scrollable reference shelf, not draggable tiles themselves —
+// a lookup panel, not a mechanic"). Tapping speaks the word; nothing drags.
+function WordListPill({ word, onSpeak }: { word: string; onSpeak: () => void }) {
+  return (
+    <button type="button" className="tag-pill" style={{ cursor: 'pointer', background: 'white' }} onClick={onSpeak}>
+      🔈 {word}
+    </button>
+  );
+}
+
 export default function GrammarSandbox() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const student = students.find((s) => s.id === currentStudentId);
+  const literacyFocusSets = useStore((s) => s.literacyFocusSets);
 
   const [tool, setTool] = useState<'select' | 'draw'>('select');
   const [placed, setPlaced] = useState<PlacedPiece[]>([]);
@@ -202,6 +215,14 @@ export default function GrammarSandbox() {
     if (id) runSnapCheck(id);
   };
 
+  const today = todayISO();
+  const activeFocus = literacyFocusSets.find(
+    (f) => f.studentId === student.id && f.startDate <= today && today <= f.endDate,
+  );
+  const hasWordList = !!activeFocus && (
+    activeFocus.phonicsPatterns.length > 0 || activeFocus.morphemes.length > 0 || activeFocus.practiceWords.length > 0
+  );
+
   const readBoard = () => {
     const words = [...placed]
       .sort((a, b) => a.x - b.x)
@@ -268,12 +289,57 @@ export default function GrammarSandbox() {
             </div>
           </div>
 
+          {/* Word Lists — Literacy Workspace Phase 2 (LITERACY_WORKSPACE.md):
+              a scrollable reference shelf pulling the student's current
+              week's phonics/morpheme/spelling focus (set by the teacher in
+              Student Manager), NOT draggable tiles — a lookup panel, not a
+              mechanic. Only renders when there's an active focus with real
+              content, same guard SubjectDashboard's Focus Banner uses. */}
+          {hasWordList && activeFocus && (
+            <div className="lm-category">
+              <div className="lm-category-header" style={{ background: 'var(--purple)', color: '#fff' }}>
+                <span>📚 Word Lists</span>
+              </div>
+              <div className="lm-category-body">
+                {activeFocus.phonicsPatterns.length > 0 && (
+                  <>
+                    <span className="lm-category-sub">Phonics patterns</span>
+                    <div className="row-wrap" style={{ gap: 6 }}>
+                      {activeFocus.phonicsPatterns.map((p) => (
+                        <WordListPill key={`p-${p}`} word={p} onSpeak={() => speak(p, student.ttsSettings)} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                {activeFocus.morphemes.length > 0 && (
+                  <>
+                    <span className="lm-category-sub">Word parts</span>
+                    <div className="row-wrap" style={{ gap: 6 }}>
+                      {activeFocus.morphemes.map((m) => (
+                        <WordListPill key={`m-${m}`} word={m} onSpeak={() => speak(m, student.ttsSettings)} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                {activeFocus.practiceWords.length > 0 && (
+                  <>
+                    <span className="lm-category-sub">Spelling words</span>
+                    <div className="row-wrap" style={{ gap: 6 }}>
+                      {activeFocus.practiceWords.map((w) => (
+                        <WordListPill key={`w-${w}`} word={w} onSpeak={() => speak(w, student.ttsSettings)} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Reserved for future categories (Letters & Sounds / UFLI
-              grapheme tiles, Morphemes Word Web, Word Lists, Montessori
-              grammar shapes) — deliberately not rendered yet. A tile a
-              student can tap that does nothing is a dead end, not a
-              placeholder; these ship as soon as there's real content
-              behind them. */}
+              grapheme tiles, Morphemes Word Web, Montessori grammar
+              shapes) — deliberately not rendered yet. A tile a student
+              can tap that does nothing is a dead end, not a placeholder;
+              these ship as soon as there's real content behind them. */}
         </aside>
       )}
 

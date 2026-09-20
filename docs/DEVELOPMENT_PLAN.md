@@ -257,9 +257,9 @@ Supabase (Postgres, Storage, and realtime subscriptions) as the backend, with a 
 
 ### Literacy Workspace (superseding Literacy Manipulatives)
 
-Full design finalized in `LITERACY_WORKSPACE.md` after a teacher Q&A round with Claudia. Five-phase build order:
-1. **Not started.** Core sandbox shell + Sentence Grammar category (port A23's content in, add the Montessori shape+color dual system) + Whiteboard category (reuse the existing `ToolsPanel.tsx` Whiteboard component and owned-marker-color logic directly, no new drawing engine).
-2. **Not started.** Multiple saved/named canvases + ambient Word Lists panel pulling from `LiteracyFocusSet`.
+Full design in `LITERACY_WORKSPACE.md`. **Note:** the doc's original 5-phase plan below was overridden mid-build by direct teacher instruction ("proceed with only the open sandbox concept, no explicit activities, learning, etc., just open exploration") — `LITERACY_WORKSPACE.md`'s own "Recommended build phase sequence" section documents this override, so it, not the numbered list here, is the source of truth on what "Phase 1" actually means. Corrected status:
+1. **SHIPPED (as overridden).** `GrammarSandbox.tsx` — the open Polypad-style sandbox: persistent left sidebar (Sentence Grammar tile category, port of A23's nouns/verbs), toolbar (Words/Draw/Undo/Read board/Clear), and an open canvas (drag-drop tiles with number-agreement snap, or the reused `Whiteboard` component). No scoring, no lessons, no completion state, matching the override exactly. The Montessori shape+color dual system from the original Phase 1 spec was intentionally dropped, not deferred.
+2. **IN PROGRESS.** Word Lists panel: SHIPPED — a read-only "📚 Word Lists" sidebar category pulls the student's active `LiteracyFocusSet` (phonics patterns / word parts / spelling words, teacher-set in Student Manager) and shows it as tap-to-hear reference pills, not draggable tiles, per the doc's own "a lookup panel, not a mechanic" spec. Still open: multiple saved/named canvases (today's board is unsaved and clears on exit, per the sandbox's own exit-confirm warning).
 3. **Not started.** Morpheme Web tile category (root-centered web, prefix/suffix branch tiles, live-validation attach).
 4. **Not started.** Assignment mode (Polypad/GeoGebra-style visibility slicing) + extended Focus/LiteracyFocusSet teacher editor.
 5. **Not started.** Etymology enrichment card on morpheme roots; seasonal/novelty polish.
