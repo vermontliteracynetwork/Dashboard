@@ -127,12 +127,30 @@ export default function SillyQuizManager() {
       ) : (
         <div className="stack" style={{ gap: 6 }}>
           {sillyQuizzes.map((q: SillyQuiz) => (
-            <div key={q.id} className="row space-between" style={{ alignItems: 'center', border: '2px solid var(--content-border)', borderRadius: 10, padding: 8 }}>
-              <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{q.title} <span style={{ opacity: 0.6, fontWeight: 400 }}>({q.questions.length} questions, {q.outcomes.length} outcomes)</span></span>
-              <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={() => deleteSillyQuiz(q.id)} aria-label={`Delete ${q.title}`}>🗑️</button>
-            </div>
+            <SillyQuizRow key={q.id} quiz={q} onDelete={() => deleteSillyQuiz(q.id)} />
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// Claudia's review: this delete used to fire on a single click, the only
+// destructive action in the Game tab without the two-step confirm every
+// sibling manager (GalleryManager.tsx, CinemaVideosManager.tsx) already
+// uses — one misclick permanently deleted a teacher's authored quiz.
+function SillyQuizRow({ quiz, onDelete }: { quiz: SillyQuiz; onDelete: () => void }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  return (
+    <div className="row space-between" style={{ alignItems: 'center', border: '2px solid var(--content-border)', borderRadius: 10, padding: 8 }}>
+      <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{quiz.title} <span style={{ opacity: 0.6, fontWeight: 400 }}>({quiz.questions.length} questions, {quiz.outcomes.length} outcomes)</span></span>
+      {confirmDelete ? (
+        <div className="row" style={{ gap: 6 }}>
+          <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={onDelete}>Confirm</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setConfirmDelete(false)}>Cancel</button>
+        </div>
+      ) : (
+        <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={() => setConfirmDelete(true)} aria-label={`Delete ${quiz.title}`}>🗑️</button>
       )}
     </div>
   );
