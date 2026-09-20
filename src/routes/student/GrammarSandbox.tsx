@@ -5,8 +5,8 @@ import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
 import { Whiteboard } from '../../components/ToolsPanel';
 import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS } from '../../lib/grammarContent';
-import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS } from '../../types';
-import type { GrammarPiece } from '../../types';
+import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS, GRAMMAR_WORD_CLASS_SHAPES } from '../../types';
+import type { GrammarPiece, GrammarMontessoriShape } from '../../types';
 import { todayISO } from '../../lib/dates';
 
 // Literacy Workspace — Direct teacher instruction: "proceed with only
@@ -44,6 +44,19 @@ interface PlacedPiece {
 
 const pieceById = (id: string): GrammarPiece | undefined => SANDBOX_PIECES.find((p) => p.id === id);
 
+// Montessori grammar-symbol shape icon — LITERACY_WORKSPACE.md's
+// "Sentence Grammar tiles: Montessori shape + platform color" spec, the
+// recommended next build per LITERACY_MANIPULATIVES_FEATURE_AUDIT.md.
+// A second, independent visual channel alongside color and text, never
+// a replacement for either (color is never the only signal for meaning).
+function MontessoriShapeIcon({ shape, color }: { shape: GrammarMontessoriShape; color: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true" style={{ flexShrink: 0 }}>
+      {shape === 'triangle' ? <polygon points="7.5,1.5 14,13.5 1,13.5" fill={color} /> : <circle cx="7.5" cy="7.5" r="6.5" fill={color} />}
+    </svg>
+  );
+}
+
 function GrammarPieceTile({ piece, style, onPointerDown, onPointerMove, onPointerUp, glowing }: {
   piece: GrammarPiece;
   style: CSSProperties;
@@ -54,6 +67,7 @@ function GrammarPieceTile({ piece, style, onPointerDown, onPointerMove, onPointe
 }) {
   const bg = GRAMMAR_WORD_CLASS_COLORS[piece.wordClass];
   const fg = GRAMMAR_WORD_CLASS_TEXT_COLORS[piece.wordClass];
+  const shape = GRAMMAR_WORD_CLASS_SHAPES[piece.wordClass];
   return (
     <div
       role="button"
@@ -68,6 +82,7 @@ function GrammarPieceTile({ piece, style, onPointerDown, onPointerMove, onPointe
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 6,
         minWidth: TILE_W,
         minHeight: TILE_H,
         padding: '6px 14px',
@@ -84,6 +99,7 @@ function GrammarPieceTile({ piece, style, onPointerDown, onPointerMove, onPointe
         ...style,
       }}
     >
+      <MontessoriShapeIcon shape={shape} color={fg} />
       {piece.text}
     </div>
   );

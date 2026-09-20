@@ -420,6 +420,19 @@ export const GRAMMAR_WORD_CLASS_LABELS: Record<GrammarWordClass, string> = {
   verb: 'Action word (verb)',
 };
 
+// Montessori grammar-symbol shapes — LITERACY_WORKSPACE.md's "Sentence
+// Grammar tiles: Montessori shape + platform color" spec: a second,
+// independent visual channel layered on top of the existing color, so
+// word class is signaled by color AND shape AND text label together
+// (never color alone). Triangle-family = noun-like roles, circle-family
+// = verb-like roles, in the real Montessori convention.
+export type GrammarMontessoriShape = 'triangle' | 'circle';
+
+export const GRAMMAR_WORD_CLASS_SHAPES: Record<GrammarWordClass, GrammarMontessoriShape> = {
+  noun: 'triangle', // Montessori: large triangle
+  verb: 'circle', // Montessori: large circle
+};
+
 // One draggable piece on the open canvas. `number` is what the snap
 // mechanic checks — a noun and a verb only click together when these
 // match (subject-verb agreement), the one grammar rule the sandbox
