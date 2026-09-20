@@ -2563,6 +2563,30 @@ export default function TownSquare() {
   // frame by Player's driving branch.
   const gasRef = useRef(false);
   const brakeRef = useRef(false);
+  // Decorative gas gauge — Claudia's design pass on the "gas meter"
+  // backlog item confirmed the standing rule already on record
+  // (TRANSPORTATION.md/DRIVING_UX_RESEARCH.md): "no 'broken'/'out of
+  // fuel' state in v1," and if a gauge is ever added it must stay
+  // "purely decorative/role-play... never punitive," citing Bloxburg's
+  // cosmetic-only gas loop as the model. This never blocks Gas and never
+  // reads as literally empty (floored well above 0); it drains slowly
+  // while accelerating and regenerates on its own whenever the student
+  // isn't (coasting/braking/parked), so it's a self-contained flavor
+  // loop that doesn't require a gas-station location to make sense.
+  // Local, unsaved state — resets each drive, cars only (boats don't
+  // use pedals at all, per BOATS_DESIGN.md's "no new control surface").
+  const [carGasLevel, setCarGasLevel] = useState(100);
+  useEffect(() => {
+    if (!drivingObjectId || drivingIsBoat) return;
+    setCarGasLevel(100);
+    const id = window.setInterval(() => {
+      setCarGasLevel((lvl) => {
+        const delta = gasRef.current ? -1.5 : 1.5;
+        return Math.min(100, Math.max(20, lvl + delta));
+      });
+    }, 400);
+    return () => window.clearInterval(id);
+  }, [drivingObjectId, drivingIsBoat]);
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
   // there — the primary cross-device movement method; the D-pad and
   // keyboard both still work and take over instantly if used.
@@ -3799,6 +3823,19 @@ export default function TownSquare() {
             📻
           </button>
           <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238', textShadow: '0 1px 2px rgba(255,255,255,0.7)', lineHeight: 1 }}>Radio</span>
+        </div>
+      )}
+
+      {/* Decorative gas gauge — never blocks driving, never reads as
+          literally empty (floored at 20%). See the carGasLevel effect
+          above for the full standing-design-rule citation. */}
+      {drivingObjectId && !drivingIsBoat && (
+        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.92)', padding: '5px 12px', borderRadius: 999, border: '2px solid var(--ink, #1f4238)', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}>
+          <span style={{ fontSize: 15 }} aria-hidden="true">⛽</span>
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238' }}>Gas</span>
+          <div style={{ width: 64, height: 10, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', border: '1px solid rgba(31,66,56,0.3)' }}>
+            <div style={{ width: `${carGasLevel}%`, height: '100%', background: carGasLevel > 45 ? '#2f9e44' : '#f4a300', transition: 'width 0.4s ease' }} />
+          </div>
         </div>
       )}
 
