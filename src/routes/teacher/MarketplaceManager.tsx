@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import ImageUploadField from '../../components/ImageUploadField';
-import { STANDARD_PRICE_CENTS, specialtyPrice } from '../../lib/marketplaceSeed';
+import { STANDARD_PRICE_CENTS, specialtyPrice, ALL_EARN_METHODS, EARN_METHOD_LABELS, earnMethodsFor } from '../../lib/marketplaceSeed';
 import { EMOTE_CATALOG, emotePriceFor } from '../../lib/emoteCatalog';
+import { BLOCKY_AVATARS as AVATAR_CATALOG, avatarPriceFor } from '../../lib/avatarCatalog';
 import { formatMoney } from '../../lib/money';
-import type { MarketplaceItem, MarketplaceItemKind } from '../../types';
+import type { EarnMethod, MarketplaceItem, MarketplaceItemKind } from '../../types';
 
 const KIND_LABELS: Record<MarketplaceItemKind, string> = {
   font: '🔤 Font',
@@ -161,6 +162,83 @@ function EmotePricesSettings() {
   );
 }
 
+// Characters used to have zero teacher-editable price anywhere — direct
+// teacher report: "full ability to edit all prices... for everything
+// marketplace related." Same override-map pattern as EmotePricesSettings
+// above, just for the avatar catalog.
+function CharacterPricesSettings() {
+  const avatarPriceOverrides = useStore((s) => s.avatarPriceOverrides);
+  const setAvatarPriceOverride = useStore((s) => s.setAvatarPriceOverride);
+
+  return (
+    <div className="chrome-frame stack" style={{ padding: 16 }}>
+      <h3 style={{ marginTop: 0 }}>🧑 Character Prices</h3>
+      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+        Characters use bundled art, not the catalog below, but you can still reprice them here.
+      </p>
+      <div className="row-wrap">
+        {AVATAR_CATALOG.map((a) => {
+          const price = avatarPriceFor(avatarPriceOverrides, a.id);
+          const overridden = avatarPriceOverrides[a.id] !== undefined;
+          return (
+            <div key={a.id} className="stack" style={{ alignItems: 'center', gap: 2, width: 84 }}>
+              <img src={a.src} alt="" style={{ width: 40, height: 40 }} />
+              <span style={{ fontSize: '0.62rem', fontWeight: 700, textAlign: 'center' }}>{a.name}</span>
+              <div className="row" style={{ gap: 2 }}>
+                <span style={{ fontSize: '0.75rem' }}>$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.25}
+                  value={(price / 100).toFixed(2)}
+                  onChange={(ev) => setAvatarPriceOverride(a.id, Math.round(Math.max(0, parseFloat(ev.target.value) || 0) * 100))}
+                  style={{ width: 56 }}
+                />
+              </div>
+              {overridden && (
+                <button className="btn btn-sm" style={{ fontSize: '0.6rem', padding: '2px 6px', minHeight: 0 }} onClick={() => setAvatarPriceOverride(a.id, null)}>
+                  Reset
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Direct teacher request: "full ability to edit... resons for earning" —
+// which real reward channel(s) this item is eligible for, editable per
+// item as a chip multi-select. Tied to real existing mechanics (see
+// EARN_METHOD_LABELS' own comment), not a new one.
+function EarnMethodChips({ item }: { item: MarketplaceItem }) {
+  const updateMarketplaceItem = useStore((s) => s.updateMarketplaceItem);
+  const active = earnMethodsFor(item);
+  const toggle = (m: EarnMethod) => {
+    const next = active.includes(m) ? active.filter((x) => x !== m) : [...active, m];
+    // Never allow an empty set — that would silently mean "not earnable
+    // any way at all," a dead item. Falling back to purchase-only reads
+    // as an explicit teacher choice instead of a broken state.
+    updateMarketplaceItem(item.id, { earnMethods: next.length > 0 ? next : ['purchase'] });
+  };
+  return (
+    <div className="row-wrap" style={{ gap: 4, alignItems: 'center' }}>
+      <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>How to get this:</span>
+      {ALL_EARN_METHODS.map((m) => (
+        <button
+          key={m}
+          className={`btn chip-filter-sm ${active.includes(m) ? 'btn-primary' : ''}`}
+          style={{ fontSize: '0.65rem', padding: '3px 8px', minHeight: 30 }}
+          onClick={() => toggle(m)}
+        >
+          {EARN_METHOD_LABELS[m]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ItemRow({ item }: { item: MarketplaceItem }) {
   const updateMarketplaceItem = useStore((s) => s.updateMarketplaceItem);
   const deleteMarketplaceItem = useStore((s) => s.deleteMarketplaceItem);
@@ -246,6 +324,7 @@ function ItemRow({ item }: { item: MarketplaceItem }) {
           />
         </label>
       </div>
+      <EarnMethodChips item={item} />
       {item.kind === 'font' && (
         <input
           value={item.cssFontFamily ?? ''}
@@ -360,6 +439,7 @@ export default function MarketplaceManager() {
         </p>
 
         <AssignmentRewardSettings />
+        <CharacterPricesSettings />
         <EmotePricesSettings />
 
         <div className="chrome-frame stack" style={{ padding: 16 }}>

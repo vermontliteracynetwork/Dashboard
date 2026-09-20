@@ -844,6 +844,7 @@ export interface HydratedState {
   groundTexture: string | null;
   skyColor: string | null;
   skyTexture: string | null;
+  avatarPriceOverrides: Record<string, number>;
   rotationModes: Record<string, Record<Subject, RotationMode>>;
   taskCompletionCounts: Record<string, number>;
   toolUsage: Record<string, ToolKey[]>;
@@ -983,6 +984,7 @@ export async function fetchAll(): Promise<HydratedState> {
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
+    avatarPriceOverrides: appSettingsRes.data?.avatar_price_overrides ?? {},
     npcTitleOverrides: appSettingsRes.data?.npc_title_overrides ?? {},
     npcVoiceOverrides: appSettingsRes.data?.npc_voice_overrides ?? {},
     layoutOverrides: appSettingsRes.data?.layout_overrides ?? {},
@@ -1245,6 +1247,9 @@ export const pushSkyColor = (color: string | null) =>
 
 export const pushSkyTexture = (path: string | null) =>
   upsert('app_settings', { id: 'global', sky_texture: path, updated_at: new Date().toISOString() });
+
+export const pushAvatarPriceOverrides = (overrides: Record<string, number>) =>
+  upsert('app_settings', { id: 'global', avatar_price_overrides: overrides, updated_at: new Date().toISOString() });
 
 export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });

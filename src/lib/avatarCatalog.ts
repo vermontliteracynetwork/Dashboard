@@ -46,3 +46,10 @@ export function avatarName(value: string): string {
 export function avatarById(id: string): AvatarOption | undefined {
   return BY_ID.get(id);
 }
+
+// Same override pattern emoteCatalog.ts already uses — Characters used to
+// have zero teacher-editable price anywhere (direct teacher report: "full
+// ability to edit all prices... for everything marketplace related").
+export function avatarPriceFor(overrides: Record<string, number>, id: string): number {
+  return overrides[id] ?? BY_ID.get(id)?.price ?? 0;
+}

@@ -5,7 +5,7 @@ import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById, emotePriceFor } from '../lib/emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
-import { avatarById } from '../lib/avatarCatalog';
+import { avatarById, avatarPriceFor } from '../lib/avatarCatalog';
 import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, PLAYGROUND_REWARD_CENTS, formatMoney } from '../lib/money';
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
@@ -120,6 +120,7 @@ import {
   pushGroundTexture,
   pushSkyColor,
   pushSkyTexture,
+  pushAvatarPriceOverrides,
   pushWorldObject,
   deleteWorldObjectRemote,
   rowToWorldObject,
@@ -297,6 +298,7 @@ interface AppState {
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
   skyTexture: string | null; // Build Mode's Fill Sky texture picker — a real equirectangular sky image path (see SkyboxBackground in TownSquare.tsx); null = no texture, skyColor/default flat color still applies
+  avatarPriceOverrides: Record<string, number>; // same override pattern as emotePriceOverrides — Characters had no teacher-editable price anywhere until now
   focuses: Focus[]; // class-wide curriculum spotlights (math/literacy/sel/finance lanes) — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;
 
@@ -429,6 +431,7 @@ interface AppState {
   setAssignmentCompletionReward: (reward: AssignmentCompletionReward | null) => void;
   emotePriceOverrides: Record<string, number>;
   setEmotePriceOverride: (emoteId: string, priceCents: number | null) => void;
+  setAvatarPriceOverride: (avatarId: string, priceCents: number | null) => void;
   npcTitleOverrides: Record<string, string>; // hand-authored Neighbor/Townsperson id -> teacher's cosmetic custom title (Roster tab); never overwrites their actual dialogue content
   setNpcTitleOverride: (npcId: string, title: string | null) => void;
   npcVoiceOverrides: Record<string, string>; // Neighbor/Townsperson id -> lib/npcVoices.ts preset id, teacher override on top of each character's own hand-picked default (Roster tab)
@@ -713,6 +716,7 @@ export const useStore = create<AppState>()(
       focuses: [],
       assignmentCompletionReward: DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
       emotePriceOverrides: {},
+      avatarPriceOverrides: {},
       npcTitleOverrides: {},
       npcVoiceOverrides: {},
 
@@ -891,6 +895,7 @@ export const useStore = create<AppState>()(
               // teacher's own explicit opt-out (both are a null column).
               assignmentCompletionReward: n.assignment_completion_reward ?? DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
               emotePriceOverrides: n.emote_price_overrides ?? {},
+              avatarPriceOverrides: n.avatar_price_overrides ?? {},
               npcTitleOverrides: n.npc_title_overrides ?? {},
               npcVoiceOverrides: n.npc_voice_overrides ?? {},
               layoutOverrides: n.layout_overrides ?? {},
@@ -1030,9 +1035,10 @@ export const useStore = create<AppState>()(
         const item = avatarById(avatarId);
         if (!student || !item) return false;
         if (student.ownedAvatarIds.includes(avatarId)) return false;
-        if (student.coins < item.price) return false;
+        const price = avatarPriceFor(get().avatarPriceOverrides, avatarId);
+        if (student.coins < price) return false;
         get().updateStudent(studentId, { ownedAvatarIds: [...student.ownedAvatarIds, avatarId] });
-        get().recordTransaction(studentId, -item.price, `New character: ${item.name}`, item.src, 'purchase-avatar', false, needsWants);
+        get().recordTransaction(studentId, -price, `New character: ${item.name}`, item.src, 'purchase-avatar', false, needsWants);
         return true;
       },
 
@@ -1570,6 +1576,17 @@ export const useStore = create<AppState>()(
         }
         set({ emotePriceOverrides: next });
         pushEmotePriceOverrides(next);
+      },
+
+      setAvatarPriceOverride: (avatarId, priceCents) => {
+        const next = { ...get().avatarPriceOverrides };
+        if (priceCents === null) {
+          delete next[avatarId];
+        } else {
+          next[avatarId] = priceCents;
+        }
+        set({ avatarPriceOverrides: next });
+        pushAvatarPriceOverrides(next);
       },
 
       setNpcTitleOverride: (npcId, title) => {

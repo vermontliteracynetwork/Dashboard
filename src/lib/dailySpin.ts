@@ -2,6 +2,7 @@ import { AVATAR_CATALOG } from '../store/badges';
 import { EMOTE_CATALOG } from './emoteCatalog';
 import { formatMoney } from './money';
 import { marketplaceItemDisplayName } from './marketplaceDisplay';
+import { itemEarnsVia } from './marketplaceSeed';
 import { PET_CATALOG } from './petCatalog';
 import type { MarketplaceItem } from '../types';
 
@@ -83,6 +84,10 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
     ...EMOTE_CATALOG.map((e) => ({ kind: 'emote' as const, itemId: e.id, label: e.name, imageUrl: e.src })),
     ...availableToday
       .filter((it) => it.kind === 'font' || it.kind === 'color' || it.kind === 'voice' || it.kind === 'prize')
+      // Direct teacher request: a teacher can now opt an item out of the
+      // wheels entirely ("purchase only"). Real filter for the first time
+      // — this pool used to draw from every eligible item with no check.
+      .filter((it) => itemEarnsVia(it, 'daily-spin'))
       .map((it) => ({
         kind: it.kind as SpinItemKind,
         itemId: it.id,

@@ -1067,7 +1067,16 @@ export interface MarketplaceItem {
   voicePitch?: number;
   voiceRate?: number;
   voiceHints?: string[];
+  // How a student can get this item, teacher-set — direct teacher request
+  // ("full ability to edit... resons for earning") tied to real existing
+  // reward channels rather than a new mechanic. Undefined/empty is treated
+  // as every value (keeps every item that existed before this field did
+  // showing up in the wheels exactly like today, no regression) — see
+  // earnMethodsFor in marketplaceSeed.ts.
+  earnMethods?: EarnMethod[];
 }
+
+export type EarnMethod = 'purchase' | 'daily-spin' | 'bonus-spin' | 'quest-reward' | 'farmers-market';
 
 // A student-to-student barter offer at the Farmer's Market — direct
 // teacher request, framed explicitly as a way to practice negotiation as

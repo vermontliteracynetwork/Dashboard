@@ -1,4 +1,26 @@
-import type { MarketplaceItem } from '../types';
+import type { EarnMethod, MarketplaceItem } from '../types';
+
+// Direct teacher request: "full ability to edit... resons for earning".
+// Tied to real existing reward channels rather than a new mechanic — see
+// the MarketplaceItem.earnMethods field comment in types.ts.
+export const EARN_METHOD_LABELS: Record<EarnMethod, string> = {
+  purchase: '🛍️ Purchase only',
+  'daily-spin': '🎡 Daily Spin',
+  'bonus-spin': '🎉 Bonus Spin',
+  'quest-reward': '🗺️ Quest reward',
+  'farmers-market': '🌾 Farmer’s Market trade',
+};
+export const ALL_EARN_METHODS = Object.keys(EARN_METHOD_LABELS) as EarnMethod[];
+
+// Undefined/empty earnMethods = every method — every item that existed
+// before this field did keeps showing up in the wheels exactly like
+// today, no regression from adding the field.
+export function earnMethodsFor(item: Pick<MarketplaceItem, 'earnMethods'>): EarnMethod[] {
+  return item.earnMethods && item.earnMethods.length > 0 ? item.earnMethods : ALL_EARN_METHODS;
+}
+export function itemEarnsVia(item: Pick<MarketplaceItem, 'earnMethods'>, method: EarnMethod): boolean {
+  return earnMethodsFor(item).includes(method);
+}
 
 // Standard prices, in cents, for anything the teacher hasn't priced
 // individually — used both to seed starter data and as the smart default

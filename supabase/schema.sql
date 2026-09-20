@@ -730,6 +730,11 @@ alter table app_settings add column if not exists sky_color text;
 -- SkyboxBackground for this codebase's documented history of this exact
 -- equirect-mapping technique failing live QA on other source images.
 alter table app_settings add column if not exists sky_texture text;
+-- Same override pattern as emote_price_overrides above — Characters had
+-- zero teacher-editable price anywhere until now (direct teacher report:
+-- "full ability to edit all prices... for everything marketplace
+-- related"). See avatarPriceFor in avatarCatalog.ts.
+alter table app_settings add column if not exists avatar_price_overrides jsonb not null default '{}';
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

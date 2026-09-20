@@ -3,11 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
 import { AvatarGlyph } from './AvatarGlyph';
+import { avatarPriceFor } from '../lib/avatarCatalog';
 import { EMOTE_CATALOG, emotePriceFor } from '../lib/emoteCatalog';
 import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import { playCashRegister } from '../lib/chime';
 import FocusBanner from './FocusBanner';
+import WebpageFrame from './WebpageFrame';
 import { petDefById, thumbnailFor } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
@@ -189,9 +191,23 @@ export default function Marketplace() {
   const equipEmote = useStore((s) => s.equipEmote);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
+  const avatarPriceOverrides = useStore((s) => s.avatarPriceOverrides);
   const updateStudent = useStore((s) => s.updateStudent);
   const pets = useStore((s) => s.pets);
   const [tab, setTab] = useState<Tab>(initialTab);
+  // Direct teacher request: "marketplace needs to evolve... have a
+  // search, etc... needs to be like amazon." A real substring match
+  // against name/tags/category, scoped to the tab already open (each tab
+  // is its own catalog shape — characters/emotes/pets aren't
+  // MarketplaceItems at all — so one search box filtering "everything at
+  // once" isn't a single list to begin with).
+  const [search, setSearch] = useState('');
+  const searchLower = search.trim().toLowerCase();
+  const matchesSearch = (name: string, tags?: string[], category?: string) =>
+    !searchLower ||
+    name.toLowerCase().includes(searchLower) ||
+    (category ?? '').toLowerCase().includes(searchLower) ||
+    (tags ?? []).some((t) => t.toLowerCase().includes(searchLower));
   const [cart, setCart] = useState<CartEntry[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptLine[] | null>(null);
@@ -455,6 +471,11 @@ export default function Marketplace() {
         </div>
       )}
 
+      {/* Standard "webpage frame" shared by every screen reached from the
+          Computer — direct teacher instruction that the frame be applied
+          everywhere, replacing the old Town Square/Home button pair. */}
+      <WebpageFrame url="marketplace" />
+
       <div className="shop-panel">
           <div className="shop-header">
             <span className="shop-ribbon">🛍️ MARKETPLACE</span>
@@ -486,11 +507,6 @@ export default function Marketplace() {
                   </span>
                 )}
               </button>
-              {/* Reached by walking up to the Store in Town Square — same
-                  dev-log-flagged gap as Mailbox/Passport/PiggyBank: needs a
-                  direct way back, not just the 2D task list. */}
-              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
             </div>
           </div>
 
@@ -531,13 +547,25 @@ export default function Marketplace() {
             </button>
           </div>
 
+          {(tab === 'characters' || tab === 'emotes' || tab === 'powerups') && (
+            <input
+              className="input"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="🔍 Search..."
+              style={{ marginTop: 8 }}
+              aria-label="Search this tab"
+            />
+          )}
+
           <div className="shop-shelf">
             {tab === 'characters' && (
               <div className="shop-item-grid">
-                {AVATAR_CATALOG.map((a) => {
+                {AVATAR_CATALOG.filter((a) => matchesSearch(a.name)).map((a) => {
                   const owned = student.ownedAvatarIds.includes(a.id);
                   const equipped = student.avatar === a.id;
-                  const affordable = student.coins >= a.price;
+                  const price = avatarPriceFor(avatarPriceOverrides, a.id);
+                  const affordable = student.coins >= price;
                   return (
                     <div key={a.id} className="shop-item-card">
                       <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
@@ -553,7 +581,7 @@ export default function Marketplace() {
                           Wear
                         </button>
                       ) : (
-                        cartButtonFor({ key: `avatar-${a.id}`, source: 'avatar', id: a.id, name: a.name, icon: a.src, price: a.price }, affordable)
+                        cartButtonFor({ key: `avatar-${a.id}`, source: 'avatar', id: a.id, name: a.name, icon: a.src, price }, affordable)
                       )}
                     </div>
                   );
@@ -563,7 +591,7 @@ export default function Marketplace() {
 
             {tab === 'emotes' && (
               <div className="shop-item-grid">
-                {EMOTE_CATALOG.map((e) => {
+                {EMOTE_CATALOG.filter((e) => matchesSearch(e.name)).map((e) => {
                   const owned = student.ownedEmoteIds.includes(e.id);
                   const equipped = student.equippedEmoteId === e.id;
                   const price = emotePriceFor(emotePriceOverrides, e.id);
@@ -653,7 +681,7 @@ export default function Marketplace() {
 
             {tab === 'powerups' && (
               <div className="shop-item-grid">
-                {powerupItems.map((p) => {
+                {powerupItems.filter((p) => matchesSearch(p.name, p.tags, p.category)).map((p) => {
                   const affordable = student.coins >= p.price;
                   const owned = false; // power-ups always stay buyable (stacking), never "owned"
                   return (
