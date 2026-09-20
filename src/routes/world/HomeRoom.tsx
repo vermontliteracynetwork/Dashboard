@@ -8,7 +8,7 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor } from '../../lib/petCatalog';
+import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
@@ -389,9 +389,20 @@ function PetCareCard({
   const setFollowingPet = useStore((s) => s.setFollowingPet);
   const sellPet = useStore((s) => s.sellPet);
   const tintPet = useStore((s) => s.tintPet);
+  const teachTrick = useStore((s) => s.teachTrick);
   const [nameDraft, setNameDraft] = useState(pet.customName);
   const [confirmSell, setConfirmSell] = useState(false);
+  const [justTaught, setJustTaught] = useState<string | null>(null);
+  const justTaughtTimerRef = useRef<number | null>(null);
   const canFollow = canPetFollow(pet.trainingProgress);
+
+  const handleTeachTrick = (trickId: string, label: string) => {
+    teachTrick(pet.id, trickId);
+    flashSaved();
+    if (justTaughtTimerRef.current) window.clearTimeout(justTaughtTimerRef.current);
+    setJustTaught(label);
+    justTaughtTimerRef.current = window.setTimeout(() => setJustTaught(null), 2200);
+  };
 
   useEffect(() => setNameDraft(pet.customName), [pet.customName]);
 
@@ -457,6 +468,33 @@ function PetCareCard({
       {nextMilestone(pet.trainingProgress) && (
         <div style={{ fontSize: 8, opacity: 0.6, marginBottom: 4 }}>
           Next: {nextMilestone(pet.trainingProgress)!.icon} {nextMilestone(pet.trainingProgress)!.label} at {nextMilestone(pet.trainingProgress)!.threshold}
+        </div>
+      )}
+      {/* Teach a Trick (Part C's own open question, "I taught it a
+          trick"?, made real) — SEL/bonding, not an academic task: first
+          attempt always succeeds, no retry-until-correct, no skill check.
+          Same 5 generic tricks for every pet, no new 3D assets needed. */}
+      <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.65, marginBottom: 2 }}>🎪 Tricks</div>
+      <div className="row-wrap" style={{ gap: 4, marginBottom: 4 }}>
+        {PET_TRICKS.map((t) => {
+          const learned = (pet.tricksLearned ?? []).includes(t.id);
+          return learned ? (
+            <span key={t.id} className="tag-pill" style={{ fontSize: 8, background: '#eafbea' }}>{t.icon} {t.label} ✓</span>
+          ) : (
+            <button
+              key={t.id}
+              className="btn btn-sm"
+              style={{ minHeight: 22, fontSize: 8, padding: '2px 6px' }}
+              onClick={() => handleTeachTrick(t.id, t.label)}
+            >
+              {t.icon} Teach {t.label}
+            </button>
+          );
+        })}
+      </div>
+      {justTaught && (
+        <div role="status" style={{ fontSize: 9, fontWeight: 700, color: 'var(--success, #22c55e)', marginBottom: 4 }}>
+          🎉 {pet.customName || def?.name} learned {justTaught}!
         </div>
       )}
       {/* Pet paint-brush customization (Part B backlog item, directly

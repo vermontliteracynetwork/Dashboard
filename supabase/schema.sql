@@ -499,6 +499,11 @@ create table if not exists student_pets (
 -- mechanism world_objects.tint_color already uses.
 alter table student_pets add column if not exists tint_color text;
 
+-- Teach a Trick (Part C backlog item) — PET_TRICKS ids this pet has
+-- "learned". SEL/bonding cosmetic, not an academic task; first attempt
+-- always succeeds.
+alter table student_pets add column if not exists tricks_learned text[] not null default '{}';
+
 -- Pets system: the one-time free-pet coupon every student gets the first
 -- time pets ship — pick any catalog pet, no cost, once ever.
 alter table students add column if not exists pet_coupon_redeemed boolean not null default false;

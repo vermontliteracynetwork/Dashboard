@@ -220,6 +220,26 @@ export function nextMilestone(trainingProgress: number): PetMilestone | null {
 }
 
 // ---------------------------------------------------------------------------
+// Teach a Trick — Part C's own open question ("I taught it a trick"?) made
+// real: a small, guaranteed-success SEL/bonding interaction, not an academic
+// task. Same 5 generic tricks for every pet (no new 3D assets/animations —
+// out of scope, same reasoning as the milestone badges above). First
+// attempt always succeeds; no retry-until-correct, no skill check.
+// ---------------------------------------------------------------------------
+export interface PetTrick {
+  id: string;
+  label: string;
+  icon: string;
+}
+export const PET_TRICKS: PetTrick[] = [
+  { id: 'trick-sit', label: 'Sit', icon: '🪑' },
+  { id: 'trick-spin', label: 'Spin', icon: '🌀' },
+  { id: 'trick-shake', label: 'Shake', icon: '🤝' },
+  { id: 'trick-speak', label: 'Speak', icon: '🗣️' },
+  { id: 'trick-playdead', label: 'Play Dead', icon: '🛌' },
+];
+
+// ---------------------------------------------------------------------------
 // Growth stages — direct teacher spec: "pets should start out as babies/
 // puppies/kittens and grow to be full adults with attention, love, and
 // native games." Reuses the SAME trainingProgress counter and thresholds

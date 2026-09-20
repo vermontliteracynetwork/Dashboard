@@ -922,6 +922,7 @@ export interface StudentPet {
   social: number; // 0-100, soft floor
   health: number; // 0-100, soft floor — falls only as a consequence of food/social running low, not decayed independently
   tintColor?: string; // student-picked recolor of the pet's own model (paint-brush customization), same swatch mechanism as WorldObject.tintColor; undefined = original model color
+  tricksLearned?: string[]; // PET_TRICKS ids this pet has "learned" — SEL/bonding cosmetic, first attempt always succeeds, no retry-until-correct
 }
 
 // A student's own feedback about the game, submitted through the

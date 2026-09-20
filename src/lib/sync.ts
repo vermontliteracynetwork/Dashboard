@@ -488,6 +488,7 @@ const rowToStudentPet = (r: Row): StudentPet => ({
   social: r.social ?? 100,
   health: r.health ?? 100,
   tintColor: r.tint_color ?? undefined,
+  tricksLearned: r.tricks_learned ?? [],
 });
 const studentPetToRow = (p: StudentPet): Row => ({
   id: p.id,
@@ -501,6 +502,7 @@ const studentPetToRow = (p: StudentPet): Row => ({
   social: p.social,
   health: p.health,
   tint_color: p.tintColor ?? null,
+  tricks_learned: p.tricksLearned ?? [],
 });
 
 const rowToHomeRoom = (r: Row): HomeRoomDef => ({

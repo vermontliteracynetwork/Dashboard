@@ -347,6 +347,10 @@ interface AppState {
   // pet's own model wherever it renders. null clears back to the model's
   // original color.
   tintPet: (petId: string, tintColor: string | null) => void;
+  // Teach a Trick (Part C backlog item) — SEL/bonding, not an academic
+  // task: first attempt always succeeds, no retry-until-correct. No-op if
+  // the pet doesn't exist or already learned that trick.
+  teachTrick: (petId: string, trickId: string) => void;
   // petId: null unsets whichever pet was following (goes back to no companion).
   setFollowingPet: (studentId: string, petId: string | null) => void;
   sellPet: (petId: string) => void;
@@ -1343,6 +1347,14 @@ export const useStore = create<AppState>()(
         const pet = get().pets.find((p) => p.id === petId);
         if (!pet) return;
         const updated: StudentPet = { ...pet, tintColor: tintColor ?? undefined };
+        set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
+        pushStudentPet(updated);
+      },
+
+      teachTrick: (petId, trickId) => {
+        const pet = get().pets.find((p) => p.id === petId);
+        if (!pet || (pet.tricksLearned ?? []).includes(trickId)) return;
+        const updated: StudentPet = { ...pet, tricksLearned: [...(pet.tricksLearned ?? []), trickId] };
         set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
         pushStudentPet(updated);
       },
