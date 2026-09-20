@@ -22,7 +22,7 @@ const OWNED_FIELD: Record<'font' | 'color' | 'voice', 'ownedFontIds' | 'ownedCol
   color: 'ownedColorIds',
   voice: 'ownedVoiceIds',
 };
-const KIND_LABEL: Record<MarketplaceItemKind, string> = { font: '🔤 Font', color: '🎨 Color', voice: '🔊 Voice', powerup: '🎫 Power-Up', prize: '🎁 Prize' };
+const KIND_LABEL: Record<MarketplaceItemKind, string> = { font: '🔤 Font', color: '🎨 Color', voice: '🔊 Voice', powerup: '🎫 Power-Up', prize: '🎁 Prize', furniture: '🛋️ Home/Furniture' };
 const RARITY_LABEL: Record<string, string> = { common: '⭐ Common', uncommon: '⭐⭐ Uncommon', rare: '⭐⭐⭐ Rare', ultra: '⭐⭐⭐⭐ Ultra' };
 
 function ItemChip({ item }: { item: MarketplaceItem }) {

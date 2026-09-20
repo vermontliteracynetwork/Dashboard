@@ -440,6 +440,12 @@ alter table students add column if not exists equipped_marker_color_id text;
 alter table students add column if not exists owned_voice_ids jsonb not null default '[]';
 alter table students add column if not exists equipped_voice_id text;
 alter table students add column if not exists owned_prize_ids jsonb not null default '[]';
+-- Marketplace 'furniture' item ids this student has purchased — unlocks
+-- that item in Build Mode's own catalog (HomeRoom.tsx). Direct teacher
+-- request: "ensure marketplace also has home and furniture items
+-- avialable for student purchase. student purchases should unlock and
+-- become viewable for them while they are in build mode."
+alter table students add column if not exists owned_home_item_ids jsonb not null default '[]';
 alter table students add column if not exists quiz_theme text not null default 'standard';
 alter table transactions add column if not exists voided boolean not null default false;
 alter table students add column if not exists bonus_spin_available boolean not null default false;

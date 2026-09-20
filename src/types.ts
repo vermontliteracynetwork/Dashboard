@@ -94,6 +94,7 @@ export interface Student {
   ownedVoiceIds: string[]; // voice catalog ids unlocked (read-aloud "voice skins")
   equippedVoiceId: string | null;
   ownedPrizeIds: string[]; // custom_prizes ids this student has redeemed (teacher-fulfilled real/in-game prizes)
+  ownedHomeItemIds: string[]; // marketplace 'furniture' item ids purchased — unlocks that item in Build Mode's own catalog (HomeRoom.tsx), on top of the free catalog every student already has
   quizTheme: QuizTheme; // student-picked visual skin for the quiz view
   bonusSpinAvailable: boolean; // earned a re-spin today for finishing the whole assignment (assignmentCompletionReward type 'spin') — shown as a distinct "Bonus Spin!" on the wheel, cleared once used
   worldQuest1MetIds: string[]; // Neighbor ids met so far in Homeplot's launch quest ("Meet the Neighbors") — grows to 4, then the quest is complete
@@ -738,6 +739,7 @@ export type TransactionKind =
   | 'purchase-pet'
   | 'sell-pet'
   | 'purchase-yard'
+  | 'purchase-furniture'
   | 'donation';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
@@ -1042,7 +1044,7 @@ export interface Note {
 // hands over). Fully teacher-authored: name, icon, price, category, tags,
 // and an optional date window for seasonal/limited-time items — nothing
 // about the marketplace's economic items is hardcoded in the app.
-export type MarketplaceItemKind = 'font' | 'color' | 'voice' | 'powerup' | 'prize';
+export type MarketplaceItemKind = 'font' | 'color' | 'voice' | 'powerup' | 'prize' | 'furniture';
 
 export interface MarketplaceItem {
   id: string;
@@ -1067,6 +1069,14 @@ export interface MarketplaceItem {
   voicePitch?: number;
   voiceRate?: number;
   voiceHints?: string[];
+  // kind: 'furniture' only — the real Build Mode asset (asset-manifest.json
+  // path) this purchase unlocks in HomeRoom.tsx's own placement catalog.
+  // Direct teacher request: "ensure marketplace also has home and
+  // furniture items avialable for student purchase. student purchases
+  // should unlock and become viewable for them while they are in build
+  // mode." Today's free Build Mode catalog is unaffected — this is a new,
+  // additional premium layer, not a retroactive lock on anything.
+  modelPath?: string;
   // How a student can get this item, teacher-set — direct teacher request
   // ("full ability to edit... resons for earning") tied to real existing
   // reward channels rather than a new mechanic. Undefined/empty is treated

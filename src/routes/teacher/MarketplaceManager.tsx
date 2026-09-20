@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import ImageUploadField from '../../components/ImageUploadField';
@@ -14,6 +14,7 @@ const KIND_LABELS: Record<MarketplaceItemKind, string> = {
   voice: '🔊 Voice',
   powerup: '🎫 Power-Up',
   prize: '🎁 Prize',
+  furniture: '🛋️ Home/Furniture',
 };
 
 const STARTER_CATEGORIES = ['Free Time', 'Pets', 'Build a House', 'Tools', 'Fonts', 'Text Colors', 'Highlight Colors', 'Whiteboard Markers', 'Voices', 'Power-Ups', 'Seasonal'];
@@ -270,7 +271,7 @@ function ItemRow({ item }: { item: MarketplaceItem }) {
               onChange={(e) => updateMarketplaceItem(item.id, { price: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
             />
           </div>
-          {item.kind !== 'prize' && (() => {
+          {item.kind !== 'prize' && item.kind !== 'furniture' && (() => {
             const k = item.kind as keyof typeof STANDARD_PRICE_CENTS;
             const std = STANDARD_PRICE_CENTS[k];
             const specialty = specialtyPrice(k);
@@ -386,6 +387,18 @@ export default function MarketplaceManager() {
   const [availableUntil, setAvailableUntil] = useState('');
   const [kindFilter, setKindFilter] = useState<'all' | MarketplaceItemKind>('all');
   const [search, setSearch] = useState('');
+  // Real, already-uploaded interior models a furniture item can point at —
+  // same manifest WorldEditor.tsx's own catalog reads, filtered to
+  // 'interior' so a teacher picks from real, already-licensed furniture
+  // rather than typing a raw asset path by hand.
+  const [interiorAssets, setInteriorAssets] = useState<{ path: string; label: string }[]>([]);
+  const [modelPath, setModelPath] = useState('');
+  useEffect(() => {
+    fetch('/world/asset-manifest.json')
+      .then((r) => (r.ok ? r.json() : { assets: [] }))
+      .then((data) => setInteriorAssets((data.assets ?? []).filter((a: { category: string }) => a.category === 'interior')))
+      .catch(() => setInteriorAssets([]));
+  }, []);
 
   const existingCategories = [...new Set([...STARTER_CATEGORIES, ...marketplaceItems.map((it) => it.category)])];
   const searchLower = search.trim().toLowerCase();
@@ -405,6 +418,7 @@ export default function MarketplaceManager() {
   const submit = () => {
     const finalCategory = category === '__custom' ? customCategory.trim() : category;
     if (!name.trim() || !finalCategory) return;
+    if (kind === 'furniture' && !modelPath) return;
     addMarketplaceItem({
       kind,
       name: name.trim(),
@@ -418,6 +432,7 @@ export default function MarketplaceManager() {
       ...(kind === 'font' ? { cssFontFamily: "'Nunito', sans-serif" } : {}),
       ...(kind === 'color' ? { colorHex: '#7c3aed', colorUse: 'text' as const } : {}),
       ...(kind === 'voice' ? { voicePitch: 1, voiceRate: 1, voiceHints: [] } : {}),
+      ...(kind === 'furniture' ? { modelPath } : {}),
     });
     setName('');
     setDescription('');
@@ -425,6 +440,7 @@ export default function MarketplaceManager() {
     setTags('');
     setAvailableFrom('');
     setAvailableUntil('');
+    setModelPath('');
   };
 
   return (
@@ -452,10 +468,10 @@ export default function MarketplaceManager() {
                 onChange={(e) => {
                   const nextKind = e.target.value as MarketplaceItemKind;
                   setKind(nextKind);
-                  // Auto-fill the standard price for the new type (prizes have
-                  // no standard — teacher sets those by hand). Specialty stays
-                  // applied if it was already checked.
-                  if (nextKind !== 'prize') {
+                  // Auto-fill the standard price for the new type (prizes
+                  // and furniture have no standard — teacher sets those by
+                  // hand). Specialty stays applied if it was already checked.
+                  if (nextKind !== 'prize' && nextKind !== 'furniture') {
                     const base = STANDARD_PRICE_CENTS[nextKind as keyof typeof STANDARD_PRICE_CENTS];
                     const cents = specialty ? specialtyPrice(nextKind as keyof typeof STANDARD_PRICE_CENTS) : base;
                     setPrice((cents / 100).toFixed(2));
@@ -489,7 +505,7 @@ export default function MarketplaceManager() {
                 <span>$</span>
                 <input type="number" min={0} step={0.25} value={price} onChange={(e) => setPrice(e.target.value)} style={{ width: 72 }} />
               </div>
-              {kind !== 'prize' && (
+              {kind !== 'prize' && kind !== 'furniture' && (
                 <label className="row" style={{ gap: 4, fontSize: '0.78rem', fontWeight: 600, marginTop: 4, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
@@ -509,6 +525,18 @@ export default function MarketplaceManager() {
               <label>Description (optional)</label>
               <input value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
+            {kind === 'furniture' && (
+              <div style={{ minWidth: 220 }}>
+                <label>Home item (real furniture model)</label>
+                <select value={modelPath} onChange={(e) => setModelPath(e.target.value)}>
+                  <option value="">Pick a model…</option>
+                  {interiorAssets.map((a) => <option key={a.path} value={a.path}>{a.label}</option>)}
+                </select>
+                <p style={{ fontSize: '0.65rem', opacity: 0.6, margin: '2px 0 0' }}>
+                  Unlocks this item in Build Mode's own catalog once a student buys it.
+                </p>
+              </div>
+            )}
           </div>
           <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
             <div style={{ flex: 1, minWidth: 200 }}>

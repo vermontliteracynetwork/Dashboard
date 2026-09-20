@@ -654,7 +654,7 @@ function grantFreeMarketplaceItem(get: () => AppState, studentId: string, itemId
   if (item.kind === 'powerup') {
     get().updateStudent(studentId, { skipTokens: s.skipTokens + 1 });
   } else {
-    const ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds' } as const)[item.kind];
+    const ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds', furniture: 'ownedHomeItemIds' } as const)[item.kind];
     if (!(s[ownedField] as string[]).includes(item.id)) {
       get().updateStudent(studentId, { [ownedField]: [...(s[ownedField] as string[]), item.id] } as Partial<Student>);
     }
@@ -947,6 +947,7 @@ export const useStore = create<AppState>()(
           ownedVoiceIds: [...STARTER_VOICE_IDS],
           equippedVoiceId: null,
           ownedPrizeIds: [],
+          ownedHomeItemIds: [],
           quizTheme: 'standard',
           bonusSpinAvailable: false,
           worldQuest1MetIds: [],
@@ -1084,12 +1085,12 @@ export const useStore = create<AppState>()(
         }
 
         const ownedField = (
-          { font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds' } as const
+          { font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds', furniture: 'ownedHomeItemIds' } as const
         )[item.kind];
         if (student[ownedField].includes(itemId)) return false;
         get().updateStudent(studentId, { [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
-        const kindLabel = { font: 'New font', color: 'New color', voice: 'New voice', prize: 'Prize' }[item.kind];
-        const txKind = { font: 'purchase-font', color: 'purchase-color', voice: 'purchase-voice', prize: 'purchase-prize' }[item.kind] as TransactionKind;
+        const kindLabel = { font: 'New font', color: 'New color', voice: 'New voice', prize: 'Prize', furniture: 'New home item' }[item.kind];
+        const txKind = { font: 'purchase-font', color: 'purchase-color', voice: 'purchase-voice', prize: 'purchase-prize', furniture: 'purchase-furniture' }[item.kind] as TransactionKind;
         get().recordTransaction(studentId, -item.price, `${kindLabel}: ${item.name}`, item.icon, txKind, false, needsWants);
         return true;
       },

@@ -112,6 +112,7 @@ interface PlaceableItem {
   icon?: string; // fallback catalog-button art when no rendered thumbnail exists yet
   target: ScaleTarget;
   priceCents?: number; // undefined = free (interior starter catalog); set = a real yard purchase, charged on placement
+  locked?: boolean; // marketplace 'furniture' items the student hasn't bought yet — shown, not hidden, per the Pet Shelter's own precedent, but can't be armed
 }
 // Real, already-licensed models this project already ships under
 // public/world/models/interior/ (the same Quaternius house-furniture pack
@@ -619,6 +620,7 @@ export default function HomeRoom() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
   const worldObjects = useStore((s) => s.worldObjects);
   const addWorldObject = useStore((s) => s.addWorldObject);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
@@ -734,7 +736,28 @@ export default function HomeRoom() {
     () => ({ x: 0, z: THREE.MathUtils.clamp(halfD - 1.2, -halfD + 0.5, halfD - 0.5) }),
     [halfD]
   );
-  const activeCatalog: PlaceableItem[] = isYard ? YARD_ITEMS : STARTER_ITEMS;
+  // Direct teacher request: "ensure marketplace also has home and
+  // furniture items avialable for student purchase. student purchases
+  // should unlock and become viewable for them while they are in build
+  // mode." Every purchasable furniture item shows here — locked with a
+  // 🔒 and no way to arm it until owned, same "show it, don't hide it"
+  // precedent the Pet Shelter already established for its own catalog —
+  // rather than only appearing once bought, which would give a student no
+  // way to discover it exists. Interior-only for v1 (yard is its own,
+  // outdoor-themed catalog); the free STARTER_ITEMS set is unaffected.
+  const marketplaceFurniture: PlaceableItem[] = marketplaceItems
+    .filter((it) => it.kind === 'furniture' && it.modelPath)
+    .map((it) => ({
+      id: it.id,
+      modelPath: it.modelPath!,
+      label: it.name,
+      icon: it.icon.startsWith('/') || it.icon.startsWith('http') ? '🛋️' : it.icon,
+      thumbnail: it.icon.startsWith('/') || it.icon.startsWith('http') ? it.icon : undefined,
+      target: { kind: 'footprint', value: 1.5 },
+      locked: !student?.ownedHomeItemIds.includes(it.id),
+    }));
+  // Interior-only for v1 (yard is its own, outdoor-themed catalog).
+  const activeCatalog: PlaceableItem[] = [...(isYard ? YARD_ITEMS : STARTER_ITEMS), ...(isYard ? [] : marketplaceFurniture)];
 
   const exteriorObstacle: RoomObstacle | null = isYard ? { x: 0, z: -(halfD + EXTERIOR_CLEARANCE), radius: EXTERIOR_COLLISION_RADIUS } : null;
   // View-mode furniture collision (blockRoomObstacles above) — only
@@ -794,11 +817,16 @@ export default function HomeRoom() {
   // every model has actually been measured, and any already-placed object
   // whose scale doesn't match what its model should calibrate to (off by
   // more than 3x either way) gets silently corrected on load.
-  const scalesReady = CATALOG_ITEMS.every((it) => scales[it.id] !== undefined);
+  // Static catalog + every purchasable marketplace furniture item (owned
+  // or not — locked ones still need a measured scale the moment they're
+  // bought, and re-measuring on purchase would be a worse flash than
+  // measuring once up front like every other catalog item already does).
+  const allCatalogItems: PlaceableItem[] = [...CATALOG_ITEMS, ...marketplaceFurniture];
+  const scalesReady = allCatalogItems.every((it) => scales[it.id] !== undefined);
   useEffect(() => {
     if (!scalesReady) return;
     for (const obj of myObjects) {
-      const item = CATALOG_ITEMS.find((it) => it.modelPath === obj.modelPath);
+      const item = allCatalogItems.find((it) => it.modelPath === obj.modelPath);
       if (!item) continue;
       const correct = scales[item.id];
       if (obj.scale > correct * 3 || obj.scale < correct / 3) {
@@ -827,7 +855,7 @@ export default function HomeRoom() {
     );
   }
 
-  const armedItem = CATALOG_ITEMS.find((it) => it.id === armedId) ?? null;
+  const armedItem = allCatalogItems.find((it) => it.id === armedId) ?? null;
 
   const switchRoom = (id: string) => {
     setActiveRoomId(id);
@@ -1130,7 +1158,7 @@ export default function HomeRoom() {
         )}
 
         <Suspense fallback={null}>
-          {CATALOG_ITEMS.map((item) => (
+          {allCatalogItems.map((item) => (
             <StarterScaleLoader key={item.id} item={item} onScale={(id, scale) => setScales((s) => (s[id] === scale ? s : { ...s, [id]: scale }))} />
           ))}
         </Suspense>
@@ -1250,16 +1278,30 @@ export default function HomeRoom() {
               return (
                 <button
                   key={item.id}
-                  disabled={disabled}
-                  onClick={() => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setHammerMode(false); }}
+                  disabled={disabled && !item.locked}
+                  onClick={
+                    item.locked
+                      ? () => navigate('/student/marketplace')
+                      : () => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setHammerMode(false); }
+                  }
+                  title={item.locked ? `Buy ${item.label} in the Marketplace` : undefined}
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                    padding: '6px 8px', borderRadius: 12, cursor: disabled ? 'default' : 'pointer', fontFamily: 'system-ui, sans-serif',
+                    padding: '6px 8px', borderRadius: 12, cursor: disabled && !item.locked ? 'default' : 'pointer', fontFamily: 'system-ui, sans-serif',
+                    position: 'relative',
                     border: armed ? '3px solid #e2775c' : '2px solid var(--content-border, #ccc)',
                     background: armed ? '#fff3ea' : isYard ? '#e8f5e0' : '#fbeee3',
-                    opacity: disabled ? 0.4 : 1,
+                    opacity: disabled && !item.locked ? 0.4 : item.locked ? 0.75 : 1,
                   }}
                 >
+                  {/* Locked furniture is shown, not hidden — same "every
+                      item visible, whether or not a student can afford it
+                      yet" precedent the Pet Shelter catalog already uses —
+                      so there's something to discover and want, not a
+                      silent gap. */}
+                  {item.locked && (
+                    <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 13 }}>🔒</span>
+                  )}
                   {item.thumbnail ? (
                     <img src={item.thumbnail} alt="" style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
                   ) : (
@@ -1267,6 +1309,7 @@ export default function HomeRoom() {
                   )}
                   <span style={{ fontSize: 11, fontWeight: 700 }}>{item.label}</span>
                   {item.priceCents !== undefined && <span style={{ fontSize: 10, opacity: 0.7 }}>{formatMoney(item.priceCents)}</span>}
+                  {item.locked && <span style={{ fontSize: 9, opacity: 0.75 }}>Buy in Marketplace</span>}
                 </button>
               );
             })}
