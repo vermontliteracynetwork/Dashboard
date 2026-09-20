@@ -68,3 +68,26 @@ export const SANDBOX_VERBS: GrammarPiece[] = [
 ];
 
 export const SANDBOX_PIECES: GrammarPiece[] = [...SANDBOX_NOUNS, ...SANDBOX_VERBS];
+
+// Mad Libs mode — Claudia's design pass confirmed this doesn't reopen the
+// "no explicit activity" override: it's a different arrangement affordance
+// for the same unscored SANDBOX_NOUNS/SANDBOX_VERBS pool (no new content,
+// no validation, no correctness feedback, no completion state, no gating),
+// grounded in the teacher's own curriculum reference, which already frames
+// her "Yoga Comic Sentence Formulas" as silly Mad-Libs-style content
+// (docs/curriculum-reference/sentence-formulas/README.md). A student taps
+// a tray tile to fill the next empty blank of that word class; any noun
+// fits any noun blank, any verb fits any verb blank — no "correct" answer.
+export type MadlibSegment = { type: 'text'; value: string } | { type: 'blank'; wordClass: 'noun' | 'verb' };
+
+const text = (value: string): MadlibSegment => ({ type: 'text', value });
+const blank = (wordClass: 'noun' | 'verb'): MadlibSegment => ({ type: 'blank', wordClass });
+
+export const MADLIB_TEMPLATES: MadlibSegment[][] = [
+  [blank('noun'), text(' and '), blank('noun'), text(' '), blank('verb'), text(' together.')],
+  [text('One day, '), blank('noun'), text(' '), blank('verb'), text(' all the way to '), blank('noun'), text("'s house.")],
+  [blank('noun'), text(' said, "I bet '), blank('noun'), text(' can\'t '), blank('verb'), text('!"')],
+  [blank('noun'), text(' '), blank('verb'), text(', then '), blank('noun'), text(' '), blank('verb'), text(' too.')],
+  [text('According to '), blank('noun'), text(', '), blank('noun'), text(' always '), blank('verb'), text(' first.')],
+  [blank('noun'), text(' wants to '), blank('verb'), text(' like '), blank('noun'), text('.')],
+];

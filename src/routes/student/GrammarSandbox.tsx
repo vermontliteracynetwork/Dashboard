@@ -4,7 +4,7 @@ import { useStore } from '../../store/store';
 import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
 import { Whiteboard } from '../../components/ToolsPanel';
-import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS } from '../../lib/grammarContent';
+import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS, MADLIB_TEMPLATES } from '../../lib/grammarContent';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS, GRAMMAR_WORD_CLASS_SHAPES } from '../../types';
 import type { GrammarPiece, GrammarMontessoriShape } from '../../types';
 import { todayISO } from '../../lib/dates';
@@ -123,12 +123,19 @@ export default function GrammarSandbox() {
   const student = students.find((s) => s.id === currentStudentId);
   const literacyFocusSets = useStore((s) => s.literacyFocusSets);
 
-  const [tool, setTool] = useState<'select' | 'draw'>('select');
+  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs'>('select');
   const [placed, setPlaced] = useState<PlacedPiece[]>([]);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Mad Libs mode — fills keyed by segment index within the active
+  // template; madlibGlow is the segment index that was just filled, for
+  // a one-time celebratory pulse (never a "correct" signal).
+  const [madlibTemplateIndex, setMadlibTemplateIndex] = useState(0);
+  const [madlibFills, setMadlibFills] = useState<Record<number, string>>({});
+  const [madlibGlow, setMadlibGlow] = useState<number | null>(null);
+  const madlibGlowTimerRef = useRef<number | null>(null);
   // Per-category collapse — now that there are two sidebar categories
   // (Sentence Grammar, Word Lists), with Morpheme Web/Letters & Sounds
   // still to come, letting a student collapse the ones they're not using
@@ -261,6 +268,39 @@ export default function GrammarSandbox() {
     setPlaced([]);
   };
 
+  const activeMadlibTemplate = MADLIB_TEMPLATES[madlibTemplateIndex];
+
+  const fillNextMadlibBlank = (piece: GrammarPiece) => {
+    const segIdx = activeMadlibTemplate.findIndex((seg, i) => seg.type === 'blank' && seg.wordClass === piece.wordClass && !madlibFills[i]);
+    if (segIdx === -1) return;
+    setMadlibFills((f) => ({ ...f, [segIdx]: piece.id }));
+    if (madlibGlowTimerRef.current) window.clearTimeout(madlibGlowTimerRef.current);
+    setMadlibGlow(segIdx);
+    madlibGlowTimerRef.current = window.setTimeout(() => setMadlibGlow(null), 900);
+  };
+
+  const clearMadlibBlank = (segIdx: number) => {
+    setMadlibFills((f) => {
+      const next = { ...f };
+      delete next[segIdx];
+      return next;
+    });
+  };
+
+  const newMadlibSentence = () => {
+    setMadlibTemplateIndex((i) => (i + 1) % MADLIB_TEMPLATES.length);
+    setMadlibFills({});
+  };
+
+  const clearMadlibBlanks = () => setMadlibFills({});
+
+  const readMadlib = () => {
+    const sentence = activeMadlibTemplate
+      .map((seg, i) => (seg.type === 'text' ? seg.value : (madlibFills[i] ? pieceById(madlibFills[i])?.text : undefined) ?? '___'))
+      .join('');
+    speak(sentence, student.ttsSettings);
+  };
+
   return (
     <div className="lm-shell">
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
@@ -308,13 +348,27 @@ export default function GrammarSandbox() {
                 <span className="lm-category-sub">Naming words</span>
                 <div className="lm-tile-list">
                   {SANDBOX_NOUNS.map((p) => (
-                    <GrammarPieceTile key={p.id} piece={p} style={{ width: '100%' }} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
+                    <GrammarPieceTile
+                      key={p.id}
+                      piece={p}
+                      style={{ width: '100%' }}
+                      onPointerDown={tool === 'madlibs' ? (e) => { e.preventDefault(); fillNextMadlibBlank(p); } : startDragFromTray(p)}
+                      onPointerMove={tool === 'madlibs' ? undefined : onDragMove}
+                      onPointerUp={tool === 'madlibs' ? undefined : onDragEnd}
+                    />
                   ))}
                 </div>
                 <span className="lm-category-sub">Action words</span>
                 <div className="lm-tile-list">
                   {SANDBOX_VERBS.map((p) => (
-                    <GrammarPieceTile key={p.id} piece={p} style={{ width: '100%' }} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
+                    <GrammarPieceTile
+                      key={p.id}
+                      piece={p}
+                      style={{ width: '100%' }}
+                      onPointerDown={tool === 'madlibs' ? (e) => { e.preventDefault(); fillNextMadlibBlank(p); } : startDragFromTray(p)}
+                      onPointerMove={tool === 'madlibs' ? undefined : onDragMove}
+                      onPointerUp={tool === 'madlibs' ? undefined : onDragEnd}
+                    />
                   ))}
                 </div>
               </div>
@@ -398,17 +452,78 @@ export default function GrammarSandbox() {
           <span className="lm-toolbar-divider" />
           <button className={`btn btn-sm ${tool === 'select' ? 'btn-primary' : ''}`} onClick={() => setTool('select')}>🔤 Words</button>
           <button className={`btn btn-sm ${tool === 'draw' ? 'btn-primary' : ''}`} onClick={() => setTool('draw')}>🎨 Draw</button>
+          <button className={`btn btn-sm ${tool === 'madlibs' ? 'btn-primary' : ''}`} onClick={() => setTool('madlibs')}>🎭 Mad Libs</button>
           <span className="lm-toolbar-divider" />
-          <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
-          <button className="btn btn-sm" onClick={readBoard} disabled={placed.length === 0}>🔈 Read board</button>
-          <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>🗑️ Clear</button>
+          {tool === 'madlibs' ? (
+            <>
+              <button className="btn btn-sm" onClick={newMadlibSentence}>🔀 New sentence</button>
+              <button className="btn btn-sm" onClick={readMadlib}>🔈 Read it</button>
+              <button className="btn btn-sm" onClick={clearMadlibBlanks} disabled={Object.keys(madlibFills).length === 0}>↺ Clear blanks</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
+              <button className="btn btn-sm" onClick={readBoard} disabled={placed.length === 0}>🔈 Read board</button>
+              <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>🗑️ Clear</button>
+            </>
+          )}
         </div>
 
-        {tool === 'draw' ? (
+        {tool === 'draw' && (
           <div className="lm-canvas">
             <Whiteboard student={student} />
           </div>
-        ) : (
+        )}
+
+        {tool === 'madlibs' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, padding: 24 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'center', maxWidth: 680, fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: 'var(--ink)', lineHeight: 1.6 }}>
+              {activeMadlibTemplate.map((seg, i) => {
+                if (seg.type === 'text') return <span key={i}>{seg.value}</span>;
+                const pieceId = madlibFills[i];
+                const piece = pieceId ? pieceById(pieceId) : undefined;
+                if (piece) {
+                  return (
+                    <GrammarPieceTile
+                      key={i}
+                      piece={piece}
+                      glowing={madlibGlow === i}
+                      style={{ cursor: 'pointer' }}
+                      onPointerDown={(e) => { e.preventDefault(); clearMadlibBlank(i); }}
+                    />
+                  );
+                }
+                const blankBg = GRAMMAR_WORD_CLASS_COLORS[seg.wordClass];
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: TILE_W,
+                      minHeight: TILE_H,
+                      padding: '6px 14px',
+                      borderRadius: seg.wordClass === 'noun' ? 12 : 999,
+                      border: `3px dashed ${blankBg}`,
+                      color: 'var(--ink)',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      opacity: 0.6,
+                    }}
+                  >
+                    {seg.wordClass === 'noun' ? 'naming word' : 'action word'}
+                  </span>
+                );
+              })}
+            </div>
+            <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
+              {Object.keys(madlibFills).length === 0 ? 'Tap a word below to fill in the story!' : 'Tap a filled word to swap it out.'}
+            </p>
+          </div>
+        )}
+
+        {tool === 'select' && (
           <div
             ref={canvasRef}
             className="lm-canvas"
