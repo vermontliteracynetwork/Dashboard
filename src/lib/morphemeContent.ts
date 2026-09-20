@@ -14,6 +14,12 @@
 export interface MorphemeRoot {
   id: string;
   text: string;
+  // Word-history enrichment (Phase 5 of Morpheme Web's original spec,
+  // built this hour) — ordinary, well-documented etymology, not a
+  // specialized curriculum standard needing outside verification the way
+  // UFLI's published phonics sequence would. Purely informational, shown
+  // alongside the root, never gating anything or requiring an answer.
+  etymology: string;
 }
 
 export type MorphemeAffixType = 'prefix' | 'suffix';
@@ -25,10 +31,10 @@ export interface MorphemeAffix {
 }
 
 export const MORPHEME_ROOTS: MorphemeRoot[] = [
-  { id: 'root-play', text: 'play' },
-  { id: 'root-help', text: 'help' },
-  { id: 'root-care', text: 'care' },
-  { id: 'root-happy', text: 'happy' },
+  { id: 'root-play', text: 'play', etymology: '"Play" comes from the Old English word "plegan," which meant to move quickly or to exercise. People have been using some form of this word for over a thousand years.' },
+  { id: 'root-help', text: 'help', etymology: '"Help" comes from the Old English word "helpan." Very similar words for helping show up in old German and old Norse too, so this is a word many related languages have shared for a very long time.' },
+  { id: 'root-care', text: 'care', etymology: '"Care" comes from the Old English word "caru," which used to mean sorrow or worry. Over hundreds of years its meaning softened into looking after someone or something you value.' },
+  { id: 'root-happy', text: 'happy', etymology: '"Happy" comes from the old word "hap," which meant luck or chance, the same root "happen" and "haphazard" come from. So "happy" originally meant something closer to "lucky"!' },
 ];
 
 export const MORPHEME_PREFIXES: MorphemeAffix[] = [

@@ -647,6 +647,16 @@ export default function GrammarSandbox() {
               </div>
             </div>
 
+            {/* Etymology enrichment card — Phase 5 of Morpheme Web's
+                original spec, built this hour. Purely informational, no
+                interaction required, never gates the tile-tap mechanic
+                above it — matches this sandbox's "no explicit activity"
+                override exactly. */}
+            <div className="chrome-frame" style={{ padding: '12px 18px', maxWidth: 440, textAlign: 'center' }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--purple)' }}>📜 Where this word comes from</p>
+              <p style={{ margin: '4px 0 0', fontSize: '0.9rem' }}>{currentRoot.etymology}</p>
+            </div>
+
             {/* Affix tray — tap to attach/detach. An invalid tap gets a
                 brief neutral wobble, never a red/wrong signal. */}
             <div className="row-wrap" style={{ justifyContent: 'center', gap: 8, maxWidth: 500 }}>
