@@ -15,6 +15,8 @@ import DailySpinWheel from '../../components/DailySpinWheel';
 import ToolsPanel from '../../components/ToolsPanel';
 import ChatPanel from '../../components/ChatPanel';
 import { formatMoney } from '../../lib/money';
+import WebpageFrame from '../../components/WebpageFrame';
+import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 
 // A live analog clock face for the Computer's widget desktop — direct
 // teacher ask ("an analog clock... visual as a widget"). Takes the current
@@ -64,6 +66,9 @@ export default function StudentHome() {
   const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const updateStudent = useStore((s) => s.updateStudent);
+  const transactions = useStore((s) => s.transactions);
+  const cinemaVideos = useStore((s) => s.cinemaVideos);
+  const chatMessages = useStore((s) => s.chatMessages);
   const [, setTick] = useState(0);
 
   const student = students.find((s) => s.id === currentStudentId);
@@ -117,32 +122,42 @@ export default function StudentHome() {
   const hasPlaygroundItems = activityLibrary.some((a) => a.inPlayground);
   const access = getPlaygroundAccess(mathDone, litDone, student, breakState);
 
+  // Real running-balance points for the Bank widget's sparkline — same
+  // per-day-total derivation PiggyBankCharts.tsx uses for its full chart,
+  // just unlabeled and tiny. Direct teacher ask ("Bank should look like a
+  // webpage, with a widget of a chart of their current account") — no
+  // fabricated data, this is the student's own real transaction history.
+  const bankTx = transactions.filter((t) => t.studentId === student.id && !t.voided).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  const bankDayTotals: number[] = [];
+  {
+    let running = 0;
+    const byDay = new Map<string, number>();
+    bankTx.forEach((t) => byDay.set(t.createdAt.slice(0, 10), (byDay.get(t.createdAt.slice(0, 10)) ?? 0) + t.amountCents));
+    [...byDay.keys()].sort().forEach((day) => {
+      running += byDay.get(day)!;
+      bankDayTotals.push(running);
+    });
+  }
+
+  // Most recently added Cinema video — cinemaVideos is already
+  // newest-first (addCinemaVideo prepends), so [0] is "Now Showing".
+  const latestVideo = cinemaVideos[0];
+  const latestVideoThumbId = latestVideo?.source === 'youtube' ? extractYouTubeId(latestVideo.url) : null;
+  const latestVideoCover = latestVideo?.coverImageUrl || (latestVideoThumbId ? youtubeThumbnailUrl(latestVideoThumbId) : null);
+
+  // Most recent message in this student's own thread with the teacher —
+  // real data ChatPanel.tsx already reads, just a compact preview here.
+  const chatThread = chatMessages.filter((m) => m.studentId === student.id).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  const lastChatMessage = chatThread[chatThread.length - 1];
+
   return (
     <div className="container stack">
       {/* Direct teacher instruction: this screen is reached by using the
           in-world computer, so it should read as an actual old computer/
-          web browser, not just another app screen — and the way back to
-          Town Square should be obvious right where a browser's own close
-          button would be. Decorative and in normal document flow (not a
-          fixed overlay) so it can't collide with any other screen's own
-          fixed buttons. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(#e9e5d8, #cfc9b7)', border: '2px solid #8a8574', borderRadius: '8px 8px 0 0', padding: '6px 10px', fontFamily: '"Courier New", monospace', fontSize: 13, color: '#3a362b' }}>
-        <span style={{ display: 'flex', gap: 4 }}>
-          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#e2775c', display: 'inline-block' }} />
-          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#e8c94a', display: 'inline-block' }} />
-          <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#5fa86b', display: 'inline-block' }} />
-        </span>
-        <div style={{ flex: 1, background: '#fff', border: '1px solid #8a8574', borderRadius: 4, padding: '3px 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          🔒 www.yoglandia.town/my-computer
-        </div>
-        <button
-          className="btn btn-sm"
-          style={{ minHeight: 32, fontFamily: 'system-ui, sans-serif', background: '#3e7c6b', color: '#fff' }}
-          onClick={() => navigate('/world/town')}
-        >
-          ✕ Close, back to Town Square
-        </button>
-      </div>
+          web browser, not just another app screen. Now the shared
+          WebpageFrame every "webpage" screen uses — this is the one
+          screen closed back to Town Square rather than to itself. */}
+      <WebpageFrame url="my-computer" backTo="/world/town" backLabel="✕ Close, back to Town Square" />
       <ToolsPanel student={student} subject="both" />
       <Onboarding studentId={student.id} />
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
@@ -305,12 +320,34 @@ export default function StudentHome() {
           <span className="widget-label">Mail</span>
         </button>
         <button
-          className="widget-card widget-icon-card widget-bank"
+          className="widget-card widget-card-tall widget-webpage widget-bank"
           onClick={() => navigate('/student/piggy-bank')}
           aria-label={`Piggy Bank, balance ${formatMoney(student.coins)}`}
         >
-          <span className="widget-icon">🏦</span>
-          <span className="widget-label">{formatMoney(student.coins)}</span>
+          <div className="widget-webpage-titlebar">🏦 Bank</div>
+          <div className="widget-webpage-body">
+            <span className="widget-webpage-big">{formatMoney(student.coins)}</span>
+            {bankDayTotals.length > 1 ? (
+              <svg viewBox="0 0 100 32" className="widget-sparkline" preserveAspectRatio="none" aria-hidden="true">
+                <polyline
+                  points={bankDayTotals.map((v, i) => {
+                    const max = Math.max(...bankDayTotals, 1);
+                    const min = Math.min(...bankDayTotals, 0);
+                    const x = (i / (bankDayTotals.length - 1)) * 100;
+                    const y = 30 - ((v - min) / Math.max(max - min, 1)) * 28;
+                    return `${x},${y}`;
+                  }).join(' ')}
+                  fill="none"
+                  stroke="var(--success)"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            ) : (
+              <span className="widget-webpage-hint">Balance grows as you earn!</span>
+            )}
+          </div>
         </button>
         <button
           className="widget-card widget-icon-card widget-market"
@@ -338,12 +375,42 @@ export default function StudentHome() {
           <span className="widget-label">Spin</span>
         </button>
         <button
-          className="widget-card widget-icon-card widget-chat"
+          className="widget-card widget-card-tall widget-webpage widget-chat-im"
           onClick={() => setShowChat(true)}
           aria-label="Chat with your teacher"
         >
-          <span className="widget-icon">💬</span>
-          <span className="widget-label">Chat</span>
+          <div className="widget-webpage-titlebar">💬 Chat</div>
+          <div className="widget-webpage-body">
+            {lastChatMessage ? (
+              <div className="widget-im-bubble">
+                <span className="widget-im-sender">{lastChatMessage.sender === 'teacher' ? 'Teacher' : 'You'}:</span>
+                <span className="widget-im-text">{lastChatMessage.text}</span>
+              </div>
+            ) : (
+              <span className="widget-webpage-hint">Say hi to your teacher!</span>
+            )}
+          </div>
+        </button>
+        {/* New Cinema widget on the computer desktop, direct teacher ask
+            ("cinema should have a widget") — a real poster-tile preview of
+            whatever's Now Showing, static image only (no autoplay), tap
+            opens the full Cinema for real playback. */}
+        <button
+          className="widget-card widget-card-tall widget-webpage widget-cinema-preview"
+          onClick={() => navigate('/student/cinema')}
+          aria-label={latestVideo ? `Cinema, now showing ${latestVideo.title}` : 'Cinema'}
+        >
+          <div className="widget-webpage-titlebar">🎬 Now Showing</div>
+          <div className="widget-webpage-body" style={{ padding: 0 }}>
+            {latestVideo && latestVideoCover ? (
+              <>
+                <img src={latestVideoCover} alt="" className="widget-cinema-thumb" />
+                <span className="widget-cinema-title">{latestVideo.title}</span>
+              </>
+            ) : (
+              <span className="widget-webpage-hint">{cinemaVideos.length} video{cinemaVideos.length === 1 ? '' : 's'} to watch</span>
+            )}
+          </div>
         </button>
         {/* Direct teacher instruction: the What's New book must always be
             reachable from the computer, not just the one-time popup in

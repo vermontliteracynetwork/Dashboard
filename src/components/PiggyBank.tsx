@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { formatMoney } from '../lib/money';
 import PiggyBankCharts from './PiggyBankCharts';
 import FocusBanner from './FocusBanner';
+import WebpageFrame from './WebpageFrame';
 
 // Homeplot's Bank standard: saving is concept-only (no interest math), just
 // a concrete "your money is growing toward something" fill-meter — student-set,
@@ -73,7 +73,6 @@ function isImagePath(icon: string): boolean {
 }
 
 export default function PiggyBank() {
-  const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const transactions = useStore((s) => s.transactions);
@@ -87,16 +86,11 @@ export default function PiggyBank() {
 
   return (
     <div className="container stack">
-      <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))' }}>
-        <h2 style={{ margin: 0, color: '#fff' }}>🐷 Piggy Bank</h2>
-        {/* Reached by walking up to the Bank in Town Square — same fix as
-            Mailbox.tsx/Passport.tsx, a direct way back instead of a forced
-            round trip through the 2D task list. */}
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-sm" onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
-        </div>
-      </div>
+      {/* Standard "webpage frame" shared by every screen reached from the
+          Computer — direct teacher instruction that the frame be applied
+          everywhere, replacing the old bespoke Town Square/Home buttons. */}
+      <WebpageFrame url="bank" />
+      <h2 style={{ margin: 0 }}>🐷 Piggy Bank</h2>
 
       <FocusBanner subjects={['finance', 'math']} />
 

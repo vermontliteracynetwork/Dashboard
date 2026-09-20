@@ -1,6 +1,6 @@
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
+import WebpageFrame from './WebpageFrame';
 
 // The Post Office's 2D view — Claudia's full-game audit found it (and the
 // Welcome Center) walkable-up-to and labeled but otherwise inert, which
@@ -11,7 +11,6 @@ import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
 // just gives that existing data somewhere to actually show up, framed as
 // mail Wren delivered, rather than inventing a new mechanic.
 export default function Mailbox() {
-  const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const student = students.find((s) => s.id === currentStudentId);
@@ -21,14 +20,11 @@ export default function Mailbox() {
 
   return (
     <div className="container stack">
-      <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))' }}>
-        <h2 style={{ margin: 0, color: '#fff' }}>📬 Mailbox</h2>
-        {/* Direct teacher instruction: Mail is now reached from the
-            Computer's own widget grid, so the way back is a single Back
-            button to that screen instead of the old three-button row
-            (What's New/Town Square/Home). */}
-        <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>⬅️ Back</button>
-      </div>
+      {/* Standard "webpage frame" shared by every screen reached from the
+          Computer, replacing the old bespoke purple header — direct
+          teacher instruction that the frame be applied everywhere. */}
+      <WebpageFrame url="mail" />
+      <h2 style={{ margin: 0 }}>📬 Mailbox</h2>
 
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%' }}>
         {received.length === 0 ? (
