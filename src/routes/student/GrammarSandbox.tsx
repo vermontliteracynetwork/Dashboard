@@ -129,6 +129,13 @@ export default function GrammarSandbox() {
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Per-category collapse — now that there are two sidebar categories
+  // (Sentence Grammar, Word Lists), with Morpheme Web/Letters & Sounds
+  // still to come, letting a student collapse the ones they're not using
+  // keeps the sidebar scannable instead of one long scroll. Both open
+  // by default so nothing looks hidden on first visit.
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({ grammar: true, wordLists: true });
+  const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [canUndo, setCanUndo] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragInstanceRef = useRef<string | null>(null);
@@ -286,23 +293,32 @@ export default function GrammarSandbox() {
           </div>
 
           <div className="lm-category">
-            <div className="lm-category-header" style={{ background: GRAMMAR_WORD_CLASS_COLORS.noun }}>
+            <button
+              type="button"
+              className="lm-category-header"
+              style={{ background: GRAMMAR_WORD_CLASS_COLORS.noun, width: '100%', minHeight: 44, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              onClick={() => toggleCategory('grammar')}
+              aria-expanded={openCategories.grammar}
+            >
               <span>🔤 Sentence Grammar</span>
-            </div>
-            <div className="lm-category-body">
-              <span className="lm-category-sub">Naming words</span>
-              <div className="lm-tile-list">
-                {SANDBOX_NOUNS.map((p) => (
-                  <GrammarPieceTile key={p.id} piece={p} style={{ width: '100%' }} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
-                ))}
+              <span aria-hidden="true">{openCategories.grammar ? '▾' : '▸'}</span>
+            </button>
+            {openCategories.grammar && (
+              <div className="lm-category-body">
+                <span className="lm-category-sub">Naming words</span>
+                <div className="lm-tile-list">
+                  {SANDBOX_NOUNS.map((p) => (
+                    <GrammarPieceTile key={p.id} piece={p} style={{ width: '100%' }} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
+                  ))}
+                </div>
+                <span className="lm-category-sub">Action words</span>
+                <div className="lm-tile-list">
+                  {SANDBOX_VERBS.map((p) => (
+                    <GrammarPieceTile key={p.id} piece={p} style={{ width: '100%' }} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
+                  ))}
+                </div>
               </div>
-              <span className="lm-category-sub">Action words</span>
-              <div className="lm-tile-list">
-                {SANDBOX_VERBS.map((p) => (
-                  <GrammarPieceTile key={p.id} piece={p} style={{ width: '100%' }} onPointerDown={startDragFromTray(p)} onPointerMove={onDragMove} onPointerUp={onDragEnd} />
-                ))}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Word Lists — Literacy Workspace Phase 2 (LITERACY_WORKSPACE.md):
@@ -313,41 +329,50 @@ export default function GrammarSandbox() {
               content, same guard SubjectDashboard's Focus Banner uses. */}
           {hasWordList && activeFocus && (
             <div className="lm-category">
-              <div className="lm-category-header" style={{ background: 'var(--purple)', color: '#fff' }}>
+              <button
+                type="button"
+                className="lm-category-header"
+                style={{ background: 'var(--purple)', color: '#fff', width: '100%', minHeight: 44, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                onClick={() => toggleCategory('wordLists')}
+                aria-expanded={openCategories.wordLists}
+              >
                 <span>📚 Word Lists</span>
-              </div>
-              <div className="lm-category-body">
-                {activeFocus.phonicsPatterns.length > 0 && (
-                  <>
-                    <span className="lm-category-sub">Phonics patterns</span>
-                    <div className="row-wrap" style={{ gap: 6 }}>
-                      {activeFocus.phonicsPatterns.map((p) => (
-                        <WordListPill key={`p-${p}`} word={p} onSpeak={() => speak(p, student.ttsSettings)} />
-                      ))}
-                    </div>
-                  </>
-                )}
-                {activeFocus.morphemes.length > 0 && (
-                  <>
-                    <span className="lm-category-sub">Word parts</span>
-                    <div className="row-wrap" style={{ gap: 6 }}>
-                      {activeFocus.morphemes.map((m) => (
-                        <WordListPill key={`m-${m}`} word={m} onSpeak={() => speak(m, student.ttsSettings)} />
-                      ))}
-                    </div>
-                  </>
-                )}
-                {activeFocus.practiceWords.length > 0 && (
-                  <>
-                    <span className="lm-category-sub">Spelling words</span>
-                    <div className="row-wrap" style={{ gap: 6 }}>
-                      {activeFocus.practiceWords.map((w) => (
-                        <WordListPill key={`w-${w}`} word={w} onSpeak={() => speak(w, student.ttsSettings)} />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+                <span aria-hidden="true">{openCategories.wordLists ? '▾' : '▸'}</span>
+              </button>
+              {openCategories.wordLists && (
+                <div className="lm-category-body">
+                  {activeFocus.phonicsPatterns.length > 0 && (
+                    <>
+                      <span className="lm-category-sub">Phonics patterns</span>
+                      <div className="row-wrap" style={{ gap: 6 }}>
+                        {activeFocus.phonicsPatterns.map((p) => (
+                          <WordListPill key={`p-${p}`} word={p} onSpeak={() => speak(p, student.ttsSettings)} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {activeFocus.morphemes.length > 0 && (
+                    <>
+                      <span className="lm-category-sub">Word parts</span>
+                      <div className="row-wrap" style={{ gap: 6 }}>
+                        {activeFocus.morphemes.map((m) => (
+                          <WordListPill key={`m-${m}`} word={m} onSpeak={() => speak(m, student.ttsSettings)} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {activeFocus.practiceWords.length > 0 && (
+                    <>
+                      <span className="lm-category-sub">Spelling words</span>
+                      <div className="row-wrap" style={{ gap: 6 }}>
+                        {activeFocus.practiceWords.map((w) => (
+                          <WordListPill key={`w-${w}`} word={w} onSpeak={() => speak(w, student.ttsSettings)} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
