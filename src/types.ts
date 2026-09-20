@@ -743,7 +743,7 @@ export interface Transaction {
 // routing to a hardcoded app screen (see ROLE_VIEWS in townLayout.ts), it
 // opens WorldObject.customRoleUrl in the same internal browser a task's
 // own external link already uses.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'arcade' | 'closed' | 'custom';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'arcade' | 'farmers-market' | 'closed' | 'custom';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'
@@ -1028,6 +1028,29 @@ export interface MarketplaceItem {
   voicePitch?: number;
   voiceRate?: number;
   voiceHints?: string[];
+}
+
+// A student-to-student barter offer at the Farmer's Market — direct
+// teacher request, framed explicitly as a way to practice negotiation as
+// a real skill (see DEVELOPMENT_PLAN.md's Parking Lot entry and
+// Claudia's design pass). Deliberately NOT a live simultaneous haggling
+// session — there's no presence/online-status system anywhere in this
+// app, so this is async and turn-based instead, the same shape
+// chat_messages already uses: a student posts an offer, any other
+// student can Accept it whenever they next look. Restricted to items
+// of the SAME MarketplaceItemKind on both sides (font-for-font,
+// color-for-color, voice-for-voice) as a simple built-in fairness
+// check, per Claudia's "no lopsided trades" rule — no free-typed
+// haggling, no cross-kind trades, no rarity/value scoring.
+export interface FarmerMarketOffer {
+  id: string;
+  studentId: string; // the student offering to give something up
+  offeredItemId: string; // a MarketplaceItem id this student currently owns and is willing to trade away
+  wantsItemId: string; // a MarketplaceItem id of the SAME kind this student wants in return
+  status: 'open' | 'accepted' | 'withdrawn';
+  acceptedByStudentId?: string; // the student who accepted, once status is 'accepted'
+  createdAt: string;
+  respondedAt?: string;
 }
 
 export interface OffscreenReview {

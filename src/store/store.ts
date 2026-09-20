@@ -149,6 +149,9 @@ import {
   pushGalleryItem,
   deleteGalleryItemRemote,
   rowToGalleryItem,
+  pushFarmerMarketOffer,
+  deleteFarmerMarketOfferRemote,
+  rowToFarmerMarketOffer,
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
@@ -177,6 +180,7 @@ import type {
   ScratchGame,
   MusicTrack,
   GalleryItem,
+  FarmerMarketOffer,
   ActivityLibraryItem,
   PlanTemplate,
   WeeklyScheduleEntry,
@@ -281,6 +285,7 @@ interface AppState {
   scratchGames: ScratchGame[]; // games shown in the in-world Arcade — teacher-authored MIT Scratch project links, unlimited replay, no mastery tracking
   musicTracks: MusicTrack[]; // shared music library — car radio, Concert Hall building, and Boom Box all draw from this same list, audio only
   galleryItems: GalleryItem[]; // Playground Gallery images — teacher-curated, unlimited browse, no mastery tracking
+  farmerMarketOffers: FarmerMarketOffer[]; // student-to-student barter offers — async/turn-based, see FarmerMarketOffer in types.ts
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -525,6 +530,11 @@ interface AppState {
   updateGalleryItem: (id: string, patch: Partial<GalleryItem>) => void;
   deleteGalleryItem: (id: string) => void;
 
+  // Farmer's Market — async student-to-student barter, see FarmerMarketOffer in types.ts
+  postFarmerMarketOffer: (studentId: string, offeredItemId: string, wantsItemId: string) => string;
+  withdrawFarmerMarketOffer: (id: string) => void;
+  acceptFarmerMarketOffer: (id: string, acceptingStudentId: string) => { ok: boolean; reason?: string };
+
   // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
   updateLibraryActivity: (id: string, patch: Partial<ActivityLibraryItem>) => void;
@@ -681,6 +691,7 @@ export const useStore = create<AppState>()(
       scratchGames: [],
       musicTracks: [],
       galleryItems: [],
+      farmerMarketOffers: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -851,6 +862,7 @@ export const useStore = create<AppState>()(
           onScratchGame: (e, n, o) => set((s) => ({ scratchGames: applyArrayRow(s.scratchGames, e, rowToScratchGame, n, o) })),
           onMusicTrack: (e, n, o) => set((s) => ({ musicTracks: applyArrayRow(s.musicTracks, e, rowToMusicTrack, n, o) })),
           onGalleryItem: (e, n, o) => set((s) => ({ galleryItems: applyArrayRow(s.galleryItems, e, rowToGalleryItem, n, o) })),
+          onFarmerMarketOffer: (e, n, o) => set((s) => ({ farmerMarketOffers: applyArrayRow(s.farmerMarketOffers, e, rowToFarmerMarketOffer, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -2727,6 +2739,58 @@ export const useStore = create<AppState>()(
       deleteGalleryItem: (id) => {
         set((s) => ({ galleryItems: s.galleryItems.filter((g) => g.id !== id) }));
         deleteGalleryItemRemote(id);
+      },
+
+      postFarmerMarketOffer: (studentId, offeredItemId, wantsItemId) => {
+        const id = makeId();
+        const full: FarmerMarketOffer = { id, studentId, offeredItemId, wantsItemId, status: 'open', createdAt: new Date().toISOString() };
+        set((s) => ({ farmerMarketOffers: [full, ...s.farmerMarketOffers] }));
+        pushFarmerMarketOffer(full);
+        return id;
+      },
+
+      // No penalty, either party's own open offer only — matches the
+      // "never punitive" standing rule (see PART D of the dev plan).
+      withdrawFarmerMarketOffer: (id) => {
+        set((s) => ({ farmerMarketOffers: s.farmerMarketOffers.filter((o) => o.id !== id) }));
+        deleteFarmerMarketOfferRemote(id);
+      },
+
+      // The actual barter: swaps ownership of the two marketplace items
+      // between the two students, the same owned-id-array mechanism
+      // buying/spinning a marketplace item already uses. Re-validates both
+      // sides still actually own what they're trading right before the
+      // swap (circumstances can change between when an offer was posted
+      // and when someone accepts it, since this is async/turn-based, not
+      // a live session) rather than trusting stale state.
+      acceptFarmerMarketOffer: (id, acceptingStudentId) => {
+        const offer = get().farmerMarketOffers.find((o) => o.id === id);
+        if (!offer || offer.status !== 'open') return { ok: false, reason: 'This offer is no longer available.' };
+        if (offer.studentId === acceptingStudentId) return { ok: false, reason: "You can't accept your own offer." };
+        const offering = get().students.find((s) => s.id === offer.studentId);
+        const accepting = get().students.find((s) => s.id === acceptingStudentId);
+        if (!offering || !accepting) return { ok: false, reason: 'Student not found.' };
+        const offeredItem = get().marketplaceItems.find((m) => m.id === offer.offeredItemId);
+        const wantsItem = get().marketplaceItems.find((m) => m.id === offer.wantsItemId);
+        if (!offeredItem || !wantsItem || offeredItem.kind !== wantsItem.kind) {
+          return { ok: false, reason: 'This trade is no longer valid.' };
+        }
+        const ownedField = ({ font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds' } as const)[offeredItem.kind as 'font' | 'color' | 'voice'];
+        if (!ownedField) return { ok: false, reason: 'This item type cannot be traded.' };
+        if (!offering[ownedField].includes(offer.offeredItemId)) return { ok: false, reason: `${offering.name} no longer has that item to trade.` };
+        if (!accepting[ownedField].includes(offer.wantsItemId)) return { ok: false, reason: "You don't have the item this trade is asking for." };
+
+        get().updateStudent(offer.studentId, {
+          [ownedField]: [...offering[ownedField].filter((x: string) => x !== offer.offeredItemId), offer.wantsItemId],
+        } as Partial<Student>);
+        get().updateStudent(acceptingStudentId, {
+          [ownedField]: [...accepting[ownedField].filter((x: string) => x !== offer.wantsItemId), offer.offeredItemId],
+        } as Partial<Student>);
+
+        const updated: FarmerMarketOffer = { ...offer, status: 'accepted', acceptedByStudentId: acceptingStudentId, respondedAt: new Date().toISOString() };
+        set((s) => ({ farmerMarketOffers: s.farmerMarketOffers.map((o) => (o.id === id ? updated : o)) }));
+        pushFarmerMarketOffer(updated);
+        return { ok: true };
       },
 
       addLibraryActivity: (activity) => {

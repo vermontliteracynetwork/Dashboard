@@ -19,6 +19,7 @@ import PetJournal from './routes/student/PetJournal';
 import Cinema from './routes/student/Cinema';
 import Arcade from './routes/student/Arcade';
 import Gallery from './routes/student/Gallery';
+import FarmersMarket from './routes/student/FarmersMarket';
 import GrammarSandbox from './routes/student/GrammarSandbox';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
@@ -139,6 +140,7 @@ export default function App() {
           <Route path="/student/mailbox" element={<Mailbox />} />
           <Route path="/student/passport" element={<Passport />} />
           <Route path="/student/gallery" element={<Gallery />} />
+          <Route path="/student/farmers-market" element={<FarmersMarket />} />
           <Route path="/student/pet-shelter" element={<PetShelter />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />

@@ -18,6 +18,7 @@ import type {
   ScratchGame,
   MusicTrack,
   GalleryItem,
+  FarmerMarketOffer,
   RotationMode,
   ToolKey,
   ProgressMap,
@@ -631,6 +632,17 @@ const rowToGalleryItem = (r: Row): GalleryItem => ({
   tags: r.tags ?? [],
 });
 
+const rowToFarmerMarketOffer = (r: Row): FarmerMarketOffer => ({
+  id: r.id,
+  studentId: r.student_id,
+  offeredItemId: r.offered_item_id,
+  wantsItemId: r.wants_item_id,
+  status: r.status,
+  acceptedByStudentId: r.accepted_by_student_id ?? undefined,
+  createdAt: r.created_at,
+  respondedAt: r.responded_at ?? undefined,
+});
+
 const rowToMusicTrack = (r: Row): MusicTrack => ({
   id: r.id,
   title: r.title,
@@ -809,6 +821,7 @@ export interface HydratedState {
   scratchGames: ScratchGame[];
   musicTracks: MusicTrack[];
   galleryItems: GalleryItem[];
+  farmerMarketOffers: FarmerMarketOffer[];
   focuses: Focus[];
   assignmentCompletionReward: AssignmentCompletionReward | null;
   emotePriceOverrides: Record<string, number>;
@@ -832,7 +845,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, galleryItemsRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, galleryItemsRes, farmerMarketOffersRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -871,6 +884,7 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('scratch_games').select('*'),
     supabase.from('music_tracks').select('*'),
     supabase.from('gallery_items').select('*'),
+    supabase.from('farmer_market_offers').select('*'),
   ]);
 
   for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes]) {
@@ -949,6 +963,7 @@ export async function fetchAll(): Promise<HydratedState> {
     scratchGames: (scratchGamesRes.data ?? []).map(rowToScratchGame),
     musicTracks: (musicTracksRes.data ?? []).map(rowToMusicTrack),
     galleryItems: (galleryItemsRes.data ?? []).map(rowToGalleryItem),
+    farmerMarketOffers: (farmerMarketOffersRes.data ?? []).map(rowToFarmerMarketOffer),
     focuses: (focusesRes.data ?? []).map(rowToFocus),
     assignmentCompletionReward: appSettingsRes.data ? rowToAppSettings(appSettingsRes.data) : DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
     emotePriceOverrides: appSettingsRes.data?.emote_price_overrides ?? {},
@@ -1272,6 +1287,19 @@ export const pushGalleryItem = (g: GalleryItem) =>
   });
 export const deleteGalleryItemRemote = (id: string) => remove('gallery_items', { id });
 
+export const pushFarmerMarketOffer = (o: FarmerMarketOffer) =>
+  upsert('farmer_market_offers', {
+    id: o.id,
+    student_id: o.studentId,
+    offered_item_id: o.offeredItemId,
+    wants_item_id: o.wantsItemId,
+    status: o.status,
+    accepted_by_student_id: o.acceptedByStudentId ?? null,
+    created_at: o.createdAt,
+    responded_at: o.respondedAt ?? null,
+  });
+export const deleteFarmerMarketOfferRemote = (id: string) => remove('farmer_market_offers', { id });
+
 export const pushRotationMode = (studentId: string, subject: Subject, mode: RotationMode) =>
   upsert('rotation_modes', { student_id: studentId, subject, mode });
 
@@ -1426,7 +1454,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToGalleryItem };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToGalleryItem, rowToFarmerMarketOffer };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1466,6 +1494,7 @@ export interface RealtimeHandlers {
   onScratchGame: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onMusicTrack: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onGalleryItem: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onFarmerMarketOffer: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
 }
 
 export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
@@ -1518,6 +1547,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'scratch_games' }, wire(handlers.onScratchGame))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'music_tracks' }, wire(handlers.onMusicTrack))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery_items' }, wire(handlers.onGalleryItem))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'farmer_market_offers' }, wire(handlers.onFarmerMarketOffer))
     .subscribe();
 
   return () => {

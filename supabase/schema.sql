@@ -259,6 +259,24 @@ create table if not exists gallery_items (
   tags jsonb not null default '[]'
 );
 
+-- Student-to-student barter offers at the Farmer's Market — direct
+-- teacher request to practice negotiation as a real skill. Async/turn-
+-- based (post an offer, another student accepts whenever), same shape
+-- as chat_messages, not a live simultaneous haggling session (no
+-- presence system exists to build that on). offered/wants item ids
+-- reference marketplace_items and must be the same kind on both sides,
+-- enforced in application code as a simple built-in fairness check.
+create table if not exists farmer_market_offers (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  offered_item_id text not null,
+  wants_item_id text not null,
+  status text not null check (status in ('open', 'accepted', 'withdrawn')) default 'open',
+  accepted_by_student_id text references students(id) on delete set null,
+  created_at timestamptz not null default now(),
+  responded_at timestamptz
+);
+
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged
 -- for the shared Playground pool. Same content shape as a Task, plus a
@@ -739,7 +757,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers'
   ];
 begin
   foreach t in array tables loop
@@ -782,7 +800,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers'
   ];
 begin
   foreach t in array tables loop

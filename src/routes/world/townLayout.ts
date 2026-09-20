@@ -90,6 +90,7 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   'island-dock': '/world/island',
   cinema: '/student/cinema',
   arcade: '/student/arcade',
+  'farmers-market': '/student/farmers-market',
   // Never actually read — a 'closed' role shows a "come back later" message
   // directly instead of navigating anywhere (see TownSquare.tsx/
   // IslandBuild.tsx's role click handlers, same special-case pattern
