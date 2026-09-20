@@ -1041,7 +1041,7 @@ function RosterTab() {
 // of), so reassigning it here would silently break that binding rather
 // than actually relabel anything.
 function SelectedObjectToolbar({
-  selected, allowNameRole, rotateCwFine, rotateCcwFine, setScale, growHold, shrinkHold,
+  selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onUpdate, onDelete, onDuplicate, deselect,
 }: {
@@ -1049,6 +1049,7 @@ function SelectedObjectToolbar({
   allowNameRole: boolean;
   rotateCwFine: ReturnType<typeof useHoldRepeat>;
   rotateCcwFine: ReturnType<typeof useHoldRepeat>;
+  onDragRotate: (deg: number) => void;
   setScale: (v: number) => void;
   growHold: ReturnType<typeof useHoldRepeat>;
   shrinkHold: ReturnType<typeof useHoldRepeat>;
@@ -1081,6 +1082,29 @@ function SelectedObjectToolbar({
   useEffect(() => { setConfirmingDelete(false); setOpenPopover(null); }, [selected.id]);
 
   const doDelete = () => { onDelete(); deselect(); };
+
+  // Click-and-drag rotate — direct teacher ask ("i need to be able to use
+  // click drag to spin while i am in build mode," modeled on Sims 4), as
+  // an alternative to the 90°/15°-step buttons beside it, not a
+  // replacement. Same screen-space-delta technique TownSquare's own
+  // click-drag camera rotate already uses (dx * sensitivity), just
+  // applied to the selected object's rotationY instead of the camera —
+  // setPointerCapture keeps the drag tracking even once the pointer
+  // moves off this small handle.
+  const dragRotateLastX = useRef(0);
+  const isDragRotating = useRef(false);
+  const handleRotateDragStart = (e: React.PointerEvent) => {
+    isDragRotating.current = true;
+    dragRotateLastX.current = e.clientX;
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, drag still works via mouse move */ }
+  };
+  const handleRotateDragMove = (e: React.PointerEvent) => {
+    if (!isDragRotating.current) return;
+    const dx = e.clientX - dragRotateLastX.current;
+    dragRotateLastX.current = e.clientX;
+    onDragRotate(dx * 0.5);
+  };
+  const handleRotateDragEnd = () => { isDragRotating.current = false; };
 
   const iconBtn = (label: string, title: string, onClick?: (e: React.MouseEvent) => void, holdProps?: ReturnType<typeof useHoldRepeat>, active?: boolean) => (
     <button
@@ -1137,6 +1161,18 @@ function SelectedObjectToolbar({
               {iconBtn('✥', 'Move — drag the object itself, or use the arrows below', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
               {iconBtn('↺', 'Rotate left 90° (hold for 15° fine steps)', undefined, rotateCcwFine)}
               {iconBtn('↻', 'Rotate right 90° (hold for 15° fine steps)', undefined, rotateCwFine)}
+              <button
+                title="Click and drag left/right to spin freely"
+                aria-label="Click and drag left or right to rotate freely"
+                className="btn btn-sm"
+                style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem', cursor: 'ew-resize', touchAction: 'none' }}
+                onPointerDown={handleRotateDragStart}
+                onPointerMove={handleRotateDragMove}
+                onPointerUp={handleRotateDragEnd}
+                onPointerCancel={handleRotateDragEnd}
+              >
+                🔄
+              </button>
               {iconBtn('⤢', 'Resize', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
               {iconBtn('🎨', 'Color tint', () => setOpenPopover((v) => (v === 'color' ? null : 'color')), undefined, openPopover === 'color')}
               {allowNameRole && iconBtn('⋯', 'Name & role', () => setOpenPopover((v) => (v === 'more' ? null : 'more')), undefined, openPopover === 'more')}
@@ -2799,6 +2835,7 @@ export default function WorldEditor() {
                 allowNameRole={selection.kind === 'placed'}
                 rotateCwFine={rotateCwFine}
                 rotateCcwFine={rotateCcwFine}
+                onDragRotate={rotateBy}
                 setScale={setScale}
                 growHold={growHold}
                 shrinkHold={shrinkHold}
