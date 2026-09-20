@@ -245,6 +245,20 @@ create table if not exists music_tracks (
   tags jsonb not null default '[]'
 );
 
+-- The Playground's Gallery — direct teacher request for a curated feed of
+-- images ("memes") kids can browse for fun, distinct from any task. Same
+-- pure play-for-fun shape as cinema_videos/scratch_games: no student_id,
+-- shared across the whole class, no mastery/task tracking. Video content
+-- from the same request is intentionally NOT duplicated here since
+-- cinema_videos already serves that exact purpose.
+create table if not exists gallery_items (
+  id text primary key,
+  image_url text not null,
+  caption text,
+  created_at timestamptz not null default now(),
+  tags jsonb not null default '[]'
+);
+
 -- Reusable activities: created once, dragged into any student's daily plan
 -- (which copies it into that student's `rotations.tasks`) and/or flagged
 -- for the shared Playground pool. Same content shape as a Task, plus a
@@ -725,7 +739,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items'
   ];
 begin
   foreach t in array tables loop
@@ -768,7 +782,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items'
   ];
 begin
   foreach t in array tables loop

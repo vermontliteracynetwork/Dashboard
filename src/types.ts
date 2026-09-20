@@ -491,6 +491,24 @@ export interface ScratchGame {
   tags?: string[]; // teacher-authored, free-form — same search/filter pattern as CinemaVideo.tags
 }
 
+// A single image in the Playground's Gallery — direct teacher request
+// (referencing the Kinzoo app's kid-facing content gallery): "a gallery
+// where I can add videos and images for the kids to look through... fun
+// things like memes." Scoped to images only, since Cinema already covers
+// the video-watch-for-fun half exactly (same shape: teacher-authored,
+// no task/mastery tracking) — duplicating video hosting here would just
+// split the same content across two places. Personality quizzes and mini
+// games from the same original request are a separate, not-yet-built
+// piece (see DEVELOPMENT_PLAN.md) that needs a design pass first, unlike
+// a plain image which carries no ABA/SEL judgment call.
+export interface GalleryItem {
+  id: string;
+  imageUrl: string;
+  caption?: string; // optional short label/alt text shown under the image
+  createdAt: string;
+  tags?: string[]; // same free-form tag pattern as CinemaVideo.tags
+}
+
 // A shared music library — direct teacher request: a car radio, the
 // Concert Hall building, and a placeable Boom Box all draw from this same
 // list. Audio only, always — unlike CinemaVideo, there is no video

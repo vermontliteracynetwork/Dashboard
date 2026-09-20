@@ -204,6 +204,12 @@ export default function PlaygroundView() {
               <span>Free Play, pick your own practice</span>
             </button>
           )}
+          {/* Direct teacher request: a curated image gallery for kids to
+              browse, distinct from any task — see GalleryManager.tsx. */}
+          <button className="choice-tile" onClick={() => navigate('/student/gallery')}>
+            <span className="choice-icon">🎉</span>
+            <span>Gallery</span>
+          </button>
           {entries.map(({ task, subject }) => (
             <button key={`${subject}-${task.id}`} className="choice-tile" onClick={() => setOpenEntry({ task, subject })}>
               {task.referenceImageUrl ? (

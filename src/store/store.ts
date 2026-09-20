@@ -146,6 +146,9 @@ import {
   pushMusicTrack,
   deleteMusicTrackRemote,
   rowToMusicTrack,
+  pushGalleryItem,
+  deleteGalleryItemRemote,
+  rowToGalleryItem,
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
 import type { BadgeCounters } from '../lib/sync';
@@ -173,6 +176,7 @@ import type {
   CinemaVideo,
   ScratchGame,
   MusicTrack,
+  GalleryItem,
   ActivityLibraryItem,
   PlanTemplate,
   WeeklyScheduleEntry,
@@ -276,6 +280,7 @@ interface AppState {
   cinemaVideos: CinemaVideo[]; // videos shown in the in-world Cinema — teacher-authored, unlimited replay, no mastery tracking
   scratchGames: ScratchGame[]; // games shown in the in-world Arcade — teacher-authored MIT Scratch project links, unlimited replay, no mastery tracking
   musicTracks: MusicTrack[]; // shared music library — car radio, Concert Hall building, and Boom Box all draw from this same list, audio only
+  galleryItems: GalleryItem[]; // Playground Gallery images — teacher-curated, unlimited browse, no mastery tracking
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
@@ -516,6 +521,9 @@ interface AppState {
   addMusicTrack: (track: Omit<MusicTrack, 'id' | 'createdAt'>) => string;
   updateMusicTrack: (id: string, patch: Partial<MusicTrack>) => void;
   deleteMusicTrack: (id: string) => void;
+  addGalleryItem: (item: Omit<GalleryItem, 'id' | 'createdAt'>) => string;
+  updateGalleryItem: (id: string, patch: Partial<GalleryItem>) => void;
+  deleteGalleryItem: (id: string) => void;
 
   // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
@@ -672,6 +680,7 @@ export const useStore = create<AppState>()(
       cinemaVideos: [],
       scratchGames: [],
       musicTracks: [],
+      galleryItems: [],
       layoutOverrides: {},
       groundTexture: null,
       skyColor: null,
@@ -841,6 +850,7 @@ export const useStore = create<AppState>()(
           onCinemaVideo: (e, n, o) => set((s) => ({ cinemaVideos: applyArrayRow(s.cinemaVideos, e, rowToCinemaVideo, n, o) })),
           onScratchGame: (e, n, o) => set((s) => ({ scratchGames: applyArrayRow(s.scratchGames, e, rowToScratchGame, n, o) })),
           onMusicTrack: (e, n, o) => set((s) => ({ musicTracks: applyArrayRow(s.musicTracks, e, rowToMusicTrack, n, o) })),
+          onGalleryItem: (e, n, o) => set((s) => ({ galleryItems: applyArrayRow(s.galleryItems, e, rowToGalleryItem, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
             if (e === 'DELETE') return;
@@ -2698,6 +2708,25 @@ export const useStore = create<AppState>()(
       deleteMusicTrack: (id) => {
         set((s) => ({ musicTracks: s.musicTracks.filter((t) => t.id !== id) }));
         deleteMusicTrackRemote(id);
+      },
+
+      addGalleryItem: (item) => {
+        const id = makeId();
+        const full: GalleryItem = { ...item, id, createdAt: new Date().toISOString() };
+        set((s) => ({ galleryItems: [full, ...s.galleryItems] }));
+        pushGalleryItem(full);
+        return id;
+      },
+
+      updateGalleryItem: (id, patch) => {
+        set((s) => ({ galleryItems: s.galleryItems.map((g) => (g.id === id ? { ...g, ...patch } : g)) }));
+        const updated = get().galleryItems.find((g) => g.id === id);
+        if (updated) pushGalleryItem(updated);
+      },
+
+      deleteGalleryItem: (id) => {
+        set((s) => ({ galleryItems: s.galleryItems.filter((g) => g.id !== id) }));
+        deleteGalleryItemRemote(id);
       },
 
       addLibraryActivity: (activity) => {
