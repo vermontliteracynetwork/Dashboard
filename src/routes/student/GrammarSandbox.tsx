@@ -7,6 +7,10 @@ import { Whiteboard } from '../../components/ToolsPanel';
 import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS, MADLIB_TEMPLATES } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_AFFIXES, MORPHEME_COMBOS, type MorphemeAffix } from '../../lib/morphemeContent';
 import { SOUND_WORDS, WORD_SORTS, type SoundWord } from '../../lib/soundContent';
+import {
+  MONTESSORI_WORD_CLASS_INFO, GRAMMAR_STATES, optionWordList,
+  type MontessoriWordClass, type PuzzleShape, type WordOption,
+} from '../../lib/montessoriGrammar';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS, GRAMMAR_WORD_CLASS_SHAPES } from '../../types';
 import type { GrammarPiece, GrammarMontessoriShape } from '../../types';
 import { todayISO } from '../../lib/dates';
@@ -56,6 +60,72 @@ function MontessoriShapeIcon({ shape, color }: { shape: GrammarMontessoriShape; 
     <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true" style={{ flexShrink: 0 }}>
       {shape === 'triangle' ? <polygon points="7.5,1.5 14,13.5 1,13.5" fill={color} /> : <circle cx="7.5" cy="7.5" r="6.5" fill={color} />}
     </svg>
+  );
+}
+
+// The full 9-shape Montessori grammar-symbol set, direct teacher request
+// with real reference-sheet images — every shape/color pairing here is
+// read directly off her Level 1 legend (see MONTESSORI_WORD_CLASS_INFO's
+// own header comment), not invented for this build.
+function PuzzleShapeIcon({ shape, color, size = 22 }: { shape: PuzzleShape; color: string; size?: number }) {
+  const c = size / 2;
+  return (
+    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true" style={{ flexShrink: 0 }}>
+      {shape === 'triangle-lg' && <polygon points="11,1.5 20.5,20.5 1.5,20.5" fill={color} />}
+      {shape === 'triangle-md' && <polygon points="11,4 18,19 4,19" fill={color} />}
+      {shape === 'triangle-sm' && <polygon points="11,7 15.5,17.5 6.5,17.5" fill={color} />}
+      {shape === 'circle-lg' && <circle cx={c} cy={c} r={9.5} fill={color} />}
+      {shape === 'circle-sm' && <circle cx={c} cy={c} r={6} fill={color} />}
+      {shape === 'rectangle' && <rect x="2" y="7" width="18" height="8" rx="1.5" fill={color} />}
+      {shape === 'crescent' && (
+        <>
+          <circle cx={c} cy={c} r={9.5} fill={color} />
+          <circle cx={c + 6} cy={c} r={8} fill="var(--paper, #fff)" />
+        </>
+      )}
+      {shape === 'cone' && <path d="M 11 2 C 5 9, 5 15, 11 20 C 17 15, 17 9, 11 2 Z" fill={color} />}
+    </svg>
+  );
+}
+
+// Jigsaw puzzle piece — direct teacher request with a real reference
+// image (interlocking prefix/base/suffix pieces). A true bezier tab/notch
+// outline needs SVG arc-sweep math that's easy to get backwards without a
+// live render to check against (this sandbox can't screenshot itself);
+// this gets the same recognizable silhouette a simpler, more robust way —
+// a plain rectangle body, plus a small solid circle straddling the right
+// edge (always reads as an outward "tab," regardless of arc-sweep
+// direction, because it's drawn, not cut), plus a small circle in the
+// canvas's own background color straddling the left edge (reads as an
+// inward "notch," since it visually erases a bite of the rectangle
+// underneath it). `hasTab`/`hasNotch` let the end pieces (prefix's left
+// edge, suffix's right edge) stay flat, so only the seams between
+// connected pieces show the interlock.
+function PuzzlePiece({ text, color, textColor = '#fff', hasNotch, hasTab, onClick, muted }: {
+  text: string; color: string; textColor?: string; hasNotch: boolean; hasTab: boolean; onClick?: () => void; muted?: boolean;
+}) {
+  const w = 96;
+  const h = 64;
+  const r = 9;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      style={{
+        position: 'relative', width: w, height: h, padding: 0, border: 'none', background: 'transparent',
+        cursor: onClick ? 'pointer' : 'default', opacity: muted ? 0.45 : 1,
+      }}
+    >
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+        <rect x="3" y="3" width={w - 6} height={h - 6} rx="6" fill={color} stroke="var(--ink)" strokeWidth="3" />
+        {hasTab && <circle cx={w - 3} cy={h / 2} r={r} fill={color} stroke="var(--ink)" strokeWidth="3" />}
+        {hasNotch && <circle cx="3" cy={h / 2} r={r - 1} fill="var(--paper, #fdfdfb)" stroke="var(--ink)" strokeWidth="3" />}
+        <text x={w / 2} y={h / 2 + 6} textAnchor="middle" fontFamily="'Baloo 2', sans-serif" fontWeight={800} fontSize="15" fill={textColor}>
+          {text}
+        </text>
+      </svg>
+    </button>
   );
 }
 
@@ -148,7 +218,7 @@ export default function GrammarSandbox() {
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const updateStudent = useStore((s) => s.updateStudent);
 
-  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs' | 'web' | 'boxes' | 'blend' | 'sorts'>('select');
+  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs' | 'web' | 'boxes' | 'blend' | 'sorts' | 'sentence' | 'matrix'>('select');
   const [placed, setPlaced] = useState<PlacedPiece[]>([]);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [confirmExit, setConfirmExit] = useState(false);
@@ -217,6 +287,34 @@ export default function GrammarSandbox() {
   const markerCanvasRef = useRef<HTMLCanvasElement>(null);
   const markerDrawing = useRef(false);
   const markerLast = useRef<{ x: number; y: number } | null>(null);
+  // Montessori Sentence Builder — direct teacher request with real
+  // reference images: a decision-tree sentence builder (see
+  // montessoriGrammar.ts for the full state graph and why). sbBuilt is
+  // the sentence so far; sbStateId is where the decision tree currently
+  // is; sbSubjectVerbForm is captured the moment a subject noun/pronoun
+  // is chosen, so the Verb step only ever offers the grammatically
+  // agreeing form. History stacks (state + subject form BEFORE each word
+  // was added) are what makes Undo correct — the decision tree can't be
+  // "rewound" just by popping the last word, since state depends on the
+  // whole path taken, not just the word count.
+  const [sbBuilt, setSbBuilt] = useState<{ wordClass: MontessoriWordClass; text: string }[]>([]);
+  const [sbStateId, setSbStateId] = useState('start');
+  const [sbSubjectVerbForm, setSbSubjectVerbForm] = useState<'singular' | 'plural' | null>(null);
+  const [sbOpenPicker, setSbOpenPicker] = useState<MontessoriWordClass | null>(null);
+  const sbStateHistory = useRef<string[]>([]);
+  const sbSubjectHistory = useRef<('singular' | 'plural' | null)[]>([]);
+  // Word Matrix — direct teacher request, "puzzle piece like format for
+  // morphemes": the same real, hand-verified root+prefix+suffix pool
+  // Morpheme Web already uses (morphemeContent.ts), rendered as
+  // interlocking jigsaw pieces in a row instead of Morpheme Web's radial
+  // layout — a genuinely different manipulative, not a reskin, per
+  // Claudia's own build-plan scope call (two independently-validated
+  // flanks around one base, not full three-part simultaneous validation).
+  const [matrixRootId, setMatrixRootId] = useState(MORPHEME_ROOTS[0].id);
+  const [matrixPrefixId, setMatrixPrefixId] = useState<string | null>(null);
+  const [matrixSuffixId, setMatrixSuffixId] = useState<string | null>(null);
+  const [matrixShakeId, setMatrixShakeId] = useState<string | null>(null);
+  const matrixShakeTimerRef = useRef<number | null>(null);
   // Per-category collapse — now that there are two sidebar categories
   // (Sentence Grammar, Word Lists), with Letters & Sounds still to come,
   // letting a student collapse the ones they're not using keeps the
@@ -581,6 +679,93 @@ export default function GrammarSandbox() {
     if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  // Montessori Sentence Builder
+  const sbCurrentState = GRAMMAR_STATES[sbStateId];
+
+  const sbWordListFor = (wordClass: MontessoriWordClass): WordOption[] => {
+    if (wordClass === 'verb') return SANDBOX_VERBS.filter((v) => v.number === sbSubjectVerbForm).map((v) => ({ text: v.text }));
+    return optionWordList(sbStateId, wordClass);
+  };
+
+  const sbChooseWord = (wordClass: MontessoriWordClass, option: WordOption) => {
+    const opt = sbCurrentState.options.find((o) => o.wordClass === wordClass);
+    if (!opt) return;
+    sbStateHistory.current.push(sbStateId);
+    sbSubjectHistory.current.push(sbSubjectVerbForm);
+    setSbBuilt((b) => [...b, { wordClass, text: option.text }]);
+    // The subject's verb form is captured the instant a noun/pronoun
+    // resolves into 'afterSubject' — a common noun (no verbForm on the
+    // option, since optionWordList's COMMON_NOUNS carry none) defaults to
+    // singular, matching ordinary usage ("the dog runs").
+    if (opt.next === 'afterSubject') setSbSubjectVerbForm(option.verbForm ?? 'singular');
+    setSbStateId(opt.next);
+    setSbOpenPicker(null);
+  };
+
+  const sbUndo = () => {
+    if (sbBuilt.length === 0) return;
+    setSbBuilt((b) => b.slice(0, -1));
+    setSbStateId(sbStateHistory.current.pop() ?? 'start');
+    setSbSubjectVerbForm(sbSubjectHistory.current.pop() ?? null);
+    setSbOpenPicker(null);
+  };
+
+  const sbReset = () => {
+    setSbBuilt([]);
+    setSbStateId('start');
+    setSbSubjectVerbForm(null);
+    setSbOpenPicker(null);
+    sbStateHistory.current = [];
+    sbSubjectHistory.current = [];
+  };
+
+  const sbSentenceText = () => sbBuilt.map((w) => w.text).join(' ').replace(/\s+([!.])/, '$1');
+
+  const sbReadSentence = () => {
+    if (sbBuilt.length === 0) return;
+    const finished = sbCurrentState.canEnd ? `${sbSentenceText()}.` : sbSentenceText();
+    speak(finished, student.ttsSettings);
+  };
+
+  // Word Matrix
+  const matrixRoot = MORPHEME_ROOTS.find((r) => r.id === matrixRootId) ?? MORPHEME_ROOTS[0];
+
+  const selectMatrixRoot = (rootId: string) => {
+    setMatrixRootId(rootId);
+    setMatrixPrefixId(null);
+    setMatrixSuffixId(null);
+  };
+
+  const matrixTryAttach = (affix: MorphemeAffix) => {
+    const comboKey = `${matrixRootId}:${affix.id}`;
+    const isAttached = affix.type === 'prefix' ? matrixPrefixId === affix.id : matrixSuffixId === affix.id;
+    if (isAttached) {
+      if (affix.type === 'prefix') setMatrixPrefixId(null); else setMatrixSuffixId(null);
+      return;
+    }
+    if (!MORPHEME_COMBOS[comboKey]) {
+      if (matrixShakeTimerRef.current) window.clearTimeout(matrixShakeTimerRef.current);
+      setMatrixShakeId(affix.id);
+      matrixShakeTimerRef.current = window.setTimeout(() => setMatrixShakeId(null), 400);
+      return;
+    }
+    if (affix.type === 'prefix') setMatrixPrefixId(affix.id); else setMatrixSuffixId(affix.id);
+  };
+
+  const matrixReadWord = () => {
+    const prefixText = matrixPrefixId ? MORPHEME_PREFIXES.find((p) => p.id === matrixPrefixId)?.text ?? '' : '';
+    const suffixText = matrixSuffixId ? MORPHEME_SUFFIXES.find((s) => s.id === matrixSuffixId)?.text ?? '' : '';
+    const key = matrixSuffixId ? `${matrixRootId}:${matrixSuffixId}` : matrixPrefixId ? `${matrixRootId}:${matrixPrefixId}` : null;
+    // Prefix+base+suffix together (full three-part combo) isn't in the
+    // validated table yet — Claudia's own scope call on this build: v1
+    // validates two independent flanks, not a combined three-part word,
+    // so with both attached this reads the pieces aloud separately
+    // rather than guessing a combined spelling that might not be real.
+    if (matrixPrefixId && matrixSuffixId) { speak(`${prefixText} ${matrixRoot.text} ${suffixText}`, student.ttsSettings); return; }
+    const word = key ? MORPHEME_COMBOS[key] : matrixRoot.text;
+    speak(word ?? matrixRoot.text, student.ttsSettings);
+  };
+
   return (
     <div className="lm-shell">
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
@@ -746,6 +931,11 @@ export default function GrammarSandbox() {
           <button className={`btn btn-sm ${tool === 'boxes' ? 'btn-primary' : ''}`} onClick={() => setTool('boxes')}>🟦 Sound Boxes</button>
           <button className={`btn btn-sm ${tool === 'blend' ? 'btn-primary' : ''}`} onClick={() => setTool('blend')}>🧱 Blending Board</button>
           <button className={`btn btn-sm ${tool === 'sorts' ? 'btn-primary' : ''}`} onClick={() => setTool('sorts')}>🗂️ Word Sorts</button>
+          {/* Direct teacher request, real reference images: a Montessori-
+              shape decision-tree sentence builder, and jigsaw-piece
+              morphemes. */}
+          <button className={`btn btn-sm ${tool === 'sentence' ? 'btn-primary' : ''}`} onClick={() => setTool('sentence')}>🧩 Sentence Builder</button>
+          <button className={`btn btn-sm ${tool === 'matrix' ? 'btn-primary' : ''}`} onClick={() => setTool('matrix')}>🧬 Word Matrix</button>
           <span className="lm-toolbar-divider" />
           {/* Marker — direct teacher request: "always be used, even when
               manipulatives are active." A toggle, not a mode: turning it
@@ -798,6 +988,17 @@ export default function GrammarSandbox() {
                 <button key={s.id} className={`btn btn-sm ${i === sortIndex ? 'btn-primary' : ''}`} onClick={() => changeSort(i)}>{s.label}</button>
               ))}
               <button className="btn btn-sm" onClick={clearSortPlacements} disabled={Object.keys(sortPlacements).length === 0}>↺ Clear sort</button>
+            </>
+          ) : tool === 'sentence' ? (
+            <>
+              <button className="btn btn-sm" onClick={sbReadSentence} disabled={sbBuilt.length === 0}>🔈 Read it</button>
+              <button className="btn btn-sm" onClick={sbUndo} disabled={sbBuilt.length === 0}>↩️ Undo</button>
+              <button className="btn btn-sm" onClick={sbReset} disabled={sbBuilt.length === 0}>🔀 New sentence</button>
+            </>
+          ) : tool === 'matrix' ? (
+            <>
+              <button className="btn btn-sm" onClick={matrixReadWord}>🔈 Read it</button>
+              <button className="btn btn-sm" onClick={() => { setMatrixPrefixId(null); setMatrixSuffixId(null); }} disabled={!matrixPrefixId && !matrixSuffixId}>↺ Clear pieces</button>
             </>
           ) : (
             <>
@@ -1143,6 +1344,124 @@ export default function GrammarSandbox() {
             </div>
             <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
               {selectedSortWordId ? 'Now tap the bucket it belongs in!' : 'Tap a word, then tap where it belongs.'}
+            </p>
+          </div>
+        )}
+
+        {tool === 'sentence' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 24, overflowY: 'auto' }}>
+            {/* Montessori Sentence Builder — direct teacher request with
+                real reference images: at every step, only the word
+                classes that are grammatically valid right now are
+                offered (montessoriGrammar.ts's decision tree), so a
+                built sentence is always a real, correct English sentence
+                once "Read it"/canEnd allows finishing — never a dead end,
+                never a wrong turn to correct. */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 6, minHeight: 50 }}>
+              {sbBuilt.length === 0 && (
+                <p style={{ margin: 0, fontWeight: 700, opacity: 0.4 }}>Tap a shape below to start your sentence!</p>
+              )}
+              {sbBuilt.map((w, i) => {
+                const info = MONTESSORI_WORD_CLASS_INFO[w.wordClass];
+                return (
+                  <span
+                    key={i}
+                    className="tag-pill"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: info.color, color: '#fff', fontWeight: 700 }}
+                  >
+                    <PuzzleShapeIcon shape={info.shape} color="#fff" size={16} />
+                    {w.text}
+                  </span>
+                );
+              })}
+              {sbCurrentState.canEnd && sbBuilt.length > 0 && <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>.</span>}
+            </div>
+            {sbCurrentState.canEnd && (
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--success)', fontSize: '0.85rem' }}>✅ This is already a real, complete sentence — keep going or tap "Read it"!</p>
+            )}
+
+            <div className="stack" style={{ gap: 10, alignItems: 'center', width: '100%', maxWidth: 640 }}>
+              <p style={{ margin: 0, fontWeight: 700, opacity: 0.6, fontSize: '0.8rem' }}>What comes next?</p>
+              <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
+                {sbCurrentState.options.map((opt) => {
+                  const info = MONTESSORI_WORD_CLASS_INFO[opt.wordClass];
+                  return (
+                    <button
+                      key={opt.wordClass}
+                      type="button"
+                      className="btn btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, background: sbOpenPicker === opt.wordClass ? info.color : '#fff', color: sbOpenPicker === opt.wordClass ? '#fff' : 'var(--ink)' }}
+                      onClick={() => setSbOpenPicker((v) => (v === opt.wordClass ? null : opt.wordClass))}
+                    >
+                      <PuzzleShapeIcon shape={info.shape} color={sbOpenPicker === opt.wordClass ? '#fff' : info.color} size={18} />
+                      {info.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {sbOpenPicker && (
+                <div className="row-wrap chrome-frame" style={{ justifyContent: 'center', gap: 6, padding: 10, maxWidth: 600 }}>
+                  {sbWordListFor(sbOpenPicker).map((opt) => (
+                    <button key={opt.text} type="button" className="tag-pill" style={{ cursor: 'pointer', background: '#fff' }} onClick={() => sbChooseWord(sbOpenPicker, opt)}>
+                      {opt.text}
+                    </button>
+                  ))}
+                  {sbWordListFor(sbOpenPicker).length === 0 && <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Pick a naming word first so I know which verb form to offer!</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tool === 'matrix' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 24, overflowY: 'auto' }}>
+            {/* Word Matrix — direct teacher request with a real reference
+                image: prefix/base/suffix as literal interlocking jigsaw
+                pieces (see PuzzlePiece above), reusing the exact same
+                real hand-verified root/affix/combo pool Morpheme Web
+                already validated, just laid out and validated as two
+                independent flanks around one base instead of a radial
+                web — Claudia's own scoped v1 call. */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
+              {MORPHEME_ROOTS.map((r) => (
+                <button key={r.id} className={`btn btn-sm ${r.id === matrixRootId ? 'btn-primary' : ''}`} onClick={() => selectMatrixRoot(r.id)}>{r.text}</button>
+              ))}
+            </div>
+
+            <div className="row" style={{ justifyContent: 'center', alignItems: 'center', gap: 4 }}>
+              {matrixPrefixId ? (
+                <PuzzlePiece text={MORPHEME_PREFIXES.find((p) => p.id === matrixPrefixId)?.text ?? ''} color="var(--blue)" hasNotch={false} hasTab onClick={() => setMatrixPrefixId(null)} />
+              ) : (
+                <span style={{ width: 96, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px dashed var(--content-border)', borderRadius: 10, fontSize: '0.7rem', opacity: 0.5, fontWeight: 700 }}>+ prefix</span>
+              )}
+              <PuzzlePiece text={matrixRoot.text} color="var(--purple)" hasNotch={!!matrixPrefixId} hasTab={!!matrixSuffixId} />
+              {matrixSuffixId ? (
+                <PuzzlePiece text={MORPHEME_SUFFIXES.find((s) => s.id === matrixSuffixId)?.text ?? ''} color="var(--blue)" hasNotch hasTab={false} onClick={() => setMatrixSuffixId(null)} />
+              ) : (
+                <span style={{ width: 96, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px dashed var(--content-border)', borderRadius: 10, fontSize: '0.7rem', opacity: 0.5, fontWeight: 700 }}>+ suffix</span>
+              )}
+            </div>
+
+            <div className="stack" style={{ gap: 10, alignItems: 'center' }}>
+              <p style={{ margin: 0, fontWeight: 700, opacity: 0.6, fontSize: '0.8rem' }}>Prefixes</p>
+              <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
+                {MORPHEME_PREFIXES.map((a) => (
+                  <div key={a.id} className={matrixShakeId === a.id ? 'lm-web-shake' : ''}>
+                    <PuzzlePiece text={a.text} color="#fdf3d8" textColor="var(--ink)" hasNotch={false} hasTab muted={matrixPrefixId !== null && matrixPrefixId !== a.id} onClick={() => matrixTryAttach(a)} />
+                  </div>
+                ))}
+              </div>
+              <p style={{ margin: 0, fontWeight: 700, opacity: 0.6, fontSize: '0.8rem' }}>Suffixes</p>
+              <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
+                {MORPHEME_SUFFIXES.map((a) => (
+                  <div key={a.id} className={matrixShakeId === a.id ? 'lm-web-shake' : ''}>
+                    <PuzzlePiece text={a.text} color="#fdf3d8" textColor="var(--ink)" hasNotch hasTab={false} muted={matrixSuffixId !== null && matrixSuffixId !== a.id} onClick={() => matrixTryAttach(a)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
+              Tap a puzzle piece to attach it — it only fits if it makes a real word part!
             </p>
           </div>
         )}

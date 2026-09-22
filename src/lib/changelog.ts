@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-sentence-builder-matrix',
+    date: '2026-09-22',
+    icon: '🧩',
+    title: 'New: Sentence Builder and Word Matrix in Literacy Manipulatives!',
+    body: 'Tap "Sentence Builder" and pick shapes one at a time to build a real sentence, it always comes out right! Tap "Word Matrix" to snap prefix and suffix puzzle pieces onto a word.',
+  },
+  {
     id: '2026-09-22-sound-boxes-blending',
     date: '2026-09-22',
     icon: '🟦',
