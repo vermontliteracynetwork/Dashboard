@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-laptop-screens',
+    date: '2026-09-22',
+    icon: '💻',
+    title: 'The Bank, Mail, and Marketplace look like a real computer now',
+    body: 'Those screens show up inside a laptop now, just like your Computer at home already did. Same look everywhere you go.',
+  },
+  {
     id: '2026-09-22-music-background',
     date: '2026-09-22',
     icon: '🎵',

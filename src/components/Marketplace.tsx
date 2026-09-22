@@ -354,6 +354,11 @@ export default function Marketplace() {
   };
 
   return (
+    // Direct teacher instruction: every "webpage" screen reads as
+    // displayed inside a physical laptop now — same .laptop-frame/
+    // .laptop-screen/.laptop-deck StudentHome.tsx already uses.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
     <div className="container stack">
       {showCart && (
         <div className="overlay-backdrop" onClick={() => setShowCart(false)}>
@@ -863,6 +868,9 @@ export default function Marketplace() {
             )}
           </div>
       </div>
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

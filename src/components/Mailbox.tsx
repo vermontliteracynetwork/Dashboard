@@ -19,6 +19,11 @@ export default function Mailbox() {
   const received = QUEST1_NEIGHBORS.filter((n) => student.worldQuest1MetIds.includes(n.id));
 
   return (
+    // Direct teacher instruction: every "webpage" screen reads as
+    // displayed inside a physical laptop now — same .laptop-frame/
+    // .laptop-screen/.laptop-deck StudentHome.tsx already uses.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
     <div className="container stack">
       {/* Standard "webpage frame" shared by every screen reached from the
           Computer, replacing the old bespoke purple header — direct
@@ -47,6 +52,9 @@ export default function Mailbox() {
           Wren delivers whatever a Neighbor sends the first time you meet them.
         </p>
       </div>
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

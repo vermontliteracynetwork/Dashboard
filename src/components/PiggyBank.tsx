@@ -85,6 +85,14 @@ export default function PiggyBank() {
   const chartRegister = register.filter((t) => !t.voided);
 
   return (
+    // Direct teacher instruction: every "webpage" screen (not just the
+    // Computer desktop) reads as displayed inside a physical laptop now —
+    // same .laptop-frame/.laptop-screen/.laptop-deck StudentHome.tsx
+    // already uses. Decorative only; position:fixed overlays (all of this
+    // app's modals) still cover the full viewport since neither wrapper
+    // div sets a transform, which is what would otherwise trap them.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
     <div className="container stack">
       {/* Standard "webpage frame" shared by every screen reached from the
           Computer — direct teacher instruction that the frame be applied
@@ -184,6 +192,9 @@ export default function PiggyBank() {
           </div>
         )}
       </div>
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }
