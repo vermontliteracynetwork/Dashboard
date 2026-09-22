@@ -1047,6 +1047,22 @@ export interface Note {
   kind?: 'note' | 'journal';
 }
 
+// A named, saved snapshot of a student's Literacy Manipulatives canvas —
+// direct teacher instruction: "a save file (creating a log of all saved
+// whiteboards that they can name and refer back to)." placedJson is a
+// JSON.stringify of GrammarSandbox.tsx's own PlacedItem[] (kept as an
+// opaque string here rather than a shared type, since only that screen
+// needs to know its shape); drawingDataUrl is a canvas.toDataURL()
+// snapshot of the draw/highlight layer, null if nothing was drawn.
+export interface SavedWhiteboard {
+  id: string;
+  studentId: string;
+  name: string;
+  createdAt: string;
+  placedJson: string;
+  drawingDataUrl: string | null;
+}
+
 // Every non-character, non-emote thing a student can buy — a font, a text
 // color, a read-aloud voice skin, a power-up (Skip Pass), or an open-ended
 // prize ("10 minutes free time," "a pet," a real-life item the teacher

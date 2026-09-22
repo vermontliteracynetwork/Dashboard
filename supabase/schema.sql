@@ -656,6 +656,21 @@ create table if not exists notes (
   highlight_color_id text,
   updated_at timestamptz not null default now()
 );
+
+-- Literacy Manipulatives save file — direct teacher instruction: "a save
+-- file (creating a log of all saved whiteboards that they can name and
+-- refer back to)." placed_json is a JSON.stringify of GrammarSandbox.tsx's
+-- own PlacedItem[]; drawing_data_url is a canvas.toDataURL() snapshot of
+-- the draw/highlight layer, same named-independent-saves shape as notes
+-- above.
+create table if not exists saved_whiteboards (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  name text not null default 'Untitled board',
+  created_at timestamptz not null default now(),
+  placed_json text not null default '[]',
+  drawing_data_url text
+);
 -- Was previously listed in the "columns added after initial release" block
 -- above, ahead of this table's own creation — running the whole file fresh
 -- (a new project, or a from-scratch re-run) hit that alter statement before
@@ -805,7 +820,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
   ];
 begin
   foreach t in array tables loop
@@ -848,7 +863,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
   ];
 begin
   foreach t in array tables loop

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-lm-save-toolbar',
+    date: '2026-09-22',
+    icon: '💾',
+    title: 'Save your Literacy Manipulatives board!',
+    body: 'Tap "Save" at the top to name and save your board, then find it again anytime in "My Boards." There is also a Redo button now next to Undo, and you can tap "Hide bar" to get more room to work.',
+  },
+  {
     id: '2026-09-22-lm-redesign',
     date: '2026-09-22',
     icon: '🧩',

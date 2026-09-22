@@ -121,6 +121,9 @@ import {
   pushNote,
   deleteNoteRemote,
   rowToNote,
+  pushSavedWhiteboard,
+  deleteSavedWhiteboardRemote,
+  rowToSavedWhiteboard,
   pushMarketplaceItem,
   deleteMarketplaceItemRemote,
   rowToMarketplaceItem,
@@ -213,6 +216,7 @@ import type {
   SentenceBuilderResponse,
   ChatMessage,
   Note,
+  SavedWhiteboard,
   MarketplaceItem,
   AssignmentCompletionReward,
   WorldObject,
@@ -294,6 +298,7 @@ interface AppState {
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
   chatMessages: ChatMessage[]; // teacher<->student chat, newest last
   notes: Note[];
+  savedWhiteboards: SavedWhiteboard[]; // Literacy Manipulatives saved-board log, newest first
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[]; // teacher-placed World Editor objects in the shared Town Square — global, not per-student
   wallSegments: WallSegment[]; // Sims 4-style drawn walls — shared Town Square (studentId undefined) or a student's own Home Room (studentId set), same table/convention as worldObjects
@@ -361,6 +366,8 @@ interface AppState {
   createNote: (studentId: string, kind?: 'note' | 'journal') => string;
   updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body' | 'bodyHtml' | 'fontId' | 'colorId' | 'highlightColorId'>>) => void;
   deleteNote: (id: string) => void;
+  saveWhiteboard: (studentId: string, name: string, placedJson: string, drawingDataUrl: string | null) => void;
+  deleteWhiteboard: (id: string) => void;
   addMarketplaceItem: (item: Omit<MarketplaceItem, 'id' | 'createdAt'>) => void;
   updateMarketplaceItem: (id: string, patch: Partial<MarketplaceItem>) => void;
   deleteMarketplaceItem: (id: string) => void;
@@ -719,6 +726,7 @@ export const useStore = create<AppState>()(
       sentenceBuilderResponses: {},
       chatMessages: [],
       notes: [],
+      savedWhiteboards: [],
       marketplaceItems: [],
       worldObjects: [],
       wallSegments: [],
@@ -894,6 +902,7 @@ export const useStore = create<AppState>()(
           onChatMessage: (e, n, o) =>
             set((s) => ({ chatMessages: applyArrayRow(s.chatMessages, e, rowToChatMessage, n, o) })),
           onNote: (e, n, o) => set((s) => ({ notes: applyArrayRow(s.notes, e, rowToNote, n, o) })),
+          onSavedWhiteboard: (e, n, o) => set((s) => ({ savedWhiteboards: applyArrayRow(s.savedWhiteboards, e, rowToSavedWhiteboard, n, o) })),
           onMarketplaceItem: (e, n, o) => set((s) => ({ marketplaceItems: applyArrayRow(s.marketplaceItems, e, rowToMarketplaceItem, n, o) })),
           onWorldObject: (e, n, o) => set((s) => ({ worldObjects: applyArrayRow(s.worldObjects, e, rowToWorldObject, n, o) })),
           onWallSegment: (e, n, o) => set((s) => ({ wallSegments: applyArrayRow(s.wallSegments, e, rowToWallSegment, n, o) })),
@@ -1659,6 +1668,21 @@ export const useStore = create<AppState>()(
       deleteNote: (id) => {
         set((s) => ({ notes: s.notes.filter((n) => n.id !== id) }));
         deleteNoteRemote(id);
+      },
+
+      // Literacy Manipulatives save file — direct teacher instruction: "a
+      // save file (creating a log of all saved whiteboards that they can
+      // name and refer back to)." Same named-independent-saves shape as
+      // Notes above.
+      saveWhiteboard: (studentId, name, placedJson, drawingDataUrl) => {
+        const board: SavedWhiteboard = { id: makeId(), studentId, name, createdAt: new Date().toISOString(), placedJson, drawingDataUrl };
+        set((s) => ({ savedWhiteboards: [...s.savedWhiteboards, board] }));
+        pushSavedWhiteboard(board);
+      },
+
+      deleteWhiteboard: (id) => {
+        set((s) => ({ savedWhiteboards: s.savedWhiteboards.filter((w) => w.id !== id) }));
+        deleteSavedWhiteboardRemote(id);
       },
 
       // A teacher-initiated deposit or withdrawal — goes through the same

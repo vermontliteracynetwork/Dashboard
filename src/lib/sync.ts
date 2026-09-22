@@ -33,6 +33,7 @@ import type {
   SentenceBuilderResponse,
   ChatMessage,
   Note,
+  SavedWhiteboard,
   MarketplaceItem,
   AssignmentCompletionReward,
   WorldObject,
@@ -317,6 +318,23 @@ const noteToRow = (n: Note): Row => ({
   font_id: n.fontId,
   color_id: n.colorId,
   updated_at: n.updatedAt,
+});
+
+const rowToSavedWhiteboard = (r: Row): SavedWhiteboard => ({
+  id: r.id,
+  studentId: r.student_id,
+  name: r.name,
+  createdAt: r.created_at,
+  placedJson: r.placed_json ?? '[]',
+  drawingDataUrl: r.drawing_data_url ?? null,
+});
+const savedWhiteboardToRow = (w: SavedWhiteboard): Row => ({
+  id: w.id,
+  student_id: w.studentId,
+  name: w.name,
+  created_at: w.createdAt,
+  placed_json: w.placedJson,
+  drawing_data_url: w.drawingDataUrl,
 });
 
 const rowToMarketplaceItem = (r: Row): MarketplaceItem => ({
@@ -827,6 +845,7 @@ export interface HydratedState {
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>;
   chatMessages: ChatMessage[];
   notes: Note[];
+  savedWhiteboards: SavedWhiteboard[];
   marketplaceItems: MarketplaceItem[];
   worldObjects: WorldObject[];
   wallSegments: WallSegment[];
@@ -864,7 +883,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, galleryItemsRes, farmerMarketOffersRes, sillyQuizzesRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, galleryItemsRes, farmerMarketOffersRes, sillyQuizzesRes, savedWhiteboardsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -905,6 +924,7 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('gallery_items').select('*'),
     supabase.from('farmer_market_offers').select('*'),
     supabase.from('silly_quizzes').select('*'),
+    supabase.from('saved_whiteboards').select('*'),
   ]);
 
   for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes]) {
@@ -973,6 +993,7 @@ export async function fetchAll(): Promise<HydratedState> {
     ),
     chatMessages: (chatMessagesRes.data ?? []).map(rowToChatMessage),
     notes: (notesRes.data ?? []).map(rowToNote),
+    savedWhiteboards: (savedWhiteboardsRes.data ?? []).map(rowToSavedWhiteboard),
     marketplaceItems: (marketplaceItemsRes.data ?? []).map(rowToMarketplaceItem),
     worldObjects: (worldObjectsRes.data ?? []).map(rowToWorldObject),
     wallSegments: (wallSegmentsRes.data ?? []).map(rowToWallSegment),
@@ -1227,6 +1248,8 @@ export const pushSbResponse = (a: SentenceBuilderResponse) => upsert('sentence_b
 export const pushChatMessage = (m: ChatMessage) => upsert('chat_messages', chatMessageToRow(m));
 export const pushNote = (n: Note) => upsert('notes', noteToRow(n));
 export const deleteNoteRemote = (id: string) => remove('notes', { id });
+export const pushSavedWhiteboard = (w: SavedWhiteboard) => upsert('saved_whiteboards', savedWhiteboardToRow(w));
+export const deleteSavedWhiteboardRemote = (id: string) => remove('saved_whiteboards', { id });
 export const pushMarketplaceItem = (it: MarketplaceItem) => upsert('marketplace_items', marketplaceItemToRow(it));
 export const deleteMarketplaceItemRemote = (id: string) => remove('marketplace_items', { id });
 
@@ -1520,7 +1543,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToGalleryItem, rowToFarmerMarketOffer, rowToSillyQuiz };
+export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToGalleryItem, rowToFarmerMarketOffer, rowToSillyQuiz, rowToSavedWhiteboard };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1551,6 +1574,7 @@ export interface RealtimeHandlers {
   onSbResponse: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onChatMessage: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onNote: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onSavedWhiteboard: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onMarketplaceItem: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onAppSettings: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onWorldObject: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1605,6 +1629,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sentence_builder_responses' }, wire(handlers.onSbResponse))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, wire(handlers.onChatMessage))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, wire(handlers.onNote))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'saved_whiteboards' }, wire(handlers.onSavedWhiteboard))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, wire(handlers.onMarketplaceItem))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, wire(handlers.onAppSettings))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'world_objects' }, wire(handlers.onWorldObject))

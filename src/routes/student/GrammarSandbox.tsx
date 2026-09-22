@@ -12,7 +12,7 @@ import {
 } from '../../lib/sentenceFormulas';
 import { CONSONANTS, VOWELS } from '../../lib/soundWallData';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS } from '../../types';
-import type { GrammarPiece } from '../../types';
+import type { GrammarPiece, SavedWhiteboard } from '../../types';
 import { todayISO } from '../../lib/dates';
 
 // Literacy Manipulatives — rebuilt per direct teacher redesign (2026-09-22),
@@ -295,17 +295,31 @@ export default function GrammarSandbox() {
   const student = students.find((s) => s.id === currentStudentId);
   const literacyFocusSets = useStore((s) => s.literacyFocusSets);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const savedWhiteboards = useStore((s) => s.savedWhiteboards);
+  const saveWhiteboardAction = useStore((s) => s.saveWhiteboard);
+  const deleteWhiteboardAction = useStore((s) => s.deleteWhiteboard);
 
   const [placed, setPlaced] = useState<PlacedItem[]>([]);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Top toolbar (Help/Exit/materials-toggle/Draw/Undo/Redo/Clear/Save) —
+  // direct teacher instruction: moved off the sidebar into its own
+  // collapsible bar across the top of the screen.
+  const [topBarOpen, setTopBarOpen] = useState(true);
   const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragInstanceRef = useRef<string | null>(null);
   const glowTimerRef = useRef<number | null>(null);
   const historyRef = useRef<PlacedItem[][]>([]);
+  const redoRef = useRef<PlacedItem[][]>([]);
+  // Save file — direct teacher instruction: "a save file (creating a log
+  // of all saved whiteboards that they can name and refer back to)."
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [saveNameInput, setSaveNameInput] = useState('');
 
   // Draw — merged Mark+Draw into one tool, direct teacher instruction.
   // A transparent canvas overlay sits on top of the shared tile canvas
@@ -429,6 +443,9 @@ export default function GrammarSandbox() {
   const pushHistory = () => {
     historyRef.current = [...historyRef.current.slice(-(HISTORY_LIMIT - 1)), placed];
     setCanUndo(true);
+    // A fresh action invalidates any redo history.
+    redoRef.current = [];
+    setCanRedo(false);
   };
 
   const undo = () => {
@@ -436,8 +453,21 @@ export default function GrammarSandbox() {
     if (hist.length === 0) return;
     const prev = hist[hist.length - 1];
     historyRef.current = hist.slice(0, -1);
+    redoRef.current = [...redoRef.current, placed];
     setCanUndo(historyRef.current.length > 0);
+    setCanRedo(true);
     setPlaced(prev);
+  };
+
+  const redo = () => {
+    const red = redoRef.current;
+    if (red.length === 0) return;
+    const next = red[red.length - 1];
+    redoRef.current = red.slice(0, -1);
+    historyRef.current = [...historyRef.current, placed];
+    setCanUndo(true);
+    setCanRedo(redoRef.current.length > 0);
+    setPlaced(next);
   };
 
   const canvasRelative = (clientX: number, clientY: number) => {
@@ -568,6 +598,41 @@ export default function GrammarSandbox() {
     if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  const myBoards = savedWhiteboards
+    .filter((w) => w.studentId === student.id)
+    .slice()
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  const confirmSaveWhiteboard = () => {
+    const name = saveNameInput.trim() || `Board ${myBoards.length + 1}`;
+    const drawingDataUrl = drawCanvasRef.current?.toDataURL() ?? null;
+    saveWhiteboardAction(student.id, name, JSON.stringify(placed), drawingDataUrl);
+    setSaveNameInput('');
+    setShowSaveModal(false);
+  };
+
+  const loadWhiteboard = (w: SavedWhiteboard) => {
+    try {
+      setPlaced(JSON.parse(w.placedJson) as PlacedItem[]);
+    } catch {
+      setPlaced([]);
+    }
+    clearDrawing();
+    if (w.drawingDataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const ctx = drawCanvasRef.current?.getContext('2d');
+        if (ctx) ctx.drawImage(img, 0, 0);
+      };
+      img.src = w.drawingDataUrl;
+    }
+    historyRef.current = [];
+    redoRef.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
+    setShowLoadModal(false);
+  };
+
   const ownedMarkerColors = marketplaceItems.filter((it) => it.kind === 'color' && it.colorUse === 'marker' && student.ownedColorIds.includes(it.id));
   const ownedHighlightColors = marketplaceItems.filter((it) => it.kind === 'color' && it.colorUse === 'highlight' && student.ownedColorIds.includes(it.id));
   const penPalette = [...BASE_PEN_COLORS, ...ownedMarkerColors.map((c) => c.colorHex).filter((h): h is string => !!h)];
@@ -588,7 +653,7 @@ export default function GrammarSandbox() {
   );
 
   return (
-    <div className="lm-shell">
+    <div className="lm-page" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
       {confirmExit && (
         <div className="overlay-backdrop" onClick={() => setConfirmExit(false)}>
@@ -604,50 +669,101 @@ export default function GrammarSandbox() {
           </div>
         </div>
       )}
-
-      {/* Left sidebar — the ONLY navigation now (direct teacher
-          instruction: "the bar across the top should move to the left
-          hand side"). Tools row up top (Draw, Undo, Clear), every
-          material category below it. One shared canvas, no mode
-          switching. */}
-      {sidebarOpen ? (
-        <aside className="lm-sidebar">
-          <div className="lm-sidebar-header">
-            <span className="lm-sidebar-title">🧩 Literacy Manipulatives</span>
-            <div className="row-wrap" style={{ gap: 6 }}>
-              <button className="btn btn-sm" onClick={() => setShowHelp(true)} aria-label="Help">🧘 Help</button>
-              <button className="btn btn-sm" onClick={() => setConfirmExit(true)}>✕ Exit</button>
-              <button className="btn btn-sm" onClick={() => setSidebarOpen(false)} aria-label="Hide sidebar">⟨⟨</button>
+      {showSaveModal && (
+        <div className="overlay-backdrop" onClick={() => setShowSaveModal(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h2 style={{ margin: 0 }}>💾 Save this board</h2>
+              <input
+                value={saveNameInput}
+                onChange={(e) => setSaveNameInput(e.target.value)}
+                placeholder={`Board ${myBoards.length + 1}`}
+                style={{ width: '100%' }}
+                autoFocus
+              />
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-lg" onClick={confirmSaveWhiteboard}>Save</button>
+                <button className="btn btn-lg" onClick={() => setShowSaveModal(false)}>Cancel</button>
+              </div>
             </div>
           </div>
-
-          <div className="stack" style={{ gap: 8 }}>
-            <div className="row-wrap" style={{ gap: 6 }}>
-              <button className={`btn btn-sm ${drawOn ? 'btn-primary' : ''}`} onClick={() => setDrawOn((v) => !v)}>🖍️ Draw</button>
-              <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
-              <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>🗑️ Clear</button>
+        </div>
+      )}
+      {showLoadModal && (
+        <div className="overlay-backdrop" onClick={() => setShowLoadModal(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 460, maxHeight: '80vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <div className="space-between" style={{ marginBottom: 12 }}>
+              <h2 style={{ margin: 0 }}>📂 My Saved Boards</h2>
+              <button className="btn btn-sm" onClick={() => setShowLoadModal(false)}>✕</button>
             </div>
-            {drawOn && (
-              <div className="chrome-frame stack" style={{ padding: 8, gap: 6 }}>
-                <div className="row-wrap" style={{ gap: 6 }}>
-                  <button className={`btn btn-sm ${drawMode === 'pen' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('pen')}>✏️ Pen</button>
-                  <button className={`btn btn-sm ${drawMode === 'highlight' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('highlight')}>🖊️ Highlight</button>
-                </div>
-                <div className="row-wrap" style={{ gap: 6 }}>
-                  {activePalette.map((hex, i) => (
-                    <button
-                      key={`${hex}-${i}`}
-                      onClick={() => setDrawColor(hex)}
-                      aria-label="Color"
-                      style={{ width: 30, height: 30, borderRadius: '50%', background: hex, cursor: 'pointer', padding: 0, border: drawColor === hex ? '3px solid var(--ink)' : '2px solid var(--content-border)' }}
-                    />
-                  ))}
-                </div>
-                <button className="btn btn-sm" onClick={clearDrawing}>🗑️ Clear marks</button>
+            {myBoards.length === 0 ? (
+              <p style={{ opacity: 0.6 }}>Nothing saved yet — tap 💾 Save first!</p>
+            ) : (
+              <div className="stack" style={{ gap: 8 }}>
+                {myBoards.map((w) => (
+                  <div key={w.id} className="row-wrap" style={{ justifyContent: 'space-between', border: '2px solid var(--content-border)', borderRadius: 10, padding: '8px 12px' }}>
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{w.name}</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{new Date(w.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div className="row-wrap" style={{ gap: 6 }}>
+                      <button className="btn btn-sm btn-primary" onClick={() => loadWhiteboard(w)}>Load</button>
+                      <button className="btn btn-sm" onClick={() => deleteWhiteboardAction(w.id)} aria-label={`Delete ${w.name}`}>🗑️</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
+        </div>
+      )}
 
+      {/* Top toolbar — direct teacher instruction: moved off the sidebar
+          into its own collapsible bar. Help/Exit/materials-sidebar-toggle
+          on the left, Draw/Undo/Redo/Clear/Save on the right. */}
+      <div className="lm-toolbar" style={{ flex: '0 0 auto' }}>
+        {topBarOpen ? (
+          <>
+            <span className="lm-sidebar-title" style={{ marginRight: 8 }}>🧩 Literacy Manipulatives</span>
+            <button className="btn btn-sm" onClick={() => setShowHelp(true)} aria-label="Help">🧘 Help</button>
+            <button className="btn btn-sm" onClick={() => setConfirmExit(true)}>✕ Exit</button>
+            <button className="btn btn-sm" onClick={() => setSidebarOpen((v) => !v)} aria-label={sidebarOpen ? 'Hide materials' : 'Show materials'}>{sidebarOpen ? '⟨⟨' : '⟩⟩'}</button>
+            <span className="lm-toolbar-divider" />
+            <button className={`btn btn-sm ${drawOn ? 'btn-primary' : ''}`} onClick={() => setDrawOn((v) => !v)}>🖍️ Draw</button>
+            <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
+            <button className="btn btn-sm" onClick={redo} disabled={!canRedo}>↪️ Redo</button>
+            <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>🗑️ Clear</button>
+            <span className="lm-toolbar-divider" />
+            <button className="btn btn-sm" onClick={() => setShowSaveModal(true)}>💾 Save</button>
+            <button className="btn btn-sm" onClick={() => setShowLoadModal(true)}>📂 My Boards</button>
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-sm" onClick={() => setTopBarOpen(false)} aria-label="Hide toolbar">▲ Hide bar</button>
+          </>
+        ) : (
+          <button className="btn btn-sm" onClick={() => setTopBarOpen(true)} aria-label="Show toolbar">▼ Show toolbar</button>
+        )}
+      </div>
+      {topBarOpen && drawOn && (
+        <div className="lm-toolbar" style={{ flex: '0 0 auto', paddingTop: 0 }}>
+          <button className={`btn btn-sm ${drawMode === 'pen' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('pen')}>✏️ Pen</button>
+          <button className={`btn btn-sm ${drawMode === 'highlight' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('highlight')}>🖊️ Highlight</button>
+          <span className="lm-toolbar-divider" />
+          {activePalette.map((hex, i) => (
+            <button
+              key={`${hex}-${i}`}
+              onClick={() => setDrawColor(hex)}
+              aria-label="Color"
+              style={{ width: 28, height: 28, borderRadius: '50%', background: hex, cursor: 'pointer', padding: 0, border: drawColor === hex ? '3px solid var(--ink)' : '2px solid var(--content-border)' }}
+            />
+          ))}
+          <span className="lm-toolbar-divider" />
+          <button className="btn btn-sm" onClick={clearDrawing}>🗑️ Clear marks</button>
+        </div>
+      )}
+
+      <div className="lm-shell" style={{ flex: 1, minHeight: 0 }}>
+      {sidebarOpen ? (
+        <aside className="lm-sidebar">
           <Category label="🔤 Sentence Grammar" color={GRAMMAR_WORD_CLASS_COLORS.noun} open={openCategories.grammar} onToggle={() => toggleCategory('grammar')}>
             <SubcategoryRow id="nouns" label="Naming words" open={openSubcategories.nouns} onToggle={() => toggleSubcategory('nouns')}>
               <div className="lm-tile-list">
@@ -799,9 +915,7 @@ export default function GrammarSandbox() {
             </Category>
           )}
         </aside>
-      ) : (
-        <button className="btn btn-sm" style={{ position: 'absolute', top: 12, left: 12, zIndex: 5 }} onClick={() => setSidebarOpen(true)}>⟩⟩ Tools</button>
-      )}
+      ) : null}
 
       <div className="lm-main">
         <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
@@ -922,6 +1036,7 @@ export default function GrammarSandbox() {
             onPointerLeave={drawOn ? drawEnd : undefined}
           />
         </div>
+      </div>
       </div>
     </div>
   );
