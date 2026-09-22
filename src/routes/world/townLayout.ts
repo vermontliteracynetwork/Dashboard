@@ -91,6 +91,11 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   cinema: '/student/cinema',
   arcade: '/student/arcade',
   'farmers-market': '/student/farmers-market',
+  // Never actually read — a 'gas-pump' role opens the in-world gas refuel
+  // prompt directly (TownSquare.tsx's openRoleObject special-cases it,
+  // same pattern as 'closed'/'custom' below) instead of navigating
+  // anywhere. Present only so this stays a total Record<WorldObjectRole, string>.
+  'gas-pump': '',
   // Never actually read — a 'closed' role shows a "come back later" message
   // directly instead of navigating anywhere (see TownSquare.tsx/
   // IslandBuild.tsx's role click handlers, same special-case pattern

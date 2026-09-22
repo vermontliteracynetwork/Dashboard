@@ -110,7 +110,6 @@ const CAR_ACCEL = 6; // units/s² while Gas is held
 const CAR_BRAKE_DECEL = 11; // units/s² while Brake is held — brakes bite harder than they coast off
 const CAR_COAST_DECEL = 3; // units/s² friction when neither pedal is held
 const CAR_TURN_RATE = 2.3; // rad/s at a standstill
-const CAR_REVERSE_MAX_SPEED = CAR_MAX_SPEED * 0.5; // Mario Kart-style: Brake at a standstill shifts into reverse, capped slower than forward
 // Boats (docs/BOATS_DESIGN.md, Transportation Phase 2) — reuse the same
 // D-pad as walking rather than a separate pedal control surface, per the
 // design doc's "no new control surface" spec: up/down is throttle
@@ -1216,32 +1215,22 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       const steer = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
       const gasHeld = (!!gasRef?.current || k['w'] || k['arrowup']) && !gasBlocked;
       const brakeHeld = !!brakeRef?.current || k['s'] || k['arrowdown'] || k[' '];
-      // Mario Kart-style pedals, direct teacher instruction: Gas always
-      // accelerates forward: Brake decelerates a forward roll same as
-      // before, but once speed is fully down to a stop, holding Brake
-      // shifts into reverse instead of just idling — same single pedal,
-      // same as every kart game's brake/reverse double duty.
+      // Gas accelerates forward; Brake just decelerates to a stop — direct
+      // teacher correction: "brake should not reverse. just stop the
+      // car." (reversing back out of the Mario Kart pedal parity added
+      // earlier this same session).
       if (gasHeld) carSpeed.current = Math.min(CAR_MAX_SPEED, carSpeed.current + CAR_ACCEL * dt);
-      else if (brakeHeld) {
-        if (carSpeed.current > 0) carSpeed.current = Math.max(0, carSpeed.current - CAR_BRAKE_DECEL * dt);
-        // Empty tank stops reverse too, not just forward — a dead car,
-        // not a half-working one.
-        else if (!gasBlocked) carSpeed.current = Math.max(-CAR_REVERSE_MAX_SPEED, carSpeed.current - CAR_ACCEL * dt);
-      } else if (carSpeed.current > 0) carSpeed.current = Math.max(0, carSpeed.current - CAR_COAST_DECEL * dt);
-      else if (carSpeed.current < 0) carSpeed.current = Math.min(0, carSpeed.current + CAR_COAST_DECEL * dt);
+      else if (brakeHeld) carSpeed.current = Math.max(0, carSpeed.current - CAR_BRAKE_DECEL * dt);
+      else if (carSpeed.current > 0) carSpeed.current = Math.max(0, carSpeed.current - CAR_COAST_DECEL * dt);
       if (Math.abs(steer) > 0.01) {
         // Turn rate scales down at higher speed (design doc: "so sharp
         // spins at road speed don't feel unstable") rather than a fixed
         // rate at every speed.
-        const turnScale = 1 - 0.4 * Math.min(1, Math.abs(carSpeed.current) / CAR_MAX_SPEED);
+        const turnScale = 1 - 0.4 * Math.min(1, carSpeed.current / CAR_MAX_SPEED);
         // Direct teacher report: left/right was backwards (pressing D/
         // right visibly turned the car's nose left on screen) — see the
-        // matching fix/comment on the boat's steer line above for the
-        // math. Reversing also flips which way steering visually turns
-        // the car (backing up left should swing the nose right), same as
-        // a real car/kart — Math.sign(carSpeed.current || 1) captures
-        // that without a separate reverse-steering branch.
-        facing.current -= Math.sign(steer) * Math.sign(carSpeed.current || 1) * CAR_TURN_RATE * turnScale * dt;
+        // matching fix/comment on the boat's steer line above for the math.
+        facing.current -= Math.sign(steer) * CAR_TURN_RATE * turnScale * dt;
       }
       if (Math.abs(carSpeed.current) > 0.01) {
         const dx = Math.sin(facing.current);
@@ -2994,6 +2983,11 @@ export default function TownSquare() {
   // this skips straight to opening rather than showing another card.
   const openRoleObject = (obj: WorldObject) => {
     if (obj.role === 'closed') { setClosedBuildingName(obj.customName || obj.label); return; }
+    // Direct teacher request: a placed Gas Pump/Gas Station opens the
+    // real refuel-by-questions prompt right where the student is
+    // standing, same modal the HUD's own "Fill up" button and the empty-
+    // tank lockout already use — not a 2D route like every other role.
+    if (obj.role === 'gas-pump') { openGasQuiz(); return; }
     if (obj.role === 'custom') {
       if (obj.customRoleUrl) setCustomRoleLink({ url: obj.customRoleUrl, title: obj.customName || obj.label });
       else setCustomRoleNotSet(true);
@@ -3799,7 +3793,7 @@ export default function TownSquare() {
               {selectedRoleObjectId === obj.id && (
                 <Html center position={[obj.position[0], 3.7, obj.position[2]]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>View {obj.customName || obj.label}?</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{obj.role === 'gas-pump' ? '⛽ Get gas?' : `View ${obj.customName || obj.label}?`}</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
                         onClick={() => { setSelectedRoleObjectId(null); openRoleObject(obj); }}
