@@ -11,6 +11,11 @@ import {
   MONTESSORI_WORD_CLASS_INFO, GRAMMAR_STATES, optionWordList,
   type MontessoriWordClass, type PuzzleShape, type WordOption,
 } from '../../lib/montessoriGrammar';
+import {
+  SENTENCE_FORMULAS, FORMULA_CATEGORIES, PROGRESSIVE_BUILD_STEPS, WHO_WORDS,
+  SLOT_MONTESSORI_CLASS, SLOT_LABELS, wordBankFor, actionWordsFor, auxWordFor,
+  type FormulaCategory, type FormulaSegment, type PhonicsTier,
+} from '../../lib/sentenceFormulas';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS, GRAMMAR_WORD_CLASS_SHAPES } from '../../types';
 import type { GrammarPiece, GrammarMontessoriShape } from '../../types';
 import { todayISO } from '../../lib/dates';
@@ -40,6 +45,22 @@ const TILE_H = 58;
 const SNAP_GAP = 14;
 const SNAP_THRESHOLD = 160;
 const HISTORY_LIMIT = 20;
+
+// Toolbar mode grouping — see the toolGroupOpen state comment for why
+// this exists. Select/Draw are the only two base tools always visible.
+type ToolMode = 'select' | 'draw' | 'madlibs' | 'formulas' | 'web' | 'boxes' | 'blend' | 'sorts' | 'sentence' | 'matrix';
+const WORDS_GROUP: { id: ToolMode; label: string }[] = [
+  { id: 'web', label: '🕸️ Morpheme Web' },
+  { id: 'boxes', label: '🟦 Sound Boxes' },
+  { id: 'blend', label: '🧱 Blending Board' },
+  { id: 'sorts', label: '🗂️ Word Sorts' },
+  { id: 'matrix', label: '🧬 Word Matrix' },
+];
+const SENTENCES_GROUP: { id: ToolMode; label: string }[] = [
+  { id: 'madlibs', label: '🎭 Mad Libs' },
+  { id: 'formulas', label: '📐 Sentence Formulas' },
+  { id: 'sentence', label: '🧩 Sentence Builder' },
+];
 
 interface PlacedPiece {
   instanceId: string;
@@ -218,7 +239,15 @@ export default function GrammarSandbox() {
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const updateStudent = useStore((s) => s.updateStudent);
 
-  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs' | 'web' | 'boxes' | 'blend' | 'sorts' | 'sentence' | 'matrix'>('select');
+  const [tool, setTool] = useState<ToolMode>('select');
+  // Toolbar grouping — Claudia's audit flagged 9 flat top-level toolbar
+  // modes as already past the standing "max 5-6 visible nav options"
+  // checklist limit; adding Sentence Formulas as a 10th flat button would
+  // make a real, already-named violation worse. One level of grouping
+  // only (no nested dropdown deeper than this): Select/Draw stay always
+  // visible as base tools, everything else clusters into two toggleable
+  // rows the student expands on demand.
+  const [toolGroupOpen, setToolGroupOpen] = useState<'words' | 'sentences' | null>(null);
   const [placed, setPlaced] = useState<PlacedPiece[]>([]);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [confirmExit, setConfirmExit] = useState(false);
@@ -315,6 +344,22 @@ export default function GrammarSandbox() {
   const [matrixSuffixId, setMatrixSuffixId] = useState<string | null>(null);
   const [matrixShakeId, setMatrixShakeId] = useState<string | null>(null);
   const matrixShakeTimerRef = useRef<number | null>(null);
+  // Sentence Formulas — Claudia's audit + expansion of the real curriculum
+  // (docs/curriculum-reference/sentence-formulas/), direct teacher
+  // instruction to make this a developmental priority. sfFills maps a
+  // segment's index in the active formula/step to the word chosen for it;
+  // sfOpenPicker is which blank's word-bank dropdown is currently showing
+  // (same click-a-blank-to-open-a-dropdown pattern as the Montessori
+  // Sentence Builder above). Switching formula, step, or the progressive
+  // toggle always clears fills — half-built sentences don't carry over
+  // between different target structures.
+  const [sfCategoryId, setSfCategoryId] = useState<FormulaCategory>('basic-action');
+  const [sfFormulaId, setSfFormulaId] = useState(SENTENCE_FORMULAS[0].id);
+  const [sfProgressiveOn, setSfProgressiveOn] = useState(false);
+  const [sfProgressiveStep, setSfProgressiveStep] = useState(0);
+  const [sfTier, setSfTier] = useState<PhonicsTier>('general');
+  const [sfFills, setSfFills] = useState<Record<number, string>>({});
+  const [sfOpenPicker, setSfOpenPicker] = useState<number | null>(null);
   // Per-category collapse — now that there are two sidebar categories
   // (Sentence Grammar, Word Lists), with Letters & Sounds still to come,
   // letting a student collapse the ones they're not using keeps the
@@ -766,6 +811,79 @@ export default function GrammarSandbox() {
     speak(word ?? matrixRoot.text, student.ttsSettings);
   };
 
+  // Sentence Formulas
+  const sfActiveFormula = SENTENCE_FORMULAS.find((f) => f.id === sfFormulaId) ?? SENTENCE_FORMULAS[0];
+  const sfSegments: FormulaSegment[] = sfProgressiveOn ? PROGRESSIVE_BUILD_STEPS[sfProgressiveStep].segments : sfActiveFormula.segments;
+  const sfWhoIndex = sfSegments.findIndex((seg) => seg.kind === 'slot' && seg.slot === 'who');
+  const sfWhoText = sfWhoIndex >= 0 ? sfFills[sfWhoIndex] : undefined;
+  const sfWhoVerbForm: 'singular' | 'plural' | null = sfWhoText ? (WHO_WORDS.find((w) => w.text === sfWhoText)?.verbForm ?? 'singular') : null;
+
+  const sfSelectFormula = (id: string) => {
+    setSfFormulaId(id);
+    setSfFills({});
+    setSfOpenPicker(null);
+  };
+
+  const sfSetCategory = (cat: FormulaCategory) => {
+    setSfCategoryId(cat);
+    const first = SENTENCE_FORMULAS.find((f) => f.category === cat);
+    if (first) sfSelectFormula(first.id);
+  };
+
+  const sfToggleProgressive = (on: boolean) => {
+    setSfProgressiveOn(on);
+    setSfProgressiveStep(0);
+    setSfFills({});
+    setSfOpenPicker(null);
+  };
+
+  const sfSetProgressiveStep = (i: number) => {
+    setSfProgressiveStep(i);
+    setSfFills({});
+    setSfOpenPicker(null);
+  };
+
+  const sfWordBankFor = (i: number): { text: string }[] => {
+    const seg = sfSegments[i];
+    if (seg.kind !== 'slot') return [];
+    if (seg.slot === 'action') return actionWordsFor(sfWhoVerbForm, seg.verbFormOverride);
+    return wordBankFor(seg.slot, sfTier, sfWhoVerbForm);
+  };
+
+  const sfPickWord = (i: number, text: string) => {
+    setSfFills((f) => ({ ...f, [i]: text }));
+    setSfOpenPicker(null);
+  };
+
+  const sfClearSlot = (i: number) => {
+    setSfFills((f) => {
+      const next = { ...f };
+      delete next[i];
+      return next;
+    });
+    setSfOpenPicker(null);
+  };
+
+  const sfBlankFor = (seg: FormulaSegment, i: number): string | null => {
+    if (seg.kind === 'fixed') return seg.text;
+    if (seg.kind === 'aux') return auxWordFor(seg.auxType, sfWhoText, WHO_WORDS);
+    return sfFills[i] ?? null;
+  };
+
+  const sfIsComplete = sfSegments.every((seg, i) => seg.kind !== 'slot' || sfFills[i]);
+
+  const sfSentenceText = () => sfSegments.map((seg, i) => sfBlankFor(seg, i) ?? '').join(' ').replace(/\s+([.!?])/g, '$1');
+
+  const sfReadSentence = () => {
+    if (!sfIsComplete) return;
+    speak(sfSentenceText(), student.ttsSettings);
+  };
+
+  const sfClear = () => {
+    setSfFills({});
+    setSfOpenPicker(null);
+  };
+
   return (
     <div className="lm-shell">
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
@@ -920,22 +1038,25 @@ export default function GrammarSandbox() {
           <span className="lm-toolbar-divider" />
           <button className={`btn btn-sm ${tool === 'select' ? 'btn-primary' : ''}`} onClick={() => setTool('select')}>🔤 Words</button>
           <button className={`btn btn-sm ${tool === 'draw' ? 'btn-primary' : ''}`} onClick={() => setTool('draw')}>🎨 Draw</button>
-          <button className={`btn btn-sm ${tool === 'madlibs' ? 'btn-primary' : ''}`} onClick={() => setTool('madlibs')}>🎭 Mad Libs</button>
-          <button className={`btn btn-sm ${tool === 'web' ? 'btn-primary' : ''}`} onClick={() => setTool('web')}>🕸️ Morpheme Web</button>
-          {/* Newest three modes — Claudia's tool-survey top priority,
-              the sound/letter-level skill layer nothing else here
-              reached before. Same always-visible toolbar tab pattern as
-              every mode above, so a student (or a teacher pointing a
-              student here as a worksheet partner) reaches any one of
-              them in a single tap, no submenu to already know exists. */}
-          <button className={`btn btn-sm ${tool === 'boxes' ? 'btn-primary' : ''}`} onClick={() => setTool('boxes')}>🟦 Sound Boxes</button>
-          <button className={`btn btn-sm ${tool === 'blend' ? 'btn-primary' : ''}`} onClick={() => setTool('blend')}>🧱 Blending Board</button>
-          <button className={`btn btn-sm ${tool === 'sorts' ? 'btn-primary' : ''}`} onClick={() => setTool('sorts')}>🗂️ Word Sorts</button>
-          {/* Direct teacher request, real reference images: a Montessori-
-              shape decision-tree sentence builder, and jigsaw-piece
-              morphemes. */}
-          <button className={`btn btn-sm ${tool === 'sentence' ? 'btn-primary' : ''}`} onClick={() => setTool('sentence')}>🧩 Sentence Builder</button>
-          <button className={`btn btn-sm ${tool === 'matrix' ? 'btn-primary' : ''}`} onClick={() => setTool('matrix')}>🧬 Word Matrix</button>
+          <span className="lm-toolbar-divider" />
+          {/* Grouped clusters (Claudia's audit fix, see toolGroupOpen's
+              state comment): tapping a group button expands a second
+              toolbar row with that group's modes. The group button shows
+              the active mode's own label whenever the active tool is in
+              that group, so a student always sees where they are even
+              with the row collapsed. */}
+          <button
+            className={`btn btn-sm ${WORDS_GROUP.some((m) => m.id === tool) ? 'btn-primary' : ''}`}
+            onClick={() => setToolGroupOpen((v) => (v === 'words' ? null : 'words'))}
+          >
+            {WORDS_GROUP.find((m) => m.id === tool)?.label ?? '🔤 Sounds & Words'} ▾
+          </button>
+          <button
+            className={`btn btn-sm ${SENTENCES_GROUP.some((m) => m.id === tool) ? 'btn-primary' : ''}`}
+            onClick={() => setToolGroupOpen((v) => (v === 'sentences' ? null : 'sentences'))}
+          >
+            {SENTENCES_GROUP.find((m) => m.id === tool)?.label ?? '📝 Sentences'} ▾
+          </button>
           <span className="lm-toolbar-divider" />
           {/* Marker — direct teacher request: "always be used, even when
               manipulatives are active." A toggle, not a mode: turning it
@@ -964,6 +1085,11 @@ export default function GrammarSandbox() {
               <button className="btn btn-sm" onClick={newMadlibSentence}>🔀 New sentence</button>
               <button className="btn btn-sm" onClick={readMadlib}>🔈 Read it</button>
               <button className="btn btn-sm" onClick={clearMadlibBlanks} disabled={Object.keys(madlibFills).length === 0}>↺ Clear blanks</button>
+            </>
+          ) : tool === 'formulas' ? (
+            <>
+              <button className="btn btn-sm" onClick={sfReadSentence} disabled={!sfIsComplete}>🔈 Read it</button>
+              <button className="btn btn-sm" onClick={sfClear} disabled={Object.keys(sfFills).length === 0}>↺ Clear blanks</button>
             </>
           ) : tool === 'web' ? (
             <>
@@ -1008,6 +1134,14 @@ export default function GrammarSandbox() {
             </>
           )}
         </div>
+
+        {toolGroupOpen && (
+          <div className="lm-toolbar" style={{ paddingTop: 0 }}>
+            {(toolGroupOpen === 'words' ? WORDS_GROUP : SENTENCES_GROUP).map((m) => (
+              <button key={m.id} className={`btn btn-sm ${tool === m.id ? 'btn-primary' : ''}`} onClick={() => setTool(m.id)}>{m.label}</button>
+            ))}
+          </div>
+        )}
 
         {/* Everything below is the mode-panel stack, wrapped so the
             marker overlay (see markerOn above) can sit as one absolutely-
@@ -1410,6 +1544,97 @@ export default function GrammarSandbox() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {tool === 'formulas' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24, overflowY: 'auto' }}>
+            {/* Sentence Formulas — Claudia's audit + expansion of the real
+                curriculum (sentenceFormulas.ts), direct teacher priority.
+                Named-formula mode lets a student pick one of the 22 real
+                target structures by category; Build a Sentence is the
+                separate 4-step progressive scaffold (WHO+ACTION, then one
+                new slot at a time). Same click-a-blank-to-open-a-word-bank
+                pattern as the Montessori Sentence Builder above, plus a
+                phonics word-level toggle so the same formula can be
+                practiced at an easier or harder decoding level. */}
+            <div className="row-wrap" style={{ gap: 6, justifyContent: 'center' }}>
+              <button className={`btn btn-sm ${!sfProgressiveOn ? 'btn-primary' : ''}`} onClick={() => sfToggleProgressive(false)}>📐 Named Formulas</button>
+              <button className={`btn btn-sm ${sfProgressiveOn ? 'btn-primary' : ''}`} onClick={() => sfToggleProgressive(true)}>🌱 Build a Sentence</button>
+            </div>
+
+            {!sfProgressiveOn ? (
+              <>
+                <div className="row-wrap" style={{ gap: 6, justifyContent: 'center' }}>
+                  {FORMULA_CATEGORIES.map((c) => (
+                    <button key={c.id} className={`btn btn-sm ${sfCategoryId === c.id ? 'btn-primary' : ''}`} onClick={() => sfSetCategory(c.id)}>{c.icon} {c.label}</button>
+                  ))}
+                </div>
+                <div className="row-wrap" style={{ gap: 6, justifyContent: 'center' }}>
+                  {SENTENCE_FORMULAS.filter((f) => f.category === sfCategoryId).map((f) => (
+                    <button key={f.id} className={`btn btn-sm ${sfFormulaId === f.id ? 'btn-primary' : ''}`} onClick={() => sfSelectFormula(f.id)}>{f.name}</button>
+                  ))}
+                </div>
+                <div className="chrome-frame" style={{ padding: 10, textAlign: 'center', fontSize: '0.8rem', opacity: 0.75, maxWidth: 500, alignSelf: 'center' }}>
+                  <div>Like: <strong>{sfActiveFormula.examples[0]}</strong></div>
+                  <div>Like: <strong>{sfActiveFormula.examples[1]}</strong></div>
+                </div>
+              </>
+            ) : (
+              <div className="row-wrap" style={{ gap: 6, justifyContent: 'center' }}>
+                {PROGRESSIVE_BUILD_STEPS.map((s, i) => (
+                  <button key={s.label} className={`btn btn-sm ${sfProgressiveStep === i ? 'btn-primary' : ''}`} onClick={() => sfSetProgressiveStep(i)}>{s.label}</button>
+                ))}
+              </div>
+            )}
+
+            <div className="row-wrap" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.6 }}>Word level:</span>
+              {(['general', 'cvc', 'vce', 'blends'] as PhonicsTier[]).map((tr) => (
+                <button key={tr} className={`btn btn-sm ${sfTier === tr ? 'btn-primary' : ''}`} onClick={() => setSfTier(tr)}>
+                  {tr === 'general' ? 'General' : tr === 'cvc' ? 'CVC' : tr === 'vce' ? 'VCe' : 'Blends'}
+                </button>
+              ))}
+            </div>
+
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 8, minHeight: 60, alignItems: 'center' }}>
+              {sfSegments.map((seg, i) => {
+                if (seg.kind === 'fixed') return <span key={i} style={{ fontWeight: 700, fontSize: '1.2rem' }}>{seg.text}</span>;
+                if (seg.kind === 'aux') return <span key={i} style={{ fontWeight: 700, fontSize: '1.2rem', fontStyle: 'italic', opacity: 0.75 }}>{sfBlankFor(seg, i)}</span>;
+                const montClass = SLOT_MONTESSORI_CLASS[seg.slot];
+                const info = montClass ? MONTESSORI_WORD_CLASS_INFO[montClass] : null;
+                const filled = sfFills[i];
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className="tag-pill"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: filled ? (info?.color ?? 'var(--accent)') : '#fff', color: filled ? '#fff' : 'var(--ink)', border: `2px solid ${info?.color ?? 'var(--content-border)'}`, fontWeight: 700, cursor: 'pointer' }}
+                    onClick={() => (filled ? sfClearSlot(i) : setSfOpenPicker((v) => (v === i ? null : i)))}
+                  >
+                    {info && <PuzzleShapeIcon shape={info.shape} color={filled ? '#fff' : info.color} size={16} />}
+                    {filled ?? SLOT_LABELS[seg.slot]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {sfIsComplete && (
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--success)', fontSize: '0.85rem', textAlign: 'center' }}>✅ That's a real, complete sentence, tap "Read it"!</p>
+            )}
+
+            {sfOpenPicker !== null && (
+              <div className="row-wrap chrome-frame" style={{ justifyContent: 'center', gap: 6, padding: 10, maxWidth: 640, alignSelf: 'center' }}>
+                {sfWordBankFor(sfOpenPicker).map((opt) => (
+                  <button key={opt.text} type="button" className="tag-pill" style={{ cursor: 'pointer', background: '#fff' }} onClick={() => sfPickWord(sfOpenPicker, opt.text)}>
+                    {opt.text}
+                  </button>
+                ))}
+                {sfWordBankFor(sfOpenPicker).length === 0 && (
+                  <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Pick WHO first so I know which verb form to offer!</span>
+                )}
+              </div>
+            )}
           </div>
         )}
 

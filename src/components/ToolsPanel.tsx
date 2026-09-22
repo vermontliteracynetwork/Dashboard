@@ -5,7 +5,10 @@ import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
 import FeedbackTool from './FeedbackTool';
-import { SOUND_WALL } from '../lib/wordData';
+import {
+  CONSONANTS, VOWELS, CONSONANT_CATEGORY_LABELS, VOWEL_CATEGORY_LABELS,
+  type SoundWallPhoneme, type ConsonantCategory, type VowelCategory,
+} from '../lib/soundWallData';
 import { fetchDefinition, fetchSynonyms, fetchAntonyms, isBlockedTerm } from '../lib/wordLookup';
 import type { WordLookupResult } from '../lib/wordLookup';
 import { analyzeMorphology } from '../lib/morphology';
@@ -28,7 +31,7 @@ const TOOL_ICONS: Record<ToolKey, string> = {
 
 // Tools that need real room to work — shown in a much larger overlay
 // instead of the default small popup.
-const WIDE_TOOLS: ToolKey[] = ['wordProcessor', 'whiteboard'];
+const WIDE_TOOLS: ToolKey[] = ['wordProcessor', 'whiteboard', 'soundWall'];
 
 // Plain text -> safe HTML for seeding a contentEditable from an old,
 // pre-rich-text note that only ever had a plain `body`.
@@ -518,19 +521,86 @@ function Dictionary({ student }: { student: Student }) {
   );
 }
 
-function SoundWall({ student }: { student: Student }) {
+// Orton-Gillingham-style Sound Wall — direct teacher request: "when each
+// phoneme is clicked, a window should pop up showing the list of
+// graphemes to spell that sound, an image of accurate mouth placement, a
+// word list containing that phoneme, and a close to return to the sound
+// wall." Organized by manner of articulation (consonants) and mouth
+// position (vowels) instead of the old plain alphabetical grid — see
+// soundWallData.ts for the real content and why "mouth placement" is an
+// honest text description rather than a fabricated image.
+function SoundWallDetail({ phoneme, student, onClose }: { phoneme: SoundWallPhoneme; student: Student; onClose: () => void }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: 8 }}>
-      {SOUND_WALL.map((s) => (
-        <button
-          key={s.symbol}
-          className="btn btn-sm"
-          onClick={() => speak(`${s.symbol}, as in ${s.example}`, student.ttsSettings)}
-          title={s.example}
-        >
-          {s.symbol}
+    <div className="overlay-backdrop" onClick={onClose}>
+      <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <div className="space-between" style={{ marginBottom: 10, alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '1.8rem' }}>{phoneme.displaySymbol}</h3>
+          <button className="btn btn-sm" onClick={onClose}>✕ Close</button>
+        </div>
+        <button className="btn btn-sm btn-teal" style={{ minHeight: 44, marginBottom: 14 }} onClick={() => speak(phoneme.spokenExample, student.ttsSettings)}>
+          🔈 Hear this sound
         </button>
-      ))}
+        <div className="stack" style={{ gap: 14 }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7, marginBottom: 6 }}>Ways to spell it</div>
+            <div className="row-wrap" style={{ gap: 6 }}>
+              {phoneme.graphemes.map((g) => (
+                <span key={g} className="tag-pill" style={{ fontWeight: 700 }}>{g}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7, marginBottom: 6 }}>Mouth placement</div>
+            <p style={{ margin: 0, lineHeight: 1.5 }}>{phoneme.mouthPlacement}</p>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7, marginBottom: 6 }}>Words with this sound</div>
+            <div className="row-wrap" style={{ gap: 6 }}>
+              {phoneme.words.map((w) => (
+                <button key={w} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => speak(w, student.ttsSettings)}>
+                  {w}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SoundWall({ student }: { student: Student }) {
+  const [tab, setTab] = useState<'consonants' | 'vowels'>('consonants');
+  const [selected, setSelected] = useState<SoundWallPhoneme | null>(null);
+  const bank = tab === 'consonants' ? CONSONANTS : VOWELS;
+  const categories = tab === 'consonants'
+    ? (Object.keys(CONSONANT_CATEGORY_LABELS) as ConsonantCategory[])
+    : (Object.keys(VOWEL_CATEGORY_LABELS) as VowelCategory[]);
+  const labelFor = (cat: string) => (tab === 'consonants' ? CONSONANT_CATEGORY_LABELS[cat as ConsonantCategory] : VOWEL_CATEGORY_LABELS[cat as VowelCategory]);
+
+  return (
+    <div className="stack" style={{ gap: 16, overflowY: 'auto', flex: 1, minHeight: 0 }}>
+      <div className="row-wrap" style={{ gap: 6 }}>
+        <button className={`btn btn-sm ${tab === 'consonants' ? 'btn-primary' : ''}`} onClick={() => setTab('consonants')}>🔤 Consonants</button>
+        <button className={`btn btn-sm ${tab === 'vowels' ? 'btn-primary' : ''}`} onClick={() => setTab('vowels')}>🔡 Vowels</button>
+      </div>
+      {categories.map((cat) => {
+        const items = bank.filter((p) => p.category === cat);
+        if (items.length === 0) return null;
+        return (
+          <div key={cat}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7, marginBottom: 6 }}>{labelFor(cat)}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 8 }}>
+              {items.map((p) => (
+                <button key={p.id} className="btn btn-sm" style={{ minHeight: 44, fontWeight: 700 }} onClick={() => setSelected(p)} title={p.words[0]}>
+                  {p.displaySymbol}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {selected && <SoundWallDetail phoneme={selected} student={student} onClose={() => setSelected(null)} />}
     </div>
   );
 }

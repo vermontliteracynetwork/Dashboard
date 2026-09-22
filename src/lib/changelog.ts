@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-sound-wall',
+    date: '2026-09-22',
+    icon: '🧱',
+    title: 'New Sound Wall in My Tools!',
+    body: 'Tap any sound to hear it, see the letters that spell it, how your mouth makes it, and a list of words with that sound. Tap Close to go back.',
+  },
+  {
+    id: '2026-09-22-sentence-formulas',
+    date: '2026-09-22',
+    icon: '📐',
+    title: 'New: Sentence Formulas in Literacy Manipulatives!',
+    body: 'Tap "Sentence Formulas" to build real sentences one blank at a time, or tap "Build a Sentence" to grow a sentence step by step. Pick General, CVC, VCe, or Blends words to make it easier or harder.',
+  },
+  {
     id: '2026-09-22-read-highlight',
     date: '2026-09-22',
     icon: '🔈',
