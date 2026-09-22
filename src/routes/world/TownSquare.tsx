@@ -21,7 +21,6 @@ import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
-import { SkyTextureBoundary } from '../../components/SkyTextureBoundary';
 import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { extractYouTubeId, loadYouTubeApi } from '../../lib/youtube';
@@ -29,7 +28,7 @@ import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
-import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MusicTrack } from '../../types';
+import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MusicTrack, MCQuestion } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -111,6 +110,7 @@ const CAR_ACCEL = 6; // units/s² while Gas is held
 const CAR_BRAKE_DECEL = 11; // units/s² while Brake is held — brakes bite harder than they coast off
 const CAR_COAST_DECEL = 3; // units/s² friction when neither pedal is held
 const CAR_TURN_RATE = 2.3; // rad/s at a standstill
+const CAR_REVERSE_MAX_SPEED = CAR_MAX_SPEED * 0.5; // Mario Kart-style: Brake at a standstill shifts into reverse, capped slower than forward
 // Boats (docs/BOATS_DESIGN.md, Transportation Phase 2) — reuse the same
 // D-pad as walking rather than a separate pedal control surface, per the
 // design doc's "no new control surface" spec: up/down is throttle
@@ -1105,6 +1105,10 @@ interface PlayerProps {
   driving?: boolean;
   gasRef?: React.RefObject<boolean>;
   brakeRef?: React.RefObject<boolean>;
+  // True once the gas gauge (cars only) has hit empty — direct teacher
+  // instruction: an empty tank stops the car dead until the refuel-by-
+  // questions prompt (rendered by the parent) tops it back up.
+  gasBlocked?: boolean;
   // Which vehicle physics `driving` should use — cars keep the gas/brake
   // pedal model above; boats (docs/BOATS_DESIGN.md) reuse the ordinary
   // D-pad/touchDir input as throttle+turn instead, so they read `touchDir`/
@@ -1126,7 +1130,7 @@ interface PlayerProps {
   facingRef?: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, vehicleKind, groundPatches }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, gasBlocked, vehicleKind, groundPatches }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1181,7 +1185,13 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       else if (boatSpeed.current < 0) boatSpeed.current = Math.min(0, boatSpeed.current + BOAT_COAST_DECEL * dt);
       if (Math.abs(steer) > 0.01) {
         const turnScale = 1 - 0.4 * Math.min(1, Math.abs(boatSpeed.current) / BOAT_MAX_SPEED);
-        facing.current += Math.sign(steer) * BOAT_TURN_RATE * turnScale * dt;
+        // Direct teacher report: left/right while driving/sailing was
+        // backwards (pressing D/right turned the vehicle's nose left on
+        // screen). Steering here turns the heading angle directly instead
+        // of deriving it from a movement vector like walking does, so the
+        // sign has to be picked by hand — verified against the chase-cam
+        // math above (screen-right = -X when facing=0), hence the minus.
+        facing.current -= Math.sign(steer) * BOAT_TURN_RATE * turnScale * dt;
       }
       if (Math.abs(boatSpeed.current) > 0.01) {
         const dx = Math.sin(facing.current);
@@ -1204,19 +1214,36 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       cameraLook.current = 0;
       cameraPitch.current = 0;
       const steer = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
-      const gasHeld = !!gasRef?.current || k['w'] || k['arrowup'];
+      const gasHeld = (!!gasRef?.current || k['w'] || k['arrowup']) && !gasBlocked;
       const brakeHeld = !!brakeRef?.current || k['s'] || k['arrowdown'] || k[' '];
+      // Mario Kart-style pedals, direct teacher instruction: Gas always
+      // accelerates forward: Brake decelerates a forward roll same as
+      // before, but once speed is fully down to a stop, holding Brake
+      // shifts into reverse instead of just idling — same single pedal,
+      // same as every kart game's brake/reverse double duty.
       if (gasHeld) carSpeed.current = Math.min(CAR_MAX_SPEED, carSpeed.current + CAR_ACCEL * dt);
-      else if (brakeHeld) carSpeed.current = Math.max(0, carSpeed.current - CAR_BRAKE_DECEL * dt);
-      else carSpeed.current = Math.max(0, carSpeed.current - CAR_COAST_DECEL * dt);
+      else if (brakeHeld) {
+        if (carSpeed.current > 0) carSpeed.current = Math.max(0, carSpeed.current - CAR_BRAKE_DECEL * dt);
+        // Empty tank stops reverse too, not just forward — a dead car,
+        // not a half-working one.
+        else if (!gasBlocked) carSpeed.current = Math.max(-CAR_REVERSE_MAX_SPEED, carSpeed.current - CAR_ACCEL * dt);
+      } else if (carSpeed.current > 0) carSpeed.current = Math.max(0, carSpeed.current - CAR_COAST_DECEL * dt);
+      else if (carSpeed.current < 0) carSpeed.current = Math.min(0, carSpeed.current + CAR_COAST_DECEL * dt);
       if (Math.abs(steer) > 0.01) {
         // Turn rate scales down at higher speed (design doc: "so sharp
         // spins at road speed don't feel unstable") rather than a fixed
         // rate at every speed.
-        const turnScale = 1 - 0.4 * Math.min(1, carSpeed.current / CAR_MAX_SPEED);
-        facing.current += Math.sign(steer) * CAR_TURN_RATE * turnScale * dt;
+        const turnScale = 1 - 0.4 * Math.min(1, Math.abs(carSpeed.current) / CAR_MAX_SPEED);
+        // Direct teacher report: left/right was backwards (pressing D/
+        // right visibly turned the car's nose left on screen) — see the
+        // matching fix/comment on the boat's steer line above for the
+        // math. Reversing also flips which way steering visually turns
+        // the car (backing up left should swing the nose right), same as
+        // a real car/kart — Math.sign(carSpeed.current || 1) captures
+        // that without a separate reverse-steering branch.
+        facing.current -= Math.sign(steer) * Math.sign(carSpeed.current || 1) * CAR_TURN_RATE * turnScale * dt;
       }
-      if (carSpeed.current > 0.01) {
+      if (Math.abs(carSpeed.current) > 0.01) {
         const dx = Math.sin(facing.current);
         const dz = Math.cos(facing.current);
         const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * carSpeed.current * dt, pos.current.z + dz * carSpeed.current * dt);
@@ -1588,66 +1615,27 @@ function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
 // fallback — the one approach that's actually been live-verified (it's
 // the same technique WorldEditor's own Build Mode preview already uses).
 //
-// Sixth attempt: a real equirect texture is back, but opt-in only this
-// time, not a default. Direct teacher instruction ("add the sky textures
-// i've added to build mode for fill sky") — she can now pick one of her
-// own uploaded sky images (public/world/sky/, public/world/textures/
-// space/) from Build Mode's Fill Sky panel, same EquirectangularReflection-
-// Mapping technique every prior attempt used, which is unavoidable for a
-// texture that has to wrap correctly as the camera turns. Given this
-// exact technique's documented 4-for-4 failure history above, this
-// deliberately ships gated behind an explicit teacher choice (default
-// stays null = flat color) rather than a new forced default.
-// Claudia's review caught an overclaim here: setSkyTexture pushes to
-// app_settings immediately (same instant-apply behavior skyColor/
-// groundTexture already have) and Town Square is realtime-subscribed, so
-// picking a texture in Build Mode goes live to every student in the same
-// moment the teacher sees it — it is NOT a staged/checked-first preview,
-// just a genuinely useful first look. Do not flip skyTexture's default
-// away from null without the teacher confirming it actually looks right.
-// SkyboxTexture is wrapped in a real error boundary below, since a bad
-// image should fall back to the flat color, not break the scene.
-function SkyboxBackground({ skyColor, skyTexture }: { skyColor?: string | null; skyTexture?: string | null }) {
+// Sixth attempt: a real equirect texture, opt-in only, gated behind an
+// explicit teacher choice in Build Mode. Direct teacher instruction after
+// trying it live: "fix the sky so it is only filled with a solid sky
+// texture" — the exact same jagged-horizon failure class documented above
+// happened again. EquirectangularReflectionMapping is now CONFIRMED broken
+// twice, independently, on two different real source images in this
+// codebase (the 4th attempt's Kenney skybox, and this 6th attempt's
+// teacher-uploaded images) — do not retry this technique a third time on a
+// new image; the mapping itself is the problem in this app, not any one
+// photo. skyTexture is deliberately ignored here now: the sky is always a
+// single flat color, full stop, regardless of what's stored in
+// app_settings.sky_texture (never dropped from the schema — additive only
+// — just never read for rendering again).
+function SkyboxBackground({ skyColor }: { skyColor?: string | null }) {
   const { scene } = useThree();
   useEffect(() => {
-    // Only actually applies when skyTexture is unset — SkyboxTexture below
-    // takes over scene.background the moment it mounts. Kept as a real
-    // effect (not skipped) so switching FROM a texture back to null
-    // restores the flat color immediately without a stale texture stuck
-    // as the background.
-    if (!skyTexture) scene.background = new THREE.Color(skyColor ?? '#bfe3ff');
+    scene.background = new THREE.Color(skyColor ?? '#bfe3ff');
     return () => {
       scene.background = null;
     };
-  }, [scene, skyColor, skyTexture]);
-  if (!skyTexture) return null;
-  return (
-    <SkyTextureBoundary key={skyTexture} fallback={<SkyFallbackColor color={skyColor ?? '#bfe3ff'} />}>
-      <SkyboxTexture path={skyTexture} />
-    </SkyTextureBoundary>
-  );
-}
-
-function SkyFallbackColor({ color }: { color: string }) {
-  const { scene } = useThree();
-  useEffect(() => {
-    scene.background = new THREE.Color(color);
-  }, [scene, color]);
-  return null;
-}
-
-// Split out so useTexture (a real network fetch + Suspense) only ever runs
-// while a teacher has actually picked a sky texture — skyTexture is null
-// by default, and loading a ~1MB image on every single Town Square visit
-// for a feature almost nobody has turned on would be pure waste.
-function SkyboxTexture({ path }: { path: string }) {
-  const { scene } = useThree();
-  const texture = useTexture(path);
-  useEffect(() => {
-    texture.mapping = THREE.EquirectangularReflectionMapping;
-    texture.colorSpace = THREE.SRGBColorSpace;
-    scene.background = texture;
-  }, [scene, texture]);
+  }, [scene, skyColor]);
   return null;
 }
 
@@ -2232,7 +2220,6 @@ export default function TownSquare() {
   );
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const skyColor = useStore((s) => s.skyColor);
-  const skyTexture = useStore((s) => s.skyTexture);
   // Driveable cars (docs/TRANSPORTATION.md, Phase 1) — declared up here
   // (rather than alongside the rest of the interaction state further
   // down) since the collision-layout effect right below needs
@@ -2625,30 +2612,68 @@ export default function TownSquare() {
   // frame by Player's driving branch.
   const gasRef = useRef(false);
   const brakeRef = useRef(false);
-  // Decorative gas gauge — Claudia's design pass on the "gas meter"
-  // backlog item confirmed the standing rule already on record
-  // (TRANSPORTATION.md/DRIVING_UX_RESEARCH.md): "no 'broken'/'out of
-  // fuel' state in v1," and if a gauge is ever added it must stay
-  // "purely decorative/role-play... never punitive," citing Bloxburg's
-  // cosmetic-only gas loop as the model. This never blocks Gas and never
-  // reads as literally empty (floored well above 0); it drains slowly
-  // while accelerating and regenerates on its own whenever the student
-  // isn't (coasting/braking/parked), so it's a self-contained flavor
-  // loop that doesn't require a gas-station location to make sense.
-  // Local, unsaved state — resets each drive, cars only (boats don't
-  // use pedals at all, per BOATS_DESIGN.md's "no new control surface").
+  // Gas gauge — direct teacher instruction supersedes the earlier
+  // "purely decorative, never punitive" ruling (TRANSPORTATION.md /
+  // DRIVING_UX_RESEARCH.md): the tank now really can run dry, and running
+  // dry (or topping up early) is the trigger for the "refuel by
+  // questions" loop below. Persists across getting out of and back into a
+  // car — cars only (boats don't use pedals, per BOATS_DESIGN.md's "no
+  // new control surface") — this state lives at TownSquare's level, not
+  // inside Player, so mounting/dismounting a car (which only toggles
+  // drivingObjectId) never resets it; it only resets on a fresh login,
+  // same lifetime as the rest of this component's session state.
   const [carGasLevel, setCarGasLevel] = useState(100);
   useEffect(() => {
     if (!drivingObjectId || drivingIsBoat) return;
-    setCarGasLevel(100);
     const id = window.setInterval(() => {
       setCarGasLevel((lvl) => {
         const delta = gasRef.current ? -1.5 : 1.5;
-        return Math.min(100, Math.max(20, lvl + delta));
+        return Math.min(100, Math.max(0, lvl + delta));
       });
     }, 400);
     return () => window.clearInterval(id);
   }, [drivingObjectId, drivingIsBoat]);
+  // Refuel-by-questions (direct teacher instruction, DEVELOPMENT_PLAN.md
+  // #139's previously-parked half): pulls from the teacher's own
+  // Question Sets library — same real assignment content Playground
+  // draws from — rather than inventing throwaway arithmetic, so a
+  // refuel is still real retrieval practice. Only plain multiple-choice
+  // questions are used here (a matching/fill-in board doesn't fit this
+  // small a prompt). A correct answer refuels a lot, a wrong answer
+  // still refuels a little and offers another question — Claudia's
+  // "never a dead end" guardrail stays intact even though the tank can
+  // now hit empty: a student can always eventually get moving again.
+  const questionSets = useStore((s) => s.questionSets);
+  const gasQuestionPool = useMemo(
+    () => questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc')),
+    [questionSets],
+  );
+  const [gasQuizQuestion, setGasQuizQuestion] = useState<MCQuestion | null>(null);
+  const [gasQuizFeedback, setGasQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const openGasQuiz = () => {
+    if (gasQuestionPool.length === 0) {
+      // No MC questions exist anywhere in the library yet — never show a
+      // broken empty prompt; just top up so a student is never stuck
+      // behind a feature the teacher hasn't authored content for.
+      setCarGasLevel((lvl) => Math.min(100, lvl + 40));
+      return;
+    }
+    setGasQuizFeedback(null);
+    setGasQuizQuestion(gasQuestionPool[Math.floor(Math.random() * gasQuestionPool.length)]);
+  };
+  const answerGasQuiz = (choiceIndex: number) => {
+    if (!gasQuizQuestion) return;
+    const correct = choiceIndex === gasQuizQuestion.correctIndex;
+    setCarGasLevel((lvl) => Math.min(100, lvl + (correct ? 55 : 15)));
+    setGasQuizFeedback(correct ? 'correct' : 'wrong');
+  };
+  // The moment the tank actually hits empty while driving, the car is
+  // stopped dead (handled in Player's driving branch via gasBlocked) and
+  // the refuel prompt opens on its own — "if they run out, they need to
+  // be prompted with questions," direct instruction.
+  useEffect(() => {
+    if (drivingObjectId && !drivingIsBoat && carGasLevel <= 0 && !gasQuizQuestion) openGasQuiz();
+  }, [drivingObjectId, drivingIsBoat, carGasLevel]);
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
   // there — the primary cross-device movement method; the D-pad and
   // keyboard both still work and take over instantly if used.
@@ -3503,7 +3528,7 @@ export default function TownSquare() {
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
-          <SkyboxBackground skyColor={skyColor} skyTexture={skyTexture} />
+          <SkyboxBackground skyColor={skyColor} />
           <Park
             layoutOverrides={layoutOverrides}
             onGroundTap={(x, z) => {
@@ -3577,6 +3602,7 @@ export default function TownSquare() {
             groundPatches={groundPatches}
             gasRef={gasRef}
             brakeRef={brakeRef}
+            gasBlocked={!drivingIsBoat && carGasLevel <= 0}
           />
           {/* Direct teacher instruction: only birds (they fly) and fish
               (they have no legs) float beside the player — every other
@@ -3903,15 +3929,62 @@ export default function TownSquare() {
         </div>
       )}
 
-      {/* Decorative gas gauge — never blocks driving, never reads as
-          literally empty (floored at 20%). See the carGasLevel effect
-          above for the full standing-design-rule citation. */}
+      {/* Gas gauge — can now actually run dry (direct teacher instruction
+          overriding the earlier decorative-only ruling); see the
+          carGasLevel effect above and openGasQuiz for the refuel loop.
+          The pump button lets a student top up proactively ("filling gas
+          up" at any time), not just after stalling out. */}
       {drivingObjectId && !drivingIsBoat && (
         <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.92)', padding: '5px 12px', borderRadius: 999, border: '2px solid var(--ink, #1f4238)', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}>
           <span style={{ fontSize: 15 }} aria-hidden="true">⛽</span>
           <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238' }}>Gas</span>
           <div style={{ width: 64, height: 10, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', border: '1px solid rgba(31,66,56,0.3)' }}>
             <div style={{ width: `${carGasLevel}%`, height: '100%', background: carGasLevel > 45 ? '#2f9e44' : '#f4a300', transition: 'width 0.4s ease' }} />
+          </div>
+          {carGasLevel < 100 && (
+            <button
+              onClick={openGasQuiz}
+              style={{ minHeight: 26, minWidth: 26, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--ink, #1f4238)', background: '#fff7e0', fontSize: '0.68rem', fontWeight: 800, color: '#1f4238', cursor: 'pointer' }}
+              title="Answer a question to fill up"
+            >
+              Fill up
+            </button>
+          )}
+        </div>
+      )}
+
+      {gasQuizQuestion && (
+        <div className="overlay-backdrop">
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <div className="space-between">
+                <h2 style={{ margin: 0 }}>⛽ Get Gas</h2>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>✕</button>
+              </div>
+              {gasQuizFeedback ? (
+                <>
+                  <p style={{ margin: 0, fontWeight: 700 }}>
+                    {gasQuizFeedback === 'correct' ? '🎉 Correct! Tank topped up.' : '👍 Good try! Here\'s a little gas — want to try another for more?'}
+                  </p>
+                  <div className="row-wrap" style={{ gap: 8 }}>
+                    <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={openGasQuiz}>Answer another</button>
+                    <button className="btn btn-lg" style={{ minHeight: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>Done for now</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ margin: 0, fontWeight: 700 }}>{gasQuizQuestion.prompt}</p>
+                  {gasQuizQuestion.imageUrl && <img src={gasQuizQuestion.imageUrl} alt={gasQuizQuestion.imageAlt ?? ''} style={{ maxWidth: '100%', borderRadius: 10 }} />}
+                  <div className="stack" style={{ gap: 8 }}>
+                    {gasQuizQuestion.choices.map((choice, i) => (
+                      <button key={i} className="btn btn-lg" style={{ minHeight: 44, justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => answerGasQuiz(i)}>
+                        {choice}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

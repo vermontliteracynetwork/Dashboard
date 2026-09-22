@@ -163,6 +163,9 @@ const COLLIDING_CATEGORIES = new Set([
   'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
   'props', 'prototype', 'toolsbits', 'misc', 'suburb', 'quaternius-buildings',
   'commercial-buildings',
+  // Trees/rocks block movement too, not just buildings — see WorldEditor's
+  // own copy of this set for the reasoning.
+  'forest',
 ]);
 function defaultCollidesForCategory(category: string): boolean {
   return COLLIDING_CATEGORIES.has(category);

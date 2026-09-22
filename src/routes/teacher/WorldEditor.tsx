@@ -1,12 +1,11 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
-import { SkyTextureBoundary } from '../../components/SkyTextureBoundary';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt,
@@ -593,6 +592,10 @@ const COLLIDING_CATEGORIES = new Set([
   'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
   'props', 'prototype', 'toolsbits', 'misc', 'suburb', 'quaternius-buildings',
   'commercial-buildings',
+  // Direct teacher instruction: can't walk or drive through trees/rocks
+  // either, not just buildings — 'forest' is the only category holding
+  // those (2-item manifest: Tree, Rocks).
+  'forest',
 ]);
 function defaultCollidesForCategory(category: string): boolean {
   return COLLIDING_CATEGORIES.has(category);
@@ -740,39 +743,16 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
   { label: 'Arcade Carpet', path: '/world/textures/arcade-carpet.png' },
   { label: 'Water', path: '/world/textures/water.png' },
 ];
-// Direct teacher request ("add the sky textures i've added to build mode
-// for fill sky") — real equirectangular images she's added to the app
-// (public/world/sky/, public/world/textures/space/), selectable from the
-// Fill Sky panel instead of only a flat color tint. See TownSquare.tsx's
-// SkyboxBackground for this codebase's own documented history of this
-// exact mapping technique breaking on other source images — this ships
-// opt-in only (default stays the flat color) so it's the teacher's own
-// live look here in Build Mode's viewport that decides whether it's kept.
-const SKY_TEXTURE_OPTIONS: { label: string; path: string }[] = [
-  { label: 'Day', path: '/world/sky/skybox-day.png' },
-  { label: 'Starry Night', path: '/world/textures/space/stars.jpg' },
-];
-// Build Mode's own live render of a picked sky texture — offers a real
-// first look at the image, though setSkyTexture (WorldEditor's own
-// onClick below) pushes it live to every student's Town Square in the
-// same tap, same instant-apply behavior skyColor/groundTexture already
-// have; this isn't a staged preview that holds it back. Mirrors
-// TownSquare.tsx's SkyboxTexture exactly, including the error boundary.
-function BuildSkyTexture({ path }: { path: string }) {
-  const { scene } = useThree();
-  const texture = useTexture(path);
-  useMemo(() => {
-    texture.mapping = THREE.EquirectangularReflectionMapping;
-    texture.colorSpace = THREE.SRGBColorSpace;
-  }, [texture]);
-  useEffect(() => {
-    scene.background = texture;
-    return () => {
-      scene.background = null;
-    };
-  }, [scene, texture]);
-  return null;
-}
+// A 6th attempt at a real equirect sky texture (opt-in, teacher-picked
+// from her own uploaded images) shipped and then broke live in
+// production — direct teacher report with a screenshot: large jagged
+// dark-blue shard shapes across the sky, the exact same failure class as
+// every prior photo-sky attempt documented in TownSquare.tsx's
+// SkyboxBackground. EquirectangularReflectionMapping is now confirmed
+// broken twice, independently, on two different real images in this
+// codebase — do not retry it again on a third image; the mapping itself
+// is the problem here, not any one photo. Removed entirely: Fill Sky is
+// flat color only now, full stop.
 // Same tiling approach as TownSquare's own GroundMaterial (which this
 // mirrors) so a texture picked here looks the same once it's real —
 // ~4 world units per tile against the visible ground diameter.
@@ -1449,8 +1429,6 @@ export default function WorldEditor() {
   const setGroundTexture = useStore((s) => s.setGroundTexture);
   const skyColor = useStore((s) => s.skyColor);
   const setSkyColor = useStore((s) => s.setSkyColor);
-  const skyTexture = useStore((s) => s.skyTexture);
-  const setSkyTexture = useStore((s) => s.setSkyTexture);
   const restoreWorldEditorState = useStore((s) => s.restoreWorldEditorState);
   const retrySyncNow = useStore((s) => s.retrySyncNow);
 
@@ -2506,35 +2484,12 @@ export default function WorldEditor() {
           <div className="stack" style={{ gap: 6 }}>
             <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌤️ Sky</span>
             <div className="row-wrap" style={{ gap: 6 }}>
-              <button className="btn btn-sm" style={{ minHeight: 44, flex: 1 }} onClick={() => { setSkyTexture(null); setSkyColor(paintColor); flashSaved(); }}>
+              <button className="btn btn-sm" style={{ minHeight: 44, flex: 1 }} onClick={() => { setSkyColor(paintColor); flashSaved(); }}>
                 Fill sky with this color
               </button>
-              {(skyColor || skyTexture) && (
-                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { setSkyColor(null); setSkyTexture(null); flashSaved(); }} title="Back to the default sky">Reset</button>
+              {skyColor && (
+                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { setSkyColor(null); flashSaved(); }} title="Back to the default sky">Reset</button>
               )}
-            </div>
-          </div>
-
-          <div className="stack" style={{ gap: 6 }}>
-            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>🌌 Sky texture (your uploaded images)</span>
-            <p style={{ fontSize: '0.68rem', opacity: 0.65, margin: 0 }}>
-              Picking one shows live to every student in Town Square right away — real photo skies have broken on the horizon in this app before, so take a look here first and use Reset if it looks wrong.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-              {SKY_TEXTURE_OPTIONS.map((s) => {
-                const active = skyTexture === s.path;
-                return (
-                  <button
-                    key={s.label}
-                    onClick={() => { setSkyTexture(s.path); flashSaved(); }}
-                    title={s.label}
-                    style={{ minHeight: 56, padding: 4, borderRadius: 10, border: active ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}
-                  >
-                    <span style={{ display: 'block', width: 28, height: 28, borderRadius: 6, backgroundImage: `url(${s.path})`, backgroundSize: 'cover' }} />
-                    <span style={{ fontSize: 9, fontWeight: 700 }}>{s.label}</span>
-                  </button>
-                );
-              })}
             </div>
           </div>
           </>
@@ -2661,15 +2616,7 @@ export default function WorldEditor() {
                 something is ever placed oddly again, it fades into the sky
                 instead of dominating the view, and the camera itself can't
                 be zoomed out past the town to go looking for it. */}
-            {skyTexture ? (
-              <SkyTextureBoundary key={skyTexture} fallback={<color attach="background" args={[skyColor ?? '#bfe3ff']} />}>
-                <Suspense fallback={<color attach="background" args={[skyColor ?? '#bfe3ff']} />}>
-                  <BuildSkyTexture path={skyTexture} />
-                </Suspense>
-              </SkyTextureBoundary>
-            ) : (
-              <color attach="background" args={[skyColor ?? '#bfe3ff']} />
-            )}
+            <color attach="background" args={[skyColor ?? '#bfe3ff']} />
             <fog attach="fog" args={[skyColor ?? '#bfe3ff', 26, 46]} />
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 16, 8]} intensity={1.2} castShadow />
