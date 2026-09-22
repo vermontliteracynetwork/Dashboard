@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T18:44:22.303Z",
+  "generatedAt": "2026-09-22T14:53:00.124Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -6180,6 +6180,11 @@
       "path": "/world/models/structures/pack-shop.glb",
       "label": "Pack Shop",
       "category": "structures"
+    },
+    {
+      "path": "/world/models/suburb/Gas_Pump.glb",
+      "label": "Gas Pump",
+      "category": "suburb"
     },
     {
       "path": "/world/models/suburb/gas-station.glb",

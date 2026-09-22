@@ -135,6 +135,19 @@ export default function GlobalMusicPlayer() {
   return (
     <>
       <YouTubeAudio
+        // Direct teacher bug report: switching tracks (Next/Prev, or
+        // picking a new song) silently stopped working. Root cause: with
+        // no `key`, React reused the SAME <iframe> DOM node across a track
+        // change (just updating its id/src), but the outgoing effect's
+        // cleanup still calls the YT Player's own `destroy()`, which
+        // removes that iframe element from the DOM outright — ripping out
+        // the very node React had just repointed at the new track, a beat
+        // before the new effect could look it up by id and attach a fresh
+        // player to it. A `key` forces a real unmount/remount per track
+        // instead: the old effect destroys its own, no-longer-reused
+        // iframe, and the new track gets a brand new one untouched by that
+        // cleanup.
+        key={ytId}
         ref={playerRef}
         ytId={ytId}
         title={playing.title}

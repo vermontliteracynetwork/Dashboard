@@ -413,10 +413,26 @@ type IslandObstacle = { x: number; z: number; radius: number };
 const ISLAND_OBJECT_COLLISION_RADIUS = (scale: number) => THREE.MathUtils.clamp(scale * 0.4, 0.4, 1.6);
 function blockIslandObstacles(curX: number, curZ: number, targetX: number, targetZ: number, obstacles: IslandObstacle[]): [number, number] {
   const inside = (x: number, z: number) => obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
+  // Same fix as Town Square's blockObstaclesSlide: if the CURRENT point is
+  // already inside an obstacle's circle (fast movement, a frame hiccup,
+  // two circles overlapping), every fallback below used to bottom out at
+  // [curX, curZ] with no way back out — a permanent stuck-touching state.
+  // Push straight back out to the nearest edge first.
+  let [sx, sz] = [curX, curZ];
+  for (const o of obstacles) {
+    const dx = sx - o.x;
+    const dz = sz - o.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < o.radius) {
+      const push = o.radius - dist + 0.02;
+      if (dist > 0.0001) { sx += (dx / dist) * push; sz += (dz / dist) * push; }
+      else sx += o.radius + 0.02;
+    }
+  }
   if (!inside(targetX, targetZ)) return [targetX, targetZ];
-  if (!inside(targetX, curZ)) return [targetX, curZ];
-  if (!inside(curX, targetZ)) return [curX, targetZ];
-  return [curX, curZ];
+  if (!inside(targetX, sz)) return [targetX, sz];
+  if (!inside(sx, targetZ)) return [sx, targetZ];
+  return [sx, sz];
 }
 function IslandPlayer({ walkTarget, obstacles, sensitivity }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: IslandObstacle[]; sensitivity: number }) {
   const groupRef = useRef<THREE.Group>(null);

@@ -8,7 +8,7 @@ import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
-  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt,
+  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt, SKY_TEXTURE_OPTIONS,
 } from '../world/townLayout';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
@@ -1323,16 +1323,47 @@ function SelectedObjectToolbar({
                   style={{ minHeight: 44, width: '100%' }}
                 />
               </label>
-              <label style={{ margin: 0 }}>
-                <span style={{ fontSize: '0.72rem' }}>Role (what opens for a student)</span>
-                <select
-                  value={selected.role ?? ''}
-                  onChange={(e) => onUpdate({ role: (e.target.value || undefined) as WorldObjectRole | undefined })}
-                  style={{ minHeight: 44, width: '100%' }}
-                >
-                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </label>
+              <div style={{ margin: 0 }}>
+                <span style={{ fontSize: '0.72rem', display: 'block', marginBottom: 4 }}>Role (what opens for a student)</span>
+                {/* Direct teacher bug report: picking a role from a native
+                    <select> here closed the whole toolbar instead of
+                    applying it. This popover lives inside a drei <Html>
+                    overlay on top of the WebGL canvas — the OS renders a
+                    native select's open dropdown as browser chrome outside
+                    that overlay's own DOM, so the pointerup/click that
+                    dismisses it lands back on the canvas underneath at the
+                    same screen spot, hits the ground plane's onClick
+                    (handleGroundClick), and deselects. Same root cause
+                    Claudia's focus-group audit already flagged for the
+                    category filter above — replaced with the same kind of
+                    same-DOM button list the tint swatches below already
+                    use, which can't trigger a stray canvas click. */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 210, overflowY: 'auto' }}>
+                  {ROLE_OPTIONS.map((r) => {
+                    const isActive = (selected.role ?? '') === r.value;
+                    return (
+                      <button
+                        key={r.value}
+                        className="btn btn-sm"
+                        onClick={() => onUpdate({ role: (r.value || undefined) as WorldObjectRole | undefined })}
+                        style={{
+                          minHeight: 36,
+                          textAlign: 'left',
+                          justifyContent: 'flex-start',
+                          fontSize: '0.68rem',
+                          lineHeight: 1.25,
+                          padding: '6px 8px',
+                          whiteSpace: 'normal',
+                          border: isActive ? `2px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)',
+                          background: isActive ? 'rgba(0,0,0,0.04)' : '#fff',
+                        }}
+                      >
+                        {isActive ? '✓ ' : ''}{r.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               {selected.role === 'custom' && (
                 <label style={{ margin: 0 }}>
                   <span style={{ fontSize: '0.72rem' }}>Custom link (opens for a student)</span>
@@ -1430,6 +1461,9 @@ export default function WorldEditor() {
   const setGroundTexture = useStore((s) => s.setGroundTexture);
   const skyColor = useStore((s) => s.skyColor);
   const setSkyColor = useStore((s) => s.setSkyColor);
+  const skyTexture = useStore((s) => s.skyTexture);
+  const setSkyTexture = useStore((s) => s.setSkyTexture);
+  const [skyTextureCategory, setSkyTextureCategory] = useState<string | null>(null);
   const restoreWorldEditorState = useStore((s) => s.restoreWorldEditorState);
   const retrySyncNow = useStore((s) => s.retrySyncNow);
 
@@ -2501,6 +2535,51 @@ export default function WorldEditor() {
                 <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { setSkyColor(null); flashSaved(); }} title="Back to the default sky">Reset</button>
               )}
             </div>
+            {/* Direct teacher upload: a real seamless-tileable sky pack —
+                see SKY_TEXTURE_OPTIONS in townLayout.ts for why this is a
+                different, safer technique than every earlier sky-photo
+                attempt (a repeating pattern, not one panorama stretched
+                over the whole sky) and TownSquare.tsx's SkyDome for how
+                it actually renders. Category chips first (8 cloud styles),
+                then a thumbnail grid of that category's mood/variants —
+                same two-level picker shape Build Mode's own asset catalog
+                already uses. Picking a thumbnail applies it immediately,
+                same as every other swatch picker in this app; still
+                genuinely new 3D rendering this sandbox can't visually
+                verify, so treat it as needing a live look before calling
+                it done. */}
+            <div className="row-wrap" style={{ gap: 4 }}>
+              {Array.from(new Set(SKY_TEXTURE_OPTIONS.map((t) => t.category))).map((cat) => (
+                <button
+                  key={cat}
+                  className={`btn btn-sm ${skyTextureCategory === cat ? 'btn-primary' : ''}`}
+                  style={{ minHeight: 32, fontSize: '0.68rem', padding: '2px 8px' }}
+                  onClick={() => setSkyTextureCategory((v) => (v === cat ? null : cat))}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            {skyTextureCategory && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+                {SKY_TEXTURE_OPTIONS.filter((t) => t.category === skyTextureCategory).map((t) => (
+                  <button
+                    key={t.id}
+                    title={t.label}
+                    aria-label={`Fill sky with ${t.label}`}
+                    onClick={() => { setSkyTexture(t.id); flashSaved(); }}
+                    style={{ padding: 2, borderRadius: 8, border: skyTexture === t.id ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: '#fff', cursor: 'pointer' }}
+                  >
+                    <img src={t.path} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 5, display: 'block' }} />
+                  </button>
+                ))}
+              </div>
+            )}
+            {skyTexture && (
+              <button className="btn btn-sm" style={{ minHeight: 36 }} onClick={() => { setSkyTexture(null); flashSaved(); }} title="Back to a flat color sky">
+                ✕ Remove sky texture
+              </button>
+            )}
           </div>
           </>
           )}

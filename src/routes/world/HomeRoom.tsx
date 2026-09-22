@@ -266,10 +266,35 @@ interface RoomObstacle { x: number; z: number; radius: number }
 // so it can't glitch the way a radial push-out could.
 function blockRoomObstacles(curX: number, curZ: number, targetX: number, targetZ: number, obstacles: RoomObstacle[]): [number, number] {
   const insideObstacle = (x: number, z: number) => obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
+  // Direct teacher report: "students can go through them a little bit and
+  // get stuck" — the same bug already fixed in TownSquare.tsx's
+  // blockObstaclesSlide and IslandBuild.tsx's blockIslandObstacles, now
+  // fixed here the same way. Root cause: this function only ever checked
+  // whether the TARGET point was inside an obstacle; if the CURRENT point
+  // ever ended up inside one (two pieces of furniture placed close enough
+  // to overlap, a frame hiccup), every fallback bottomed out at
+  // `[curX, curZ]` — "don't move," with no way back out. Push straight
+  // back out to the nearest circle's edge first, so "current position" is
+  // never itself an invalid one to fall back to.
+  let [sx, sz] = [curX, curZ];
+  for (const o of obstacles) {
+    const dx = sx - o.x;
+    const dz = sz - o.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < o.radius) {
+      const push = o.radius - dist + 0.02;
+      if (dist > 0.0001) {
+        sx += (dx / dist) * push;
+        sz += (dz / dist) * push;
+      } else {
+        sx += o.radius + 0.02;
+      }
+    }
+  }
   if (!insideObstacle(targetX, targetZ)) return [targetX, targetZ];
-  if (!insideObstacle(targetX, curZ)) return [targetX, curZ];
-  if (!insideObstacle(curX, targetZ)) return [curX, targetZ];
-  return [curX, curZ];
+  if (!insideObstacle(targetX, sz)) return [targetX, sz];
+  if (!insideObstacle(sx, targetZ)) return [sx, targetZ];
+  return [sx, sz];
 }
 
 // halfW/halfD/spawn vary per active room (and the yard has no boundary
@@ -503,7 +528,7 @@ function PetCareCard({
           for world objects, applied here to the student's own pet. Purely
           cosmetic autonomy, no cost, no cap, reversible any time. */}
       <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.65, marginBottom: 2 }}>🎨 Color</div>
-      <div className="row-wrap" style={{ gap: 4, marginBottom: 4 }}>
+      <div className="row-wrap" style={{ gap: 4, marginBottom: 4, alignItems: 'center' }}>
         {PET_TINT_SWATCHES.map((c) => (
           <button
             key={c}
@@ -513,6 +538,30 @@ function PetCareCard({
             style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, padding: 0, borderRadius: 6, background: c, border: pet.tintColor === c ? '2px solid var(--ink, #1f4238)' : '1px solid #0002', cursor: 'pointer' }}
           />
         ))}
+        {/* Direct teacher request for "more freedom... mirror after Sims
+            4": a true freehand paint brush (multiple regions, patterns,
+            painted directly onto the model's coat texture) is a much
+            bigger build than this — it needs a real per-pet UV-mapped
+            paint canvas, not a material-color swap, and this environment
+            can't visually QA a 3D rendering feature before shipping it
+            (see the sky-texture saga's standing "no retry without live
+            visual QA" rule — five failed attempts on exactly that kind of
+            unverifiable 3D/texture work). Flagged in the dev plan as a
+            real future build, not attempted here. What ships now: the
+            same safe "more colors" native picker Build Mode's own tint
+            popover already uses for objects (WorldEditor.tsx), so a
+            student isn't limited to these 12 presets — any color, not
+            just a fixed swatch. */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 8, margin: 0 }}>
+          <input
+            type="color"
+            value={pet.tintColor ?? '#ffffff'}
+            onChange={(e) => tintPet(pet.id, e.target.value)}
+            style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, padding: 0, cursor: 'pointer' }}
+            title="More colors"
+            aria-label="Pick any color for your pet"
+          />
+        </label>
         {pet.tintColor && (
           <button className="btn btn-sm" style={{ minHeight: 22, fontSize: 9, padding: '0 6px' }} onClick={() => tintPet(pet.id, null)}>
             ✕ Reset
@@ -769,14 +818,26 @@ export default function HomeRoom() {
   // matters while walking around, so it's fine to recompute whenever the
   // active room's own objects change rather than gating on mode.
   const roomObstacles = useMemo(() => {
-    const base = roomObjects
-      .map((o) => {
-        const item = CATALOG_ITEMS.find((it) => it.modelPath === o.modelPath);
-        return item ? { x: o.position[0], z: o.position[2], radius: ROOM_OBJECT_COLLISION_RADIUS(item.target) } : null;
-      })
-      .filter((o): o is RoomObstacle => o !== null);
+    // Direct teacher report: "items should be solid on default." Root
+    // cause — this only ever built an obstacle for a placed object whose
+    // modelPath matched CATALOG_ITEMS, which is just the free starter/yard
+    // catalog; a purchased Marketplace furniture item (marketplaceFurniture,
+    // built for #147) was never in that list, so it silently had ZERO
+    // collision, walkable straight through, with no flag anywhere a
+    // teacher could have set to fix it. Every placed room object gets an
+    // obstacle now, full stop — a catalog match still gives its real
+    // target-size radius, and anything else (marketplace furniture, or any
+    // future item type) falls back to a generic scale-based radius, the
+    // same "never silently non-solid" rule TownSquare.tsx and
+    // IslandBuild.tsx's own placed-object collision already follow.
+    const allItems = [...CATALOG_ITEMS, ...marketplaceFurniture];
+    const base = roomObjects.map((o) => {
+      const item = allItems.find((it) => it.modelPath === o.modelPath);
+      const radius = item ? ROOM_OBJECT_COLLISION_RADIUS(item.target) : THREE.MathUtils.clamp(o.scale * 0.4, 0.3, 1.2);
+      return { x: o.position[0], z: o.position[2], radius };
+    });
     return exteriorObstacle ? [...base, exteriorObstacle] : base;
-  }, [roomObjects, exteriorObstacle]);
+  }, [roomObjects, exteriorObstacle, marketplaceFurniture]);
 
   const myPets = useMemo(
     () => (student ? pets.filter((p) => p.studentId === student.id) : []),

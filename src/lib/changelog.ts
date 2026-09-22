@@ -16,6 +16,41 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-nav-buttons-clean',
+    date: '2026-09-22',
+    icon: '🕹️',
+    title: 'Driving and walking buttons are easier to hold now',
+    body: 'Holding down a move button, or the gas and brake, used to sometimes pop up a copy menu on your screen and stop you from moving. Fixed! The buttons are icons only now, no more getting stuck.',
+  },
+  {
+    id: '2026-09-22-solid-everywhere',
+    date: '2026-09-22',
+    icon: '🧱',
+    title: 'Everything you place is solid now, everywhere',
+    body: 'In your Home Room, furniture you bought from the Marketplace now stops you from walking through it too, just like everywhere else.',
+  },
+  {
+    id: '2026-09-22-unstuck',
+    date: '2026-09-22',
+    icon: '🚶',
+    title: 'No more getting stuck next to things',
+    body: 'If you brushed up against something while walking or driving, you could sometimes get a little stuck. Fixed in Town Square, Creative Island, and your Home Room.',
+  },
+  {
+    id: '2026-09-22-pet-more-colors',
+    date: '2026-09-22',
+    icon: '🎨',
+    title: 'More pet colors to pick from',
+    body: 'Your pet’s Color row now has a "more colors" option too, not just the 12 squares, so you can pick any color you want.',
+  },
+  {
+    id: '2026-09-22-music-fixed',
+    date: '2026-09-22',
+    icon: '🎶',
+    title: 'Skipping songs works right now',
+    body: 'Next and Previous on the music player were not working. Fixed!',
+  },
+  {
     id: '2026-09-22-auto-questions',
     date: '2026-09-22',
     icon: '🧠',

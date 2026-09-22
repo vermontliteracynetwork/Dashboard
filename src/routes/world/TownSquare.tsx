@@ -22,7 +22,7 @@ import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS } from './townLayout';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
@@ -377,13 +377,40 @@ function blockObstacles(x: number, z: number): [number, number] {
 // by an amount the player's own input already implied, so it can't glitch.
 function blockObstaclesSlide(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
   const insideObstacle = (x: number, z: number) => STATIC_OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
+  // Direct teacher report: "students can go through them a little bit and
+  // get stuck." Root cause: the old version only ever checked whether the
+  // TARGET point was inside an obstacle — if the CURRENT point ever ended
+  // up inside one (a fast car covering more ground in one frame than a
+  // walking student, a frame-rate hiccup, two obstacle circles placed
+  // close enough to overlap), every fallback path bottomed out at
+  // `[curX, curZ]`, i.e. "don't move," with no way to ever get back out —
+  // a permanent stuck-touching-the-obstacle state. Same fix pattern
+  // blockBuildings already uses for rectangles (always resolves to a
+  // valid point, stateless): push straight back out to the nearest
+  // circle's edge first, then evaluate the requested move from there, so
+  // "current position" is never itself an invalid one to fall back to.
+  let [sx, sz] = [curX, curZ];
+  for (const o of STATIC_OBSTACLES) {
+    const dx = sx - o.x;
+    const dz = sz - o.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < o.radius) {
+      const push = o.radius - dist + 0.02;
+      if (dist > 0.0001) {
+        sx += (dx / dist) * push;
+        sz += (dz / dist) * push;
+      } else {
+        sx += o.radius + 0.02;
+      }
+    }
+  }
   let [bx, bz] = blockBuildings(targetX, targetZ);
   if (insideObstacle(bx, bz)) {
-    const slideX = blockBuildings(targetX, curZ);
-    const slideZ = blockBuildings(curX, targetZ);
+    const slideX = blockBuildings(targetX, sz);
+    const slideZ = blockBuildings(sx, targetZ);
     if (!insideObstacle(slideX[0], slideX[1])) [bx, bz] = slideX;
     else if (!insideObstacle(slideZ[0], slideZ[1])) [bx, bz] = slideZ;
-    else [bx, bz] = [curX, curZ];
+    else [bx, bz] = [sx, sz];
   }
   return blockWallSegments(bx, bz, STATIC_WALLS);
 }
@@ -1629,6 +1656,37 @@ function SkyboxBackground({ skyColor }: { skyColor?: string | null }) {
   return null;
 }
 
+// Seventh sky attempt, direct teacher upload: a real seamless-tileable sky
+// pack (see SKY_TEXTURE_OPTIONS in townLayout.ts for the full provenance
+// and why this is a genuinely different, safer technique than every prior
+// equirect-photo attempt above, not a retry of the banned one). Renders as
+// a big BackSide sphere dome with the texture tiled via RepeatWrapping —
+// the same safe tiling approach WorldEditor's ground textures already use
+// — rather than one image stretched across the whole sphere as a single
+// panorama. Static and world-centered, radius comfortably past the fog's
+// own far distance (90) and past anywhere the play area's camera actually
+// reaches, so the dome never needs to track/recenter on the camera.
+// fog={false}: at this radius the scene fog would otherwise wash the
+// entire dome out to a flat fog color before the texture ever became
+// visible, which defeats the point of a sky texture. Opt-in only — only
+// rendered when a teacher has actually picked one in Build Mode's Fill Sky
+// panel (skyTexture is null by default, same flat-color sky as before).
+const SKY_DOME_RADIUS = 180;
+function SkyDome({ path }: { path: string }) {
+  const texture = useTexture(path);
+  useMemo(() => {
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(6, 3);
+    texture.colorSpace = THREE.SRGBColorSpace;
+  }, [texture]);
+  return (
+    <mesh renderOrder={-1}>
+      <sphereGeometry args={[SKY_DOME_RADIUS, 48, 32]} />
+      <meshBasicMaterial map={texture} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />
+    </mesh>
+  );
+}
+
 // Same proximity-based label/button pattern buildings/Neighbors already
 // use (walk up, see a label, then a button appears) rather than a raycast hitbox on the
 // building itself — a building's footprint sits close enough to its own
@@ -1833,10 +1891,18 @@ function DpadButton({
         cursor: 'pointer',
         padding: 0,
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 1,
+        // Direct teacher report: holding a nav button (these are hold-to-
+        // move, not tap) let iOS treat the button's own text as selectable
+        // content, popping up the native Copy/Look Up callout mid-hold and
+        // breaking the gesture — exactly what removing the text below also
+        // fixes at the source, but this closes it for any browser/gesture
+        // combination regardless.
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
         ...style,
       }}
       onPointerDown={(e) => { e.preventDefault(); touchDir.current = { x: dx, z: dz }; }}
@@ -1844,14 +1910,16 @@ function DpadButton({
       onPointerLeave={() => { touchDir.current = { x: 0, z: 0 }; }}
       aria-label={`Move ${label}`}
     >
+      {/* Direct teacher report: the text label under the arrow was
+          highlighting/selecting on a touch-and-hold, exactly the gesture
+          this button needs to keep moving — icon only now, same as every
+          other pack in this app; the accessible name lives in aria-label
+          above instead of a visible caption. */}
       <img
         src="/world/ui/btn-arrow.png"
         alt=""
-        style={{ width: 26, height: 26, transform: `rotate(${rotate}deg)`, pointerEvents: 'none' }}
+        style={{ width: 28, height: 28, transform: `rotate(${rotate}deg)`, pointerEvents: 'none' }}
       />
-      <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
-        {label}
-      </span>
     </button>
   );
 }
@@ -1864,13 +1932,13 @@ function DpadButton({
 // Right stay in place for steering.
 function PedalButton({
   label,
-  icon,
+  rotate,
   color,
   pressedRef,
   style,
 }: {
   label: string;
-  icon: string;
+  rotate: number;
   color: string;
   pressedRef: React.RefObject<boolean>;
   style: React.CSSProperties;
@@ -1891,10 +1959,18 @@ function PedalButton({
         cursor: 'pointer',
         padding: 0,
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 1,
+        // Direct teacher report: holding this button (Gas/Brake are hold-
+        // to-drive, not tap) let iOS treat the emoji/text inside as
+        // selectable content, popping the native Copy/Look Up callout up
+        // mid-hold and breaking the gesture. Same fix as DpadButton above:
+        // icon-only now (a plain rotated arrow, no text/emoji glyph left to
+        // select) plus these properties close it for good regardless.
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
         ...style,
       }}
       onPointerDown={(e) => { e.preventDefault(); pressedRef.current = true; }}
@@ -1902,10 +1978,11 @@ function PedalButton({
       onPointerLeave={() => { pressedRef.current = false; }}
       aria-label={label}
     >
-      <span style={{ fontSize: 18, lineHeight: 1, pointerEvents: 'none' }}>{icon}</span>
-      <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
-        {label}
-      </span>
+      <img
+        src="/world/ui/btn-arrow.png"
+        alt=""
+        style={{ width: 28, height: 28, transform: `rotate(${rotate}deg)`, pointerEvents: 'none' }}
+      />
     </button>
   );
 }
@@ -1931,33 +2008,28 @@ function CameraLookButtons({ cameraLook, cameraPitch, side, bottom }: { cameraLo
     cameraPitch.current = THREE.MathUtils.clamp(cameraPitch.current + dir * PITCH_STEP, -CAMERA_PITCH_CAP, CAMERA_PITCH_CAP);
     forceTick((n) => n + 1);
   };
-  const btnStyle: React.CSSProperties = { width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, lineHeight: 1 };
+  // Direct teacher report: a visible text caption under these glyphs (and
+  // the glyphs themselves, sitting in the DOM as selectable text) let iOS
+  // pop its native Copy/Look Up callout on a touch-and-hold, disrupting
+  // navigation — icon-only now, same fix as DpadButton/PedalButton above,
+  // with the accessible name moved to aria-label. The touch-callout/
+  // user-select properties close it for any other browser/gesture too.
+  const btnStyle: React.CSSProperties = {
+    width: 44, height: 44, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#3e7c6b', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink, #1f4238)', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+    WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent',
+  };
   return (
     <div style={{ position: 'absolute', bottom, [side]: 190, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      {/* Icons paired with a visible label, not icon-only (Claudia's
-          audit) — matches the D-pad's own label-under-icon pattern above.
-          Look up/down sits in its own row above left/right so it reads as
+      {/* Look up/down sits in its own row above left/right so it reads as
           a separate axis, not a 4-way pad (which would imply it also
           moves the player, which it never does — this only ever looks). */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => tilt(1)} style={btnStyle} aria-label="Look up">
-          <span>⇧</span>
-          <span style={{ fontSize: 7, fontWeight: 800 }}>Up</span>
-        </button>
-        <button onClick={() => tilt(-1)} style={btnStyle} aria-label="Look down">
-          <span>⇩</span>
-          <span style={{ fontSize: 7, fontWeight: 800 }}>Down</span>
-        </button>
+        <button onClick={() => tilt(1)} style={btnStyle} aria-label="Look up"><span>⇧</span></button>
+        <button onClick={() => tilt(-1)} style={btnStyle} aria-label="Look down"><span>⇩</span></button>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => turn(-1)} style={btnStyle} aria-label="Look left">
-          <span>↺</span>
-          <span style={{ fontSize: 7, fontWeight: 800 }}>Left</span>
-        </button>
-        <button onClick={() => turn(1)} style={btnStyle} aria-label="Look right">
-          <span>↻</span>
-          <span style={{ fontSize: 7, fontWeight: 800 }}>Right</span>
-        </button>
+        <button onClick={() => turn(-1)} style={btnStyle} aria-label="Look left"><span>↺</span></button>
+        <button onClick={() => turn(1)} style={btnStyle} aria-label="Look right"><span>↻</span></button>
       </div>
     </div>
   );
@@ -1991,6 +2063,8 @@ export default function TownSquare() {
   );
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const skyColor = useStore((s) => s.skyColor);
+  const skyTexture = useStore((s) => s.skyTexture);
+  const skyTexturePath = skyTexture ? SKY_TEXTURE_OPTIONS.find((t) => t.id === skyTexture)?.path : undefined;
   // Driveable cars (docs/TRANSPORTATION.md, Phase 1) — declared up here
   // (rather than alongside the rest of the interaction state further
   // down) since the collision-layout effect right below needs
@@ -3353,6 +3427,7 @@ export default function TownSquare() {
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
           <SkyboxBackground skyColor={skyColor} />
+          {skyTexturePath && <SkyDome path={skyTexturePath} />}
           <Park
             layoutOverrides={layoutOverrides}
             onGroundTap={(x, z) => {
@@ -3683,8 +3758,8 @@ export default function TownSquare() {
       <div style={{ position: 'absolute', [dpadSide]: 16, bottom: dpadBottom, width: 170, height: 170, zIndex: 10 }}>
         {drivingObjectId && !drivingIsBoat ? (
           <>
-            <PedalButton label="Gas" icon="⛽" color="#2f9e44" pressedRef={gasRef} style={{ top: 0, left: 50 }} />
-            <PedalButton label="Brake" icon="🛑" color="#c0392b" pressedRef={brakeRef} style={{ bottom: 0, left: 50 }} />
+            <PedalButton label="Gas" rotate={-90} color="#2f9e44" pressedRef={gasRef} style={{ top: 0, left: 50 }} />
+            <PedalButton label="Brake" rotate={90} color="#c0392b" pressedRef={brakeRef} style={{ bottom: 0, left: 50 }} />
           </>
         ) : (
           // Boats deliberately reuse this same Up/Down D-pad as throttle
