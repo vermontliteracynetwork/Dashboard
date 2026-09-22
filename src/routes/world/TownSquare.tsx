@@ -28,6 +28,7 @@ import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion } from '../../types';
+import { generateAutoQuestion } from '../../lib/autoQuestions';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -2452,24 +2453,18 @@ export default function TownSquare() {
   // visible through a miss instead of the drop happening invisibly).
   const [gasLockout, setGasLockout] = useState(false);
   const [gasLockoutStreak, setGasLockoutStreak] = useState(0);
+  // Falls back to a generated auto-question (math facts, morpheme
+  // definitions — see lib/autoQuestions.ts) whenever the teacher hasn't
+  // authored any real MC content yet, instead of the earlier silent
+  // auto-top-up. A student always gets a real, curriculum-grounded
+  // question now, never a broken empty prompt and never a free pass.
   const pickGasQuestion = () => {
-    if (gasQuestionPool.length === 0) return null;
-    return gasQuestionPool[Math.floor(Math.random() * gasQuestionPool.length)];
+    if (gasQuestionPool.length > 0) return gasQuestionPool[Math.floor(Math.random() * gasQuestionPool.length)];
+    return generateAutoQuestion();
   };
   const openGasQuiz = () => {
-    const q = pickGasQuestion();
-    if (!q) {
-      // No MC questions exist anywhere in the library yet — never show a
-      // broken empty prompt; just top up so a student is never stuck
-      // behind a feature the teacher hasn't authored content for.
-      setCarGasDashes(10);
-      setGasLockout(false);
-      setGasLockoutStreak(0);
-      setGasQuizQuestion(null);
-      return;
-    }
     setGasQuizFeedback(null);
-    setGasQuizQuestion(q);
+    setGasQuizQuestion(pickGasQuestion());
   };
   const answerGasQuiz = (choiceIndex: number) => {
     if (!gasQuizQuestion) return;

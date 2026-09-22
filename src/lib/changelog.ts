@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-auto-questions',
+    date: '2026-09-22',
+    icon: '🧠',
+    title: 'New practice questions for gas refills',
+    body: 'If there are not enough questions loaded yet, you might get a math fact or a word-parts question instead, so you can always keep playing.',
+  },
+  {
     id: '2026-09-22-laptop-screens',
     date: '2026-09-22',
     icon: '💻',
