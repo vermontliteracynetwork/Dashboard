@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-randomize-buttons',
+    date: '2026-09-22',
+    icon: '🎲',
+    title: 'New dice buttons in Literacy Manipulatives!',
+    body: 'Stuck on where to start? Tap the dice button in Sentence Formulas, Sentence Builder, Mad Libs, or Word Tiles and it fills in a starting sentence for you to change however you want.',
+  },
+  {
+    id: '2026-09-22-building-hints',
+    date: '2026-09-22',
+    icon: '📝',
+    title: 'Sentence Formulas and Sentence Builder now tell you how it is going',
+    body: 'While you build a sentence, look for a blue note that tells you how many parts you have so far. Once it turns green, your sentence is complete!',
+  },
+  {
     id: '2026-09-22-sound-wall',
     date: '2026-09-22',
     icon: '🧱',

@@ -62,6 +62,16 @@ const SENTENCES_GROUP: { id: ToolMode; label: string }[] = [
   { id: 'sentence', label: '🧩 Sentence Builder' },
 ];
 
+// A random index into a length-N list, guaranteed different from
+// `exclude` when length > 1 — used by every "🎲 randomize"-style control
+// in this sandbox so tapping it always visibly changes something.
+function randomIndexExcept(length: number, exclude: number): number {
+  if (length <= 1) return 0;
+  let i = Math.floor(Math.random() * length);
+  if (i === exclude) i = (i + 1) % length;
+  return i;
+}
+
 interface PlacedPiece {
   instanceId: string;
   pieceId: string;
@@ -507,6 +517,30 @@ export default function GrammarSandbox() {
     setPlaced([]);
   };
 
+  // "🎲 Give me a start" — Claudia's spec: the one mode that starts from
+  // a literal blank page, so a random noun+verb pair (already snapped) is
+  // a real initiation-deficit accommodation for ADHD/ASD executive
+  // function, not just novelty. Drops in already-agreeing, matching the
+  // same number rule the snap check itself enforces.
+  const addRandomStarterPair = () => {
+    pushHistory();
+    const noun = SANDBOX_NOUNS[Math.floor(Math.random() * SANDBOX_NOUNS.length)];
+    const matchingVerbs = SANDBOX_VERBS.filter((v) => v.number === noun.number);
+    const verb = matchingVerbs[Math.floor(Math.random() * matchingVerbs.length)];
+    const baseX = 60 + Math.random() * 60;
+    const baseY = 50 + Math.random() * 60;
+    const nounInstanceId = `${noun.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const verbInstanceId = `${verb.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setPlaced((p) => [
+      ...p,
+      { instanceId: nounInstanceId, pieceId: noun.id, x: baseX, y: baseY },
+      { instanceId: verbInstanceId, pieceId: verb.id, x: baseX + TILE_W + SNAP_GAP, y: baseY },
+    ]);
+    if (glowTimerRef.current) window.clearTimeout(glowTimerRef.current);
+    setGlowIds(new Set([nounInstanceId, verbInstanceId]));
+    glowTimerRef.current = window.setTimeout(() => setGlowIds(new Set()), 900);
+  };
+
   const activeMadlibTemplate = MADLIB_TEMPLATES[madlibTemplateIndex];
 
   const fillNextMadlibBlank = (piece: GrammarPiece) => {
@@ -532,6 +566,21 @@ export default function GrammarSandbox() {
   };
 
   const clearMadlibBlanks = () => setMadlibFills({});
+
+  // "🎲 Fill randomly" — Claudia's lower-priority nice-to-have: fills
+  // every currently-empty blank with a random piece of the matching word
+  // class, leaving anything the student already picked untouched.
+  const fillMadlibRandomly = () => {
+    setMadlibFills((f) => {
+      const next = { ...f };
+      activeMadlibTemplate.forEach((seg, i) => {
+        if (seg.type !== 'blank' || next[i]) return;
+        const pool = seg.wordClass === 'noun' ? SANDBOX_NOUNS : SANDBOX_VERBS;
+        next[i] = pool[Math.floor(Math.random() * pool.length)].id;
+      });
+      return next;
+    });
+  };
 
   const readMadlib = () => {
     const sentence = activeMadlibTemplate
@@ -606,7 +655,9 @@ export default function GrammarSandbox() {
   };
 
   const newSoundWord = () => {
-    setSoundWordIndex((i) => (i + 1) % SOUND_WORDS.length);
+    // Random instead of sequential (Claudia's spec) — a small, cheap
+    // novelty-decay renewal; still guaranteed to land on a different word.
+    setSoundWordIndex((i) => randomIndexExcept(SOUND_WORDS.length, i));
     setBoxFills({});
   };
 
@@ -642,7 +693,7 @@ export default function GrammarSandbox() {
   const blendRemoveLast = () => setBlendBuilt((b) => b.slice(0, -1));
 
   const newBlendWord = () => {
-    setBlendWordIndex((i) => (i + 1) % SOUND_WORDS.length);
+    setBlendWordIndex((i) => randomIndexExcept(SOUND_WORDS.length, i));
     setBlendBuilt([]);
   };
 
@@ -726,6 +777,7 @@ export default function GrammarSandbox() {
 
   // Montessori Sentence Builder
   const sbCurrentState = GRAMMAR_STATES[sbStateId];
+  const showSbHints = student.showSentenceBuildingHints ?? true;
 
   const sbWordListFor = (wordClass: MontessoriWordClass): WordOption[] => {
     if (wordClass === 'verb') return SANDBOX_VERBS.filter((v) => v.number === sbSubjectVerbForm).map((v) => ({ text: v.text }));
@@ -770,6 +822,44 @@ export default function GrammarSandbox() {
     if (sbBuilt.length === 0) return;
     const finished = sbCurrentState.canEnd ? `${sbSentenceText()}.` : sbSentenceText();
     speak(finished, student.ttsSettings);
+  };
+
+  // "🎲 Surprise me" — Claudia's spec: random-walk the decision tree
+  // until it lands on a complete state. Safe by construction, since
+  // GRAMMAR_STATES can only ever offer grammatically valid next moves,
+  // a random sentence built this way can never come out wrong. Pushes
+  // each step onto the same history stacks sbChooseWord uses, so Undo
+  // still peels it back one word at a time afterward. Continues from
+  // wherever the sentence already is, so it also works mid-build.
+  const sbSurpriseMe = () => {
+    let stateId = sbStateId;
+    let subjectForm = sbSubjectVerbForm;
+    const newWords: { wordClass: MontessoriWordClass; text: string }[] = [];
+    const stateHist = [...sbStateHistory.current];
+    const subjHist = [...sbSubjectHistory.current];
+    for (let steps = 0; steps < 8; steps++) {
+      const state = GRAMMAR_STATES[stateId];
+      if (state.canEnd && Math.random() < 0.5) break;
+      if (state.options.length === 0) break;
+      const opt = state.options[Math.floor(Math.random() * state.options.length)];
+      const list: WordOption[] = opt.wordClass === 'verb'
+        ? SANDBOX_VERBS.filter((v) => v.number === subjectForm).map((v) => ({ text: v.text }))
+        : optionWordList(stateId, opt.wordClass);
+      if (list.length === 0) break;
+      const word = list[Math.floor(Math.random() * list.length)];
+      stateHist.push(stateId);
+      subjHist.push(subjectForm);
+      newWords.push({ wordClass: opt.wordClass, text: word.text });
+      if (opt.next === 'afterSubject') subjectForm = word.verbForm ?? 'singular';
+      stateId = opt.next;
+    }
+    if (newWords.length === 0) return;
+    sbStateHistory.current = stateHist;
+    sbSubjectHistory.current = subjHist;
+    setSbBuilt((b) => [...b, ...newWords]);
+    setSbStateId(stateId);
+    setSbSubjectVerbForm(subjectForm);
+    setSbOpenPicker(null);
   };
 
   // Word Matrix
@@ -871,6 +961,12 @@ export default function GrammarSandbox() {
   };
 
   const sfIsComplete = sfSegments.every((seg, i) => seg.kind !== 'slot' || sfFills[i]);
+  // Calm SEL-toned status line (Claudia's spec) — a neutral, non-red
+  // "still building" signal between silence and the existing green
+  // complete message, teacher-toggleable per student (default on).
+  const showSfHints = student.showSentenceBuildingHints ?? true;
+  const sfSlotTotal = sfSegments.filter((s) => s.kind === 'slot').length;
+  const sfSlotFilled = sfSegments.filter((s, i) => s.kind === 'slot' && sfFills[i]).length;
 
   const sfSentenceText = () => sfSegments.map((seg, i) => sfBlankFor(seg, i) ?? '').join(' ').replace(/\s+([.!?])/g, '$1');
 
@@ -881,6 +977,36 @@ export default function GrammarSandbox() {
 
   const sfClear = () => {
     setSfFills({});
+    setSfOpenPicker(null);
+  };
+
+  // "🎲 Randomize" — Claudia's spec: fills every currently-empty blank
+  // with one random word from that slot's own word bank, leaving any
+  // blank the student already filled alone — a worked-example sentence
+  // frame the student can then swap pieces in, the real ELL sentence-
+  // frame mechanic. WHO fills first (when empty) so every later
+  // agreement-aware slot (ACTION, feels/seems/looks, Do/Does...) picks up
+  // the right verb form in the same pass.
+  const sfRandomize = () => {
+    setSfFills((f) => {
+      const next = { ...f };
+      let whoVerbForm = sfWhoVerbForm;
+      if (sfWhoIndex >= 0 && !next[sfWhoIndex]) {
+        const whoPool = wordBankFor('who', sfTier, null);
+        if (whoPool.length > 0) {
+          const pick = whoPool[Math.floor(Math.random() * whoPool.length)];
+          next[sfWhoIndex] = pick.text;
+          whoVerbForm = pick.verbForm ?? 'singular';
+        }
+      }
+      sfSegments.forEach((seg, i) => {
+        if (seg.kind !== 'slot' || next[i]) return;
+        const pool = seg.slot === 'action' ? actionWordsFor(whoVerbForm, seg.verbFormOverride) : wordBankFor(seg.slot, sfTier, whoVerbForm);
+        if (pool.length === 0) return;
+        next[i] = pool[Math.floor(Math.random() * pool.length)].text;
+      });
+      return next;
+    });
     setSfOpenPicker(null);
   };
 
@@ -1083,11 +1209,13 @@ export default function GrammarSandbox() {
           {tool === 'madlibs' ? (
             <>
               <button className="btn btn-sm" onClick={newMadlibSentence}>🔀 New sentence</button>
+              <button className="btn btn-sm" onClick={fillMadlibRandomly}>🎲 Fill randomly</button>
               <button className="btn btn-sm" onClick={readMadlib}>🔈 Read it</button>
               <button className="btn btn-sm" onClick={clearMadlibBlanks} disabled={Object.keys(madlibFills).length === 0}>↺ Clear blanks</button>
             </>
           ) : tool === 'formulas' ? (
             <>
+              <button className="btn btn-sm" onClick={sfRandomize}>🎲 Randomize</button>
               <button className="btn btn-sm" onClick={sfReadSentence} disabled={!sfIsComplete}>🔈 Read it</button>
               <button className="btn btn-sm" onClick={sfClear} disabled={Object.keys(sfFills).length === 0}>↺ Clear blanks</button>
             </>
@@ -1117,6 +1245,7 @@ export default function GrammarSandbox() {
             </>
           ) : tool === 'sentence' ? (
             <>
+              <button className="btn btn-sm" onClick={sbSurpriseMe}>🎲 Surprise me</button>
               <button className="btn btn-sm" onClick={sbReadSentence} disabled={sbBuilt.length === 0}>🔈 Read it</button>
               <button className="btn btn-sm" onClick={sbUndo} disabled={sbBuilt.length === 0}>↩️ Undo</button>
               <button className="btn btn-sm" onClick={sbReset} disabled={sbBuilt.length === 0}>🔀 New sentence</button>
@@ -1128,6 +1257,7 @@ export default function GrammarSandbox() {
             </>
           ) : (
             <>
+              {tool === 'select' && <button className="btn btn-sm" onClick={addRandomStarterPair}>🎲 Give me a start</button>}
               <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
               <button className="btn btn-sm" onClick={readBoard} disabled={placed.length === 0}>🔈 Read board</button>
               <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>🗑️ Clear</button>
@@ -1513,6 +1643,13 @@ export default function GrammarSandbox() {
             {sbCurrentState.canEnd && (
               <p style={{ margin: 0, fontWeight: 800, color: 'var(--success)', fontSize: '0.85rem' }}>✅ This is already a real, complete sentence — keep going or tap "Read it"!</p>
             )}
+            {/* Calm SEL-toned "still building" status — Claudia's spec:
+                a neutral third state between silence and the green
+                complete message above, never red, never "wrong."
+                Teacher-toggleable per student, default on. */}
+            {showSbHints && !sbCurrentState.canEnd && sbBuilt.length > 0 && (
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--blue)', fontSize: '0.85rem' }}>📝 Not a full sentence yet. Add another piece whenever you're ready.</p>
+            )}
 
             <div className="stack" style={{ gap: 10, alignItems: 'center', width: '100%', maxWidth: 640 }}>
               <p style={{ margin: 0, fontWeight: 700, opacity: 0.6, fontSize: '0.8rem' }}>What comes next?</p>
@@ -1621,6 +1758,13 @@ export default function GrammarSandbox() {
 
             {sfIsComplete && (
               <p style={{ margin: 0, fontWeight: 800, color: 'var(--success)', fontSize: '0.85rem', textAlign: 'center' }}>✅ That's a real, complete sentence, tap "Read it"!</p>
+            )}
+            {/* Calm SEL-toned "still building" status — Claudia's spec:
+                a neutral third state between silence and the green
+                complete message above, never red, never "wrong."
+                Teacher-toggleable per student, default on. */}
+            {showSfHints && !sfIsComplete && sfSlotTotal > 0 && (
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--blue)', fontSize: '0.85rem', textAlign: 'center' }}>📝 Building your sentence: {sfSlotFilled} of {sfSlotTotal} parts so far. Keep going!</p>
             )}
 
             {sfOpenPicker !== null && (

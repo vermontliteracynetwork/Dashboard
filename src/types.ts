@@ -141,6 +141,15 @@ export interface Student {
   // coins, no items, no pet unlocked by donating) so it never quietly
   // becomes a second way to buy something.
   shelterDonationsCents?: number;
+  // Sentence-building status hints (Claudia's calm SEL-toned spec, direct
+  // teacher instruction: "boundaries and expectations for notifications
+  // of if this is correct grammar or not, but in a calm SEL way") — a
+  // neutral, non-red "building..." line shown in Sentence Formulas and
+  // Sentence Builder before a sentence is complete. undefined/true = on
+  // (the default, since this is what the teacher explicitly asked for);
+  // a teacher can turn it off per student who reacts badly to any status
+  // chip regardless of its calm tone.
+  showSentenceBuildingHints?: boolean;
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

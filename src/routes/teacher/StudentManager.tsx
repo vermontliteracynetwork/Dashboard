@@ -375,6 +375,14 @@ export default function StudentManager() {
                   />{' '}
                   🏝️ Unlock the Creative Island (full-catalog free build, reached by boat from Town Square)
                 </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={st.showSentenceBuildingHints ?? true}
+                    onChange={(e) => updateStudent(st.id, { showSentenceBuildingHints: e.target.checked })}
+                  />{' '}
+                  📝 Show calm "building your sentence" status hints in Sentence Formulas/Sentence Builder
+                </label>
 
                 <hr className="divider" />
                 <strong>Piggy Bank</strong>

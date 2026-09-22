@@ -580,6 +580,9 @@ alter table students add column if not exists discovered_pet_def_ids jsonb not n
 -- Pet Shelter's free "donate" action — a lifetime running total, purely a
 -- prosocial/SEL display stat, never tied to any reward.
 alter table students add column if not exists shelter_donations_cents int not null default 0;
+-- Calm SEL-toned "building your sentence" status hints in Sentence
+-- Formulas/Sentence Builder — teacher per-student toggle, default on.
+alter table students add column if not exists show_sentence_building_hints boolean not null default true;
 
 -- Home Room's room system (replaces the old single fixed 10x10 room + a
 -- freeform student wall-drawing tool): each row is one discrete room a
