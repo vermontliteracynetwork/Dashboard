@@ -1235,6 +1235,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/structures/pack-house4.glb,Pack House4,structures,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/pack-house5.glb,Pack House5,structures,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/pack-shop.glb,Pack Shop,structures,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/suburb/Gas_Pump.glb,Gas Pump,suburb,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/suburb/gas-station.glb,Gas Station,suburb,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/suburb/house-country.glb,House Country,suburb,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/suburb/house-hill-normal.glb,House Hill Normal,suburb,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"

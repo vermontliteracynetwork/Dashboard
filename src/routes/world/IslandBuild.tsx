@@ -496,8 +496,10 @@ export default function IslandBuild() {
     () => (student ? allWorldObjects.filter((o) => o.studentId === student.id && o.roomId === 'island') : []),
     [allWorldObjects, student]
   );
+  // Direct teacher correction (same fix as Town Square): every placed
+  // object blocks movement now, not just ones with `collides` set.
   const islandObstacles = useMemo(
-    () => islandObjects.filter((o) => o.collides).map((o) => ({ x: o.position[0], z: o.position[2], radius: ISLAND_OBJECT_COLLISION_RADIUS(o.scale) })),
+    () => islandObjects.map((o) => ({ x: o.position[0], z: o.position[2], radius: ISLAND_OBJECT_COLLISION_RADIUS(o.scale) })),
     [islandObjects]
   );
 
@@ -514,6 +516,10 @@ export default function IslandBuild() {
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
   const [catalogOpen, setCatalogOpen] = useState(true);
+  // Direct teacher request: "give a clear room/clear all feature that
+  // deletes all assets" — two-tap confirm (tap once to arm, tap again to
+  // actually clear), same pattern as WorldEditor's own Clear All.
+  const [clearAllArmed, setClearAllArmed] = useState(false);
   const [armedAsset, setArmedAsset] = useState<AssetManifestEntry | null>(null);
   const [armedDefaultScale, setArmedDefaultScale] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -689,6 +695,22 @@ export default function IslandBuild() {
             {catalogOpen ? '📦 Hide Catalog' : '📦 Show Catalog'}
           </button>
         )}
+        {mode === 'build' && islandObjects.length > 0 && (
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 44, background: clearAllArmed ? 'var(--danger, #c94141)' : '#fff', color: clearAllArmed ? '#fff' : undefined, fontWeight: 800 }}
+            onClick={() => {
+              if (!clearAllArmed) { setClearAllArmed(true); return; }
+              islandObjects.forEach((o) => deleteWorldObject(o.id));
+              setSelectedId(null);
+              setClearAllArmed(false);
+            }}
+            onBlur={() => setClearAllArmed(false)}
+            title="Delete everything placed on this island"
+          >
+            🗑️ {clearAllArmed ? `Tap again to delete all ${islandObjects.length}` : 'Clear All'}
+          </button>
+        )}
       </div>
 
       {mode === 'view' && (
@@ -842,13 +864,26 @@ export default function IslandBuild() {
       <Canvas
         key={mode}
         camera={{ position: mode === 'view' ? [0, 7, ISLAND_RADIUS * 0.5 + 10] : [0, 22, 26], fov: 50 }}
-        shadows
+        // Direct teacher report: live/view mode is laggy. Two real, safe
+        // fixes, no visual change either way:
+        // 1) `shadows` + the light's `castShadow` turned on the whole
+        //    WebGL shadow-map subsystem, but nothing anywhere in this file
+        //    ever sets `receiveShadow`/`castShadow` on an actual mesh (the
+        //    ground, WaterSurround, and every placed WorldObjectRenderer
+        //    instance all default to false) — no shadow was ever visible,
+        //    so this was a pure per-frame cost for zero payoff. Removed.
+        // 2) Capping dpr avoids rendering at full 2-3x retina pixel density
+        //    on an iPad, the single biggest GPU fill-rate cost in a scene
+        //    that (unlike Town Square's smaller teacher-curated set) can
+        //    accumulate a large, student-controlled number of placed props
+        //    over a whole school year of free building.
+        dpr={[1, 1.5]}
         onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
       >
         <color attach="background" args={['#7fd0e8']} />
         <fog attach="fog" args={['#7fd0e8', 34, 70]} />
         <ambientLight intensity={0.85} />
-        <directionalLight position={[12, 18, 8]} intensity={1.25} castShadow />
+        <directionalLight position={[12, 18, 8]} intensity={1.25} />
         {mode === 'build' && <OrbitControls makeDefault maxPolarAngle={Math.PI / 2.1} minDistance={6} maxDistance={60} />}
 
         <Suspense fallback={<meshStandardMaterial color="#e8d9a8" />}>

@@ -21,6 +21,18 @@ import type { PetDef } from '../lib/petCatalog';
 // live views not reliably updating without a manual refresh).
 let realtimeSubscribed = false;
 
+// Direct teacher instruction: "clear all achievements, dont give anymore
+// and dont add any without me saying it. that will be updated later."
+// Every rule-based auto-award AND the teacher's own manual "award badge"
+// button both become no-ops while this is true — the whole system is
+// paused, not just automatic grants, since she said the achievement set
+// itself is being redesigned. Flip back to false (or remove) only on the
+// teacher's own explicit later instruction to resume, never on a guess
+// that "it's probably fine now." Also a standing reminder for this file:
+// do not add new entries to DEFAULT_BADGES (./badges.ts) without her
+// asking for them specifically, even while this flag is on.
+export const BADGES_PAUSED = true;
+
 export interface DailySpinResult {
   type: 'cents' | 'skip' | 'cashback' | 'item';
   amountCents: number; // for 'cashback' this is the computed payout, not the percent; 0 for 'item' unless it fell back to a cash consolation
@@ -291,6 +303,15 @@ interface AppState {
   cinemaVideos: CinemaVideo[]; // videos shown in the in-world Cinema — teacher-authored, unlimited replay, no mastery tracking
   scratchGames: ScratchGame[]; // games shown in the in-world Arcade — teacher-authored MIT Scratch project links, unlimited replay, no mastery tracking
   musicTracks: MusicTrack[]; // shared music library — car radio, Concert Hall building, and Boom Box all draw from this same list, audio only
+  // Direct teacher instruction: "the music player can always be played in
+  // the background, even when students are completing assignments." Lives
+  // here (not local component state) specifically so it survives
+  // navigating between routes — TownSquare unmounting to go do a task no
+  // longer kills the song. Not persisted to localStorage (only
+  // currentStudentId/role are, via this store's partialize) — a hard page
+  // reload starts silent again, on purpose, same as any other session-only
+  // UI state in this app.
+  playingTrackId: string | null;
   galleryItems: GalleryItem[]; // Playground Gallery images — teacher-curated, unlimited browse, no mastery tracking
   sillyQuizzes: SillyQuiz[]; // Playground silly personality quizzes — teacher-authored, results private/client-side only, see SillyQuiz in types.ts
   farmerMarketOffers: FarmerMarketOffer[]; // student-to-student barter offers — async/turn-based, see FarmerMarketOffer in types.ts
@@ -538,6 +559,7 @@ interface AppState {
   addMusicTrack: (track: Omit<MusicTrack, 'id' | 'createdAt'>) => string;
   updateMusicTrack: (id: string, patch: Partial<MusicTrack>) => void;
   deleteMusicTrack: (id: string) => void;
+  setPlayingTrackId: (id: string | null) => void;
   addGalleryItem: (item: Omit<GalleryItem, 'id' | 'createdAt'>) => string;
   updateGalleryItem: (id: string, patch: Partial<GalleryItem>) => void;
   deleteGalleryItem: (id: string) => void;
@@ -706,6 +728,7 @@ export const useStore = create<AppState>()(
       cinemaVideos: [],
       scratchGames: [],
       musicTracks: [],
+      playingTrackId: null,
       galleryItems: [],
       sillyQuizzes: [],
       farmerMarketOffers: [],
@@ -2542,6 +2565,7 @@ export const useStore = create<AppState>()(
       },
 
       awardBadge: (studentId, badgeId) => {
+        if (BADGES_PAUSED) return;
         const earn: BadgeEarn = { id: makeId(), studentId, badgeId, date: new Date().toISOString() };
         set((s) => ({ badgeEarns: [earn, ...s.badgeEarns] }));
         pushBadgeEarn(earn);
@@ -2576,6 +2600,7 @@ export const useStore = create<AppState>()(
       // awards any rule-based badge whose condition is now true and that
       // this student doesn't already have.
       evaluateBadgeRules: (studentId) => {
+        if (BADGES_PAUSED) return;
         const s = get();
         const student = s.students.find((st) => st.id === studentId);
         if (!student) return;
@@ -2761,6 +2786,8 @@ export const useStore = create<AppState>()(
         set((s) => ({ musicTracks: s.musicTracks.filter((t) => t.id !== id) }));
         deleteMusicTrackRemote(id);
       },
+
+      setPlayingTrackId: (id) => set({ playingTrackId: id }),
 
       addGalleryItem: (item) => {
         const id = makeId();

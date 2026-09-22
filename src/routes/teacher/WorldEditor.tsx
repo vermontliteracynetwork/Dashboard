@@ -1484,6 +1484,15 @@ export default function WorldEditor() {
   const gridStep = halfTileEnabled ? GRID_SIZE / 2 : GRID_SIZE;
   const [catalogOpen, setCatalogOpen] = useState(true);
   const [hammerMode, setHammerMode] = useState(false);
+  // Direct teacher request: "give a clear room/clear all feature that
+  // deletes all assets" — Town Square's version, a two-tap confirm (tap
+  // once to arm, tap again within the button to actually clear) rather
+  // than a browser confirm() dialog, matching every other destructive
+  // action's UI in this app. Only clears teacher-placed `worldObjects`
+  // (what hammer mode also deletes one at a time) — never the baked-in
+  // original town buildings, which have their own separate delete path
+  // via layoutOverrides.
+  const [clearAllArmed, setClearAllArmed] = useState(false);
   // Wall tool (direct instruction: "walls can be drawn/placed same as
   // Sims 4 controls") — click-drag one segment at a time. wallStart is set
   // on ground pointer-down while armed; wallEnd tracks the live preview
@@ -2952,6 +2961,20 @@ export default function WorldEditor() {
               title="Hammer: tap anything to delete it instantly, no confirmation"
             >
               🔨 {hammerMode ? 'Hammer: ON' : 'Hammer'}
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{ ...TOOLBAR_BTN, background: clearAllArmed ? HAMMER_COLOR : undefined, color: clearAllArmed ? '#fff' : undefined, borderColor: clearAllArmed ? HAMMER_COLOR : undefined }}
+              onClick={() => {
+                if (!clearAllArmed) { setClearAllArmed(true); return; }
+                worldObjects.forEach((o) => deleteWorldObjectH(o.id));
+                setClearAllArmed(false);
+                flashSaved();
+              }}
+              onBlur={() => setClearAllArmed(false)}
+              title="Delete every object you've placed in Town Square (not the original buildings)"
+            >
+              🗑️ {clearAllArmed ? `Tap again to delete all ${worldObjects.length}` : 'Clear All'}
             </button>
             <button
               className="btn btn-sm"

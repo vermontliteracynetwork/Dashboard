@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { Suspense, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -23,12 +23,11 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { extractYouTubeId, loadYouTubeApi } from '../../lib/youtube';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
-import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MusicTrack, MCQuestion } from '../../types';
+import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion } from '../../types';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -286,13 +285,14 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
   });
   STATIC_OBSTACLES = [
     ...MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
-    // Any object with a role assigned (Cinema, Arcade, Bank, Store, ...)
-    // collides regardless of its own `collides` flag — a functional
-    // building should always be solid, including ones placed before the
-    // per-object collision toggle existed (never retroactively defaulted,
-    // by design, for ordinary decorative props — but a role IS the
-    // signal that this one is a real building, not decor).
-    ...worldObjects.filter((o) => o.collides || o.role).map((o) => ({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale, !!o.role) })),
+    // Direct teacher correction, overriding the earlier "only newly
+    // placed/role-having objects default to solid" guardrail: "all assets
+    // that have a role cannot be driven through, but currently the other
+    // assets can. fix so no assets can be driven or walked through" —
+    // every placed object collides now, full stop, regardless of its own
+    // `collides` flag (kept in the data model either way, additive-only —
+    // it's just no longer read as a gate here).
+    ...worldObjects.map((o) => ({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale, !!o.role) })),
   ];
   STATIC_WALLS = wallSegments;
 }
@@ -1628,225 +1628,6 @@ function SkyboxBackground({ skyColor }: { skyColor?: string | null }) {
   return null;
 }
 
-// Audio-only playback for the shared music library (car radio, Concert
-// Hall, Boom Box) — direct teacher instruction: always audio, never
-// video. A visually hidden YouTube embed is genuinely audio-only from the
-// student's perspective (no video surface anywhere on screen); autoplay
-// works here because mounting this iframe is itself the direct result of
-// a button tap, which satisfies the browser's autoplay-needs-a-user-
-// gesture policy. Lives outside the R3F <Canvas> (plain DOM), same as
-// every other 2D overlay in this file.
-//
-// Uses the real YouTube IFrame Player API (same loadYouTubeApi() helper
-// VideoTask already uses) rather than a plain <iframe autoplay> — direct
-// teacher request for "full music controls like Spotify" needs real
-// play/pause/seek/volume, which a bare iframe can't offer (mount=play,
-// unmount=stop was the old, simpler tradeoff). MusicControlBar below
-// drives this via the exposed ref.
-export interface MusicPlayerHandle {
-  play: () => void;
-  pause: () => void;
-  seekTo: (seconds: number) => void;
-  setVolume: (v: number) => void;
-  getCurrentTime: () => number;
-  getDuration: () => number;
-}
-const MusicPlayer = forwardRef<MusicPlayerHandle, { ytId: string; title: string; volume: number; onEnded: () => void; onReady: () => void }>(
-  function MusicPlayer({ ytId, title, volume, onEnded, onReady }, ref) {
-    const frameId = `yt-music-${ytId}`;
-    const playerObjRef = useRef<any>(null);
-    const onEndedRef = useRef(onEnded);
-    onEndedRef.current = onEnded;
-    const onReadyRef = useRef(onReady);
-    onReadyRef.current = onReady;
-
-    useEffect(() => {
-      let cancelled = false;
-      loadYouTubeApi().then(() => {
-        if (cancelled) return;
-        playerObjRef.current = new window.YT.Player(frameId, {
-          events: {
-            onReady: (e: any) => {
-              e.target.setVolume?.(volume);
-              onReadyRef.current();
-            },
-            onStateChange: (e: any) => {
-              if (e.data === window.YT.PlayerState.ENDED) onEndedRef.current();
-            },
-          },
-        });
-      });
-      return () => {
-        cancelled = true;
-        try {
-          playerObjRef.current?.destroy?.();
-        } catch {
-          // player may already be torn down
-        }
-        playerObjRef.current = null;
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ytId]);
-
-    useImperativeHandle(ref, () => ({
-      play: () => playerObjRef.current?.playVideo?.(),
-      pause: () => playerObjRef.current?.pauseVideo?.(),
-      seekTo: (seconds: number) => playerObjRef.current?.seekTo?.(seconds, true),
-      setVolume: (v: number) => playerObjRef.current?.setVolume?.(v),
-      getCurrentTime: () => playerObjRef.current?.getCurrentTime?.() ?? 0,
-      getDuration: () => playerObjRef.current?.getDuration?.() ?? 0,
-    }), []);
-
-    return (
-      <iframe
-        id={frameId}
-        title={`Now playing: ${title}`}
-        src={`https://www.youtube-nocookie.com/embed/${ytId}?enablejsapi=1&autoplay=1&playsinline=1`}
-        allow="autoplay; encrypted-media"
-        style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 'none' }}
-      />
-    );
-  }
-);
-
-// Spotify-style transport bar for the Now Playing state — direct teacher
-// request ("full music controls like Spotify UI"): play/pause, previous/
-// next (cycling the full shared library, not just whatever tag filter the
-// picker happens to have active — filtering only affects browsing, never
-// silently unmounts the player mid-song), a draggable seek bar with
-// elapsed/total time, and a volume slider, instead of the old play-only
-// pill with just Stop.
-function MusicControlBar({
-  tracks,
-  playingTrackId,
-  setPlayingTrackId,
-  onOpenPicker,
-}: {
-  tracks: MusicTrack[];
-  playingTrackId: string;
-  setPlayingTrackId: (id: string | null) => void;
-  onOpenPicker: () => void;
-}) {
-  const playing = tracks.find((t) => t.id === playingTrackId);
-  const ytId = playing ? extractYouTubeId(playing.url) : null;
-  const playerRef = useRef<MusicPlayerHandle>(null);
-  const [paused, setPaused] = useState(false);
-  const [volume, setVolumeState] = useState(80);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setPaused(false);
-    setReady(false);
-    setCurrentTime(0);
-    setDuration(0);
-  }, [playingTrackId]);
-
-  useEffect(() => {
-    if (!ready) return;
-    const iv = setInterval(() => {
-      setCurrentTime(playerRef.current?.getCurrentTime() ?? 0);
-      setDuration(playerRef.current?.getDuration() ?? 0);
-    }, 500);
-    return () => clearInterval(iv);
-  }, [ready]);
-
-  const trackIndex = tracks.findIndex((t) => t.id === playingTrackId);
-  const goRelative = (dir: 1 | -1) => {
-    if (tracks.length === 0) return;
-    const next = tracks[(trackIndex + dir + tracks.length) % tracks.length];
-    setPlayingTrackId(next.id);
-  };
-
-  const formatTime = (s: number) => {
-    if (!isFinite(s) || s < 0) return '0:00';
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, '0')}`;
-  };
-
-  if (!playing || !ytId) return null;
-
-  return (
-    <>
-      <MusicPlayer
-        ref={playerRef}
-        ytId={ytId}
-        title={playing.title}
-        volume={volume}
-        onReady={() => setReady(true)}
-        onEnded={() => goRelative(1)}
-      />
-      <div
-        style={{
-          position: 'fixed', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 60,
-          display: 'flex', flexDirection: 'column', gap: 4, background: '#fff',
-          border: '2px solid var(--ink, #1f4238)', borderRadius: 16,
-          boxShadow: '3px 3px 0 var(--ink, #1f4238)', padding: '8px 14px', fontFamily: 'system-ui, sans-serif',
-          width: 280, maxWidth: '90vw',
-        }}
-      >
-        <div className="space-between" style={{ alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎵 {playing.title}</span>
-          <button className="btn btn-sm btn-danger" style={{ minHeight: 32, minWidth: 32, padding: 0, flexShrink: 0 }} onClick={() => setPlayingTrackId(null)} aria-label="Stop music">✕</button>
-        </div>
-        <div className="row" style={{ gap: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: 10, opacity: 0.7, minWidth: 30, textAlign: 'right' }}>{formatTime(currentTime)}</span>
-          <input
-            type="range"
-            min={0}
-            max={duration || 1}
-            step={1}
-            value={Math.min(currentTime, duration || 0)}
-            onChange={(e) => {
-              const t = Number(e.target.value);
-              setCurrentTime(t);
-              playerRef.current?.seekTo(t);
-            }}
-            style={{ flex: 1 }}
-            aria-label="Seek"
-          />
-          <span style={{ fontSize: 10, opacity: 0.7, minWidth: 30 }}>{formatTime(duration)}</span>
-        </div>
-        <div className="row" style={{ gap: 10, alignItems: 'center', justifyContent: 'center' }}>
-          <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40, padding: 0 }} onClick={() => goRelative(-1)} aria-label="Previous track">⏮️</button>
-          <button
-            className="btn btn-sm btn-primary"
-            style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }}
-            onClick={() => {
-              if (paused) { playerRef.current?.play(); setPaused(false); } else { playerRef.current?.pause(); setPaused(true); }
-            }}
-            aria-label={paused ? 'Play' : 'Pause'}
-          >
-            {paused ? '▶️' : '⏸️'}
-          </button>
-          <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40, padding: 0 }} onClick={() => goRelative(1)} aria-label="Next track">⏭️</button>
-          <button className="btn btn-sm" style={{ minHeight: 40, minWidth: 40, padding: 0 }} onClick={onOpenPicker} aria-label="Choose a track">📻</button>
-        </div>
-        <div className="row" style={{ gap: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: 12 }} aria-hidden>🔈</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={volume}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setVolumeState(v);
-              playerRef.current?.setVolume(v);
-            }}
-            style={{ flex: 1 }}
-            aria-label="Volume"
-          />
-          <span style={{ fontSize: 12 }} aria-hidden>🔊</span>
-        </div>
-      </div>
-    </>
-  );
-}
-
 // Same proximity-based label/button pattern buildings/Neighbors already
 // use (walk up, see a label, then a button appears) rather than a raycast hitbox on the
 // building itself — a building's footprint sits close enough to its own
@@ -2227,10 +2008,11 @@ export default function TownSquare() {
   const drivingIsBoat = !!drivingObj && isBoatModel(drivingObj.modelPath);
   // Shared music library (docs: car radio, Concert Hall, Boom Box all draw
   // from the same list) — direct teacher request. Audio only: the actual
-  // sound comes from a visually hidden YouTube embed (see MusicPlayer
-  // above), never a video surface. One plain overlay picker (not 3D-
-  // anchored) serves all three triggers, same as every other full-screen
-  // panel in this file (showTodayTasks, showMoreMenu, ...).
+  // sound comes from a visually hidden YouTube embed (see
+  // GlobalMusicPlayer, mounted once in App.tsx so it keeps playing across
+  // route changes), never a video surface. One plain overlay picker (not
+  // 3D-anchored) serves all three triggers, same as every other full-
+  // screen panel in this file (showTodayTasks, showMoreMenu, ...).
   const musicTracks = useStore((s) => s.musicTracks);
   const [showMusicPicker, setShowMusicPicker] = useState(false);
   // Teacher's tags sort the library into categories for students too, not
@@ -2241,7 +2023,14 @@ export default function TownSquare() {
     [musicTracks],
   );
   const visibleMusicTracks = musicTagFilter ? musicTracks.filter((t) => (t.tags ?? []).includes(musicTagFilter)) : musicTracks;
-  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  // Direct teacher instruction: music keeps playing in the background even
+  // after leaving Town Square (doing an assignment, etc.) — moved from
+  // local state into the store (GlobalMusicPlayer in App.tsx owns the
+  // actual audio now) specifically so it survives this component
+  // unmounting. Town Square still owns picking a track (the radio/Concert
+  // Hall/Boom Box triggers below), just not playing it anymore.
+  const playingTrackId = useStore((s) => s.playingTrackId);
+  const setPlayingTrackId = useStore((s) => s.setPlayingTrackId);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
   // STATIC_OBSTACLES, STATIC_WALLS) in sync with Build Mode edits,
   // including a teacher's edit landing live from another tab/device via
@@ -2614,20 +2403,6 @@ export default function TownSquare() {
   // component's session state.
   const [carGasDashes, setCarGasDashes] = useState(10);
   const gasSecondsRef = useRef(0);
-  useEffect(() => {
-    if (!drivingObjectId || drivingIsBoat) return;
-    // "gas goes down even if they are just 'driving' but not moving" —
-    // deliberately NOT gated on the gas pedal or on actually moving, just
-    // on being mounted in the car at all. 1 dash per 60 real seconds.
-    const id = window.setInterval(() => {
-      gasSecondsRef.current += 1;
-      if (gasSecondsRef.current >= 60) {
-        gasSecondsRef.current = 0;
-        setCarGasDashes((d) => Math.max(0, d - 1));
-      }
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [drivingObjectId, drivingIsBoat]);
   // Refuel-by-questions (direct teacher instruction, DEVELOPMENT_PLAN.md
   // #139's previously-parked half, then fully spec'd out in a follow-up
   // instruction): pulls from the teacher's own Question Sets library —
@@ -2646,6 +2421,24 @@ export default function TownSquare() {
   );
   const [gasQuizQuestion, setGasQuizQuestion] = useState<MCQuestion | null>(null);
   const [gasQuizFeedback, setGasQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
+  // Direct teacher instruction: "while answering questions to get more
+  // gas, the gas in the tank should be paused, and not decrease any
+  // more" — the drain timer stops entirely (not just visually) while a
+  // gas question is up, whether that's the voluntary Fill Up flow or the
+  // forced lockout; gasSecondsRef simply stops accumulating, so the
+  // partial-second progress toward the next dash loss picks back up
+  // exactly where it left off once the modal closes.
+  useEffect(() => {
+    if (!drivingObjectId || drivingIsBoat || gasQuizQuestion) return;
+    const id = window.setInterval(() => {
+      gasSecondsRef.current += 1;
+      if (gasSecondsRef.current >= 15) {
+        gasSecondsRef.current = 0;
+        setCarGasDashes((d) => Math.max(0, d - 1));
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [drivingObjectId, drivingIsBoat, gasQuizQuestion]);
   // Set once dashes hit 0 while driving without having topped up first —
   // direct instruction: "if gas runs out while driving without using a
   // gas pump, the student must be prompted with 10 consecutive questions
@@ -3343,14 +3136,6 @@ export default function TownSquare() {
             </div>
           </div>
         </div>
-      )}
-      {playingTrackId && (
-        <MusicControlBar
-          tracks={musicTracks}
-          playingTrackId={playingTrackId}
-          setPlayingTrackId={setPlayingTrackId}
-          onOpenPicker={() => setShowMusicPicker(true)}
-        />
       )}
       {/* Wizard ThunderSword — a real lock, direct teacher instruction: no
           backdrop-dismiss onClick, no X button, nothing but the one path

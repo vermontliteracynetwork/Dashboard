@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore } from '../../store/store';
+import { useStore, BADGES_PAUSED } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { BADGE_RULE_LABELS, BADGE_RULE_SUBJECT_AWARE } from '../../types';
 import type { BadgeDef, BadgeRule, BadgeRuleType, Subject } from '../../types';
@@ -131,6 +131,15 @@ export default function BadgeManager() {
             </button>
           )}
         </div>
+        {/* Direct teacher instruction: "clear all achievements, dont give
+            anymore and dont add any without me saying it. that will be
+            updated later." Rule-based auto-awards and the manual Award
+            button below are both real no-ops right now (see BADGES_PAUSED
+            in store.ts) — this banner is here so a click on Award doesn't
+            look like a silent bug. */}
+        <div className="chrome-frame" style={{ padding: '10px 14px', background: '#fff3ea', border: '2px solid #e2775c' }}>
+          <strong>⏸️ Achievements are paused.</strong> No new badges are being given out, automatic or manual, until you say to turn them back on.
+        </div>
 
         <div className="chrome-frame stack" style={{ padding: 16 }}>
           <h3 style={{ marginTop: 0 }}>➕ New Achievement</h3>
@@ -175,7 +184,7 @@ export default function BadgeManager() {
             </select>
             <button
               className="btn btn-primary"
-              disabled={!awardStudent || !awardBadgeId}
+              disabled={!awardStudent || !awardBadgeId || BADGES_PAUSED}
               onClick={() => awardBadge(awardStudent, awardBadgeId)}
             >
               Award

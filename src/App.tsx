@@ -38,6 +38,7 @@ import ScoreHistory from './routes/teacher/ScoreHistory';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
+import GlobalMusicPlayer from './components/GlobalMusicPlayer';
 
 // Lazy-loaded: Three.js/react-three-fiber are heavy, and only the world
 // route (and the teacher's 3D Build Mode) needs them — every existing 2D
@@ -106,6 +107,11 @@ export default function App() {
         <StudentChatAlert />
         <CoinDropOverlay />
         <SyncTroubleAlert />
+        {/* Direct teacher instruction: music keeps playing across every
+            route, including while doing an assignment — mounted once here
+            (not inside TownSquare, which used to own it and die on
+            navigation) so it survives every route change. */}
+        <GlobalMusicPlayer />
         <Routes>
           <Route path="/" element={<RoleSelect />} />
           <Route

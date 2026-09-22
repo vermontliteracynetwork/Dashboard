@@ -16,6 +16,41 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-music-background',
+    date: '2026-09-22',
+    icon: '🎵',
+    title: 'Music keeps playing now!',
+    body: 'Pick a song from the radio, Concert Hall, or Boom Box, and it keeps playing even after you leave Town Square, like while you are doing an assignment. Look for the little music button in the corner. Tap it to see the full controls.',
+  },
+  {
+    id: '2026-09-22-gas-pump',
+    date: '2026-09-22',
+    icon: '⛽',
+    title: 'Fill up your car with a Gas Pump!',
+    body: 'Cars use gas now while you drive. If you find a Gas Pump in Town Square, walk up and tap it to answer a question and fill your tank. You can also tap the gas gauge at the top of the screen any time.',
+  },
+  {
+    id: '2026-09-22-driving-fixed',
+    date: '2026-09-22',
+    icon: '🚗',
+    title: 'Driving feels right now',
+    body: 'Left and right were switched while driving a car or boat. Fixed! Turning now goes the way you expect.',
+  },
+  {
+    id: '2026-09-22-solid-things',
+    date: '2026-09-22',
+    icon: '🧱',
+    title: 'Things in Town Square are solid now',
+    body: 'Buildings, trees, and everything else placed in Town Square now stop you from walking or driving through them, just like real things do.',
+  },
+  {
+    id: '2026-09-22-sky-fixed',
+    date: '2026-09-22',
+    icon: '☀️',
+    title: 'The sky looks right again',
+    body: 'The sky is one clean color now, no more weird shapes.',
+  },
+  {
     id: '2026-09-16-camera-look-up-down',
     date: '2026-09-16',
     icon: '🔭',

@@ -646,6 +646,11 @@ export default function HomeRoom() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  // Direct teacher request: "give a clear room/clear all feature that
+  // deletes all assets" — scoped to the currently active room only
+  // (roomObjects below), matching this file's own multi-room model;
+  // same two-tap confirm pattern as the per-object Remove button above.
+  const [clearRoomArmed, setClearRoomArmed] = useState(false);
   const walkTarget = useRef<{ x: number; z: number } | null>(null);
   // Direct instruction: students get the same Hammer tool the teacher's
   // own Build Mode already has (WorldEditor.tsx) — equip it, then tap any
@@ -1332,6 +1337,27 @@ export default function HomeRoom() {
               <span style={{ fontSize: 22 }}>🔨</span>
               <span style={{ fontSize: 11, fontWeight: 700 }}>Hammer</span>
             </button>
+            {roomObjects.length > 0 && (
+              <button
+                onClick={() => {
+                  if (!clearRoomArmed) { setClearRoomArmed(true); return; }
+                  roomObjects.forEach((o) => deleteWorldObject(o.id));
+                  setSelectedId(null);
+                  setClearRoomArmed(false);
+                }}
+                onBlur={() => setClearRoomArmed(false)}
+                title="Delete everything placed in this room"
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
+                  padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
+                  border: clearRoomArmed ? '3px solid #c0392b' : '2px solid var(--content-border, #ccc)',
+                  background: clearRoomArmed ? '#fde8e8' : '#fff',
+                }}
+              >
+                <span style={{ fontSize: 22 }}>🗑️</span>
+                <span style={{ fontSize: 11, fontWeight: 700 }}>{clearRoomArmed ? 'Sure? Tap again' : 'Clear Room'}</span>
+              </button>
+            )}
             <button
               onClick={topView}
               title="Top view: see your room from above — tap again to go back"
