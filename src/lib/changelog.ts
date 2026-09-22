@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-read-highlight',
+    date: '2026-09-22',
+    icon: '🔈',
+    title: 'New: hear any part you highlight in Articles!',
+    body: 'Select some text in an Article and tap "Read it" to hear just that part. Already saved a highlight? Open it and tap "Read this part."',
+  },
+  {
     id: '2026-09-22-sentence-builder-matrix',
     date: '2026-09-22',
     icon: '🧩',

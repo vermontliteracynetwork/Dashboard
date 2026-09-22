@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '../store/store';
 import type { Student, StudentFeedback } from '../types';
 
@@ -47,20 +47,12 @@ const ROOT_OPTIONS: FeedbackOption[] = [
   { id: 'wishlist', label: 'Wishlist', icon: '🌟', category: 'wishlist' },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SpeechRecognitionCtor: any = typeof window !== 'undefined' ? (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition : null;
-
 export default function FeedbackTool({ student, onClose }: { student: Student; onClose: () => void }) {
   const submitFeedback = useStore((s) => s.submitFeedback);
   const [path, setPath] = useState<FeedbackOption[]>([]);
   const [phase, setPhase] = useState<'quiz' | 'customLabel' | 'text' | 'done'>('quiz');
   const [customLabelText, setCustomLabelText] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
-  const [listening, setListening] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
-
-  useEffect(() => () => { recognitionRef.current?.stop(); }, []);
 
   const currentOptions = path.length === 0 ? ROOT_OPTIONS : path[path.length - 1].next;
   const category = path[0]?.category;
@@ -78,31 +70,7 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
     setPath((p) => p.slice(0, -1));
   };
 
-  const toggleListening = () => {
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
-    if (!SpeechRecognitionCtor) return;
-    const rec = new SpeechRecognitionCtor();
-    rec.lang = 'en-US';
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      let added = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) added += e.results[i][0].transcript;
-      if (added.trim()) setFeedbackText((t) => (t ? `${t.trim()} ` : '') + added.trim());
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    rec.start();
-    recognitionRef.current = rec;
-    setListening(true);
-  };
-
   const submit = () => {
-    recognitionRef.current?.stop();
     if (!category) return;
     submitFeedback(
       student.id,
@@ -178,7 +146,7 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
 
         {phase === 'text' && (
           <div className="stack" style={{ gap: 12 }}>
-            <p style={{ margin: 0, fontWeight: 700 }}>Tell me about it — type it, or tap the microphone to talk.</p>
+            <p style={{ margin: 0, fontWeight: 700 }}>Tell me about it — type it below.</p>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
@@ -187,16 +155,6 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
               style={{ fontSize: '1rem', lineHeight: 1.5, padding: 10, width: '100%', resize: 'vertical' }}
               autoFocus
             />
-            {SpeechRecognitionCtor && (
-              <button
-                className={`btn btn-sm ${listening ? 'btn-danger' : ''}`}
-                style={{ minHeight: 44, alignSelf: 'flex-start' }}
-                onClick={toggleListening}
-                aria-pressed={listening}
-              >
-                {listening ? '⏹ Stop talking' : '🎤 Talk instead of typing'}
-              </button>
-            )}
             <div className="row space-between">
               <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={back}>← Back</button>
               <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!feedbackText.trim()} onClick={submit}>

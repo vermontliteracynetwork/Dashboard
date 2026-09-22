@@ -5,7 +5,6 @@ import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
 import FeedbackTool from './FeedbackTool';
-import MicButton from './MicButton';
 import { SOUND_WALL } from '../lib/wordData';
 import { fetchDefinition, fetchSynonyms, fetchAntonyms, isBlockedTerm } from '../lib/wordLookup';
 import type { WordLookupResult } from '../lib/wordLookup';
@@ -588,18 +587,6 @@ function WordProcessor({ student }: { student: Student }) {
     updateNote(selected.id, { bodyHtml: el.innerHTML, body: el.textContent ?? '' });
   };
 
-  // Voice-to-text (communication-disorder-friendly alternative to typing,
-  // same mic behavior as the Feedback tool) — appends each spoken chunk to
-  // the end of the note rather than trying to insert at a possibly-stale
-  // cursor position, matching how a student would naturally keep talking
-  // to keep adding to what they've already written.
-  const appendSpokenText = (text: string) => {
-    const el = bodyEditorRef.current;
-    if (!el || !selected) return;
-    const needsSpace = el.textContent && !/\s$/.test(el.textContent);
-    el.appendChild(document.createTextNode((needsSpace ? ' ' : '') + text));
-    syncBodyFromDom();
-  };
 
   // Wraps the current text selection (if any, and if it's actually inside
   // this note) in a span carrying the given inline style — lets a student
@@ -700,7 +687,6 @@ function WordProcessor({ student }: { student: Student }) {
               <div className="row-wrap" style={{ gap: 4 }}>
                 <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.max(0.85, +(f - 0.15).toFixed(2)))} aria-label="Smaller text">A-</button>
                 <button className="btn btn-sm" onClick={() => setFontSize((f) => Math.min(2, +(f + 0.15).toFixed(2)))} aria-label="Larger text">A+</button>
-                <MicButton onText={appendSpokenText} label="🎤 Talk" />
                 {ownedFonts.length > 1 && (
                   <select value={activeFont?.id} onChange={(e) => updateNote(selected.id, { fontId: e.target.value })} style={{ fontSize: '0.8rem' }}>
                     {ownedFonts.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}

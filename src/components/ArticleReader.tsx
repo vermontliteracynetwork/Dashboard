@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
 import { makeId } from '../lib/id';
 import { speak } from './ReadAloud';
-import MicButton from './MicButton';
 import type { ArticleTaskContent, Highlight, TTSSettings } from '../types';
 
 interface Props {
@@ -123,6 +122,19 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
     window.getSelection()?.removeAllRanges();
   };
 
+  // Direct teacher instruction: "remove STT, but allow TTS for the items
+  // or things highlighted by the student" — reads back just the selected/
+  // highlighted span, not the whole article (toggleReadAloud below still
+  // covers that separately).
+  const readSelection = () => {
+    if (!selectionBtn) return;
+    speak(article.textContent.slice(selectionBtn.start, selectionBtn.end), ttsSettings);
+  };
+
+  const readHighlight = (h: Highlight) => {
+    speak(article.textContent.slice(h.start, h.end), ttsSettings);
+  };
+
   const toggleReadAloud = () => {
     if (speaking) {
       window.speechSynthesis.cancel();
@@ -194,13 +206,14 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
 
       <div style={{ position: 'relative' }}>
         {selectionBtn && (
-          <button
-            className="btn btn-sm btn-primary"
-            style={{ position: 'absolute', top: Math.max(0, selectionBtn.top), left: selectionBtn.left, zIndex: 5, minHeight: 44 }}
-            onClick={confirmHighlight}
-          >
-            🖍️ Highlight
-          </button>
+          <div className="row" style={{ position: 'absolute', top: Math.max(0, selectionBtn.top), left: selectionBtn.left, zIndex: 5, gap: 4 }}>
+            <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={confirmHighlight}>
+              🖍️ Highlight
+            </button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={readSelection}>
+              🔈 Read it
+            </button>
+          </div>
         )}
         <div
           ref={contentRef}
@@ -236,7 +249,6 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
                 value={noteDraft}
                 onChange={(e) => setNoteDraft(e.target.value)}
               />
-              <MicButton onText={(text) => setNoteDraft((d) => (d && !/\s$/.test(d) ? d + ' ' : d) + text)} />
               <div className="row-wrap">
                 <button
                   className="btn btn-sm btn-primary"
@@ -247,6 +259,9 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
                   }}
                 >
                   Save Note
+                </button>
+                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => readHighlight(editingHighlight)}>
+                  🔈 Read this part
                 </button>
                 <button
                   className="btn btn-sm btn-danger"
