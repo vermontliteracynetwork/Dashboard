@@ -2612,37 +2612,44 @@ export default function TownSquare() {
   // frame by Player's driving branch.
   const gasRef = useRef(false);
   const brakeRef = useRef(false);
-  // Gas gauge — direct teacher instruction supersedes the earlier
-  // "purely decorative, never punitive" ruling (TRANSPORTATION.md /
-  // DRIVING_UX_RESEARCH.md): the tank now really can run dry, and running
-  // dry (or topping up early) is the trigger for the "refuel by
-  // questions" loop below. Persists across getting out of and back into a
-  // car — cars only (boats don't use pedals, per BOATS_DESIGN.md's "no
+  // Gas gauge — direct, fully-specified teacher instruction supersedes
+  // both the earlier "purely decorative, never punitive" ruling AND the
+  // percentage-based refuel loop shipped right before this one. Ten
+  // whole dashes, not a smooth bar: "the meter should have 10 dashes...
+  // each dash equates to one minute of active driving time or idling
+  // sitting/using the car." Persists across getting out of and back into
+  // a car — cars only (boats don't use pedals, per BOATS_DESIGN.md's "no
   // new control surface") — this state lives at TownSquare's level, not
-  // inside Player, so mounting/dismounting a car (which only toggles
-  // drivingObjectId) never resets it; it only resets on a fresh login,
-  // same lifetime as the rest of this component's session state.
-  const [carGasLevel, setCarGasLevel] = useState(100);
+  // inside Player, so mounting/dismounting a car never resets it; it
+  // only resets on a fresh login, same lifetime as the rest of this
+  // component's session state.
+  const [carGasDashes, setCarGasDashes] = useState(10);
+  const gasSecondsRef = useRef(0);
   useEffect(() => {
     if (!drivingObjectId || drivingIsBoat) return;
+    // "gas goes down even if they are just 'driving' but not moving" —
+    // deliberately NOT gated on the gas pedal or on actually moving, just
+    // on being mounted in the car at all. 1 dash per 60 real seconds.
     const id = window.setInterval(() => {
-      setCarGasLevel((lvl) => {
-        const delta = gasRef.current ? -1.5 : 1.5;
-        return Math.min(100, Math.max(0, lvl + delta));
-      });
-    }, 400);
+      gasSecondsRef.current += 1;
+      if (gasSecondsRef.current >= 60) {
+        gasSecondsRef.current = 0;
+        setCarGasDashes((d) => Math.max(0, d - 1));
+      }
+    }, 1000);
     return () => window.clearInterval(id);
   }, [drivingObjectId, drivingIsBoat]);
   // Refuel-by-questions (direct teacher instruction, DEVELOPMENT_PLAN.md
-  // #139's previously-parked half): pulls from the teacher's own
-  // Question Sets library — same real assignment content Playground
-  // draws from — rather than inventing throwaway arithmetic, so a
-  // refuel is still real retrieval practice. Only plain multiple-choice
-  // questions are used here (a matching/fill-in board doesn't fit this
-  // small a prompt). A correct answer refuels a lot, a wrong answer
-  // still refuels a little and offers another question — Claudia's
-  // "never a dead end" guardrail stays intact even though the tank can
-  // now hit empty: a student can always eventually get moving again.
+  // #139's previously-parked half, then fully spec'd out in a follow-up
+  // instruction): pulls from the teacher's own Question Sets library —
+  // same real assignment content Playground draws from — rather than
+  // inventing throwaway arithmetic. Only plain multiple-choice questions
+  // are used here (a matching/fill-in board doesn't fit this small a
+  // prompt). "The gas meter should only increase when questions are
+  // answered at the gas pump... each question answered correctly
+  // increases the gas one notch/dash. incorrectly answered questions do
+  // not increase gas" — no partial credit for a miss, unlike the
+  // percentage version this replaces.
   const questionSets = useStore((s) => s.questionSets);
   const gasQuestionPool = useMemo(
     () => questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc')),
@@ -2650,30 +2657,73 @@ export default function TownSquare() {
   );
   const [gasQuizQuestion, setGasQuizQuestion] = useState<MCQuestion | null>(null);
   const [gasQuizFeedback, setGasQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
+  // Set once dashes hit 0 while driving without having topped up first —
+  // direct instruction: "if gas runs out while driving without using a
+  // gas pump, the student must be prompted with 10 consecutive questions
+  // and are unable to do anything else until 10 questions are answered
+  // correctly." Tracks a correct-in-a-row streak that resets to 0 on any
+  // miss (Claudia flagged this exact rule — resetting to 0, not just
+  // pausing — as the highest dysregulation-risk parameter in the spec
+  // for this population, but confirmed to ship it as given rather than
+  // silently soften it; the mitigations she did sign off on are in the
+  // modal below: non-punishing miss copy, and the streak count staying
+  // visible through a miss instead of the drop happening invisibly).
+  const [gasLockout, setGasLockout] = useState(false);
+  const [gasLockoutStreak, setGasLockoutStreak] = useState(0);
+  const pickGasQuestion = () => {
+    if (gasQuestionPool.length === 0) return null;
+    return gasQuestionPool[Math.floor(Math.random() * gasQuestionPool.length)];
+  };
   const openGasQuiz = () => {
-    if (gasQuestionPool.length === 0) {
+    const q = pickGasQuestion();
+    if (!q) {
       // No MC questions exist anywhere in the library yet — never show a
       // broken empty prompt; just top up so a student is never stuck
       // behind a feature the teacher hasn't authored content for.
-      setCarGasLevel((lvl) => Math.min(100, lvl + 40));
+      setCarGasDashes(10);
+      setGasLockout(false);
+      setGasLockoutStreak(0);
+      setGasQuizQuestion(null);
       return;
     }
     setGasQuizFeedback(null);
-    setGasQuizQuestion(gasQuestionPool[Math.floor(Math.random() * gasQuestionPool.length)]);
+    setGasQuizQuestion(q);
   };
   const answerGasQuiz = (choiceIndex: number) => {
     if (!gasQuizQuestion) return;
     const correct = choiceIndex === gasQuizQuestion.correctIndex;
-    setCarGasLevel((lvl) => Math.min(100, lvl + (correct ? 55 : 15)));
+    if (gasLockout) {
+      if (correct) {
+        const streak = gasLockoutStreak + 1;
+        if (streak >= 10) {
+          setCarGasDashes(10);
+          setGasLockout(false);
+          setGasLockoutStreak(0);
+          setGasQuizQuestion(null);
+          setGasQuizFeedback(null);
+          return;
+        }
+        setGasLockoutStreak(streak);
+        setGasQuizFeedback('correct');
+      } else {
+        setGasLockoutStreak(0);
+        setGasQuizFeedback('wrong');
+      }
+      return;
+    }
+    if (correct) setCarGasDashes((d) => Math.min(10, d + 1));
     setGasQuizFeedback(correct ? 'correct' : 'wrong');
   };
-  // The moment the tank actually hits empty while driving, the car is
-  // stopped dead (handled in Player's driving branch via gasBlocked) and
-  // the refuel prompt opens on its own — "if they run out, they need to
-  // be prompted with questions," direct instruction.
+  // The moment the tank actually hits empty while driving without having
+  // topped up first, the car is stopped dead (Player's driving branch,
+  // via gasBlocked) and the un-skippable lockout opens on its own.
   useEffect(() => {
-    if (drivingObjectId && !drivingIsBoat && carGasLevel <= 0 && !gasQuizQuestion) openGasQuiz();
-  }, [drivingObjectId, drivingIsBoat, carGasLevel]);
+    if (drivingObjectId && !drivingIsBoat && carGasDashes <= 0 && !gasLockout) {
+      setGasLockout(true);
+      setGasLockoutStreak(0);
+      openGasQuiz();
+    }
+  }, [drivingObjectId, drivingIsBoat, carGasDashes]);
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
   // there — the primary cross-device movement method; the D-pad and
   // keyboard both still work and take over instantly if used.
@@ -3602,7 +3652,7 @@ export default function TownSquare() {
             groundPatches={groundPatches}
             gasRef={gasRef}
             brakeRef={brakeRef}
-            gasBlocked={!drivingIsBoat && carGasLevel <= 0}
+            gasBlocked={!drivingIsBoat && carGasDashes <= 0}
           />
           {/* Direct teacher instruction: only birds (they fly) and fish
               (they have no legs) float beside the player — every other
@@ -3929,19 +3979,23 @@ export default function TownSquare() {
         </div>
       )}
 
-      {/* Gas gauge — can now actually run dry (direct teacher instruction
-          overriding the earlier decorative-only ruling); see the
-          carGasLevel effect above and openGasQuiz for the refuel loop.
-          The pump button lets a student top up proactively ("filling gas
-          up" at any time), not just after stalling out. */}
+      {/* Gas gauge — 10 dashes, direct teacher spec. Each dash is 60
+          seconds of driving/idling in the car (see the gasSecondsRef
+          effect above), and it only ever goes back up by correctly
+          answering a question "at the gas pump" (openGasQuiz/
+          answerGasQuiz below) — never on its own. The Fill Up button is
+          the voluntary, non-blocking version of that pump; running fully
+          dry opens the un-skippable lockout automatically instead. */}
       {drivingObjectId && !drivingIsBoat && (
         <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.92)', padding: '5px 12px', borderRadius: 999, border: '2px solid var(--ink, #1f4238)', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}>
           <span style={{ fontSize: 15 }} aria-hidden="true">⛽</span>
           <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238' }}>Gas</span>
-          <div style={{ width: 64, height: 10, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', border: '1px solid rgba(31,66,56,0.3)' }}>
-            <div style={{ width: `${carGasLevel}%`, height: '100%', background: carGasLevel > 45 ? '#2f9e44' : '#f4a300', transition: 'width 0.4s ease' }} />
+          <div style={{ display: 'flex', gap: 2 }} role="img" aria-label={`${carGasDashes} of 10 gas dashes left`}>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <span key={i} style={{ width: 5, height: 12, borderRadius: 2, background: i < carGasDashes ? (carGasDashes > 3 ? '#2f9e44' : '#f4a300') : '#e2e8f0', border: '1px solid rgba(31,66,56,0.3)' }} />
+            ))}
           </div>
-          {carGasLevel < 100 && (
+          {carGasDashes < 10 && !gasLockout && (
             <button
               onClick={openGasQuiz}
               style={{ minHeight: 26, minWidth: 26, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--ink, #1f4238)', background: '#fff7e0', fontSize: '0.68rem', fontWeight: 800, color: '#1f4238', cursor: 'pointer' }}
@@ -3954,21 +4008,37 @@ export default function TownSquare() {
       )}
 
       {gasQuizQuestion && (
+        // No backdrop-click-to-close, and no close button while gasLockout —
+        // direct instruction: "unable to do anything else until 10
+        // questions are answered correctly." The voluntary Fill Up path
+        // (gasLockout false) keeps the ✕ and "Done for now" from before.
         <div className="overlay-backdrop">
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
               <div className="space-between">
-                <h2 style={{ margin: 0 }}>⛽ Get Gas</h2>
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>✕</button>
+                <h2 style={{ margin: 0 }}>⛽ {gasLockout ? 'Out of Gas!' : 'Get Gas'}</h2>
+                {!gasLockout && (
+                  <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>✕</button>
+                )}
               </div>
+              {gasLockout && (
+                <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.75 }}>
+                  Answer {10 - gasLockoutStreak} questions in a row correctly to fill the tank back up and keep driving.
+                  {gasLockoutStreak > 0 && <> You're at <strong>{gasLockoutStreak} of 10</strong> so far!</>}
+                </p>
+              )}
               {gasQuizFeedback ? (
                 <>
                   <p style={{ margin: 0, fontWeight: 700 }}>
-                    {gasQuizFeedback === 'correct' ? '🎉 Correct! Tank topped up.' : '👍 Good try! Here\'s a little gas — want to try another for more?'}
+                    {gasQuizFeedback === 'correct'
+                      ? (gasLockout ? `🎉 Correct! ${gasLockoutStreak} of 10 in a row.` : '🎉 Correct! Tank filled up one dash.')
+                      : (gasLockout ? "Let's try the next one!" : "👍 Good try! That one didn't fill the tank — want to try another?")}
                   </p>
                   <div className="row-wrap" style={{ gap: 8 }}>
-                    <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={openGasQuiz}>Answer another</button>
-                    <button className="btn btn-lg" style={{ minHeight: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>Done for now</button>
+                    <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={openGasQuiz}>{gasLockout ? 'Next question' : 'Answer another'}</button>
+                    {!gasLockout && (
+                      <button className="btn btn-lg" style={{ minHeight: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>Done for now</button>
+                    )}
                   </div>
                 </>
               ) : (
