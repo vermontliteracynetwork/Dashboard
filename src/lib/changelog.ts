@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-lm-sidebar-collapse',
+    date: '2026-09-22',
+    icon: '🧩',
+    title: 'Literacy Manipulatives sidebar is tidier now',
+    body: 'Tap a section like "Naming words" or "Action words" to open just that one, instead of seeing everything at once.',
+  },
+  {
     id: '2026-09-22-nav-buttons-clean',
     date: '2026-09-22',
     icon: '🕹️',

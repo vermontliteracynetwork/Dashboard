@@ -117,6 +117,27 @@ function WordListPill({ word, onSpeak }: { word: string; onSpeak: () => void }) 
   );
 }
 
+// Polypad's own subcategory row — a plain clickable label + chevron that
+// expands its own tile grid directly beneath it, independent of any other
+// subcategory row in the same category (see openSubcategories above).
+function SubcategoryRow({ id, label, open, onToggle, children }: {
+  id: string;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="lm-subcategory">
+      <button type="button" className="lm-subcategory-header" onClick={onToggle} aria-expanded={open} aria-controls={`lm-sub-${id}`}>
+        <span>{label}</span>
+        <span aria-hidden="true">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && <div className="lm-subcategory-body" id={`lm-sub-${id}`}>{children}</div>}
+    </div>
+  );
+}
+
 export default function GrammarSandbox() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
@@ -153,6 +174,21 @@ export default function GrammarSandbox() {
   // so nothing looks hidden on first visit.
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({ grammar: true, wordLists: true });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
+  // Direct teacher request: "model the collapsible nature of the
+  // manipulatives... as closely modeled to amplify polypad as possible."
+  // Polypad's own sidebar is two levels, not one: a colored top-level
+  // category (Tiles > Geometry/Numbers) opens onto a flat list of plain
+  // subcategory rows (Number Tiles and Cubes, Number Bars, Number
+  // Frames...), each independently collapsible, expanding its own tile
+  // grid inline right beneath itself. Naming words/Action words (under
+  // Sentence Grammar) and Phonics patterns/Word parts/Spelling words
+  // (under Word Lists) are that same second level here now. Default open,
+  // same "nothing hidden on first visit" reasoning openCategories above
+  // already uses.
+  const [openSubcategories, setOpenSubcategories] = useState<Record<string, boolean>>({
+    nouns: true, verbs: true, phonics: true, morphemes: true, spelling: true,
+  });
+  const toggleSubcategory = (key: string) => setOpenSubcategories((s) => ({ ...s, [key]: !s[key] }));
   const [canUndo, setCanUndo] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragInstanceRef = useRef<string | null>(null);
@@ -387,32 +423,34 @@ export default function GrammarSandbox() {
             </button>
             {openCategories.grammar && (
               <div className="lm-category-body">
-                <span className="lm-category-sub">Naming words</span>
-                <div className="lm-tile-list">
-                  {SANDBOX_NOUNS.map((p) => (
-                    <GrammarPieceTile
-                      key={p.id}
-                      piece={p}
-                      style={{ width: '100%' }}
-                      onPointerDown={tool === 'madlibs' ? (e) => { e.preventDefault(); fillNextMadlibBlank(p); } : startDragFromTray(p)}
-                      onPointerMove={tool === 'madlibs' ? undefined : onDragMove}
-                      onPointerUp={tool === 'madlibs' ? undefined : onDragEnd}
-                    />
-                  ))}
-                </div>
-                <span className="lm-category-sub">Action words</span>
-                <div className="lm-tile-list">
-                  {SANDBOX_VERBS.map((p) => (
-                    <GrammarPieceTile
-                      key={p.id}
-                      piece={p}
-                      style={{ width: '100%' }}
-                      onPointerDown={tool === 'madlibs' ? (e) => { e.preventDefault(); fillNextMadlibBlank(p); } : startDragFromTray(p)}
-                      onPointerMove={tool === 'madlibs' ? undefined : onDragMove}
-                      onPointerUp={tool === 'madlibs' ? undefined : onDragEnd}
-                    />
-                  ))}
-                </div>
+                <SubcategoryRow id="nouns" label="Naming words" open={openSubcategories.nouns} onToggle={() => toggleSubcategory('nouns')}>
+                  <div className="lm-tile-list">
+                    {SANDBOX_NOUNS.map((p) => (
+                      <GrammarPieceTile
+                        key={p.id}
+                        piece={p}
+                        style={{ width: '100%' }}
+                        onPointerDown={tool === 'madlibs' ? (e) => { e.preventDefault(); fillNextMadlibBlank(p); } : startDragFromTray(p)}
+                        onPointerMove={tool === 'madlibs' ? undefined : onDragMove}
+                        onPointerUp={tool === 'madlibs' ? undefined : onDragEnd}
+                      />
+                    ))}
+                  </div>
+                </SubcategoryRow>
+                <SubcategoryRow id="verbs" label="Action words" open={openSubcategories.verbs} onToggle={() => toggleSubcategory('verbs')}>
+                  <div className="lm-tile-list">
+                    {SANDBOX_VERBS.map((p) => (
+                      <GrammarPieceTile
+                        key={p.id}
+                        piece={p}
+                        style={{ width: '100%' }}
+                        onPointerDown={tool === 'madlibs' ? (e) => { e.preventDefault(); fillNextMadlibBlank(p); } : startDragFromTray(p)}
+                        onPointerMove={tool === 'madlibs' ? undefined : onDragMove}
+                        onPointerUp={tool === 'madlibs' ? undefined : onDragEnd}
+                      />
+                    ))}
+                  </div>
+                </SubcategoryRow>
               </div>
             )}
           </div>
@@ -438,34 +476,31 @@ export default function GrammarSandbox() {
               {openCategories.wordLists && (
                 <div className="lm-category-body">
                   {activeFocus.phonicsPatterns.length > 0 && (
-                    <>
-                      <span className="lm-category-sub">Phonics patterns</span>
+                    <SubcategoryRow id="phonics" label="Phonics patterns" open={openSubcategories.phonics} onToggle={() => toggleSubcategory('phonics')}>
                       <div className="row-wrap" style={{ gap: 6 }}>
                         {activeFocus.phonicsPatterns.map((p) => (
                           <WordListPill key={`p-${p}`} word={p} onSpeak={() => speak(p, student.ttsSettings)} />
                         ))}
                       </div>
-                    </>
+                    </SubcategoryRow>
                   )}
                   {activeFocus.morphemes.length > 0 && (
-                    <>
-                      <span className="lm-category-sub">Word parts</span>
+                    <SubcategoryRow id="morphemes" label="Word parts" open={openSubcategories.morphemes} onToggle={() => toggleSubcategory('morphemes')}>
                       <div className="row-wrap" style={{ gap: 6 }}>
                         {activeFocus.morphemes.map((m) => (
                           <WordListPill key={`m-${m}`} word={m} onSpeak={() => speak(m, student.ttsSettings)} />
                         ))}
                       </div>
-                    </>
+                    </SubcategoryRow>
                   )}
                   {activeFocus.practiceWords.length > 0 && (
-                    <>
-                      <span className="lm-category-sub">Spelling words</span>
+                    <SubcategoryRow id="spelling" label="Spelling words" open={openSubcategories.spelling} onToggle={() => toggleSubcategory('spelling')}>
                       <div className="row-wrap" style={{ gap: 6 }}>
                         {activeFocus.practiceWords.map((w) => (
                           <WordListPill key={`w-${w}`} word={w} onSpeak={() => speak(w, student.ttsSettings)} />
                         ))}
                       </div>
-                    </>
+                    </SubcategoryRow>
                   )}
                 </div>
               )}

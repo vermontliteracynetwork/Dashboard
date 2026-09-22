@@ -1923,6 +1923,45 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   flex-direction: column;
   gap: 8px;
 }
+/* Polypad's own two-level pattern, direct teacher request ("as closely
+   modeled to amplify polypad as possible"): a colored top-level category
+   (Sentence Grammar/Word Lists, .lm-category above) opens onto a flat list
+   of plain, independently-collapsible subcategory ROWS (Naming words,
+   Action words, ...) — each one expands its own tile grid inline directly
+   beneath itself, exactly Polypad's "Number Tiles and Cubes / Number Bars
+   / Number Frames" list, rather than every sub-group always being visible
+   at once. */
+.lm-subcategory {
+  border-top: 1px solid var(--content-border);
+  padding-top: 8px;
+}
+.lm-subcategory:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.lm-subcategory-header {
+  width: 100%;
+  min-height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+.lm-subcategory-header:hover {
+  opacity: 1;
+}
+.lm-subcategory-body {
+  padding-top: 6px;
+}
 .lm-main {
   flex: 1;
   display: flex;
