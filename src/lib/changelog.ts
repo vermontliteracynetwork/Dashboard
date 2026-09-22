@@ -16,18 +16,11 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
-    id: '2026-09-22-randomize-buttons',
+    id: '2026-09-22-lm-redesign',
     date: '2026-09-22',
-    icon: '🎲',
-    title: 'New dice buttons in Literacy Manipulatives!',
-    body: 'Stuck on where to start? Tap the dice button in Sentence Formulas, Sentence Builder, Mad Libs, or Word Tiles and it fills in a starting sentence for you to change however you want.',
-  },
-  {
-    id: '2026-09-22-building-hints',
-    date: '2026-09-22',
-    icon: '📝',
-    title: 'Sentence Formulas and Sentence Builder now tell you how it is going',
-    body: 'While you build a sentence, look for a blue note that tells you how many parts you have so far. Once it turns green, your sentence is complete!',
+    icon: '🧩',
+    title: 'Literacy Manipulatives got a big redesign!',
+    body: 'Everything is on one board now. Tap a tool on the left, like Alphabet, Grammar Shapes, Morphemes, Graphemes, Sound Frames, or Sentence Formulas, and drag it anywhere. Double-tap a letter to flip it upper or lower case. Morpheme puzzle pieces click together and show you the word\'s meaning when they spell something real. Draw and Mark are one button now, with a highlighter too.',
   },
   {
     id: '2026-09-22-sound-wall',
@@ -37,39 +30,11 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: 'Tap any sound to hear it, see the letters that spell it, how your mouth makes it, and a list of words with that sound. Tap Close to go back.',
   },
   {
-    id: '2026-09-22-sentence-formulas',
-    date: '2026-09-22',
-    icon: '📐',
-    title: 'New: Sentence Formulas in Literacy Manipulatives!',
-    body: 'Tap "Sentence Formulas" to build real sentences one blank at a time, or tap "Build a Sentence" to grow a sentence step by step. Pick General, CVC, VCe, or Blends words to make it easier or harder.',
-  },
-  {
     id: '2026-09-22-read-highlight',
     date: '2026-09-22',
     icon: '🔈',
     title: 'New: hear any part you highlight in Articles!',
     body: 'Select some text in an Article and tap "Read it" to hear just that part. Already saved a highlight? Open it and tap "Read this part."',
-  },
-  {
-    id: '2026-09-22-sentence-builder-matrix',
-    date: '2026-09-22',
-    icon: '🧩',
-    title: 'New: Sentence Builder and Word Matrix in Literacy Manipulatives!',
-    body: 'Tap "Sentence Builder" and pick shapes one at a time to build a real sentence, it always comes out right! Tap "Word Matrix" to snap prefix and suffix puzzle pieces onto a word.',
-  },
-  {
-    id: '2026-09-22-sound-boxes-blending',
-    date: '2026-09-22',
-    icon: '🟦',
-    title: 'New in Literacy Manipulatives: Sound Boxes and a Blending Board!',
-    body: 'Tap "Sound Boxes" to build words sound by sound in boxes, or "Blending Board" to build a word letter by letter and hear it grow. Try "Word Sorts" too, sort words into the right group and listen for how they sound!',
-  },
-  {
-    id: '2026-09-22-marker-always',
-    date: '2026-09-22',
-    icon: '🖍️',
-    title: 'Marker button now works everywhere in Literacy Manipulatives',
-    body: 'Tap the Mark button any time, even while you have tiles or boxes out, to draw right on top without losing your work.',
   },
   {
     id: '2026-09-22-lm-sidebar-collapse',
