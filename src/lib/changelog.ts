@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-22-sound-boxes-blending',
+    date: '2026-09-22',
+    icon: '🟦',
+    title: 'New in Literacy Manipulatives: Sound Boxes and a Blending Board!',
+    body: 'Tap "Sound Boxes" to build words sound by sound in boxes, or "Blending Board" to build a word letter by letter and hear it grow. Try "Word Sorts" too, sort words into the right group and listen for how they sound!',
+  },
+  {
+    id: '2026-09-22-marker-always',
+    date: '2026-09-22',
+    icon: '🖍️',
+    title: 'Marker button now works everywhere in Literacy Manipulatives',
+    body: 'Tap the Mark button any time, even while you have tiles or boxes out, to draw right on top without losing your work.',
+  },
+  {
     id: '2026-09-22-lm-sidebar-collapse',
     date: '2026-09-22',
     icon: '🧩',

@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from 'react';
+import { useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { speak } from '../../components/ReadAloud';
@@ -6,6 +6,7 @@ import HelpOverlay from '../../components/HelpOverlay';
 import { Whiteboard } from '../../components/ToolsPanel';
 import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS, MADLIB_TEMPLATES } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_AFFIXES, MORPHEME_COMBOS, type MorphemeAffix } from '../../lib/morphemeContent';
+import { SOUND_WORDS, WORD_SORTS, type SoundWord } from '../../lib/soundContent';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS, GRAMMAR_WORD_CLASS_SHAPES } from '../../types';
 import type { GrammarPiece, GrammarMontessoriShape } from '../../types';
 import { todayISO } from '../../lib/dates';
@@ -144,8 +145,10 @@ export default function GrammarSandbox() {
   const students = useStore((s) => s.students);
   const student = students.find((s) => s.id === currentStudentId);
   const literacyFocusSets = useStore((s) => s.literacyFocusSets);
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const updateStudent = useStore((s) => s.updateStudent);
 
-  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs' | 'web'>('select');
+  const [tool, setTool] = useState<'select' | 'draw' | 'madlibs' | 'web' | 'boxes' | 'blend' | 'sorts'>('select');
   const [placed, setPlaced] = useState<PlacedPiece[]>([]);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [confirmExit, setConfirmExit] = useState(false);
@@ -167,6 +170,53 @@ export default function GrammarSandbox() {
   const [attachedAffixIds, setAttachedAffixIds] = useState<Set<string>>(new Set());
   const [webShakeId, setWebShakeId] = useState<string | null>(null);
   const webShakeTimerRef = useRef<number | null>(null);
+  // Sound Boxes (Elkonin boxes) — Claudia's tool-survey top priority: a
+  // decades-old, public-domain phonemic-segmenting technique, the most
+  // foundational item missing from this sandbox. One box per real sound
+  // in the current word; a student taps letters from a scrambled tray to
+  // fill boxes left to right (same tap-to-fill-next-blank interaction
+  // Mad Libs already proved), tapping a filled box empties it back to the
+  // tray. No correct/incorrect gate — any letter can go in any box,
+  // matching this sandbox's standing "no punitive feedback" rule; "Read
+  // it" is how a student checks their own work by ear.
+  const [soundWordIndex, setSoundWordIndex] = useState(0);
+  const [boxFills, setBoxFills] = useState<Record<number, string>>({});
+  const soundWord: SoundWord = SOUND_WORDS[soundWordIndex];
+  // Blending Board — the second half of the same skill: build a word up
+  // letter by letter (not into fixed boxes) and blend the growing string
+  // after every addition, the real generic mechanic behind every
+  // published blending board (UFLI's specific one stays unbuilt/unverified,
+  // see soundContent.ts's own header comment).
+  const [blendWordIndex, setBlendWordIndex] = useState(0);
+  const [blendBuilt, setBlendBuilt] = useState<string[]>([]);
+  const blendWord: SoundWord = SOUND_WORDS[blendWordIndex];
+  // Word Sorts (Words Their Way-style pattern induction) — tap a word
+  // card, then tap the bucket it belongs in. Placing is never blocked
+  // (any word can go in any bucket, matching the sandbox's open-
+  // exploration rule), but a bucket that's the real match for a placed
+  // word gets the same positive-only glow the noun/verb snap already
+  // uses — self-checking by ear/eye, never a red "wrong."
+  const [sortIndex, setSortIndex] = useState(0);
+  const [sortPlacements, setSortPlacements] = useState<Record<string, string>>({});
+  const [selectedSortWordId, setSelectedSortWordId] = useState<string | null>(null);
+  const [sortGlowWordId, setSortGlowWordId] = useState<string | null>(null);
+  const sortGlowTimerRef = useRef<number | null>(null);
+  const activeSort = WORD_SORTS[sortIndex];
+  // Marker overlay — direct teacher request: "Markers can always be used,
+  // even when manipulatives are active." A transparent drawing layer over
+  // whichever mode is currently showing, toggled from the toolbar (always
+  // visible, every mode), rather than a full separate mode swap — reaches
+  // marking in one tap from anywhere without losing whatever board/word/
+  // sort state is currently built. True simultaneous tile-drag-and-draw
+  // was already ruled out elsewhere in this file (a real gesture-
+  // disambiguation risk); this is the same "toggle, don't blend gestures"
+  // resolution, applied as a floating layer instead of a swapped mode so
+  // the underlying work stays visible and reachable the instant marking
+  // is turned back off.
+  const [markerOn, setMarkerOn] = useState(false);
+  const markerCanvasRef = useRef<HTMLCanvasElement>(null);
+  const markerDrawing = useRef(false);
+  const markerLast = useRef<{ x: number; y: number } | null>(null);
   // Per-category collapse — now that there are two sidebar categories
   // (Sentence Grammar, Word Lists), with Letters & Sounds still to come,
   // letting a student collapse the ones they're not using keeps the
@@ -379,6 +429,158 @@ export default function GrammarSandbox() {
     speak(words.join('. '), student.ttsSettings);
   };
 
+  // Sound Boxes — tray is the current word's own letters, shuffled once
+  // per word (useMemo keyed on the word so it doesn't reshuffle on every
+  // render, only when the word actually changes).
+  const soundTrayLetters = useMemo(() => {
+    const arr = soundWord.letters.map((l, i) => ({ letter: l, trayId: `${soundWord.id}-${i}` }));
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [soundWord]);
+
+  // boxFills stores each box's TRAY TILE id, not just the letter — a word
+  // like "sun" has no repeats, but future words could, and matching by
+  // trayId (not letter value) is the only way to correctly know which
+  // specific tray tile is "used up" when two tiles show the same letter.
+  const fillNextSoundBox = (trayId: string) => {
+    setBoxFills((f) => {
+      if (Object.values(f).includes(trayId)) return f; // already placed
+      const nextIdx = soundWord.sounds.findIndex((_, i) => !f[i]);
+      if (nextIdx === -1) return f;
+      return { ...f, [nextIdx]: trayId };
+    });
+  };
+
+  const clearSoundBox = (idx: number) => {
+    setBoxFills((f) => {
+      const next = { ...f };
+      delete next[idx];
+      return next;
+    });
+  };
+
+  const newSoundWord = () => {
+    setSoundWordIndex((i) => (i + 1) % SOUND_WORDS.length);
+    setBoxFills({});
+  };
+
+  const speakSoundWordTarget = () => speak(soundWord.word, student.ttsSettings);
+
+  const soundTrayLetterFor = (trayId: string | undefined) => soundTrayLetters.find((t) => t.trayId === trayId)?.letter ?? '';
+
+  const readSoundBoxes = () => {
+    const built = soundWord.sounds.map((_, i) => soundTrayLetterFor(boxFills[i])).join('');
+    // Isolated single letters read by name, not by phoneme, through
+    // ordinary browser text-to-speech (no way to get a real isolated
+    // phoneme sound from it) — reading the built string back as a whole
+    // is a closer, if imperfect, approximation than each letter alone,
+    // same tradeoff every browser-TTS-based phonics tool in this app
+    // already accepts.
+    speak(built || soundWord.word, student.ttsSettings);
+  };
+
+  // Blending Board — sequential build, not fixed boxes: tapping the next
+  // correct-position letter from the (in-order, not scrambled — blending
+  // is about the growing sound, not finding the right letter) tray adds
+  // it, and the growing string is read back so the student hears the
+  // blend get closer to the real word each time.
+  const blendNextLetter = blendWord.letters[blendBuilt.length];
+
+  const blendAddLetter = () => {
+    if (!blendNextLetter) return;
+    const next = [...blendBuilt, blendNextLetter];
+    setBlendBuilt(next);
+    speak(next.join(''), student.ttsSettings);
+  };
+
+  const blendRemoveLast = () => setBlendBuilt((b) => b.slice(0, -1));
+
+  const newBlendWord = () => {
+    setBlendWordIndex((i) => (i + 1) % SOUND_WORDS.length);
+    setBlendBuilt([]);
+  };
+
+  const speakBlendWordTarget = () => speak(blendWord.word, student.ttsSettings);
+
+  // Word Sorts — two-tap placement (tap a word, then tap a bucket),
+  // touch-friendlier than drag for a small fixed set of targets. Placing
+  // is never blocked; a real-match placement gets the same kind of
+  // positive-only glow the noun/verb snap uses elsewhere in this file.
+  const selectSortWord = (wordId: string) => setSelectedSortWordId((id) => (id === wordId ? null : wordId));
+
+  const placeSortWord = (bucketId: string) => {
+    if (!selectedSortWordId) return;
+    const word = SOUND_WORDS.find((w) => w.id === selectedSortWordId);
+    const bucket = activeSort.buckets.find((b) => b.id === bucketId);
+    setSortPlacements((p) => ({ ...p, [selectedSortWordId]: bucketId }));
+    if (word && bucket?.matches(word)) {
+      if (sortGlowTimerRef.current) window.clearTimeout(sortGlowTimerRef.current);
+      setSortGlowWordId(selectedSortWordId);
+      sortGlowTimerRef.current = window.setTimeout(() => setSortGlowWordId(null), 900);
+    }
+    setSelectedSortWordId(null);
+  };
+
+  const clearSortPlacements = () => setSortPlacements({});
+
+  const changeSort = (idx: number) => {
+    setSortIndex(idx);
+    setSortPlacements({});
+    setSelectedSortWordId(null);
+  };
+
+  // Marker overlay — a real, second lightweight canvas drawer (not the
+  // Whiteboard component, which paints an opaque white page background by
+  // design for its own Notes use elsewhere in the app; this one is
+  // transparent on purpose, so it can sit visually on top of whichever
+  // manipulative mode is showing underneath). Reuses the exact same
+  // owned-marker-color/equipped-color data Whiteboard already reads.
+  const markerColors = marketplaceItems.filter((it) => it.kind === 'color' && it.colorUse === 'marker' && student.ownedColorIds.includes(it.id));
+  const equippedMarker = markerColors.find((c) => c.id === student.equippedMarkerColorId) ?? markerColors[0];
+  const markerColor = equippedMarker?.colorHex ?? '#1f1147';
+
+  const markerPosFor = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = markerCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return { x: ((e.clientX - rect.left) / rect.width) * canvas.width, y: ((e.clientY - rect.top) / rect.height) * canvas.height };
+  };
+
+  const markerStartDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    markerDrawing.current = true;
+    markerLast.current = markerPosFor(e);
+  };
+
+  const markerMoveDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!markerDrawing.current) return;
+    const ctx = markerCanvasRef.current?.getContext('2d');
+    if (!ctx || !markerLast.current) return;
+    const p = markerPosFor(e);
+    ctx.strokeStyle = markerColor;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(markerLast.current.x, markerLast.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    markerLast.current = p;
+  };
+
+  const markerEndDraw = () => {
+    markerDrawing.current = false;
+    markerLast.current = null;
+  };
+
+  const clearMarker = () => {
+    const canvas = markerCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
   return (
     <div className="lm-shell">
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
@@ -535,6 +737,37 @@ export default function GrammarSandbox() {
           <button className={`btn btn-sm ${tool === 'draw' ? 'btn-primary' : ''}`} onClick={() => setTool('draw')}>🎨 Draw</button>
           <button className={`btn btn-sm ${tool === 'madlibs' ? 'btn-primary' : ''}`} onClick={() => setTool('madlibs')}>🎭 Mad Libs</button>
           <button className={`btn btn-sm ${tool === 'web' ? 'btn-primary' : ''}`} onClick={() => setTool('web')}>🕸️ Morpheme Web</button>
+          {/* Newest three modes — Claudia's tool-survey top priority,
+              the sound/letter-level skill layer nothing else here
+              reached before. Same always-visible toolbar tab pattern as
+              every mode above, so a student (or a teacher pointing a
+              student here as a worksheet partner) reaches any one of
+              them in a single tap, no submenu to already know exists. */}
+          <button className={`btn btn-sm ${tool === 'boxes' ? 'btn-primary' : ''}`} onClick={() => setTool('boxes')}>🟦 Sound Boxes</button>
+          <button className={`btn btn-sm ${tool === 'blend' ? 'btn-primary' : ''}`} onClick={() => setTool('blend')}>🧱 Blending Board</button>
+          <button className={`btn btn-sm ${tool === 'sorts' ? 'btn-primary' : ''}`} onClick={() => setTool('sorts')}>🗂️ Word Sorts</button>
+          <span className="lm-toolbar-divider" />
+          {/* Marker — direct teacher request: "always be used, even when
+              manipulatives are active." A toggle, not a mode: turning it
+              on layers a transparent draw canvas over whatever's already
+              showing (tiles, boxes, sort buckets, ...) without leaving
+              or losing that mode's state. */}
+          <button className={`btn btn-sm ${markerOn ? 'btn-primary' : ''}`} onClick={() => setMarkerOn((v) => !v)}>🖍️ Mark</button>
+          {markerOn && (
+            <>
+              {markerColors.length === 0 && <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Get markers in the 🛍️ Marketplace!</span>}
+              {markerColors.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => updateStudent(student.id, { equippedMarkerColorId: c.id })}
+                  aria-label={`${c.name} Marker`}
+                  title={`${c.name} Marker`}
+                  style={{ width: 30, height: 30, borderRadius: '50%', background: c.colorHex, cursor: 'pointer', padding: 0, border: equippedMarker?.id === c.id ? '3px solid var(--ink)' : '2px solid var(--content-border)' }}
+                />
+              ))}
+              <button className="btn btn-sm" onClick={clearMarker}>🗑️ Clear marks</button>
+            </>
+          )}
           <span className="lm-toolbar-divider" />
           {tool === 'madlibs' ? (
             <>
@@ -547,6 +780,25 @@ export default function GrammarSandbox() {
               <button className="btn btn-sm" onClick={readMorphemeWords}>🔈 Read words</button>
               <button className="btn btn-sm" onClick={() => setAttachedAffixIds(new Set())} disabled={attachedAffixIds.size === 0}>↺ Clear branches</button>
             </>
+          ) : tool === 'boxes' ? (
+            <>
+              <button className="btn btn-sm" onClick={speakSoundWordTarget}>🔈 Say the word</button>
+              <button className="btn btn-sm" onClick={readSoundBoxes}>🔈 Read my boxes</button>
+              <button className="btn btn-sm" onClick={newSoundWord}>🔀 New word</button>
+            </>
+          ) : tool === 'blend' ? (
+            <>
+              <button className="btn btn-sm" onClick={speakBlendWordTarget}>🔈 Say the word</button>
+              <button className="btn btn-sm" onClick={blendRemoveLast} disabled={blendBuilt.length === 0}>↩️ Take off a letter</button>
+              <button className="btn btn-sm" onClick={newBlendWord}>🔀 New word</button>
+            </>
+          ) : tool === 'sorts' ? (
+            <>
+              {WORD_SORTS.map((s, i) => (
+                <button key={s.id} className={`btn btn-sm ${i === sortIndex ? 'btn-primary' : ''}`} onClick={() => changeSort(i)}>{s.label}</button>
+              ))}
+              <button className="btn btn-sm" onClick={clearSortPlacements} disabled={Object.keys(sortPlacements).length === 0}>↺ Clear sort</button>
+            </>
           ) : (
             <>
               <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
@@ -556,6 +808,13 @@ export default function GrammarSandbox() {
           )}
         </div>
 
+        {/* Everything below is the mode-panel stack, wrapped so the
+            marker overlay (see markerOn above) can sit as one absolutely-
+            positioned layer on top of whichever panel is showing,
+            regardless of mode — pointerEvents flips between the content
+            and the marker canvas so a stroke never fights a tile drag. */}
+        <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', pointerEvents: markerOn ? 'none' : undefined }}>
         {tool === 'draw' && (
           <div className="lm-canvas" style={{ position: 'relative' }}>
             <Whiteboard student={student} />
@@ -721,6 +980,173 @@ export default function GrammarSandbox() {
           </div>
         )}
 
+        {tool === 'boxes' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 24 }}>
+            {/* Elkonin / Sound Boxes — one box per real sound in the
+                word (see soundContent.ts for how CVCe silent-e is
+                handled). Tapping a tray letter fills the next empty box
+                left to right; tapping a filled box empties it back to
+                the tray — the exact "tap to fill the next blank"
+                interaction Mad Libs already proved, applied to a new
+                content domain. */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 10 }}>
+              {soundWord.sounds.map((_, i) => {
+                const filledLetter = soundTrayLetterFor(boxFills[i]);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => filledLetter && clearSoundBox(i)}
+                    style={{
+                      width: 64, height: 64, borderRadius: 10, border: '3px solid var(--ink)',
+                      background: filledLetter ? 'var(--blue)' : '#fff', color: filledLetter ? '#fff' : 'var(--ink)',
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: '1.6rem',
+                      cursor: filledLetter ? 'pointer' : 'default', textTransform: 'uppercase',
+                    }}
+                    aria-label={filledLetter ? `Box ${i + 1}: ${filledLetter}, tap to empty` : `Box ${i + 1}, empty`}
+                  >
+                    {filledLetter}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
+              {soundTrayLetters.map(({ letter, trayId }) => {
+                const used = Object.values(boxFills).includes(trayId);
+                return (
+                  <button
+                    key={trayId}
+                    type="button"
+                    disabled={used}
+                    onClick={() => fillNextSoundBox(trayId)}
+                    style={{
+                      width: 56, height: 56, borderRadius: '50%', border: '3px solid var(--ink)',
+                      background: used ? '#eee' : '#fdf3d8', opacity: used ? 0.4 : 1,
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
+                      fontSize: '1.4rem', textTransform: 'uppercase', cursor: used ? 'default' : 'pointer',
+                      boxShadow: used ? 'none' : '2px 2px 0 rgba(31,17,71,0.2)',
+                    }}
+                  >
+                    {letter}
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
+              Tap "Say the word," then tap letters into the boxes for each sound you hear!
+            </p>
+          </div>
+        )}
+
+        {tool === 'blend' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 24 }}>
+            {/* Blending Board — build the word up one letter at a time
+                (in spelling order, not scrambled) and hear the growing
+                string blended after every letter, the real generic
+                mechanic behind every published blending board. Not a
+                reproduction of UFLI's specific one, see soundContent.ts. */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 4 }}>
+              {blendWord.letters.map((l, i) => (
+                <span
+                  key={i}
+                  style={{
+                    width: 56, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 10, border: '3px solid var(--ink)',
+                    background: i < blendBuilt.length ? 'var(--success)' : '#fff',
+                    color: i < blendBuilt.length ? '#fff' : 'var(--ink)',
+                    fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: '1.6rem', textTransform: 'uppercase',
+                  }}
+                >
+                  {i < blendBuilt.length ? l : ''}
+                </span>
+              ))}
+            </div>
+            {blendNextLetter && (
+              <button
+                type="button"
+                onClick={blendAddLetter}
+                style={{
+                  width: 72, height: 72, borderRadius: '50%', border: '3px solid var(--ink)',
+                  background: '#fdf3d8', fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
+                  fontSize: '1.8rem', textTransform: 'uppercase', cursor: 'pointer',
+                  boxShadow: '2px 2px 0 rgba(31,17,71,0.2)',
+                }}
+                aria-label={`Add the next letter, ${blendNextLetter}`}
+              >
+                {blendNextLetter}
+              </button>
+            )}
+            {!blendNextLetter && (
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--success)', fontSize: '1.1rem' }}>🎉 You built "{blendWord.word}"!</p>
+            )}
+            <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
+              Tap the big letter to add it, and listen to the word grow!
+            </p>
+          </div>
+        )}
+
+        {tool === 'sorts' && (
+          <div className="lm-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 24, overflowY: 'auto' }}>
+            {/* Word Sorts (Words Their Way-style pattern induction) —
+                tap a word card, then tap the bucket it belongs in.
+                Placing is never blocked; a real match gets a positive-
+                only glow, never a red "wrong" (same rule Morpheme Web
+                and the noun/verb snap already follow). */}
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 10, maxWidth: 700 }}>
+              {activeSort.buckets.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => placeSortWord(b.id)}
+                  disabled={!selectedSortWordId}
+                  style={{
+                    flex: '1 1 160px', minHeight: 110, borderRadius: 14, border: '3px solid var(--ink)',
+                    background: selectedSortWordId ? '#fdf3d8' : '#fff', padding: 10,
+                    display: 'flex', flexDirection: 'column', gap: 6, cursor: selectedSortWordId ? 'pointer' : 'default',
+                  }}
+                >
+                  <span style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: '0.9rem' }}>{b.label}</span>
+                  <div className="row-wrap" style={{ justifyContent: 'center', gap: 4 }}>
+                    {Object.entries(sortPlacements).filter(([, bucketId]) => bucketId === b.id).map(([wordId]) => {
+                      const w = SOUND_WORDS.find((sw) => sw.id === wordId);
+                      if (!w) return null;
+                      return (
+                        <span
+                          key={wordId}
+                          className="tag-pill"
+                          style={{ background: sortGlowWordId === wordId ? 'var(--success)' : '#fff', color: sortGlowWordId === wordId ? '#fff' : 'var(--ink)' }}
+                        >
+                          {w.word}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="row-wrap" style={{ justifyContent: 'center', gap: 8, maxWidth: 700 }}>
+              {SOUND_WORDS.filter((w) => !sortPlacements[w.id] && activeSort.buckets.some((b) => b.matches(w))).map((w) => (
+                <button
+                  key={w.id}
+                  type="button"
+                  className="tag-pill"
+                  style={{
+                    cursor: 'pointer',
+                    background: selectedSortWordId === w.id ? 'var(--blue)' : '#fff',
+                    color: selectedSortWordId === w.id ? '#fff' : 'var(--ink)',
+                  }}
+                  onClick={() => { selectSortWord(w.id); speak(w.word, student.ttsSettings); }}
+                >
+                  {w.word}
+                </button>
+              ))}
+            </div>
+            <p style={{ margin: 0, fontWeight: 700, opacity: 0.5, textAlign: 'center' }}>
+              {selectedSortWordId ? 'Now tap the bucket it belongs in!' : 'Tap a word, then tap where it belongs.'}
+            </p>
+          </div>
+        )}
+
         {tool === 'select' && (
           <div
             ref={canvasRef}
@@ -752,6 +1178,26 @@ export default function GrammarSandbox() {
             })}
           </div>
         )}
+        </div>
+        {/* Transparent marker canvas — only captures pointer events while
+            markerOn is true (the content layer above takes them back the
+            instant marking is toggled off). Cleared independently of any
+            mode's own Clear button; switching modes never clears it. */}
+        <canvas
+          ref={markerCanvasRef}
+          width={1400}
+          height={900}
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            pointerEvents: markerOn ? 'auto' : 'none',
+            touchAction: 'none', cursor: markerOn ? 'crosshair' : 'default',
+          }}
+          onPointerDown={markerOn ? markerStartDraw : undefined}
+          onPointerMove={markerOn ? markerMoveDraw : undefined}
+          onPointerUp={markerOn ? markerEndDraw : undefined}
+          onPointerLeave={markerOn ? markerEndDraw : undefined}
+        />
+        </div>
       </div>
     </div>
   );
