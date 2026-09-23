@@ -342,8 +342,24 @@ export const SLOT_MONTESSORI_CLASS: Record<FormulaSlotType, 'noun' | 'pronoun' |
   'question-word': null,
 };
 
+// Direct teacher instruction: "description words in drop down needs to
+// be evaluated, sometimes the required description is an adverb, not
+// an adjective (and vice versa) use context clues and ensure the word
+// lists are accurate." The word banks themselves were already correct
+// per-position (description-adj only ever fills a predicate-adjective
+// slot, description-adv only ever fills a describes-the-action slot —
+// verified against every formula in SENTENCE_FORMULAS above), but both
+// shared the identical "DESCRIPTION" label, giving a student no
+// context clue for why one blank's dropdown offers adjectives (hot,
+// big, silly...) and another's offers adverbs (quickly, sadly...).
+// Split into two distinct, short labels so the word class is legible
+// at a glance: DESCRIBE (adjective — describes a person/thing) vs.
+// HOW (adverb — describes how the action was done), matching the
+// "adverbs answer how/when/where" convention this population is
+// already taught. complement shares DESCRIBE since it's the same word
+// class (a predicate adjective), just a different grammatical role.
 export const SLOT_LABELS: Record<FormulaSlotType, string> = {
   who: 'WHO', action: 'ACTION', what: 'WHAT', where: 'WHERE', when: 'WHEN', frequency: 'FREQUENCY',
-  'description-adj': 'DESCRIPTION', 'description-adv': 'DESCRIPTION', 'indirect-object': 'WHO',
-  complement: 'DESCRIPTION', reflexive: 'REFLEXIVE', 'linking-verb': 'feels/seems/looks', 'question-word': 'Wh-',
+  'description-adj': 'DESCRIBE', 'description-adv': 'HOW', 'indirect-object': 'WHO',
+  complement: 'DESCRIBE', reflexive: 'REFLEXIVE', 'linking-verb': 'feels/seems/looks', 'question-word': 'Wh-',
 };

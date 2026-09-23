@@ -77,7 +77,7 @@ export const STARTER_MARKETPLACE_ITEMS: Omit<MarketplaceItem, 'createdAt'>[] = [
   { id: 'marker-orange', kind: 'color', name: 'Orange', icon: '✏️', price: 0, category: 'Whiteboard Markers', tags: [], colorHex: '#f4a300', colorUse: 'marker' },
   { id: 'marker-purple', kind: 'color', name: 'Purple', icon: '✏️', price: 0, category: 'Whiteboard Markers', tags: [], colorHex: '#8b5cf6', colorUse: 'marker' },
   // Voices
-  { id: 'voice-default', kind: 'voice', name: 'My Voice', icon: '🔊', price: 0, category: 'Voices', tags: [], voicePitch: 1, voiceRate: 1, voiceHints: [] },
+  { id: 'voice-default', kind: 'voice', name: 'Default', icon: '🔊', price: 0, category: 'Voices', tags: [], voicePitch: 1, voiceRate: 1, voiceHints: [] },
   { id: 'voice-robot', kind: 'voice', name: '🤖 Robot', icon: '🔊', price: 0, category: 'Voices', tags: [], voicePitch: 0.3, voiceRate: 0.9, voiceHints: [] },
   { id: 'voice-santa', kind: 'voice', name: '🎅 Santa', icon: '🔊', price: specialtyPrice('voice'), category: 'Voices', tags: ['seasonal'], voicePitch: 0.5, voiceRate: 0.82, voiceHints: ['male', 'daniel', 'fred', 'david'] },
   { id: 'voice-fairy', kind: 'voice', name: '🧚 Fairy', icon: '🔊', price: STANDARD_PRICE_CENTS.voice, category: 'Voices', tags: [], voicePitch: 1.8, voiceRate: 1.15, voiceHints: ['female', 'samantha', 'victoria', 'karen'] },

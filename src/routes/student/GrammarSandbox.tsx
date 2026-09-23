@@ -11,7 +11,7 @@ import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
   wordBankFor, actionWordsFor, auxWordFor, type FormulaCategory,
 } from '../../lib/sentenceFormulas';
-import { CONSONANTS, VOWELS } from '../../lib/soundWallData';
+import { CONSONANTS, VOWELS, CONSONANT_CATEGORY_LABELS, VOWEL_CATEGORY_LABELS } from '../../lib/soundWallData';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS } from '../../types';
 import type { GrammarPiece, SavedWhiteboard } from '../../types';
 import { todayISO } from '../../lib/dates';
@@ -108,9 +108,26 @@ const FRAME_SIZES = [2, 3, 4, 5];
 // UFLI's verified scope-and-sequence specifically. Reuses the real,
 // ordinary grapheme data already built for the Orton-Gillingham Sound
 // Wall (soundWallData.ts) instead — every real spelling of every real
-// English consonant/vowel sound, deduped — a genuine comprehensive
-// grapheme set, just not verified against UFLI's own text.
-const GRAPHEMES = Array.from(new Set([...CONSONANTS, ...VOWELS].flatMap((p) => p.graphemes))).sort();
+// English consonant/vowel sound, deduped. Direct follow-up instruction:
+// "grapheme tiles should be organized into sub categories and remove
+// single graphemes/letters" — single-letter spellings (p, s, a, e...)
+// are dropped since they duplicate the Alphabet tiles, and the rest
+// are grouped by the Sound Wall's own existing sound categories
+// (Stops, Fricatives, Long vowels, Diphthongs...) rather than one flat
+// alphabetized list.
+const GRAPHEME_GROUPS: { key: string; label: string; graphemes: string[] }[] = (() => {
+  const order: string[] = [];
+  const buckets = new Map<string, Set<string>>();
+  for (const p of [...CONSONANTS, ...VOWELS]) {
+    for (const g of p.graphemes) {
+      if (g.length <= 1) continue;
+      if (!buckets.has(p.category)) { buckets.set(p.category, new Set()); order.push(p.category); }
+      buckets.get(p.category)!.add(g);
+    }
+  }
+  const labels: Record<string, string> = { ...CONSONANT_CATEGORY_LABELS, ...VOWEL_CATEGORY_LABELS };
+  return order.map((key) => ({ key, label: labels[key] ?? key, graphemes: Array.from(buckets.get(key)!).sort() }));
+})();
 
 // Ordinary, well-documented affix meanings — used to compose a plain
 // definition when a morpheme piece connects to a real word (see
@@ -157,25 +174,24 @@ function sizeFor(kind: PlacedKind, boxCount?: number): { w: number; h: number } 
   return { w: 44, h: 44 }; // shape, letter, sentenceFrame (drag not used for the latter)
 }
 
-// Jigsaw-piece morpheme silhouette — direct teacher request, real
-// reference image. Purely decorative now (no attach validation, per the
-// "entirely unscripted" redesign): root pieces show both a tab and a
-// notch, a prefix only its right-side tab, a suffix only its left-side
-// notch, so the interlocking affordance still reads visually even
-// though nothing checks whether a combination is a real word anymore.
+// Jigsaw-piece morpheme silhouette — direct teacher follow-up
+// instruction: "make puzzle pieces only have left and right notches
+// (not top or bottom)" (removing the earlier top-knob restyle). Purely
+// decorative on its own (no attach validation, per the "entirely
+// unscripted" redesign): root pieces show both a tab and a notch, a
+// prefix only its right-side tab, a suffix only its left-side notch,
+// so the interlocking affordance still reads visually even though
+// nothing checks whether a combination is a real word anymore.
 function PuzzlePiece({ text, color, textColor = '#fff', hasNotch, hasTab }: {
   text: string; color: string; textColor?: string; hasNotch: boolean; hasTab: boolean;
 }) {
   const w = 96;
   const h = 64;
   const r = 9;
-  const rectY = 15;
-  const rectH = h - rectY - 3;
-  const cy = rectY + rectH / 2;
+  const cy = h / 2;
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <rect x="3" y={rectY} width={w - 6} height={rectH} rx="8" fill={color} stroke="var(--ink)" strokeWidth="3" />
-      <circle cx={w / 2} cy="9" r="8" fill={color} stroke="var(--ink)" strokeWidth="3" />
+      <rect x="3" y="3" width={w - 6} height={h - 6} rx="8" fill={color} stroke="var(--ink)" strokeWidth="3" />
       {hasTab && <circle cx={w - 3} cy={cy} r={r} fill={color} stroke="var(--ink)" strokeWidth="3" />}
       {hasNotch && <circle cx="3" cy={cy} r={r - 1} fill="var(--paper, #fdfdfb)" stroke="var(--ink)" strokeWidth="3" />}
       <text x={w / 2} y={cy + 6} textAnchor="middle" fontFamily="'Baloo 2', sans-serif" fontWeight={800} fontSize="14" fill={textColor}>
@@ -573,7 +589,12 @@ export default function GrammarSandbox() {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, fontSize: Math.min(48, Math.max(12, (pp.fontSize ?? 20) + delta)) } : pp)));
   };
 
-  const ownedVoices = marketplaceItems.filter((it) => it.kind === 'voice' && student.ownedVoiceIds.includes(it.id));
+  // Excludes voice-default — this row already has its own "Default"
+  // button, so the catalog's default entry would otherwise show up as
+  // a confusing second "Default"/"My Voice" option next to it (direct
+  // teacher report: "remove 'my voice' from tts, default and the
+  // actual voices (like robot) should be shown").
+  const ownedVoices = marketplaceItems.filter((it) => it.kind === 'voice' && it.id !== 'voice-default' && student.ownedVoiceIds.includes(it.id));
 
   // Morphemes — direct teacher instruction: puzzle pieces only link if
   // they form a real word ("pre" + "view" = "previewing" — a real
@@ -599,8 +620,13 @@ export default function GrammarSandbox() {
       const rootItem = dragged.morphType === 'root' ? dragged : other;
       const affixItem = dragged.morphType === 'root' ? other : dragged;
       if (!MORPHEME_COMBOS[`${rootItem.morphId}:${affixItem.morphId}`]) return current;
+      // Direct follow-up instruction: "puzzle pieces should visually
+      // click together when they make a real word" — a small overlap
+      // (instead of the old 4px gap) so the tab bump actually nests
+      // into the neighboring notch instead of just sitting nearby.
       const morphW = sizeFor('morpheme').w;
-      const newX = affixItem.morphType === 'prefix' ? rootItem.x - morphW - 4 : rootItem.x + morphW + 4;
+      const overlap = 8;
+      const newX = affixItem.morphType === 'prefix' ? rootItem.x - morphW + overlap : rootItem.x + morphW - overlap;
       return current.map((p) => (p.instanceId === affixItem.instanceId ? { ...p, x: newX, y: rootItem.y } : p));
     });
   };
@@ -795,10 +821,21 @@ export default function GrammarSandbox() {
     }));
   };
 
-  const onDragEnd = () => {
+  const onDragEnd = (e: React.PointerEvent) => {
     const id = dragInstanceRef.current;
     dragInstanceRef.current = null;
     if (!id) return;
+    // Drag-to-delete — direct teacher instruction: "allow dragging
+    // objects (like frames, boxes) back into the left tool bar and
+    // that act should delete it from view." The sidebar sits directly
+    // left of the canvas, so releasing to the left of the canvas's own
+    // screen edge (in real screen pixels, not the zoomed logical
+    // space) is "dropped back on the tray."
+    const canvasLeft = canvasRef.current?.getBoundingClientRect().left ?? 0;
+    if (e.clientX < canvasLeft) {
+      removePlacedItem(id);
+      return;
+    }
     const item = placed.find((p) => p.instanceId === id);
     if (item?.kind === 'grammar') runSnapCheck(id);
     if (item?.kind === 'morpheme') runMorphemeSnapCheck(id);
@@ -1092,14 +1129,18 @@ export default function GrammarSandbox() {
           </Category>
 
           <Category label="🔠 Graphemes" color="#fde68a" open={openCategories.graphemes} onToggle={() => toggleCategory('graphemes')}>
-            <p style={{ margin: '0 0 6px', fontSize: '0.7rem', opacity: 0.6 }}>Every real English spelling pattern (not UFLI-verified, see code comment).</p>
-            <div className="row-wrap" style={{ gap: 4 }}>
-              {GRAPHEMES.map((g) => (
-                <Draggable key={g} label={g} onPointerDown={startDragNewItem(() => ({ kind: 'letter', letter: g }))}>
-                  <ItemVisual kind="letter" letter={g} />
-                </Draggable>
-              ))}
-            </div>
+            <p style={{ margin: '0 0 6px', fontSize: '0.7rem', opacity: 0.6 }}>Multi-letter spellings only (single letters are in Alphabet). Not UFLI-verified, see code comment.</p>
+            {GRAPHEME_GROUPS.map((group) => (
+              <SubcategoryRow key={group.key} id={`graph-${group.key}`} label={group.label} open={openSubcategories[`graph-${group.key}`]} onToggle={() => toggleSubcategory(`graph-${group.key}`)}>
+                <div className="row-wrap" style={{ gap: 4 }}>
+                  {group.graphemes.map((g) => (
+                    <Draggable key={g} label={g} onPointerDown={startDragNewItem(() => ({ kind: 'letter', letter: g }))}>
+                      <ItemVisual kind="letter" letter={g} />
+                    </Draggable>
+                  ))}
+                </div>
+              </SubcategoryRow>
+            ))}
           </Category>
 
           <Category label="🟦 Sound Boxes" color="#bbf7d0" open={openCategories.frames} onToggle={() => toggleCategory('frames')}>
@@ -1222,10 +1263,22 @@ export default function GrammarSandbox() {
             {/* Morpheme definitions — direct teacher instruction: only
                 appears once a piece combination is a real word, pulled
                 from the root's own etymology plus the affix's ordinary
-                meaning. */}
+                meaning. Follow-up instruction: "add TTS for definitons
+                of combined words using morphemes." */}
             {morphemeCombos.map((c) => (
               <div key={c.id} className="chrome-frame" style={{ position: 'absolute', left: c.x - 20, top: c.y + 72, width: 240, padding: 8, fontSize: '0.72rem', zIndex: 3 }}>
-                <div style={{ fontWeight: 800, marginBottom: 2 }}>✨ {c.word}</div>
+                <div className="space-between" style={{ alignItems: 'center', marginBottom: 2 }}>
+                  <div style={{ fontWeight: 800 }}>✨ {c.word}</div>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ padding: '2px 8px', minHeight: 24 }}
+                    onClick={() => speak(`${c.word}. ${c.definition}${c.etymology ? `. ${c.etymology}` : ''}`, student.ttsSettings, student.equippedVoiceId)}
+                    aria-label={`Hear the definition of ${c.word}`}
+                  >
+                    🔈
+                  </button>
+                </div>
                 <div>{c.definition}</div>
                 {c.etymology && <div style={{ marginTop: 4, opacity: 0.7 }}>📜 {c.etymology}</div>}
               </div>
@@ -1246,6 +1299,28 @@ export default function GrammarSandbox() {
                 if (seg.kind === 'aux') return auxWordFor(seg.auxType, whoText, WHO_WORDS);
                 return fills[i] ?? '';
               }).join(' ').replace(/\s+([.!?])/g, '$1');
+              // Grammar check — direct teacher instruction: "a check
+              // notification... check for tenses, accuracy, plurals,
+              // etc. and give a notice if it is a correct sentence or
+              // if it needs improvement. tell exactly what needs to
+              // improve." Checks each typed/picked word against the
+              // same tense-and-plural-aware word bank the dropdown
+              // itself offers (wordBankFor/actionWordsFor) — the exact
+              // data already driving "correct" choices, not a new or
+              // fabricated grammar judgment.
+              const checkResults = isComplete ? formula.segments.map((seg, i) => {
+                if (seg.kind !== 'slot') return null;
+                const typed = (fills[i] ?? '').trim();
+                if (!typed) return null;
+                const bank = seg.slot === 'action' ? actionWordsFor(whoVerbForm, seg.verbFormOverride) : wordBankFor(seg.slot, 'general', whoVerbForm);
+                const ok = bank.some((o) => o.text.toLowerCase() === typed.toLowerCase());
+                return { label: SLOT_LABELS[seg.slot], typed, ok, suggestions: bank.slice(0, 4).map((o) => o.text) };
+              }).filter((r): r is { label: string; typed: string; ok: boolean; suggestions: string[] } => r !== null) : [];
+              const allOk = checkResults.every((r) => r.ok);
+              const checkSpeech = checkResults.length === 0 ? '' : [
+                allOk ? 'This sentence looks correct!' : 'Here is a check for your sentence.',
+                ...checkResults.filter((r) => !r.ok).map((r) => `For ${r.label}, you wrote ${r.typed}. Words that usually fit here are ${r.suggestions.join(', ')}.`),
+              ].join(' ');
               return (
                 <div key={item.instanceId} className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 12, maxWidth: 640, zIndex: 4 }}>
                   <div className="space-between" style={{ marginBottom: 8, alignItems: 'center' }}>
@@ -1288,6 +1363,26 @@ export default function GrammarSandbox() {
                       {ownedVoices.map((v) => (
                         <button key={v.id} className="btn btn-sm" onClick={() => speak(sentenceText, student.ttsSettings, v.id)}>{v.name}</button>
                       ))}
+                    </div>
+                  )}
+                  {/* Grammar check — direct teacher instruction, calm
+                      SEL framing (never "wrong", just what to check),
+                      always has a 🔈 to hear the notice either way. */}
+                  {checkResults.length > 0 && (
+                    <div className="chrome-frame" style={{ marginTop: 10, padding: 8, fontSize: '0.75rem', background: allOk ? '#f0fdf4' : '#fffbeb' }}>
+                      <div className="space-between" style={{ alignItems: 'center', marginBottom: allOk ? 0 : 4 }}>
+                        <strong>{allOk ? '✅ Looks correct!' : '💡 A few things to check'}</strong>
+                        <button className="btn btn-sm" style={{ padding: '2px 8px', minHeight: 26 }} onClick={() => speak(checkSpeech, student.ttsSettings, student.equippedVoiceId)} aria-label="Hear the check">🔈</button>
+                      </div>
+                      {!allOk && (
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                          {checkResults.filter((r) => !r.ok).map((r, i) => (
+                            <li key={i}>
+                              <strong>{r.label}:</strong> "{r.typed}" — words that usually fit here: {r.suggestions.join(', ')}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   )}
                 </div>

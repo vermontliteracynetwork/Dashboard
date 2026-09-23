@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-23-lm-grammar-check-more',
+    date: '2026-09-23',
+    icon: '✅',
+    title: 'Sentence check and more fixes in Literacy Manipulatives',
+    body: 'Fill in a whole Sentence Formula and a new card checks your words and tells you exactly what to fix, with a speaker button to hear it. Morpheme word definitions now have a speaker button too. Puzzle pieces click together better. Graphemes are sorted into groups now instead of one long list. You can drag something back onto the left side to delete it. The voice picker no longer shows a confusing "My Voice" option.',
+  },
+  {
     id: '2026-09-23-lm-zoom-delete',
     date: '2026-09-23',
     icon: '🔍',
