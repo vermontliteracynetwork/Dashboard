@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-23-lm-text-box',
+    date: '2026-09-23',
+    icon: '⌨️',
+    title: 'New Text Box in Literacy Manipulatives',
+    body: 'Tap Text Box on the left and drag it onto your board. Double-tap it to type, or tap the microphone to talk instead. You can also make the words bigger or smaller.',
+  },
+  {
+    id: '2026-09-23-lm-drag-fix',
+    date: '2026-09-23',
+    icon: '🔧',
+    title: 'Fixed dragging in Literacy Manipulatives',
+    body: 'Dragging things from the left side onto your board is working right again.',
+  },
+  {
     id: '2026-09-23-lm-symbol-sentences',
     date: '2026-09-23',
     icon: '📜',

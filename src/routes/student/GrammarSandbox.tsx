@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { speak } from '../../components/ReadAloud';
@@ -50,6 +50,54 @@ const SNAP_GAP = 14;
 const SNAP_THRESHOLD = 160;
 const HISTORY_LIMIT = 20;
 
+// Speech-to-text for the Text Box tool — direct teacher instruction
+// ("SST option" on the new typeable fields). The browser's own Web
+// Speech API, feature-detected once at module scope, same pattern this
+// project used before speech-to-text was removed app-wide (2026-09-22,
+// "remove STT, but allow TTS for the items or things highlighted by
+// the student" — that removal was about ArticleReader specifically;
+// this is a new, separate, explicit request for this one tool).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SpeechRecognitionCtor: any = typeof window !== 'undefined' ? (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition : null;
+const voiceToTextSupported = !!SpeechRecognitionCtor;
+
+function useTextBoxVoiceToText(onFinalText: (text: string) => void) {
+  const [listening, setListening] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const onFinalTextRef = useRef(onFinalText);
+  onFinalTextRef.current = onFinalText;
+
+  useEffect(() => () => { recognitionRef.current?.stop(); }, []);
+
+  const stop = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
+
+  const toggle = () => {
+    if (listening) { stop(); return; }
+    if (!SpeechRecognitionCtor) return;
+    const rec = new SpeechRecognitionCtor();
+    rec.lang = 'en-US';
+    rec.continuous = true;
+    rec.interimResults = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let added = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) added += e.results[i][0].transcript;
+      if (added.trim()) onFinalTextRef.current(added.trim());
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    rec.start();
+    recognitionRef.current = rec;
+    setListening(true);
+  };
+
+  return { listening, toggle, supported: voiceToTextSupported };
+}
+
 const LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const FRAME_SIZES = [2, 3, 4, 5];
 
@@ -79,7 +127,7 @@ const AFFIX_MEANINGS: Record<string, string> = {
 const BASE_PEN_COLORS = ['#1f1147', '#dc2626', '#2563eb', '#16a34a', '#f97316', '#7c3aed'];
 const BASE_HIGHLIGHT_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4'];
 
-type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame';
+type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox';
 
 interface PlacedItem {
   instanceId: string;
@@ -95,6 +143,8 @@ interface PlacedItem {
   morphId?: string; // morpheme — original MORPHEME_ROOTS/PREFIXES/SUFFIXES id, for MORPHEME_COMBOS lookup
   formulaId?: string; // sentenceFrame
   frameFills?: Record<number, string>; // sentenceFrame
+  textValue?: string; // textbox
+  fontSize?: number; // textbox
 }
 
 const pieceById = (id: string): GrammarPiece | undefined => SANDBOX_PIECES.find((p) => p.id === id);
@@ -103,6 +153,7 @@ function sizeFor(kind: PlacedKind, boxCount?: number): { w: number; h: number } 
   if (kind === 'grammar') return { w: TILE_W, h: TILE_H };
   if (kind === 'morpheme') return { w: 96, h: 64 };
   if (kind === 'frame') { const n = boxCount ?? 3; return { w: n * 44 + (n - 1) * 4, h: 44 }; }
+  if (kind === 'textbox') return { w: 160, h: 56 };
   return { w: 44, h: 44 }; // shape, letter, sentenceFrame (drag not used for the latter)
 }
 
@@ -161,7 +212,7 @@ function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, mor
     const info = MONTESSORI_WORD_CLASS_INFO[wordClass ?? 'noun'];
     return (
       <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={info.imageUrl} alt={info.label} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+        <img src={info.imageUrl} alt={info.label} draggable={false} style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
       </div>
     );
   }
@@ -312,10 +363,85 @@ function SymbolSentenceCard({ sentence, onPointerDown }: {
         boxShadow: '2px 2px 0 rgba(31,17,71,0.15)',
       }}>
         {sentence.words.map((w, i) => (
-          <img key={i} src={MONTESSORI_WORD_CLASS_INFO[w.wordClass].imageUrl} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
+          <img key={i} src={MONTESSORI_WORD_CLASS_INFO[w.wordClass].imageUrl} alt="" draggable={false} style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0, pointerEvents: 'none' }} />
         ))}
       </div>
     </Draggable>
+  );
+}
+
+// Text Box — direct teacher instruction: "add type text input fields so
+// kids can type. SST option. text fields can be double tapped to edit
+// text, moveable, resize text options." A self-contained widget (same
+// pattern as the Sentence Formula frames): dragging it moves it around
+// like any other material, double-tapping opens edit mode (a real
+// textarea, focused automatically), and while editing a student can
+// type, speak (🎤, browser speech-to-text), or grow/shrink the text
+// with A-/A+.
+function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onTextChange, onFontSizeChange, onRemove }: {
+  item: PlacedItem;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: (e: React.PointerEvent) => void;
+  onTextChange: (value: string) => void;
+  onFontSizeChange: (delta: number) => void;
+  onRemove: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fontSize = item.fontSize ?? 20;
+  const stt = useTextBoxVoiceToText((text) => onTextChange(`${item.textValue ?? ''} ${text}`.trim()));
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  if (editing) {
+    return (
+      <div className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 10, zIndex: 5, minWidth: 200 }}>
+        <textarea
+          ref={inputRef}
+          value={item.textValue ?? ''}
+          onChange={(e) => onTextChange(e.target.value)}
+          placeholder="Type here..."
+          style={{
+            width: 220, minHeight: 70, fontFamily: "'Baloo 2', sans-serif", fontSize,
+            border: '2px solid var(--ink)', borderRadius: 8, padding: 6, resize: 'both',
+          }}
+        />
+        <div className="row-wrap" style={{ gap: 4, marginTop: 6, alignItems: 'center' }}>
+          <button type="button" className="btn btn-sm" style={{ minWidth: 34, padding: '2px 8px' }} onClick={() => onFontSizeChange(-2)} aria-label="Smaller text">A-</button>
+          <button type="button" className="btn btn-sm" style={{ minWidth: 34, padding: '2px 8px' }} onClick={() => onFontSizeChange(2)} aria-label="Bigger text">A+</button>
+          {stt.supported && (
+            <button type="button" className={`btn btn-sm ${stt.listening ? 'btn-primary' : ''}`} onClick={stt.toggle}>
+              {stt.listening ? '🎙️ Listening…' : '🎤 Speak'}
+            </button>
+          )}
+          <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>Done</button>
+          <button type="button" className="btn btn-sm" onClick={onRemove} aria-label="Remove text box">🗑️</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={item.textValue?.trim() ? item.textValue : 'Empty text box, double-tap to type'}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onDoubleClick={() => setEditing(true)}
+      style={{
+        position: 'absolute', left: item.x, top: item.y, zIndex: 5,
+        touchAction: 'none', userSelect: 'none', cursor: 'grab', minWidth: 120, minHeight: 44,
+        padding: '8px 12px', border: '2px dashed var(--content-border)', borderRadius: 8, background: 'white',
+        fontFamily: "'Baloo 2', sans-serif", fontSize, whiteSpace: 'pre-wrap', maxWidth: 320,
+      }}
+    >
+      {item.textValue?.trim() ? item.textValue : <span style={{ opacity: 0.45 }}>Double-tap to type</span>}
+    </div>
   );
 }
 
@@ -364,7 +490,7 @@ export default function GrammarSandbox() {
   const drawLast = useRef<{ x: number; y: number } | null>(null);
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, frames: false, formulas: false, wordLists: false,
+    shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, frames: false, textbox: false, formulas: false, wordLists: false,
   });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [openSubcategories, setOpenSubcategories] = useState<Record<string, boolean>>({
@@ -418,6 +544,13 @@ export default function GrammarSandbox() {
 
   const setFrameFill = (instanceId: string, segIndex: number, value: string) => {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, frameFills: { ...(pp.frameFills ?? {}), [segIndex]: value } } : pp)));
+  };
+
+  const setTextBoxValue = (instanceId: string, value: string) => {
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, textValue: value } : pp)));
+  };
+  const setTextBoxFontSize = (instanceId: string, delta: number) => {
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, fontSize: Math.min(48, Math.max(12, (pp.fontSize ?? 20) + delta)) } : pp)));
   };
 
   const ownedVoices = marketplaceItems.filter((it) => it.kind === 'voice' && student.ownedVoiceIds.includes(it.id));
@@ -542,6 +675,43 @@ export default function GrammarSandbox() {
     });
   };
 
+  // A tray pointerdown and the item it spawns are two different DOM
+  // elements (the tray tile vs. the newly-created canvas tile), so
+  // relying on setPointerCapture alone to keep the drag live is
+  // unreliable (it can retarget events to the tray element, which has
+  // no move/up handler, silently freezing the new tile in place). A
+  // window-level listener sidesteps that entirely: it fires on every
+  // pointer move/up regardless of which element is nominally the
+  // event's target, so the newly spawned tile reliably tracks the
+  // cursor and lands wherever the pointer is released.
+  const bindGlobalDragTracking = (
+    spawned: { instanceId: string; x: number; y: number }[],
+    spawnAnchor: { x: number; y: number },
+    anchorSize: { w: number; h: number },
+    kind: PlacedKind,
+  ) => {
+    const offsets = new Map(spawned.map((it) => [it.instanceId, { dx: it.x - spawnAnchor.x, dy: it.y - spawnAnchor.y }]));
+    const move = (ev: PointerEvent) => {
+      const { x, y } = canvasRelative(ev.clientX, ev.clientY);
+      const anchorX = x - anchorSize.w / 2;
+      const anchorY = y - anchorSize.h / 2;
+      setPlaced((p) => p.map((pp) => {
+        const off = offsets.get(pp.instanceId);
+        return off ? { ...pp, x: anchorX + off.dx, y: anchorY + off.dy } : pp;
+      }));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      dragInstanceRef.current = null;
+      const anchorId = spawned[spawned.length - 1].instanceId;
+      if (kind === 'grammar') runSnapCheck(anchorId);
+      if (kind === 'morpheme') runMorphemeSnapCheck(anchorId);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
   const startDragNewItem = (factory: () => Omit<PlacedItem, 'x' | 'y' | 'instanceId'>) => (e: React.PointerEvent) => {
     e.preventDefault();
     pushHistory();
@@ -549,9 +719,11 @@ export default function GrammarSandbox() {
     const instanceId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const base = factory();
     const size = sizeFor(base.kind, base.boxCount);
-    setPlaced((p) => [...p, { ...base, instanceId, x: x - size.w / 2, y: y - size.h / 2 }]);
+    const item = { ...base, instanceId, x: x - size.w / 2, y: y - size.h / 2 };
+    setPlaced((p) => [...p, item]);
     dragInstanceRef.current = instanceId;
-    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, drag still works via mouse move */ }
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, window listener still tracks the drag */ }
+    bindGlobalDragTracking([item], { x: item.x, y: item.y }, size, base.kind);
   };
 
   // Symbol Sentences — drops a whole pre-made sentence's worth of plain
@@ -577,7 +749,8 @@ export default function GrammarSandbox() {
       y: topY,
     }));
     setPlaced((p) => [...p, ...newItems]);
-    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, drag still works via mouse move */ }
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, window listener still tracks the drag */ }
+    bindGlobalDragTracking(newItems, { x: startX, y: topY }, { w: totalW, h: tileW }, 'shape');
   };
 
   const startDragPlaced = (instanceId: string) => (e: React.PointerEvent) => {
@@ -910,6 +1083,18 @@ export default function GrammarSandbox() {
             </div>
           </Category>
 
+          <Category label="⌨️ Text Box" color="#c7d2fe" open={openCategories.textbox} onToggle={() => toggleCategory('textbox')}>
+            <p style={{ margin: '0 0 6px', fontSize: '0.7rem', opacity: 0.6 }}>Double-tap a text box to type, speak, or resize the text.</p>
+            <Draggable label="Add a text box" onPointerDown={startDragNewItem(() => ({ kind: 'textbox', textValue: '', fontSize: 20 }))} style={{ width: '100%' }}>
+              <div style={{
+                width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                border: '2px dashed var(--ink)', borderRadius: 8, background: 'white', fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: '0.85rem', padding: '6px 10px',
+              }}>
+                ⌨️ Add a text box
+              </div>
+            </Draggable>
+          </Category>
+
           <Category label="📐 Sentence Formulas" color="#fbcfe8" open={openCategories.formulas} onToggle={() => toggleCategory('formulas')}>
             <div className="row-wrap" style={{ gap: 4 }}>
               {FORMULA_CATEGORIES.map((c) => (
@@ -969,7 +1154,7 @@ export default function GrammarSandbox() {
             className="lm-canvas"
             style={{ position: 'relative', height: '100%', pointerEvents: drawOn ? 'none' : undefined }}
           >
-            {placed.filter((p) => p.kind !== 'sentenceFrame').map((p) => (
+            {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox').map((p) => (
               <Draggable
                 key={p.instanceId}
                 label="Placed item"
@@ -1057,6 +1242,18 @@ export default function GrammarSandbox() {
                 </div>
               );
             })}
+            {placed.filter((p) => p.kind === 'textbox').map((item) => (
+              <TextBoxWidget
+                key={item.instanceId}
+                item={item}
+                onPointerDown={startDragPlaced(item.instanceId)}
+                onPointerMove={onDragMove}
+                onPointerUp={onDragEnd}
+                onTextChange={(v) => setTextBoxValue(item.instanceId, v)}
+                onFontSizeChange={(d) => setTextBoxFontSize(item.instanceId, d)}
+                onRemove={() => removePlacedItem(item.instanceId)}
+              />
+            ))}
             {placed.length === 0 && (
               <p style={{ position: 'absolute', top: '45%', left: '50%', transform: 'translate(-50%, -50%)', margin: 0, fontWeight: 700, opacity: 0.35, textAlign: 'center', width: 320 }}>
                 Drag anything from the left onto this board!
