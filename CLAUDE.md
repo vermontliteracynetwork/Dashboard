@@ -1,11 +1,9 @@
 # Standing instructions for this repo
 
-## Deploy policy — DO NOT PUSH TO MAIN
-As of the teacher's most recent instruction, **do not push or merge to `main`** (production) until she explicitly says to again. This overrides the older "always deploy" instruction below it in this file's history — the most recent instruction always wins.
+## Deploy policy — pushing to main has resumed
+As of 2026-09-23, the teacher gave the explicit go-ahead ("i give permission. do it and merge") and everything queued on `claude/new-session-nwv821` was merged into `main` in one go. The earlier pause is lifted; back to the normal per-change habit below. (If she ever asks to pause again, that instruction overrides this one — most recent instruction always wins.)
 
-Commit and push every change to `claude/new-session-nwv821` only, as always. Do not run the fetch-main/checkout-main/merge/push-main steps. When the teacher says to resume pushing to production, merge everything queued up on `claude/new-session-nwv821` into `main` in one go (or as she directs) and resume the normal per-change merge-to-main habit from there.
-
-Merge sequence to use again once she gives the go-ahead (not now):
+Normal habit: commit and push every change to `claude/new-session-nwv821`, then merge into `main` the same way, per change:
 ```
 git push -u origin claude/new-session-nwv821
 git fetch origin main && git checkout main && git merge --ff-only origin/main \
@@ -13,7 +11,7 @@ git fetch origin main && git checkout main && git merge --ff-only origin/main \
   && git push origin main && git checkout claude/new-session-nwv821
 ```
 
-Production: https://independent-work-dashboard.vercel.app (currently NOT receiving new pushes per the policy above)
+Production: https://independent-work-dashboard.vercel.app (receiving pushes again as of 2026-09-23)
 
 ## The development plan is the bible
 `docs/DEVELOPMENT_PLAN.md` is the single living record of the whole platform: every shipped feature (game, educational, ABA/SEL, platform/other), the open backlog, and future plans. Keep it accurate and comprehensive as part of every change, not as a separate task. See `.claude/agents/claudia.md` for the full standard she reviews against, including the Intake Protocol for routing teacher feedback (praise, change requests, student-relayed ideas, half-formed ideas) into the plan so nothing goes undeveloped.
