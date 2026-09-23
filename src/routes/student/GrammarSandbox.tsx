@@ -5,7 +5,7 @@ import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
 import { SANDBOX_PIECES } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS } from '../../lib/morphemeContent';
-import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass } from '../../lib/montessoriGrammar';
+import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, PROPER_NOUNS } from '../../lib/montessoriGrammar';
 import { SYMBOL_SENTENCE_PAGES, type SymbolSentence } from '../../lib/symbolSentences';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
@@ -394,7 +394,7 @@ function SymbolSentenceCard({ sentence, onPointerDown }: {
 // textarea, focused automatically), and while editing a student can
 // type, speak (🎤, browser speech-to-text), or grow/shrink the text
 // with A-/A+.
-function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onTextChange, onFontSizeChange, onRemove }: {
+function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onTextChange, onFontSizeChange, onRemove, onActivate }: {
   item: PlacedItem;
   onPointerDown: (e: React.PointerEvent) => void;
   onPointerMove: (e: React.PointerEvent) => void;
@@ -402,6 +402,7 @@ function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onText
   onTextChange: (value: string) => void;
   onFontSizeChange: (delta: number) => void;
   onRemove: () => void;
+  onActivate: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -448,7 +449,7 @@ function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onText
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onDoubleClick={() => setEditing(true)}
+      onDoubleClick={() => { setEditing(true); onActivate(); }}
       style={{
         position: 'absolute', left: item.x, top: item.y, zIndex: 5,
         touchAction: 'none', userSelect: 'none', cursor: 'grab', minWidth: 120, minHeight: 44,
@@ -458,6 +459,65 @@ function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onText
     >
       {item.textValue?.trim() ? item.textValue : <span style={{ opacity: 0.45 }}>Double-tap to type</span>}
     </div>
+  );
+}
+
+// One Sentence Formula blank — direct teacher follow-up instructions:
+// "drop down menus need to be alphabetized and scroll feature allows
+// more to be shown. typing the start of a word also starts searching
+// for the word... SST is option for text inputs." The picker list is
+// alphabetized and scroll-capped, with its own search box that filters
+// by prefix as the student types (helps with spelling since they only
+// need the first letter or two), and the blank itself gets a 🎤
+// speech-to-text button alongside the existing dropdown, same pattern
+// as the Text Box tool.
+function FormulaBlankField({ value, onType, onPick, placeholder, color, bank, open, onToggleOpen }: {
+  value: string;
+  onType: (v: string) => void;
+  onPick: (text: string) => void;
+  placeholder: string;
+  color: string;
+  bank: { text: string }[];
+  open: boolean;
+  onToggleOpen: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const stt = useTextBoxVoiceToText((text) => onType(`${value} ${text}`.trim()));
+  const filtered = bank
+    .filter((o) => o.text.toLowerCase().startsWith(search.trim().toLowerCase()))
+    .slice()
+    .sort((a, b) => a.text.localeCompare(b.text));
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, position: 'relative' }}>
+      <input
+        value={value}
+        onChange={(e) => onType(e.target.value)}
+        placeholder={placeholder}
+        style={{ width: 92, border: `2px solid ${color}`, borderRadius: 6, padding: '4px 6px', fontSize: '0.85rem' }}
+      />
+      {stt.supported && (
+        <button type="button" className={`btn btn-sm ${stt.listening ? 'btn-primary' : ''}`} style={{ padding: '2px 6px', minHeight: 28, minWidth: 28 }} onClick={stt.toggle} aria-label="Speak this word">🎤</button>
+      )}
+      <button type="button" className="btn btn-sm" style={{ padding: '2px 6px', minHeight: 28, minWidth: 28 }} onClick={() => { setSearch(''); onToggleOpen(); }}>▾</button>
+      {open && (
+        <div className="chrome-frame" style={{ position: 'absolute', top: '110%', left: 0, zIndex: 10, padding: 6, width: 220 }}>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Type to search..."
+            autoFocus
+            style={{ width: '100%', border: '2px solid var(--content-border)', borderRadius: 6, padding: '4px 6px', fontSize: '0.78rem', marginBottom: 6, boxSizing: 'border-box' }}
+          />
+          <div className="row-wrap" style={{ gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+            {filtered.map((opt) => (
+              <button key={opt.text} className="tag-pill" style={{ cursor: 'pointer' }} onClick={() => onPick(opt.text)}>{opt.text}</button>
+            ))}
+            {bank.length > 0 && filtered.length === 0 && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>No matches</span>}
+            {bank.length === 0 && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Fill WHO first!</span>}
+          </div>
+        </div>
+      )}
+    </span>
   );
 }
 
@@ -558,6 +618,12 @@ export default function GrammarSandbox() {
   // or type" without the real cross-widget drag risk that would add.
   const [sfCategoryId, setSfCategoryId] = useState<FormulaCategory>('basic-action');
   const [openFramePicker, setOpenFramePicker] = useState<string | null>(null);
+  // Direct teacher instruction: "allow sentence formulas to be used to
+  // build paragraphs... paste into the text field... if another
+  // sentence formula is created, the paste... adding to the same text
+  // field currently active." Tracks whichever Text Box the student
+  // most recently created or opened for editing.
+  const [activeTextBoxId, setActiveTextBoxId] = useState<string | null>(null);
 
   const addSentenceFrame = (formulaId: string) => {
     const count = placed.filter((p) => p.kind === 'sentenceFrame').length;
@@ -576,6 +642,7 @@ export default function GrammarSandbox() {
     const count = placed.filter((p) => p.kind === 'textbox').length;
     const instanceId = `tb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setPlaced((p) => [...p, { instanceId, kind: 'textbox', textValue: '', fontSize: 20, x: 40, y: 20 + count * 70 }]);
+    setActiveTextBoxId(instanceId);
   };
 
   const setFrameFill = (instanceId: string, segIndex: number, value: string) => {
@@ -587,6 +654,24 @@ export default function GrammarSandbox() {
   };
   const setTextBoxFontSize = (instanceId: string, delta: number) => {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, fontSize: Math.min(48, Math.max(12, (pp.fontSize ?? 20) + delta)) } : pp)));
+  };
+
+  // Paragraph building — direct teacher instruction: "allow sentence
+  // formulas to be used to build paragraphs... paste into the text
+  // field... adding to the same text field currently active." Appends
+  // to whichever Text Box was most recently created or opened; if none
+  // exists yet (or it was deleted), starts a fresh one with this
+  // sentence as its first line.
+  const pasteSentenceToTextBox = (text: string) => {
+    const newId = `tb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setPlaced((p) => {
+      const active = activeTextBoxId ? p.find((pp) => pp.instanceId === activeTextBoxId && pp.kind === 'textbox') : undefined;
+      if (active) {
+        return p.map((pp) => (pp.instanceId === active.instanceId ? { ...pp, textValue: `${(pp.textValue ?? '').trim()} ${text}`.trim() } : pp));
+      }
+      setActiveTextBoxId(newId);
+      return [...p, { instanceId: newId, kind: 'textbox', textValue: text, fontSize: 20, x: 40, y: 20 }];
+    });
   };
 
   // Excludes voice-default — this row already has its own "Default"
@@ -771,6 +856,7 @@ export default function GrammarSandbox() {
     const size = sizeFor(base.kind, base.boxCount);
     const item = { ...base, instanceId, x: x - size.w / 2, y: y - size.h / 2 };
     setPlaced((p) => [...p, item]);
+    if (base.kind === 'textbox') setActiveTextBoxId(instanceId);
     dragInstanceRef.current = instanceId;
     try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, window listener still tracks the drag */ }
     bindGlobalDragTracking([item], { x: item.x, y: item.y }, size, base.kind);
@@ -1316,11 +1402,45 @@ export default function GrammarSandbox() {
                 const ok = bank.some((o) => o.text.toLowerCase() === typed.toLowerCase());
                 return { label: SLOT_LABELS[seg.slot], typed, ok, suggestions: bank.slice(0, 4).map((o) => o.text) };
               }).filter((r): r is { label: string; typed: string; ok: boolean; suggestions: string[] } => r !== null) : [];
-              const allOk = checkResults.every((r) => r.ok);
-              const checkSpeech = checkResults.length === 0 ? '' : [
+              // Capitalization check — direct follow-up instruction:
+              // "sentence formulas must check and prompt
+              // capitalization." Two honest, well-established rules
+              // (not a general grammar judgment): the sentence's own
+              // first fillable word must start with a capital letter,
+              // and "I" is always capitalized wherever it appears.
+              const capIssues: string[] = [];
+              if (isComplete) {
+                if (formula.segments[0]?.kind === 'slot') {
+                  const first = (fills[0] ?? '').trim();
+                  if (first && first[0] !== first[0].toUpperCase()) {
+                    capIssues.push('Start your sentence with a capital letter.');
+                  }
+                }
+                formula.segments.forEach((seg, i) => {
+                  if (seg.kind === 'slot' && (fills[i] ?? '').trim() === 'i') {
+                    capIssues.push('The word "I" is always capitalized, even in the middle of a sentence.');
+                  }
+                });
+                if (whoIdx >= 0) {
+                  const whoTyped = (fills[whoIdx] ?? '').trim();
+                  const properMatch = PROPER_NOUNS.find((p) => p.text.toLowerCase() === whoTyped.toLowerCase());
+                  if (properMatch && whoTyped && whoTyped !== properMatch.text) {
+                    capIssues.push(`"${whoTyped}" names a person, so it should be written "${properMatch.text}" with a capital letter.`);
+                  }
+                }
+              }
+              const wordIssues = checkResults.filter((r) => !r.ok);
+              const hasCheck = checkResults.length > 0 || capIssues.length > 0;
+              const allOk = wordIssues.length === 0 && capIssues.length === 0;
+              const checkSpeech = !hasCheck ? '' : [
                 allOk ? 'This sentence looks correct!' : 'Here is a check for your sentence.',
-                ...checkResults.filter((r) => !r.ok).map((r) => `For ${r.label}, you wrote ${r.typed}. Words that usually fit here are ${r.suggestions.join(', ')}.`),
+                ...wordIssues.map((r) => `For ${r.label}, you wrote ${r.typed}. Words that usually fit here are ${r.suggestions.join(', ')}.`),
+                ...capIssues,
               ].join(' ');
+              // Direct teacher instruction: "when a correct sentence is
+              // made using formulas, it should appear in a text field
+              // (completed sentence with punctuation, capitalization)."
+              const displaySentenceText = sentenceText ? sentenceText.charAt(0).toUpperCase() + sentenceText.slice(1) : sentenceText;
               return (
                 <div key={item.instanceId} className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 12, maxWidth: 640, zIndex: 4 }}>
                   <div className="space-between" style={{ marginBottom: 8, alignItems: 'center' }}>
@@ -1336,39 +1456,43 @@ export default function GrammarSandbox() {
                       const bank = seg.slot === 'action' ? actionWordsFor(whoVerbForm, seg.verbFormOverride) : wordBankFor(seg.slot, 'general', whoVerbForm);
                       const pickerKey = `${item.instanceId}:${i}`;
                       return (
-                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, position: 'relative' }}>
-                          <input
-                            value={fills[i] ?? ''}
-                            onChange={(e) => setFrameFill(item.instanceId, i, e.target.value)}
-                            placeholder={SLOT_LABELS[seg.slot]}
-                            style={{ width: 92, border: `2px solid ${color}`, borderRadius: 6, padding: '4px 6px', fontSize: '0.85rem' }}
-                          />
-                          <button className="btn btn-sm" style={{ padding: '2px 6px', minHeight: 28, minWidth: 28 }} onClick={() => setOpenFramePicker((v) => (v === pickerKey ? null : pickerKey))}>▾</button>
-                          {openFramePicker === pickerKey && (
-                            <div className="chrome-frame row-wrap" style={{ position: 'absolute', top: '110%', left: 0, zIndex: 10, padding: 6, gap: 4, width: 220 }}>
-                              {bank.map((opt) => (
-                                <button key={opt.text} className="tag-pill" style={{ cursor: 'pointer' }} onClick={() => { setFrameFill(item.instanceId, i, opt.text); setOpenFramePicker(null); }}>{opt.text}</button>
-                              ))}
-                              {bank.length === 0 && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Fill WHO first!</span>}
-                            </div>
-                          )}
-                        </span>
+                        <FormulaBlankField
+                          key={i}
+                          value={fills[i] ?? ''}
+                          onType={(v) => setFrameFill(item.instanceId, i, v)}
+                          onPick={(text) => { setFrameFill(item.instanceId, i, text); setOpenFramePicker(null); }}
+                          placeholder={SLOT_LABELS[seg.slot]}
+                          color={color}
+                          bank={bank}
+                          open={openFramePicker === pickerKey}
+                          onToggleOpen={() => setOpenFramePicker((v) => (v === pickerKey ? null : pickerKey))}
+                        />
                       );
                     })}
                   </div>
                   {isComplete && (
-                    <div className="row-wrap" style={{ gap: 6, marginTop: 10, alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.6 }}>🔈 Read it as:</span>
-                      <button className="btn btn-sm" onClick={() => speak(sentenceText, student.ttsSettings, null)}>Default</button>
-                      {ownedVoices.map((v) => (
-                        <button key={v.id} className="btn btn-sm" onClick={() => speak(sentenceText, student.ttsSettings, v.id)}>{v.name}</button>
-                      ))}
+                    <div style={{ marginTop: 10 }}>
+                      <input
+                        readOnly
+                        value={displaySentenceText}
+                        aria-label="Completed sentence"
+                        style={{ width: '100%', boxSizing: 'border-box', fontWeight: 700, fontFamily: "'Baloo 2', sans-serif", fontSize: '0.9rem', border: '2px solid var(--ink)', borderRadius: 6, padding: '6px 8px', background: 'white' }}
+                      />
+                      <div className="row-wrap" style={{ gap: 6, marginTop: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.6 }}>🔈 Read it as:</span>
+                        <button className="btn btn-sm" onClick={() => speak(sentenceText, student.ttsSettings, null)}>Default</button>
+                        {ownedVoices.map((v) => (
+                          <button key={v.id} className="btn btn-sm" onClick={() => speak(sentenceText, student.ttsSettings, v.id)}>{v.name}</button>
+                        ))}
+                        <button className="btn btn-sm" onClick={() => pasteSentenceToTextBox(displaySentenceText)} title="Add this sentence to your paragraph text box">📋 Add to paragraph</button>
+                      </div>
                     </div>
                   )}
-                  {/* Grammar check — direct teacher instruction, calm
-                      SEL framing (never "wrong", just what to check),
-                      always has a 🔈 to hear the notice either way. */}
-                  {checkResults.length > 0 && (
+                  {/* Grammar + capitalization check — direct teacher
+                      instruction, calm SEL framing (never "wrong",
+                      just what to check), always has a 🔈 to hear the
+                      notice either way. */}
+                  {hasCheck && (
                     <div className="chrome-frame" style={{ marginTop: 10, padding: 8, fontSize: '0.75rem', background: allOk ? '#f0fdf4' : '#fffbeb' }}>
                       <div className="space-between" style={{ alignItems: 'center', marginBottom: allOk ? 0 : 4 }}>
                         <strong>{allOk ? '✅ Looks correct!' : '💡 A few things to check'}</strong>
@@ -1376,10 +1500,13 @@ export default function GrammarSandbox() {
                       </div>
                       {!allOk && (
                         <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {checkResults.filter((r) => !r.ok).map((r, i) => (
-                            <li key={i}>
+                          {wordIssues.map((r, i) => (
+                            <li key={`w${i}`}>
                               <strong>{r.label}:</strong> "{r.typed}" — words that usually fit here: {r.suggestions.join(', ')}
                             </li>
+                          ))}
+                          {capIssues.map((msg, i) => (
+                            <li key={`c${i}`}>{msg}</li>
                           ))}
                         </ul>
                       )}
@@ -1398,6 +1525,7 @@ export default function GrammarSandbox() {
                 onTextChange={(v) => setTextBoxValue(item.instanceId, v)}
                 onFontSizeChange={(d) => setTextBoxFontSize(item.instanceId, d)}
                 onRemove={() => removePlacedItem(item.instanceId)}
+                onActivate={() => setActiveTextBoxId(item.instanceId)}
               />
             ))}
             {placed.length === 0 && (

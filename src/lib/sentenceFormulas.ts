@@ -260,11 +260,20 @@ export const WHAT_WORDS: FormulaWordOption[] = [
   blendsOpt('a sled'), blendsOpt('a crab'), blendsOpt('a flag'), blendsOpt('a drum'), blendsOpt('a stamp'),
 ];
 
+// Direct teacher report: "where did it happen sentences needs
+// prepositions between action and where" ("Ms. Kayden plays home."
+// isn't a real sentence). WHERE now bakes in each location's own
+// natural preposition (at home, in the kitchen, under the tree...)
+// rather than a single fixed preposition in the formula itself, since
+// the right preposition genuinely varies by location and a blanket
+// one would double up on entries that already carry their own (under
+// the tree). "outside" stays bare — it's already a plain adverb of
+// place, "plays outside" is correct as-is.
 export const WHERE_WORDS: FormulaWordOption[] = [
-  g('home'), g('school'), g('the park'), g('the store'), g('outside'), g('the kitchen'), g('the yard'), g('under the tree'),
-  cvcOpt('the tub'), cvcOpt('the hut'), cvcOpt('the den'),
-  vceOpt('the lake'), vceOpt('the cave'),
-  blendsOpt('the pond'), blendsOpt('the swamp'),
+  g('at home'), g('at school'), g('at the park'), g('at the store'), g('outside'), g('in the kitchen'), g('in the yard'), g('under the tree'),
+  cvcOpt('in the tub'), cvcOpt('in the hut'), cvcOpt('in the den'),
+  vceOpt('at the lake'), vceOpt('in the cave'),
+  blendsOpt('at the pond'), blendsOpt('in the swamp'),
 ];
 
 // WHEN/FREQUENCY — general-tier only, see header comment.

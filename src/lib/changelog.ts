@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-23-lm-paragraphs',
+    date: '2026-09-23',
+    icon: '📋',
+    title: 'Build paragraphs with Sentence Formulas',
+    body: 'Finish a Sentence Formula and it now shows your full sentence in a box, capitalized and ready. Tap "Add to paragraph" to send it to a text box, and keep adding more sentences to build a whole paragraph. The check now looks at capital letters too. Word lists in the dropdowns are in ABC order now, scroll to see more, and you can type the start of a word to find it fast. Dropdowns and text boxes both have a microphone button to talk instead of typing.',
+  },
+  {
     id: '2026-09-23-lm-grammar-check-more',
     date: '2026-09-23',
     icon: '✅',
