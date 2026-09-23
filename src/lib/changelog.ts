@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-23-lm-tense-symbols',
+    date: '2026-09-23',
+    icon: '🔺',
+    title: 'Bigger symbols, sentence settings, and hover hints',
+    body: 'Grammar Symbols are twice as big now. Hover or tap and hold on a symbol to see its name and what it means. Sentence Formulas have two new buttons next to the X: a gear for settings (change your sentence to past, present, or future, and your words update to match) and a copy button to duplicate a formula with all your words still in it.',
+  },
+  {
     id: '2026-09-23-lm-paragraphs',
     date: '2026-09-23',
     icon: '📋',

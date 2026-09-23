@@ -330,6 +330,68 @@ export function actionWordsFor(whoVerbForm: 'singular' | 'plural' | null, overri
   return SANDBOX_VERBS.filter((v) => v.number === form).map((v) => ({ text: v.text }));
 }
 
+// Tense — direct teacher instruction: a per-formula settings option to
+// "change the tenses (past, present, future... aligning all words in
+// the dropdowns to be in the same tense and adjusting any words
+// currently within the frame to be the selected tense)." Real,
+// ordinary English past-tense forms (regular -ed and the handful of
+// irregulars in this fixed 10-verb pool) — not a specialized curriculum
+// needing outside verification. Future is the standard "will + base"
+// construction, which needs no separate word forms.
+export type FormulaTense = 'past' | 'present' | 'future';
+
+export const VERB_PAST_FORMS: Record<string, string> = {
+  run: 'ran', play: 'played', sleep: 'slept', kick: 'kicked', eat: 'ate',
+  work: 'worked', arrive: 'arrived', teleport: 'teleported', wiggle: 'wiggled', pounce: 'pounced',
+};
+
+const PAST_TO_BASE: Record<string, string> = Object.fromEntries(Object.entries(VERB_PAST_FORMS).map(([base, past]) => [past, base]));
+
+export function actionWordsForTense(whoVerbForm: 'singular' | 'plural' | null, override: 'base' | undefined, tense: FormulaTense): { text: string }[] {
+  if (tense === 'present') return actionWordsFor(whoVerbForm, override);
+  const baseForms = SANDBOX_VERBS.filter((v) => v.number === 'plural');
+  if (tense === 'past') return baseForms.map((v) => ({ text: VERB_PAST_FORMS[v.text] ?? v.text }));
+  return baseForms.map((v) => ({ text: `will ${v.text}` }));
+}
+
+// Recognizes any tense-form of one of the fixed action verbs (present
+// singular/plural, past, or "will "+base) and returns its base/plural
+// form, e.g. "ran" -> "run", "plays" -> "play", "will sleep" -> "sleep".
+// Returns null for anything else (a student's own free-typed word is
+// left alone, never overwritten).
+export function baseVerbFor(text: string): string | null {
+  const t = text.trim().toLowerCase().replace(/^will\s+/, '');
+  if (PAST_TO_BASE[t]) return PAST_TO_BASE[t];
+  const found = SANDBOX_VERBS.find((v) => v.text.toLowerCase() === t);
+  if (!found) return null;
+  const baseId = found.id.replace(/-sg$|-pl$/, '');
+  return SANDBOX_VERBS.find((v) => v.id === `${baseId}-pl`)?.text ?? null;
+}
+
+// Re-conjugates a base verb into the given tense (present respects
+// subject-number agreement and the base-form override for commands).
+export function conjugateForTense(base: string, tense: FormulaTense, whoVerbForm: 'singular' | 'plural' | null, override?: 'base'): string {
+  if (tense === 'past') return VERB_PAST_FORMS[base] ?? base;
+  if (tense === 'future') return `will ${base}`;
+  if (override === 'base') return base;
+  const baseEntry = SANDBOX_VERBS.find((v) => v.number === 'plural' && v.text === base);
+  if (!baseEntry) return base;
+  if ((whoVerbForm ?? 'plural') !== 'singular') return baseEntry.text;
+  const baseId = baseEntry.id.replace(/-pl$/, '');
+  return SANDBOX_VERBS.find((v) => v.id === `${baseId}-sg`)?.text ?? base;
+}
+
+// Converts an already-filled action word to a new tense in one call —
+// used when the student changes a placed formula's tense setting so
+// its existing words update instead of staying stuck in the old tense.
+export function retenseActionWord(currentText: string, tense: FormulaTense, whoVerbForm: 'singular' | 'plural' | null, override?: 'base'): string {
+  const base = baseVerbFor(currentText);
+  if (!base) return currentText;
+  return conjugateForTense(base, tense, whoVerbForm, override);
+}
+
+export const TENSE_LABELS: Record<FormulaTense, string> = { past: 'Past', present: 'Present', future: 'Future' };
+
 // Slot type -> Montessori shape/color, built on the existing palette
 // (no new colors invented) so the same badge means the same thing here
 // and in the Sentence Builder / Word Matrix tools, per Claudia's

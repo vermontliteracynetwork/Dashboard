@@ -30,7 +30,8 @@ export type PuzzleShape = 'triangle-lg' | 'triangle-sm' | 'triangle-md' | 'circl
 export interface WordClassInfo {
   shape: PuzzleShape;
   color: string;
-  label: string;
+  name: string; // proper part-of-speech name, e.g. "Noun" — shown on hover
+  label: string; // plain-language definition, e.g. "person, place, or thing"
   // Real symbol artwork the teacher designed and uploaded
   // (public/literacy/grammar-symbols/) — each shape has its own small
   // icon baked in (a tapping hand for noun, a running figure for verb,
@@ -42,15 +43,15 @@ export interface WordClassInfo {
 // Real Montessori shape/color convention — colors/artwork sourced
 // directly from the teacher's own designed symbol files.
 export const MONTESSORI_WORD_CLASS_INFO: Record<MontessoriWordClass, WordClassInfo> = {
-  noun: { shape: 'triangle-lg', color: '#000000', label: 'Naming word', imageUrl: '/literacy/grammar-symbols/noun.png' },
-  article: { shape: 'triangle-sm', color: '#5ce1e6', label: 'A / An / The', imageUrl: '/literacy/grammar-symbols/article.png' },
-  adjective: { shape: 'triangle-md', color: '#004aad', label: 'Describes the naming word', imageUrl: '/literacy/grammar-symbols/adjective.png' },
-  verb: { shape: 'circle-lg', color: '#fd4636', label: 'Action word', imageUrl: '/literacy/grammar-symbols/verb.png' },
-  preposition: { shape: 'crescent', color: '#7ed957', label: 'Where/when it relates', imageUrl: '/literacy/grammar-symbols/preposition.png' },
-  adverb: { shape: 'circle-sm', color: '#ffbd59', label: 'Describes the action', imageUrl: '/literacy/grammar-symbols/adverb.png' },
-  pronoun: { shape: 'triangle-lg', color: '#8c52ff', label: 'Stands in for a naming word', imageUrl: '/literacy/grammar-symbols/pronoun.png' },
-  conjunction: { shape: 'rectangle', color: '#ff66c4', label: 'Joins words or ideas', imageUrl: '/literacy/grammar-symbols/conjunction.png' },
-  interjection: { shape: 'cone', color: '#dcb96b', label: 'A feeling, said out loud!', imageUrl: '/literacy/grammar-symbols/interjection.png' },
+  noun: { shape: 'triangle-lg', color: '#000000', name: 'Noun', label: 'Person, place, thing, or animal (something you can touch)', imageUrl: '/literacy/grammar-symbols/noun.png' },
+  article: { shape: 'triangle-sm', color: '#5ce1e6', name: 'Article', label: 'Refers to nouns (a, an, the)', imageUrl: '/literacy/grammar-symbols/article.png' },
+  adjective: { shape: 'triangle-md', color: '#004aad', name: 'Adjective', label: 'Describes nouns (details for things you can touch)', imageUrl: '/literacy/grammar-symbols/adjective.png' },
+  verb: { shape: 'circle-lg', color: '#fd4636', name: 'Verb', label: 'Action word', imageUrl: '/literacy/grammar-symbols/verb.png' },
+  preposition: { shape: 'crescent', color: '#7ed957', name: 'Preposition', label: 'Identifies time, place, or direction', imageUrl: '/literacy/grammar-symbols/preposition.png' },
+  adverb: { shape: 'circle-sm', color: '#ffbd59', name: 'Adverb', label: 'Describes verbs (details for things you can do)', imageUrl: '/literacy/grammar-symbols/adverb.png' },
+  pronoun: { shape: 'triangle-lg', color: '#8c52ff', name: 'Pronoun', label: 'Replaces a noun', imageUrl: '/literacy/grammar-symbols/pronoun.png' },
+  conjunction: { shape: 'rectangle', color: '#ff66c4', name: 'Conjunction', label: 'Connecting words', imageUrl: '/literacy/grammar-symbols/conjunction.png' },
+  interjection: { shape: 'cone', color: '#dcb96b', name: 'Interjection', label: 'Something you shout; interrupting words or phrases', imageUrl: '/literacy/grammar-symbols/interjection.png' },
 };
 
 export interface WordOption {

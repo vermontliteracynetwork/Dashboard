@@ -9,7 +9,8 @@ import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, PROPER_NOUNS } fr
 import { SYMBOL_SENTENCE_PAGES, type SymbolSentence } from '../../lib/symbolSentences';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
-  wordBankFor, actionWordsFor, auxWordFor, type FormulaCategory,
+  wordBankFor, actionWordsForTense, auxWordFor, retenseActionWord, TENSE_LABELS,
+  type FormulaCategory, type FormulaTense,
 } from '../../lib/sentenceFormulas';
 import { CONSONANTS, VOWELS, CONSONANT_CATEGORY_LABELS, VOWEL_CATEGORY_LABELS } from '../../lib/soundWallData';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS } from '../../types';
@@ -160,6 +161,7 @@ interface PlacedItem {
   morphId?: string; // morpheme — original MORPHEME_ROOTS/PREFIXES/SUFFIXES id, for MORPHEME_COMBOS lookup
   formulaId?: string; // sentenceFrame
   frameFills?: Record<number, string>; // sentenceFrame
+  tense?: FormulaTense; // sentenceFrame
   textValue?: string; // textbox
   fontSize?: number; // textbox
 }
@@ -171,7 +173,8 @@ function sizeFor(kind: PlacedKind, boxCount?: number): { w: number; h: number } 
   if (kind === 'morpheme') return { w: 96, h: 64 };
   if (kind === 'frame') { const n = boxCount ?? 3; return { w: n * 44 + (n - 1) * 4, h: 44 }; }
   if (kind === 'textbox') return { w: 160, h: 56 };
-  return { w: 44, h: 44 }; // shape, letter, sentenceFrame (drag not used for the latter)
+  if (kind === 'shape') return { w: 96, h: 96 };
+  return { w: 44, h: 44 }; // letter, sentenceFrame (drag not used for the latter)
 }
 
 // Jigsaw-piece morpheme silhouette — direct teacher follow-up
@@ -225,10 +228,20 @@ function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, mor
     );
   }
   if (kind === 'shape') {
+    // Direct teacher instruction: "the current grammar symbols need to
+    // be 2x the size on default" — doubled from 48/40 to 96/80,
+    // everywhere this renders (tray and canvas share this component).
+    // Also direct teacher instruction: hovering a symbol shows its name
+    // and a simple definition (matching her reference "Parts of Speech"
+    // sheet), pure-CSS hover/focus so it works everywhere this renders.
     const info = MONTESSORI_WORD_CLASS_INFO[wordClass ?? 'noun'];
     return (
-      <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={info.imageUrl} alt={info.label} draggable={false} style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
+      <div className="lm-symbol-tip-wrap" tabIndex={-1} style={{ width: 96, height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img src={info.imageUrl} alt={info.label} draggable={false} style={{ width: 80, height: 80, objectFit: 'contain', pointerEvents: 'none' }} />
+        <div className="lm-symbol-tip" role="tooltip">
+          <strong>{info.name}</strong>
+          {info.label}
+        </div>
       </div>
     );
   }
@@ -618,6 +631,12 @@ export default function GrammarSandbox() {
   // or type" without the real cross-widget drag risk that would add.
   const [sfCategoryId, setSfCategoryId] = useState<FormulaCategory>('basic-action');
   const [openFramePicker, setOpenFramePicker] = useState<string | null>(null);
+  // Direct teacher instruction: "to the left of the x, i want a settings
+  // button for sentence formulas. the setting will change... the tenses
+  // (past, present, future...) and adjusting any words currently within
+  // the frame to be the selected tense." Tracks which formula's settings
+  // popup is open, same pattern as openFramePicker.
+  const [openFormulaSettings, setOpenFormulaSettings] = useState<string | null>(null);
   // Direct teacher instruction: "allow sentence formulas to be used to
   // build paragraphs... paste into the text field... if another
   // sentence formula is created, the paste... adding to the same text
@@ -647,6 +666,44 @@ export default function GrammarSandbox() {
 
   const setFrameFill = (instanceId: string, segIndex: number, value: string) => {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, frameFills: { ...(pp.frameFills ?? {}), [segIndex]: value } } : pp)));
+  };
+
+  // Direct teacher instruction: changing a formula's tense setting must
+  // adjust "any words currently within the frame" — re-tenses every
+  // already-filled 'action' blank using the same reversible base-form
+  // lookup the word bank itself uses (retenseActionWord), so this is
+  // never a fabricated grammar judgment, just re-conjugating the same
+  // fixed verb pool.
+  const setFormulaTense = (instanceId: string, tense: FormulaTense) => {
+    setPlaced((p) => p.map((pp) => {
+      if (pp.instanceId !== instanceId || pp.kind !== 'sentenceFrame') return pp;
+      const formula = SENTENCE_FORMULAS.find((f) => f.id === pp.formulaId);
+      if (!formula) return { ...pp, tense };
+      const fills = pp.frameFills ?? {};
+      const whoIdx = formula.segments.findIndex((s) => s.kind === 'slot' && s.slot === 'who');
+      const whoText = whoIdx >= 0 ? fills[whoIdx] : undefined;
+      const whoVerbForm: 'singular' | 'plural' | null = whoText ? (WHO_WORDS.find((w) => w.text === whoText)?.verbForm ?? 'singular') : null;
+      const newFills = { ...fills };
+      formula.segments.forEach((seg, i) => {
+        if (seg.kind === 'slot' && seg.slot === 'action' && newFills[i]) {
+          newFills[i] = retenseActionWord(newFills[i], tense, whoVerbForm, seg.verbFormOverride);
+        }
+      });
+      return { ...pp, tense, frameFills: newFills };
+    }));
+  };
+
+  // Direct teacher instruction: "students should also be able to
+  // duplicate formulas on their whiteboards, saving the words within
+  // them." A shallow clone with a fresh instanceId, offset so it doesn't
+  // sit exactly on top of the original.
+  const duplicateFormula = (instanceId: string) => {
+    setPlaced((p) => {
+      const orig = p.find((pp) => pp.instanceId === instanceId);
+      if (!orig || orig.kind !== 'sentenceFrame') return p;
+      const newId = `sf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      return [...p, { ...orig, instanceId: newId, x: orig.x + 24, y: orig.y + 24, frameFills: { ...(orig.frameFills ?? {}) } }];
+    });
   };
 
   const setTextBoxValue = (instanceId: string, value: string) => {
@@ -872,7 +929,7 @@ export default function GrammarSandbox() {
     pushHistory();
     const { x, y } = canvasRelative(e.clientX, e.clientY);
     const gap = 8;
-    const tileW = 48;
+    const tileW = 96; // matches the doubled default Grammar Symbols size
     const n = sentence.words.length;
     const totalW = n * tileW + (n - 1) * gap;
     const startX = x - totalW / 2;
@@ -1376,6 +1433,7 @@ export default function GrammarSandbox() {
               const formula = SENTENCE_FORMULAS.find((f) => f.id === item.formulaId);
               if (!formula) return null;
               const fills = item.frameFills ?? {};
+              const tense: FormulaTense = item.tense ?? 'present';
               const whoIdx = formula.segments.findIndex((s) => s.kind === 'slot' && s.slot === 'who');
               const whoText = whoIdx >= 0 ? fills[whoIdx] : undefined;
               const whoVerbForm: 'singular' | 'plural' | null = whoText ? (WHO_WORDS.find((w) => w.text === whoText)?.verbForm ?? 'singular') : null;
@@ -1398,7 +1456,7 @@ export default function GrammarSandbox() {
                 if (seg.kind !== 'slot') return null;
                 const typed = (fills[i] ?? '').trim();
                 if (!typed) return null;
-                const bank = seg.slot === 'action' ? actionWordsFor(whoVerbForm, seg.verbFormOverride) : wordBankFor(seg.slot, 'general', whoVerbForm);
+                const bank = seg.slot === 'action' ? actionWordsForTense(whoVerbForm, seg.verbFormOverride, tense) : wordBankFor(seg.slot, 'general', whoVerbForm);
                 const ok = bank.some((o) => o.text.toLowerCase() === typed.toLowerCase());
                 return { label: SLOT_LABELS[seg.slot], typed, ok, suggestions: bank.slice(0, 4).map((o) => o.text) };
               }).filter((r): r is { label: string; typed: string; ok: boolean; suggestions: string[] } => r !== null) : [];
@@ -1445,7 +1503,55 @@ export default function GrammarSandbox() {
                 <div key={item.instanceId} className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 12, maxWidth: 640, zIndex: 4 }}>
                   <div className="space-between" style={{ marginBottom: 8, alignItems: 'center' }}>
                     <strong style={{ fontSize: '0.85rem' }}>{formula.name}</strong>
-                    <button className="btn btn-sm" onClick={() => removePlacedItem(item.instanceId)}>✕</button>
+                    {/* Direct teacher instruction: settings (tense) and
+                        duplicate buttons to the left of the x, "all three
+                        buttons... small, but the same size. slighly
+                        smaller than the current x button." */}
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', position: 'relative' }}>
+                      <button
+                        className="btn btn-sm"
+                        style={{ width: 30, height: 30, minHeight: 30, minWidth: 30, padding: 0, fontSize: '0.85rem' }}
+                        onClick={() => setOpenFormulaSettings((v) => (v === item.instanceId ? null : item.instanceId))}
+                        aria-label="Sentence Formula settings"
+                        title="Settings"
+                      >
+                        ⚙️
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        style={{ width: 30, height: 30, minHeight: 30, minWidth: 30, padding: 0, fontSize: '0.85rem' }}
+                        onClick={() => duplicateFormula(item.instanceId)}
+                        aria-label="Duplicate this Sentence Formula"
+                        title="Duplicate"
+                      >
+                        ⧉
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        style={{ width: 30, height: 30, minHeight: 30, minWidth: 30, padding: 0, fontSize: '0.85rem' }}
+                        onClick={() => removePlacedItem(item.instanceId)}
+                        aria-label="Remove this Sentence Formula"
+                      >
+                        ✕
+                      </button>
+                      {openFormulaSettings === item.instanceId && (
+                        <div className="chrome-frame" style={{ position: 'absolute', top: '110%', right: 0, zIndex: 12, padding: 8, width: 160 }}>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, marginBottom: 6, opacity: 0.7 }}>Tense</div>
+                          <div className="row-wrap" style={{ gap: 4 }}>
+                            {(Object.keys(TENSE_LABELS) as FormulaTense[]).map((t) => (
+                              <button
+                                key={t}
+                                className={`btn btn-sm ${tense === t ? 'btn-primary' : ''}`}
+                                style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+                                onClick={() => { setFormulaTense(item.instanceId, t); setOpenFormulaSettings(null); }}
+                              >
+                                {TENSE_LABELS[t]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
                     {formula.segments.map((seg, i) => {
@@ -1453,7 +1559,7 @@ export default function GrammarSandbox() {
                       if (seg.kind === 'aux') return <span key={i} style={{ fontWeight: 700, fontStyle: 'italic', opacity: 0.75 }}>{auxWordFor(seg.auxType, whoText, WHO_WORDS)}</span>;
                       const montClass = SLOT_MONTESSORI_CLASS[seg.slot];
                       const color = montClass ? MONTESSORI_WORD_CLASS_INFO[montClass].color : 'var(--content-border)';
-                      const bank = seg.slot === 'action' ? actionWordsFor(whoVerbForm, seg.verbFormOverride) : wordBankFor(seg.slot, 'general', whoVerbForm);
+                      const bank = seg.slot === 'action' ? actionWordsForTense(whoVerbForm, seg.verbFormOverride, tense) : wordBankFor(seg.slot, 'general', whoVerbForm);
                       const pickerKey = `${item.instanceId}:${i}`;
                       return (
                         <FormulaBlankField
