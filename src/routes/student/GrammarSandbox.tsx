@@ -6,6 +6,7 @@ import HelpOverlay from '../../components/HelpOverlay';
 import { SANDBOX_PIECES } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS } from '../../lib/morphemeContent';
 import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass } from '../../lib/montessoriGrammar';
+import { SYMBOL_SENTENCE_PAGES, type SymbolSentence } from '../../lib/symbolSentences';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
   wordBankFor, actionWordsFor, auxWordFor, type FormulaCategory,
@@ -294,6 +295,30 @@ function WordListRow({ word, onDragStart, onSpeak }: {
   );
 }
 
+// A Symbol Sentences tray card — direct teacher upload (a real
+// Montessori grammar-box deck: full sentences shown purely as a row of
+// colored symbols, no words). Dragging the card onto the board drops
+// its whole symbol row at once; the sentence text itself is only used
+// as the card's aria-label, never shown, matching the sandbox's
+// standing symbols-only philosophy for this material.
+function SymbolSentenceCard({ sentence, onPointerDown }: {
+  sentence: SymbolSentence; onPointerDown: (e: React.PointerEvent) => void;
+}) {
+  return (
+    <Draggable label={sentence.sentence} onPointerDown={onPointerDown} style={{ width: '100%' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', width: '100%',
+        padding: '8px 10px', border: '2px solid var(--ink)', borderRadius: 10, background: 'white',
+        boxShadow: '2px 2px 0 rgba(31,17,71,0.15)',
+      }}>
+        {sentence.words.map((w, i) => (
+          <img key={i} src={MONTESSORI_WORD_CLASS_INFO[w.wordClass].imageUrl} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
+        ))}
+      </div>
+    </Draggable>
+  );
+}
+
 export default function GrammarSandbox() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
@@ -339,10 +364,11 @@ export default function GrammarSandbox() {
   const drawLast = useRef<{ x: number; y: number } | null>(null);
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    shapes: true, morphemes: false, letters: false, graphemes: false, frames: false, formulas: false, wordLists: false,
+    shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, frames: false, formulas: false, wordLists: false,
   });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [openSubcategories, setOpenSubcategories] = useState<Record<string, boolean>>({
+    page1: false, page2: false, page3: false, page4: false, page5: false, page6: false, page7: false, page8: false, page9: false, page10: false, page11: false,
     roots: true, affixes: true, phonics: true, morphemesList: true, spelling: true,
   });
   const toggleSubcategory = (key: string) => setOpenSubcategories((s) => ({ ...s, [key]: !s[key] }));
@@ -525,6 +551,32 @@ export default function GrammarSandbox() {
     const size = sizeFor(base.kind, base.boxCount);
     setPlaced((p) => [...p, { ...base, instanceId, x: x - size.w / 2, y: y - size.h / 2 }]);
     dragInstanceRef.current = instanceId;
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, drag still works via mouse move */ }
+  };
+
+  // Symbol Sentences — drops a whole pre-made sentence's worth of plain
+  // shape symbols in one row, same spawn mechanism as any other tray
+  // material (startDragNewItem above), just placing several at once.
+  // Once on the board each symbol is an ordinary 'shape' item, freely
+  // separable and rearrangeable like any other Grammar Symbol.
+  const startDragNewSymbolSentence = (sentence: SymbolSentence) => (e: React.PointerEvent) => {
+    e.preventDefault();
+    pushHistory();
+    const { x, y } = canvasRelative(e.clientX, e.clientY);
+    const gap = 8;
+    const tileW = 48;
+    const n = sentence.words.length;
+    const totalW = n * tileW + (n - 1) * gap;
+    const startX = x - totalW / 2;
+    const topY = y - tileW / 2;
+    const newItems: PlacedItem[] = sentence.words.map((w, i) => ({
+      instanceId: `ss-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      kind: 'shape',
+      wordClass: w.wordClass,
+      x: startX + i * (tileW + gap),
+      y: topY,
+    }));
+    setPlaced((p) => [...p, ...newItems]);
     try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, drag still works via mouse move */ }
   };
 
@@ -781,6 +833,19 @@ export default function GrammarSandbox() {
                 );
               })}
             </div>
+          </Category>
+
+          <Category label="📜 Symbol Sentences" color="#ddd6fe" open={openCategories.symbolSentences} onToggle={() => toggleCategory('symbolSentences')}>
+            <p style={{ margin: '0 0 6px', fontSize: '0.7rem', opacity: 0.6 }}>Drag a whole sentence onto the board, symbols only!</p>
+            {SYMBOL_SENTENCE_PAGES.map((page) => (
+              <SubcategoryRow key={page.id} id={page.id} label={page.label} open={openSubcategories[page.id]} onToggle={() => toggleSubcategory(page.id)}>
+                <div className="stack" style={{ gap: 8 }}>
+                  {page.sentences.map((sentence) => (
+                    <SymbolSentenceCard key={sentence.id} sentence={sentence} onPointerDown={startDragNewSymbolSentence(sentence)} />
+                  ))}
+                </div>
+              </SubcategoryRow>
+            ))}
           </Category>
 
           <Category label="🧩 Morphemes" color="#bae6fd" open={openCategories.morphemes} onToggle={() => toggleCategory('morphemes')}>

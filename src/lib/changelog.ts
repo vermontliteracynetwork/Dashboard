@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-23-lm-symbol-sentences',
+    date: '2026-09-23',
+    icon: '📜',
+    title: 'New Symbol Sentences in Literacy Manipulatives',
+    body: 'Tap Symbol Sentences on the left to see ready-made sentence cards made of just symbols. Drag one onto your board and its whole row of symbols comes with it. Once it is on your board you can pull the symbols apart and move them just like any other symbol.',
+  },
+  {
     id: '2026-09-23-lm-grammar-symbols-real',
     date: '2026-09-23',
     icon: '🔺',
