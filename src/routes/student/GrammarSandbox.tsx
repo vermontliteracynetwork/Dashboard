@@ -5,7 +5,7 @@ import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
 import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS } from '../../lib/morphemeContent';
-import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, type PuzzleShape } from '../../lib/montessoriGrammar';
+import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass } from '../../lib/montessoriGrammar';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
   wordBankFor, actionWordsFor, auxWordFor, type FormulaCategory,
@@ -105,32 +105,6 @@ function sizeFor(kind: PlacedKind, boxCount?: number): { w: number; h: number } 
   return { w: 44, h: 44 }; // shape, letter, sentenceFrame (drag not used for the latter)
 }
 
-// The full 9-shape Montessori grammar-symbol set — direct teacher
-// request, real reference-sheet images. Shown here as its OWN draggable
-// material (blank shape, no word), never layered onto a word tile
-// ("the montessori grammar symbols should never be on the word tile,
-// and instead just the shapes should be available").
-function PuzzleShapeIcon({ shape, color, size = 22 }: { shape: PuzzleShape; color: string; size?: number }) {
-  const c = size / 2;
-  return (
-    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true" style={{ flexShrink: 0 }}>
-      {shape === 'triangle-lg' && <polygon points="11,1.5 20.5,20.5 1.5,20.5" fill={color} />}
-      {shape === 'triangle-md' && <polygon points="11,4 18,19 4,19" fill={color} />}
-      {shape === 'triangle-sm' && <polygon points="11,7 15.5,17.5 6.5,17.5" fill={color} />}
-      {shape === 'circle-lg' && <circle cx={c} cy={c} r={9.5} fill={color} />}
-      {shape === 'circle-sm' && <circle cx={c} cy={c} r={6} fill={color} />}
-      {shape === 'rectangle' && <rect x="2" y="7" width="18" height="8" rx="1.5" fill={color} />}
-      {shape === 'crescent' && (
-        <>
-          <circle cx={c} cy={c} r={9.5} fill={color} />
-          <circle cx={c + 6} cy={c} r={8} fill="var(--paper, #fff)" />
-        </>
-      )}
-      {shape === 'cone' && <path d="M 11 2 C 5 9, 5 15, 11 20 C 17 15, 17 9, 11 2 Z" fill={color} />}
-    </svg>
-  );
-}
-
 // Jigsaw-piece morpheme silhouette — direct teacher request, real
 // reference image. Purely decorative now (no attach validation, per the
 // "entirely unscripted" redesign): root pieces show both a tab and a
@@ -143,12 +117,16 @@ function PuzzlePiece({ text, color, textColor = '#fff', hasNotch, hasTab }: {
   const w = 96;
   const h = 64;
   const r = 9;
+  const rectY = 15;
+  const rectH = h - rectY - 3;
+  const cy = rectY + rectH / 2;
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <rect x="3" y="3" width={w - 6} height={h - 6} rx="6" fill={color} stroke="var(--ink)" strokeWidth="3" />
-      {hasTab && <circle cx={w - 3} cy={h / 2} r={r} fill={color} stroke="var(--ink)" strokeWidth="3" />}
-      {hasNotch && <circle cx="3" cy={h / 2} r={r - 1} fill="var(--paper, #fdfdfb)" stroke="var(--ink)" strokeWidth="3" />}
-      <text x={w / 2} y={h / 2 + 6} textAnchor="middle" fontFamily="'Baloo 2', sans-serif" fontWeight={800} fontSize="15" fill={textColor}>
+      <rect x="3" y={rectY} width={w - 6} height={rectH} rx="8" fill={color} stroke="var(--ink)" strokeWidth="3" />
+      <circle cx={w / 2} cy="9" r="8" fill={color} stroke="var(--ink)" strokeWidth="3" />
+      {hasTab && <circle cx={w - 3} cy={cy} r={r} fill={color} stroke="var(--ink)" strokeWidth="3" />}
+      {hasNotch && <circle cx="3" cy={cy} r={r - 1} fill="var(--paper, #fdfdfb)" stroke="var(--ink)" strokeWidth="3" />}
+      <text x={w / 2} y={cy + 6} textAnchor="middle" fontFamily="'Baloo 2', sans-serif" fontWeight={800} fontSize="14" fill={textColor}>
         {text}
       </text>
     </svg>
@@ -182,7 +160,7 @@ function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, mor
     const info = MONTESSORI_WORD_CLASS_INFO[wordClass ?? 'noun'];
     return (
       <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <PuzzleShapeIcon shape={info.shape} color={info.color} size={40} />
+        <img src={info.imageUrl} alt={info.label} style={{ width: 40, height: 40, objectFit: 'contain' }} />
       </div>
     );
   }

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-23-lm-grammar-shapes-real',
+    date: '2026-09-23',
+    icon: '🔺',
+    title: 'Real grammar shape symbols in Literacy Manipulatives',
+    body: 'The Grammar Shapes tiles now show the real symbol pictures instead of plain drawn shapes. The morpheme puzzle pieces got a new look too, with a little bump on top like a real puzzle piece.',
+  },
+  {
     id: '2026-09-22-lm-save-toolbar',
     date: '2026-09-22',
     icon: '💾',

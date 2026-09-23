@@ -31,20 +31,32 @@ export interface WordClassInfo {
   shape: PuzzleShape;
   color: string;
   label: string;
+  // Real symbol artwork the teacher uploaded (public/literacy/grammar-
+  // symbols/) — a plain flat-color shape (imageUrl, used for the
+  // Grammar Shapes tray/canvas tiles) and a friendlier decorated
+  // version with a small icon inside (iconUrl, not wired into the UI
+  // yet, kept available for a future "friendlier" toggle if she wants
+  // one). Colors below were re-measured directly from these PNGs —
+  // more accurate than the earlier hand-typed approximation, e.g. the
+  // real "article" symbol is cyan, not a second shade of blue.
+  imageUrl: string;
+  iconUrl: string;
 }
 
-// Real Montessori shape/color convention, exactly as read from her own
-// two reference sheets (Level 1 legend).
+// Real Montessori shape/color convention — colors/artwork now sourced
+// directly from the teacher's own uploaded symbol files (Level 1
+// legend), PuzzleShapeIcon's hand-drawn SVGs kept only as a fallback
+// for anywhere the real artwork isn't wired in yet.
 export const MONTESSORI_WORD_CLASS_INFO: Record<MontessoriWordClass, WordClassInfo> = {
-  noun: { shape: 'triangle-lg', color: '#1f1147', label: 'Naming word' },
-  article: { shape: 'triangle-sm', color: '#3b82f6', label: 'A / An / The' },
-  adjective: { shape: 'triangle-md', color: '#1e3a8a', label: 'Describes the naming word' },
-  verb: { shape: 'circle-lg', color: '#dc2626', label: 'Action word' },
-  preposition: { shape: 'crescent', color: '#16a34a', label: 'Where/when it relates' },
-  adverb: { shape: 'circle-sm', color: '#f97316', label: 'Describes the action' },
-  pronoun: { shape: 'triangle-lg', color: '#7c3aed', label: 'Stands in for a naming word' },
-  conjunction: { shape: 'rectangle', color: '#ec4899', label: 'Joins words or ideas' },
-  interjection: { shape: 'cone', color: '#eab308', label: 'A feeling, said out loud!' },
+  noun: { shape: 'triangle-lg', color: '#000000', label: 'Naming word', imageUrl: '/literacy/grammar-symbols/noun.png', iconUrl: '/literacy/grammar-symbols/noun-icon.png' },
+  article: { shape: 'triangle-sm', color: '#58e0e0', label: 'A / An / The', imageUrl: '/literacy/grammar-symbols/article.png', iconUrl: '/literacy/grammar-symbols/article-icon.png' },
+  adjective: { shape: 'triangle-md', color: '#0048a8', label: 'Describes the naming word', imageUrl: '/literacy/grammar-symbols/adjective.png', iconUrl: '/literacy/grammar-symbols/adjective-icon.png' },
+  verb: { shape: 'circle-lg', color: '#f84030', label: 'Action word', imageUrl: '/literacy/grammar-symbols/verb.png', iconUrl: '/literacy/grammar-symbols/verb-icon.png' },
+  preposition: { shape: 'crescent', color: '#78d850', label: 'Where/when it relates', imageUrl: '/literacy/grammar-symbols/preposition.png', iconUrl: '/literacy/grammar-symbols/preposition-icon.png' },
+  adverb: { shape: 'circle-sm', color: '#f8b858', label: 'Describes the action', imageUrl: '/literacy/grammar-symbols/adverb.png', iconUrl: '/literacy/grammar-symbols/adverb-icon.png' },
+  pronoun: { shape: 'triangle-lg', color: '#8850f8', label: 'Stands in for a naming word', imageUrl: '/literacy/grammar-symbols/pronoun.png', iconUrl: '/literacy/grammar-symbols/pronoun-icon.png' },
+  conjunction: { shape: 'rectangle', color: '#f860c0', label: 'Joins words or ideas', imageUrl: '/literacy/grammar-symbols/conjunction.png', iconUrl: '/literacy/grammar-symbols/conjunction-icon.png' },
+  interjection: { shape: 'cone', color: '#d8b868', label: 'A feeling, said out loud!', imageUrl: '/literacy/grammar-symbols/interjection.png', iconUrl: '/literacy/grammar-symbols/interjection-icon.png' },
 };
 
 export interface WordOption {
