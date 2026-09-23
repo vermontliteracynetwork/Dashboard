@@ -1897,6 +1897,12 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   border-radius: 14px;
   overflow: hidden;
   background: white;
+  /* A flex item with overflow other than visible gets an automatic
+     min-height of 0 in a column flex container, so without this the
+     browser can shrink collapsed categories down to a sliver instead of
+     letting .lm-sidebar's own overflow-y:auto scroll — the bug behind
+     collapsed category titles going invisible when the list runs long. */
+  flex-shrink: 0;
 }
 .lm-category-header {
   font-family: 'Baloo 2', sans-serif;

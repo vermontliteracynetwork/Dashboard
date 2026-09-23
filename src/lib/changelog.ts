@@ -16,11 +16,11 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
-    id: '2026-09-23-lm-grammar-shapes-real',
+    id: '2026-09-23-lm-grammar-symbols-real',
     date: '2026-09-23',
     icon: '🔺',
-    title: 'Real grammar shape symbols in Literacy Manipulatives',
-    body: 'The Grammar Shapes tiles now show the real symbol pictures instead of plain drawn shapes. The morpheme puzzle pieces got a new look too, with a little bump on top like a real puzzle piece.',
+    title: 'Real grammar symbol pictures in Literacy Manipulatives',
+    body: 'Grammar Shapes is now called Grammar Symbols, and its tiles show the real symbol pictures instead of plain drawn shapes. The morpheme puzzle pieces got a new look too, with a little bump on top like a real puzzle piece. Word Lists can now be dragged onto your board too, not just tapped to hear, and the tool list on the left scrolls properly now so you can always see every section. The Sentence Grammar section is taking a short break and will be back later.',
   },
   {
     id: '2026-09-22-lm-save-toolbar',

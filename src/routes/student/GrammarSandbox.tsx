@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
-import { SANDBOX_PIECES, SANDBOX_NOUNS, SANDBOX_VERBS } from '../../lib/grammarContent';
+import { SANDBOX_PIECES } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS } from '../../lib/morphemeContent';
 import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass } from '../../lib/montessoriGrammar';
 import {
@@ -266,6 +266,34 @@ function Category({ label, color, open, onToggle, children }: {
   );
 }
 
+// A Word Lists row — plain text, not tile-styled (direct teacher
+// instruction), but still draggable onto the board like every other
+// material. The 🔈 button is separate so a tap can still just hear the
+// word without placing a tile (its own pointerdown is stopped from
+// bubbling up so it doesn't also start a drag).
+function WordListRow({ word, onDragStart, onSpeak }: {
+  word: string; onDragStart: (e: React.PointerEvent) => void; onSpeak: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <Draggable label={word} onPointerDown={onDragStart} style={{ flex: 1, justifyContent: 'flex-start' }}>
+        <span style={{ textAlign: 'left', padding: '6px 2px', fontSize: '0.95rem', color: 'var(--ink)', minHeight: 36, display: 'flex', alignItems: 'center' }}>
+          {word}
+        </span>
+      </Draggable>
+      <button
+        type="button"
+        onClick={onSpeak}
+        onPointerDown={(e) => e.stopPropagation()}
+        aria-label={`Hear ${word}`}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 6 }}
+      >
+        🔈
+      </button>
+    </div>
+  );
+}
+
 export default function GrammarSandbox() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
@@ -311,11 +339,11 @@ export default function GrammarSandbox() {
   const drawLast = useRef<{ x: number; y: number } | null>(null);
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    grammar: true, shapes: false, morphemes: false, letters: false, graphemes: false, frames: false, formulas: false, wordLists: false,
+    shapes: true, morphemes: false, letters: false, graphemes: false, frames: false, formulas: false, wordLists: false,
   });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [openSubcategories, setOpenSubcategories] = useState<Record<string, boolean>>({
-    nouns: true, verbs: true, roots: true, affixes: true, phonics: true, morphemesList: true, spelling: true,
+    roots: true, affixes: true, phonics: true, morphemesList: true, spelling: true,
   });
   const toggleSubcategory = (key: string) => setOpenSubcategories((s) => ({ ...s, [key]: !s[key] }));
 
@@ -742,28 +770,7 @@ export default function GrammarSandbox() {
       <div className="lm-shell" style={{ flex: 1, minHeight: 0 }}>
       {sidebarOpen ? (
         <aside className="lm-sidebar">
-          <Category label="🔤 Sentence Grammar" color={GRAMMAR_WORD_CLASS_COLORS.noun} open={openCategories.grammar} onToggle={() => toggleCategory('grammar')}>
-            <SubcategoryRow id="nouns" label="Naming words" open={openSubcategories.nouns} onToggle={() => toggleSubcategory('nouns')}>
-              <div className="lm-tile-list">
-                {SANDBOX_NOUNS.map((p) => (
-                  <Draggable key={p.id} label={p.text} onPointerDown={startDragNewItem(() => ({ kind: 'grammar', pieceId: p.id }))} style={{ width: '100%' }}>
-                    <ItemVisual kind="grammar" pieceId={p.id} />
-                  </Draggable>
-                ))}
-              </div>
-            </SubcategoryRow>
-            <SubcategoryRow id="verbs" label="Action words" open={openSubcategories.verbs} onToggle={() => toggleSubcategory('verbs')}>
-              <div className="lm-tile-list">
-                {SANDBOX_VERBS.map((p) => (
-                  <Draggable key={p.id} label={p.text} onPointerDown={startDragNewItem(() => ({ kind: 'grammar', pieceId: p.id }))} style={{ width: '100%' }}>
-                    <ItemVisual kind="grammar" pieceId={p.id} />
-                  </Draggable>
-                ))}
-              </div>
-            </SubcategoryRow>
-          </Category>
-
-          <Category label="🔺 Grammar Shapes" color="#e9d5ff" open={openCategories.shapes} onToggle={() => toggleCategory('shapes')}>
+          <Category label="🔺 Grammar Symbols" color="#e9d5ff" open={openCategories.shapes} onToggle={() => toggleCategory('shapes')}>
             <div className="row-wrap" style={{ gap: 8 }}>
               {(Object.keys(MONTESSORI_WORD_CLASS_INFO) as MontessoriWordClass[]).map((cls) => {
                 const info = MONTESSORI_WORD_CLASS_INFO[cls];
@@ -855,15 +862,14 @@ export default function GrammarSandbox() {
             <Category label="📚 Word Lists" color="#fecdd3" open={openCategories.wordLists} onToggle={() => toggleCategory('wordLists')}>
               {/* Plain reference rows, deliberately not styled as tiles
                   (direct teacher instruction: "the word lists should not
-                  be in tiles") — a lookup list to tap and hear, not a
-                  draggable manipulative. */}
+                  be in tiles") — but still draggable onto the board like
+                  every other material, plus a dedicated speaker button to
+                  hear the word without placing it. */}
               {activeFocus!.phonicsPatterns.length > 0 && (
                 <SubcategoryRow id="phonics" label="Phonics patterns" open={openSubcategories.phonics} onToggle={() => toggleSubcategory('phonics')}>
                   <div className="stack" style={{ gap: 2 }}>
                     {activeFocus!.phonicsPatterns.map((w) => (
-                      <button key={`p-${w}`} type="button" onClick={() => speak(w, student.ttsSettings)} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '6px 2px', cursor: 'pointer', fontSize: '0.95rem', color: 'var(--ink)', minHeight: 36 }}>
-                        🔈 {w}
-                      </button>
+                      <WordListRow key={`p-${w}`} word={w} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} onSpeak={() => speak(w, student.ttsSettings)} />
                     ))}
                   </div>
                 </SubcategoryRow>
@@ -872,9 +878,7 @@ export default function GrammarSandbox() {
                 <SubcategoryRow id="morphemesList" label="Word parts" open={openSubcategories.morphemesList} onToggle={() => toggleSubcategory('morphemesList')}>
                   <div className="stack" style={{ gap: 2 }}>
                     {activeFocus!.morphemes.map((w) => (
-                      <button key={`m-${w}`} type="button" onClick={() => speak(w, student.ttsSettings)} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '6px 2px', cursor: 'pointer', fontSize: '0.95rem', color: 'var(--ink)', minHeight: 36 }}>
-                        🔈 {w}
-                      </button>
+                      <WordListRow key={`m-${w}`} word={w} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} onSpeak={() => speak(w, student.ttsSettings)} />
                     ))}
                   </div>
                 </SubcategoryRow>
@@ -883,9 +887,7 @@ export default function GrammarSandbox() {
                 <SubcategoryRow id="spelling" label="Spelling words" open={openSubcategories.spelling} onToggle={() => toggleSubcategory('spelling')}>
                   <div className="stack" style={{ gap: 2 }}>
                     {activeFocus!.practiceWords.map((w) => (
-                      <button key={`w-${w}`} type="button" onClick={() => speak(w, student.ttsSettings)} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '6px 2px', cursor: 'pointer', fontSize: '0.95rem', color: 'var(--ink)', minHeight: 36 }}>
-                        🔈 {w}
-                      </button>
+                      <WordListRow key={`w-${w}`} word={w} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} onSpeak={() => speak(w, student.ttsSettings)} />
                     ))}
                   </div>
                 </SubcategoryRow>
