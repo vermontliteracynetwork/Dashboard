@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-23-lm-zoom-delete',
+    date: '2026-09-23',
+    icon: '🔍',
+    title: 'Zoom and delete in Literacy Manipulatives',
+    body: 'Use the new zoom buttons at the top to make your board bigger or smaller. Every symbol, letter, and tile now has a small X on it so you can delete just that one thing. Sound Frames is now called Sound Boxes, and letters always show up in front of the boxes now. There is also a quick Text button right next to Draw.',
+  },
+  {
     id: '2026-09-23-lm-text-box',
     date: '2026-09-23',
     icon: '⌨️',

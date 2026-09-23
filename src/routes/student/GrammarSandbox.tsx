@@ -461,6 +461,15 @@ export default function GrammarSandbox() {
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Zoom — direct teacher instruction: "add zoom feature for white
+  // board." Scales the whole canvas visually (transform: scale, from
+  // the top-left); placed items keep their real, unscaled x/y, so
+  // canvasRelative() below divides pointer coordinates by zoom to stay
+  // in that same logical space regardless of the current zoom level.
+  const [zoom, setZoom] = useState(1);
+  const zoomIn = () => setZoom((z) => Math.min(2, Math.round((z + 0.25) * 100) / 100));
+  const zoomOut = () => setZoom((z) => Math.max(0.5, Math.round((z - 0.25) * 100) / 100));
+  const zoomReset = () => setZoom(1);
   // Top toolbar (Help/Exit/materials-toggle/Draw/Undo/Redo/Clear/Save) —
   // direct teacher instruction: moved off the sidebar into its own
   // collapsible bar across the top of the screen.
@@ -541,6 +550,17 @@ export default function GrammarSandbox() {
   };
 
   const removePlacedItem = (instanceId: string) => setPlaced((p) => p.filter((pp) => pp.instanceId !== instanceId));
+
+  // Quick-add from the top toolbar (direct teacher instruction: put
+  // Text Box next to Draw) — a plain click, no drag context to place
+  // from, so it just drops a fresh text box near the top-left of the
+  // board, stacking down if more than one is added this way.
+  const addTextBoxAtDefault = () => {
+    pushHistory();
+    const count = placed.filter((p) => p.kind === 'textbox').length;
+    const instanceId = `tb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setPlaced((p) => [...p, { instanceId, kind: 'textbox', textValue: '', fontSize: 20, x: 40, y: 20 + count * 70 }]);
+  };
 
   const setFrameFill = (instanceId: string, segIndex: number, value: string) => {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, frameFills: { ...(pp.frameFills ?? {}), [segIndex]: value } } : pp)));
@@ -638,7 +658,11 @@ export default function GrammarSandbox() {
   const canvasRelative = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
-    return { x: clientX - rect.left, y: clientY - rect.top };
+    // rect already reflects the current zoom (getBoundingClientRect
+    // includes CSS transforms), so dividing by zoom converts back into
+    // the canvas's own unscaled coordinate space that placed items'
+    // x/y live in.
+    return { x: (clientX - rect.left) / zoom, y: (clientY - rect.top) / zoom };
   };
 
   // Snap check — the one structural rule left: a dropped/moved grammar
@@ -961,9 +985,14 @@ export default function GrammarSandbox() {
             <button className="btn btn-sm" onClick={() => setSidebarOpen((v) => !v)} aria-label={sidebarOpen ? 'Hide materials' : 'Show materials'}>{sidebarOpen ? '⟨⟨' : '⟩⟩'}</button>
             <span className="lm-toolbar-divider" />
             <button className={`btn btn-sm ${drawOn ? 'btn-primary' : ''}`} onClick={() => setDrawOn((v) => !v)}>🖍️ Draw</button>
+            <button className="btn btn-sm" onClick={addTextBoxAtDefault}>⌨️ Text</button>
             <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
             <button className="btn btn-sm" onClick={redo} disabled={!canRedo}>↪️ Redo</button>
             <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>🗑️ Clear</button>
+            <span className="lm-toolbar-divider" />
+            <button className="btn btn-sm" onClick={zoomOut} disabled={zoom <= 0.5} aria-label="Zoom out">➖</button>
+            <button className="btn btn-sm" onClick={zoomReset} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button>
+            <button className="btn btn-sm" onClick={zoomIn} disabled={zoom >= 2} aria-label="Zoom in">➕</button>
             <span className="lm-toolbar-divider" />
             <button className="btn btn-sm" onClick={() => setShowSaveModal(true)}>💾 Save</button>
             <button className="btn btn-sm" onClick={() => setShowLoadModal(true)}>📂 My Boards</button>
@@ -1073,7 +1102,7 @@ export default function GrammarSandbox() {
             </div>
           </Category>
 
-          <Category label="🟦 Sound Frames" color="#bbf7d0" open={openCategories.frames} onToggle={() => toggleCategory('frames')}>
+          <Category label="🟦 Sound Boxes" color="#bbf7d0" open={openCategories.frames} onToggle={() => toggleCategory('frames')}>
             <div className="stack" style={{ gap: 10 }}>
               {FRAME_SIZES.map((n) => (
                 <Draggable key={n} label={`${n}-box frame`} onPointerDown={startDragNewItem(() => ({ kind: 'frame', boxCount: n }))}>
@@ -1152,21 +1181,43 @@ export default function GrammarSandbox() {
           <div
             ref={canvasRef}
             className="lm-canvas"
-            style={{ position: 'relative', height: '100%', pointerEvents: drawOn ? 'none' : undefined }}
+            style={{ position: 'relative', height: '100%', pointerEvents: drawOn ? 'none' : undefined, transform: `scale(${zoom})`, transformOrigin: '0 0' }}
           >
             {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox').map((p) => (
-              <Draggable
-                key={p.instanceId}
-                label="Placed item"
-                glowing={glowIds.has(p.instanceId)}
-                style={{ position: 'absolute', left: p.x, top: p.y }}
-                onPointerDown={startDragPlaced(p.instanceId)}
-                onPointerMove={onDragMove}
-                onPointerUp={onDragEnd}
-                onDoubleClick={p.kind === 'letter' ? () => toggleLetterCase(p.instanceId) : undefined}
-              >
-                <ItemVisual kind={p.kind} pieceId={p.pieceId} wordClass={p.wordClass} letter={p.letter} boxCount={p.boxCount} morphText={p.morphText} morphType={p.morphType} />
-              </Draggable>
+              // Sound Boxes sit behind everything else on purpose (a
+              // background a student drops letters onto, direct teacher
+              // report: letter/grapheme tiles were rendering behind the
+              // box outlines) — every other kind gets the higher z-index.
+              <div key={p.instanceId} style={{ position: 'absolute', left: p.x, top: p.y, zIndex: p.kind === 'frame' ? 1 : 2 }}>
+                <Draggable
+                  label="Placed item"
+                  glowing={glowIds.has(p.instanceId)}
+                  onPointerDown={startDragPlaced(p.instanceId)}
+                  onPointerMove={onDragMove}
+                  onPointerUp={onDragEnd}
+                  onDoubleClick={p.kind === 'letter' ? () => toggleLetterCase(p.instanceId) : undefined}
+                >
+                  <ItemVisual kind={p.kind} pieceId={p.pieceId} wordClass={p.wordClass} letter={p.letter} boxCount={p.boxCount} morphText={p.morphText} morphType={p.morphType} />
+                </Draggable>
+                {/* Delete — direct teacher instruction: "add delete
+                    feature for all things." A small always-visible badge
+                    rather than hover/long-press, since hover doesn't
+                    exist on touch and this population benefits from a
+                    predictable, always-reachable control. */}
+                <button
+                  type="button"
+                  onClick={() => removePlacedItem(p.instanceId)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-label="Remove"
+                  style={{
+                    position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%',
+                    border: '2px solid var(--ink)', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 900,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1, zIndex: 3,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
             ))}
             {/* Morpheme definitions — direct teacher instruction: only
                 appears once a piece combination is a real word, pulled
@@ -1271,6 +1322,7 @@ export default function GrammarSandbox() {
               position: 'absolute', inset: 0, width: '100%', height: '100%',
               pointerEvents: drawOn ? 'auto' : 'none',
               touchAction: 'none', cursor: drawOn ? 'crosshair' : 'default',
+              transform: `scale(${zoom})`, transformOrigin: '0 0',
             }}
             onPointerDown={drawOn ? drawStart : undefined}
             onPointerMove={drawOn ? drawMove : undefined}
