@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-24-lm-shape-settings-textfield',
+    date: '2026-09-24',
+    icon: '⚙️',
+    title: 'Grammar Symbols can get their own text field',
+    body: 'Select a Grammar Symbol on your board and a settings button shows up next to the X. Tap it and choose "Add a text field" to drop a real text box right next to the symbol, so you can write in your own word.',
+  },
+  {
     id: '2026-09-24-lm-formulas-symbol-sentences',
     date: '2026-09-24',
     icon: '🧷',

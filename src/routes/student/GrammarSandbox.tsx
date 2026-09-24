@@ -563,6 +563,10 @@ export default function GrammarSandbox() {
   // Symbol Sentences settings popup (per-word text inputs) — direct
   // follow-up instruction, same toggle pattern as openFormulaSettings.
   const [openSymbolSentenceSettings, setOpenSymbolSentenceSettings] = useState<string | null>(null);
+  // Direct follow-up instruction: "have the same setting button appear
+  // for single grammar symbols... the same text box feature should
+  // appear with single grammar symbols." Same toggle pattern again.
+  const [openShapeSettings, setOpenShapeSettings] = useState<string | null>(null);
   // Sentence Formulas joined into a paragraph chain — direct
   // instruction: "sentence formulas can be joined together (a
   // connection animation) to stack them into a paragraph form."
@@ -688,6 +692,24 @@ export default function GrammarSandbox() {
     const instanceId = `tb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setPlaced((p) => [...p, { instanceId, kind: 'textbox', textValue: '', fontSize: 20, x: 40, y: 20 + count * 70 }]);
     setActiveTextBoxId(instanceId);
+  };
+
+  // Direct follow-up instruction: "have the same setting button appear
+  // for single grammar symbols, however when settings appear, if you
+  // click to add a text field, it should appear and stay, same as
+  // adding a text box... the same text box feature should appear with
+  // single grammar symbols." Rather than a new lightweight input, this
+  // spawns a real, independent Text Box item right next to the symbol —
+  // literally the same persistent, double-tap-to-edit, resizable,
+  // STT-capable tool the sidebar's Text Box already is.
+  const addTextFieldNearShape = (shapeInstanceId: string) => {
+    const shape = placed.find((p) => p.instanceId === shapeInstanceId);
+    if (!shape) return;
+    pushHistory();
+    const instanceId = `tb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setPlaced((p) => [...p, { instanceId, kind: 'textbox', textValue: '', fontSize: 16, x: shape.x, y: shape.y + 108 }]);
+    setActiveTextBoxId(instanceId);
+    setOpenShapeSettings(null);
   };
 
   const setFrameFill = (instanceId: string, segIndex: number, value: string) => {
@@ -1516,27 +1538,62 @@ export default function GrammarSandbox() {
                 >
                   <ItemVisual kind={p.kind} pieceId={p.pieceId} wordClass={p.wordClass} letter={p.letter} boxCount={p.boxCount} morphText={p.morphText} morphType={p.morphType} />
                 </Draggable>
-                {/* Delete — direct teacher instruction: "ensure that
-                    after i drag and drop, the x is not shown on the
-                    assets on the whiteboard. only show x upon moving or
-                    selected. (click to view x on touchscreen)." Picking
-                    an item up (startDragPlaced) selects it, so the badge
-                    stays visible through the whole drag and after, until
-                    something else is selected or empty canvas is tapped. */}
+                {/* Delete (+ Settings for a single Grammar Symbol) —
+                    direct teacher instruction: "ensure that after i drag
+                    and drop, the x is not shown on the assets on the
+                    whiteboard. only show x upon moving or selected.
+                    (click to view x on touchscreen)." Picking an item up
+                    (startDragPlaced) selects it, so the badge stays
+                    visible through the whole drag and after, until
+                    something else is selected or empty canvas is tapped.
+                    Follow-up instruction: "have the same setting button
+                    appear for single grammar symbols" (matching the
+                    Symbol Sentence ⚙️/✕ pair). */}
                 {selectedId === p.instanceId && (
-                  <button
-                    type="button"
-                    onClick={() => removePlacedItem(p.instanceId)}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    aria-label="Remove"
-                    style={{
-                      position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%',
-                      border: '2px solid var(--ink)', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 900,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1, zIndex: 3,
-                    }}
-                  >
-                    ✕
-                  </button>
+                  <div style={{ position: 'absolute', top: -10, right: -10, display: 'flex', gap: 4, zIndex: 3 }}>
+                    {p.kind === 'shape' && (
+                      <button
+                        type="button"
+                        onClick={() => setOpenShapeSettings((v) => (v === p.instanceId ? null : p.instanceId))}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        aria-label="Grammar Symbol settings"
+                        title="Settings"
+                        style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--ink)', background: 'white', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                      >
+                        ⚙️
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePlacedItem(p.instanceId)}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      aria-label="Remove"
+                      style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        border: '2px solid var(--ink)', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 900,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1,
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                {/* Direct follow-up instruction: "when settings appear, if
+                    you click to add a text field, it should appear and
+                    stay, same as adding a text box... same text box
+                    feature should appear with single grammar symbols."
+                    Rather than a new lightweight widget, this spawns a
+                    real, independent Text Box item next to the symbol —
+                    the exact same persistent, double-tap-to-edit,
+                    resizable, STT-capable tool the sidebar's own Text Box
+                    already is, so "add a text field" really is "add a
+                    text box." */}
+                {p.kind === 'shape' && selectedId === p.instanceId && openShapeSettings === p.instanceId && (
+                  <div className="chrome-frame" style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 12, padding: 8, width: 170 }} onPointerDown={(e) => e.stopPropagation()}>
+                    <button type="button" className="btn btn-sm" style={{ width: '100%', fontSize: '0.75rem' }} onClick={() => addTextFieldNearShape(p.instanceId)}>
+                      ⌨️ Add a text field
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
