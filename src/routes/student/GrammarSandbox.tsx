@@ -682,6 +682,25 @@ export default function GrammarSandbox() {
     .filter((pp) => pp.instanceId !== instanceId)
     .map((pp) => (pp.joinedToId === instanceId ? { ...pp, joinedToId: undefined } : pp)));
 
+  // Direct teacher instruction: "if an object is selected and backspace
+  // or delete is clicked, delete the object." Ignored while typing
+  // anywhere (a Text Box, a Sentence Formula blank, a search box...) so
+  // Backspace still just erases a character like normal there.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      if (!selectedId) return;
+      const target = e.target as HTMLElement | null;
+      const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (typing) return;
+      e.preventDefault();
+      removePlacedItem(selectedId);
+      setSelectedId(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedId]);
+
   // Quick-add from the top toolbar (direct teacher instruction: put
   // Text Box next to Draw) — a plain click, no drag context to place
   // from, so it just drops a fresh text box near the top-left of the

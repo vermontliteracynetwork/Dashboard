@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-24-lm-keyboard-delete',
+    date: '2026-09-24',
+    icon: '⌫',
+    title: 'Delete key removes a selected item',
+    body: 'Select something on your Literacy Manipulatives board and press Backspace or Delete on your keyboard to remove it, same as tapping the X.',
+  },
+  {
     id: '2026-09-24-lm-shape-settings-textfield',
     date: '2026-09-24',
     icon: '⚙️',
