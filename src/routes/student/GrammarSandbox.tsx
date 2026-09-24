@@ -6,13 +6,12 @@ import HelpOverlay from '../../components/HelpOverlay';
 import { SANDBOX_PIECES } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS } from '../../lib/morphemeContent';
 import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, PROPER_NOUNS } from '../../lib/montessoriGrammar';
-import { SYMBOL_SENTENCE_PAGES, type SymbolSentence } from '../../lib/symbolSentences';
+import { SYMBOL_SENTENCE_PAGES, ALL_SYMBOL_SENTENCES, type SymbolSentence } from '../../lib/symbolSentences';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
   wordBankFor, actionWordsForTense, auxWordFor, retenseActionWord, TENSE_LABELS,
   type FormulaCategory, type FormulaTense,
 } from '../../lib/sentenceFormulas';
-import { CONSONANTS, VOWELS, CONSONANT_CATEGORY_LABELS, VOWEL_CATEGORY_LABELS } from '../../lib/soundWallData';
 import { GRAMMAR_WORD_CLASS_COLORS, GRAMMAR_WORD_CLASS_TEXT_COLORS } from '../../types';
 import type { GrammarPiece, SavedWhiteboard } from '../../types';
 import { todayISO } from '../../lib/dates';
@@ -102,33 +101,24 @@ function useTextBoxVoiceToText(onFinalText: (text: string) => void) {
 const LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const FRAME_SIZES = [2, 3, 4, 5];
 
-// Grapheme tiles — direct teacher request: "a set of all graphemes
-// taught in the UFLI scope." This environment's network policy blocks
-// UFLI's own published materials (same standing block logged everywhere
-// else in this project for UFLI links), so this can't claim to be
-// UFLI's verified scope-and-sequence specifically. Reuses the real,
-// ordinary grapheme data already built for the Orton-Gillingham Sound
-// Wall (soundWallData.ts) instead — every real spelling of every real
-// English consonant/vowel sound, deduped. Direct follow-up instruction:
-// "grapheme tiles should be organized into sub categories and remove
-// single graphemes/letters" — single-letter spellings (p, s, a, e...)
-// are dropped since they duplicate the Alphabet tiles, and the rest
-// are grouped by the Sound Wall's own existing sound categories
-// (Stops, Fricatives, Long vowels, Diphthongs...) rather than one flat
-// alphabetized list.
-const GRAPHEME_GROUPS: { key: string; label: string; graphemes: string[] }[] = (() => {
-  const order: string[] = [];
-  const buckets = new Map<string, Set<string>>();
-  for (const p of [...CONSONANTS, ...VOWELS]) {
-    for (const g of p.graphemes) {
-      if (g.length <= 1) continue;
-      if (!buckets.has(p.category)) { buckets.set(p.category, new Set()); order.push(p.category); }
-      buckets.get(p.category)!.add(g);
-    }
-  }
-  const labels: Record<string, string> = { ...CONSONANT_CATEGORY_LABELS, ...VOWEL_CATEGORY_LABELS };
-  return order.map((key) => ({ key, label: labels[key] ?? key, graphemes: Array.from(buckets.get(key)!).sort() }));
-})();
+// Grapheme tiles — direct teacher instruction, replacing the earlier
+// Sound-Wall-derived categories with her own hand-specified scope and
+// sequence: "sort graphemes in these categories: Consonant Structures,
+// VCe, Ending patterns, r-controlled vowels, Long Vowels and
+// Diphthongs, advanced and alternative." Content is ordinary, real
+// English spelling patterns (not a specialized/copyrighted curriculum
+// standard). A few spellings (ar, ea, ew, ue, ou, ey...) legitimately
+// appear in more than one category, since the same letters can spell
+// more than one sound depending on the word — kept exactly as she
+// listed them rather than deduplicated across categories.
+const GRAPHEME_GROUPS: { key: string; label: string; graphemes: string[] }[] = [
+  { key: 'consonant-structures', label: 'Consonant Structures', graphemes: ['sh', 'th', 'ch', 'wh', 'ph', 'ng', 'nk'] },
+  { key: 'vce', label: 'VCe', graphemes: ['a_e', 'i_e', 'o_e', 'e_e', 'u_e', '-ce', '-ge'] },
+  { key: 'ending-patterns', label: 'Ending Patterns', graphemes: ['y', 'tch', '-le', 'dge', 'ild', 'ind', 'old', 'olt', 'ost'] },
+  { key: 'r-controlled', label: 'R-Controlled Vowels', graphemes: ['ar', 'or', 'ore', 'er', 'ir', 'ur'] },
+  { key: 'long-vowels-diphthongs', label: 'Long Vowels & Diphthongs', graphemes: ['ai', 'ay', 'ee', 'ea', 'ey', 'ie', 'igh', 'oa', 'ow', 'oe', 'oo', 'ew', 'ui', 'ue', 'oi', 'oy', 'ou', 'au', 'aw', 'augh'] },
+  { key: 'advanced', label: 'Advanced & Alternative', graphemes: ['kn', 'wr', 'mb', '-ar', '-or', 'air', 'are', 'ear', 'eer', 'ei', 'eight', 'aigh', 'eu', 'ough', 'ch'] },
+];
 
 // Ordinary, well-documented affix meanings — used to compose a plain
 // definition when a morpheme piece connects to a real word (see
@@ -145,7 +135,7 @@ const AFFIX_MEANINGS: Record<string, string> = {
 const BASE_PEN_COLORS = ['#1f1147', '#dc2626', '#2563eb', '#16a34a', '#f97316', '#7c3aed'];
 const BASE_HIGHLIGHT_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4'];
 
-type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox';
+type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox' | 'symbolSentence';
 
 interface PlacedItem {
   instanceId: string;
@@ -155,15 +145,18 @@ interface PlacedItem {
   pieceId?: string; // grammar
   wordClass?: MontessoriWordClass; // shape
   letter?: string; // letter
-  boxCount?: number; // frame
+  boxCount?: number; // frame; also reused for symbolSentence's word count (sizing only)
   morphText?: string; // morpheme
   morphType?: 'root' | 'prefix' | 'suffix'; // morpheme
   morphId?: string; // morpheme — original MORPHEME_ROOTS/PREFIXES/SUFFIXES id, for MORPHEME_COMBOS lookup
   formulaId?: string; // sentenceFrame
   frameFills?: Record<number, string>; // sentenceFrame
   tense?: FormulaTense; // sentenceFrame
+  joinedToId?: string; // sentenceFrame — instanceId of the card this one is stacked directly beneath, forming a paragraph chain
   textValue?: string; // textbox
   fontSize?: number; // textbox
+  symbolSentenceId?: string; // symbolSentence — id into ALL_SYMBOL_SENTENCES
+  wordFills?: Record<number, string>; // symbolSentence — optional typed word per symbol, from its settings popup
 }
 
 const pieceById = (id: string): GrammarPiece | undefined => SANDBOX_PIECES.find((p) => p.id === id);
@@ -174,7 +167,8 @@ function sizeFor(kind: PlacedKind, boxCount?: number): { w: number; h: number } 
   if (kind === 'frame') { const n = boxCount ?? 3; return { w: n * 44 + (n - 1) * 4, h: 44 }; }
   if (kind === 'textbox') return { w: 160, h: 56 };
   if (kind === 'shape') return { w: 96, h: 96 };
-  return { w: 44, h: 44 }; // letter, sentenceFrame (drag not used for the latter)
+  if (kind === 'symbolSentence') { const n = boxCount ?? 3; return { w: n * 48 + (n - 1) * 4, h: 56 }; }
+  return { w: 44, h: 44 }; // letter, sentenceFrame
 }
 
 // Jigsaw-piece morpheme silhouette — direct teacher follow-up
@@ -208,9 +202,9 @@ function PuzzlePiece({ text, color, textColor = '#fff', hasNotch, hasTab }: {
 // the sidebar tray and the canvas, so every material looks identical in
 // both places (a real navigation-clarity fix: one visual language, not
 // a different tile style per old "mode").
-function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, morphType }: {
+function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, morphType, compact }: {
   kind: PlacedKind; pieceId?: string; wordClass?: MontessoriWordClass; letter?: string; boxCount?: number;
-  morphText?: string; morphType?: 'root' | 'prefix' | 'suffix';
+  morphText?: string; morphType?: 'root' | 'prefix' | 'suffix'; compact?: boolean;
 }) {
   if (kind === 'grammar') {
     const piece = pieceById(pieceId ?? '');
@@ -231,13 +225,20 @@ function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, mor
     // Direct teacher instruction: "the current grammar symbols need to
     // be 2x the size on default" — doubled from 48/40 to 96/80,
     // everywhere this renders (tray and canvas share this component).
+    // Follow-up instruction: "shrink the size of the grammar symbols
+    // when they are in the drop down menu, right now they take up too
+    // much space" — the `compact` prop (sidebar tray only) shrinks the
+    // listing display back down without touching the full 2x size a
+    // dragged/placed symbol actually gets on the board.
     // Also direct teacher instruction: hovering a symbol shows its name
     // and a simple definition (matching her reference "Parts of Speech"
     // sheet), pure-CSS hover/focus so it works everywhere this renders.
     const info = MONTESSORI_WORD_CLASS_INFO[wordClass ?? 'noun'];
+    const box = compact ? 48 : 96;
+    const img = compact ? 40 : 80;
     return (
-      <div className="lm-symbol-tip-wrap" tabIndex={-1} style={{ width: 96, height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={info.imageUrl} alt={info.label} draggable={false} style={{ width: 80, height: 80, objectFit: 'contain', pointerEvents: 'none' }} />
+      <div className="lm-symbol-tip-wrap" tabIndex={-1} style={{ width: box, height: box, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img src={info.imageUrl} alt={info.label} draggable={false} style={{ width: img, height: img, objectFit: 'contain', pointerEvents: 'none' }} />
         <div className="lm-symbol-tip" role="tooltip">
           <strong>{info.name}</strong>
           {info.label}
@@ -378,15 +379,18 @@ function WordListRow({ word, onDragStart, onSpeak }: {
 // A Symbol Sentences tray card — direct teacher upload (a real
 // Montessori grammar-box deck: full sentences shown purely as a row of
 // colored symbols, no words). Dragging the card onto the board drops
-// its whole symbol row at once; the sentence text itself is only used
-// as the card's aria-label, never shown, matching the sandbox's
-// standing symbols-only philosophy for this material.
+// its whole symbol row as one unit; the sentence text itself stays
+// symbols-only on the board, but direct follow-up instruction: "when
+// you highlight over a symbol sentence in the menu, it should pop up
+// with the example reference sentences saved in that original doc" —
+// hovering/focusing the tray card reveals its real sentence text,
+// reusing the same tooltip pattern the Grammar Symbol tiles already use.
 function SymbolSentenceCard({ sentence, onPointerDown }: {
   sentence: SymbolSentence; onPointerDown: (e: React.PointerEvent) => void;
 }) {
   return (
     <Draggable label={sentence.sentence} onPointerDown={onPointerDown} style={{ width: '100%' }}>
-      <div style={{
+      <div className="lm-symbol-tip-wrap" tabIndex={-1} style={{
         display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', width: '100%',
         padding: '8px 10px', border: '2px solid var(--ink)', borderRadius: 10, background: 'white',
         boxShadow: '2px 2px 0 rgba(31,17,71,0.15)',
@@ -394,6 +398,7 @@ function SymbolSentenceCard({ sentence, onPointerDown }: {
         {sentence.words.map((w, i) => (
           <img key={i} src={MONTESSORI_WORD_CLASS_INFO[w.wordClass].imageUrl} alt="" draggable={false} style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0, pointerEvents: 'none' }} />
         ))}
+        <div className="lm-symbol-tip" role="tooltip">{sentence.sentence}</div>
       </div>
     </Draggable>
   );
@@ -547,6 +552,25 @@ export default function GrammarSandbox() {
 
   const [placed, setPlaced] = useState<PlacedItem[]>([]);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
+  // Direct teacher instruction: "ensure that after i drag and drop, the
+  // x is not shown on the assets on the whiteboard. only show x upon
+  // moving or selected. (click to view x on touchscreen)." A single
+  // selected item's delete (and, for Symbol Sentences, settings) badge
+  // shows; picking up an item to drag also selects it, so the badge
+  // stays visible through the whole move, and a plain tap selects it
+  // on touch. Tapping empty canvas clears the selection.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Symbol Sentences settings popup (per-word text inputs) — direct
+  // follow-up instruction, same toggle pattern as openFormulaSettings.
+  const [openSymbolSentenceSettings, setOpenSymbolSentenceSettings] = useState<string | null>(null);
+  // Sentence Formulas joined into a paragraph chain — direct
+  // instruction: "sentence formulas can be joined together (a
+  // connection animation) to stack them into a paragraph form."
+  // formulaCardRefs holds each card's real DOM node so a join can snap
+  // to its actual measured height rather than a guessed one.
+  const formulaCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [formulaGlowIds, setFormulaGlowIds] = useState<Set<string>>(new Set());
+  const formulaGlowTimerRef = useRef<number | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -650,7 +674,9 @@ export default function GrammarSandbox() {
     setPlaced((p) => [...p, { instanceId, kind: 'sentenceFrame', formulaId, frameFills: {}, x: 40, y: 20 + count * 130 }]);
   };
 
-  const removePlacedItem = (instanceId: string) => setPlaced((p) => p.filter((pp) => pp.instanceId !== instanceId));
+  const removePlacedItem = (instanceId: string) => setPlaced((p) => p
+    .filter((pp) => pp.instanceId !== instanceId)
+    .map((pp) => (pp.joinedToId === instanceId ? { ...pp, joinedToId: undefined } : pp)));
 
   // Quick-add from the top toolbar (direct teacher instruction: put
   // Text Box next to Draw) — a plain click, no drag context to place
@@ -666,6 +692,15 @@ export default function GrammarSandbox() {
 
   const setFrameFill = (instanceId: string, segIndex: number, value: string) => {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, frameFills: { ...(pp.frameFills ?? {}), [segIndex]: value } } : pp)));
+  };
+
+  // Direct teacher instruction: "within the settings for each symbol
+  // sentence should be an option for text input fields similar to the
+  // current sentence formulas" — one typed word per symbol, shown under
+  // that symbol once filled in. Same per-index fill pattern as
+  // setFrameFill above.
+  const setSymbolSentenceWordFill = (instanceId: string, wordIndex: number, value: string) => {
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, wordFills: { ...(pp.wordFills ?? {}), [wordIndex]: value } } : pp)));
   };
 
   // Direct teacher instruction: changing a formula's tense setting must
@@ -702,7 +737,7 @@ export default function GrammarSandbox() {
       const orig = p.find((pp) => pp.instanceId === instanceId);
       if (!orig || orig.kind !== 'sentenceFrame') return p;
       const newId = `sf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      return [...p, { ...orig, instanceId: newId, x: orig.x + 24, y: orig.y + 24, frameFills: { ...(orig.frameFills ?? {}) } }];
+      return [...p, { ...orig, instanceId: newId, x: orig.x + 24, y: orig.y + 24, frameFills: { ...(orig.frameFills ?? {}) }, joinedToId: undefined }];
     });
   };
 
@@ -919,49 +954,143 @@ export default function GrammarSandbox() {
     bindGlobalDragTracking([item], { x: item.x, y: item.y }, size, base.kind);
   };
 
-  // Symbol Sentences — drops a whole pre-made sentence's worth of plain
-  // shape symbols in one row, same spawn mechanism as any other tray
-  // material (startDragNewItem above), just placing several at once.
-  // Once on the board each symbol is an ordinary 'shape' item, freely
-  // separable and rearrangeable like any other Grammar Symbol.
-  const startDragNewSymbolSentence = (sentence: SymbolSentence) => (e: React.PointerEvent) => {
-    e.preventDefault();
-    pushHistory();
-    const { x, y } = canvasRelative(e.clientX, e.clientY);
-    const gap = 8;
-    const tileW = 96; // matches the doubled default Grammar Symbols size
-    const n = sentence.words.length;
-    const totalW = n * tileW + (n - 1) * gap;
-    const startX = x - totalW / 2;
-    const topY = y - tileW / 2;
-    const newItems: PlacedItem[] = sentence.words.map((w, i) => ({
-      instanceId: `ss-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
-      kind: 'shape',
-      wordClass: w.wordClass,
-      x: startX + i * (tileW + gap),
-      y: topY,
-    }));
-    setPlaced((p) => [...p, ...newItems]);
-    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, window listener still tracks the drag */ }
-    bindGlobalDragTracking(newItems, { x: startX, y: topY }, { w: totalW, h: tileW }, 'shape');
-  };
+  // Symbol Sentences — direct follow-up instruction: "when you drag and
+  // drop symbol sentences, they should exist as a unit, with one option
+  // for 'x' to close, not individual based on word." Now spawns ONE
+  // 'symbolSentence' placed item (reusing the generic tray-spawn path
+  // every other material uses) instead of N separate 'shape' items —
+  // the whole row moves, selects, and deletes together. Its own real
+  // words stay available for the settings popup (see PlacedItem.wordFills)
+  // even though the board only ever shows the symbols.
+  const startDragNewSymbolSentence = (sentence: SymbolSentence) => startDragNewItem(() => ({
+    kind: 'symbolSentence',
+    symbolSentenceId: sentence.id,
+    boxCount: sentence.words.length,
+    wordFills: {},
+  }));
 
   const startDragPlaced = (instanceId: string) => (e: React.PointerEvent) => {
     e.preventDefault();
     pushHistory();
     dragInstanceRef.current = instanceId;
+    // Direct teacher instruction: picking an item up selects it (so its
+    // delete/settings badge shows), and picking up a joined Sentence
+    // Formula card detaches it from whatever it was stacked under —
+    // anything joined BELOW it still comes along, via getChainDescendantIds.
+    setSelectedId(instanceId);
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId && pp.kind === 'sentenceFrame' ? { ...pp, joinedToId: undefined } : pp)));
     try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported */ }
+  };
+
+  // Walks the Sentence Formula "joinedToId" chain to find every card
+  // currently stacked (directly or transitively) beneath rootId — used
+  // both to drag a whole paragraph stack together and to stop a join
+  // from creating a cycle.
+  const getChainDescendantIds = (list: PlacedItem[], rootId: string): Set<string> => {
+    const result = new Set<string>();
+    let frontier = [rootId];
+    while (frontier.length) {
+      const next: string[] = [];
+      for (const p of list) {
+        if (p.kind === 'sentenceFrame' && p.joinedToId && frontier.includes(p.joinedToId) && !result.has(p.instanceId)) {
+          result.add(p.instanceId);
+          next.push(p.instanceId);
+        }
+      }
+      frontier = next;
+    }
+    return result;
   };
 
   const onDragMove = (e: React.PointerEvent) => {
     const id = dragInstanceRef.current;
     if (!id) return;
     const { x, y } = canvasRelative(e.clientX, e.clientY);
-    setPlaced((p) => p.map((pp) => {
-      if (pp.instanceId !== id) return pp;
-      const size = sizeFor(pp.kind, pp.boxCount);
-      return { ...pp, x: x - size.w / 2, y: y - size.h / 2 };
-    }));
+    setPlaced((p) => {
+      const dragged = p.find((pp) => pp.instanceId === id);
+      if (!dragged) return p;
+      const size = sizeFor(dragged.kind, dragged.boxCount);
+      const newX = x - size.w / 2;
+      const newY = y - size.h / 2;
+      const dx = newX - dragged.x;
+      const dy = newY - dragged.y;
+      const descendants = dragged.kind === 'sentenceFrame' ? getChainDescendantIds(p, id) : null;
+      return p.map((pp) => {
+        if (pp.instanceId === id) return { ...pp, x: newX, y: newY };
+        if (descendants?.has(pp.instanceId)) return { ...pp, x: pp.x + dx, y: pp.y + dy };
+        return pp;
+      });
+    });
+  };
+
+  // Sound Boxes — direct teacher instruction: "ensure graphemes and
+  // alphabet snap into the sound box frames." A dropped letter/grapheme
+  // (both use the 'letter' PlacedKind, both happen to already be the
+  // same 44x44 size as one box cell) snaps to whichever cell of a
+  // nearby Sound Box frame it's closest to.
+  const runSoundBoxSnap = (instanceId: string) => {
+    setPlaced((current) => {
+      const dragged = current.find((p) => p.instanceId === instanceId);
+      if (!dragged) return current;
+      const cellW = 44;
+      const cellGap = 4;
+      const cellPitch = cellW + cellGap;
+      const centerX = dragged.x + cellW / 2;
+      const centerY = dragged.y + cellW / 2;
+      let best: { frame: PlacedItem; cellIndex: number; dist: number } | null = null;
+      for (const f of current) {
+        if (f.kind !== 'frame') continue;
+        const n = f.boxCount ?? 3;
+        const frameW = n * cellW + (n - 1) * cellGap;
+        if (centerY < f.y - 24 || centerY > f.y + cellW + 24) continue;
+        if (centerX < f.x - 24 || centerX > f.x + frameW + 24) continue;
+        let cellIndex = Math.round((centerX - f.x - cellW / 2) / cellPitch);
+        cellIndex = Math.max(0, Math.min(n - 1, cellIndex));
+        const cellCenterX = f.x + cellIndex * cellPitch + cellW / 2;
+        const dist = Math.abs(centerX - cellCenterX);
+        if (!best || dist < best.dist) best = { frame: f, cellIndex, dist };
+      }
+      if (!best) return current;
+      const targetX = best.frame.x + best.cellIndex * cellPitch;
+      const targetY = best.frame.y;
+      return current.map((p) => (p.instanceId === instanceId ? { ...p, x: targetX, y: targetY } : p));
+    });
+  };
+
+  // Sentence Formula paragraph joining — direct teacher instruction:
+  // "sentence formulas can be joined together (a connection animation)
+  // to stack them into a paragraph form." Dropping one card with its
+  // top edge near another card's bottom edge snaps it directly beneath
+  // (aligned, using the target's real measured height), records the
+  // link in joinedToId, and briefly pulses both cards.
+  const runFormulaJoinCheck = (instanceId: string) => {
+    setPlaced((current) => {
+      const dragged = current.find((p) => p.instanceId === instanceId);
+      if (!dragged || dragged.kind !== 'sentenceFrame') return current;
+      const descendants = getChainDescendantIds(current, instanceId);
+      let bestId: string | null = null;
+      let bestDist = SNAP_THRESHOLD;
+      for (const p of current) {
+        if (p.kind !== 'sentenceFrame' || p.instanceId === instanceId || descendants.has(p.instanceId)) continue;
+        const pEl = formulaCardRefs.current.get(p.instanceId);
+        const pH = pEl?.offsetHeight ?? 120;
+        const targetTop = p.y + pH;
+        const dx = Math.abs(dragged.x - p.x);
+        const dy = Math.abs(dragged.y - targetTop);
+        if (dx < 80 && dy < SNAP_THRESHOLD) {
+          const dist = dx + dy;
+          if (dist < bestDist) { bestDist = dist; bestId = p.instanceId; }
+        }
+      }
+      if (!bestId) return current;
+      const target = current.find((p) => p.instanceId === bestId)!;
+      const targetEl = formulaCardRefs.current.get(bestId);
+      const targetH = targetEl?.offsetHeight ?? 120;
+      if (formulaGlowTimerRef.current) window.clearTimeout(formulaGlowTimerRef.current);
+      setFormulaGlowIds(new Set([instanceId, bestId]));
+      formulaGlowTimerRef.current = window.setTimeout(() => setFormulaGlowIds(new Set()), 900);
+      return current.map((p) => (p.instanceId === instanceId ? { ...p, x: target.x, y: target.y + targetH + 12, joinedToId: bestId } : p));
+    });
   };
 
   const onDragEnd = (e: React.PointerEvent) => {
@@ -982,6 +1111,8 @@ export default function GrammarSandbox() {
     const item = placed.find((p) => p.instanceId === id);
     if (item?.kind === 'grammar') runSnapCheck(id);
     if (item?.kind === 'morpheme') runMorphemeSnapCheck(id);
+    if (item?.kind === 'letter') runSoundBoxSnap(id);
+    if (item?.kind === 'sentenceFrame') runFormulaJoinCheck(id);
   };
 
   const clearBoard = () => {
@@ -1210,7 +1341,7 @@ export default function GrammarSandbox() {
                 const info = MONTESSORI_WORD_CLASS_INFO[cls];
                 return (
                   <Draggable key={cls} label={info.label} onPointerDown={startDragNewItem(() => ({ kind: 'shape', wordClass: cls }))}>
-                    <ItemVisual kind="shape" wordClass={cls} />
+                    <ItemVisual kind="shape" wordClass={cls} compact />
                   </Draggable>
                 );
               })}
@@ -1220,7 +1351,7 @@ export default function GrammarSandbox() {
           <Category label="📜 Symbol Sentences" color="#ddd6fe" open={openCategories.symbolSentences} onToggle={() => toggleCategory('symbolSentences')}>
             <p style={{ margin: '0 0 6px', fontSize: '0.7rem', opacity: 0.6 }}>Drag a whole sentence onto the board, symbols only!</p>
             {SYMBOL_SENTENCE_PAGES.map((page) => (
-              <SubcategoryRow key={page.id} id={page.id} label={page.label} open={openSubcategories[page.id]} onToggle={() => toggleSubcategory(page.id)}>
+              <SubcategoryRow key={page.id} id={page.id} label={`${page.icon} ${page.label}`} open={openSubcategories[page.id]} onToggle={() => toggleSubcategory(page.id)}>
                 <div className="stack" style={{ gap: 8 }}>
                   {page.sentences.map((sentence) => (
                     <SymbolSentenceCard key={sentence.id} sentence={sentence} onPointerDown={startDragNewSymbolSentence(sentence)} />
@@ -1366,8 +1497,9 @@ export default function GrammarSandbox() {
             ref={canvasRef}
             className="lm-canvas"
             style={{ position: 'relative', height: '100%', pointerEvents: drawOn ? 'none' : undefined, transform: `scale(${zoom})`, transformOrigin: '0 0' }}
+            onPointerDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
           >
-            {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox').map((p) => (
+            {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox' && p.kind !== 'symbolSentence').map((p) => (
               // Sound Boxes sit behind everything else on purpose (a
               // background a student drops letters onto, direct teacher
               // report: letter/grapheme tiles were rendering behind the
@@ -1380,27 +1512,32 @@ export default function GrammarSandbox() {
                   onPointerMove={onDragMove}
                   onPointerUp={onDragEnd}
                   onDoubleClick={p.kind === 'letter' ? () => toggleLetterCase(p.instanceId) : undefined}
+                  style={selectedId === p.instanceId ? { boxShadow: '0 0 0 3px rgba(124,58,237,0.35)', borderRadius: 10 } : undefined}
                 >
                   <ItemVisual kind={p.kind} pieceId={p.pieceId} wordClass={p.wordClass} letter={p.letter} boxCount={p.boxCount} morphText={p.morphText} morphType={p.morphType} />
                 </Draggable>
-                {/* Delete — direct teacher instruction: "add delete
-                    feature for all things." A small always-visible badge
-                    rather than hover/long-press, since hover doesn't
-                    exist on touch and this population benefits from a
-                    predictable, always-reachable control. */}
-                <button
-                  type="button"
-                  onClick={() => removePlacedItem(p.instanceId)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  aria-label="Remove"
-                  style={{
-                    position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%',
-                    border: '2px solid var(--ink)', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 900,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1, zIndex: 3,
-                  }}
-                >
-                  ✕
-                </button>
+                {/* Delete — direct teacher instruction: "ensure that
+                    after i drag and drop, the x is not shown on the
+                    assets on the whiteboard. only show x upon moving or
+                    selected. (click to view x on touchscreen)." Picking
+                    an item up (startDragPlaced) selects it, so the badge
+                    stays visible through the whole drag and after, until
+                    something else is selected or empty canvas is tapped. */}
+                {selectedId === p.instanceId && (
+                  <button
+                    type="button"
+                    onClick={() => removePlacedItem(p.instanceId)}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    aria-label="Remove"
+                    style={{
+                      position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%',
+                      border: '2px solid var(--ink)', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 900,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1, zIndex: 3,
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             ))}
             {/* Morpheme definitions — direct teacher instruction: only
@@ -1426,9 +1563,85 @@ export default function GrammarSandbox() {
                 {c.etymology && <div style={{ marginTop: 4, opacity: 0.7 }}>📜 {c.etymology}</div>}
               </div>
             ))}
-            {/* Sentence Formula frames — self-contained widgets, not
-                draggable, so their internal clickable blanks never fight
-                canvas-drag pointer handling. */}
+            {/* Symbol Sentences, placed as one unit — direct follow-up
+                instructions: they drag/select/delete as a whole (not
+                per-symbol), and a selected one also shows a ⚙️ settings
+                button opening per-word text inputs (like Sentence
+                Formula blanks) so a student can label the words under
+                the symbols as the curriculum moves them toward full
+                Sentence Formulas. */}
+            {placed.filter((p) => p.kind === 'symbolSentence').map((item) => {
+              const sentence = ALL_SYMBOL_SENTENCES.find((s) => s.id === item.symbolSentenceId);
+              if (!sentence) return null;
+              const fills = item.wordFills ?? {};
+              const selected = selectedId === item.instanceId;
+              return (
+                <div key={item.instanceId} style={{ position: 'absolute', left: item.x, top: item.y, zIndex: 2 }}>
+                  <Draggable
+                    label={sentence.sentence}
+                    glowing={false}
+                    onPointerDown={startDragPlaced(item.instanceId)}
+                    onPointerMove={onDragMove}
+                    onPointerUp={onDragEnd}
+                    style={selected ? { boxShadow: '0 0 0 3px rgba(124,58,237,0.35)', borderRadius: 10, padding: 2 } : { padding: 2 }}
+                  >
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {sentence.words.map((w, i) => (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: 44 }}>
+                          <img src={MONTESSORI_WORD_CLASS_INFO[w.wordClass].imageUrl} alt={w.word} draggable={false} style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
+                          {fills[i] && <span style={{ fontSize: '0.62rem', fontWeight: 700, textAlign: 'center' }}>{fills[i]}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </Draggable>
+                  {selected && (
+                    <div style={{ position: 'absolute', top: -12, right: -12, display: 'flex', gap: 4, zIndex: 3 }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenSymbolSentenceSettings((v) => (v === item.instanceId ? null : item.instanceId))}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        aria-label="Symbol Sentence settings"
+                        title="Settings"
+                        style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--ink)', background: 'white', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                      >
+                        ⚙️
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removePlacedItem(item.instanceId)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        aria-label="Remove this Symbol Sentence"
+                        style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--ink)', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  {selected && openSymbolSentenceSettings === item.instanceId && (
+                    <div className="chrome-frame" style={{ position: 'absolute', top: '110%', left: 0, zIndex: 12, padding: 8, width: Math.max(220, sentence.words.length * 60) }} onPointerDown={(e) => e.stopPropagation()}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, marginBottom: 6, opacity: 0.7 }}>Type each word</div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {sentence.words.map((w, i) => (
+                          <input
+                            key={i}
+                            value={fills[i] ?? ''}
+                            onChange={(e) => setSymbolSentenceWordFill(item.instanceId, i, e.target.value)}
+                            placeholder={w.word}
+                            style={{ width: 52, border: '2px solid var(--content-border)', borderRadius: 6, padding: '4px 4px', fontSize: '0.75rem', textAlign: 'center' }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {/* Sentence Formula frames — self-contained widgets whose
+                internal clickable blanks never fight canvas-drag pointer
+                handling (only the title-bar "handle" starts a drag).
+                Direct follow-up instruction: "sentence formulas can be
+                moved around the whiteboard" / "joined together... to
+                stack them into a paragraph form." */}
             {placed.filter((p) => p.kind === 'sentenceFrame').map((item) => {
               const formula = SENTENCE_FORMULAS.find((f) => f.id === item.formulaId);
               if (!formula) return null;
@@ -1500,9 +1713,28 @@ export default function GrammarSandbox() {
               // (completed sentence with punctuation, capitalization)."
               const displaySentenceText = sentenceText ? sentenceText.charAt(0).toUpperCase() + sentenceText.slice(1) : sentenceText;
               return (
-                <div key={item.instanceId} className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 12, maxWidth: 640, zIndex: 4 }}>
+                <div
+                  key={item.instanceId}
+                  ref={(el) => { if (el) formulaCardRefs.current.set(item.instanceId, el); else formulaCardRefs.current.delete(item.instanceId); }}
+                  className={`chrome-frame${formulaGlowIds.has(item.instanceId) ? ' lm-formula-glow' : ''}`}
+                  style={{ position: 'absolute', left: item.x, top: item.y, padding: 12, maxWidth: 640, zIndex: 4 }}
+                >
+                  {/* A small connector shows this card is stacked into a
+                      paragraph with the one above it. */}
+                  {item.joinedToId && <div style={{ textAlign: 'center', fontSize: 12, marginBottom: 4, opacity: 0.6 }} aria-hidden="true">🔗 joined</div>}
                   <div className="space-between" style={{ marginBottom: 8, alignItems: 'center' }}>
-                    <strong style={{ fontSize: '0.85rem' }}>{formula.name}</strong>
+                    {/* Direct follow-up instruction: "sentence formulas can
+                        be moved around the whiteboard." Only the title
+                        text is the drag handle, so the blanks/buttons
+                        below never fight canvas-drag pointer handling. */}
+                    <strong
+                      style={{ fontSize: '0.85rem', cursor: 'grab', touchAction: 'none' }}
+                      onPointerDown={startDragPlaced(item.instanceId)}
+                      onPointerMove={onDragMove}
+                      onPointerUp={onDragEnd}
+                    >
+                      {formula.name}
+                    </strong>
                     {/* Direct teacher instruction: settings (tense) and
                         duplicate buttons to the left of the x, "all three
                         buttons... small, but the same size. slighly

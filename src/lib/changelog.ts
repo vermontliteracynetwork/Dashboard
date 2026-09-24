@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-24-lm-formulas-symbol-sentences',
+    date: '2026-09-24',
+    icon: '🧷',
+    title: 'Sentence Formulas move now, and more Literacy Manipulatives fixes',
+    body: 'You can drag a Sentence Formula card around by its title now, and drop one right under another to join them into a paragraph. Symbol Sentences move as one piece now, and tap the little symbols row to see its settings, where you can type in the real words. Letters and graphemes snap right into Sound Boxes. The X to delete something only shows up once you pick it or tap it, so your board looks cleaner. Grammar Symbols in the side list are a bit smaller so more fits on screen, and Symbol Sentences are grouped with names like Descriptive and Complex Sentences instead of page numbers.',
+  },
+  {
     id: '2026-09-23-lm-tense-symbols',
     date: '2026-09-23',
     icon: '🔺',

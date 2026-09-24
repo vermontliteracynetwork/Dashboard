@@ -2028,6 +2028,16 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   opacity: 1;
   visibility: visible;
 }
+/* Sentence Formula join — direct teacher instruction: "joined together
+   (a connection animation) to stack them into a paragraph form." */
+@keyframes lmFormulaJoinPulse {
+  0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
+  70% { box-shadow: 0 0 0 12px rgba(124, 58, 237, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+}
+.lm-formula-glow {
+  animation: lmFormulaJoinPulse 0.9s ease-out;
+}
 @media (max-width: 760px) {
   .lm-shell { flex-direction: column; min-height: unset; }
   .lm-sidebar { width: auto; flex: 0 0 auto; max-height: 40vh; border-right: none; border-bottom: var(--chunk, 4px) solid var(--ink); }
