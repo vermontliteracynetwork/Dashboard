@@ -19,7 +19,7 @@ import { BookPanel } from '../../components/BookPanel';
 import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
 import { Icon } from '../../components/Icon';
-import SubjectProgressBar from '../../components/SubjectProgressBar';
+import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer, useModelSize } from './WorldObjectRenderer';
@@ -3229,7 +3229,6 @@ export default function TownSquare() {
     [questionSets],
   );
   const [gasQuizQuestion, setGasQuizQuestion] = useState<MCQuestion | null>(null);
-  const [gasQuizFeedback, setGasQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
   // Direct teacher instruction: "while answering questions to get more
   // gas, the gas in the tank should be paused, and not decrease any
   // more" — the drain timer stops entirely (not just visually) while a
@@ -3261,11 +3260,12 @@ export default function TownSquare() {
   // visible through a miss instead of the drop happening invisibly).
   const [gasLockout, setGasLockout] = useState(false);
   const [gasLockoutStreak, setGasLockoutStreak] = useState(0);
-  // Confirmation step before a student backs out of a forced gas lockout
-  // — direct teacher instruction: exiting mid-lockout has a real cost
-  // (lost progress, car stays empty, they're put back on foot), so it
-  // needs a real "are you sure" instead of a plain close button.
-  const [gasExitConfirm, setGasExitConfirm] = useState(false);
+  // Exit-confirmation on a forced gas lockout — direct teacher instruction:
+  // exiting mid-lockout has a real cost (lost progress, car stays empty,
+  // they're put back on foot), so it needs a real "are you sure" instead of
+  // a plain close button. Now handled inside the shared QuestionScreen
+  // component itself (its ✕ always opens its own confirm overlay); this
+  // file just supplies what "leave anyway" does via handleGasExit below.
   // Falls back to a generated auto-question (math facts, morpheme
   // definitions — see lib/autoQuestions.ts) whenever the teacher hasn't
   // authored any real MC content yet, instead of the earlier silent
@@ -3276,40 +3276,45 @@ export default function TownSquare() {
     return generateAutoQuestion();
   };
   const openGasQuiz = () => {
-    setGasQuizFeedback(null);
-    setGasExitConfirm(false);
     setGasQuizQuestion(pickGasQuestion());
   };
-  const answerGasQuiz = (choiceIndex: number) => {
-    if (!gasQuizQuestion) return;
-    const correct = choiceIndex === gasQuizQuestion.correctIndex;
+  // Direct teacher instruction: "students progress should never be lost
+  // when questions need to be answered. it should never be a certain
+  // number in a row, but rather a certain number in general. if they get
+  // one wrong, that question doesn't contribute to the total amount they
+  // need, but it also doesn't restart the count." QuestionScreen itself
+  // now owns "wrong just doesn't count, try the same question again" —
+  // this only ever fires on an actually-correct pick, so gasLockoutStreak
+  // can only go up or reset-on-success, never drop from a miss.
+  const handleGasCorrect = () => {
     if (gasLockout) {
-      if (correct) {
-        const streak = gasLockoutStreak + 1;
-        if (streak >= 10) {
-          setCarGasDashes(10);
-          setGasLockout(false);
-          setGasLockoutStreak(0);
-          setGasQuizQuestion(null);
-          setGasQuizFeedback(null);
-          return;
-        }
-        setGasLockoutStreak(streak);
-        setGasQuizFeedback('correct');
-      } else {
-        // Direct teacher instruction: "students progress should never be
-        // lost when questions need to be answered. it should never be a
-        // certain number in a row, but rather a certain number in
-        // general. if they get one wrong, that question doesn't
-        // contribute to the total amount they need, but it also doesn't
-        // restart the count." A miss just doesn't add to the count —
-        // gasLockoutStreak stays exactly where it was, never reset to 0.
-        setGasQuizFeedback('wrong');
+      const streak = gasLockoutStreak + 1;
+      if (streak >= 10) {
+        setCarGasDashes(10);
+        setGasLockout(false);
+        setGasLockoutStreak(0);
+        setGasQuizQuestion(null);
+        return;
       }
+      setGasLockoutStreak(streak);
+      setGasQuizQuestion(pickGasQuestion());
       return;
     }
-    if (correct) setCarGasDashes((d) => Math.min(10, d + 1));
-    setGasQuizFeedback(correct ? 'correct' : 'wrong');
+    setCarGasDashes((d) => Math.min(10, d + 1));
+    setGasQuizQuestion(null);
+  };
+  // "Leave Anyway" from QuestionScreen's exit-confirm. Voluntary Get Gas
+  // just closes the pump screen (student stays in the car, nothing lost).
+  // A forced lockout exit is the real "are you sure" case — direct teacher
+  // instruction: it resets the lockout state and gets the student out of
+  // the car, same as the old gasExitConfirm "Leave & exit the car" button.
+  const handleGasExit = () => {
+    setGasQuizQuestion(null);
+    if (gasLockout) {
+      setGasLockout(false);
+      setGasLockoutStreak(0);
+      if (drivingObj) stopDriving(drivingObj);
+    }
   };
   // The moment the tank actually hits empty while driving without having
   // topped up first, the car is stopped dead (Player's driving branch,
@@ -4712,7 +4717,7 @@ export default function TownSquare() {
           seconds of driving/idling in the car (see the gasSecondsRef
           effect above), and it only ever goes back up by correctly
           answering a question "at the gas pump" (openGasQuiz/
-          answerGasQuiz below) — never on its own. The Fill Up button is
+          handleGasCorrect below) — never on its own. The Fill Up button is
           the voluntary, non-blocking version of that pump; running fully
           dry opens the un-skippable lockout automatically instead. */}
       {drivingObjectId && !drivingIsBoat && !drivingIsTrain && !drivingIsAircraft && (
@@ -4737,87 +4742,25 @@ export default function TownSquare() {
       )}
 
       {gasQuizQuestion && (
-        // Direct teacher instruction — several fixes to the question-gate
-        // pattern, "across the board": (1) progress is a real running
-        // total, never a "must be in a row" streak that resets on a miss
-        // (see answerGasQuiz's own comment); (2) a genuinely bigger view;
-        // (3) a visual progress bar (SubjectProgressBar, the same one the
-        // to-do list uses) instead of "X of 10" sentence text; (4) an ✕ is
-        // always available now, even mid-lockout, but it opens a real
-        // confirmation first, since backing out here has a real cost (see
-        // gasExitConfirm below); (5) always-on read-aloud on the prompt.
-        <div className="overlay-backdrop">
-          <div className="overlay-panel chrome-frame" style={{ padding: 32, maxWidth: 560, width: '92vw' }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack" style={{ gap: 14 }}>
-              <div className="space-between">
-                <h2 style={{ margin: 0, fontSize: '1.5rem' }}>⛽ {gasLockout ? 'Out of Gas!' : 'Get Gas'}</h2>
-                <button
-                  className="btn btn-sm"
-                  style={{ minHeight: 44, minWidth: 44 }}
-                  onClick={() => (gasLockout ? setGasExitConfirm(true) : (() => { setGasQuizQuestion(null); setGasQuizFeedback(null); })())}
-                >
-                  <Icon name="close" size={16} fallback="✕" />
-                </button>
-              </div>
-              {gasLockout && !gasExitConfirm && (
-                <SubjectProgressBar done={gasLockoutStreak} total={10} />
-              )}
-              {gasExitConfirm ? (
-                <>
-                  <p style={{ margin: 0, fontWeight: 700 }}>
-                    Are you sure? If you leave now you'll lose your progress on filling the tank, the car will stay out of gas, and you'll have to get out of the vehicle.
-                  </p>
-                  <div className="row-wrap" style={{ gap: 8 }}>
-                    <button
-                      className="btn btn-lg"
-                      style={{ minHeight: 44, background: 'var(--danger)', color: '#fff' }}
-                      onClick={() => {
-                        setGasExitConfirm(false);
-                        setGasQuizQuestion(null);
-                        setGasQuizFeedback(null);
-                        setGasLockout(false);
-                        setGasLockoutStreak(0);
-                        if (drivingObj) stopDriving(drivingObj);
-                      }}
-                    >
-                      🚪 Leave & exit the car
-                    </button>
-                    <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={() => setGasExitConfirm(false)}>Keep going</button>
-                  </div>
-                </>
-              ) : gasQuizFeedback ? (
-                <>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>
-                    {gasQuizFeedback === 'correct'
-                      ? (gasLockout ? `🎉 Correct! ${gasLockoutStreak} of 10 so far.` : '🎉 Correct! Tank filled up one dash.')
-                      : (gasLockout ? "💛 Not quite — that one just doesn't count, but you haven't lost anything. Let's try another!" : "👍 Good try! That one didn't fill the tank — want to try another?")}
-                  </p>
-                  <div className="row-wrap" style={{ gap: 8 }}>
-                    <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={openGasQuiz}>{gasLockout ? 'Next question' : 'Answer another'}</button>
-                    {!gasLockout && (
-                      <button className="btn btn-lg" style={{ minHeight: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>Done for now</button>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: '1.15rem', flex: 1 }}>{gasQuizQuestion.prompt}</p>
-                    <ReadAloud text={gasQuizQuestion.prompt} settings={student?.ttsSettings} />
-                  </div>
-                  {gasQuizQuestion.imageUrl && <img src={gasQuizQuestion.imageUrl} alt={gasQuizQuestion.imageAlt ?? ''} style={{ maxWidth: '100%', borderRadius: 10 }} />}
-                  <div className="stack" style={{ gap: 10 }}>
-                    {gasQuizQuestion.choices.map((choice, i) => (
-                      <button key={i} className="btn btn-lg" style={{ minHeight: 52, fontSize: '1.05rem', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => answerGasQuiz(i)}>
-                        {choice}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        // Shared question-screen UI (components/QuestionScreen.tsx) — same
+        // component Bakery Match's Challenge Screen uses. Lockout mode gets
+        // a real 10-of-10 progress readout; the voluntary Fill Up flow is
+        // framed as one question per dash (done=0/total=1). QuestionScreen
+        // owns the exit-confirm, TTS-reads-the-choices, and retry-in-place
+        // behavior; this file only supplies what "correct" and "leave
+        // anyway" actually do to this car's gas state.
+        <QuestionScreen
+          prompt={gasQuizQuestion.prompt}
+          choices={gasQuizQuestion.choices}
+          correctIndex={gasQuizQuestion.correctIndex}
+          done={gasLockout ? gasLockoutStreak : 0}
+          total={gasLockout ? 10 : 1}
+          imageUrl={gasQuizQuestion.imageUrl}
+          imageAlt={gasQuizQuestion.imageAlt}
+          onCorrectAnswer={handleGasCorrect}
+          onExit={handleGasExit}
+          ttsSettings={student?.ttsSettings}
+        />
       )}
 
       {drivingObjectId ? (
