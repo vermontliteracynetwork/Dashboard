@@ -11,6 +11,7 @@ import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt, SKY_TEXTURE_OPTIONS,
 } from '../world/townLayout';
+import { isTrackModel, trackPlacementFeedback } from '../world/trainTrack';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
@@ -642,7 +643,13 @@ const FURNITURE_SUBCATEGORIES = ['Kitchen', 'Bathroom', 'Bedroom', 'Living Room'
 const TRANSPORT_EXCLUDE_RE = /boat house|boat stand|boat wash/i;
 function transportSubcategory(label: string): string | null {
   if (TRANSPORT_EXCLUDE_RE.test(label)) return null;
-  if (/\b(train|locomotive|tender)\b/i.test(label)) return 'Trains';
+  // Transportation Phase 3 (docs/TRANSPORTATION.md §2 Trains): the six
+  // trainset-rail-*.glb track pieces (holiday category) are real, already-
+  // uploaded track pieces — \brail\b as a standalone word matches "Trainset
+  // Rail Bend/Straight/Corner" without also catching "Railing A" (no word
+  // boundary inside "Railing") or "Railroad Crossing" (no boundary inside
+  // "Railroad"), verified against the real manifest labels before shipping.
+  if (/\b(train|locomotive|tender|rail)\b/i.test(label)) return 'Trains';
   if (/\b(boat|ship)\b/i.test(label)) return 'Boats';
   if (/\b(car|truck|van|bus)\b/i.test(label)) return 'Cars';
   return null;
@@ -2187,6 +2194,20 @@ export default function WorldEditor() {
   // water on purpose, e.g. staging a boat before painting the pond around
   // it; this never hard-blocks the click).
   const placementNeedsWater = !!(armedAsset && ghostPos && isBoatModel(armedAsset.path) && !isWaterAt(ghostPos.x, ghostPos.z, groundPatches));
+  // Trains (docs/TRANSPORTATION.md §2 Trains, §3 placement rules): track
+  // pieces validate against every OTHER already-placed track piece's own
+  // connector points, green "Connects"/grey-striped "Won't connect" per
+  // the design doc's own convention (approximated here with this app's own
+  // existing invalid-tint styling, since a literal grey-striped texture
+  // doesn't exist anywhere else in this file to reuse). 'first' (nowhere
+  // near existing track) is always valid — starting a brand new line.
+  const placementTrackFeedback = armedAsset && ghostPos && isTrackModel(armedAsset.path)
+    ? trackPlacementFeedback(
+        { modelPath: armedAsset.path, position: [ghostPos.x, 0, ghostPos.z], rotationY: ghostPos.rotationY },
+        worldObjects.filter((o) => isTrackModel(o.modelPath)),
+      )
+    : null;
+  const placementTrackInvalid = placementTrackFeedback === 'no-connect';
   const selectedWall = selection?.kind === 'wall' ? wallSegments.find((w) => w.id === selection.id) ?? null : null;
   const wallPreview = wallMode && wallStart && wallEnd ? { id: '__preview__', x1: wallStart.x, z1: wallStart.z, x2: wallEnd.x, z2: wallEnd.z, height: WALL_DEFAULT_HEIGHT, thickness: WALL_DEFAULT_THICKNESS, createdAt: '' } : null;
 
@@ -2661,6 +2682,8 @@ export default function WorldEditor() {
               Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
               {placementOverlap && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Overlapping {placementOverlap} — that's OK, just checking</div>}
               {placementNeedsWater && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Needs water to actually drive — paint some with the ground brush</div>}
+              {placementTrackFeedback === 'connects' && <div style={{ color: BUILD_ACCENT, fontWeight: 600, fontSize: 12, marginTop: 4 }}>✅ Connects</div>}
+              {placementTrackInvalid && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Won't connect — line it up with the open end of the nearby track</div>}
             </div>
           )}
           {hammerMode && (
@@ -2783,7 +2806,7 @@ export default function WorldEditor() {
                     rotationY: ghostPos.rotationY,
                     scale: armedDefaultScale,
                     createdAt: '',
-                    tintColor: placementOverlap || placementNeedsWall || placementNeedsWater ? OVERLAP_COLOR : undefined,
+                    tintColor: placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : undefined,
                   }}
                   opacity={0.55}
                 />
@@ -2791,8 +2814,8 @@ export default function WorldEditor() {
                     cell plus a crisp wireframe cage on the exact footprint,
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
-                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap || placementNeedsWall || placementNeedsWater ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
-                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap || placementNeedsWall || placementNeedsWater ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
+                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
 

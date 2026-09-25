@@ -24,6 +24,7 @@ import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS } from './townLayout';
+import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
@@ -125,6 +126,18 @@ const BOAT_REVERSE_MAX_SPEED = BASE_MOVE_SPEED * 0.6;
 const BOAT_ACCEL = 9; // units/s² — reaches top speed in ~0.5s per the design doc
 const BOAT_COAST_DECEL = 3; // units/s² — drifts down to a stop rather than braking hard
 const BOAT_TURN_RATE = 1.8; // rad/s at a standstill
+// Trains (docs/TRANSPORTATION.md §2 Trains, Transportation Phase 3) —
+// "strictly on-rail, zero steering input. Controls: Go, Stop, Reverse — the
+// simplest control surface of any vehicle here." No turn rate at all: the
+// track itself (src/routes/world/trainTrack.ts) determines heading: Go/
+// Reverse only change speed/direction along the rail's own arc-length.
+// Slower accel than a boat/car — reads as a real train easing into motion,
+// not a car peeling out — and Stop decelerates hard (a real button press,
+// not just coasting), matching the three named controls exactly.
+const TRAIN_MAX_SPEED = BASE_MOVE_SPEED * 1.4;
+const TRAIN_ACCEL = 3.2; // units/s²
+const TRAIN_COAST_DECEL = 2; // units/s² — release Go/Reverse and it drifts down
+const TRAIN_STOP_DECEL = 9; // units/s² — pressing Stop actively brakes
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
 const CAMERA_LOOK_CAP = Math.PI * 0.6;
@@ -1109,7 +1122,11 @@ interface PlayerProps {
   // instantly moves the student there (a teleport, not a walk) and drops
   // back into the normal live view. Set once by the parent's ground
   // double-click handler, consumed and cleared on the very next frame.
-  teleportTarget: React.RefObject<{ x: number; z: number; facing?: number } | null>;
+  // trainArc: only set when mounting a train (docs/TRANSPORTATION.md §2
+  // Trains) — the starting arc-length position along the resolved track
+  // path (trainPathRef), so a train mount snaps onto the rail at exactly
+  // the right spot instead of leaving trainArc at wherever it last was.
+  teleportTarget: React.RefObject<{ x: number; z: number; facing?: number; trainArc?: number } | null>;
   // The student's currently-equipped emote (set from the Inventory hotbar,
   // the same one used everywhere else — Student Home, the to-do list),
   // shown as a thought bubble above their own character. Direct teacher
@@ -1144,11 +1161,23 @@ interface PlayerProps {
   // keys directly rather than gasRef/brakeRef. Defaults to 'car' so every
   // existing call site (which only ever drove cars before boats existed)
   // keeps working unchanged.
-  vehicleKind?: 'car' | 'boat';
+  vehicleKind?: 'car' | 'boat' | 'train';
   // Boats only: the painted water patches driving must stay inside of (see
   // isWaterAt in townLayout.ts) — a bump-and-slide boundary, never a hard
   // wall or a crash, per the design doc.
   groundPatches?: GroundPatch[];
+  // Trains only (docs/TRANSPORTATION.md §2 Trains) — "strictly on-rail,
+  // zero steering input. Controls: Go, Stop, Reverse." TownSquare computes
+  // the ordered track polyline once at mount time (src/routes/world/
+  // trainTrack.ts) and hands it down as a ref; Player just moves an
+  // arc-length position along it. goRef/reverseRef are held-down states
+  // (same pattern as gasRef/brakeRef); stopRef is a one-shot "pressed"
+  // pulse Player clears after reading it, since Stop is an active brake
+  // action, not a held throttle.
+  trainPathRef?: React.RefObject<TrackPath | null>;
+  trainGoRef?: React.RefObject<boolean>;
+  trainReverseRef?: React.RefObject<boolean>;
+  trainStopRef?: React.RefObject<boolean>;
   // Transportation Phase 2b (docs/BOATS_DESIGN.md §8) — a ref this writes
   // every frame with the current vehicle's speed as a 0..1 ratio of its own
   // max speed, read imperatively by the wake/dust particle trail (same
@@ -1249,7 +1278,7 @@ function VehicleTrailParticles({ active, playerPos, facingRef, speedRef, kind, r
   );
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, gasBlocked, vehicleKind, groundPatches, speedRef, soundRef }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, gasBlocked, vehicleKind, groundPatches, speedRef, soundRef, trainPathRef, trainGoRef, trainReverseRef, trainStopRef }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1259,6 +1288,11 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
   const carSpeed = useRef(0);
   const boatSpeed = useRef(0);
+  // Trains (docs/TRANSPORTATION.md §2 Trains) — position along the track is
+  // an arc-length, not a free x/z; trainSpeed can be negative (Reverse).
+  const trainArc = useRef(0);
+  const trainSpeed = useRef(0);
+  const trainWasMoving = useRef(false);
   // Transportation Phase 2b — a soft cooldown so a boat/car resting against
   // a boundary doesn't retrigger the contact thud every single frame; reset
   // whenever a real new contact happens, ticks down by dt otherwise.
@@ -1281,13 +1315,73 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       if (teleportTarget.current.facing !== undefined) facing.current = teleportTarget.current.facing;
       carSpeed.current = 0;
       boatSpeed.current = 0;
+      trainSpeed.current = 0;
+      trainArc.current = teleportTarget.current.trainArc ?? 0;
       walkTarget.current = null;
       teleportTarget.current = null;
       onMove(pos.current);
     }
     let moved = false;
     if (thudCooldown.current > 0) thudCooldown.current -= dt;
-    if (!frozen && driving && vehicleKind === 'boat') {
+    if (!frozen && driving && vehicleKind === 'train') {
+      // On-rail train physics (docs/TRANSPORTATION.md §2 Trains) — "zero
+      // steering input," so touchDir/keys' x-axis is never read here at
+      // all. Go/Reverse are held-down throttle states (same pattern as
+      // gasRef/brakeRef); Stop is a one-shot pulse that actively brakes
+      // rather than just letting go.
+      walkTarget.current = null;
+      cameraLook.current = 0;
+      cameraPitch.current = 0;
+      const goHeld = !!trainGoRef?.current;
+      const reverseHeld = !!trainReverseRef?.current;
+      if (trainStopRef?.current) {
+        trainStopRef.current = false;
+        trainSpeed.current = trainSpeed.current > 0
+          ? Math.max(0, trainSpeed.current - TRAIN_STOP_DECEL * dt)
+          : Math.min(0, trainSpeed.current + TRAIN_STOP_DECEL * dt);
+      } else if (goHeld && !reverseHeld) {
+        trainSpeed.current = Math.min(TRAIN_MAX_SPEED, trainSpeed.current + TRAIN_ACCEL * dt);
+      } else if (reverseHeld && !goHeld) {
+        trainSpeed.current = Math.max(-TRAIN_MAX_SPEED, trainSpeed.current - TRAIN_ACCEL * dt);
+      } else if (trainSpeed.current > 0) {
+        trainSpeed.current = Math.max(0, trainSpeed.current - TRAIN_COAST_DECEL * dt);
+      } else if (trainSpeed.current < 0) {
+        trainSpeed.current = Math.min(0, trainSpeed.current + TRAIN_COAST_DECEL * dt);
+      }
+      const path = trainPathRef?.current;
+      if (path && path.totalLength > 0) {
+        const nextArc = trainArc.current + trainSpeed.current * dt;
+        const clamped = Math.max(0, Math.min(path.totalLength, nextArc));
+        // Soft, automatic deceleration at the end of the line — never a
+        // wall-style hard block, per the design doc's "never a wall-style
+        // hard block" line. Hitting either end simply zeroes speed there;
+        // Reverse is always available to pull back onto the line.
+        if (clamped !== nextArc) trainSpeed.current = 0;
+        trainArc.current = clamped;
+        const sample = sampleTrackPath(path, trainArc.current);
+        pos.current.x = sample.x;
+        pos.current.z = sample.z;
+        facing.current = sample.angle;
+        onMove(pos.current);
+        moved = Math.abs(trainSpeed.current) > 0.01;
+      } else {
+        // No connected track under this locomotive (docs/TRANSPORTATION.md's
+        // standing "no fail state" rule) — Go/Reverse simply do nothing
+        // rather than erroring or drifting off the rail.
+        trainSpeed.current = 0;
+      }
+      const trainRatio = Math.abs(trainSpeed.current) / TRAIN_MAX_SPEED;
+      if (speedRef) speedRef.current = trainRatio;
+      soundRef?.current?.setIntensity(trainRatio);
+      // A soft whistle exactly when the train comes to a full stop — a
+      // predictable, non-startling cue, standing in for the design doc's
+      // "whistle cue specifically at station stops" until a dedicated
+      // Station marker exists (judgment call: gated on "just stopped"
+      // rather than an unbuilt Station role).
+      const nowMoving = Math.abs(trainSpeed.current) > 0.01;
+      if (trainWasMoving.current && !nowMoving) soundRef?.current?.whistle();
+      trainWasMoving.current = nowMoving;
+    } else if (!frozen && driving && vehicleKind === 'boat') {
       // Boat throttle+turn physics (docs/BOATS_DESIGN.md §1/§4) — reuses
       // the ordinary D-pad/touchDir/WASD input, up/down as throttle
       // forward/reverse, left/right as turn, rather than the car's
@@ -1344,8 +1438,11 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       const boatRatio = Math.abs(boatSpeed.current) / BOAT_MAX_SPEED;
       if (speedRef) speedRef.current = boatRatio;
       soundRef?.current?.setIntensity(boatRatio);
-    } else if (!frozen && driving && vehicleKind !== 'boat') {
-      // Real gas/brake pedal physics (docs/TRANSPORTATION.md's Cars spec,
+    } else if (!frozen && driving) {
+      // Car (the fallback vehicleKind — 'boat' and 'train' are both
+      // handled by their own branches above, so reaching here while
+      // driving always means a car). Real gas/brake pedal physics
+      // (docs/TRANSPORTATION.md's Cars spec,
       // direct teacher follow-up) — steering turns the car's own heading,
       // Gas accelerates along it, Brake decelerates, neither coasts to a
       // stop. Deliberately NOT the free omnidirectional walk model below.
@@ -2097,6 +2194,44 @@ function PedalButton({
   );
 }
 
+// Trains (docs/TRANSPORTATION.md §2 Trains) — the third of the three named
+// controls, "Go, Stop, Reverse." A single tap, not a held button (Stop is
+// an active brake press, not a throttle), matching PedalButton's exact
+// sizing/shape/touch-callout fixes but a plain square glyph instead of the
+// directional arrow (there's no direction to a stop).
+function TrainStopButton({ stopRef, style }: { stopRef: React.RefObject<boolean>; style: React.CSSProperties }) {
+  return (
+    <button
+      style={{
+        position: 'absolute',
+        width: 70,
+        height: 56,
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: 14,
+        border: 'var(--chunk, 3px) solid var(--ink, #1f4238)',
+        background: '#c0392b',
+        boxShadow: '3px 3px 0 var(--ink, #1f4238)',
+        touchAction: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        ...style,
+      }}
+      onClick={() => { stopRef.current = true; }}
+      aria-label="Stop"
+    >
+      <span aria-hidden="true" style={{ width: 16, height: 16, background: '#fff', borderRadius: 3, display: 'block' }} />
+    </button>
+  );
+}
+
 // The teacher's explicit ask: on a computer, students should have both a
 // way to look around independent of where they're walking, and a way to
 // walk in a direction — the D-pad already covers walking on every device,
@@ -2191,6 +2326,8 @@ export default function TownSquare() {
   const groundPatches = useStore((s) => s.groundPatches);
   const drivingObj = drivingObjectId ? worldObjects.find((o) => o.id === drivingObjectId) : undefined;
   const drivingIsBoat = !!drivingObj && isBoatModel(drivingObj.modelPath);
+  // Transportation Phase 3 (docs/TRANSPORTATION.md §2 Trains).
+  const drivingIsTrain = !!drivingObj && isTrainModel(drivingObj.modelPath);
   // Transportation Phase 2b/2d — the currently-mounted vehicle's live speed
   // (0..1 of its own max) and its synthesized engine/splash sound
   // controller (src/lib/vehicleAudio.ts). Refs, not state: Player writes
@@ -2199,6 +2336,14 @@ export default function TownSquare() {
   // trail below without forcing an extra re-render per frame.
   const vehicleSpeedRef = useRef(0);
   const vehicleSoundRef = useRef<VehicleSoundController | null>(null);
+  // Transportation Phase 3 — the resolved track path a mounted train moves
+  // along (src/routes/world/trainTrack.ts), computed once at mount time in
+  // startDriving below, plus the three train control button states (Go/
+  // Reverse held, Stop a one-shot pulse).
+  const trainPathRef = useRef<TrackPath | null>(null);
+  const trainGoRef = useRef(false);
+  const trainReverseRef = useRef(false);
+  const trainStopRef = useRef(false);
   // Shared music library (docs: car radio, Concert Hall, Boom Box all draw
   // from the same list) — direct teacher request. Audio only: the actual
   // sound comes from a visually hidden YouTube embed (see
@@ -2630,7 +2775,7 @@ export default function TownSquare() {
   // partial-second progress toward the next dash loss picks back up
   // exactly where it left off once the modal closes.
   useEffect(() => {
-    if (!drivingObjectId || drivingIsBoat || gasQuizQuestion) return;
+    if (!drivingObjectId || drivingIsBoat || drivingIsTrain || gasQuizQuestion) return;
     const id = window.setInterval(() => {
       gasSecondsRef.current += 1;
       if (gasSecondsRef.current >= 15) {
@@ -2639,7 +2784,7 @@ export default function TownSquare() {
       }
     }, 1000);
     return () => window.clearInterval(id);
-  }, [drivingObjectId, drivingIsBoat, gasQuizQuestion]);
+  }, [drivingObjectId, drivingIsBoat, drivingIsTrain, gasQuizQuestion]);
   // Set once dashes hit 0 while driving without having topped up first —
   // direct instruction: "if gas runs out while driving without using a
   // gas pump, the student must be prompted with 10 consecutive questions
@@ -2695,12 +2840,12 @@ export default function TownSquare() {
   // topped up first, the car is stopped dead (Player's driving branch,
   // via gasBlocked) and the un-skippable lockout opens on its own.
   useEffect(() => {
-    if (drivingObjectId && !drivingIsBoat && carGasDashes <= 0 && !gasLockout) {
+    if (drivingObjectId && !drivingIsBoat && !drivingIsTrain && carGasDashes <= 0 && !gasLockout) {
       setGasLockout(true);
       setGasLockoutStreak(0);
       openGasQuiz();
     }
-  }, [drivingObjectId, drivingIsBoat, carGasDashes]);
+  }, [drivingObjectId, drivingIsBoat, drivingIsTrain, carGasDashes]);
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
   // there — the primary cross-device movement method; the D-pad and
   // keyboard both still work and take over instantly if used.
@@ -2708,7 +2853,7 @@ export default function TownSquare() {
   const hoverTarget = useRef<{ x: number; z: number } | null>(null);
   // Direct teacher request: double-clicking a grid square in Map view
   // instantly teleports the student there and drops back into live view.
-  const teleportTarget = useRef<{ x: number; z: number; facing?: number } | null>(null);
+  const teleportTarget = useRef<{ x: number; z: number; facing?: number; trainArc?: number } | null>(null);
   const cameraLook = useRef(0);
   const cameraPitch = useRef(0);
   // Mouse press-and-drag look, desktop only (mirrors the ↺/↻ buttons but
@@ -2997,15 +3142,31 @@ export default function TownSquare() {
   // render the car at wherever the player's position goes from here — the
   // same movement/collision engine, just steering a different model.
   const startDriving = (obj: WorldObject) => {
-    teleportTarget.current = { x: obj.position[0], z: obj.position[2], facing: obj.rotationY };
+    // Trains (docs/TRANSPORTATION.md §2 Trains) mount onto the resolved
+    // track path, not their raw placed position — find the nearest
+    // connected line (src/routes/world/trainTrack.ts) and snap the mount
+    // point exactly onto it. A locomotive with no connected track nearby
+    // has no path (findTrainPath returns null); it still "mounts" (the
+    // student can look around/exit), it just can't move — the standing
+    // "no fail state" rule, not an error.
+    if (isTrainModel(obj.modelPath)) {
+      const trackPieces = worldObjects.filter((o) => isTrackModel(o.modelPath));
+      const found = findTrainPath(obj.position, trackPieces);
+      trainPathRef.current = found?.path ?? null;
+      teleportTarget.current = found
+        ? { x: obj.position[0], z: obj.position[2], facing: found.startAngle, trainArc: found.startArc }
+        : { x: obj.position[0], z: obj.position[2], facing: obj.rotationY, trainArc: 0 };
+    } else {
+      teleportTarget.current = { x: obj.position[0], z: obj.position[2], facing: obj.rotationY };
+    }
     setDrivingObjectId(obj.id);
     setDriveConfirmId(null);
-    // Transportation Phase 2b — start the mounted vehicle's synthesized
-    // engine/splash sound (src/lib/vehicleAudio.ts). A mount is always a
-    // tap, so this is never true autoplay. Respects the student's own
+    // Transportation Phase 2b/3 — start the mounted vehicle's synthesized
+    // engine/splash/chug sound (src/lib/vehicleAudio.ts). A mount is always
+    // a tap, so this is never true autoplay. Respects the student's own
     // Settings toggle (2d) from the very first frame, not just after it's
     // later changed.
-    const kind: VehicleSoundKind = isBoatModel(obj.modelPath) ? 'boat' : 'car';
+    const kind: VehicleSoundKind = isBoatModel(obj.modelPath) ? 'boat' : isTrainModel(obj.modelPath) ? 'train' : 'car';
     vehicleSoundRef.current?.stop();
     const controller = new VehicleSoundController(kind, student?.vehicleSoundEnabled !== false);
     controller.start();
@@ -3025,6 +3186,9 @@ export default function TownSquare() {
     vehicleSoundRef.current?.stop();
     vehicleSoundRef.current = null;
     vehicleSpeedRef.current = 0;
+    trainPathRef.current = null;
+    trainGoRef.current = false;
+    trainReverseRef.current = false;
     // Direct teacher instruction: the radio is part of the car, so getting
     // out stops whatever's playing rather than leaving it running.
     setPlayingTrackId(null);
@@ -3636,13 +3800,17 @@ export default function TownSquare() {
             onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
             hideAvatar={!!drivingObjectId}
             driving={!!drivingObjectId}
-            vehicleKind={drivingIsBoat ? 'boat' : 'car'}
+            vehicleKind={drivingIsBoat ? 'boat' : drivingIsTrain ? 'train' : 'car'}
             groundPatches={groundPatches}
             gasRef={gasRef}
             brakeRef={brakeRef}
-            gasBlocked={!drivingIsBoat && carGasDashes <= 0}
+            gasBlocked={!drivingIsBoat && !drivingIsTrain && carGasDashes <= 0}
             speedRef={vehicleSpeedRef}
             soundRef={vehicleSoundRef}
+            trainPathRef={trainPathRef}
+            trainGoRef={trainGoRef}
+            trainReverseRef={trainReverseRef}
+            trainStopRef={trainStopRef}
           />
           {/* Transportation Phase 2b (docs/BOATS_DESIGN.md §4/§8) — the
               bow-wave/wake particle trail, Phase-1 scope for Boats per the
@@ -3752,7 +3920,8 @@ export default function TownSquare() {
               : baseObj;
             const isCar = isCarModel(obj.modelPath);
             const isBoat = isBoatModel(obj.modelPath);
-            const isVehicle = isCar || isBoat;
+            const isTrain = isTrainModel(obj.modelPath);
+            const isVehicle = isCar || isBoat || isTrain;
             const isMusicSource = isMusicSourceModel(obj.modelPath);
             return (
             <group key={obj.id}>
@@ -3866,13 +4035,13 @@ export default function TownSquare() {
               {driveConfirmId === obj.id && (
                 <Html center position={[obj.position[0], 2.4, obj.position[2]]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? `Board ${obj.customName || obj.label}?` : `Drive ${obj.customName || obj.label}?`}</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? `Board ${obj.customName || obj.label}?` : isTrain ? `Board ${obj.customName || obj.label}?` : `Drive ${obj.customName || obj.label}?`}</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
                         onClick={() => startDriving(obj)}
                         style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        {isBoat ? '⛵ Board!' : '🚗 Drive!'}
+                        {isBoat ? '⛵ Board!' : isTrain ? '🚂 Board!' : '🚗 Drive!'}
                       </button>
                       <button
                         onClick={() => setDriveConfirmId(null)}
@@ -3887,7 +4056,7 @@ export default function TownSquare() {
               {isDriving && exitConfirmActive && (
                 <Html center position={[playerPos.x, 2.4, playerPos.z]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? 'Get off the boat?' : 'Exit the car?'}</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? 'Get off the boat?' : isTrain ? 'Get off the train?' : 'Exit the car?'}</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
                         onClick={() => stopDriving(obj)}
@@ -3899,7 +4068,7 @@ export default function TownSquare() {
                         onClick={() => setExitConfirmActive(false)}
                         style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        {isBoat ? 'Keep sailing' : 'Keep driving'}
+                        {isBoat ? 'Keep sailing' : isTrain ? 'Keep riding' : 'Keep driving'}
                       </button>
                     </div>
                   </div>
@@ -3919,22 +4088,39 @@ export default function TownSquare() {
       </Canvas>
 
       <div style={{ position: 'absolute', [dpadSide]: 16, bottom: dpadBottom, width: 170, height: 170, zIndex: 10 }}>
-        {drivingObjectId && !drivingIsBoat ? (
+        {drivingObjectId && drivingIsTrain ? (
+          // Trains (docs/TRANSPORTATION.md §2 Trains) — "strictly on-rail,
+          // zero steering input. Controls: Go, Stop, Reverse — the
+          // simplest control surface of any vehicle here." No Left/Right
+          // at all (there's nothing to steer), all three buttons stacked
+          // in the same center column the other vehicles' Up/Down already
+          // use, same on-screen region every vehicle type occupies
+          // (DRIVING_UX_RESEARCH.md rec #6).
+          <>
+            <PedalButton label="Go" rotate={-90} color="#2f9e44" pressedRef={trainGoRef} style={{ top: 0, left: 50 }} />
+            <TrainStopButton stopRef={trainStopRef} style={{ top: 57, left: 50 }} />
+            <PedalButton label="Reverse" rotate={90} color="#3b6fae" pressedRef={trainReverseRef} style={{ bottom: 0, left: 50 }} />
+          </>
+        ) : drivingObjectId && !drivingIsBoat ? (
           <>
             <PedalButton label="Gas" rotate={-90} color="#2f9e44" pressedRef={gasRef} style={{ top: 0, left: 50 }} />
             <PedalButton label="Brake" rotate={90} color="#c0392b" pressedRef={brakeRef} style={{ bottom: 0, left: 50 }} />
           </>
         ) : (
-          // Boats deliberately reuse this same Up/Down D-pad as throttle
-          // forward/reverse (docs/BOATS_DESIGN.md §4: "no new control
-          // surface") instead of the car's dedicated Gas/Brake pedals.
           <>
+            {/* Boats deliberately reuse this same Up/Down D-pad as throttle
+                forward/reverse (docs/BOATS_DESIGN.md §4: "no new control
+                surface") instead of a dedicated pedal control surface. */}
             <DpadButton rotate={-90} label={drivingIsBoat ? 'Forward' : 'Up'} dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
             <DpadButton rotate={90} label={drivingIsBoat ? 'Reverse' : 'Down'} dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
           </>
         )}
-        <DpadButton rotate={180} label="Left" dx={-1} dz={0} style={{ left: 0, top: 57 }} touchDir={touchDir} />
-        <DpadButton rotate={0} label="Right" dx={1} dz={0} style={{ right: 0, top: 57 }} touchDir={touchDir} />
+        {!drivingIsTrain && (
+          <>
+            <DpadButton rotate={180} label="Left" dx={-1} dz={0} style={{ left: 0, top: 57 }} touchDir={touchDir} />
+            <DpadButton rotate={0} label="Right" dx={1} dz={0} style={{ right: 0, top: 57 }} touchDir={touchDir} />
+          </>
+        )}
       </div>
 
       {/* Claudia's controls audit: gating this to isDesktop meant touch
@@ -3998,7 +4184,7 @@ export default function TownSquare() {
           answerGasQuiz below) — never on its own. The Fill Up button is
           the voluntary, non-blocking version of that pump; running fully
           dry opens the un-skippable lockout automatically instead. */}
-      {drivingObjectId && !drivingIsBoat && (
+      {drivingObjectId && !drivingIsBoat && !drivingIsTrain && (
         <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.92)', padding: '5px 12px', borderRadius: 999, border: '2px solid var(--ink, #1f4238)', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}>
           <span style={{ fontSize: 15 }} aria-hidden="true">⛽</span>
           <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238' }}>Gas</span>
@@ -4075,6 +4261,8 @@ export default function TownSquare() {
         <p style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '0.78rem', color: '#1f4238', background: 'rgba(255,255,255,0.92)', padding: '4px 12px', borderRadius: 8, fontFamily: 'system-ui, sans-serif', textAlign: 'center', fontWeight: 600 }}>
           {drivingIsBoat
             ? '⛵ Sailing! Use WASD/arrow keys/the buttons to steer. Click the boat to get off.'
+            : drivingIsTrain
+            ? '🚂 Riding the rails! Use the Go/Stop/Reverse buttons. Click the train to get off.'
             : '🚗 Driving! Use WASD/arrow keys/the buttons to steer. Click the car to get out.'}
         </p>
       ) : !hasWalkedOnce && (
