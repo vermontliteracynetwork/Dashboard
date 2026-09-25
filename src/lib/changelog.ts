@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-book-paper-reskin',
+    date: '2026-09-25',
+    icon: '📖',
+    title: 'Books got a new paper look',
+    body: 'The Joke Book, Pet Book, and this What’s New book now look like real paper, with a ribbon banner for the title and paper page-turn buttons.',
+  },
+  {
     id: '2026-09-25-solid-objects-full-footprint',
     date: '2026-09-25',
     icon: '🧱',
