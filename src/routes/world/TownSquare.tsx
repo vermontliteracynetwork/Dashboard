@@ -1909,6 +1909,22 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       }
     }
     isMoving.current = moved;
+    // Final, unconditional safety net — whatever branch just ran, clamp
+    // one more time before it ever reaches the screen. Every branch above
+    // already clamps its own output EXCEPT the train's on-rail movement
+    // (sampleTrackPath), which deliberately follows the track's own
+    // coordinates every frame with no clamp, by design ("never a
+    // wall-style hard block" for trains) — but that means a track placed
+    // outside the normal lot (however that happened) rides a student
+    // there every single frame, forever, with no way back: exactly what
+    // repeated live reports traced to (a frozen-looking view, stuck
+    // exactly on one spot, arrows doing nothing recognizable as walking).
+    // Catching it here, once, for every branch, is more reliable than
+    // trying to enumerate and fix every current and future movement path
+    // individually — matches this codebase's standing "never leaves a
+    // student stuck" bar.
+    pos.current.x = clampGroundX(pos.current.x);
+    pos.current.z = clampGroundZ(pos.current.z);
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
     if (facingRef) facingRef.current = facing.current;
