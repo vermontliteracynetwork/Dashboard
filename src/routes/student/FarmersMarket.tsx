@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { petDefById, rarityFor, thumbnailFor } from '../../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind, FarmerMarketOffer, StudentPet, Student } from '../../types';
 import WebpageFrame from '../../components/WebpageFrame';
+import { Icon } from '../../components/Icon';
 
 // The Farmer's Market — direct teacher request, explicitly framed as a
 // way to practice negotiation as a real skill: students trade with each
@@ -230,7 +231,7 @@ export default function FarmersMarket() {
                     {o.status === 'accepted' && `Traded with ${studentName(isMine ? (o.acceptedByStudentId ?? '') : o.studentId)}!`}
                   </div>
                   {o.status === 'open' && isMine && (
-                    <button className="btn btn-sm" style={{ minHeight: 44, marginTop: 8 }} onClick={() => withdrawFarmerMarketOffer(o.id)}>✕ Withdraw</button>
+                    <button className="btn btn-sm" style={{ minHeight: 44, marginTop: 8 }} onClick={() => withdrawFarmerMarketOffer(o.id)}><Icon name="close" size={14} fallback="✕" /> Withdraw</button>
                   )}
                 </div>
               );
@@ -250,7 +251,7 @@ export default function FarmersMarket() {
                   {o.status === 'accepted' && `Traded with ${studentName(isMine ? (o.acceptedByStudentId ?? '') : o.studentId)}!`}
                 </div>
                 {o.status === 'open' && isMine && (
-                  <button className="btn btn-sm" style={{ minHeight: 44, marginTop: 8 }} onClick={() => withdrawFarmerMarketOffer(o.id)}>✕ Withdraw</button>
+                  <button className="btn btn-sm" style={{ minHeight: 44, marginTop: 8 }} onClick={() => withdrawFarmerMarketOffer(o.id)}><Icon name="close" size={14} fallback="✕" /> Withdraw</button>
                 )}
               </div>
             );
@@ -280,7 +281,7 @@ function PickPetModal({
       <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="space-between" style={{ marginBottom: 4 }}>
           <strong>Which pet do you want to give?</strong>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}><Icon name="close" size={14} fallback="✕" /> Close</button>
         </div>
         <p style={{ fontSize: '0.78rem', opacity: 0.75, margin: 0 }}>Any of these works, they're all {RARITY_LABEL[offer.wantsPetRarity ?? ''] ?? 'the same'} tier.</p>
         <div className="stack" style={{ gap: 6, maxHeight: 300, overflowY: 'auto' }}>
@@ -330,7 +331,7 @@ function PostTradeModal({
         <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
           <div className="space-between" style={{ marginBottom: 4 }}>
             <strong>What do you want to trade?</strong>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}><Icon name="close" size={14} fallback="✕" /> Close</button>
           </div>
           <div className="stack" style={{ gap: 8 }}>
             <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('item')}>🎁 A font, color, or voice</button>
@@ -347,7 +348,7 @@ function PostTradeModal({
         <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
           <div className="space-between" style={{ marginBottom: 4 }}>
             <strong>Pick a pet to give</strong>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}><Icon name="close" size={14} fallback="✕" /> Close</button>
           </div>
           <p style={{ fontSize: '0.78rem', opacity: 0.75, margin: 0 }}>You'll get back a pet of the same rarity tier in return.</p>
           {pets.length === 0 ? (
@@ -375,7 +376,7 @@ function PostTradeModal({
       <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
         <div className="space-between" style={{ marginBottom: 4 }}>
           <strong>{step === 1 ? 'Step 1: Pick what to give' : 'Step 2: Pick what you want'}</strong>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}>✕ Close</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}><Icon name="close" size={14} fallback="✕" /> Close</button>
         </div>
         {step === 1 ? (
           myTradeableItems.length === 0 ? (
