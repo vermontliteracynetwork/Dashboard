@@ -24,7 +24,7 @@ import { useTexture } from '@react-three/drei';
 // same flat-color sky as before).
 //
 // 9th sky attempt, 2026-09-25 — a live teacher screenshot of the 7th
-// attempt (sphere dome below) confirmed the exact same "jagged white
+// attempt (sphere dome, tiled) confirmed the exact same "jagged white
 // shard" artifact class that broke every equirect attempt before it, even
 // though RepeatWrapping tiling is a genuinely different, normally-safe
 // technique (it's what WorldEditor's own ground textures use without
@@ -34,26 +34,49 @@ import { useTexture } from '@react-three/drei';
 // triangle converging on the north/south pole gets wildly different UV
 // coordinates squeezed into one point, and with repeat.set(6,3) those
 // pole triangles smear a huge stretched swath of the tiled texture across
-// themselves. The camera looks toward the sky's upper half often, so the
-// pole sits right in view. A cube has no poles — switched to a
-// BackSide BoxGeometry skybox (the classic, textbook-safe way to render
-// a tiling sky pattern; each of the 6 faces gets its own independent,
-// ordinary 0-1 UV rect, no singularity, no seam-smear possible). The one
-// real tradeoff: the pattern doesn't perfectly continue across a cube's
-// edges the way it does around a sphere's equator, but a soft repeating
-// cloud pattern reads as fine there — nothing like the jagged artifact.
+// themselves. Switched to a BackSide BoxGeometry skybox to get away from
+// the pole (each of a box's 6 faces gets its own independent 0-1 UV rect).
+//
+// 10th sky attempt, same day — a second live screenshot from a different
+// student showed the SAME class of jagged shard artifact, on the box.
+// Root cause this time: a box has no pole, but it does have 12 edges where
+// two faces meet — and each face was independently tiling the SAME source
+// pattern at repeat.set(4,4) with no attempt to line up phase across
+// faces, so two different, unrelated crops of the cloud pattern meet
+// abruptly at every cube edge. For a soft gradient texture, an abrupt
+// meeting of two unrelated crops along a dead-straight line reads exactly
+// as the "torn paper" jagged shard artifact reported — this was a real,
+// different bug from the pole one, not a repeat of it.
+//
+// The actual fix: stop tiling entirely. `repeat.set(4,4)` (and `(6,3)`
+// before it) was never necessary for this specific art style — checked
+// pixel-for-pixel (see the tiling-seam check below): this texture's own
+// opposite edges already match almost exactly (avg per-channel diff ~1-2
+// out of 255), so it doesn't need to be repeated to look continuous, it
+// only needs to be shown ONCE, wrapped smoothly around a single seamless
+// surface. Back to SphereGeometry (a box's 12 hard edges are a strictly
+// worse surface than a sphere's single soft pole for an UNTILED texture),
+// with `repeat` left at its default (1,1) — one full copy of the image
+// wrapped around the whole sky. This keeps the pole (a sphere always has
+// one), but an UNTILED pole only pinches that single copy of the image
+// at one point — nothing left to "smear" the way a tiled, repeated
+// texture did, since there's no repeated pattern for adjacent UV
+// triangles to disagree about. And because the image already tiles
+// left-right almost perfectly, the sphere's other seam (the meridian
+// where U wraps from 1 back to 0) is invisible for this texture too.
+// widthSegments/heightSegments raised well past the default (32x16) so
+// the polygon facets near the pole are fine enough not to show as their
+// own faceted artifact.
 export const SKY_DOME_RADIUS = 180;
 
 export function SkyDome({ path }: { path: string }) {
   const texture = useTexture(path);
   useMemo(() => {
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4, 4);
     texture.colorSpace = THREE.SRGBColorSpace;
   }, [texture]);
   return (
     <mesh renderOrder={-1}>
-      <boxGeometry args={[SKY_DOME_RADIUS * 2, SKY_DOME_RADIUS * 2, SKY_DOME_RADIUS * 2]} />
+      <sphereGeometry args={[SKY_DOME_RADIUS, 64, 40]} />
       <meshBasicMaterial map={texture} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />
     </mesh>
   );
