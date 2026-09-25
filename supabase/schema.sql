@@ -747,17 +747,19 @@ alter table app_settings add column if not exists npc_voice_overrides jsonb not 
 -- see LayoutOverride in types.ts.
 alter table app_settings add column if not exists layout_overrides jsonb not null default '{}';
 -- Build Mode's paint bucket. ground_texture is a path under
--- /world/textures/ (null = the default grass); sky_color is a horizon fog
--- tint layered over the real skybox photo, never replacing it (null = no
--- tint, today's exact look). See WorldEditor.tsx's paint-mode comment.
+-- /world/textures/ (null = the default grass); sky_color sets the flat
+-- sky color directly (null = the default '#bfe3ff'). See WorldEditor.tsx's
+-- paint-mode comment.
 alter table app_settings add column if not exists ground_texture text;
 alter table app_settings add column if not exists sky_color text;
--- A real equirectangular sky image (null = no texture, sky_color/default
--- flat color still applies) — direct teacher request to make her own
--- uploaded sky textures (public/world/sky/, public/world/textures/space/)
--- selectable from Build Mode's Fill Sky tool. See TownSquare.tsx's
--- SkyboxBackground for this codebase's documented history of this exact
--- equirect-mapping technique failing live QA on other source images.
+-- A seamless-tileable sky pattern id from SKY_TEXTURE_OPTIONS, rendered as
+-- a tiled dome over the flat sky_color (null = no texture, flat color
+-- only) — direct teacher request to make her own uploaded seamless sky
+-- textures selectable from Build Mode's Fill Sky tool. This is NOT the
+-- earlier equirectangular-photo technique: see TownSquare.tsx's
+-- SkyboxBackground and SkyDome.tsx for this codebase's documented history
+-- of that different, now-banned technique failing live QA, and why this
+-- tiling approach is a separate, safer one.
 alter table app_settings add column if not exists sky_texture text;
 -- Same override pattern as emote_price_overrides above — Characters had
 -- zero teacher-editable price anywhere until now (direct teacher report:

@@ -23,16 +23,24 @@ export default function WebpageFrame({
   url,
   backTo,
   backLabel,
+  onBack,
 }: {
   url: string;
   backTo?: string;
   backLabel?: string;
+  // Chat is the one screen this chrome wraps that isn't a routed page — it's
+  // a shared teacher/student overlay modal (ChatPanel.tsx) opened from six
+  // different places. Passing onBack instead of backTo keeps this component
+  // usable there too: the Back button calls the modal's own onClose instead
+  // of navigating, so its existing close contract at every call site is
+  // untouched. Every routed screen keeps using backTo/navigate as before.
+  onBack?: () => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
   const effectiveBackTo = backTo ?? (cameFromTown ? '/world/town' : '/student/home');
-  const effectiveBackLabel = backLabel ?? (cameFromTown ? '🌳 Back to Town Square' : '⬅️ Back to Computer');
+  const effectiveBackLabel = backLabel ?? (onBack ? '✕ Close' : cameFromTown ? '🌳 Back to Town Square' : '⬅️ Back to Computer');
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(#e9e5d8, #cfc9b7)', border: '2px solid #8a8574', borderRadius: '8px 8px 0 0', padding: '6px 10px', fontFamily: '"Courier New", monospace', fontSize: 13, color: '#3a362b' }}>
       <span style={{ display: 'flex', gap: 4 }}>
@@ -46,7 +54,7 @@ export default function WebpageFrame({
       <button
         className="btn btn-sm"
         style={{ fontFamily: 'system-ui, sans-serif', background: '#3e7c6b', color: '#fff' }}
-        onClick={() => navigate(effectiveBackTo)}
+        onClick={() => (onBack ? onBack() : navigate(effectiveBackTo))}
       >
         {effectiveBackLabel}
       </button>

@@ -322,8 +322,8 @@ interface AppState {
   farmerMarketOffers: FarmerMarketOffer[]; // student-to-student barter offers — async/turn-based, see FarmerMarketOffer in types.ts
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
-  skyColor: string | null; // Build Mode's paint bucket for the sky — a horizon fog tint layered over the real skybox photo, never replacing it; null = no tint (today's exact look)
-  skyTexture: string | null; // Build Mode's Fill Sky texture picker — a real equirectangular sky image path (see SkyboxBackground in TownSquare.tsx); null = no texture, skyColor/default flat color still applies
+  skyColor: string | null; // Build Mode's paint bucket for the sky — sets the flat sky color directly (see SkyboxBackground in TownSquare.tsx); null = the default '#bfe3ff'
+  skyTexture: string | null; // Build Mode's Fill Sky texture picker — a seamless-tileable sky pattern id from SKY_TEXTURE_OPTIONS (see SkyDome.tsx), rendered as a tiled dome over the flat color; null = no texture, flat skyColor only
   avatarPriceOverrides: Record<string, number>; // same override pattern as emotePriceOverrides — Characters had no teacher-editable price anywhere until now
   focuses: Focus[]; // class-wide curriculum spotlights (math/literacy/sel/finance lanes) — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;

@@ -20,6 +20,7 @@ import ReadAloud from '../../components/ReadAloud';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
+import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
 import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS } from './townLayout';
@@ -1787,33 +1788,14 @@ function SkyboxBackground({ skyColor }: { skyColor?: string | null }) {
 // Seventh sky attempt, direct teacher upload: a real seamless-tileable sky
 // pack (see SKY_TEXTURE_OPTIONS in townLayout.ts for the full provenance
 // and why this is a genuinely different, safer technique than every prior
-// equirect-photo attempt above, not a retry of the banned one). Renders as
-// a big BackSide sphere dome with the texture tiled via RepeatWrapping —
-// the same safe tiling approach WorldEditor's ground textures already use
-// — rather than one image stretched across the whole sphere as a single
-// panorama. Static and world-centered, radius comfortably past the fog's
-// own far distance (90) and past anywhere the play area's camera actually
-// reaches, so the dome never needs to track/recenter on the camera.
-// fog={false}: at this radius the scene fog would otherwise wash the
-// entire dome out to a flat fog color before the texture ever became
-// visible, which defeats the point of a sky texture. Opt-in only — only
-// rendered when a teacher has actually picked one in Build Mode's Fill Sky
-// panel (skyTexture is null by default, same flat-color sky as before).
-const SKY_DOME_RADIUS = 180;
-function SkyDome({ path }: { path: string }) {
-  const texture = useTexture(path);
-  useMemo(() => {
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(6, 3);
-    texture.colorSpace = THREE.SRGBColorSpace;
-  }, [texture]);
-  return (
-    <mesh renderOrder={-1}>
-      <sphereGeometry args={[SKY_DOME_RADIUS, 48, 32]} />
-      <meshBasicMaterial map={texture} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />
-    </mesh>
-  );
-}
+// equirect-photo attempt above, not a retry of the banned one). SkyDome
+// itself now lives in ./SkyDome.tsx, shared with WorldEditor.tsx's own
+// Build Mode preview — a teacher picking a texture there used to never see
+// it rendered anywhere but live Town Square; both routes now render the
+// exact same component so the preview and the real thing can't drift
+// apart. Opt-in only — only rendered when a teacher has actually picked
+// one in Build Mode's Fill Sky panel (skyTexture is null by default, same
+// flat-color sky as before).
 
 // Same proximity-based label/button pattern buildings/Neighbors already
 // use (walk up, see a label, then a button appears) rather than a raycast hitbox on the

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { SillyQuiz, QuizOutcome } from '../../types';
+import WebpageFrame from '../../components/WebpageFrame';
 
 // Silly Personality Quizzes — the second half of the Playground-gallery
 // brainstorm ("memes, mini games, and silly personality quizzes"), built
@@ -28,7 +28,6 @@ function pickOutcome(quiz: SillyQuiz, tallyByOutcomeTag: Record<string, number>)
 }
 
 export default function SillyQuizzes() {
-  const navigate = useNavigate();
   const sillyQuizzes = useStore((s) => s.sillyQuizzes);
   const [activeQuiz, setActiveQuiz] = useState<SillyQuiz | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -61,15 +60,16 @@ export default function SillyQuizzes() {
   };
 
   return (
+    // Direct teacher instruction: every "webpage" screen reads as displayed
+    // inside a physical laptop now — same .laptop-frame/.laptop-screen/
+    // .laptop-deck StudentHome.tsx already uses. Silly Quizzes, like
+    // Gallery, is only ever reached from the Playground, so Back always
+    // returns there instead of the WebpageFrame default of the Computer.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
     <div className="container stack">
-      <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))' }}>
-        <h2 style={{ margin: 0 }}>🔮 Silly Quizzes</h2>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/playground/view')}>🎪 Playground</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
-        </div>
-      </div>
+      <WebpageFrame url="quizzes" backTo="/student/playground/view" backLabel="🎪 Back to Playground" />
+      <h2 style={{ margin: 0, textAlign: 'center' }}>🔮 Silly Quizzes</h2>
 
       {!activeQuiz ? (
         <>
@@ -113,6 +113,9 @@ export default function SillyQuizzes() {
           </div>
         </div>
       )}
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { speak } from '../../components/ReadAloud';
 import HelpOverlay from '../../components/HelpOverlay';
+import { useSyncedTTS, SyncedSpeakButton, HighlightedText, type SyncedTTS } from '../../components/SyncedSpeakButton';
+import { ReferencePopover } from '../../components/ReferencePopover';
 import { SANDBOX_PIECES } from '../../lib/grammarContent';
 import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS } from '../../lib/morphemeContent';
 import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, PROPER_NOUNS } from '../../lib/montessoriGrammar';
@@ -236,14 +237,14 @@ function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, mor
     const info = MONTESSORI_WORD_CLASS_INFO[wordClass ?? 'noun'];
     const box = compact ? 48 : 96;
     const img = compact ? 40 : 80;
+    // A23-ROADMAP Phase 1: generalized into the shared ReferencePopover
+    // (hover mode) instead of its own bespoke tooltip markup.
     return (
-      <div className="lm-symbol-tip-wrap" tabIndex={-1} style={{ width: box, height: box, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={info.imageUrl} alt={info.label} draggable={false} style={{ width: img, height: img, objectFit: 'contain', pointerEvents: 'none' }} />
-        <div className="lm-symbol-tip" role="tooltip">
-          <strong>{info.name}</strong>
-          {info.label}
+      <ReferencePopover mode="hover" title={info.name} body={info.label}>
+        <div style={{ width: box, height: box, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src={info.imageUrl} alt={info.label} draggable={false} style={{ width: img, height: img, objectFit: 'contain', pointerEvents: 'none' }} />
         </div>
-      </div>
+      </ReferencePopover>
     );
   }
   if (kind === 'letter') {
@@ -353,25 +354,23 @@ function Category({ label, color, open, onToggle, children }: {
 // material. The 🔈 button is separate so a tap can still just hear the
 // word without placing a tile (its own pointerdown is stopped from
 // bubbling up so it doesn't also start a drag).
-function WordListRow({ word, onDragStart, onSpeak }: {
-  word: string; onDragStart: (e: React.PointerEvent) => void; onSpeak: () => void;
+function WordListRow({ word, rowId, onDragStart, tts }: {
+  word: string; rowId: string; onDragStart: (e: React.PointerEvent) => void; tts: SyncedTTS;
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <Draggable label={word} onPointerDown={onDragStart} style={{ flex: 1, justifyContent: 'flex-start' }}>
         <span style={{ textAlign: 'left', padding: '6px 2px', fontSize: '0.95rem', color: 'var(--ink)', minHeight: 36, display: 'flex', alignItems: 'center' }}>
-          {word}
+          <HighlightedText text={word} active={tts.activeId === rowId} wordIndex={tts.wordIndex} />
         </span>
       </Draggable>
-      <button
-        type="button"
-        onClick={onSpeak}
-        onPointerDown={(e) => e.stopPropagation()}
-        aria-label={`Hear ${word}`}
+      <SyncedSpeakButton
+        id={rowId}
+        text={word}
+        tts={tts}
+        label={word}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 6 }}
-      >
-        🔈
-      </button>
+      />
     </div>
   );
 }
@@ -390,16 +389,17 @@ function SymbolSentenceCard({ sentence, onPointerDown }: {
 }) {
   return (
     <Draggable label={sentence.sentence} onPointerDown={onPointerDown} style={{ width: '100%' }}>
-      <div className="lm-symbol-tip-wrap" tabIndex={-1} style={{
-        display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', width: '100%',
-        padding: '8px 10px', border: '2px solid var(--ink)', borderRadius: 10, background: 'white',
-        boxShadow: '2px 2px 0 rgba(31,17,71,0.15)',
-      }}>
-        {sentence.words.map((w, i) => (
-          <img key={i} src={MONTESSORI_WORD_CLASS_INFO[w.wordClass].imageUrl} alt="" draggable={false} style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0, pointerEvents: 'none' }} />
-        ))}
-        <div className="lm-symbol-tip" role="tooltip">{sentence.sentence}</div>
-      </div>
+      <ReferencePopover mode="hover" body={sentence.sentence}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', width: '100%',
+          padding: '8px 10px', border: '2px solid var(--ink)', borderRadius: 10, background: 'white',
+          boxShadow: '2px 2px 0 rgba(31,17,71,0.15)',
+        }}>
+          {sentence.words.map((w, i) => (
+            <img key={i} src={MONTESSORI_WORD_CLASS_INFO[w.wordClass].imageUrl} alt="" draggable={false} style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0, pointerEvents: 'none' }} />
+          ))}
+        </div>
+      </ReferencePopover>
     </Draggable>
   );
 }
@@ -578,6 +578,11 @@ export default function GrammarSandbox() {
   const [confirmExit, setConfirmExit] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // A23-ROADMAP Phase 1 (spec's own top priority): one shared TTS-with-
+  // synced-word-highlighting engine, mounted once here and passed down to
+  // every 🔈 button in this screen (SyncedSpeakButton) instead of each
+  // one calling the plain speak() independently.
+  const tts = useSyncedTTS();
   // Zoom — direct teacher instruction: "add zoom feature for white
   // board." Scales the whole canvas visually (transform: scale, from
   // the top-left); placed items keep their real, unscaled x/y, so
@@ -1504,7 +1509,7 @@ export default function GrammarSandbox() {
                 <SubcategoryRow id="phonics" label="Phonics patterns" open={openSubcategories.phonics} onToggle={() => toggleSubcategory('phonics')}>
                   <div className="stack" style={{ gap: 2 }}>
                     {activeFocus!.phonicsPatterns.map((w) => (
-                      <WordListRow key={`p-${w}`} word={w} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} onSpeak={() => speak(w, student.ttsSettings)} />
+                      <WordListRow key={`p-${w}`} word={w} rowId={`wl-p-${w}`} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} tts={tts} />
                     ))}
                   </div>
                 </SubcategoryRow>
@@ -1513,7 +1518,7 @@ export default function GrammarSandbox() {
                 <SubcategoryRow id="morphemesList" label="Word parts" open={openSubcategories.morphemesList} onToggle={() => toggleSubcategory('morphemesList')}>
                   <div className="stack" style={{ gap: 2 }}>
                     {activeFocus!.morphemes.map((w) => (
-                      <WordListRow key={`m-${w}`} word={w} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} onSpeak={() => speak(w, student.ttsSettings)} />
+                      <WordListRow key={`m-${w}`} word={w} rowId={`wl-m-${w}`} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} tts={tts} />
                     ))}
                   </div>
                 </SubcategoryRow>
@@ -1522,7 +1527,7 @@ export default function GrammarSandbox() {
                 <SubcategoryRow id="spelling" label="Spelling words" open={openSubcategories.spelling} onToggle={() => toggleSubcategory('spelling')}>
                   <div className="stack" style={{ gap: 2 }}>
                     {activeFocus!.practiceWords.map((w) => (
-                      <WordListRow key={`w-${w}`} word={w} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} onSpeak={() => speak(w, student.ttsSettings)} />
+                      <WordListRow key={`w-${w}`} word={w} rowId={`wl-w-${w}`} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: w }))} tts={tts} />
                     ))}
                   </div>
                 </SubcategoryRow>
@@ -1621,24 +1626,29 @@ export default function GrammarSandbox() {
                 from the root's own etymology plus the affix's ordinary
                 meaning. Follow-up instruction: "add TTS for definitons
                 of combined words using morphemes." */}
-            {morphemeCombos.map((c) => (
-              <div key={c.id} className="chrome-frame" style={{ position: 'absolute', left: c.x - 20, top: c.y + 72, width: 240, padding: 8, fontSize: '0.72rem', zIndex: 3 }}>
-                <div className="space-between" style={{ alignItems: 'center', marginBottom: 2 }}>
-                  <div style={{ fontWeight: 800 }}>✨ {c.word}</div>
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    style={{ padding: '2px 8px', minHeight: 24 }}
-                    onClick={() => speak(`${c.word}. ${c.definition}${c.etymology ? `. ${c.etymology}` : ''}`, student.ttsSettings, student.equippedVoiceId)}
-                    aria-label={`Hear the definition of ${c.word}`}
-                  >
-                    🔈
-                  </button>
-                </div>
-                <div>{c.definition}</div>
-                {c.etymology && <div style={{ marginTop: 4, opacity: 0.7 }}>📜 {c.etymology}</div>}
-              </div>
-            ))}
+            {morphemeCombos.map((c) => {
+              // A23-ROADMAP Phase 1: generalized into ReferencePopover
+              // (inline mode) with synced word-highlighting — the visible
+              // body text is now the exact same string that's spoken
+              // (word + definition + etymology as one flowing passage),
+              // so the highlighted word always matches what's on screen.
+              const spokenText = `${c.word}. ${c.definition}${c.etymology ? `. ${c.etymology}` : ''}`;
+              const speakId = `morph-${c.id}`;
+              return (
+                <ReferencePopover
+                  key={c.id}
+                  mode="inline"
+                  title="✨ Real word!"
+                  body={<HighlightedText text={spokenText} active={tts.activeId === speakId} wordIndex={tts.wordIndex} />}
+                  speakId={speakId}
+                  speakText={spokenText}
+                  tts={tts}
+                  settings={student.ttsSettings}
+                  voiceSkinId={student.equippedVoiceId}
+                  style={{ position: 'absolute', left: c.x - 20, top: c.y + 72, width: 240, padding: 8, fontSize: '0.72rem', zIndex: 3 }}
+                />
+              );
+            })}
             {/* Symbol Sentences, placed as one unit — direct follow-up
                 instructions: they drag/select/delete as a whole (not
                 per-symbol), and a selected one also shows a ⚙️ settings
@@ -1886,17 +1896,23 @@ export default function GrammarSandbox() {
                   </div>
                   {isComplete && (
                     <div style={{ marginTop: 10 }}>
-                      <input
-                        readOnly
-                        value={displaySentenceText}
+                      {/* A23-ROADMAP Phase 1: was a read-only <input>, now a
+                          styled div so the synced-TTS word highlight can
+                          render inside it while a voice button below reads
+                          it aloud (an <input>'s value can't hold markup). */}
+                      <div
+                        role="textbox"
+                        aria-readonly="true"
                         aria-label="Completed sentence"
                         style={{ width: '100%', boxSizing: 'border-box', fontWeight: 700, fontFamily: "'Baloo 2', sans-serif", fontSize: '0.9rem', border: '2px solid var(--ink)', borderRadius: 6, padding: '6px 8px', background: 'white' }}
-                      />
+                      >
+                        <HighlightedText text={displaySentenceText} active={tts.activeId === `sf-${item.instanceId}`} wordIndex={tts.wordIndex} />
+                      </div>
                       <div className="row-wrap" style={{ gap: 6, marginTop: 6, alignItems: 'center' }}>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.6 }}>🔈 Read it as:</span>
-                        <button className="btn btn-sm" onClick={() => speak(sentenceText, student.ttsSettings, null)}>Default</button>
+                        <button className="btn btn-sm" onClick={() => tts.speakSynced(`sf-${item.instanceId}`, sentenceText, student.ttsSettings, null)}>Default</button>
                         {ownedVoices.map((v) => (
-                          <button key={v.id} className="btn btn-sm" onClick={() => speak(sentenceText, student.ttsSettings, v.id)}>{v.name}</button>
+                          <button key={v.id} className="btn btn-sm" onClick={() => tts.speakSynced(`sf-${item.instanceId}`, sentenceText, student.ttsSettings, v.id)}>{v.name}</button>
                         ))}
                         <button className="btn btn-sm" onClick={() => pasteSentenceToTextBox(displaySentenceText)} title="Add this sentence to your paragraph text box">📋 Add to paragraph</button>
                       </div>
@@ -1910,7 +1926,14 @@ export default function GrammarSandbox() {
                     <div className="chrome-frame" style={{ marginTop: 10, padding: 8, fontSize: '0.75rem', background: allOk ? '#f0fdf4' : '#fffbeb' }}>
                       <div className="space-between" style={{ alignItems: 'center', marginBottom: allOk ? 0 : 4 }}>
                         <strong>{allOk ? '✅ Looks correct!' : '💡 A few things to check'}</strong>
-                        <button className="btn btn-sm" style={{ padding: '2px 8px', minHeight: 26 }} onClick={() => speak(checkSpeech, student.ttsSettings, student.equippedVoiceId)} aria-label="Hear the check">🔈</button>
+                        {/* A23-ROADMAP Phase 1: shared synced-TTS engine.
+                            No word-highlight rendered against the bullet
+                            list below, since its wording is reformatted
+                            for scanning (not the same string as
+                            checkSpeech) — highlighting against mismatched
+                            text would mislead more than help, a deliberate
+                            scope call rather than an oversight. */}
+                        <SyncedSpeakButton id={`check-${item.instanceId}`} text={checkSpeech} tts={tts} settings={student.ttsSettings} voiceSkinId={student.equippedVoiceId} style={{ padding: '2px 8px', minHeight: 26 }} ariaLabel="Hear the check" />
                       </div>
                       {!allOk && (
                         <ul style={{ margin: 0, paddingLeft: 16 }}>

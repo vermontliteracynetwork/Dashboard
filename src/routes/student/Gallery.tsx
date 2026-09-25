@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import WebpageFrame from '../../components/WebpageFrame';
 
 // The Playground's Gallery — direct teacher request (referencing the
 // Kinzoo app's kid-facing content gallery): "a gallery where I can add
@@ -11,22 +11,23 @@ import { useStore } from '../../store/store';
 // mini games from the same original request are a separate, not-yet-
 // built piece (needs a design pass first) — this is just the image half.
 export default function Gallery() {
-  const navigate = useNavigate();
   const galleryItems = useStore((s) => s.galleryItems);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const open = galleryItems.find((g) => g.id === openId) ?? null;
 
   return (
+    // Direct teacher instruction: every "webpage" screen reads as displayed
+    // inside a physical laptop now — same .laptop-frame/.laptop-screen/
+    // .laptop-deck StudentHome.tsx already uses. Gallery is only ever
+    // reached from the Playground (no Town Square walk-up building exists
+    // for it), so Back always goes there, not the WebpageFrame default of
+    // the Computer.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
     <div className="container stack">
-      <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--pink), var(--orange))' }}>
-        <h2 style={{ margin: 0 }}>🎉 Gallery</h2>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/playground/view')}>🎪 Playground</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
-        </div>
-      </div>
+      <WebpageFrame url="gallery" backTo="/student/playground/view" backLabel="🎪 Back to Playground" />
+      <h2 style={{ margin: 0, textAlign: 'center' }}>🎉 Gallery</h2>
 
       <p style={{ textAlign: 'center', fontWeight: 700 }}>Just for fun, look through and tap anything! ✨</p>
 
@@ -70,6 +71,9 @@ export default function Gallery() {
           ))}
         </div>
       )}
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

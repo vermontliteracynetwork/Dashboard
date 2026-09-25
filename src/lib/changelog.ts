@@ -23,6 +23,27 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: 'Sail a boat and you will hear a soft engine sound and see a splash trail behind you that gets bigger the faster you go, plus a gentle bump sound near a dock or shore. Check Settings if you want to turn vehicle sound off, or turn on Reduce Motion to turn off the splash trail.',
   },
   {
+    id: '2026-09-25-marketplace-amazon-look',
+    date: '2026-09-25',
+    icon: '🛍️',
+    title: 'Marketplace has a new look',
+    body: 'The Marketplace now has a sidebar on the side to pick what you want to shop for, and bigger item cards with a big Add to Cart button on each one. Searching and filtering still work just like before.',
+  },
+  {
+    id: '2026-09-25-computer-laptop-look',
+    date: '2026-09-25',
+    icon: '💻',
+    title: 'More screens look like real webpages now',
+    body: 'Cinema, Arcade, Gallery, Farmer\'s Market, and Silly Quizzes all show up inside the laptop screen look now, with the same Back button as everywhere else on your Computer. Chat has a browser-style bar at the top too.',
+  },
+  {
+    id: '2026-09-25-lm-synced-tts',
+    date: '2026-09-25',
+    icon: '🔈',
+    title: 'Words light up when they are read aloud',
+    body: 'In Literacy Manipulatives, when you tap a 🔈 button on a word list, a morpheme card, or a finished Sentence Formula sentence, the word being spoken lights up as it is read. It works on most devices; on a few it will still read aloud, just without the light-up.',
+  },
+  {
     id: '2026-09-25-lm-new-symbols',
     date: '2026-09-25',
     icon: '🔺',
