@@ -1592,8 +1592,16 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     // and regardless of `frozen` (mapView is still true for this one
     // frame; the parent's setMapView(false) hasn't re-rendered yet).
     if (teleportTarget.current) {
-      pos.current.x = teleportTarget.current.x;
-      pos.current.z = teleportTarget.current.z;
+      // Defense-in-depth: every OTHER x/z write in this file goes through
+      // clampGroundX/clampGroundZ; this was the one spot that didn't,
+      // directly reported by a stuck student whose avatar landed off the
+      // map (via mounting a vehicle placed outside the lot — see
+      // startDriving's own fix). Clamping at this single consumption
+      // point, not just at startDriving's call site, means no future
+      // teleportTarget writer can reintroduce the same "stuck off the map"
+      // failure by forgetting to clamp its own x/z first.
+      pos.current.x = clampGroundX(teleportTarget.current.x);
+      pos.current.z = clampGroundZ(teleportTarget.current.z);
       if (teleportTarget.current.facing !== undefined) facing.current = teleportTarget.current.facing;
       carSpeed.current = 0;
       boatSpeed.current = 0;
@@ -3616,15 +3624,26 @@ export default function TownSquare() {
     // has no path (findTrainPath returns null); it still "mounts" (the
     // student can look around/exit), it just can't move — the standing
     // "no fail state" rule, not an error.
+    // Clamp through the same ground-bounds function every other movement
+    // path in this file already uses. Direct student-blocking bug: a
+    // vehicle's own stored position was outside the walkable lot (however
+    // that happened — a stale placement, a since-shrunk lot), and mounting
+    // it teleported the student straight to that raw, unclamped position
+    // (teleportTarget's own assignment has never clamped, unlike every
+    // other x/z write in this file), stranding them off the map with no
+    // way to walk back. A train still mounts onto its resolved track arc
+    // (never a free x/z), so it doesn't need this.
+    const mountX = clampGroundX(obj.position[0]);
+    const mountZ = clampGroundZ(obj.position[2]);
     if (isTrainModel(obj.modelPath)) {
       const trackPieces = worldObjects.filter((o) => isTrackModel(o.modelPath));
       const found = findTrainPath(obj.position, trackPieces);
       trainPathRef.current = found?.path ?? null;
       teleportTarget.current = found
         ? { x: obj.position[0], z: obj.position[2], facing: found.startAngle, trainArc: found.startArc }
-        : { x: obj.position[0], z: obj.position[2], facing: obj.rotationY, trainArc: 0 };
+        : { x: mountX, z: mountZ, facing: obj.rotationY, trainArc: 0 };
     } else {
-      teleportTarget.current = { x: obj.position[0], z: obj.position[2], facing: obj.rotationY };
+      teleportTarget.current = { x: mountX, z: mountZ, facing: obj.rotationY };
     }
     setDrivingObjectId(obj.id);
     setDriveConfirmId(null);
