@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
+import { SkyDome } from '../world/SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
@@ -752,8 +753,12 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
 // SkyboxBackground. EquirectangularReflectionMapping is now confirmed
 // broken twice, independently, on two different real images in this
 // codebase — do not retry it again on a third image; the mapping itself
-// is the problem here, not any one photo. Removed entirely: Fill Sky is
-// flat color only now, full stop.
+// is the problem here, not any one photo. Removed entirely at that point:
+// Fill Sky was flat color only, full stop.
+// A 7th attempt (a real seamless-tileable sky pack, a different technique
+// entirely — see SkyDome.tsx) brought the texture picker back below, opt-in
+// and still defaulting to flat color; see that file's comment for why this
+// isn't a retry of the banned equirect mapping.
 // Same tiling approach as TownSquare's own GroundMaterial (which this
 // mirrors) so a texture picked here looks the same once it's real —
 // ~4 world units per tile against the visible ground diameter.
@@ -1463,6 +1468,7 @@ export default function WorldEditor() {
   const setSkyColor = useStore((s) => s.setSkyColor);
   const skyTexture = useStore((s) => s.skyTexture);
   const setSkyTexture = useStore((s) => s.setSkyTexture);
+  const skyTexturePath = skyTexture ? SKY_TEXTURE_OPTIONS.find((t) => t.id === skyTexture)?.path : undefined;
   const [skyTextureCategory, setSkyTextureCategory] = useState<string | null>(null);
   const restoreWorldEditorState = useStore((s) => s.restoreWorldEditorState);
   const retrySyncNow = useStore((s) => s.retrySyncNow);
@@ -2539,15 +2545,17 @@ export default function WorldEditor() {
                 see SKY_TEXTURE_OPTIONS in townLayout.ts for why this is a
                 different, safer technique than every earlier sky-photo
                 attempt (a repeating pattern, not one panorama stretched
-                over the whole sky) and TownSquare.tsx's SkyDome for how
-                it actually renders. Category chips first (8 cloud styles),
+                over the whole sky) and ../world/SkyDome.tsx for how it
+                actually renders. Category chips first (8 cloud styles),
                 then a thumbnail grid of that category's mood/variants —
                 same two-level picker shape Build Mode's own asset catalog
-                already uses. Picking a thumbnail applies it immediately,
-                same as every other swatch picker in this app; still
-                genuinely new 3D rendering this sandbox can't visually
-                verify, so treat it as needing a live look before calling
-                it done. */}
+                already uses. Picking a thumbnail applies it immediately and
+                now shows up in this same 3D preview above (SkyDome render
+                added directly to this Canvas) — a teacher no longer has to
+                leave Build Mode and walk into live Town Square to see what
+                a pick actually looks like. Still genuinely new 3D rendering
+                this sandbox can't itself visually verify, so treat it as
+                needing a live look before calling it done. */}
             <div className="row-wrap" style={{ gap: 4 }}>
               {Array.from(new Set(SKY_TEXTURE_OPTIONS.map((t) => t.category))).map((cat) => (
                 <button
@@ -2707,6 +2715,17 @@ export default function WorldEditor() {
                 be zoomed out past the town to go looking for it. */}
             <color attach="background" args={[skyColor ?? '#bfe3ff']} />
             <fog attach="fog" args={[skyColor ?? '#bfe3ff', 26, 46]} />
+            {/* Same SkyDome Town Square itself renders (see SkyDome.tsx) —
+                until this was added, a teacher picking a thumbnail in the
+                Fill Sky panel below could never actually see it applied
+                anywhere in Build Mode, only after walking into live Town
+                Square. Wrapped in its own Suspense so a still-loading
+                texture doesn't blank the rest of the preview. */}
+            {skyTexturePath && (
+              <Suspense fallback={null}>
+                <SkyDome path={skyTexturePath} />
+              </Suspense>
+            )}
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 16, 8]} intensity={1.2} castShadow />
             {/* Claudia's controls audit: the default three.js binding (left-
