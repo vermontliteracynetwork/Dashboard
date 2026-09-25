@@ -24,7 +24,7 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS, groundBoundsMaxExtent } from './townLayout';
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
@@ -72,6 +72,25 @@ const NEIGHBOR_FOCUS_LANE: Record<string, FocusSubject> = {
 // circle's silhouette against the sky always arcs. Pushing the edge out
 // of view fixes the read without changing the shape.
 const GROUND_VISUAL_RADIUS = GROUND_HALF * 4;
+// Reactive replacements for the movement/collision clamps that used to read
+// the single fixed GROUND_HALF directly — see GroundBounds in types.ts and
+// store.ts's groundBounds/expandGroundBounds. Read imperatively via
+// useStore.getState() rather than the reactive useStore() hook: almost
+// every call site below is plain movement math inside a useFrame callback
+// (planes, pets, NPCs, the player's own walk bound), not a component body,
+// so a hook isn't available there — and isn't needed, since useFrame
+// already re-runs every frame, so the very next frame after a teacher
+// expands a wall picks up the new value with no extra plumbing. Every
+// existing building/prop/NPC keeps its own literal x/z coordinate; nothing
+// already placed moves when a wall is pushed out.
+function clampGroundX(v: number): number {
+  const b = useStore.getState().groundBounds;
+  return THREE.MathUtils.clamp(v, -b.west + 1, b.east - 1);
+}
+function clampGroundZ(v: number): number {
+  const b = useStore.getState().groundBounds;
+  return THREE.MathUtils.clamp(v, -b.north + 1, b.south - 1);
+}
 const TALK_RADIUS = 1.8;
 // Tier 3 of Claudia's guardrails design: how long a student needs to have
 // been free-roaming (with real tasks still open) before Scout's rare
@@ -184,7 +203,13 @@ const DRAG_PITCH_SENSITIVITY = 0.01;
 // with the same margin-past-GROUND_HALF ratio as before, scaled up now
 // that GROUND_HALF itself grew (14 -> 22, more room to drive) — otherwise
 // the map view would crop the newly-expanded edges of the square.
-const MAP_HEIGHT = 46 * (GROUND_HALF / 14);
+// A function, not a fixed constant, now that the lot's extent can grow past
+// the old fixed GROUND_HALF — see mapHeightFor's call site (the map-view
+// camera lerp in Player's useFrame) for why an expanded wall must still fit
+// in frame.
+function mapHeightFor(maxExtent: number): number {
+  return 46 * (maxExtent / 14);
+}
 const WANDER_SPEED = 1.3; // slower than the player's walk — ambient, unhurried
 const WANDER_RADIUS = 3.5; // how far a wandering NPC roams from its home spot
 
@@ -819,13 +844,13 @@ function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef,
     // (both x and z shifted), so a target right at the edge could compute
     // just past the boundary without this — the one place in the file that
     // was still unclamped.
-    const targetX = THREE.MathUtils.clamp(playerPos.x - PET_FOLLOW_OFFSET, -GROUND_HALF + 1, GROUND_HALF - 1);
-    const targetZ = THREE.MathUtils.clamp(playerPos.z - PET_FOLLOW_OFFSET, -GROUND_HALF + 1, GROUND_HALF - 1);
+    const targetX = clampGroundX(playerPos.x - PET_FOLLOW_OFFSET);
+    const targetZ = clampGroundZ(playerPos.z - PET_FOLLOW_OFFSET);
     const t = 1 - Math.pow(0.0005, dt);
     const prevX = pos.current.x;
     const prevZ = pos.current.z;
-    pos.current.x = THREE.MathUtils.clamp(pos.current.x + (targetX - pos.current.x) * t, -GROUND_HALF + 1, GROUND_HALF - 1);
-    pos.current.z = THREE.MathUtils.clamp(pos.current.z + (targetZ - pos.current.z) * t, -GROUND_HALF + 1, GROUND_HALF - 1);
+    pos.current.x = clampGroundX(pos.current.x + (targetX - pos.current.x) * t);
+    pos.current.z = clampGroundZ(pos.current.z + (targetZ - pos.current.z) * t);
     const moveDist = Math.hypot(pos.current.x - prevX, pos.current.z - prevZ);
     isMovingRef.current = moveDist > 0.0006;
     // Direct teacher instruction: a following pet faces the same direction
@@ -948,8 +973,8 @@ function WanderingNPC({
       if (!target.current && clock.elapsedTime >= pauseUntil.current) {
         const angle = Math.random() * Math.PI * 2;
         const r = Math.random() * WANDER_RADIUS;
-        const rawX = THREE.MathUtils.clamp(home[0] + Math.cos(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1);
-        const rawZ = THREE.MathUtils.clamp(home[1] + Math.sin(angle) * r, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const rawX = clampGroundX(home[0] + Math.cos(angle) * r);
+        const rawZ = clampGroundZ(home[1] + Math.sin(angle) * r);
         // Push the candidate target itself clear of any obstacle before
         // committing to it, not just the steps taken toward it — a random
         // target that happened to land inside an obstacle's collision
@@ -1135,24 +1160,39 @@ const GRID_Y = 0.04; // just above the ground plane, avoids z-fighting
 const AXIS_X_COLOR = '#e63946';
 const AXIS_Y_COLOR = '#2a6df4';
 
+// Bounds-aware now — a teacher-expanded wall shows up here as a real
+// rectangle (not always a square), which is exactly what tells a student
+// "the lot got bigger over there." minX/maxX come from west/east, minZ/maxZ
+// from north/south (north is -Z, matching the fixed camera/compass labels
+// below, same convention GroundBounds documents in types.ts).
 function CoordinateGrid() {
+  const bounds = useStore((s) => s.groundBounds);
+  const minX = -bounds.west;
+  const maxX = bounds.east;
+  const minZ = -bounds.north;
+  const maxZ = bounds.south;
   const minorLines = useMemo(() => {
     const lines: [number, number, number][][] = [];
-    for (let x = -GROUND_HALF; x <= GROUND_HALF; x += GRID_MINOR_STEP) {
+    for (let x = minX; x <= maxX; x += GRID_MINOR_STEP) {
       if (x === 0) continue; // the real axis line is drawn separately, bolder
-      lines.push([[x, GRID_Y, -GROUND_HALF], [x, GRID_Y, GROUND_HALF]]);
+      lines.push([[x, GRID_Y, minZ], [x, GRID_Y, maxZ]]);
     }
-    for (let z = -GROUND_HALF; z <= GROUND_HALF; z += GRID_MINOR_STEP) {
+    for (let z = minZ; z <= maxZ; z += GRID_MINOR_STEP) {
       if (z === 0) continue;
-      lines.push([[-GROUND_HALF, GRID_Y, z], [GROUND_HALF, GRID_Y, z]]);
+      lines.push([[minX, GRID_Y, z], [maxX, GRID_Y, z]]);
     }
     return lines;
-  }, []);
-  const majorTicks = useMemo(() => {
+  }, [minX, maxX, minZ, maxZ]);
+  const majorTicksX = useMemo(() => {
     const ticks: number[] = [];
-    for (let v = -GROUND_HALF; v <= GROUND_HALF; v += GRID_MAJOR_STEP) if (v !== 0) ticks.push(v);
+    for (let v = minX; v <= maxX; v += GRID_MAJOR_STEP) if (v !== 0) ticks.push(v);
     return ticks;
-  }, []);
+  }, [minX, maxX]);
+  const majorTicksZ = useMemo(() => {
+    const ticks: number[] = [];
+    for (let v = minZ; v <= maxZ; v += GRID_MAJOR_STEP) if (v !== 0) ticks.push(v);
+    return ticks;
+  }, [minZ, maxZ]);
   const quadrantLabelStyle = { fontSize: 1.5, color: '#1f4238', fillOpacity: 0.16, anchorX: 'center' as const, anchorY: 'middle' as const, rotation: [-Math.PI / 2, 0, 0] as [number, number, number] };
 
   return (
@@ -1161,28 +1201,28 @@ function CoordinateGrid() {
         <Line key={i} points={pts} color="#ffffff" transparent opacity={0.3} lineWidth={1} />
       ))}
       {/* X axis (world Z=0) */}
-      <Line points={[[-GROUND_HALF, GRID_Y, 0], [GROUND_HALF, GRID_Y, 0]]} color={AXIS_X_COLOR} lineWidth={2.5} />
+      <Line points={[[minX, GRID_Y, 0], [maxX, GRID_Y, 0]]} color={AXIS_X_COLOR} lineWidth={2.5} />
       {/* "Y" axis (world X=0) — Z is renamed Y for students, per the header comment */}
-      <Line points={[[0, GRID_Y, -GROUND_HALF], [0, GRID_Y, GROUND_HALF]]} color={AXIS_Y_COLOR} lineWidth={2.5} />
-      {majorTicks.map((x) => (
+      <Line points={[[0, GRID_Y, minZ], [0, GRID_Y, maxZ]]} color={AXIS_Y_COLOR} lineWidth={2.5} />
+      {majorTicksX.map((x) => (
         <Text key={`x${x}`} position={[x, GRID_Y + 0.01, 0.7]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.7} color={AXIS_X_COLOR} anchorX="center" anchorY="middle">{x}</Text>
       ))}
-      {majorTicks.map((z) => (
+      {majorTicksZ.map((z) => (
         <Text key={`z${z}`} position={[0.7, GRID_Y + 0.01, z]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.7} color={AXIS_Y_COLOR} anchorX="center" anchorY="middle">{-z}</Text>
       ))}
       <Text position={[0.75, GRID_Y + 0.01, 0.75]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.55} color="#1f4238" anchorX="left" anchorY="middle">(0, 0)</Text>
       {/* Quadrant numerals — ties directly to the classroom quadrant concept */}
-      <Text position={[GROUND_HALF * 0.55, GRID_Y, -GROUND_HALF * 0.55]} {...quadrantLabelStyle}>I</Text>
-      <Text position={[-GROUND_HALF * 0.55, GRID_Y, -GROUND_HALF * 0.55]} {...quadrantLabelStyle}>II</Text>
-      <Text position={[-GROUND_HALF * 0.55, GRID_Y, GROUND_HALF * 0.55]} {...quadrantLabelStyle}>III</Text>
-      <Text position={[GROUND_HALF * 0.55, GRID_Y, GROUND_HALF * 0.55]} {...quadrantLabelStyle}>IV</Text>
+      <Text position={[maxX * 0.55, GRID_Y, minZ * 0.55]} {...quadrantLabelStyle}>I</Text>
+      <Text position={[minX * 0.55, GRID_Y, minZ * 0.55]} {...quadrantLabelStyle}>II</Text>
+      <Text position={[minX * 0.55, GRID_Y, maxZ * 0.55]} {...quadrantLabelStyle}>III</Text>
+      <Text position={[maxX * 0.55, GRID_Y, maxZ * 0.55]} {...quadrantLabelStyle}>IV</Text>
       {/* Cardinal directions — direct teacher tie-in to geography/directions.
           North is fixed at -Z since this camera never rotates (see header
           comment), so these never drift out of alignment. */}
-      <Text position={[0, GRID_Y, -GROUND_HALF - 1.6]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">N</Text>
-      <Text position={[0, GRID_Y, GROUND_HALF + 1.6]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">S</Text>
-      <Text position={[GROUND_HALF + 1.6, GRID_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">E</Text>
-      <Text position={[-GROUND_HALF - 1.6, GRID_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">W</Text>
+      <Text position={[0, GRID_Y, minZ - 1.6]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">N</Text>
+      <Text position={[0, GRID_Y, maxZ + 1.6]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">S</Text>
+      <Text position={[maxX + 1.6, GRID_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">E</Text>
+      <Text position={[minX - 1.6, GRID_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1} color="#1f4238" anchorX="center" anchorY="middle">W</Text>
     </group>
   );
 }
@@ -1557,8 +1597,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         // flying over the town, not through it; only the world's own outer
         // edge still applies, as a soft clamp (never a hard wall or crash),
         // same standard the design doc sets for every vehicle boundary.
-        pos.current.x = THREE.MathUtils.clamp(pos.current.x + dx * PLANE_CRUISE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
-        pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * PLANE_CRUISE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+        pos.current.x = clampGroundX(pos.current.x + dx * PLANE_CRUISE_SPEED * dt);
+        pos.current.z = clampGroundZ(pos.current.z + dz * PLANE_CRUISE_SPEED * dt);
         if (planeLandRef?.current) {
           planeLandRef.current = false;
           planePhase.current = 'descending';
@@ -1572,8 +1612,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         // wherever that puts it, never a "missed landing" state.
         const dx = Math.sin(facing.current);
         const dz = Math.cos(facing.current);
-        pos.current.x = THREE.MathUtils.clamp(pos.current.x + dx * PLANE_GLIDE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
-        pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * PLANE_GLIDE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+        pos.current.x = clampGroundX(pos.current.x + dx * PLANE_GLIDE_SPEED * dt);
+        pos.current.z = clampGroundZ(pos.current.z + dz * PLANE_GLIDE_SPEED * dt);
         planeAltitude.current = Math.max(0, planeAltitude.current - PLANE_CLIMB_RATE * dt);
         if (planeAltitude.current <= 0) planePhase.current = 'grounded';
         onMove(pos.current);
@@ -1620,8 +1660,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         const targetX = pos.current.x + dx * boatSpeed.current * dt;
         const targetZ = pos.current.z + dz * boatSpeed.current * dt;
         const [bx, bz] = slideWithinWater(pos.current.x, pos.current.z, targetX, targetZ, groundPatches ?? []);
-        const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
-        const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const cx = clampGroundX(bx);
+        const cz = clampGroundZ(bz);
         // Transportation Phase 2b — a soft dock/shore-contact thud whenever
         // the bump-and-slide boundary actually held the boat back from
         // where it was trying to go, the same "detect it from the shortfall
@@ -1679,8 +1719,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         const targetX = pos.current.x + dx * carSpeed.current * dt;
         const targetZ = pos.current.z + dz * carSpeed.current * dt;
         const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, targetX, targetZ);
-        const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
-        const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const cx = clampGroundX(bx);
+        const cz = clampGroundZ(bz);
         const [fx, fz] = blockBuildings(cx, cz);
         // Same soft contact-thud signal as boats above (Phase 2d: shared
         // audio wiring, not a Boats-only system) — a car nudging a building/
@@ -1718,8 +1758,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
         const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
-        const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
-        const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        const cx = clampGroundX(bx);
+        const cz = clampGroundZ(bz);
         // The ground-boundary clamp above runs after building collision, so
         // near an outward-rotated building corner the clamp alone can push a
         // student back inside the footprint blockBuildings just cleared —
@@ -1746,8 +1786,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           const ndx = tx / dist;
           const ndz = tz / dist;
           const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
-          const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
-          const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+          const cx = clampGroundX(bx);
+          const cz = clampGroundZ(bz);
           [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
           facing.current = Math.atan2(ndx, ndz);
           onMove(pos.current);
@@ -1764,9 +1804,12 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       // A fixed bird's-eye view of the whole walkable area, centered on
       // the square itself (not following the player) so the whole world
       // is visible at once — direct teacher request for a map feature.
-      // High enough that MAP_HEIGHT's vertical field of view at this fov
-      // comfortably covers the visible ground radius with margin.
-      camera.position.lerp(new THREE.Vector3(0, MAP_HEIGHT, 0.01), 1 - Math.pow(0.001, dt));
+      // High enough that mapHeightFor's vertical field of view at this fov
+      // comfortably covers the visible ground radius with margin — reads
+      // the live groundBounds so an expanded wall never falls outside the
+      // map view's frame.
+      const mapHeight = mapHeightFor(groundBoundsMaxExtent(useStore.getState().groundBounds));
+      camera.position.lerp(new THREE.Vector3(0, mapHeight, 0.01), 1 - Math.pow(0.001, dt));
       camera.lookAt(0, 0, 0);
     } else {
       const camAngle = facing.current + cameraLook.current;
@@ -2017,16 +2060,27 @@ function Neighbor({
 // scene is stylized, so the ground should be too. Repeat count is tuned to
 // the actual visible ground size, not the smaller walkable square, since
 // that's the area the tiling has to look right across.
+// GROUND_VISUAL_RADIUS is a floor, not a ceiling, now that a wall can be
+// pushed out past the old fixed GROUND_HALF — the decorative ground mesh
+// (always a big circle, well past the walkable square, see its own header
+// comment) has to keep covering the walkable area with the same margin it
+// always has, or an expanded wall would visibly run off the edge of the
+// grass.
+function visualGroundRadiusFor(maxExtent: number): number {
+  return Math.max(GROUND_VISUAL_RADIUS, maxExtent * 4);
+}
+
 function GroundMaterial() {
   // Build Mode's paint bucket (WorldEditor.tsx) can swap this for one of a
   // curated set of real texture files — falls back to the original grass
   // the moment a teacher clears it back to null.
   const groundTexture = useStore((s) => s.groundTexture);
+  const maxExtent = useStore((s) => groundBoundsMaxExtent(s.groundBounds));
   const tex = useTexture(groundTexture ?? '/world/textures/grass.png');
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   // Tuned against a real render: ~4 world units per tile reads as a
   // believable grass scale next to a ~1.7-unit-tall character.
-  const tileRepeat = (GROUND_VISUAL_RADIUS * 2) / 4;
+  const tileRepeat = (visualGroundRadiusFor(maxExtent) * 2) / 4;
   tex.repeat.set(tileRepeat, tileRepeat);
   tex.colorSpace = THREE.SRGBColorSpace;
   return <meshStandardMaterial map={tex} />;
@@ -2187,6 +2241,7 @@ function Park({
   layoutOverrides: Record<string, LayoutOverride>;
 }) {
   const groundPatches = useStore((s) => s.groundPatches);
+  const maxExtent = useStore((s) => groundBoundsMaxExtent(s.groundBounds));
   return (
     <group>
       <mesh
@@ -2206,7 +2261,7 @@ function Park({
         }}
         onPointerOut={() => onGroundHover(null)}
       >
-        <circleGeometry args={[GROUND_VISUAL_RADIUS, 48]} />
+        <circleGeometry args={[visualGroundRadiusFor(maxExtent), 48]} />
         <Suspense fallback={<meshStandardMaterial color="#7fb069" />}>
           <GroundMaterial />
         </Suspense>
@@ -3259,8 +3314,8 @@ export default function TownSquare() {
     hoverTarget.current = null;
     pendingApproach.current = n.id;
     walkTarget.current = {
-      x: THREE.MathUtils.clamp(nx + (dx / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
-      z: THREE.MathUtils.clamp(nz + (dz / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+      x: clampGroundX(nx + (dx / dist) * approachDist),
+      z: clampGroundZ(nz + (dz / dist) * approachDist),
     };
     setHasWalkedOnce(true);
   };
@@ -3285,8 +3340,8 @@ export default function TownSquare() {
     hoverTarget.current = null;
     pendingApproach.current = id;
     walkTarget.current = {
-      x: THREE.MathUtils.clamp(live.x + (dx / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
-      z: THREE.MathUtils.clamp(live.z + (dz / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+      x: clampGroundX(live.x + (dx / dist) * approachDist),
+      z: clampGroundZ(live.z + (dz / dist) * approachDist),
     };
     setHasWalkedOnce(true);
   };
@@ -3315,8 +3370,8 @@ export default function TownSquare() {
     hoverTarget.current = null;
     pendingApproach.current = id;
     walkTarget.current = {
-      x: THREE.MathUtils.clamp(bx + (dx / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
-      z: THREE.MathUtils.clamp(bz + (dz / dist) * approachDist, -GROUND_HALF + 1, GROUND_HALF - 1),
+      x: clampGroundX(bx + (dx / dist) * approachDist),
+      z: clampGroundZ(bz + (dz / dist) * approachDist),
     };
     setHasWalkedOnce(true);
   };
@@ -4034,15 +4089,15 @@ export default function TownSquare() {
               pendingApproach.current = null;
               setHasWalkedOnce(true);
               walkTarget.current = {
-                x: THREE.MathUtils.clamp(x, -GROUND_HALF + 1, GROUND_HALF - 1),
-                z: THREE.MathUtils.clamp(z, -GROUND_HALF + 1, GROUND_HALF - 1),
+                x: clampGroundX(x),
+                z: clampGroundZ(z),
               };
             }}
             onGroundHover={(pt) => {
               hoverTarget.current = pt
                 ? {
-                    x: THREE.MathUtils.clamp(pt.x, -GROUND_HALF + 1, GROUND_HALF - 1),
-                    z: THREE.MathUtils.clamp(pt.z, -GROUND_HALF + 1, GROUND_HALF - 1),
+                    x: clampGroundX(pt.x),
+                    z: clampGroundZ(pt.z),
                   }
                 : null;
             }}
@@ -4053,8 +4108,8 @@ export default function TownSquare() {
               // active in Map view, same guard shape as onGroundTap's own
               // mapView check (just inverted).
               if (!mapView) return;
-              const cx = THREE.MathUtils.clamp(x, -GROUND_HALF + 1, GROUND_HALF - 1);
-              const cz = THREE.MathUtils.clamp(z, -GROUND_HALF + 1, GROUND_HALF - 1);
+              const cx = clampGroundX(x);
+              const cz = clampGroundZ(z);
               const [bx, bz] = blockBuildings(cx, cz);
               hoverTarget.current = null;
               walkTarget.current = null;
