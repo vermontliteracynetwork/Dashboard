@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-lm-chains-hearts-rules-dictation',
+    date: '2026-09-25',
+    icon: '❤️',
+    title: 'Word Chains, Heart Words, Spelling Rules, and Dictation',
+    body: 'Four new things in Literacy Manipulatives: Word Chains (words that change one letter at a time), Heart Words (drag a tricky word and tap its letters to mark them with a heart), Spelling Rules (hover a card to read the rule), and a Dictation Card where you hear a word, write it, then reveal to check yourself.',
+  },
+  {
     id: '2026-09-25-lm-phono-elkonin',
     date: '2026-09-25',
     icon: '🔊',
