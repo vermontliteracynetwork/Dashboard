@@ -276,6 +276,23 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   // "5 correct in a row" requirement on top, before lives come back.
   const activeQ = masteryQ;
 
+  // A fresh random answer order per question, same fix as QuizTask.tsx's
+  // mcOrder — teacher report: authored questions kept the correct choice
+  // in the same authoring-order slot (usually the first one typed), so a
+  // student could learn "always pick A" instead of reading the question.
+  // Memoized on the question id so it doesn't reshuffle out from under the
+  // student on every re-render while the same question is still showing.
+  const mcOrder = useMemo(() => {
+    if (!activeQ || activeQ.kind !== 'mc') return null;
+    const order = activeQ.choices.map((_, i) => i).filter((i) => activeQ.choices[i].trim());
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    return order;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeQ?.id]);
+
   // ---------- Preload sprites once a character is picked ----------
   useEffect(() => {
     if (!character) return;
@@ -622,13 +639,11 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   // ---------- Answer handling (reuses the same mastery/retry loop as QuizTask) ----------
   const submitAnswer = (correct: boolean) => setPendingCorrect(correct);
 
-  // Same read-the-choices fix as QuizTask.tsx (Claudia's quiz-mode audit)
-  // — MC choices here render in plain order, no shuffle, so no separate
-  // order array to thread through like QuizTask's mcOrder.
+  // Same read-the-choices fix as QuizTask.tsx (Claudia's quiz-mode audit).
   const readChoices = () => {
     if (!activeQ) return;
-    if (activeQ.kind === 'mc') {
-      speak(activeQ.choices.map((c, i) => `${String.fromCharCode(65 + i)}: ${c}`).join('. '), student.ttsSettings);
+    if (activeQ.kind === 'mc' && mcOrder) {
+      speak(mcOrder.map((idx, i) => `${String.fromCharCode(65 + i)}: ${activeQ.choices[idx]}`).join('. '), student.ttsSettings);
     } else if (activeQ.kind === 'fill' && activeQ.wordBank && activeQ.wordBank.length > 0) {
       speak(activeQ.wordBank.join('. '), student.ttsSettings);
     }
@@ -1060,16 +1075,16 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 <div className="tag-pill" style={{ background: 'var(--orange)', color: 'var(--ink)' }}>💛 Not quite!</div>
               )}
 
-              {activeQ.kind === 'mc' && (
+              {activeQ.kind === 'mc' && mcOrder && (
                 <div className="row-wrap" style={{ justifyContent: 'center' }}>
-                  {activeQ.choices.map((choice, i) => (
+                  {mcOrder.map((origIdx) => (
                     <button
-                      key={i}
-                      className={`btn btn-lg ${picked === i ? (i === activeQ.correctIndex ? 'btn-success' : 'btn-danger') : ''}`}
+                      key={origIdx}
+                      className={`btn btn-lg ${picked === origIdx ? (origIdx === activeQ.correctIndex ? 'btn-success' : 'btn-danger') : ''}`}
                       disabled={pendingCorrect !== null}
-                      onClick={() => { setPicked(i); submitAnswer(i === activeQ.correctIndex); }}
+                      onClick={() => { setPicked(origIdx); submitAnswer(origIdx === activeQ.correctIndex); }}
                     >
-                      {choice}
+                      {activeQ.choices[origIdx]}
                     </button>
                   ))}
                 </div>

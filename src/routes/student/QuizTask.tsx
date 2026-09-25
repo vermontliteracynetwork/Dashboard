@@ -102,10 +102,13 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
   const activeId = state?.remainingIds[0];
   const activeQ = questions.find((q) => q.id === activeId);
 
-  // A fresh random answer order each time a new question comes up, when
-  // the teacher has turned that on — memoized so it doesn't reshuffle
-  // out from under the student mid-question.
-  const shuffleAnswers = task.quiz?.shuffleAnswers ?? false;
+  // A fresh random answer order each time a new question comes up —
+  // default on (same as shuffleQuestions below), since without it the
+  // correct choice tends to sit in the same authored-order slot (usually
+  // the first one typed) every time, and a student learns "always pick A"
+  // instead of reading the question. Memoized so it doesn't reshuffle out
+  // from under the student mid-question.
+  const shuffleAnswers = task.quiz?.shuffleAnswers ?? true;
   const mcOrder = useMemo(() => {
     if (!activeQ || activeQ.kind !== 'mc') return null;
     // Blank answer slots (an unused "(Optional)" tile left empty) should

@@ -1131,6 +1131,13 @@ function WanderingNPC({
     } else {
       isMoving.current = false;
     }
+    // Same unconditional final clamp as Player's own useFrame and
+    // PetCompanion above — direct teacher instruction: no player,
+    // Neighbor, or pet can ever leave the map, and this was the one
+    // wandering-NPC movement write still going straight to pos.current
+    // with no ground-bounds check of its own.
+    pos.current.x = clampGroundX(pos.current.x);
+    pos.current.z = clampGroundZ(pos.current.z);
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
   });

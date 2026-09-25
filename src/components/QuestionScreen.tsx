@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TTSSettings } from '../types';
 import { speak } from './ReadAloud';
 
@@ -93,6 +93,23 @@ export default function QuestionScreen({
   const [showToolbox, setShowToolbox] = useState(false);
   const advanceTimer = useRef<number | null>(null);
 
+  // A fresh random answer order per question — teacher report: the
+  // correct choice kept landing in the same authored-order slot (usually
+  // the first one typed), so a student could learn "always pick A"
+  // instead of reading the question. Keyed on `prompt`, same as the local
+  // state reset below, so it doesn't reshuffle out from under the student
+  // on a re-render while the same question is still showing (a wrong
+  // pick, the toolbox opening, etc).
+  const order = useMemo(() => {
+    const o = choices.map((_, i) => i);
+    for (let i = o.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [o[i], o[j]] = [o[j], o[i]];
+    }
+    return o;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt]);
+
   // A new question (different prompt) means fresh local state, even though
   // this is the same mounted component instance across the whole lockout/
   // round-transition flow.
@@ -121,8 +138,8 @@ export default function QuestionScreen({
   };
 
   const handleListen = () => {
-    const optionLines = choices
-      .map((choice, i) => `Option ${LETTERS[i] ?? i + 1}, ${choice}.`)
+    const optionLines = order
+      .map((origIdx, i) => `Option ${LETTERS[i] ?? i + 1}, ${choices[origIdx]}.`)
       .join(' ');
     speak(`${prompt} ${optionLines}`, ttsSettings);
   };
@@ -316,16 +333,17 @@ export default function QuestionScreen({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-            {choices.map((choice, i) => {
-              const isWrong = wrongIndices.has(i);
-              const isCorrectPick = answeredCorrectly && i === correctIndex;
+            {order.map((origIdx, i) => {
+              const choice = choices[origIdx];
+              const isWrong = wrongIndices.has(origIdx);
+              const isCorrectPick = answeredCorrectly && origIdx === correctIndex;
               const bg = isCorrectPick ? '#E7F7EE' : isWrong ? '#FDEBEA' : '#fff';
               const border = isCorrectPick ? '#8FD3AE' : isWrong ? '#F3B7B0' : '#F2E8D6';
               return (
                 <button
-                  key={i}
+                  key={origIdx}
                   type="button"
-                  onClick={() => handleChoice(i)}
+                  onClick={() => handleChoice(origIdx)}
                   disabled={answeredCorrectly}
                   style={{
                     display: 'flex',
