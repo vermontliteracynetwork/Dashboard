@@ -927,6 +927,25 @@ export interface GroundPatch {
   createdAt: string; // ISO
 }
 
+// The walkable Town Square used to be one fixed symmetric square
+// (townLayout.ts's GROUND_HALF, a single radius). Direct teacher request:
+// "use arrows to expand each lot" — push one wall of the square outward
+// without moving anything already placed. Each field is the distance in
+// meters from the origin to that wall (never negative, floored at
+// GROUND_BOUNDS_MIN in townLayout.ts) — north/west are measured toward
+// -Z/-X, south/east toward +Z/+X, matching the existing map/compass labels
+// in TownSquare.tsx's CoordinateGrid. A fresh world with no app_settings
+// row yet (or a null column) gets DEFAULT_GROUND_BOUNDS, all four equal to
+// the old fixed GROUND_HALF, so every world that predates this feature
+// renders and clamps exactly as it always has until a teacher actually
+// presses an expand arrow.
+export interface GroundBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
 // A student's own private Home Room floor plan is a set of these — replaces
 // the old single fixed 10x10 room + freeform student-drawn walls. Each row
 // is one discrete room (or the one 'yard' row every student gets), sized by

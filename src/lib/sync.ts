@@ -39,6 +39,7 @@ import type {
   WorldObject,
   WallSegment,
   GroundPatch,
+  GroundBounds,
   LayoutOverride,
   Focus,
   StudentPet,
@@ -46,6 +47,7 @@ import type {
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS } from './marketplaceSeed';
+import { DEFAULT_GROUND_BOUNDS } from '../routes/world/townLayout';
 
 // ---------------------------------------------------------------------------
 // Row <-> app-shape mapping
@@ -860,6 +862,7 @@ export interface HydratedState {
   worldObjects: WorldObject[];
   wallSegments: WallSegment[];
   groundPatches: GroundPatch[];
+  groundBounds: GroundBounds;
   pets: StudentPet[];
   homeRooms: HomeRoomDef[];
   cinemaVideos: CinemaVideo[];
@@ -1026,6 +1029,7 @@ export async function fetchAll(): Promise<HydratedState> {
     groundTexture: appSettingsRes.data?.ground_texture ?? null,
     skyColor: appSettingsRes.data?.sky_color ?? null,
     skyTexture: appSettingsRes.data?.sky_texture ?? null,
+    groundBounds: appSettingsRes.data?.ground_bounds ?? DEFAULT_GROUND_BOUNDS,
     rotationModes,
     taskCompletionCounts,
     toolUsage,
@@ -1291,6 +1295,9 @@ export const pushSkyColor = (color: string | null) =>
 
 export const pushSkyTexture = (path: string | null) =>
   upsert('app_settings', { id: 'global', sky_texture: path, updated_at: new Date().toISOString() });
+
+export const pushGroundBounds = (bounds: GroundBounds) =>
+  upsert('app_settings', { id: 'global', ground_bounds: bounds, updated_at: new Date().toISOString() });
 
 export const pushAvatarPriceOverrides = (overrides: Record<string, number>) =>
   upsert('app_settings', { id: 'global', avatar_price_overrides: overrides, updated_at: new Date().toISOString() });

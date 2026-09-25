@@ -775,6 +775,15 @@ alter table app_settings add column if not exists sky_texture text;
 -- "full ability to edit all prices... for everything marketplace
 -- related"). See avatarPriceFor in avatarCatalog.ts.
 alter table app_settings add column if not exists avatar_price_overrides jsonb not null default '{}';
+-- The walkable Town Square's 4 walls (north/south/east/west), each an
+-- independent distance in meters from the origin — direct teacher request:
+-- "use arrows to expand each lot... the main lot is the town square."
+-- Replaces the old single fixed GROUND_HALF radius (townLayout.ts) with a
+-- per-edge value a teacher can push outward from Build Mode's Lot panel.
+-- null = DEFAULT_GROUND_BOUNDS (all 4 walls at the old fixed GROUND_HALF),
+-- so every world that predates this column renders exactly as it always
+-- has until a teacher actually expands one. See GroundBounds in types.ts.
+alter table app_settings add column if not exists ground_bounds jsonb;
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

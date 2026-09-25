@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-lot-expand',
+    date: '2026-09-25',
+    icon: '📐',
+    title: 'Town Square can get bigger',
+    body: 'Your teacher can now push the walls of Town Square outward to make more room to walk, drive, and build in. Open the overhead Map to see the walkable area change shape as your teacher grows it in different directions.',
+  },
+  {
     id: '2026-09-25-question-screens-bigger',
     date: '2026-09-25',
     icon: '⛽',

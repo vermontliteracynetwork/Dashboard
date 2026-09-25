@@ -10,7 +10,7 @@
 // tripled, from ~540KB to ~1.57MB, the moment WorldEditor first imported
 // BUILDINGS directly from TownSquare.tsx). Splitting the plain data out
 // here keeps both call sites cheap.
-import type { WorldObjectRole, GroundPatch } from '../../types';
+import type { WorldObjectRole, GroundPatch, GroundBounds } from '../../types';
 
 // Draft/publish resolution for the shared Town Square (never applies to a
 // student's own Home Room — those rows are always studentId-set and always
@@ -47,6 +47,44 @@ export function resolveDraftRows<T extends { status?: 'draft' | 'published'; pen
 // existing placed building/prop/NPC keeps its own fixed coordinate, so
 // this only adds open space around the edges, nothing already placed moves.
 export const GROUND_HALF = 22;
+
+// Direct teacher request: "use arrows to expand each lot" — the walkable
+// square is no longer one fixed radius; each of its 4 walls can be pushed
+// outward independently from Build Mode (see WorldEditor.tsx's Lot panel
+// and store.ts's groundBounds/expandGroundBounds). GROUND_HALF above is now
+// only the STARTING value every wall gets in a fresh world — see
+// GroundBounds in types.ts for the per-edge shape.
+export const DEFAULT_GROUND_BOUNDS: GroundBounds = { north: GROUND_HALF, south: GROUND_HALF, east: GROUND_HALF, west: GROUND_HALF };
+// One arrow press pushes a wall out by this many meters — big enough to
+// feel like real progress per tap (this app's other press-and-hold nudge
+// controls, e.g. WorldEditor's object-position arrows, already use
+// useHoldRepeat for a held press to repeat quickly, so a small single-tap
+// step doesn't mean slow going).
+export const GROUND_BOUNDS_STEP = 6;
+// Never shrinks a wall closer than this — keeps the lot big enough that the
+// fixed, centrally-located spawn point (TownSquare.tsx's SPAWN_POSITION,
+// (0, 6)) and every hand-placed anchor stay safely inside it, the same
+// "never leaves a student stuck" standard the rest of movement/collision
+// holds itself to.
+export const GROUND_BOUNDS_MIN = 12;
+// A generous ceiling, not a measured one — nothing in this app's asset
+// pipeline (ground texture tiling, NPC wander radius, the overhead map
+// camera height) has been tested past a lot this size. Flagged for a live
+// teacher look if she ever pushes a wall near this cap: JUDGMENT CALL, not
+// a hard technical limit.
+export const GROUND_BOUNDS_MAX = 70;
+
+export function clampGroundBoundsValue(v: number): number {
+  return Math.min(GROUND_BOUNDS_MAX, Math.max(GROUND_BOUNDS_MIN, v));
+}
+
+// The largest single wall distance, in any direction — used anywhere that
+// needs one conservative number covering the whole lot regardless of shape
+// (the decorative ground mesh's visible radius, the overhead map camera's
+// height) rather than a true per-edge rectangle.
+export function groundBoundsMaxExtent(b: GroundBounds): number {
+  return Math.max(b.north, b.south, b.east, b.west);
+}
 
 // Direct teacher instruction: Town Square was wiped down to bare ground —
 // every building, stall, road tile, and prop that used to be hand-placed

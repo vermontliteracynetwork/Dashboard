@@ -9,7 +9,8 @@ import { SkyDome } from '../world/SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
-  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, GROUND_HALF, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt, SKY_TEXTURE_OPTIONS,
+  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt, SKY_TEXTURE_OPTIONS,
+  groundBoundsMaxExtent, GROUND_BOUNDS_STEP, GROUND_BOUNDS_MAX,
 } from '../world/townLayout';
 import { isTrackModel, trackPlacementFeedback } from '../world/trainTrack';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
@@ -745,6 +746,15 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
   { label: 'Sand', path: '/world/textures/wests/sand%201.png' },
   { label: 'Snow', path: '/world/textures/wests/snow%201.png' },
   { label: 'Stone', path: '/world/textures/wests/paving%201.png' },
+  // Direct teacher request: "paint with all the textures like dirt and
+  // such so i can draw pathways and gardens." The brush above already
+  // supports this (free-hand, unsnapped, adjustable-radius circular
+  // stamps, confirmed in paintGroundAt/handleGroundPointerMove) — the one
+  // real gap was a dedicated stone-path texture distinct from the wider
+  // "Stone"/Cobblestone tiles, for a literal garden-path look. Real,
+  // already-uploaded asset (the teacher's own wests_textures pack), same
+  // %20-encoded-space convention as the other wests/ entries above.
+  { label: 'Path', path: '/world/textures/wests/paving%202.png' },
   { label: 'Cobblestone', path: '/world/textures/cobblestone.png' },
   { label: 'Wood', path: '/world/textures/wood.png' },
   { label: 'Arcade Carpet', path: '/world/textures/arcade-carpet.png' },
@@ -769,12 +779,13 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
 // ~4 world units per tile against the visible ground diameter.
 function GroundTextureMaterial({ path }: { path: string }) {
   const tex = useTexture(path);
+  const maxExtent = useStore((s) => groundBoundsMaxExtent(s.groundBounds));
   useMemo(() => {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    const tileRepeat = (GROUND_HALF * 2) / 4;
+    const tileRepeat = (maxExtent * 2) / 4;
     tex.repeat.set(tileRepeat, tileRepeat);
     tex.colorSpace = THREE.SRGBColorSpace;
-  }, [tex]);
+  }, [tex, maxExtent]);
   return <meshStandardMaterial map={tex} />;
 }
 
@@ -1069,7 +1080,7 @@ function RosterTab() {
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
-  onUpdate, onDelete, onDuplicate, deselect,
+  onUpdate, onDelete, onDuplicate, deselect, onMoveModeChange,
 }: {
   selected: WorldObject;
   allowNameRole: boolean;
@@ -1087,6 +1098,12 @@ function SelectedObjectToolbar({
   onDelete: () => void;
   onDuplicate: (continuous: boolean) => void;
   deselect: () => void;
+  // Direct teacher instruction, comparing to Sims 4's bb.moveobjects
+  // cheat: touch users don't have an Option key to hold, so this ✥ Move
+  // toggle IS their equivalent — while it's open, dragging the object is
+  // full free placement, same as held Option on desktop. Reported up so
+  // the parent (which owns the actual drag/snap logic) can apply it.
+  onMoveModeChange: (active: boolean) => void;
 }) {
   const size = useModelSize(selected.modelPath);
   // Claudia's focus-group audit: an unclamped topY sent this toolbar off
@@ -1106,6 +1123,8 @@ function SelectedObjectToolbar({
   // itself — exactly the "no fresh click needed" case the teacher is now
   // ruling out. Every popover now closes on every reselect.
   useEffect(() => { setConfirmingDelete(false); setOpenPopover(null); }, [selected.id]);
+  useEffect(() => { onMoveModeChange(openPopover === 'move'); }, [openPopover, onMoveModeChange]);
+  useEffect(() => () => onMoveModeChange(false), [onMoveModeChange]);
 
   const doDelete = () => { onDelete(); deselect(); };
 
@@ -1601,7 +1620,17 @@ export default function WorldEditor() {
   // ignores the grid snap for that drag (and for a fresh placement, if
   // held while placing) — free placement, same spirit as the cheat.
   const [optionHeld, setOptionHeld] = useState(false);
+  // Direct teacher instruction: the ✥ Move button/popover on a selected
+  // object's toolbar (touch users' way to get the same freedom Option+
+  // drag gives a mouse user) — while it's open, dragging that object is
+  // the full bb.moveobjects-style free placement (no grid snap), exactly
+  // like held Option, without needing a keyboard at all. Kept in sync
+  // from SelectedObjectToolbar's own openPopover state via
+  // onMoveModeChange below, since that's the component that actually
+  // owns whether the Move popover is open.
+  const [moveModeActive, setMoveModeActive] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
+  const [showLotPanel, setShowLotPanel] = useState(true);
   // drei's OrbitControls ref type is awkward to name exactly (it's the
   // three-stdlib OrbitControls class); `any` here is just "whatever drei
   // attaches", used only for the couple of fields (target/update/object)
@@ -1884,7 +1913,18 @@ export default function WorldEditor() {
     return applyLayoutOverride(item, layoutOverrides);
   }, [selection, worldObjects, layoutItems, layoutOverrides]);
 
-  const clampToGround = (v: number) => THREE.MathUtils.clamp(v, -GROUND_HALF + 1, GROUND_HALF - 1);
+  // The walkable square's 4 walls — direct teacher request: "use arrows to
+  // expand each lot." Each edge starts at GROUND_HALF and can be pushed
+  // outward independently from the Lot panel below (see GroundBounds in
+  // types.ts, groundBounds/expandGroundBounds in store.ts). clampToGroundX/Z
+  // replace the old single symmetric clampToGround now that the walkable
+  // rectangle isn't always a square — every existing call site already
+  // clamped x and z as two separate calls, never combined, so splitting the
+  // one function in two changes nothing about how any of them are used.
+  const groundBounds = useStore((s) => s.groundBounds);
+  const expandGroundBounds = useStore((s) => s.expandGroundBounds);
+  const clampToGroundX = (v: number) => THREE.MathUtils.clamp(v, -groundBounds.west + 1, groundBounds.east - 1);
+  const clampToGroundZ = (v: number) => THREE.MathUtils.clamp(v, -groundBounds.north + 1, groundBounds.south - 1);
 
   // Generalized edit/delete for whichever kind is selected — a placed
   // object goes through the normal WorldObject actions, a fixed layout
@@ -1997,8 +2037,8 @@ export default function WorldEditor() {
   // instead of two slightly different ones.
   const duplicateSelected = (continuous: boolean) => {
     if (!selected) return;
-    const offX = clampToGround(snapValue(selected.position[0] + gridStep, snapEnabled, gridStep));
-    const offZ = clampToGround(snapValue(selected.position[2] + gridStep, snapEnabled, gridStep));
+    const offX = clampToGroundX(snapValue(selected.position[0] + gridStep, snapEnabled, gridStep));
+    const offZ = clampToGroundZ(snapValue(selected.position[2] + gridStep, snapEnabled, gridStep));
     const newId = addWorldObjectH({
       modelPath: selected.modelPath,
       label: selected.label,
@@ -2064,18 +2104,30 @@ export default function WorldEditor() {
   // means the same thing regardless of how the camera's been orbited.
   const nudgePosition = (dx: number, dz: number) => {
     if (!selected) return;
-    const nx = clampToGround(snapValue(selected.position[0] + dx, snapEnabled, gridStep));
-    const nz = clampToGround(snapValue(selected.position[2] + dz, snapEnabled, gridStep));
+    const nx = clampToGroundX(snapValue(selected.position[0] + dx, snapEnabled, gridStep));
+    const nz = clampToGroundZ(snapValue(selected.position[2] + dz, snapEnabled, gridStep));
     updateSelected({ position: [nx, 0, nz] });
   };
   const nudgeNorthHold = useHoldRepeat(() => nudgePosition(0, -gridStep));
   const nudgeSouthHold = useHoldRepeat(() => nudgePosition(0, gridStep));
   const nudgeEastHold = useHoldRepeat(() => nudgePosition(gridStep, 0));
   const nudgeWestHold = useHoldRepeat(() => nudgePosition(-gridStep, 0));
+  // The Lot panel's own arrows — direct teacher request: "use arrows to
+  // expand each lot." Same press-and-hold pattern as the object-move arrows
+  // above, just pushing a wall of groundBounds instead of a selected
+  // object's position. Each tap/hold call goes through the store's
+  // expandGroundBounds, which pushes the new value to Supabase itself (same
+  // live-instant pattern as setGroundTexture/setSkyColor), so there's no
+  // separate "save" step here.
+  const expandNorthHold = useHoldRepeat(() => expandGroundBounds('north', GROUND_BOUNDS_STEP));
+  const expandSouthHold = useHoldRepeat(() => expandGroundBounds('south', GROUND_BOUNDS_STEP));
+  const expandEastHold = useHoldRepeat(() => expandGroundBounds('east', GROUND_BOUNDS_STEP));
+  const expandWestHold = useHoldRepeat(() => expandGroundBounds('west', GROUND_BOUNDS_STEP));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    const x = clampToGround(snapValue(e.point.x, snapEnabled && !optionHeld, gridStep));
-    const z = clampToGround(snapValue(e.point.z, snapEnabled && !optionHeld, gridStep));
+    const freePlacement = optionHeld || (!!dragObjectId && moveModeActive);
+    const x = clampToGroundX(snapValue(e.point.x, snapEnabled && !freePlacement, gridStep));
+    const z = clampToGroundZ(snapValue(e.point.z, snapEnabled && !freePlacement, gridStep));
     if (armedAsset) {
       e.stopPropagation();
       // Direct teacher report: a door/window's ghost used to just float at
@@ -2095,7 +2147,7 @@ export default function WorldEditor() {
     } else if (paintMode === 'groundPatch' && isPaintingRef.current) {
       // Unsnapped — a pond or patch of dirt reads more natural free-form
       // than grid-locked, unlike every other placed object in Build Mode.
-      paintGroundAt(clampToGround(e.point.x), clampToGround(e.point.z));
+      paintGroundAt(clampToGroundX(e.point.x), clampToGroundZ(e.point.z));
     } else if (dragObjectId) {
       e.stopPropagation();
       setDragPos({ x, z });
@@ -2123,13 +2175,13 @@ export default function WorldEditor() {
       e.stopPropagation();
       isPaintingRef.current = true;
       lastGroundPaintRef.current = null;
-      paintGroundAt(clampToGround(e.point.x), clampToGround(e.point.z));
+      paintGroundAt(clampToGroundX(e.point.x), clampToGroundZ(e.point.z));
       return;
     }
     if (!wallMode) return;
     e.stopPropagation();
-    const x = clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
-    const z = clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
+    const x = clampToGroundX(snapValue(e.point.x, snapEnabled, gridStep));
+    const z = clampToGroundZ(snapValue(e.point.z, snapEnabled, gridStep));
     setWallStart({ x, z });
     setWallEnd({ x, z });
   };
@@ -2182,8 +2234,8 @@ export default function WorldEditor() {
       // A direct tap with no preceding hover (touch devices) never
       // populated the ghost at all, so that case still falls back to a
       // fresh snap check right here rather than being rejected outright.
-      let x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
-      let z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
+      let x = ghostPos ? ghostPos.x : clampToGroundX(snapValue(e.point.x, snapEnabled, gridStep));
+      let z = ghostPos ? ghostPos.z : clampToGroundZ(snapValue(e.point.z, snapEnabled, gridStep));
       let rotationY = (ghostPos?.rotationY ?? 0) + ghostRotationAdjust;
       if (DOOR_WINDOW_RE.test(armedAsset.label) && !ghostPos?.wallSnapped) {
         const snap = nearestWall(x, z, wallSegments, WALL_SNAP_DISTANCE);
@@ -2712,6 +2764,51 @@ export default function WorldEditor() {
               <div>⌨️ Ctrl/Cmd+Z — undo</div>
             </div>
           )}
+          {/* Direct teacher request: "allow me as the teacher to expand what
+              the playable map can be... use arrows to expand each lot. The
+              main lot is the town square." Each arrow pushes that one wall
+              of groundBounds out by GROUND_BOUNDS_STEP meters (tap once, or
+              hold to repeat, same pattern as the object-move arrows) —
+              nothing already placed moves, this only widens the walkable
+              edge on that side. Live-instant and shared, same as Fill Sky/
+              Fill Ground below: every student sees the bigger lot the
+              moment a teacher pushes a wall out, no Publish step needed
+              (matches how groundTexture/skyColor already work, not the
+              draft/publish system worldObjects uses). Shrinking isn't
+              offered here yet — floored at GROUND_BOUNDS_MIN so a wall can
+              never squeeze past the fixed spawn point, but there's no check
+              yet for whether shrinking would strand something a teacher
+              already placed near the old edge, so growth-only is the safer
+              v1 scope. */}
+          {showLotPanel ? (
+            <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 5, background: '#fff', border: '2px solid var(--content-border)', borderRadius: 10, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.18)', fontFamily: 'system-ui, sans-serif', textAlign: 'center' }}>
+              <div className="row space-between" style={{ alignItems: 'center', marginBottom: 4, gap: 10 }}>
+                <strong style={{ fontSize: 12 }}>📐 Lot size</strong>
+                <button aria-label="Hide lot size panel" title="Hide" onClick={() => setShowLotPanel(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 2 }}>✕</button>
+              </div>
+              <p style={{ margin: '0 0 4px', fontSize: '0.62rem', opacity: 0.7, maxWidth: 150 }}>Push a wall of the Town Square out to make the lot bigger.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 44px)', gridTemplateRows: 'repeat(3, 44px)', gap: 4, margin: '0 auto' }}>
+                <span />
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title={`Push the north wall out (currently ${groundBounds.north}m)`} disabled={groundBounds.north >= GROUND_BOUNDS_MAX} {...expandNorthHold}>⬆️</button>
+                <span />
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title={`Push the west wall out (currently ${groundBounds.west}m)`} disabled={groundBounds.west >= GROUND_BOUNDS_MAX} {...expandWestHold}>⬅️</button>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>{Math.round(groundBounds.west + groundBounds.east)}×{Math.round(groundBounds.north + groundBounds.south)}</span>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title={`Push the east wall out (currently ${groundBounds.east}m)`} disabled={groundBounds.east >= GROUND_BOUNDS_MAX} {...expandEastHold}>➡️</button>
+                <span />
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title={`Push the south wall out (currently ${groundBounds.south}m)`} disabled={groundBounds.south >= GROUND_BOUNDS_MAX} {...expandSouthHold}>⬇️</button>
+                <span />
+              </div>
+            </div>
+          ) : (
+            <button
+              className="btn btn-sm"
+              title="Show lot size panel"
+              onClick={() => setShowLotPanel(true)}
+              style={{ position: 'absolute', top: 10, right: 10, zIndex: 5, minHeight: 44, minWidth: 44 }}
+            >
+              📐
+            </button>
+          )}
           {armedAsset && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: placementOverlap ? '#fff3ea' : '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
@@ -2814,7 +2911,16 @@ export default function WorldEditor() {
               onPointerMove={handleGroundPointerMove}
               onPointerDown={handleGroundPointerDown}
             >
-              <planeGeometry args={[GROUND_HALF * 2, GROUND_HALF * 2]} />
+              {/* Sized off the largest of the 4 walls (see groundBoundsMaxExtent),
+                  not a true asymmetric rectangle — a wall a teacher hasn't
+                  expanded yet just gets a little extra green backdrop past
+                  its actual walkable edge, which is harmless (nothing can be
+                  placed or walked there; the real per-edge limit is
+                  clampToGroundX/Z above). A true asymmetric plane would need
+                  an off-center position plus verifying this mesh's rotation
+                  sign for local-Y-to-world-Z, not worth the risk on a pure
+                  visual backdrop in a sandbox that can't render this live. */}
+              <planeGeometry args={[groundBoundsMaxExtent(groundBounds) * 2, groundBoundsMaxExtent(groundBounds) * 2]} />
               {groundTexture ? (
                 <Suspense fallback={<meshStandardMaterial color="#8fc97a" />}>
                   <GroundTextureMaterial path={groundTexture} />
@@ -2823,7 +2929,7 @@ export default function WorldEditor() {
                 <meshStandardMaterial color="#8fc97a" />
               )}
             </mesh>
-            <gridHelper args={[GROUND_HALF * 2, GROUND_HALF * 2, '#5a8f48', '#5a8f48']} position={[0, 0.02, 0]} />
+            <gridHelper args={[groundBoundsMaxExtent(groundBounds) * 2, groundBoundsMaxExtent(groundBounds) * 2, '#5a8f48', '#5a8f48']} position={[0, 0.02, 0]} />
             <Suspense fallback={null}>
               {groundPatches.map((p) => <GroundPatchMesh key={p.id} patch={p} />)}
             </Suspense>
@@ -3078,6 +3184,7 @@ export default function WorldEditor() {
                 onDelete={deleteSelected}
                 onDuplicate={duplicateSelected}
                 deselect={() => setSelection(null)}
+                onMoveModeChange={setMoveModeActive}
               />
             )}
           </Canvas>

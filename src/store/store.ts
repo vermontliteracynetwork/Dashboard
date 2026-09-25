@@ -12,6 +12,10 @@ import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQue
 import type { SpinItemKind } from '../lib/dailySpin';
 import { petDefById, rarityFor, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_MILESTONES } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
+// townLayout.ts is pure data/helpers, no React/Three.js imports (see its own
+// header comment), so importing it here doesn't drag TownSquare.tsx's heavy
+// R3F bundle into the store.
+import { DEFAULT_GROUND_BOUNDS, clampGroundBoundsValue } from '../routes/world/townLayout';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -135,6 +139,7 @@ import {
   pushGroundTexture,
   pushSkyColor,
   pushSkyTexture,
+  pushGroundBounds,
   pushAvatarPriceOverrides,
   pushWorldObject,
   deleteWorldObjectRemote,
@@ -222,6 +227,7 @@ import type {
   WorldObject,
   WallSegment,
   GroundPatch,
+  GroundBounds,
   StudentPet,
   HomeRoomDef,
   HomeRoomKind,
@@ -325,6 +331,7 @@ interface AppState {
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
   skyColor: string | null; // Build Mode's paint bucket for the sky — sets the flat sky color directly (see SkyboxBackground in TownSquare.tsx); null = the default '#bfe3ff'
   skyTexture: string | null; // Build Mode's Fill Sky texture picker — a seamless-tileable sky pattern id from SKY_TEXTURE_OPTIONS (see SkyDome.tsx), rendered as a tiled dome over the flat color; null = no texture, flat skyColor only
+  groundBounds: GroundBounds; // the walkable square's 4 walls, each independently push-able outward from Build Mode's Lot panel — see GroundBounds in types.ts. Defaults to DEFAULT_GROUND_BOUNDS (townLayout.ts) until a teacher actually expands one.
   avatarPriceOverrides: Record<string, number>; // same override pattern as emotePriceOverrides — Characters had no teacher-editable price anywhere until now
   focuses: Focus[]; // class-wide curriculum spotlights (math/literacy/sel/finance lanes) — global, not per-student
   assignmentCompletionReward: AssignmentCompletionReward | null;
@@ -440,6 +447,12 @@ interface AppState {
   setGroundTexture: (path: string | null) => void;
   setSkyColor: (color: string | null) => void;
   setSkyTexture: (path: string | null) => void;
+  // Direct teacher request: "use arrows to expand each lot." One call pushes
+  // a single wall (north/south/east/west) outward by GROUND_BOUNDS_STEP
+  // meters — or inward if `deltaMeters` is negative, floored at
+  // GROUND_BOUNDS_MIN so a wall can never shrink past the fixed spawn point.
+  // See WorldEditor.tsx's Lot panel for the arrow buttons that call this.
+  expandGroundBounds: (edge: keyof GroundBounds, deltaMeters: number) => void;
   // Bulk-restores Build Mode's editable state to an exact prior snapshot —
   // undo/redo's only store action. Diffs against the current worldObjects
   // to push just what actually changed/got removed, rather than a
@@ -751,6 +764,7 @@ export const useStore = create<AppState>()(
       groundTexture: null,
       skyColor: null,
       skyTexture: null,
+      groundBounds: DEFAULT_GROUND_BOUNDS,
       focuses: [],
       assignmentCompletionReward: DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
       emotePriceOverrides: {},
@@ -941,6 +955,7 @@ export const useStore = create<AppState>()(
               groundTexture: n.ground_texture ?? null,
               skyColor: n.sky_color ?? null,
               skyTexture: n.sky_texture ?? null,
+              groundBounds: n.ground_bounds ?? DEFAULT_GROUND_BOUNDS,
             });
           },
         });
@@ -1564,6 +1579,13 @@ export const useStore = create<AppState>()(
       setSkyTexture: (path) => {
         set({ skyTexture: path });
         pushSkyTexture(path);
+      },
+
+      expandGroundBounds: (edge, deltaMeters) => {
+        const current = get().groundBounds;
+        const next: GroundBounds = { ...current, [edge]: clampGroundBoundsValue(current[edge] + deltaMeters) };
+        set({ groundBounds: next });
+        pushGroundBounds(next);
       },
 
       // Undo/redo's only store action — see its own interface comment.
