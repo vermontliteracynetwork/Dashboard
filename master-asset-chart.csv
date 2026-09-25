@@ -54,6 +54,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/aquarium/yellow-tang.glb,Yellow Tang,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/aquarium/zebra-clown-fish.glb,Zebra Clown Fish,aquarium,Nature & Animals,smallObject,category-fallback,0.698,walkable (walk-through),yes,150,1.50,paid,yes,yes,no,static click-to-collect
 /world/models/buildings/apartment-building.glb,Apartment Building,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/bakery.glb,Bakery,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/bank.glb,Bank,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/building-extra.glb,Building Extra,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/cabin-shed.glb,Cabin Shed,buildings,Buildings & Places,smallStructure,keyword,5.235,solid (blocks movement),yes,2000,20.00,paid,no,no,no,"placed decoration only, not clickable"

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-22T15:32:37.998Z",
+  "generatedAt": "2026-09-25T17:19:12.765Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -274,6 +274,11 @@
     {
       "path": "/world/models/buildings/apartment-building.glb",
       "label": "Apartment Building",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/bakery.glb",
+      "label": "Bakery",
       "category": "buildings"
     },
     {

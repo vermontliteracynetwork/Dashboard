@@ -23,6 +23,27 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: 'Find a plane or a drone and click it to hop in. Press Takeoff to lift off, then use the buttons to turn and change your altitude. When you are ready to come back down, press Land. Click the plane or drone again to get out once you have landed.',
   },
   {
+    id: '2026-09-25-lm-matrix-web-writing',
+    date: '2026-09-25',
+    icon: '📝',
+    title: 'Word Matrix, Word Web, and Writing Scaffolds',
+    body: 'Morphemes now has a Word Matrix (pick a root and see which prefixes and suffixes make real words) and a Reverse Morphology prompt card, plus little connector lines when word parts join. There is also a new Writing Scaffolds category with writing frames and sentence starters to help you get your ideas down.',
+  },
+  {
+    id: '2026-09-25-bakery-match3',
+    date: '2026-09-25',
+    icon: '🥐',
+    title: 'The Bakery is open in Town Square!',
+    body: 'Walk up to the new Bakery to play a match-3 treat game. Answer a quick question every so often to keep baking, and when you are done, spin the treat wheel! You can eat what you win or give it to one of your pets to fill up their food bar.',
+  },
+  {
+    id: '2026-09-25-lm-chains-hearts-rules-dictation',
+    date: '2026-09-25',
+    icon: '❤️',
+    title: 'Word Chains, Heart Words, Spelling Rules, and Dictation',
+    body: 'Four new things in Literacy Manipulatives: Word Chains (words that change one letter at a time), Heart Words (drag a tricky word and tap its letters to mark them with a heart), Spelling Rules (hover a card to read the rule), and a Dictation Card where you hear a word, write it, then reveal to check yourself.',
+  },
+  {
     id: '2026-09-25-trains-shipped',
     date: '2026-09-25',
     icon: '🚂',
