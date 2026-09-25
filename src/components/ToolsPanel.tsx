@@ -14,6 +14,7 @@ import type { WordLookupResult } from '../lib/wordLookup';
 import { analyzeMorphology } from '../lib/morphology';
 import type { Student, ToolKey, Subject, CustomTool } from '../types';
 import { ACCESSIBILITY_TOOLS, SUBJECT_TOOLS, TOOL_LABELS } from '../types';
+import { Icon } from './Icon';
 
 const TOOL_ICONS: Record<ToolKey, string> = {
   calculator: '🧮',
@@ -293,7 +294,7 @@ function NumberLine() {
         </div>
       </div>
       <button className="btn btn-sm" style={{ alignSelf: 'center' }} onClick={reset}>
-        🔄 Reset
+        <Icon name="refresh" size={16} fallback="🔄" /> Reset
       </button>
     </div>
   );
@@ -341,7 +342,7 @@ function Thesaurus({ student }: { student: Student }) {
           style={{ flex: 1, minWidth: 160 }}
         />
         <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => search(q)}>
-          🔍 Look up
+          <Icon name="search" size={16} fallback="🔍" /> Look up
         </button>
       </div>
       {loading && <p>Looking that up…</p>}
@@ -353,11 +354,11 @@ function Thesaurus({ student }: { student: Student }) {
             style={{ background: 'linear-gradient(120deg, var(--teal), var(--purple))', color: '#fff', padding: '14px 18px' }}
           >
             <div style={{ fontSize: '1.6rem', fontWeight: 800, textTransform: 'capitalize' }}>{word}</div>
-            <button className="btn btn-sm btn-flat" style={{ background: '#fff', minHeight: 44 }} onClick={() => speak(word, student.ttsSettings)}>🔈</button>
+            <button className="btn btn-sm btn-flat" style={{ background: '#fff', minHeight: 44 }} onClick={() => speak(word, student.ttsSettings)}><Icon name="sound" size={16} fallback="🔈" /></button>
           </div>
           <div className="stack" style={{ padding: 16, background: '#fff' }}>
             <div>
-              <strong style={{ fontSize: '0.85rem' }}>✅ Means about the same:</strong>
+              <strong style={{ fontSize: '0.85rem' }}><Icon name="check" size={14} fallback="✅" /> Means about the same:</strong>
               {synonyms.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>No synonyms found.</p>
               ) : (
@@ -372,7 +373,7 @@ function Thesaurus({ student }: { student: Student }) {
             </div>
             {antonyms.length > 0 && (
               <div>
-                <strong style={{ fontSize: '0.85rem' }}>🔁 Means the opposite:</strong>
+                <strong style={{ fontSize: '0.85rem' }}><Icon name="refresh" size={14} fallback="🔁" /> Means the opposite:</strong>
                 <div className="row-wrap" style={{ marginTop: 4 }}>
                   {antonyms.map((s) => (
                     <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36, background: 'var(--orange)' }} onClick={() => search(s)}>
@@ -435,7 +436,7 @@ function Dictionary({ student }: { student: Student }) {
           style={{ flex: 1, minWidth: 160 }}
         />
         <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => search(q)}>
-          🔍 Look up
+          <Icon name="search" size={16} fallback="🔍" /> Look up
         </button>
       </div>
       {loading && <p>Looking that up…</p>}
@@ -455,7 +456,7 @@ function Dictionary({ student }: { student: Student }) {
               style={{ background: '#fff', minHeight: 44 }}
               onClick={() => speak(`${result.word}. ${result.definitions[0]?.definition ?? ''}`, student.ttsSettings)}
             >
-              🔈
+              <Icon name="sound" size={16} fallback="🔈" />
             </button>
           </div>
 
@@ -504,7 +505,7 @@ function Dictionary({ student }: { student: Student }) {
 
             {synonyms.length > 0 && (
               <div>
-                <strong style={{ fontSize: '0.85rem' }}>✅ Similar words:</strong>
+                <strong style={{ fontSize: '0.85rem' }}><Icon name="check" size={14} fallback="✅" /> Similar words:</strong>
                 <div className="row-wrap" style={{ marginTop: 4 }}>
                   {synonyms.map((s) => (
                     <button key={s} className="tag-pill" style={{ cursor: 'pointer', minHeight: 36 }} onClick={() => search(s)}>
@@ -535,10 +536,10 @@ function SoundWallDetail({ phoneme, student, onClose }: { phoneme: SoundWallPhon
       <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
         <div className="space-between" style={{ marginBottom: 10, alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '1.8rem' }}>{phoneme.displaySymbol}</h3>
-          <button className="btn btn-sm" onClick={onClose}>✕ Close</button>
+          <button className="btn btn-sm" onClick={onClose}><Icon name="close" size={14} fallback="✕" /> Close</button>
         </div>
         <button className="btn btn-sm btn-teal" style={{ minHeight: 44, marginBottom: 14 }} onClick={() => speak(phoneme.spokenExample, student.ttsSettings)}>
-          🔈 Hear this sound
+          <Icon name="sound" size={16} fallback="🔈" /> Hear this sound
         </button>
         <div className="stack" style={{ gap: 14 }}>
           <div>
@@ -697,7 +698,7 @@ function WordProcessor({ student }: { student: Student }) {
   return (
     <div className="row" style={{ height: '100%', minHeight: 0, gap: 12, alignItems: 'stretch' }}>
       <div className="stack" style={{ width: 170, flex: '0 0 auto', gap: 6, overflowY: 'auto' }}>
-        <button className="btn btn-sm btn-primary" onClick={() => handleNew('note')}>➕ New Note</button>
+        <button className="btn btn-sm btn-primary" onClick={() => handleNew('note')}><Icon name="plus" size={14} fallback="➕" /> New Note</button>
         {/* Personal Journal (direct teacher instruction): an option on this
             same word processor, not a separate tool — a journal entry is
             just a Note with kind 'journal', pre-titled with today's date
@@ -735,7 +736,7 @@ function WordProcessor({ student }: { student: Student }) {
               </div>
             ) : (
               <button className="btn btn-sm" style={{ fontSize: '0.7rem', alignSelf: 'flex-end' }} onClick={() => setConfirmDeleteId(n.id)}>
-                🗑️
+                <Icon name="trash" size={14} fallback="🗑️" />
               </button>
             )}
           </div>
@@ -744,7 +745,7 @@ function WordProcessor({ student }: { student: Student }) {
 
       <div className="stack" style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
         {!selected ? (
-          <p style={{ opacity: 0.7, margin: 'auto' }}>Tap "➕ New Note" to start writing!</p>
+          <p style={{ opacity: 0.7, margin: 'auto' }}>Tap "<Icon name="plus" size={12} fallback="➕" /> New Note" to start writing!</p>
         ) : (
           <>
             <input
@@ -869,9 +870,9 @@ function WordProcessor({ student }: { student: Student }) {
               />
             </div>
             <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>🔒 Private, saved automatically</span>
+              <span style={{ fontSize: '0.8rem', opacity: 0.7 }}><Icon name="lock" size={13} fallback="🔒" /> Private, saved automatically</span>
               <button className="btn btn-sm btn-blue" onClick={() => speak(selected.body || 'Nothing written yet', student.ttsSettings, student.equippedVoiceId)}>
-                🔈 Read it back
+                <Icon name="sound" size={14} fallback="🔈" /> Read it back
               </button>
             </div>
           </>
@@ -951,7 +952,7 @@ export function Whiteboard({ student }: { student: Student }) {
   return (
     <div className="stack" style={{ height: '100%', minHeight: 0 }}>
       <div className="row-wrap" style={{ alignItems: 'center' }}>
-        {markerColors.length === 0 && <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Get marker colors in the 🛍️ Marketplace!</span>}
+        {markerColors.length === 0 && <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Get marker colors in the <Icon name="shop" size={12} fallback="🛍️" /> Marketplace!</span>}
         {markerColors.map((c) => (
           <button
             key={c.id}
@@ -989,7 +990,7 @@ export function Whiteboard({ student }: { student: Student }) {
           🧽 Eraser
         </button>
         <button className="btn btn-sm btn-danger" onClick={clear}>
-          🗑️ Clear
+          <Icon name="trash" size={14} fallback="🗑️" /> Clear
         </button>
       </div>
       <canvas
@@ -1011,7 +1012,7 @@ export function Whiteboard({ student }: { student: Student }) {
         onPointerUp={endDraw}
         onPointerLeave={endDraw}
       />
-      <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: 0 }}>🔒 Just for scratch work, not saved.</p>
+      <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: 0 }}><Icon name="lock" size={12} fallback="🔒" /> Just for scratch work, not saved.</p>
     </div>
   );
 }
@@ -1080,7 +1081,7 @@ function TTSSettingsPanel({ student }: { student: Student }) {
         </div>
       )}
       <button className="btn btn-blue" onClick={() => speak('This is what I sound like!', student.ttsSettings, student.equippedVoiceId)}>
-        🔈 Try it
+        <Icon name="sound" size={14} fallback="🔈" /> Try it
       </button>
     </div>
   );
@@ -1138,12 +1139,12 @@ function QuietTool() {
             onClick={() => toggle(sound)}
             aria-pressed={playingId === sound.id}
           >
-            {sound.icon} {sound.label}{playingId === sound.id ? ' ⏸️' : ''}
+            {sound.icon} {sound.label}{playingId === sound.id ? <> <Icon name="pause" size={12} fallback="⏸️" /></> : null}
           </button>
         ))}
       </div>
       {playingId && (
-        <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={stop}>🔇 Stop sound</button>
+        <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={stop}><Icon name="soundOff" size={14} fallback="🔇" /> Stop sound</button>
       )}
     </div>
   );
@@ -1231,7 +1232,7 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
           <div className="overlay-panel chrome-frame" style={{ padding: 20 }} onClick={(e) => e.stopPropagation()}>
             <div className="space-between" style={{ marginBottom: 12 }}>
               <h3 style={{ margin: 0 }}>🧰 My Tools</h3>
-              <button className="btn btn-sm" onClick={() => setMenuOpen(false)}>✕</button>
+              <button className="btn btn-sm" onClick={() => setMenuOpen(false)}><Icon name="close" size={16} fallback="✕" /></button>
             </div>
             <div className="stack">
               <ToolRow tools={subjectTools} label="Subject Tools" />
@@ -1304,7 +1305,7 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
           >
             <div className="space-between" style={{ marginBottom: 12, flex: '0 0 auto' }}>
               <h3 style={{ margin: 0 }}>{TOOL_ICONS[open]} {TOOL_LABELS[open]}</h3>
-              <button className="btn btn-sm" onClick={() => setOpen(null)}>✕</button>
+              <button className="btn btn-sm" onClick={() => setOpen(null)}><Icon name="close" size={16} fallback="✕" /></button>
             </div>
             <div className="content-well" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {renderTool(open)}

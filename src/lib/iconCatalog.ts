@@ -61,6 +61,8 @@ export const ICON_CATALOG: Record<string, string> = {
   arrowRight: '/ui/cartoon/basic black/arrow right.png',
   trophy: '/ui/dobo/Icons/adventure_icon_128px.png',
   ribbon: '/ui/cartoon/basic black/ribbon.png',
+  music: '/ui/penzilla/Icons/Icon_Small_Blank_Music.png',
+  cash: '/ui/penzilla/Icons/Icon_Small_Blank_Dollar.png',
 };
 
 export type IconName = keyof typeof ICON_CATALOG;

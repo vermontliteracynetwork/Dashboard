@@ -13,6 +13,7 @@ import WebpageFrame from './WebpageFrame';
 import { petDefById, thumbnailFor } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
+import { Icon } from './Icon';
 
 type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'furniture' | 'pets' | 'mystuff' | 'receipts';
 
@@ -61,8 +62,8 @@ function CountItOutModal({ priceCents, onConfirm, onCancel }: { priceCents: numb
       <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack">
           <div className="row space-between">
-            <h2 style={{ margin: 0 }}>💵 Count It Out</h2>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onCancel}>✕ Close</button>
+            <h2 style={{ margin: 0 }}><Icon name="cash" size={18} fallback="💵" /> Count It Out</h2>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onCancel}><Icon name="close" size={14} fallback="✕" /> Close</button>
           </div>
           <p style={{ margin: 0, fontSize: '0.9rem' }}>Tap bills and coins until you have enough to pay <strong>{formatMoney(priceCents)}</strong>.</p>
 
@@ -91,7 +92,7 @@ function CountItOutModal({ priceCents, onConfirm, onCancel }: { priceCents: numb
           )}
 
           <button className="btn btn-primary btn-lg" disabled={!enough} onClick={onConfirm}>
-            {enough ? "✅ That's enough, finish buying" : `Keep counting (need ${formatMoney(priceCents - trayTotal)} more)`}
+            {enough ? <><Icon name="check" size={16} fallback="✅" /> That's enough, finish buying</> : `Keep counting (need ${formatMoney(priceCents - trayTotal)} more)`}
           </button>
         </div>
       </div>
@@ -305,7 +306,7 @@ export default function Marketplace() {
     if (inCart(entry.key)) {
       return (
         <button className="shop-add-to-cart-btn in-cart" onClick={() => removeFromCart(entry.key)}>
-          ✓ In Cart
+          <Icon name="check" size={14} fallback="✓" /> In Cart
         </button>
       );
     }
@@ -320,7 +321,7 @@ export default function Marketplace() {
         </button>
         {!affordable && (
           <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
-            🔒 Need {formatMoney(entry.price - student.coins)} more
+            <Icon name="lock" size={12} fallback="🔒" /> Need {formatMoney(entry.price - student.coins)} more
           </span>
         )}
       </div>
@@ -347,7 +348,7 @@ export default function Marketplace() {
           </div>
         )}
         {owned ? (
-          <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}>✓ Unlocked</span>
+          <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}><Icon name="check" size={12} fallback="✓" /> Unlocked</span>
         ) : (
           cartButtonFor({ key: cartKey, source: 'item', id: item.id, name: item.name, icon: item.icon, price: item.price }, affordable)
         )}
@@ -368,7 +369,7 @@ export default function Marketplace() {
             <div className="content-well stack">
               <div className="row space-between">
                 <h2 style={{ margin: 0 }}>🛒 Your Cart</h2>
-                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowCart(false)}>✕ Close</button>
+                <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowCart(false)}><Icon name="close" size={14} fallback="✕" /> Close</button>
               </div>
               {cart.length === 0 ? (
                 <p style={{ opacity: 0.7 }}>Nothing in your cart yet. Tap 🛒 on anything you want!</p>
@@ -385,7 +386,7 @@ export default function Marketplace() {
                         </div>
                         <div className="row" style={{ gap: 8 }}>
                           <strong style={{ fontSize: '0.85rem' }}>{formatMoney(entry.price)}</strong>
-                          <button className="btn btn-sm btn-danger" style={{ minHeight: 44, minWidth: 44 }} aria-label={`Remove ${entry.name}`} onClick={() => removeFromCart(entry.key)}>✕</button>
+                          <button className="btn btn-sm btn-danger" style={{ minHeight: 44, minWidth: 44 }} aria-label={`Remove ${entry.name}`} onClick={() => removeFromCart(entry.key)}><Icon name="close" size={14} fallback="✕" /></button>
                         </div>
                       </div>
                       {/* Optional, non-blocking reflection prompt. Never required, never
@@ -431,7 +432,11 @@ export default function Marketplace() {
                   }
                 }}
               >
-                {cartTotal > student.coins ? '🔒 Not enough Class Cash' : student.countItOutEnabled ? '💵 Count It Out' : '✅ Confirm Purchase'}
+                {cartTotal > student.coins
+                  ? <><Icon name="lock" size={14} fallback="🔒" /> Not enough Class Cash</>
+                  : student.countItOutEnabled
+                    ? <><Icon name="cash" size={14} fallback="💵" /> Count It Out</>
+                    : <><Icon name="check" size={14} fallback="✅" /> Confirm Purchase</>}
               </button>
             </div>
           </div>
@@ -455,7 +460,7 @@ export default function Marketplace() {
               <div className="stack" style={{ width: '100%', gap: 4 }}>
                 {receipt.map((line) => (
                   <div key={line.key} className="row space-between" style={{ fontSize: '0.85rem' }}>
-                    <span>{line.ok ? '✅' : '⚠️'} {line.name}</span>
+                    <span>{line.ok ? <Icon name="check" size={14} fallback="✅" /> : <Icon name="warning" size={14} fallback="⚠️" />} {line.name}</span>
                     <span>{line.ok ? formatMoney(line.price) : 'not bought'}</span>
                   </div>
                 ))}
@@ -488,10 +493,10 @@ export default function Marketplace() {
 
       <div className="shop-panel">
           <div className="shop-header">
-            <span className="shop-ribbon">🛍️ MARKETPLACE</span>
+            <span className="shop-ribbon"><Icon name="shop" size={18} fallback="🛍️" /> MARKETPLACE</span>
             <div className="row" style={{ gap: 8 }}>
               <span className="shop-balance-chip" title="Your Piggy Bank balance. Spend it here!">
-                🐷 {formatMoney(student.coins)}
+                <Icon name="coins" size={18} fallback="🐷" /> {formatMoney(student.coins)}
               </span>
               <button className="btn btn-sm" style={{ minHeight: 44, position: 'relative' }} onClick={() => setShowCart(true)} aria-label={`Cart, ${cart.length} items`}>
                 🛒 Cart
@@ -542,11 +547,11 @@ export default function Marketplace() {
                 🖊️ Whiteboard
               </button>
               <button className={`shop-sidebar-btn ${tab === 'voices' ? 'active' : ''}`} onClick={() => setTab('voices')}>
-                🔊 Voices
+                <Icon name="sound" size={16} fallback="🔊" /> Voices
               </button>
               {prizeItems.length > 0 && (
                 <button className={`shop-sidebar-btn ${tab === 'prizes' ? 'active' : ''}`} onClick={() => setTab('prizes')}>
-                  🎁 Prizes
+                  <Icon name="gift" size={16} fallback="🎁" /> Prizes
                 </button>
               )}
               <button className={`shop-sidebar-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
@@ -554,7 +559,7 @@ export default function Marketplace() {
               </button>
               {furnitureItems.length > 0 && (
                 <button className={`shop-sidebar-btn ${tab === 'furniture' ? 'active' : ''}`} onClick={() => setTab('furniture')}>
-                  🛋️ Home
+                  <Icon name="home" size={16} fallback="🛋️" /> Home
                 </button>
               )}
               <button className={`shop-sidebar-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
@@ -596,7 +601,7 @@ export default function Marketplace() {
                       <strong style={{ fontSize: '0.75rem' }}>{a.name}</strong>
                       {equipped ? (
                         <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--success)', color: '#fff' }}>
-                          ✓ Wearing
+                          <Icon name="check" size={12} fallback="✓" /> Wearing
                         </span>
                       ) : owned ? (
                         <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => updateStudent(studentId, { avatar: a.id })}>
@@ -733,7 +738,7 @@ export default function Marketplace() {
                   {furnitureFilter.filtered.map((f) => renderBuyableItem(f))}
                 </div>
                 <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
-                  🏠 Bought a home item? Find it in Build Mode at your house, ready to place.
+                  <Icon name="home" size={14} fallback="🏠" /> Bought a home item? Find it in Build Mode at your house, ready to place.
                 </p>
               </div>
             )}
@@ -744,7 +749,7 @@ export default function Marketplace() {
                 <h3 style={{ margin: 0 }}>Pets moved to the Pet Shelter!</h3>
                 {!student.petCouponRedeemed && (
                   <div className="content-well" style={{ background: 'linear-gradient(120deg, var(--yellow), var(--orange))', textAlign: 'center' }}>
-                    <strong>🎁 You still have a free pet coupon. Pick any pet at the Shelter to redeem it.</strong>
+                    <strong><Icon name="gift" size={14} fallback="🎁" /> You still have a free pet coupon. Pick any pet at the Shelter to redeem it.</strong>
                   </div>
                 )}
                 <p style={{ opacity: 0.75, margin: 0 }}>
@@ -806,7 +811,7 @@ export default function Marketplace() {
                           </div>
                           <strong style={{ fontSize: '0.75rem' }}>{a.name}</strong>
                           {equipped ? (
-                            <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--success)', color: '#fff' }}>✓ Wearing</span>
+                            <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--success)', color: '#fff' }}><Icon name="check" size={12} fallback="✓" /> Wearing</span>
                           ) : (
                             <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => updateStudent(studentId, { avatar: a.id })}>
                               Wear
