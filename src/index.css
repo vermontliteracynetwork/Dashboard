@@ -2265,12 +2265,12 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   position: absolute;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
 }
-.bakery-deco-tile-0 { top: 0; left: 4%; width: 56px; opacity: 0.55; transform: rotate(-18deg); }
-.bakery-deco-tile-1 { top: 8%; right: 6%; width: 70px; opacity: 0.55; transform: rotate(14deg); }
-.bakery-deco-tile-2 { top: 60%; left: -2%; width: 52px; opacity: 0.55; transform: rotate(22deg); }
-.bakery-deco-tile-3 { top: 68%; right: -1%; width: 60px; opacity: 0.55; transform: rotate(-12deg); }
-.bakery-deco-tile-4 { top: 34%; left: 46%; width: 44px; opacity: 0.35; transform: rotate(-6deg); }
-.bakery-deco-tile-5 { top: -6%; left: 40%; width: 48px; opacity: 0.4; transform: rotate(10deg); }
+.bakery-deco-tile-0 { top: 0; left: 2%; width: 78px; opacity: 0.7; transform: rotate(-18deg); }
+.bakery-deco-tile-1 { top: 6%; right: 3%; width: 92px; opacity: 0.7; transform: rotate(14deg); }
+.bakery-deco-tile-2 { top: 60%; left: -4%; width: 74px; opacity: 0.65; transform: rotate(22deg); }
+.bakery-deco-tile-3 { top: 68%; right: -3%; width: 82px; opacity: 0.65; transform: rotate(-12deg); }
+.bakery-deco-tile-4 { top: 32%; left: 44%; width: 60px; opacity: 0.45; transform: rotate(-6deg); }
+.bakery-deco-tile-5 { top: -8%; left: 38%; width: 64px; opacity: 0.5; transform: rotate(10deg); }
 
 .bakery-menu-card {
   position: relative;
@@ -2289,9 +2289,11 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 }
 .bakery-title {
   margin: 0;
-  font-size: 2.1rem;
-  color: #a8571c;
-  text-shadow: 0 2px 0 #fff, 0 4px 0 rgba(168, 87, 28, 0.25);
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 2.6rem;
+  color: #6b4226;
+  text-shadow: 0 2px 0 #fff, 0 4px 0 rgba(107, 66, 38, 0.25);
 }
 /* One-line pill blurb, per mockup ("3 rounds. Match treats. Answer to
    advance. Spin for a prize at the end!"), in place of a plain tagline. */
@@ -2301,7 +2303,8 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   background: #fff3e0;
   border: 1px solid #f0c48a;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 0.85rem;
   font-weight: 700;
   color: #a8571c;
 }
@@ -2355,6 +2358,7 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   background: #fff3e0;
   border-radius: 10px;
   padding: 8px 12px;
+  font-family: 'Baloo 2', sans-serif;
   font-weight: 700;
   color: #a8571c;
   font-size: 0.9rem;
@@ -2385,7 +2389,7 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   text-align: center;
   box-shadow: 0 20px 40px rgba(122, 74, 21, 0.35);
 }
-.bakery-modal-title { margin: 0; color: #a8571c; font-size: 1.15rem; }
+.bakery-modal-title { margin: 0; color: #a8571c; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.2rem; }
 .bakery-modal-note { margin: 0; font-size: 0.8rem; opacity: 0.7; }
 .bakery-confirm-icon { font-size: 2.2rem; }
 .bakery-text-link {
@@ -2427,7 +2431,7 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   flex-shrink: 0;
 }
 .bakery-round-block { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.bakery-round-label { font-size: 0.85rem; font-weight: 800; color: #a8571c; }
+.bakery-round-label { font-family: 'Baloo 2', sans-serif; font-size: 0.9rem; font-weight: 800; color: #a8571c; }
 .bakery-move-pips { display: flex; gap: 5px; }
 .bakery-pip { width: 14px; height: 14px; border-radius: 999px; background: #f0d9b8; border: 1px solid #e0ab6a; }
 .bakery-pip.filled { background: #e8871f; border-color: #b5620f; }
@@ -2436,6 +2440,7 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   border: 2px solid #e8ab5c;
   border-radius: 999px;
   padding: 6px 12px;
+  font-family: 'Baloo 2', sans-serif;
   font-weight: 800;
   color: #a8571c;
   font-size: 0.9rem;
@@ -2477,6 +2482,32 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 }
 .bakery-tile:disabled { cursor: default; }
 .bakery-tile.selected { border-color: #e8871f; background: rgba(232, 135, 31, 0.18); }
+
+/* Bakery Treat Wheel win reveal — direct teacher instruction: "show an
+   animation of the item recieved with sparckles and a celebretory sound
+   effect" (the sound is playAchievementChime, already wired). The image
+   pops in with an overshoot bounce, and a ring of sparkle particles burst
+   outward and fade, keyed by `won` so it replays on every new prize. */
+.wheel-win-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.wheel-win-img { position: relative; z-index: 1; animation: wheelWinPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes wheelWinPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.wheel-sparkle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 1.5rem;
+  pointer-events: none;
+  animation: wheelSparkleBurst 0.9s ease-out forwards;
+}
+@keyframes wheelSparkleBurst {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1); opacity: 0; }
+}
 .bakery-tile.shaking { transform: translateX(3px); }
 .bakery-tile.clearing { opacity: 0.15; }
 

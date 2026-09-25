@@ -16,6 +16,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-bakery-wheel-sparkles',
+    date: '2026-09-25',
+    icon: '🎡',
+    title: 'Bakery Treat Wheel got bigger and sparklier',
+    body: 'The Bakery Match prize wheel is bigger now and shows a real picture of each treat, so you can actually see what you might win. When your spin lands, your prize pops up with sparkles and a fun little sound.',
+  },
+  {
+    id: '2026-09-25-bakery-match-visual-polish',
+    date: '2026-09-25',
+    icon: '🍩',
+    title: 'Bakery Match looks more like a real bakery now',
+    body: 'The Bakery Match main menu and game board got a fresh coat of paint, a bigger playful title, and more floating treats around the edges, closer to how it was designed to look.',
+  },
+  {
+    id: '2026-09-25-mixed-up-answer-order',
+    date: '2026-09-25',
+    icon: '🔀',
+    title: 'Answer choices are mixed up now',
+    body: 'In quizzes, the gas pump, Bakery Match, and platformer games, the right answer used to often show up in the same spot. Now the order of answer choices gets mixed up every time, so read carefully!',
+  },
+  {
     id: '2026-09-25-bakery-match-game-screen',
     date: '2026-09-25',
     icon: '🥐',
