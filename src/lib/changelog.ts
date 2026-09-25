@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-bakery-match3',
+    date: '2026-09-25',
+    icon: '🥐',
+    title: 'The Bakery is open in Town Square!',
+    body: 'Walk up to the new Bakery to play a match-3 treat game. Answer a quick question every so often to keep baking, and when you are done, spin the treat wheel! You can eat what you win or give it to one of your pets to fill up their food bar.',
+  },
+  {
     id: '2026-09-25-lm-chains-hearts-rules-dictation',
     date: '2026-09-25',
     icon: '❤️',
