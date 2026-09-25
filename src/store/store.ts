@@ -15,7 +15,7 @@ import type { PetDef } from '../lib/petCatalog';
 // townLayout.ts is pure data/helpers, no React/Three.js imports (see its own
 // header comment), so importing it here doesn't drag TownSquare.tsx's heavy
 // R3F bundle into the store.
-import { DEFAULT_GROUND_BOUNDS, clampGroundBoundsValue } from '../routes/world/townLayout';
+import { DEFAULT_GROUND_BOUNDS, clampGroundBoundsValue, sanitizeGroundBounds } from '../routes/world/townLayout';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -955,7 +955,7 @@ export const useStore = create<AppState>()(
               groundTexture: n.ground_texture ?? null,
               skyColor: n.sky_color ?? null,
               skyTexture: n.sky_texture ?? null,
-              groundBounds: n.ground_bounds ?? DEFAULT_GROUND_BOUNDS,
+              groundBounds: sanitizeGroundBounds(n.ground_bounds),
             });
           },
         });
