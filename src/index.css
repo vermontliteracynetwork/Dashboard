@@ -2038,9 +2038,65 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 .lm-formula-glow {
   animation: lmFormulaJoinPulse 0.9s ease-out;
 }
+/* Morpheme join-rule badge (A23-ROADMAP Phase 2, "morpheme join-rule
+   animation: e-drop, consonant-doubling, visible at the seam") — a
+   small circular pop-in badge right where two connected puzzle pieces
+   meet, naming the spelling change that just happened (see
+   JOIN_RULE_NOTES in morphemeContent.ts for the full sentence, shown
+   in this badge's title/tooltip and read aloud in the definition
+   card). */
+@keyframes lmMorphemeJoinPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.lm-morpheme-join-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fbbf24;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lmMorphemeJoinPop 0.4s ease-out;
+  cursor: help;
+}
 @media (max-width: 760px) {
   .lm-shell { flex-direction: column; min-height: unset; }
   .lm-sidebar { width: auto; flex: 0 0 auto; max-height: 40vh; border-right: none; border-bottom: var(--chunk, 4px) solid var(--ink); }
+}
+
+/* Projector/presentation mode (A23-ROADMAP Phase 2) — a teacher showing
+   the board to the whole class from across the room: bigger, higher-
+   contrast toolbar text and a visible canvas border, layered on top of
+   the existing zoom control (toggling it on also bumps zoom to 150% and
+   hides the sidebar, GrammarSandbox.tsx's toggleProjectorMode). */
+.lm-projector .lm-toolbar {
+  font-size: 1.1rem;
+  padding: 14px 20px;
+}
+.lm-projector .lm-toolbar button {
+  font-size: 1rem;
+  min-height: 44px;
+}
+.lm-projector .lm-canvas {
+  border: var(--chunk, 4px) solid var(--ink);
+}
+
+/* Print mode (A23-ROADMAP Phase 2) — the "🖨️ Print" toolbar button
+   calls window.print(); this is what makes the printed page just the
+   board itself, not the sidebar/toolbar/interactive controls around it. */
+@media print {
+  .lm-toolbar, .lm-sidebar, .lm-item-controls { display: none !important; }
+  .lm-page { height: auto !important; }
+  .lm-shell { display: block !important; min-height: unset !important; }
+  .lm-main { display: block !important; }
+  .lm-canvas { overflow: visible !important; min-height: unset !important; background: white !important; }
+  .lm-symbol-tip { display: none !important; }
 }
 
 /* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the

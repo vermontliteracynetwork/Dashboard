@@ -52,6 +52,36 @@ export const MORPHEME_SUFFIXES: MorphemeAffix[] = [
 
 export const MORPHEME_AFFIXES: MorphemeAffix[] = [...MORPHEME_PREFIXES, ...MORPHEME_SUFFIXES];
 
+// Morpheme join-rule detection — A23-ROADMAP Phase 2 ("morpheme join-
+// rule animation: e-drop, consonant-doubling, visible at the seam").
+// Rather than hand-tagging which combos apply a spelling rule (a second,
+// easy-to-drift-out-of-sync data source), this derives it directly by
+// comparing the root's own spelling to how it actually appears inside
+// the real resulting word already in MORPHEME_COMBOS — the same
+// "derive, don't duplicate" approach this file already uses for
+// MORPHEME_COMBOS itself. Only detects the two rules the spec named;
+// returns null (no badge, no note) for every ordinary concatenation.
+export type MorphemeJoinRule = 'e-drop' | 'consonant-double';
+
+export function detectJoinRule(rootText: string, affixText: string, affixType: MorphemeAffixType, word: string): MorphemeJoinRule | null {
+  if (affixType !== 'suffix') return null; // both named rules are suffix-side spelling changes
+  const suffix = affixText.replace(/^-/, '');
+  const plain = `${rootText}${suffix}`;
+  if (plain.toLowerCase() === word.toLowerCase()) return null; // ordinary concatenation, no rule applied
+  if (rootText.toLowerCase().endsWith('e')) {
+    const dropped = `${rootText.slice(0, -1)}${suffix}`;
+    if (dropped.toLowerCase() === word.toLowerCase()) return 'e-drop';
+  }
+  const doubled = `${rootText}${rootText.slice(-1)}${suffix}`;
+  if (doubled.toLowerCase() === word.toLowerCase()) return 'consonant-double';
+  return null;
+}
+
+export const JOIN_RULE_NOTES: Record<MorphemeJoinRule, (root: string, suffix: string) => string> = {
+  'e-drop': (root, suffix) => `The silent e at the end of "${root}" drops before "${suffix}".`,
+  'consonant-double': (root, suffix) => `The last letter of "${root}" doubles before "${suffix}".`,
+};
+
 // Keyed "<rootId>:<affixId>" -> the real resulting word.
 export const MORPHEME_COMBOS: Record<string, string> = {
   'root-play:pre-re': 'replay',

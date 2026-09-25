@@ -583,6 +583,10 @@ alter table students add column if not exists shelter_donations_cents int not nu
 -- Calm SEL-toned "building your sentence" status hints in Sentence
 -- Formulas/Sentence Builder — teacher per-student toggle, default on.
 alter table students add column if not exists show_sentence_building_hints boolean not null default true;
+-- Literacy Manipulatives punctuation tiles — A23-ROADMAP Phase 2, opt-in
+-- teacher per-student toggle, default off (the auto-punctuated Sentence
+-- Formulas already handle this by default for the whole population).
+alter table students add column if not exists show_punctuation_tiles boolean not null default false;
 
 -- Home Room's room system (replaces the old single fixed 10x10 room + a
 -- freeform student wall-drawing tool): each row is one discrete room a

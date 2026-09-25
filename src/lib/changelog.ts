@@ -16,6 +16,41 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-lm-print-projector',
+    date: '2026-09-25',
+    icon: '🖨️',
+    title: 'Print your board or go big for the class',
+    body: 'Literacy Manipulatives now has a Print button that prints your board, and a Projector Mode button that makes everything bigger and easier to see from across the room.',
+  },
+  {
+    id: '2026-09-25-lm-morpheme-spelling-rule',
+    date: '2026-09-25',
+    icon: '✂️',
+    title: 'Spelling changes show up when word parts join',
+    body: 'When you connect morpheme pieces that make a real word, sometimes the spelling changes a little, like the silent e dropping in "care" plus "-ing" makes "caring." Now a little badge pops up right where the pieces meet to show you.',
+  },
+  {
+    id: '2026-09-25-lm-grapheme-colors-connector',
+    date: '2026-09-25',
+    icon: '🎨',
+    title: 'Vowel and consonant colors, plus connector letters',
+    body: 'Alphabet and Grapheme tiles now have a "Vowel/consonant colors" button that colors vowels red and consonants blue. Split-vowel tiles like a_e now show a little curved line connecting the two letters instead of a plain underscore.',
+  },
+  {
+    id: '2026-09-25-lm-listening-chime',
+    date: '2026-09-25',
+    icon: '🎙️',
+    title: 'A little chime when the microphone starts',
+    body: 'When you tap the microphone button in Literacy Manipulatives, you now hear a little chime letting you know it is listening, and another one when it stops.',
+  },
+  {
+    id: '2026-09-25-lm-punctuation-tiles',
+    date: '2026-09-25',
+    icon: '❓',
+    title: 'New Punctuation tiles',
+    body: 'Some students now have a Punctuation category in Literacy Manipulatives with tiles for periods, question marks, commas, and more. Hover over a tile to see what it does. Ask your teacher if you do not see it and want it.',
+  },
+  {
     id: '2026-09-25-lm-synced-tts',
     date: '2026-09-25',
     icon: '🔈',

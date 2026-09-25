@@ -5,9 +5,12 @@ import HelpOverlay from '../../components/HelpOverlay';
 import { useSyncedTTS, SyncedSpeakButton, HighlightedText, type SyncedTTS } from '../../components/SyncedSpeakButton';
 import { ReferencePopover } from '../../components/ReferencePopover';
 import { SANDBOX_PIECES } from '../../lib/grammarContent';
-import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS } from '../../lib/morphemeContent';
+import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS, detectJoinRule, JOIN_RULE_NOTES } from '../../lib/morphemeContent';
 import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, PROPER_NOUNS } from '../../lib/montessoriGrammar';
 import { SYMBOL_SENTENCE_PAGES, ALL_SYMBOL_SENTENCES, type SymbolSentence } from '../../lib/symbolSentences';
+import { PUNCTUATION_MARKS } from '../../lib/punctuationContent';
+import { LM_PUNCTUATION_COLOR, LM_PUNCTUATION_TEXT_COLOR } from '../../lib/literacyDesignTokens';
+import { playListeningStartChime, playListeningStopChime } from '../../lib/audioCues';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
   wordBankFor, actionWordsForTense, auxWordFor, retenseActionWord, TENSE_LABELS,
@@ -76,8 +79,14 @@ function useTextBoxVoiceToText(onFinalText: (text: string) => void) {
     setListening(false);
   };
 
+  // A23-ROADMAP Phase 2: "STT listening cue (chime/TTS + visual state)."
+  // The visual state (listening ? ... : ...) already existed at every
+  // call site of this hook; this adds the paired audio chime so a
+  // student who isn't looking at the button still gets a cue that
+  // listening actually started/stopped, a real accessibility gap for a
+  // population that benefits from more than one sensory channel per cue.
   const toggle = () => {
-    if (listening) { stop(); return; }
+    if (listening) { stop(); playListeningStopChime(); return; }
     if (!SpeechRecognitionCtor) return;
     const rec = new SpeechRecognitionCtor();
     rec.lang = 'en-US';
@@ -94,6 +103,7 @@ function useTextBoxVoiceToText(onFinalText: (text: string) => void) {
     rec.start();
     recognitionRef.current = rec;
     setListening(true);
+    playListeningStartChime();
   };
 
   return { listening, toggle, supported: voiceToTextSupported };
@@ -136,7 +146,7 @@ const AFFIX_MEANINGS: Record<string, string> = {
 const BASE_PEN_COLORS = ['#1f1147', '#dc2626', '#2563eb', '#16a34a', '#f97316', '#7c3aed'];
 const BASE_HIGHLIGHT_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4'];
 
-type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox' | 'symbolSentence';
+type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox' | 'symbolSentence' | 'punctuation';
 
 interface PlacedItem {
   instanceId: string;
@@ -158,6 +168,7 @@ interface PlacedItem {
   fontSize?: number; // textbox
   symbolSentenceId?: string; // symbolSentence — id into ALL_SYMBOL_SENTENCES
   wordFills?: Record<number, string>; // symbolSentence — optional typed word per symbol, from its settings popup
+  punctId?: string; // punctuation — id into PUNCTUATION_MARKS
 }
 
 const pieceById = (id: string): GrammarPiece | undefined => SANDBOX_PIECES.find((p) => p.id === id);
@@ -203,10 +214,46 @@ function PuzzlePiece({ text, color, textColor = '#fff', hasNotch, hasTab }: {
 // the sidebar tray and the canvas, so every material looks identical in
 // both places (a real navigation-clarity fix: one visual language, not
 // a different tile style per old "mode").
-function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, morphType, compact }: {
+// Vowel/consonant coloring toggle (A23-ROADMAP Phase 2) — a common
+// Orton-Gillingham-style convention: color a letter/grapheme tile by
+// whether it spells a vowel or consonant sound, a second visual channel
+// alongside the letters themselves. Classified by the tile's first
+// alphabetic character (works correctly for every single letter and for
+// every grapheme in GRAPHEME_GROUPS below, including split-vowel "a_e"
+// style spellings and consonant digraphs like "sh"/"wr") — a real,
+// simple, honest heuristic, not a claim of phonetic authority.
+function vcColorFor(text: string | undefined, on: boolean): CSSProperties | undefined {
+  if (!on || !text) return undefined;
+  const first = text.replace(/[^a-zA-Z]/g, '')[0]?.toLowerCase();
+  if (!first) return undefined;
+  const isVowel = 'aeiou'.includes(first);
+  return { color: isVowel ? '#b91c1c' : '#1d4ed8' };
+}
+
+function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, morphType, compact, punctId, vowelConsonantColors }: {
   kind: PlacedKind; pieceId?: string; wordClass?: MontessoriWordClass; letter?: string; boxCount?: number;
-  morphText?: string; morphType?: 'root' | 'prefix' | 'suffix'; compact?: boolean;
+  morphText?: string; morphType?: 'root' | 'prefix' | 'suffix'; compact?: boolean; punctId?: string; vowelConsonantColors?: boolean;
 }) {
+  if (kind === 'punctuation') {
+    // A23-ROADMAP Phase 2: opt-in punctuation tiles. Same bordered-tile
+    // shape as a letter tile, its own slate color (literacyDesignTokens)
+    // so a mark never reads as a word-class tile, and a hover/focus
+    // reference tooltip (shared ReferencePopover, same pattern Grammar
+    // Symbols use) naming the mark and what it does.
+    const info = PUNCTUATION_MARKS.find((m) => m.id === punctId);
+    if (!info) return null;
+    return (
+      <ReferencePopover mode="hover" title={info.name} body={info.label}>
+        <div style={{
+          minWidth: 40, height: 40, padding: '0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '3px solid var(--ink)', borderRadius: 8, background: LM_PUNCTUATION_COLOR, color: LM_PUNCTUATION_TEXT_COLOR,
+          fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: '1.3rem', boxShadow: '2px 2px 0 rgba(31,17,71,0.2)',
+        }}>
+          {info.mark}
+        </div>
+      </ReferencePopover>
+    );
+  }
   if (kind === 'grammar') {
     const piece = pieceById(pieceId ?? '');
     if (!piece) return null;
@@ -250,11 +297,37 @@ function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, mor
   if (kind === 'letter') {
     // Also used for grapheme tiles (multi-character, e.g. "sh", "a_e"),
     // hence the min-width instead of a fixed square.
+    const colorStyle = vcColorFor(letter, !!vowelConsonantColors);
+    // A23-ROADMAP Phase 2: "grapheme split-vowel connector" — a VCe
+    // grapheme like "a_e"/"i_e" is stored as one tile (its underscore IS
+    // the "there's a consonant between these two letters" spelling
+    // pattern), but was rendered as plain literal text before. Now the
+    // two vowel letters get their own connector arc between them (the
+    // real magic-e visual convention: the two letters "work together"
+    // across the consonant), with the second (often-silent) letter shown
+    // a little faded.
+    const isSplitVowel = (letter ?? '').includes('_');
+    if (isSplitVowel) {
+      const [head, tail] = (letter ?? '').split('_');
+      return (
+        <div style={{
+          minWidth: 40, height: 40, padding: '0 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+          border: '3px solid var(--ink)', borderRadius: 8, background: 'white',
+          fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: '1.1rem', boxShadow: '2px 2px 0 rgba(31,17,71,0.2)', ...colorStyle,
+        }}>
+          <span>{head}</span>
+          <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <path d="M1 2 Q8 12 15 2" stroke={colorStyle?.color ?? 'var(--ink)'} strokeWidth="2" fill="none" strokeDasharray="2 2" />
+          </svg>
+          <span style={{ opacity: 0.55 }}>{tail}</span>
+        </div>
+      );
+    }
     return (
       <div style={{
         minWidth: 40, height: 40, padding: '0 6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
         border: '3px solid var(--ink)', borderRadius: 8, background: 'white',
-        fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: (letter?.length ?? 1) > 2 ? '0.85rem' : '1.2rem', boxShadow: '2px 2px 0 rgba(31,17,71,0.2)',
+        fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: (letter?.length ?? 1) > 2 ? '0.85rem' : '1.2rem', boxShadow: '2px 2px 0 rgba(31,17,71,0.2)', ...colorStyle,
       }}>
         {letter}
       </div>
@@ -514,7 +587,13 @@ function FormulaBlankField({ value, onType, onPick, placeholder, color, bank, op
         style={{ width: 92, border: `2px solid ${color}`, borderRadius: 6, padding: '4px 6px', fontSize: '0.85rem' }}
       />
       {stt.supported && (
-        <button type="button" className={`btn btn-sm ${stt.listening ? 'btn-primary' : ''}`} style={{ padding: '2px 6px', minHeight: 28, minWidth: 28 }} onClick={stt.toggle} aria-label="Speak this word">🎤</button>
+        // A23-ROADMAP Phase 2: visual listening state made explicit here
+        // too (was icon-only before), matching the Text Box tool's own
+        // "🎙️ Listening…" label — paired with the new audio chime in
+        // useTextBoxVoiceToText's toggle().
+        <button type="button" className={`btn btn-sm ${stt.listening ? 'btn-primary' : ''}`} style={{ padding: '2px 6px', minHeight: 28 }} onClick={stt.toggle} aria-label={stt.listening ? 'Listening, tap to stop' : 'Speak this word'}>
+          {stt.listening ? '🎙️' : '🎤'}
+        </button>
       )}
       <button type="button" className="btn btn-sm" style={{ padding: '2px 6px', minHeight: 28, minWidth: 28 }} onClick={() => { setSearch(''); onToggleOpen(); }}>▾</button>
       {open && (
@@ -583,6 +662,23 @@ export default function GrammarSandbox() {
   // every 🔈 button in this screen (SyncedSpeakButton) instead of each
   // one calling the plain speak() independently.
   const tts = useSyncedTTS();
+  // A23-ROADMAP Phase 2: vowel/consonant coloring toggle for Alphabet
+  // and Graphemes tiles (an Orton-Gillingham-style convention), off by
+  // default (matching every other accommodation on this screen that
+  // changes how tiles look — opt-in, never forced).
+  const [vowelConsonantColors, setVowelConsonantColors] = useState(false);
+  // A23-ROADMAP Phase 2: projector/presentation mode — hides the sidebar
+  // and bumps zoom so the board reads from across a classroom; print
+  // mode is just the existing "🖨️ Print" button calling window.print()
+  // with the @media print rules in index.css doing the actual hiding.
+  const [projectorMode, setProjectorMode] = useState(false);
+  const toggleProjectorMode = () => {
+    setProjectorMode((v) => {
+      const next = !v;
+      if (next) { setSidebarOpen(false); setZoom(1.5); } else { setZoom(1); }
+      return next;
+    });
+  };
   // Zoom — direct teacher instruction: "add zoom feature for white
   // board." Scales the whole canvas visually (transform: scale, from
   // the top-left); placed items keep their real, unscaled x/y, so
@@ -621,7 +717,7 @@ export default function GrammarSandbox() {
   const drawLast = useRef<{ x: number; y: number } | null>(null);
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, frames: false, textbox: false, formulas: false, wordLists: false,
+    shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, punctuation: false, frames: false, textbox: false, formulas: false, wordLists: false,
   });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [openSubcategories, setOpenSubcategories] = useState<Record<string, boolean>>({
@@ -866,10 +962,20 @@ export default function GrammarSandbox() {
         if (!word) return null;
         const rootData = MORPHEME_ROOTS.find((r) => r.id === root.morphId);
         const meaning = AFFIX_MEANINGS[affix.morphText ?? ''] ?? '';
+        // A23-ROADMAP Phase 2: "morpheme join-rule animation (e-drop,
+        // consonant-doubling, visible at the seam)" — derived directly
+        // from comparing the root's spelling to the real word (see
+        // detectJoinRule), not a second hand-tagged data source.
+        const joinRule = (rootData?.text && affix.morphText && affix.morphType && affix.morphType !== 'root')
+          ? detectJoinRule(rootData.text, affix.morphText, affix.morphType, word)
+          : null;
+        const joinRuleNote = joinRule && rootData?.text && affix.morphText ? JOIN_RULE_NOTES[joinRule](rootData.text, affix.morphText) : null;
         return {
           id: `${root.instanceId}-${affix.instanceId}`, x: root.x, y: root.y,
+          seamX: affix.morphType === 'prefix' ? root.x : affix.x,
           word, definition: `"${word}" = ${affix.morphType === 'prefix' ? affix.morphText : rootData?.text}${affix.morphType === 'prefix' ? '' : affix.morphText} (${affix.morphText} means "${meaning}")`,
           etymology: rootData?.etymology,
+          joinRule, joinRuleNote,
         };
       })
       .filter((x): x is NonNullable<typeof x> => !!x));
@@ -1265,7 +1371,7 @@ export default function GrammarSandbox() {
   );
 
   return (
-    <div className="lm-page" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className={`lm-page${projectorMode ? ' lm-projector' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} />}
       {confirmExit && (
         <div className="overlay-backdrop" onClick={() => setConfirmExit(false)}>
@@ -1353,6 +1459,9 @@ export default function GrammarSandbox() {
             <span className="lm-toolbar-divider" />
             <button className="btn btn-sm" onClick={() => setShowSaveModal(true)}>💾 Save</button>
             <button className="btn btn-sm" onClick={() => setShowLoadModal(true)}>📂 My Boards</button>
+            <span className="lm-toolbar-divider" />
+            <button className="btn btn-sm" onClick={() => window.print()}>🖨️ Print</button>
+            <button className={`btn btn-sm ${projectorMode ? 'btn-primary' : ''}`} onClick={toggleProjectorMode}>🖥️ Projector Mode</button>
             <span style={{ flex: 1 }} />
             <button className="btn btn-sm" onClick={() => setTopBarOpen(false)} aria-label="Hide toolbar">▲ Hide bar</button>
           </>
@@ -1436,12 +1545,17 @@ export default function GrammarSandbox() {
 
           <Category label="🔡 Alphabet" color="#fed7aa" open={openCategories.letters} onToggle={() => toggleCategory('letters')}>
             <p style={{ margin: '0 0 6px', fontSize: '0.7rem', opacity: 0.6 }}>Double-tap a letter to flip its case!</p>
+            {/* A23-ROADMAP Phase 2: vowel/consonant coloring toggle,
+                shared with Graphemes below (both are letter tiles). */}
+            <button type="button" className={`btn btn-sm ${vowelConsonantColors ? 'btn-primary' : ''}`} style={{ fontSize: '0.7rem', marginBottom: 6 }} onClick={() => setVowelConsonantColors((v) => !v)}>
+              🎨 Vowel/consonant colors: {vowelConsonantColors ? 'On' : 'Off'}
+            </button>
             <div className="row-wrap" style={{ gap: 6 }}>
               {LETTERS.map((l) => {
                 const display = caseFor(l) === 'lower' ? l.toLowerCase() : l;
                 return (
                   <Draggable key={l} label={display} onPointerDown={startDragNewItem(() => ({ kind: 'letter', letter: display }))} onDoubleClick={() => toggleTrayCase(l)}>
-                    <ItemVisual kind="letter" letter={display} />
+                    <ItemVisual kind="letter" letter={display} vowelConsonantColors={vowelConsonantColors} />
                   </Draggable>
                 );
               })}
@@ -1455,13 +1569,29 @@ export default function GrammarSandbox() {
                 <div className="row-wrap" style={{ gap: 4 }}>
                   {group.graphemes.map((g) => (
                     <Draggable key={g} label={g} onPointerDown={startDragNewItem(() => ({ kind: 'letter', letter: g }))}>
-                      <ItemVisual kind="letter" letter={g} />
+                      <ItemVisual kind="letter" letter={g} vowelConsonantColors={vowelConsonantColors} />
                     </Draggable>
                   ))}
                 </div>
               </SubcategoryRow>
             ))}
           </Category>
+
+          {/* A23-ROADMAP Phase 2: opt-in punctuation tiles, teacher-
+              toggleable per student (StudentManager.tsx), off by
+              default. Not shown at all unless the teacher turns it on
+              for this student. */}
+          {student.showPunctuationTiles && (
+            <Category label="❓ Punctuation" color="#cbd5e1" open={openCategories.punctuation} onToggle={() => toggleCategory('punctuation')}>
+              <div className="row-wrap" style={{ gap: 8 }}>
+                {PUNCTUATION_MARKS.map((m) => (
+                  <Draggable key={m.id} label={m.name} onPointerDown={startDragNewItem(() => ({ kind: 'punctuation', punctId: m.id }))}>
+                    <ItemVisual kind="punctuation" punctId={m.id} />
+                  </Draggable>
+                ))}
+              </div>
+            </Category>
+          )}
 
           <Category label="🟦 Sound Boxes" color="#bbf7d0" open={openCategories.frames} onToggle={() => toggleCategory('frames')}>
             <div className="stack" style={{ gap: 10 }}>
@@ -1560,7 +1690,7 @@ export default function GrammarSandbox() {
                   onDoubleClick={p.kind === 'letter' ? () => toggleLetterCase(p.instanceId) : undefined}
                   style={selectedId === p.instanceId ? { boxShadow: '0 0 0 3px rgba(124,58,237,0.35)', borderRadius: 10 } : undefined}
                 >
-                  <ItemVisual kind={p.kind} pieceId={p.pieceId} wordClass={p.wordClass} letter={p.letter} boxCount={p.boxCount} morphText={p.morphText} morphType={p.morphType} />
+                  <ItemVisual kind={p.kind} pieceId={p.pieceId} wordClass={p.wordClass} letter={p.letter} boxCount={p.boxCount} morphText={p.morphText} morphType={p.morphType} punctId={p.punctId} vowelConsonantColors={vowelConsonantColors} />
                 </Draggable>
                 {/* Delete (+ Settings for a single Grammar Symbol) —
                     direct teacher instruction: "ensure that after i drag
@@ -1574,7 +1704,7 @@ export default function GrammarSandbox() {
                     appear for single grammar symbols" (matching the
                     Symbol Sentence ⚙️/✕ pair). */}
                 {selectedId === p.instanceId && (
-                  <div style={{ position: 'absolute', top: -10, right: -10, display: 'flex', gap: 4, zIndex: 3 }}>
+                  <div className="lm-item-controls" style={{ position: 'absolute', top: -10, right: -10, display: 'flex', gap: 4, zIndex: 3 }}>
                     {p.kind === 'shape' && (
                       <button
                         type="button"
@@ -1632,21 +1762,38 @@ export default function GrammarSandbox() {
               // body text is now the exact same string that's spoken
               // (word + definition + etymology as one flowing passage),
               // so the highlighted word always matches what's on screen.
-              const spokenText = `${c.word}. ${c.definition}${c.etymology ? `. ${c.etymology}` : ''}`;
+              // A23-ROADMAP Phase 2: a detected join rule's plain-language
+              // note is appended to both the spoken and visible text.
+              const spokenText = `${c.word}. ${c.definition}${c.etymology ? `. ${c.etymology}` : ''}${c.joinRuleNote ? ` ${c.joinRuleNote}` : ''}`;
               const speakId = `morph-${c.id}`;
               return (
-                <ReferencePopover
-                  key={c.id}
-                  mode="inline"
-                  title="✨ Real word!"
-                  body={<HighlightedText text={spokenText} active={tts.activeId === speakId} wordIndex={tts.wordIndex} />}
-                  speakId={speakId}
-                  speakText={spokenText}
-                  tts={tts}
-                  settings={student.ttsSettings}
-                  voiceSkinId={student.equippedVoiceId}
-                  style={{ position: 'absolute', left: c.x - 20, top: c.y + 72, width: 240, padding: 8, fontSize: '0.72rem', zIndex: 3 }}
-                />
+                <div key={c.id}>
+                  <ReferencePopover
+                    mode="inline"
+                    title="✨ Real word!"
+                    body={<HighlightedText text={spokenText} active={tts.activeId === speakId} wordIndex={tts.wordIndex} />}
+                    speakId={speakId}
+                    speakText={spokenText}
+                    tts={tts}
+                    settings={student.ttsSettings}
+                    voiceSkinId={student.equippedVoiceId}
+                    style={{ position: 'absolute', left: c.x - 20, top: c.y + 72, width: 240, padding: 8, fontSize: '0.72rem', zIndex: 3 }}
+                  />
+                  {/* Join-rule animation, visible right at the seam
+                      between the two puzzle pieces (not just named in
+                      the card text below) — a small badge that pops in
+                      once, per the spec's own "visible at the seam"
+                      wording. */}
+                  {c.joinRule && (
+                    <div
+                      className="lm-morpheme-join-badge"
+                      style={{ position: 'absolute', left: c.seamX + 30, top: c.y - 20, zIndex: 4 }}
+                      title={c.joinRuleNote ?? undefined}
+                    >
+                      {c.joinRule === 'e-drop' ? 'e̶' : '××'}
+                    </div>
+                  )}
+                </div>
               );
             })}
             {/* Symbol Sentences, placed as one unit — direct follow-up
@@ -1681,7 +1828,7 @@ export default function GrammarSandbox() {
                     </div>
                   </Draggable>
                   {selected && (
-                    <div style={{ position: 'absolute', top: -12, right: -12, display: 'flex', gap: 4, zIndex: 3 }}>
+                    <div className="lm-item-controls" style={{ position: 'absolute', top: -12, right: -12, display: 'flex', gap: 4, zIndex: 3 }}>
                       <button
                         type="button"
                         onClick={() => setOpenSymbolSentenceSettings((v) => (v === item.instanceId ? null : item.instanceId))}
@@ -1825,7 +1972,7 @@ export default function GrammarSandbox() {
                         duplicate buttons to the left of the x, "all three
                         buttons... small, but the same size. slighly
                         smaller than the current x button." */}
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', position: 'relative' }}>
+                    <div className="lm-item-controls" style={{ display: 'flex', gap: 4, alignItems: 'center', position: 'relative' }}>
                       <button
                         className="btn btn-sm"
                         style={{ width: 30, height: 30, minHeight: 30, minWidth: 30, padding: 0, fontSize: '0.85rem' }}
