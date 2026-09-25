@@ -2180,6 +2180,187 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   .lm-symbol-tip { display: none !important; }
 }
 
+/* ---------- Bakery Match (standalone phone-game-style shell) ---------- */
+/* Scoped to BakeryMatch3.tsx only — direct teacher instruction: "lose the
+   webpage concept entirely" for this one game. These bakery-* classes are
+   not used anywhere else, so every other screen that still uses
+   .laptop-frame/.chrome-frame (Arcade, Cinema, FarmersMarket, Gallery,
+   SillyQuizzes, StudentHome) is completely unaffected — see that file's
+   own header comment for the full context. */
+.bakery-shell {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #fff1dc 0%, #ffd9a6 45%, #ffc482 100%);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+@supports (min-height: 100dvh) {
+  .bakery-shell { min-height: 100dvh; }
+}
+.bakery-back-btn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 2px solid #d98b3f;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #7a4a15;
+  cursor: pointer;
+  min-height: 40px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  z-index: 5;
+}
+.bakery-back-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12); }
+
+.bakery-menu {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 56px auto 0;
+  display: flex;
+  justify-content: center;
+}
+.bakery-menu-tiles {
+  position: absolute;
+  inset: -20px -20px auto -20px;
+  height: 420px;
+  pointer-events: none;
+}
+.bakery-deco-tile {
+  position: absolute;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+}
+.bakery-deco-tile-0 { top: 0; left: 4%; width: 56px; opacity: 0.55; transform: rotate(-18deg); }
+.bakery-deco-tile-1 { top: 8%; right: 6%; width: 70px; opacity: 0.55; transform: rotate(14deg); }
+.bakery-deco-tile-2 { top: 60%; left: -2%; width: 52px; opacity: 0.55; transform: rotate(22deg); }
+.bakery-deco-tile-3 { top: 68%; right: -1%; width: 60px; opacity: 0.55; transform: rotate(-12deg); }
+.bakery-deco-tile-4 { top: 34%; left: 46%; width: 44px; opacity: 0.35; transform: rotate(-6deg); }
+.bakery-deco-tile-5 { top: -6%; left: 40%; width: 48px; opacity: 0.4; transform: rotate(10deg); }
+
+.bakery-menu-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  background: rgba(255, 253, 247, 0.94);
+  border: 3px solid #e8ab5c;
+  border-radius: 28px;
+  padding: 28px 22px 26px;
+  box-shadow: 0 14px 0 rgba(0, 0, 0, 0.08), 0 18px 30px rgba(122, 74, 21, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.bakery-title {
+  margin: 0;
+  font-size: 2.1rem;
+  color: #a8571c;
+  text-shadow: 0 2px 0 #fff, 0 4px 0 rgba(168, 87, 28, 0.25);
+}
+.bakery-tagline { margin: 0; opacity: 0.75; font-size: 0.95rem; }
+
+.bakery-play-btn {
+  width: 100%;
+  min-height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #fff;
+  background: linear-gradient(180deg, #ffb648, #e8871f);
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 6px 0 #b5620f;
+  cursor: pointer;
+}
+.bakery-play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b5620f; }
+
+.bakery-secondary-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #a8571c;
+  background: #fff3e0;
+  border: 2px solid #e8ab5c;
+  border-radius: 14px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+.bakery-secondary-btn:active { transform: translateY(2px); }
+
+.bakery-leaderboard { width: 100%; text-align: left; }
+.bakery-leaderboard h2 { text-align: center; margin: 0 0 8px; color: #a8571c; font-size: 1.15rem; }
+.bakery-leaderboard ol { margin: 0 0 14px; padding-left: 22px; }
+.bakery-leaderboard li { padding: 4px 0; font-weight: 700; }
+.bakery-leaderboard-empty { opacity: 0.7; text-align: center; }
+
+.bakery-game { width: 100%; max-width: 520px; margin: 44px auto 0; display: flex; flex-direction: column; gap: 10px; }
+.bakery-header-panel, .bakery-progress-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 253, 247, 0.9);
+  border: 2px solid #e8ab5c;
+  border-radius: 14px;
+  padding: 8px 14px;
+}
+.bakery-header-panel h2 { margin: 0; font-size: 1.2rem; color: #a8571c; }
+.bakery-progress-panel { font-size: 0.85rem; font-weight: 700; color: #a8571c; }
+.bakery-xp { font-weight: 800; color: #a8571c; }
+.bakery-hint { margin: 0; text-align: center; opacity: 0.75; font-size: 0.85rem; }
+
+.bakery-board-panel {
+  background: rgba(255, 253, 247, 0.92);
+  border: 3px solid #e8ab5c;
+  border-radius: 22px;
+  padding: 12px;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.06), 0 14px 24px rgba(122, 74, 21, 0.2);
+}
+.bakery-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.bakery-tile {
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  background: #fff8ec;
+  border: 2px solid transparent;
+  padding: 4px;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: opacity 0.2s, transform 0.1s, background 0.15s, border-color 0.15s;
+}
+.bakery-tile:disabled { cursor: default; }
+.bakery-tile.selected { border-color: #e8871f; background: rgba(232, 135, 31, 0.18); }
+.bakery-tile.shaking { transform: translateX(3px); }
+.bakery-tile.clearing { opacity: 0.15; }
+
+@media (max-width: 640px) {
+  .bakery-menu { margin-top: 44px; }
+  .bakery-title { font-size: 1.7rem; }
+}
+
 /* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the
    Reading Settings tool) — a standing requirement in
    docs/NATIVE_GAME_STANDARD.md ("available as an option, not forced")
