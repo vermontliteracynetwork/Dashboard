@@ -2187,9 +2187,15 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
    .laptop-frame/.chrome-frame (Arcade, Cinema, FarmersMarket, Gallery,
    SillyQuizzes, StudentHome) is completely unaffected — see that file's
    own header comment for the full context. */
+/* Palette/hierarchy reconciled against a teacher-approved interactive
+   mockup (2026-09-25, "go ahead with the bakery mockups") — see
+   BakeryMatch3.tsx's own header comment for what changed and why. */
 .bakery-shell {
   min-height: 100vh;
-  background: linear-gradient(160deg, #fff1dc 0%, #ffd9a6 45%, #ffc482 100%);
+  /* Radial cream-to-caramel behind the menu, reads as "lighter at the
+     top" behind the board too, satisfying both mockup screens with one
+     shared background. */
+  background: radial-gradient(ellipse 140% 90% at 50% -10%, #ffe8c7 0%, #f7b96e 75%);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -2220,6 +2226,26 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   z-index: 5;
 }
 .bakery-back-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12); }
+
+/* Small, quiet, top-right — direct mockup spec: the ONLY pre-game route to
+   the question-source picker, deliberately not equal-weight with Play. */
+.bakery-gear-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(217, 139, 63, 0.5);
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.85;
+  z-index: 5;
+}
+.bakery-gear-btn:hover, .bakery-gear-btn:active { opacity: 1; }
 
 .bakery-menu {
   position: relative;
@@ -2267,8 +2293,22 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   color: #a8571c;
   text-shadow: 0 2px 0 #fff, 0 4px 0 rgba(168, 87, 28, 0.25);
 }
-.bakery-tagline { margin: 0; opacity: 0.75; font-size: 0.95rem; }
+/* One-line pill blurb, per mockup ("3 rounds. Match treats. Answer to
+   advance. Spin for a prize at the end!"), in place of a plain tagline. */
+.bakery-blurb {
+  margin: 0;
+  padding: 6px 16px;
+  background: #fff3e0;
+  border: 1px solid #f0c48a;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a8571c;
+}
 
+/* Primary action, both on the main menu (Play New Game) and inside every
+   modal panel (Done/Keep Baking) — a true pill per mockup, mockup's exact
+   orange gradient. */
 .bakery-play-btn {
   width: 100%;
   min-height: 56px;
@@ -2278,18 +2318,19 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   gap: 10px;
   font-family: 'Baloo 2', sans-serif;
   font-weight: 800;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   color: #fff;
-  background: linear-gradient(180deg, #ffb648, #e8871f);
+  background: linear-gradient(180deg, #ff9e5e, #ff7a3d);
   border: none;
-  border-radius: 18px;
-  box-shadow: 0 6px 0 #b5620f;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(255, 122, 61, 0.35);
   cursor: pointer;
 }
-.bakery-play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b5620f; }
+.bakery-play-btn:active { transform: translateY(2px); box-shadow: 0 3px 8px rgba(255, 122, 61, 0.3); }
 
 .bakery-secondary-btn {
-  min-height: 44px;
+  width: 100%;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2300,39 +2341,122 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   color: #a8571c;
   background: #fff3e0;
   border: 2px solid #e8ab5c;
-  border-radius: 14px;
+  border-radius: 999px;
   padding: 8px 16px;
   cursor: pointer;
 }
 .bakery-secondary-btn:active { transform: translateY(2px); }
 
-.bakery-leaderboard { width: 100%; text-align: left; }
-.bakery-leaderboard h2 { text-align: center; margin: 0 0 8px; color: #a8571c; font-size: 1.15rem; }
-.bakery-leaderboard ol { margin: 0 0 14px; padding-left: 22px; }
-.bakery-leaderboard li { padding: 4px 0; font-weight: 700; }
-.bakery-leaderboard-empty { opacity: 0.7; text-align: center; }
+.bakery-leaderboard-empty { opacity: 0.7; text-align: center; font-size: 0.9rem; }
+.bakery-leaderboard-list { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.bakery-leaderboard-list li {
+  display: flex;
+  justify-content: space-between;
+  background: #fff3e0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  color: #a8571c;
+  font-size: 0.9rem;
+}
 
+/* ---- Modal panels: gear/question-source, leaderboard, exit-confirm ---- */
+.bakery-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(50, 28, 6, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.bakery-modal-card {
+  width: 100%;
+  max-width: 360px;
+  background: #fffdf7;
+  border: 3px solid #e8ab5c;
+  border-radius: 22px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(122, 74, 21, 0.35);
+}
+.bakery-modal-title { margin: 0; color: #a8571c; font-size: 1.15rem; }
+.bakery-modal-note { margin: 0; font-size: 0.8rem; opacity: 0.7; }
+.bakery-confirm-icon { font-size: 2.2rem; }
+.bakery-text-link {
+  background: none;
+  border: none;
+  color: #a8571c;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px;
+  min-height: 32px;
+}
+
+/* ---- Game board topbar: ✕ exit / round + move pips / XP pill ---- */
 .bakery-game { width: 100%; max-width: 520px; margin: 44px auto 0; display: flex; flex-direction: column; gap: 10px; }
-.bakery-header-panel, .bakery-progress-panel {
+.bakery-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   background: rgba(255, 253, 247, 0.9);
   border: 2px solid #e8ab5c;
-  border-radius: 14px;
-  padding: 8px 14px;
+  border-radius: 16px;
+  padding: 10px 14px;
 }
-.bakery-header-panel h2 { margin: 0; font-size: 1.2rem; color: #a8571c; }
-.bakery-progress-panel { font-size: 0.85rem; font-weight: 700; color: #a8571c; }
-.bakery-xp { font-weight: 800; color: #a8571c; }
+.bakery-exit-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff3e0;
+  border: 2px solid #e8ab5c;
+  border-radius: 999px;
+  color: #a8571c;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.bakery-round-block { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.bakery-round-label { font-size: 0.85rem; font-weight: 800; color: #a8571c; }
+.bakery-move-pips { display: flex; gap: 5px; }
+.bakery-pip { width: 14px; height: 14px; border-radius: 999px; background: #f0d9b8; border: 1px solid #e0ab6a; }
+.bakery-pip.filled { background: #e8871f; border-color: #b5620f; }
+.bakery-xp-pill {
+  background: #fff;
+  border: 2px solid #e8ab5c;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 800;
+  color: #a8571c;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .bakery-hint { margin: 0; text-align: center; opacity: 0.75; font-size: 0.85rem; }
 
+/* Warm brown/caramel outer frame (like a wooden counter/tray) around the
+   cream inner panel holding the grid — a real two-layer board chrome per
+   mockup, not a single bare panel. */
+.bakery-board-frame {
+  background: linear-gradient(160deg, #c9822f, #a8611b);
+  border-radius: 26px;
+  padding: 10px;
+  box-shadow: 0 12px 0 rgba(0, 0, 0, 0.08), 0 16px 26px rgba(122, 74, 21, 0.25);
+}
 .bakery-board-panel {
-  background: rgba(255, 253, 247, 0.92);
-  border: 3px solid #e8ab5c;
-  border-radius: 22px;
+  background: #fff8ec;
+  border-radius: 18px;
   padding: 12px;
-  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.06), 0 14px 24px rgba(122, 74, 21, 0.2);
 }
 .bakery-grid {
   display: grid;
