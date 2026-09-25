@@ -443,6 +443,7 @@ const rowToWorldObject = (r: Row): WorldObject => ({
   signText: r.sign_text ?? undefined,
   roomId: r.room_id ?? undefined,
   customRoleUrl: r.custom_role_url ?? undefined,
+  groupId: r.group_id ?? undefined,
 });
 const worldObjectToRow = (o: WorldObject): Row => ({
   id: o.id,
@@ -463,6 +464,7 @@ const worldObjectToRow = (o: WorldObject): Row => ({
   sign_text: o.signText ?? null,
   room_id: o.roomId ?? null,
   custom_role_url: o.customRoleUrl ?? null,
+  group_id: o.groupId ?? null,
 });
 
 const rowToWallSegment = (r: Row): WallSegment => ({

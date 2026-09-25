@@ -876,6 +876,15 @@ export interface WorldObject {
   // row placed before the room system existed = still assigned to that
   // student's migrated default room the first time HomeRoom.tsx loads.
   roomId?: string;
+  // Canva-style element grouping (WorldEditor's Group/Ungroup action):
+  // every member of a group shares this same id. Selecting any one member
+  // auto-selects every object sharing it, and the group then moves/
+  // rotates/resizes together as one rigid body — see WorldEditor.tsx's
+  // group-transform helpers (rotateGroupBy/rigidGroupScale/moveGroupBy).
+  // undefined = not in a group, the overwhelming default; additive/
+  // optional like every other WorldObject field, so an existing world
+  // with no grouped objects is unaffected.
+  groupId?: string;
 }
 
 // A single straight wall segment, drawn with Sims 4-style click-drag

@@ -695,6 +695,11 @@ alter table notes add column if not exists kind text not null default 'note';
 alter table students add column if not exists island_build_unlocked boolean not null default false;
 alter table students add column if not exists last_seen_changelog_id text;
 alter table world_objects add column if not exists custom_role_url text;
+-- Canva-style element grouping (WorldEditor's Group/Ungroup action, part 2
+-- of the Sims-4-moveobjects-touch-equivalent + grouping request): every
+-- member of a group shares this same id; null = not grouped, the default
+-- for every existing row.
+alter table world_objects add column if not exists group_id text;
 -- Transportation Phase 2b/2d (docs/BOATS_DESIGN.md §8): a single per-student
 -- on/off toggle for vehicle engine/splash/wind/chug sound, independent of
 -- world_reduce_motion above (which already covers the matching reduced-
