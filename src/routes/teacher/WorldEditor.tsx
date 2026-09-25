@@ -456,25 +456,6 @@ function computeAutoScale(size: THREE.Vector3, category: string, label: string):
   return size.y > 0 && isFinite(size.y) ? THREE.MathUtils.clamp(targetHeight / size.y, SCALE_MIN, SCALE_MAX) : 1;
 }
 
-// Advisory-only footprint overlap check (Minecraft/Sims-style warning, per
-// Claudia's spec — never blocks placement). A real per-model bounding box
-// would need every GLTF loaded synchronously just to check; a generic
-// per-model radius, scaled, is close enough for a "heads up" warning.
-const BASE_FOOTPRINT_RADIUS = 1;
-function footprintOverlap(x: number, z: number, scale: number, worldObjects: WorldObject[], excludeId?: string): string | null {
-  for (const o of worldObjects) {
-    if (o.id === excludeId) continue;
-    const dist = Math.hypot(x - o.position[0], z - o.position[2]);
-    if (dist < BASE_FOOTPRINT_RADIUS * scale + BASE_FOOTPRINT_RADIUS * o.scale) return o.customName || o.label;
-  }
-  for (const b of BUILDINGS) {
-    if (b.id === excludeId) continue;
-    const dist = Math.hypot(x - b.position[0], z - b.position[1]);
-    if (dist < BASE_FOOTPRINT_RADIUS * scale + 3) return b.id;
-  }
-  return null;
-}
-
 // Press-and-hold auto-repeat for the fine resize/rotate nudge buttons —
 // 400ms initial delay, then repeats every 150ms, so a teacher can hold
 // instead of tapping many times (per Claudia's touch-target guidance).
@@ -2659,10 +2640,12 @@ export default function WorldEditor() {
     }
   };
 
-  const placementOverlap = armedAsset && ghostPos ? footprintOverlap(ghostPos.x, ghostPos.z, armedDefaultScale * ghostScaleAdjust, worldObjects) : null;
-  // A door/window ghost not currently near any wall reads as invalid the
-  // same way an overlapping placement already does — visual feedback for
-  // exactly the state that's about to reject the click.
+  // A door/window ghost not currently near any wall reads as invalid —
+  // visual feedback for exactly the state that's about to reject the
+  // click. (Overlapping another object's footprint used to get its own
+  // advisory warning here too — direct instruction: objects are allowed
+  // to overlap freely, so that check was removed rather than left as
+  // dead code a future pass might resurrect.)
   const placementNeedsWall = !!(armedAsset && ghostPos && DOOR_WINDOW_RE.test(armedAsset.label) && !ghostPos.wallSnapped);
   // Boats (docs/BOATS_DESIGN.md §5) work anywhere on land visually, but
   // only actually drive within painted water — same soft, non-blocking
@@ -3200,9 +3183,8 @@ export default function WorldEditor() {
             </button>
           )}
           {armedAsset && (
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: placementOverlap ? '#fff3ea' : '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
-              {placementOverlap && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Overlapping {placementOverlap} — that's OK, just checking</div>}
               {placementNeedsWater && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Needs water to actually drive — paint some with the ground brush</div>}
               {placementTrackFeedback === 'connects' && <div style={{ color: BUILD_ACCENT, fontWeight: 600, fontSize: 12, marginTop: 4 }}>✅ Connects</div>}
               {placementTrackInvalid && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Won't connect — line it up with the open end of the nearby track</div>}
@@ -3337,7 +3319,7 @@ export default function WorldEditor() {
                     rotationY: ghostPos.rotationY + ghostRotationAdjust,
                     scale: armedDefaultScale * ghostScaleAdjust,
                     createdAt: '',
-                    tintColor: placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : undefined,
+                    tintColor: placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : undefined,
                   }}
                   opacity={0.55}
                 />
@@ -3345,8 +3327,8 @@ export default function WorldEditor() {
                     cell plus a crisp wireframe cage on the exact footprint,
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
-                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
-                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale * ghostScaleAdjust} color={placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
+                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale * ghostScaleAdjust} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
 
