@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-bakery-match-game-screen',
+    date: '2026-09-25',
+    icon: '🥐',
+    title: 'Bakery Match got a whole new look and new rules',
+    body: 'Bakery Match no longer looks like a computer webpage, it now opens with a real game start screen. Tap Play New Game to start, or View Leaderboard to see your past scores (only you can see them). You can now drag a treat onto the one next to it to swap, or still tap two treats like before. A game is 3 rounds of 3 moves each, and after every round you answer 3 questions correctly before the next round starts. Matching treats earns you XP instead of coins, and after your 3rd round you get one wheel spin for a treat prize.',
+  },
+  {
     id: '2026-09-25-question-screen-redesign',
     date: '2026-09-25',
     icon: '❓',

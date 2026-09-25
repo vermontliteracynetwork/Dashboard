@@ -116,6 +116,7 @@ const rowToStudent = (r: Row): Student => ({
   showSentenceBuildingHints: r.show_sentence_building_hints ?? true,
   showPunctuationTiles: r.show_punctuation_tiles ?? false,
   bakeryQuestionsAnswered: r.bakery_questions_answered ?? 0,
+  bakeryLeaderboard: r.bakery_leaderboard ?? [],
   unlockedCharacterIds: r.unlocked_character_ids ?? [],
   equippedCharacterId: r.equipped_character_id ?? null,
 });
@@ -179,6 +180,7 @@ const studentToRow = (s: Student): Row => ({
   show_sentence_building_hints: s.showSentenceBuildingHints ?? true,
   show_punctuation_tiles: s.showPunctuationTiles ?? false,
   bakery_questions_answered: s.bakeryQuestionsAnswered ?? 0,
+  bakery_leaderboard: s.bakeryLeaderboard ?? [],
   unlocked_character_ids: s.unlockedCharacterIds ?? [],
   equipped_character_id: s.equippedCharacterId ?? null,
 });
@@ -1204,6 +1206,7 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   showSentenceBuildingHints: 'show_sentence_building_hints',
   showPunctuationTiles: 'show_punctuation_tiles',
   bakeryQuestionsAnswered: 'bakery_questions_answered',
+  bakeryLeaderboard: 'bakery_leaderboard',
   unlockedCharacterIds: 'unlocked_character_ids',
   equippedCharacterId: 'equipped_character_id',
 };

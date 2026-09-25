@@ -401,6 +401,11 @@ interface AppState {
   // counts, right or wrong. Crossing 100 unlocks 'cake' in
   // unlockedCharacterIds and bumps lastCharacterUnlock once.
   recordBakeryQuestionAnswered: (studentId: string) => void;
+  // Bakery Match's private per-game XP leaderboard — appends one entry
+  // (this game's total XP + today's date) once a full 3-round game ends.
+  // Never read/compared across students anywhere (standing no-leaderboard
+  // rule) — only ever shown back to the same student on their own main menu.
+  recordBakeryGameResult: (studentId: string, xp: number) => void;
   equipCharacter: (studentId: string, characterId: string | null) => void;
   renamePet: (petId: string, name: string) => void;
   // Pet paint-brush customization (Part B backlog item) — reuses the exact
@@ -1447,6 +1452,15 @@ export const useStore = create<AppState>()(
           ...(justUnlocked ? { unlockedCharacterIds: [...(student.unlockedCharacterIds ?? []), 'cake'] } : {}),
         });
         if (justUnlocked) set({ lastCharacterUnlock: { id: makeId(), studentId, characterId: 'cake' } });
+      },
+
+      recordBakeryGameResult: (studentId, xp) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        const entry = { xp, date: new Date().toISOString().slice(0, 10) };
+        get().updateStudent(studentId, {
+          bakeryLeaderboard: [...(student.bakeryLeaderboard ?? []), entry],
+        });
       },
 
       equipCharacter: (studentId, characterId) => {

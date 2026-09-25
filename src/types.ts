@@ -174,6 +174,14 @@ export interface Student {
   // participation tracker, not a mastery one). Never resets; at 100
   // unlocks the Cake Character (see characterCatalog.ts).
   bakeryQuestionsAnswered?: number;
+  // Bakery Match's per-game XP leaderboard — direct teacher instruction:
+  // "personal leaderboard... strictly private" (never visible to peers,
+  // same standing no-cross-student-comparison rule as everywhere else in
+  // this app). One entry per completed 3-round game (3 moves/round, XP =
+  // sum of every match's tile count across the whole game), appended by
+  // recordBakeryGameResult, read back only on this student's own Bakery
+  // Match main menu.
+  bakeryLeaderboard?: { xp: number; date: string }[];
   // In-world 3D character catalog (characterCatalog.ts) — separate from
   // avatar (the 2D login picture). 'default' (the standard player model)
   // is always available and never listed here. Grows as new characters

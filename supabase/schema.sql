@@ -591,6 +591,9 @@ alter table students add column if not exists show_punctuation_tiles boolean not
 -- and its in-world 3D character-catalog unlock/equip state.
 alter table students add column if not exists bakery_questions_answered integer not null default 0;
 alter table students add column if not exists unlocked_character_ids jsonb not null default '[]';
+-- Bakery Match's private per-game XP leaderboard: [{ xp, date }], one entry
+-- per completed 3-round game, never shown to any other student.
+alter table students add column if not exists bakery_leaderboard jsonb not null default '[]';
 alter table students add column if not exists equipped_character_id text;
 
 -- Home Room's room system (replaces the old single fixed 10x10 room + a
