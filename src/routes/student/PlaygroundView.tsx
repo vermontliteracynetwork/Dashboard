@@ -16,6 +16,7 @@ import SentenceEditTask from './SentenceEditTask';
 import { todayISO } from '../../lib/dates';
 import { getPlaygroundAccess } from '../../lib/playgroundAccess';
 import type { QuestionSet, Subject, Task } from '../../types';
+import { Icon } from '../../components/Icon';
 
 // Turns a saved question set into a standalone, ungraded Platformer run —
 // same game, but the student picked the content instead of a teacher
@@ -110,13 +111,13 @@ export default function PlaygroundView() {
       <div className="container stack" style={{ alignItems: 'center', textAlign: 'center' }}>
         <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))', width: '100%' }}>
           <h2 style={{ margin: 0 }}>🎪 The Playground</h2>
-          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+          <button className="btn btn-sm" onClick={() => navigate('/student/home')}><Icon name="home" size={14} fallback="🏠" /> Home</button>
         </div>
         <div className="chrome-frame stack" style={{ padding: 32, alignItems: 'center', maxWidth: 480 }}>
-          <span style={{ fontSize: '3rem' }}>🔒</span>
+          <Icon name="lock" size={48} fallback="🔒" />
           <h3 style={{ margin: 0 }}>Locked for now</h3>
           <p>Finish today's assignment (Math and Literacy) to unlock the Playground!</p>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}>🏠 Back to Home</button>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/home')}><Icon name="home" size={16} fallback="🏠" /> Back to Home</button>
         </div>
       </div>
     );
@@ -138,7 +139,7 @@ export default function PlaygroundView() {
           <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
             <div className="space-between" style={{ marginBottom: 10 }}>
               <strong>{openEntry.task.icon} {openEntry.task.title}</strong>
-              <button className="btn btn-sm" onClick={close}>✕ Close</button>
+              <button className="btn btn-sm" onClick={close}><Icon name="close" size={14} fallback="✕" /> Close</button>
             </div>
             {openEntry.task.type === 'quiz' && <QuizTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={finishActivity} onExit={close} />}
             {openEntry.task.type === 'platformer' && <PlatformerTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={finishActivity} onExit={close} />}
@@ -154,7 +155,7 @@ export default function PlaygroundView() {
 
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--pink))' }}>
         <h2 style={{ margin: 0 }}>🎪 The Playground</h2>
-        <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+        <button className="btn btn-sm" onClick={() => navigate('/student/home')}><Icon name="home" size={14} fallback="🏠" /> Home</button>
       </div>
 
       {!access.unlimited && access.remainingMs !== null && (
@@ -171,7 +172,7 @@ export default function PlaygroundView() {
           <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
             <div className="space-between" style={{ marginBottom: 10 }}>
               <strong>🎮 Pick what to practice</strong>
-              <button className="btn btn-sm" onClick={() => setPickingFreePlay(false)}>✕ Close</button>
+              <button className="btn btn-sm" onClick={() => setPickingFreePlay(false)}><Icon name="close" size={14} fallback="✕" /> Close</button>
             </div>
             <div className="stack" style={{ gap: 8 }}>
               {quizSets.map((set) => (

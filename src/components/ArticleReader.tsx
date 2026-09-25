@@ -3,6 +3,7 @@ import { useStore } from '../store/store';
 import { makeId } from '../lib/id';
 import { speak } from './ReadAloud';
 import type { ArticleTaskContent, Highlight, TTSSettings } from '../types';
+import { Icon } from './Icon';
 
 interface Props {
   studentId: string;
@@ -182,7 +183,7 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
           ↕️ Spacing
         </button>
         <button className="btn btn-sm btn-blue" style={{ minHeight: 44 }} onClick={toggleReadAloud} aria-label="Read aloud">
-          {speaking ? '⏸ Stop' : '🔈 Read Aloud'}
+          {speaking ? <><Icon name="pause" size={14} fallback="⏸" /> Stop</> : <><Icon name="sound" size={14} fallback="🔈" /> Read Aloud</>}
         </button>
         <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowNotes(true)} aria-label="My notes">
           💬 Notes {highlights.filter((h) => h.note).length > 0 && `(${highlights.filter((h) => h.note).length})`}
@@ -211,7 +212,7 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
               🖍️ Highlight
             </button>
             <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={readSelection}>
-              🔈 Read it
+              <Icon name="sound" size={14} fallback="🔈" /> Read it
             </button>
           </div>
         )}
@@ -234,7 +235,7 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
       </div>
 
       <button className="btn btn-primary btn-lg" style={{ minHeight: 44, alignSelf: 'center' }} onClick={() => onDone()}>
-        ✅ I'm done reading
+        <Icon name="check" size={16} fallback="✅" /> I'm done reading
       </button>
 
       {editingHighlight && (
@@ -261,7 +262,7 @@ export default function ArticleReader({ studentId, taskId, content, ttsSettings,
                   Save Note
                 </button>
                 <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => readHighlight(editingHighlight)}>
-                  🔈 Read this part
+                  <Icon name="sound" size={14} fallback="🔈" /> Read this part
                 </button>
                 <button
                   className="btn btn-sm btn-danger"

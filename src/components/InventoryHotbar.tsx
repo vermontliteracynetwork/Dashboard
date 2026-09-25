@@ -9,6 +9,7 @@ import { TOWNSPEOPLE } from '../lib/worldTownspeople';
 import { petDefById, thumbnailFor, bioFor, nextMilestone, milestonesReached, growthStageFor, growthStageLabel, growthStageIcon } from '../lib/petCatalog';
 import { BookPanel } from './BookPanel';
 import type { Student } from '../types';
+import { Icon } from './Icon';
 
 // Direct teacher instruction: pets should be viewable in a book in the
 // backpack — same real-book-you-page-through treatment the Joke Book
@@ -85,7 +86,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
             <button className={`btn btn-sm${tab === 'pets' ? ' btn-primary' : ''}`} onClick={() => setTab('pets')}>🐾 Pet Book ({myPets.length})</button>
             <button className={`btn btn-sm${tab === 'friends' ? ' btn-primary' : ''}`} onClick={() => setTab('friends')}>🧑‍🤝‍🧑 Friends ({metNpcs.length})</button>
           </div>
-          <button className="btn btn-sm" onClick={onClose} aria-label="Close">✕</button>
+          <button className="btn btn-sm" onClick={onClose} aria-label="Close"><Icon name="close" size={16} fallback="✕" /></button>
         </div>
         {tab === 'friends' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
@@ -172,7 +173,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
               onClick={() => setTab('stuff')}
               style={{ position: 'absolute', top: -14, right: -14, width: 36, height: 36, borderRadius: '50%', border: '2px solid #3d2612', background: '#f3e6c4', color: '#3d2612', fontWeight: 800, cursor: 'pointer', zIndex: 1 }}
             >
-              ✕
+              <Icon name="close" size={16} fallback="✕" />
             </button>
             <BookPanel
               title="Joke Book"
@@ -205,7 +206,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
               onClick={() => setTab('stuff')}
               style={{ position: 'absolute', top: -14, right: -14, width: 36, height: 36, borderRadius: '50%', border: '2px solid #3d2612', background: '#f3e6c4', color: '#3d2612', fontWeight: 800, cursor: 'pointer', zIndex: 1 }}
             >
-              ✕
+              <Icon name="close" size={16} fallback="✕" />
             </button>
             <BookPanel
               title="Pet Book"
@@ -234,7 +235,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
                       <div style={{ display: 'flex', gap: 10, fontSize: '0.72rem', fontWeight: 700, opacity: 0.75, marginBottom: 8 }}>
                         <span>🍗 {Math.round(pet.food)}</span>
                         <span>💛 {Math.round(pet.social)}</span>
-                        <span>❤️ {Math.round(pet.health)}</span>
+                        <span><Icon name="heart" size={13} fallback="❤️" /> {Math.round(pet.health)}</span>
                       </div>
                       {pet.following && <p style={{ margin: '0 0 4px', fontSize: '0.8rem', fontWeight: 800, color: '#3e7c6b' }}>🚶 Walking beside you</p>}
                       {reached.length > 0 && (

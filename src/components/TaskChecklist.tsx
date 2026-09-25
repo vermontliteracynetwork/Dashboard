@@ -4,6 +4,7 @@ import StepGuide from './StepGuide';
 import { getTaskSteps } from '../lib/steps';
 import { isTaskLocked, nextRequiredTaskId, sortForDisplay } from '../lib/taskOrder';
 import type { Student, Task } from '../types';
+import { Icon } from './Icon';
 
 interface Props {
   student: Student;
@@ -94,7 +95,7 @@ export default function TaskChecklist({
                     }
                   }}
                 >
-                  {overrideMode ? '✓ Yes, mark it done' : '✓ Yes, I did it'}
+                  {overrideMode ? <><Icon name="check" size={16} fallback="✓" /> Yes, mark it done</> : <><Icon name="check" size={16} fallback="✓" /> Yes, I did it</>}
                 </button>
                 <button
                   className="btn btn-lg"
@@ -103,7 +104,7 @@ export default function TaskChecklist({
                     if (!overrideMode) onReopenLink(confirmingTask);
                   }}
                 >
-                  {overrideMode ? '✕ Cancel' : '✕ Not yet'}
+                  {overrideMode ? <><Icon name="close" size={14} fallback="✕" /> Cancel</> : <><Icon name="close" size={14} fallback="✕" /> Not yet</>}
                 </button>
               </div>
             </div>
@@ -119,7 +120,7 @@ export default function TaskChecklist({
               <p style={{ margin: 0 }}>{uncheckingTask.icon} {uncheckingTask.title}</p>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 <button className="btn btn-primary btn-lg" onClick={() => setUncheckingId(null)}>
-                  ✓ Yes
+                  <Icon name="check" size={16} fallback="✓" /> Yes
                 </button>
                 <button
                   className="btn btn-lg"
@@ -134,7 +135,7 @@ export default function TaskChecklist({
                     }
                   }}
                 >
-                  ✕ No, uncheck it
+                  <Icon name="close" size={14} fallback="✕" /> No, uncheck it
                 </button>
               </div>
             </div>
@@ -236,7 +237,7 @@ export default function TaskChecklist({
                           : 'Finish the activity below to check this off'
               }
             >
-              {skipped ? '⏭️' : done ? '✓' : locked ? '🔒' : ''}
+              {skipped ? '⏭️' : done ? <Icon name="check" size={18} fallback="✓" /> : locked ? <Icon name="lock" size={16} fallback="🔒" /> : ''}
             </button>
 
             <button
@@ -272,7 +273,7 @@ export default function TaskChecklist({
               aria-label="Read title aloud"
               title="Read aloud"
             >
-              🔈
+              <Icon name="sound" size={16} fallback="🔈" />
             </button>
             <button
               className="checklist-icon-btn"
@@ -280,7 +281,7 @@ export default function TaskChecklist({
               aria-label="How do I do this?"
               title="How do I do this?"
             >
-              ❓
+              <Icon name="question" size={16} fallback="❓" />
             </button>
           </div>
         );

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
 import type { Student, StudentFeedback } from '../types';
+import { Icon } from './Icon';
 
 // A structured, quiz-like feedback flow — direct instruction, built
 // specifically for students whose communication needs (including
@@ -102,7 +103,7 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
       <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
         <div className="row space-between" style={{ alignItems: 'center', marginBottom: 10 }}>
           <h2 style={{ margin: 0 }}>💬 Feedback</h2>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose} aria-label="Close">✕</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose} aria-label="Close"><Icon name="close" size={16} fallback="✕" /></button>
         </div>
 
         {path.length > 0 && phase !== 'done' && (
@@ -120,7 +121,7 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
               {currentOptions.map(optBtn)}
             </div>
             {path.length > 0 && (
-              <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={back}>← Back</button>
+              <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={back}><Icon name="arrowLeft" size={14} fallback="←" /> Back</button>
             )}
           </div>
         )}
@@ -136,9 +137,9 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
               autoFocus
             />
             <div className="row" style={{ gap: 8 }}>
-              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={back}>← Back</button>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={back}><Icon name="arrowLeft" size={14} fallback="←" /> Back</button>
               <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!customLabelText.trim()} onClick={() => setPhase('text')}>
-                Next →
+                Next <Icon name="arrowRight" size={14} fallback="→" />
               </button>
             </div>
           </div>
@@ -156,9 +157,9 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
               autoFocus
             />
             <div className="row space-between">
-              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={back}>← Back</button>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={back}><Icon name="arrowLeft" size={14} fallback="←" /> Back</button>
               <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!feedbackText.trim()} onClick={submit}>
-                ✅ Send Feedback
+                <Icon name="check" size={16} fallback="✅" /> Send Feedback
               </button>
             </div>
           </div>
