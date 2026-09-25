@@ -1082,10 +1082,30 @@ export function setSyncFailureHandler(fn: (label: string, message: string) => vo
 type PendingWrite = { run: () => PromiseLike<{ error: { message: string } | null }>; label: string };
 let pendingWrites: PendingWrite[] = [];
 
-async function pushWithRetry(run: () => PromiseLike<{ error: { message: string } | null }>, label: string) {
+// A schema mismatch (a column the app's code expects that the real
+// database doesn't have yet — the exact failure a pending, not-yet-run
+// `supabase/schema.sql` migration produces) is never going to succeed no
+// matter how many times it's retried. Direct teacher report: a student
+// kept seeing the sync-trouble banner reappear every 20 seconds because
+// this class of error used to be queued and retried forever, identically
+// to a real transient network failure — indistinguishable to a student
+// staring at a red banner that never resolves. Detected by PostgREST's
+// own error shape for this (code PGRST204) or the message text Supabase
+// uses for it, so it's reported once and then left alone instead of
+// silently hammering the database with the same doomed request forever.
+function isPermanentSchemaError(error: { code?: string; message: string }): boolean {
+  return error.code === 'PGRST204' || /could not find the .* column/i.test(error.message);
+}
+
+async function pushWithRetry(run: () => PromiseLike<{ error: { code?: string; message: string } | null }>, label: string) {
   for (let attempt = 0; ; attempt++) {
     const res = await run();
     if (!res.error) return;
+    if (isPermanentSchemaError(res.error)) {
+      console.error(`[sync] ${label} hit a permanent schema mismatch, not retrying:`, res.error.message);
+      onPersistentSyncFailure?.(label, res.error.message);
+      return;
+    }
     if (attempt >= RETRY_DELAYS_MS.length) {
       console.error(`[sync] ${label} failed after ${attempt + 1} attempts:`, res.error.message);
       pendingWrites.push({ run, label });

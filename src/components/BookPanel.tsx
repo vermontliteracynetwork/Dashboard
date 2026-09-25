@@ -89,7 +89,7 @@ export function BookPanel({
     return (
       <div style={bookStyle}>
         <div style={pageStyle}>
-          <p style={{ opacity: 0.6, fontSize: '0.9rem', textAlign: 'center', marginTop: 40, fontFamily: 'Georgia, serif' }}>
+          <p style={{ ...pageContentStyle, opacity: 0.6, fontSize: '0.9rem', textAlign: 'center', marginTop: 40, fontFamily: 'Georgia, serif' }}>
             {emptyMessage ?? 'Nothing written here yet.'}
           </p>
         </div>
@@ -103,12 +103,19 @@ export function BookPanel({
 
   return (
     <div style={bookStyle}>
-      {title && <div style={spineLabelStyle}>{title}</div>}
+      {title && (
+        <div style={spineLabelWrapStyle}>
+          <img src="/ui/paper/book-ribbon.png" alt="" style={ribbonImgStyle} />
+          <span style={spineLabelTextStyle}>{title}</span>
+        </div>
+      )}
       <div style={{ position: 'relative', width: '100%', height: '100%', perspective: 1400 }}>
         {/* The settled page underneath — always shows the page we're
             flipping TOWARD, so it's already there the instant the turning
             leaf rotates past 90° and its backface starts hiding it. */}
-        <div style={pageStyle}>{(incoming ?? current).content}</div>
+        <div style={pageStyle}>
+          <div style={pageContentStyle}>{(incoming ?? current).content}</div>
+        </div>
         {/* The turning leaf — only rendered mid-flip, laid over the settled
             page above. Front face = the page being left; back face (its
             own plain "paper back" color) = what shows once it's rotated
@@ -125,8 +132,8 @@ export function BookPanel({
               zIndex: 2,
             }}
           >
-            <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', background: PAGE_BG, borderRadius: 'inherit', overflow: 'auto', padding: 'inherit' }}>
-              {current.content}
+            <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', borderRadius: 'inherit', overflow: 'auto' }}>
+              <div style={pageContentStyle}>{current.content}</div>
             </div>
             <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: '#e9ddc0', borderRadius: 'inherit' }} />
           </div>
@@ -136,7 +143,7 @@ export function BookPanel({
         aria-label="Previous page"
         disabled={clamped === 0 || !!flipDir}
         onClick={() => goTo(clamped - 1, 'prev')}
-        style={{ ...cornerBtnStyle, left: 6, opacity: clamped === 0 ? 0.25 : 1 }}
+        style={{ ...cornerBtnStyle, left: 2, opacity: clamped === 0 ? 0.35 : 1 }}
       >
         ◀
       </button>
@@ -144,7 +151,7 @@ export function BookPanel({
         aria-label="Next page"
         disabled={clamped === pages.length - 1 || !!flipDir}
         onClick={() => goTo(clamped + 1, 'next')}
-        style={{ ...cornerBtnStyle, right: 6, opacity: clamped === pages.length - 1 ? 0.25 : 1 }}
+        style={{ ...cornerBtnStyle, right: 2, opacity: clamped === pages.length - 1 ? 0.35 : 1 }}
       >
         ▶
       </button>
@@ -154,8 +161,6 @@ export function BookPanel({
     </div>
   );
 }
-
-const PAGE_BG = 'linear-gradient(180deg, #fbf3de, #f3e6c4)';
 
 const bookStyle: React.CSSProperties = {
   position: 'relative',
@@ -170,46 +175,71 @@ const bookStyle: React.CSSProperties = {
   border: '3px solid #3d2612',
 };
 
+// The page background is the pack's own parchment-with-dog-eared-corner
+// art (Humble Gift Paper UI System, "8 Shop" / Folding & Cutout), not a
+// flat CSS gradient — it already carries the ornate border and paper-stack
+// depth, so the inner content gets its own inset padding instead of the
+// image being asked to also act as a color fill.
 const pageStyle: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
-  background: PAGE_BG,
   borderRadius: 4,
-  padding: '18px 20px',
   overflowY: 'auto',
-  boxShadow: 'inset 0 0 18px rgba(120,90,40,0.25)',
+  backgroundImage: 'url(/ui/paper/book-page.png)',
+  backgroundSize: '100% 100%',
+  backgroundRepeat: 'no-repeat',
   fontFamily: 'Georgia, serif',
 };
 
-const spineLabelStyle: React.CSSProperties = {
+const pageContentStyle: React.CSSProperties = {
+  padding: '30px 34px 26px',
+};
+
+const spineLabelWrapStyle: React.CSSProperties = {
   position: 'absolute',
-  top: -12,
+  top: -22,
   left: '50%',
   transform: 'translateX(-50%)',
-  background: '#3d2612',
-  color: '#f3e6c4',
-  fontSize: '0.7rem',
+  width: 160,
+  height: 46,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const ribbonImgStyle: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  objectFit: 'contain',
+};
+
+const spineLabelTextStyle: React.CSSProperties = {
+  position: 'relative',
+  color: '#3d2612',
+  fontSize: '0.68rem',
   fontWeight: 700,
-  padding: '3px 12px',
-  borderRadius: 999,
   letterSpacing: '0.03em',
   fontFamily: 'system-ui, sans-serif',
+  textAlign: 'center',
+  padding: '0 8px',
 };
 
 const cornerBtnStyle: React.CSSProperties = {
   position: 'absolute',
-  bottom: 6,
-  width: 40,
-  height: 40,
+  bottom: 2,
+  width: 44,
+  height: 44,
   minWidth: 44,
   minHeight: 44,
-  borderRadius: '50%',
-  border: '2px solid #3d2612',
-  background: '#f3e6c4',
+  border: 'none',
+  background: 'url(/ui/paper/book-nav-button.png) center / contain no-repeat',
   color: '#3d2612',
   fontWeight: 800,
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  paddingBottom: 2,
 };
