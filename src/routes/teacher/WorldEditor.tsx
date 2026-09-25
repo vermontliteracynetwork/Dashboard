@@ -1077,10 +1077,38 @@ function RosterTab() {
 // (the same id TownSquare already keys its Bank/Store/etc. routing off
 // of), so reassigning it here would silently break that binding rather
 // than actually relabel anything.
+// Icon-plus-visible-caption button, for any NEW button added to a toolbar —
+// the documented accessibility finding for this file ("icon paired with a
+// visible caption underneath, not icon-only") applies to a first-time
+// button, not to the older icon-only ones already shipped everywhere else
+// in this toolbar (title/aria-label there, not a new finding). Used by the
+// touch multi-select toggle below and by SelectedGroupToolbar's own
+// Group/Ungroup/multi-select buttons.
+function captionBtn(icon: string, caption: string, onClick: () => void, active?: boolean) {
+  return (
+    <button
+      key={caption}
+      title={caption}
+      aria-label={caption}
+      className="btn btn-sm"
+      onClick={onClick}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
+        width: 54, minHeight: 44, padding: '3px 2px',
+        background: active ? BUILD_ACCENT : undefined, color: active ? '#fff' : undefined, borderColor: active ? BUILD_ACCENT : undefined,
+      }}
+    >
+      <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: '0.52rem', fontWeight: 700, lineHeight: 1 }}>{caption}</span>
+    </button>
+  );
+}
+
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onUpdate, onDelete, onDuplicate, deselect, onMoveModeChange,
+  touchMultiSelectMode, onToggleTouchMultiSelect,
 }: {
   selected: WorldObject;
   allowNameRole: boolean;
@@ -1104,6 +1132,14 @@ function SelectedObjectToolbar({
   // full free placement, same as held Option on desktop. Reported up so
   // the parent (which owns the actual drag/snap logic) can apply it.
   onMoveModeChange: (active: boolean) => void;
+  // Grouping, part 2 of that same request: touch users have no Shift key
+  // either, so this toggle (rendered next to Duplicate below, direct
+  // instruction) is THEIR equivalent — while on, tapping another object
+  // adds it to the multi-selection instead of replacing this one. Only
+  // rendered when allowNameRole (a real placed object — grouping doesn't
+  // apply to fixed layout items or walls).
+  touchMultiSelectMode: boolean;
+  onToggleTouchMultiSelect: () => void;
 }) {
   const size = useModelSize(selected.modelPath);
   // Claudia's focus-group audit: an unclamped topY sent this toolbar off
@@ -1222,6 +1258,12 @@ function SelectedObjectToolbar({
               {iconBtn('🎨', 'Color tint', () => setOpenPopover((v) => (v === 'color' ? null : 'color')), undefined, openPopover === 'color')}
               {allowNameRole && iconBtn('⋯', 'Name & role', () => setOpenPopover((v) => (v === 'more' ? null : 'more')), undefined, openPopover === 'more')}
               {iconBtn('⧉', 'Duplicate (hold Shift to keep placing copies)', (e) => onDuplicate(e.shiftKey), undefined, false)}
+              {/* Direct instruction: the touch equivalent of holding Shift
+                  to multi-select, placed next to Duplicate in this same
+                  row/toolbar. Only meaningful for a real placed object
+                  (allowNameRole) — grouping doesn't apply to fixed layout
+                  items or walls. */}
+              {allowNameRole && captionBtn('➕', touchMultiSelectMode ? 'Adding…' : 'Multi-select', onToggleTouchMultiSelect, touchMultiSelectMode)}
               <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)', margin: '0 2px' }} />
               <button
                 title="Delete"
@@ -1451,6 +1493,182 @@ function SelectedWallToolbar({ wall, onDelete, deselect }: { wall: WallSegment; 
   );
 }
 
+// Canva-style rigid-body group toolbar — reuses the SAME rotate/resize/
+// move handlers (rotateCwFine/rotateCcwFine/onDragRotate/growHold/
+// shrinkHold/nudge*Hold) the single-object toolbar above already gets;
+// those functions themselves check multiSelectIds and switch to the
+// rigid-body group math (WorldEditor's rotateGroupBy/rigidGroupScale/
+// moveGroupBy) once 2+ objects are selected — direct instruction ("same
+// buttons, different math underneath"). What's genuinely different here,
+// and deliberately NOT ported from the single toolbar:
+//  - Color tint and Name/role are dropped — both are inherently
+//    per-object fields with no single coherent value across a mixed
+//    group.
+//  - The Resize popover shows only the +/- nudge (the same 1.1x/÷1.1
+//    step a single object's own +/- already uses), not the Mini..Giant
+//    presets or the exact-size input — those set an ABSOLUTE size using
+//    one object's own native model height as the reference unit, which
+//    has no single meaning across a group of different models/sizes. A
+//    relative nudge (grow/shrink the whole group by the same factor)
+//    is the one resize control that stays coherent for a mixed group.
+//  - Duplicate is dropped (not part of this request for a group).
+//  - Group / Ungroup replace them, per the actual ask.
+// Position/size are approximated from just the FIRST member (anchor) —
+// centroid for x/z, that one object's own measured height for how tall to
+// clear the toolbar — rather than the true combined bounding box of every
+// member, which would mean loading every member's own GLTF just to
+// measure it. Documented simplification; flagged for a live teacher look
+// since this sandbox can't render the actual 3D result either way.
+function SelectedGroupToolbar({
+  members, centroid, rotateCwFine, rotateCcwFine, onDragRotate, growHold, shrinkHold,
+  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
+  onDelete, onGroup, onUngroup, isExistingGroup,
+  touchMultiSelectMode, onToggleTouchMultiSelect,
+  deselect, onMoveModeChange,
+}: {
+  members: WorldObject[];
+  centroid: { x: number; z: number };
+  rotateCwFine: ReturnType<typeof useHoldRepeat>;
+  rotateCcwFine: ReturnType<typeof useHoldRepeat>;
+  onDragRotate: (deg: number) => void;
+  growHold: ReturnType<typeof useHoldRepeat>;
+  shrinkHold: ReturnType<typeof useHoldRepeat>;
+  nudgeNorthHold: ReturnType<typeof useHoldRepeat>;
+  nudgeSouthHold: ReturnType<typeof useHoldRepeat>;
+  nudgeEastHold: ReturnType<typeof useHoldRepeat>;
+  nudgeWestHold: ReturnType<typeof useHoldRepeat>;
+  onDelete: () => void;
+  onGroup: () => void;
+  onUngroup: () => void;
+  isExistingGroup: boolean;
+  touchMultiSelectMode: boolean;
+  onToggleTouchMultiSelect: () => void;
+  deselect: () => void;
+  onMoveModeChange: (active: boolean) => void;
+}) {
+  const anchor = members[0];
+  const size = useModelSize(anchor.modelPath);
+  // A little extra clearance over the single-object toolbar's own topY
+  // math, so this reads as floating above the whole group, not glued to
+  // just the anchor's own top.
+  const topY = Math.min(size.y * anchor.scale, 6) + 0.6;
+  const [openPopover, setOpenPopover] = useState<'resize' | 'move' | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const memberKey = members.map((m) => m.id).sort().join(',');
+  useEffect(() => { setConfirmingDelete(false); setOpenPopover(null); }, [memberKey]);
+  useEffect(() => { onMoveModeChange(openPopover === 'move'); }, [openPopover, onMoveModeChange]);
+  useEffect(() => () => onMoveModeChange(false), [onMoveModeChange]);
+
+  const doDelete = () => { onDelete(); deselect(); };
+
+  // Same click-and-drag rotate technique as the single-object toolbar —
+  // onDragRotate itself decides whether that's a rigid-body group turn or
+  // a plain single-object spin.
+  const dragRotateLastX = useRef(0);
+  const isDragRotating = useRef(false);
+  const handleRotateDragStart = (e: React.PointerEvent) => {
+    isDragRotating.current = true;
+    dragRotateLastX.current = e.clientX;
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* not supported, drag still works via mouse move */ }
+  };
+  const handleRotateDragMove = (e: React.PointerEvent) => {
+    if (!isDragRotating.current) return;
+    const dx = e.clientX - dragRotateLastX.current;
+    dragRotateLastX.current = e.clientX;
+    onDragRotate(dx * 0.5);
+  };
+  const handleRotateDragEnd = () => { isDragRotating.current = false; };
+
+  const iconBtn = (label: string, title: string, onClick?: (e: React.MouseEvent) => void, holdProps?: ReturnType<typeof useHoldRepeat>, active?: boolean) => (
+    <button
+      key={title}
+      title={title}
+      aria-label={title}
+      className="btn btn-sm"
+      style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem', background: active ? BUILD_ACCENT : undefined, color: active ? '#fff' : undefined, borderColor: active ? BUILD_ACCENT : undefined }}
+      onClick={onClick}
+      {...holdProps}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <Html position={[centroid.x, topY + 0.5, centroid.z]} distanceFactor={8} zIndexRange={[60, 0]}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif', transform: 'translate(-50%, -100%)' }}>
+        <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#fff', border: '2px solid var(--ink)', borderRadius: 999, padding: '2px 10px' }}>
+          {members.length} objects selected{isExistingGroup ? ' (grouped)' : ''}
+        </span>
+        {confirmingDelete ? (
+          <div className="row" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 12, boxShadow: '4px 4px 0 var(--ink)', padding: 6 }}>
+            <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={doDelete}>Delete all {members.length}</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setConfirmingDelete(false)}>Cancel</button>
+          </div>
+        ) : (
+          <div className="row" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 6, alignItems: 'center' }}>
+            {iconBtn('✥', 'Move the whole group — drag any member, or use the arrows below', () => setOpenPopover((v) => (v === 'move' ? null : 'move')), undefined, openPopover === 'move')}
+            {iconBtn('↺', "Rotate the whole group left 90° around its center (hold for 15° fine steps)", undefined, rotateCcwFine)}
+            {iconBtn('↻', "Rotate the whole group right 90° around its center (hold for 15° fine steps)", undefined, rotateCwFine)}
+            <button
+              title="Click and drag left/right to spin the whole group freely"
+              aria-label="Click and drag left or right to rotate the whole group freely"
+              className="btn btn-sm"
+              style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem', cursor: 'ew-resize', touchAction: 'none' }}
+              onPointerDown={handleRotateDragStart}
+              onPointerMove={handleRotateDragMove}
+              onPointerUp={handleRotateDragEnd}
+              onPointerCancel={handleRotateDragEnd}
+            >
+              🔄
+            </button>
+            {iconBtn('⤢', 'Resize the whole group', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
+            {captionBtn('➕', touchMultiSelectMode ? 'Adding…' : 'Multi-select', onToggleTouchMultiSelect, touchMultiSelectMode)}
+            {isExistingGroup ? captionBtn('✂️', 'Ungroup', onUngroup) : captionBtn('🔗', 'Group', onGroup)}
+            <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)', margin: '0 2px' }} />
+            <button
+              title="Delete all"
+              aria-label="Delete all selected objects"
+              className="btn btn-sm btn-danger"
+              style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem' }}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {openPopover === 'move' && (
+          <div className="stack" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, alignItems: 'center' }}>
+            <p style={{ margin: 0, fontSize: '0.68rem', opacity: 0.7, textAlign: 'center', maxWidth: 170 }}>Drag any member, or tap/hold an arrow below — the whole group moves together.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 44px)', gridTemplateRows: 'repeat(3, 44px)', gap: 4 }}>
+              <span />
+              <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move away from camera" {...nudgeNorthHold}>↑</button>
+              <span />
+              <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move left" {...nudgeWestHold}>←</button>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>✥</span>
+              <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move right" {...nudgeEastHold}>→</button>
+              <span />
+              <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward camera" {...nudgeSouthHold}>↓</button>
+              <span />
+            </div>
+          </div>
+        )}
+
+        {openPopover === 'resize' && (
+          <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 220 }}>
+            <p style={{ margin: 0, fontSize: '0.68rem', opacity: 0.7, textAlign: 'center' }}>Grows or shrinks the whole group as one — each object's own size AND its distance from the group's center both scale together, so the layout keeps its shape.</p>
+            <div className="row" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+              <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...shrinkHold}>−</button>
+              <span style={{ fontSize: '0.78rem' }}>Group size</span>
+              <button className="btn btn-sm" style={{ minHeight: 44, width: 44 }} {...growHold}>+</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Html>
+  );
+}
+
 type Sel = { kind: 'placed' | 'layout' | 'wall'; id: string };
 interface EditorSnapshot { worldObjects: WorldObject[]; layoutOverrides: Record<string, LayoutOverride>; }
 
@@ -1522,6 +1740,14 @@ export default function WorldEditor() {
   // it stuck).
   const [dragObjectId, setDragObjectId] = useState<string | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; z: number } | null>(null);
+  // Group drag (Canva-style multi-select move): when the drag-start object
+  // is part of an active 2+ multiSelectIds selection, this snapshots every
+  // member's starting [x,z] so the live render and the final commit can
+  // apply ONE shared delta (dragPos vs. this snapshot's own dragObjectId
+  // entry) to every member at once, instead of moving only the one object
+  // under the pointer. null outside a group drag — the ordinary single-
+  // object drag path (dragObjectId+dragPos alone) is untouched.
+  const [dragGroupOrigin, setDragGroupOrigin] = useState<Record<string, [number, number]> | null>(null);
   // Claudia's navigation review: re-finding the same item in a 1186-model
   // catalog to place a 6th/7th/8th copy meant re-searching every time —
   // Minecraft's hotbar and Sims 4's "recently used" tab both solve this.
@@ -1539,11 +1765,37 @@ export default function WorldEditor() {
   };
   const [selection, setSelection] = useState<Sel | null>(null);
   const [hovered, setHovered] = useState<Sel | null>(null);
+  // Multi-select / grouping (part 2 of the Sims-4-moveobjects request:
+  // "if an object is selected and the user is holding shift ... those
+  // objects can be grouped together, think Canva controls for elements").
+  // Extends the existing `selection` system rather than a second parallel
+  // one: `selection` still means "one thing, normal single-select"
+  // (placed/layout/wall, unchanged); `multiSelectIds` holds 2+ placed-
+  // object ids once a teacher starts building a multi-selection (Shift-
+  // click on desktop, or the touch toggle below) — grouping only ever
+  // applies to teacher-placed WorldObjects, never the fixed layout items
+  // or drawn walls, so this never needs a 'kind' the way Sel does. Exactly
+  // one of `selection` / `multiSelectIds.length>=2` is ever "the current
+  // selection" at a time (see the object onClick handler and every place
+  // that clears one also clears the other, below). Matching real Canva
+  // behavior: 2+ objects here already move/rotate/resize together as one
+  // rigid body WITHOUT needing to be formally grouped first (see
+  // rotateGroupBy/rigidGroupScale/moveGroupBy) — Group only makes that
+  // membership persist so clicking any one member later reselects all of
+  // them; Ungroup clears it without moving anything.
+  const [multiSelectIds, setMultiSelectIds] = useState<string[]>([]);
+  // Touch users have no Shift key — this toggle, placed next to the
+  // existing Duplicate button on a selected object's toolbar (direct
+  // instruction), is their literal equivalent: while on, tapping another
+  // object adds it to multiSelectIds instead of replacing the selection,
+  // exactly like holding Shift does for a mouse user.
+  const [touchMultiSelectMode, setTouchMultiSelectMode] = useState(false);
   const toggleWallMode = () => {
     setHammerMode(false);
     setPaintMode(null);
     setArmedAsset(null);
     setSelection(null);
+    setMultiSelectIds([]);
     setWallStart(null);
     setWallMode((v) => !v);
   };
@@ -1760,6 +2012,7 @@ export default function WorldEditor() {
     setFuture((f) => [...f, current]);
     restoreWorldEditorState(target.worldObjects, target.layoutOverrides);
     setSelection(null);
+    setMultiSelectIds([]);
     flashSaved();
   };
   const redo = () => {
@@ -1770,6 +2023,7 @@ export default function WorldEditor() {
     setPast((p) => [...p, current]);
     restoreWorldEditorState(target.worldObjects, target.layoutOverrides);
     setSelection(null);
+    setMultiSelectIds([]);
     flashSaved();
   };
   // "Latest" refs so the keyboard listener (registered once) always calls
@@ -1779,6 +2033,7 @@ export default function WorldEditor() {
   const redoRef = useRef(redo); redoRef.current = redo;
   const topViewRef = useRef(topView); topViewRef.current = topView;
   const selectionRef = useRef<Sel | null>(null);
+  const multiSelectIdsRef = useRef<string[]>([]);
   const deleteSelectedRef = useRef<() => void>(() => {});
   const rotateByRef = useRef<(deg: number) => void>(() => {});
   const nudgeScaleByRef = useRef<(delta: number) => void>(() => {});
@@ -1853,9 +2108,9 @@ export default function WorldEditor() {
         if (e.shiftKey) redoRef.current(); else undoRef.current();
         return;
       }
-      if (e.key === 'Escape') { setHammerMode(false); setArmedAsset(null); setWallMode(false); setWallStart(null); return; }
+      if (e.key === 'Escape') { setHammerMode(false); setArmedAsset(null); setWallMode(false); setWallStart(null); setTouchMultiSelectMode(false); return; }
       if (isTypingTarget(e)) return;
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectionRef.current) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && (selectionRef.current || multiSelectIdsRef.current.length >= 2)) {
         e.preventDefault();
         deleteSelectedRef.current();
         return;
@@ -1913,6 +2168,30 @@ export default function WorldEditor() {
     return applyLayoutOverride(item, layoutOverrides);
   }, [selection, worldObjects, layoutItems, layoutOverrides]);
 
+  // The live WorldObjects behind multiSelectIds, and their shared centroid
+  // — the pivot every rigid-body group rotate/resize below turns/scales
+  // around, same idea as Canva's own group-selection bounding box. Also
+  // recomputed here (not just once at selection time) so a group mid-drag
+  // still reflects each member's real live position.
+  const groupMembers = useMemo(() => worldObjects.filter((o) => multiSelectIds.includes(o.id)), [worldObjects, multiSelectIds]);
+  const groupCentroid = useMemo(() => {
+    if (groupMembers.length === 0) return null;
+    const x = groupMembers.reduce((s, o) => s + o.position[0], 0) / groupMembers.length;
+    const z = groupMembers.reduce((s, o) => s + o.position[2], 0) / groupMembers.length;
+    return { x, z };
+  }, [groupMembers]);
+  // Non-null only when every current member already shares the SAME
+  // groupId — i.e. this is a real, previously-formed group (selected by
+  // clicking one of its members), not just an ad-hoc multi-selection.
+  // Drives whether the toolbar offers Group (form one) or Ungroup (break
+  // this one apart) — see SelectedGroupToolbar below.
+  const groupCommonId = useMemo(() => {
+    if (groupMembers.length < 2) return null;
+    const first = groupMembers[0].groupId;
+    if (!first) return null;
+    return groupMembers.every((o) => o.groupId === first) ? first : null;
+  }, [groupMembers]);
+
   // The walkable square's 4 walls — direct teacher request: "use arrows to
   // expand each lot." Each edge starts at GROUND_HALF and can be pushed
   // outward independently from the Lot panel below (see GroundBounds in
@@ -1944,6 +2223,16 @@ export default function WorldEditor() {
     setLayoutOverrideH(selection.id, ov);
   };
   const deleteSelected = () => {
+    // A grouped/multi-selection deletes every member — same "extend the
+    // existing pattern" approach paint bucket already uses below (one real
+    // delete call per object, so undo still works, just one Undo per
+    // object rather than one for the whole group).
+    if (multiSelectIds.length >= 2) {
+      multiSelectIds.forEach((id) => deleteWorldObjectH(id));
+      setMultiSelectIds([]);
+      setSelection(null);
+      return;
+    }
     if (!selection) return;
     if (selection.kind === 'placed') deleteWorldObjectH(selection.id);
     else setLayoutOverrideH(selection.id, { deleted: true });
@@ -2024,6 +2313,7 @@ export default function WorldEditor() {
     setHammerMode(false);
     setArmedAsset(null);
     setSelection(null);
+    setMultiSelectIds([]);
     setWallMode(false);
     setWallStart(null);
     setPaintMode((v) => (v === mode ? null : mode));
@@ -2054,7 +2344,85 @@ export default function WorldEditor() {
     if (continuous) armAsset({ path: selected.modelPath, label: selected.customName || selected.label, category: '' });
   };
 
+  // Rigid-body group rotate — direct teacher spec, matching Canva's own
+  // group rotation: the whole selection turns around its shared centroid
+  // as ONE object (every member's position orbits that pivot AND its own
+  // rotationY turns by the same delta), not each object spinning in place
+  // around its own center. Documented explicitly per instruction, since
+  // the two read very differently in-scene: "spin in place" would leave a
+  // row of 3 houses a row of 3 houses that individually rotated 90°; this
+  // instead sweeps the whole row around like one signpost.
+  const rotateGroupBy = (deg: number) => {
+    if (groupMembers.length < 2 || !groupCentroid) return;
+    const rad = (deg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    groupMembers.forEach((o) => {
+      const dx = o.position[0] - groupCentroid.x;
+      const dz = o.position[2] - groupCentroid.z;
+      updateWorldObjectH(o.id, {
+        position: [groupCentroid.x + dx * cos - dz * sin, 0, groupCentroid.z + dx * sin + dz * cos],
+        rotationY: o.rotationY + rad,
+      });
+    });
+  };
+  // Rigid-body group resize — same idea as rotate above: each member's OWN
+  // scale multiplies by `factor` AND its distance from the group centroid
+  // scales by that same factor, so the group's overall footprint actually
+  // grows/shrinks and members keep their relative layout, instead of each
+  // object just growing in place with the group's footprint unchanged.
+  const rigidGroupScale = (factor: number) => {
+    if (groupMembers.length < 2 || !groupCentroid) return;
+    groupMembers.forEach((o) => {
+      const dx = o.position[0] - groupCentroid.x;
+      const dz = o.position[2] - groupCentroid.z;
+      updateWorldObjectH(o.id, {
+        position: [groupCentroid.x + dx * factor, 0, groupCentroid.z + dz * factor],
+        scale: THREE.MathUtils.clamp(o.scale * factor, SCALE_MIN, SCALE_MAX),
+      });
+    });
+  };
+  // Group move — the simple case: the same x/z delta applies to every
+  // member, same idea as a single object's own nudgePosition just run N
+  // times. Used by the D-pad arrows; the click-and-drag path below uses
+  // dragGroupOrigin instead so it can track the live pointer smoothly.
+  const moveGroupBy = (dx: number, dz: number) => {
+    if (groupMembers.length < 2) return;
+    groupMembers.forEach((o) => {
+      const nx = clampToGroundX(snapValue(o.position[0] + dx, snapEnabled, gridStep));
+      const nz = clampToGroundZ(snapValue(o.position[2] + dz, snapEnabled, gridStep));
+      updateWorldObjectH(o.id, { position: [nx, 0, nz] });
+    });
+  };
+  // Group — assigns every currently multi-selected object the same fresh
+  // groupId, so selecting any one of them later reselects all of them
+  // (see the object onClick handler below). A brand-new id every time, so
+  // grouping a selection that already mixed two older groups just merges
+  // them under one new id rather than silently picking one side's id.
+  const groupSelected = () => {
+    if (groupMembers.length < 2) return;
+    const gid = `grp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+    groupMembers.forEach((o) => updateWorldObjectH(o.id, { groupId: gid }));
+  };
+  // Ungroup — clears groupId from every current member, leaving them
+  // exactly where they sit right now (never snaps back to pre-group
+  // positions). The current multi-selection itself is left alone (still
+  // highlighted, still movable as a unit) — only future reselection of any
+  // one of them stops pulling in the others.
+  const ungroupSelected = () => {
+    groupMembers.forEach((o) => updateWorldObjectH(o.id, { groupId: undefined }));
+  };
+
+  // rotateBy/nudgeScale/nudgeScaleBy/nudgePosition below are the SAME
+  // functions the single-object toolbar and the `,`/`.`/`[`/`]` keyboard
+  // shortcuts already called — each now checks multiSelectIds first and,
+  // when 2+ objects are selected, defers to the rigid-body group math
+  // above instead of falling through to the single-`selected`-object path.
+  // Direct instruction: reuse the exact same buttons/keys for a group,
+  // "same buttons, different math underneath" — this is that wiring; no
+  // separate group-only button set exists for rotate/resize/move.
   const rotateBy = (deg: number) => {
+    if (multiSelectIds.length >= 2) { rotateGroupBy(deg); return; }
     if (!selected) return;
     updateSelected({ rotationY: selected.rotationY + (deg * Math.PI) / 180 });
   };
@@ -2073,10 +2441,12 @@ export default function WorldEditor() {
   // proportional to the object's current size, never a fixed jump that
   // can dwarf a tiny object. `dir` is a sign (-1 or 1), not a magnitude.
   const nudgeScaleBy = (dir: number) => {
+    if (multiSelectIds.length >= 2) { rigidGroupScale(dir > 0 ? 1.1 : 1 / 1.1); return; }
     if (!selected) return;
     setScale(dir > 0 ? selected.scale * 1.1 : selected.scale / 1.1);
   };
   selectionRef.current = selection;
+  multiSelectIdsRef.current = multiSelectIds;
   deleteSelectedRef.current = deleteSelected;
   rotateByRef.current = rotateBy;
   nudgeScaleByRef.current = nudgeScaleBy;
@@ -2089,6 +2459,7 @@ export default function WorldEditor() {
     setGhostScaleAdjust((s) => (dir > 0 ? s * 1.1 : s / 1.1));
   };
   const nudgeScale = (factor: number) => {
+    if (multiSelectIds.length >= 2) { rigidGroupScale(factor); return; }
     if (!selected) return;
     setScale(selected.scale * factor);
   };
@@ -2103,6 +2474,7 @@ export default function WorldEditor() {
   // all. Fixed world axes (not camera-relative), so a direction always
   // means the same thing regardless of how the camera's been orbited.
   const nudgePosition = (dx: number, dz: number) => {
+    if (multiSelectIds.length >= 2) { moveGroupBy(dx, dz); return; }
     if (!selected) return;
     const nx = clampToGroundX(snapValue(selected.position[0] + dx, snapEnabled, gridStep));
     const nz = clampToGroundZ(snapValue(selected.position[2] + dz, snapEnabled, gridStep));
@@ -2157,18 +2529,34 @@ export default function WorldEditor() {
   // Commits a drag-to-move gesture on release, wherever the pointer lets go
   // (mirrors the wall-draw commit effect below it) — so letting go off the
   // ground plane still ends the drag instead of leaving the object stuck
-  // following the cursor.
+  // following the cursor. When dragGroupOrigin is set (the drag started on
+  // a member of an active 2+ group selection), the anchor's own delta
+  // (dragPos vs. its own snapshot entry) is applied to every member at
+  // once — same rigid-body "one shared delta" idea as moveGroupBy, just
+  // driven by the live pointer instead of a D-pad tap.
   useEffect(() => {
     if (!dragObjectId) return;
     const commit = () => {
-      if (dragPos) updateWorldObjectH(dragObjectId, { position: [dragPos.x, 0, dragPos.z] });
+      if (dragPos) {
+        const origin = dragGroupOrigin?.[dragObjectId];
+        if (dragGroupOrigin && origin) {
+          const dx = dragPos.x - origin[0];
+          const dz = dragPos.z - origin[1];
+          Object.entries(dragGroupOrigin).forEach(([id, [mx, mz]]) => {
+            updateWorldObjectH(id, { position: [mx + dx, 0, mz + dz] });
+          });
+        } else {
+          updateWorldObjectH(dragObjectId, { position: [dragPos.x, 0, dragPos.z] });
+        }
+      }
       setDragObjectId(null);
       setDragPos(null);
+      setDragGroupOrigin(null);
     };
     window.addEventListener('pointerup', commit);
     return () => window.removeEventListener('pointerup', commit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragObjectId, dragPos]);
+  }, [dragObjectId, dragPos, dragGroupOrigin]);
 
   const handleGroundPointerDown = (e: ThreeEvent<PointerEvent>) => {
     if (paintMode === 'groundPatch') {
@@ -2256,6 +2644,7 @@ export default function WorldEditor() {
       // move/tap.
       setGhostPos(null);
       setSelection({ kind: 'placed', id });
+      setMultiSelectIds([]);
       // Direct instruction: placing is single-shot by default — the tool
       // disarms itself right after, so a teacher who clicks the ground
       // again without meaning to doesn't silently stamp a second copy.
@@ -2266,6 +2655,7 @@ export default function WorldEditor() {
       if (!shiftHeld) setArmedAsset(null);
     } else {
       setSelection(null);
+      setMultiSelectIds([]);
     }
   };
 
@@ -2987,6 +3377,7 @@ export default function WorldEditor() {
                       if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
                       if (hammerMode) { setLayoutOverrideH(item.id, { deleted: true }); return; }
+                      setMultiSelectIds([]); // grouping only ever applies to placed WorldObjects, not fixed layout items
                       setSelection({ kind: 'layout', id: item.id });
                     }}
                     onPointerOver={() => {
@@ -3035,15 +3426,31 @@ export default function WorldEditor() {
               // other hammer target; Publish/Discard still act on the
               // underlying pendingDelete flag exactly as before.
               if (obj.pendingDelete) return null;
-              const isSelected = selection?.kind === 'placed' && selection.id === obj.id;
+              const isSelected = (selection?.kind === 'placed' && selection.id === obj.id) || multiSelectIds.includes(obj.id);
               const isHovered = hovered?.kind === 'placed' && hovered.id === obj.id && !isSelected;
               // While this object is being dragged, render it at the live
               // drag position instead of its last-committed store position
               // — the store only gets the final position on release (see
-              // the commit effect by handleGroundPointerMove above).
-              const isDragging = dragObjectId === obj.id && dragPos;
-              const livePos: [number, number, number] = isDragging ? [dragPos!.x, 0, dragPos!.z] : obj.position;
-              const liveObj: WorldObject = isDragging ? { ...obj, position: livePos } : obj;
+              // the commit effect by handleGroundPointerMove above). A
+              // group drag (dragGroupOrigin set) applies the SAME delta —
+              // dragPos vs. the anchor's own snapshot entry — to every
+              // member's own snapshot position, so the whole selection
+              // slides together; this covers the anchor itself too (its
+              // own delta from its own origin is just dragPos, same
+              // result the old single-object branch gave it).
+              const isGroupDragMember = !!(dragGroupOrigin && obj.id in dragGroupOrigin && dragObjectId && dragPos);
+              const isDragging = dragObjectId === obj.id && dragPos && !dragGroupOrigin;
+              let livePos: [number, number, number] = obj.position;
+              if (isDragging) {
+                livePos = [dragPos!.x, 0, dragPos!.z];
+              } else if (isGroupDragMember) {
+                const origin = dragGroupOrigin![dragObjectId!];
+                const dx = dragPos!.x - origin[0];
+                const dz = dragPos!.z - origin[1];
+                const [mx, mz] = dragGroupOrigin![obj.id];
+                livePos = [mx + dx, 0, mz + dz];
+              }
+              const liveObj: WorldObject = (isDragging || isGroupDragMember) ? { ...obj, position: livePos } : obj;
               return (
                 <group key={obj.id}>
                   <WorldObjectRenderer
@@ -3052,6 +3459,41 @@ export default function WorldEditor() {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
                       if (hammerMode) { deleteWorldObjectH(obj.id); return; }
+                      // Shift-click (desktop) or the touch multi-select
+                      // toggle (next to Duplicate on the toolbar): ADDS to
+                      // the pending selection instead of replacing it —
+                      // clicking an already-grouped object adds/removes
+                      // every one of its group's live members at once, so
+                      // a shift-click on any member always keeps the whole
+                      // group together in the pending selection too.
+                      const addMode = shiftHeld || touchMultiSelectMode;
+                      if (addMode) {
+                        const idsForClick = obj.groupId
+                          ? worldObjects.filter((o) => o.groupId === obj.groupId).map((o) => o.id)
+                          : [obj.id];
+                        const base = multiSelectIds.length ? multiSelectIds : (selection?.kind === 'placed' ? [selection.id] : []);
+                        const alreadyIn = idsForClick.every((id) => base.includes(id));
+                        const next = alreadyIn ? base.filter((id) => !idsForClick.includes(id)) : Array.from(new Set([...base, ...idsForClick]));
+                        if (next.length >= 2) { setMultiSelectIds(next); setSelection(null); }
+                        else if (next.length === 1) { setMultiSelectIds([]); setSelection({ kind: 'placed', id: next[0] }); }
+                        else { setMultiSelectIds([]); setSelection(null); }
+                        return;
+                      }
+                      // A plain click on a grouped object selects every
+                      // member sharing its groupId, not just the one
+                      // clicked — direct spec ("selecting any grouped
+                      // member auto-selects the whole group"). Falls back
+                      // to a normal single select if the group has been
+                      // whittled down to 1 live member (e.g. the rest were
+                      // hammer-deleted individually) rather than getting
+                      // stuck with no toolbar at all.
+                      if (obj.groupId) {
+                        const members = worldObjects.filter((o) => o.groupId === obj.groupId).map((o) => o.id);
+                        if (members.length >= 2) { setMultiSelectIds(members); setSelection(null); }
+                        else { setMultiSelectIds([]); setSelection({ kind: 'placed', id: obj.id }); }
+                        return;
+                      }
+                      setMultiSelectIds([]);
                       setSelection({ kind: 'placed', id: obj.id });
                     }}
                     onDoubleClick={
@@ -3071,6 +3513,25 @@ export default function WorldEditor() {
                         paintNear(obj.position[0], obj.position[2], paintColor);
                         return;
                       }
+                      // A drag-start on any member of an active 2+ group
+                      // selection snapshots every member's current [x,z] —
+                      // handleGroundPointerMove/the commit effect above use
+                      // that snapshot plus the live dragPos to move the
+                      // whole group by one shared delta (see their own
+                      // comments). This is the group equivalent of the
+                      // plain single-object drag just below it.
+                      if (multiSelectIds.length >= 2 && multiSelectIds.includes(obj.id)) {
+                        e.stopPropagation();
+                        const origins: Record<string, [number, number]> = {};
+                        multiSelectIds.forEach((id) => {
+                          const m = worldObjects.find((w) => w.id === id);
+                          if (m) origins[id] = [m.position[0], m.position[2]];
+                        });
+                        setDragGroupOrigin(origins);
+                        setDragObjectId(obj.id);
+                        setDragPos({ x: obj.position[0], z: obj.position[2] });
+                        return;
+                      }
                       // Direct teacher report: requiring the ✥ Move
                       // popover open before a drag would even start made
                       // "just drag it" a 3-tap process (select, open Move,
@@ -3088,7 +3549,7 @@ export default function WorldEditor() {
                       // click, the bb.moveobjects-cheat behavior asked for.
                       if (isSelected || optionHeld) {
                         e.stopPropagation();
-                        if (!isSelected) setSelection({ kind: 'placed', id: obj.id });
+                        if (!isSelected) { setSelection({ kind: 'placed', id: obj.id }); setMultiSelectIds([]); }
                         setDragObjectId(obj.id);
                         setDragPos({ x: obj.position[0], z: obj.position[2] });
                       }
@@ -3130,6 +3591,7 @@ export default function WorldEditor() {
                           if (paintMode === 'bucket') { paintAllWalls(paintColor); return; }
                           if (paintMode) return; // brush: painting happens on pointer down/over below, not click
                           if (hammerMode) { deleteWallSegment(wall.id); return; }
+                          setMultiSelectIds([]); // grouping only ever applies to placed WorldObjects, not walls
                           setSelection({ kind: 'wall', id: wall.id });
                         }
                       : undefined
@@ -3166,7 +3628,35 @@ export default function WorldEditor() {
               <SelectedWallToolbar wall={selectedWall} onDelete={() => deleteWallSegment(selectedWall.id)} deselect={() => setSelection(null)} />
             )}
 
-            {selected && selection && (
+            {/* A 2+ multi-selection (ad hoc or an already-formed group —
+                see groupMembers/groupCommonId above) always takes over the
+                toolbar slot instead of the single-object one, matching
+                Canva: you don't need to formally Group objects to move/
+                rotate/resize them together, only to make that membership
+                persist across a later reselection. */}
+            {groupMembers.length >= 2 && groupCentroid ? (
+              <SelectedGroupToolbar
+                members={groupMembers}
+                centroid={groupCentroid}
+                rotateCwFine={rotateCwFine}
+                rotateCcwFine={rotateCcwFine}
+                onDragRotate={rotateBy}
+                growHold={growHold}
+                shrinkHold={shrinkHold}
+                nudgeNorthHold={nudgeNorthHold}
+                nudgeSouthHold={nudgeSouthHold}
+                nudgeEastHold={nudgeEastHold}
+                nudgeWestHold={nudgeWestHold}
+                onDelete={deleteSelected}
+                onGroup={groupSelected}
+                onUngroup={ungroupSelected}
+                isExistingGroup={!!groupCommonId}
+                touchMultiSelectMode={touchMultiSelectMode}
+                onToggleTouchMultiSelect={() => setTouchMultiSelectMode((v) => !v)}
+                deselect={() => { setMultiSelectIds([]); setSelection(null); }}
+                onMoveModeChange={setMoveModeActive}
+              />
+            ) : selected && selection && (
               <SelectedObjectToolbar
                 selected={selected}
                 allowNameRole={selection.kind === 'placed'}
@@ -3185,6 +3675,8 @@ export default function WorldEditor() {
                 onDuplicate={duplicateSelected}
                 deselect={() => setSelection(null)}
                 onMoveModeChange={setMoveModeActive}
+                touchMultiSelectMode={touchMultiSelectMode}
+                onToggleTouchMultiSelect={() => setTouchMultiSelectMode((v) => !v)}
               />
             )}
           </Canvas>
@@ -3224,7 +3716,7 @@ export default function WorldEditor() {
             <button
               className="btn btn-sm"
               style={{ ...TOOLBAR_BTN, background: hammerMode ? HAMMER_COLOR : undefined, color: hammerMode ? '#fff' : undefined, borderColor: hammerMode ? HAMMER_COLOR : undefined }}
-              onClick={() => { setHammerMode((v) => !v); setPaintMode(null); setArmedAsset(null); setSelection(null); setWallMode(false); setWallStart(null); }}
+              onClick={() => { setHammerMode((v) => !v); setPaintMode(null); setArmedAsset(null); setSelection(null); setMultiSelectIds([]); setWallMode(false); setWallStart(null); }}
               title="Hammer: tap anything to delete it instantly, no confirmation"
             >
               🔨 {hammerMode ? 'Hammer: ON' : 'Hammer'}
@@ -3236,6 +3728,8 @@ export default function WorldEditor() {
                 if (!clearAllArmed) { setClearAllArmed(true); return; }
                 worldObjects.forEach((o) => deleteWorldObjectH(o.id));
                 setClearAllArmed(false);
+                setSelection(null);
+                setMultiSelectIds([]);
                 flashSaved();
               }}
               onBlur={() => setClearAllArmed(false)}
