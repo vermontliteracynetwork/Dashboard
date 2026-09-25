@@ -123,9 +123,17 @@ export default function TeacherHome() {
             buttons/panels/icons, and its license requires this credit be
             visible somewhere reachable in the project, not just in a code
             comment. Kept small and out of the way since it's not something
-            a teacher needs to read, just something that has to be here. */}
+            a teacher needs to read, just something that has to be here.
+            Second line: the farm animal models (Hen/Cow/Rooster from "Poly
+            by Google", Chicken by "jeremy") added to Build Mode's farm
+            category are CC-BY licensed via Poly Pizza — attribution
+            required, unlike the Quaternius models (Pig, Cow, Crops) in the
+            same batch, which are CC0 and need none. */}
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 32 }}>
           Graphics created by Penzilla Design
+        </p>
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
+          Farm animal models: "Poly by Google" and jeremy, via Poly Pizza (CC BY)
         </p>
       </div>
     </div>
