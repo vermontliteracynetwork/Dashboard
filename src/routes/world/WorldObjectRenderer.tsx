@@ -26,6 +26,21 @@ import type { WorldObject } from '../../types';
 // (non-flat) object's lift stays 0, unchanged.
 const FLAT_FOOTPRINT_RATIO = 6;
 const FLAT_LIFT = 0.02;
+
+// A model's real (unscaled, unrotated) local-space bounding-box size —
+// shared by WorldEditor.tsx's placement-preview outline (FootprintOutline)
+// and TownSquare.tsx's real collision footprint for placed objects
+// (see ObjectFootprintProbe there), so both read the exact same physical
+// fact about a model. Reading straight off the cached useGLTF scene (not
+// the recentered clone useRecenteredScene above builds) is fine here since
+// a bounding box's SIZE (as opposed to its center) doesn't depend on
+// translation — drei caches useGLTF globally by path, so this is a cheap
+// cache hit alongside every other useGLTF call for the same model.
+export function useModelSize(path: string): THREE.Vector3 {
+  const { scene } = useGLTF(path);
+  return useMemo(() => new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3()), [scene]);
+}
+
 function useRecenteredScene(path: string, tintColor?: string, opacity?: number) {
   const { scene } = useGLTF(path);
   return useMemo(() => {

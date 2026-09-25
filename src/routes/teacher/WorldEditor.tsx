@@ -1,10 +1,10 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Html, useGLTF, useTexture } from '@react-three/drei';
+import { OrbitControls, Html, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { WorldObjectRenderer } from '../world/WorldObjectRenderer';
+import { WorldObjectRenderer, useModelSize } from '../world/WorldObjectRenderer';
 import { SkyDome } from '../world/SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
@@ -715,14 +715,10 @@ function AssetThumb({ modelPath, category, size, iconSize }: { modelPath: string
   );
 }
 
-// A model's real (unscaled) footprint, for the wireframe outlines below —
-// translation-invariant, so the un-recentered scene works fine here; drei
-// caches useGLTF globally by path, so this is a cheap cache hit alongside
-// WorldObjectRenderer's own useGLTF call for the same model.
-function useModelSize(path: string): THREE.Vector3 {
-  const { scene } = useGLTF(path);
-  return useMemo(() => new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3()), [scene]);
-}
+// useModelSize now lives in WorldObjectRenderer.tsx, shared with
+// TownSquare.tsx's real collision footprint for placed objects (see that
+// file's ObjectFootprintProbe) — both need the exact same measured fact
+// about a model, so there's one implementation, not two.
 
 // Reports a freshly-armed asset's auto-normalized placement scale back up
 // to the main component (see computeAutoScale above). Lives inside
