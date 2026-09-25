@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-lm-matrix-web-writing',
+    date: '2026-09-25',
+    icon: '📝',
+    title: 'Word Matrix, Word Web, and Writing Scaffolds',
+    body: 'Morphemes now has a Word Matrix (pick a root and see which prefixes and suffixes make real words) and a Reverse Morphology prompt card, plus little connector lines when word parts join. There is also a new Writing Scaffolds category with writing frames and sentence starters to help you get your ideas down.',
+  },
+  {
     id: '2026-09-25-lm-chains-hearts-rules-dictation',
     date: '2026-09-25',
     icon: '❤️',

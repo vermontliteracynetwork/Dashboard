@@ -5,16 +5,17 @@ import HelpOverlay from '../../components/HelpOverlay';
 import { useSyncedTTS, SyncedSpeakButton, HighlightedText, type SyncedTTS } from '../../components/SyncedSpeakButton';
 import { ReferencePopover } from '../../components/ReferencePopover';
 import { SANDBOX_PIECES } from '../../lib/grammarContent';
-import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS, detectJoinRule, JOIN_RULE_NOTES } from '../../lib/morphemeContent';
+import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_AFFIXES, MORPHEME_COMBOS, detectJoinRule, JOIN_RULE_NOTES } from '../../lib/morphemeContent';
 import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, PROPER_NOUNS } from '../../lib/montessoriGrammar';
 import { SYMBOL_SENTENCE_PAGES, ALL_SYMBOL_SENTENCES, type SymbolSentence } from '../../lib/symbolSentences';
 import { PUNCTUATION_MARKS } from '../../lib/punctuationContent';
 import { WORD_CHAINS } from '../../lib/wordChainContent';
 import { HEART_WORDS } from '../../lib/heartWordContent';
 import { SPELLING_RULES } from '../../lib/spellingRuleContent';
+import { WRITING_FRAMES, SENTENCE_STARTERS } from '../../lib/writingScaffoldContent';
 import {
   LM_PUNCTUATION_COLOR, LM_PUNCTUATION_TEXT_COLOR, LM_PHONO_COLOR, LM_HEART_COLOR,
-  LM_WORD_CHAIN_COLOR, LM_SPELLING_RULE_COLOR, LM_DICTATION_COLOR,
+  LM_WORD_CHAIN_COLOR, LM_SPELLING_RULE_COLOR, LM_DICTATION_COLOR, LM_WRITING_SCAFFOLD_COLOR,
 } from '../../lib/literacyDesignTokens';
 import { playListeningStartChime, playListeningStopChime } from '../../lib/audioCues';
 import {
@@ -140,6 +141,13 @@ const GRAPHEME_GROUPS: { key: string; label: string; graphemes: string[] }[] = [
 // Ordinary, well-documented affix meanings — used to compose a plain
 // definition when a morpheme piece connects to a real word (see
 // AFFIX_MEANINGS usage below). Not a specialized curriculum standard.
+// Reverse Morphology prompt words — A23-ROADMAP Phase 3 ("reverse
+// morphology mode under Morphemes"): derived directly from
+// MORPHEME_COMBOS's own real resulting words (not a separate hand-typed
+// list), so a prompt card can never name a word the jigsaw pieces
+// themselves couldn't actually build.
+const REVERSE_MORPH_WORDS = Array.from(new Set(Object.values(MORPHEME_COMBOS))).sort((a, b) => a.localeCompare(b));
+
 const AFFIX_MEANINGS: Record<string, string> = {
   'un-': 'not, or the opposite of', 're-': 'again', 'dis-': 'not, or the opposite of',
   '-ed': 'happened in the past', '-ing': 'happening right now', '-ful': 'full of', '-less': 'without',
@@ -152,7 +160,7 @@ const AFFIX_MEANINGS: Record<string, string> = {
 const BASE_PEN_COLORS = ['#1f1147', '#dc2626', '#2563eb', '#16a34a', '#f97316', '#7c3aed'];
 const BASE_HIGHLIGHT_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4'];
 
-type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox' | 'symbolSentence' | 'punctuation' | 'soundChip' | 'divider' | 'syllableTapper' | 'heartWord' | 'spellingRule' | 'dictation';
+type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox' | 'symbolSentence' | 'punctuation' | 'soundChip' | 'divider' | 'syllableTapper' | 'heartWord' | 'spellingRule' | 'dictation' | 'wordMatrix' | 'reverseMorphPrompt' | 'writingFrame';
 
 interface PlacedItem {
   instanceId: string;
@@ -180,6 +188,9 @@ interface PlacedItem {
   heartIndices?: number[]; // heartWord — which letter positions the student marked as "heart" (tricky) letters
   ruleId?: string; // spellingRule — id into SPELLING_RULES
   dictationPrompt?: string; // dictation — the word the student is writing from dictation, chosen manually (never randomized, see DictationWidget)
+  matrixRootId?: string; // wordMatrix — which MORPHEME_ROOTS entry this matrix is currently showing
+  reverseMorphWord?: string; // reverseMorphPrompt — the real word the student is asked to build from pieces
+  writingFrameId?: string; // writingFrame — id into WRITING_FRAMES (fills reuse the existing frameFills field, same shape as sentenceFrame)
 }
 
 const pieceById = (id: string): GrammarPiece | undefined => SANDBOX_PIECES.find((p) => p.id === id);
@@ -197,6 +208,9 @@ function sizeFor(kind: PlacedKind, boxCount?: number): { w: number; h: number } 
   if (kind === 'heartWord') { const n = boxCount ?? 4; return { w: n * 30, h: 40 }; }
   if (kind === 'spellingRule') return { w: 140, h: 44 };
   if (kind === 'dictation') return { w: 220, h: 150 };
+  if (kind === 'wordMatrix') return { w: 260, h: 200 };
+  if (kind === 'reverseMorphPrompt') return { w: 220, h: 70 };
+  if (kind === 'writingFrame') return { w: 280, h: 220 };
   return { w: 44, h: 44 }; // letter, sentenceFrame
 }
 
@@ -710,6 +724,50 @@ function DictationWidget({ item, wordOptions, onPointerDown, onPointerMove, onPo
   );
 }
 
+// Word Matrix — A23-ROADMAP Phase 3 ("word matrix builder... under
+// Morphemes"): a reference grid showing, for one chosen root, which of
+// every prefix/suffix in the tray actually combines into a real word —
+// derived directly from MORPHEME_COMBOS (the same single source of
+// truth the jigsaw pieces themselves use to decide whether to connect),
+// not a second hand-authored grid that could drift out of sync. Picking
+// a different root is the only interaction; this is a reference tool, no
+// build-it-yourself step (that's what the jigsaw pieces and Reverse
+// Morphology prompts, right below, are for).
+function WordMatrixWidget({ item, onPointerDown, onPointerMove, onPointerUp, onRootChange, onRemove }: {
+  item: PlacedItem;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: (e: React.PointerEvent) => void;
+  onRootChange: (rootId: string) => void;
+  onRemove: () => void;
+}) {
+  const rootId = item.matrixRootId ?? MORPHEME_ROOTS[0].id;
+  return (
+    <div className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 10, zIndex: 5, minWidth: 260 }}>
+      <div className="space-between" style={{ alignItems: 'center', marginBottom: 6 }}>
+        <strong style={{ fontSize: '0.8rem', cursor: 'grab', touchAction: 'none' }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+          🔢 Word Matrix
+        </strong>
+        <button type="button" className="btn btn-sm" onClick={onRemove} aria-label="Remove Word Matrix">✕</button>
+      </div>
+      <select value={rootId} onChange={(e) => onRootChange(e.target.value)} style={{ width: '100%', marginBottom: 8, border: '2px solid var(--content-border)', borderRadius: 6, padding: '4px 6px', fontSize: '0.8rem' }}>
+        {MORPHEME_ROOTS.map((r) => <option key={r.id} value={r.id}>{r.text}</option>)}
+      </select>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+        {MORPHEME_AFFIXES.map((a) => {
+          const word = MORPHEME_COMBOS[`${rootId}:${a.id}`];
+          return (
+            <div key={a.id} style={{ border: '1px solid var(--content-border)', borderRadius: 6, padding: '4px 6px', fontSize: '0.72rem', textAlign: 'center', background: word ? '#f0fdf4' : '#f8fafc', opacity: word ? 1 : 0.5 }}>
+              <div style={{ fontWeight: 700 }}>{a.text}</div>
+              <div>{word ?? '—'}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // One Sentence Formula blank — direct teacher follow-up instructions:
 // "drop down menus need to be alphabetized and scroll feature allows
 // more to be shown. typing the start of a word also starts searching
@@ -875,7 +933,7 @@ export default function GrammarSandbox() {
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, punctuation: false, phono: false, frames: false, textbox: false, formulas: false, wordLists: false,
-    wordChains: false, heartWords: false, spellingRules: false, dictation: false,
+    wordChains: false, heartWords: false, spellingRules: false, dictation: false, writingScaffolds: false,
   });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [openSubcategories, setOpenSubcategories] = useState<Record<string, boolean>>({
@@ -1070,6 +1128,9 @@ export default function GrammarSandbox() {
   };
   const setDictationAnswer = (instanceId: string, value: string) => {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, textValue: value } : pp)));
+  };
+  const setMatrixRoot = (instanceId: string, rootId: string) => {
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, matrixRootId: rootId } : pp)));
   };
   // A23-ROADMAP Phase 3: Elkonin-boxes-v2's "flexible count" — a placed
   // Sound Box frame's boxCount can now grow/shrink live via +/- controls
@@ -1741,6 +1802,28 @@ export default function GrammarSandbox() {
                 ))}
               </div>
             </SubcategoryRow>
+            {/* A23-ROADMAP Phase 3: word matrix builder + reverse
+                morphology, both under Morphemes as the roadmap
+                specifies, both deriving their content from the same
+                MORPHEME_COMBOS the jigsaw pieces already use. */}
+            <SubcategoryRow id="wordMatrix" label="Word Matrix" open={openSubcategories.wordMatrix} onToggle={() => toggleSubcategory('wordMatrix')}>
+              <Draggable label="Add a Word Matrix" onPointerDown={startDragNewItem(() => ({ kind: 'wordMatrix', matrixRootId: MORPHEME_ROOTS[0].id }))} style={{ width: '100%' }}>
+                <div style={{
+                  width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  border: '2px dashed var(--ink)', borderRadius: 8, background: 'white', fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: '0.8rem', padding: '6px 10px',
+                }}>
+                  🔢 Add a Word Matrix
+                </div>
+              </Draggable>
+            </SubcategoryRow>
+            <SubcategoryRow id="reverseMorph" label="Reverse Morphology" open={openSubcategories.reverseMorph} onToggle={() => toggleSubcategory('reverseMorph')}>
+              <p style={{ margin: '0 0 6px', fontSize: '0.68rem', opacity: 0.6 }}>Drag a word, then try to build it out of root/prefix/suffix pieces.</p>
+              <div className="stack" style={{ gap: 2 }}>
+                {REVERSE_MORPH_WORDS.map((w) => (
+                  <WordListRow key={`revmorph-${w}`} word={w} rowId={`revmorph-tray-${w}`} onDragStart={startDragNewItem(() => ({ kind: 'reverseMorphPrompt', reverseMorphWord: w }))} tts={tts} />
+                ))}
+              </div>
+            </SubcategoryRow>
           </Category>
 
           <Category label="🔡 Alphabet" color="#fed7aa" open={openCategories.letters} onToggle={() => toggleCategory('letters')}>
@@ -1957,6 +2040,30 @@ export default function GrammarSandbox() {
               </div>
             </Draggable>
           </Category>
+
+          {/* A23-ROADMAP Phase 3: writing scaffolds. See
+              writingScaffoldContent.ts for the fade-level judgment call
+              logged there. */}
+          <Category label="📝 Writing Scaffolds" color={LM_WRITING_SCAFFOLD_COLOR} open={openCategories.writingScaffolds} onToggle={() => toggleCategory('writingScaffolds')}>
+            <SubcategoryRow id="writingFrames" label="Writing Frames" open={openSubcategories.writingFrames} onToggle={() => toggleSubcategory('writingFrames')}>
+              <div className="stack" style={{ gap: 4 }}>
+                {WRITING_FRAMES.map((f) => (
+                  <Draggable key={f.id} label={f.title} onPointerDown={startDragNewItem(() => ({ kind: 'writingFrame', writingFrameId: f.id, frameFills: {} }))} style={{ width: '100%' }}>
+                    <div style={{ width: '100%', textAlign: 'left', padding: '6px 8px', border: '2px solid var(--ink)', borderRadius: 8, background: 'white', fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: '0.78rem' }}>
+                      📝 {f.title}
+                    </div>
+                  </Draggable>
+                ))}
+              </div>
+            </SubcategoryRow>
+            <SubcategoryRow id="sentenceStarters" label="Sentence Starters" open={openSubcategories.sentenceStarters} onToggle={() => toggleSubcategory('sentenceStarters')}>
+              <div className="stack" style={{ gap: 2 }}>
+                {SENTENCE_STARTERS.map((s) => (
+                  <WordListRow key={s} word={s} rowId={`starter-${s}`} onDragStart={startDragNewItem(() => ({ kind: 'letter', letter: s }))} tts={tts} />
+                ))}
+              </div>
+            </SubcategoryRow>
+          </Category>
         </aside>
       ) : null}
 
@@ -1968,7 +2075,7 @@ export default function GrammarSandbox() {
             style={{ position: 'relative', height: '100%', pointerEvents: drawOn ? 'none' : undefined, transform: `scale(${zoom})`, transformOrigin: '0 0' }}
             onPointerDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
           >
-            {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox' && p.kind !== 'symbolSentence' && p.kind !== 'syllableTapper' && p.kind !== 'heartWord' && p.kind !== 'dictation').map((p) => (
+            {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox' && p.kind !== 'symbolSentence' && p.kind !== 'syllableTapper' && p.kind !== 'heartWord' && p.kind !== 'dictation' && p.kind !== 'wordMatrix' && p.kind !== 'reverseMorphPrompt' && p.kind !== 'writingFrame').map((p) => (
               // Sound Boxes sit behind everything else on purpose (a
               // background a student drops letters onto, direct teacher
               // report: letter/grapheme tiles were rendering behind the
@@ -2074,6 +2181,25 @@ export default function GrammarSandbox() {
                 )}
               </div>
             ))}
+            {/* Word Web — A23-ROADMAP Phase 3 ("word webs... under
+                Morphemes"): rather than reviving the earlier, explicitly-
+                removed radial tap-to-attach mode (redundant with the
+                jigsaw pieces under the one-canvas model, per this file's
+                own 2026-09-22 build log), this is a lightweight visual
+                layered ON TOP of the existing jigsaw connections: a
+                faint connector line from each connected root to each of
+                its connected affixes, derived from the same
+                morphemeCombos data the definition cards below already
+                use. When two or more affixes connect to the same root,
+                the lines fan out into a real web, with zero new
+                interaction model. */}
+            {morphemeCombos.length > 0 && (
+              <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }} aria-hidden="true">
+                {morphemeCombos.map((c) => (
+                  <line key={`web-${c.id}`} x1={c.x + 48} y1={c.y + 32} x2={c.seamX + 20} y2={c.y + 32} stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 3" />
+                ))}
+              </svg>
+            )}
             {/* Morpheme definitions — direct teacher instruction: only
                 appears once a piece combination is a real word, pulled
                 from the root's own etymology plus the affix's ordinary
@@ -2463,6 +2589,86 @@ export default function GrammarSandbox() {
                 voiceSkinId={student.equippedVoiceId}
               />
             ))}
+            {placed.filter((p) => p.kind === 'wordMatrix').map((item) => (
+              <WordMatrixWidget
+                key={item.instanceId}
+                item={item}
+                onPointerDown={startDragPlaced(item.instanceId)}
+                onPointerMove={onDragMove}
+                onPointerUp={onDragEnd}
+                onRootChange={(rootId) => setMatrixRoot(item.instanceId, rootId)}
+                onRemove={() => removePlacedItem(item.instanceId)}
+              />
+            ))}
+            {/* Reverse Morphology prompt cards — same "title text is the
+                drag handle" pattern Sentence Formula cards established,
+                so the 🔈/✕ buttons in the body never fight canvas-drag. */}
+            {placed.filter((p) => p.kind === 'reverseMorphPrompt').map((item) => {
+              const word = item.reverseMorphWord ?? '';
+              const speakId = `revmorph-${item.instanceId}`;
+              const promptText = `Can you build "${word}" using morpheme pieces? Look for a root and one or more prefixes or suffixes that combine to make this word.`;
+              return (
+                <div
+                  key={item.instanceId}
+                  className="chrome-frame"
+                  style={{ position: 'absolute', left: item.x, top: item.y, width: 220, padding: 8, fontSize: '0.72rem', zIndex: 4 }}
+                >
+                  <div className="space-between" style={{ alignItems: 'center', marginBottom: 4 }}>
+                    <strong style={{ cursor: 'grab', touchAction: 'none', fontSize: '0.78rem' }} onPointerDown={startDragPlaced(item.instanceId)} onPointerMove={onDragMove} onPointerUp={onDragEnd}>
+                      🔁 Build "{word}"
+                    </strong>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <SyncedSpeakButton id={speakId} text={promptText} tts={tts} settings={student.ttsSettings} voiceSkinId={student.equippedVoiceId} style={{ padding: '2px 6px', minHeight: 22 }} />
+                      <button type="button" className="btn btn-sm" style={{ padding: '2px 6px', minHeight: 22 }} onClick={() => removePlacedItem(item.instanceId)} aria-label="Remove this prompt">✕</button>
+                    </div>
+                  </div>
+                  <div>
+                    <HighlightedText text={promptText} active={tts.activeId === speakId} wordIndex={tts.wordIndex} />
+                  </div>
+                </div>
+              );
+            })}
+            {/* Writing Scaffolds — reuses the existing frameFills/
+                setFrameFill (already built for Sentence Formulas) and
+                pasteSentenceToTextBox (already built for "Add to
+                paragraph"), so a Writing Frame's assembled text can join
+                the same running paragraph Sentence Formulas already
+                build into. */}
+            {placed.filter((p) => p.kind === 'writingFrame').map((item) => {
+              const frame = WRITING_FRAMES.find((f) => f.id === item.writingFrameId);
+              if (!frame) return null;
+              const fills = item.frameFills ?? {};
+              const assembled = frame.lines.map((line, i) => `${line}${fills[i] ?? ''}`).join(' ').trim();
+              const speakId = `wf-${item.instanceId}`;
+              return (
+                <div key={item.instanceId} className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 10, width: 280, zIndex: 4 }}>
+                  <div className="space-between" style={{ alignItems: 'center', marginBottom: 6 }}>
+                    <strong style={{ cursor: 'grab', touchAction: 'none', fontSize: '0.8rem' }} onPointerDown={startDragPlaced(item.instanceId)} onPointerMove={onDragMove} onPointerUp={onDragEnd}>
+                      📝 {frame.title}
+                    </strong>
+                    <button type="button" className="btn btn-sm" onClick={() => removePlacedItem(item.instanceId)} aria-label={`Remove ${frame.title}`}>✕</button>
+                  </div>
+                  <div className="stack" style={{ gap: 6 }}>
+                    {frame.lines.map((line, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{line}</span>
+                        <input
+                          value={fills[i] ?? ''}
+                          onChange={(e) => setFrameFill(item.instanceId, i, e.target.value)}
+                          style={{ flex: 1, border: '2px solid var(--content-border)', borderRadius: 6, padding: '4px 6px', fontSize: '0.8rem', minWidth: 0 }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="row-wrap" style={{ gap: 6, marginTop: 8, alignItems: 'center' }}>
+                    {assembled && (
+                      <SyncedSpeakButton id={speakId} text={assembled} tts={tts} settings={student.ttsSettings} voiceSkinId={student.equippedVoiceId} style={{ padding: '2px 8px', minHeight: 26 }} />
+                    )}
+                    <button type="button" className="btn btn-sm" onClick={() => pasteSentenceToTextBox(assembled)} disabled={!assembled} title="Add this to your paragraph text box">📋 Add to paragraph</button>
+                  </div>
+                </div>
+              );
+            })}
             {/* Heart Words, placed as one unit — the student taps each
                 letter of the word to toggle a heart marker over it
                 themselves (self-directed, see heartWordContent.ts). */}
