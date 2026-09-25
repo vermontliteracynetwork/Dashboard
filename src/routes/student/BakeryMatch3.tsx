@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import type { MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import WebpageFrame from '../../components/WebpageFrame';
+import ReadAloud from '../../components/ReadAloud';
 import BakeryTreatWheel from '../../components/BakeryTreatWheel';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { characterDefById } from '../../lib/characterCatalog';
@@ -359,25 +360,28 @@ export default function BakeryMatch3() {
 
       {phase === 'challenge' && challengeQuestion && (
         <div className="overlay-backdrop">
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack">
-              <h2 style={{ margin: 0, textAlign: 'center' }}>🎉 Round {round} Complete!</h2>
+          <div className="overlay-panel chrome-frame" style={{ padding: 32, maxWidth: 540, width: '92vw' }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ gap: 14 }}>
+              <h2 style={{ margin: 0, textAlign: 'center', fontSize: '1.5rem' }}>🎉 Round {round} Complete!</h2>
               <p style={{ margin: '0 0 4px', textAlign: 'center', opacity: 0.8 }}>You cleared {roundTargetFor(round)} treats this round!</p>
 
               {challengeFeedback ? (
                 <>
-                  <p style={{ margin: 0, fontWeight: 700, textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontWeight: 700, textAlign: 'center', fontSize: '1.1rem' }}>
                     {challengeFeedback === 'correct' ? '🎉 Correct! +5 bonus coins.' : "💛 Not quite! Let's keep baking."}
                   </p>
                   <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={startNextRound}>Start Round {round + 1}</button>
                 </>
               ) : (
                 <>
-                  <p style={{ margin: 0, fontWeight: 700 }}>{challengeQuestion.prompt}</p>
+                  <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '1.15rem', flex: 1 }}>{challengeQuestion.prompt}</p>
+                    <ReadAloud text={challengeQuestion.prompt} settings={student?.ttsSettings} />
+                  </div>
                   {challengeQuestion.imageUrl && <img src={challengeQuestion.imageUrl} alt={challengeQuestion.imageAlt ?? ''} style={{ maxWidth: '100%', borderRadius: 10 }} />}
-                  <div className="stack" style={{ gap: 8 }}>
+                  <div className="stack" style={{ gap: 10 }}>
                     {challengeQuestion.choices.map((choice, i) => (
-                      <button key={i} className="btn btn-lg" style={{ minHeight: 44, justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => answerChallengeQuestion(i)}>
+                      <button key={i} className="btn btn-lg" style={{ minHeight: 52, fontSize: '1.05rem', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => answerChallengeQuestion(i)}>
                         {choice}
                       </button>
                     ))}

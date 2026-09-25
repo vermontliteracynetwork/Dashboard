@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-question-screens-bigger',
+    date: '2026-09-25',
+    icon: '⛽',
+    title: 'Bigger, friendlier question screens',
+    body: 'The gas pump and Bakery Match question screens are bigger now, with a progress bar so you can see how close you are, and a listen button so you can hear the question read out loud. Getting gas: missing a question never sets you back, it just does not count that one. There is now an exit button too, it will just let you know you will need to get out of the car if you use it.',
+  },
+  {
     id: '2026-09-25-planes-drone-shipped',
     date: '2026-09-25',
     icon: '✈️',

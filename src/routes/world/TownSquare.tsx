@@ -18,6 +18,7 @@ import InternalBrowser from '../../components/InternalBrowser';
 import { BookPanel } from '../../components/BookPanel';
 import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
+import SubjectProgressBar from '../../components/SubjectProgressBar';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
@@ -3072,6 +3073,11 @@ export default function TownSquare() {
   // visible through a miss instead of the drop happening invisibly).
   const [gasLockout, setGasLockout] = useState(false);
   const [gasLockoutStreak, setGasLockoutStreak] = useState(0);
+  // Confirmation step before a student backs out of a forced gas lockout
+  // — direct teacher instruction: exiting mid-lockout has a real cost
+  // (lost progress, car stays empty, they're put back on foot), so it
+  // needs a real "are you sure" instead of a plain close button.
+  const [gasExitConfirm, setGasExitConfirm] = useState(false);
   // Falls back to a generated auto-question (math facts, morpheme
   // definitions — see lib/autoQuestions.ts) whenever the teacher hasn't
   // authored any real MC content yet, instead of the earlier silent
@@ -3083,6 +3089,7 @@ export default function TownSquare() {
   };
   const openGasQuiz = () => {
     setGasQuizFeedback(null);
+    setGasExitConfirm(false);
     setGasQuizQuestion(pickGasQuestion());
   };
   const answerGasQuiz = (choiceIndex: number) => {
@@ -3102,7 +3109,13 @@ export default function TownSquare() {
         setGasLockoutStreak(streak);
         setGasQuizFeedback('correct');
       } else {
-        setGasLockoutStreak(0);
+        // Direct teacher instruction: "students progress should never be
+        // lost when questions need to be answered. it should never be a
+        // certain number in a row, but rather a certain number in
+        // general. if they get one wrong, that question doesn't
+        // contribute to the total amount they need, but it also doesn't
+        // restart the count." A miss just doesn't add to the count —
+        // gasLockoutStreak stays exactly where it was, never reset to 0.
         setGasQuizFeedback('wrong');
       }
       return;
@@ -4463,38 +4476,18 @@ export default function TownSquare() {
           panning; safe to show everywhere. */}
       <CameraLookButtons cameraLook={cameraLook} cameraPitch={cameraPitch} side={dpadSide} bottom={dpadBottom} />
 
-      {/* A small, deliberately secondary way back to the task dashboard —
-          the computer desk in the world is the primary path now, but every
-          other student screen has an always-visible, same-spot way to get
-          between hubs (Claudia's review: this was the one screen without
-          any fixed fallback at all, which breaks that consistency for a
-          population that relies on it). Sized well under the corner FABs
-          so it doesn't compete with the desk as the main affordance.
-          Stacked just above the otherSide corner's now-standard FAB
-          (whatnow or help, whichever lands there) rather than sharing its
-          spot, now that both bottom corners are real FABs on every load
-          instead of only whichever one the D-pad wasn't using. */}
-      {/* Icon paired with a visible caption underneath, not icon-only
-          (Claudia's audit) — the circle itself stays the same small,
-          secondary size so it still doesn't compete with the desk as the
-          main affordance; only the label is new. */}
-      <div style={{ position: 'fixed', bottom: 148, [otherSide]: 16, zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-        <button
-          onClick={() => navigate('/student/home')}
-          style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.92)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}
-          aria-label="Back to task dashboard"
-          title="Back to task dashboard"
-        >
-          📋
-        </button>
-        <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238', textShadow: '0 1px 2px rgba(255,255,255,0.7)', lineHeight: 1 }}>Tasks</span>
-      </div>
+      {/* Direct teacher instruction: the floating "Back to task dashboard"
+          FAB that used to live here was removed as redundant — the pie
+          menu's own 📋 Tasks entry already opens the in-world Today Tasks
+          overlay, so a second, separate floating button to the exact same
+          destination just duplicated it. */}
 
       {/* Car radio — direct teacher request ("while in the car, students
           should have a radio button"), same music picker Concert Hall and
-          the Boom Box open. Stacked above the Tasks FAB on the same corner
-          rather than crowding the Gas/Brake pedals on the opposite side,
-          and only rendered while actually driving. */}
+          the Boom Box open. Kept at its own fixed corner spot (it used to
+          be described as "stacked above the Tasks FAB," which is now
+          gone) rather than crowding the Gas/Brake pedals on the opposite
+          side, and only rendered while actually driving. */}
       {drivingObjectId && (
         <div style={{ position: 'fixed', bottom: 204, [otherSide]: 16, zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <button
@@ -4538,31 +4531,60 @@ export default function TownSquare() {
       )}
 
       {gasQuizQuestion && (
-        // No backdrop-click-to-close, and no close button while gasLockout —
-        // direct instruction: "unable to do anything else until 10
-        // questions are answered correctly." The voluntary Fill Up path
-        // (gasLockout false) keeps the ✕ and "Done for now" from before.
+        // Direct teacher instruction — several fixes to the question-gate
+        // pattern, "across the board": (1) progress is a real running
+        // total, never a "must be in a row" streak that resets on a miss
+        // (see answerGasQuiz's own comment); (2) a genuinely bigger view;
+        // (3) a visual progress bar (SubjectProgressBar, the same one the
+        // to-do list uses) instead of "X of 10" sentence text; (4) an ✕ is
+        // always available now, even mid-lockout, but it opens a real
+        // confirmation first, since backing out here has a real cost (see
+        // gasExitConfirm below); (5) always-on read-aloud on the prompt.
         <div className="overlay-backdrop">
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack">
+          <div className="overlay-panel chrome-frame" style={{ padding: 32, maxWidth: 560, width: '92vw' }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ gap: 14 }}>
               <div className="space-between">
-                <h2 style={{ margin: 0 }}>⛽ {gasLockout ? 'Out of Gas!' : 'Get Gas'}</h2>
-                {!gasLockout && (
-                  <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => { setGasQuizQuestion(null); setGasQuizFeedback(null); }}>✕</button>
-                )}
+                <h2 style={{ margin: 0, fontSize: '1.5rem' }}>⛽ {gasLockout ? 'Out of Gas!' : 'Get Gas'}</h2>
+                <button
+                  className="btn btn-sm"
+                  style={{ minHeight: 44, minWidth: 44 }}
+                  onClick={() => (gasLockout ? setGasExitConfirm(true) : (() => { setGasQuizQuestion(null); setGasQuizFeedback(null); })())}
+                >
+                  ✕
+                </button>
               </div>
-              {gasLockout && (
-                <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.75 }}>
-                  Answer {10 - gasLockoutStreak} questions in a row correctly to fill the tank back up and keep driving.
-                  {gasLockoutStreak > 0 && <> You're at <strong>{gasLockoutStreak} of 10</strong> so far!</>}
-                </p>
+              {gasLockout && !gasExitConfirm && (
+                <SubjectProgressBar done={gasLockoutStreak} total={10} />
               )}
-              {gasQuizFeedback ? (
+              {gasExitConfirm ? (
                 <>
                   <p style={{ margin: 0, fontWeight: 700 }}>
+                    Are you sure? If you leave now you'll lose your progress on filling the tank, the car will stay out of gas, and you'll have to get out of the vehicle.
+                  </p>
+                  <div className="row-wrap" style={{ gap: 8 }}>
+                    <button
+                      className="btn btn-lg"
+                      style={{ minHeight: 44, background: 'var(--danger)', color: '#fff' }}
+                      onClick={() => {
+                        setGasExitConfirm(false);
+                        setGasQuizQuestion(null);
+                        setGasQuizFeedback(null);
+                        setGasLockout(false);
+                        setGasLockoutStreak(0);
+                        if (drivingObj) stopDriving(drivingObj);
+                      }}
+                    >
+                      🚪 Leave & exit the car
+                    </button>
+                    <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={() => setGasExitConfirm(false)}>Keep going</button>
+                  </div>
+                </>
+              ) : gasQuizFeedback ? (
+                <>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>
                     {gasQuizFeedback === 'correct'
-                      ? (gasLockout ? `🎉 Correct! ${gasLockoutStreak} of 10 in a row.` : '🎉 Correct! Tank filled up one dash.')
-                      : (gasLockout ? "Let's try the next one!" : "👍 Good try! That one didn't fill the tank — want to try another?")}
+                      ? (gasLockout ? `🎉 Correct! ${gasLockoutStreak} of 10 so far.` : '🎉 Correct! Tank filled up one dash.')
+                      : (gasLockout ? "💛 Not quite — that one just doesn't count, but you haven't lost anything. Let's try another!" : "👍 Good try! That one didn't fill the tank — want to try another?")}
                   </p>
                   <div className="row-wrap" style={{ gap: 8 }}>
                     <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={openGasQuiz}>{gasLockout ? 'Next question' : 'Answer another'}</button>
@@ -4573,11 +4595,14 @@ export default function TownSquare() {
                 </>
               ) : (
                 <>
-                  <p style={{ margin: 0, fontWeight: 700 }}>{gasQuizQuestion.prompt}</p>
+                  <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '1.15rem', flex: 1 }}>{gasQuizQuestion.prompt}</p>
+                    <ReadAloud text={gasQuizQuestion.prompt} settings={student?.ttsSettings} />
+                  </div>
                   {gasQuizQuestion.imageUrl && <img src={gasQuizQuestion.imageUrl} alt={gasQuizQuestion.imageAlt ?? ''} style={{ maxWidth: '100%', borderRadius: 10 }} />}
-                  <div className="stack" style={{ gap: 8 }}>
+                  <div className="stack" style={{ gap: 10 }}>
                     {gasQuizQuestion.choices.map((choice, i) => (
-                      <button key={i} className="btn btn-lg" style={{ minHeight: 44, justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => answerGasQuiz(i)}>
+                      <button key={i} className="btn btn-lg" style={{ minHeight: 52, fontSize: '1.05rem', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => answerGasQuiz(i)}>
                         {choice}
                       </button>
                     ))}
