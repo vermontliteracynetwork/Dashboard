@@ -1084,7 +1084,7 @@ function RosterTab() {
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
-  onUpdate, onDelete, onDuplicate, deselect,
+  onUpdate, onDelete, onDuplicate, deselect, onMoveModeChange,
 }: {
   selected: WorldObject;
   allowNameRole: boolean;
@@ -1102,6 +1102,12 @@ function SelectedObjectToolbar({
   onDelete: () => void;
   onDuplicate: (continuous: boolean) => void;
   deselect: () => void;
+  // Direct teacher instruction, comparing to Sims 4's bb.moveobjects
+  // cheat: touch users don't have an Option key to hold, so this ✥ Move
+  // toggle IS their equivalent — while it's open, dragging the object is
+  // full free placement, same as held Option on desktop. Reported up so
+  // the parent (which owns the actual drag/snap logic) can apply it.
+  onMoveModeChange: (active: boolean) => void;
 }) {
   const size = useModelSize(selected.modelPath);
   // Claudia's focus-group audit: an unclamped topY sent this toolbar off
@@ -1121,6 +1127,8 @@ function SelectedObjectToolbar({
   // itself — exactly the "no fresh click needed" case the teacher is now
   // ruling out. Every popover now closes on every reselect.
   useEffect(() => { setConfirmingDelete(false); setOpenPopover(null); }, [selected.id]);
+  useEffect(() => { onMoveModeChange(openPopover === 'move'); }, [openPopover, onMoveModeChange]);
+  useEffect(() => () => onMoveModeChange(false), [onMoveModeChange]);
 
   const doDelete = () => { onDelete(); deselect(); };
 
@@ -1616,6 +1624,15 @@ export default function WorldEditor() {
   // ignores the grid snap for that drag (and for a fresh placement, if
   // held while placing) — free placement, same spirit as the cheat.
   const [optionHeld, setOptionHeld] = useState(false);
+  // Direct teacher instruction: the ✥ Move button/popover on a selected
+  // object's toolbar (touch users' way to get the same freedom Option+
+  // drag gives a mouse user) — while it's open, dragging that object is
+  // the full bb.moveobjects-style free placement (no grid snap), exactly
+  // like held Option, without needing a keyboard at all. Kept in sync
+  // from SelectedObjectToolbar's own openPopover state via
+  // onMoveModeChange below, since that's the component that actually
+  // owns whether the Move popover is open.
+  const [moveModeActive, setMoveModeActive] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
   const [showLotPanel, setShowLotPanel] = useState(true);
   // drei's OrbitControls ref type is awkward to name exactly (it's the
@@ -2112,8 +2129,9 @@ export default function WorldEditor() {
   const expandWestHold = useHoldRepeat(() => expandGroundBounds('west', GROUND_BOUNDS_STEP));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    const x = clampToGroundX(snapValue(e.point.x, snapEnabled && !optionHeld, gridStep));
-    const z = clampToGroundZ(snapValue(e.point.z, snapEnabled && !optionHeld, gridStep));
+    const freePlacement = optionHeld || (!!dragObjectId && moveModeActive);
+    const x = clampToGroundX(snapValue(e.point.x, snapEnabled && !freePlacement, gridStep));
+    const z = clampToGroundZ(snapValue(e.point.z, snapEnabled && !freePlacement, gridStep));
     if (armedAsset) {
       e.stopPropagation();
       // Direct teacher report: a door/window's ghost used to just float at
@@ -3170,6 +3188,7 @@ export default function WorldEditor() {
                 onDelete={deleteSelected}
                 onDuplicate={duplicateSelected}
                 deselect={() => setSelection(null)}
+                onMoveModeChange={setMoveModeActive}
               />
             )}
           </Canvas>
