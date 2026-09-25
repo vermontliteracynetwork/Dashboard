@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
+import WebpageFrame from './WebpageFrame';
 
 interface Props {
   studentId: string;
@@ -38,6 +39,16 @@ export default function ChatPanel({ studentId, role, onClose, aboveLock }: Props
 
   if (!student) return null;
 
+  // Direct teacher ask: "chat should have a webpage looking widget like
+  // looks like an old IM page." Chat is a shared teacher/student overlay
+  // modal opened from six different places (not a routed screen), so it
+  // gets the same WebpageFrame browser-chrome header every other "webpage"
+  // screen uses, just with onBack wired to this modal's own onClose instead
+  // of a route — see WebpageFrame's onBack prop. The address bar shows who
+  // the thread is with, standing in for the old title-bar text this
+  // replaces.
+  const chatUrl = role === 'teacher' ? `chat/${student.name.toLowerCase().replace(/\s+/g, '-')}` : 'chat/teacher';
+
   return (
     <div className="overlay-backdrop" style={aboveLock ? { zIndex: 310 } : undefined} onClick={onClose}>
       <div
@@ -45,11 +56,13 @@ export default function ChatPanel({ studentId, role, onClose, aboveLock }: Props
         style={{ width: '95vw', maxWidth: 440, height: '70vh', maxHeight: 560, padding: 0, gap: 0, overflow: 'hidden' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="space-between" style={{ padding: '12px 16px', background: 'var(--ink)', flex: '0 0 auto' }}>
-          <strong style={{ color: 'white' }}>
-            💬 {role === 'teacher' ? `Chat with ${student.name}` : 'Chat with your teacher'}
-          </strong>
-          <button className="btn btn-sm" onClick={onClose}>✕</button>
+        <div style={{ flex: '0 0 auto' }}>
+          <WebpageFrame url={chatUrl} onBack={onClose} backLabel="✕ Close" />
+          <div style={{ padding: '8px 16px', background: '#faf9ff', borderBottom: '2px solid var(--content-border)' }}>
+            <strong style={{ fontSize: '0.85rem' }}>
+              💬 {role === 'teacher' ? `Chat with ${student.name}` : 'Chat with your teacher'}
+            </strong>
+          </div>
         </div>
 
         <div className="stack" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 14, gap: 8, background: '#faf9ff' }}>

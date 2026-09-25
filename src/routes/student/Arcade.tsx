@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { scratchThumbnailUrl, scratchEmbedUrl } from '../../lib/scratch';
+import WebpageFrame from '../../components/WebpageFrame';
 
 // The in-world Arcade — direct teacher request: her students are "obsessed
 // with Scratch" and she wants a Cinema-style browse-and-play screen for the
@@ -12,7 +12,6 @@ import { scratchThumbnailUrl, scratchEmbedUrl } from '../../lib/scratch';
 // pattern), swapping a video player for Scratch's own officially-supported
 // project embed.
 export default function Arcade() {
-  const navigate = useNavigate();
   const scratchGames = useStore((s) => s.scratchGames);
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -62,21 +61,19 @@ export default function Arcade() {
   };
 
   return (
-    <div className="stack" style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #2b1055, #7597de)', padding: 20, boxSizing: 'border-box' }}>
-      <div className="space-between" style={{ alignItems: 'center' }}>
-        <span style={{ background: '#fff', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 800, color: '#2b1055', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-          🕹️ Arcade
-        </span>
-        <div className="row" style={{ gap: 8 }}>
-          {playing && (
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setPlayingId(null)}>
-              ⬅️ Game Shelf
-            </button>
-          )}
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
-        </div>
-      </div>
+    // Direct teacher instruction: every "webpage" screen reads as displayed
+    // inside a physical laptop now — same .laptop-frame/.laptop-screen/
+    // .laptop-deck StudentHome.tsx already uses.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
+    <div className="container stack">
+      <WebpageFrame url="arcade" />
+      <div className="stack" style={{ minHeight: 460, background: 'linear-gradient(160deg, #2b1055, #7597de)', borderRadius: 14, padding: 20, boxSizing: 'border-box' }}>
+      {playing && (
+        <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={() => setPlayingId(null)}>
+          ⬅️ Game Shelf
+        </button>
+      )}
 
       {playing ? (
         <div className="stack" style={{ alignItems: 'center', marginTop: 20 }}>
@@ -208,6 +205,10 @@ export default function Arcade() {
           </div>
         </div>
       )}
+      </div>
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

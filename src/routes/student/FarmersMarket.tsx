@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { petDefById, rarityFor, thumbnailFor } from '../../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind, FarmerMarketOffer, StudentPet, Student } from '../../types';
+import WebpageFrame from '../../components/WebpageFrame';
 
 // The Farmer's Market — direct teacher request, explicitly framed as a
 // way to practice negotiation as a real skill: students trade with each
@@ -61,7 +61,6 @@ function PetChip({ pet }: { pet: StudentPet }) {
 }
 
 export default function FarmersMarket() {
-  const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
@@ -104,14 +103,17 @@ export default function FarmersMarket() {
   const handleAcceptPet = (offer: FarmerMarketOffer) => setPickingPetFor(offer);
 
   return (
+    // Direct teacher instruction: every "webpage" screen reads as displayed
+    // inside a physical laptop now — same .laptop-frame/.laptop-screen/
+    // .laptop-deck StudentHome.tsx already uses. Farmer's Market is a
+    // real Town Square role (see ROLE_VIEWS in townLayout.ts), so
+    // WebpageFrame's own from-town/from-Computer default handles Back the
+    // same way it already does for Mailbox/Piggy Bank/Marketplace.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
     <div className="container stack">
-      <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--success), var(--yellow))' }}>
-        <h2 style={{ margin: 0 }}>🧺 Farmer's Market</h2>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
-        </div>
-      </div>
+      <WebpageFrame url="farmers-market" />
+      <h2 style={{ margin: 0, textAlign: 'center' }}>🧺 Farmer's Market</h2>
 
       <p style={{ textAlign: 'center', fontWeight: 700 }}>Trade with other students, no coins needed! ✨</p>
 
@@ -255,6 +257,9 @@ export default function FarmersMarket() {
           })}
         </div>
       )}
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

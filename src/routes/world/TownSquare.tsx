@@ -30,6 +30,7 @@ import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageF
 import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { VehicleSoundController, type VehicleSoundKind } from '../../lib/vehicleAudio';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -1148,6 +1149,18 @@ interface PlayerProps {
   // isWaterAt in townLayout.ts) — a bump-and-slide boundary, never a hard
   // wall or a crash, per the design doc.
   groundPatches?: GroundPatch[];
+  // Transportation Phase 2b (docs/BOATS_DESIGN.md §8) — a ref this writes
+  // every frame with the current vehicle's speed as a 0..1 ratio of its own
+  // max speed, read imperatively by the wake/dust particle trail (same
+  // "write a ref every frame, read it elsewhere without a re-render"
+  // pattern facingRef above already uses) and by soundRef's engine/splash
+  // volume below.
+  speedRef?: React.RefObject<number>;
+  // The currently-mounted vehicle's synthesized engine/splash sound
+  // controller (src/lib/vehicleAudio.ts) — TownSquare owns creating/
+  // starting/stopping it on mount/dismount; Player just feeds it live
+  // speed each frame and fires a soft thud on a boundary/obstacle bump.
+  soundRef?: React.RefObject<VehicleSoundController | null>;
   // Direct teacher instruction: a following companion pet must face the
   // same direction the PLAYER is currently facing, not its own travel
   // direction — so the parent needs read access to Player's own facing
@@ -1158,7 +1171,85 @@ interface PlayerProps {
   facingRef?: React.RefObject<number>;
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, gasBlocked, vehicleKind, groundPatches }: PlayerProps) {
+// Transportation Phase 2b (docs/BOATS_DESIGN.md §4: "Recommend building
+// this as a shared 'vehicle motion particle' system... one system, two
+// skins (dust vs. splash), rather than building the same kind of thing
+// twice") — a small fixed pool of flat billboard-free discs, spawned
+// behind the vehicle and faded/grown over their short lifetime, reused for
+// any vehicle's speed-scaled trail. Only 'wake' is wired to anything this
+// pass (Boats); 'dust' exists so Cars' own still-open dust trail
+// (DRIVING_UX_RESEARCH.md rec #3) can reuse this exact component later.
+const TRAIL_POOL = 24;
+type TrailParticle = { x: number; z: number; age: number; maxAge: number };
+function VehicleTrailParticles({ active, playerPos, facingRef, speedRef, kind, reducedMotion }: {
+  active: boolean;
+  playerPos: THREE.Vector3;
+  facingRef: React.RefObject<number>;
+  speedRef: React.RefObject<number>;
+  kind: 'wake' | 'dust';
+  reducedMotion: boolean;
+}) {
+  const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
+  const particles = useRef<TrailParticle[]>(
+    Array.from({ length: TRAIL_POOL }, () => ({ x: 0, z: 0, age: 999, maxAge: 1 }))
+  );
+  const spawnTimer = useRef(0);
+  const cursor = useRef(0);
+  const color = kind === 'wake' ? '#eaf6ff' : '#c9b28a';
+
+  useFrame((_, dt) => {
+    const list = particles.current;
+    const ratio = speedRef.current ?? 0;
+    // Explicit product decision (docs/TRANSPORTATION.md §7's standing
+    // reduced-motion gap, closed via BOATS_DESIGN.md §8's shared-toggle
+    // recommendation): Reduce Motion suppresses the trail entirely rather
+    // than just toning it down, since a fast-fading/growing particle field
+    // is exactly the kind of motion that setting exists to remove.
+    if (active && !reducedMotion && ratio > 0.05) {
+      spawnTimer.current -= dt;
+      if (spawnTimer.current <= 0) {
+        spawnTimer.current = 0.05 + (1 - ratio) * 0.08;
+        const i = cursor.current;
+        cursor.current = (cursor.current + 1) % TRAIL_POOL;
+        const behind = 0.6;
+        const facing = facingRef.current ?? 0;
+        list[i] = {
+          x: playerPos.x - Math.sin(facing) * behind + (Math.random() - 0.5) * 0.3,
+          z: playerPos.z - Math.cos(facing) * behind + (Math.random() - 0.5) * 0.3,
+          age: 0,
+          maxAge: 0.7 + Math.random() * 0.3,
+        };
+      }
+    }
+    for (let i = 0; i < TRAIL_POOL; i++) {
+      const p = list[i];
+      p.age += dt;
+      const mesh = meshRefs.current[i];
+      if (!mesh) continue;
+      const t = p.age / p.maxAge;
+      if (t >= 1) { mesh.visible = false; continue; }
+      mesh.visible = true;
+      mesh.position.set(p.x, 0.04, p.z);
+      const scale = 0.25 + t * 0.5;
+      mesh.scale.set(scale, scale, scale);
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = (1 - t) * 0.5;
+    }
+  });
+
+  return (
+    <group>
+      {Array.from({ length: TRAIL_POOL }).map((_, i) => (
+        <mesh key={i} ref={(m) => { meshRefs.current[i] = m; }} rotation-x={-Math.PI / 2} visible={false}>
+          <circleGeometry args={[1, 10]} />
+          <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, gasBlocked, vehicleKind, groundPatches, speedRef, soundRef }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1168,6 +1259,10 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
   const carSpeed = useRef(0);
   const boatSpeed = useRef(0);
+  // Transportation Phase 2b — a soft cooldown so a boat/car resting against
+  // a boundary doesn't retrigger the contact thud every single frame; reset
+  // whenever a real new contact happens, ticks down by dt otherwise.
+  const thudCooldown = useRef(0);
   // Direct teacher instruction: the equipped-emote thought bubble only
   // shows on hover (a tap, on touch), same as Neighbor name tags — not
   // shown all the time just because an emote is equipped.
@@ -1191,6 +1286,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       onMove(pos.current);
     }
     let moved = false;
+    if (thudCooldown.current > 0) thudCooldown.current -= dt;
     if (!frozen && driving && vehicleKind === 'boat') {
       // Boat throttle+turn physics (docs/BOATS_DESIGN.md §1/§4) — reuses
       // the ordinary D-pad/touchDir/WASD input, up/down as throttle
@@ -1224,15 +1320,31 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       if (Math.abs(boatSpeed.current) > 0.01) {
         const dx = Math.sin(facing.current);
         const dz = Math.cos(facing.current);
-        const [bx, bz] = slideWithinWater(pos.current.x, pos.current.z, pos.current.x + dx * boatSpeed.current * dt, pos.current.z + dz * boatSpeed.current * dt, groundPatches ?? []);
+        const targetX = pos.current.x + dx * boatSpeed.current * dt;
+        const targetZ = pos.current.z + dz * boatSpeed.current * dt;
+        const [bx, bz] = slideWithinWater(pos.current.x, pos.current.z, targetX, targetZ, groundPatches ?? []);
         const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
         const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
+        // Transportation Phase 2b — a soft dock/shore-contact thud whenever
+        // the bump-and-slide boundary actually held the boat back from
+        // where it was trying to go, the same "detect it from the shortfall
+        // between intended and actual movement" signal used for the car
+        // below, gated by thudCooldown so it plays once per contact, not
+        // once per frame while resting against the edge.
+        const shortfall = Math.hypot(targetX - cx, targetZ - cz);
+        if (shortfall > 0.05 && Math.abs(boatSpeed.current) > BOAT_MAX_SPEED * 0.15 && thudCooldown.current <= 0) {
+          soundRef?.current?.thud();
+          thudCooldown.current = 1.1;
+        }
         pos.current.x = cx;
         pos.current.z = cz;
         onMove(pos.current);
         moved = true;
       }
-    } else if (!frozen && driving) {
+      const boatRatio = Math.abs(boatSpeed.current) / BOAT_MAX_SPEED;
+      if (speedRef) speedRef.current = boatRatio;
+      soundRef?.current?.setIntensity(boatRatio);
+    } else if (!frozen && driving && vehicleKind !== 'boat') {
       // Real gas/brake pedal physics (docs/TRANSPORTATION.md's Cars spec,
       // direct teacher follow-up) — steering turns the car's own heading,
       // Gas accelerates along it, Brake decelerates, neither coasts to a
@@ -1264,13 +1376,29 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       if (Math.abs(carSpeed.current) > 0.01) {
         const dx = Math.sin(facing.current);
         const dz = Math.cos(facing.current);
-        const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * carSpeed.current * dt, pos.current.z + dz * carSpeed.current * dt);
+        const targetX = pos.current.x + dx * carSpeed.current * dt;
+        const targetZ = pos.current.z + dz * carSpeed.current * dt;
+        const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, targetX, targetZ);
         const cx = THREE.MathUtils.clamp(bx, -GROUND_HALF + 1, GROUND_HALF - 1);
         const cz = THREE.MathUtils.clamp(bz, -GROUND_HALF + 1, GROUND_HALF - 1);
-        [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
+        const [fx, fz] = blockBuildings(cx, cz);
+        // Same soft contact-thud signal as boats above (Phase 2d: shared
+        // audio wiring, not a Boats-only system) — a car nudging a building/
+        // obstacle/water edge gets the identical soft thud, never a crash
+        // sound, per TRANSPORTATION.md §4.
+        const shortfall = Math.hypot(targetX - fx, targetZ - fz);
+        if (shortfall > 0.05 && carSpeed.current > CAR_MAX_SPEED * 0.15 && thudCooldown.current <= 0) {
+          soundRef?.current?.thud();
+          thudCooldown.current = 1.1;
+        }
+        pos.current.x = fx;
+        pos.current.z = fz;
         onMove(pos.current);
         moved = true;
       }
+      const carRatio = carSpeed.current / CAR_MAX_SPEED;
+      if (speedRef) speedRef.current = carRatio;
+      soundRef?.current?.setIntensity(carRatio);
     } else if (!frozen) {
       const k = keys.current;
       let dx = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
@@ -2063,6 +2191,14 @@ export default function TownSquare() {
   const groundPatches = useStore((s) => s.groundPatches);
   const drivingObj = drivingObjectId ? worldObjects.find((o) => o.id === drivingObjectId) : undefined;
   const drivingIsBoat = !!drivingObj && isBoatModel(drivingObj.modelPath);
+  // Transportation Phase 2b/2d — the currently-mounted vehicle's live speed
+  // (0..1 of its own max) and its synthesized engine/splash sound
+  // controller (src/lib/vehicleAudio.ts). Refs, not state: Player writes
+  // these every frame (same "write a ref every frame" pattern
+  // playerFacingRef already uses), read imperatively by the wake-particle
+  // trail below without forcing an extra re-render per frame.
+  const vehicleSpeedRef = useRef(0);
+  const vehicleSoundRef = useRef<VehicleSoundController | null>(null);
   // Shared music library (docs: car radio, Concert Hall, Boom Box all draw
   // from the same list) — direct teacher request. Audio only: the actual
   // sound comes from a visually hidden YouTube embed (see
@@ -2131,6 +2267,14 @@ export default function TownSquare() {
   const tickPetDecay = useStore((s) => s.tickPetDecay);
   const setFollowingPet = useStore((s) => s.setFollowingPet);
   const student = students.find((s) => s.id === currentStudentId);
+  // Live-toggle the vehicle sound controller if the student flips Settings'
+  // new "Vehicle sound" checkbox while still mounted, and make sure it's
+  // never left running if this whole screen unmounts mid-ride (navigating
+  // away without formally exiting the vehicle first).
+  useEffect(() => {
+    vehicleSoundRef.current?.setEnabled(student?.vehicleSoundEnabled !== false);
+  }, [student?.vehicleSoundEnabled]);
+  useEffect(() => () => { vehicleSoundRef.current?.stop(); }, []);
   const ownedPets = student ? pets.filter((p) => p.studentId === student.id) : [];
   const followingPet = ownedPets.find((p) => p.following);
   // Pets Phase 6 (docs/DEVELOPMENT_PLAN.md Part B) — a gentle, non-punitive
@@ -2856,6 +3000,16 @@ export default function TownSquare() {
     teleportTarget.current = { x: obj.position[0], z: obj.position[2], facing: obj.rotationY };
     setDrivingObjectId(obj.id);
     setDriveConfirmId(null);
+    // Transportation Phase 2b — start the mounted vehicle's synthesized
+    // engine/splash sound (src/lib/vehicleAudio.ts). A mount is always a
+    // tap, so this is never true autoplay. Respects the student's own
+    // Settings toggle (2d) from the very first frame, not just after it's
+    // later changed.
+    const kind: VehicleSoundKind = isBoatModel(obj.modelPath) ? 'boat' : 'car';
+    vehicleSoundRef.current?.stop();
+    const controller = new VehicleSoundController(kind, student?.vehicleSoundEnabled !== false);
+    controller.start();
+    vehicleSoundRef.current = controller;
   };
 
   // Dismount: park the car exactly where it was driven to (a real
@@ -2868,6 +3022,9 @@ export default function TownSquare() {
     setDrivingObjectId(null);
     setExitConfirmActive(false);
     teleportTarget.current = { x: playerPos.x + 1.3, z: playerPos.z };
+    vehicleSoundRef.current?.stop();
+    vehicleSoundRef.current = null;
+    vehicleSpeedRef.current = 0;
     // Direct teacher instruction: the radio is part of the car, so getting
     // out stops whatever's playing rather than leaving it running.
     setPlayingTrackId(null);
@@ -3484,7 +3641,31 @@ export default function TownSquare() {
             gasRef={gasRef}
             brakeRef={brakeRef}
             gasBlocked={!drivingIsBoat && carGasDashes <= 0}
+            speedRef={vehicleSpeedRef}
+            soundRef={vehicleSoundRef}
           />
+          {/* Transportation Phase 2b (docs/BOATS_DESIGN.md §4/§8) — the
+              bow-wave/wake particle trail, Phase-1 scope for Boats per the
+              design doc, not deferred polish. Built as a generic, reusable
+              "vehicle motion particle" component (kind='wake' here) exactly
+              as §4 recommends, so it can also serve Cars' still-not-built
+              dust trail later without a second particle pipeline — only
+              wired to boats this pass, per this session's assigned scope.
+              Suppressed entirely under Reduce Motion (2d: reuses the
+              existing student.worldReduceMotion toggle rather than a new
+              vehicle-specific one, since TRANSPORTATION.md §7's gap is the
+              same "reduce camera/VFX motion" ask that toggle already
+              covers elsewhere in this file). */}
+          {drivingObjectId && drivingIsBoat && (
+            <VehicleTrailParticles
+              active
+              playerPos={playerPos}
+              facingRef={playerFacingRef}
+              speedRef={vehicleSpeedRef}
+              kind="wake"
+              reducedMotion={!!student.worldReduceMotion}
+            />
+          )}
           {/* Direct teacher instruction: only birds (they fly) and fish
               (they have no legs) float beside the player — every other
               category walks on the ground. Direct teacher instruction:
@@ -4071,6 +4252,21 @@ export default function TownSquare() {
                   onChange={(e) => updateStudent(student.id, { worldReduceMotion: e.target.checked })}
                 />
                 Reduce motion (calmer, less animation)
+              </label>
+
+              {/* Transportation Phase 2b/2d (docs/BOATS_DESIGN.md §8) — a
+                  single per-student vehicle-sound toggle, independent of the
+                  Reduce Motion toggle above (which already applies to
+                  vehicle wake/dust VFX and camera dynamics, reused rather
+                  than duplicated). Covers every vehicle's synthesized engine/
+                  splash/wind/chug sound (src/lib/vehicleAudio.ts). */}
+              <label className="row" style={{ gap: 8, alignItems: 'center', fontWeight: 700 }}>
+                <input
+                  type="checkbox"
+                  checked={student.vehicleSoundEnabled !== false}
+                  onChange={(e) => updateStudent(student.id, { vehicleSoundEnabled: e.target.checked })}
+                />
+                Vehicle sound (engine, splash, wind)
               </label>
 
               <button className="btn btn-primary btn-lg" onClick={() => setSettingsOpen(false)} autoFocus>

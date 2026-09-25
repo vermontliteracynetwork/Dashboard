@@ -51,6 +51,27 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: 'Some students now have a Punctuation category in Literacy Manipulatives with tiles for periods, question marks, commas, and more. Hover over a tile to see what it does. Ask your teacher if you do not see it and want it.',
   },
   {
+    id: '2026-09-25-boats-splash-sound',
+    date: '2026-09-25',
+    icon: '⛵',
+    title: 'Boats have splash and engine sound now',
+    body: 'Sail a boat and you will hear a soft engine sound and see a splash trail behind you that gets bigger the faster you go, plus a gentle bump sound near a dock or shore. Check Settings if you want to turn vehicle sound off, or turn on Reduce Motion to turn off the splash trail.',
+  },
+  {
+    id: '2026-09-25-marketplace-amazon-look',
+    date: '2026-09-25',
+    icon: '🛍️',
+    title: 'Marketplace has a new look',
+    body: 'The Marketplace now has a sidebar on the side to pick what you want to shop for, and bigger item cards with a big Add to Cart button on each one. Searching and filtering still work just like before.',
+  },
+  {
+    id: '2026-09-25-computer-laptop-look',
+    date: '2026-09-25',
+    icon: '💻',
+    title: 'More screens look like real webpages now',
+    body: 'Cinema, Arcade, Gallery, Farmer\'s Market, and Silly Quizzes all show up inside the laptop screen look now, with the same Back button as everywhere else on your Computer. Chat has a browser-style bar at the top too.',
+  },
+  {
     id: '2026-09-25-lm-synced-tts',
     date: '2026-09-25',
     icon: '🔈',

@@ -298,23 +298,25 @@ export default function Marketplace() {
     if (lines.some((l) => l.ok)) playCashRegister();
   };
 
+  // Direct teacher ask: "the design needs to be more real online shopping
+  // inspired... needs to be like amazon" — an oversized, unmistakable "Add
+  // to Cart" button per product tile instead of the old small price chip.
   const cartButtonFor = (entry: CartEntry, affordable: boolean) => {
     if (inCart(entry.key)) {
       return (
-        <button className="shop-price-chip" style={{ border: '2px solid var(--success)', background: 'var(--success)', color: '#fff', minHeight: 40 }} onClick={() => removeFromCart(entry.key)}>
+        <button className="shop-add-to-cart-btn in-cart" onClick={() => removeFromCart(entry.key)}>
           ✓ In Cart
         </button>
       );
     }
     return (
-      <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
+      <div className="stack" style={{ alignItems: 'center', gap: 4, width: '100%' }}>
         <button
-          className="shop-price-chip"
-          style={{ border: '2px solid var(--ink)', minHeight: 40, cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.5 }}
+          className="shop-add-to-cart-btn"
           disabled={!affordable}
           onClick={() => addToCart(entry)}
         >
-          🛒 {formatMoney(entry.price)}
+          🛒 Add to Cart · {formatMoney(entry.price)}
         </button>
         {!affordable && (
           <span style={{ fontSize: '0.62rem', color: 'var(--danger)', fontWeight: 700 }}>
@@ -332,7 +334,7 @@ export default function Marketplace() {
     const isImg = item.icon.startsWith('/') || item.icon.startsWith('http');
     const cartKey = `item-${item.id}`;
     return (
-      <div key={item.id} className="shop-item-card" style={{ width: 140 }}>
+      <div key={item.id} className="shop-product-card">
         <div className="shop-item-icon-frame" style={item.kind === 'color' ? { width: opts?.iconSize ?? 44, height: opts?.iconSize ?? 44, borderRadius: '50%', background: item.colorHex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : item.colorHex } : item.kind === 'font' ? { width: '100%', fontFamily: item.cssFontFamily, fontSize: '1.6rem' } : {}}>
           {item.kind !== 'color' && item.kind !== 'font' && (isImg ? <img src={item.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '1.8rem' }}>{item.icon}</span>)}
           {item.kind === 'font' && 'Aa'}
@@ -520,45 +522,52 @@ export default function Marketplace() {
 
           <FocusBanner subjects={['finance']} />
 
-          <div className="shop-tabs">
-            <button className={`shop-tab-btn ${tab === 'characters' ? 'active' : ''}`} onClick={() => setTab('characters')}>
-              🧑 Characters
-            </button>
-            <button className={`shop-tab-btn ${tab === 'emotes' ? 'active' : ''}`} onClick={() => setTab('emotes')}>
-              😊 Emotes
-            </button>
-            <button className={`shop-tab-btn ${tab === 'writing' ? 'active' : ''}`} onClick={() => setTab('writing')}>
-              ✍️ Writing
-            </button>
-            <button className={`shop-tab-btn ${tab === 'whiteboard' ? 'active' : ''}`} onClick={() => setTab('whiteboard')}>
-              🖊️ Whiteboard
-            </button>
-            <button className={`shop-tab-btn ${tab === 'voices' ? 'active' : ''}`} onClick={() => setTab('voices')}>
-              🔊 Voices
-            </button>
-            {prizeItems.length > 0 && (
-              <button className={`shop-tab-btn ${tab === 'prizes' ? 'active' : ''}`} onClick={() => setTab('prizes')}>
-                🎁 Prizes
+          {/* Direct teacher ask: "the design needs to be more real online
+              shopping inspired... needs to be like amazon" — a real sidebar
+              category nav replaces the old chip-tab row, same "it already
+              works, don't reinvent it" search/filter functionality kept
+              exactly as it was underneath it. */}
+          <div className="shop-layout">
+            <nav className="shop-sidebar" aria-label="Shop categories">
+              <button className={`shop-sidebar-btn ${tab === 'characters' ? 'active' : ''}`} onClick={() => setTab('characters')}>
+                🧑 Characters
               </button>
-            )}
-            <button className={`shop-tab-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
-              🎫 Power-Ups
-            </button>
-            {furnitureItems.length > 0 && (
-              <button className={`shop-tab-btn ${tab === 'furniture' ? 'active' : ''}`} onClick={() => setTab('furniture')}>
-                🛋️ Home
+              <button className={`shop-sidebar-btn ${tab === 'emotes' ? 'active' : ''}`} onClick={() => setTab('emotes')}>
+                😊 Emotes
               </button>
-            )}
-            <button className={`shop-tab-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
-              🐾 Pets
-            </button>
-            <button className={`shop-tab-btn ${tab === 'mystuff' ? 'active' : ''}`} onClick={() => setTab('mystuff')}>
-              🎒 My Stuff
-            </button>
-            <button className={`shop-tab-btn ${tab === 'receipts' ? 'active' : ''}`} onClick={() => setTab('receipts')}>
-              🧾 Receipts
-            </button>
-          </div>
+              <button className={`shop-sidebar-btn ${tab === 'writing' ? 'active' : ''}`} onClick={() => setTab('writing')}>
+                ✍️ Writing
+              </button>
+              <button className={`shop-sidebar-btn ${tab === 'whiteboard' ? 'active' : ''}`} onClick={() => setTab('whiteboard')}>
+                🖊️ Whiteboard
+              </button>
+              <button className={`shop-sidebar-btn ${tab === 'voices' ? 'active' : ''}`} onClick={() => setTab('voices')}>
+                🔊 Voices
+              </button>
+              {prizeItems.length > 0 && (
+                <button className={`shop-sidebar-btn ${tab === 'prizes' ? 'active' : ''}`} onClick={() => setTab('prizes')}>
+                  🎁 Prizes
+                </button>
+              )}
+              <button className={`shop-sidebar-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
+                🎫 Power-Ups
+              </button>
+              {furnitureItems.length > 0 && (
+                <button className={`shop-sidebar-btn ${tab === 'furniture' ? 'active' : ''}`} onClick={() => setTab('furniture')}>
+                  🛋️ Home
+                </button>
+              )}
+              <button className={`shop-sidebar-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
+                🐾 Pets
+              </button>
+              <button className={`shop-sidebar-btn ${tab === 'mystuff' ? 'active' : ''}`} onClick={() => setTab('mystuff')}>
+                🎒 My Stuff
+              </button>
+              <button className={`shop-sidebar-btn ${tab === 'receipts' ? 'active' : ''}`} onClick={() => setTab('receipts')}>
+                🧾 Receipts
+              </button>
+            </nav>
+            <div className="shop-main">
 
           {(tab === 'characters' || tab === 'emotes' || tab === 'powerups') && (
             <input
@@ -573,14 +582,14 @@ export default function Marketplace() {
 
           <div className="shop-shelf">
             {tab === 'characters' && (
-              <div className="shop-item-grid">
+              <div className="shop-product-grid">
                 {AVATAR_CATALOG.filter((a) => matchesSearch(a.name)).map((a) => {
                   const owned = student.ownedAvatarIds.includes(a.id);
                   const equipped = student.avatar === a.id;
                   const price = avatarPriceFor(avatarPriceOverrides, a.id);
                   const affordable = student.coins >= price;
                   return (
-                    <div key={a.id} className="shop-item-card">
+                    <div key={a.id} className="shop-product-card">
                       <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
                         <AvatarGlyph value={a.id} />
                       </div>
@@ -603,14 +612,14 @@ export default function Marketplace() {
             )}
 
             {tab === 'emotes' && (
-              <div className="shop-item-grid">
+              <div className="shop-product-grid">
                 {EMOTE_CATALOG.filter((e) => matchesSearch(e.name)).map((e) => {
                   const owned = student.ownedEmoteIds.includes(e.id);
                   const equipped = student.equippedEmoteId === e.id;
                   const price = emotePriceFor(emotePriceOverrides, e.id);
                   const affordable = student.coins >= price;
                   return (
-                    <div key={e.id} className="shop-item-card" style={{ width: 150 }}>
+                    <div key={e.id} className="shop-product-card">
                       <div className="shop-item-icon-frame shop-item-icon-frame-lg" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
                         <img src={e.src} alt="" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
                       </div>
@@ -637,20 +646,20 @@ export default function Marketplace() {
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>🔤 Fonts for your Notes</strong>
                   <ItemFilterBar items={fontItems} category={fontFilter.category} onCategory={fontFilter.setCategory} tag={fontFilter.tag} onTag={fontFilter.setTag} query={fontFilter.query} onQuery={fontFilter.setQuery} />
-                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
                     {fontFilter.filtered.map((f) => renderBuyableItem(f))}
                   </div>
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>🎨 Text Colors</strong>
-                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
                     {textColorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))}
                   </div>
                 </div>
                 {highlightColorItems.length > 0 && (
                   <div>
                     <strong style={{ fontSize: '0.85rem' }}>🖍️ Highlight Colors</strong>
-                    <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                    <div className="shop-product-grid" style={{ marginTop: 8 }}>
                       {highlightColorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))}
                     </div>
                   </div>
@@ -661,7 +670,7 @@ export default function Marketplace() {
             {tab === 'whiteboard' && (
               <div>
                 <strong style={{ fontSize: '0.85rem' }}>✏️ Marker Colors</strong>
-                <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                <div className="shop-product-grid" style={{ marginTop: 8 }}>
                   {markerColorItems.length === 0 ? (
                     <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No marker colors yet. Ask your teacher to add some!</p>
                   ) : (
@@ -674,7 +683,7 @@ export default function Marketplace() {
             {tab === 'voices' && (
               <div>
                 <ItemFilterBar items={voiceItems} category={voiceFilter.category} onCategory={voiceFilter.setCategory} tag={voiceFilter.tag} onTag={voiceFilter.setTag} query={voiceFilter.query} onQuery={voiceFilter.setQuery} />
-                <div className="shop-item-grid">
+                <div className="shop-product-grid">
                   {voiceFilter.filtered.map((v) => renderBuyableItem(v))}
                 </div>
               </div>
@@ -683,7 +692,7 @@ export default function Marketplace() {
             {tab === 'prizes' && (
               <div>
                 <ItemFilterBar items={prizeItems} category={prizeFilter.category} onCategory={prizeFilter.setCategory} tag={prizeFilter.tag} onTag={prizeFilter.setTag} query={prizeFilter.query} onQuery={prizeFilter.setQuery} />
-                <div className="shop-item-grid">
+                <div className="shop-product-grid">
                   {prizeFilter.filtered.map((p) => renderBuyableItem(p))}
                 </div>
                 <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
@@ -693,12 +702,12 @@ export default function Marketplace() {
             )}
 
             {tab === 'powerups' && (
-              <div className="shop-item-grid">
+              <div className="shop-product-grid">
                 {powerupItems.filter((p) => matchesSearch(p.name, p.tags, p.category)).map((p) => {
                   const affordable = student.coins >= p.price;
                   const owned = false; // power-ups always stay buyable (stacking), never "owned"
                   return (
-                    <div key={p.id} className="shop-item-card" style={{ width: 156 }}>
+                    <div key={p.id} className="shop-product-card">
                       <div className="shop-item-icon-frame" style={{ width: 72, height: 72 }}>
                         <span style={{ fontSize: '2rem' }}>{p.icon}</span>
                       </div>
@@ -720,7 +729,7 @@ export default function Marketplace() {
                     create a furniture item and it would show locked in
                     Build Mode with no way to ever actually buy it). */}
                 <ItemFilterBar items={furnitureItems} category={furnitureFilter.category} onCategory={furnitureFilter.setCategory} tag={furnitureFilter.tag} onTag={furnitureFilter.setTag} query={furnitureFilter.query} onQuery={furnitureFilter.setQuery} />
-                <div className="shop-item-grid">
+                <div className="shop-product-grid">
                   {furnitureFilter.filtered.map((f) => renderBuyableItem(f))}
                 </div>
                 <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
@@ -766,11 +775,11 @@ export default function Marketplace() {
                 {ownedPets.length > 0 && (
                   <div>
                     <strong style={{ fontSize: '0.85rem' }}>🐾 Your Pets</strong>
-                    <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                    <div className="shop-product-grid" style={{ marginTop: 8 }}>
                       {ownedPets.map((pet) => {
                         const def = petDefById(pet.petDefId);
                         return (
-                          <div key={pet.id} className="shop-item-card">
+                          <div key={pet.id} className="shop-product-card">
                             <div className="shop-item-icon-frame" style={{ outline: pet.following ? '3px solid var(--purple)' : 'none' }}>
                               {def ? <OwnedPetThumb def={def} /> : <span style={{ fontSize: '1.8rem' }}>🐾</span>}
                             </div>
@@ -787,11 +796,11 @@ export default function Marketplace() {
                 )}
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>🧑 Your Characters</strong>
-                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
                     {ownedAvatars.map((a) => {
                       const equipped = student.avatar === a.id;
                       return (
-                        <div key={a.id} className="shop-item-card">
+                        <div key={a.id} className="shop-product-card">
                           <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
                             <AvatarGlyph value={a.id} />
                           </div>
@@ -810,12 +819,12 @@ export default function Marketplace() {
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>😊 Your Emotes</strong>
-                  <div className="shop-item-grid" style={{ marginTop: 8 }}>
+                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
                     {ownedEmotes.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No emotes yet. Find some in the 😊 Emotes tab!</p>}
                     {ownedEmotes.map((e) => {
                       const equipped = student.equippedEmoteId === e.id;
                       return (
-                        <div key={e.id} className="shop-item-card" style={{ width: 150 }}>
+                        <div key={e.id} className="shop-product-card">
                           <div className="shop-item-icon-frame shop-item-icon-frame-lg" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
                             <img src={e.src} alt="" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
                           </div>
@@ -866,6 +875,8 @@ export default function Marketplace() {
                 )}
               </div>
             )}
+          </div>
+            </div>
           </div>
       </div>
     </div>
