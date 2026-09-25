@@ -18,6 +18,7 @@ import InternalBrowser from '../../components/InternalBrowser';
 import { BookPanel } from '../../components/BookPanel';
 import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
+import { Icon } from '../../components/Icon';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
@@ -2322,7 +2323,7 @@ function BuildingEntrance({
               onClick={onEnter}
               style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', minHeight: 44, minWidth: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
             >
-              ✅ Confirm
+              <Icon name="check" size={16} fallback="✅" /> Confirm
             </button>
           </div>
         </Html>
@@ -3866,12 +3867,12 @@ export default function TownSquare() {
               Menu
             </div>
             {(() => {
-              const wedges: { id: string; icon: string; label: string; bg: string; onSelect: () => void }[] = [
+              const wedges: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
                 { id: 'tasks', icon: '📋', label: totalTasksLeft > 0 ? `Tasks (${totalTasksLeft})` : 'Tasks', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
                 { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
-                { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
-                { id: 'more', icon: '⚙️', label: 'More', bg: '#5b6b8a', onSelect: () => setShowMoreMenu(true) },
-                { id: 'home', icon: '🏠', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
+                { id: 'whatnow', icon: '❓', iconName: 'question', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
+                { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setShowMoreMenu(true) },
+                { id: 'home', icon: '🏠', iconName: 'home', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
                 ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
               ];
               return wedges.map((w, i) => {
@@ -3891,7 +3892,9 @@ export default function TownSquare() {
                       cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.35)', padding: 4,
                     }}
                   >
-                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{w.icon}</span>
+                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>
+                      {w.iconName ? <Icon name={w.iconName} size={22} fallback={w.icon} /> : w.icon}
+                    </span>
                     {/* Bumped from 8px (Claudia's audit H3 — unreadable at a
                         glance for a dyslexic/low-vision student scanning a
                         radial layout under time pressure) to 11px. */}
@@ -3909,7 +3912,7 @@ export default function TownSquare() {
                 fontSize: '0.7rem', fontWeight: 700, padding: '4px 12px', cursor: 'pointer',
               }}
             >
-              ✕ Cancel
+              <Icon name="close" size={14} fallback="✕" /> Cancel
             </button>
           </div>
         </div>
@@ -3925,12 +3928,16 @@ export default function TownSquare() {
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
               <div className="space-between">
-                <h2 style={{ margin: 0 }}>⚙️ More</h2>
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowMoreMenu(false)}>✕</button>
+                <h2 style={{ margin: 0 }}><Icon name="settingsAlt" size={20} fallback="⚙️" /> More</h2>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowMoreMenu(false)}><Icon name="close" size={16} fallback="✕" /></button>
               </div>
-              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setSettingsOpen(true); }}>⚙️ Settings</button>
-              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setMapView((v) => !v); }}>{mapView ? '✕ Close Map' : '🗺️ Map'}</button>
-              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setShowInventory((v) => !v); }}>{showInventory ? '✕ Close My Stuff' : '🎒 My Stuff'}</button>
+              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setSettingsOpen(true); }}><Icon name="settingsAlt" size={16} fallback="⚙️" /> Settings</button>
+              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setMapView((v) => !v); }}>
+                {mapView ? <><Icon name="close" size={14} fallback="✕" /> Close Map</> : '🗺️ Map'}
+              </button>
+              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setShowInventory((v) => !v); }}>
+                {showInventory ? <><Icon name="close" size={14} fallback="✕" /> Close My Stuff</> : '🎒 My Stuff'}
+              </button>
             </div>
           </div>
         </div>
@@ -3945,8 +3952,8 @@ export default function TownSquare() {
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
               <div className="space-between">
-                <h2 style={{ margin: 0 }}>🎵 Music</h2>
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowMusicPicker(false)}>✕</button>
+                <h2 style={{ margin: 0 }}><Icon name="music" size={20} fallback="🎵" /> Music</h2>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowMusicPicker(false)}><Icon name="close" size={16} fallback="✕" /></button>
               </div>
               {musicTracks.length === 0 ? (
                 <p style={{ opacity: 0.7, margin: 0 }}>No music yet. Ask your teacher to add some!</p>
@@ -4045,7 +4052,7 @@ export default function TownSquare() {
             <div className="content-well stack">
               <div className="space-between">
                 <h2 style={{ margin: 0 }}>📋 Today</h2>
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowTodayTasks(false)}>✕</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowTodayTasks(false)}><Icon name="close" size={16} fallback="✕" /></button>
               </div>
               <div className="stack" style={{ gap: 8 }}>
                 {subjectsToday.map((s) => (
@@ -4073,7 +4080,7 @@ export default function TownSquare() {
         <div className="overlay-backdrop" onClick={() => setShowWhatNow(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
-              <h2 style={{ margin: 0 }}>❓ What do I do?</h2>
+              <h2 style={{ margin: 0 }}><Icon name="question" size={20} fallback="❓" /> What do I do?</h2>
               <StepGuide
                 steps={[
                   { id: '1', icon: '🚶', text: 'Walk or click/tap to move around town' },
@@ -4156,7 +4163,7 @@ export default function TownSquare() {
               onClick={closeChangelog}
               style={{ position: 'absolute', top: -14, right: -14, width: 36, height: 36, borderRadius: '50%', border: '2px solid #3d2612', background: '#f3e6c4', color: '#3d2612', fontWeight: 800, cursor: 'pointer', zIndex: 1 }}
             >
-              ✕
+              <Icon name="close" size={16} fallback="✕" />
             </button>
             <BookPanel
               title="What's New"
@@ -4493,7 +4500,7 @@ export default function TownSquare() {
                         onClick={() => { setSelectedRoleObjectId(null); openRoleObject(obj); }}
                         style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        ✅ Confirm
+                        <Icon name="check" size={16} fallback="✅" /> Confirm
                       </button>
                       <button
                         onClick={() => setSelectedRoleObjectId(null)}
@@ -4730,7 +4737,7 @@ export default function TownSquare() {
                   style={{ minHeight: 44, minWidth: 44 }}
                   onClick={() => (gasLockout ? setGasExitConfirm(true) : (() => { setGasQuizQuestion(null); setGasQuizFeedback(null); })())}
                 >
-                  ✕
+                  <Icon name="close" size={16} fallback="✕" />
                 </button>
               </div>
               {gasLockout && !gasExitConfirm && (
@@ -4825,7 +4832,7 @@ export default function TownSquare() {
               title="I need a minute"
               style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', opacity: 0.6, minWidth: 32, minHeight: 32 }}
             >
-              ✕
+              <Icon name="close" size={16} fallback="✕" />
             </button>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               {(() => {
@@ -4915,7 +4922,7 @@ export default function TownSquare() {
         <div className="overlay-backdrop" role="dialog" aria-modal="true">
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }}>
             <div className="content-well stack" style={{ gap: 16 }}>
-              <h2 style={{ margin: 0 }}>⚙️ Movement Settings</h2>
+              <h2 style={{ margin: 0 }}><Icon name="settingsAlt" size={20} fallback="⚙️" /> Movement Settings</h2>
 
               <div className="stack" style={{ gap: 6 }}>
                 <label htmlFor="sensitivity-slider" style={{ fontWeight: 700 }}>
