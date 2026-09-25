@@ -23,6 +23,7 @@ import SentenceBuilder from '../../components/SentenceBuilder';
 import LinkChoiceTask from './LinkChoiceTask';
 import FocusBanner from '../../components/FocusBanner';
 import { todayISO } from '../../lib/dates';
+import { Icon } from '../../components/Icon';
 import type { Subject, Task } from '../../types';
 
 export default function SubjectDashboard() {
@@ -213,9 +214,9 @@ export default function SubjectDashboard() {
                     }
                   }}
                 >
-                  ✓ Yes, I did it
+                  <Icon name="check" size={16} fallback="✓" /> Yes, I did it
                 </button>
-                <button className="btn btn-lg" onClick={() => setConfirmDone(null)}>✕ Not yet</button>
+                <button className="btn btn-lg" onClick={() => setConfirmDone(null)}><Icon name="close" size={14} fallback="✕" /> Not yet</button>
               </div>
             </div>
           </div>
@@ -246,10 +247,10 @@ export default function SubjectDashboard() {
               title="Close and go back to my to-do list"
               onClick={() => requestClose(activeTask)}
             >
-              ✕
+              <Icon name="close" size={16} fallback="✕" />
             </button>
           )}
-          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🏠 Home</button>
+          <button className="btn btn-sm" onClick={() => navigate('/student/home')}><Icon name="home" size={14} fallback="🏠" /> Home</button>
           <button className="btn btn-sm" onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
         </div>
       </div>
@@ -316,7 +317,7 @@ export default function SubjectDashboard() {
       {reviewing && (
         <div className="content-well space-between" style={{ background: '#fff8e1' }}>
           <strong>📚 Reviewing your completed work. Tap anything to do it again. Nothing here changes your progress.</strong>
-          <button className="btn btn-sm" onClick={() => setReviewing(false)}>✕ Exit review</button>
+          <button className="btn btn-sm" onClick={() => setReviewing(false)}><Icon name="close" size={14} fallback="✕" /> Exit review</button>
         </div>
       )}
 
@@ -391,7 +392,7 @@ export default function SubjectDashboard() {
       <ToolsPanel student={student} subject={subj} hideCalculator={activeTask?.type === 'quiz'} />
 
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
-        ❓
+        <Icon name="question" size={22} fallback="❓" />
       </button>
       <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">🧘</button>
     </div>

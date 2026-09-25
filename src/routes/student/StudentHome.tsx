@@ -17,6 +17,7 @@ import ChatPanel from '../../components/ChatPanel';
 import { formatMoney } from '../../lib/money';
 import WebpageFrame from '../../components/WebpageFrame';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
+import { Icon } from '../../components/Icon';
 
 // A live analog clock face for the Computer's widget desktop — direct
 // teacher ask ("an analog clock... visual as a widget"). Takes the current
@@ -173,7 +174,7 @@ export default function StudentHome() {
         <div className="overlay-backdrop" onClick={() => setShowWhatNow(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
-              <h2 style={{ margin: 0 }}>❓ What do I do?</h2>
+              <h2 style={{ margin: 0 }}><Icon name="question" size={20} fallback="❓" /> What do I do?</h2>
               <StepGuide
                 steps={[
                   { id: '1', icon: '👉', text: 'Pick Math or Literacy' },
@@ -193,7 +194,7 @@ export default function StudentHome() {
         <div className="overlay-backdrop" onClick={() => setShowBadges(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
-              <h2 style={{ margin: 0 }}>🏆 Your Achievements</h2>
+              <h2 style={{ margin: 0 }}><Icon name="trophy" size={20} fallback="🏆" /> Your Achievements</h2>
               {earnedBadges.length === 0 ? (
                 <p style={{ opacity: 0.75 }}>No badges yet. Keep going!</p>
               ) : (
@@ -324,7 +325,7 @@ export default function StudentHome() {
           {student.worldQuest1MetIds.length > 0 && (
             <span className="widget-badge">{student.worldQuest1MetIds.length}</span>
           )}
-          <span className="widget-icon">📬</span>
+          <span className="widget-icon"><Icon name="mail" size={28} fallback="📬" /></span>
           <span className="widget-label">Mail</span>
         </button>
         <button
@@ -362,7 +363,7 @@ export default function StudentHome() {
           onClick={() => navigate('/student/marketplace')}
           aria-label="Marketplace"
         >
-          <span className="widget-icon">🛍️</span>
+          <span className="widget-icon"><Icon name="shop" size={28} fallback="🛍️" /></span>
           <span className="widget-label">Marketplace</span>
         </button>
         <button
@@ -370,7 +371,7 @@ export default function StudentHome() {
           onClick={() => setShowBadges(true)}
           aria-label="Your achievements"
         >
-          <span className="widget-icon">🏆</span>
+          <span className="widget-icon"><Icon name="trophy" size={28} fallback="🏆" /></span>
           <span className="widget-label">{earnedBadges.length} Badges</span>
         </button>
         <button
@@ -476,7 +477,7 @@ export default function StudentHome() {
       )}
 
       <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
-        ❓
+        <Icon name="question" size={22} fallback="❓" />
       </button>
       <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">
         🧘
