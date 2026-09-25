@@ -9,7 +9,7 @@ import { MORPHEME_ROOTS, MORPHEME_PREFIXES, MORPHEME_SUFFIXES, MORPHEME_COMBOS, 
 import { MONTESSORI_WORD_CLASS_INFO, type MontessoriWordClass, PROPER_NOUNS } from '../../lib/montessoriGrammar';
 import { SYMBOL_SENTENCE_PAGES, ALL_SYMBOL_SENTENCES, type SymbolSentence } from '../../lib/symbolSentences';
 import { PUNCTUATION_MARKS } from '../../lib/punctuationContent';
-import { LM_PUNCTUATION_COLOR, LM_PUNCTUATION_TEXT_COLOR } from '../../lib/literacyDesignTokens';
+import { LM_PUNCTUATION_COLOR, LM_PUNCTUATION_TEXT_COLOR, LM_PHONO_COLOR } from '../../lib/literacyDesignTokens';
 import { playListeningStartChime, playListeningStopChime } from '../../lib/audioCues';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
@@ -146,7 +146,7 @@ const AFFIX_MEANINGS: Record<string, string> = {
 const BASE_PEN_COLORS = ['#1f1147', '#dc2626', '#2563eb', '#16a34a', '#f97316', '#7c3aed'];
 const BASE_HIGHLIGHT_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4'];
 
-type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox' | 'symbolSentence' | 'punctuation';
+type PlacedKind = 'grammar' | 'shape' | 'letter' | 'frame' | 'morpheme' | 'sentenceFrame' | 'textbox' | 'symbolSentence' | 'punctuation' | 'soundChip' | 'divider' | 'syllableTapper';
 
 interface PlacedItem {
   instanceId: string;
@@ -169,6 +169,7 @@ interface PlacedItem {
   symbolSentenceId?: string; // symbolSentence — id into ALL_SYMBOL_SENTENCES
   wordFills?: Record<number, string>; // symbolSentence — optional typed word per symbol, from its settings popup
   punctId?: string; // punctuation — id into PUNCTUATION_MARKS
+  tapCount?: number; // syllableTapper — how many claps the student has tapped so far
 }
 
 const pieceById = (id: string): GrammarPiece | undefined => SANDBOX_PIECES.find((p) => p.id === id);
@@ -180,6 +181,9 @@ function sizeFor(kind: PlacedKind, boxCount?: number): { w: number; h: number } 
   if (kind === 'textbox') return { w: 160, h: 56 };
   if (kind === 'shape') return { w: 96, h: 96 };
   if (kind === 'symbolSentence') { const n = boxCount ?? 3; return { w: n * 48 + (n - 1) * 4, h: 56 }; }
+  if (kind === 'soundChip') return { w: 36, h: 36 };
+  if (kind === 'divider') return { w: 10, h: 70 };
+  if (kind === 'syllableTapper') return { w: 220, h: 110 };
   return { w: 44, h: 44 }; // letter, sentenceFrame
 }
 
@@ -293,6 +297,21 @@ function ItemVisual({ kind, pieceId, wordClass, letter, boxCount, morphText, mor
         </div>
       </ReferencePopover>
     );
+  }
+  if (kind === 'soundChip') {
+    // A23-ROADMAP Phase 3: a blank phoneme-segmenting counter — the real
+    // physical-manipulative convention (drag out one chip per sound you
+    // hear), no target word, no auto-count, matching this sandbox's
+    // standing free-play philosophy.
+    return <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--ink)', background: LM_PHONO_COLOR, boxShadow: '2px 2px 0 rgba(31,17,71,0.2)' }} />;
+  }
+  if (kind === 'divider') {
+    // A23-ROADMAP Phase 3: Onset-Rime Divider — a plain physical-style
+    // dividing bar a student places between letter/grapheme tiles
+    // already on the board to mark their own onset|rime split, rather
+    // than a scripted "slider" that would need to know the right
+    // answer. Purely a manipulative, like a real divider card.
+    return <div style={{ width: 8, height: 70, borderRadius: 4, background: 'var(--ink)' }} />;
   }
   if (kind === 'letter') {
     // Also used for grapheme tiles (multi-character, e.g. "sh", "a_e"),
@@ -553,6 +572,57 @@ function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onText
   );
 }
 
+// Syllable Tapper — A23-ROADMAP Phase 3 phonological-awareness tool: a
+// student types or speaks a word, then taps "👏 Tap" once per syllable
+// they clap out themselves (self-directed, no auto-syllable-counting —
+// this sandbox never claims to judge a spoken/typed answer as right or
+// wrong). Same self-contained-widget pattern as TextBoxWidget: a drag
+// handle on the title, ✕ to remove.
+function SyllableTapperWidget({ item, onPointerDown, onPointerMove, onPointerUp, onWordChange, onTapCountChange, onRemove }: {
+  item: PlacedItem;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: (e: React.PointerEvent) => void;
+  onWordChange: (value: string) => void;
+  onTapCountChange: (count: number) => void;
+  onRemove: () => void;
+}) {
+  const stt = useTextBoxVoiceToText((text) => onWordChange(`${item.textValue ?? ''} ${text}`.trim()));
+  const taps = item.tapCount ?? 0;
+  return (
+    <div className="chrome-frame" style={{ position: 'absolute', left: item.x, top: item.y, padding: 10, zIndex: 5, minWidth: 200 }}>
+      <div className="space-between" style={{ alignItems: 'center', marginBottom: 6 }}>
+        <strong style={{ fontSize: '0.8rem', cursor: 'grab', touchAction: 'none' }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+          👏 Syllable Tapper
+        </strong>
+        <button type="button" className="btn btn-sm" onClick={onRemove} aria-label="Remove Syllable Tapper">✕</button>
+      </div>
+      <div className="row-wrap" style={{ gap: 4, marginBottom: 6, alignItems: 'center' }}>
+        <input
+          value={item.textValue ?? ''}
+          onChange={(e) => onWordChange(e.target.value)}
+          placeholder="Type or say the word"
+          style={{ flex: 1, border: '2px solid var(--content-border)', borderRadius: 6, padding: '4px 6px', fontSize: '0.85rem' }}
+        />
+        {stt.supported && (
+          <button type="button" className={`btn btn-sm ${stt.listening ? 'btn-primary' : ''}`} style={{ minWidth: 30, padding: '2px 6px' }} onClick={stt.toggle} aria-label={stt.listening ? 'Listening, tap to stop' : 'Speak the word'}>
+            {stt.listening ? '🎙️' : '🎤'}
+          </button>
+        )}
+      </div>
+      <div className="row-wrap" style={{ gap: 4, marginBottom: 6, minHeight: 22 }} aria-label={`${taps} claps so far`}>
+        {Array.from({ length: taps }).map((_, i) => (
+          <span key={i} style={{ width: 18, height: 18, borderRadius: '50%', background: '#1968AB', display: 'inline-block' }} />
+        ))}
+      </div>
+      <div className="row-wrap" style={{ gap: 4 }}>
+        <button type="button" className="btn btn-sm" onClick={() => onTapCountChange(Math.min(8, taps + 1))}>👏 Tap</button>
+        <button type="button" className="btn btn-sm" onClick={() => onTapCountChange(0)} disabled={taps === 0}>↺ Reset</button>
+      </div>
+    </div>
+  );
+}
+
 // One Sentence Formula blank — direct teacher follow-up instructions:
 // "drop down menus need to be alphabetized and scroll feature allows
 // more to be shown. typing the start of a word also starts searching
@@ -717,7 +787,7 @@ export default function GrammarSandbox() {
   const drawLast = useRef<{ x: number; y: number } | null>(null);
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, punctuation: false, frames: false, textbox: false, formulas: false, wordLists: false,
+    shapes: true, symbolSentences: false, morphemes: false, letters: false, graphemes: false, punctuation: false, phono: false, frames: false, textbox: false, formulas: false, wordLists: false,
   });
   const toggleCategory = (key: string) => setOpenCategories((s) => ({ ...s, [key]: !s[key] }));
   const [openSubcategories, setOpenSubcategories] = useState<Record<string, boolean>>({
@@ -888,6 +958,23 @@ export default function GrammarSandbox() {
   };
   const setTextBoxFontSize = (instanceId: string, delta: number) => {
     setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, fontSize: Math.min(48, Math.max(12, (pp.fontSize ?? 20) + delta)) } : pp)));
+  };
+  const setSyllableWord = (instanceId: string, value: string) => {
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, textValue: value } : pp)));
+  };
+  const setSyllableTapCount = (instanceId: string, count: number) => {
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId ? { ...pp, tapCount: count } : pp)));
+  };
+  // A23-ROADMAP Phase 3: Elkonin-boxes-v2's "flexible count" — a placed
+  // Sound Box frame's boxCount can now grow/shrink live via +/- controls
+  // shown when it's selected (see the per-item controls badge below),
+  // instead of only ever being fixed at whichever size was dragged out.
+  // Multi-letter grouping (the v2 spec's other ask) was already possible
+  // before this: a grapheme tile like "sh" already occupies one cell as
+  // a single multi-letter unit.
+  const adjustFrameBoxCount = (instanceId: string, delta: number) => {
+    pushHistory();
+    setPlaced((p) => p.map((pp) => (pp.instanceId === instanceId && pp.kind === 'frame' ? { ...pp, boxCount: Math.max(1, Math.min(8, (pp.boxCount ?? 3) + delta)) } : pp)));
   };
 
   // Paragraph building — direct teacher instruction: "allow sentence
@@ -1593,6 +1680,31 @@ export default function GrammarSandbox() {
             </Category>
           )}
 
+          {/* A23-ROADMAP Phase 3: "phonological awareness (sound chips,
+              syllable tapping, onset-rime slider) as new sidebar
+              categories" — free-play manipulatives, no target word, no
+              auto-counting/auto-splitting, matching this sandbox's
+              standing "entirely unscripted" rule. */}
+          <Category label="🔊 Phonological Awareness" color="#fce7f3" open={openCategories.phono} onToggle={() => toggleCategory('phono')}>
+            <p style={{ margin: '0 0 6px', fontSize: '0.7rem', opacity: 0.6 }}>Drag out chips, dividers, or a tapper to work with sounds yourself.</p>
+            <div className="row-wrap" style={{ gap: 10, alignItems: 'flex-start' }}>
+              <Draggable label="Sound chip" onPointerDown={startDragNewItem(() => ({ kind: 'soundChip' }))}>
+                <ItemVisual kind="soundChip" />
+              </Draggable>
+              <Draggable label="Onset-rime divider" onPointerDown={startDragNewItem(() => ({ kind: 'divider' }))}>
+                <ItemVisual kind="divider" />
+              </Draggable>
+              <Draggable label="Add a Syllable Tapper" onPointerDown={startDragNewItem(() => ({ kind: 'syllableTapper', textValue: '', tapCount: 0 }))}>
+                <div style={{
+                  minWidth: 130, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  border: '2px dashed var(--ink)', borderRadius: 8, background: 'white', fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: '0.8rem', padding: '6px 10px',
+                }}>
+                  👏 Syllable Tapper
+                </div>
+              </Draggable>
+            </div>
+          </Category>
+
           <Category label="🟦 Sound Boxes" color="#bbf7d0" open={openCategories.frames} onToggle={() => toggleCategory('frames')}>
             <div className="stack" style={{ gap: 10 }}>
               {FRAME_SIZES.map((n) => (
@@ -1675,7 +1787,7 @@ export default function GrammarSandbox() {
             style={{ position: 'relative', height: '100%', pointerEvents: drawOn ? 'none' : undefined, transform: `scale(${zoom})`, transformOrigin: '0 0' }}
             onPointerDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
           >
-            {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox' && p.kind !== 'symbolSentence').map((p) => (
+            {placed.filter((p) => p.kind !== 'sentenceFrame' && p.kind !== 'textbox' && p.kind !== 'symbolSentence' && p.kind !== 'syllableTapper').map((p) => (
               // Sound Boxes sit behind everything else on purpose (a
               // background a student drops letters onto, direct teacher
               // report: letter/grapheme tiles were rendering behind the
@@ -1705,6 +1817,36 @@ export default function GrammarSandbox() {
                     Symbol Sentence ⚙️/✕ pair). */}
                 {selectedId === p.instanceId && (
                   <div className="lm-item-controls" style={{ position: 'absolute', top: -10, right: -10, display: 'flex', gap: 4, zIndex: 3 }}>
+                    {/* A23-ROADMAP Phase 3: Elkonin-boxes-v2 flexible
+                        count — a selected Sound Box frame can grow/shrink
+                        live instead of only ever being the fixed size it
+                        was dragged out at. */}
+                    {p.kind === 'frame' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => adjustFrameBoxCount(p.instanceId, -1)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          aria-label="Remove a box"
+                          title="Remove a box"
+                          disabled={(p.boxCount ?? 3) <= 1}
+                          style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--ink)', background: 'white', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                        >
+                          −
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => adjustFrameBoxCount(p.instanceId, 1)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          aria-label="Add a box"
+                          title="Add a box"
+                          disabled={(p.boxCount ?? 3) >= 8}
+                          style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--ink)', background: 'white', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                        >
+                          +
+                        </button>
+                      </>
+                    )}
                     {p.kind === 'shape' && (
                       <button
                         type="button"
@@ -2110,6 +2252,18 @@ export default function GrammarSandbox() {
                 onFontSizeChange={(d) => setTextBoxFontSize(item.instanceId, d)}
                 onRemove={() => removePlacedItem(item.instanceId)}
                 onActivate={() => setActiveTextBoxId(item.instanceId)}
+              />
+            ))}
+            {placed.filter((p) => p.kind === 'syllableTapper').map((item) => (
+              <SyllableTapperWidget
+                key={item.instanceId}
+                item={item}
+                onPointerDown={startDragPlaced(item.instanceId)}
+                onPointerMove={onDragMove}
+                onPointerUp={onDragEnd}
+                onWordChange={(v) => setSyllableWord(item.instanceId, v)}
+                onTapCountChange={(c) => setSyllableTapCount(item.instanceId, c)}
+                onRemove={() => removePlacedItem(item.instanceId)}
               />
             ))}
             {placed.length === 0 && (

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-lm-phono-elkonin',
+    date: '2026-09-25',
+    icon: '🔊',
+    title: 'New sound tools: chips, dividers, and a syllable tapper',
+    body: 'Literacy Manipulatives has a new Phonological Awareness category with sound chips, an onset-rime divider bar, and a Syllable Tapper you can type or speak a word into and tap once per clap. Sound Boxes can also grow or shrink now, up to 8 boxes, with the +/- buttons that show when you select one.',
+  },
+  {
     id: '2026-09-25-lm-print-projector',
     date: '2026-09-25',
     icon: '🖨️',
