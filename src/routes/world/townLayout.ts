@@ -78,6 +78,35 @@ export function clampGroundBoundsValue(v: number): number {
   return Math.min(GROUND_BOUNDS_MAX, Math.max(GROUND_BOUNDS_MIN, v));
 }
 
+// Direct student-blocking bug: a student's avatar ended up stranded far
+// outside the walkable lot (reading x=-194 in the debug coordinate chip,
+// GROUND_BOUNDS_MAX is 70) even after every movement/teleport path was
+// confirmed to clamp through clampGroundX/clampGroundZ. Root cause: those
+// clamp functions only bound movement WITHIN whatever `groundBounds` the
+// store currently holds — but `groundBounds` itself was only ever clamped
+// to [GROUND_BOUNDS_MIN, GROUND_BOUNDS_MAX] on WRITE, inside
+// expandGroundBounds (store.ts). Both places that LOAD it from
+// `app_settings.ground_bounds` (store.ts's realtime subscription, sync.ts's
+// initial fetch) trusted the raw database value as-is via `??
+// DEFAULT_GROUND_BOUNDS` — a `??` only catches null/undefined, not an
+// out-of-range or malformed value already sitting in the row (however it
+// got there — manual SQL, a stale value from before GROUND_BOUNDS_MAX
+// existed, anything). A bad bound loaded this way silently became the new
+// ceiling every clamp in the app measured against, so "clamped" movement
+// could still reach wherever that bad bound allowed. Call this on every
+// load of groundBounds from the database, never trust the row directly.
+export function sanitizeGroundBounds(raw: unknown): GroundBounds {
+  const r = raw as Partial<GroundBounds> | null | undefined;
+  const edge = (v: unknown, fallback: number) =>
+    typeof v === 'number' && Number.isFinite(v) ? clampGroundBoundsValue(v) : fallback;
+  return {
+    north: edge(r?.north, GROUND_HALF),
+    south: edge(r?.south, GROUND_HALF),
+    east: edge(r?.east, GROUND_HALF),
+    west: edge(r?.west, GROUND_HALF),
+  };
+}
+
 // The largest single wall distance, in any direction — used anywhere that
 // needs one conservative number covering the whole lot regardless of shape
 // (the decorative ground mesh's visible radius, the overhead map camera's

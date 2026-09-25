@@ -47,7 +47,7 @@ import type {
 } from '../types';
 import { STARTER_EMOTE_IDS } from './emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS } from './marketplaceSeed';
-import { DEFAULT_GROUND_BOUNDS } from '../routes/world/townLayout';
+import { sanitizeGroundBounds } from '../routes/world/townLayout';
 
 // ---------------------------------------------------------------------------
 // Row <-> app-shape mapping
@@ -1031,7 +1031,7 @@ export async function fetchAll(): Promise<HydratedState> {
     groundTexture: appSettingsRes.data?.ground_texture ?? null,
     skyColor: appSettingsRes.data?.sky_color ?? null,
     skyTexture: appSettingsRes.data?.sky_texture ?? null,
-    groundBounds: appSettingsRes.data?.ground_bounds ?? DEFAULT_GROUND_BOUNDS,
+    groundBounds: sanitizeGroundBounds(appSettingsRes.data?.ground_bounds),
     rotationModes,
     taskCompletionCounts,
     toolUsage,
