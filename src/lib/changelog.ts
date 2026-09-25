@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-question-screen-redesign',
+    date: '2026-09-25',
+    icon: '❓',
+    title: 'New look for gas station and bakery questions',
+    body: 'The questions you answer to fill up your car with gas, and the bonus question between Bakery Match rounds, both got a fresh new look. If you pick a wrong answer it will not count against you, just try again. Tap Listen to hear the question and every answer choice read out loud. There is also a new toolbox button in the corner, more tools are coming soon there.',
+  },
+  {
     id: '2026-09-25-real-icons-pass-1',
     date: '2026-09-25',
     icon: '🖼️',
