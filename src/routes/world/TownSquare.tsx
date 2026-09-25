@@ -907,6 +907,19 @@ function WanderingNPC({
   const pauseUntil = useRef(0);
   const isMoving = useRef(false);
   const targetSetAt = useRef(0);
+  // Direct teacher instruction: "dont let... npc get caught in Solid
+  // assets. if they get stuck and cant move, they should rotate and try
+  // to walk another direction" — a much faster reaction than the 8s
+  // timeout failsafe below, since making every new placement default to
+  // Solid means an NPC's wander target is far more likely to now be
+  // walled off by something that used to be walk-through. Checked every
+  // ~0.4s: if the NPC has barely moved while actively walking toward a
+  // target, it's wedged against an obstacle (blockObstaclesSlide let it
+  // slide along the surface but never actually progress) — abandon that
+  // target immediately and pick a fresh random direction next frame,
+  // rather than pushing against the same wall for up to 8 more seconds.
+  const progressCheckAt = useRef(0);
+  const progressCheckPos = useRef(new THREE.Vector3(home[0], 0, home[1]));
   const [hovered, setHovered] = useState(false);
   const npcEmote = useMemo(() => ambientEmoteFor(interaction?.id ?? modelPath), [interaction?.id, modelPath]);
 
@@ -946,6 +959,8 @@ function WanderingNPC({
         const [tx, tz] = blockObstacles(rawX, rawZ);
         target.current = new THREE.Vector3(tx, 0, tz);
         targetSetAt.current = clock.elapsedTime;
+        progressCheckAt.current = clock.elapsedTime;
+        progressCheckPos.current.copy(pos.current);
       }
       if (target.current) {
         const dx = target.current.x - pos.current.x;
@@ -955,9 +970,23 @@ function WanderingNPC({
         // still hasn't reached its target after a while for any reason,
         // abandon it and pick a new one rather than risk pacing forever.
         const stuck = clock.elapsedTime - targetSetAt.current > 8;
-        if (dist < 0.2 || stuck) {
+        // Fast wedged-against-an-obstacle detection (see progressCheckAt's
+        // own comment above): almost no real ground covered in the last
+        // ~0.4s while supposedly walking means blockObstaclesSlide is
+        // sliding this NPC along a surface without actual progress.
+        let stuckNoProgress = false;
+        if (clock.elapsedTime - progressCheckAt.current > 0.4) {
+          const moved = pos.current.distanceTo(progressCheckPos.current);
+          if (isMoving.current && moved < 0.08) stuckNoProgress = true;
+          progressCheckAt.current = clock.elapsedTime;
+          progressCheckPos.current.copy(pos.current);
+        }
+        if (dist < 0.2 || stuck || stuckNoProgress) {
           target.current = null;
-          pauseUntil.current = clock.elapsedTime + 1.5 + Math.random() * 2.5;
+          // A wedged NPC redirects almost instantly (a quick "turn and try
+          // another way"), not the same leisurely pause used after
+          // actually arriving somewhere or timing out.
+          pauseUntil.current = clock.elapsedTime + (stuckNoProgress ? 0.1 : 1.5 + Math.random() * 2.5);
           isMoving.current = false;
         } else {
           const ndx = dx / dist;

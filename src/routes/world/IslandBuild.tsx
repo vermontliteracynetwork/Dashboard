@@ -153,22 +153,13 @@ const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
   'Props & Tools': { icon: '🔧', bg: '#eef0f2' },
   'Other': { icon: '📦', bg: '#eef0f2' },
 };
-// Claudia's completeness review: newly-placed Island objects never got a
-// `collides` value at all, so View mode's new collision system (below)
-// had nothing to block against by default. Same COLLIDING_CATEGORIES set
-// WorldEditor.tsx's own defaultCollidesForCategory uses — duplicated per
-// this file's own established "each build surface keeps its own copy"
-// precedent (see the SCALE_MIN comment at the top of this file).
-const COLLIDING_CATEGORIES = new Set([
-  'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
-  'props', 'prototype', 'toolsbits', 'misc', 'suburb', 'quaternius-buildings',
-  'commercial-buildings',
-  // Trees/rocks block movement too, not just buildings — see WorldEditor's
-  // own copy of this set for the reasoning.
-  'forest',
-]);
-function defaultCollidesForCategory(category: string): boolean {
-  return COLLIDING_CATEGORIES.has(category);
+// Direct teacher instruction (same change made to WorldEditor.tsx's own
+// copy of this function): every new placement now defaults to Solid,
+// full stop — the per-category default set this used to check is gone.
+// A teacher/student unchecks Solid per-object to make something
+// walk-through instead.
+function defaultCollidesForCategory(_category: string): boolean {
+  return true;
 }
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',

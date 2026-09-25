@@ -585,24 +585,18 @@ const CATEGORY_GROUP_STYLE: Record<string, { icon: string; bg: string }> = {
   'Props & Tools': { icon: '🔧', bg: '#eef0f2' },
   'Other': { icon: '📦', bg: '#eef0f2' },
 };
-// Claudia's Front 1 Phase 1 recommendation: new placements default to
-// colliding for solid structural/furniture categories, and stay walk-
-// through for decorative nature/seasonal/character categories — 'roads'
-// is deliberately excluded even though it's grouped under "Buildings &
-// Places" in CATEGORY_TO_GROUP below, since a road tile is meant to be
-// walked ON, not blocked by. A teacher can always flip this per-object
-// from the role/collision toggle regardless of the category default.
-const COLLIDING_CATEGORIES = new Set([
-  'buildings', 'city', 'interior', 'market', 'restaurant', 'structures',
-  'props', 'prototype', 'toolsbits', 'misc', 'suburb', 'quaternius-buildings',
-  'commercial-buildings',
-  // Direct teacher instruction: can't walk or drive through trees/rocks
-  // either, not just buildings — 'forest' is the only category holding
-  // those (2-item manifest: Tree, Rocks).
-  'forest',
-]);
-function defaultCollidesForCategory(category: string): boolean {
-  return COLLIDING_CATEGORIES.has(category);
+// Direct teacher instruction, superseding Claudia's earlier per-category
+// default above (kept as a comment for history, not behavior): "make all
+// assets Solid (blocks walking through) on default placement. they
+// should always be checked on for Solid unless I or the student goes in
+// and explicitly clicks the check to make it walk through." Every new
+// placement now starts solid, full stop — including road tiles, which
+// used to default walk-through on purpose; a teacher who places a road
+// now needs to uncheck Solid on it herself, same as any other
+// walk-through exception. The per-object Solid checkbox (WorldEditor's
+// role/collision toggle) remains the only way to opt an object out.
+function defaultCollidesForCategory(_category: string): boolean {
+  return true;
 }
 const CATEGORY_TO_GROUP: Record<string, string> = {
   aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
@@ -1495,6 +1489,13 @@ export default function WorldEditor() {
   const [subcategory, setSubcategory] = useState('');
   const [armedAsset, setArmedAsset] = useState<AssetManifestEntry | null>(null);
   const [armedDefaultScale, setArmedDefaultScale] = useState(1);
+  // Manual pre-placement rotate/scale adjustments (',' '.' '[' ']'), on
+  // top of the ghost's own computed default rotation/scale — reset
+  // whenever a different asset gets armed (armAsset below) so a leftover
+  // adjustment never silently carries onto the next, differently-sized
+  // item.
+  const [ghostRotationAdjust, setGhostRotationAdjust] = useState(0);
+  const [ghostScaleAdjust, setGhostScaleAdjust] = useState(1);
   // Direct teacher report: a selected object is drag-eligible immediately
   // (no extra tap on the ✥ Move popover first) — click-and-drag the
   // object itself to a new spot on the ground, same as any other editor.
@@ -1517,6 +1518,8 @@ export default function WorldEditor() {
     setWallMode(false);
     setWallStart(null);
     setArmedAsset(a);
+    setGhostRotationAdjust(0);
+    setGhostScaleAdjust(1);
     if (a) setRecentAssets((prev) => [a, ...prev.filter((r) => r.path !== a.path)].slice(0, 8));
   };
   const [selection, setSelection] = useState<Sel | null>(null);
@@ -1594,6 +1597,14 @@ export default function WorldEditor() {
     };
   }, []);
   const [shiftHeld, setShiftHeld] = useState(false);
+  // Direct teacher ask, comparing to Sims 4's bb.moveobjects cheat: "let
+  // me click on an object while holding down option and then i can very
+  // simply move it anywhere and place it." Held Option/Alt does two
+  // things below: (1) grabs and starts dragging a placed object on the
+  // very first click, no separate select-then-drag step first, and (2)
+  // ignores the grid snap for that drag (and for a fresh placement, if
+  // held while placing) — free placement, same spirit as the cheat.
+  const [optionHeld, setOptionHeld] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
   // drei's OrbitControls ref type is awkward to name exactly (it's the
   // three-stdlib OrbitControls class); `any` here is just "whatever drei
@@ -1746,6 +1757,11 @@ export default function WorldEditor() {
   const deleteSelectedRef = useRef<() => void>(() => {});
   const rotateByRef = useRef<(deg: number) => void>(() => {});
   const nudgeScaleByRef = useRef<(delta: number) => void>(() => {});
+  // Same idea as rotateByRef/nudgeScaleByRef above, but for the
+  // pre-placement ghost (armedAsset) instead of an already-placed
+  // selection — "before i place it, let me ... rotate/shrink/grow it."
+  const ghostRotateByRef = useRef<(deg: number) => void>(() => {});
+  const ghostNudgeScaleByRef = useRef<(delta: number) => void>(() => {});
 
   useEffect(() => {
     fetch('/world/asset-manifest.json')
@@ -1794,7 +1810,9 @@ export default function WorldEditor() {
   // Kayden asked for, plus the keyboard shortcuts Claudia's navigation
   // review flagged as standard for both reference games (Ctrl/Cmd+Z undo,
   // Shift+Ctrl/Cmd+Z redo, Escape to release whatever's armed/selected,
-  // Delete/Backspace to remove the selection, `[`/`]` to rotate it) —
+  // Delete/Backspace to remove the selection, `,`/`.` to rotate it and
+  // `[`/`]` to shrink/grow it — same four keys also drive the
+  // pre-placement ghost via ghostRotateByRef/ghostNudgeScaleByRef below) —
   // ignored while typing in a text field (search box, custom-name input)
   // so Delete/Backspace still work as normal text editing there.
   useEffect(() => {
@@ -1804,6 +1822,7 @@ export default function WorldEditor() {
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Shift') setShiftHeld(true);
+      if (e.key === 'Alt') setOptionHeld(true);
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) redoRef.current(); else undoRef.current();
@@ -1816,13 +1835,16 @@ export default function WorldEditor() {
         deleteSelectedRef.current();
         return;
       }
-      if (e.key === '[') { rotateByRef.current(-15); return; }
-      if (e.key === ']') { rotateByRef.current(15); return; }
-      if (e.key === '-') { nudgeScaleByRef.current(-1); return; }
-      if (e.key === '=') { nudgeScaleByRef.current(1); return; }
+      if (e.key === ',') { rotateByRef.current(-15); ghostRotateByRef.current(-15); return; }
+      if (e.key === '.') { rotateByRef.current(15); ghostRotateByRef.current(15); return; }
+      if (e.key === '[') { nudgeScaleByRef.current(-1); ghostNudgeScaleByRef.current(-1); return; }
+      if (e.key === ']') { nudgeScaleByRef.current(1); ghostNudgeScaleByRef.current(1); return; }
       if (e.key.toLowerCase() === 't') { topViewRef.current(); return; }
     };
-    const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(false); };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setShiftHeld(false);
+      if (e.key === 'Alt') setOptionHeld(false);
+    };
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     return () => {
@@ -2022,6 +2044,14 @@ export default function WorldEditor() {
   deleteSelectedRef.current = deleteSelected;
   rotateByRef.current = rotateBy;
   nudgeScaleByRef.current = nudgeScaleBy;
+  ghostRotateByRef.current = (deg) => {
+    if (!armedAsset) return;
+    setGhostRotationAdjust((r) => r + (deg * Math.PI) / 180);
+  };
+  ghostNudgeScaleByRef.current = (dir) => {
+    if (!armedAsset) return;
+    setGhostScaleAdjust((s) => (dir > 0 ? s * 1.1 : s / 1.1));
+  };
   const nudgeScale = (factor: number) => {
     if (!selected) return;
     setScale(selected.scale * factor);
@@ -2048,8 +2078,8 @@ export default function WorldEditor() {
   const nudgeWestHold = useHoldRepeat(() => nudgePosition(-gridStep, 0));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    const x = clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
-    const z = clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
+    const x = clampToGround(snapValue(e.point.x, snapEnabled && !optionHeld, gridStep));
+    const z = clampToGround(snapValue(e.point.z, snapEnabled && !optionHeld, gridStep));
     if (armedAsset) {
       e.stopPropagation();
       // Direct teacher report: a door/window's ghost used to just float at
@@ -2158,7 +2188,7 @@ export default function WorldEditor() {
       // fresh snap check right here rather than being rejected outright.
       let x = ghostPos ? ghostPos.x : clampToGround(snapValue(e.point.x, snapEnabled, gridStep));
       let z = ghostPos ? ghostPos.z : clampToGround(snapValue(e.point.z, snapEnabled, gridStep));
-      let rotationY = ghostPos?.rotationY ?? 0;
+      let rotationY = (ghostPos?.rotationY ?? 0) + ghostRotationAdjust;
       if (DOOR_WINDOW_RE.test(armedAsset.label) && !ghostPos?.wallSnapped) {
         const snap = nearestWall(x, z, wallSegments, WALL_SNAP_DISTANCE);
         if (!snap) {
@@ -2167,9 +2197,9 @@ export default function WorldEditor() {
         }
         x = snap.x;
         z = snap.z;
-        rotationY = snap.angle;
+        rotationY = snap.angle + ghostRotationAdjust;
       }
-      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY, scale: armedDefaultScale, collides: defaultCollidesForCategory(armedAsset.category) });
+      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY, scale: armedDefaultScale * ghostScaleAdjust, collides: defaultCollidesForCategory(armedAsset.category) });
       // ghostPos IS cleared — leaving it set to this exact spot meant the
       // next render's footprintOverlap check found the object we just
       // placed (distance 0) and flashed a false "overlapping itself"
@@ -2191,7 +2221,7 @@ export default function WorldEditor() {
     }
   };
 
-  const placementOverlap = armedAsset && ghostPos ? footprintOverlap(ghostPos.x, ghostPos.z, armedDefaultScale, worldObjects) : null;
+  const placementOverlap = armedAsset && ghostPos ? footprintOverlap(ghostPos.x, ghostPos.z, armedDefaultScale * ghostScaleAdjust, worldObjects) : null;
   // A door/window ghost not currently near any wall reads as invalid the
   // same way an overlapping placement already does — visual feedback for
   // exactly the state that's about to reject the click.
@@ -2676,12 +2706,13 @@ export default function WorldEditor() {
               <div>🖱️ Middle-drag — pan</div>
               <div>🖱️ Scroll — zoom</div>
               <div>🖱️ Click an object — select it (no dragging)</div>
+              <div>🖱️ Option/Alt + click — grab & drag freely, no grid snap</div>
               <div>✥ Move popover — reposition selected</div>
               <div>🧱 Wall — drag to draw; doors/windows need one</div>
               <div>⌨️ WASD / Arrows — camera</div>
               <div>⌨️ Delete — remove selected</div>
-              <div>⌨️ [ / ] — rotate selected</div>
-              <div>⌨️ - / = — resize selected</div>
+              <div>⌨️ , / . — rotate selected (or the item you're about to place)</div>
+              <div>⌨️ [ / ] — shrink / grow selected (or about to place)</div>
               <div>⌨️ Ctrl/Cmd+Z — undo</div>
             </div>
           )}
@@ -2811,8 +2842,8 @@ export default function WorldEditor() {
                     modelPath: armedAsset.path,
                     label: armedAsset.label,
                     position: [ghostPos.x, 0, ghostPos.z],
-                    rotationY: ghostPos.rotationY,
-                    scale: armedDefaultScale,
+                    rotationY: ghostPos.rotationY + ghostRotationAdjust,
+                    scale: armedDefaultScale * ghostScaleAdjust,
                     createdAt: '',
                     tintColor: placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : undefined,
                   }}
@@ -2823,7 +2854,7 @@ export default function WorldEditor() {
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
                 <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
-                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale} color={placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale * ghostScaleAdjust} color={placementOverlap || placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
 
@@ -2950,8 +2981,12 @@ export default function WorldEditor() {
                       // itself happens in onClick, one tick later) — only
                       // a second interaction, once selected, can drag.
                       // moveArmedId now only gates the D-pad popover.
-                      if (isSelected) {
+                      // Held Option skips the "must already be selected"
+                      // gate entirely — grab-and-drag on the very first
+                      // click, the bb.moveobjects-cheat behavior asked for.
+                      if (isSelected || optionHeld) {
                         e.stopPropagation();
+                        if (!isSelected) setSelection({ kind: 'placed', id: obj.id });
                         setDragObjectId(obj.id);
                         setDragPos({ x: obj.position[0], z: obj.position[2] });
                       }
