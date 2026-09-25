@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-trains-shipped',
+    date: '2026-09-25',
+    icon: '🚂',
+    title: 'You can drive a train now',
+    body: 'Find a train on some track and click it to hop aboard. Use the Go, Stop, and Reverse buttons to ride the rails, no steering needed, the track does that for you. Click the train again to hop off.',
+  },
+  {
     id: '2026-09-25-boats-splash-sound',
     date: '2026-09-25',
     icon: '⛵',
