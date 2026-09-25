@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
+import WebpageFrame from '../../components/WebpageFrame';
 
 // The in-world Cinema — direct teacher request: a themed video-viewing
 // screen (the uploaded curtain photos) showing whatever the teacher's added
@@ -24,7 +24,6 @@ function formatDuration(seconds: number): string {
 }
 
 export default function Cinema() {
-  const navigate = useNavigate();
   const cinemaVideos = useStore((s) => s.cinemaVideos);
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -79,44 +78,49 @@ export default function Cinema() {
   };
 
   return (
-    <div
-      className="stack"
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        // Direct teacher request: use the plain curtain photo, not the
-        // version with a painted-on fake screen baked into it — the real
-        // video below is sized/positioned (see the absolute box below)
-        // to sit exactly where that painted screen used to be, so it now
-        // reads as the actual screen instead of floating next to it.
-        backgroundImage: 'url(/world/cinema/curtain-closed.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        padding: 20,
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* Claudia's audit (H1): every other student screen (Marketplace,
-          Pet Shelter, Pet Journal) keeps a Town Square / Home exit always
-          visible in its header. Cinema's only had one — "Now Showing" —
-          and only while a video was actually playing, so the default
-          browse screen (the one a student actually lands on) was a real
-          dead end. These two are now always here, matching every sibling
-          screen. */}
-      <div className="space-between" style={{ alignItems: 'center' }}>
-        <span style={{ background: '#fff', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 800, color: '#5c1219', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-          🎬 Cinema
-        </span>
-        <div className="row" style={{ gap: 8 }}>
-          {playing && (
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setPlayingId(null)}>
-              ⬅️ Now Showing
-            </button>
-          )}
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
-        </div>
-      </div>
+    // Direct teacher instruction: every "webpage" screen reads as displayed
+    // inside a physical laptop now — same .laptop-frame/.laptop-screen/
+    // .laptop-deck StudentHome.tsx already uses, applied here the same way
+    // it already was for Mailbox/Piggy Bank/Marketplace.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
+    <div className="container stack">
+      <WebpageFrame url="cinema" />
+      <div
+        className="stack"
+        style={{
+          position: 'relative',
+          width: '100%',
+          // Locked to the curtain photo's own true aspect ratio while a
+          // video is playing so the percentage-positioned overlay below
+          // (measured against that exact image) still lines up — a plain
+          // minHeight while browsing lets the "Now Showing" card grow as
+          // tall as it needs to instead of being capped.
+          aspectRatio: playing ? '16 / 9' : undefined,
+          minHeight: playing ? undefined : 420,
+          // Direct teacher request: use the plain curtain photo, not the
+          // version with a painted-on fake screen baked into it — the real
+          // video below is sized/positioned (see the absolute box below)
+          // to sit exactly where that painted screen used to be, so it now
+          // reads as the actual screen instead of floating next to it.
+          backgroundImage: 'url(/world/cinema/curtain-closed.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          borderRadius: 14,
+          overflow: 'hidden',
+          padding: 20,
+          boxSizing: 'border-box',
+        }}
+      >
+      {playing && (
+        <button
+          className="btn btn-sm"
+          style={{ minHeight: 44, position: 'absolute', top: 12, left: 12, zIndex: 2 }}
+          onClick={() => setPlayingId(null)}
+        >
+          ⬅️ Now Showing
+        </button>
+      )}
 
       {playing ? (
         <>
@@ -278,6 +282,10 @@ export default function Cinema() {
           </div>
         </div>
       )}
+      </div>
+    </div>
+      </div>
+      <div className="laptop-deck" />
     </div>
   );
 }

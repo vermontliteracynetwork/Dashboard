@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-marketplace-amazon-look',
+    date: '2026-09-25',
+    icon: '🛍️',
+    title: 'Marketplace has a new look',
+    body: 'The Marketplace now has a sidebar on the side to pick what you want to shop for, and bigger item cards with a big Add to Cart button on each one. Searching and filtering still work just like before.',
+  },
+  {
+    id: '2026-09-25-computer-laptop-look',
+    date: '2026-09-25',
+    icon: '💻',
+    title: 'More screens look like real webpages now',
+    body: 'Cinema, Arcade, Gallery, Farmer\'s Market, and Silly Quizzes all show up inside the laptop screen look now, with the same Back button as everywhere else on your Computer. Chat has a browser-style bar at the top too.',
+  },
+  {
     id: '2026-09-25-lm-new-symbols',
     date: '2026-09-25',
     icon: '🔺',

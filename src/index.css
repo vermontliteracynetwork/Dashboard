@@ -380,6 +380,87 @@ label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px;
   font-size: 0.76rem;
 }
 
+/* ---------- Marketplace: Amazon-style sidebar + product grid ---------- */
+/* Direct teacher ask: "the design needs to be more real online shopping
+   inspired... marketplace needs to be like amazon." New classes, scoped to
+   Marketplace.tsx only — PetShelter.tsx/PetJournal.tsx keep using the
+   original .shop-item-grid/.shop-item-card/.shop-price-chip/.shop-tabs
+   above exactly as before, so this pass never touches their look. */
+.shop-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.shop-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 176px;
+  position: sticky;
+  top: 12px;
+}
+.shop-sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 0.86rem;
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #fff8ec;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.shop-sidebar-btn.active { background: var(--pink); color: white; }
+.shop-main { flex: 1; min-width: 0; }
+.shop-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 18px;
+}
+.shop-product-card {
+  background: white;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.shop-product-card:hover { transform: translateY(-4px); box-shadow: 4px 8px 0 var(--ink); }
+.shop-add-to-cart-btn {
+  width: 100%;
+  min-height: 48px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 0.86rem;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--success);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.shop-add-to-cart-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #cfcfcf; color: var(--ink); box-shadow: none; }
+.shop-add-to-cart-btn.in-cart { background: var(--purple); }
+@media (max-width: 720px) {
+  .shop-layout { flex-direction: column; }
+  .shop-sidebar { flex-direction: row; flex-wrap: wrap; position: static; flex: unset; width: 100%; }
+}
+
 /* subject theming */
 .subject-math { --subj-a: var(--math-a); --subj-b: var(--math-b); }
 .subject-literacy { --subj-a: var(--lit-a); --subj-b: var(--lit-b); }
