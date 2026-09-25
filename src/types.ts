@@ -835,12 +835,19 @@ export interface WorldObject {
   rotationY: number; // radians
   scale: number; // uniform scale multiplier
   tintColor?: string; // hex color multiplied onto the model's material — the v1 "retexture" (arbitrary UV re-texturing is a later, bigger pass)
-  // Whether this object blocks student/NPC movement (a real, generic-
-  // circle obstacle in TownSquare's collision system). Undefined/false for
-  // every object placed before this field existed — Claudia's explicit
+  // Whether this object blocks student/NPC/vehicle movement (a real
+  // rotated-rectangle obstacle matching the object's own measured
+  // footprint in TownSquare's collision system once that's known, a
+  // generic circle as a fallback until then — see TownSquare.tsx's
+  // RECT_FOOTPRINTS/OBJECT_FOOTPRINT_SIZES). Undefined/false for every
+  // object placed before this field existed — Claudia's explicit
   // guardrail against retroactively trapping a student under a building
   // placed back when nothing collided — so only NEWLY placed objects
   // default to colliding; an older object needs a teacher to opt it in.
+  // NOTE (TownSquare.tsx's recomputeCollisionLayout has the current,
+  // authoritative word): as of the "all assets solid" teacher correction,
+  // every placed object collides regardless of this flag's value — it's
+  // kept here additive-only, not currently read as a gate.
   collides?: boolean;
   // undefined/null = a shared Town Square object (the teacher's WorldEditor
   // usage, everyone sees it); set to a Student.id = that student's own

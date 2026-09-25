@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState, useEffect, useMemo } from 'react';
+import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -21,7 +21,7 @@ import ReadAloud from '../../components/ReadAloud';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
-import { WorldObjectRenderer } from './WorldObjectRenderer';
+import { WorldObjectRenderer, useModelSize } from './WorldObjectRenderer';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
@@ -283,6 +283,11 @@ let BUILDING_FOOTPRINTS = BUILDINGS.map((b) => {
   return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
 });
 
+// A single rotated-rectangle obstacle shape, shared by fixed buildings and
+// (now) teacher-placed Build Mode objects with a known real measured
+// footprint — see RECT_FOOTPRINTS below.
+type RectFootprint = { x: number; z: number; rotationY: number; hx: number; hz: number };
+
 // Direct teacher clarification: buildings aren't walk-in 3D interiors
 // (only the student's own house eventually will be) — clicking one opens
 // its existing 2D page instead, the same idea as walking up to the
@@ -308,29 +313,50 @@ const BUILDING_VIEWS: Record<string, string> = ROLE_VIEWS;
 // sides walkable-through, which is exactly the "walk through a building"
 // complaint this whole system exists to prevent.
 const STALL_BLOCK_RADIUS = 0.75;
-// A teacher-placed Build Mode object has no measured real bounding box
-// available here (that math lives in WorldEditor.tsx's own useModelSize
-// hook, not in this plain function) — Claudia's Front 1 Phase 1
-// recommendation: a generic circle sized off the object's own scale
-// value is an acceptable first pass (scale already tracks real-world
-// size, per computeAutoScale in WorldEditor.tsx), clamped to a sane
-// range so a tiny or huge scale can't produce a degenerate obstacle. A
-// real per-object rotated-footprint system is Phase 1b, not this pass.
-// A role-having object (Cinema, Arcade, Bank, ...) gets a taller ceiling
-// and a steeper scale-to-radius ratio — direct teacher report: these were
-// walkable/driveable straight through. A functional building is a much
-// bigger obstacle than a typical decorative prop, and role-buildings are
-// often placed at a large scale (targeting real building-height per
-// computeAutoScale), which hit the ordinary 1.6 ceiling almost
-// immediately and left most of the model's visible footprint unblocked.
+// Direct teacher instruction: "the box that is shown around the assets
+// when they are placed (the temporary square to show boundary before
+// placement) should act as the actual boundary... so players and npcs
+// cant walk through, and transportation cant travel through." That box is
+// WorldEditor.tsx's FootprintOutline, built from useModelSize's real
+// measured GLB bounding box — this is the Phase 1b system the old comment
+// on WORLD_OBJECT_COLLISION_RADIUS below pointed at: every placed object
+// now collides via that same real rotated-rectangle footprint
+// (OBJECT_FOOTPRINT_SIZES, fed in from ObjectFootprintProbe further down,
+// which is the plain-function/hook bridge this needed — see its own
+// comment), folded into RECT_FOOTPRINTS alongside buildings and pushed
+// out via the exact same blockBuildings technique. WORLD_OBJECT_COLLISION_
+// RADIUS below is now only ever a FALLBACK circle for the brief window
+// before an object's real size has finished loading/measuring (first
+// paint, or a just-placed object) — never a permanent substitute anymore.
 const WORLD_OBJECT_COLLISION_RADIUS = (scale: number, hasRole?: boolean) =>
   hasRole ? THREE.MathUtils.clamp(scale * 0.55, 0.6, 3.5) : THREE.MathUtils.clamp(scale * 0.4, 0.4, 1.6);
+// Populated (module-level, keyed by modelPath) by ObjectFootprintProbe
+// further down as each distinct placed-object model finishes loading and
+// measuring — a plain mutable cache, same shape/reasoning as every other
+// `let` collision array on this page: recomputeCollisionLayout reads it
+// fresh each call. `hx`/`hz` are the model's real, unscaled, unrotated
+// local-space half-extents (size.x/2, size.z/2 off the same THREE.Box3
+// FootprintOutline itself measures), so an object's real rect is exactly
+// `{ hx: raw.hx * obj.scale, hz: raw.hz * obj.scale }` rotated by
+// obj.rotationY — identical math to BUILDING_RAW_HALF_EXTENTS above, just
+// measured live instead of hand-entered once. A modelPath with no entry
+// yet (not measured, or it failed to load) falls back to the circle
+// heuristic for that one object only, in recomputeCollisionLayout below.
+const OBJECT_FOOTPRINT_SIZES: Record<string, { hx: number; hz: number }> = {};
 // `let`, not `const` — same reactive-to-layoutOverrides/worldObjects
 // reasoning as BUILDING_FOOTPRINTS above; a deleted market stall or
 // deleted/un-solid Build Mode object stops blocking too.
 let STATIC_OBSTACLES: { x: number; z: number; radius: number }[] = [
   ...MARKET_STALLS.map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
 ];
+// Every rotated-rectangle obstacle blockBuildings pushes players/NPCs/
+// vehicles out of — fixed buildings plus, now, every placed object whose
+// real footprint is known (see OBJECT_FOOTPRINT_SIZES above). Merging
+// both into one list here (rather than teaching blockBuildings a second
+// push-out implementation) is what actually gets placed objects the exact
+// same hardened, teacher-tested push-out behavior buildings already have,
+// for free.
+let RECT_FOOTPRINTS: RectFootprint[] = BUILDING_FOOTPRINTS;
 // Sims 4-style drawn walls (WorldEditor.tsx's Wall tool) — a real barrier,
 // same as a building, via the shared blockWallSegments helper below.
 let STATIC_WALLS: WallSegment[] = [];
@@ -342,36 +368,62 @@ let STATIC_WALLS: WallSegment[] = [];
 // "walk straight through a placed building" gap). Called once at module
 // load (with no overrides/objects, so first paint is a safe empty state)
 // and again from a useEffect inside the main component whenever the
-// store's layoutOverrides/worldObjects/wallSegments changes. Deliberately
+// store's layoutOverrides/worldObjects/wallSegments changes, OR whenever
+// ObjectFootprintProbe reports a newly-measured model size (same effect,
+// extra dependency — see that component's own comment). Deliberately
 // DOES NOT move/resize a building's collision footprint yet — only delete-
 // awareness is wired into movement/collision this pass; a moved or
 // resized building's footprint stays at its original spot/size until a
 // follow-up pass (see the WorldEditor.tsx comment on the same limitation).
+// A moved/resized/rotated PLACED OBJECT'S footprint, unlike a building's,
+// DOES move live — recomputeCollisionLayout is re-derived from the live
+// `worldObjects` array every time, with no separate "original spot"
+// concept the way BUILDING_FOOTPRINTS' fixed layout has.
 function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, worldObjects: WorldObject[], wallSegments: WallSegment[]) {
   BUILDING_FOOTPRINTS = BUILDINGS.filter((b) => !overrides[b.id]?.deleted).map((b) => {
     const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
     return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
   });
+  // Direct teacher correction, overriding the earlier "only newly
+  // placed/role-having objects default to solid" guardrail: "all assets
+  // that have a role cannot be driven through, but currently the other
+  // assets can. fix so no assets can be driven or walked through" —
+  // every placed object collides now, full stop, regardless of its own
+  // `collides` flag (kept in the data model either way, additive-only —
+  // it's just no longer read as a gate here). Each one becomes a real
+  // rotated-rectangle footprint when its model's real size is known, or
+  // stays on the old circle heuristic (fallback ONLY, see
+  // WORLD_OBJECT_COLLISION_RADIUS's own comment) until it is.
+  const objectRects: RectFootprint[] = [];
+  const objectFallbackCircles: { x: number; z: number; radius: number }[] = [];
+  for (const o of worldObjects) {
+    const raw = OBJECT_FOOTPRINT_SIZES[o.modelPath];
+    if (raw) {
+      objectRects.push({ x: o.position[0], z: o.position[2], rotationY: o.rotationY, hx: raw.hx * o.scale, hz: raw.hz * o.scale });
+    } else {
+      objectFallbackCircles.push({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale, !!o.role) });
+    }
+  }
+  RECT_FOOTPRINTS = [...BUILDING_FOOTPRINTS, ...objectRects];
   STATIC_OBSTACLES = [
     ...MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS })),
-    // Direct teacher correction, overriding the earlier "only newly
-    // placed/role-having objects default to solid" guardrail: "all assets
-    // that have a role cannot be driven through, but currently the other
-    // assets can. fix so no assets can be driven or walked through" —
-    // every placed object collides now, full stop, regardless of its own
-    // `collides` flag (kept in the data model either way, additive-only —
-    // it's just no longer read as a gate here).
-    ...worldObjects.map((o) => ({ x: o.position[0], z: o.position[2], radius: WORLD_OBJECT_COLLISION_RADIUS(o.scale, !!o.role) })),
+    ...objectFallbackCircles,
   ];
   STATIC_WALLS = wallSegments;
 }
 
-// Point-vs-rotated-rectangle push-out: transform into the building's own
+// Point-vs-rotated-rectangle push-out: transform into the obstacle's own
 // local (unrotated) space, and if the point lands inside the real
 // footprint, push it back out along whichever axis has the shallower
 // penetration — the standard nearest-edge response, not just clamping to
 // one axis, so a student pushed out near a corner slides along the edge
-// instead of snapping across the whole building.
+// instead of snapping across the whole building/object. Still named
+// blockBuildings (its original, narrower purpose) even though it now also
+// pushes out of every placed object with a known real footprint — the
+// point of merging RECT_FOOTPRINTS into one combined array (see
+// recomputeCollisionLayout above) rather than writing a second push-out
+// function is that placed objects get this exact same hardened,
+// teacher-tested edge-case handling for free, with no new code to trust.
 // Direct teacher report, screenshot-confirmed: the player's animated model
 // (arms swinging mid-walk-cycle) was visibly poking through a building's
 // wall when pushed out — the old push-out placed the player's collision
@@ -385,7 +437,7 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
 const BUILDING_COLLISION_MARGIN = 0.55;
 function blockBuildings(x: number, z: number): [number, number] {
   let [bx, bz] = [x, z];
-  for (const f of BUILDING_FOOTPRINTS) {
+  for (const f of RECT_FOOTPRINTS) {
     const dx = bx - f.x;
     const dz = bz - f.z;
     const c = Math.cos(f.rotationY);
@@ -457,7 +509,15 @@ function blockObstaclesSlide(curX: number, curZ: number, targetX: number, target
   // valid point, stateless): push straight back out to the nearest
   // circle's edge first, then evaluate the requested move from there, so
   // "current position" is never itself an invalid one to fall back to.
-  let [sx, sz] = [curX, curZ];
+  // Also runs the CURRENT position through blockBuildings first, now that
+  // RECT_FOOTPRINTS includes placed objects (not just fixed buildings) —
+  // a fixed building never moved under a standing player mid-session, so
+  // the old version never needed this, but a Build Mode object can now be
+  // dragged/resized/rotated onto a student's exact current spot live
+  // (Supabase realtime), and the last-resort `[sx, sz]` fallback further
+  // down needs to already be clear of THAT too, not just circle obstacles,
+  // for the "never stuck" guarantee to still hold for the merged rect set.
+  let [sx, sz] = blockBuildings(curX, curZ);
   for (const o of STATIC_OBSTACLES) {
     const dx = sx - o.x;
     const dz = sz - o.z;
@@ -493,6 +553,49 @@ function slideWithinWater(curX: number, curZ: number, targetX: number, targetZ: 
   if (isWaterAt(targetX, curZ, groundPatches)) return [targetX, curZ];
   if (isWaterAt(curX, targetZ, groundPatches)) return [curX, targetZ];
   return [curX, curZ];
+}
+
+// The bridge recomputeCollisionLayout's own comment points at: that's a
+// plain function (called from a useEffect, not a component), so it can't
+// call useModelSize itself — useModelSize needs useGLTF, a React Three
+// Fiber hook, which only works inside the render tree. This is the
+// bridge: one invisible instance per DISTINCT modelPath actually placed
+// (ObjectFootprintTracker below de-dupes — many placed objects share one
+// model, e.g. several of the same tree, and this should be one useGLTF
+// per model, not one per placed object). Each instance measures its
+// model's real size the exact same way FootprintOutline does and reports
+// it up into OBJECT_FOOTPRINT_SIZES once, letting recomputeCollisionLayout
+// pick it up on the next pass. Renders nothing.
+//
+// Wrapped in its own per-model <Suspense fallback={null}> by the tracker
+// below (not the page's one big Suspense) specifically so one slow-to-
+// load model can't blank the whole scene while it's measuring — and if a
+// model fails to load entirely, this instance simply never resolves/never
+// calls onSize, same as it would for WorldObjectRenderer's own useGLTF
+// call for that object elsewhere in this same tree (this introduces no
+// new failure mode — that object was already going to fail to render its
+// mesh in that case). The object just stays on the circle fallback in
+// OBJECT_FOOTPRINT_SIZES/WORLD_OBJECT_COLLISION_RADIUS forever for that
+// one object, rather than crashing or silently ending up with zero
+// collision.
+function ObjectFootprintProbe({ path, onSize }: { path: string; onSize: (path: string, hx: number, hz: number) => void }) {
+  const size = useModelSize(path);
+  useEffect(() => {
+    onSize(path, size.x / 2, size.z / 2);
+  }, [path, size, onSize]);
+  return null;
+}
+
+function ObjectFootprintTracker({ modelPaths, onSize }: { modelPaths: string[]; onSize: (path: string, hx: number, hz: number) => void }) {
+  return (
+    <>
+      {modelPaths.map((path) => (
+        <Suspense key={path} fallback={null}>
+          <ObjectFootprintProbe path={path} onSize={onSize} />
+        </Suspense>
+      ))}
+    </>
+  );
 }
 
 // Either a quest Neighbor or a Townsperson, once talking starts — the
@@ -2699,10 +2802,31 @@ export default function TownSquare() {
   // Hall/Boom Box triggers below), just not playing it anymore.
   const playingTrackId = useStore((s) => s.playingTrackId);
   const setPlayingTrackId = useStore((s) => s.setPlayingTrackId);
+  // Distinct placed-object model paths actually in use, for
+  // ObjectFootprintTracker below — de-duped so a model several objects
+  // share (e.g. several of the same tree) only gets measured once.
+  const objectModelPaths = useMemo(() => Array.from(new Set(worldObjects.map((o) => o.modelPath))), [worldObjects]);
+  // Bumped by ObjectFootprintProbe (via the tracker below) whenever a
+  // placed object's real model size finishes loading/measuring, so the
+  // collision recompute effect just below re-runs and that object's
+  // circle fallback gets upgraded to its real rotated-rectangle footprint
+  // — see OBJECT_FOOTPRINT_SIZES/ObjectFootprintProbe's own comments.
+  const [objectFootprintVersion, setObjectFootprintVersion] = useState(0);
+  const handleObjectFootprintSize = useCallback((path: string, hx: number, hz: number) => {
+    const prev = OBJECT_FOOTPRINT_SIZES[path];
+    if (prev && prev.hx === hx && prev.hz === hz) return;
+    OBJECT_FOOTPRINT_SIZES[path] = { hx, hz };
+    setObjectFootprintVersion((v) => v + 1);
+  }, []);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,
-  // STATIC_OBSTACLES, STATIC_WALLS) in sync with Build Mode edits,
-  // including a teacher's edit landing live from another tab/device via
-  // Supabase realtime — see recomputeCollisionLayout's own comment above.
+  // RECT_FOOTPRINTS, STATIC_OBSTACLES, STATIC_WALLS) in sync with Build
+  // Mode edits, including a teacher's edit landing live from another
+  // tab/device via Supabase realtime — see recomputeCollisionLayout's own
+  // comment above. Also re-runs on objectFootprintVersion (a placed
+  // object's real size just became known) even though worldObjects itself
+  // didn't change, so a freshly-placed or just-loaded object's collision
+  // upgrades from its circle fallback to its real footprint as soon as
+  // that's available, not only on the next unrelated worldObjects edit.
   // The currently-driven car is excluded from its own collision layout —
   // otherwise the very first frame of driving would immediately collide
   // with the car's own static collision circle sitting right where the
@@ -2710,7 +2834,7 @@ export default function TownSquare() {
   useEffect(() => {
     const forCollision = drivingObjectId ? worldObjects.filter((o) => o.id !== drivingObjectId) : worldObjects;
     recomputeCollisionLayout(layoutOverrides, forCollision, wallSegments);
-  }, [layoutOverrides, worldObjects, wallSegments, drivingObjectId]);
+  }, [layoutOverrides, worldObjects, wallSegments, drivingObjectId, objectFootprintVersion]);
   const focuses = useStore((s) => s.focuses);
   // Roster tab (World Editor): a teacher's cosmetic custom title per
   // hand-authored Neighbor/Townsperson id — shown next to their name
@@ -4087,6 +4211,7 @@ export default function TownSquare() {
         <Suspense fallback={null}>
           <SkyboxBackground skyColor={skyColor} />
           {skyTexturePath && <SkyDome path={skyTexturePath} />}
+          <ObjectFootprintTracker modelPaths={objectModelPaths} onSize={handleObjectFootprintSize} />
           <Park
             layoutOverrides={layoutOverrides}
             onGroundTap={(x, z) => {
