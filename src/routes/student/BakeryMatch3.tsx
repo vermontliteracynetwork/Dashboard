@@ -54,9 +54,18 @@ import {
 //    "wrong doesn't cost anything, try again" rule QuestionScreen and the
 //    Gas Pump lockout already use.
 //  - Question source (random vs. one specific set) is chosen ONCE per
-//    game, on the 'setup' screen, right before Start Baking, and stays
-//    locked for that whole game — no more mid-round "want different
-//    questions?" reselection.
+//    game, on the main menu (a quiet gear icon opens the picker), and
+//    stays locked for that whole game once Play New Game starts it — no
+//    more mid-round "want different questions?" reselection.
+//
+// Visuals reconciled against a teacher-approved interactive mockup
+// (2026-09-25, "go ahead with the bakery mockups"): warm cream-to-caramel
+// palette, pill-shaped Play New Game (primary) / View My Leaderboard
+// (secondary) buttons, a quiet top-right gear icon as the ONLY pre-game
+// route to QuestionSourcePicker, round/move pips instead of a match
+// count, an XP pill, and a ✕-with-confirm exit instead of leaving
+// mid-game with no warning. QuestionSourcePicker itself is unchanged
+// (shared with the Gas Pump) — only wrapped in a small panel here.
 //  - After round TOTAL_ROUNDS's own question gate is passed, the game
 //    ends: the treat wheel spins once (the only spin per game now, not a
 //    voluntary early cash-out), the student's total XP for that game is
@@ -76,7 +85,7 @@ const MOVES_PER_ROUND = 3;
 const QUESTIONS_PER_GATE = 3;
 const DRAG_THRESHOLD_PX = 18;
 
-type Phase = 'menu' | 'setup' | 'playing' | 'challenge';
+type Phase = 'menu' | 'playing' | 'challenge';
 
 function posKey(p: Pos): string {
   return `${p.row},${p.col}`;
@@ -111,9 +120,13 @@ export default function BakeryMatch3() {
 
   const [phase, setPhase] = useState<Phase>('menu');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  // Default is random, chosen once per game on the 'setup' screen — direct
-  // teacher instruction: a student-facing screen should never force an
-  // equal-weight "which question source?" choice up front.
+  const [showSourcePanel, setShowSourcePanel] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // Default is random — direct teacher instruction: a student-facing
+  // screen should never force an equal-weight "which question source?"
+  // choice up front. Only changeable via the main menu's quiet gear icon;
+  // whatever it's set to when Play New Game is pressed is locked for that
+  // whole game.
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
   const [round, setRound] = useState(1);
   const [movesThisRound, setMovesThisRound] = useState(0);
@@ -319,12 +332,15 @@ export default function BakeryMatch3() {
     }
   };
 
-  // QuestionScreen's ✕ / exit-confirm "Leave Anyway" abandons the current
-  // game (no leaderboard entry — that's only recorded for a completed
-  // game) and returns to the main menu, same as walking away any other way.
-  const handleChallengeExit = () => {
+  // Abandons the current game (no leaderboard entry — that's only recorded
+  // for a completed game) and returns to the main menu. Reached two ways:
+  // QuestionScreen's own built-in ✕/"Leave Anyway" confirm during a
+  // question gate, or this screen's own ✕/"Leave to Main Menu" confirm
+  // (bakery-topbar) during normal play.
+  const abandonGame = () => {
     setChallengeQuestion(null);
     setGateCorrectCount(0);
+    setShowExitConfirm(false);
     setPhase('menu');
   };
 
@@ -338,124 +354,144 @@ export default function BakeryMatch3() {
 
   return (
     <div className="bakery-shell">
-      <button className="bakery-back-btn" onClick={() => navigate(backTo)}>
-        <Icon name="arrowLeft" size={16} fallback="⬅️" /> {backLabel}
-      </button>
-
       {phase === 'menu' && (
-        <div className="bakery-menu">
-          <div className="bakery-menu-tiles" aria-hidden="true">
-            {decorativeTiles.map((art, i) => (
-              <img key={i} src={art.src} alt="" className={`bakery-deco-tile bakery-deco-tile-${i}`} />
-            ))}
-          </div>
+        <>
+          <button className="bakery-back-btn" onClick={() => navigate(backTo)}>
+            <Icon name="arrowLeft" size={16} fallback="⬅️" /> {backLabel}
+          </button>
+          <button className="bakery-gear-btn" onClick={() => setShowSourcePanel(true)} aria-label="Question settings">
+            <Icon name="settingsAlt" size={20} fallback="⚙️" />
+          </button>
 
-          <div className="bakery-menu-card">
-            <h1 className="bakery-title">🥐 Bakery Match</h1>
-            {!showLeaderboard ? (
-              <>
-                <p className="bakery-tagline">Match treats, answer bonus questions, and spin for a prize!</p>
-                <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
-                  <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {questionsAnswered}/100 questions answered</span>
-                  {cakeUnlocked && (
-                    <button
-                      className="btn btn-sm"
-                      style={{ minHeight: 36, ...(cakeEquipped ? { background: 'var(--success)', color: '#fff' } : {}) }}
-                      onClick={() => student && equipCharacter(student.id, cakeEquipped ? null : 'cake')}
-                    >
-                      🎂 {cakeEquipped ? 'Cake Character equipped' : 'Equip Cake Character'}
-                    </button>
-                  )}
-                </div>
-                <button className="bakery-play-btn" onClick={() => setPhase('setup')}>
-                  <Icon name="play" size={22} fallback="▶️" /> Play New Game
-                </button>
-                <button className="bakery-secondary-btn" onClick={() => setShowLeaderboard(true)}>
-                  <Icon name="trophy" size={18} fallback="🏆" /> View Leaderboard
-                </button>
-              </>
-            ) : (
-              <div className="bakery-leaderboard">
-                <h2>Your Bakery Match Scores</h2>
-                {leaderboard.length === 0 ? (
-                  <p className="bakery-leaderboard-empty">No finished games yet. Play a full game to see your scores here!</p>
-                ) : (
-                  <ol>
-                    {[...leaderboard].reverse().map((entry, i) => (
-                      <li key={i}>{entry.date}: ⭐ {entry.xp} XP</li>
-                    ))}
-                  </ol>
+          <div className="bakery-menu">
+            <div className="bakery-menu-tiles" aria-hidden="true">
+              {decorativeTiles.map((art, i) => (
+                <img key={i} src={art.src} alt="" className={`bakery-deco-tile bakery-deco-tile-${i}`} />
+              ))}
+            </div>
+
+            <div className="bakery-menu-card">
+              <h1 className="bakery-title">🥐 Bakery Match</h1>
+              <p className="bakery-blurb">3 rounds. Match treats. Answer to advance. Spin for a prize at the end!</p>
+              <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
+                <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {questionsAnswered}/100 questions answered</span>
+                {cakeUnlocked && (
+                  <button
+                    className="btn btn-sm"
+                    style={{ minHeight: 36, ...(cakeEquipped ? { background: 'var(--success)', color: '#fff' } : {}) }}
+                    onClick={() => student && equipCharacter(student.id, cakeEquipped ? null : 'cake')}
+                  >
+                    🎂 {cakeEquipped ? 'Cake Character equipped' : 'Equip Cake Character'}
+                  </button>
                 )}
-                <button className="bakery-secondary-btn" onClick={() => setShowLeaderboard(false)}>
-                  <Icon name="arrowLeft" size={16} fallback="⬅️" /> Back
-                </button>
               </div>
-            )}
+              <button className="bakery-play-btn" onClick={startGame}>
+                <Icon name="play" size={22} fallback="▶️" /> Play New Game
+              </button>
+              <button className="bakery-secondary-btn" onClick={() => setShowLeaderboard(true)}>
+                <Icon name="trophy" size={18} fallback="🏆" /> View My Leaderboard
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-
-      {phase === 'setup' && (
-        <div className="bakery-menu">
-          <div className="bakery-menu-card">
-            <h2 style={{ margin: 0, color: '#a8571c' }}>How do you want your questions?</h2>
-            <p className="bakery-tagline">This choice sticks for the whole game.</p>
-            <QuestionSourcePicker questionSets={usableQuestionSets} value={questionMode} onChange={setQuestionMode} />
-            <button className="bakery-play-btn" onClick={startGame}>🥐 Start Baking!</button>
-            <button className="bakery-secondary-btn" onClick={() => setPhase('menu')}>
-              <Icon name="arrowLeft" size={16} fallback="⬅️" /> Back
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
       {showBoard && (
         <div className="bakery-game">
-          <div className="bakery-header-panel">
-            <h2>🥐 Bakery Match</h2>
-            <span className="bakery-xp">⭐ {xp} XP</span>
-          </div>
-
-          <div className="bakery-progress-panel">
-            <span>Round {round} of {TOTAL_ROUNDS}</span>
-            <span>{Math.min(movesThisRound, MOVES_PER_ROUND)}/{MOVES_PER_ROUND} moves</span>
-          </div>
-
-          <p className="bakery-hint">Tap a treat then an adjacent treat to swap, or drag one treat onto another. Match 3 or more to earn XP!</p>
-
-          <div className="bakery-board-panel">
-            <div className="bakery-grid">
-              {grid.map((row, r) =>
-                row.map((kind, c) => {
-                  const pos: Pos = { row: r, col: c };
-                  const key = posKey(pos);
-                  const art = TILE_ART[kind];
-                  const isSelected = selected && posKey(selected) === key;
-                  const isClearing = clearingKeys.has(key);
-                  const isShaking = shakeKeys.has(key);
-                  return (
-                    <button
-                      key={key}
-                      className={[
-                        'bakery-tile',
-                        isSelected ? 'selected' : '',
-                        isShaking ? 'shaking' : '',
-                        isClearing ? 'clearing' : '',
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => handleTileClick(pos)}
-                      onPointerDown={(e) => handleTilePointerDown(pos, e)}
-                      onPointerMove={handleTilePointerMove}
-                      onPointerUp={handleTilePointerUp}
-                      onPointerCancel={handleTilePointerUp}
-                      aria-label={art.label}
-                      disabled={busy || phase !== 'playing'}
-                    >
-                      <img src={art.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} draggable={false} />
-                    </button>
-                  );
-                }),
-              )}
+          <div className="bakery-topbar">
+            <button className="bakery-exit-btn" onClick={() => setShowExitConfirm(true)} aria-label="Exit game">
+              <Icon name="close" size={16} fallback="✕" />
+            </button>
+            <div className="bakery-round-block">
+              <span className="bakery-round-label">Round {round} of {TOTAL_ROUNDS}</span>
+              <div className="bakery-move-pips">
+                {Array.from({ length: MOVES_PER_ROUND }).map((_, i) => (
+                  <span key={i} className={`bakery-pip${i < movesThisRound ? ' filled' : ''}`} />
+                ))}
+              </div>
             </div>
+            <span className="bakery-xp-pill">⭐ {xp} XP</span>
+          </div>
+
+          <p className="bakery-hint">Drag a treat onto a neighbor, or tap two next to each other, to match 3 or more!</p>
+
+          <div className="bakery-board-frame">
+            <div className="bakery-board-panel">
+              <div className="bakery-grid">
+                {grid.map((row, r) =>
+                  row.map((kind, c) => {
+                    const pos: Pos = { row: r, col: c };
+                    const key = posKey(pos);
+                    const art = TILE_ART[kind];
+                    const isSelected = selected && posKey(selected) === key;
+                    const isClearing = clearingKeys.has(key);
+                    const isShaking = shakeKeys.has(key);
+                    return (
+                      <button
+                        key={key}
+                        className={[
+                          'bakery-tile',
+                          isSelected ? 'selected' : '',
+                          isShaking ? 'shaking' : '',
+                          isClearing ? 'clearing' : '',
+                        ].filter(Boolean).join(' ')}
+                        onClick={() => handleTileClick(pos)}
+                        onPointerDown={(e) => handleTilePointerDown(pos, e)}
+                        onPointerMove={handleTilePointerMove}
+                        onPointerUp={handleTilePointerUp}
+                        onPointerCancel={handleTilePointerUp}
+                        aria-label={art.label}
+                        disabled={busy || phase !== 'playing'}
+                      >
+                        <img src={art.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} draggable={false} />
+                      </button>
+                    );
+                  }),
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSourcePanel && (
+        <div className="bakery-modal-backdrop" onClick={() => setShowSourcePanel(false)}>
+          <div className="bakery-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="bakery-modal-title">Choose Your Questions</h2>
+            <p className="bakery-modal-note">This choice sticks for your next game.</p>
+            <QuestionSourcePicker questionSets={usableQuestionSets} value={questionMode} onChange={setQuestionMode} />
+            <button className="bakery-play-btn" onClick={() => setShowSourcePanel(false)}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {showLeaderboard && (
+        <div className="bakery-modal-backdrop" onClick={() => setShowLeaderboard(false)}>
+          <div className="bakery-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="bakery-modal-title">My Bakery Match XP</h2>
+            <p className="bakery-modal-note">Just for you. No one else can see this.</p>
+            {leaderboard.length === 0 ? (
+              <p className="bakery-leaderboard-empty">No finished games yet. Play a full game to see your scores here!</p>
+            ) : (
+              <ol className="bakery-leaderboard-list">
+                {[...leaderboard].reverse().map((entry, i) => (
+                  <li key={i}><span>{entry.date}</span><span>⭐ {entry.xp} XP</span></li>
+                ))}
+              </ol>
+            )}
+            <button className="bakery-play-btn" onClick={() => setShowLeaderboard(false)}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {showExitConfirm && (
+        <div className="bakery-modal-backdrop" onClick={() => setShowExitConfirm(false)}>
+          <div className="bakery-modal-card bakery-confirm-card" onClick={(e) => e.stopPropagation()}>
+            <span className="bakery-confirm-icon" aria-hidden="true">⚠️</span>
+            <h2 className="bakery-modal-title">Leave this game?</h2>
+            <p className="bakery-modal-note">Your progress in this game is lost until you finish all 3 rounds.</p>
+            <button className="bakery-play-btn" onClick={() => setShowExitConfirm(false)}>Keep Baking</button>
+            <button className="bakery-text-link" onClick={abandonGame}>Leave to Main Menu</button>
           </div>
         </div>
       )}
@@ -499,7 +535,7 @@ export default function BakeryMatch3() {
           imageUrl={challengeQuestion.imageUrl}
           imageAlt={challengeQuestion.imageAlt}
           onCorrectAnswer={handleChallengeCorrect}
-          onExit={handleChallengeExit}
+          onExit={abandonGame}
           ttsSettings={student?.ttsSettings}
         />
       )}
