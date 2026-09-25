@@ -120,6 +120,16 @@ export interface Student {
   // sees the whole book the first time, same as everyone else).
   lastSeenChangelogId?: string | null;
   worldReduceMotion: boolean; // student/teacher-set in-app motion reduction (desk glow, etc.) independent of the OS-level prefers-reduced-motion setting, for a shared/school device a student can't change system settings on
+  // Transportation Phase 2b/2d (docs/BOATS_DESIGN.md §8, docs/TRANSPORTATION.md §7's
+  // standing "per-vehicle sound-volume toggle" gap) — a single on/off toggle
+  // for every vehicle's engine/splash/wind/chug sound (synthesized, see
+  // src/lib/vehicleAudio.ts), independent of worldReduceMotion above, which
+  // already covers the matching "reduced motion" half of that gap (reused,
+  // not duplicated, for vehicle wake/dust VFX intensity and camera dynamics).
+  // Default true — vehicles are silent right up until this ships, so "on"
+  // is the actual behavior change a student would notice, matching this
+  // app's "opt out of new sensory input, don't opt in" convention elsewhere.
+  vehicleSoundEnabled?: boolean;
   dyslexiaFont: boolean; // app-wide (not just Town Square) dyslexia-friendly display mode — a standing requirement in docs/NATIVE_GAME_STANDARD.md that had no actual toggle anywhere in the app until Claudia's full-game audit found the gap
   homeWallColor?: string; // Home Room paint bucket — hex color for the room's 4 walls; undefined = default
   homeFloorTexture?: string | null; // Home Room floor — a path from HOME_FLOOR_OPTIONS in HomeRoom.tsx; null/undefined = default

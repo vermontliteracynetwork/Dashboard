@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-boats-splash-sound',
+    date: '2026-09-25',
+    icon: '⛵',
+    title: 'Boats have splash and engine sound now',
+    body: 'Sail a boat and you will hear a soft engine sound and see a splash trail behind you that gets bigger the faster you go, plus a gentle bump sound near a dock or shore. Check Settings if you want to turn vehicle sound off, or turn on Reduce Motion to turn off the splash trail.',
+  },
+  {
     id: '2026-09-25-lm-new-symbols',
     date: '2026-09-25',
     icon: '🔺',

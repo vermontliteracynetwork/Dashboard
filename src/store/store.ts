@@ -992,6 +992,7 @@ export const useStore = create<AppState>()(
           worldShowDeskGlow: true,
           islandBuildUnlocked: false,
           worldReduceMotion: false,
+          vehicleSoundEnabled: true,
           dyslexiaFont: false,
           petCouponRedeemed: false,
           discoveredPetDefIds: [],

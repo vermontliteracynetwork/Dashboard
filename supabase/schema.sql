@@ -686,6 +686,11 @@ alter table notes add column if not exists kind text not null default 'note';
 alter table students add column if not exists island_build_unlocked boolean not null default false;
 alter table students add column if not exists last_seen_changelog_id text;
 alter table world_objects add column if not exists custom_role_url text;
+-- Transportation Phase 2b/2d (docs/BOATS_DESIGN.md §8): a single per-student
+-- on/off toggle for vehicle engine/splash/wind/chug sound, independent of
+-- world_reduce_motion above (which already covers the matching reduced-
+-- motion half of the same standing accessibility gap).
+alter table students add column if not exists vehicle_sound_enabled boolean not null default true;
 
 -- Every non-character, non-emote thing a student can buy: fonts, text
 -- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended
