@@ -587,6 +587,11 @@ alter table students add column if not exists show_sentence_building_hints boole
 -- teacher per-student toggle, default off (the auto-punctuated Sentence
 -- Formulas already handle this by default for the whole population).
 alter table students add column if not exists show_punctuation_tiles boolean not null default false;
+-- Bakery Match's question-answered tracker (see types.ts Student comment)
+-- and its in-world 3D character-catalog unlock/equip state.
+alter table students add column if not exists bakery_questions_answered integer not null default 0;
+alter table students add column if not exists unlocked_character_ids jsonb not null default '[]';
+alter table students add column if not exists equipped_character_id text;
 
 -- Home Room's room system (replaces the old single fixed 10x10 room + a
 -- freeform student wall-drawing tool): each row is one discrete room a

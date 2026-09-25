@@ -294,6 +294,7 @@ interface AppState {
   literacyFocusSets: LiteracyFocusSet[]; // a student's phonics/morpheme/spelling focus for a date window, typically a week
   transactions: Transaction[]; // every student's bank register, newest first
   lastCoinEarn: { id: string; studentId: string; amountCents: number } | null; // bumped by recordTransaction whenever coins land (spin win, task reward, streak bonus, etc.) — purely a UI trigger for the coin-drop animation/sound, not persisted
+  lastCharacterUnlock: { id: string; studentId: string; characterId: string } | null; // bumped by recordBakeryQuestionAnswered when a character-catalog unlock is earned — same transient-UI-trigger shape as lastCoinEarn, not persisted
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
   chatMessages: ChatMessage[]; // teacher<->student chat, newest last
@@ -389,6 +390,11 @@ interface AppState {
   // throwing, since they're all called straight from click handlers.
   adoptPet: (studentId: string, petDefId: string, charge?: boolean) => boolean;
   carePet: (petId: string, action: 'feed' | 'pet' | 'play') => void;
+  // Bakery Match's question-answered tracker — every submitted answer
+  // counts, right or wrong. Crossing 100 unlocks 'cake' in
+  // unlockedCharacterIds and bumps lastCharacterUnlock once.
+  recordBakeryQuestionAnswered: (studentId: string) => void;
+  equipCharacter: (studentId: string, characterId: string | null) => void;
   renamePet: (petId: string, name: string) => void;
   // Pet paint-brush customization (Part B backlog item) — reuses the exact
   // color-tint mechanism WorldObject/Build Mode already uses, applied to a
@@ -722,6 +728,7 @@ export const useStore = create<AppState>()(
       literacyFocusSets: [],
       transactions: [],
       lastCoinEarn: null,
+      lastCharacterUnlock: null,
       articleAnnotations: {},
       sentenceBuilderResponses: {},
       chatMessages: [],
@@ -1411,6 +1418,27 @@ export const useStore = create<AppState>()(
               : { ...pet, social: clamp(pet.social + 15), health: clamp(pet.health + 15) }; // play
         set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
         pushStudentPet(updated);
+      },
+
+      recordBakeryQuestionAnswered: (studentId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        const before = student.bakeryQuestionsAnswered ?? 0;
+        const after = before + 1;
+        const alreadyUnlocked = (student.unlockedCharacterIds ?? []).includes('cake');
+        const justUnlocked = !alreadyUnlocked && after >= 100;
+        get().updateStudent(studentId, {
+          bakeryQuestionsAnswered: after,
+          ...(justUnlocked ? { unlockedCharacterIds: [...(student.unlockedCharacterIds ?? []), 'cake'] } : {}),
+        });
+        if (justUnlocked) set({ lastCharacterUnlock: { id: makeId(), studentId, characterId: 'cake' } });
+      },
+
+      equipCharacter: (studentId, characterId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        if (characterId !== null && !(student.unlockedCharacterIds ?? []).includes(characterId)) return;
+        get().updateStudent(studentId, { equippedCharacterId: characterId });
       },
 
       renamePet: (petId, name) => {

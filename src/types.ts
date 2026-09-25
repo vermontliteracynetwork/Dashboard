@@ -168,6 +168,18 @@ export interface Student {
   // their own end marks/commas rather than relying on Sentence Formulas'
   // automatic punctuation.
   showPunctuationTiles?: boolean;
+  // Bakery Match's question-answered tracker — direct teacher instruction:
+  // "a tracker for every question answered in the Bakery Match game
+  // specifically." Every submitted answer counts, right or wrong (it's a
+  // participation tracker, not a mastery one). Never resets; at 100
+  // unlocks the Cake Character (see characterCatalog.ts).
+  bakeryQuestionsAnswered?: number;
+  // In-world 3D character catalog (characterCatalog.ts) — separate from
+  // avatar (the 2D login picture). 'default' (the standard player model)
+  // is always available and never listed here. Grows as new characters
+  // are unlocked (currently just 'cake', from the Bakery Match tracker).
+  unlockedCharacterIds?: string[];
+  equippedCharacterId?: string | null; // a CHARACTER_CATALOG id from unlockedCharacterIds, or null/undefined for the default player model
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

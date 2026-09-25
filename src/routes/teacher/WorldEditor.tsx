@@ -52,7 +52,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'arcade', label: `Arcade (play Scratch games) → ${ROLE_VIEWS.arcade}` },
   { value: 'farmers-market', label: `Farmer's Market (trade with other students) → ${ROLE_VIEWS['farmers-market']}` },
   { value: 'gas-pump', label: 'Gas Pump → opens the gas refuel questions right in Town Square' },
-  { value: 'bakery', label: `Bakery (Match-3 game) → ${ROLE_VIEWS.bakery}` },
+  { value: 'bakery', label: `Bakery (Bakery Match game) → ${ROLE_VIEWS.bakery}` },
   { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];

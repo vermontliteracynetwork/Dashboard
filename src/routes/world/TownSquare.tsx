@@ -9,6 +9,7 @@ import { QUEST1_NEIGHBORS, pickDialogueVariant, SCOUT_CHECKIN_VARIANT, type Ques
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
+import { characterDefById } from '../../lib/characterCatalog';
 import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
@@ -543,6 +544,11 @@ function CharacterModel({ path, scale = CHARACTER_SCALE }: { path: string; scale
 // Player already updates each frame, same as everything else in its
 // useFrame loop).
 function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
+  const currentStudentId = useStore((s) => s.currentStudentId);
+  const students = useStore((s) => s.students);
+  const equippedCharacterId = students.find((st) => st.id === currentStudentId)?.equippedCharacterId;
+  const characterDef = equippedCharacterId ? characterDefById(equippedCharacterId) : undefined;
+
   const { scene, animations } = useGLTF('/world/models/characters/player.glb');
   const cloned = useMemo(() => cloneSkinned(scene), [scene]);
   const group = useRef<THREE.Group>(null);
@@ -565,9 +571,71 @@ function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
 
   return (
     <group ref={group}>
-      <primitive object={cloned} scale={CHARACTER_SCALE} />
+      {characterDef ? (
+        <CharacterSkinOverlay base={cloned} skinPath={characterDef.modelPath} />
+      ) : (
+        <primitive object={cloned} scale={CHARACTER_SCALE} />
+      )}
     </group>
   );
+}
+
+// A character-catalog "skin" (e.g. the Cake Character, unlocked via Bakery
+// Match's 100-question tracker) reuses the default player model's own
+// skeleton and idle/walk animation clips rather than shipping its own rig
+// — direct teacher instruction: "ensure it uses the human player assets
+// for movement and animations. it cant just have its arms out." The
+// uploaded skin models are unrigged static meshes with zero baked-in
+// animations of their own (checked directly: 0 skins, 0 animation
+// clips), so true per-limb retargeting isn't possible without a 3D
+// authoring tool this sandbox doesn't have. Instead: the player's own
+// clones bones stay in the scene (driven by the exact same idle/walk
+// actions as the default body), the two default body meshes are hidden,
+// and the skin's mesh is rigidly parented onto the 'torso' bone — 'torso'
+// specifically because it's the one bone both the idle clip (a subtle
+// rotation sway) and the walk clip (root-driven bob, inherited from its
+// parent, plus its own rotation) actually animate, so the skin visibly
+// moves and sways with the animation instead of sitting frozen in a bind
+// pose. This is an honest "rigid mascot" look (no separate limb
+// articulation, since the source mesh has no limbs to articulate), not a
+// broken T-pose.
+function CharacterSkinOverlay({ base, skinPath }: { base: THREE.Object3D; skinPath: string }) {
+  const { scene: skinScene } = useGLTF(skinPath);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    if (mountedRef.current) return;
+    const torso = base.getObjectByName('torso');
+    if (!torso) {
+      console.warn('[TownSquare] character skin: no "torso" bone found on player skeleton, skin not mounted');
+      return;
+    }
+    base.traverse((obj) => {
+      if (obj.name === 'body-mesh' || obj.name === 'head-mesh') obj.visible = false;
+    });
+    const skinMesh = cloneSkinned(skinScene);
+    const box = new THREE.Box3().setFromObject(skinMesh);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const naturalHeight = Math.max(size.y, 0.0001);
+    const targetHeight = 0.55; // roughly the default body's own torso+head span at CHARACTER_SCALE, eyeballed from its joint translations
+    const scale = targetHeight / naturalHeight;
+    skinMesh.scale.setScalar(scale);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    skinMesh.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+    torso.add(skinMesh);
+    mountedRef.current = true;
+    return () => {
+      torso.remove(skinMesh);
+      base.traverse((obj) => {
+        if (obj.name === 'body-mesh' || obj.name === 'head-mesh') obj.visible = true;
+      });
+      mountedRef.current = false;
+    };
+  }, [base, skinScene]);
+
+  return <primitive object={base} scale={CHARACTER_SCALE} />;
 }
 
 // Shared by every wandering character (freed Neighbors + ambient

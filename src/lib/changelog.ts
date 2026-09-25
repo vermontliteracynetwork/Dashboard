@@ -30,6 +30,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: 'Morphemes now has a Word Matrix (pick a root and see which prefixes and suffixes make real words) and a Reverse Morphology prompt card, plus little connector lines when word parts join. There is also a new Writing Scaffolds category with writing frames and sentence starters to help you get your ideas down.',
   },
   {
+    id: '2026-09-25-bakery-match3-rounds',
+    date: '2026-09-25',
+    icon: '🎂',
+    title: 'Bakery Match now has rounds, and a Cake Character to earn',
+    body: 'Bakery Match now plays in rounds, each one a little longer than the last. Finish a round and answer a quick question to move on, and pick how you want your questions: a dice for a random mix, or a dropdown to choose one question set. Answer 100 questions total in Bakery Match and you unlock a Cake Character you can walk around Town Square as!',
+  },
+  {
     id: '2026-09-25-bakery-match3',
     date: '2026-09-25',
     icon: '🥐',
