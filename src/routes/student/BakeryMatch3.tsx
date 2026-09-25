@@ -3,7 +3,7 @@ import { useStore } from '../../store/store';
 import type { MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import WebpageFrame from '../../components/WebpageFrame';
-import ReadAloud from '../../components/ReadAloud';
+import QuestionScreen from '../../components/QuestionScreen';
 import BakeryTreatWheel from '../../components/BakeryTreatWheel';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { characterDefById } from '../../lib/characterCatalog';
@@ -80,8 +80,6 @@ export default function BakeryMatch3() {
   const [round, setRound] = useState(1);
   const [matchesThisRound, setMatchesThisRound] = useState(0);
   const [challengeQuestion, setChallengeQuestion] = useState<MCQuestion | null>(null);
-  const [challengeFeedback, setChallengeFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [roundJustAnswered, setRoundJustAnswered] = useState(false);
 
   const [grid, setGrid] = useState<Grid>(() => createGrid(ROWS, COLS));
   const [selected, setSelected] = useState<Pos | null>(null);
@@ -158,8 +156,6 @@ export default function BakeryMatch3() {
         const next = n + groupsThisSwap;
         if (next >= roundTargetFor(round)) {
           setChallengeQuestion(pickQuestion(questionMode));
-          setChallengeFeedback(null);
-          setRoundJustAnswered(false);
           setPhase('challenge');
         }
         return next;
@@ -201,21 +197,30 @@ export default function BakeryMatch3() {
     setBusy(false);
   };
 
-  const answerChallengeQuestion = (choiceIndex: number) => {
-    if (!challengeQuestion || roundJustAnswered) return;
-    const correct = choiceIndex === challengeQuestion.correctIndex;
-    if (correct) setCoins((c) => c + 5);
-    setChallengeFeedback(correct ? 'correct' : 'wrong');
-    setRoundJustAnswered(true);
+  // Shared QuestionScreen only calls this once the round's question is
+  // actually answered correctly (a miss just lets the student try the same
+  // question again — it never contributes to the round or resets it), so
+  // this is the single "round complete" moment: bonus coins, the running
+  // total toward the Cake Character unlock, and moving on to the next
+  // round, all in one place. recordBakeryQuestionAnswered used to fire on
+  // every attempt (this screen only ever allowed one); now that a miss
+  // doesn't end the attempt, it fires once per round on success instead,
+  // keeping the same "one count per round" cadence.
+  const handleChallengeCorrect = () => {
+    setCoins((c) => c + 5);
     if (student) recordBakeryQuestionAnswered(student.id);
-  };
-
-  const startNextRound = () => {
     setRound((r) => r + 1);
     setMatchesThisRound(0);
     setChallengeQuestion(null);
-    setChallengeFeedback(null);
     setPhase('playing');
+  };
+
+  // QuestionScreen's ✕ / exit-confirm is new here — the old Challenge
+  // Screen had no way to back out mid-question. "Leave Anyway" returns to
+  // Bakery Match's own picker menu, same as first arriving at the game.
+  const handleChallengeExit = () => {
+    setChallengeQuestion(null);
+    setPhase('picker');
   };
 
   // Direct teacher instruction: "when the game is completed, the student
@@ -277,6 +282,18 @@ export default function BakeryMatch3() {
               <p style={{ margin: 0, textAlign: 'center', opacity: 0.8 }}>
                 Tap a treat, then tap a treat next to it to swap. Match 3 or more of the same treat to earn coins!
               </p>
+
+              {/* Used to live inside the Challenge Screen's footer; that
+                  screen is now the shared QuestionScreen component (fixed
+                  layout, no room for this), so it moved up here instead —
+                  still changeable any time during a round, not just
+                  between rounds. */}
+              <details style={{ textAlign: 'center' }}>
+                <summary style={{ cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>Want different questions?</summary>
+                <div style={{ marginTop: 8 }}>
+                  <QuestionSourcePicker questionSets={usableQuestionSets} value={questionMode} onChange={setQuestionMode} />
+                </div>
+              </details>
 
               <div
                 className="chrome-frame"
@@ -359,42 +376,23 @@ export default function BakeryMatch3() {
       )}
 
       {phase === 'challenge' && challengeQuestion && (
-        <div className="overlay-backdrop">
-          <div className="overlay-panel chrome-frame" style={{ padding: 32, maxWidth: 540, width: '92vw' }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack" style={{ gap: 14 }}>
-              <h2 style={{ margin: 0, textAlign: 'center', fontSize: '1.5rem' }}>🎉 Round {round} Complete!</h2>
-              <p style={{ margin: '0 0 4px', textAlign: 'center', opacity: 0.8 }}>You cleared {roundTargetFor(round)} treats this round!</p>
-
-              {challengeFeedback ? (
-                <>
-                  <p style={{ margin: 0, fontWeight: 700, textAlign: 'center', fontSize: '1.1rem' }}>
-                    {challengeFeedback === 'correct' ? '🎉 Correct! +5 bonus coins.' : "💛 Not quite! Let's keep baking."}
-                  </p>
-                  <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={startNextRound}>Start Round {round + 1}</button>
-                </>
-              ) : (
-                <>
-                  <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: '1.15rem', flex: 1 }}>{challengeQuestion.prompt}</p>
-                    <ReadAloud text={challengeQuestion.prompt} settings={student?.ttsSettings} />
-                  </div>
-                  {challengeQuestion.imageUrl && <img src={challengeQuestion.imageUrl} alt={challengeQuestion.imageAlt ?? ''} style={{ maxWidth: '100%', borderRadius: 10 }} />}
-                  <div className="stack" style={{ gap: 10 }}>
-                    {challengeQuestion.choices.map((choice, i) => (
-                      <button key={i} className="btn btn-lg" style={{ minHeight: 52, fontSize: '1.05rem', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => answerChallengeQuestion(i)}>
-                        {choice}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--border, #ddd)', paddingTop: 10, marginTop: 4 }}>
-                    <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>Want different questions next round?</p>
-                    <QuestionSourcePicker questionSets={usableQuestionSets} value={questionMode} onChange={setQuestionMode} />
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        // Shared question-screen UI (components/QuestionScreen.tsx) — same
+        // component the Gas Pump's forced-refuel lockout uses. Bakery's
+        // challenge question is a single per-round bonus (not a streak), so
+        // done/total is framed as one question needed (0 of 1); it fills in
+        // right as the round hands off to the next one.
+        <QuestionScreen
+          prompt={challengeQuestion.prompt}
+          choices={challengeQuestion.choices}
+          correctIndex={challengeQuestion.correctIndex}
+          done={0}
+          total={1}
+          imageUrl={challengeQuestion.imageUrl}
+          imageAlt={challengeQuestion.imageAlt}
+          onCorrectAnswer={handleChallengeCorrect}
+          onExit={handleChallengeExit}
+          ttsSettings={student?.ttsSettings}
+        />
       )}
     </div>
   );
