@@ -184,6 +184,25 @@ export function isBoatModel(modelPath: string): boolean {
   return /\/vehicles\/boat(-[^/]+)?\.glb$/i.test(modelPath);
 }
 
+// Driveable planes and the drone — Phase 4 of docs/TRANSPORTATION.md's
+// transportation system, last in the recommended build order, "added
+// alongside Planes, per direct teacher instruction," sharing the exact
+// same flight mechanics/camera/controls as the plane. Real, already-
+// uploaded models confirmed against the asset manifest before this shipped
+// (not a placeholder): '/world/models/vehicles/airplane-toy.glb' and
+// '/world/models/vehicles/drone.glb'.
+export function isPlaneModel(modelPath: string): boolean {
+  return /\/vehicles\/airplane-toy\.glb$/i.test(modelPath);
+}
+// Deliberately NOT matching '/scifi/Camera_Drone.glb' — a separate,
+// differently-themed decorative prop under a different catalog category,
+// not verified as the same kind of thing the teacher meant by "a drone";
+// only the dedicated 'vehicles' category model (same naming convention as
+// car-*.glb/boat.glb/airplane-toy.glb) is treated as the driveable Drone.
+export function isDroneModel(modelPath: string): boolean {
+  return /\/vehicles\/drone\.glb$/i.test(modelPath);
+}
+
 // The one ground-paint texture (WorldEditor's paint bucket, #97's grass/
 // water mixed-region system) that counts as "water" for boat placement and
 // driving — see isWaterAt below. Kept here, not re-declared per call site,

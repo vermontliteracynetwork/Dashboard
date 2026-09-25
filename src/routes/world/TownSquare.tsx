@@ -23,7 +23,7 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS } from './townLayout';
+import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS } from './townLayout';
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
@@ -138,6 +138,32 @@ const TRAIN_MAX_SPEED = BASE_MOVE_SPEED * 1.4;
 const TRAIN_ACCEL = 3.2; // units/s²
 const TRAIN_COAST_DECEL = 2; // units/s² — release Go/Reverse and it drifts down
 const TRAIN_STOP_DECEL = 9; // units/s² — pressing Stop actively brakes
+// Planes and the Drone (docs/TRANSPORTATION.md §2 Planes/Drone, "same
+// mechanics, camera, and controls as the plane... added alongside Planes,
+// per direct teacher instruction" — no separate Drone constants exist,
+// both share every number below). "No runway requirement... a single
+// Takeoff button triggers a scripted, automatic gentle ascent"; once
+// flying, constant-speed cruise with turn-left/turn-right + altitude-up/
+// altitude-down (constrained-altitude 2.5D flight, no roll/pitch input at
+// all — closer to Pilotwings' easy mode than a flight sim); "Land" glides
+// back down and re-grounds automatically.
+// JUDGMENT CALL, flagged plainly: the altitude band (floor/ceiling) is a
+// reasonable estimate, not measured against this world's real building
+// heights — no per-building height field exists anywhere in this app's
+// data model (buildings are placed as scaled 3D models, not tracked by a
+// numeric height), so "floor = tallest rooftop + a buffer" from the design
+// doc can't be computed exactly. Picked comfortably above what this app's
+// tallest building-category models are likely to render at, per
+// `SIZE_REFERENCE.md`'s own scale conventions — worth a human eyeballing
+// live and adjusting PLANE_MIN_ALTITUDE if a plane ever visibly clips a
+// tall building.
+const PLANE_MIN_ALTITUDE = 8;
+const PLANE_MAX_ALTITUDE = 14;
+const PLANE_CLIMB_RATE = 6; // units/s while ascending/descending
+const PLANE_CRUISE_SPEED = BASE_MOVE_SPEED * 2.2;
+const PLANE_GLIDE_SPEED = PLANE_CRUISE_SPEED * 0.5; // forward speed while landing
+const PLANE_TURN_RATE = 1.6; // rad/s
+const PLANE_ALTITUDE_RATE = 3.5; // units/s, student-controlled while flying
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
 const CAMERA_LOOK_CAP = Math.PI * 0.6;
@@ -1161,7 +1187,7 @@ interface PlayerProps {
   // keys directly rather than gasRef/brakeRef. Defaults to 'car' so every
   // existing call site (which only ever drove cars before boats existed)
   // keeps working unchanged.
-  vehicleKind?: 'car' | 'boat' | 'train';
+  vehicleKind?: 'car' | 'boat' | 'train' | 'plane';
   // Boats only: the painted water patches driving must stay inside of (see
   // isWaterAt in townLayout.ts) — a bump-and-slide boundary, never a hard
   // wall or a crash, per the design doc.
@@ -1178,6 +1204,15 @@ interface PlayerProps {
   trainGoRef?: React.RefObject<boolean>;
   trainReverseRef?: React.RefObject<boolean>;
   trainStopRef?: React.RefObject<boolean>;
+  // Planes/Drone only (docs/TRANSPORTATION.md §2 Planes/Drone) — takeoffRef/
+  // landRef are one-shot "pressed" pulses (same pattern as trainStopRef);
+  // altitudeRef and phaseRef are written every frame by Player (same
+  // pattern as speedRef above) so TownSquare can lift the rendered vehicle
+  // model to the right height and show the right Takeoff/Land button.
+  planeTakeoffRef?: React.RefObject<boolean>;
+  planeLandRef?: React.RefObject<boolean>;
+  planeAltitudeRef?: React.RefObject<number>;
+  planePhaseRef?: React.RefObject<'grounded' | 'ascending' | 'flying' | 'descending'>;
   // Transportation Phase 2b (docs/BOATS_DESIGN.md §8) — a ref this writes
   // every frame with the current vehicle's speed as a 0..1 ratio of its own
   // max speed, read imperatively by the wake/dust particle trail (same
@@ -1278,7 +1313,7 @@ function VehicleTrailParticles({ active, playerPos, facingRef, speedRef, kind, r
   );
 }
 
-function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, gasBlocked, vehicleKind, groundPatches, speedRef, soundRef, trainPathRef, trainGoRef, trainReverseRef, trainStopRef }: PlayerProps) {
+function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook, cameraPitch, mapView, teleportTarget, emoteSrc, onSelfClick, facingRef, hideAvatar, driving, gasRef, brakeRef, gasBlocked, vehicleKind, groundPatches, speedRef, soundRef, trainPathRef, trainGoRef, trainReverseRef, trainStopRef, planeTakeoffRef, planeLandRef, planeAltitudeRef, planePhaseRef }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useKeys();
   const { camera } = useThree();
@@ -1293,6 +1328,11 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const trainArc = useRef(0);
   const trainSpeed = useRef(0);
   const trainWasMoving = useRef(false);
+  // Planes/Drone (docs/TRANSPORTATION.md §2 Planes/Drone) — altitude is a
+  // plain number (0 = grounded); phase gates which inputs are read at all
+  // (Take off/Land are scripted, ignoring turn/altitude input mid-transition).
+  const planeAltitude = useRef(0);
+  const planePhase = useRef<'grounded' | 'ascending' | 'flying' | 'descending'>('grounded');
   // Transportation Phase 2b — a soft cooldown so a boat/car resting against
   // a boundary doesn't retrigger the contact thud every single frame; reset
   // whenever a real new contact happens, ticks down by dt otherwise.
@@ -1317,6 +1357,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       boatSpeed.current = 0;
       trainSpeed.current = 0;
       trainArc.current = teleportTarget.current.trainArc ?? 0;
+      planeAltitude.current = 0;
+      planePhase.current = 'grounded';
       walkTarget.current = null;
       teleportTarget.current = null;
       onMove(pos.current);
@@ -1381,6 +1423,70 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       const nowMoving = Math.abs(trainSpeed.current) > 0.01;
       if (trainWasMoving.current && !nowMoving) soundRef?.current?.whistle();
       trainWasMoving.current = nowMoving;
+    } else if (!frozen && driving && vehicleKind === 'plane') {
+      // Planes/Drone (docs/TRANSPORTATION.md §2) — "constrained-altitude
+      // 2.5D flight, not full 3D pitch/roll/yaw... no roll/pitch input at
+      // all." Four phases: grounded (parked, Takeoff available), ascending/
+      // descending (scripted, all input ignored), flying (turn + altitude
+      // live, constant cruise speed, no accel/decel — "closer to
+      // Pilotwings' easy mode than a flight sim").
+      walkTarget.current = null;
+      cameraLook.current = 0;
+      cameraPitch.current = 0;
+      const k = keys.current;
+      if (planePhase.current === 'grounded') {
+        if (planeTakeoffRef?.current) {
+          planeTakeoffRef.current = false;
+          planePhase.current = 'ascending';
+        }
+      } else if (planePhase.current === 'ascending') {
+        planeAltitude.current = Math.min(PLANE_MIN_ALTITUDE, planeAltitude.current + PLANE_CLIMB_RATE * dt);
+        if (planeAltitude.current >= PLANE_MIN_ALTITUDE) planePhase.current = 'flying';
+        onMove(pos.current);
+        moved = true;
+      } else if (planePhase.current === 'flying') {
+        const steer = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
+        // Same up/down-as-a-second-axis convention boats already use for
+        // throttle — here it's altitude instead, still "no new control
+        // surface," just the existing D-pad reinterpreted per vehicle.
+        const altInput = (k['w'] || k['arrowup'] ? 1 : 0) - (k['s'] || k['arrowdown'] ? 1 : 0) - touchDir.current.z;
+        if (Math.abs(steer) > 0.01) facing.current -= Math.sign(steer) * PLANE_TURN_RATE * dt;
+        if (Math.abs(altInput) > 0.01) {
+          planeAltitude.current = THREE.MathUtils.clamp(planeAltitude.current + altInput * PLANE_ALTITUDE_RATE * dt, PLANE_MIN_ALTITUDE, PLANE_MAX_ALTITUDE);
+        }
+        const dx = Math.sin(facing.current);
+        const dz = Math.cos(facing.current);
+        // No building/obstacle collision while airborne — the plane is
+        // flying over the town, not through it; only the world's own outer
+        // edge still applies, as a soft clamp (never a hard wall or crash),
+        // same standard the design doc sets for every vehicle boundary.
+        pos.current.x = THREE.MathUtils.clamp(pos.current.x + dx * PLANE_CRUISE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+        pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * PLANE_CRUISE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+        if (planeLandRef?.current) {
+          planeLandRef.current = false;
+          planePhase.current = 'descending';
+        }
+        onMove(pos.current);
+        moved = true;
+      } else if (planePhase.current === 'descending') {
+        // "Forgiving, assisted only... no precision touchdown skill
+        // required" — scripted glide, no turn input, gentle forward
+        // drift while altitude bleeds off, auto-completing at ground level
+        // wherever that puts it, never a "missed landing" state.
+        const dx = Math.sin(facing.current);
+        const dz = Math.cos(facing.current);
+        pos.current.x = THREE.MathUtils.clamp(pos.current.x + dx * PLANE_GLIDE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+        pos.current.z = THREE.MathUtils.clamp(pos.current.z + dz * PLANE_GLIDE_SPEED * dt, -GROUND_HALF + 1, GROUND_HALF - 1);
+        planeAltitude.current = Math.max(0, planeAltitude.current - PLANE_CLIMB_RATE * dt);
+        if (planeAltitude.current <= 0) planePhase.current = 'grounded';
+        onMove(pos.current);
+        moved = true;
+      }
+      if (planeAltitudeRef) planeAltitudeRef.current = planeAltitude.current;
+      if (planePhaseRef) planePhaseRef.current = planePhase.current;
+      const planeRatio = planePhase.current === 'flying' ? 0.55 : planePhase.current === 'grounded' ? 0 : 0.3;
+      if (speedRef) speedRef.current = planeRatio;
+      soundRef?.current?.setIntensity(planeRatio);
     } else if (!frozen && driving && vehicleKind === 'boat') {
       // Boat throttle+turn physics (docs/BOATS_DESIGN.md §1/§4) — reuses
       // the ordinary D-pad/touchDir/WASD input, up/down as throttle
@@ -1569,8 +1675,19 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       const camAngle = facing.current + cameraLook.current;
       const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE;
       const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE;
-      camera.position.lerp(new THREE.Vector3(camX, CAMERA_HEIGHT, camZ), 1 - Math.pow(0.001, dt));
-      camera.lookAt(pos.current.x, 1 + cameraPitch.current, pos.current.z);
+      // Planes/Drone while airborne (docs/TRANSPORTATION.md §2's "steep
+      // angled third-person bird's-eye chase cam, roughly 60-70 degrees off
+      // horizontal — NOT a true 90-degree orthographic top-down"): pulling
+      // the camera straight up by the plane's own altitude and pointing it
+      // at ground level (rather than at the plane's own height, like every
+      // other vehicle's cam does) is what creates that steep-but-not-flat
+      // downward angle — no separate camera mode/branch needed for the
+      // Drone, it reuses this exact same math per the design doc.
+      const airborne = vehicleKind === 'plane' && planePhase.current !== 'grounded' && planeAltitude.current > 0.5;
+      const camHeight = airborne ? CAMERA_HEIGHT + planeAltitude.current : CAMERA_HEIGHT;
+      const lookY = airborne ? 0.5 : 1 + cameraPitch.current;
+      camera.position.lerp(new THREE.Vector3(camX, camHeight, camZ), 1 - Math.pow(0.001, dt));
+      camera.lookAt(pos.current.x, lookY, pos.current.z);
     }
   });
 
@@ -2232,6 +2349,51 @@ function TrainStopButton({ stopRef, style }: { stopRef: React.RefObject<boolean>
   );
 }
 
+// Planes/Drone (docs/TRANSPORTATION.md §2) — a single tap button for
+// Takeoff or Land (whichever applies to the current phase; TownSquare
+// picks which one to render). Same shape/sizing/touch-callout fixes as
+// every other vehicle button here, and deliberately the same plain rotated-
+// arrow image PedalButton/DpadButton already use rather than an emoji
+// glyph — this app's own established fix for the iOS Copy/Look-Up
+// touch-callout bug was specifically "no text/emoji content inside the
+// button," so a fresh emoji icon here would reopen exactly that gap.
+function VehicleTapButton({ label, rotate, color, onPress, style }: { label: string; rotate: number; color: string; onPress: () => void; style: React.CSSProperties }) {
+  return (
+    <button
+      style={{
+        position: 'absolute',
+        width: 70,
+        height: 56,
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: 14,
+        border: 'var(--chunk, 3px) solid var(--ink, #1f4238)',
+        background: color,
+        boxShadow: '3px 3px 0 var(--ink, #1f4238)',
+        touchAction: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        ...style,
+      }}
+      onClick={onPress}
+      aria-label={label}
+    >
+      <img
+        src="/world/ui/btn-arrow.png"
+        alt=""
+        style={{ width: 28, height: 28, transform: `rotate(${rotate}deg)`, pointerEvents: 'none' }}
+      />
+    </button>
+  );
+}
+
 // The teacher's explicit ask: on a computer, students should have both a
 // way to look around independent of where they're walking, and a way to
 // walk in a direction — the D-pad already covers walking on every device,
@@ -2328,6 +2490,14 @@ export default function TownSquare() {
   const drivingIsBoat = !!drivingObj && isBoatModel(drivingObj.modelPath);
   // Transportation Phase 3 (docs/TRANSPORTATION.md §2 Trains).
   const drivingIsTrain = !!drivingObj && isTrainModel(drivingObj.modelPath);
+  // Transportation Phase 4 (docs/TRANSPORTATION.md §2 Planes/Drone).
+  const drivingIsPlane = !!drivingObj && isPlaneModel(drivingObj.modelPath);
+  const drivingIsDrone = !!drivingObj && isDroneModel(drivingObj.modelPath);
+  // Drone shares every mechanic/camera/control with the Plane per direct
+  // teacher instruction (TRANSPORTATION.md §2) — used everywhere the two
+  // need to be treated identically; drivingIsPlane/drivingIsDrone stay
+  // separate only for copy/label text that names the vehicle.
+  const drivingIsAircraft = drivingIsPlane || drivingIsDrone;
   // Transportation Phase 2b/2d — the currently-mounted vehicle's live speed
   // (0..1 of its own max) and its synthesized engine/splash sound
   // controller (src/lib/vehicleAudio.ts). Refs, not state: Player writes
@@ -2344,6 +2514,13 @@ export default function TownSquare() {
   const trainGoRef = useRef(false);
   const trainReverseRef = useRef(false);
   const trainStopRef = useRef(false);
+  // Transportation Phase 4 — Takeoff/Land one-shot pulses, plus the live
+  // altitude/phase Player writes every frame (used to lift the rendered
+  // vehicle model and to pick which HUD button/label to show).
+  const planeTakeoffRef = useRef(false);
+  const planeLandRef = useRef(false);
+  const planeAltitudeRef = useRef(0);
+  const planePhaseRef = useRef<'grounded' | 'ascending' | 'flying' | 'descending'>('grounded');
   // Shared music library (docs: car radio, Concert Hall, Boom Box all draw
   // from the same list) — direct teacher request. Audio only: the actual
   // sound comes from a visually hidden YouTube embed (see
@@ -2775,7 +2952,7 @@ export default function TownSquare() {
   // partial-second progress toward the next dash loss picks back up
   // exactly where it left off once the modal closes.
   useEffect(() => {
-    if (!drivingObjectId || drivingIsBoat || drivingIsTrain || gasQuizQuestion) return;
+    if (!drivingObjectId || drivingIsBoat || drivingIsTrain || drivingIsAircraft || gasQuizQuestion) return;
     const id = window.setInterval(() => {
       gasSecondsRef.current += 1;
       if (gasSecondsRef.current >= 15) {
@@ -2784,7 +2961,7 @@ export default function TownSquare() {
       }
     }, 1000);
     return () => window.clearInterval(id);
-  }, [drivingObjectId, drivingIsBoat, drivingIsTrain, gasQuizQuestion]);
+  }, [drivingObjectId, drivingIsBoat, drivingIsTrain, drivingIsAircraft, gasQuizQuestion]);
   // Set once dashes hit 0 while driving without having topped up first —
   // direct instruction: "if gas runs out while driving without using a
   // gas pump, the student must be prompted with 10 consecutive questions
@@ -2840,12 +3017,12 @@ export default function TownSquare() {
   // topped up first, the car is stopped dead (Player's driving branch,
   // via gasBlocked) and the un-skippable lockout opens on its own.
   useEffect(() => {
-    if (drivingObjectId && !drivingIsBoat && !drivingIsTrain && carGasDashes <= 0 && !gasLockout) {
+    if (drivingObjectId && !drivingIsBoat && !drivingIsTrain && !drivingIsAircraft && carGasDashes <= 0 && !gasLockout) {
       setGasLockout(true);
       setGasLockoutStreak(0);
       openGasQuiz();
     }
-  }, [drivingObjectId, drivingIsBoat, drivingIsTrain, carGasDashes]);
+  }, [drivingObjectId, drivingIsBoat, drivingIsTrain, drivingIsAircraft, carGasDashes]);
   // Click (mouse/trackpad) or tap (iPad) anywhere on the ground to walk
   // there — the primary cross-device movement method; the D-pad and
   // keyboard both still work and take over instantly if used.
@@ -3166,7 +3343,17 @@ export default function TownSquare() {
     // a tap, so this is never true autoplay. Respects the student's own
     // Settings toggle (2d) from the very first frame, not just after it's
     // later changed.
-    const kind: VehicleSoundKind = isBoatModel(obj.modelPath) ? 'boat' : isTrainModel(obj.modelPath) ? 'train' : 'car';
+    const kind: VehicleSoundKind = isBoatModel(obj.modelPath)
+      ? 'boat'
+      : isTrainModel(obj.modelPath)
+      ? 'train'
+      : isPlaneModel(obj.modelPath) || isDroneModel(obj.modelPath)
+      ? 'plane'
+      : 'car';
+    planeTakeoffRef.current = false;
+    planeLandRef.current = false;
+    planeAltitudeRef.current = 0;
+    planePhaseRef.current = 'grounded';
     vehicleSoundRef.current?.stop();
     const controller = new VehicleSoundController(kind, student?.vehicleSoundEnabled !== false);
     controller.start();
@@ -3189,6 +3376,10 @@ export default function TownSquare() {
     trainPathRef.current = null;
     trainGoRef.current = false;
     trainReverseRef.current = false;
+    planeTakeoffRef.current = false;
+    planeLandRef.current = false;
+    planeAltitudeRef.current = 0;
+    planePhaseRef.current = 'grounded';
     // Direct teacher instruction: the radio is part of the car, so getting
     // out stops whatever's playing rather than leaving it running.
     setPlayingTrackId(null);
@@ -3800,16 +3991,20 @@ export default function TownSquare() {
             onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
             hideAvatar={!!drivingObjectId}
             driving={!!drivingObjectId}
-            vehicleKind={drivingIsBoat ? 'boat' : drivingIsTrain ? 'train' : 'car'}
+            vehicleKind={drivingIsBoat ? 'boat' : drivingIsTrain ? 'train' : drivingIsAircraft ? 'plane' : 'car'}
             groundPatches={groundPatches}
             gasRef={gasRef}
             brakeRef={brakeRef}
-            gasBlocked={!drivingIsBoat && !drivingIsTrain && carGasDashes <= 0}
+            gasBlocked={!drivingIsBoat && !drivingIsTrain && !drivingIsAircraft && carGasDashes <= 0}
             speedRef={vehicleSpeedRef}
             soundRef={vehicleSoundRef}
             trainPathRef={trainPathRef}
             trainGoRef={trainGoRef}
             trainReverseRef={trainReverseRef}
+            planeTakeoffRef={planeTakeoffRef}
+            planeLandRef={planeLandRef}
+            planeAltitudeRef={planeAltitudeRef}
+            planePhaseRef={planePhaseRef}
             trainStopRef={trainStopRef}
           />
           {/* Transportation Phase 2b (docs/BOATS_DESIGN.md §4/§8) — the
@@ -3915,13 +4110,22 @@ export default function TownSquare() {
             // one — the exact "render at the live drag position" pattern
             // Build Mode already uses for a placed object being dragged.
             const isDriving = drivingObjectId === obj.id;
+            const isPlane = isPlaneModel(obj.modelPath);
+            const isDrone = isDroneModel(obj.modelPath);
             const liveObj = isDriving
-              ? { ...baseObj, position: [playerPos.x, 0, playerPos.z] as [number, number, number], rotationY: playerFacingRef.current }
+              ? {
+                  ...baseObj,
+                  // Planes/Drone (docs/TRANSPORTATION.md §2): lifted off
+                  // the ground by their own live altitude while airborne —
+                  // every other vehicle stays at y=0, same as before.
+                  position: [playerPos.x, (isPlane || isDrone) ? planeAltitudeRef.current : 0, playerPos.z] as [number, number, number],
+                  rotationY: playerFacingRef.current,
+                }
               : baseObj;
             const isCar = isCarModel(obj.modelPath);
             const isBoat = isBoatModel(obj.modelPath);
             const isTrain = isTrainModel(obj.modelPath);
-            const isVehicle = isCar || isBoat || isTrain;
+            const isVehicle = isCar || isBoat || isTrain || isPlane || isDrone;
             const isMusicSource = isMusicSourceModel(obj.modelPath);
             return (
             <group key={obj.id}>
@@ -3939,7 +4143,20 @@ export default function TownSquare() {
                   // Vehicles are checked first now so that can't happen.
                   isVehicle && !mapView && !wasDraggingLook.current
                     ? () => {
-                        if (isDriving) { setExitConfirmActive(true); return; }
+                        if (isDriving) {
+                          // Planes/Drone (docs/TRANSPORTATION.md §2):
+                          // "Landing... the plane cannot 'crash'" implies
+                          // Land is the only way down — judgment call:
+                          // exiting mid-flight doesn't make sense (there's
+                          // nowhere for the student to stand), so the exit
+                          // confirm only opens once the plane is actually
+                          // back on the ground; clicking it mid-flight is a
+                          // clean no-op rather than a confirm card that
+                          // can't really process an exit yet.
+                          if ((isPlane || isDrone) && planePhaseRef.current !== 'grounded') return;
+                          setExitConfirmActive(true);
+                          return;
+                        }
                         if (drivingObjectId) return; // already driving a different vehicle
                         setDriveConfirmId(obj.id);
                       }
@@ -4035,13 +4252,13 @@ export default function TownSquare() {
               {driveConfirmId === obj.id && (
                 <Html center position={[obj.position[0], 2.4, obj.position[2]]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? `Board ${obj.customName || obj.label}?` : isTrain ? `Board ${obj.customName || obj.label}?` : `Drive ${obj.customName || obj.label}?`}</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat || isTrain ? `Board ${obj.customName || obj.label}?` : isDrone ? `Fly ${obj.customName || obj.label}?` : isPlane ? `Fly ${obj.customName || obj.label}?` : `Drive ${obj.customName || obj.label}?`}</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
                         onClick={() => startDriving(obj)}
                         style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        {isBoat ? '⛵ Board!' : isTrain ? '🚂 Board!' : '🚗 Drive!'}
+                        {isBoat ? '⛵ Board!' : isTrain ? '🚂 Board!' : isDrone ? '🚁 Fly!' : isPlane ? '✈️ Fly!' : '🚗 Drive!'}
                       </button>
                       <button
                         onClick={() => setDriveConfirmId(null)}
@@ -4056,7 +4273,7 @@ export default function TownSquare() {
               {isDriving && exitConfirmActive && (
                 <Html center position={[playerPos.x, 2.4, playerPos.z]}>
                   <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? 'Get off the boat?' : isTrain ? 'Get off the train?' : 'Exit the car?'}</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{isBoat ? 'Get off the boat?' : isTrain ? 'Get off the train?' : isDrone || isPlane ? `Get out of the ${isDrone ? 'drone' : 'plane'}?` : 'Exit the car?'}</div>
                     <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                       <button
                         onClick={() => stopDriving(obj)}
@@ -4068,7 +4285,7 @@ export default function TownSquare() {
                         onClick={() => setExitConfirmActive(false)}
                         style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        {isBoat ? 'Keep sailing' : isTrain ? 'Keep riding' : 'Keep driving'}
+                        {isBoat ? 'Keep sailing' : isTrain ? 'Keep riding' : (isDrone || isPlane) ? 'Not yet' : 'Keep driving'}
                       </button>
                     </div>
                   </div>
@@ -4100,6 +4317,24 @@ export default function TownSquare() {
             <PedalButton label="Go" rotate={-90} color="#2f9e44" pressedRef={trainGoRef} style={{ top: 0, left: 50 }} />
             <TrainStopButton stopRef={trainStopRef} style={{ top: 57, left: 50 }} />
             <PedalButton label="Reverse" rotate={90} color="#3b6fae" pressedRef={trainReverseRef} style={{ bottom: 0, left: 50 }} />
+          </>
+        ) : drivingObjectId && drivingIsAircraft ? (
+          <>
+            {/* Planes/Drone (docs/TRANSPORTATION.md §2) — Up/Down is
+                altitude instead of throttle/forward-reverse (still "no new
+                control surface," the same D-pad every vehicle already
+                reuses), Left/Right is turn (below), and the pedal slot
+                holds a single Takeoff/Land button that only shows once
+                it's actually meaningful to press (nothing during the
+                scripted ascend/descend transitions). */}
+            <DpadButton rotate={-90} label="Altitude up" dx={0} dz={-1} style={{ top: 0, left: 57 }} touchDir={touchDir} />
+            <DpadButton rotate={90} label="Altitude down" dx={0} dz={1} style={{ bottom: 0, left: 57 }} touchDir={touchDir} />
+            {planePhaseRef.current === 'grounded' && (
+              <VehicleTapButton label="Takeoff" rotate={-90} color="#2f9e44" onPress={() => { planeTakeoffRef.current = true; }} style={{ top: 57, left: 50 }} />
+            )}
+            {planePhaseRef.current === 'flying' && (
+              <VehicleTapButton label="Land" rotate={90} color="#c0392b" onPress={() => { planeLandRef.current = true; }} style={{ top: 57, left: 50 }} />
+            )}
           </>
         ) : drivingObjectId && !drivingIsBoat ? (
           <>
@@ -4184,7 +4419,7 @@ export default function TownSquare() {
           answerGasQuiz below) — never on its own. The Fill Up button is
           the voluntary, non-blocking version of that pump; running fully
           dry opens the un-skippable lockout automatically instead. */}
-      {drivingObjectId && !drivingIsBoat && !drivingIsTrain && (
+      {drivingObjectId && !drivingIsBoat && !drivingIsTrain && !drivingIsAircraft && (
         <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.92)', padding: '5px 12px', borderRadius: 999, border: '2px solid var(--ink, #1f4238)', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}>
           <span style={{ fontSize: 15 }} aria-hidden="true">⛽</span>
           <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238' }}>Gas</span>
@@ -4263,6 +4498,8 @@ export default function TownSquare() {
             ? '⛵ Sailing! Use WASD/arrow keys/the buttons to steer. Click the boat to get off.'
             : drivingIsTrain
             ? '🚂 Riding the rails! Use the Go/Stop/Reverse buttons. Click the train to get off.'
+            : drivingIsPlane || drivingIsDrone
+            ? `${drivingIsDrone ? '🚁' : '✈️'} ${planePhaseRef.current === 'grounded' ? 'Press Takeoff when ready!' : planePhaseRef.current === 'flying' ? 'Flying! Turn and change altitude with the buttons, then press Land.' : 'On the way!'} Click the ${drivingIsDrone ? 'drone' : 'plane'} to get out once you land.`
             : '🚗 Driving! Use WASD/arrow keys/the buttons to steer. Click the car to get out.'}
         </p>
       ) : !hasWalkedOnce && (

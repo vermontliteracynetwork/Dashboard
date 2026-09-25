@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-planes-drone-shipped',
+    date: '2026-09-25',
+    icon: '✈️',
+    title: 'You can fly a plane or a drone now',
+    body: 'Find a plane or a drone and click it to hop in. Press Takeoff to lift off, then use the buttons to turn and change your altitude. When you are ready to come back down, press Land. Click the plane or drone again to get out once you have landed.',
+  },
+  {
     id: '2026-09-25-trains-shipped',
     date: '2026-09-25',
     icon: '🚂',

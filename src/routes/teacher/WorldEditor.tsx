@@ -640,7 +640,12 @@ const FURNITURE_SUBCATEGORIES = ['Kitchen', 'Bathroom', 'Bedroom', 'Living Room'
 // (water-recreation structures, not vehicles — verified against the real
 // manifest labels before shipping this, the same false-positive check the
 // original size-class keyword list document had to do for its own terms).
-const TRANSPORT_EXCLUDE_RE = /boat house|boat stand|boat wash/i;
+// 'camera drone' (scifi category) is a separate decorative prop, not the
+// dedicated 'vehicles' Drone model this Transportation catalog grouping and
+// isDroneModel (townLayout.ts) both mean — excluded here the same way boat
+// structures already are, so it doesn't show up mis-filed under
+// Transportation > Planes.
+const TRANSPORT_EXCLUDE_RE = /boat house|boat stand|boat wash|camera drone/i;
 function transportSubcategory(label: string): string | null {
   if (TRANSPORT_EXCLUDE_RE.test(label)) return null;
   // Transportation Phase 3 (docs/TRANSPORTATION.md §2 Trains): the six
@@ -652,9 +657,11 @@ function transportSubcategory(label: string): string | null {
   if (/\b(train|locomotive|tender|rail)\b/i.test(label)) return 'Trains';
   if (/\b(boat|ship)\b/i.test(label)) return 'Boats';
   if (/\b(car|truck|van|bus)\b/i.test(label)) return 'Cars';
+  // Transportation Phase 4 (docs/TRANSPORTATION.md §2 Planes/Drone).
+  if (/airplane|drone/i.test(label)) return 'Planes';
   return null;
 }
-const TRANSPORT_SUBCATEGORIES = ['Cars', 'Boats', 'Trains'];
+const TRANSPORT_SUBCATEGORIES = ['Cars', 'Boats', 'Trains', 'Planes'];
 
 // The real main-category + subcategory for one manifest asset — checks
 // the Transportation override first (it can pull an item out of any raw
