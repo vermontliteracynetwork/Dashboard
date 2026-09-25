@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-solid-objects-full-footprint',
+    date: '2026-09-25',
+    icon: '🧱',
+    title: 'Solid objects now block your whole path',
+    body: 'Long or wide objects your teacher builds with, like a wide building or a long wall, used to let you sneak through part of them even though they looked solid. Now the whole shape you see is the shape that actually blocks you, for walking, for Neighbors and other characters, and for cars too.',
+  },
+  {
     id: '2026-09-25-lot-expand',
     date: '2026-09-25',
     icon: '📐',
