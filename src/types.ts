@@ -160,6 +160,14 @@ export interface Student {
   // a teacher can turn it off per student who reacts badly to any status
   // chip regardless of its calm tone.
   showSentenceBuildingHints?: boolean;
+  // Punctuation tiles — A23-ROADMAP Phase 2 ("punctuation tiles as a
+  // new opt-in, teacher-toggleable category, not a replacement for the
+  // current auto-punctuated Sentence Formulas, which are a helpful
+  // scaffold for this population"). Off by default per the roadmap's own
+  // "opt-in" framing — a teacher turns it on per student ready to place
+  // their own end marks/commas rather than relying on Sentence Formulas'
+  // automatic punctuation.
+  showPunctuationTiles?: boolean;
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

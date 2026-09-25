@@ -383,6 +383,14 @@ export default function StudentManager() {
                   />{' '}
                   📝 Show calm "building your sentence" status hints in Sentence Formulas/Sentence Builder
                 </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={st.showPunctuationTiles ?? false}
+                    onChange={(e) => updateStudent(st.id, { showPunctuationTiles: e.target.checked })}
+                  />{' '}
+                  ❓ Show a Punctuation Tiles category in Literacy Manipulatives (opt-in, off by default)
+                </label>
 
                 <hr className="divider" />
                 <strong>Piggy Bank</strong>
