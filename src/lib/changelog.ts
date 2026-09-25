@@ -23,6 +23,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: 'Morphemes now has a Word Matrix (pick a root and see which prefixes and suffixes make real words) and a Reverse Morphology prompt card, plus little connector lines when word parts join. There is also a new Writing Scaffolds category with writing frames and sentence starters to help you get your ideas down.',
   },
   {
+    id: '2026-09-25-bakery-match3',
+    date: '2026-09-25',
+    icon: '🥐',
+    title: 'The Bakery is open in Town Square!',
+    body: 'Walk up to the new Bakery to play a match-3 treat game. Answer a quick question every so often to keep baking, and when you are done, spin the treat wheel! You can eat what you win or give it to one of your pets to fill up their food bar.',
+  },
+  {
     id: '2026-09-25-lm-chains-hearts-rules-dictation',
     date: '2026-09-25',
     icon: '❤️',
