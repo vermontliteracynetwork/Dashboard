@@ -30,6 +30,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: 'Cinema, Arcade, Gallery, Farmer\'s Market, and Silly Quizzes all show up inside the laptop screen look now, with the same Back button as everywhere else on your Computer. Chat has a browser-style bar at the top too.',
   },
   {
+    id: '2026-09-25-lm-synced-tts',
+    date: '2026-09-25',
+    icon: '🔈',
+    title: 'Words light up when they are read aloud',
+    body: 'In Literacy Manipulatives, when you tap a 🔈 button on a word list, a morpheme card, or a finished Sentence Formula sentence, the word being spoken lights up as it is read. It works on most devices; on a few it will still read aloud, just without the light-up.',
+  },
+  {
     id: '2026-09-25-lm-new-symbols',
     date: '2026-09-25',
     icon: '🔺',

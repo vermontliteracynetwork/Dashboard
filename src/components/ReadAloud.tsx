@@ -34,9 +34,14 @@ function currentStudent() {
 // Neighbor/Townsperson's own assigned voice (lib/npcVoices.ts), not the
 // student's equipped marketplace voice skin, so it must never fall back
 // to the student's own pick.
-export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null, npcVoiceProfile?: NpcVoiceProfile) => {
-  if (!('speechSynthesis' in window) || !text) return;
-  window.speechSynthesis.cancel();
+//
+// Extracted from speak() below (A23-ROADMAP Phase 1) so Literacy
+// Manipulatives' new synced-word-highlighting TTS component
+// (components/SyncedSpeakButton.tsx) can build the exact same
+// voice/rate/pitch-resolved utterance and just attach its own
+// `onboundary` handler, instead of re-implementing this resolution logic
+// a second time and risking it drifting out of sync with this one.
+export function buildUtterance(text: string, settings?: TTSSettings, voiceSkinId?: string | null, npcVoiceProfile?: NpcVoiceProfile): SpeechSynthesisUtterance {
   const utter = new SpeechSynthesisUtterance(text);
   const student = currentStudent();
   const resolvedSettings = settings ?? student?.ttsSettings;
@@ -45,7 +50,6 @@ export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string
     utter.pitch = npcVoiceProfile.pitch;
     const npcVoice = pickSystemVoice(npcVoiceProfile.hints);
     if (npcVoice) utter.voice = npcVoice;
-    window.speechSynthesis.speak(utter);
     return utter;
   }
   const resolvedVoiceSkinId = voiceSkinId !== undefined ? voiceSkinId : (student?.equippedVoiceId ?? null);
@@ -59,6 +63,13 @@ export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string
     const voice = window.speechSynthesis.getVoices().find((v) => v.voiceURI === resolvedSettings.voiceURI);
     if (voice) utter.voice = voice;
   }
+  return utter;
+}
+
+export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null, npcVoiceProfile?: NpcVoiceProfile) => {
+  if (!('speechSynthesis' in window) || !text) return;
+  window.speechSynthesis.cancel();
+  const utter = buildUtterance(text, settings, voiceSkinId, npcVoiceProfile);
   window.speechSynthesis.speak(utter);
   return utter;
 };
