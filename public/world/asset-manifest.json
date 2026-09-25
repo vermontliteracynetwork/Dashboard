@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T17:19:12.765Z",
+  "generatedAt": "2026-09-25T19:19:15.100Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -1077,6 +1077,21 @@
       "category": "farm"
     },
     {
+      "path": "/world/models/farm/chicken.glb",
+      "label": "Chicken",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/cow-poly.glb",
+      "label": "Cow Poly",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/cow-quaternius.glb",
+      "label": "Cow Quaternius",
+      "category": "farm"
+    },
+    {
       "path": "/world/models/farm/fence.glb",
       "label": "Fence",
       "category": "farm"
@@ -1087,8 +1102,18 @@
       "category": "farm"
     },
     {
+      "path": "/world/models/farm/hen.glb",
+      "label": "Hen",
+      "category": "farm"
+    },
+    {
       "path": "/world/models/farm/open-barn.glb",
       "label": "Open Barn",
+      "category": "farm"
+    },
+    {
+      "path": "/world/models/farm/rooster.glb",
+      "label": "Rooster",
       "category": "farm"
     },
     {
