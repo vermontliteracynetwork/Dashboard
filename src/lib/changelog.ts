@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-real-icons-pass-1',
+    date: '2026-09-25',
+    icon: '🖼️',
+    title: 'Some emoji became real pictures',
+    body: 'Around Town Square, the Marketplace, your task list, and the Tools menu, some emoji buttons now show real little pictures instead, like the X to close a window, the checkmark when you finish something, and the lock on things you can’t afford yet. More of these will keep changing over to real pictures over time.',
+  },
+  {
     id: '2026-09-25-book-paper-reskin',
     date: '2026-09-25',
     icon: '📖',

@@ -6,6 +6,7 @@ import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { todayISO } from '../../lib/dates';
 import type { PetDef } from '../../lib/petCatalog';
+import { Icon } from '../../components/Icon';
 
 // A real rendered picture of the pet, per direct teacher instruction
 // ("make sure students can see images of pets in pet store"). Not every
@@ -159,22 +160,22 @@ export default function PetShelter() {
         <div className="shop-header">
           <span className="shop-ribbon">🐾 PET SHELTER</span>
           <div className="row" style={{ gap: 8 }}>
-            <span className="shop-balance-chip" title="Your Piggy Bank balance">🐷 {formatMoney(student.coins)}</span>
+            <span className="shop-balance-chip" title="Your Piggy Bank balance"><Icon name="coins" size={16} fallback="🐷" /> {formatMoney(student.coins)}</span>
             <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/pet-journal')}>📖 Journal</button>
             <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}><Icon name="home" size={14} fallback="🏠" /> Home</button>
           </div>
         </div>
 
         <div className="stack" style={{ gap: 16, padding: '12px 0' }}>
           {canAdoptFree && (
             <div className="content-well" style={{ background: 'linear-gradient(120deg, var(--yellow), var(--orange))', textAlign: 'center' }}>
-              <strong>🎁 You have a free pet coupon! Pick any pet below to redeem it.</strong>
+              <strong><Icon name="gift" size={14} fallback="🎁" /> You have a free pet coupon! Pick any pet below to redeem it.</strong>
             </div>
           )}
           {petHomeFull && (
             <div className="content-well" style={{ textAlign: 'center', opacity: 0.85 }}>
-              🏠 Your pet home is full ({PET_OWNERSHIP_CAP}/{PET_OWNERSHIP_CAP}). Visit Home to care for, rename, or sell a pet before adopting another.
+              <Icon name="home" size={14} fallback="🏠" /> Your pet home is full ({PET_OWNERSHIP_CAP}/{PET_OWNERSHIP_CAP}). Visit Home to care for, rename, or sell a pet before adopting another.
             </div>
           )}
           {adoptedFlash && (
@@ -185,14 +186,14 @@ export default function PetShelter() {
 
           {/* Mystery Adoption Box — the page's one featured action, per Claudia's review */}
           <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center', gap: 8 }}>
-            <strong>🎁 Mystery Adoption Box</strong>
+            <strong><Icon name="gift" size={16} fallback="🎁" /> Mystery Adoption Box</strong>
             <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>You'll always get a pet. Which one is the surprise!</p>
             <button
               className="btn btn-primary btn-lg"
               disabled={opening || petHomeFull || mysteryOpenedToday || student.coins < MYSTERY_PACK_PRICE_CENTS}
               onClick={handleOpenPack}
             >
-              {opening ? 'Opening…' : petHomeFull ? '🏠 Pet home full' : mysteryOpenedToday ? '🎁 Come back tomorrow!' : `🎁 Open for ${formatMoney(MYSTERY_PACK_PRICE_CENTS)}`}
+              {opening ? 'Opening…' : petHomeFull ? <><Icon name="home" size={14} fallback="🏠" /> Pet home full</> : mysteryOpenedToday ? <><Icon name="gift" size={14} fallback="🎁" /> Come back tomorrow!</> : <><Icon name="gift" size={14} fallback="🎁" /> Open for {formatMoney(MYSTERY_PACK_PRICE_CENTS)}</>}
             </button>
           </div>
 
@@ -254,7 +255,7 @@ export default function PetShelter() {
                     disabled={disabled}
                     onClick={() => handleAdopt(pet)}
                   >
-                    {canAdoptFree ? '🎁 Adopt free!' : `🐾 ${formatMoney(pet.priceCents)}`}
+                    {canAdoptFree ? <><Icon name="gift" size={14} fallback="🎁" /> Adopt free!</> : <>🐾 {formatMoney(pet.priceCents)}</>}
                   </button>
                 </div>
               );
