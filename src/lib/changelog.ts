@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-25-lm-new-symbols',
+    date: '2026-09-25',
+    icon: '🔺',
+    title: 'Brand new Grammar Symbols look',
+    body: 'Grammar Symbols got a whole new set of pictures and colors! Noun is a red triangle now, verb is a green circle, pronoun is a yellow upside-down triangle, and more. The new look shows up everywhere symbols do, including Symbol Sentences.',
+  },
+  {
     id: '2026-09-24-lm-keyboard-delete',
     date: '2026-09-24',
     icon: '⌫',
