@@ -118,6 +118,15 @@ export default function TeacherHome() {
             );
           })}
         </div>
+        {/* Mandatory credit line required by the Basic GUI Bundle license
+            (Penzilla Design) — the pack's UI art is used across the app's
+            buttons/panels/icons, and its license requires this credit be
+            visible somewhere reachable in the project, not just in a code
+            comment. Kept small and out of the way since it's not something
+            a teacher needs to read, just something that has to be here. */}
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 32 }}>
+          Graphics created by Penzilla Design
+        </p>
       </div>
     </div>
   );
