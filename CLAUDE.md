@@ -27,3 +27,6 @@ No narration between tool calls. Final message is a short `## Done` / `## Test i
 
 ## Copy
 No em dashes anywhere in student- or teacher-facing text.
+
+## File deliverables
+Whenever handing the teacher a `.md` file (a dev log, a doc, a summary), convert it to PDF and give her that instead of raw markdown.
