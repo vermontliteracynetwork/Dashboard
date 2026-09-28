@@ -22,7 +22,7 @@ import Gallery from './routes/student/Gallery';
 import FarmersMarket from './routes/student/FarmersMarket';
 import SillyQuizzes from './routes/student/SillyQuizzes';
 import BakeryMatch3 from './routes/student/BakeryMatch3';
-import GrammarSandbox from './routes/student/GrammarSandbox';
+import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
 import StudentManager from './routes/teacher/StudentManager';
@@ -155,7 +155,7 @@ export default function App() {
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />
           <Route path="/student/arcade" element={<Arcade />} />
-          <Route path="/student/grammar" element={<GrammarSandbox />} />
+          <Route path="/student/grammar" element={<LiteracyManipulativesEmbed />} />
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>
             <Route path="/teacher" element={<TeacherHome />} />
