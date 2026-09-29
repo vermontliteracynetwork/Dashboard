@@ -13,6 +13,11 @@ export default function QuestionSetsManager() {
   const [subjectFilter, setSubjectFilter] = useState<Subject | 'all'>('all');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  // Collapsed by default, same reasoning as FocusesPanel — this is the
+  // top of the Assignments screen now (the academic content a teacher
+  // references while building assignments), so it shouldn't dump every
+  // set on screen before anything's been asked for.
+  const [open, setOpen] = useState(false);
 
   const allTags = useMemo(
     () => Array.from(new Set(questionSets.flatMap((s) => s.tags ?? []))).sort(),
@@ -28,78 +33,90 @@ export default function QuestionSetsManager() {
   });
 
   return (
-    <div className="zone zone-library stack">
-      <div className="zone-header-bar">🧠 Question Sets: every set used across your activities</div>
-      <div style={{ padding: 14 }} className="stack">
-        <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Click a set to open, edit, duplicate, or delete it.
-        </p>
-        <input
-          className="input"
-          placeholder="🔍 Search by name or tag…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="row-wrap" style={{ gap: 6 }}>
-          {(['all', 'math', 'literacy'] as const).map((f) => (
-            <button key={f} className={`btn chip-filter-sm ${subjectFilter === f ? 'btn-primary' : ''}`} onClick={() => setSubjectFilter(f)}>
-              {f === 'all' ? 'All subjects' : f === 'math' ? '🔢 Math' : '📚 Literacy'}
-            </button>
-          ))}
-        </div>
-        {allTags.length > 0 && (
-          <div className="row-wrap" style={{ gap: 6 }}>
-            {allTags.map((t) => (
-              <button
-                key={t}
-                className={`btn chip-filter-sm ${tagFilter === t ? 'btn-primary' : ''}`}
-                onClick={() => setTagFilter(tagFilter === t ? null : t)}
-              >
-                🏷️ {t}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {sets.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>
-            {questionSets.length === 0
-              ? 'No saved question/drill sets yet. Add one from any quiz or drill activity\'s editor.'
-              : 'No sets match your search/filters.'}
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <button
+        className="space-between"
+        style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 44 }}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+          Question Sets{questionSets.length > 0 ? ` (${questionSets.length})` : ''}
+        </span>
+        <span aria-hidden="true">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="stack" style={{ marginTop: 10 }}>
+          <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+            The real content behind every quiz and drill activity. Click a set to open, edit, duplicate, or delete it.
           </p>
-        ) : (
-          <div className="set-card-grid">
-            {sets.map((set) => (
-              <button
-                key={set.id}
-                className="set-card"
-                style={{ textAlign: 'left', cursor: 'pointer', border: 'none', padding: 0 }}
-                onClick={() => navigate(`/teacher/question-sets/${set.id}`)}
-              >
-                {set.coverImageUrl ? (
-                  <img className="set-card-cover" src={set.coverImageUrl} alt="" />
-                ) : (
-                  <div className="set-card-cover-fallback">{set.kind === 'quiz' ? '🧠' : '🗂️'}</div>
-                )}
-                <div className="set-card-body">
-                  <span className="tag-pill">{set.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-                  <div className="set-card-title">{set.name}</div>
-                  <div className="set-card-meta">
-                    {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
-                  </div>
-                  {(set.tags ?? []).length > 0 && (
-                    <div className="row-wrap" style={{ marginTop: 4, gap: 4 }}>
-                      {(set.tags ?? []).map((t) => (
-                        <span key={t} className="tag-pill tag-pill-sm">{t}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          <input
+            className="input"
+            placeholder="Search by name or tag…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="row-wrap" style={{ gap: 6 }}>
+            {(['all', 'math', 'literacy'] as const).map((f) => (
+              <button key={f} className={`btn chip-filter-sm ${subjectFilter === f ? 'btn-primary' : ''}`} onClick={() => setSubjectFilter(f)}>
+                {f === 'all' ? 'All subjects' : f === 'math' ? '🔢 Math' : '📚 Literacy'}
               </button>
             ))}
           </div>
-        )}
-      </div>
+          {allTags.length > 0 && (
+            <div className="row-wrap" style={{ gap: 6 }}>
+              {allTags.map((t) => (
+                <button
+                  key={t}
+                  className={`btn chip-filter-sm ${tagFilter === t ? 'btn-primary' : ''}`}
+                  onClick={() => setTagFilter(tagFilter === t ? null : t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {sets.length === 0 ? (
+            <p style={{ opacity: 0.7 }}>
+              {questionSets.length === 0
+                ? 'No saved question/drill sets yet. Add one from any quiz or drill activity\'s editor.'
+                : 'No sets match your search/filters.'}
+            </p>
+          ) : (
+            <div className="set-card-grid">
+              {sets.map((set) => (
+                <button
+                  key={set.id}
+                  className="set-card"
+                  style={{ textAlign: 'left', cursor: 'pointer', border: 'none', padding: 0 }}
+                  onClick={() => navigate(`/teacher/question-sets/${set.id}`)}
+                >
+                  {set.coverImageUrl ? (
+                    <img className="set-card-cover" src={set.coverImageUrl} alt="" />
+                  ) : (
+                    <div className="set-card-cover-fallback">{set.kind === 'quiz' ? '🧠' : '🗂️'}</div>
+                  )}
+                  <div className="set-card-body">
+                    <span className="tag-pill">{set.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
+                    <div className="set-card-title">{set.name}</div>
+                    <div className="set-card-meta">
+                      {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
+                    </div>
+                    {(set.tags ?? []).length > 0 && (
+                      <div className="row-wrap" style={{ marginTop: 4, gap: 4 }}>
+                        {(set.tags ?? []).map((t) => (
+                          <span key={t} className="tag-pill tag-pill-sm">{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

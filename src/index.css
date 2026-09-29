@@ -1349,8 +1349,32 @@ body.teacher-mode .zone-header-bar,
 body.teacher-mode .zone-header-btn,
 body.teacher-mode .btn,
 body.teacher-mode .subject-tab-btn,
-body.teacher-mode .set-card-title {
+body.teacher-mode .set-card-title,
+body.teacher-mode .lp-tab-btn {
   font-family: 'Lexend', 'Nunito', sans-serif;
+}
+body.teacher-mode .chrome-frame { border: 1px solid var(--content-border); }
+body.teacher-mode .assignment-card {
+  box-shadow: 0 1px 2px rgba(31, 17, 71, 0.04), 0 4px 14px rgba(31, 17, 71, 0.06);
+}
+body.teacher-mode .assignment-card:hover {
+  box-shadow: 0 2px 4px rgba(31, 17, 71, 0.06), 0 6px 18px rgba(31, 17, 71, 0.08);
+}
+body.teacher-mode .assignment-card-banner.banner-math { background: var(--math-a); }
+body.teacher-mode .assignment-card-banner.banner-literacy { background: var(--lit-a); }
+body.teacher-mode .lp-tab-btn {
+  border: 1px solid var(--content-border);
+  border-radius: 9px;
+  opacity: 1;
+  color: var(--ink);
+}
+body.teacher-mode .lp-tab-btn.active { background: var(--purple); border-color: var(--purple); }
+body.teacher-mode .assignments-filter-row { flex-wrap: wrap; gap: 12px; }
+body.teacher-mode .library-card-actions-compact .btn-sm {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  box-shadow: none;
 }
 body.teacher-mode .zone {
   border: 1px solid var(--content-border);
