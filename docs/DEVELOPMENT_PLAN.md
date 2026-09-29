@@ -448,11 +448,11 @@ Not yet built: drag-to-rearrange and per-student theming (needs new persisted la
 
 ### Weekly Planning + NPC Quest-Discovery Redesign — DESIGN COMPLETE, ready to build, nothing built yet
 
-## Build order
+**Build order:**
 
 **Direct teacher instruction (2026-09-29): prioritize the gameplay elements added today.** Sequenced across every piece recorded in this entry, reasoned from real dependencies (what has to exist before the next thing makes sense), cost (what's cheap to ship as a quick win), and value (what she's most clearly asked for). Five phases; nothing in a later phase should start before its phase-listed dependencies are real and working.
 
-### Phase 1 — Cheap, independent wins (no dependency on anything else in this entry)
+#### Phase 1 — Cheap, independent wins (no dependency on anything else in this entry)
 
 1. **Reading → Literacy copy audit.** Every user-facing "Reading" label (starting with the Tier 0 Arrival Card) becomes "Literacy." Zero risk, zero dependencies, do this first and get it off the list.
 2. **Voice-to-text graded check (the new `SpeakQuestion` quiz type).** Needs no new comparison logic (the existing typo-tolerant `isCloseEnoughAnswer` matcher already does the grading) and no new capture mechanism in principle (the existing browser-`SpeechRecognition` wrapper pattern already used three places in this codebase just needs a fourth, arguably-time-to-share instance). A real, standalone content-type win, fully independent of the Neighbor/quest system.
@@ -461,7 +461,7 @@ Not yet built: drag-to-rearrange and per-student theming (needs new persisted la
 
 **Why first:** none of these four touch the Neighbor system, the to-do list, or any new interaction model. They're real, visible progress the teacher can see immediately while the bigger structural work happens underneath.
 
-### Phase 2 — Foundational data model (nothing in Phase 3 can work without this)
+#### Phase 2 — Foundational data model (nothing in Phase 3 can work without this)
 
 5. **Streak redefinition:** login-based streak, weekend-safe Saturday/Sunday, the Streak Freeze Marketplace item. Independent of the quest-discovery UI, but should land before Phase 1 item 4's streak-interest exposure is finalized, so that setting reflects the real, current metric.
 6. **`MathFocusSet` data model**, bolted onto the *existing* Student Manager/Assignments authoring screens first — it does not need to wait for the full one-screen weekly planner (Phase 5) to exist.
@@ -470,7 +470,7 @@ Not yet built: drag-to-rearrange and per-student theming (needs new persisted la
 
 **Why second:** items 7 and 8 are the actual foundation everything student-facing sits on. Building the pie menu or the to-do list before these exist would mean building UI with nothing real to show.
 
-### Phase 3 — The core student-facing discovery loop
+#### Phase 3 — The core student-facing discovery loop
 
 9. **The restructured to-do list** (locked "See Pip" rows vs. real, discovered rows). Depends on item 8.
 10. **The confirmation menu as the actual save point** (go now / view to-do list — either choice flips an activity to discovered). Depends on item 9.
@@ -479,14 +479,14 @@ Not yet built: drag-to-rearrange and per-student theming (needs new persisted la
 
 **The key sequencing call here, worth stating explicitly:** items 9-11 already produce a genuinely complete, shippable "discover your assignment, go do it" loop using today's existing instant-conversation-on-approach behavior. Item 12 (the topic menu / Greeting gate) is the single most labor-intensive piece in this entire design — a real dialogue-content rewrite, not just new UI — so it should land as a visible upgrade on top of an already-working loop, not as the thing the entire feature is blocked behind. Don't gate all of Phase 3's real value on the hardest single item in it.
 
-### Phase 4 — Completion loop and the harder edge cases
+#### Phase 4 — Completion loop and the harder edge cases
 
 13. **The return-to-Neighbor completion conversation + the `QuestGift` catalog**, MVP scope only (placeable Home Room items + cash-equivalent gifts — wearable/clothing gifts stay out of scope until a real slot-based equip system exists, which this platform doesn't have today). Depends on item 12 (needs the Completion-report topic wedge as its entry point) and on 9-11 (an activity has to be genuinely completable first).
 14. **The Catch-Up Lock** — rollover capture (hooking into the existing daily-refresh logic before it overwrites yesterday's unfinished tasks) plus the hard-lock overlay, with Help/calm-down required to stay reachable through it exactly as it already does through the Wizard Lock. The capture half is cheap and could in principle move earlier purely as a safety net so no data is lost during rollout, but the full user-facing behavior (auto-unlocked rows on the to-do list, the lock screen itself) needs items 9-12 in place to mean anything, so it's sequenced here.
 15. **The no-activity-day fallback** (4 native-game activities, 2 literacy + 2 math, Focus-aware content). Depends on item 6 (`MathFocusSet`, for Focus-awareness) and item 8 (`DailyActivityEntry`'s fallback slot). **Per the new native-games-per-building standing direction: this should be built treating "native game" as the pluggable category it now actually is (the Platformer and Bakery Match both qualify today, more may exist by the time this ships), not hardcoded to the Platformer specifically.**
 16. **The literacy spelling-pattern stopgap** (teacher-authored sets only, no generator fallback for spelling patterns specifically) ships alongside item 15 as its honest scope boundary, not as a separate later item.
 
-### Phase 5 — Lower-urgency polish, no blocking relationship to anything above, any time
+#### Phase 5 — Lower-urgency polish, no blocking relationship to anything above, any time
 
 17. **The Neighbors management screen** in the Game tab (personality/quirk fields, the "view all neighbors" ask). Genuinely lower-stakes now that "role" is confirmed flavor-only, not a load-bearing subject binding.
 18. **The CAS-style asset-viewer/turntable enhancement** to Build Mode's existing catalog picker. A real QoL win for curating item 13's placeable `QuestGift` assets, but not a blocker for it — item 13's MVP already works against the existing, un-enhanced picker.
