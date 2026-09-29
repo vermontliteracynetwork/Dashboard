@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-29-bakery-match-goal',
+    date: '2026-09-29',
+    icon: '🎯',
+    title: 'Bakery Match has a new money goal',
+    body: 'Tap the goal button at the top of Bakery Match to see how many questions you need to answer to earn a big cash prize. Answer 100 questions and get $100. Then the goal grows and so does the prize! You can also see how much you have earned while playing, right next to the goal.',
+  },
+  {
     id: '2026-09-29-bakery-match-cash',
     date: '2026-09-29',
     icon: '🪙',

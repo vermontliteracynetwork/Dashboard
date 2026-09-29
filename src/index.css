@@ -2410,12 +2410,24 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   background: rgba(255, 253, 247, 0.9);
   border: 2px solid #e8ab5c;
   border-radius: 16px;
   padding: 10px 14px;
 }
+/* Goal + live-earnings pills, grouped so they stay paired when the
+   topbar wraps at narrower iPad widths (this platform's student views
+   are iPad-first — see the standing CLAUDE.md rule). */
+.bakery-topbar-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bakery-goal-pill {
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.bakery-earnings-pill { color: #2f9e44; }
 .bakery-exit-btn {
   width: 36px;
   height: 36px;
