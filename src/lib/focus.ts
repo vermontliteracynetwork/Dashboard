@@ -12,7 +12,14 @@ import type { ConversationStep } from './worldQuest1';
 // publish time, and 'untilChanged' stays current until endDate is set
 // (either by publishing a replacement, which ends the old one, or by the
 // teacher explicitly ending it).
+// Direct teacher instruction: "reduce focuses to math and literacy." The
+// SEL and Personal Finance lanes are retired: the teacher side only offers
+// these two, and any old SEL/finance row still in the database is never
+// treated as current anywhere (Bank, Marketplace, Town Square NPCs).
+export const ACTIVE_FOCUS_SUBJECTS: FocusSubject[] = ['math', 'literacy'];
+
 export function getCurrentFocus(focuses: Focus[], subject: FocusSubject, todayISO: string): Focus | null {
+  if (!ACTIVE_FOCUS_SUBJECTS.includes(subject)) return null;
   const candidates = focuses
     .filter((f) => f.subject === subject && f.startDate <= todayISO && (f.endDate === null || f.endDate >= todayISO))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

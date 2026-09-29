@@ -17,7 +17,7 @@ export default function TeacherNav() {
   return (
     <nav className="teacher-nav space-between">
       <div className="row-wrap" style={{ alignItems: 'center' }}>
-        {/* pendingBreaks shows here, not on Activities/More — break
+        {/* pendingBreaks shows here, not under More — break
             approval actually happens on this Overview screen
             (TeacherHome.tsx), so that's the only place the count can
             correctly point a teacher. It used to sit on Activities, which
@@ -26,7 +26,7 @@ export default function TeacherNav() {
           🏠 Overview{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
         </NavLink>
         <NavLink to="/teacher/students" className={({ isActive }) => (isActive ? 'active' : '')}>🧒 Students</NavLink>
-        <NavLink to="/teacher/assignments" className={({ isActive }) => (isActive ? 'active' : '')}>📋 Assignments</NavLink>
+        <NavLink to="/teacher/academics" className={({ isActive }) => (isActive ? 'active' : '')}>📚 Academics</NavLink>
         <NavLink to="/teacher/inbox" className={({ isActive }) => (isActive ? 'active' : '')}>
           📥 Inbox{inboxCount > 0 ? ` (${inboxCount})` : ''}
         </NavLink>
@@ -38,9 +38,6 @@ export default function TeacherNav() {
         <details className="teacher-nav-more">
           <summary>⋯ More</summary>
           <div className="teacher-nav-more-menu">
-            <NavLink to="/teacher/activities" className={({ isActive }) => (isActive ? 'active' : '')}>
-              🎪 Activities
-            </NavLink>
             <NavLink to="/teacher/game" className={({ isActive }) => (isActive ? 'active' : '')}>
               🎮 Game
             </NavLink>

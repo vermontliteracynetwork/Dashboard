@@ -52,3 +52,15 @@ export const streakContinues = (lastCompletedISO: string | null, todayISOStr: st
   const gapSchoolDays = schoolDaysBetween(lastCompletedISO, todayISOStr);
   return gapSchoolDays === 0;
 };
+
+// Default focus window (direct teacher instruction: "focuses should be
+// Sunday-Sunday on default"): from this week's Sunday (today, if today is
+// Sunday) through the following Sunday.
+export const sundayToSundayRange = (isoDate: string): { start: string; end: string } => {
+  const d = new Date(`${isoDate}T00:00:00`);
+  d.setDate(d.getDate() - d.getDay());
+  const toISO = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  const start = toISO(d);
+  d.setDate(d.getDate() + 7);
+  return { start, end: toISO(d) };
+};

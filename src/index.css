@@ -2536,3 +2536,67 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   word-spacing: 0.08em !important;
   line-height: 1.6 !important;
 }
+
+/* Academics (Academics.tsx) — direct teacher instruction: "simple,
+   educational tech view." Deliberately quieter than the student-facing
+   chunky style: flat white cards, a thin border, one accent color for
+   the selected card. */
+.academics .container { max-width: 1100px; }
+.academics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.academics-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  padding: 18px;
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.15);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ink);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.academics-card:hover { box-shadow: 0 2px 8px rgba(60, 64, 67, 0.2); }
+.academics-card.active { border: 2px solid var(--purple); padding: 17px; background: #faf8ff; }
+.academics-card-head { font-weight: 800; font-size: 1.1rem; }
+.academics-card-stat { margin: 0; font-size: 0.9rem; opacity: 0.8; }
+.academics-card-stat strong { font-size: 1.6rem; margin-right: 4px; opacity: 1; }
+.academics-card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+.academics-card-list li { display: flex; justify-content: space-between; gap: 8px; }
+.academics-card-list span { opacity: 0.7; }
+.academics-panel {
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  padding: 20px;
+}
+.academics-dropdown {
+  border: 1px solid #dadce0;
+  border-radius: 10px;
+  padding: 0 14px;
+  background: white;
+}
+.academics-dropdown > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  cursor: pointer;
+  list-style: none;
+}
+.academics-dropdown > summary::-webkit-details-marker { display: none; }
+.academics-dropdown > summary::after { content: '▸'; margin-left: auto; opacity: 0.6; }
+.academics-dropdown[open] > summary::after { content: '▾'; }
+.academics-dropdown[open] { padding-bottom: 14px; }
+.academics-dropdown-meta { font-size: 0.8rem; opacity: 0.7; }
+.academics-more > summary { cursor: pointer; font-size: 0.82rem; font-weight: 700; min-height: 32px; display: flex; align-items: center; }
+@media (max-width: 600px) {
+  .academics-panel { padding: 14px; }
+}

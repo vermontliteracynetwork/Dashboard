@@ -714,7 +714,7 @@ export default function LessonPlanBuilder() {
         <div className="space-between">
           <h1><AvatarGlyph value={student.avatar} size={32} /> {student.name}: Assignments</h1>
           <div className="row-wrap">
-            <button className="btn btn-sm btn-primary" onClick={() => navigate('/teacher/assignments')}>📋 All Assignments</button>
+            <button className="btn btn-sm btn-primary" onClick={() => navigate('/teacher/academics?view=assignments')}>📋 All Assignments</button>
             <button className="btn btn-sm" onClick={() => navigate('/teacher')}>← Overview</button>
           </div>
         </div>

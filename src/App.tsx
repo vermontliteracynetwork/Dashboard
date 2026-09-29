@@ -26,10 +26,9 @@ import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEm
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
 import StudentManager from './routes/teacher/StudentManager';
-import AssignmentsIndex from './routes/teacher/AssignmentsIndex';
+import Academics from './routes/teacher/Academics';
 import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
-import PlaygroundManager from './routes/teacher/PlaygroundManager';
 import GameManager from './routes/teacher/GameManager';
 import QuestionSetDetail from './routes/teacher/QuestionSetDetail';
 import BadgeManager from './routes/teacher/BadgeManager';
@@ -160,14 +159,15 @@ export default function App() {
           <Route element={<RequireTeacherAuth />}>
             <Route path="/teacher" element={<TeacherHome />} />
             <Route path="/teacher/students" element={<StudentManager />} />
-            <Route path="/teacher/assignments" element={<AssignmentsIndex />} />
+            <Route path="/teacher/academics" element={<Academics />} />
+            <Route path="/teacher/assignments" element={<Navigate to="/teacher/academics?view=assignments" replace />} />
             <Route path="/teacher/lesson-plan/:studentId" element={<LessonPlanBuilder />} />
             <Route path="/teacher/live/:studentId" element={<StudentLiveView />} />
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
-            <Route path="/teacher/activities" element={<PlaygroundManager />} />
+            <Route path="/teacher/activities" element={<Navigate to="/teacher/academics?view=activities" replace />} />
             <Route path="/teacher/game" element={<GameManager />} />
             <Route path="/teacher/question-sets/:setId" element={<QuestionSetDetail />} />
-            <Route path="/teacher/playground" element={<Navigate to="/teacher/activities" replace />} />
+            <Route path="/teacher/playground" element={<Navigate to="/teacher/academics?view=activities" replace />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />
             <Route path="/teacher/marketplace" element={<MarketplaceManager />} />
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />
