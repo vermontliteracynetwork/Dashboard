@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-29-roads-walkable-again',
+    date: '2026-09-29',
+    icon: '🛣️',
+    title: 'Roads and paths work again',
+    body: 'You can walk and drive on roads, paths, floors, and train tracks again, and nobody gets stuck at the edge of town anymore. The townspeople are free to wander too.',
+  },
+  {
     id: '2026-09-25-bakery-wheel-sparkles',
     date: '2026-09-25',
     icon: '🎡',
