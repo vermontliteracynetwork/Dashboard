@@ -1156,6 +1156,14 @@ function WanderingNPC({
     // with no ground-bounds check of its own.
     pos.current.x = clampGroundX(pos.current.x);
     pos.current.z = clampGroundZ(pos.current.z);
+    // Same reasoning as Player's own unconditional blockBuildings pass:
+    // a Neighbor's fixed `home` anchor is teacher-placed data, not
+    // guaranteed clear of whatever else gets placed later — this keeps
+    // one from ever resting embedded inside a building/object/wall,
+    // every frame, regardless of whether it's actively wandering.
+    [pos.current.x, pos.current.z] = blockBuildings(pos.current.x, pos.current.z);
+    pos.current.x = clampGroundX(pos.current.x);
+    pos.current.z = clampGroundZ(pos.current.z);
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
   });
@@ -1942,6 +1950,26 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     // student stuck" bar.
     pos.current.x = clampGroundX(pos.current.x);
     pos.current.z = clampGroundZ(pos.current.z);
+    // Direct teacher instruction: the fixed spawn point must always be
+    // functional, never resting in/on/near an asset a teacher happens to
+    // place there later. Every branch above already pushes out of
+    // buildings/walls/placed objects WHILE moving — but a student who
+    // spawns, mounts a vehicle, or gets teleported directly onto/inside an
+    // obstacle was never actually pushed clear, just left embedded in it;
+    // the first walk input from there then computes a slide from an
+    // already-penetrating position, which can only resolve along the
+    // obstacle's surface — exactly the "can only go side to side, like a
+    // wall" report. Running the same push-out unconditionally, every
+    // frame, regardless of whether anything just moved, means the player
+    // is never left resting inside solid geometry: on spawn, after a
+    // teleport, after mounting/dismounting a vehicle, or if a teacher
+    // places a new object on top of a standing student mid-session.
+    const prePushX = pos.current.x;
+    const prePushZ = pos.current.z;
+    [pos.current.x, pos.current.z] = blockBuildings(pos.current.x, pos.current.z);
+    pos.current.x = clampGroundX(pos.current.x);
+    pos.current.z = clampGroundZ(pos.current.z);
+    if (pos.current.x !== prePushX || pos.current.z !== prePushZ) moved = true;
     // The real fix for the recurring "reported far outside the lot"
     // bug: every branch above used to call onMove(pos.current) itself,
     // BEFORE this final clamp ran — so React state (playerPos, which
