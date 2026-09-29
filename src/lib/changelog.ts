@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-29-pet-customizer',
+    date: '2026-09-29',
+    icon: '🐾',
+    title: 'Customize your pet on the big screen',
+    body: 'Tap Customize on your pet at Home to see it big and spinning. Pick a new color, teach it tricks, give it a name, or switch to another one of your pets, all in one place.',
+  },
+  {
     id: '2026-09-29-roads-walkable-again',
     date: '2026-09-29',
     icon: '🛣️',
