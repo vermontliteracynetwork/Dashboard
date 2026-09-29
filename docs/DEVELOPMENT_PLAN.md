@@ -442,6 +442,35 @@ Not yet built: drag-to-rearrange and per-student theming (needs new persisted la
 
 ## PART B — Open Backlog, by Feature Front
 
+### Teacher-Side Feature Tracker — living status, update this on every teacher-side change
+
+**Direct teacher instruction (2026-09-29):** "we are literally only building the teacher side now, just focus on that... why isnt a section for the teacher side being continuously updated, with each individual feature being fully developed from logic to design to function." This table is that section. **Every teacher-side change updates this table in the same commit, not as a follow-up.** Each row's status columns:
+- **Logic** — does the feature do the right thing, backed by real data (not a stub, not a display-only mock)?
+- **Design** — does it use the teacher visual system (`body.teacher-mode` in `index.css`: Lexend headings, flat cards, no rainbow gradients, no comic drop-shadows — see the reference redesign below), not the student game's playful skin?
+- **Function** — is it actually usable end to end (no dead buttons, no buried/overwhelming fields, works on iPad)?
+
+Status values: ✅ Done · 🟡 Partial (named gap) · ⬜ Not started (still on the student-game visual system, unreviewed).
+
+| Screen | Route | Logic | Design | Function | Notes |
+|---|---|---|---|---|---|
+| Create Activity + Activity Library | `/teacher/activities` (`ActivityLibrary.tsx`) | ✅ | ✅ | ✅ | **Reference redesign, shipped 2026-09-29** — see below. Every other row reuses this as the pattern. |
+| Overview / live class view | `/teacher` (`TeacherHome.tsx`) | ✅ | ⬜ | 🟡 | Still on `.zone`/`.btn` defaults pre-dating `teacher-mode`; inherits the flatter buttons/borders automatically now that `teacher-mode` is live, but not reviewed as its own pass. |
+| Assignments (Focuses, Question Sets, CCSS, per-student plans) | `/teacher/assignments` (`AssignmentsIndex.tsx`) | ✅ | ⬜ | 🟡 | Houses the real academic-authoring core (Question Sets, Focus lanes, CCSS picker) — per the teacher's "Question Sets are the backing academic basis, closely followed by Focuses" instruction, this screen's visual/information-hierarchy pass is the next priority after this tracker exists, ahead of any screen that's purely cosmetic wrapper content. |
+| Students | `/teacher/students` (`StudentManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
+| Inbox (help pings, break approvals, offscreen review) | `/teacher/inbox` (`ReviewInbox.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
+| Scores/Reports | `/teacher/scores` (`ScoreHistory.tsx`) | 🟡 | ⬜ | 🟡 | Blocked on the Central Educator Dashboard spec above (item 3/8) — don't do a standalone visual pass here, it's being merged into the new unified Assignments+Activities+Scores view. |
+| Game (Neighbors, dialogue, wheel settings) | `/teacher/game` (`GameManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
+| Achievements/Badges | `/teacher/badges` (`BadgeManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
+| Marketplace Manager | `/teacher/marketplace` (`MarketplaceManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
+| Build Mode | `/teacher/world-editor` (`WorldEditor.tsx`) | ✅ | ⬜ | ✅ | Functionally mature (many completed Part A entries); genuinely dual-audience (teacher authoring tool that borrows the 3D game view), so "too kid like" may not apply the same way here — review, don't assume. |
+| Lesson Plan Builder / Student Bank / Live View | `/teacher/lesson-plan/:id`, `/teacher/bank/:id`, `/teacher/live/:id` | ✅ | ⬜ | 🟡 | Not yet reviewed; `LessonPlanBuilder.tsx` shares the `.zone`/`library-card` components already touched by the reference redesign, so it inherits some of the flattened styling for free. |
+
+**Reference redesign — Create Activity + Activity Library, done today, logic → design → function, no open questions left for the teacher to answer:**
+- **Design system foundation (new, reused by every row above going forward):** `TeacherNav.tsx` now adds a `teacher-mode` class to `document.body` on mount (every teacher screen renders `TeacherNav`, so this is automatic, no per-screen wiring needed) and removes it on unmount, so it never touches the student game. `index.css`'s `body.teacher-mode` block redefines the accent to a calmer indigo (`--purple: #4f46e5`), swaps the "Baloo 2" playful display font for the already-loaded 'Lexend' on headings/buttons/zone headers, thins borders and drop-shadows from the comic-book 4px/hard-shadow style down to a subtle 1px/soft-shadow card style, and replaces every rainbow zone-header gradient with a flat, bordered header. This is a real, durable foundation, not a one-screen patch — the next row redesigned reuses these tokens rather than inventing its own.
+- **Information hierarchy fix (Logic + Design):** per "Question Sets should be recognized as the backing/academic basis of the game," `TaskEditor` in `ActivityLibrary.tsx` was reordered so the type-specific academic content (the `QuizEditor` question list, the passage/article/drill/word-chain editors) renders immediately after the Icon/Title/Type basics — it used to sit after Reward and Cover Image, which buried the actual instructional content under cosmetic fields.
+- **Progressive disclosure (Function):** per "too many options are shown at once," Cover image, the optional reference link, the daily/Final-Check toggles, and the custom step-guide editor now live behind one native `<details className="task-editor-more">` ("⚙️ More options"), closed by default and auto-opened only when editing an activity that already has one of those fields set (so existing data is never hidden from a teacher who's already using it). Reward stays visible (every activity needs one) but moved below the academic content instead of crowding the top row.
+- **Verified:** `npx tsc --noEmit` and `npm run build` both pass clean on this change.
+
 ### Native question-set-fueled games per building/asset — standing design direction
 
 **Direct teacher instruction (2026-09-29): "Just like how the bakery building opens with a bakery game, we are going to continue adding native games (fueled by question sets) for other assets and buildings. Claudia, keep that logic in mind."** Not a single feature to build now — a standing pattern for every future building/placeable-asset role: same shape as Bakery Match (A/role-gated building → a native mini-game → question-set-gated challenge screens between rounds → real rewards on completion), reused rather than reinvented per building. Relayed to Claudia to carry forward into every future native-game concept she reviews or proposes, not just this one instance. Bakery Match itself (see Part A) is the template to generalize from: its `QuestionSourcePicker` (dice-random vs. a specific question set) was already built reusable "for any future question-set-gated game," and its round/challenge-screen/reward structure is the reference shape, not a one-off.

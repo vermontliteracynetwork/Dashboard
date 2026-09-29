@@ -435,6 +435,15 @@ export function TaskEditor({
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const rewardType: TaskRewardType = task.reward?.type ?? 'money';
 
+  // Cover image, reference link, and the daily/Final-Check/step-guide
+  // toggles are real but secondary to the academic content below — the
+  // teacher's own instruction was that too many options show at once.
+  // Auto-open "More options" only when editing an activity that already
+  // has one of those set, so nothing already-entered gets hidden.
+  const [showMore, setShowMore] = useState(
+    Boolean(initial.referenceImageUrl || initial.referenceLinkUrl || initial.isDaily || initial.isFinalCheck || (initial.customSteps?.length ?? 0) > 0)
+  );
+
   return (
     <div className="content-well stack">
       <div className="row-wrap">
@@ -475,92 +484,6 @@ export function TaskEditor({
             ))}
           </select>
         </div>
-        <div>
-          <label>💰 Reward</label>
-          <select
-            value={rewardType}
-            onChange={(e) => {
-              const type = e.target.value as TaskRewardType;
-              setTask({ ...task, reward: type === 'money' ? undefined : { type } });
-            }}
-          >
-            <option value="money">💰 Money</option>
-            <option value="marketplaceItem">🎁 Marketplace item</option>
-            <option value="customItem">✨ Special item (not in Marketplace)</option>
-            <option value="spin">🎡 Bonus wheel spin</option>
-          </select>
-        </div>
-
-        {rewardType === 'money' && (
-          <div>
-            <label>Amount</label>
-            <div className="row" style={{ gap: 4 }}>
-              <span>$</span>
-              <input
-                type="number"
-                min={0}
-                step={0.25}
-                style={{ width: 72 }}
-                value={((task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS) / 100).toFixed(2)}
-                onChange={(e) => setTask({ ...task, rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
-              />
-            </div>
-          </div>
-        )}
-
-        {rewardType === 'marketplaceItem' && (
-          <div style={{ minWidth: 200 }}>
-            <label>Which item</label>
-            <select
-              value={task.reward?.itemId ?? ''}
-              onChange={(e) => setTask({ ...task, reward: { type: 'marketplaceItem', itemId: e.target.value } })}
-            >
-              <option value="">Choose an item…</option>
-              {marketplaceItems.map((it) => (
-                <option key={it.id} value={it.id}>{it.icon.startsWith('http') ? '🖼️' : it.icon} {it.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {rewardType === 'customItem' && (
-          <>
-            <div>
-              <label>Icon</label>
-              <input
-                style={{ width: 56 }}
-                value={task.reward?.customIcon ?? '🎁'}
-                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customName: task.reward?.customName, customIcon: e.target.value } })}
-              />
-            </div>
-            <div>
-              <label>Prize name</label>
-              <input
-                style={{ width: 180 }}
-                value={task.reward?.customName ?? ''}
-                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customIcon: task.reward?.customIcon, customName: e.target.value } })}
-                placeholder="e.g. Sit by the window"
-              />
-            </div>
-          </>
-        )}
-
-        {rewardType === 'spin' && (
-          <p style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'flex-end', margin: 0 }}>
-            Finishing this activity unlocks a bonus spin on the daily wheel.
-          </p>
-        )}
-      </div>
-
-      <div style={{ maxWidth: 320 }}>
-        <ImageUploadField
-          label="🖼️ Cover image, shown on the activity card and to the student"
-          value={task.referenceImageUrl}
-          onChange={(url) => setTask({ ...task, referenceImageUrl: url })}
-        />
-        <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: '4px 0 0' }}>
-          For a YouTube video, this fills in automatically. For a game or site (Baamboozle, etc.), take a screenshot and upload it here.
-        </p>
       </div>
 
       {(task.type === 'quiz' || task.type === 'platformer') && (
@@ -851,53 +774,145 @@ export function TaskEditor({
       )}
 
       <hr className="divider" />
-      <strong>Extras</strong>
-      <div className="row-wrap">
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <label>🔗 Reference link (optional, a helper link shown alongside the activity)</label>
-          <input
-            style={{ width: '100%' }}
-            placeholder="https://..."
-            value={task.referenceLinkUrl ?? ''}
-            onChange={(e) => setTask({ ...task, referenceLinkUrl: e.target.value })}
-          />
-        </div>
+      <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
         <div>
-          <label>Link button text</label>
-          <input
-            placeholder="e.g. Open worksheet"
-            value={task.referenceLinkLabel ?? ''}
-            onChange={(e) => setTask({ ...task, referenceLinkLabel: e.target.value })}
-          />
+          <label>💰 Reward</label>
+          <select
+            value={rewardType}
+            onChange={(e) => {
+              const type = e.target.value as TaskRewardType;
+              setTask({ ...task, reward: type === 'money' ? undefined : { type } });
+            }}
+          >
+            <option value="money">💰 Money</option>
+            <option value="marketplaceItem">🎁 Marketplace item</option>
+            <option value="customItem">✨ Special item (not in Marketplace)</option>
+            <option value="spin">🎡 Bonus wheel spin</option>
+          </select>
         </div>
+
+        {rewardType === 'money' && (
+          <div>
+            <label>Amount</label>
+            <div className="row" style={{ gap: 4 }}>
+              <span>$</span>
+              <input
+                type="number"
+                min={0}
+                step={0.25}
+                style={{ width: 72 }}
+                value={((task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS) / 100).toFixed(2)}
+                onChange={(e) => setTask({ ...task, rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
+              />
+            </div>
+          </div>
+        )}
+
+        {rewardType === 'marketplaceItem' && (
+          <div style={{ minWidth: 200 }}>
+            <label>Which item</label>
+            <select
+              value={task.reward?.itemId ?? ''}
+              onChange={(e) => setTask({ ...task, reward: { type: 'marketplaceItem', itemId: e.target.value } })}
+            >
+              <option value="">Choose an item…</option>
+              {marketplaceItems.map((it) => (
+                <option key={it.id} value={it.id}>{it.icon.startsWith('http') ? '🖼️' : it.icon} {it.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {rewardType === 'customItem' && (
+          <>
+            <div>
+              <label>Icon</label>
+              <input
+                style={{ width: 56 }}
+                value={task.reward?.customIcon ?? '🎁'}
+                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customName: task.reward?.customName, customIcon: e.target.value } })}
+              />
+            </div>
+            <div>
+              <label>Prize name</label>
+              <input
+                style={{ width: 180 }}
+                value={task.reward?.customName ?? ''}
+                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customIcon: task.reward?.customIcon, customName: e.target.value } })}
+                placeholder="e.g. Sit by the window"
+              />
+            </div>
+          </>
+        )}
+
+        {rewardType === 'spin' && (
+          <p style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'flex-end', margin: 0 }}>
+            Finishing this activity unlocks a bonus spin on the daily wheel.
+          </p>
+        )}
       </div>
-      <label>
-        <input
-          type="checkbox"
-          checked={task.isDaily ?? false}
-          onChange={(e) => setTask({ ...task, isDaily: e.target.checked })}
-          style={{ marginRight: 6 }}
-        />
-        ⭐ This is a daily/recurring activity
-      </label>
-      <label>
-        <input
-          type="checkbox"
-          checked={task.isFinalCheck ?? false}
-          onChange={(e) => setTask({ ...task, isFinalCheck: e.target.checked })}
-          style={{ marginRight: 6 }}
-        />
-        🏁 Final Check: completing this marks the whole assignment done (unlocks Playground, updates the streak),
-        even if other activities are still unchecked. Only mark one activity per plan.
-      </label>
-      <hr className="divider" />
-      <label>
-        <input type="checkbox" checked={showSteps} onChange={(e) => setShowSteps(e.target.checked)} style={{ marginRight: 6 }} />
-        Customize the visual "how to do this" step guide for this task
-      </label>
-      {showSteps && (
-        <StepsEditor steps={task.customSteps ?? []} onChange={(customSteps) => setTask({ ...task, customSteps })} />
-      )}
+
+      <details className="task-editor-more" open={showMore} onToggle={(e) => setShowMore((e.target as HTMLDetailsElement).open)}>
+        <summary>⚙️ More options — cover image, a helper link, daily/Final Check, step guide</summary>
+        <div className="stack" style={{ paddingTop: 12 }}>
+          <div style={{ maxWidth: 320 }}>
+            <ImageUploadField
+              label="🖼️ Cover image, shown on the activity card and to the student"
+              value={task.referenceImageUrl}
+              onChange={(url) => setTask({ ...task, referenceImageUrl: url })}
+            />
+            <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: '4px 0 0' }}>
+              For a YouTube video, this fills in automatically. For a game or site (Baamboozle, etc.), take a screenshot and upload it here.
+            </p>
+          </div>
+          <div className="row-wrap">
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <label>🔗 Reference link (optional, a helper link shown alongside the activity)</label>
+              <input
+                style={{ width: '100%' }}
+                placeholder="https://..."
+                value={task.referenceLinkUrl ?? ''}
+                onChange={(e) => setTask({ ...task, referenceLinkUrl: e.target.value })}
+              />
+            </div>
+            <div>
+              <label>Link button text</label>
+              <input
+                placeholder="e.g. Open worksheet"
+                value={task.referenceLinkLabel ?? ''}
+                onChange={(e) => setTask({ ...task, referenceLinkLabel: e.target.value })}
+              />
+            </div>
+          </div>
+          <label>
+            <input
+              type="checkbox"
+              checked={task.isDaily ?? false}
+              onChange={(e) => setTask({ ...task, isDaily: e.target.checked })}
+              style={{ marginRight: 6 }}
+            />
+            ⭐ This is a daily/recurring activity
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={task.isFinalCheck ?? false}
+              onChange={(e) => setTask({ ...task, isFinalCheck: e.target.checked })}
+              style={{ marginRight: 6 }}
+            />
+            🏁 Final Check: completing this marks the whole assignment done (unlocks Playground, updates the streak),
+            even if other activities are still unchecked. Only mark one activity per plan.
+          </label>
+          <hr className="divider" />
+          <label>
+            <input type="checkbox" checked={showSteps} onChange={(e) => setShowSteps(e.target.checked)} style={{ marginRight: 6 }} />
+            Customize the visual "how to do this" step guide for this task
+          </label>
+          {showSteps && (
+            <StepsEditor steps={task.customSteps ?? []} onChange={(customSteps) => setTask({ ...task, customSteps })} />
+          )}
+        </div>
+      </details>
 
       {(() => {
         const quizIssues = (task.type === 'quiz' || task.type === 'passage' || task.type === 'platformer') ? validateQuizQuestions(task.quiz?.questions ?? []) : [];

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { signOutTeacher } from '../lib/teacherAuth';
@@ -8,6 +9,16 @@ export default function TeacherNav() {
   const helpPings = useStore((s) => s.helpPings);
   const breakRequests = useStore((s) => s.breakRequests);
   const offscreenReviews = useStore((s) => s.offscreenReviews);
+
+  // Every teacher screen renders this nav, so it's the one place that can
+  // scope the whole document to the teacher visual system (a calmer,
+  // professional look, distinct from the student game's playful skin)
+  // without touching all 17 teacher route files individually. See the
+  // `body.teacher-mode` rules in index.css.
+  useEffect(() => {
+    document.body.classList.add('teacher-mode');
+    return () => document.body.classList.remove('teacher-mode');
+  }, []);
 
   const openHelp = helpPings.filter((h) => !h.resolved).length;
   const pendingBreaks = breakRequests.filter((b) => b.status === 'pending').length;
