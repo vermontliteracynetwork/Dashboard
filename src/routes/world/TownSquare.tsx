@@ -1679,7 +1679,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         pos.current.x = sample.x;
         pos.current.z = sample.z;
         facing.current = sample.angle;
-        onMove(pos.current);
         moved = Math.abs(trainSpeed.current) > 0.01;
       } else {
         // No connected track under this locomotive (docs/TRANSPORTATION.md's
@@ -1717,7 +1716,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       } else if (planePhase.current === 'ascending') {
         planeAltitude.current = Math.min(PLANE_MIN_ALTITUDE, planeAltitude.current + PLANE_CLIMB_RATE * dt);
         if (planeAltitude.current >= PLANE_MIN_ALTITUDE) planePhase.current = 'flying';
-        onMove(pos.current);
         moved = true;
       } else if (planePhase.current === 'flying') {
         const steer = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
@@ -1741,7 +1739,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           planeLandRef.current = false;
           planePhase.current = 'descending';
         }
-        onMove(pos.current);
         moved = true;
       } else if (planePhase.current === 'descending') {
         // "Forgiving, assisted only... no precision touchdown skill
@@ -1754,7 +1751,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         pos.current.z = clampGroundZ(pos.current.z + dz * PLANE_GLIDE_SPEED * dt);
         planeAltitude.current = Math.max(0, planeAltitude.current - PLANE_CLIMB_RATE * dt);
         if (planeAltitude.current <= 0) planePhase.current = 'grounded';
-        onMove(pos.current);
         moved = true;
       }
       if (planeAltitudeRef) planeAltitudeRef.current = planeAltitude.current;
@@ -1813,7 +1809,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         }
         pos.current.x = cx;
         pos.current.z = cz;
-        onMove(pos.current);
         moved = true;
       }
       const boatRatio = Math.abs(boatSpeed.current) / BOAT_MAX_SPEED;
@@ -1871,7 +1866,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         }
         pos.current.x = fx;
         pos.current.z = fz;
-        onMove(pos.current);
         moved = true;
       }
       const carRatio = carSpeed.current / CAR_MAX_SPEED;
@@ -1905,7 +1899,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         // building push-out to somehow run as a single combined step.
         [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
         facing.current = Math.atan2(dx, dz);
-        onMove(pos.current);
         moved = true;
       } else if (walkTarget.current) {
         // Click-to-walk (mouse click or a tap on the ground) — the main
@@ -1928,7 +1921,6 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           const cz = clampGroundZ(bz);
           [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
           facing.current = Math.atan2(ndx, ndz);
-          onMove(pos.current);
           moved = true;
         }
       }
@@ -1950,6 +1942,21 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     // student stuck" bar.
     pos.current.x = clampGroundX(pos.current.x);
     pos.current.z = clampGroundZ(pos.current.z);
+    // The real fix for the recurring "reported far outside the lot"
+    // bug: every branch above used to call onMove(pos.current) itself,
+    // BEFORE this final clamp ran — so React state (playerPos, which
+    // drives the chase camera and the debug coordinate chip) could see a
+    // pos.current that blockBuildings had just pushed out past the lot
+    // edge (it has no idea where the ground bounds are, only where
+    // buildings/objects are), one whole frame before this safety net
+    // corrected pos.current itself. The rendered character mesh below
+    // was always fixed by then, but the camera and every other listener
+    // reading playerPos were following the stale, unclamped value —
+    // exactly what put a screenshot's own coordinate chip at (-194, 0),
+    // the same class of number this file has chased before. Moving the
+    // single onMove call to here, after every branch and after this
+    // clamp, means nothing downstream ever sees an out-of-bounds value.
+    if (moved) onMove(pos.current);
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
     if (facingRef) facingRef.current = facing.current;
