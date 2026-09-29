@@ -1323,6 +1323,100 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 .zone-newplan .zone-header-bar { background: linear-gradient(90deg, var(--pink), var(--orange)); }
 .zone-create .zone-header-bar { background: linear-gradient(90deg, var(--purple), var(--pink)); }
 
+/* ---------- Teacher visual system ----------
+   Direct teacher instruction (2026-09-29): the teacher-facing screens
+   share the student game's playful "Baloo 2" font, candy-rainbow zone
+   headers, and comic-book drop-shadow cards, which reads as "too kid
+   like" for someone running a classroom, not playing in it. `body`
+   gets `teacher-mode` (see TeacherNav.tsx) on every teacher route, so
+   everything below is scoped there and never touches the student game.
+   This is the reference redesign (shipped first on Activities, see
+   docs/DEVELOPMENT_PLAN.md's Teacher-Side Feature Tracker) that the
+   rest of the teacher portal reuses as it's redesigned in turn. */
+body.teacher-mode {
+  --purple: #4f46e5;
+  --purple-dark: #3730a3;
+  --paper: #f7f6fb;
+  --chunk: 1px;
+  --radius: 12px;
+  background: #f3f2fa;
+}
+body.teacher-mode h1,
+body.teacher-mode h2,
+body.teacher-mode h3,
+body.teacher-mode .display,
+body.teacher-mode .zone-header-bar,
+body.teacher-mode .zone-header-btn,
+body.teacher-mode .btn,
+body.teacher-mode .subject-tab-btn,
+body.teacher-mode .set-card-title {
+  font-family: 'Lexend', 'Nunito', sans-serif;
+}
+body.teacher-mode .zone {
+  border: 1px solid var(--content-border);
+  box-shadow: 0 1px 2px rgba(31, 17, 71, 0.04), 0 6px 20px rgba(31, 17, 71, 0.06);
+}
+body.teacher-mode .zone-header-bar,
+body.teacher-mode .zone-header-btn {
+  background: var(--content-bg) !important;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--content-border);
+}
+body.teacher-mode .zone-empty-note { color: var(--ink); opacity: 0.6; }
+body.teacher-mode .zone-playground { background: var(--content-bg); }
+body.teacher-mode .library-card {
+  border: 1px solid var(--content-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(31, 17, 71, 0.04), 0 4px 14px rgba(31, 17, 71, 0.06);
+}
+body.teacher-mode .library-card-thumb { background: #eef0fa; color: var(--ink); }
+body.teacher-mode .subject-tab-btn {
+  font-weight: 700;
+  border: 1px solid var(--content-border);
+  opacity: 1;
+  color: var(--ink);
+}
+body.teacher-mode .subject-tab-btn.active { box-shadow: none; border-bottom-color: transparent; }
+body.teacher-mode .btn {
+  font-weight: 600;
+  font-size: 0.88rem;
+  border: 1px solid var(--content-border);
+  border-radius: 9px;
+  background: var(--content-bg);
+  color: var(--ink);
+}
+body.teacher-mode .btn:active { transform: none; }
+body.teacher-mode .btn-primary { background: var(--purple); border-color: var(--purple); color: #fff; }
+body.teacher-mode .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
+body.teacher-mode .btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+body.teacher-mode .btn-danger:hover { background: var(--danger); color: #fff; }
+body.teacher-mode .content-well { border-radius: 10px; }
+
+/* ---------- Progressive-disclosure "More options" (Create Activity) ----------
+   Direct teacher instruction: too many fields show at once. Secondary,
+   optional fields (cover image, helper link, daily/Final Check, the
+   step-guide editor) live behind one native <details> so the required
+   academic content is what a teacher actually sees first. */
+.task-editor-more {
+  border: 1px solid var(--content-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.task-editor-more summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ink);
+  opacity: 0.8;
+  list-style: none;
+}
+.task-editor-more summary::-webkit-details-marker { display: none; }
+.task-editor-more summary::before { content: '▸ '; }
+.task-editor-more[open] summary::before { content: '▾ '; }
+.task-editor-more[open] summary { opacity: 1; margin-bottom: 2px; }
+
 /* ---------- Full-screen quiz player ---------- */
 .quiz-fullview {
   position: fixed;
