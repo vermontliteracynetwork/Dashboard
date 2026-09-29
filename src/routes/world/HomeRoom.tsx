@@ -1,5 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import PetCustomizer from '../../components/PetCustomizer';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
@@ -419,8 +418,6 @@ function PetCareCard({
   const teachTrick = useStore((s) => s.teachTrick);
   const [nameDraft, setNameDraft] = useState(pet.customName);
   const [confirmSell, setConfirmSell] = useState(false);
-  const [customizing, setCustomizing] = useState(false);
-  const closeCustomizer = useCallback(() => setCustomizing(false), []);
   const [justTaught, setJustTaught] = useState<string | null>(null);
   const justTaughtTimerRef = useRef<number | null>(null);
   const canFollow = canPetFollow(pet.trainingProgress);
@@ -571,13 +568,7 @@ function PetCareCard({
           </button>
         )}
       </div>
-      {customizing && (
-        <Suspense fallback={null}>
-          <PetCustomizer mode="student" studentId={studentId} initialPetId={pet.id} onClose={closeCustomizer} />
-        </Suspense>
-      )}
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        <button className="btn btn-sm btn-primary" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => setCustomizing(true)}>✨ Customize</button>
         <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
         <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
         <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'play'); flashSaved(); }}>🎾 Play</button>

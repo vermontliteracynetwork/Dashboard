@@ -22,7 +22,7 @@ import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
-import { WorldObjectRenderer, useModelSize, isFlatModelSize } from './WorldObjectRenderer';
+import { WorldObjectRenderer, useModelSize } from './WorldObjectRenderer';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
@@ -343,24 +343,7 @@ const WORLD_OBJECT_COLLISION_RADIUS = (scale: number, hasRole?: boolean) =>
 // measured live instead of hand-entered once. A modelPath with no entry
 // yet (not measured, or it failed to load) falls back to the circle
 // heuristic for that one object only, in recomputeCollisionLayout below.
-const OBJECT_FOOTPRINT_SIZES: Record<string, { hx: number; hz: number; hy: number }> = {};
-// Student-blocking bug (every student stuck at the lot edge, in cars and
-// on foot, every NPC trapped): the "all assets solid" pass also made FLAT
-// ground pieces solid — road tiles, paths, floors, rails, carpets, grass
-// patches. A town built out of road tiles became one wall-to-wall chain
-// of rectangles; push-out from one tile landed inside the next, so
-// players, cars and NPCs were shoved toward the lot edge and pinned there.
-// Anything you walk or drive ON is never an obstacle: a measured model is
-// exempt when it's flat (isFlatModelSize) or lower than a curb once
-// scaled; before it's measured, these name patterns keep it from getting
-// the circle fallback for its first frames.
-const WALKABLE_MIN_HEIGHT = 0.3;
-const WALKABLE_MODEL_NAME = /road|street|path|floor|rail|track|carpet|rug|mat\b|grass|patch|tile|sidewalk|crosswalk|parking|plaza|pavement|dirt/i;
-function isWalkableObject(modelPath: string, scale: number): boolean {
-  const raw = OBJECT_FOOTPRINT_SIZES[modelPath];
-  if (!raw) return WALKABLE_MODEL_NAME.test(modelPath.split('/').pop() ?? '');
-  return isFlatModelSize({ x: raw.hx * 2, y: raw.hy, z: raw.hz * 2 }) || raw.hy * scale < WALKABLE_MIN_HEIGHT;
-}
+const OBJECT_FOOTPRINT_SIZES: Record<string, { hx: number; hz: number }> = {};
 // `let`, not `const` — same reactive-to-layoutOverrides/worldObjects
 // reasoning as BUILDING_FOOTPRINTS above; a deleted market stall or
 // deleted/un-solid Build Mode object stops blocking too.
@@ -415,7 +398,6 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
   const objectRects: RectFootprint[] = [];
   const objectFallbackCircles: { x: number; z: number; radius: number }[] = [];
   for (const o of worldObjects) {
-    if (isWalkableObject(o.modelPath, o.scale)) continue;
     const raw = OBJECT_FOOTPRINT_SIZES[o.modelPath];
     if (raw) {
       objectRects.push({ x: o.position[0], z: o.position[2], rotationY: o.rotationY, hx: raw.hx * o.scale, hz: raw.hz * o.scale });
@@ -597,15 +579,15 @@ function slideWithinWater(curX: number, curZ: number, targetX: number, targetZ: 
 // OBJECT_FOOTPRINT_SIZES/WORLD_OBJECT_COLLISION_RADIUS forever for that
 // one object, rather than crashing or silently ending up with zero
 // collision.
-function ObjectFootprintProbe({ path, onSize }: { path: string; onSize: (path: string, hx: number, hz: number, hy: number) => void }) {
+function ObjectFootprintProbe({ path, onSize }: { path: string; onSize: (path: string, hx: number, hz: number) => void }) {
   const size = useModelSize(path);
   useEffect(() => {
-    onSize(path, size.x / 2, size.z / 2, size.y);
+    onSize(path, size.x / 2, size.z / 2);
   }, [path, size, onSize]);
   return null;
 }
 
-function ObjectFootprintTracker({ modelPaths, onSize }: { modelPaths: string[]; onSize: (path: string, hx: number, hz: number, hy: number) => void }) {
+function ObjectFootprintTracker({ modelPaths, onSize }: { modelPaths: string[]; onSize: (path: string, hx: number, hz: number) => void }) {
   return (
     <>
       {modelPaths.map((path) => (
@@ -2862,10 +2844,10 @@ export default function TownSquare() {
   // circle fallback gets upgraded to its real rotated-rectangle footprint
   // — see OBJECT_FOOTPRINT_SIZES/ObjectFootprintProbe's own comments.
   const [objectFootprintVersion, setObjectFootprintVersion] = useState(0);
-  const handleObjectFootprintSize = useCallback((path: string, hx: number, hz: number, hy: number) => {
+  const handleObjectFootprintSize = useCallback((path: string, hx: number, hz: number) => {
     const prev = OBJECT_FOOTPRINT_SIZES[path];
-    if (prev && prev.hx === hx && prev.hz === hz && prev.hy === hy) return;
-    OBJECT_FOOTPRINT_SIZES[path] = { hx, hz, hy };
+    if (prev && prev.hx === hx && prev.hz === hz) return;
+    OBJECT_FOOTPRINT_SIZES[path] = { hx, hz };
     setObjectFootprintVersion((v) => v + 1);
   }, []);
   // Keeps the module-level collision arrays (BUILDING_FOOTPRINTS,

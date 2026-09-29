@@ -1,17 +1,12 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import ImageUploadField from '../../components/ImageUploadField';
-import { SheetTable, ViewToggle, type SheetColumn } from '../../components/SheetTable';
 import { STANDARD_PRICE_CENTS, specialtyPrice, ALL_EARN_METHODS, EARN_METHOD_LABELS, earnMethodsFor } from '../../lib/marketplaceSeed';
 import { EMOTE_CATALOG, emotePriceFor } from '../../lib/emoteCatalog';
 import { BLOCKY_AVATARS as AVATAR_CATALOG, avatarPriceFor } from '../../lib/avatarCatalog';
 import { formatMoney } from '../../lib/money';
 import type { EarnMethod, MarketplaceItem, MarketplaceItemKind } from '../../types';
-
-// Lazy: the 3D pet viewer pulls in three.js, which this page otherwise
-// never needs, so it only loads when the teacher opens the catalog.
-const PetCustomizer = lazy(() => import('../../components/PetCustomizer'));
 
 const KIND_LABELS: Record<MarketplaceItemKind, string> = {
   font: '🔤 Font',
@@ -374,47 +369,9 @@ function ItemRow({ item }: { item: MarketplaceItem }) {
   );
 }
 
-// Spreadsheet view of the same items the full per-item editor below
-// shows — the everyday fields as editable columns; the kind-specific
-// settings (font family, color, voice) stay in the full view.
-function MarketplaceSheet({ items }: { items: MarketplaceItem[] }) {
-  const updateMarketplaceItem = useStore((s) => s.updateMarketplaceItem);
-  const deleteMarketplaceItem = useStore((s) => s.deleteMarketplaceItem);
-  const columns: SheetColumn<MarketplaceItem>[] = [
-    {
-      key: 'icon', label: 'Icon', type: 'readonly', width: 56, get: (it) => it.icon,
-      render: (it) => (/^(https?:|\/|data:)/.test(it.icon) ? <img src={it.icon} alt="" style={{ width: 24, height: 24, objectFit: 'cover', borderRadius: 4, verticalAlign: 'middle' }} /> : it.icon),
-    },
-    { key: 'name', label: 'Name', type: 'text', width: 200, get: (it) => it.name, set: (it, v) => { if (v.trim()) updateMarketplaceItem(it.id, { name: v.trim() }); } },
-    {
-      key: 'kind', label: 'Type', type: 'select', width: 150, get: (it) => it.kind,
-      options: (Object.keys(KIND_LABELS) as MarketplaceItemKind[]).map((k) => ({ value: k, label: KIND_LABELS[k] })),
-      set: (it, v) => updateMarketplaceItem(it.id, { kind: v as MarketplaceItemKind }),
-    },
-    { key: 'category', label: 'Category', type: 'text', width: 140, get: (it) => it.category, set: (it, v) => { if (v.trim()) updateMarketplaceItem(it.id, { category: v.trim() }); } },
-    { key: 'price', label: 'Price', type: 'money', width: 100, get: (it) => it.price, set: (it, v) => updateMarketplaceItem(it.id, { price: Math.round(Math.max(0, parseFloat(v) || 0) * 100) }) },
-    { key: 'tags', label: 'Tags', type: 'text', width: 160, get: (it) => it.tags.join(', '), set: (it, v) => updateMarketplaceItem(it.id, { tags: v.split(',').map((t) => t.trim()).filter(Boolean) }) },
-    { key: 'description', label: 'Description', type: 'text', width: 220, get: (it) => it.description ?? '', set: (it, v) => updateMarketplaceItem(it.id, { description: v.trim() || undefined }) },
-    { key: 'from', label: 'Available from', type: 'date', width: 140, get: (it) => it.availableFrom ?? '', set: (it, v) => updateMarketplaceItem(it.id, { availableFrom: v || null }) },
-    { key: 'until', label: 'Until', type: 'date', width: 140, get: (it) => it.availableUntil ?? '', set: (it, v) => updateMarketplaceItem(it.id, { availableUntil: v || null }) },
-  ];
-  return (
-    <SheetTable
-      tableId="marketplace-sheet"
-      rows={items}
-      rowKey={(it) => it.id}
-      columns={columns}
-      onDelete={(it) => deleteMarketplaceItem(it.id)}
-      emptyText="Nothing here yet. Add one above and it appears in every student's Shop."
-    />
-  );
-}
-
 export default function MarketplaceManager() {
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const addMarketplaceItem = useStore((s) => s.addMarketplaceItem);
-  const [listView, setListView] = useState<'cards' | 'sheet'>('cards');
-  const [petCatalogOpen, setPetCatalogOpen] = useState(false);
 
   const [kind, setKind] = useState<MarketplaceItemKind>('prize');
   const [name, setName] = useState('');
@@ -496,15 +453,6 @@ export default function MarketplaceManager() {
           categories, tags, and an optional date window for seasonal or limited-time items. (Characters and Emotes
           use the app's bundled art and aren't editable here.)
         </p>
-
-        <div className="row-wrap">
-          <button className="btn btn-sm" onClick={() => setPetCatalogOpen(true)}>🐾 Browse the pet catalog</button>
-        </div>
-        {petCatalogOpen && (
-          <Suspense fallback={null}>
-            <PetCustomizer mode="teacher" onClose={() => setPetCatalogOpen(false)} />
-          </Suspense>
-        )}
 
         <AssignmentRewardSettings />
         <CharacterPricesSettings />
@@ -613,7 +561,6 @@ export default function MarketplaceManager() {
         </div>
 
         <div className="row-wrap" style={{ alignItems: 'center' }}>
-          <ViewToggle value={listView} onChange={setListView} />
           <button className={`btn btn-sm ${kindFilter === 'all' ? 'btn-primary' : ''}`} onClick={() => setKindFilter('all')}>All</button>
           {(Object.keys(KIND_LABELS) as MarketplaceItemKind[]).map((k) => (
             <button key={k} className={`btn btn-sm ${kindFilter === k ? 'btn-primary' : ''}`} onClick={() => setKindFilter(k)}>{KIND_LABELS[k]}</button>
@@ -626,9 +573,6 @@ export default function MarketplaceManager() {
           />
         </div>
 
-        {listView === 'sheet' ? (
-          <MarketplaceSheet items={visibleItems} />
-        ) : (
         <div className="stack">
           {grouped.length === 0 && <p style={{ opacity: 0.7 }}>Nothing here yet. Add one above and it appears in every student's Shop.</p>}
           {grouped.map((g) => (
@@ -638,7 +582,6 @@ export default function MarketplaceManager() {
             </div>
           ))}
         </div>
-        )}
       </div>
     </div>
   );

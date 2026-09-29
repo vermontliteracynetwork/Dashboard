@@ -1,5 +1,4 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { SheetTable, ViewToggle, type SheetColumn } from '../../components/SheetTable';
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -954,33 +953,9 @@ function RosterTab() {
   const setNpcTitleOverride = useStore((s) => s.setNpcTitleOverride);
   const npcVoiceOverrides = useStore((s) => s.npcVoiceOverrides);
   const setNpcVoiceOverride = useStore((s) => s.setNpcVoiceOverride);
-  const allWorldObjects = useStore((s) => s.worldObjects);
-  // Town Square objects only — a student's private Home Room furniture
-  // (studentId set) isn't the teacher's to rename or re-job here.
-  const worldObjects = allWorldObjects.filter((o) => !o.studentId);
+  const worldObjects = useStore((s) => s.worldObjects);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
-  const [objectsView, setObjectsView] = useState<'cards' | 'sheet'>('sheet');
-  const num = (v: string, fallback: number) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : fallback);
-  const objectColumns: SheetColumn<WorldObject>[] = [
-    { key: 'name', label: 'Name', type: 'text', width: 180, get: (o) => o.customName ?? '', placeholder: (o) => o.label, set: (o, v) => updateWorldObject(o.id, { customName: v.trim() || undefined }) },
-    { key: 'asset', label: 'Asset', type: 'readonly', width: 150, get: (o) => o.label },
-    {
-      key: 'role', label: 'Job', type: 'select', width: 170, get: (o) => o.role ?? '',
-      options: ROLE_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
-      set: (o, v) => updateWorldObject(o.id, { role: (v || undefined) as WorldObjectRole | undefined }),
-    },
-    { key: 'solid', label: 'Solid', type: 'checkbox', get: (o) => !!o.collides, set: (o, v) => updateWorldObject(o.id, { collides: v }) },
-    { key: 'scale', label: 'Scale', type: 'number', width: 90, get: (o) => +o.scale.toFixed(3), set: (o, v) => updateWorldObject(o.id, { scale: Math.max(0.01, num(v, o.scale)) }) },
-    {
-      key: 'rotation', label: 'Rotation°', type: 'number', width: 100, get: (o) => Math.round(THREE.MathUtils.radToDeg(o.rotationY)),
-      set: (o, v) => updateWorldObject(o.id, { rotationY: THREE.MathUtils.degToRad(num(v, THREE.MathUtils.radToDeg(o.rotationY))) }),
-    },
-    { key: 'x', label: 'X', type: 'number', width: 80, get: (o) => +o.position[0].toFixed(2), set: (o, v) => updateWorldObject(o.id, { position: [num(v, o.position[0]), o.position[1], o.position[2]] }) },
-    { key: 'z', label: 'Z', type: 'number', width: 80, get: (o) => +o.position[2].toFixed(2), set: (o, v) => updateWorldObject(o.id, { position: [o.position[0], o.position[1], num(v, o.position[2])] }) },
-    { key: 'tint', label: 'Color', type: 'color', get: (o) => o.tintColor ?? '', set: (o, v) => updateWorldObject(o.id, { tintColor: v ?? undefined }) },
-    { key: 'status', label: 'Status', type: 'readonly', width: 90, get: (o) => (o.status === 'draft' ? 'Draft' : 'Live') },
-  ];
 
   return (
     <div className="stack" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 16, gap: 24 }}>
@@ -1025,11 +1000,8 @@ function RosterTab() {
           Anything placed from Build Mode. "Job" is real and functional, and it's what actually opens when a student
           clicks it, the same setting as the properties panel over in Build Mode.
         </p>
-        {worldObjects.length > 0 && <ViewToggle value={objectsView} onChange={setObjectsView} />}
         {worldObjects.length === 0 ? (
           <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Nothing placed yet. Switch to 🏗️ Build Mode to add some.</p>
-        ) : objectsView === 'sheet' ? (
-          <SheetTable tableId="placed-objects-sheet" rows={worldObjects} rowKey={(o) => o.id} columns={objectColumns} onDelete={(o) => deleteWorldObject(o.id)} />
         ) : (
           <div className="chrome-frame stack" style={{ padding: 0, overflow: 'hidden', gap: 0 }}>
             {worldObjects.map((obj) => (
