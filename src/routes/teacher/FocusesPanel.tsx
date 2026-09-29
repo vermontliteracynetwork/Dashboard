@@ -215,14 +215,21 @@ function FocusLaneRow({ subject }: { subject: FocusSubject }) {
   );
 }
 
-export function FocusesPanel() {
+export function FocusesPanel({ subjects = ACTIVE_FOCUS_SUBJECTS }: { subjects?: FocusSubject[] }) {
   return (
-    <div className="stack" style={{ gap: 10 }}>
-      <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: 0 }}>
-        What the whole class is working on this week. It shows up quietly around the app as a shared class theme,
-        never singling out a student.
-      </p>
-      {ACTIVE_FOCUS_SUBJECTS.map((subj) => <FocusLaneRow key={subj} subject={subj} />)}
+    <div className="acad-card">
+      <div className="acad-card-head">
+        <div>
+          <h2 className="acad-card-title">Class focuses</h2>
+          <p className="acad-muted" style={{ margin: 0 }}>
+            What the whole class is working on this week. It shows up quietly around the app as a shared class theme,
+            never singling out a student.
+          </p>
+        </div>
+      </div>
+      <div className="acad-card-body stack" style={{ gap: 10 }}>
+        {subjects.map((subj) => <FocusLaneRow key={subj} subject={subj} />)}
+      </div>
     </div>
   );
 }

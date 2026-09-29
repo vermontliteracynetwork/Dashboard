@@ -2537,45 +2537,7 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   line-height: 1.6 !important;
 }
 
-/* Academics (Academics.tsx) — direct teacher instruction: "simple,
-   educational tech view." Deliberately quieter than the student-facing
-   chunky style: flat white cards, a thin border, one accent color for
-   the selected card. */
-.academics .container { max-width: 1100px; }
-.academics-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-.academics-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  text-align: left;
-  padding: 18px;
-  background: white;
-  border: 1px solid #dadce0;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.15);
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--ink);
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
-.academics-card:hover { box-shadow: 0 2px 8px rgba(60, 64, 67, 0.2); }
-.academics-card.active { border: 2px solid var(--purple); padding: 17px; background: #faf8ff; }
-.academics-card-head { font-weight: 800; font-size: 1.1rem; }
-.academics-card-stat { margin: 0; font-size: 0.9rem; opacity: 0.8; }
-.academics-card-stat strong { font-size: 1.6rem; margin-right: 4px; opacity: 1; }
-.academics-card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
-.academics-card-list li { display: flex; justify-content: space-between; gap: 8px; }
-.academics-card-list span { opacity: 0.7; }
-.academics-panel {
-  background: white;
-  border: 1px solid #dadce0;
-  border-radius: 12px;
-  padding: 20px;
-}
+/* Focus lane dropdowns (FocusesPanel.tsx, inside Academics). */
 .academics-dropdown {
   border: 1px solid #dadce0;
   border-radius: 10px;
@@ -2597,9 +2559,6 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 .academics-dropdown[open] { padding-bottom: 14px; }
 .academics-dropdown-meta { font-size: 0.8rem; opacity: 0.7; }
 .academics-more > summary { cursor: pointer; font-size: 0.82rem; font-weight: 700; min-height: 32px; display: flex; align-items: center; }
-@media (max-width: 600px) {
-  .academics-panel { padding: 14px; }
-}
 
 /* Spreadsheet view (SheetTable.tsx) — Google Sheets-style: thin gray
    gridlines, pinned header row and row-number column, cells that look
@@ -2878,4 +2837,372 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 }
 @media (prefers-reduced-motion: reduce) {
   .pc-strip { scroll-behavior: auto; }
+}
+
+/* ==========================================================================
+   Academics redesign (Academics.tsx). Direct teacher instruction: "clean,
+   crisp. table format. very professional layout that is card-based and
+   easy to navigate with lots of spacing and adequate text sizing. doesnt
+   need to match regular kid-facing site." Everything is scoped under
+   .acad so the student-facing chunky style elsewhere is untouched; shared
+   components rendered inside (activity library, question sets, focus
+   editor) pick up the quieter buttons/inputs through the same scope.
+   ========================================================================== */
+.acad-page { background: #f6f7f9; }
+.acad {
+  --acad-ink: #1f2937;
+  --acad-muted: #6b7280;
+  --acad-line: #e5e7eb;
+  --acad-bg: #f6f7f9;
+  --acad-accent: #2563eb;
+  --acad-accent-soft: #eff4ff;
+  --acad-math: #2563eb;
+  --acad-literacy: #0d9488;
+  display: flex;
+  align-items: flex-start;
+  min-height: calc(100vh - 64px);
+  color: var(--acad-ink);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.acad h1, .acad h2, .acad h3, .acad h4 { font-family: inherit; color: var(--acad-ink); }
+.acad-side {
+  position: sticky;
+  top: 0;
+  flex: 0 0 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 8px;
+  min-height: calc(100vh - 64px);
+  background: white;
+  border-right: 1px solid var(--acad-line);
+}
+.acad-side button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  min-height: 64px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--acad-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.acad-side button:hover { background: #f3f4f6; color: var(--acad-ink); }
+.acad-side button.active { background: var(--acad-accent-soft); color: var(--acad-accent); }
+.acad-main {
+  flex: 1;
+  min-width: 0;
+  max-width: 1200px;
+  padding: 28px 36px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.acad-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.acad-top h1 { margin: 0; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; }
+.acad-eyebrow { font-size: 0.8rem; font-weight: 600; color: var(--acad-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.acad-chips, .acad-segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: #eceef2;
+  border-radius: 10px;
+}
+.acad-chips button, .acad-segmented button {
+  border: none;
+  background: none;
+  padding: 0 16px;
+  min-height: 36px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--acad-muted);
+  cursor: pointer;
+}
+.acad-chips button.active, .acad-segmented button.active { background: white; color: var(--acad-ink); box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12); }
+.acad-segmented button:disabled { cursor: not-allowed; opacity: 0.6; }
+.acad-actionbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid var(--acad-line);
+  border-radius: 12px;
+}
+
+/* Buttons, inputs and pills inside Academics */
+.acad .btn {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0 16px;
+  min-height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  color: var(--acad-ink);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  transition: background 0.12s ease, border-color 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.acad .btn:hover:not(:disabled) { background: #f9fafb; }
+.acad .btn:active { transform: none; border-style: solid; }
+.acad .btn-sm { min-height: 34px; padding: 0 12px; font-size: 0.85rem; border-width: 1px; }
+.acad .btn-lg { min-height: 44px; padding: 0 20px; font-size: 1rem; }
+.acad .btn-primary { background: var(--acad-accent); border-color: var(--acad-accent); color: white; }
+.acad .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+.acad .btn-danger { background: #dc2626; border-color: #dc2626; color: white; }
+.acad .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+.acad input:not([type='checkbox']):not([type='radio']):not([type='color']),
+.acad select,
+.acad textarea {
+  font-family: inherit;
+  font-size: 0.9rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 38px;
+  background: white;
+  color: var(--acad-ink);
+  box-sizing: border-box;
+}
+.acad input:focus, .acad select:focus, .acad textarea:focus { outline: 2px solid var(--acad-accent); outline-offset: 0; border-color: var(--acad-accent); }
+.acad input[type='checkbox'], .acad input[type='radio'] { width: 18px; height: 18px; accent-color: var(--acad-accent); }
+.acad label { font-weight: 600; font-size: 0.85rem; }
+.acad .tag-pill { border: 1px solid var(--acad-line); background: #f3f4f6; font-weight: 600; font-size: 0.78rem; }
+.acad .chrome-frame, .acad .content-well { border: 1px solid var(--acad-line); border-radius: 10px; box-shadow: none; background: white; }
+.acad-muted { color: var(--acad-muted); }
+.acad-small { font-size: 0.8rem; }
+.acad-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Cards */
+.acad-card { background: white; border: 1px solid var(--acad-line); border-radius: 12px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); }
+.acad-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--acad-line);
+}
+.acad-card-title { margin: 0; font-size: 1.1rem; font-weight: 700; }
+.acad-card-body { padding: 20px 22px; }
+.acad-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.acad-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px 24px;
+  background: white;
+  border: 1px solid var(--acad-line);
+  border-radius: 12px;
+}
+.acad-tile-label { font-size: 0.9rem; font-weight: 600; color: var(--acad-muted); }
+.acad-tile-value { font-size: 2.4rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+.acad-flash { padding: 12px 16px; background: #ecfdf3; border: 1px solid #abefc6; color: #067647; border-radius: 10px; font-weight: 600; }
+
+/* Tabs inside a card head */
+.acad-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.acad-tabs button {
+  border: none;
+  background: none;
+  padding: 0 12px;
+  min-height: 38px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--acad-muted);
+  cursor: pointer;
+}
+.acad-tabs button:hover { background: #f3f4f6; color: var(--acad-ink); }
+.acad-tabs button.active { background: var(--acad-accent-soft); color: var(--acad-accent); }
+
+/* Tables */
+.acad-table-wrap { overflow-x: auto; }
+.acad-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.acad-table th {
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--acad-muted);
+  background: #f9fafb;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--acad-line);
+  white-space: nowrap;
+}
+.acad-table td { padding: 14px 22px; border-bottom: 1px solid var(--acad-line); vertical-align: middle; }
+.acad-table tbody tr:last-child td { border-bottom: none; }
+.acad-table tbody tr:hover td { background: #fafbfc; }
+.acad-table tr.is-selected td { background: var(--acad-accent-soft); }
+.acad-table tr.is-muted td { color: var(--acad-muted); }
+.acad-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.acad-empty { padding: 28px 22px; margin: 0; text-align: center; color: var(--acad-muted); }
+.acad-link { border: none; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--acad-ink); cursor: pointer; text-align: left; }
+.acad-link:hover { color: var(--acad-accent); text-decoration: underline; }
+.acad-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.acad-person { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.acad-avatars { display: inline-flex; align-items: center; gap: 2px; }
+.acad-avatars .acad-muted { margin-left: 6px; font-size: 0.85rem; }
+.acad-subject { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.85rem; }
+.acad-subject::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+.acad-subject-math::before { background: var(--acad-math); }
+.acad-subject-literacy::before { background: var(--acad-literacy); }
+.acad-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+.acad-status-active { background: #ecfdf3; color: #067647; }
+.acad-status-upcoming { background: #eff4ff; color: #1d4ed8; }
+.acad-status-past { background: #f3f4f6; color: #4b5563; }
+.acad-status-draft { background: #fffaeb; color: #b54708; }
+.acad-progress-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.acad-progress { display: flex; align-items: center; gap: 8px; }
+.acad-progress-bar { width: 80px; height: 6px; border-radius: 3px; background: #eceef2; overflow: hidden; }
+.acad-progress-bar > span { display: block; height: 100%; background: #12b76a; }
+
+/* Chart */
+.acad-legend { display: flex; gap: 18px; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; }
+.acad-swatch { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.acad-swatch-math { background: var(--acad-math); }
+.acad-swatch-literacy { background: var(--acad-literacy); }
+.acad-chart { width: 100%; height: auto; display: block; }
+.acad-chart-grid { stroke: #eceef2; stroke-width: 1; }
+.acad-chart-label { font-size: 12px; fill: var(--acad-muted); font-family: inherit; }
+.acad-chart-label.is-today { fill: var(--acad-ink); font-weight: 700; }
+.acad-series-math polyline { stroke: var(--acad-math); }
+.acad-series-math circle { fill: white; stroke: var(--acad-math); stroke-width: 2; }
+.acad-series-literacy polyline { stroke: var(--acad-literacy); }
+.acad-series-literacy circle { fill: white; stroke: var(--acad-literacy); stroke-width: 2; }
+
+/* Stepped create pop-up */
+.acad-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(16, 24, 40, 0.45);
+}
+.acad-modal {
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.2);
+}
+.acad-modal-wide { max-width: 1040px; }
+.acad-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--acad-line);
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+.acad-modal-head h2 { margin: 0; font-size: 1.25rem; font-weight: 700; flex: 1; }
+.acad-icon-btn { border: none; background: none; width: 40px; height: 40px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; color: var(--acad-muted); }
+.acad-icon-btn:hover { background: #f3f4f6; color: var(--acad-ink); }
+.acad-stepper-body { display: flex; flex-direction: column; }
+.acad-stepper {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  margin: 16px 24px 0;
+  padding: 8px;
+  border: 1px solid #bfd3fe;
+  border-radius: 12px;
+  background: #f8faff;
+}
+.acad-stepper li { flex: 1; }
+.acad-stepper li + li { position: relative; }
+.acad-stepper button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  min-height: 40px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--acad-muted);
+  cursor: pointer;
+}
+.acad-stepper li.current button { color: var(--acad-accent); background: white; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08); }
+.acad-stepper li.done button { color: var(--acad-ink); }
+.acad-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eceef2;
+  font-size: 0.8rem;
+}
+.acad-stepper li.current .acad-step-num { background: var(--acad-accent); color: white; }
+.acad-stepper li.done .acad-step-num { background: #12b76a; color: white; }
+.acad-step-content { padding: 20px 24px; min-height: 280px; }
+.acad-step-content .acad-table-wrap { border: 1px solid var(--acad-line); border-radius: 10px; max-height: 50vh; overflow: auto; }
+.acad-step-content .acad-table th { position: sticky; top: 0; }
+.acad-build-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.acad-build-library { max-height: 60vh; overflow: auto; border: 1px solid var(--acad-line); border-radius: 10px; padding: 12px; }
+.acad-modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--acad-line);
+  position: sticky;
+  bottom: 0;
+  background: white;
+}
+.acad-stepper-body > .acad-muted { padding: 0 24px 12px; margin: 0; }
+
+@media (max-width: 900px) {
+  .acad-build-split { grid-template-columns: 1fr; }
+  .acad-main { padding: 20px 16px 40px; }
+}
+@media (max-width: 640px) {
+  .acad { flex-direction: column; }
+  .acad-side {
+    position: static;
+    flex-direction: row;
+    min-height: 0;
+    width: 100%;
+    overflow-x: auto;
+    padding: 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--acad-line);
+    box-sizing: border-box;
+  }
+  .acad-side button { flex: 0 0 auto; min-width: 76px; }
+  .acad-stepper { flex-direction: column; }
+  .acad-table th, .acad-table td { padding: 10px 12px; }
+  .acad-modal-backdrop { padding: 0; }
+  .acad-modal { max-height: 100dvh; border-radius: 0; }
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
+import { ActivityLibraryBrowse, activityToTaskSnapshot } from './ActivityLibrary';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { StudentPlanTabs } from './LessonPlanBuilder';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
@@ -55,13 +56,28 @@ interface EditRequest {
   selectedIds: string[];
 }
 
-function DraftCard({
-  template,
-  onEdit,
-}: {
-  template: PlanTemplate;
-  onEdit: () => void;
-}) {
+function SubjectCell({ subject }: { subject: Subject }) {
+  return <span className={`acad-subject acad-subject-${subject}`}>{subject === 'math' ? 'Math' : 'Literacy'}</span>;
+}
+
+function dateRangeLabel(start: string, end: string) {
+  const short = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return start === end ? short(start) : `${short(start)} to ${short(end)}`;
+}
+
+function StudentStack({ list }: { list: Student[] }) {
+  return (
+    <span className="acad-avatars" title={list.map((st) => st.name).join(', ')}>
+      {list.slice(0, 5).map((st) => <AvatarGlyph key={st.id} value={st.avatar} size={22} />)}
+      <span className="acad-muted">{list.length}</span>
+    </span>
+  );
+}
+
+// Academics redesign (direct teacher request: "clean, crisp. table format.
+// very professional"): drafts, assignments and deleted plans are rows in
+// one table rather than a grid of cards. Same actions as before.
+function DraftRow({ template, onEdit }: { template: PlanTemplate; onEdit: () => void }) {
   const students = useStore((s) => s.students);
   const duplicateTemplate = useStore((s) => s.duplicateTemplate);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
@@ -70,9 +86,7 @@ function DraftCard({
   const [published, setPublished] = useState(false);
 
   // One-click publish with sensible defaults (today, every student,
-  // repeats daily) — reuses this same template rather than duplicating
-  // it. For anything more specific (a date range, only some students),
-  // use Edit instead.
+  // repeats daily). For anything more specific, use Edit instead.
   const quickPublish = () => {
     const today = todayISO();
     students.forEach((st) => addStudentToAssignment(st.id, template.subject, template.id, today, today, 'repeat'));
@@ -80,46 +94,33 @@ function DraftCard({
   };
 
   return (
-    <div className="assignment-card" style={{ cursor: 'default' }}>
-      <div className={`assignment-card-banner ${template.subject === 'math' ? 'banner-math' : 'banner-literacy'}`}>
-        <span>{template.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-        <span className="tag-pill">📝 Draft</span>
-      </div>
-      <div className="assignment-card-body">
-        <strong className="assignment-card-title">{template.name}</strong>
-        <div className="assignment-card-meta">{template.activities.length} activities</div>
-        <div className="row-wrap" style={{ marginTop: 8 }}>
-          <button className="btn btn-sm" onClick={onEdit}>✏️ Edit</button>
-          <button className="btn btn-sm btn-primary" disabled={students.length === 0} onClick={quickPublish}>🚀 Publish</button>
-          <button className="btn btn-sm" onClick={() => duplicateTemplate(template.id)}>⧉ Duplicate</button>
+    <tr>
+      <td><button type="button" className="acad-link" onClick={onEdit}>{template.name}</button></td>
+      <td><SubjectCell subject={template.subject} /></td>
+      <td>{template.activities.length}</td>
+      <td className="acad-muted">Not assigned</td>
+      <td className="acad-muted">None</td>
+      <td>{published ? <span className="acad-status acad-status-active">Published today</span> : <span className="acad-status acad-status-draft">Draft</span>}</td>
+      <td>
+        <div className="acad-actions">
+          <button className="btn btn-sm" onClick={onEdit}>Edit</button>
+          <button className="btn btn-sm btn-primary" disabled={students.length === 0 || published} onClick={quickPublish}>Publish today</button>
+          <button className="btn btn-sm" onClick={() => duplicateTemplate(template.id)}>Duplicate</button>
           {confirmDelete ? (
             <>
-              <button className="btn btn-sm btn-danger" onClick={() => deleteTemplate(template.id)}>Confirm delete</button>
+              <button className="btn btn-sm btn-danger" onClick={() => deleteTemplate(template.id)}>Confirm</button>
               <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
             </>
           ) : (
-            <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(true)}>🗑️</button>
+            <button className="btn btn-sm" aria-label="Delete draft" onClick={() => setConfirmDelete(true)}>🗑️</button>
           )}
         </div>
-        {published && (
-          <p style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 700, margin: '6px 0 0' }}>
-            ✅ Published to {students.length} student{students.length === 1 ? '' : 's'} today.
-          </p>
-        )}
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 
-function AssignmentCard({
-  group,
-  onOpen,
-  onDelete,
-}: {
-  group: AssignmentGroup;
-  onOpen: () => void;
-  onDelete: () => void;
-}) {
+function AssignmentRow({ group, onOpen, onDelete }: { group: AssignmentGroup; onOpen: () => void; onDelete: () => void }) {
   const planTemplates = useStore((s) => s.planTemplates);
   const students = useStore((s) => s.students);
   const progress = useStore((s) => s.progress);
@@ -128,131 +129,119 @@ function AssignmentCard({
   const today = todayISO();
   const isActiveToday = group.startDate <= today && today <= group.endDate;
   const isUpcoming = group.startDate > today;
-  const isPast = group.endDate < today;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [duplicated, setDuplicated] = useState(false);
 
   const studentList = uniqueRowsByStudent(group.rows)
     .map((r) => students.find((s) => s.id === r.studentId))
     .filter((s): s is Student => !!s);
-
   const doneToday = studentList.filter((st) => {
     const p = progress[st.id]?.[group.subject];
     return p?.date === today && p.subjectComplete;
   }).length;
 
   return (
-    <div className="assignment-card" style={{ cursor: 'default' }}>
-      <div className={`assignment-card-banner ${group.subject === 'math' ? 'banner-math' : 'banner-literacy'}`}>
-        <span>{group.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-        {isPast && <span className="tag-pill">Past</span>}
-        {isUpcoming && <span className="tag-pill">✏️ Upcoming</span>}
-      </div>
-      <div className="assignment-card-body">
-        <button className="assignment-card-title" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', font: 'inherit', cursor: 'pointer' }} onClick={onOpen}>
-          <strong>{template?.name ?? '(deleted plan)'}</strong>
-        </button>
-        <div className="assignment-card-meta">
-          {template?.activities.length ?? 0} activities · {group.mode === 'repeat' ? '🔁 Repeats daily' : '📌 One span'}
-        </div>
-        <div className="assignment-card-meta">
-          {group.startDate === group.endDate
-            ? formatDateLong(group.startDate)
-            : `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`}
-        </div>
-        <div className="assignment-card-students">
-          {studentList.map((st) => (
-            <span key={st.id} title={st.name}><AvatarGlyph value={st.avatar} size={22} /></span>
-          ))}
-          <span className="assignment-card-count">
-            {studentList.length} student{studentList.length === 1 ? '' : 's'}
-          </span>
-        </div>
-        {isActiveToday && studentList.length > 0 && (
-          <div className="assignment-card-progress">
-            <div className="assignment-card-progress-bar">
-              <div style={{ width: `${(doneToday / studentList.length) * 100}%` }} />
-            </div>
-            <span>{doneToday}/{studentList.length} done today</span>
+    <tr>
+      <td>
+        <button type="button" className="acad-link" onClick={onOpen}>{template?.name ?? '(deleted plan)'}</button>
+        <div className="acad-muted acad-small">{group.mode === 'repeat' ? 'Repeats daily' : 'One span'}</div>
+      </td>
+      <td><SubjectCell subject={group.subject} /></td>
+      <td>{template?.activities.length ?? 0}</td>
+      <td><StudentStack list={studentList} /></td>
+      <td>{dateRangeLabel(group.startDate, group.endDate)}</td>
+      <td>
+        {isActiveToday ? (
+          <div className="acad-progress-cell">
+            <span className="acad-status acad-status-active">Active</span>
+            {studentList.length > 0 && (
+              <span className="acad-progress" title={`${doneToday} of ${studentList.length} done today`}>
+                <span className="acad-progress-bar"><span style={{ width: `${(doneToday / studentList.length) * 100}%` }} /></span>
+                <span className="acad-muted acad-small">{doneToday}/{studentList.length} today</span>
+              </span>
+            )}
           </div>
+        ) : isUpcoming ? (
+          <span className="acad-status acad-status-upcoming">Upcoming</span>
+        ) : (
+          <span className="acad-status acad-status-past">Past</span>
         )}
-
-        <div className="row-wrap" style={{ marginTop: 8 }}>
-          <button className="btn btn-sm" onClick={onOpen}>{isPast ? '👁️ View' : '✏️ Edit'}</button>
+      </td>
+      <td>
+        <div className="acad-actions">
+          <button className="btn btn-sm" onClick={onOpen}>{group.endDate < today ? 'View' : 'Edit'}</button>
           <button
             className="btn btn-sm"
+            disabled={duplicated}
             onClick={() => {
               if (template) duplicateTemplate(template.id);
               setDuplicated(true);
             }}
+            title="Copies this plan into Drafts"
           >
-            ⧉ Duplicate
+            {duplicated ? 'Copied to Drafts' : 'Duplicate'}
           </button>
           {confirmDelete ? (
             <>
-              <button className="btn btn-sm btn-danger" onClick={onDelete}>Confirm delete</button>
+              <button className="btn btn-sm btn-danger" onClick={onDelete}>Confirm</button>
               <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
             </>
           ) : (
-            <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(true)}>🗑️ Delete</button>
+            <button className="btn btn-sm" aria-label="Delete assignment" onClick={() => setConfirmDelete(true)}>🗑️</button>
           )}
         </div>
-        {duplicated && (
-          <p style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 700, margin: '6px 0 0' }}>
-            ✅ Duplicated to Drafts. Find it under the Drafts tab to customize and publish.
-          </p>
-        )}
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 
-function DeletedAssignmentCard({ group, onRestore, onDeleteForever }: { group: AssignmentGroup; onRestore: () => void; onDeleteForever: () => void }) {
+function DeletedAssignmentRow({ group, onRestore, onDeleteForever }: { group: AssignmentGroup; onRestore: () => void; onDeleteForever: () => void }) {
   const planTemplates = useStore((s) => s.planTemplates);
   const students = useStore((s) => s.students);
   const template = planTemplates.find((t) => t.id === group.templateId);
   const [confirmForever, setConfirmForever] = useState(false);
-
   const studentList = uniqueRowsByStudent(group.rows)
     .map((r) => students.find((s) => s.id === r.studentId))
     .filter((s): s is Student => !!s);
 
   return (
-    <div className="assignment-card" style={{ cursor: 'default', opacity: 0.8 }}>
-      <div className={`assignment-card-banner ${group.subject === 'math' ? 'banner-math' : 'banner-literacy'}`}>
-        <span>{group.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-        <span className="tag-pill">🗑️ Deleted</span>
-      </div>
-      <div className="assignment-card-body">
-        <strong className="assignment-card-title">{template?.name ?? '(deleted plan)'}</strong>
-        <div className="assignment-card-meta">
-          {group.startDate === group.endDate
-            ? formatDateLong(group.startDate)
-            : `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`}
-        </div>
-        <div className="assignment-card-students">
-          {studentList.map((st) => (
-            <span key={st.id} title={st.name}><AvatarGlyph value={st.avatar} size={22} /></span>
-          ))}
-          <span className="assignment-card-count">
-            {studentList.length} student{studentList.length === 1 ? '' : 's'}
-          </span>
-        </div>
-        <div className="row-wrap" style={{ marginTop: 8 }}>
-          <button className="btn btn-sm btn-primary" onClick={onRestore}>↩️ Restore</button>
+    <tr className="is-muted">
+      <td>{template?.name ?? '(deleted plan)'}</td>
+      <td><SubjectCell subject={group.subject} /></td>
+      <td>{template?.activities.length ?? 0}</td>
+      <td><StudentStack list={studentList} /></td>
+      <td>{dateRangeLabel(group.startDate, group.endDate)}</td>
+      <td><span className="acad-status acad-status-past">Deleted</span></td>
+      <td>
+        <div className="acad-actions">
+          <button className="btn btn-sm btn-primary" onClick={onRestore}>Restore</button>
           {confirmForever ? (
             <>
-              <button className="btn btn-sm btn-danger" onClick={onDeleteForever}>Confirm: delete forever</button>
+              <button className="btn btn-sm btn-danger" onClick={onDeleteForever}>Delete forever</button>
               <button className="btn btn-sm" onClick={() => setConfirmForever(false)}>Cancel</button>
             </>
           ) : (
-            <button className="btn btn-sm btn-danger" onClick={() => setConfirmForever(true)}>🗑️ Delete forever</button>
+            <button className="btn btn-sm" onClick={() => setConfirmForever(true)}>Delete forever</button>
           )}
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
+
+const TABLE_HEAD = (
+  <thead>
+    <tr>
+      <th>Plan</th>
+      <th>Subject</th>
+      <th>Activities</th>
+      <th>Students</th>
+      <th>Dates</th>
+      <th>Status</th>
+      <th aria-label="Actions" />
+    </tr>
+  </thead>
+);
 
 function AssignmentDetailModal({
   group,
@@ -359,10 +348,12 @@ function AssignmentDetailModal({
   );
 }
 
-// The Assignments view inside Academics (Academics.tsx owns the page shell
-// and nav; this is just the content). Focuses moved to their own
-// Academics card, so they're no longer stacked on top of this list.
-export function AssignmentsPanel() {
+// The Assignments view inside Academics (Academics.tsx owns the page
+// shell, sidebar and subject filter; this is just the content). Creating
+// or editing opens the stepped pop-up (1 Select students › 2 Build the
+// plan › 3 Set dates); `?create=1` in the URL opens it, so Academics' own
+// "Create assignment" button can open it from any section.
+export function AssignmentsPanel({ subjectFilter = 'all' }: { subjectFilter?: Subject | 'all' }) {
   const assignments = useStore((s) => s.assignments);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const planTemplates = useStore((s) => s.planTemplates);
@@ -371,16 +362,19 @@ export function AssignmentsPanel() {
   const softDeleteAssignment = useStore((s) => s.softDeleteAssignment);
   const restoreAssignment = useStore((s) => s.restoreAssignment);
 
-  const [subject, setSubject] = useState<Subject>('math');
-  const [creating, setCreating] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [subject, setSubject] = useState<Subject>(subjectFilter === 'all' ? 'math' : subjectFilter);
   const [planTasks, setPlanTasks] = useState<Task[]>([]);
   const [editRequest, setEditRequest] = useState<EditRequest | null>(null);
   const [detailKey, setDetailKey] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('active');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+  const creating = searchParams.get('create') === '1' || !!editRequest;
 
-  const groups = useMemo(() => groupAssignments(assignments.filter((a) => !a.deletedAt)), [assignments]);
-  const deletedGroups = useMemo(() => groupAssignments(assignments.filter((a) => !!a.deletedAt)), [assignments]);
+  const bySubject = (a: { subject: Subject }) => subjectFilter === 'all' || a.subject === subjectFilter;
+  const groups = useMemo(() => groupAssignments(assignments.filter((a) => !a.deletedAt)), [assignments]).filter(bySubject);
+  const deletedGroups = useMemo(() => groupAssignments(assignments.filter((a) => !!a.deletedAt)), [assignments]).filter(bySubject);
   const detailGroup = groups.find((g) => g.key === detailKey) ?? null;
   const today = todayISO();
   const filteredGroups = groups.filter((g) => {
@@ -392,26 +386,22 @@ export function AssignmentsPanel() {
   const selectedStudent = students.find((st) => st.id === selectedStudentId) ?? null;
 
   // A template only counts as a "Draft" until the first time it's actually
-  // published. Once it has any assignment record at all — active, upcoming,
-  // or already past — it belongs in that tab, not back in Drafts, even
-  // after its date window ends; "Draft" always means "never sent to a
-  // student," the same as every other tool that has drafts. A published
-  // plan is still reusable (see "🚀 Publish again" on a past assignment),
-  // which covers the old "recycle it back to Drafts" use case without the
-  // confusing double-listing.
-  const everPublishedTemplateIds = new Set(groups.map((g) => g.templateId));
-  const draftTemplates = planTemplates.filter((t) => !everPublishedTemplateIds.has(t.id));
+  // published; once it has any assignment record it belongs in that tab.
+  const everPublishedTemplateIds = new Set(useMemo(() => groupAssignments(assignments.filter((a) => !a.deletedAt)), [assignments]).map((g) => g.templateId));
+  const draftTemplates = planTemplates.filter((t) => !everPublishedTemplateIds.has(t.id)).filter(bySubject);
 
-  const closeBuilder = () => {
-    setCreating(false);
+  const closeBuilder = (message?: string) => {
     setEditRequest(null);
     setPlanTasks([]);
-  };
-
-  const startCreateNew = () => {
-    setEditRequest(null);
-    setPlanTasks([]);
-    setCreating(true);
+    if (searchParams.get('create')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('create');
+      setSearchParams(next, { replace: true });
+    }
+    if (message) {
+      setFlash(message);
+      window.setTimeout(() => setFlash(null), 4000);
+    }
   };
 
   const startEditDraft = (template: PlanTemplate) => {
@@ -425,14 +415,12 @@ export function AssignmentsPanel() {
       mode: 'repeat',
       selectedIds: students.map((st) => st.id),
     });
-    setCreating(true);
   };
 
   const startEditGroup = (group: AssignmentGroup) => {
     const template = planTemplates.find((t) => t.id === group.templateId);
     // Self-heals any duplicate rows for the same student found on this
-    // group (e.g. from before addStudentToAssignment was made idempotent)
-    // by deleting the extras now, so editing never re-creates them.
+    // group by deleting the extras now, so editing never re-creates them.
     const uniqueRows = uniqueRowsByStudent(group.rows);
     if (uniqueRows.length !== group.rows.length) {
       const keepIds = new Set(uniqueRows.map((r) => r.id));
@@ -448,111 +436,39 @@ export function AssignmentsPanel() {
       mode: group.mode,
       selectedIds: uniqueRows.map((r) => r.studentId),
     });
-    setCreating(true);
   };
 
-  if (creating) {
-    return (
-        <div className="stack">
-          <div className="space-between">
-            <h2 style={{ margin: 0 }}>{editRequest ? '✏️ Edit Assignment' : '🗓️ Create an Assignment'}</h2>
-            <button className="btn btn-sm" onClick={closeBuilder}>← Back to Assignments</button>
-          </div>
-
-          <div className="subject-tabs">
-            <button
-              className={`subject-tab-btn tab-math ${subject === 'math' ? 'active' : ''}`}
-              disabled={!!editRequest}
-              onClick={() => setSubject('math')}
-            >
-              🔢 Math
-            </button>
-            <button
-              className={`subject-tab-btn tab-literacy ${subject === 'literacy' ? 'active' : ''}`}
-              disabled={!!editRequest}
-              onClick={() => setSubject('literacy')}
-            >
-              📚 Literacy
-            </button>
-          </div>
-
-          <div className="assignments-split">
-            <div className="assignments-split-main">
-              <NewDailyPlanBuilder
-                key={editRequest?.editing.templateId ?? 'new'}
-                subject={subject}
-                tasks={planTasks}
-                onTasksChange={setPlanTasks}
-                editing={editRequest?.editing}
-                initialName={editRequest?.name}
-                initialStartDate={editRequest?.startDate}
-                initialEndDate={editRequest?.endDate}
-                initialMode={editRequest?.mode}
-                initialSelectedIds={editRequest?.selectedIds}
-                onSaved={closeBuilder}
-              />
-            </div>
-            <div className="assignments-split-side">
-              <ActivityLibraryBrowse
-                subject={subject}
-                compact
-                onAddActivity={(activityId) => {
-                  const lib = activityLibrary.find((a) => a.id === activityId);
-                  if (lib) setPlanTasks((prev) => [...prev, activityToTaskSnapshot(lib)]);
-                }}
-              />
-            </div>
-          </div>
-
-          <CreateActivityForm subject={subject} />
-        </div>
-    );
-  }
+  const FILTER_LABELS: Record<Filter, string> = {
+    active: 'Active',
+    upcoming: 'Upcoming',
+    past: 'Past',
+    drafts: `Drafts (${draftTemplates.length})`,
+    all: 'All',
+    'by-student': 'By student',
+    deleted: `Deleted (${deletedGroups.length})`,
+  };
 
   return (
-    <div className="stack">
-      <div className="stack">
-        <div className="lp-tabs">
-          {(['active', 'upcoming', 'past', 'drafts', 'all', 'by-student', 'deleted'] as Filter[]).map((f) => (
-            <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-              {f === 'active'
-                ? '🟢 Active'
-                : f === 'upcoming'
-                  ? '🔜 Upcoming'
-                  : f === 'past'
-                    ? '⏪ Past / Completed'
-                    : f === 'drafts'
-                      ? `📝 Drafts (${draftTemplates.length})`
-                      : f === 'by-student'
-                        ? '🧑 By Student'
-                        : f === 'deleted'
-                          ? `🗑️ Deleted (${deletedGroups.length})`
-                          : 'All'}
-            </button>
-          ))}
+    <div className="stack" style={{ gap: 16 }}>
+      {flash && <div className="acad-flash" role="status">✅ {flash}</div>}
+
+      <div className="acad-card">
+        <div className="acad-card-head">
+          <div className="acad-tabs" role="tablist" aria-label="Assignment filter">
+            {(['active', 'upcoming', 'past', 'drafts', 'all', 'by-student', 'deleted'] as Filter[]).map((f) => (
+              <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>
+                {FILTER_LABELS[f]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {filter === 'deleted' ? (
-          <div className="assignment-card-grid">
-            {deletedGroups.length === 0 ? (
-              <p style={{ opacity: 0.7 }}>Nothing deleted right now.</p>
-            ) : (
-              deletedGroups.map((g) => (
-                <DeletedAssignmentCard
-                  key={g.key}
-                  group={g}
-                  onRestore={() => g.rows.forEach((r) => restoreAssignment(r.id))}
-                  onDeleteForever={() => g.rows.forEach((r) => deleteAssignment(r.id))}
-                />
-              ))
-            )}
-          </div>
-        ) : filter === 'by-student' ? (
-          <>
+        {filter === 'by-student' ? (
+          <div className="acad-card-body stack" style={{ gap: 12 }}>
             {students.length === 0 ? (
-              <p style={{ opacity: 0.7 }}>No students yet. Add one from the Students page first.</p>
+              <p className="acad-muted">No students yet. Add one from the Students page first.</p>
             ) : (
-              <div className="row-wrap">
+              <div className="row-wrap" style={{ gap: 6 }}>
                 {students.map((st) => (
                   <button
                     key={st.id}
@@ -567,42 +483,89 @@ export function AssignmentsPanel() {
             {selectedStudent ? (
               <StudentPlanTabs studentId={selectedStudent.id} studentName={selectedStudent.name} />
             ) : (
-              students.length > 0 && <p style={{ opacity: 0.7 }}>Pick a student above to see their plan.</p>
+              students.length > 0 && <p className="acad-muted">Pick a student above to see their plan.</p>
             )}
-          </>
+          </div>
         ) : (
-          <>
-            <div className="assignment-card-grid">
-              <button className="assignment-card assignment-card-create" onClick={startCreateNew}>
-                <span style={{ fontSize: '2rem' }}>➕</span>
-                <strong>Create Assignment</strong>
-              </button>
-              {filter === 'drafts'
-                ? draftTemplates.map((t) => <DraftCard key={t.id} template={t} onEdit={() => startEditDraft(t)} />)
-                : filteredGroups.map((g) => (
-                    <AssignmentCard
-                      key={g.key}
-                      group={g}
-                      onOpen={() => (g.endDate >= today ? startEditGroup(g) : setDetailKey(g.key))}
-                      onDelete={() => g.rows.forEach((r) => softDeleteAssignment(r.id))}
-                    />
-                  ))}
-            </div>
-
-            {filter === 'drafts' && planTemplates.length === 0 && (
-              <p style={{ opacity: 0.7 }}>
-                No drafts yet. Save a plan as a draft from any student's Assignments page ("📜 History &amp; Drafts"),
-                or build one here and use "💾 Save as Draft only" instead of publishing.
+          <div className="acad-table-wrap">
+            <table className="acad-table">
+              {TABLE_HEAD}
+              <tbody>
+                {filter === 'deleted'
+                  ? deletedGroups.map((g) => (
+                      <DeletedAssignmentRow
+                        key={g.key}
+                        group={g}
+                        onRestore={() => g.rows.forEach((r) => restoreAssignment(r.id))}
+                        onDeleteForever={() => g.rows.forEach((r) => deleteAssignment(r.id))}
+                      />
+                    ))
+                  : filter === 'drafts'
+                    ? draftTemplates.map((t) => <DraftRow key={t.id} template={t} onEdit={() => startEditDraft(t)} />)
+                    : filteredGroups.map((g) => (
+                        <AssignmentRow
+                          key={g.key}
+                          group={g}
+                          onOpen={() => (g.endDate >= today ? startEditGroup(g) : setDetailKey(g.key))}
+                          onDelete={() => g.rows.forEach((r) => softDeleteAssignment(r.id))}
+                        />
+                      ))}
+              </tbody>
+            </table>
+            {((filter === 'deleted' && deletedGroups.length === 0) ||
+              (filter === 'drafts' && draftTemplates.length === 0) ||
+              (filter !== 'deleted' && filter !== 'drafts' && filteredGroups.length === 0)) && (
+              <p className="acad-empty">
+                {filter === 'deleted'
+                  ? 'Nothing deleted right now.'
+                  : filter === 'drafts'
+                    ? 'No drafts yet. Use "Save as draft" in the last step of Create assignment.'
+                    : `No ${filter === 'all' ? '' : `${filter} `}assignments. Use "Create assignment" above to build one.`}
               </p>
             )}
-            {filter !== 'drafts' && filteredGroups.length === 0 && (
-              <p style={{ opacity: 0.7 }}>
-                No {filter === 'all' ? '' : filter} assignments yet. Tap "➕ Create Assignment" to build one.
-              </p>
-            )}
-          </>
+          </div>
         )}
       </div>
+
+      {creating && (
+        <div className="acad-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) closeBuilder(); }}>
+          <div className="acad-modal acad-modal-wide" role="dialog" aria-modal="true" aria-labelledby="acad-create-title">
+            <div className="acad-modal-head">
+              <h2 id="acad-create-title">{editRequest ? 'Edit assignment' : 'Create assignment'}</h2>
+              <div className="acad-segmented" role="group" aria-label="Subject">
+                <button className={subject === 'math' ? 'active' : ''} disabled={!!editRequest} onClick={() => { setSubject('math'); setPlanTasks([]); }}>Math</button>
+                <button className={subject === 'literacy' ? 'active' : ''} disabled={!!editRequest} onClick={() => { setSubject('literacy'); setPlanTasks([]); }}>Literacy</button>
+              </div>
+              <button className="acad-icon-btn" onClick={() => closeBuilder()} aria-label="Close">✕</button>
+            </div>
+            <NewDailyPlanBuilder
+              key={`${editRequest?.editing.templateId ?? 'new'}:${subject}`}
+              stepped
+              subject={subject}
+              tasks={planTasks}
+              onTasksChange={setPlanTasks}
+              editing={editRequest?.editing}
+              initialName={editRequest?.name}
+              initialStartDate={editRequest?.startDate}
+              initialEndDate={editRequest?.endDate}
+              initialMode={editRequest?.mode}
+              initialSelectedIds={editRequest?.selectedIds}
+              onSaved={closeBuilder}
+              onCancel={() => closeBuilder()}
+              librarySlot={
+                <ActivityLibraryBrowse
+                  subject={subject}
+                  compact
+                  onAddActivity={(activityId) => {
+                    const lib = activityLibrary.find((a) => a.id === activityId);
+                    if (lib) setPlanTasks((prev) => [...prev, activityToTaskSnapshot(lib)]);
+                  }}
+                />
+              }
+            />
+          </div>
+        </div>
+      )}
 
       {detailGroup && (
         <AssignmentDetailModal

@@ -32,8 +32,16 @@ interface Props {
   initialEndDate?: string;
   initialMode?: 'repeat' | 'span';
   initialSelectedIds?: string[];
-  onSaved?: () => void;
+  onSaved?: (message?: string) => void;
+  // Academics' stepped pop-up (direct teacher request, modeled on Boddle's
+  // assignment flow): the same builder split into 1 Select students ›
+  // 2 Build the plan › 3 Set dates, with Back/Next and a Cancel.
+  stepped?: boolean;
+  librarySlot?: React.ReactNode; // shown beside the plan list on step 2
+  onCancel?: () => void;
 }
+
+const STEPS = ['Select students', 'Build the plan', 'Set dates'] as const;
 
 // Build a whole daily plan from scratch (not tied to any one student's
 // existing plan) and assign the finished result to as many students as
@@ -55,7 +63,11 @@ export default function NewDailyPlanBuilder({
   initialMode,
   initialSelectedIds,
   onSaved,
+  stepped,
+  librarySlot,
+  onCancel,
 }: Props) {
+  const [step, setStep] = useState(0);
   const students = useStore((s) => s.students);
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addTemplate = useStore((s) => s.addTemplate);
@@ -109,10 +121,11 @@ export default function NewDailyPlanBuilder({
     if (editing) {
       updateTemplate(editing.templateId, { name: finalName, subject, activities: tasks });
       setSaved(`Saved changes to "${finalName}".`);
-      onSaved?.();
+      onSaved?.(`Saved changes to "${finalName}".`);
       return;
     }
     addTemplate(finalName, subject, tasks);
+    if (stepped) { onSaved?.(`Saved "${finalName}" as a draft.`); return; }
     setSaved(`Saved "${finalName}" as a draft.`);
     resetForm();
   };
@@ -137,21 +150,287 @@ export default function NewDailyPlanBuilder({
         }
       });
       remaining.forEach((row) => deleteAssignment(row.id));
-      setSaved(
+      const msg =
         `Saved changes to "${finalName}", assigned to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
-          (activeNow ? '. It\'s live now.' : '. It will load automatically when the window opens.'),
-      );
-      onSaved?.();
+        (activeNow ? '. It\'s live now.' : '. It will load automatically when the window opens.');
+      setSaved(msg);
+      onSaved?.(msg);
       return;
     }
 
     publishAssignment(selectedIds, subject, tasks, finalName, startDate, endDate, mode);
-    setSaved(
+    const msg =
       `Published "${finalName}" to ${selectedIds.length} student${selectedIds.length === 1 ? '' : 's'} ${range}` +
-        (activeNow ? '. It\'s live now.' : '. It will load automatically when the window opens.'),
-    );
+      (activeNow ? '. It\'s live now.' : '. It will load automatically when the window opens.');
+    if (stepped) { onSaved?.(msg); return; }
+    setSaved(msg);
     resetForm();
   };
+
+  const allSelected = students.length > 0 && selectedIds.length === students.length;
+  const studentsStep = students.length === 0 ? (
+    <p className="acad-muted">No students yet. You can still save this as a draft.</p>
+  ) : (
+    <div className="acad-table-wrap">
+      <table className="acad-table">
+        <thead>
+          <tr>
+            <th style={{ width: 48 }}>
+              <input
+                type="checkbox"
+                aria-label="Select all students"
+                checked={allSelected}
+                onChange={() => setSelectedIds(allSelected ? [] : students.map((st) => st.id))}
+              />
+            </th>
+            <th>Student</th>
+            <th>Streak</th>
+          </tr>
+        </thead>
+        <tbody>
+          {students.map((st) => {
+            const on = selectedIds.includes(st.id);
+            return (
+              <tr key={st.id} className={on ? 'is-selected' : undefined} onClick={() => toggleStudent(st.id)} style={{ cursor: 'pointer' }}>
+                <td>
+                  <input type="checkbox" aria-label={`Assign to ${st.name}`} checked={on} onChange={() => toggleStudent(st.id)} onClick={(e) => e.stopPropagation()} />
+                </td>
+                <td><span className="acad-person"><AvatarGlyph value={st.avatar} size={22} /> {st.name}</span></td>
+                <td>{st.streak}-day</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (stepped) {
+    const last = step === STEPS.length - 1;
+    return (
+      <div className="acad-stepper-body">
+        <ol className="acad-stepper" aria-label="Steps">
+          {STEPS.map((label, i) => (
+            <li key={label} className={i === step ? 'current' : i < step ? 'done' : undefined} aria-current={i === step ? 'step' : undefined}>
+              <button type="button" onClick={() => setStep(i)}>
+                <span className="acad-step-num">{i < step ? '✓' : i + 1}</span>
+                {label}
+              </button>
+            </li>
+          ))}
+        </ol>
+
+        <div className="acad-step-content">
+          {step === 0 && (
+            <>
+              <p className="acad-muted">Choose who gets this assignment. Everyone is selected to start.</p>
+              {studentsStep}
+            </>
+          )}
+          {step === 1 && (
+            <div className="acad-build-split">
+              <div className="stack" style={{ gap: 12 }}>
+        <div style={{ position: 'relative' }}>
+          <input
+            placeholder={`🔍 Search ${subject === 'math' ? 'Math' : 'Literacy'} activities to add…`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%' }}
+          />
+          {searchMatches.length > 0 && (
+            <div className="search-add-dropdown">
+              {searchMatches.map((a) => (
+                <button
+                  key={a.id}
+                  className="search-add-row"
+                  onClick={() => {
+                    addFromLibrary(a.id);
+                    setSearch('');
+                  }}
+                >
+                  <span>{a.icon}</span>
+                  <span style={{ flex: 1, textAlign: 'left' }}>{a.title || '(untitled)'}</span>
+                  <span className="tag-pill" style={{ fontSize: '0.65rem' }}>➕ Add</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div
+          className={`plan-list ${dragOver ? 'plan-list-drag-active' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const activityId = e.dataTransfer.getData('text/plain');
+            addFromLibrary(activityId);
+          }}
+        >
+          {tasks.length === 0 ? (
+            <p className="plan-list-empty">
+              No activities yet. Search above, or drag a {subject === 'math' ? 'Math' : 'Literacy'} card in from the Library.
+            </p>
+          ) : (
+            tasks.map((t, i) => (
+              <div key={t.id} className="plan-list-item">
+                <div className="plan-list-row">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={t.order ?? ''}
+                    placeholder="-"
+                    title="Order (blank = free choice)"
+                    className="plan-order-input"
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/[^0-9]/g, '');
+                      const order = digits ? parseInt(digits, 10) : undefined;
+                      setTasks(tasks.map((x) => (x.id === t.id ? { ...x, order } : x)));
+                    }}
+                  />
+                  <span className="plan-list-icon">{t.icon}</span>
+                  <span className="plan-list-title">{t.title || '(untitled)'}</span>
+                  <div className="row-wrap" style={{ gap: 4 }}>
+                    <button
+                      className={`btn btn-sm ${t.required ? 'btn-danger' : ''}`}
+                      title={t.required ? 'Required, cannot be skipped with a Skip Pass' : 'Mark required (cannot be skipped)'}
+                      onClick={() => setTasks(tasks.map((x) => (x.id === t.id ? { ...x, required: !x.required } : x)))}
+                    >
+                      {t.required ? '🔒 Required' : '🔓 Optional'}
+                    </button>
+                    <button className="btn btn-sm" disabled={i === 0} onClick={() => {
+                      const next = [...tasks];
+                      [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                      setTasks(next);
+                    }}>
+                      ⬆️
+                    </button>
+                    <button className="btn btn-sm" disabled={i === tasks.length - 1} onClick={() => {
+                      const next = [...tasks];
+                      [next[i + 1], next[i]] = [next[i], next[i + 1]];
+                      setTasks(next);
+                    }}>
+                      ⬇️
+                    </button>
+                    <button className="btn btn-sm" onClick={() => setEditingTaskId(editingTaskId === t.id ? null : t.id)}>
+                      {editingTaskId === t.id ? '✕' : '✏️'}
+                    </button>
+                    <button className="btn btn-sm btn-danger" onClick={() => setTasks(tasks.filter((x) => x.id !== t.id))}>
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+                {editingTaskId === t.id && (
+                  <div style={{ padding: '0 12px 12px' }}>
+                    <TaskEditor
+                      initial={t}
+                      subject={subject}
+                      onSave={(nt) => {
+                        setTasks(tasks.map((x) => (x.id === t.id ? nt : x)));
+                        setEditingTaskId(null);
+                      }}
+                      onCancel={() => setEditingTaskId(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+              </div>
+              {librarySlot && <div className="acad-build-library">{librarySlot}</div>}
+            </div>
+          )}
+          {step === 2 && (
+            <div className="stack" style={{ gap: 12 }}>
+            <div>
+              <label>Plan name (optional, auto-named if left blank)</label>
+              <input style={{ width: '100%' }} value={name} onChange={(e) => setName(e.target.value)} placeholder={defaultPlanName(tasks)} />
+            </div>
+
+            <div className="content-well" style={{ background: 'var(--yellow)', textAlign: 'center', fontWeight: 800 }}>
+              📅 Planning for: {startDate === endDate ? formatDateLong(startDate) : `${formatDateLong(startDate)} → ${formatDateLong(endDate)}`}
+              {startDate === todayISO() && endDate === todayISO() && ' (today)'}
+            </div>
+
+            <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
+              <div>
+                <label>Start date (first day this plan is active)</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (e.target.value > endDate) setEndDate(e.target.value);
+                  }}
+                />
+              </div>
+              <div>
+                <label>End date (last day, same as start for a single day)</label>
+                <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+              {(startDate !== todayISO() || endDate !== todayISO()) && (
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setStartDate(todayISO());
+                    setEndDate(todayISO());
+                  }}
+                >
+                  ↺ Reset to today ({formatDateLong(todayISO())})
+                </button>
+              )}
+            </div>
+
+            {endDate > startDate && (
+              <div className="stack" style={{ gap: 4 }}>
+                <strong style={{ fontSize: '0.85rem' }}>Over this range:</strong>
+                <label className="row" style={{ gap: 6 }}>
+                  <input type="radio" checked={mode === 'repeat'} onChange={() => setMode('repeat')} />
+                  🔁 Repeats every day, fresh checklist each day in the range
+                </label>
+                <label className="row" style={{ gap: 6 }}>
+                  <input type="radio" checked={mode === 'span'} onChange={() => setMode('span')} />
+                  📌 One assignment, they have until the end date to finish it
+                </label>
+              </div>
+            )}
+
+              <p className="acad-muted">
+                {selectedIds.length} student{selectedIds.length === 1 ? '' : 's'} selected · {tasks.length} activit{tasks.length === 1 ? 'y' : 'ies'} in the plan
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="acad-modal-foot">
+          <button type="button" className="btn" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+            {step === 0 ? 'Cancel' : 'Back'}
+          </button>
+          <span style={{ flex: 1 }} />
+          {last && (
+            <button type="button" className="btn" disabled={tasks.length === 0} onClick={saveToBacklogOnly}>Save as draft</button>
+          )}
+          {last ? (
+            <button type="button" className="btn btn-primary" disabled={tasks.length === 0 || selectedIds.length === 0} onClick={publish}>
+              {editing ? 'Save changes' : 'Publish'}
+            </button>
+          ) : (
+            <button type="button" className="btn btn-primary" onClick={() => setStep(step + 1)}>Next</button>
+          )}
+        </div>
+        {last && tasks.length === 0 && <p className="acad-muted" style={{ textAlign: 'right' }}>Add at least one activity in step 2 to publish.</p>}
+        {last && tasks.length > 0 && selectedIds.length === 0 && <p className="acad-muted" style={{ textAlign: 'right' }}>Pick at least one student in step 1 to publish.</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="zone zone-newplan stack">
