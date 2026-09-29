@@ -46,7 +46,7 @@ export default function QuestionSetDetail() {
         <TeacherNav />
         <div className="container stack">
           <p>That question set couldn't be found. It may have been deleted.</p>
-          <Link className="btn btn-sm" to="/teacher/activities">← Back to Activities</Link>
+          <Link className="btn btn-sm" to="/teacher/assignments">← Back to Academics</Link>
         </div>
       </div>
     );
@@ -56,7 +56,7 @@ export default function QuestionSetDetail() {
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <Link className="btn btn-sm" to="/teacher/activities">← Back to Activities</Link>
+        <Link className="btn btn-sm" to="/teacher/assignments">← Back to Academics</Link>
 
         <div className="space-between">
           <div>
@@ -79,7 +79,7 @@ export default function QuestionSetDetail() {
                   className="btn btn-sm btn-danger"
                   onClick={() => {
                     deleteQuestionSet(set.id);
-                    navigate('/teacher/activities');
+                    navigate('/teacher/assignments');
                   }}
                 >
                   Confirm delete

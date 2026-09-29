@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
+import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm, PlaygroundPool } from './ActivityLibrary';
 import QuestionSetsManager from './QuestionSetsManager';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { StudentPlanTabs } from './LessonPlanBuilder';
@@ -364,7 +364,14 @@ function AssignmentDetailModal({
   );
 }
 
-const FOCUS_SUBJECTS: FocusSubject[] = ['math', 'literacy', 'sel', 'finance'];
+// SEL and Personal Finance retired from live Focus authoring (direct
+// teacher instruction, part of the Academics spec) — the concepts
+// themselves (Piggy Bank, Marketplace, the calm-down tool, badges) are
+// untouched, this only stops a teacher from starting a new Focus in
+// those lanes. FocusSubject itself stays 'math'|'literacy'|'sel'|'finance'
+// so an already-synced historical sel/finance Focus record isn't a type
+// error to read (see getFocusHistory) — it just can't be created fresh.
+const FOCUS_SUBJECTS: FocusSubject[] = ['math', 'literacy'];
 
 // The per-lane "set/change a focus" form — deliberately small and flat
 // (category dropdown, title, one details sentence, an optional word list,
@@ -590,6 +597,45 @@ function FocusesPanel() {
   );
 }
 
+// Direct teacher instruction (2026-09-29): "activities and assignments...
+// should be in one singular tab, not two of them, in a dashboard view" —
+// Create Activity, the Activity Library, and the shared Playground Pool
+// (previously their own /teacher/activities screen) live here now,
+// collapsed by default like Question Sets/Focuses above, so the whole
+// academic surface is genuinely one screen without dumping everything
+// open at once.
+function ActivitiesPanel() {
+  const activityLibrary = useStore((s) => s.activityLibrary);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <button
+        className="space-between"
+        style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 44 }}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+          Activities{activityLibrary.length > 0 ? ` (${activityLibrary.length})` : ''}
+        </span>
+        <span aria-hidden="true">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="stack" style={{ marginTop: 10 }}>
+          <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0 }}>
+            The activity shell around a Question Set — a game, video, or task type. Create one, browse what's
+            already built, or manage what's in the shared Playground.
+          </p>
+          <CreateActivityForm />
+          <ActivityLibraryBrowse />
+          <PlaygroundPool />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AssignmentsIndex() {
   const assignments = useStore((s) => s.assignments);
   const activityLibrary = useStore((s) => s.activityLibrary);
@@ -749,10 +795,11 @@ export default function AssignmentsIndex() {
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <h1>Assignments</h1>
+        <h1>Academics</h1>
 
         <QuestionSetsManager />
         <FocusesPanel />
+        <ActivitiesPanel />
 
         {/* Two different kinds of control living in one row read as one
             group otherwise: the first five filter this same grid, the

@@ -100,7 +100,7 @@ export default function PiggyBank() {
       <WebpageFrame url="bank" />
       <h2 style={{ margin: 0 }}>🐷 Piggy Bank</h2>
 
-      <FocusBanner subjects={['finance', 'math']} />
+      <FocusBanner subjects={['math']} />
 
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%' }}>
         <div

@@ -453,17 +453,25 @@ Status values: ✅ Done · 🟡 Partial (named gap) · ⬜ Not started (still on
 
 | Screen | Route | Logic | Design | Function | Notes |
 |---|---|---|---|---|---|
-| Activities (Create Activity + Activity Library + Playground Pool) | `/teacher/activities` (`PlaygroundManager.tsx`, composing `ActivityLibrary.tsx`) | ✅ | ✅ | ✅ | **Reference redesign, shipped 2026-09-29, audited same day** — see below. Every other row reuses this as the pattern. (Route renders `PlaygroundManager.tsx`, not `ActivityLibrary.tsx` directly — that file is a shared component module also used by `AssignmentsIndex.tsx`; corrected here after the first pass cited the wrong file.) |
-| Assignments (Question Sets, Focuses, CCSS, per-student plans) | `/teacher/assignments` (`AssignmentsIndex.tsx`) | ✅ | ✅ | ✅ | **Wave 2, shipped 2026-09-29** — see below. Question Sets now lives here (moved off Activities) as the first thing on the screen, ahead of Focuses, per the teacher's stated priority. |
+| **Academics** (Question Sets, Focuses, Activities, Playground — one tab) | `/teacher/assignments` (`AssignmentsIndex.tsx`) | ✅ | ✅ | ✅ | **Final merge, shipped 2026-09-29** — see below. Direct teacher instruction: "activities and assignments... should be in one singular tab, not two of them, in a dashboard view." `/teacher/activities` and `/teacher/playground` now both redirect here; `PlaygroundManager.tsx` is deleted. |
 | Overview / live class view | `/teacher` (`TeacherHome.tsx`) | ✅ | ⬜ | 🟡 | Still on `.zone`/`.btn` defaults pre-dating `teacher-mode`; inherits the flatter buttons/borders automatically now that `teacher-mode` is live, but not reviewed as its own pass. |
 | Students | `/teacher/students` (`StudentManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Inbox (help pings, break approvals, offscreen review) | `/teacher/inbox` (`ReviewInbox.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
-| Scores/Reports | `/teacher/scores` (`ScoreHistory.tsx`) | 🟡 | ⬜ | 🟡 | Blocked on the Central Educator Dashboard spec above (item 3/8) — don't do a standalone visual pass here, it's being merged into the new unified Assignments+Activities+Scores view. |
+| Scores/Reports | `/teacher/scores` (`ScoreHistory.tsx`) | 🟡 | ⬜ | 🟡 | Still its own screen — merging Scores into Academics too needs the `assignmentId` field on `QuizAttemptRecord` (Central Educator Dashboard spec item 3, genuine data-model work, not a UI move) plus the Reports/PDF pipeline (item 8) — real, separate infrastructure, not done in this pass. See "What's still separate infrastructure" below. |
 | Game (Neighbors, dialogue, wheel settings) | `/teacher/game` (`GameManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Achievements/Badges | `/teacher/badges` (`BadgeManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Marketplace Manager | `/teacher/marketplace` (`MarketplaceManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Build Mode | `/teacher/world-editor` (`WorldEditor.tsx`) | ✅ | ⬜ | ✅ | Functionally mature (many completed Part A entries); genuinely dual-audience (teacher authoring tool that borrows the 3D game view), so "too kid like" may not apply the same way here — review, don't assume. |
 | Lesson Plan Builder / Student Bank / Live View | `/teacher/lesson-plan/:id`, `/teacher/bank/:id`, `/teacher/live/:id` | ✅ | ⬜ | 🟡 | Not yet reviewed; `LessonPlanBuilder.tsx` shares the `.zone`/`library-card` components already touched by the reference redesign, so it inherits some of the flattened styling for free. |
+
+**Final merge — Academics is now genuinely one tab, shipped 2026-09-29, direct teacher instruction ("do not respond until completed"):**
+- **One route, one screen:** `PlaygroundManager.tsx` (the old `/teacher/activities` page) is deleted. `AssignmentsIndex.tsx` gained a new collapsible `ActivitiesPanel` (same collapsed-by-default pattern as Question Sets/Focuses) holding `CreateActivityForm`, `ActivityLibraryBrowse`, and `PlaygroundPool` — everything that used to live on the separate Activities screen. `/teacher/activities` and `/teacher/playground` both `<Navigate>` to `/teacher/assignments`. `QuestionSetDetail.tsx`'s "Back to Activities" links now point to Assignments.
+- **Nav simplified:** `TeacherNav.tsx`'s top-level "Assignments" link is now "Academics"; the "Activities" entry is removed from the "More" menu (one less item, not a new one).
+- **Panel order reflects stated priority:** Question Sets, then Focuses, then Activities — matching "Question Sets are the backing academic basis, closely followed by Focuses."
+- **SEL and Personal Finance retired from live Focus authoring** (Central Educator Dashboard spec item 5/10, was still open): `FOCUS_SUBJECTS` in `AssignmentsIndex.tsx` trimmed to `['math', 'literacy']`; the finance-tagged `FocusBanner` removed from `Marketplace.tsx`, trimmed to math-only in `PiggyBank.tsx`. `FocusSubject` type and `FOCUS_SUBJECT_LABELS` stay unchanged so any historical `sel`/`finance` Focus record already synced isn't a type error to read — this only stops new ones from being authored.
+- **Verified:** `npx tsc --noEmit` and `npm run build` both pass clean.
+
+**What's still separate infrastructure, not silently skipped, not done in this pass:** the Central Educator Dashboard spec's two largest items — merging Scores/Reports in (needs a new `assignmentId` field threaded through `QuizAttemptRecord`/`submitQuizAnswer`, a new persisted per-question log, and a new client-side PDF dependency) and the CCSS AI question-generation pipeline (needs a brand-new Supabase Edge Function and an Anthropic API key provisioned as a server-side secret) — are real, separate infrastructure builds Claudia's own spec already sized as "the largest, most architecturally novel item," not screen-reshuffling. Both need a live Supabase migration and, for the AI pipeline, a real secret this environment has no way to provision or verify blind. Marked here, not built silently around.
 
 **Reference redesign — Create Activity + Activity Library, done today, logic → design → function, no open questions left for the teacher to answer:**
 - **Design system foundation (new, reused by every row above going forward):** `TeacherNav.tsx` now adds a `teacher-mode` class to `document.body` on mount (every teacher screen renders `TeacherNav`, so this is automatic, no per-screen wiring needed) and removes it on unmount, so it never touches the student game. `index.css`'s `body.teacher-mode` block redefines the accent to a calmer indigo (`--purple: #4f46e5`), swaps the "Baloo 2" playful display font for the already-loaded 'Lexend' on headings/buttons/zone headers, thins borders and drop-shadows from the comic-book 4px/hard-shadow style down to a subtle 1px/soft-shadow card style, and replaces every rainbow zone-header gradient with a flat, bordered header. This is a real, durable foundation, not a one-screen patch — the next row redesigned reuses these tokens rather than inventing its own.
@@ -495,9 +503,9 @@ Nothing built yet. This replaces an earlier discursive design-review entry on th
 Two rounds of direct teacher brief feed this: (1) 7 Academics questions + 3 CCSS questions, answered in detail with an uploaded reference-UI PDF (Prodigy-style dashboard as the layout direction, Legends of Learning as a liked content style), plus a direct architecture pick (a real AI question-generation pipeline over expanding the existing fixed generator); (2) a reinforcement instruction — "one global dashboard for all academic functions... card-based view that I can edit, change, fix, adjust, and create everything including assignments (assigned activities per day, and also a weekly viewer to plan in advance) focuses, etc." — followed by two corrections: "Gas Pump reporting can wait, focus on the teacher UI redesign platform-wide," and "the mockup is not what i want, assignments, activities, and scores should become one dashboard view."
 
 **1. Single dashboard shell/navigation**
-- [ ] MUST replace the current split between "📋 Assignments" (`TeacherNav.tsx` line 29 → `AssignmentsIndex.tsx`) and "📊 Scores" (`TeacherNav.tsx` line 49 → `ScoreHistory.tsx`) with one nav entry, one screen. **READY TO BUILD.**
-- [ ] MUST use the Prodigy-style page chrome she referenced: left icon sidebar, top class-selector bar, dashboard-home summary panels including a class-wide ranked score table (legitimate as a teacher-facing report, not a student leaderboard). **READY TO BUILD.**
-- [ ] Global subject filter (All/Math/Literacy), one filter for the whole dashboard, not per-section. Settled. **READY TO BUILD.**
+- [x] **DONE 2026-09-29:** Assignments and Activities (Question Sets, Focuses, Create Activity, Activity Library, Playground Pool) are one nav entry, one screen (`AssignmentsIndex.tsx`, nav label "Academics") — direct teacher instruction, final directive. `/teacher/activities` and `/teacher/playground` redirect there; `PlaygroundManager.tsx` is deleted. Scores stays separate — that merge is still gated on the `assignmentId` data-model work in item 3, not a nav change.
+- [ ] MUST use the Prodigy-style page chrome she referenced: left icon sidebar, top class-selector bar, dashboard-home summary panels including a class-wide ranked score table (legitimate as a teacher-facing report, not a student leaderboard). **Still open** — the shipped merge reused the existing `TeacherNav` top bar and collapsible chrome-frame panels (consistent with the app's existing pattern), not a new left-sidebar shell. Building the Prodigy-style sidebar/dashboard-home chrome on top of this is a larger, separate visual project — **READY TO BUILD** whenever it's prioritized, not blocked by anything above.
+- [ ] Global subject filter (All/Math/Literacy), one filter for the whole dashboard, not per-section. Settled. **READY TO BUILD**, not yet done — today's merge kept each panel's own existing subject handling (Question Sets has its own filter chips, Focuses shows all lanes, Activities has its own picker) rather than adding one dashboard-wide filter on top.
 
 **2. Card-based content unit**
 - [ ] MUST render all primary content (assignments, activities, scores) as cards, not table rows, as the default content unit. **READY TO BUILD** — new shared card component, reused across items 3-5.
@@ -512,9 +520,9 @@ Two rounds of direct teacher brief feed this: (1) 7 Academics questions + 3 CCSS
 - [ ] MUST let the teacher create/edit an assignment for a future day directly from the week grid, not just view it. **NEEDS TEACHER DECISION** — same fork as item 6.
 
 **5. Focuses**
-- [ ] MUST fold Focus authoring (currently `AssignmentsIndex.tsx`'s `FOCUS_SUBJECTS`/`FocusLaneRow` panel, ~lines 366-585) into the same merged screen as cards, not a separate panel to navigate to. **READY TO BUILD** — mostly restyling already-working code into the new card shell.
-- [ ] SEL and Personal Finance MUST be dropped from Focus-authoring only, not the underlying concepts (Piggy Bank, Marketplace, calm-down tool, badges untouched). Real sites: `AssignmentsIndex.tsx` line 366 (`FOCUS_SUBJECTS` trims to `['math','literacy']`), `Marketplace.tsx` line 528 and `PiggyBank.tsx` line 103 (`FocusBanner` sel/finance tags), `types.ts`'s `FOCUS_SUBJECT_LABELS`/`FOCUS_CATEGORY_SUGGESTIONS`. Settled. **READY TO BUILD, zero dependency on anything else here — do this first.**
-- [ ] `FocusSubject` type union stays `'math'|'literacy'|'sel'|'finance'` unchanged so old synced records with `subject: 'sel'/'finance'` don't become a type error to read. Settled, no action needed beyond leaving it alone.
+- [x] **DONE 2026-09-29:** Focus authoring already lived in `AssignmentsIndex.tsx` (`FocusesPanel`) and now sits on the single merged Academics screen alongside Question Sets and Activities, same collapsible-panel shape. Not converted to the card-grid visual language yet (see item 2/7) — the content is unified, the visual system for it is a separate, still-open item.
+- [x] **DONE 2026-09-29:** SEL and Personal Finance dropped from Focus-authoring only. `AssignmentsIndex.tsx`'s `FOCUS_SUBJECTS` trimmed to `['math', 'literacy']`; `Marketplace.tsx`'s finance-only `FocusBanner` call removed; `PiggyBank.tsx`'s trimmed to `['math']`.
+- [x] `FocusSubject` type union left unchanged (`'math'|'literacy'|'sel'|'finance'`), as planned, so old synced `sel`/`finance` Focus records stay readable.
 
 **6. Inline/in-place editing**
 - [ ] Every card MUST support real in-place edit ("edit, change, fix, adjust") without navigating to a separate page. **Real gap:** today's actual editors (`NewDailyPlanBuilder.tsx`, `LessonPlanBuilder.tsx`) are full dedicated pages; there is no existing "expand-card-and-edit-inline" pattern anywhere in the teacher portal.
@@ -539,16 +547,18 @@ Two rounds of direct teacher brief feed this: (1) 7 Academics questions + 3 CCSS
 - [ ] Every generated question MUST land as an editable draft in the existing Question Set editor before it can ever be assigned to a student. Hard requirement, settled, no ambiguity.
 - [ ] Standard-swap mid-week MUST prompt the teacher at the moment of the swap ("keep the current question set" / "clear it and start fresh"), a per-swap prompt not a standing toggle. Settled. **READY TO BUILD** once `standardCode` exists.
 
-**10. SEL/finance lane retirement** — duplicate of item 5's second bullet, restated for completeness since she named it separately: SEL and Personal Finance retire from live Focus authoring/rendering only. Same citations as item 5. **READY TO BUILD, isolated, zero dependency on anything else in this list.**
+**10. SEL/finance lane retirement** — duplicate of item 5's second bullet, restated for completeness since she named it separately: SEL and Personal Finance retire from live Focus authoring/rendering only. **DONE 2026-09-29**, same change as item 5.
 
 **Build order**
 
-*Start immediately, no blockers:*
-1. Item 5/10 — SEL/finance retirement (trivial, isolated).
-2. Item 7 — "tasks completed" chart fix (no new field needed).
-3. Item 1 — merge the Assignments/Scores nav+route into one shell (pure restructure).
-4. Item 2 — build the shared card component (everything below reuses it).
-5. Item 5 — move Focus authoring into the new card shell.
+*Done, 2026-09-29:*
+1. ~~Item 5/10 — SEL/finance retirement.~~ **Shipped.**
+2. ~~Item 1 (nav/screen merge only, not the sidebar chrome) — Activities + Assignments are one tab.~~ **Shipped, direct teacher final directive.**
+
+*Still open, no blockers, next in line:*
+3. Item 7 — "tasks completed" chart fix (no new field needed) — not yet built; today's merge didn't touch the weekly chart because `AssignmentsIndex.tsx` doesn't have one yet (that's part of item 2's card/dashboard shell, not a standalone fix on the current screen).
+4. Item 2 — the card-based content unit + Prodigy-style dashboard chrome (item 1's second bullet). This is the next real visual project once prioritized — today's merge used the existing panel/list patterns, not a new card grid.
+5. ~~Item 5 — move Focus authoring into the new card shell.~~ Content is merged (done); the card-shell restyle is still item 2's work.
 
 *Data model work, can run in parallel once cards exist:*
 6. Item 3 — add `assignmentId` to `QuizAttemptRecord` (the merged card can ship approximate-by-taskId first, flagged in UI as approximate, but this field is what makes it accurate).
