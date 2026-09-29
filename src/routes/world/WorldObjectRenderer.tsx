@@ -27,14 +27,6 @@ import type { WorldObject } from '../../types';
 const FLAT_FOOTPRINT_RATIO = 6;
 const FLAT_LIFT = 0.02;
 
-// Shared with TownSquare.tsx's collision layout: a flat model (a road
-// tile, a path, a floor, a rail, a carpet) is something you walk or drive
-// ON, never an obstacle — same footprint-vs-height test as FLAT_LIFT above.
-export function isFlatModelSize(size: { x: number; y: number; z: number }): boolean {
-  const footprint = Math.max(size.x, size.z);
-  return size.y <= 0 || footprint / size.y > FLAT_FOOTPRINT_RATIO;
-}
-
 // A model's real (unscaled, unrotated) local-space bounding-box size —
 // shared by WorldEditor.tsx's placement-preview outline (FootprintOutline)
 // and TownSquare.tsx's real collision footprint for placed objects
@@ -56,7 +48,8 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number) 
     const box = new THREE.Box3().setFromObject(clone);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-    const lift = size.y > 0 && isFlatModelSize(size) ? FLAT_LIFT : 0;
+    const footprint = Math.max(size.x, size.z);
+    const lift = size.y > 0 && footprint / size.y > FLAT_FOOTPRINT_RATIO ? FLAT_LIFT : 0;
     clone.position.set(-center.x, -box.min.y + lift, -center.z);
     if (tintColor || opacity !== undefined) {
       const color = tintColor ? new THREE.Color(tintColor) : null;
