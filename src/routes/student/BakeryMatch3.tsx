@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { formatMoney } from '../../lib/money';
 import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import BakeryTreatWheel from '../../components/BakeryTreatWheel';
@@ -71,9 +72,20 @@ import {
 //    voluntary early cash-out), the student's total XP for that game is
 //    recorded to their own private leaderboard, and they land back on the
 //    main menu.
-//  - No Class Cash/coins from this game anymore — replaced by an XP
-//    system: a match of N tiles is worth N points, cascades included,
-//    accumulated across the whole game (not reset per round).
+//  - Direct teacher instruction, reversing the earlier "no Class Cash"
+//    call: cash prizes are the default now, REWARD_PER_QUESTION_CENTS per
+//    correctly-answered question, credited the moment it's answered (real
+//    bank register row + the app-wide coin-drop animation, both via
+//    recordTransaction — see handleChallengeCorrect). The XP system above
+//    is untouched and still drives the private leaderboard/match scoring;
+//    cash is a separate, additive reward for the question gates
+//    specifically, not a replacement for XP.
+//  - Finishing the whole game (this session's real "total question goal"
+//    — every round's question gate passed) also grants a Bonus Spin on
+//    the student's Daily Spin wheel (same bonusSpinAvailable flag every
+//    other "finished everything" reward already uses), on top of the
+//    Bakery Treat Wheel spin below — two different wheels, two different
+//    prizes, both earned by the same finish.
 //  - Personal leaderboard (student.bakeryLeaderboard, see types.ts) is
 //    strictly private — never shown to any other student, same standing
 //    no-cross-student-comparison rule as everywhere else in this app —
@@ -84,6 +96,10 @@ const TOTAL_ROUNDS = 3;
 const MOVES_PER_ROUND = 3;
 const QUESTIONS_PER_GATE = 3;
 const DRAG_THRESHOLD_PX = 18;
+// Direct teacher instruction: cash prizes are the default now for
+// in-game activities like this one. $0.50 per correctly-answered
+// question, credited the moment it's answered.
+const REWARD_PER_QUESTION_CENTS = 50;
 
 type Phase = 'menu' | 'playing' | 'challenge';
 
@@ -109,6 +125,8 @@ export default function BakeryMatch3() {
   const questionSets = useStore((s) => s.questionSets);
   const recordBakeryQuestionAnswered = useStore((s) => s.recordBakeryQuestionAnswered);
   const recordBakeryGameResult = useStore((s) => s.recordBakeryGameResult);
+  const recordTransaction = useStore((s) => s.recordTransaction);
+  const updateStudent = useStore((s) => s.updateStudent);
   const equipCharacter = useStore((s) => s.equipCharacter);
   const lastCharacterUnlock = useStore((s) => s.lastCharacterUnlock);
   const student = students.find((s) => s.id === currentStudentId);
@@ -140,6 +158,8 @@ export default function BakeryMatch3() {
   const [xp, setXp] = useState(0);
   const [busy, setBusy] = useState(false);
   const [showTreatWheel, setShowTreatWheel] = useState(false);
+  const [sessionEarningsCents, setSessionEarningsCents] = useState(0);
+  const [showEarnings, setShowEarnings] = useState(false);
   const xpRef = useRef(0);
   xpRef.current = xp;
   const seenUnlockIdRef = useRef<string | null>(null);
@@ -174,6 +194,7 @@ export default function BakeryMatch3() {
     setGateCorrectCount(0);
     setChallengeQuestion(null);
     setXp(0);
+    setSessionEarningsCents(0);
     setPhase('playing');
   };
 
@@ -312,7 +333,16 @@ export default function BakeryMatch3() {
   // whole game ends (leaderboard entry recorded, treat wheel spins, back
   // to the main menu).
   const handleChallengeCorrect = () => {
-    if (student) recordBakeryQuestionAnswered(student.id);
+    if (student) {
+      recordBakeryQuestionAnswered(student.id);
+      // Direct teacher instruction: cash prizes are the default now —
+      // recordTransaction is the app's one choke point for crediting a
+      // student's balance, so this single call gets the bank register
+      // row AND the app-wide falling-coins animation (CoinDropOverlay)
+      // for free, no extra UI to build.
+      recordTransaction(student.id, REWARD_PER_QUESTION_CENTS, '🥐 Bakery Match: correct answer!', '🥐', 'bakery-match');
+      setSessionEarningsCents((c) => c + REWARD_PER_QUESTION_CENTS);
+    }
     const next = gateCorrectCount + 1;
     if (next < QUESTIONS_PER_GATE) {
       setGateCorrectCount(next);
@@ -322,8 +352,16 @@ export default function BakeryMatch3() {
     setGateCorrectCount(0);
     setChallengeQuestion(null);
     if (round >= TOTAL_ROUNDS) {
-      if (student) recordBakeryGameResult(student.id, xpRef.current);
-      setShowTreatWheel(true);
+      if (student) {
+        recordBakeryGameResult(student.id, xpRef.current);
+        // This game's real "total question goal" — every round's gate
+        // passed — reached. Same bonusSpinAvailable flag/pattern every
+        // other "finished everything" reward already uses (store.ts),
+        // a second, separate prize from the Bakery Treat Wheel below.
+        updateStudent(student.id, { bonusSpinAvailable: true });
+        recordTransaction(student.id, 0, '🎉 Finished Bakery Match: bonus spin!', '🎡', 'bakery-match');
+      }
+      setShowEarnings(true);
       setPhase('menu');
     } else {
       setRound((r) => r + 1);
@@ -492,6 +530,26 @@ export default function BakeryMatch3() {
             <p className="bakery-modal-note">Your progress in this game is lost until you finish all 3 rounds.</p>
             <button className="bakery-play-btn" onClick={() => setShowExitConfirm(false)}>Keep Baking</button>
             <button className="bakery-text-link" onClick={abandonGame}>Leave to Main Menu</button>
+          </div>
+        </div>
+      )}
+
+      {showEarnings && (
+        <div className="bakery-modal-backdrop">
+          <div className="bakery-modal-card bakery-earnings-card">
+            <div className="bakery-earnings-coins" aria-hidden="true">
+              <span>🪙</span><span>🪙</span><span>🪙</span>
+            </div>
+            <h2 className="bakery-modal-title">Great baking!</h2>
+            <p className="bakery-modal-note">You earned</p>
+            <p className="bakery-earnings-amount">{formatMoney(sessionEarningsCents)}</p>
+            <p className="bakery-modal-note">answering questions today. Check your Piggy Bank to see it!</p>
+            <button
+              className="bakery-play-btn"
+              onClick={() => { setShowEarnings(false); setShowTreatWheel(true); }}
+            >
+              Nice!
+            </button>
           </div>
         </div>
       )}
