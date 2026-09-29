@@ -3709,15 +3709,24 @@ export default function WorldEditor() {
               onClick={() => {
                 if (!clearAllArmed) { setClearAllArmed(true); return; }
                 worldObjects.forEach((o) => deleteWorldObjectH(o.id));
+                // Real gap found live: a drawn Wall (Sims 4-style Wall
+                // tool) is a totally separate store array from placed
+                // objects, so "Clear All" used to leave every wall
+                // standing — including one spanning the walkable area and
+                // blocking a whole axis of movement for every student and
+                // NPC, with no obvious way to find and remove it short of
+                // knowing the Wall tool existed at all. Clear All now
+                // means everything placed, walls included.
+                wallSegments.forEach((w) => deleteWallSegment(w.id));
                 setClearAllArmed(false);
                 setSelection(null);
                 setMultiSelectIds([]);
                 flashSaved();
               }}
               onBlur={() => setClearAllArmed(false)}
-              title="Delete every object you've placed in Town Square (not the original buildings)"
+              title="Delete every object and wall you've placed in Town Square (not the original buildings)"
             >
-              🗑️ {clearAllArmed ? `Tap again to delete all ${worldObjects.length}` : 'Clear All'}
+              🗑️ {clearAllArmed ? `Tap again to delete all ${worldObjects.length + wallSegments.length}` : 'Clear All'}
             </button>
             <button
               className="btn btn-sm"
