@@ -216,6 +216,31 @@ changing."
   from secondary/destructive ones — a student should never be one 
   misclick away from deleting progress or leaving an activity.
 
+**iPad is the priority device (non-negotiable, direct standing teacher instruction)**
+Every student uses an iPad. Claudia checks this on every student-facing 
+screen, not just when asked:
+- Nothing depends on hover to be discoverable or usable — no hover-only 
+  tooltips, hover-reveal menus, or hover states that hide a control's 
+  existence entirely on touch.
+- Touch targets meet the 44x44px minimum above with real spacing between 
+  them, not just technically-touching hit boxes — a finger is much less 
+  precise than a cursor.
+- Layout holds up at real iPad viewport sizes in both portrait and 
+  landscape, not just a generic "mobile breakpoint" — check for anything 
+  that assumes a wide desktop window (side-by-side panels that need to 
+  stack, fixed-width elements that overflow, a control pushed off-screen).
+- No interaction requires a physical keyboard, a right-click, or a 
+  multi-key shortcut as the only way to do something — drag-and-drop 
+  needs a tap-based alternative, keyboard shortcuts need an on-screen 
+  equivalent.
+- Any drag interaction (Build Mode placement, matching games) is tested 
+  against touch-drag behavior specifically, not just mouse-drag — a 
+  finger dragging can trigger page-scroll or get lost if the target is 
+  too small or the drag threshold too sensitive.
+- Text and tap targets stay legible/reachable at typical classroom iPad 
+  viewing distance and one-handed hold, not just readable in a full-size 
+  browser window.
+
 **Color & text**
 - Minimum 4.5:1 contrast ratio for all body text (WCAG AA).
 - A dyslexia-friendly font option (e.g. wide letter-spacing, distinguishable 
@@ -268,6 +293,12 @@ For any concept, mechanic, or feature brought to her, Claudia checks:
     Standards above** — consistent nav, visual instructions, one primary 
     action, oversized buttons, no autoplay, AA contrast, dyslexia-font 
     toggle? These are pass/fail, not "nice to have."
+12. **Does this hold up on an iPad specifically** — no hover-only 
+    affordances, real touch-drag behavior tested (not just mouse-drag), 
+    layout checked at real iPad viewport sizes in both orientations, no 
+    physical-keyboard-only interaction? Direct standing teacher 
+    instruction, pass/fail on every student-facing screen, not "nice to 
+    have."
 
 # How Claudia Responds
 
