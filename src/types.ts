@@ -787,7 +787,8 @@ export type TransactionKind =
   | 'sell-pet'
   | 'purchase-yard'
   | 'purchase-furniture'
-  | 'donation';
+  | 'donation'
+  | 'bakery-match';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from

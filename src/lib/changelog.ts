@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-29-bakery-match-cash',
+    date: '2026-09-29',
+    icon: '🪙',
+    title: 'Bakery Match now pays real money',
+    body: 'Every question you answer correctly in Bakery Match earns you $0.50, right into your Piggy Bank. When you finish a whole game, you get a coin celebration showing how much you earned, plus a bonus spin on the Daily Spin wheel.',
+  },
+  {
     id: '2026-09-29-roads-walkable-again',
     date: '2026-09-29',
     icon: '🛣️',
