@@ -3480,6 +3480,18 @@ export default function TownSquare() {
   const metIds = student?.worldQuest1MetIds ?? [];
 
   const beginConversation = (c: ActiveConversation) => {
+    // Real, live bug found and fixed: `frozen` (Player's movement gate,
+    // below) keys off `!!activeConversation` alone, but the dialogue
+    // overlay itself — including its own close button — only renders
+    // when `activeConversation && activeStep` are BOTH truthy
+    // (activeStep = activeConversation.steps[stepIndex]). A conversation
+    // with zero steps (missing/misconfigured content for that Neighbor or
+    // Townsperson) used to set activeConversation anyway, freezing all
+    // movement with nothing on screen to explain why and no button to
+    // close it — a silent, permanent "wall," exactly matching live
+    // reports of movement dying after a Neighbor interaction with no
+    // visible cause. Never open a conversation with nothing to say.
+    if (c.steps.length === 0) return;
     // A pending click/tap-to-walk destination is cancelled when a
     // conversation starts — resuming a walk toward wherever the student
     // last tapped, after they finish talking to someone, would be a
@@ -3487,7 +3499,7 @@ export default function TownSquare() {
     walkTarget.current = null;
     pendingApproach.current = null;
     setStepIndex(0);
-    setMessageLog(c.steps.length > 0 ? [{ sender: 'npc', text: c.steps[0].npc }] : []);
+    setMessageLog([{ sender: 'npc', text: c.steps[0].npc }]);
     setActiveConversation(c);
   };
 
@@ -4390,7 +4402,14 @@ export default function TownSquare() {
             touchDir={touchDir}
             walkTarget={walkTarget}
             onMove={(p) => { setPlayerPos(p.clone()); lastActivityRef.current = Date.now(); }}
-            frozen={!!activeConversation || mapView || showWizardLock}
+            // Defense in depth, matching the same reasoning as
+            // beginConversation's own guard above: the dialogue overlay
+            // (and its only close button) requires activeStep to be
+            // truthy too, so freezing movement on activeConversation
+            // alone could leave a student stuck with nothing visible and
+            // no way out if a future bug ever lets stepIndex drift past
+            // the end of a real conversation's steps.
+            frozen={(!!activeConversation && !!activeStep) || mapView || showWizardLock}
             // Driving is "noticeably faster than walking" (docs/
             // TRANSPORTATION.md's Cars spec) — reusing the existing
             // sensitivity-driven speed math rather than a second speed
