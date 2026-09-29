@@ -4179,6 +4179,24 @@ export default function TownSquare() {
       <div style={{ position: 'fixed', top: 60, left: 16, zIndex: 55, background: 'rgba(255,255,255,0.92)', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, fontSize: 13, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', pointerEvents: 'none' }}>
         📍 ({Math.round(playerPos.x)}, {Math.round(-playerPos.z)})
       </div>
+      {/* Direct teacher emergency report (2026-09-29): students boxed in
+          by a wall/object and unable to reach anything, with no way to
+          self-recover. Every other "stuck" path in this file (ground
+          bounds, a car mounted off-lot, a train on a stray track) already
+          has a real fix via teleportTarget — a wall or dense placed-object
+          cluster around the spawn point has never had one until now. This
+          is a universal safety net, not a diagnosis of any one cause:
+          always visible, always jumps back to the fixed spawn point
+          (SPAWN_POSITION), same clamped teleport path the map's
+          double-click-to-jump already uses, so it can never itself land
+          outside the lot. */}
+      <button
+        type="button"
+        onClick={() => { teleportTarget.current = { x: SPAWN_POSITION.x, z: SPAWN_POSITION.z, facing: 0 }; }}
+        style={{ position: 'fixed', top: 100, left: 16, zIndex: 55, background: '#fff3cd', border: '2px solid var(--ink, #1f4238)', borderRadius: 10, padding: '6px 12px', fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 12, color: '#1f4238', boxShadow: '3px 3px 0 var(--ink, #1f4238)', cursor: 'pointer', minHeight: 40 }}
+      >
+        🧭 Stuck? Tap here
+      </button>
       {/* Direct teacher instruction: What now?, Tasks, and (later) Help all
           live as wedges inside the pie menu below, not their own corner
           FAB — only Tools (above) and this Menu trigger stay standalone.
