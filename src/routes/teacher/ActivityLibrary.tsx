@@ -334,7 +334,7 @@ function TagsEditor({ tags, onChange, suggestions }: { tags: string[]; onChange:
 
   return (
     <div className="stack" style={{ gap: 6 }}>
-      <label>🏷️ Tags (activity type, e.g. "YouTube Video", "Baamboozle Game")</label>
+      <label>Tags (activity type, e.g. "YouTube Video", "Baamboozle Game")</label>
       <div className="row-wrap">
         {tags.map((t) => (
           <button key={t} className="tag-pill" style={{ cursor: 'pointer' }} onClick={() => onChange(tags.filter((x) => x !== t))} title="Tap to remove">
@@ -853,7 +853,7 @@ export function TaskEditor({
       </div>
 
       <details className="task-editor-more" open={showMore} onToggle={(e) => setShowMore((e.target as HTMLDetailsElement).open)}>
-        <summary>⚙️ More options — cover image, a helper link, daily/Final Check, step guide</summary>
+        <summary>More options — cover image, a helper link, daily/Final Check, step guide</summary>
         <div className="stack" style={{ paddingTop: 12 }}>
           <div style={{ maxWidth: 320 }}>
             <ImageUploadField
@@ -959,11 +959,11 @@ export function PlaygroundPool() {
   return (
     <div className="zone zone-playground stack">
       <button className="zone-header-btn" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} 🎪 Playground Pool ({entries.length}), shared across all students
+        {open ? '▾' : '▸'} Playground Pool ({entries.length}) — shared across all students
       </button>
       {open && (
         entries.length === 0 ? (
-          <p className="zone-empty-note">Nothing here yet. Tap the 🎪 button on any card in the Activity Library.</p>
+          <p className="zone-empty-note">Nothing here yet. Open a card's Edit and check "Keep this in the shared Playground pool."</p>
         ) : (
           <div className="playground-strip">
             {entries.map((a) => (
@@ -1000,7 +1000,7 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
 
   return (
     <div className="zone zone-create stack">
-      <div className="zone-header-bar">➕ Create an Activity</div>
+      <div className="zone-header-bar">Create an Activity</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
           {subject
@@ -1064,6 +1064,7 @@ export function ActivityLibraryBrowse({
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTags, setEditingTags] = useState<string[]>([]);
+  const [editingInPlayground, setEditingInPlayground] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
@@ -1085,11 +1086,11 @@ export function ActivityLibraryBrowse({
 
   return (
     <div className="zone zone-library stack">
-      <div className="zone-header-bar">🗂️ Activity Library: build it once, use it everywhere</div>
+      <div className="zone-header-bar">Activity Library — build it once, use it everywhere</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Drag a card into a plan, tap "➕ Add to plan" to send it somewhere, or tap 🎪 to put it in the shared
-          Playground. ⭐ marks activities you use every day.
+          Tap "Add" to send a card into a plan (or drag it, on a larger screen). ⭐ marks daily activities,
+          🎪 marks ones in the shared Playground — both are set from Edit.
         </p>
         <input
           placeholder={subject ? "🔍 Search this subject's activities…" : '🔍 Search activities…'}
@@ -1121,16 +1122,20 @@ export function ActivityLibraryBrowse({
         {editingActivity && (
           <div className="content-well stack" style={{ background: '#faf9ff' }}>
             <div className="space-between">
-              <strong>✏️ Editing "{editingActivity.title || '(untitled)'}"</strong>
-              <button className="btn btn-sm" onClick={() => setEditingId(null)}>✕ Cancel</button>
+              <strong>Editing "{editingActivity.title || '(untitled)'}"</strong>
+              <button className="btn btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
             </div>
             <TagsEditor tags={editingTags} onChange={setEditingTags} suggestions={allTags} />
+            <label className="row" style={{ gap: 6 }}>
+              <input type="checkbox" checked={editingInPlayground} onChange={(e) => setEditingInPlayground(e.target.checked)} />
+              🎪 Keep this in the shared Playground pool
+            </label>
             <TaskEditor
               initial={editingActivity}
               subject={editingActivity.subject}
               matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
               onSave={(t) => {
-                updateLibraryActivity(editingActivity.id, { ...t, tags: editingTags });
+                updateLibraryActivity(editingActivity.id, { ...t, tags: editingTags, inPlayground: editingInPlayground });
                 setEditingId(null);
               }}
               onCancel={() => setEditingId(null)}
@@ -1201,21 +1206,15 @@ export function ActivityLibraryBrowse({
                           </div>
                         ) : (
                           <div className={compact ? 'library-card-actions-compact' : 'row-wrap'}>
+                            {/* Daily/Playground status shows as the badges
+                                above already — editing them lives in Edit
+                                now, not as duplicate toggle buttons here,
+                                so a card shows at most 3 actions instead of 5. */}
                             <button
-                              className={`btn btn-sm ${a.isDaily ? 'btn-primary' : ''}`}
-                              onClick={() => updateLibraryActivity(a.id, { isDaily: !a.isDaily })}
-                              title="Mark as daily/recurring"
+                              className="btn btn-sm"
+                              onClick={() => { setEditingId(a.id); setEditingTags(a.tags ?? []); setEditingInPlayground(a.inPlayground ?? false); }}
+                              title="Edit"
                             >
-                              ⭐
-                            </button>
-                            <button
-                              className={`btn btn-sm ${a.inPlayground ? 'btn-primary' : ''}`}
-                              onClick={() => updateLibraryActivity(a.id, { inPlayground: !a.inPlayground })}
-                              title="Add to / remove from the Playground"
-                            >
-                              🎪
-                            </button>
-                            <button className="btn btn-sm" onClick={() => { setEditingId(a.id); setEditingTags(a.tags ?? []); }} title="Edit">
                               {compact ? '✏️' : 'Edit'}
                             </button>
                             <button className="btn btn-sm btn-danger" onClick={() => deleteLibraryActivity(a.id)} title="Delete">
@@ -1232,7 +1231,7 @@ export function ActivityLibraryBrowse({
                                 setAddToIds(defaultStudentId ? [defaultStudentId] : []);
                               }}
                             >
-                              ➕ Add
+                              Add
                             </button>
                           </div>
                         )}

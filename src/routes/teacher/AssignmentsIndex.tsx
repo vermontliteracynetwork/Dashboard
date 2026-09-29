@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
+import QuestionSetsManager from './QuestionSetsManager';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { StudentPlanTabs } from './LessonPlanBuilder';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
@@ -572,7 +573,7 @@ function FocusesPanel() {
         aria-expanded={open}
       >
         <span style={{ fontWeight: 800, fontSize: '1rem' }}>
-          🎯 Focuses{activeCount > 0 ? ` (${activeCount} active)` : ''}
+          Focuses{activeCount > 0 ? ` (${activeCount} active)` : ''}
         </span>
         <span aria-hidden="true">{open ? '▾' : '▸'}</span>
       </button>
@@ -684,7 +685,7 @@ export default function AssignmentsIndex() {
         <TeacherNav />
         <div className="container stack">
           <div className="space-between">
-            <h1>{editRequest ? '✏️ Edit Assignment' : '🗓️ Create an Assignment'}</h1>
+            <h1>{editRequest ? 'Edit Assignment' : 'Create an Assignment'}</h1>
             <button className="btn btn-sm" onClick={closeBuilder}>← Back to Assignments</button>
           </div>
 
@@ -733,7 +734,12 @@ export default function AssignmentsIndex() {
             </div>
           </div>
 
-          <CreateActivityForm subject={subject} />
+          <details className="task-editor-more">
+            <summary>Create a brand-new activity from scratch (most days you'll pick an existing one above)</summary>
+            <div style={{ paddingTop: 12 }}>
+              <CreateActivityForm subject={subject} />
+            </div>
+          </details>
         </div>
       </div>
     );
@@ -743,28 +749,39 @@ export default function AssignmentsIndex() {
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <h1>📋 Assignments</h1>
+        <h1>Assignments</h1>
 
+        <QuestionSetsManager />
         <FocusesPanel />
 
-        <div className="lp-tabs">
-          {(['active', 'upcoming', 'past', 'drafts', 'all', 'by-student', 'deleted'] as Filter[]).map((f) => (
-            <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-              {f === 'active'
-                ? '🟢 Active'
-                : f === 'upcoming'
-                  ? '🔜 Upcoming'
-                  : f === 'past'
-                    ? '⏪ Past / Completed'
-                    : f === 'drafts'
-                      ? `📝 Drafts (${draftTemplates.length})`
-                      : f === 'by-student'
-                        ? '🧑 By Student'
-                        : f === 'deleted'
-                          ? `🗑️ Deleted (${deletedGroups.length})`
-                          : 'All'}
-            </button>
-          ))}
+        {/* Two different kinds of control living in one row read as one
+            group otherwise: the first five filter this same grid, the
+            last two swap the whole view for a different layout — split
+            them so that difference is visible, not something a teacher
+            discovers by clicking. */}
+        <div className="space-between assignments-filter-row">
+          <div className="lp-tabs">
+            {(['active', 'upcoming', 'past', 'drafts', 'all'] as Filter[]).map((f) => (
+              <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+                {f === 'active'
+                  ? 'Active'
+                  : f === 'upcoming'
+                    ? 'Upcoming'
+                    : f === 'past'
+                      ? 'Past / Completed'
+                      : f === 'drafts'
+                        ? `Drafts (${draftTemplates.length})`
+                        : 'All'}
+              </button>
+            ))}
+          </div>
+          <div className="lp-tabs">
+            {(['by-student', 'deleted'] as Filter[]).map((f) => (
+              <button key={f} className={`lp-tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+                {f === 'by-student' ? 'By Student' : `Deleted (${deletedGroups.length})`}
+              </button>
+            ))}
+          </div>
         </div>
 
         {filter === 'deleted' ? (
