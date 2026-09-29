@@ -29,7 +29,6 @@ import StudentManager from './routes/teacher/StudentManager';
 import AssignmentsIndex from './routes/teacher/AssignmentsIndex';
 import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
-import PlaygroundManager from './routes/teacher/PlaygroundManager';
 import GameManager from './routes/teacher/GameManager';
 import QuestionSetDetail from './routes/teacher/QuestionSetDetail';
 import BadgeManager from './routes/teacher/BadgeManager';
@@ -164,10 +163,10 @@ export default function App() {
             <Route path="/teacher/lesson-plan/:studentId" element={<LessonPlanBuilder />} />
             <Route path="/teacher/live/:studentId" element={<StudentLiveView />} />
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
-            <Route path="/teacher/activities" element={<PlaygroundManager />} />
+            <Route path="/teacher/activities" element={<Navigate to="/teacher/assignments" replace />} />
             <Route path="/teacher/game" element={<GameManager />} />
             <Route path="/teacher/question-sets/:setId" element={<QuestionSetDetail />} />
-            <Route path="/teacher/playground" element={<Navigate to="/teacher/activities" replace />} />
+            <Route path="/teacher/playground" element={<Navigate to="/teacher/assignments" replace />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />
             <Route path="/teacher/marketplace" element={<MarketplaceManager />} />
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />

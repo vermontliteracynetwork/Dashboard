@@ -8,7 +8,6 @@ import { EMOTE_CATALOG, emotePriceFor } from '../lib/emoteCatalog';
 import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import { playCashRegister } from '../lib/chime';
-import FocusBanner from './FocusBanner';
 import WebpageFrame from './WebpageFrame';
 import { petDefById, thumbnailFor } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
@@ -524,8 +523,6 @@ export default function Marketplace() {
               </button>
             </div>
           </div>
-
-          <FocusBanner subjects={['finance']} />
 
           {/* Direct teacher ask: "the design needs to be more real online
               shopping inspired... needs to be like amazon" — a real sidebar
