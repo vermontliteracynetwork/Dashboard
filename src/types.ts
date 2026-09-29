@@ -182,6 +182,17 @@ export interface Student {
   // recordBakeryGameResult, read back only on this student's own Bakery
   // Match main menu.
   bakeryLeaderboard?: { xp: number; date: string }[];
+  // Bakery Match's escalating cash-milestone goal — direct teacher
+  // instruction: reach `bakeryMilestoneTier * 100` correct answers
+  // (counted from 0 each time, not the lifetime bakeryQuestionsAnswered
+  // above) to earn $(tier*100), then the goal grows by 100 questions and
+  // the count resets. Defaults (tier 1, count 0) apply when unset —
+  // every student's first goal is 100 questions for $100. Both fields
+  // only ever advance at game completion (see BakeryMatch3.tsx), never
+  // live mid-game, same "nothing banked until the game finishes" rule
+  // the cash reward itself follows.
+  bakeryMilestoneTier?: number;
+  bakeryMilestoneCount?: number;
   // In-world 3D character catalog (characterCatalog.ts) — separate from
   // avatar (the 2D login picture). 'default' (the standard player model)
   // is always available and never listed here. Grows as new characters

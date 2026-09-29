@@ -103,6 +103,32 @@ const REWARD_PER_QUESTION_CENTS = 50;
 
 type Phase = 'menu' | 'playing' | 'challenge';
 
+// Bakery Match's escalating cash-milestone goal (Student.bakeryMilestoneTier/
+// Count, types.ts) — shared by the live header display (adds this session's
+// not-yet-settled progress on top of what's actually persisted) and the
+// real settlement math in handleChallengeCorrect, so the two can never
+// drift out of sync with each other.
+function advanceMilestone(startTier: number, startCount: number, correctAnswers: number): { tier: number; count: number; milestoneCents: number } {
+  let tier = startTier;
+  let count = startCount;
+  let milestoneCents = 0;
+  let remaining = correctAnswers;
+  while (remaining > 0) {
+    const target = tier * 100;
+    const room = target - count;
+    if (remaining < room) {
+      count += remaining;
+      remaining = 0;
+    } else {
+      remaining -= room;
+      count = 0;
+      milestoneCents += target * 100; // $target, in cents
+      tier += 1;
+    }
+  }
+  return { tier, count, milestoneCents };
+}
+
 function posKey(p: Pos): string {
   return `${p.row},${p.col}`;
 }
@@ -160,8 +186,26 @@ export default function BakeryMatch3() {
   const [showTreatWheel, setShowTreatWheel] = useState(false);
   const [sessionEarningsCents, setSessionEarningsCents] = useState(0);
   const [showEarnings, setShowEarnings] = useState(false);
+  const [showGoalInfo, setShowGoalInfo] = useState(false);
   const xpRef = useRef(0);
   xpRef.current = xp;
+  // Direct teacher instruction: earnings don't enter the bank until the
+  // whole game is completed — a plain ref (not React state) tracks how
+  // many questions were answered correctly THIS session, read once at
+  // completion to settle both the per-question reward and any cash
+  // milestone crossed, in one lump recordTransaction call.
+  const sessionQuestionsRef = useRef(0);
+  // Live header display: this session's not-yet-settled correct answers
+  // layered on top of whatever's actually persisted, so the goal pill
+  // updates in real time even though the real settlement only happens at
+  // game completion (see handleChallengeCorrect). sessionEarningsCents
+  // changes on the exact same correct-answer events sessionQuestionsRef
+  // does, so it doubles as this memo's re-run trigger.
+  const goalProgress = useMemo(() => {
+    const { tier, count } = advanceMilestone(student?.bakeryMilestoneTier ?? 1, student?.bakeryMilestoneCount ?? 0, sessionQuestionsRef.current);
+    return { tier, count, target: tier * 100 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student?.bakeryMilestoneTier, student?.bakeryMilestoneCount, sessionEarningsCents]);
   const seenUnlockIdRef = useRef<string | null>(null);
   const [showUnlockCelebration, setShowUnlockCelebration] = useState(false);
 
@@ -195,6 +239,7 @@ export default function BakeryMatch3() {
     setChallengeQuestion(null);
     setXp(0);
     setSessionEarningsCents(0);
+    sessionQuestionsRef.current = 0;
     setPhase('playing');
   };
 
@@ -335,12 +380,12 @@ export default function BakeryMatch3() {
   const handleChallengeCorrect = () => {
     if (student) {
       recordBakeryQuestionAnswered(student.id);
-      // Direct teacher instruction: cash prizes are the default now —
-      // recordTransaction is the app's one choke point for crediting a
-      // student's balance, so this single call gets the bank register
-      // row AND the app-wide falling-coins animation (CoinDropOverlay)
-      // for free, no extra UI to build.
-      recordTransaction(student.id, REWARD_PER_QUESTION_CENTS, '🥐 Bakery Match: correct answer!', '🥐', 'bakery-match');
+      // Direct teacher instruction: totals earned do NOT enter the bank
+      // until the whole game is completed — track it locally (both the
+      // live on-screen counter and a plain count of correct answers this
+      // session) and settle everything in one recordTransaction call
+      // down in the round >= TOTAL_ROUNDS branch below, never per-question.
+      sessionQuestionsRef.current += 1;
       setSessionEarningsCents((c) => c + REWARD_PER_QUESTION_CENTS);
     }
     const next = gateCorrectCount + 1;
@@ -360,6 +405,31 @@ export default function BakeryMatch3() {
         // a second, separate prize from the Bakery Treat Wheel below.
         updateStudent(student.id, { bonusSpinAvailable: true });
         recordTransaction(student.id, 0, '🎉 Finished Bakery Match: bonus spin!', '🎡', 'bakery-match');
+
+        // Direct teacher instruction: an escalating cash-milestone goal —
+        // reach `tier * 100` correct answers (counted from 0 each time,
+        // separate from the lifetime bakeryQuestionsAnswered tracker
+        // above) to earn $(tier*100), then the goal grows by 100 and the
+        // count resets. Settled here, all at once, rather than live
+        // mid-game, so a milestone crossed but the game then abandoned
+        // never pays out — same "nothing banked until completion" rule
+        // the per-question reward follows.
+        const { tier, count, milestoneCents } = advanceMilestone(
+          student.bakeryMilestoneTier ?? 1,
+          student.bakeryMilestoneCount ?? 0,
+          sessionQuestionsRef.current
+        );
+        updateStudent(student.id, { bakeryMilestoneTier: tier, bakeryMilestoneCount: count });
+
+        const totalEarnedCents = sessionQuestionsRef.current * REWARD_PER_QUESTION_CENTS + milestoneCents;
+        if (totalEarnedCents > 0) {
+          // recordTransaction is the app's one choke point for crediting
+          // a student's balance — this single call gets the real bank
+          // register row AND the app-wide falling-coins animation
+          // (CoinDropOverlay) for free, no extra UI to build.
+          recordTransaction(student.id, totalEarnedCents, '🥐 Bakery Match: game earnings', '🥐', 'bakery-match');
+          setSessionEarningsCents(totalEarnedCents);
+        }
       }
       setShowEarnings(true);
       setPhase('menu');
@@ -448,7 +518,17 @@ export default function BakeryMatch3() {
                 ))}
               </div>
             </div>
-            <span className="bakery-xp-pill">⭐ {xp} XP</span>
+            <div className="bakery-topbar-pills">
+              <button
+                type="button"
+                className="bakery-xp-pill bakery-goal-pill"
+                onClick={() => setShowGoalInfo(true)}
+                title="Tap to see your Bakery Match goal"
+              >
+                🎯 {goalProgress.count}/{goalProgress.target}
+              </button>
+              <span className="bakery-xp-pill bakery-earnings-pill">🪙 {formatMoney(sessionEarningsCents)}</span>
+            </div>
           </div>
 
           <p className="bakery-hint">Drag a treat onto a neighbor, or tap two next to each other, to match 3 or more!</p>
@@ -543,13 +623,35 @@ export default function BakeryMatch3() {
             <h2 className="bakery-modal-title">Great baking!</h2>
             <p className="bakery-modal-note">You earned</p>
             <p className="bakery-earnings-amount">{formatMoney(sessionEarningsCents)}</p>
-            <p className="bakery-modal-note">answering questions today. Check your Piggy Bank to see it!</p>
+            <p className="bakery-modal-note">answering questions today. It's already in your Piggy Bank!</p>
             <button
               className="bakery-play-btn"
               onClick={() => { setShowEarnings(false); setShowTreatWheel(true); }}
             >
               Nice!
             </button>
+            <button
+              className="bakery-text-link"
+              onClick={() => navigate('/student/piggy-bank')}
+            >
+              🐷 View Piggy Bank
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showGoalInfo && (
+        <div className="bakery-modal-backdrop" onClick={() => setShowGoalInfo(false)}>
+          <div className="bakery-modal-card" onClick={(e) => e.stopPropagation()}>
+            <span className="bakery-confirm-icon" aria-hidden="true">🎯</span>
+            <h2 className="bakery-modal-title">Bakery Match Goal</h2>
+            <p className="bakery-modal-note">
+              Answer {goalProgress.target} questions correctly in Bakery Match (you're at {goalProgress.count}/{goalProgress.target} right now) to earn <strong>{formatMoney(goalProgress.target * 100)}</strong>!
+            </p>
+            <p className="bakery-modal-note">
+              After that, your next goal will be {goalProgress.target + 100} questions for {formatMoney((goalProgress.target + 100) * 100)}, and it keeps growing every time you reach it.
+            </p>
+            <button className="bakery-play-btn" onClick={() => setShowGoalInfo(false)}>Got it!</button>
           </div>
         </div>
       )}

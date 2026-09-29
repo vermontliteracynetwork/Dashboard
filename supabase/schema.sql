@@ -595,6 +595,10 @@ alter table students add column if not exists unlocked_character_ids jsonb not n
 -- per completed 3-round game, never shown to any other student.
 alter table students add column if not exists bakery_leaderboard jsonb not null default '[]';
 alter table students add column if not exists equipped_character_id text;
+-- Bakery Match's escalating cash-milestone goal (types.ts Student comment):
+-- tier 1 defaults to a 100-question/$100 goal, resetting count each time.
+alter table students add column if not exists bakery_milestone_tier integer not null default 1;
+alter table students add column if not exists bakery_milestone_count integer not null default 0;
 
 -- Home Room's room system (replaces the old single fixed 10x10 room + a
 -- freeform student wall-drawing tool): each row is one discrete room a
