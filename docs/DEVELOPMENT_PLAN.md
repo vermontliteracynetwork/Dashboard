@@ -600,6 +600,18 @@ Status values: ✅ Done · 🟡 Partial (named gap) · ⬜ Not started (still on
 12. **Kitchen Cook-Off** — restaurant; answers pick ingredients in order to cook recipes (sequencing practice).
 13. **Train Station Dispatch** — train station; answers route trains to the right platforms.
 
+**Student-favorite game genres — direct teacher input (2026-09-30), specifically flagged as what her students already respond to, noted only, no development yet.** Same standing pattern (role-gated building/asset → native mini-game → question-set-gated challenge → real reward):
+1. **Endless Runner** — train station or mine; answers pick lanes or jumps.
+2. **Tower Defense** — the castle (this is Castle Defense above, restated here as a confirmed student favorite).
+3. **Idle/Clicker Tycoon** — the farm or bakery shop; answers boost a running business.
+4. **Time-Management** — restaurant; answers serve customers in order.
+5. **Memory Match** — library or curio shop; questions pair with answers.
+6. **Word Search** — library or post office; answers reveal hidden words.
+7. **Whack-a-Mole** — garden or farm; answers pop out of the ground.
+8. **Crossy Road Hopper** — town roads; correct answers hop you across.
+9. **Plinko Drop** — a carnival or arcade building; answers choose where the ball drops.
+10. **Bubble Shooter** — a fishing pond or candy shop; aim at the bubble holding the right answer.
+
 ### Central Educator (Academics) Dashboard — spec list, re-derived from the teacher's own words (2026-09-29)
 
 Nothing built yet. This replaces an earlier discursive design-review entry on the same feature (it mixed settled decisions, open forks, and Claudia's own reasoning into one narrative block instead of separating "what to build" from "why," which is why it wasn't translating into actionable work). This version is a checklist a developer can act on line by line. Do not re-open items marked "settled" without new, explicit teacher instruction. If more gets added to this feature later, keep it in this same checklist shape rather than reverting to prose.
