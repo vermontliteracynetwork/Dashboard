@@ -797,10 +797,6 @@ export default function AssignmentsIndex() {
       <div className="container stack">
         <h1>Academics</h1>
 
-        <QuestionSetsManager />
-        <FocusesPanel />
-        <ActivitiesPanel />
-
         {/* Two different kinds of control living in one row read as one
             group otherwise: the first five filter this same grid, the
             last two swap the whole view for a different layout — split
@@ -901,6 +897,10 @@ export default function AssignmentsIndex() {
             )}
           </>
         )}
+
+        <QuestionSetsManager />
+        <FocusesPanel />
+        <ActivitiesPanel />
       </div>
 
       {detailGroup && (

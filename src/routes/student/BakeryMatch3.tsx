@@ -696,6 +696,7 @@ export default function BakeryMatch3() {
           imageAlt={challengeQuestion.imageAlt}
           onCorrectAnswer={handleChallengeCorrect}
           onExit={abandonGame}
+          onSkip={() => setChallengeQuestion(pickQuestion(questionMode))}
           ttsSettings={student?.ttsSettings}
         />
       )}

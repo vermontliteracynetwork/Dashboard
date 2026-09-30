@@ -4821,6 +4821,7 @@ export default function TownSquare() {
           imageAlt={gasQuizQuestion.imageAlt}
           onCorrectAnswer={handleGasCorrect}
           onExit={handleGasExit}
+          onSkip={() => setGasQuizQuestion(pickGasQuestion())}
           ttsSettings={student?.ttsSettings}
         />
       )}

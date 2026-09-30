@@ -246,7 +246,7 @@ export default function TaskChecklist({
               onClick={() => !locked && onOpen(t.id)}
               aria-label={`Open ${t.title}`}
             >
-              {t.referenceImageUrl ? <img src={t.referenceImageUrl} alt="" /> : <span>{t.icon}</span>}
+              <span>{t.icon}</span>
             </button>
 
             <button className="checklist-title-btn2" disabled={locked} onClick={() => !locked && onOpen(t.id)}>

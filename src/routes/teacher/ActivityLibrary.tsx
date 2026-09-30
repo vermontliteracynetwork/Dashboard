@@ -441,7 +441,7 @@ export function TaskEditor({
   // Auto-open "More options" only when editing an activity that already
   // has one of those set, so nothing already-entered gets hidden.
   const [showMore, setShowMore] = useState(
-    Boolean(initial.referenceImageUrl || initial.referenceLinkUrl || initial.isDaily || initial.isFinalCheck || (initial.customSteps?.length ?? 0) > 0)
+    Boolean(initial.referenceLinkUrl || initial.isDaily || initial.isFinalCheck || (initial.customSteps?.length ?? 0) > 0)
   );
 
   return (
@@ -563,13 +563,7 @@ export function TaskEditor({
       {task.type === 'linkChoice' && (
         <LinkChoiceEditor
           content={task.linkChoice ?? { options: [] }}
-          onChange={(linkChoice) =>
-            setTask({
-              ...task,
-              linkChoice,
-              referenceImageUrl: task.referenceImageUrl || linkChoice.options.find((o) => o.thumbnailUrl)?.thumbnailUrl,
-            })
-          }
+          onChange={(linkChoice) => setTask({ ...task, linkChoice })}
         />
       )}
 
@@ -606,11 +600,6 @@ export function TaskEditor({
               placeholder="https://www.youtube.com/watch?v=..."
               value={task.video?.youtubeUrl ?? ''}
               onChange={(e) => setTask({ ...task, video: { ...task.video, youtubeUrl: e.target.value } })}
-              onBlur={(e) => {
-                if (task.referenceImageUrl) return;
-                const videoId = extractYouTubeId(e.target.value);
-                if (videoId) setTask((t) => ({ ...t, referenceImageUrl: youtubeThumbnailUrl(videoId) }));
-              }}
             />
           </div>
           <div>
@@ -853,18 +842,8 @@ export function TaskEditor({
       </div>
 
       <details className="task-editor-more" open={showMore} onToggle={(e) => setShowMore((e.target as HTMLDetailsElement).open)}>
-        <summary>More options — cover image, a helper link, daily/Final Check, step guide</summary>
+        <summary>More options — a helper link, daily/Final Check, step guide</summary>
         <div className="stack" style={{ paddingTop: 12 }}>
-          <div style={{ maxWidth: 320 }}>
-            <ImageUploadField
-              label="🖼️ Cover image, shown on the activity card and to the student"
-              value={task.referenceImageUrl}
-              onChange={(url) => setTask({ ...task, referenceImageUrl: url })}
-            />
-            <p style={{ fontSize: '0.75rem', opacity: 0.65, margin: '4px 0 0' }}>
-              For a YouTube video, this fills in automatically. For a game or site (Baamboozle, etc.), take a screenshot and upload it here.
-            </p>
-          </div>
           <div className="row-wrap">
             <div style={{ flex: 1, minWidth: 220 }}>
               <label>🔗 Reference link (optional, a helper link shown alongside the activity)</label>
@@ -968,7 +947,7 @@ export function PlaygroundPool() {
           <div className="playground-strip">
             {entries.map((a) => (
               <div key={a.id} className="playground-chip">
-                {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span className="playground-chip-icon">{a.icon}</span>}
+                <span className="playground-chip-icon">{a.icon}</span>
                 <strong>{a.title}</strong>
                 <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
                 <button className="btn btn-sm btn-danger" onClick={() => updateLibraryActivity(a.id, { inPlayground: false })}>
@@ -1187,7 +1166,7 @@ export function ActivityLibraryBrowse({
                   }}
                 >
                   <div className="library-card-thumb">
-                    {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span>{a.icon}</span>}
+                    <span>{a.icon}</span>
                     <span className="library-card-type-badge" title={TASK_TYPE_LABELS[a.type]}>{TASK_TYPE_ICONS[a.type]}</span>
                   </div>
                   <div className="library-card-body">
