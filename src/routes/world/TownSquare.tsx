@@ -4022,7 +4022,16 @@ export default function TownSquare() {
                   <button
                     key={w.id}
                     title={w.label}
-                    onClick={() => { setShowSelfMenu(false); w.onSelect(); }}
+                    onClick={() => {
+                      // "More" pages the fan in place — every other wedge
+                      // closes the whole menu and opens its own thing. Bug
+                      // fixed here: closing the menu unconditionally used to
+                      // fire before onSelect(), so tapping "More" closed the
+                      // menu instead of advancing to page 2 (the page-reset
+                      // effect above then snapped selfMenuPage back to 0).
+                      if (w.id !== 'more' && w.id !== 'more2') setShowSelfMenu(false);
+                      w.onSelect();
+                    }}
                     style={{
                       position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)',
                       width: 68, height: 68, borderRadius: '50%', border: '2px solid var(--ink)', background: w.bg, color: '#fff',
@@ -4249,7 +4258,13 @@ export default function TownSquare() {
           stacks the two 58px buttons vertically with an 8px gap instead. */}
       <button
         onClick={() => setShowSelfMenu(true)}
-        style={{ position: 'fixed', top: 84, right: 16, zIndex: 60, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
+        // z-index 110 matches .tools-fab's own deliberate above-overlay
+        // tier (see its CSS comment) — direct teacher bug report: the Menu
+        // button used to sit at z:60, under the To-Do List overlay's
+        // backdrop (.overlay-backdrop is z:100), so it was invisible and
+        // untappable the whole time that overlay (or any other standard
+        // one — Music picker, etc.) was open.
+        style={{ position: 'fixed', top: 84, right: 16, zIndex: 110, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
         aria-label={totalTasksLeft > 0 ? `Menu, ${totalTasksLeft} tasks left today` : 'Menu'}
       >
         <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🧭</span>
