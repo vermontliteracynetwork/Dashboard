@@ -10,7 +10,7 @@ import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 import type { Subject, Task, TaskType, TaskRewardType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
-import { TASK_TYPE_LABELS } from '../../types';
+import { TASK_TYPE_LABELS, TASK_TYPE_ICONS } from '../../types';
 
 const MAX_ARTICLES_PER_TASK = 3;
 
@@ -1067,16 +1067,22 @@ export function ActivityLibraryBrowse({
   const [editingInPlayground, setEditingInPlayground] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
+  const [activeTypeFilters, setActiveTypeFilters] = useState<TaskType[]>([]);
   const [addTargetId, setAddTargetId] = useState<string | null>(null);
   const [addToIds, setAddToIds] = useState<string[]>([]);
 
   const allForSubject = subject ? activityLibrary.filter((a) => a.subject === subject) : activityLibrary;
   const allTags = [...new Set(allForSubject.flatMap((a) => a.tags ?? []))].sort();
+  // Only offer type filter chips for types actually present, so an empty
+  // library or one that only ever uses 2-3 types doesn't show a dozen
+  // filters for nothing — direct teacher ask: filter by activity type.
+  const allTypes = [...new Set(allForSubject.map((a) => a.type))] as TaskType[];
   const searchLower = search.trim().toLowerCase();
   const activities = allForSubject.filter((a) => {
     const matchesSearch = !searchLower || a.title.toLowerCase().includes(searchLower) || (a.tags ?? []).some((t) => t.toLowerCase().includes(searchLower));
     const matchesTags = activeTagFilters.length === 0 || activeTagFilters.every((t) => (a.tags ?? []).includes(t));
-    return matchesSearch && matchesTags;
+    const matchesType = activeTypeFilters.length === 0 || activeTypeFilters.includes(a.type);
+    return matchesSearch && matchesTags && matchesType;
   });
   const editingActivity = activities.find((a) => a.id === editingId);
   const titlesOnTodaysPlan = new Set((tasks ?? []).map((t) => t.title.trim().toLowerCase()));
@@ -1098,9 +1104,30 @@ export function ActivityLibraryBrowse({
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: '100%' }}
         />
+        {allTypes.length > 1 && (
+          <div className="row-wrap" style={{ gap: 4 }}>
+            <span style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'center' }}>Type:</span>
+            {allTypes.map((t) => (
+              <button
+                key={t}
+                className={`btn btn-sm ${activeTypeFilters.includes(t) ? 'btn-primary' : ''}`}
+                style={{ minHeight: 32, fontSize: '0.75rem' }}
+                onClick={() => setActiveTypeFilters((f) => (f.includes(t) ? f.filter((x) => x !== t) : [...f, t]))}
+                title={TASK_TYPE_LABELS[t]}
+              >
+                {TASK_TYPE_ICONS[t]} {TASK_TYPE_LABELS[t].split(' (')[0]}
+              </button>
+            ))}
+            {activeTypeFilters.length > 0 && (
+              <button className="btn btn-sm" style={{ minHeight: 32, fontSize: '0.75rem' }} onClick={() => setActiveTypeFilters([])}>
+                ✕ Clear
+              </button>
+            )}
+          </div>
+        )}
         {allTags.length > 0 && (
           <div className="row-wrap" style={{ gap: 4 }}>
-            <span style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'center' }}>Filter:</span>
+            <span style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'center' }}>Tag:</span>
             {allTags.map((t) => (
               <button
                 key={t}
@@ -1161,6 +1188,7 @@ export function ActivityLibraryBrowse({
                 >
                   <div className="library-card-thumb">
                     {a.referenceImageUrl ? <img src={a.referenceImageUrl} alt="" /> : <span>{a.icon}</span>}
+                    <span className="library-card-type-badge" title={TASK_TYPE_LABELS[a.type]}>{TASK_TYPE_ICONS[a.type]}</span>
                   </div>
                   <div className="library-card-body">
                         <div className="row-wrap" style={{ gap: 4 }}>
