@@ -90,12 +90,17 @@ export default function TeacherHome() {
             by Google", Chicken by "jeremy") added to Build Mode's farm
             category are CC-BY licensed via Poly Pizza — attribution
             required, unlike the Quaternius models (Pig, Cow, Crops) in the
-            same batch, which are CC0 and need none. */}
+            same batch, which are CC0 and need none. Third line: the Castle
+            building model (Castle Defense, role 'castle') is CC-BY-4.0
+            licensed via Sketchfab — same attribution requirement. */}
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 32 }}>
           Graphics created by Penzilla Design
         </p>
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
           Farm animal models: "Poly by Google" and jeremy, via Poly Pizza (CC BY)
+        </p>
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
+          Castle model: "Low Poly Castle" by treymill33, via Sketchfab (CC BY 4.0)
         </p>
       </div>
     </div>

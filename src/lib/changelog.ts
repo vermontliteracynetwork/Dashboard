@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-30-castle-defense',
+    date: '2026-09-30',
+    icon: '🏰',
+    title: 'New game: Castle Defense',
+    body: 'Walk up to the Castle in Town Square to play! Answer questions to earn gems, build and upgrade towers, and defend against 5 waves of attackers. Finish the whole game to earn money and a bonus spin.',
+  },
+  {
     id: '2026-09-30-break-button-removed',
     date: '2026-09-30',
     icon: '🌿',

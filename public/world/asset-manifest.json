@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T19:19:15.100Z",
+  "generatedAt": "2026-09-30T18:18:02.853Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -294,6 +294,11 @@
     {
       "path": "/world/models/buildings/cabin-shed.glb",
       "label": "Cabin Shed",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/castle/castle.gltf",
+      "label": "Castle",
       "category": "buildings"
     },
     {

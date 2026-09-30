@@ -159,6 +159,7 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   arcade: '/student/arcade',
   'farmers-market': '/student/farmers-market',
   bakery: '/student/bakery',
+  castle: '/student/castle-defense',
   // Never actually read — a 'gas-pump' role opens the in-world gas refuel
   // prompt directly (TownSquare.tsx's openRoleObject special-cases it,
   // same pattern as 'closed'/'custom' below) instead of navigating
