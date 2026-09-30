@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '../../store/store';
 import QuizEditor, { validateQuizQuestions, sanitizeQuizQuestions } from './QuizEditor';
 import DrillEditor from './DrillEditor';
@@ -8,7 +8,6 @@ import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
-import { uploadVideo } from '../../lib/upload';
 import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
 import { TASK_TYPE_LABELS, TASK_TYPE_ICONS } from '../../types';
 
@@ -451,15 +450,6 @@ export function TaskEditor({
 }) {
   const [task, setTask] = useState<Task>(initial);
   const [matchedNotice, setMatchedNotice] = useState<string | null>(null);
-  // A school network blocking youtube.com is a real, reported case (not
-  // hypothetical) — see GlobalMusicPlayer.tsx's UploadedAudio for the
-  // matching fix on the Music side. A Video activity gets the same escape
-  // hatch: upload a real file instead of pasting a YouTube link.
-  // Task.video.youtubeUrl keeps its name for backward compatibility with
-  // already-authored activities, but holds either kind of URL now —
-  // VideoTask.tsx detects which one it is the same way GlobalMusicPlayer does.
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const videoFileRef = useRef<HTMLInputElement>(null);
 
   // Reward is decided at assignment time now, not here — direct teacher
   // instruction: "rewards should never be assigned during the creation of
@@ -617,40 +607,13 @@ export function TaskEditor({
       {task.type === 'video' && (
         <div className="stack">
           <div>
-            <label>YouTube URL, or upload a video file</label>
-            <div className="row-wrap" style={{ gap: 8 }}>
-              <input
-                style={{ flex: 1, minWidth: 220 }}
-                placeholder="https://www.youtube.com/watch?v=..."
-                value={task.video?.youtubeUrl ?? ''}
-                onChange={(e) => setTask({ ...task, video: { ...task.video, youtubeUrl: e.target.value } })}
-              />
-              <label className="btn btn-sm" style={{ minHeight: 44, cursor: uploadingVideo ? 'default' : 'pointer' }}>
-                {uploadingVideo ? '⏳ Uploading…' : '📤 Upload a video file'}
-                <input
-                  ref={videoFileRef}
-                  type="file"
-                  accept="video/*"
-                  hidden
-                  disabled={uploadingVideo}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setUploadingVideo(true);
-                    try {
-                      const url = await uploadVideo(file);
-                      setTask((t) => ({ ...t, video: { ...t.video, youtubeUrl: url } }));
-                    } finally {
-                      setUploadingVideo(false);
-                      if (videoFileRef.current) videoFileRef.current.value = '';
-                    }
-                  }}
-                />
-              </label>
-            </div>
-            <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '4px 0 0' }}>
-              If your network blocks YouTube, upload the file directly instead — it'll play from this site, not YouTube.
-            </p>
+            <label>YouTube URL</label>
+            <input
+              style={{ width: '100%' }}
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={task.video?.youtubeUrl ?? ''}
+              onChange={(e) => setTask({ ...task, video: { ...task.video, youtubeUrl: e.target.value } })}
+            />
           </div>
           <div>
             <label>Note for the student (optional)</label>

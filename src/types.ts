@@ -629,7 +629,7 @@ export interface ScratchGame {
 export interface MusicTrack {
   id: string;
   title: string;
-  url: string; // a youtube.com/watch or youtu.be URL, or a direct audio file URL (teacher-uploaded, or pasted) — GlobalMusicPlayer.tsx detects which kind this is, no separate `source` field needed
+  url: string; // a youtube.com/watch or youtu.be URL
   createdAt: string;
   tags?: string[]; // teacher-authored, free-form — same search/filter pattern as CinemaVideo.tags
 }

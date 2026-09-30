@@ -42,25 +42,3 @@ export async function uploadVideo(file: File, onProgress?: (pct: number) => void
   const { data } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
-
-// Reuses the same Storage bucket as uploadVideo — it's generic object
-// storage, not video-specific, and this avoids needing a brand-new bucket
-// created by hand in the Supabase dashboard (this sandbox has no way to do
-// that). Direct teacher need: the district's network blocks youtube.com,
-// so the radio/Music library needs a real non-YouTube audio source — a
-// teacher-uploaded MP3/audio file plays from this app's own domain and
-// never touches YouTube at all.
-export async function uploadAudio(file: File): Promise<string> {
-  if (!isSupabaseConfigured) {
-    throw new Error('Connect Supabase first (see SETUP.md) before uploading audio.');
-  }
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'mp3';
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await supabase.storage.from(VIDEO_BUCKET).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-  });
-  if (error) throw error;
-  const { data } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
-}
