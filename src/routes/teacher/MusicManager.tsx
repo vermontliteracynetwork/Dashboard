@@ -1,19 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { extractYouTubeId } from '../../lib/youtube';
-import { uploadAudio } from '../../lib/upload';
 import type { MusicTrack } from '../../types';
 
 // A shared music library — direct teacher request: a car radio, the
 // Concert Hall building, and a placeable Boom Box all draw from this same
-// list. Always audio only: unlike Cinema, nothing here ever shows video.
-// Two ways to add a track: paste a YouTube link (plays through a hidden
-// YouTube embed), or upload a real audio file (plays through this app's
-// own domain, never touching YouTube). The upload path exists specifically
-// because a school's network content filter can block youtube.com outright
-// — that's a network-level block this app has no way to see around, so the
-// real fix is giving a track a source that was never YouTube to begin
-// with. See GlobalMusicPlayer.tsx's UploadedAudio for the playback side.
+// list. Always audio only: unlike Cinema, nothing here ever shows video —
+// students hear it through a hidden YouTube embed, so there's no cover
+// image/upload option to add here, just a title and a link.
 export default function MusicManager() {
   const musicTracks = useStore((s) => s.musicTracks);
   const addMusicTrack = useStore((s) => s.addMusicTrack);
@@ -25,8 +19,6 @@ export default function MusicManager() {
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const allTags = useMemo(
     () => Array.from(new Set(musicTracks.flatMap((t) => t.tags ?? []))).sort(),
@@ -52,11 +44,8 @@ export default function MusicManager() {
     const t = title.trim();
     const u = linkUrl.trim();
     if (!t || !u) return;
-    // A YouTube link still works fine off the school network; a plain
-    // https link (e.g. a royalty-free MP3 host) is accepted too now —
-    // GlobalMusicPlayer.tsx plays whichever kind it turns out to be.
-    if (!extractYouTubeId(u) && !/^https?:\/\//i.test(u)) {
-      setError("That doesn't look like a link. Paste a YouTube link or a direct audio file URL.");
+    if (!extractYouTubeId(u)) {
+      setError("That doesn't look like a YouTube link. Paste the full video URL.");
       return;
     }
     setError(null);
@@ -68,29 +57,11 @@ export default function MusicManager() {
     resetForm();
   };
 
-  const handleUpload = async (file: File) => {
-    const t = title.trim() || file.name.replace(/\.[^.]+$/, '');
-    setUploading(true);
-    setError(null);
-    try {
-      const url = await uploadAudio(file);
-      const pending = tagInput.trim();
-      const finalTags = pending && !tags.includes(pending) ? [...tags, pending] : tags;
-      addMusicTrack({ title: t, url, tags: finalTags });
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed. Try again.');
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = '';
-    }
-  };
-
   return (
     <div className="content-well stack">
       <strong>🎵 Music</strong>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        A shared music library — plays audio-only (no video) from the car radio, the Concert Hall building, and the Boom Box. Paste a YouTube link, or upload an audio file directly if your network blocks YouTube.
+        A shared music library — plays audio-only (no video) from the car radio, the Concert Hall building, and the Boom Box. Paste a YouTube link and give it a title.
       </p>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -100,10 +71,10 @@ export default function MusicManager() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        <div className="row-wrap" style={{ gap: 8 }}>
+        <div className="row" style={{ gap: 8 }}>
           <input
             className="input"
-            style={{ flex: 1, minWidth: 180 }}
+            style={{ flex: 1 }}
             placeholder="Paste a YouTube link…"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
@@ -112,17 +83,6 @@ export default function MusicManager() {
           <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!title.trim() || !linkUrl.trim()} onClick={addLink}>
             + Add Track
           </button>
-          <label className="btn btn-sm" style={{ minHeight: 44, cursor: uploading ? 'default' : 'pointer' }}>
-            {uploading ? '⏳ Uploading…' : '📤 Upload an audio file'}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="audio/*"
-              hidden
-              disabled={uploading}
-              onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
-            />
-          </label>
         </div>
         <div className="stack" style={{ gap: 6, maxWidth: 320 }}>
           <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tags/categories (optional)</label>
@@ -215,8 +175,8 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
     const t = editTitle.trim();
     if (!t) return;
     const u = editUrl.trim();
-    if (!extractYouTubeId(u) && !/^https?:\/\//i.test(u)) {
-      setError("That doesn't look like a link. Paste a YouTube link or a direct audio file URL.");
+    if (!extractYouTubeId(u)) {
+      setError("That doesn't look like a YouTube link.");
       return;
     }
     const pending = tagInput.trim();
@@ -229,7 +189,7 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
     return (
       <div className="stack" style={{ gap: 8, border: '2px solid var(--purple)', borderRadius: 10, padding: 10 }}>
         <input className="input" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Track title" />
-        <input className="input" value={editUrl} onChange={(e) => setEditUrl(e.target.value)} placeholder="YouTube link or audio file URL" />
+        <input className="input" value={editUrl} onChange={(e) => setEditUrl(e.target.value)} placeholder="YouTube link" />
         <div className="stack" style={{ gap: 6 }}>
           <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tags/categories</label>
           {editTags.length > 0 && (
@@ -274,7 +234,7 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
       <div style={{ width: 44, height: 44, borderRadius: 8, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>🎵</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{track.title}</div>
-        <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extractYouTubeId(track.url) ? 'YouTube link' : 'Uploaded file'}</div>
+        <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Audio only</div>
         {(track.tags ?? []).length > 0 && (
           <div className="row-wrap" style={{ gap: 3, marginTop: 3 }}>
             {(track.tags ?? []).map((t) => (
