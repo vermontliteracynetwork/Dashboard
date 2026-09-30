@@ -1,5 +1,13 @@
 import type { Task } from '../types';
 
+// A teacher-authored student-facing title, when set, is what the student
+// sees everywhere instead of the internal/teacher title — falls back to
+// the regular title so every activity authored before this field existed
+// still renders exactly as it did.
+export function taskDisplayTitle(task: Pick<Task, 'title' | 'studentTitle'>): string {
+  return task.studentTitle?.trim() || task.title;
+}
+
 // Numbered activities (task.order set) must be completed in ascending order.
 // Once every numbered activity is done, every un-numbered activity unlocks
 // as a free-choice board — pick anything, in any order.

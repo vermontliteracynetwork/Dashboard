@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import QuizEditor, { validateQuizQuestions, sanitizeQuizQuestions } from './QuizEditor';
 import DrillEditor from './DrillEditor';
-import StepsEditor from './StepsEditor';
 import ImageUploadField from '../../components/ImageUploadField';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
@@ -364,12 +363,10 @@ function TagsEditor({ tags, onChange, suggestions }: { tags: string[]; onChange:
   );
 }
 
-export const ICON_CHOICES = ['📘', '✏️', '🔤', '🔢', '➗', '🧩', '🎧', '🌍', '🖐️', '🎯', '🧠', '📐', '🗣️', '🎨', '▶️', '📖', '⛓️', '🩹'];
-
 export const blankTask = (): Task => ({
   id: makeId(),
   title: '',
-  icon: ICON_CHOICES[0],
+  icon: TASK_TYPE_ICONS.quiz,
   type: 'quiz',
   quiz: { questions: [] },
   link: { url: '' },
@@ -416,43 +413,60 @@ export const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
   linkChoice: a.linkChoice,
 });
 
+// The four types a teacher can pick when creating a brand-new activity —
+// direct teacher instruction to cut the Type list down from 12 to just
+// these. 'platformer' is relabeled "Native Game" here since it's the one
+// existing type that's already a real native-gameplay-plus-quiz shape
+// (Blooket-style), the closest match to "native games" in the ask; the
+// other 8 legacy types (offscreen, passage, drill, wordchain, sentenceEdit,
+// article, sentenceBuilder, linkChoice) are simply not offered for new
+// activities anymore, matching how the SEL/finance Focus lanes were
+// retired — existing activities/assignments of those types keep working
+// exactly as before, nothing is deleted or migrated.
+const CREATABLE_TASK_TYPES: TaskType[] = ['quiz', 'link', 'video', 'platformer'];
+const CREATABLE_TASK_TYPE_LABELS: Partial<Record<TaskType, string>> = {
+  platformer: '🎮 Native Game (in-game quiz, e.g. Platformer)',
+};
+
 export function TaskEditor({
   initial,
   subject,
   onSave,
   onCancel,
   matchExisting,
+  tagsSlot,
 }: {
   initial: Task;
   subject: Subject;
   onSave: (t: Task) => void;
   onCancel: () => void;
   matchExisting?: (title: string) => Task | undefined;
+  // Rendered right after Title, inside this same card — direct teacher
+  // ask to move Tags up next to Title instead of sitting in its own
+  // section above the whole editor. Optional: the small inline edit panel
+  // (updateLibraryActivity's own "Editing ..." card) still manages its
+  // own tags state and passes its TagsEditor element in here.
+  tagsSlot?: React.ReactNode;
 }) {
   const [task, setTask] = useState<Task>(initial);
-  const [showSteps, setShowSteps] = useState((initial.customSteps?.length ?? 0) > 0);
   const [matchedNotice, setMatchedNotice] = useState<string | null>(null);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const rewardType: TaskRewardType = task.reward?.type ?? 'money';
 
-  // Cover image, reference link, and the daily/Final-Check/step-guide
-  // toggles are real but secondary to the academic content below — the
-  // teacher's own instruction was that too many options show at once.
-  // Auto-open "More options" only when editing an activity that already
-  // has one of those set, so nothing already-entered gets hidden.
-  const [showMore, setShowMore] = useState(
-    Boolean(initial.referenceLinkUrl || initial.isDaily || initial.isFinalCheck || (initial.customSteps?.length ?? 0) > 0)
-  );
+  // Only a student-facing title/description live in More options now —
+  // direct teacher instruction removed cover image, reference link,
+  // daily/Final-Check, and the custom step-guide editor entirely from
+  // this form. Their underlying fields on Task still exist and still
+  // work (an activity already marked Final Check, already daily, already
+  // carrying a reference link or a custom step guide keeps behaving
+  // exactly as before) — there is simply no authoring UI left here to set
+  // or change them going forward. Auto-open only when editing an activity
+  // that already has student-facing copy set.
+  const [showMore, setShowMore] = useState(Boolean(initial.studentTitle || initial.studentDescription));
 
   return (
     <div className="content-well stack">
       <div className="row-wrap">
-        <div>
-          <label>Icon</label>
-          <select value={task.icon} onChange={(e) => setTask({ ...task, icon: e.target.value })}>
-            {ICON_CHOICES.map((i) => <option key={i} value={i}>{i}</option>)}
-          </select>
-        </div>
         <div style={{ flex: 1, minWidth: 220 }}>
           <label>Title</label>
           <input
@@ -466,7 +480,6 @@ export function TaskEditor({
               const match = matchExisting(trimmed);
               if (match && match.id !== initial.id) {
                 setTask({ ...match, id: task.id, title: trimmed });
-                setShowSteps((match.customSteps?.length ?? 0) > 0);
                 setMatchedNotice(`Filled in from your existing "${trimmed}" activity. Directions, links, and settings all matched. Change anything you need for this one.`);
               }
             }}
@@ -478,13 +491,23 @@ export function TaskEditor({
         </div>
         <div>
           <label>Type</label>
-          <select value={task.type} onChange={(e) => setTask({ ...task, type: e.target.value as TaskType })}>
-            {(Object.keys(TASK_TYPE_LABELS) as TaskType[]).map((t) => (
-              <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>
+          <select
+            value={task.type}
+            onChange={(e) => {
+              const type = e.target.value as TaskType;
+              setTask({ ...task, type, icon: TASK_TYPE_ICONS[type] });
+            }}
+          >
+            {/* The current type always appears, even if it's a legacy type
+                outside the 4 now offered — editing an existing activity
+                must never silently show the wrong type selected. */}
+            {[...new Set([...CREATABLE_TASK_TYPES, task.type])].map((t) => (
+              <option key={t} value={t}>{CREATABLE_TASK_TYPE_LABELS[t] ?? TASK_TYPE_LABELS[t]}</option>
             ))}
           </select>
         </div>
       </div>
+      {tagsSlot}
 
       {(task.type === 'quiz' || task.type === 'platformer') && (
         <div className="stack">
@@ -500,28 +523,11 @@ export function TaskEditor({
             questions={task.quiz?.questions ?? []}
             onChange={(questions) => setTask({ ...task, quiz: { ...task.quiz, questions } })}
           />
-          <div className="row-wrap">
-            <label className="row" style={{ gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={task.quiz?.shuffleQuestions ?? true}
-                onChange={(e) =>
-                  setTask({ ...task, quiz: { questions: task.quiz?.questions ?? [], shuffleAnswers: task.quiz?.shuffleAnswers, shuffleQuestions: e.target.checked } })
-                }
-              />
-              🔀 Shuffle question order each time
-            </label>
-            <label className="row" style={{ gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={task.quiz?.shuffleAnswers ?? false}
-                onChange={(e) =>
-                  setTask({ ...task, quiz: { questions: task.quiz?.questions ?? [], shuffleQuestions: task.quiz?.shuffleQuestions, shuffleAnswers: e.target.checked } })
-                }
-              />
-              🔀 Shuffle multiple-choice answer order
-            </label>
-          </div>
+          {/* Shuffle question order and shuffle multiple-choice answer
+              order are the fixed, silent default now (direct teacher
+              instruction) — no teacher-facing toggle. See the onSave
+              cleanup below, which stamps both true regardless of what
+              this task's quiz content already carried. */}
         </div>
       )}
 
@@ -842,54 +848,27 @@ export function TaskEditor({
       </div>
 
       <details className="task-editor-more" open={showMore} onToggle={(e) => setShowMore((e.target as HTMLDetailsElement).open)}>
-        <summary>More options — a helper link, daily/Final Check, step guide</summary>
+        <summary>More options — student-facing title &amp; description</summary>
         <div className="stack" style={{ paddingTop: 12 }}>
-          <div className="row-wrap">
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <label>🔗 Reference link (optional, a helper link shown alongside the activity)</label>
-              <input
-                style={{ width: '100%' }}
-                placeholder="https://..."
-                value={task.referenceLinkUrl ?? ''}
-                onChange={(e) => setTask({ ...task, referenceLinkUrl: e.target.value })}
-              />
-            </div>
-            <div>
-              <label>Link button text</label>
-              <input
-                placeholder="e.g. Open worksheet"
-                value={task.referenceLinkLabel ?? ''}
-                onChange={(e) => setTask({ ...task, referenceLinkLabel: e.target.value })}
-              />
-            </div>
+          <div>
+            <label>Student-facing title (optional, shown to the student instead of the title above)</label>
+            <input
+              style={{ width: '100%' }}
+              value={task.studentTitle ?? ''}
+              onChange={(e) => setTask({ ...task, studentTitle: e.target.value })}
+              placeholder="e.g. Let's practice our sounds!"
+            />
           </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={task.isDaily ?? false}
-              onChange={(e) => setTask({ ...task, isDaily: e.target.checked })}
-              style={{ marginRight: 6 }}
+          <div>
+            <label>Student-facing description (optional)</label>
+            <textarea
+              style={{ width: '100%' }}
+              rows={2}
+              value={task.studentDescription ?? ''}
+              onChange={(e) => setTask({ ...task, studentDescription: e.target.value })}
+              placeholder="A sentence or two telling the student what this activity is."
             />
-            ⭐ This is a daily/recurring activity
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={task.isFinalCheck ?? false}
-              onChange={(e) => setTask({ ...task, isFinalCheck: e.target.checked })}
-              style={{ marginRight: 6 }}
-            />
-            🏁 Final Check: completing this marks the whole assignment done (unlocks Playground, updates the streak),
-            even if other activities are still unchecked. Only mark one activity per plan.
-          </label>
-          <hr className="divider" />
-          <label>
-            <input type="checkbox" checked={showSteps} onChange={(e) => setShowSteps(e.target.checked)} style={{ marginRight: 6 }} />
-            Customize the visual "how to do this" step guide for this task
-          </label>
-          {showSteps && (
-            <StepsEditor steps={task.customSteps ?? []} onChange={(customSteps) => setTask({ ...task, customSteps })} />
-          )}
+          </div>
         </div>
       </details>
 
@@ -913,8 +892,14 @@ export function TaskEditor({
                 className="btn btn-primary"
                 disabled={!task.title.trim() || quizIssues.length > 0}
                 onClick={() => {
-                  const cleaned = task.quiz ? { ...task, quiz: { ...task.quiz, questions: sanitizeQuizQuestions(task.quiz.questions) } } : task;
-                  onSave(showSteps ? cleaned : { ...cleaned, customSteps: [] });
+                  // Shuffle question order and shuffle multiple-choice
+                  // answer order are the fixed, silent default now (no
+                  // teacher-facing toggle) — stamped true here regardless
+                  // of what this quiz's content already carried.
+                  const cleaned = task.quiz
+                    ? { ...task, quiz: { ...task.quiz, questions: sanitizeQuizQuestions(task.quiz.questions), shuffleQuestions: true, shuffleAnswers: true } }
+                    : task;
+                  onSave(cleaned);
                 }}
               >
                 💾 Save Activity
@@ -996,11 +981,11 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
         {!creating && <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setCreating(true)}>➕ New Activity</button>}
         {creating && (
           <>
-            <TagsEditor tags={tags} onChange={setTags} suggestions={allTags} />
             <TaskEditor
               initial={blankTask()}
               subject={effectiveSubject}
               matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
+              tagsSlot={<TagsEditor tags={tags} onChange={setTags} suggestions={allTags} />}
               onSave={(t) => {
                 addLibraryActivity({ ...t, subject: effectiveSubject, inPlayground: false, tags });
                 setTags([]);
@@ -1131,7 +1116,6 @@ export function ActivityLibraryBrowse({
               <strong>Editing "{editingActivity.title || '(untitled)'}"</strong>
               <button className="btn btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
             </div>
-            <TagsEditor tags={editingTags} onChange={setEditingTags} suggestions={allTags} />
             <label className="row" style={{ gap: 6 }}>
               <input type="checkbox" checked={editingInPlayground} onChange={(e) => setEditingInPlayground(e.target.checked)} />
               🎪 Keep this in the shared Playground pool
@@ -1140,6 +1124,7 @@ export function ActivityLibraryBrowse({
               initial={editingActivity}
               subject={editingActivity.subject}
               matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
+              tagsSlot={<TagsEditor tags={editingTags} onChange={setEditingTags} suggestions={allTags} />}
               onSave={(t) => {
                 updateLibraryActivity(editingActivity.id, { ...t, tags: editingTags, inPlayground: editingInPlayground });
                 setEditingId(null);

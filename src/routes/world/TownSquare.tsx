@@ -2684,6 +2684,64 @@ function VehicleTapButton({ label, rotate, color, onPress, style }: { label: str
   );
 }
 
+// Direct teacher request: a compass for the open-world walking view and
+// the Map view, reachable from the pie menu, shown as a screen widget.
+// A plain fixed N/S/E/W rose rather than a live player-heading needle —
+// the Map view's own camera never rotates and already fixes north at -Z
+// (see CoordinateGrid's header comment), and the normal walking view's
+// camera angle lives only in a per-frame ref (camAngle, inside useFrame)
+// with no existing plumbing to a React-rendered DOM overlay; wiring that
+// up risks a 60fps-driven re-render for a widget whose job is just "which
+// way is north," not real-time orienteering. Same fixed convention as the
+// Map's own compass reads: correct in both places, at effectively zero
+// performance cost. Two-step close (tap widget -> reveals X -> tap X to
+// close), a deliberate direct instruction: "it can be clicked and an x
+// should appear to close it."
+function CompassWidget({ onClose }: { onClose: () => void }) {
+  const [armed, setArmed] = useState(false);
+  return (
+    // top:16/right:84 — clear of the "My Tools" FAB (top:16/right:16) and
+    // the Menu trigger below it (top:84/right:16), and away from the
+    // top-center Gas gauge HUD that only shows while driving a car.
+    <div style={{ position: 'fixed', top: 16, right: 84, zIndex: 150 }}>
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={() => setArmed((v) => !v)}
+          aria-label="Compass"
+          title="Compass"
+          style={{
+            position: 'relative', width: 64, height: 64, borderRadius: '50%',
+            border: '2px solid var(--ink, #1f4238)', background: 'rgba(255,255,255,0.94)',
+            boxShadow: '0 3px 10px rgba(0,0,0,0.3)', cursor: 'pointer', padding: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <span style={{ position: 'absolute', top: 3, left: '50%', transform: 'translateX(-50%)', fontSize: 11, fontWeight: 800, color: '#c0392b' }}>N</span>
+          <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', fontSize: 11, fontWeight: 700, color: '#1f4238' }}>S</span>
+          <span style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 700, color: '#1f4238' }}>W</span>
+          <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 700, color: '#1f4238' }}>E</span>
+          <span style={{ fontSize: 20 }} aria-hidden="true">🧭</span>
+        </button>
+        {armed && (
+          <button
+            onClick={onClose}
+            aria-label="Close compass"
+            title="Close compass"
+            style={{
+              position: 'absolute', top: -8, right: -8, width: 28, height: 28, borderRadius: '50%',
+              border: '2px solid #fff', background: '#c0392b', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', padding: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+            }}
+          >
+            <Icon name="close" size={14} fallback="✕" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // The teacher's explicit ask: on a computer, students should have both a
 // way to look around independent of where they're walking, and a way to
 // walk in a direction — the D-pad already covers walking on every device,
@@ -2817,7 +2875,7 @@ export default function TownSquare() {
   // GlobalMusicPlayer, mounted once in App.tsx so it keeps playing across
   // route changes), never a video surface. One plain overlay picker (not
   // 3D-anchored) serves all three triggers, same as every other full-
-  // screen panel in this file (showTodayTasks, showMoreMenu, ...).
+  // screen panel in this file (showTodayTasks, the self pie menu, ...).
   const musicTracks = useStore((s) => s.musicTracks);
   const [showMusicPicker, setShowMusicPicker] = useState(false);
   // Teacher's tags sort the library into categories for students too, not
@@ -2930,10 +2988,19 @@ export default function TownSquare() {
   const [showSelfMenu, setShowSelfMenu] = useState(false);
   // Claudia's audit (H3): the pie menu had grown to 7-8 wedges, past her
   // own 5-6 cap and hard to scan under time pressure. Settings/Map/My
-  // Stuff are the least time-critical of the bunch, so they move behind
-  // one "More" wedge (a plain list, same overlay pattern as Today's Tasks
-  // below) instead of each getting their own slot in the radial fan.
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  // Stuff, plus the newer Computer and To-Do List wedges, live on a
+  // second page instead of a separate popup list — direct teacher
+  // instruction: "instead of opening to a pop up window for more, it
+  // should interact like the sims... the pie menu options should change
+  // to show the more. this acts in a circular motion, opening the more
+  // items until it returns to the first set." selfMenuPage cycles
+  // 0 -> 1 -> 0 via each page's own "More" wedge, replacing the old
+  // showMoreMenu popup entirely.
+  const [selfMenuPage, setSelfMenuPage] = useState(0);
+  useEffect(() => {
+    if (!showSelfMenu) setSelfMenuPage(0);
+  }, [showSelfMenu]);
+  const [showCompass, setShowCompass] = useState(false);
 
   // Soft need-decay only ticks while a student is actively here in Town
   // Square (direct teacher spec: "only decrease when playing the game, not
@@ -3916,27 +3983,37 @@ export default function TownSquare() {
           ("regulation tools are never gated behind an extra tap+scan") —
           the teacher was shown that tradeoff directly and chose this
           anyway, so Help costs one extra tap now (open Menu, then Help)
-          instead of zero. Settings/Map/My Stuff are still grouped under
-          one "More" wedge rather than each taking their own. */}
-      {showSelfMenu && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 198, paddingRight: 130 }}
-          onClick={() => setShowSelfMenu(false)}
-        >
-          <div style={{ position: 'relative', width: 260, height: 260 }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 90, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#fff', pointerEvents: 'none' }}>
-              Menu
-            </div>
-            {(() => {
-              const wedges: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
-                { id: 'tasks', icon: '📋', label: totalTasksLeft > 0 ? `Tasks (${totalTasksLeft})` : 'Tasks', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
-                { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
-                { id: 'whatnow', icon: '❓', iconName: 'question', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
-                { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setShowMoreMenu(true) },
-                { id: 'home', icon: '🏠', iconName: 'home', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
-                ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
-              ];
-              return wedges.map((w, i) => {
+          instead of zero. Settings/Map/My Stuff/Computer/To-Do List sit
+          on a second page (see selfMenuPage above) instead of each taking
+          their own slot on the main fan or opening a separate popup. */}
+      {showSelfMenu && (() => {
+        const page1: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
+          { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
+          { id: 'whatnow', icon: '❓', iconName: 'question', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
+          { id: 'home', icon: '🏠', iconName: 'home', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
+          ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
+          { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(1) },
+        ];
+        const page2: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
+          { id: 'todo', icon: '📋', label: totalTasksLeft > 0 ? `To-Do List (${totalTasksLeft})` : 'To-Do List', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
+          { id: 'computer', icon: '💻', label: 'Computer', bg: '#3e6b7c', onSelect: () => navigate('/student/home') },
+          { id: 'settings', icon: '⚙️', iconName: 'settingsAlt', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },
+          { id: 'map', icon: '🗺️', label: mapView ? 'Close Map' : 'Map', bg: '#8a6b5b', onSelect: () => setMapView((v) => !v) },
+          { id: 'mystuff', icon: '🎒', label: showInventory ? 'Close My Stuff' : 'My Stuff', bg: '#6b5b8a', onSelect: () => setShowInventory((v) => !v) },
+          { id: 'compass', icon: '🧭', label: showCompass ? 'Hide Compass' : 'Compass', bg: '#2f8f6b', onSelect: () => setShowCompass((v) => !v) },
+          { id: 'more2', icon: '↩️', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(0) },
+        ];
+        const wedges = selfMenuPage === 0 ? page1 : page2;
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 198, paddingRight: 130 }}
+            onClick={() => setShowSelfMenu(false)}
+          >
+            <div style={{ position: 'relative', width: 260, height: 260 }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 90, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#fff', pointerEvents: 'none' }}>
+                Menu
+              </div>
+              {wedges.map((w, i) => {
                 const angle = (i / wedges.length) * Math.PI * 2 - Math.PI / 2;
                 const r = 100;
                 const x = Math.cos(angle) * r;
@@ -3962,47 +4039,22 @@ export default function TownSquare() {
                     <span style={{ fontSize: 11, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1.1, textAlign: 'center' }}>{w.label}</span>
                   </button>
                 );
-              });
-            })()}
-            <button
-              title="Cancel"
-              onClick={() => setShowSelfMenu(false)}
-              style={{
-                position: 'absolute', left: '50%', top: 'calc(50% + 168px)', transform: 'translate(-50%, -50%)',
-                minHeight: 44, borderRadius: 20, border: '2px solid var(--ink)', background: '#fff',
-                fontSize: '0.7rem', fontWeight: 700, padding: '4px 12px', cursor: 'pointer',
-              }}
-            >
-              <Icon name="close" size={14} fallback="✕" /> Cancel
-            </button>
-          </div>
-        </div>
-      )}
-      {/* The "More" list — Settings/Map/My Stuff, pulled out of the radial
-          fan itself (see the wedges comment above) so the fan stays at
-          5 wedges (6 once a student owns a pet) — Claudia's daily-review
-          audit: this is the ceiling, not room to grow; nothing more goes
-          in this pie without regrouping. Same overlay-backdrop/content-well
-          pattern as Today's Tasks below, for visual consistency. */}
-      {showMoreMenu && (
-        <div className="overlay-backdrop" onClick={() => setShowMoreMenu(false)}>
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack">
-              <div className="space-between">
-                <h2 style={{ margin: 0 }}><Icon name="settingsAlt" size={20} fallback="⚙️" /> More</h2>
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowMoreMenu(false)}><Icon name="close" size={16} fallback="✕" /></button>
-              </div>
-              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setSettingsOpen(true); }}><Icon name="settingsAlt" size={16} fallback="⚙️" /> Settings</button>
-              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setMapView((v) => !v); }}>
-                {mapView ? <><Icon name="close" size={14} fallback="✕" /> Close Map</> : '🗺️ Map'}
-              </button>
-              <button className="btn btn-lg" onClick={() => { setShowMoreMenu(false); setShowInventory((v) => !v); }}>
-                {showInventory ? <><Icon name="close" size={14} fallback="✕" /> Close My Stuff</> : '🎒 My Stuff'}
+              })}
+              <button
+                title="Cancel"
+                onClick={() => setShowSelfMenu(false)}
+                style={{
+                  position: 'absolute', left: '50%', top: 'calc(50% + 168px)', transform: 'translate(-50%, -50%)',
+                  minHeight: 44, borderRadius: 20, border: '2px solid var(--ink)', background: '#fff',
+                  fontSize: '0.7rem', fontWeight: 700, padding: '4px 12px', cursor: 'pointer',
+                }}
+              >
+                <Icon name="close" size={14} fallback="✕" /> Cancel
               </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {/* Shared music picker — car radio, Concert Hall, Boom Box all open
           this same list. Direct teacher request: audio only, so tapping a
           track just starts the hidden player below and shows a small
@@ -4217,6 +4269,7 @@ export default function TownSquare() {
         )}
       </button>
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
+      {showCompass && <CompassWidget onClose={() => setShowCompass(false)} />}
       {customRoleLink && (
         <InternalBrowser url={customRoleLink.url} title={customRoleLink.title} onClose={() => setCustomRoleLink(null)} />
       )}
