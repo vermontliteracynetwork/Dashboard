@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-30-break-button-removed',
+    date: '2026-09-30',
+    icon: '🌿',
+    title: 'The break button is gone',
+    body: 'The "I need a break" button is no longer in the Take a Moment screen. Breathing, checking on your pet, and asking for your teacher are all still there.',
+  },
+  {
     id: '2026-09-30-playground-retired',
     date: '2026-09-30',
     icon: '🎮',

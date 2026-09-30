@@ -72,7 +72,6 @@ export interface Student {
   streakHidden: boolean;
   badgeIds: string[]; // earned badge defs (can repeat conceptually, but stored unique+count via BadgeEarn[])
   featureToggles: Record<ToolKey, boolean>;
-  breakMinutes: number; // teacher-set default micro-break length (informational, not shown as a countdown to the student)
   ttsSettings: TTSSettings;
   createdAt: string;
   customTools: CustomTool[]; // teacher-added external link tools (e.g. Amplify, Polypad, research links)
@@ -1037,13 +1036,6 @@ export interface SubjectProgress {
 
 export type ProgressMap = Record<string, Record<Subject, SubjectProgress>>; // studentId -> subject -> progress
 
-export interface BreakRequest {
-  id: string;
-  studentId: string;
-  timestamp: string;
-  status: 'pending' | 'approved' | 'denied' | 'granted';
-}
-
 export interface HelpPing {
   id: string;
   studentId: string;
@@ -1307,4 +1299,4 @@ export interface BreakPoolItem {
   studentId?: string; // undefined = shared pool
 }
 
-export type StudentStatus = 'not-started' | 'working' | 'on-break' | 'awaiting-approval' | 'done-for-day';
+export type StudentStatus = 'not-started' | 'working' | 'done-for-day';

@@ -295,15 +295,6 @@ export default function StudentManager() {
                       onChange={(e) => updateStudent(st.id, { streak: parseInt(e.target.value) || 0 })}
                     />
                   </div>
-                  <div>
-                    <label>Break length (min)</label>
-                    <input
-                      type="number"
-                      style={{ width: 80 }}
-                      value={st.breakMinutes}
-                      onChange={(e) => updateStudent(st.id, { breakMinutes: parseInt(e.target.value) || 1 })}
-                    />
-                  </div>
                 </div>
                 <label>
                   <input

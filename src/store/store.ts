@@ -66,7 +66,6 @@ import {
   applyStudentMetaRow,
   rowToStudent,
   rowToProgress,
-  rowToBreakRequest,
   rowToHelpPing,
   rowToStudentFeedback,
   rowToQuizStruggle,
@@ -90,8 +89,6 @@ import {
   deleteStudentRemote,
   pushRotation,
   pushProgress,
-  pushBreakRequest,
-  deleteBreakRequestRemote,
   pushHelpPing,
   pushStudentFeedback,
   pushQuizStruggle,
@@ -183,7 +180,6 @@ import type {
   Task,
   ProgressMap,
   SubjectProgress,
-  BreakRequest,
   HelpPing,
   StudentFeedback,
   QuizStruggle,
@@ -264,7 +260,6 @@ interface AppState {
   students: Student[];
   rotations: Record<string, Record<Subject, Task[]>>;
   progress: ProgressMap;
-  breakRequests: BreakRequest[];
   helpPings: HelpPing[];
   studentFeedback: StudentFeedback[];
   submitFeedback: (studentId: string, category: StudentFeedback['category'], subcategoryLabel: string | undefined, customLabel: string | undefined, text: string) => void;
@@ -495,7 +490,6 @@ interface AppState {
   meetQuest1Neighbor: (studentId: string, neighborId: string, itemRewardCents: number, itemLabel: string) => void;
   recordNpcDailyTalk: (studentId: string, npcId: string, npcName: string) => void;
   collectJoke: (studentId: string, jokeId: string) => void;
-  resetAllDailySpins: () => void;
   deleteStudent: (id: string) => void;
   setFeatureToggle: (studentId: string, tool: ToolKey, enabled: boolean) => void;
   setStreak: (studentId: string, streak: number) => void;
@@ -525,15 +519,6 @@ interface AppState {
   // whether this call just crossed that line, so a caller (a native game
   // screen) can show its own "assignment done!" moment.
   submitGameplayAnswer: (studentId: string, subject: Subject, task: Task, questionId: string, correct: boolean) => boolean;
-
-  // breaks
-  requestBreak: (studentId: string) => void;
-  grantBreak: (studentId: string) => void;
-  approveBreak: (requestId: string) => void;
-  denyBreak: (requestId: string) => void;
-  finishBreak: (requestId: string) => void;
-  getStudentBreakState: (studentId: string) => BreakRequest | null;
-  breakCountToday: (studentId: string) => number;
 
   // help
   pingHelp: (studentId: string) => void;
@@ -705,7 +690,6 @@ export const useStore = create<AppState>()(
       students: [],
       rotations: {},
       progress: {},
-      breakRequests: [],
       helpPings: [],
       studentFeedback: [],
       quizStruggles: [],
@@ -842,8 +826,6 @@ export const useStore = create<AppState>()(
             if (studentId && studentId === get().currentStudentId) return;
             set((s) => ({ progress: applyNestedRow(s.progress, e, rowToProgress, n, o) }));
           },
-          onBreakRequest: (e, n, o) =>
-            set((s) => ({ breakRequests: applyArrayRow(s.breakRequests, e, rowToBreakRequest, n, o) })),
           onHelpPing: (e, n, o) => set((s) => ({ helpPings: applyArrayRow(s.helpPings, e, rowToHelpPing, n, o) })),
           onStudentFeedback: (e, n, o) => set((s) => ({ studentFeedback: applyArrayRow(s.studentFeedback, e, rowToStudentFeedback, n, o) })),
           onQuizStruggle: (e, n, o) => set((s) => ({ quizStruggles: applyArrayRow(s.quizStruggles, e, rowToQuizStruggle, n, o) })),
@@ -964,7 +946,6 @@ export const useStore = create<AppState>()(
           streakHidden: false,
           badgeIds: [],
           featureToggles: { ...DEFAULT_FEATURE_TOGGLES },
-          breakMinutes: 3,
           ttsSettings: { rate: 1, voiceURI: null },
           createdAt: new Date().toISOString(),
           customTools: [],
@@ -1954,12 +1935,6 @@ export const useStore = create<AppState>()(
         get().updateStudent(studentId, { lastSpinDate: null });
       },
 
-      resetAllDailySpins: () => {
-        get().students.forEach((st) => {
-          if (st.lastSpinDate !== null) get().updateStudent(st.id, { lastSpinDate: null });
-        });
-      },
-
       meetQuest1Neighbor: (studentId, neighborId, itemRewardCents, itemLabel) => {
         const student = get().students.find((st) => st.id === studentId);
         if (!student || student.worldQuest1MetIds.includes(neighborId)) return; // already met — no double reward
@@ -2529,56 +2504,6 @@ export const useStore = create<AppState>()(
         return true;
       },
 
-      requestBreak: (studentId) => {
-        const req: BreakRequest = { id: makeId(), studentId, timestamp: new Date().toISOString(), status: 'pending' };
-        set((s) => ({ breakRequests: [req, ...s.breakRequests] }));
-        pushBreakRequest(req);
-      },
-
-      grantBreak: (studentId) => {
-        const req: BreakRequest = { id: makeId(), studentId, timestamp: new Date().toISOString(), status: 'granted' };
-        set((s) => ({ breakRequests: [req, ...s.breakRequests] }));
-        pushBreakRequest(req);
-      },
-
-      approveBreak: (requestId) => {
-        set((s) => ({
-          breakRequests: s.breakRequests.map((b) => (b.id === requestId ? { ...b, status: 'approved' } : b)),
-        }));
-        const updated = get().breakRequests.find((b) => b.id === requestId);
-        if (updated) pushBreakRequest(updated);
-      },
-
-      denyBreak: (requestId) => {
-        set((s) => ({
-          breakRequests: s.breakRequests.map((b) => (b.id === requestId ? { ...b, status: 'denied' } : b)),
-        }));
-        const updated = get().breakRequests.find((b) => b.id === requestId);
-        if (updated) pushBreakRequest(updated);
-      },
-
-      finishBreak: (requestId) => {
-        set((s) => ({ breakRequests: s.breakRequests.filter((b) => b.id !== requestId) }));
-        deleteBreakRequestRemote(requestId);
-      },
-
-      getStudentBreakState: (studentId) => {
-        const mine = get()
-          .breakRequests.filter((b) => b.studentId === studentId)
-          .sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
-        return mine[0] ?? null;
-      },
-
-      breakCountToday: (studentId) => {
-        const today = todayISO();
-        return get().breakRequests.filter(
-          (b) =>
-            b.studentId === studentId &&
-            (b.status === 'approved' || b.status === 'granted') &&
-            b.timestamp.startsWith(today),
-        ).length;
-      },
-
       pingHelp: (studentId) => {
         const ping: HelpPing = { id: makeId(), studentId, timestamp: new Date().toISOString(), resolved: false };
         set((s) => ({ helpPings: [ping, ...s.helpPings] }));
@@ -2745,9 +2670,6 @@ export const useStore = create<AppState>()(
 
       studentStatus: (studentId) => {
         const s = get();
-        const breakState = s.getStudentBreakState(studentId);
-        if (breakState && (breakState.status === 'approved' || breakState.status === 'granted')) return 'on-break';
-        if (breakState && breakState.status === 'pending') return 'awaiting-approval';
         const today = todayISO();
         const mathProg = s.progress[studentId]?.math;
         const litProg = s.progress[studentId]?.literacy;
