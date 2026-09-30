@@ -227,6 +227,28 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   platformer: '🎮 Platformer Game + Quiz (Blooket-style homework)',
 };
 
+// One consistent icon per activity type, independent of an activity's own
+// teacher-picked decorative icon — direct teacher ask: "each type of
+// activity should have their own icon... so it's easy to identify" at a
+// glance in the Activity Library, plus a real type filter alongside it.
+// quiz/drill reuse the same glyphs QuestionSetsManager already uses for
+// those two question-set kinds, so the same type reads the same icon
+// everywhere it shows up.
+export const TASK_TYPE_ICONS: Record<TaskType, string> = {
+  quiz: '🧠',
+  link: '🔗',
+  offscreen: '📝',
+  video: '▶️',
+  passage: '📖',
+  drill: '🗂️',
+  wordchain: '⛓️',
+  sentenceEdit: '✏️',
+  article: '📰',
+  sentenceBuilder: '🧩',
+  linkChoice: '🎬',
+  platformer: '🎮',
+};
+
 export interface MCQuestion {
   id: string;
   kind: 'mc';
