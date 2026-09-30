@@ -2,7 +2,7 @@
 
 **Source material:** NGPF's *Middle School Personal Finance* 9-week syllabus (9 units), cross-referenced against Colorado's CTE *Personal Finance* high-school scope-and-sequence for vocabulary and real-world framing.
 **Applies to:** the `finance` Focus lane (`src/types.ts`'s `FocusSubject`), seeded in `supabase/schema.sql`, and any future finance-themed native game, question set, or Town Square content.
-**Status:** the reference for scaffolding future personal-finance content — read this before authoring a finance Question Set, a finance native game, or publishing the next Focus step.
+**Status:** the reference for scaffolding future personal-finance content — read this before authoring a finance Question Set or a finance native game. Note: the `finance` Focus lane was retired from live authoring 2026-09-29 (see `DEVELOPMENT_PLAN.md`'s Teacher-Side Feature Tracker), so "publishing the next Focus step" no longer applies — this scope stays useful as content reference for a future finance-themed native game (e.g. the proposed Bank/Penny game), not for Focus authoring.
 
 ---
 

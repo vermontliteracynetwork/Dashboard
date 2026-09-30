@@ -105,7 +105,7 @@ This replaces the old rule that "done" was always full mastery with no exception
 
 ## 9. Where Games Live, and What They Pay
 
-**All native games, both origins, live in the Playground.** This is a direct, explicit override of this standard's prior rule that Playground activities never pay currency — that rule stays in force for every *other* Playground activity, but native games are the one exception, by direct instruction.
+**All native games, both origins, live in the Playground OR are reached directly through a teacher-assigned building/asset role in Town Square** (the "native games per building/asset" direction, see `DEVELOPMENT_PLAN.md` Part B) — Bakery Match and Gas Pump are both examples of the latter. Whichever path a given game uses, the reward-payment rule below still applies wherever that game is actually surfaced to the student: this is a direct, explicit override of this standard's prior rule that Playground activities never pay currency — that rule stays in force for every *other* Playground activity, but native games are the one exception, by direct instruction.
 
 Reward differs by origin, and the Playground card for each game must visibly tell the student which kind applies:
 
