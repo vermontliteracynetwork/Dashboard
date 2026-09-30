@@ -52,20 +52,51 @@ import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplay
 //    green palette for v1 — both explicit, flagged scope cuts from
 //    Claudia's review, not oversights. The kit's 3 other tileset palettes
 //    are a real Phase 2 cosmetic-unlock candidate, not built here.
-//  - No persistent cross-device leaderboard this pass: this session's
-//    critical lesson (a new Supabase column pushed into the sync payload
-//    before its migration is confirmed run breaks production for every
-//    student) applies here too, and this sandbox has no way to run that
-//    migration. So unlike Bakery Match's bakeryLeaderboard, this ships
-//    with NO new Student/Supabase field at all — only the real, already-
-//    migrated recordTransaction/bonusSpinAvailable columns are touched.
-//    A private per-game leaderboard is a safe, flagged follow-up once a
-//    migration can actually be run.
+//  - No persistent cross-device leaderboard this pass (unlike Bakery
+//    Match's bakeryLeaderboard) — a private per-game leaderboard is a
+//    reasonable later addition, just not built here.
+//  - Direct teacher instruction: "add the same logic as bakerymatch in
+//    terms of answering X number of questions awards you." Mirrors
+//    Bakery Match's escalating cash-milestone goal exactly:
+//    castleDefenseQuestionsAnswered (lifetime, every gate answer
+//    answered correctly, a participation tracker) and
+//    castleDefenseMilestoneTier/Count (reach `tier * 100` correct
+//    answers, counted from 0 each time, to earn $(tier*100), then the
+//    goal grows by 100 and resets) — same advanceMilestone math, same
+//    "nothing banked until the game finishes" rule. Needs the
+//    supabase/schema.sql migration (castle_defense_questions_answered/
+//    castle_defense_milestone_tier/castle_defense_milestone_count) run
+//    on the live database before it syncs across devices/refreshes.
 const TOTAL_WAVES = 5;
 const QUESTIONS_PER_GATE = 3;
 const GEMS_PER_CORRECT = 2;
 const REWARD_PER_QUESTION_CENTS = 50;
 const ADVANCE_DURATION_MS = 6000;
+
+// Castle Defense's escalating cash-milestone goal — same shared shape as
+// BakeryMatch3.tsx's own advanceMilestone: reach `tier * 100` correct
+// answers (counted from 0 each time) to earn $(tier*100), then the goal
+// grows by 100 and the count resets.
+function advanceMilestone(startTier: number, startCount: number, correctAnswers: number): { tier: number; count: number; milestoneCents: number } {
+  let tier = startTier;
+  let count = startCount;
+  let milestoneCents = 0;
+  let remaining = correctAnswers;
+  while (remaining > 0) {
+    const target = tier * 100;
+    const room = target - count;
+    if (remaining < room) {
+      count += remaining;
+      remaining = 0;
+    } else {
+      remaining -= room;
+      count = 0;
+      milestoneCents += target * 100; // $target, in cents
+      tier += 1;
+    }
+  }
+  return { tier, count, milestoneCents };
+}
 
 type Phase = 'menu' | 'build' | 'advance' | 'challenge';
 type TowerType = 'stone' | 'wood' | 'pink';
@@ -141,6 +172,7 @@ export default function CastleDefense() {
   const questionSets = useStore((s) => s.questionSets);
   const recordTransaction = useStore((s) => s.recordTransaction);
   const updateStudent = useStore((s) => s.updateStudent);
+  const recordCastleDefenseQuestionAnswered = useStore((s) => s.recordCastleDefenseQuestionAnswered);
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const submitGameplayAnswer = useStore((s) => s.submitGameplayAnswer);
@@ -178,12 +210,26 @@ export default function CastleDefense() {
 
   const [sessionEarningsCents, setSessionEarningsCents] = useState(0);
   const [showEarnings, setShowEarnings] = useState(false);
+  const [showGoalInfo, setShowGoalInfo] = useState(false);
   const sessionQuestionsRef = useRef(0);
   const advanceTimerRef = useRef<number | null>(null);
 
   useEffect(() => () => {
     if (advanceTimerRef.current) window.clearTimeout(advanceTimerRef.current);
   }, []);
+
+  // Live header display: this session's not-yet-settled correct answers
+  // layered on top of whatever's actually persisted, so the goal pill
+  // updates in real time even though the real settlement (recordCastle
+  // DefenseQuestionAnswered / the milestone advance below) only happens
+  // per-answer / at completion respectively — same pattern BakeryMatch3's
+  // own goalProgress memo uses, sessionEarningsCents doubles as this
+  // memo's re-run trigger since it changes on the same correct-answer events.
+  const goalProgress = useMemo(() => {
+    const { tier, count } = advanceMilestone(student?.castleDefenseMilestoneTier ?? 1, student?.castleDefenseMilestoneCount ?? 0, sessionQuestionsRef.current);
+    return { tier, count, target: tier * 100 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student?.castleDefenseMilestoneTier, student?.castleDefenseMilestoneCount, sessionEarningsCents]);
 
   const pickQuestion = (mode: QuestionSourceMode, avoidId?: string): MCQuestion => {
     if (activeGameplayTask) {
@@ -216,6 +262,7 @@ export default function CastleDefense() {
       if (activeGameplayTask && challengeQuestion) {
         submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, challengeQuestion.id, true);
       }
+      recordCastleDefenseQuestionAnswered(student.id);
       sessionQuestionsRef.current += 1;
       setSessionEarningsCents((c) => c + REWARD_PER_QUESTION_CENTS);
       setGems((g) => g + GEMS_PER_CORRECT);
@@ -290,7 +337,19 @@ export default function CastleDefense() {
     if (student) {
       updateStudent(student.id, { bonusSpinAvailable: true });
       recordTransaction(student.id, 0, '🎉 Finished Castle Defense: bonus spin!', '🎡', 'castle-defense');
-      const totalEarnedCents = sessionQuestionsRef.current * REWARD_PER_QUESTION_CENTS;
+
+      // Same escalating cash-milestone settlement as Bakery Match's own
+      // handleChallengeCorrect: nothing banked until the game actually
+      // finishes, settled here all at once so an abandoned game never
+      // pays out a milestone it only passed locally mid-session.
+      const { tier, count, milestoneCents } = advanceMilestone(
+        student.castleDefenseMilestoneTier ?? 1,
+        student.castleDefenseMilestoneCount ?? 0,
+        sessionQuestionsRef.current,
+      );
+      updateStudent(student.id, { castleDefenseMilestoneTier: tier, castleDefenseMilestoneCount: count });
+
+      const totalEarnedCents = sessionQuestionsRef.current * REWARD_PER_QUESTION_CENTS + milestoneCents;
       if (totalEarnedCents > 0) {
         recordTransaction(student.id, totalEarnedCents, '🏰 Castle Defense: game earnings', '💰', 'castle-defense');
         setSessionEarningsCents(totalEarnedCents);
@@ -327,6 +386,7 @@ export default function CastleDefense() {
             <div className="bakery-menu-card">
               <h1 className="bakery-title">🏰 Castle Defense</h1>
               <p className="bakery-blurb">5 waves. Answer to earn gems. Build towers to defend the castle!</p>
+              <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {student?.castleDefenseQuestionsAnswered ?? 0} lifetime questions answered</span>
               <button className="bakery-play-btn" onClick={startGame}>
                 <Icon name="play" size={22} fallback="▶️" /> Play New Game
               </button>
@@ -351,6 +411,14 @@ export default function CastleDefense() {
             </div>
             <div className="bakery-topbar-pills">
               <span className="bakery-xp-pill castle-gem-pill">💎 {gems}</span>
+              <button
+                type="button"
+                className="bakery-xp-pill bakery-goal-pill"
+                onClick={() => setShowGoalInfo(true)}
+                title="Tap to see your Castle Defense goal"
+              >
+                🎯 {goalProgress.count}/{goalProgress.target}
+              </button>
               <span className="bakery-xp-pill bakery-earnings-pill">🪙 {formatMoney(sessionEarningsCents)}</span>
             </div>
           </div>
@@ -494,6 +562,22 @@ export default function CastleDefense() {
             <p className="bakery-modal-note">answering questions today. It's already in your Piggy Bank! You also earned a Bonus Spin.</p>
             <button className="bakery-play-btn" onClick={() => setShowEarnings(false)}>Nice!</button>
             <button className="bakery-text-link" onClick={() => navigate('/student/piggy-bank')}>🐷 View Piggy Bank</button>
+          </div>
+        </div>
+      )}
+
+      {showGoalInfo && (
+        <div className="bakery-modal-backdrop" onClick={() => setShowGoalInfo(false)}>
+          <div className="bakery-modal-card" onClick={(e) => e.stopPropagation()}>
+            <span className="bakery-confirm-icon" aria-hidden="true">🎯</span>
+            <h2 className="bakery-modal-title">Castle Defense Goal</h2>
+            <p className="bakery-modal-note">
+              Answer {goalProgress.target} questions correctly in Castle Defense (you're at {goalProgress.count}/{goalProgress.target} right now) to earn <strong>{formatMoney(goalProgress.target * 100)}</strong>!
+            </p>
+            <p className="bakery-modal-note">
+              After that, your next goal will be {goalProgress.target + 100} questions for {formatMoney((goalProgress.target + 100) * 100)}, and it keeps growing every time you reach it.
+            </p>
+            <button className="bakery-play-btn" onClick={() => setShowGoalInfo(false)}>Got it!</button>
           </div>
         </div>
       )}

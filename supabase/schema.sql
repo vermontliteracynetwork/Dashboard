@@ -679,6 +679,15 @@ alter table world_objects add column if not exists group_id text;
 -- motion half of the same standing accessibility gap).
 alter table students add column if not exists vehicle_sound_enabled boolean not null default true;
 
+-- Castle Defense's own lifetime question tracker + escalating cash
+-- milestone (types.ts Student comment) — same shape as Bakery Match's
+-- bakery_questions_answered/bakery_milestone_tier/bakery_milestone_count
+-- above, direct teacher instruction: "add the same logic as bakerymatch
+-- in terms of answering X number of questions awards you."
+alter table students add column if not exists castle_defense_questions_answered integer not null default 0;
+alter table students add column if not exists castle_defense_milestone_tier integer not null default 1;
+alter table students add column if not exists castle_defense_milestone_count integer not null default 0;
+
 -- Every non-character, non-emote thing a student can buy: fonts, text
 -- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended
 -- prizes ("10 min free time," "a pet," a piece for a build). Fully
