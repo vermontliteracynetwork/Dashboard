@@ -34,6 +34,7 @@ import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageF
 import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { VehicleSoundController, type VehicleSoundKind } from '../../lib/vehicleAudio';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
@@ -3363,7 +3364,24 @@ export default function TownSquare() {
   // authored any real MC content yet, instead of the earlier silent
   // auto-top-up. A student always gets a real, curriculum-grounded
   // question now, never a broken empty prompt and never a free pass.
-  const pickGasQuestion = () => {
+  const submitGameplayAnswer = useStore((s) => s.submitGameplayAnswer);
+  // A question-set assignment targeting the Gas Pump specifically, or
+  // pooled across every native game — direct teacher spec (see
+  // GameplayModePicker in NewDailyPlanBuilder.tsx). Same pattern as
+  // Bakery Match's own activeGameplayTask.
+  const activeGameplayTask = useMemo(() => {
+    if (!student) return null;
+    return findActiveGameplayTask(
+      { math: rotations[student.id]?.math ?? [], literacy: rotations[student.id]?.literacy ?? [] },
+      { math: progress[student.id]?.math?.completedTaskIds ?? [], literacy: progress[student.id]?.literacy?.completedTaskIds ?? [] },
+      'gasPump',
+    );
+  }, [student, rotations, progress]);
+  const pickGasQuestion = (avoidId?: string): MCQuestion => {
+    if (activeGameplayTask) {
+      const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
+      if (gameplayPick) return gameplayPick;
+    }
     if (gasQuestionPool.length > 0) return gasQuestionPool[Math.floor(Math.random() * gasQuestionPool.length)];
     return generateAutoQuestion();
   };
@@ -3379,6 +3397,13 @@ export default function TownSquare() {
   // this only ever fires on an actually-correct pick, so gasLockoutStreak
   // can only go up or reset-on-success, never drop from a miss.
   const handleGasCorrect = () => {
+    // Feeds the assigned Question Set's own progress/completion,
+    // independent of the gas-gauge mechanics below — a student can be
+    // filling the tank and answering toward an assignment on the same
+    // correct pick, per direct teacher spec.
+    if (activeGameplayTask && gasQuizQuestion && student) {
+      submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, gasQuizQuestion.id, true);
+    }
     if (gasLockout) {
       const streak = gasLockoutStreak + 1;
       if (streak >= 10) {
@@ -3389,7 +3414,7 @@ export default function TownSquare() {
         return;
       }
       setGasLockoutStreak(streak);
-      setGasQuizQuestion(pickGasQuestion());
+      setGasQuizQuestion(pickGasQuestion(gasQuizQuestion?.id));
       return;
     }
     setCarGasDashes((d) => Math.min(10, d + 1));
@@ -4889,7 +4914,7 @@ export default function TownSquare() {
           imageAlt={gasQuizQuestion.imageAlt}
           onCorrectAnswer={handleGasCorrect}
           onExit={handleGasExit}
-          onSkip={() => setGasQuizQuestion(pickGasQuestion())}
+          onSkip={() => setGasQuizQuestion(pickGasQuestion(gasQuizQuestion?.id))}
           ttsSettings={student?.ttsSettings}
         />
       )}

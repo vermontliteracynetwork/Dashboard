@@ -9,6 +9,7 @@ import QuestionScreen from '../../components/QuestionScreen';
 import BakeryTreatWheel from '../../components/BakeryTreatWheel';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { characterDefById } from '../../lib/characterCatalog';
+import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { TILE_ART } from '../../lib/bakeryTiles';
 import {
   createGrid,
@@ -155,7 +156,26 @@ export default function BakeryMatch3() {
   const updateStudent = useStore((s) => s.updateStudent);
   const equipCharacter = useStore((s) => s.equipCharacter);
   const lastCharacterUnlock = useStore((s) => s.lastCharacterUnlock);
+  const rotations = useStore((s) => s.rotations);
+  const progress = useStore((s) => s.progress);
+  const submitGameplayAnswer = useStore((s) => s.submitGameplayAnswer);
   const student = students.find((s) => s.id === currentStudentId);
+
+  // A question-set assignment targeting Bakery Match specifically, or
+  // pooled across every native game — direct teacher spec (see
+  // GameplayModePicker in NewDailyPlanBuilder.tsx). When one is active, it
+  // takes over question sourcing from the student's own free-play pick
+  // below, since completing the assignment is the point of playing right
+  // now. Recomputed on every progress change so it disappears the moment
+  // the target's reached (the checklist reflects completion immediately).
+  const activeGameplayTask = useMemo(() => {
+    if (!student) return null;
+    return findActiveGameplayTask(
+      { math: rotations[student.id]?.math ?? [], literacy: rotations[student.id]?.literacy ?? [] },
+      { math: progress[student.id]?.math?.completedTaskIds ?? [], literacy: progress[student.id]?.literacy?.completedTaskIds ?? [] },
+      'bakery',
+    );
+  }, [student, rotations, progress]);
 
   const usableQuestionSets = useMemo<QuestionSet[]>(
     () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
@@ -222,7 +242,14 @@ export default function BakeryMatch3() {
     }
   }, [lastCharacterUnlock, student?.id]);
 
-  const pickQuestion = (mode: QuestionSourceMode): MCQuestion => {
+  const pickQuestion = (mode: QuestionSourceMode, avoidId?: string): MCQuestion => {
+    // An active gameplay-mode assignment (specific-game or any-game)
+    // always wins over the student's own free-play source pick — the
+    // whole point of it existing is to be answered right now.
+    if (activeGameplayTask) {
+      const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
+      if (gameplayPick) return gameplayPick;
+    }
     const pool =
       mode.mode === 'set'
         ? (questionSets.find((qs) => qs.id === mode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? [])
@@ -379,6 +406,13 @@ export default function BakeryMatch3() {
   // to the main menu).
   const handleChallengeCorrect = () => {
     if (student) {
+      // Feeds the assigned Question Set's own progress/completion, fully
+      // independent of this game's own XP/cash rewards below — a student
+      // can be answering toward an assignment and earning Bakery's usual
+      // rewards on the exact same correct pick, per direct teacher spec.
+      if (activeGameplayTask && challengeQuestion) {
+        submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, challengeQuestion.id, true);
+      }
       recordBakeryQuestionAnswered(student.id);
       // Direct teacher instruction: totals earned do NOT enter the bank
       // until the whole game is completed — track it locally (both the
@@ -391,7 +425,7 @@ export default function BakeryMatch3() {
     const next = gateCorrectCount + 1;
     if (next < QUESTIONS_PER_GATE) {
       setGateCorrectCount(next);
-      setChallengeQuestion(pickQuestion(questionMode));
+      setChallengeQuestion(pickQuestion(questionMode, challengeQuestion?.id));
       return;
     }
     setGateCorrectCount(0);
@@ -696,7 +730,7 @@ export default function BakeryMatch3() {
           imageAlt={challengeQuestion.imageAlt}
           onCorrectAnswer={handleChallengeCorrect}
           onExit={abandonGame}
-          onSkip={() => setChallengeQuestion(pickQuestion(questionMode))}
+          onSkip={() => setChallengeQuestion(pickQuestion(questionMode, challengeQuestion?.id))}
           ttsSettings={student?.ttsSettings}
         />
       )}
