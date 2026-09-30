@@ -2668,9 +2668,13 @@ body.teacher-mode .content-well { border-radius: 10px; }
   padding: 14px 10px 18px;
   overflow: hidden;
 }
-.castle-props { position: absolute; inset: 0; pointer-events: none; }
+.castle-props { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 .castle-prop { position: absolute; opacity: 0.85; }
-.castle-slots { display: flex; justify-content: space-around; gap: 6px; margin-bottom: 14px; position: relative; z-index: 2; }
+/* Tower row sits directly on top of the road it defends — each of the 5
+   slots owns the equal-width zone of road directly below it (real TD
+   fixed-lane zone targeting, see CastleDefense.tsx's ZONE_WIDTH), so the
+   visual stacking itself teaches "this tower covers this stretch." */
+.castle-slots { display: flex; justify-content: space-around; gap: 6px; margin-bottom: 2px; position: relative; z-index: 2; }
 .castle-slot {
   width: 56px;
   height: 64px;
@@ -2682,10 +2686,16 @@ body.teacher-mode .content-well { border-radius: 10px; }
   border-radius: 10px;
   cursor: pointer;
   padding: 4px;
+  transition: transform 0.12s ease-out;
 }
 .castle-slot.filled { border-style: solid; background: rgba(255, 255, 255, 0.55); }
 .castle-slot img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
 .castle-slot-plus { font-size: 1.6rem; font-weight: 800; color: #4a6b3a; opacity: 0.6; }
+/* Tower recoil — the "not optional" firing feedback the tower-defense
+   research calls out. Triggered by a live projectile existing for this
+   slot's zone this instant (CastleDefense.tsx's `justFired`), not a fixed
+   timer, so it's tied to a genuine fire event every time. */
+.castle-slot.firing { transform: scale(0.9) rotate(-4deg); }
 .castle-road {
   position: relative;
   height: 64px;
@@ -2703,9 +2713,83 @@ body.teacher-mode .content-well { border-radius: 10px; }
   height: auto;
   left: 0%;
   transition: left linear;
+  z-index: 3;
 }
 .castle-enemy img { width: 100%; height: auto; display: block; }
-.castle-send-btn { margin-top: 14px; }
+/* Per-enemy HP sliver — cheap, high-value readability: a tower's hits are
+   now visibly chipping away at a specific target, not an abstract stat. */
+.castle-enemy-hp { width: 28px; height: 4px; margin: 2px auto 0; background: rgba(0, 0, 0, 0.25); border-radius: 999px; overflow: hidden; }
+.castle-enemy-hp-fill { height: 100%; background: #e8871f; transition: width 0.15s linear; }
+/* Hit flash — one CSS animation cycle per real hit (CastleDefense.tsx's
+   per-tick `justHit` flag), the impact half of the fire-travel-impact
+   loop the research calls essential. */
+.castle-enemy.hit img { animation: castleHitFlash 0.2s ease-out; }
+@keyframes castleHitFlash {
+  0% { filter: brightness(1); transform: translateX(0); }
+  30% { filter: brightness(2.2) saturate(0) sepia(1) hue-rotate(-50deg) saturate(6); transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+  100% { filter: brightness(1); transform: translateX(0); }
+}
+/* Death — visibly different from leaking, so "defeated" and "got through"
+   never look the same mid-wave (the old v1's core readability bug). */
+.castle-enemy.dead { animation: castleDeath 0.35s ease-in forwards; pointer-events: none; }
+@keyframes castleDeath {
+  0% { transform: translateY(-50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-50%) scale(0.15) rotate(50deg); opacity: 0; }
+}
+/* Leaked — reaches the castle, bumps it, then fades; never a fail state,
+   just a cosmetic "got past" moment matching the gentle banner copy. */
+.castle-enemy.leaked { animation: castleLeak 0.8s ease-in forwards; }
+@keyframes castleLeak {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.castle-projectile {
+  position: absolute;
+  top: -8px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff7d6, #e8871f 70%);
+  box-shadow: 0 0 6px rgba(232, 135, 31, 0.8);
+  z-index: 4;
+  animation: castleProjectileDrop 0.22s ease-in forwards;
+}
+@keyframes castleProjectileDrop {
+  0% { top: -22px; opacity: 0; }
+  20% { opacity: 1; }
+  100% { top: 50%; opacity: 0.3; }
+}
+/* The castle itself — the thing every enemy is actually trying to reach,
+   entirely absent from v1's scene. A plain emoji, not a new sprite asset
+   (the teacher's kit had no dedicated castle icon at this scale) — a
+   flagged real-asset gap, not a design choice. */
+.castle-keep {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 2rem;
+  z-index: 2;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+.castle-keep.shake { animation: castleKeepShake 0.5s ease-in-out; }
+@keyframes castleKeepShake {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  20% { transform: translateY(-50%) translateX(-4px) rotate(-3deg); }
+  40% { transform: translateY(-50%) translateX(4px) rotate(3deg); }
+  60% { transform: translateY(-50%) translateX(-3px) rotate(-2deg); }
+  80% { transform: translateY(-50%) translateX(3px) rotate(2deg); }
+}
+/* Anticipation preview — "where do I spend" is a real decision only when
+   the student can see what's coming before committing gems (research:
+   the genre's central planning/reacting tension). */
+.castle-preview { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
+.castle-preview-label { font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 0.78rem; color: #3d5a2f; opacity: 0.8; }
+.castle-preview-enemy { width: 22px; height: auto; opacity: 0.85; }
+.castle-send-btn { margin-top: 10px; }
 .castle-tower-picker-btn {
   width: 100%;
   display: flex;
@@ -2734,6 +2818,16 @@ body.teacher-mode .content-well { border-radius: 10px; }
   padding: 10px;
   margin-top: 10px;
 }
+/* A real payoff moment on a clean wave clear, not just text — reuses the
+   existing bakeryCoinPop keyframe (Bakery Match's own earnings reveal)
+   so this doesn't invent a second "you earned something" animation
+   language elsewhere in the app. */
+.castle-result-banner.cleared { border-color: #7aa85e; background: #e3f2d8; }
+.castle-result-coins { display: flex; justify-content: center; gap: 8px; font-size: 1.4rem; margin-bottom: 4px; }
+.castle-result-coins span { display: inline-block; animation: bakeryCoinPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+.castle-result-coins span:nth-child(1) { animation-delay: 0s; }
+.castle-result-coins span:nth-child(2) { animation-delay: 0.1s; }
+.castle-result-coins span:nth-child(3) { animation-delay: 0.2s; }
 
 /* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the
    Reading Settings tool) — a standing requirement in
