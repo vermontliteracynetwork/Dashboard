@@ -19,6 +19,7 @@ import Cinema from './routes/student/Cinema';
 import Arcade from './routes/student/Arcade';
 import FarmersMarket from './routes/student/FarmersMarket';
 import BakeryMatch3 from './routes/student/BakeryMatch3';
+import CastleDefense from './routes/student/CastleDefense';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
@@ -144,6 +145,7 @@ export default function App() {
           <Route path="/student/passport" element={<Passport />} />
           <Route path="/student/farmers-market" element={<FarmersMarket />} />
           <Route path="/student/bakery" element={<BakeryMatch3 />} />
+          <Route path="/student/castle-defense" element={<CastleDefense />} />
           <Route path="/student/pet-shelter" element={<PetShelter />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />

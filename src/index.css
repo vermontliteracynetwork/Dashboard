@@ -2612,6 +2612,129 @@ body.teacher-mode .content-well { border-radius: 10px; }
   .bakery-title { font-size: 1.7rem; }
 }
 
+/* ---------------------------------------------------------------------
+   Castle Defense — reuses the Bakery Match shell's structural classes
+   (.bakery-shell, .bakery-menu-card, .bakery-play-btn, .bakery-modal-card,
+   .bakery-topbar, .bakery-exit-btn, .bakery-xp-pill, .bakery-text-link —
+   same full-screen standalone-game-shell shape, iPad-first pill buttons,
+   44px+ touch targets), re-skinned to a stone/forest palette instead of
+   Bakery's cream/caramel one via this one scoping class on the root div,
+   so none of Bakery's own rules needed touching. Only what Castle Defense
+   actually adds new (the road/tower-slot/wave-badge scene) gets its own
+   castle-* classes below.
+--------------------------------------------------------------------- */
+.castle-theme.bakery-shell {
+  background: radial-gradient(ellipse 140% 90% at 50% -10%, #e8f0dc 0%, #4a6b3a 75%);
+}
+.castle-theme .bakery-back-btn { border-color: #3d5a2f; color: #2a3f20; }
+.castle-theme .bakery-gear-btn { border-color: rgba(61, 90, 47, 0.5); }
+.castle-theme .bakery-menu-card { border-color: #5a7a4a; box-shadow: 0 14px 0 rgba(0, 0, 0, 0.08), 0 18px 30px rgba(42, 63, 32, 0.3); }
+.castle-theme .bakery-title { color: #2a3f20; text-shadow: 0 2px 0 #fff, 0 4px 0 rgba(42, 63, 32, 0.25); }
+.castle-theme .bakery-blurb { background: #eef5e4; border-color: #a8c48c; color: #3d5a2f; }
+.castle-theme .bakery-play-btn { background: linear-gradient(180deg, #7aa85e, #4a7a2f); box-shadow: 0 6px 14px rgba(74, 122, 47, 0.35); }
+.castle-theme .bakery-secondary-btn { background: #eef5e4; border-color: #a8c48c; color: #3d5a2f; }
+.castle-theme .bakery-modal-card { border-color: #a8c48c; }
+.castle-theme .bakery-modal-title { color: #3d5a2f; }
+.castle-theme .bakery-text-link { color: #3d5a2f; }
+.castle-theme .bakery-topbar { border-color: #a8c48c; }
+.castle-theme .bakery-exit-btn { background: #eef5e4; border-color: #a8c48c; color: #3d5a2f; }
+.castle-theme .bakery-round-label { color: #3d5a2f; }
+.castle-theme .bakery-xp-pill { border-color: #a8c48c; color: #3d5a2f; }
+.castle-theme .bakery-earnings-card { border-color: #7aa85e; }
+
+/* Gem currency pill (Castle Defense's own in-session spend currency,
+   separate from the real-cash earnings pill it sits beside) */
+.castle-gem-pill { background: #eef5e4; color: #6a8a2a; }
+
+/* Five-wave progress row — ui-badge.png (a real shield sprite from the
+   teacher's own supplied kit) tinted by CSS filter for the two states
+   instead of needing a second sprite, since the kit only ships one
+   plain shield shape at the size we sliced. */
+.castle-badges { display: flex; gap: 6px; justify-content: center; }
+.castle-badge { width: 26px; height: auto; opacity: 0.35; filter: grayscale(1); }
+.castle-badge.cleared { opacity: 1; filter: none; }
+
+/* The scene: a fixed-width "road" strip enemies cross left-to-right
+   during the advance phase, props scattered around it for flavor, and a
+   row of tap-to-build tower slots above it — the fixed-path
+   simplification flagged as deliberate scope (see CastleDefense.tsx's
+   header comment): towers never block or reroute the path, so no real
+   pathfinding is needed, just waypoint interpolation. */
+.castle-scene {
+  position: relative;
+  background: linear-gradient(180deg, #8ab35e 0%, #7aa04e 100%);
+  border: 3px solid #4a6b3a;
+  border-radius: 18px;
+  padding: 14px 10px 18px;
+  overflow: hidden;
+}
+.castle-props { position: absolute; inset: 0; pointer-events: none; }
+.castle-prop { position: absolute; opacity: 0.85; }
+.castle-slots { display: flex; justify-content: space-around; gap: 6px; margin-bottom: 14px; position: relative; z-index: 2; }
+.castle-slot {
+  width: 56px;
+  height: 64px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.35);
+  border: 2px dashed rgba(74, 107, 58, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 4px;
+}
+.castle-slot.filled { border-style: solid; background: rgba(255, 255, 255, 0.55); }
+.castle-slot img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
+.castle-slot-plus { font-size: 1.6rem; font-weight: 800; color: #4a6b3a; opacity: 0.6; }
+.castle-road {
+  position: relative;
+  height: 64px;
+  background: linear-gradient(180deg, #c9a876, #b08e5f);
+  border-radius: 10px;
+  border: 2px solid #8a6f42;
+  z-index: 1;
+  overflow: visible;
+}
+.castle-enemy {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: auto;
+  left: 0%;
+  transition: left linear;
+}
+.castle-enemy img { width: 100%; height: auto; display: block; }
+.castle-send-btn { margin-top: 14px; }
+.castle-tower-picker-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #eef5e4;
+  border: 2px solid #a8c48c;
+  border-radius: 14px;
+  padding: 8px 12px;
+  min-height: 56px;
+  cursor: pointer;
+  text-align: left;
+}
+.castle-tower-picker-btn:disabled { opacity: 0.4; cursor: default; }
+.castle-tower-picker-btn img { width: 36px; height: auto; flex-shrink: 0; }
+.castle-tower-picker-label { font-family: 'Baloo 2', sans-serif; font-weight: 800; color: #3d5a2f; font-size: 0.9rem; }
+.castle-tower-picker-cost { font-size: 0.78rem; opacity: 0.75; }
+.castle-result-banner {
+  text-align: center;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  color: #3d5a2f;
+  background: #eef5e4;
+  border: 2px solid #a8c48c;
+  border-radius: 14px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
 /* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the
    Reading Settings tool) — a standing requirement in
    docs/NATIVE_GAME_STANDARD.md ("available as an option, not forced")

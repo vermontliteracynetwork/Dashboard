@@ -58,6 +58,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/buildings/bank.glb,Bank,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/building-extra.glb,Building Extra,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/cabin-shed.glb,Cabin Shed,buildings,Buildings & Places,smallStructure,keyword,5.235,solid (blocks movement),yes,2000,20.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/castle/castle.gltf,Castle,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/cinema.glb,Cinema,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/concert-hall.glb,Concert Hall,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/hospital.glb,Hospital,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"

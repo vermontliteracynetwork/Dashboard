@@ -452,11 +452,12 @@ export interface TaskReward {
 // Native, question-set-fueled games/assets a gameplay-mode assignment can
 // target — see NATIVE_GAME_STANDARD.md for the wider "native games per
 // building/asset" direction this mirrors. Extend as more ship.
-export type NativeGameId = 'bakery' | 'gasPump';
+export type NativeGameId = 'bakery' | 'gasPump' | 'castleDefense';
 
 export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   bakery: '🧁 Bakery Match',
   gasPump: '⛽ Gas Pump',
+  castleDefense: '🏰 Castle Defense',
 };
 
 // How a question-set-backed activity (Quiz or Native Game type) is
@@ -811,7 +812,8 @@ export type TransactionKind =
   | 'purchase-yard'
   | 'purchase-furniture'
   | 'donation'
-  | 'bakery-match';
+  | 'bakery-match'
+  | 'castle-defense';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from
@@ -855,7 +857,7 @@ export interface Transaction {
 // routing to a hardcoded app screen (see ROLE_VIEWS in townLayout.ts), it
 // opens WorldObject.customRoleUrl in the same internal browser a task's
 // own external link already uses.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'arcade' | 'farmers-market' | 'gas-pump' | 'bakery' | 'closed' | 'custom';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'arcade' | 'farmers-market' | 'gas-pump' | 'bakery' | 'castle' | 'closed' | 'custom';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'
