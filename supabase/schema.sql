@@ -805,6 +805,18 @@ insert into app_settings (id) values ('global') on conflict (id) do nothing;
 alter table activity_library add column if not exists student_title text;
 alter table activity_library add column if not exists student_description text;
 
+-- Question Sets: description (the "brief subtext" shown under a set's
+-- title) and isFocus/focusedAt (starring a set makes it this subject's
+-- current "focus," replacing the old standalone Focus system — see
+-- FocusBanner.tsx/getFocusQuestionSet in lib/focus.ts). cover_image_url
+-- is left in the table (added above, years earlier) but the app no longer
+-- reads or writes it — direct teacher instruction: "remove cover images
+-- entirely" — replaced on the Question Sets cards by a small type-icon
+-- badge instead of a decorative banner.
+alter table question_sets add column if not exists description text;
+alter table question_sets add column if not exists is_focus boolean not null default false;
+alter table question_sets add column if not exists focused_at timestamptz;
+
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference
 -- images, question/drill/step images, cover images) — replaces asking the

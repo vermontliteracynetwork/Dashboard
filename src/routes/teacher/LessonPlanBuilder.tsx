@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import ImageUploadField from '../../components/ImageUploadField';
 import { ActivityLibraryPanel, activityToTaskSnapshot, TaskEditor } from './ActivityLibrary';
 import { parseCSV, downloadCSV } from '../../lib/csv';
 import { rowsToQuizQuestions, rowsToDrillCards, QUIZ_TEMPLATE_ROWS, DRILL_TEMPLATE_ROWS } from '../../lib/importQuestions';
@@ -14,9 +13,7 @@ import { WEEKDAYS, WEEKDAY_SHORT, WEEKDAY_LABELS } from '../../types';
 
 function SetCard({ subject }: { subject: Subject }) {
   const questionSets = useStore((s) => s.questionSets);
-  const updateQuestionSet = useStore((s) => s.updateQuestionSet);
   const deleteQuestionSet = useStore((s) => s.deleteQuestionSet);
-  const [editingCoverId, setEditingCoverId] = useState<string | null>(null);
 
   const sets = questionSets.filter((s) => s.subject === subject);
 
@@ -25,35 +22,27 @@ function SetCard({ subject }: { subject: Subject }) {
   return (
     <div className="set-card-grid">
       {sets.map((set) => (
-        <div className="set-card" key={set.id}>
-          {set.coverImageUrl ? (
-            <img className="set-card-cover" src={set.coverImageUrl} alt="" />
-          ) : (
-            <div className="set-card-cover-fallback">{set.kind === 'quiz' ? '🧠' : '🗂️'}</div>
-          )}
-          <div className="set-card-body">
+        // No cover image — direct teacher instruction: "remove cover
+        // images entirely." A small type-icon badge (quiz vs. drill)
+        // takes its place, same corner treatment QuestionSetsManager uses.
+        <div className="set-card" key={set.id} style={{ position: 'relative' }}>
+          <span
+            className="tag-pill"
+            aria-hidden="true"
+            title={set.kind === 'quiz' ? 'Quiz set' : 'Drill set'}
+            style={{ position: 'absolute', top: 6, left: 6, zIndex: 1, minHeight: 36, minWidth: 36, width: 36, height: 36, padding: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', background: '#fff' }}
+          >
+            {set.kind === 'quiz' ? '🧠' : '🗂️'}
+          </span>
+          <div className="set-card-body" style={{ paddingTop: 34 }}>
             <div className="set-card-title">{set.name}</div>
+            {set.description && <div className="set-card-meta">{set.description}</div>}
             <div className="set-card-meta">
               {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
             </div>
-            {editingCoverId === set.id ? (
-              <div className="stack">
-                <ImageUploadField
-                  label="Cover image"
-                  value={set.coverImageUrl}
-                  onChange={(url) => {
-                    updateQuestionSet(set.id, { coverImageUrl: url || undefined });
-                    if (url) setEditingCoverId(null);
-                  }}
-                />
-                <button className="btn btn-sm" onClick={() => setEditingCoverId(null)}>Done</button>
-              </div>
-            ) : (
-              <div className="set-card-actions">
-                <button className="btn btn-sm" onClick={() => setEditingCoverId(set.id)}>🖼️ Cover</button>
-                <button className="btn btn-sm btn-danger" onClick={() => deleteQuestionSet(set.id)}>Delete</button>
-              </div>
-            )}
+            <div className="set-card-actions">
+              <button className="btn btn-sm btn-danger" onClick={() => deleteQuestionSet(set.id)}>Delete</button>
+            </div>
           </div>
         </div>
       ))}

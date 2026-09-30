@@ -88,6 +88,20 @@ export default function QuestionSetsManager() {
             <div className="set-card-grid">
               {sets.map((set) => (
                 <div key={set.id} className="set-card" style={{ position: 'relative', padding: 0 }}>
+                  {/* No cover image — direct teacher instruction: "remove
+                      cover images entirely." Type (quiz vs. drill) and
+                      starred-as-focus are shown as two small corner badges
+                      instead, same size/position pattern on opposite
+                      corners, so the card leads with real content
+                      (title/description) rather than a decorative banner. */}
+                  <span
+                    className="tag-pill"
+                    aria-hidden="true"
+                    title={set.kind === 'quiz' ? 'Quiz set' : 'Drill set'}
+                    style={{ position: 'absolute', top: 6, left: 6, zIndex: 1, minHeight: 36, minWidth: 36, width: 36, height: 36, padding: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', background: '#fff' }}
+                  >
+                    {set.kind === 'quiz' ? '🧠' : '🗂️'}
+                  </span>
                   {/* Starring is the new Focus system, direct teacher
                       instruction: "allow me to star/favorite certain
                       question sets to become the focus question sets that
@@ -111,16 +125,11 @@ export default function QuestionSetsManager() {
                     style={{ all: 'unset', display: 'contents', cursor: 'pointer' }}
                     onClick={() => navigate(`/teacher/question-sets/${set.id}`)}
                   >
-                    {set.coverImageUrl ? (
-                      <img className="set-card-cover" src={set.coverImageUrl} alt="" />
-                    ) : (
-                      <div className="set-card-cover-fallback">{set.kind === 'quiz' ? '🧠' : '🗂️'}</div>
-                    )}
-                    <div className="set-card-body">
+                    <div className="set-card-body" style={{ paddingTop: 34 }}>
                       <span className="tag-pill">{set.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
                       {set.isFocus && <span className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>⭐ Focus</span>}
                       <div className="set-card-title">{set.name}</div>
-                      {set.description && <div style={{ fontSize: '0.78rem', opacity: 0.75 }}>{set.description}</div>}
+                      {set.description && <div className="set-card-meta">{set.description}</div>}
                       <div className="set-card-meta">
                         {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
                       </div>

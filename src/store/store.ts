@@ -2799,11 +2799,11 @@ export const useStore = create<AppState>()(
         if (!original) return null;
         return get().addQuestionSet({
           name: `${original.name} (copy)`,
+          description: original.description,
           subject: original.subject,
           kind: original.kind,
           questions: original.questions.map((q) => ({ ...q, id: makeId() })),
           cards: original.cards.map((c) => ({ ...c, id: makeId() })),
-          coverImageUrl: original.coverImageUrl,
           tags: original.tags,
         });
       },

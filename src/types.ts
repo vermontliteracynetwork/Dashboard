@@ -547,7 +547,6 @@ export interface QuestionSet {
   kind: 'quiz' | 'drill';
   questions: QuizQuestion[]; // kind === 'quiz'
   cards: DrillCard[]; // kind === 'drill'
-  coverImageUrl?: string; // shown on the library card; falls back to a kind icon when unset
   createdAt: string;
   tags?: string[]; // teacher-authored, for searching/filtering the Question Sets library
   // A starred/favorited set is a "focus" set — direct teacher instruction:

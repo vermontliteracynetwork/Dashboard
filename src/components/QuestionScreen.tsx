@@ -37,9 +37,9 @@ export interface QuestionScreenProps {
   // Optional question image — this app already carries an optional
   // imageUrl/imageAlt on every question (MCQuestion in types.ts), which is
   // what both existing call sites already pass straight through as these
-  // two props. There's no separate "question set" cover image wired to
-  // gameplay questions yet (QuestionSet.coverImageUrl is a library-card
-  // thumbnail only), so this stays a plain per-question image prop.
+  // two props. Question Sets have no cover image at all anymore (direct
+  // teacher instruction, see QuestionSetsManager.tsx), so this stays a
+  // plain per-question image prop.
   imageUrl?: string;
   imageAlt?: string;
   onCorrectAnswer: () => void;
