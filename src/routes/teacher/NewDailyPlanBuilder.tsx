@@ -4,8 +4,9 @@ import { TaskEditor, activityToTaskSnapshot } from './ActivityLibrary';
 import { todayISO, formatDateLong } from '../../lib/dates';
 import { enforceFinalCheckLast } from '../../lib/taskOrder';
 import { gameplayQuestionPool } from '../../lib/gameplayAssignment';
+import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
-import type { Assignment, CompletionMode, NativeGameId, Subject, Task } from '../../types';
+import type { Assignment, CompletionMode, NativeGameId, Subject, Task, TaskRewardType } from '../../types';
 import { NATIVE_GAME_LABELS } from '../../types';
 
 // Direct teacher spec: a question-set-backed activity (Quiz or Native Game
@@ -73,6 +74,98 @@ function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: 
       {(mode === 'specificGame' || mode === 'anyGame') && (task.targetQuestionCount ?? pool.length) > pool.length && (
         <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: 0 }}>
           🔀 That's more than the set has — questions will repeat until the target is reached.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Direct teacher instruction: "rewards should never be assigned during the
+// creation of activities, but rather only when an assignment is being
+// created" — this replaces the Reward section that used to live in
+// ActivityLibrary.tsx's TaskEditor (Create Activity form). Same 4 reward
+// types, same fields, just moved here so the decision happens at the
+// moment an activity actually becomes part of a plan, not when the
+// reusable library activity is authored.
+function RewardPicker({ task, onChange }: { task: Task; onChange: (patch: Partial<Task>) => void }) {
+  const marketplaceItems = useStore((s) => s.marketplaceItems);
+  const rewardType: TaskRewardType = task.reward?.type ?? 'money';
+
+  return (
+    <div className="content-well row-wrap" style={{ gap: 12, alignItems: 'flex-end', background: '#faf9ff' }}>
+      <div>
+        <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>💰 Reward</label>
+        <select
+          value={rewardType}
+          onChange={(e) => {
+            const type = e.target.value as TaskRewardType;
+            onChange({ reward: type === 'money' ? undefined : { type } });
+          }}
+        >
+          <option value="money">💰 Money</option>
+          <option value="marketplaceItem">🎁 Marketplace item</option>
+          <option value="customItem">✨ Special item (not in Marketplace)</option>
+          <option value="spin">🎡 Bonus wheel spin</option>
+        </select>
+      </div>
+
+      {rewardType === 'money' && (
+        <div>
+          <label style={{ fontSize: '0.8rem' }}>Amount</label>
+          <div className="row" style={{ gap: 4 }}>
+            <span>$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.25}
+              style={{ width: 72 }}
+              value={((task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS) / 100).toFixed(2)}
+              onChange={(e) => onChange({ rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
+            />
+          </div>
+        </div>
+      )}
+
+      {rewardType === 'marketplaceItem' && (
+        <div style={{ minWidth: 200 }}>
+          <label style={{ fontSize: '0.8rem' }}>Which item</label>
+          <select
+            value={task.reward?.itemId ?? ''}
+            onChange={(e) => onChange({ reward: { type: 'marketplaceItem', itemId: e.target.value } })}
+          >
+            <option value="">Choose an item…</option>
+            {marketplaceItems.map((it) => (
+              <option key={it.id} value={it.id}>{it.icon.startsWith('http') ? '🖼️' : it.icon} {it.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {rewardType === 'customItem' && (
+        <>
+          <div>
+            <label style={{ fontSize: '0.8rem' }}>Icon</label>
+            <input
+              style={{ width: 56 }}
+              value={task.reward?.customIcon ?? '🎁'}
+              onChange={(e) => onChange({ reward: { type: 'customItem', customName: task.reward?.customName, customIcon: e.target.value } })}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '0.8rem' }}>Prize name</label>
+            <input
+              style={{ width: 180 }}
+              value={task.reward?.customName ?? ''}
+              onChange={(e) => onChange({ reward: { type: 'customItem', customIcon: task.reward?.customIcon, customName: e.target.value } })}
+              placeholder="e.g. Sit by the window"
+            />
+          </div>
+        </>
+      )}
+
+      {rewardType === 'spin' && (
+        <p style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'flex-end', margin: 0 }}>
+          Finishing this activity unlocks a bonus spin on the daily wheel.
         </p>
       )}
     </div>
@@ -352,6 +445,12 @@ export default function NewDailyPlanBuilder({
                     />
                   </div>
                 )}
+                <div style={{ padding: '0 12px 12px' }}>
+                  <RewardPicker
+                    task={t}
+                    onChange={(patch) => setTasks(tasks.map((x) => (x.id === t.id ? { ...x, ...patch } : x)))}
+                  />
+                </div>
               </div>
             ))
           )}

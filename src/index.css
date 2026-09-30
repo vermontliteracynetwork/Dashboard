@@ -854,8 +854,8 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 .widget-icon { font-size: 2.1rem; line-height: 1; }
 .widget-label { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 0.92rem; }
 
-/* Large (2x2) and wide (full-row) size variants so Math/Literacy/
-   Playground read as bigger widgets on the same desktop, not a
+/* Large (2x2) and wide (full-row) size variants so Math/Literacy
+   read as bigger widgets on the same desktop, not a
    separate visual system — direct teacher ask to unify them. */
 .widget-card-lg {
   grid-column: span 2;
@@ -975,7 +975,6 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 .widget-math { background: linear-gradient(160deg, var(--blue), #1e4fa8); }
 .widget-literacy { background: linear-gradient(160deg, var(--pink), #a8306f); }
 .widget-cinema { background: linear-gradient(160deg, #3a2f52, #1a1526); }
-.widget-playground { background: linear-gradient(120deg, var(--purple), var(--pink)); color: white; }
 
 /* ---------- Laptop bezel (Computer screen) ---------- */
 /* Direct teacher ask, reference image: the Computer screen framed as an
@@ -1274,7 +1273,7 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
   font-size: 1.05rem;
 }
 
-/* ---------- Internal in-app browser (Playground links) ---------- */
+/* ---------- Internal in-app browser ---------- */
 .internal-browser-frame {
   width: 100%;
   height: 100%;
@@ -1334,8 +1333,6 @@ button.widget-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none
 .zone-empty-note { padding: 0 14px 14px; opacity: 0.85; color: white; margin: 0; }
 
 .zone-library .zone-header-bar { background: linear-gradient(90deg, var(--blue), var(--purple)); }
-.zone-playground { background: linear-gradient(120deg, var(--purple), var(--pink)); }
-.zone-playground > *:not(.zone-header-btn) { background: transparent; }
 .zone-week .zone-header-bar { background: linear-gradient(90deg, var(--teal), var(--blue)); }
 .zone-backlog .zone-header-bar { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
 .zone-today .zone-header-bar { background: linear-gradient(90deg, var(--success), var(--teal)); }
@@ -1408,7 +1405,6 @@ body.teacher-mode .zone-header-btn {
   border-bottom: 1px solid var(--content-border);
 }
 body.teacher-mode .zone-empty-note { color: var(--ink); opacity: 0.6; }
-body.teacher-mode .zone-playground { background: var(--content-bg); }
 body.teacher-mode .library-card {
   border: 1px solid var(--content-border);
   border-radius: 12px;
@@ -1557,47 +1553,6 @@ body.teacher-mode .content-well { border-radius: 10px; }
 }
 .quiz-theme-fantasy .btn-danger { border-image-source: url('/quiz-themes/fantasy/button-danger.png'); }
 .quiz-theme-fantasy .btn-success { border-image: none; background: var(--success); border: 3px solid var(--ink); color: #fff; }
-
-/* ---------- Break / Playground countdown timer ---------- */
-.break-timer {
-  border: var(--chunk) solid var(--ink);
-  border-radius: var(--radius);
-  box-shadow: 6px 6px 0 var(--ink);
-  background: linear-gradient(120deg, var(--teal), var(--blue));
-  color: white;
-  padding: 16px 24px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.break-timer-label { font-weight: 800; font-size: 1rem; opacity: 0.9; }
-.break-timer-clock {
-  font-family: 'Baloo 2', sans-serif;
-  font-weight: 800;
-  font-size: 3rem;
-  line-height: 1;
-  letter-spacing: 1px;
-  font-variant-numeric: tabular-nums;
-}
-.break-timer-bar {
-  width: 100%;
-  max-width: 320px;
-  height: 10px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.35);
-  overflow: hidden;
-}
-.break-timer-bar > div { height: 100%; background: white; transition: width 1s linear; }
-.break-timer-urgent {
-  background: linear-gradient(120deg, var(--orange), var(--pink));
-  animation: break-timer-pulse 1s ease-in-out infinite;
-}
-@keyframes break-timer-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
 
 /* Coins earned (spin win, task reward, streak bonus, etc.) cascade down
    from the top of the screen, tumbling, then fade out near the bottom. */
@@ -1895,30 +1850,6 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .week-day-name { font-size: 0.78rem; font-weight: 700; opacity: 0.85; flex: 1; }
 .week-day-empty { font-size: 0.78rem; opacity: 0.6; margin: 0; flex: 1; }
 
-/* ---------- Playground strip (horizontal gallery) ---------- */
-.playground-strip {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 0 14px 14px;
-}
-.playground-chip {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  background: white;
-  border: 3px solid var(--ink);
-  border-radius: 16px;
-  padding: 12px;
-  width: 150px;
-  text-align: center;
-  box-shadow: 3px 3px 0 var(--ink);
-}
-.playground-chip img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; }
-.playground-chip-icon { font-size: 2.2rem; }
-
 /* ---------- Small status badges on library cards ---------- */
 .badge-pill {
   font-size: 0.68rem;
@@ -1927,7 +1858,6 @@ body.teacher-mode .content-well { border-radius: 10px; }
   border-radius: 999px;
   color: white;
 }
-.badge-playground { background: var(--pink); }
 .badge-onplan { background: var(--success); }
 .badge-daily { background: var(--yellow); color: var(--ink); }
 

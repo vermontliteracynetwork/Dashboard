@@ -8,7 +8,7 @@ import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
-import type { Subject, Task, TaskType, TaskRewardType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
+import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
 import { TASK_TYPE_LABELS, TASK_TYPE_ICONS } from '../../types';
 
 const MAX_ARTICLES_PER_TASK = 3;
@@ -450,8 +450,14 @@ export function TaskEditor({
 }) {
   const [task, setTask] = useState<Task>(initial);
   const [matchedNotice, setMatchedNotice] = useState<string | null>(null);
-  const marketplaceItems = useStore((s) => s.marketplaceItems);
-  const rewardType: TaskRewardType = task.reward?.type ?? 'money';
+
+  // Reward is decided at assignment time now, not here — direct teacher
+  // instruction: "rewards should never be assigned during the creation of
+  // activities, but rather only when an assignment is being created." See
+  // RewardPicker in NewDailyPlanBuilder.tsx, the per-task control shown
+  // once an activity is actually on a plan. Task.reward/rewardCents still
+  // exist and are still what completeTask reads — this form just no
+  // longer offers a way to set them.
 
   // Only a student-facing title/description live in More options now —
   // direct teacher instruction removed cover image, reference link,
@@ -522,6 +528,7 @@ export function TaskEditor({
             subject={subject}
             questions={task.quiz?.questions ?? []}
             onChange={(questions) => setTask({ ...task, quiz: { ...task.quiz, questions } })}
+            simplified={task.type === 'quiz'}
           />
           {/* Shuffle question order and shuffle multiple-choice answer
               order are the fixed, silent default now (direct teacher
@@ -768,84 +775,6 @@ export function TaskEditor({
         </div>
       )}
 
-      <hr className="divider" />
-      <div className="row-wrap" style={{ alignItems: 'flex-end' }}>
-        <div>
-          <label>💰 Reward</label>
-          <select
-            value={rewardType}
-            onChange={(e) => {
-              const type = e.target.value as TaskRewardType;
-              setTask({ ...task, reward: type === 'money' ? undefined : { type } });
-            }}
-          >
-            <option value="money">💰 Money</option>
-            <option value="marketplaceItem">🎁 Marketplace item</option>
-            <option value="customItem">✨ Special item (not in Marketplace)</option>
-            <option value="spin">🎡 Bonus wheel spin</option>
-          </select>
-        </div>
-
-        {rewardType === 'money' && (
-          <div>
-            <label>Amount</label>
-            <div className="row" style={{ gap: 4 }}>
-              <span>$</span>
-              <input
-                type="number"
-                min={0}
-                step={0.25}
-                style={{ width: 72 }}
-                value={((task.rewardCents ?? DEFAULT_TASK_REWARD_CENTS) / 100).toFixed(2)}
-                onChange={(e) => setTask({ ...task, rewardCents: Math.round(Math.max(0, parseFloat(e.target.value) || 0) * 100) })}
-              />
-            </div>
-          </div>
-        )}
-
-        {rewardType === 'marketplaceItem' && (
-          <div style={{ minWidth: 200 }}>
-            <label>Which item</label>
-            <select
-              value={task.reward?.itemId ?? ''}
-              onChange={(e) => setTask({ ...task, reward: { type: 'marketplaceItem', itemId: e.target.value } })}
-            >
-              <option value="">Choose an item…</option>
-              {marketplaceItems.map((it) => (
-                <option key={it.id} value={it.id}>{it.icon.startsWith('http') ? '🖼️' : it.icon} {it.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {rewardType === 'customItem' && (
-          <>
-            <div>
-              <label>Icon</label>
-              <input
-                style={{ width: 56 }}
-                value={task.reward?.customIcon ?? '🎁'}
-                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customName: task.reward?.customName, customIcon: e.target.value } })}
-              />
-            </div>
-            <div>
-              <label>Prize name</label>
-              <input
-                style={{ width: 180 }}
-                value={task.reward?.customName ?? ''}
-                onChange={(e) => setTask({ ...task, reward: { type: 'customItem', customIcon: task.reward?.customIcon, customName: e.target.value } })}
-                placeholder="e.g. Sit by the window"
-              />
-            </div>
-          </>
-        )}
-
-        {rewardType === 'spin' && (
-          <p style={{ fontSize: '0.78rem', opacity: 0.7, alignSelf: 'flex-end', margin: 0 }}>
-            Finishing this activity unlocks a bonus spin on the daily wheel.
-          </p>
-        )}
-      </div>
 
       <details className="task-editor-more" open={showMore} onToggle={(e) => setShowMore((e.target as HTMLDetailsElement).open)}>
         <summary>More options — student-facing title &amp; description</summary>
@@ -913,44 +842,9 @@ export function TaskEditor({
   );
 }
 
-export function PlaygroundPool() {
-  const [open, setOpen] = useState(true);
-  const activityLibrary = useStore((s) => s.activityLibrary);
-  const updateLibraryActivity = useStore((s) => s.updateLibraryActivity);
-
-  const entries = activityLibrary.filter((a) => a.inPlayground);
-
-  return (
-    <div className="zone zone-playground stack">
-      <button className="zone-header-btn" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} Playground Pool ({entries.length}) — shared across all students
-      </button>
-      {open && (
-        entries.length === 0 ? (
-          <p className="zone-empty-note">Nothing here yet. Open a card's Edit and check "Keep this in the shared Playground pool."</p>
-        ) : (
-          <div className="playground-strip">
-            {entries.map((a) => (
-              <div key={a.id} className="playground-chip">
-                <span className="playground-chip-icon">{a.icon}</span>
-                <strong>{a.title}</strong>
-                <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-                <button className="btn btn-sm btn-danger" onClick={() => updateLibraryActivity(a.id, { inPlayground: false })}>
-                  ✕ Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
 // Just the "make a brand-new activity" form — its own standalone, full-width section.
-// When `subject` is omitted (the Playground manager, which covers both
-// subjects at once), a small inline picker lets the teacher choose it per
-// activity instead of the whole page being locked to one subject.
+// When `subject` is omitted, a small inline picker lets the teacher choose
+// it per activity instead of the whole page being locked to one subject.
 export function CreateActivityForm({ subject }: { subject?: Subject }) {
   const activityLibrary = useStore((s) => s.activityLibrary);
   const addLibraryActivity = useStore((s) => s.addLibraryActivity);
@@ -987,7 +881,7 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
               matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
               tagsSlot={<TagsEditor tags={tags} onChange={setTags} suggestions={allTags} />}
               onSave={(t) => {
-                addLibraryActivity({ ...t, subject: effectiveSubject, inPlayground: false, tags });
+                addLibraryActivity({ ...t, subject: effectiveSubject, tags });
                 setTags([]);
                 setCreating(false);
               }}
@@ -1004,9 +898,9 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
 }
 
 // The searchable grid of existing activities — browse, edit, delete,
-// toggle Playground/daily, and add to any student(s)' plan (or, when
-// onAddActivity is given, to the in-progress plan builder as well — that's
-// the default/top choice there, students are the secondary option below it).
+// toggle daily, and add to any student(s)' plan (or, when onAddActivity is
+// given, to the in-progress plan builder as well — that's the default/top
+// choice there, students are the secondary option below it).
 export function ActivityLibraryBrowse({
   subject,
   tasks,
@@ -1014,7 +908,7 @@ export function ActivityLibraryBrowse({
   onAddActivity,
   compact,
 }: {
-  subject?: Subject; // omit to browse every subject at once (the Playground manager)
+  subject?: Subject; // omit to browse every subject at once
   tasks?: Task[];
   defaultStudentId?: string;
   onAddActivity?: (activityId: string) => void;
@@ -1028,7 +922,6 @@ export function ActivityLibraryBrowse({
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTags, setEditingTags] = useState<string[]>([]);
-  const [editingInPlayground, setEditingInPlayground] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
   const [activeTypeFilters, setActiveTypeFilters] = useState<TaskType[]>([]);
@@ -1059,8 +952,7 @@ export function ActivityLibraryBrowse({
       <div className="zone-header-bar">Activity Library — build it once, use it everywhere</div>
       <div style={{ padding: 14 }} className="stack">
         <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-          Tap "Add" to send a card into a plan (or drag it, on a larger screen). ⭐ marks daily activities,
-          🎪 marks ones in the shared Playground — both are set from Edit.
+          Tap "Add" to send a card into a plan (or drag it, on a larger screen). ⭐ marks daily activities, set from Edit.
         </p>
         <input
           placeholder={subject ? "🔍 Search this subject's activities…" : '🔍 Search activities…'}
@@ -1116,17 +1008,13 @@ export function ActivityLibraryBrowse({
               <strong>Editing "{editingActivity.title || '(untitled)'}"</strong>
               <button className="btn btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
             </div>
-            <label className="row" style={{ gap: 6 }}>
-              <input type="checkbox" checked={editingInPlayground} onChange={(e) => setEditingInPlayground(e.target.checked)} />
-              🎪 Keep this in the shared Playground pool
-            </label>
             <TaskEditor
               initial={editingActivity}
               subject={editingActivity.subject}
               matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
               tagsSlot={<TagsEditor tags={editingTags} onChange={setEditingTags} suggestions={allTags} />}
               onSave={(t) => {
-                updateLibraryActivity(editingActivity.id, { ...t, tags: editingTags, inPlayground: editingInPlayground });
+                updateLibraryActivity(editingActivity.id, { ...t, tags: editingTags });
                 setEditingId(null);
               }}
               onCancel={() => setEditingId(null)}
@@ -1158,7 +1046,6 @@ export function ActivityLibraryBrowse({
                         <div className="row-wrap" style={{ gap: 4 }}>
                           {!subject && <span className="tag-pill">{a.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>}
                           {a.isDaily && <span className="badge-pill badge-daily">⭐ Daily</span>}
-                          {a.inPlayground && <span className="badge-pill badge-playground">🎪 Playground</span>}
                           {onTodaysPlan && <span className="badge-pill badge-onplan">📌 On today's plan</span>}
                         </div>
                         <div className="set-card-title">{a.title || '(untitled)'}</div>
@@ -1198,13 +1085,12 @@ export function ActivityLibraryBrowse({
                           </div>
                         ) : (
                           <div className={compact ? 'library-card-actions-compact' : 'row-wrap'}>
-                            {/* Daily/Playground status shows as the badges
-                                above already — editing them lives in Edit
-                                now, not as duplicate toggle buttons here,
-                                so a card shows at most 3 actions instead of 5. */}
+                            {/* Daily status shows as the badge above
+                                already — editing it lives in Edit now, not
+                                as a duplicate toggle button here. */}
                             <button
                               className="btn btn-sm"
-                              onClick={() => { setEditingId(a.id); setEditingTags(a.tags ?? []); setEditingInPlayground(a.inPlayground ?? false); }}
+                              onClick={() => { setEditingId(a.id); setEditingTags(a.tags ?? []); }}
                               title="Edit"
                             >
                               {compact ? '✏️' : 'Edit'}

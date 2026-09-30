@@ -3308,8 +3308,8 @@ export default function TownSquare() {
   // Refuel-by-questions (direct teacher instruction, DEVELOPMENT_PLAN.md
   // #139's previously-parked half, then fully spec'd out in a follow-up
   // instruction): pulls from the teacher's own Question Sets library —
-  // same real assignment content Playground draws from — rather than
-  // inventing throwaway arithmetic. Only plain multiple-choice questions
+  // same real assignment content the rest of the app draws from — rather
+  // than inventing throwaway arithmetic. Only plain multiple-choice questions
   // are used here (a matching/fill-in board doesn't fit this small a
   // prompt). "The gas meter should only increase when questions are
   // answered at the gas pump... each question answered correctly

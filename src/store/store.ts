@@ -6,7 +6,7 @@ import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById, emotePriceFor } from '../lib/emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
 import { avatarById, avatarPriceFor } from '../lib/avatarCatalog';
-import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, PLAYGROUND_REWARD_CENTS, formatMoney } from '../lib/money';
+import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
@@ -169,12 +169,6 @@ import {
   pushMusicTrack,
   deleteMusicTrackRemote,
   rowToMusicTrack,
-  pushGalleryItem,
-  deleteGalleryItemRemote,
-  rowToGalleryItem,
-  pushSillyQuiz,
-  deleteSillyQuizRemote,
-  rowToSillyQuiz,
   pushFarmerMarketOffer,
   deleteFarmerMarketOfferRemote,
   acceptFarmerMarketOfferRemote,
@@ -206,8 +200,6 @@ import type {
   CinemaVideo,
   ScratchGame,
   MusicTrack,
-  GalleryItem,
-  SillyQuiz,
   FarmerMarketOffer,
   ActivityLibraryItem,
   PlanTemplate,
@@ -325,8 +317,6 @@ interface AppState {
   // reload starts silent again, on purpose, same as any other session-only
   // UI state in this app.
   playingTrackId: string | null;
-  galleryItems: GalleryItem[]; // Playground Gallery images — teacher-curated, unlimited browse, no mastery tracking
-  sillyQuizzes: SillyQuiz[]; // Playground silly personality quizzes — teacher-authored, results private/client-side only, see SillyQuiz in types.ts
   farmerMarketOffers: FarmerMarketOffer[]; // student-to-student barter offers — async/turn-based, see FarmerMarketOffer in types.ts
   layoutOverrides: Record<string, LayoutOverride>; // fixed-layout-item id (a building/stall/road tile/prop from townLayout.ts) -> teacher's Build Mode edit; everything in town is editable, not just objects placed after the tool existed
   groundTexture: string | null; // Build Mode's paint bucket — a path under /world/textures/, replacing the default grass; null = default
@@ -523,13 +513,6 @@ interface AppState {
   getActiveTask: (studentId: string, subject: Subject) => Task | null;
   completeTask: (studentId: string, subject: Subject, taskId: string) => void;
   uncompleteTask: (studentId: string, subject: Subject, taskId: string) => void;
-  // Direct teacher request: a question set finished in the Playground
-  // (Free Play, or any Activity Library entry flagged for the Playground)
-  // should pay into the bank register the same way a real assignment
-  // does — it just doesn't touch rotation/checklist progress the way
-  // completeTask does, since Playground content was deliberately built as
-  // ungraded/no-checkbox.
-  completePlaygroundActivity: (studentId: string, task: Task) => void;
   markOffscreenDone: (studentId: string, subject: Subject, task: Task, photoUrl?: string) => void;
   recordToolUsage: (studentId: string, tool: ToolKey) => void;
 
@@ -598,12 +581,6 @@ interface AppState {
   updateMusicTrack: (id: string, patch: Partial<MusicTrack>) => void;
   deleteMusicTrack: (id: string) => void;
   setPlayingTrackId: (id: string | null) => void;
-  addGalleryItem: (item: Omit<GalleryItem, 'id' | 'createdAt'>) => string;
-  updateGalleryItem: (id: string, patch: Partial<GalleryItem>) => void;
-  deleteGalleryItem: (id: string) => void;
-  addSillyQuiz: (quiz: Omit<SillyQuiz, 'id' | 'createdAt'>) => string;
-  updateSillyQuiz: (id: string, patch: Partial<SillyQuiz>) => void;
-  deleteSillyQuiz: (id: string) => void;
 
   // Farmer's Market — async student-to-student barter, see FarmerMarketOffer in types.ts
   postFarmerMarketOffer: (studentId: string, offeredItemId: string, wantsItemId: string) => string;
@@ -611,7 +588,7 @@ interface AppState {
   withdrawFarmerMarketOffer: (id: string) => void;
   acceptFarmerMarketOffer: (id: string, acceptingStudentId: string, acceptingPetId?: string) => Promise<{ ok: boolean; reason?: string }>;
 
-  // activity library: create once, reuse everywhere (drag into a plan, flag for the Playground)
+  // activity library: create once, reuse everywhere (drag into a plan)
   addLibraryActivity: (activity: Omit<ActivityLibraryItem, 'id' | 'createdAt'>) => string;
   updateLibraryActivity: (id: string, patch: Partial<ActivityLibraryItem>) => void;
   deleteLibraryActivity: (id: string) => void;
@@ -769,8 +746,6 @@ export const useStore = create<AppState>()(
       scratchGames: [],
       musicTracks: [],
       playingTrackId: null,
-      galleryItems: [],
-      sillyQuizzes: [],
       farmerMarketOffers: [],
       layoutOverrides: {},
       groundTexture: null,
@@ -945,8 +920,6 @@ export const useStore = create<AppState>()(
           onCinemaVideo: (e, n, o) => set((s) => ({ cinemaVideos: applyArrayRow(s.cinemaVideos, e, rowToCinemaVideo, n, o) })),
           onScratchGame: (e, n, o) => set((s) => ({ scratchGames: applyArrayRow(s.scratchGames, e, rowToScratchGame, n, o) })),
           onMusicTrack: (e, n, o) => set((s) => ({ musicTracks: applyArrayRow(s.musicTracks, e, rowToMusicTrack, n, o) })),
-          onGalleryItem: (e, n, o) => set((s) => ({ galleryItems: applyArrayRow(s.galleryItems, e, rowToGalleryItem, n, o) })),
-          onSillyQuiz: (e, n, o) => set((s) => ({ sillyQuizzes: applyArrayRow(s.sillyQuizzes, e, rowToSillyQuiz, n, o) })),
           onFarmerMarketOffer: (e, n, o) => set((s) => ({ farmerMarketOffers: applyArrayRow(s.farmerMarketOffers, e, rowToFarmerMarketOffer, n, o) })),
           onFocus: (e, n, o) => set((s) => ({ focuses: applyArrayRow(s.focuses, e, rowToFocus, n, o) })),
           onAppSettings: (e, n) => {
@@ -2312,30 +2285,6 @@ export const useStore = create<AppState>()(
         get().evaluateBadgeRules(studentId);
       },
 
-      // Direct teacher request: Playground/Free Play question sets should
-      // pay into the bank register on completion, same as a real
-      // assignment — mirrors completeTask's own reward branch exactly
-      // (money/marketplaceItem/customItem/spin) but deliberately skips
-      // every rotation/progress/streak/badge/pet-training side effect
-      // completeTask has, since Playground content was built ungraded on
-      // purpose (no to-do checkbox, not tied to a specific day's plan).
-      completePlaygroundActivity: (studentId, task) => {
-        const taskLabel = task.title || 'Playground activity completed';
-        const reward = task.reward ?? { type: 'money' as const };
-        if (reward.type === 'marketplaceItem' && reward.itemId) {
-          const item = grantFreeMarketplaceItem(get, studentId, reward.itemId);
-          get().recordTransaction(studentId, 0, item ? `${taskLabel}: won ${item.name}!` : taskLabel, item?.icon ?? task.icon ?? '🎁', 'task');
-        } else if (reward.type === 'customItem') {
-          get().recordTransaction(studentId, 0, `${taskLabel}: won ${reward.customName || 'a prize'}!`, reward.customIcon || '🎁', 'task');
-        } else if (reward.type === 'spin') {
-          get().updateStudent(studentId, { bonusSpinAvailable: true });
-          get().recordTransaction(studentId, 0, `${taskLabel}: bonus spin!`, '🎡', 'task');
-        } else {
-          const rewardCents = task.rewardCents ?? PLAYGROUND_REWARD_CENTS;
-          get().recordTransaction(studentId, rewardCents, taskLabel, task.icon ?? '🎮', 'task');
-        }
-      },
-
       // A student unchecking a mistaken tap — just removes it from today's
       // completed list (and un-completes the subject if that was the task
       // that finished it). Badges, streaks, and counters already earned
@@ -2931,44 +2880,6 @@ export const useStore = create<AppState>()(
       },
 
       setPlayingTrackId: (id) => set({ playingTrackId: id }),
-
-      addGalleryItem: (item) => {
-        const id = makeId();
-        const full: GalleryItem = { ...item, id, createdAt: new Date().toISOString() };
-        set((s) => ({ galleryItems: [full, ...s.galleryItems] }));
-        pushGalleryItem(full);
-        return id;
-      },
-
-      updateGalleryItem: (id, patch) => {
-        set((s) => ({ galleryItems: s.galleryItems.map((g) => (g.id === id ? { ...g, ...patch } : g)) }));
-        const updated = get().galleryItems.find((g) => g.id === id);
-        if (updated) pushGalleryItem(updated);
-      },
-
-      deleteGalleryItem: (id) => {
-        set((s) => ({ galleryItems: s.galleryItems.filter((g) => g.id !== id) }));
-        deleteGalleryItemRemote(id);
-      },
-
-      addSillyQuiz: (quiz) => {
-        const id = makeId();
-        const full: SillyQuiz = { ...quiz, id, createdAt: new Date().toISOString() };
-        set((s) => ({ sillyQuizzes: [full, ...s.sillyQuizzes] }));
-        pushSillyQuiz(full);
-        return id;
-      },
-
-      updateSillyQuiz: (id, patch) => {
-        set((s) => ({ sillyQuizzes: s.sillyQuizzes.map((q) => (q.id === id ? { ...q, ...patch } : q)) }));
-        const updated = get().sillyQuizzes.find((q) => q.id === id);
-        if (updated) pushSillyQuiz(updated);
-      },
-
-      deleteSillyQuiz: (id) => {
-        set((s) => ({ sillyQuizzes: s.sillyQuizzes.filter((q) => q.id !== id) }));
-        deleteSillyQuizRemote(id);
-      },
 
       postFarmerMarketOffer: (studentId, offeredItemId, wantsItemId) => {
         const id = makeId();

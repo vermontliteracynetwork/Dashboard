@@ -5,9 +5,6 @@ import Onboarding from '../../components/Onboarding';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import { todayISO } from '../../lib/dates';
-import { getPlaygroundAccess } from '../../lib/playgroundAccess';
-import BreakTimer from '../../components/BreakTimer';
-import { playCalmChime } from '../../lib/chime';
 import { AVATAR_CATALOG } from '../../store/badges';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
@@ -22,8 +19,8 @@ import { Icon } from '../../components/Icon';
 // A live analog clock face for the Computer's widget desktop — direct
 // teacher ask ("an analog clock... visual as a widget"). Takes the current
 // time as a prop rather than running its own interval so it stays in sync
-// with the single 1s tick StudentHome already runs for the Playground
-// countdown, instead of a second independent timer.
+// with the single 1s tick StudentHome already runs, instead of a second
+// independent timer.
 function AnalogClock({ now }: { now: Date }) {
   const s = now.getSeconds() * 6;
   const m = now.getMinutes() * 6 + now.getSeconds() * 0.1;
@@ -55,11 +52,9 @@ export default function StudentHome() {
   const logoutStudent = useStore((s) => s.logoutStudent);
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
-  const activityLibrary = useStore((s) => s.activityLibrary);
   const hydrated = useStore((s) => s.hydrated);
   const applyTodaysScheduleIfNeeded = useStore((s) => s.applyTodaysScheduleIfNeeded);
   const onboardedIds = useStore((s) => s.onboardedIds);
-  const breakState = useStore((s) => (currentStudentId ? s.getStudentBreakState(currentStudentId) : null));
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -84,7 +79,7 @@ export default function StudentHome() {
     if (hydrated && currentStudentId) applyTodaysScheduleIfNeeded(currentStudentId);
   }, [hydrated, currentStudentId, applyTodaysScheduleIfNeeded]);
 
-  // Keeps the Playground unlock countdown (if any) accurate without a hard refresh.
+  // Ticks once a second so the analog clock widget stays live.
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
@@ -119,9 +114,6 @@ export default function StudentHome() {
   const bothDone = mathDone && litDone && (mathTasks.length > 0 || litTasks.length > 0);
 
   const earnedBadges = badges.filter((b) => student.badgeIds.includes(b.id));
-
-  const hasPlaygroundItems = activityLibrary.some((a) => a.inPlayground);
-  const access = getPlaygroundAccess(mathDone, litDone, student, breakState);
 
   // Real running-balance points for the Bank widget's sparkline — same
   // per-day-total derivation PiggyBankCharts.tsx uses for its full chart,
@@ -440,26 +432,6 @@ export default function StudentHome() {
           <span className="widget-icon">🌳</span>
           <span className="widget-label">Town Square</span>
         </button>
-        {hasPlaygroundItems && access.unlocked && (
-          <div className="widget-card widget-card-wide widget-playground">
-            <p className="widget-label" style={{ margin: 0 }}>🎉 The Playground is unlocked!</p>
-            {!access.unlimited && access.remainingMs !== null && (
-              <BreakTimer
-                remainingMs={access.remainingMs}
-                totalMinutes={access.totalMinutes}
-                label={access.source === 'granted' ? 'Break time left' : 'Playground time left'}
-                onExpire={playCalmChime}
-              />
-            )}
-            <button
-              className="btn btn-lg pulse-cta"
-              style={{ background: 'white', color: 'var(--purple-dark)' }}
-              onClick={() => navigate('/student/playground/view')}
-            >
-              🎪 Go to the Playground
-            </button>
-          </div>
-        )}
       </div>
 
       {bothDone && (
