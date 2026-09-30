@@ -38,16 +38,28 @@ import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplay
 //    to upgrade it (tier 2, then 3). Towers are never removed or replaced,
 //    only upgraded — "upgrade-or-place defenders" per the standing dev-plan
 //    note, never both on the same slot.
-//  - Advance phase: the wave's enemies cross the road over a fixed
-//    duration. Whether the wave clears or some enemies "reach the castle"
-//    is a real, deterministic outcome of the towers actually placed
-//    (total DPS vs total enemy HP this wave) — not random, and never a
-//    game-over: per Claudia's explicit call for this population, there is
-//    NO fail state. An uncleared wave is a cosmetic-only soft hit (a
-//    gentle banner), same two-tier-penalty spirit as the Legacy section
-//    but collapsed to only the cheap, instant-recovery tier — no HP bar
-//    exists in the teacher's own mockup either, so this matches the art's
-//    own design, not an invented softening of it.
+//  - Advance phase, REBUILT as a real tick-based simulation (2026-09-30,
+//    direct teacher feedback: "nowhere near the quality of gameplay
+//    needed... why is it so poor quality?" — Claudia's follow-up review
+//    diagnosed the original v1's root problem: it precomputed the whole
+//    wave's outcome instantly (total DPS vs total HP) and only animated
+//    a fixed endpoint, so there was never a real moment where a tower and
+//    an enemy occupied the same place at the same time — no projectile,
+//    no firing, nothing to actually watch. Now: a setInterval tick (every
+//    TICK_MS) advances each enemy's own progress along the road, and each
+//    placed tower independently targets and fires at whatever enemy is
+//    currently in its own zone (the road is divided into TOWER_SLOTS
+//    equal zones, one per slot, the same targeting-by-zone model real TD
+//    games use for a fixed-lane layout). Whether the wave clears is the
+//    genuine emergent result of that loop — still never random (towers
+//    placed/upgraded is the only lever), but no longer a single lump
+//    calculation. Per Claudia's explicit call for this population, there
+//    is still NO fail state: a leaked enemy reaches the castle for a
+//    cosmetic-only soft hit (a shake + gentle banner), same two-tier-
+//    penalty spirit as the Legacy section but collapsed to only the
+//    cheap, instant-recovery tier — no HP bar exists in the teacher's own
+//    mockup either, so this matches the art's own design, not an
+//    invented softening of it.
 //  - Fixed, pre-set path (no real pathfinding) and a single currency/
 //    green palette for v1 — both explicit, flagged scope cuts from
 //    Claudia's review, not oversights. The kit's 3 other tileset palettes
@@ -71,7 +83,14 @@ const TOTAL_WAVES = 5;
 const QUESTIONS_PER_GATE = 3;
 const GEMS_PER_CORRECT = 2;
 const REWARD_PER_QUESTION_CENTS = 50;
-const ADVANCE_DURATION_MS = 6000;
+// Real-time combat simulation constants (Claudia's redesign spec) — a
+// live tick loop, not a single precomputed outcome.
+const TICK_MS = 150; // simulation step; also the CSS transition duration on .castle-enemy, so position updates read as continuous motion, not jumps
+const SPAWN_STAGGER_MS = 700; // enemies enter the road one at a time, not as a single clump
+const TRAVEL_MS = 5500; // time a single enemy takes to cross the whole road once spawned
+const TOWER_FIRE_COOLDOWN_MS = 1000; // every tower fires at most once per second; its tier's dps is literally its damage-per-hit at this fixed rate
+const PROJECTILE_TRAVEL_MS = 220;
+const RESULT_BANNER_MS = 2200;
 
 // Castle Defense's escalating cash-milestone goal — same shared shape as
 // BakeryMatch3.tsx's own advanceMilestone: reach `tier * 100` correct
@@ -127,31 +146,31 @@ const WAVE_COMPOSITION: EnemyType[][] = [
 const TOWER_SLOTS = 5;
 
 type SlotState = { type: TowerType; tier: 1 | 2 | 3 } | null;
+const ZONE_WIDTH = 100 / TOWER_SLOTS; // each tower slot "owns" an equal stretch of the road, real TD fixed-lane zone targeting
 
-interface RunningEnemy {
+// A live combat participant — advanced every tick, never precomputed to a
+// final state up front. 'pending' = not yet spawned, 'active' = on the
+// road and targetable, 'dead' = defeated in place (death animation),
+// 'leaked' = reached the castle (cosmetic soft hit, never a fail state).
+interface SimEnemy {
   key: string;
   type: EnemyType;
-  leaked: boolean; // true if it wasn't defeated in time — cosmetic soft hit, never a fail state
+  hp: number;
+  maxHp: number;
+  progress: number; // 0-100, position along the road
+  spawnAt: number; // ms after wave start this enemy enters the road
+  status: 'pending' | 'active' | 'dead' | 'leaked';
+  justHit: boolean; // true for exactly the tick it took damage — drives the hit-flash CSS class
 }
 
-function pickWaveOutcome(wave: number, slots: SlotState[]): RunningEnemy[] {
-  const composition = WAVE_COMPOSITION[Math.min(wave - 1, WAVE_COMPOSITION.length - 1)];
-  const totalDps = slots.reduce((sum, s) => (s ? sum + TOWER_META[s.type].dps[s.tier - 1] : sum), 0);
-  let damageBudget = totalDps * (ADVANCE_DURATION_MS / 1000);
-  // Defeat the weakest enemies first with whatever damage the placed
-  // towers can produce over the wave's duration — a real, legible
-  // consequence of the student's own tower choices, not randomness.
-  const withHp = composition
-    .map((type, i) => ({ type, hp: ENEMY_META[type].hp, key: `${type}-${i}` }))
-    .sort((a, b) => a.hp - b.hp);
-  const defeatedKeys = new Set<string>();
-  for (const e of withHp) {
-    if (damageBudget >= e.hp) {
-      damageBudget -= e.hp;
-      defeatedKeys.add(e.key);
-    }
-  }
-  return composition.map((type, i) => ({ key: `${type}-${i}`, type, leaked: !defeatedKeys.has(`${type}-${i}`) }));
+// A single tower-shot's visible travel from its zone to whatever it hit
+// this tick — a plain positioned div (see castle-projectile CSS), not a
+// sprite, exactly the "not optional" minimum the tower-defense research
+// calls for (a recoiling tower + a traveling shot + an impact flash).
+interface Projectile {
+  id: string;
+  zoneX: number; // percent, the firing tower's zone center
+  enemyX: number; // percent, the target's position at the moment of firing
 }
 
 function playSfx(name: 'match' | 'combo' | 'fail' | 'pop') {
@@ -204,18 +223,28 @@ export default function CastleDefense() {
   const [gateCorrectCount, setGateCorrectCount] = useState(0);
   const [challengeQuestion, setChallengeQuestion] = useState<MCQuestion | null>(null);
 
-  const [runningEnemies, setRunningEnemies] = useState<RunningEnemy[]>([]);
-  const [enemiesAdvanced, setEnemiesAdvanced] = useState(false);
+  const [enemiesView, setEnemiesView] = useState<SimEnemy[]>([]);
+  const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [waveResult, setWaveResult] = useState<string | null>(null);
+  const [waveCleared, setWaveCleared] = useState(false);
+  const [castleShake, setCastleShake] = useState(false);
 
   const [sessionEarningsCents, setSessionEarningsCents] = useState(0);
   const [showEarnings, setShowEarnings] = useState(false);
   const [showGoalInfo, setShowGoalInfo] = useState(false);
   const sessionQuestionsRef = useRef(0);
   const advanceTimerRef = useRef<number | null>(null);
+  // Simulation-only refs: mutated imperatively inside the tick loop so a
+  // fast-ticking interval never fights React's own batching — enemiesRef
+  // is the live source of truth, enemiesView is just what gets rendered.
+  const enemiesRef = useRef<SimEnemy[]>([]);
+  const towerCooldownRef = useRef<number[]>([]);
+  const waveStartRef = useRef(0);
+  const simIntervalRef = useRef<number | null>(null);
 
   useEffect(() => () => {
     if (advanceTimerRef.current) window.clearTimeout(advanceTimerRef.current);
+    if (simIntervalRef.current) window.clearInterval(simIntervalRef.current);
   }, []);
 
   // Live header display: this session's not-yet-settled correct answers
@@ -250,9 +279,11 @@ export default function CastleDefense() {
     setGateCorrectCount(0);
     setSessionEarningsCents(0);
     sessionQuestionsRef.current = 0;
-    setRunningEnemies([]);
-    setEnemiesAdvanced(false);
+    enemiesRef.current = [];
+    setEnemiesView([]);
+    setProjectiles([]);
     setWaveResult(null);
+    setWaveCleared(false);
     setChallengeQuestion(pickQuestion(questionMode));
     setPhase('challenge');
   };
@@ -298,39 +329,126 @@ export default function CastleDefense() {
     setPickerSlot(null);
   };
 
+  // Resolves once every spawned enemy is either dead or leaked — the
+  // wave's outcome is read straight off what actually happened in the
+  // simulation, never decided up front.
+  const resolveWaveEnd = (finalEnemies: SimEnemy[]) => {
+    if (simIntervalRef.current) {
+      window.clearInterval(simIntervalRef.current);
+      simIntervalRef.current = null;
+    }
+    const leaks = finalEnemies.filter((e) => e.status === 'leaked').length;
+    if (leaks === 0) {
+      setWaveResult('🛡️ Wave cleared! Every attacker was stopped.');
+      setWaveCleared(true);
+      playSfx('combo');
+    } else {
+      setWaveResult(`🌿 ${leaks} attacker${leaks > 1 ? 's' : ''} slipped past — your walls held strong, no harm done.`);
+      setCastleShake(true);
+      window.setTimeout(() => setCastleShake(false), 500);
+      playSfx('match');
+    }
+    advanceTimerRef.current = window.setTimeout(() => {
+      setWaveCleared(false);
+      if (wave >= TOTAL_WAVES) {
+        finishGame();
+      } else {
+        setWave((w) => w + 1);
+        enemiesRef.current = [];
+        setEnemiesView([]);
+        setProjectiles([]);
+        setWaveResult(null);
+        setChallengeQuestion(pickQuestion(questionMode));
+        setPhase('challenge');
+      }
+    }, RESULT_BANNER_MS);
+  };
+
+  // One simulation step: advance every enemy's own position, then let
+  // each zone's tower (if any, if off cooldown) fire once at whichever
+  // active enemy in its zone is furthest along — the same "closest to
+  // the goal" targeting rule real fixed-lane TD games use. A live loop,
+  // not a lump-sum calculation: this is what actually makes a tower
+  // "fire," a shot "travel," and a hit "land" real, watchable events.
+  const tick = () => {
+    const now = performance.now();
+    const elapsed = now - waveStartRef.current;
+    const newProjectiles: Projectile[] = [];
+
+    const arr = enemiesRef.current.map((e) => {
+      if (e.status === 'dead' || e.status === 'leaked') return { ...e, justHit: false };
+      if (elapsed < e.spawnAt) return { ...e, justHit: false };
+      const travelElapsed = elapsed - e.spawnAt;
+      const progress = Math.min(100, (travelElapsed / TRAVEL_MS) * 100);
+      if (progress >= 100) return { ...e, progress: 100, status: 'leaked' as const, justHit: false };
+      return { ...e, progress, status: 'active' as const, justHit: false };
+    });
+
+    slots.forEach((slot, i) => {
+      if (!slot) return;
+      if (now - (towerCooldownRef.current[i] ?? 0) < TOWER_FIRE_COOLDOWN_MS) return;
+      const zoneStart = i * ZONE_WIDTH;
+      const zoneEnd = zoneStart + ZONE_WIDTH;
+      let targetIdx = -1;
+      let bestProgress = -1;
+      arr.forEach((e, idx) => {
+        if (e.status !== 'active') return;
+        if (e.progress < zoneStart || e.progress >= zoneEnd) return;
+        if (e.progress > bestProgress) {
+          bestProgress = e.progress;
+          targetIdx = idx;
+        }
+      });
+      if (targetIdx === -1) return;
+      const target = arr[targetIdx];
+      const dmg = TOWER_META[slot.type].dps[slot.tier - 1];
+      const newHp = target.hp - dmg;
+      arr[targetIdx] =
+        newHp <= 0
+          ? { ...target, hp: 0, status: 'dead', justHit: true }
+          : { ...target, hp: newHp, justHit: true };
+      towerCooldownRef.current[i] = now;
+      newProjectiles.push({ id: `${i}-${now}`, zoneX: zoneStart + ZONE_WIDTH / 2, enemyX: target.progress });
+    });
+
+    enemiesRef.current = arr;
+    setEnemiesView(arr);
+
+    if (newProjectiles.length > 0) {
+      setProjectiles((prev) => [...prev, ...newProjectiles]);
+      newProjectiles.forEach((p) => {
+        window.setTimeout(() => setProjectiles((prev) => prev.filter((x) => x.id !== p.id)), PROJECTILE_TRAVEL_MS);
+      });
+      playSfx('pop');
+    }
+
+    // Re-scan for true resolution (a tower kill this tick can resolve the
+    // wave in the same tick it happens, not one tick later).
+    const stillGoing = arr.some((e) => e.status !== 'dead' && e.status !== 'leaked');
+    if (!stillGoing) resolveWaveEnd(arr);
+  };
+
   const sendWave = () => {
-    const outcome = pickWaveOutcome(wave, slots);
-    setRunningEnemies(outcome);
-    setEnemiesAdvanced(false);
+    const composition = WAVE_COMPOSITION[Math.min(wave - 1, WAVE_COMPOSITION.length - 1)];
+    const initial: SimEnemy[] = composition.map((type, i) => ({
+      key: `${type}-${i}`,
+      type,
+      hp: ENEMY_META[type].hp,
+      maxHp: ENEMY_META[type].hp,
+      progress: 0,
+      spawnAt: i * SPAWN_STAGGER_MS,
+      status: 'pending',
+      justHit: false,
+    }));
+    enemiesRef.current = initial;
+    setEnemiesView(initial);
+    setProjectiles([]);
+    towerCooldownRef.current = Array(TOWER_SLOTS).fill(0);
+    waveStartRef.current = performance.now();
     setWaveResult(null);
     setPhase('advance');
-    // Two rAF ticks so the browser paints enemies at left:0% first, then
-    // the CSS transition to left:100% actually animates instead of
-    // snapping straight to the end position.
-    requestAnimationFrame(() => requestAnimationFrame(() => setEnemiesAdvanced(true)));
     playSfx('pop');
-
-    advanceTimerRef.current = window.setTimeout(() => {
-      const leaks = outcome.filter((e) => e.leaked).length;
-      if (leaks === 0) {
-        setWaveResult('🛡️ Wave cleared! Every attacker was stopped.');
-        playSfx('combo');
-      } else {
-        setWaveResult(`🌿 ${leaks} attacker${leaks > 1 ? 's' : ''} slipped past — your walls held strong, no harm done.`);
-        playSfx('match');
-      }
-      advanceTimerRef.current = window.setTimeout(() => {
-        if (wave >= TOTAL_WAVES) {
-          finishGame();
-        } else {
-          setWave((w) => w + 1);
-          setRunningEnemies([]);
-          setWaveResult(null);
-          setChallengeQuestion(pickQuestion(questionMode));
-          setPhase('challenge');
-        }
-      }, 2200);
-    }, ADVANCE_DURATION_MS);
+    simIntervalRef.current = window.setInterval(tick, TICK_MS);
   };
 
   const finishGame = () => {
@@ -361,11 +479,15 @@ export default function CastleDefense() {
 
   const abandonGame = () => {
     if (advanceTimerRef.current) window.clearTimeout(advanceTimerRef.current);
+    if (simIntervalRef.current) window.clearInterval(simIntervalRef.current);
     setChallengeQuestion(null);
     setGateCorrectCount(0);
     setShowExitConfirm(false);
-    setRunningEnemies([]);
+    enemiesRef.current = [];
+    setEnemiesView([]);
+    setProjectiles([]);
     setWaveResult(null);
+    setWaveCleared(false);
     setPhase('menu');
   };
 
@@ -419,7 +541,7 @@ export default function CastleDefense() {
               >
                 🎯 {goalProgress.count}/{goalProgress.target}
               </button>
-              <span className="bakery-xp-pill bakery-earnings-pill">🪙 {formatMoney(sessionEarningsCents)}</span>
+              <span className="bakery-xp-pill bakery-earnings-pill">💰 {formatMoney(sessionEarningsCents)}</span>
             </div>
           </div>
 
@@ -429,49 +551,74 @@ export default function CastleDefense() {
 
           <div className="castle-scene">
             <div className="castle-props" aria-hidden="true">
-              <img src="/castle-defense/prop-tree.png" alt="" className="castle-prop" style={{ top: 2, left: '4%', width: 34 }} />
-              <img src="/castle-defense/prop-bush.png" alt="" className="castle-prop" style={{ top: 4, right: '6%', width: 40 }} />
-              <img src="/castle-defense/prop-rock.png" alt="" className="castle-prop" style={{ bottom: 6, left: '10%', width: 26 }} />
-              <img src="/castle-defense/prop-tree.png" alt="" className="castle-prop" style={{ bottom: 2, right: '14%', width: 30 }} />
+              <img src="/castle-defense/prop-tree.png" alt="" className="castle-prop" style={{ top: 4, left: `${ZONE_WIDTH * 0.5 - 4}%`, width: 26 }} />
+              <img src="/castle-defense/prop-bush.png" alt="" className="castle-prop" style={{ top: 6, left: `${ZONE_WIDTH * 2.5 - 5}%`, width: 30 }} />
+              <img src="/castle-defense/prop-rock.png" alt="" className="castle-prop" style={{ top: 5, left: `${ZONE_WIDTH * 3.5 - 3}%`, width: 20 }} />
             </div>
 
             <div className="castle-slots">
-              {slots.map((slot, i) => (
-                <button
-                  key={i}
-                  className={`castle-slot${slot ? ' filled' : ''}`}
-                  onClick={() => setPickerSlot(i)}
-                  disabled={phase !== 'build'}
-                  aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade.` : 'Empty tower slot. Tap to build.'}
-                >
-                  {slot ? <img src={TOWER_SPRITE(slot.type, slot.tier)} alt="" /> : <span className="castle-slot-plus" aria-hidden="true">+</span>}
-                </button>
-              ))}
+              {slots.map((slot, i) => {
+                const zoneX = i * ZONE_WIDTH + ZONE_WIDTH / 2;
+                const justFired = phase === 'advance' && projectiles.some((p) => p.zoneX === zoneX);
+                return (
+                  <button
+                    key={i}
+                    className={`castle-slot${slot ? ' filled' : ''}${justFired ? ' firing' : ''}`}
+                    onClick={() => setPickerSlot(i)}
+                    disabled={phase !== 'build'}
+                    aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade.` : 'Empty tower slot. Tap to build.'}
+                  >
+                    {slot ? <img src={TOWER_SPRITE(slot.type, slot.tier)} alt="" /> : <span className="castle-slot-plus" aria-hidden="true">+</span>}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="castle-road">
-              {runningEnemies.map((e) => (
+              {enemiesView.filter((e) => e.status !== 'pending').map((e) => (
                 <div
                   key={e.key}
-                  className="castle-enemy"
-                  style={{
-                    left: enemiesAdvanced ? (e.leaked ? '100%' : '62%') : '0%',
-                    transitionDuration: `${ADVANCE_DURATION_MS}ms`,
-                    opacity: enemiesAdvanced && !e.leaked ? 0 : 1,
-                  }}
+                  className={`castle-enemy${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}`}
+                  style={{ left: `${e.progress}%`, transitionDuration: `${TICK_MS}ms` }}
                 >
                   <img src={ENEMY_META[e.type].sprite} alt={ENEMY_META[e.type].label} />
+                  {e.status === 'active' && (
+                    <div className="castle-enemy-hp">
+                      <div className="castle-enemy-hp-fill" style={{ width: `${(e.hp / e.maxHp) * 100}%` }} />
+                    </div>
+                  )}
                 </div>
               ))}
+
+              {projectiles.map((p) => (
+                <span key={p.id} className="castle-projectile" style={{ left: `${p.enemyX}%` }} />
+              ))}
+
+              <div className={`castle-keep${castleShake ? ' shake' : ''}`} aria-hidden="true">🏰</div>
             </div>
 
             {phase === 'build' && (
-              <button className="bakery-play-btn castle-send-btn" onClick={sendWave}>
-                <Icon name="play" size={18} fallback="▶️" /> Send Wave {wave}
-              </button>
+              <>
+                <div className="castle-preview" aria-hidden="true">
+                  <span className="castle-preview-label">Next wave:</span>
+                  {WAVE_COMPOSITION[Math.min(wave - 1, WAVE_COMPOSITION.length - 1)].map((type, i) => (
+                    <img key={i} src={ENEMY_META[type].sprite} alt="" className="castle-preview-enemy" title={ENEMY_META[type].label} />
+                  ))}
+                </div>
+                <button className="bakery-play-btn castle-send-btn" onClick={sendWave}>
+                  <Icon name="play" size={18} fallback="▶️" /> Send Wave {wave}
+                </button>
+              </>
             )}
 
-            {waveResult && <p className="castle-result-banner">{waveResult}</p>}
+            {waveResult && (
+              <p className={`castle-result-banner${waveCleared ? ' cleared' : ''}`}>
+                {waveCleared && (
+                  <span className="castle-result-coins" aria-hidden="true"><span>💰</span><span>💰</span><span>💰</span></span>
+                )}
+                {waveResult}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -554,7 +701,7 @@ export default function CastleDefense() {
         <div className="bakery-modal-backdrop">
           <div className="bakery-modal-card bakery-earnings-card">
             <div className="bakery-earnings-coins" aria-hidden="true">
-              <span>🪙</span><span>🪙</span><span>🪙</span>
+              <span>💰</span><span>💰</span><span>💰</span>
             </div>
             <h2 className="bakery-modal-title">Great defending!</h2>
             <p className="bakery-modal-note">You earned</p>
@@ -594,6 +741,7 @@ export default function CastleDefense() {
           onCorrectAnswer={handleGateCorrect}
           onExit={abandonGame}
           onSkip={() => setChallengeQuestion(pickQuestion(questionMode, challengeQuestion?.id))}
+          lockOnWrongAnswer
           ttsSettings={student?.ttsSettings}
         />
       )}

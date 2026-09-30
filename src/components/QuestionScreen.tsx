@@ -57,6 +57,17 @@ export interface QuestionScreenProps {
   // followed, just adding real forward motion instead of the caller only
   // being locked into "the exact same question, no matter what."
   onSkip?: () => void;
+  // Direct teacher instruction (Castle Defense feedback, 2026-09-30): for
+  // some games, a wrong pick should lock the whole question — no further
+  // clicking on the remaining choices — and hand the student a real "Next
+  // Question" button instead of letting them keep guessing among what's
+  // left. Opt-in and defaults to false so the original retry-the-same-
+  // question model (the prior direct teacher instruction documented
+  // above) stays exactly as-is for every existing caller (Bakery Match,
+  // Gas Pump) unless they explicitly ask for this stricter mode. Only
+  // takes effect when `onSkip` is also supplied — with no onSkip, a wrong
+  // pick would otherwise dead-end the student with no way forward.
+  lockOnWrongAnswer?: boolean;
   ttsSettings?: TTSSettings;
 }
 
@@ -98,8 +109,10 @@ export default function QuestionScreen({
   onCorrectAnswer,
   onExit,
   onSkip,
+  lockOnWrongAnswer,
   ttsSettings,
 }: QuestionScreenProps) {
+  const lockAfterWrong = lockOnWrongAnswer && !!onSkip;
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [answeredCorrectly, setAnsweredCorrectly] = useState(false);
@@ -358,7 +371,7 @@ export default function QuestionScreen({
                   key={origIdx}
                   type="button"
                   onClick={() => handleChoice(origIdx)}
-                  disabled={answeredCorrectly}
+                  disabled={answeredCorrectly || (lockAfterWrong && feedback === 'wrong')}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -368,7 +381,7 @@ export default function QuestionScreen({
                     border: `2px solid ${border}`,
                     background: bg,
                     textAlign: 'left',
-                    cursor: answeredCorrectly ? 'default' : 'pointer',
+                    cursor: answeredCorrectly || (lockAfterWrong && feedback === 'wrong') ? 'default' : 'pointer',
                     minHeight: 68,
                   }}
                 >
@@ -406,29 +419,50 @@ export default function QuestionScreen({
                 color: feedback === 'correct' ? '#1F6B45' : '#9C3A35',
               }}
             >
-              {feedback === 'correct' ? '✅ Correct! Nice work.' : "🔁 Not quite, try again."}
+              {feedback === 'correct' ? '✅ Correct! Nice work.' : lockAfterWrong ? '❌ Not quite. Let\'s move on to the next one.' : '🔁 Not quite, try again.'}
             </div>
           )}
 
           {feedback === 'wrong' && onSkip && (
-            <button
-              type="button"
-              onClick={onSkip}
-              style={{
-                alignSelf: 'center',
-                background: 'none',
-                border: 'none',
-                color: '#6B6355',
-                fontSize: 14,
-                fontWeight: 700,
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                padding: 8,
-                minHeight: 44,
-              }}
-            >
-              🔀 Try a different question instead
-            </button>
+            lockAfterWrong ? (
+              <button
+                type="button"
+                onClick={onSkip}
+                style={{
+                  alignSelf: 'center',
+                  minWidth: 220,
+                  minHeight: 52,
+                  borderRadius: 14,
+                  border: 'none',
+                  background: '#3E8FD0',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: 16,
+                  cursor: 'pointer',
+                }}
+              >
+                Next Question ▶
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onSkip}
+                style={{
+                  alignSelf: 'center',
+                  background: 'none',
+                  border: 'none',
+                  color: '#6B6355',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  padding: 8,
+                  minHeight: 44,
+                }}
+              >
+                🔀 Try a different question instead
+              </button>
+            )
           )}
         </div>
       </div>
