@@ -16,6 +16,12 @@ Production: https://independent-work-dashboard.vercel.app (receiving pushes agai
 ## The development plan is the bible
 `docs/DEVELOPMENT_PLAN.md` is the single living record of the whole platform: every shipped feature (game, educational, ABA/SEL, platform/other), the open backlog, and future plans. Keep it accurate and comprehensive as part of every change, not as a separate task. See `.claude/agents/claudia.md` for the full standard she reviews against, including the Intake Protocol for routing teacher feedback (praise, change requests, student-relayed ideas, half-formed ideas) into the plan so nothing goes undeveloped.
 
+**Direct standing rule (2026-09-30): the dev plan updates every time `main` gets pushed to, no exceptions.** Every push to `main` carries a `docs/DEVELOPMENT_PLAN.md` update in the same commit (or the immediately preceding one in the same push), covering:
+- **What just shipped** — folded into Part A (or the relevant Part B entry marked done), not left only in the commit message.
+- **What's in progress / ongoing** — anything mid-build gets a real status note (not silently omitted) so the next session or the teacher can see exactly where it stands, not just what's finished.
+- **Every idea she says** — the moment she raises a new idea, a change request, a half-formed thought, or feedback (praise or otherwise) about any future development, it goes into the dev plan that same turn, via Claudia's Intake Protocol if it needs shaping, or directly if it's already concrete. Never hold an idea in conversation only, waiting for "later" — if it's not in the dev plan, it doesn't exist for planning purposes.
+This is not a separate pass to remember to do — treat "did the dev plan update ship in this push" as part of "is this change done," the same way `tsc`/`build` verification already is.
+
 ## Keep the student-facing What's New book current
 `src/lib/changelog.ts`'s `CHANGELOG_ENTRIES` is the "what's new" page-turning book shown to students, and it must stay comprehensive: whenever a change ships that a student would actually notice or use (not a Build Mode tooling fix, not a backend/teacher-only change), add a plain-language entry as part of that same change, same habit as the dev plan above. Newest first, today's date, short id, no em dashes (see Copy below). A behind-the-scenes policy change (like pausing a system) isn't "what's new" to celebrate and doesn't belong here.
 
