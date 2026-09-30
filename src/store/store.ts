@@ -392,6 +392,12 @@ interface AppState {
   // Never read/compared across students anywhere (standing no-leaderboard
   // rule) — only ever shown back to the same student on their own main menu.
   recordBakeryGameResult: (studentId: string, xp: number) => void;
+  // Castle Defense's own question-answered tracker — every submitted gate
+  // answer counts, right or wrong, feeding castleDefenseQuestionsAnswered/
+  // castleDefenseMilestoneTier/castleDefenseMilestoneCount exactly like
+  // recordBakeryQuestionAnswered above, minus the character-unlock (no
+  // Castle Defense character exists to unlock).
+  recordCastleDefenseQuestionAnswered: (studentId: string) => void;
   equipCharacter: (studentId: string, characterId: string | null) => void;
   renamePet: (petId: string, name: string) => void;
   // Pet paint-brush customization (Part B backlog item) — reuses the exact
@@ -1421,6 +1427,14 @@ export const useStore = create<AppState>()(
         const entry = { xp, date: new Date().toISOString().slice(0, 10) };
         get().updateStudent(studentId, {
           bakeryLeaderboard: [...(student.bakeryLeaderboard ?? []), entry],
+        });
+      },
+
+      recordCastleDefenseQuestionAnswered: (studentId) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student) return;
+        get().updateStudent(studentId, {
+          castleDefenseQuestionsAnswered: (student.castleDefenseQuestionsAnswered ?? 0) + 1,
         });
       },
 

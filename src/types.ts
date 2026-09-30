@@ -192,6 +192,19 @@ export interface Student {
   // the cash reward itself follows.
   bakeryMilestoneTier?: number;
   bakeryMilestoneCount?: number;
+  // Castle Defense's own lifetime question tracker + escalating cash
+  // milestone — direct teacher instruction: "add the same logic as
+  // bakerymatch in terms of answering X number of questions awards you."
+  // Same shape and mechanism as the bakery fields above: every submitted
+  // gate answer counts toward castleDefenseQuestionsAnswered (a plain
+  // participation tracker, never resets), and reaching
+  // `castleDefenseMilestoneTier * 100` correct answers (counted from 0
+  // each time) earns $(tier*100), then the goal grows by 100 and resets.
+  // Both only ever advance at full-game completion (see
+  // CastleDefense.tsx), never live mid-game.
+  castleDefenseQuestionsAnswered?: number;
+  castleDefenseMilestoneTier?: number;
+  castleDefenseMilestoneCount?: number;
   // In-world 3D character catalog (characterCatalog.ts) — separate from
   // avatar (the 2D login picture). 'default' (the standard player model)
   // is always available and never listed here. Grows as new characters

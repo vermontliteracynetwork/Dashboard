@@ -115,6 +115,9 @@ const rowToStudent = (r: Row): Student => ({
   bakeryLeaderboard: r.bakery_leaderboard ?? [],
   bakeryMilestoneTier: r.bakery_milestone_tier ?? 1,
   bakeryMilestoneCount: r.bakery_milestone_count ?? 0,
+  castleDefenseQuestionsAnswered: r.castle_defense_questions_answered ?? 0,
+  castleDefenseMilestoneTier: r.castle_defense_milestone_tier ?? 1,
+  castleDefenseMilestoneCount: r.castle_defense_milestone_count ?? 0,
   unlockedCharacterIds: r.unlocked_character_ids ?? [],
   equippedCharacterId: r.equipped_character_id ?? null,
 });
@@ -180,6 +183,9 @@ const studentToRow = (s: Student): Row => ({
   bakery_leaderboard: s.bakeryLeaderboard ?? [],
   bakery_milestone_tier: s.bakeryMilestoneTier ?? 1,
   bakery_milestone_count: s.bakeryMilestoneCount ?? 0,
+  castle_defense_questions_answered: s.castleDefenseQuestionsAnswered ?? 0,
+  castle_defense_milestone_tier: s.castleDefenseMilestoneTier ?? 1,
+  castle_defense_milestone_count: s.castleDefenseMilestoneCount ?? 0,
   unlocked_character_ids: s.unlockedCharacterIds ?? [],
   equipped_character_id: s.equippedCharacterId ?? null,
 });
@@ -1177,6 +1183,9 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   bakeryLeaderboard: 'bakery_leaderboard',
   bakeryMilestoneTier: 'bakery_milestone_tier',
   bakeryMilestoneCount: 'bakery_milestone_count',
+  castleDefenseQuestionsAnswered: 'castle_defense_questions_answered',
+  castleDefenseMilestoneTier: 'castle_defense_milestone_tier',
+  castleDefenseMilestoneCount: 'castle_defense_milestone_count',
   unlockedCharacterIds: 'unlocked_character_ids',
   equippedCharacterId: 'equipped_character_id',
 };
