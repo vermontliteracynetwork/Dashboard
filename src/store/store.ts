@@ -16,6 +16,7 @@ import type { PetDef } from '../lib/petCatalog';
 // header comment), so importing it here doesn't drag TownSquare.tsx's heavy
 // R3F bundle into the store.
 import { DEFAULT_GROUND_BOUNDS, clampGroundBoundsValue, sanitizeGroundBounds } from '../routes/world/townLayout';
+import { gameplayProgress, gameplayTarget } from '../lib/gameplayAssignment';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -535,6 +536,12 @@ interface AppState {
   // quiz
   ensureQuizState: (studentId: string, subject: Subject, task: Task) => QuizRuntimeState;
   submitQuizAnswer: (studentId: string, subject: Subject, task: Task, questionId: string, correct: boolean) => void;
+  // Gameplay-mode question-set assignments (specificGame/anyGame) — logs
+  // the answer against the same per-task QuizRuntimeState, completing and
+  // checking off the task itself once the target is reached. Returns
+  // whether this call just crossed that line, so a caller (a native game
+  // screen) can show its own "assignment done!" moment.
+  submitGameplayAnswer: (studentId: string, subject: Subject, task: Task, questionId: string, correct: boolean) => boolean;
 
   // breaks
   requestBreak: (studentId: string) => void;
@@ -2524,6 +2531,53 @@ export const useStore = create<AppState>()(
           set((s) => ({ quizAttempts: [record, ...s.quizAttempts] }));
           pushQuizAttempt(record);
         }
+      },
+
+      submitGameplayAnswer: (studentId, subject, task, questionId, correct) => {
+        const before = gameplayProgress(get().ensureQuizState(studentId, subject, task));
+        const state = get().progress[studentId][subject].quizState[task.id];
+        const log = [...state.log, { questionId, timestamp: new Date().toISOString(), correct }];
+        const next: QuizRuntimeState = { ...state, log };
+        set((s) => {
+          const cur = s.progress[studentId][subject];
+          return {
+            progress: {
+              ...s.progress,
+              [studentId]: {
+                ...s.progress[studentId],
+                [subject]: { ...cur, quizState: { ...cur.quizState, [task.id]: next } },
+              },
+            },
+          };
+        });
+        pushProgress(studentId, subject, get().progress[studentId][subject]);
+
+        const target = gameplayTarget(task);
+        const after = gameplayProgress(next);
+        const alreadyDone = get().progress[studentId][subject].completedTaskIds.includes(task.id);
+        if (alreadyDone || target === 0 || before >= target || after < target) return false;
+
+        // Crossed the line this answer — log it the same way a finished
+        // Quiz run does (Score History/Reports read QuizAttemptRecord
+        // regardless of which mode produced it) and check the activity off.
+        const completedAt = new Date().toISOString();
+        const startedAt = state.attemptStartedAt ?? log[0]?.timestamp ?? completedAt;
+        const record: QuizAttemptRecord = {
+          id: makeId(),
+          studentId,
+          subject,
+          taskId: task.id,
+          taskTitle: task.title,
+          startedAt,
+          completedAt,
+          durationMs: Math.max(0, new Date(completedAt).getTime() - new Date(startedAt).getTime()),
+          correctCount: after,
+          totalCount: target,
+        };
+        set((s) => ({ quizAttempts: [record, ...s.quizAttempts] }));
+        pushQuizAttempt(record);
+        get().completeTask(studentId, subject, task.id);
+        return true;
       },
 
       requestBreak: (studentId) => {

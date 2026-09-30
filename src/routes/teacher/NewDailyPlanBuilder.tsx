@@ -3,8 +3,81 @@ import { useStore } from '../../store/store';
 import { TaskEditor, activityToTaskSnapshot } from './ActivityLibrary';
 import { todayISO, formatDateLong } from '../../lib/dates';
 import { enforceFinalCheckLast } from '../../lib/taskOrder';
+import { gameplayQuestionPool } from '../../lib/gameplayAssignment';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
-import type { Assignment, Subject, Task } from '../../types';
+import type { Assignment, CompletionMode, NativeGameId, Subject, Task } from '../../types';
+import { NATIVE_GAME_LABELS } from '../../types';
+
+// Direct teacher spec: a question-set-backed activity (Quiz or Native Game
+// type) is completed one of three ways, decided here — at assignment time,
+// not when the activity itself was created — never at authoring time:
+// (1) inside one specific native game (the whole set, or a target count
+// that repeats through the set once exhausted), (2) pooled across every
+// native game/question-consuming asset in the world, or (3) the ordinary
+// Quiz/Practice flow, answer every question consecutively. Only shown for
+// a task that actually carries real questions — nothing to complete any
+// other way for an empty or non-quiz activity.
+function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: Partial<Task>) => void }) {
+  const pool = gameplayQuestionPool(task);
+  const mode: CompletionMode = task.completionMode ?? 'quizAll';
+
+  return (
+    <div className="content-well stack" style={{ gap: 6, background: '#faf9ff' }}>
+      <strong style={{ fontSize: '0.8rem' }}>How does completing this activity work?</strong>
+      <label className="row" style={{ gap: 6, fontSize: '0.82rem' }}>
+        <input type="radio" checked={mode === 'quizAll'} onChange={() => onChange({ completionMode: 'quizAll', nativeGameId: undefined, targetQuestionCount: undefined })} />
+        🧠 Quiz / Practice mode — answer all {pool.length} question{pool.length === 1 ? '' : 's'} consecutively
+      </label>
+      <label className="row" style={{ gap: 6, fontSize: '0.82rem' }}>
+        <input type="radio" checked={mode === 'specificGame'} onChange={() => onChange({ completionMode: 'specificGame' })} />
+        🎮 Inside one specific native game
+      </label>
+      {mode === 'specificGame' && (
+        <div className="row-wrap" style={{ gap: 8, marginLeft: 24 }}>
+          <select value={task.nativeGameId ?? ''} onChange={(e) => onChange({ nativeGameId: (e.target.value || undefined) as NativeGameId | undefined })}>
+            <option value="">Choose a game…</option>
+            {(Object.keys(NATIVE_GAME_LABELS) as NativeGameId[]).map((id) => (
+              <option key={id} value={id}>{NATIVE_GAME_LABELS[id]}</option>
+            ))}
+          </select>
+          <label className="row" style={{ gap: 4, fontSize: '0.8rem' }}>
+            Questions needed:
+            <input
+              type="number"
+              min={1}
+              style={{ width: 70 }}
+              placeholder={`whole set (${pool.length})`}
+              value={task.targetQuestionCount ?? ''}
+              onChange={(e) => onChange({ targetQuestionCount: e.target.value ? Math.max(1, Number(e.target.value)) : undefined })}
+            />
+          </label>
+        </div>
+      )}
+      <label className="row" style={{ gap: 6, fontSize: '0.82rem' }}>
+        <input type="radio" checked={mode === 'anyGame'} onChange={() => onChange({ completionMode: 'anyGame', nativeGameId: undefined })} />
+        🌍 Any game in the world — any native game/asset keeps the same count going
+      </label>
+      {mode === 'anyGame' && (
+        <label className="row" style={{ gap: 4, fontSize: '0.8rem', marginLeft: 24 }}>
+          Questions needed:
+          <input
+            type="number"
+            min={1}
+            style={{ width: 70 }}
+            placeholder={`whole set (${pool.length})`}
+            value={task.targetQuestionCount ?? ''}
+            onChange={(e) => onChange({ targetQuestionCount: e.target.value ? Math.max(1, Number(e.target.value)) : undefined })}
+          />
+        </label>
+      )}
+      {(mode === 'specificGame' || mode === 'anyGame') && (task.targetQuestionCount ?? pool.length) > pool.length && (
+        <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: 0 }}>
+          🔀 That's more than the set has — questions will repeat until the target is reached.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function defaultPlanName(tasks: Task[]): string {
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -268,6 +341,14 @@ export default function NewDailyPlanBuilder({
                         setEditingTaskId(null);
                       }}
                       onCancel={() => setEditingTaskId(null)}
+                    />
+                  </div>
+                )}
+                {(t.type === 'quiz' || t.type === 'platformer') && gameplayQuestionPool(t).length > 0 && (
+                  <div style={{ padding: '0 12px 12px' }}>
+                    <GameplayModePicker
+                      task={t}
+                      onChange={(patch) => setTasks(tasks.map((x) => (x.id === t.id ? { ...x, ...patch } : x)))}
                     />
                   </div>
                 )}

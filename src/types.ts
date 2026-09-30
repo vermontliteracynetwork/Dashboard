@@ -450,6 +450,28 @@ export interface TaskReward {
   customIcon?: string; // type: 'customItem' — emoji shown in the student's transaction history
 }
 
+// Native, question-set-fueled games/assets a gameplay-mode assignment can
+// target — see NATIVE_GAME_STANDARD.md for the wider "native games per
+// building/asset" direction this mirrors. Extend as more ship.
+export type NativeGameId = 'bakery' | 'gasPump';
+
+export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
+  bakery: '🧁 Bakery Match',
+  gasPump: '⛽ Gas Pump',
+};
+
+// How a question-set-backed activity (Quiz or Native Game type) is
+// completed — direct teacher spec, decided per assignment, not at
+// activity-creation time: 'quizAll' (default/unset) is the existing
+// ordinary Quiz/Practice flow, answer every question consecutively.
+// 'specificGame' requires completing the set (or a target count of
+// questions, repeating from the start of the set if the target is higher
+// than the set's size) inside one named native game. 'anyGame' pools the
+// same target across every native game/question-consuming asset in the
+// world (Gas Pump, Bakery Match, etc.) — any correct answer toward the
+// assigned set counts, wherever the student answers it.
+export type CompletionMode = 'quizAll' | 'specificGame' | 'anyGame';
+
 export interface Task {
   id: string;
   title: string;
@@ -483,6 +505,12 @@ export interface Task {
   reward?: TaskReward; // what completing this grants; defaults to { type: 'money' } (see rewardCents) when unset
   rewardCents?: number; // Class Cash paid out on completion when reward is money-type (the default); falls back to DEFAULT_TASK_REWARD_CENTS when unset
   required?: boolean; // teacher-marked "cannot be skipped with a Skip Pass under any circumstances"
+  // Decided per assignment (see NewDailyPlanBuilder.tsx), only meaningful
+  // for a 'quiz' or 'platformer' type task that actually carries quiz
+  // content. Unset/'quizAll' = no change from today's behavior.
+  completionMode?: CompletionMode;
+  nativeGameId?: NativeGameId; // 'specificGame' only — which game the set must be completed inside
+  targetQuestionCount?: number; // 'specificGame' | 'anyGame' only; unset = the whole set once, no repeats
 }
 
 // Literacy Workspace — open-exploration sandbox (direct teacher
