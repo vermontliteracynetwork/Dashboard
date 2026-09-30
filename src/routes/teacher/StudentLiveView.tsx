@@ -21,7 +21,6 @@ export default function StudentLiveView() {
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const studentStatus = useStore((s) => s.studentStatus);
-  const getStudentBreakState = useStore((s) => s.getStudentBreakState);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const completeTask = useStore((s) => s.completeTask);
   const uncompleteTask = useStore((s) => s.uncompleteTask);
@@ -46,7 +45,6 @@ export default function StudentLiveView() {
   const tasks = rotations[student.id]?.[subject] ?? [];
   const prog = progress[student.id]?.[subject];
   const status = studentStatus(student.id);
-  const breakState = getStudentBreakState(student.id);
   const requiredId = prog ? nextRequiredTaskId(tasks, prog.completedTaskIds) : null;
   const activeTask = requiredId ? tasks.find((t) => t.id === requiredId) : null;
 
@@ -102,9 +100,6 @@ export default function StudentLiveView() {
 
         <div className="chrome-frame row-wrap" style={{ padding: 14 }}>
           <strong>Status:</strong> {status.replace(/-/g, ' ')}
-          {breakState && (breakState.status === 'approved' || breakState.status === 'granted') && (
-            <span className="tag-pill" style={{ background: 'var(--teal)', color: 'white' }}>☕ On a break</span>
-          )}
         </div>
 
         <div className="subject-tabs">

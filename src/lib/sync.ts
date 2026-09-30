@@ -4,7 +4,6 @@ import type {
   Subject,
   Task,
   SubjectProgress,
-  BreakRequest,
   HelpPing,
   StudentFeedback,
   QuizStruggle,
@@ -61,7 +60,6 @@ const rowToStudent = (r: Row): Student => ({
   streakHidden: r.streak_hidden,
   badgeIds: r.badge_ids ?? [],
   featureToggles: r.feature_toggles ?? {},
-  breakMinutes: r.break_minutes,
   ttsSettings: r.tts_settings ?? { rate: 1, voiceURI: null },
   createdAt: r.created_at,
   customTools: r.custom_tools ?? [],
@@ -130,7 +128,6 @@ const studentToRow = (s: Student): Row => ({
   streak_hidden: s.streakHidden,
   badge_ids: s.badgeIds,
   feature_toggles: s.featureToggles,
-  break_minutes: s.breakMinutes,
   tts_settings: s.ttsSettings,
   created_at: s.createdAt,
   custom_tools: s.customTools,
@@ -209,13 +206,6 @@ const progressToRow = (studentId: string, subject: Subject, p: SubjectProgress):
   session_ritual_seen: p.sessionRitualSeen,
   subject_complete: p.subjectComplete,
   completed_at: p.completedAt ?? null,
-});
-
-const rowToBreakRequest = (r: Row): BreakRequest => ({
-  id: r.id,
-  studentId: r.student_id,
-  timestamp: r.occurred_at,
-  status: r.status,
 });
 
 const rowToHelpPing = (r: Row): HelpPing => ({
@@ -829,7 +819,6 @@ export interface HydratedState {
   students: Student[];
   rotations: Record<string, Record<Subject, Task[]>>;
   progress: ProgressMap;
-  breakRequests: BreakRequest[];
   helpPings: HelpPing[];
   studentFeedback: StudentFeedback[];
   quizStruggles: QuizStruggle[];
@@ -883,7 +872,7 @@ export interface HydratedState {
 
 export async function fetchAll(): Promise<HydratedState> {
   const [
-    studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes,
+    studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
     literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, farmerMarketOffersRes, savedWhiteboardsRes,
@@ -891,7 +880,6 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
     supabase.from('subject_progress').select('*'),
-    supabase.from('break_requests').select('*'),
     supabase.from('help_pings').select('*'),
     supabase.from('offscreen_reviews').select('*'),
     supabase.from('badges').select('*'),
@@ -928,7 +916,7 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('saved_whiteboards').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, breaksRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes]) {
     if (res.error) throw res.error;
   }
 
@@ -970,7 +958,6 @@ export async function fetchAll(): Promise<HydratedState> {
     students: (studentsRes.data ?? []).map(rowToStudent),
     rotations,
     progress,
-    breakRequests: (breaksRes.data ?? []).map(rowToBreakRequest),
     helpPings: (pingsRes.data ?? []).map(rowToHelpPing),
     studentFeedback: (studentFeedbackRes.data ?? []).map(rowToStudentFeedback),
     quizStruggles: (quizStrugglesRes.data ?? []).map(rowToQuizStruggle),
@@ -1138,7 +1125,6 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   streakHidden: 'streak_hidden',
   badgeIds: 'badge_ids',
   featureToggles: 'feature_toggles',
-  breakMinutes: 'break_minutes',
   ttsSettings: 'tts_settings',
   createdAt: 'created_at',
   customTools: 'custom_tools',
@@ -1221,10 +1207,6 @@ export const pushRotation = (studentId: string, subject: Subject, tasks: Task[])
 
 export const pushProgress = (studentId: string, subject: Subject, p: SubjectProgress) =>
   upsert('subject_progress', progressToRow(studentId, subject, p));
-
-export const pushBreakRequest = (b: BreakRequest) =>
-  upsert('break_requests', { id: b.id, student_id: b.studentId, occurred_at: b.timestamp, status: b.status });
-export const deleteBreakRequestRemote = (id: string) => remove('break_requests', { id });
 
 export const pushHelpPing = (h: HelpPing) =>
   upsert('help_pings', { id: h.id, student_id: h.studentId, occurred_at: h.timestamp, resolved: h.resolved });
@@ -1570,13 +1552,12 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToBreakRequest, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToFarmerMarketOffer, rowToSavedWhiteboard };
+export { rowToStudent, rowToProgress, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToFarmerMarketOffer, rowToSavedWhiteboard };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onRotation: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onProgress: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
-  onBreakRequest: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onHelpPing: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onStudentFeedback: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onQuizStruggle: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1629,7 +1610,6 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, wire(handlers.onStudent))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rotations' }, wire(handlers.onRotation))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'subject_progress' }, wire(handlers.onProgress))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'break_requests' }, wire(handlers.onBreakRequest))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'help_pings' }, wire(handlers.onHelpPing))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_feedback' }, wire(handlers.onStudentFeedback))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_struggles' }, wire(handlers.onQuizStruggle))

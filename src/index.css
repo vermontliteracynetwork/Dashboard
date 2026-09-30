@@ -546,8 +546,6 @@ label { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 4px;
 
 .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 .status-working { background: var(--success); }
-.status-break { background: var(--yellow); }
-.status-waiting { background: var(--orange); }
 .status-done { background: var(--purple); }
 .status-idle { background: #9ca3af; }
 

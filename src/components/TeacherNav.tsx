@@ -7,7 +7,6 @@ export default function TeacherNav() {
   const navigate = useNavigate();
   const setRole = useStore((s) => s.setRole);
   const helpPings = useStore((s) => s.helpPings);
-  const breakRequests = useStore((s) => s.breakRequests);
   const offscreenReviews = useStore((s) => s.offscreenReviews);
 
   // Every teacher screen renders this nav, so it's the one place that can
@@ -21,20 +20,14 @@ export default function TeacherNav() {
   }, []);
 
   const openHelp = helpPings.filter((h) => !h.resolved).length;
-  const pendingBreaks = breakRequests.filter((b) => b.status === 'pending').length;
   const unverified = offscreenReviews.filter((o) => !o.verified).length;
   const inboxCount = openHelp + unverified;
 
   return (
     <nav className="teacher-nav space-between">
       <div className="row-wrap" style={{ alignItems: 'center' }}>
-        {/* pendingBreaks shows here, not on Activities/More — break
-            approval actually happens on this Overview screen
-            (TeacherHome.tsx), so that's the only place the count can
-            correctly point a teacher. It used to sit on Activities, which
-            has no break-related code at all (Claudia's audit). */}
         <NavLink to="/teacher" end className={({ isActive }) => (isActive ? 'active' : '')}>
-          🏠 Overview{pendingBreaks > 0 ? ` (${pendingBreaks})` : ''}
+          🏠 Overview
         </NavLink>
         <NavLink to="/teacher/students" className={({ isActive }) => (isActive ? 'active' : '')}>🧒 Students</NavLink>
         <NavLink to="/teacher/assignments" className={({ isActive }) => (isActive ? 'active' : '')}>📚 Academics</NavLink>
