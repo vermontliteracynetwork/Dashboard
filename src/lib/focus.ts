@@ -3,8 +3,21 @@
 // store.ts/components so the "what counts as current" rule lives in
 // exactly one place.
 
-import type { Focus, FocusSubject } from '../types';
+import type { Focus, FocusSubject, QuestionSet, Subject } from '../types';
 import type { ConversationStep } from './worldQuest1';
+
+// Direct teacher instruction: Focuses are retired from live authoring —
+// a starred Question Set is the new "focus" for its subject lane, shown
+// everywhere FocusBanner already rendered. The most recently starred set
+// per subject wins if more than one is starred, so starring a new one
+// naturally supersedes the last (mirrors getCurrentFocus's own "most
+// recent wins" rule below).
+export function getFocusQuestionSet(questionSets: QuestionSet[], subject: Subject): QuestionSet | null {
+  const candidates = questionSets
+    .filter((q) => q.subject === subject && q.isFocus)
+    .sort((a, b) => (b.focusedAt ?? '').localeCompare(a.focusedAt ?? ''));
+  return candidates[0] ?? null;
+}
 
 // The one focus that's "live" right now for a subject lane, or null. Reads
 // straight off durationMode rather than a separate active flag: 'days' and

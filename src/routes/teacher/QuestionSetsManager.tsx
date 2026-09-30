@@ -9,6 +9,7 @@ import type { Subject } from '../../types';
 // editor (QuestionSetDetail) where it can be edited, duplicated, or deleted.
 export default function QuestionSetsManager() {
   const questionSets = useStore((s) => s.questionSets);
+  const updateQuestionSet = useStore((s) => s.updateQuestionSet);
   const navigate = useNavigate();
   const [subjectFilter, setSubjectFilter] = useState<Subject | 'all'>('all');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -86,32 +87,53 @@ export default function QuestionSetsManager() {
           ) : (
             <div className="set-card-grid">
               {sets.map((set) => (
-                <button
-                  key={set.id}
-                  className="set-card"
-                  style={{ textAlign: 'left', cursor: 'pointer', border: 'none', padding: 0 }}
-                  onClick={() => navigate(`/teacher/question-sets/${set.id}`)}
-                >
-                  {set.coverImageUrl ? (
-                    <img className="set-card-cover" src={set.coverImageUrl} alt="" />
-                  ) : (
-                    <div className="set-card-cover-fallback">{set.kind === 'quiz' ? '🧠' : '🗂️'}</div>
-                  )}
-                  <div className="set-card-body">
-                    <span className="tag-pill">{set.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-                    <div className="set-card-title">{set.name}</div>
-                    <div className="set-card-meta">
-                      {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
-                    </div>
-                    {(set.tags ?? []).length > 0 && (
-                      <div className="row-wrap" style={{ marginTop: 4, gap: 4 }}>
-                        {(set.tags ?? []).map((t) => (
-                          <span key={t} className="tag-pill tag-pill-sm">{t}</span>
-                        ))}
-                      </div>
+                <div key={set.id} className="set-card" style={{ position: 'relative', padding: 0 }}>
+                  {/* Starring is the new Focus system, direct teacher
+                      instruction: "allow me to star/favorite certain
+                      question sets to become the focus question sets that
+                      should be embedded everywhere within the game" — see
+                      FocusBanner.tsx/getFocusQuestionSet. A separate button
+                      (not nested inside the card's own open-button) so
+                      starring never also navigates into the set. */}
+                  <button
+                    className="btn btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateQuestionSet(set.id, { isFocus: !set.isFocus, focusedAt: !set.isFocus ? new Date().toISOString() : set.focusedAt });
+                    }}
+                    aria-label={set.isFocus ? `Unstar ${set.name} as a focus set` : `Star ${set.name} as a focus set`}
+                    title={set.isFocus ? 'Focus set — shown around the game. Tap to unstar.' : 'Star as a focus set — shown around the game'}
+                    style={{ position: 'absolute', top: 6, right: 6, zIndex: 1, minHeight: 36, minWidth: 36, padding: 0, borderRadius: '50%' }}
+                  >
+                    {set.isFocus ? '⭐' : '☆'}
+                  </button>
+                  <button
+                    style={{ all: 'unset', display: 'contents', cursor: 'pointer' }}
+                    onClick={() => navigate(`/teacher/question-sets/${set.id}`)}
+                  >
+                    {set.coverImageUrl ? (
+                      <img className="set-card-cover" src={set.coverImageUrl} alt="" />
+                    ) : (
+                      <div className="set-card-cover-fallback">{set.kind === 'quiz' ? '🧠' : '🗂️'}</div>
                     )}
-                  </div>
-                </button>
+                    <div className="set-card-body">
+                      <span className="tag-pill">{set.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
+                      {set.isFocus && <span className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>⭐ Focus</span>}
+                      <div className="set-card-title">{set.name}</div>
+                      {set.description && <div style={{ fontSize: '0.78rem', opacity: 0.75 }}>{set.description}</div>}
+                      <div className="set-card-meta">
+                        {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
+                      </div>
+                      {(set.tags ?? []).length > 0 && (
+                        <div className="row-wrap" style={{ marginTop: 4, gap: 4 }}>
+                          {(set.tags ?? []).map((t) => (
+                            <span key={t} className="tag-pill tag-pill-sm">{t}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
               ))}
             </div>
           )}

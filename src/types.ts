@@ -475,7 +475,6 @@ export interface Task {
   sentenceBuilder?: SentenceBuilderContent;
   linkChoice?: LinkChoiceContent;
   customSteps?: StepDef[]; // teacher override of the auto-generated visual step guide
-  referenceImageUrl?: string; // shown to the student throughout this activity, any task type
   referenceLinkUrl?: string; // an extra reference link, any task type (distinct from the 'link' task type itself)
   referenceLinkLabel?: string;
   order?: number; // set = must be done in ascending order before any unordered task unlocks; unset = free-choice once all ordered tasks are done
@@ -539,6 +538,11 @@ export type RotationMode = 'sequence' | 'choiceboard';
 export interface QuestionSet {
   id: string;
   name: string;
+  // A brief teacher-authored subtext shown right under the title in the
+  // Question Sets list — direct teacher instruction, part of merging
+  // Focuses into Question Sets: "question sets will now show their title
+  // and a brief subtext description."
+  description?: string;
   subject: Subject;
   kind: 'quiz' | 'drill';
   questions: QuizQuestion[]; // kind === 'quiz'
@@ -546,6 +550,16 @@ export interface QuestionSet {
   coverImageUrl?: string; // shown on the library card; falls back to a kind icon when unset
   createdAt: string;
   tags?: string[]; // teacher-authored, for searching/filtering the Question Sets library
+  // A starred/favorited set is a "focus" set — direct teacher instruction:
+  // "the focuses concept should be removed and instead allow me to
+  // star/favorite certain question sets to become the focus question sets
+  // that should be embedded everywhere within the game," replacing the old
+  // standalone Focus system (getCurrentFocus/FocusBanner) entirely. At
+  // most one starred set per subject is treated as "current" (see
+  // getFocusQuestionSet in lib/focus.ts) — the most recently starred one,
+  // so starring a new one naturally supersedes the last.
+  isFocus?: boolean;
+  focusedAt?: string; // set when isFocus flips true, used to pick the most-recently-starred one as "current" per subject
 }
 
 // A video shown in the in-world Cinema — either an external link (YouTube,
