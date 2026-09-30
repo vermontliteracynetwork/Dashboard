@@ -98,6 +98,63 @@ const YouTubeAudio = forwardRef<MusicPlayerHandle, { ytId: string; title: string
   }
 );
 
+// Direct teacher report: a school network can block youtube.com outright
+// (a content filter, out of this app's control — see MusicManager.tsx's
+// header comment), which silently breaks every YouTube-sourced track for
+// anyone on that network while working fine elsewhere. The fix isn't in
+// this component at all, it's giving a track a real non-YouTube source —
+// this renders whichever kind `GlobalMusicPlayer` below hands it, same
+// `MusicPlayerHandle` interface as `YouTubeAudio`, so nothing else about
+// the player (minimized pill, transport bar, Next/Prev) has to know or
+// care which kind is currently playing.
+const UploadedAudio = forwardRef<MusicPlayerHandle, { src: string; title: string; volume: number; onEnded: () => void; onReady: () => void }>(
+  function UploadedAudio({ src, title, volume, onEnded, onReady }, ref) {
+    const audioRef = useRef<HTMLAudioElement>(null);
+
+    useEffect(() => {
+      const el = audioRef.current;
+      if (!el) return;
+      el.volume = volume / 100;
+      // A real play() call from the same tap that started this whole
+      // interaction (picking a song, or switching tracks) — the identical
+      // "needs a genuine user gesture" requirement autoplay=1 URL params
+      // can silently miss, satisfied the same direct way as YouTubeAudio's
+      // own explicit playVideo() call above.
+      el.play().catch(() => {
+        // Blocked without ever having had a user gesture at all (e.g. a
+        // fresh tab reload landing mid-song) — the visible Play button in
+        // the expanded transport bar still starts it from here.
+      });
+      onReady();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [src]);
+
+    useEffect(() => {
+      if (audioRef.current) audioRef.current.volume = volume / 100;
+    }, [volume]);
+
+    useImperativeHandle(ref, () => ({
+      play: () => audioRef.current?.play(),
+      pause: () => audioRef.current?.pause(),
+      seekTo: (seconds: number) => { if (audioRef.current) audioRef.current.currentTime = seconds; },
+      setVolume: (v: number) => { if (audioRef.current) audioRef.current.volume = v / 100; },
+      getCurrentTime: () => audioRef.current?.currentTime ?? 0,
+      getDuration: () => audioRef.current?.duration ?? 0,
+    }), []);
+
+    return (
+      // eslint-disable-next-line jsx-a11y/media-has-caption
+      <audio
+        ref={audioRef}
+        src={src}
+        title={`Now playing: ${title}`}
+        onEnded={onEnded}
+        style={{ display: 'none' }}
+      />
+    );
+  }
+);
+
 function formatTime(s: number) {
   if (!isFinite(s) || s < 0) return '0:00';
   const m = Math.floor(s / 60);
@@ -145,31 +202,43 @@ export default function GlobalMusicPlayer() {
     setPlayingTrackId(next.id);
   };
 
-  if (!playing || !ytId) return null;
+  if (!playing) return null;
 
   return (
     <>
-      <YouTubeAudio
-        // Direct teacher bug report: switching tracks (Next/Prev, or
-        // picking a new song) silently stopped working. Root cause: with
-        // no `key`, React reused the SAME <iframe> DOM node across a track
-        // change (just updating its id/src), but the outgoing effect's
-        // cleanup still calls the YT Player's own `destroy()`, which
-        // removes that iframe element from the DOM outright — ripping out
-        // the very node React had just repointed at the new track, a beat
-        // before the new effect could look it up by id and attach a fresh
-        // player to it. A `key` forces a real unmount/remount per track
-        // instead: the old effect destroys its own, no-longer-reused
-        // iframe, and the new track gets a brand new one untouched by that
-        // cleanup.
-        key={ytId}
-        ref={playerRef}
-        ytId={ytId}
-        title={playing.title}
-        volume={volume}
-        onReady={() => setReady(true)}
-        onEnded={() => goRelative(1)}
-      />
+      {ytId ? (
+        <YouTubeAudio
+          // Direct teacher bug report: switching tracks (Next/Prev, or
+          // picking a new song) silently stopped working. Root cause: with
+          // no `key`, React reused the SAME <iframe> DOM node across a track
+          // change (just updating its id/src), but the outgoing effect's
+          // cleanup still calls the YT Player's own `destroy()`, which
+          // removes that iframe element from the DOM outright — ripping out
+          // the very node React had just repointed at the new track, a beat
+          // before the new effect could look it up by id and attach a fresh
+          // player to it. A `key` forces a real unmount/remount per track
+          // instead: the old effect destroys its own, no-longer-reused
+          // iframe, and the new track gets a brand new one untouched by that
+          // cleanup.
+          key={playing.id}
+          ref={playerRef}
+          ytId={ytId}
+          title={playing.title}
+          volume={volume}
+          onReady={() => setReady(true)}
+          onEnded={() => goRelative(1)}
+        />
+      ) : (
+        <UploadedAudio
+          key={playing.id}
+          ref={playerRef}
+          src={playing.url}
+          title={playing.title}
+          volume={volume}
+          onReady={() => setReady(true)}
+          onEnded={() => goRelative(1)}
+        />
+      )}
       {expanded ? (
         <div
           style={{

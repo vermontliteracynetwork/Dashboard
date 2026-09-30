@@ -12,11 +12,18 @@ interface Props {
 }
 
 // The video always requires a real manual tap to start (no autoplay param),
-// and "I watched it!" stays disabled until the YouTube player itself reports
-// the video played all the way through — so finishing here is never just a
+// and "I watched it!" stays disabled until the player itself reports the
+// video played all the way through — so finishing here is never just a
 // button someone can tap without actually watching.
 export default function VideoTask({ student, task, onDone }: Props) {
-  const videoId = task.video?.youtubeUrl ? extractYouTubeId(task.video.youtubeUrl) : null;
+  const rawUrl = task.video?.youtubeUrl ?? null;
+  const videoId = rawUrl ? extractYouTubeId(rawUrl) : null;
+  // A school network blocking youtube.com is a real, reported case, not
+  // hypothetical — see ActivityLibrary.tsx's Video-type editor, which now
+  // offers an "upload a file instead" escape hatch for exactly this. When
+  // the URL isn't a YouTube link, it's a direct file (uploaded, or pasted)
+  // and this renders a plain native <video> instead of the YouTube player.
+  const directUrl = rawUrl && !videoId ? rawUrl : null;
   const [watched, setWatched] = useState(false);
   const frameId = `yt-player-${task.id}`;
   const playerRef = useRef<any>(null);
@@ -71,15 +78,28 @@ export default function VideoTask({ student, task, onDone }: Props) {
             />
           </div>
         </TheaterFrame>
+      ) : directUrl ? (
+        <TheaterFrame>
+          <div style={{ width: '100%', aspectRatio: '16 / 9' }}>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video
+              src={directUrl}
+              controls
+              playsInline
+              onEnded={() => setWatched(true)}
+              style={{ width: '100%', height: '100%', display: 'block', background: '#000' }}
+            />
+          </div>
+        </TheaterFrame>
       ) : (
         <p>Ask your teacher to add a video link!</p>
       )}
 
-      {videoId && !watched && (
+      {(videoId || directUrl) && !watched && (
         <p style={{ fontSize: '0.85rem', opacity: 0.75 }}>▶️ Press play above and watch the whole thing to finish.</p>
       )}
 
-      <button className="btn btn-primary btn-lg pulse-cta" disabled={!!videoId && !watched} onClick={onDone}>
+      <button className="btn btn-primary btn-lg pulse-cta" disabled={!!(videoId || directUrl) && !watched} onClick={onDone}>
         ✅ I watched it!
       </button>
     </div>
