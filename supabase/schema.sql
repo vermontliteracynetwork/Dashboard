@@ -30,8 +30,7 @@ create table if not exists students (
   feature_toggles jsonb not null default '{}',
   break_minutes int not null default 4,
   tts_settings jsonb not null default '{"rate":1,"voiceURI":null}',
-  created_at timestamptz not null default now(),
-  playground_threshold int not null default 4
+  created_at timestamptz not null default now()
 );
 
 create table if not exists rotations (
@@ -245,20 +244,6 @@ create table if not exists music_tracks (
   tags jsonb not null default '[]'
 );
 
--- The Playground's Gallery — direct teacher request for a curated feed of
--- images ("memes") kids can browse for fun, distinct from any task. Same
--- pure play-for-fun shape as cinema_videos/scratch_games: no student_id,
--- shared across the whole class, no mastery/task tracking. Video content
--- from the same request is intentionally NOT duplicated here since
--- cinema_videos already serves that exact purpose.
-create table if not exists gallery_items (
-  id text primary key,
-  image_url text not null,
-  caption text,
-  created_at timestamptz not null default now(),
-  tags jsonb not null default '[]'
-);
-
 -- Student-to-student barter offers at the Farmer's Market — direct
 -- teacher request to practice negotiation as a real skill. Async/turn-
 -- based (post an offer, another student accepts whenever), same shape
@@ -288,26 +273,9 @@ alter table farmer_market_offers add column if not exists wants_pet_rarity text;
 alter table farmer_market_offers add column if not exists accepted_with_pet_id text;
 alter table farmer_market_offers alter column wants_item_id drop not null;
 
--- Silly Personality Quizzes — the second half of the Playground-gallery
--- brainstorm's "memes/mini games/personality quizzes" ask, built after a
--- Claudia design pass rejected the classic "which type are you" sorter
--- shape for this population. Teacher-authored, same shape as
--- cinema_videos/gallery_items: shared across the class, no student_id.
--- Deliberately no results table — a quiz result is private to the
--- student taking it and computed client-side, never persisted or shown
--- to anyone else, per the standing no-leaderboard rule.
-create table if not exists silly_quizzes (
-  id text primary key,
-  title text not null,
-  questions jsonb not null default '[]',
-  outcomes jsonb not null default '[]',
-  created_at timestamptz not null default now()
-);
-
 -- Reusable activities: created once, dragged into any student's daily plan
--- (which copies it into that student's `rotations.tasks`) and/or flagged
--- for the shared Playground pool. Same content shape as a Task, plus a
--- subject tag and the Playground flag.
+-- (which copies it into that student's `rotations.tasks`). Same content
+-- shape as a Task, plus a subject tag.
 create table if not exists activity_library (
   id text primary key,
   subject text not null check (subject in ('math', 'literacy')),
@@ -326,7 +294,6 @@ create table if not exists activity_library (
   reference_image_url text,
   reference_link_url text,
   reference_link_label text,
-  in_playground boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -408,7 +375,6 @@ create table if not exists student_meta (
 -- Columns added after the initial release — safe no-ops if already present,
 -- and the only step needed to bring an existing project's database up to
 -- date (re-running this whole file is also fine).
-alter table students add column if not exists playground_threshold int not null default 4;
 alter table question_sets add column if not exists cover_image_url text;
 alter table question_sets add column if not exists tags jsonb not null default '[]';
 alter table student_meta add column if not exists weekly_plan_applied jsonb not null default '{}';
@@ -876,7 +842,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers'
   ];
 begin
   foreach t in array tables loop
@@ -919,7 +885,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'gallery_items', 'farmer_market_offers', 'silly_quizzes'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers'
   ];
 begin
   foreach t in array tables loop

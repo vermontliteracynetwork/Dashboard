@@ -49,10 +49,9 @@ interface CompleteProps {
   subject: Subject;
   onHome: () => void;
   onReview?: () => void;
-  onPlayground?: () => void; // only passed once BOTH subjects are done today — the Playground's real unlock condition
 }
 
-export function SubjectCompleteScreen({ student, subject, onHome, onReview, onPlayground }: CompleteProps) {
+export function SubjectCompleteScreen({ student, subject, onHome, onReview }: CompleteProps) {
   const meta = SUBJECT_META[subject];
   return (
     <div className="center-screen">
@@ -61,25 +60,13 @@ export function SubjectCompleteScreen({ student, subject, onHome, onReview, onPl
         <span style={{ fontSize: '3rem' }}>🎉</span>
         <h2>{meta.label} complete!</h2>
         <p>Awesome work today.</p>
-        {onPlayground && <p style={{ margin: 0, fontWeight: 700, color: 'var(--purple-dark)' }}>🎪 The Playground is open. You finished everything today!</p>}
         <div className="row-wrap" style={{ justifyContent: 'center' }}>
-          {onPlayground ? (
-            <button className="btn btn-primary btn-lg pulse-cta" onClick={onPlayground}>
-              🎪 Go to the Playground!
-            </button>
-          ) : (
-            <button className="btn btn-primary btn-lg pulse-cta" onClick={onHome}>
-              Back to Home
-            </button>
-          )}
+          <button className="btn btn-primary btn-lg pulse-cta" onClick={onHome}>
+            Back to Home
+          </button>
           {onReview && (
             <button className="btn btn-teal btn-lg" onClick={onReview}>
               📚 Review my work
-            </button>
-          )}
-          {onPlayground && (
-            <button className="btn btn-lg" onClick={onHome}>
-              Back to Home
             </button>
           )}
         </div>

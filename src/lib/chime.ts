@@ -1,5 +1,5 @@
-// A short, gentle two-note bell — used to signal a break or Playground
-// timer running out. Synthesized with the Web Audio API instead of a
+// A short, gentle two-note bell — used to signal a break timer running
+// out. Synthesized with the Web Audio API instead of a
 // bundled audio file, and deliberately soft (slow fade, low gain, no harsh
 // attack) rather than a jarring alarm buzzer.
 export function playCalmChime() {

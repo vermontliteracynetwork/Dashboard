@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-09-30-playground-retired',
+    date: '2026-09-30',
+    icon: '🎮',
+    title: 'The Playground is now the games',
+    body: 'The old Playground page is gone. Instead, you can play games like Bakery Match and the Gas Pump anytime you want, and answering questions there still counts toward your assignments.',
+  },
+  {
     id: '2026-09-29-bakery-match-goal',
     date: '2026-09-29',
     icon: '🎯',

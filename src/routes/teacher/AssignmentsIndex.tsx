@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm, PlaygroundPool } from './ActivityLibrary';
+import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
 import QuestionSetsManager from './QuestionSetsManager';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { StudentPlanTabs } from './LessonPlanBuilder';
@@ -10,7 +10,9 @@ import type { EditingPlan } from './NewDailyPlanBuilder';
 import { formatDateLong, todayISO } from '../../lib/dates';
 import { sortForDisplay } from '../../lib/taskOrder';
 import { makeId } from '../../lib/id';
-import type { Assignment, PlanTemplate, Student, Subject, Task } from '../../types';
+import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
+import { TASK_TYPE_ICONS } from '../../types';
+import type { Assignment, PlanTemplate, QuestionSet, Student, Subject, Task } from '../../types';
 
 interface AssignmentGroup {
   key: string;
@@ -361,13 +363,147 @@ function AssignmentDetailModal({
   );
 }
 
+// Reusable collapse/expand wrapper, same visual pattern ActivitiesPanel
+// already uses (space-between header button, ▾/▸ caret) — direct teacher
+// instruction: "activity library should be collapsable. in the same
+// collapsable format, add a question set option" for the assignment
+// builder's side panel.
+function CollapsibleZone({
+  title,
+  count,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  count?: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="chrome-frame stack" style={{ padding: 14 }}>
+      <button
+        className="space-between"
+        style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 44 }}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+          {title}{typeof count === 'number' && count > 0 ? ` (${count})` : ''}
+        </span>
+        <span aria-hidden="true">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && <div className="stack" style={{ marginTop: 10 }}>{children}</div>}
+    </div>
+  );
+}
+
+// Turns a saved Question Set directly into a plan Task — the fast path
+// for assigning a set without going through full Activity authoring
+// first. Quiz-kind sets become a 'quiz' task (so the existing
+// GameplayModePicker in NewDailyPlanBuilder immediately offers the
+// 3-mode completion logic below); drill-kind sets become a 'drill' task,
+// which has no gameplay-mode concept.
+function questionSetToTaskSnapshot(set: QuestionSet): Task {
+  return {
+    id: makeId(),
+    title: set.name,
+    icon: TASK_TYPE_ICONS[set.kind],
+    type: set.kind,
+    quiz: set.kind === 'quiz' ? { questions: set.questions } : undefined,
+    drill: set.kind === 'drill' ? { cards: set.cards } : undefined,
+    rewardCents: DEFAULT_TASK_REWARD_CENTS,
+  };
+}
+
+// The assignment builder's "insert a saved Question Set as an activity"
+// panel — direct teacher instruction, same request that asked for the
+// Activity Library panel next to it to be collapsible. Reuses the
+// library-card visual language (compact grid, type-icon thumb, Add
+// button) so the two panels read as one family rather than two designs.
+//
+// Question-set completion logic (direct teacher spec, "question sets can
+// act as activities that are being assigned in three ways," saved here so
+// it isn't only living in a commit message):
+//   1. Specific native game (completionMode: 'specificGame' + nativeGameId)
+//      — the set's questions surface only inside that one named game
+//      (e.g. Bakery Match, Gas Pump), counting toward completion there.
+//   2. Any gameplay (completionMode: 'anyGame') — the set's questions are
+//      pooled across every question-consuming native game/asset in the
+//      world; any correct answer toward this set counts, wherever the
+//      student happens to answer it.
+//   3. Quiz/Practice mode (completionMode: 'quizAll', the default/unset
+//      value — today's ordinary behavior) — the student answers every
+//      question in the set consecutively in the dedicated Quiz/Practice
+//      screen, no native game involved.
+// In every mode, a target question count can be set lower than the full
+// set (completes after N questions) or higher (repeats through the set
+// once exhausted) — see CompletionMode/targetQuestionCount in types.ts
+// and gameplayAssignment.ts for the runtime mechanics. Picking the mode
+// happens on the task itself once it's added to the plan (Gameplay Mode
+// picker, shown under any quiz-type task that has real questions) — this
+// panel's job is only to get the set onto the plan as a task in the
+// first place.
+function QuestionSetPicker({ subject, onAdd }: { subject: Subject; onAdd: (task: Task) => void }) {
+  const questionSets = useStore((s) => s.questionSets);
+  const [search, setSearch] = useState('');
+  const searchLower = search.trim().toLowerCase();
+  const sets = questionSets.filter((s) => {
+    if (s.subject !== subject) return false;
+    if (!searchLower) return true;
+    return s.name.toLowerCase().includes(searchLower) || (s.description ?? '').toLowerCase().includes(searchLower);
+  });
+
+  return (
+    <div className="stack">
+      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
+        Tap "Add" to drop a saved Question Set into this plan as its own activity. Once it's on the plan, pick how
+        it's completed (Quiz/Practice, one specific game, or any gameplay) right on the task itself.
+      </p>
+      <input
+        placeholder="🔍 Search question sets…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ width: '100%' }}
+      />
+      {sets.length === 0 ? (
+        <p style={{ opacity: 0.7 }}>{search ? 'No question sets match your search.' : 'No saved question sets for this subject yet.'}</p>
+      ) : (
+        <div className="library-card-grid library-card-grid-compact">
+          {sets.map((set) => (
+            <div key={set.id} className="library-card library-card-compact">
+              <div className="library-card-thumb">
+                <span>{set.kind === 'quiz' ? '🧠' : '🗂️'}</span>
+              </div>
+              <div className="library-card-body">
+                <div className="set-card-title">{set.name}</div>
+                {set.description && <div className="set-card-meta">{set.description}</div>}
+                <div className="set-card-meta">
+                  {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
+                </div>
+                <div className="library-card-actions-compact">
+                  <button
+                    className="btn btn-sm btn-success library-card-add-btn"
+                    onClick={() => onAdd(questionSetToTaskSnapshot(set))}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Direct teacher instruction (2026-09-29): "activities and assignments...
 // should be in one singular tab, not two of them, in a dashboard view" —
-// Create Activity, the Activity Library, and the shared Playground Pool
-// (previously their own /teacher/activities screen) live here now,
-// collapsed by default like Question Sets above, so the whole
-// academic surface is genuinely one screen without dumping everything
-// open at once.
+// Create Activity and the Activity Library (previously their own
+// /teacher/activities screen) live here now, collapsed by default like
+// Question Sets above, so the whole academic surface is genuinely one
+// screen without dumping everything open at once.
 function ActivitiesPanel() {
   const activityLibrary = useStore((s) => s.activityLibrary);
   const [open, setOpen] = useState(false);
@@ -388,12 +524,11 @@ function ActivitiesPanel() {
       {open && (
         <div className="stack" style={{ marginTop: 10 }}>
           <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: 0 }}>
-            The activity shell around a Question Set — a game, video, or task type. Create one, browse what's
-            already built, or manage what's in the shared Playground.
+            The activity shell around a Question Set — a game, video, or task type. Create one, or browse what's
+            already built.
           </p>
           <CreateActivityForm />
           <ActivityLibraryBrowse />
-          <PlaygroundPool />
         </div>
       )}
     </div>
@@ -403,6 +538,7 @@ function ActivitiesPanel() {
 export default function AssignmentsIndex() {
   const assignments = useStore((s) => s.assignments);
   const activityLibrary = useStore((s) => s.activityLibrary);
+  const questionSets = useStore((s) => s.questionSets);
   const planTemplates = useStore((s) => s.planTemplates);
   const students = useStore((s) => s.students);
   const deleteAssignment = useStore((s) => s.deleteAssignment);
@@ -532,15 +668,20 @@ export default function AssignmentsIndex() {
                 onSaved={closeBuilder}
               />
             </div>
-            <div className="assignments-split-side">
-              <ActivityLibraryBrowse
-                subject={subject}
-                compact
-                onAddActivity={(activityId) => {
-                  const lib = activityLibrary.find((a) => a.id === activityId);
-                  if (lib) setPlanTasks((prev) => [...prev, activityToTaskSnapshot(lib)]);
-                }}
-              />
+            <div className="assignments-split-side stack">
+              <CollapsibleZone title="Activity Library" count={activityLibrary.filter((a) => a.subject === subject).length}>
+                <ActivityLibraryBrowse
+                  subject={subject}
+                  compact
+                  onAddActivity={(activityId) => {
+                    const lib = activityLibrary.find((a) => a.id === activityId);
+                    if (lib) setPlanTasks((prev) => [...prev, activityToTaskSnapshot(lib)]);
+                  }}
+                />
+              </CollapsibleZone>
+              <CollapsibleZone title="Question Sets" count={questionSets.filter((s) => s.subject === subject).length}>
+                <QuestionSetPicker subject={subject} onAdd={(task) => setPlanTasks((prev) => [...prev, task])} />
+              </CollapsibleZone>
             </div>
           </div>
 

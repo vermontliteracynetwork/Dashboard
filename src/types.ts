@@ -213,7 +213,7 @@ export const QUIZ_THEME_LABELS: Record<QuizTheme, string> = {
 export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice' | 'platformer';
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
-  quiz: 'Quiz (practice or checkpoint)',
+  quiz: 'Question Set (practice or checkpoint)',
   link: 'External link (review game, website)',
   offscreen: 'Off-screen / paper',
   video: 'Video (YouTube)',
@@ -501,7 +501,7 @@ export interface Task {
   referenceLinkLabel?: string;
   order?: number; // set = must be done in ascending order before any unordered task unlocks; unset = free-choice once all ordered tasks are done
   isDaily?: boolean; // teacher-marked "this repeats every day" — shown with a star in the library
-  isFinalCheck?: boolean; // teacher-marked "completing this marks the whole subject done" — unlocks Playground and updates the streak, instead of requiring every other activity to be checked off too. Typically a quiz.
+  isFinalCheck?: boolean; // teacher-marked "completing this marks the whole subject done" — updates the streak instead of requiring every other activity to be checked off too. Typically a quiz.
   reward?: TaskReward; // what completing this grants; defaults to { type: 'money' } (see rewardCents) when unset
   rewardCents?: number; // Class Cash paid out on completion when reward is money-type (the default); falls back to DEFAULT_TASK_REWARD_CENTS when unset
   required?: boolean; // teacher-marked "cannot be skipped with a Skip Pass under any circumstances"
@@ -621,63 +621,6 @@ export interface ScratchGame {
   tags?: string[]; // teacher-authored, free-form — same search/filter pattern as CinemaVideo.tags
 }
 
-// A single image in the Playground's Gallery — direct teacher request
-// (referencing the Kinzoo app's kid-facing content gallery): "a gallery
-// where I can add videos and images for the kids to look through... fun
-// things like memes." Scoped to images only, since Cinema already covers
-// the video-watch-for-fun half exactly (same shape: teacher-authored,
-// no task/mastery tracking) — duplicating video hosting here would just
-// split the same content across two places. Personality quizzes and mini
-// games from the same original request are a separate, not-yet-built
-// piece (see DEVELOPMENT_PLAN.md) that needs a design pass first, unlike
-// a plain image which carries no ABA/SEL judgment call.
-export interface GalleryItem {
-  id: string;
-  imageUrl: string;
-  caption?: string; // optional short label/alt text shown under the image
-  createdAt: string;
-  tags?: string[]; // same free-form tag pattern as CinemaVideo.tags
-}
-
-// The "silly personality quizzes" half of the same Playground-gallery
-// brainstorm, built this hour after Claudia's design pass. Deliberately
-// NOT a Buzzfeed-style "which type are you" sorter — she rejected that
-// shape outright for this population (a literal-thinking or anxious
-// student could fixate on being "labeled," and a peer-visible "silly"
-// result still functions as informal ranking even when nothing in the
-// app itself ranks it). Every question is a low-stakes silly pick (a
-// snack, a sound), never about the student's real personality/mood/
-// social behavior; every outcome is an equally-enthusiastic silly
-// object or vibe, never a trait or role. Scoring is a simple client-side
-// tag tally with a random tiebreak — no backend logic, no persistence
-// of results, since results are private to the taking student only and
-// are never shown to teachers or peers (the platform's standing no-
-// leaderboard/no-cross-student-comparison rule, see PART D of the dev
-// plan). Same teacher-authored-static-content shape as Cinema/Gallery.
-export interface QuizOutcome {
-  tag: string; // matches QuizOption.outcomeTag
-  title: string; // e.g. "Disco Waffle" — an object/vibe, never a personality label
-  funText: string; // one enthusiastic sentence, same energy as every other outcome
-  icon: string; // emoji, or an uploaded image URL (same convention as MarketplaceItem.icon)
-}
-export interface QuizOption {
-  id: string;
-  text: string;
-  outcomeTag: string;
-}
-export interface SillyQuizQuestion {
-  id: string;
-  text: string;
-  options: QuizOption[];
-}
-export interface SillyQuiz {
-  id: string;
-  title: string;
-  questions: SillyQuizQuestion[]; // 4-6, teacher-authored
-  outcomes: QuizOutcome[]; // 4-8, teacher-authored
-  createdAt: string;
-}
-
 // A shared music library — direct teacher request: a car radio, the
 // Concert Hall building, and a placeable Boom Box all draw from this same
 // list. Audio only, always — unlike CinemaVideo, there is no video
@@ -694,11 +637,10 @@ export interface MusicTrack {
 export type Rotation = Record<string, Record<Subject, Task[]>>; // studentId -> subject -> tasks
 
 // A reusable activity, created once and dragged into any student's daily
-// plan (which copies it into a fresh Task instance) or flagged for the
-// shared Playground pool — the "create once, reuse everywhere" library.
+// plan (which copies it into a fresh Task instance) — the "create once,
+// reuse everywhere" library.
 export interface ActivityLibraryItem extends Task {
   subject: Subject;
-  inPlayground: boolean;
   createdAt: string;
   tags: string[]; // teacher-defined, free-form (e.g. "YouTube Video", "Baamboozle Game") — for filtering/search in the library
 }
@@ -1089,7 +1031,7 @@ export interface SubjectProgress {
   quizState: Record<string, QuizRuntimeState>; // taskId -> state
   sessionRitualSeen: boolean;
   subjectComplete: boolean;
-  completedAt?: string; // ISO timestamp when subjectComplete first became true today — drives the timed Playground unlock
+  completedAt?: string; // ISO timestamp when subjectComplete first became true today
   skippedTaskIds: string[]; // subset of completedTaskIds crossed off with a Skip Pass instead of actually done — kept visible to the teacher, not hidden
 }
 

@@ -10,12 +10,19 @@ interface QuizProps {
   subject: Subject;
   current: QuizQuestion[];
   onInsert: (items: QuizQuestion[]) => void;
+  // Direct teacher instruction: a Question Set activity's authoring form
+  // should offer only Upload a CSV / Get CSV template — no "insert from a
+  // saved set" picker, no "save these as a set" (the set IS what's being
+  // authored here already). Only affects the quiz-kind Create Activity
+  // path; QuestionSetDetail.tsx's own real set editor keeps every control.
+  minimal?: boolean;
 }
 interface DrillProps {
   kind: 'drill';
   subject: Subject;
   current: DrillCard[];
   onInsert: (items: DrillCard[]) => void;
+  minimal?: boolean;
 }
 
 export default function SetLibraryControls(props: QuizProps | DrillProps) {
@@ -80,13 +87,17 @@ export default function SetLibraryControls(props: QuizProps | DrillProps) {
   return (
     <div className="stack" style={{ padding: '8px 0', gap: 6 }}>
       <div className="row-wrap">
-        <select value={insertId} onChange={(e) => setInsertId(e.target.value)}>
-          <option value="">📥 Insert from a saved set...</option>
-          {matching.map((s) => (
-            <option key={s.id} value={s.id}>{s.name} ({props.kind === 'quiz' ? s.questions.length : s.cards.length})</option>
-          ))}
-        </select>
-        <button className="btn btn-sm" disabled={!insertId} onClick={handleInsert}>Insert</button>
+        {!props.minimal && (
+          <>
+            <select value={insertId} onChange={(e) => setInsertId(e.target.value)}>
+              <option value="">📥 Insert from a saved set...</option>
+              {matching.map((s) => (
+                <option key={s.id} value={s.id}>{s.name} ({props.kind === 'quiz' ? s.questions.length : s.cards.length})</option>
+              ))}
+            </select>
+            <button className="btn btn-sm" disabled={!insertId} onClick={handleInsert}>Insert</button>
+          </>
+        )}
 
         <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>📤 Upload a CSV</button>
         <a
@@ -105,20 +116,22 @@ export default function SetLibraryControls(props: QuizProps | DrillProps) {
           onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
         />
 
-        {savingName === null ? (
-          <button
-            className="btn btn-sm"
-            disabled={props.current.length === 0}
-            onClick={() => setSavingName('')}
-          >
-            💾 Save these as a set
-          </button>
-        ) : (
-          <>
-            <input placeholder="Set name" value={savingName} onChange={(e) => setSavingName(e.target.value)} />
-            <button className="btn btn-sm btn-primary" disabled={!savingName.trim()} onClick={handleSave}>Save</button>
-            <button className="btn btn-sm" onClick={() => setSavingName(null)}>Cancel</button>
-          </>
+        {!props.minimal && (
+          savingName === null ? (
+            <button
+              className="btn btn-sm"
+              disabled={props.current.length === 0}
+              onClick={() => setSavingName('')}
+            >
+              💾 Save these as a set
+            </button>
+          ) : (
+            <>
+              <input placeholder="Set name" value={savingName} onChange={(e) => setSavingName(e.target.value)} />
+              <button className="btn btn-sm btn-primary" disabled={!savingName.trim()} onClick={handleSave}>Save</button>
+              <button className="btn btn-sm" onClick={() => setSavingName(null)}>Cancel</button>
+            </>
+          )
         )}
       </div>
       {uploadNotice && <p style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700, margin: 0 }}>✅ {uploadNotice}</p>}

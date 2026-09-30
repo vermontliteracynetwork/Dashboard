@@ -9,7 +9,6 @@ import RoleSelect from './routes/RoleSelect';
 import StudentLogin from './routes/student/StudentLogin';
 import StudentHome from './routes/student/StudentHome';
 import SubjectDashboard from './routes/student/SubjectDashboard';
-import PlaygroundView from './routes/student/PlaygroundView';
 import Marketplace from './components/Marketplace';
 import PiggyBank from './components/PiggyBank';
 import Mailbox from './components/Mailbox';
@@ -18,9 +17,7 @@ import PetShelter from './routes/student/PetShelter';
 import PetJournal from './routes/student/PetJournal';
 import Cinema from './routes/student/Cinema';
 import Arcade from './routes/student/Arcade';
-import Gallery from './routes/student/Gallery';
 import FarmersMarket from './routes/student/FarmersMarket';
-import SillyQuizzes from './routes/student/SillyQuizzes';
 import BakeryMatch3 from './routes/student/BakeryMatch3';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
 import TeacherLogin from './routes/teacher/TeacherLogin';
@@ -141,14 +138,11 @@ export default function App() {
           <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/student/home" element={<StudentHome />} />
           <Route path="/student/:subject" element={<SubjectDashboard />} />
-          <Route path="/student/playground/view" element={<PlaygroundView />} />
           <Route path="/student/marketplace" element={<Marketplace />} />
           <Route path="/student/piggy-bank" element={<PiggyBank />} />
           <Route path="/student/mailbox" element={<Mailbox />} />
           <Route path="/student/passport" element={<Passport />} />
-          <Route path="/student/gallery" element={<Gallery />} />
           <Route path="/student/farmers-market" element={<FarmersMarket />} />
-          <Route path="/student/quizzes" element={<SillyQuizzes />} />
           <Route path="/student/bakery" element={<BakeryMatch3 />} />
           <Route path="/student/pet-shelter" element={<PetShelter />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
@@ -166,7 +160,6 @@ export default function App() {
             <Route path="/teacher/activities" element={<Navigate to="/teacher/assignments" replace />} />
             <Route path="/teacher/game" element={<GameManager />} />
             <Route path="/teacher/question-sets/:setId" element={<QuestionSetDetail />} />
-            <Route path="/teacher/playground" element={<Navigate to="/teacher/assignments" replace />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />
             <Route path="/teacher/marketplace" element={<MarketplaceManager />} />
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />

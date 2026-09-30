@@ -8,6 +8,11 @@ interface Props {
   subject: Subject;
   questions: QuizQuestion[];
   onChange: (questions: QuizQuestion[]) => void;
+  // Direct teacher instruction: a Question Set activity's form should
+  // offer only CSV upload/template, not the full manual-authoring toolkit
+  // (insert-from-saved-set, the add-a-question-by-hand row) — those stay
+  // for a Native Game's in-game quiz questions, authored by hand more often.
+  simplified?: boolean;
 }
 
 const blankMC = (): MCQuestion => ({ id: makeId(), kind: 'mc', prompt: '', choices: ['', ''], correctIndex: 0 });
@@ -234,7 +239,7 @@ function QuestionRow({
   );
 }
 
-export default function QuizEditor({ subject, questions, onChange }: Props) {
+export default function QuizEditor({ subject, questions, onChange, simplified }: Props) {
   const [addingKind, setAddingKind] = useState<'mc' | 'matching' | 'fill'>('mc');
 
   const update = (id: string, q: QuizQuestion) => onChange(questions.map((existing) => (existing.id === id ? q : existing)));
@@ -246,18 +251,20 @@ export default function QuizEditor({ subject, questions, onChange }: Props) {
 
   return (
     <div className="stack">
-      <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} />
+      <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} minimal={simplified} />
       {questions.map((q, i) => (
         <QuestionRow key={q.id} index={i} q={q} issue={getQuestionIssue(q) ?? undefined} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)} />
       ))}
-      <div className="row">
-        <select value={addingKind} onChange={(e) => setAddingKind(e.target.value as typeof addingKind)}>
-          <option value="mc">Multiple choice</option>
-          <option value="matching">Matching</option>
-          <option value="fill">Fill in the blank</option>
-        </select>
-        <button className="btn btn-sm btn-primary" onClick={add}>➕ Add question</button>
-      </div>
+      {!simplified && (
+        <div className="row">
+          <select value={addingKind} onChange={(e) => setAddingKind(e.target.value as typeof addingKind)}>
+            <option value="mc">Multiple choice</option>
+            <option value="matching">Matching</option>
+            <option value="fill">Fill in the blank</option>
+          </select>
+          <button className="btn btn-sm btn-primary" onClick={add}>➕ Add question</button>
+        </div>
+      )}
     </div>
   );
 }

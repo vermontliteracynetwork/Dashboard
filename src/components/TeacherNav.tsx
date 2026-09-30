@@ -47,7 +47,7 @@ export default function TeacherNav() {
             under one grouped "More" menu (a native <details>, so it needs
             no click-outside JS) instead of crowding the main bar. Activities
             no longer has its own entry — Question Sets/Activity
-            Library/Playground all merged into the single Academics tab
+            Library all merged into the single Academics tab
             (direct teacher instruction: "activities and assignments...
             should be in one singular tab, not two of them"). */}
         <details className="teacher-nav-more">
