@@ -639,13 +639,15 @@ const rowToBreakPoolItem = (r: Row): BreakPoolItem => ({
 const rowToQuestionSet = (r: Row): QuestionSet => ({
   id: r.id,
   name: r.name,
+  description: r.description ?? undefined,
   subject: r.subject,
   kind: r.kind,
   questions: r.questions ?? [],
   cards: r.cards ?? [],
-  coverImageUrl: r.cover_image_url ?? undefined,
   createdAt: r.created_at,
   tags: r.tags ?? [],
+  isFocus: r.is_focus ?? false,
+  focusedAt: r.focused_at ?? undefined,
 });
 
 const rowToCinemaVideo = (r: Row): CinemaVideo => ({
@@ -1343,13 +1345,15 @@ export const pushQuestionSet = (q: QuestionSet) =>
   upsert('question_sets', {
     id: q.id,
     name: q.name,
+    description: q.description ?? null,
     subject: q.subject,
     kind: q.kind,
     questions: q.questions,
     cards: q.cards,
-    cover_image_url: q.coverImageUrl ?? null,
     created_at: q.createdAt,
     tags: q.tags ?? [],
+    is_focus: q.isFocus ?? false,
+    focused_at: q.focusedAt ?? null,
   });
 export const deleteQuestionSetRemote = (id: string) => remove('question_sets', { id });
 

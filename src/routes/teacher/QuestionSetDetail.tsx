@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import ImageUploadField from '../../components/ImageUploadField';
 import TeacherNav from '../../components/TeacherNav';
 import QuizEditor from './QuizEditor';
 import DrillEditor from './DrillEditor';
@@ -150,63 +149,56 @@ export default function QuestionSetDetail() {
 
         <div className="content-well stack">
           <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-            <strong>Tags &amp; cover image</strong>
+            <strong>Tags</strong>
             <div className="row" style={{ alignItems: 'center', gap: 8 }}>
               <button className="btn btn-primary btn-sm" onClick={() => setJustSavedExtras(true)}>💾 Save</button>
               {justSavedExtras && <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700 }}>✅ Saved</span>}
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
-            <div className="stack" style={{ gap: 6 }}>
-              <div className="row-wrap" style={{ gap: 4 }}>
-                {(set.tags ?? []).map((t) => (
-                  <span key={t} className="tag-pill tag-pill-sm">
-                    {t}{' '}
-                    <button
-                      aria-label={`Remove tag ${t}`}
-                      onClick={() => updateQuestionSet(set.id, { tags: (set.tags ?? []).filter((x) => x !== t) })}
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="row" style={{ gap: 6 }}>
-                <input
-                  className="input"
-                  style={{ fontSize: '0.82rem', padding: '5px 8px' }}
-                  placeholder="Add a tag…"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter') return;
-                    e.preventDefault();
-                    const t = tagInput.trim();
-                    if (!t || (set.tags ?? []).includes(t)) return;
-                    updateQuestionSet(set.id, { tags: [...(set.tags ?? []), t] });
-                    setTagInput('');
-                  }}
-                />
-                <button
-                  className="btn chip-filter-sm"
-                  disabled={!tagInput.trim()}
-                  onClick={() => {
-                    const t = tagInput.trim();
-                    if (!t || (set.tags ?? []).includes(t)) return;
-                    updateQuestionSet(set.id, { tags: [...(set.tags ?? []), t] });
-                    setTagInput('');
-                  }}
-                >
-                  + Add
-                </button>
-              </div>
+          <div className="stack" style={{ gap: 6 }}>
+            <div className="row-wrap" style={{ gap: 4 }}>
+              {(set.tags ?? []).map((t) => (
+                <span key={t} className="tag-pill tag-pill-sm">
+                  {t}{' '}
+                  <button
+                    aria-label={`Remove tag ${t}`}
+                    onClick={() => updateQuestionSet(set.id, { tags: (set.tags ?? []).filter((x) => x !== t) })}
+                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
             </div>
-            <ImageUploadField
-              label="Cover image"
-              value={set.coverImageUrl}
-              onChange={(url) => updateQuestionSet(set.id, { coverImageUrl: url || undefined })}
-            />
+            <div className="row" style={{ gap: 6 }}>
+              <input
+                className="input"
+                style={{ fontSize: '0.82rem', padding: '5px 8px' }}
+                placeholder="Add a tag…"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return;
+                  e.preventDefault();
+                  const t = tagInput.trim();
+                  if (!t || (set.tags ?? []).includes(t)) return;
+                  updateQuestionSet(set.id, { tags: [...(set.tags ?? []), t] });
+                  setTagInput('');
+                }}
+              />
+              <button
+                className="btn chip-filter-sm"
+                disabled={!tagInput.trim()}
+                onClick={() => {
+                  const t = tagInput.trim();
+                  if (!t || (set.tags ?? []).includes(t)) return;
+                  updateQuestionSet(set.id, { tags: [...(set.tags ?? []), t] });
+                  setTagInput('');
+                }}
+              >
+                + Add
+              </button>
+            </div>
           </div>
         </div>
 
