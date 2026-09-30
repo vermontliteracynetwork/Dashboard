@@ -353,20 +353,11 @@ export default function SubjectDashboard() {
             onSkip={(task) => skipTask(student.id, subj, task.id)}
           />
 
-          {activeTask && (activeTask.referenceImageUrl || activeTask.referenceLinkUrl) && (
+          {activeTask && activeTask.referenceLinkUrl && (
             <div className="content-well stack" style={{ alignItems: 'center' }}>
-              {activeTask.referenceImageUrl && (
-                <img
-                  src={activeTask.referenceImageUrl}
-                  alt="Reference"
-                  style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 12, border: '2px solid var(--content-border)' }}
-                />
-              )}
-              {activeTask.referenceLinkUrl && (
-                <a className="btn btn-blue" href={activeTask.referenceLinkUrl} target="_blank" rel="noopener noreferrer">
-                  🔗 {activeTask.referenceLinkLabel || 'Open reference link'}
-                </a>
-              )}
+              <a className="btn btn-blue" href={activeTask.referenceLinkUrl} target="_blank" rel="noopener noreferrer">
+                🔗 {activeTask.referenceLinkLabel || 'Open reference link'}
+              </a>
             </div>
           )}
         </>

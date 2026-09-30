@@ -42,6 +42,21 @@ const YouTubeAudio = forwardRef<MusicPlayerHandle, { ytId: string; title: string
           events: {
             onReady: (e: any) => {
               e.target.setVolume?.(volume);
+              // Direct teacher bug report: radio/Boom Box played for one
+              // student but not another, who had to manually hit pause
+              // then play before it would start. The iframe's `autoplay=1`
+              // URL param is what's supposed to start it, but WebKit/iOS
+              // (iPad is this app's primary device) silently drops that
+              // param unless it lands within a very short window of a real
+              // tap — the async YouTube IFrame API load (script fetch, then
+              // this onReady callback) routinely blows past that window,
+              // especially on a student's first song of the session before
+              // the browser has "remembered" this origin is allowed to
+              // autoplay audio. Calling playVideo() explicitly here is the
+              // same call the manual Play button already makes — it
+              // reliably starts playback once the player object exists,
+              // instead of depending on the URL param's unreliable timing.
+              e.target.playVideo?.();
               onReadyRef.current();
             },
             onStateChange: (e: any) => {

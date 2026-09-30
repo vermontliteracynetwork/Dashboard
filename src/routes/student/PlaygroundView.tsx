@@ -219,11 +219,7 @@ export default function PlaygroundView() {
           </button>
           {entries.map(({ task, subject }) => (
             <button key={`${subject}-${task.id}`} className="choice-tile" onClick={() => setOpenEntry({ task, subject })}>
-              {task.referenceImageUrl ? (
-                <img src={task.referenceImageUrl} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 12 }} />
-              ) : (
-                <span className="choice-icon">{task.icon}</span>
-              )}
+              <span className="choice-icon">{task.icon}</span>
               <span>{task.title}</span>
             </button>
           ))}

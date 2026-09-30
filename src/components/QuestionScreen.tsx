@@ -44,6 +44,19 @@ export interface QuestionScreenProps {
   imageAlt?: string;
   onCorrectAnswer: () => void;
   onExit: () => void;
+  // Direct teacher report (2026-09-30): a student who genuinely doesn't
+  // know a question's answer had no way forward except guessing among the
+  // same fixed set of choices forever — this component's retry-the-same-
+  // question model (unlike QuizTask/PlatformerTask, which move a student
+  // on to a different question after one wrong attempt and requeue the
+  // missed one for later) left them stuck with nothing visibly happening.
+  // Optional: once the student has gotten this question wrong at least
+  // once, a caller that supplies onSkip gets a real "try a different
+  // question" escape hatch — swapping in a new question, same "wrong never
+  // costs anything, never restarts the count" rule the retry model already
+  // followed, just adding real forward motion instead of the caller only
+  // being locked into "the exact same question, no matter what."
+  onSkip?: () => void;
   ttsSettings?: TTSSettings;
 }
 
@@ -84,6 +97,7 @@ export default function QuestionScreen({
   imageAlt,
   onCorrectAnswer,
   onExit,
+  onSkip,
   ttsSettings,
 }: QuestionScreenProps) {
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -394,6 +408,27 @@ export default function QuestionScreen({
             >
               {feedback === 'correct' ? '✅ Correct! Nice work.' : "🔁 Not quite, try again."}
             </div>
+          )}
+
+          {feedback === 'wrong' && onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              style={{
+                alignSelf: 'center',
+                background: 'none',
+                border: 'none',
+                color: '#6B6355',
+                fontSize: 14,
+                fontWeight: 700,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                padding: 8,
+                minHeight: 44,
+              }}
+            >
+              🔀 Try a different question instead
+            </button>
           )}
         </div>
       </div>
