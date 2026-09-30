@@ -28,6 +28,8 @@ export default function QuestionSetDetail() {
   // continuous typing.
   const [nameDraft, setNameDraft] = useState(set?.name ?? '');
   const [justSaved, setJustSaved] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState(set?.description ?? '');
+  const [justSavedDescription, setJustSavedDescription] = useState(false);
   const [tagInput, setTagInput] = useState('');
   // Tags and cover image already write to the store the instant they
   // change (see the comment above) — this button/indicator doesn't defer
@@ -36,7 +38,9 @@ export default function QuestionSetDetail() {
   const [justSavedExtras, setJustSavedExtras] = useState(false);
   useEffect(() => {
     setNameDraft(set?.name ?? '');
+    setDescriptionDraft(set?.description ?? '');
     setJustSaved(false);
+    setJustSavedDescription(false);
     setJustSavedExtras(false);
   }, [set?.id]);
 
@@ -107,6 +111,40 @@ export default function QuestionSetDetail() {
               💾 Save
             </button>
             {justSaved && <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700 }}>✅ Saved</span>}
+          </div>
+        </div>
+
+        <div className="content-well stack">
+          <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <strong>Description &amp; focus</strong>
+            <button
+              className={`btn btn-sm ${set.isFocus ? 'btn-primary' : ''}`}
+              onClick={() => updateQuestionSet(set.id, { isFocus: !set.isFocus, focusedAt: !set.isFocus ? new Date().toISOString() : set.focusedAt })}
+              title="A starred set is shown around the game as this subject's current class theme"
+            >
+              {set.isFocus ? '⭐ Focus set — tap to unstar' : '☆ Star as a focus set'}
+            </button>
+          </div>
+          <div className="row" style={{ alignItems: 'flex-start' }}>
+            <textarea
+              className="input"
+              rows={2}
+              style={{ flex: 1 }}
+              placeholder="A brief subtext shown under the title (e.g. what this set covers)"
+              value={descriptionDraft}
+              onChange={(e) => { setDescriptionDraft(e.target.value); setJustSavedDescription(false); }}
+            />
+            <button
+              className="btn btn-primary btn-sm"
+              disabled={descriptionDraft === (set.description ?? '')}
+              onClick={() => {
+                updateQuestionSet(set.id, { description: descriptionDraft.trim() || undefined });
+                setJustSavedDescription(true);
+              }}
+            >
+              💾 Save
+            </button>
+            {justSavedDescription && <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700 }}>✅ Saved</span>}
           </div>
         </div>
 

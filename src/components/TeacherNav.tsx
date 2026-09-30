@@ -46,7 +46,7 @@ export default function TeacherNav() {
             navigation max. These less-frequently-visited destinations move
             under one grouped "More" menu (a native <details>, so it needs
             no click-outside JS) instead of crowding the main bar. Activities
-            no longer has its own entry — Question Sets/Focuses/Activity
+            no longer has its own entry — Question Sets/Activity
             Library/Playground all merged into the single Academics tab
             (direct teacher instruction: "activities and assignments...
             should be in one singular tab, not two of them"). */}

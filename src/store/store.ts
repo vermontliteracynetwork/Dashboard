@@ -3104,9 +3104,10 @@ export const useStore = create<AppState>()(
           wordchain: activity.wordchain,
           sentenceEdit: activity.sentenceEdit,
           customSteps: activity.customSteps,
-          referenceImageUrl: activity.referenceImageUrl,
           referenceLinkUrl: activity.referenceLinkUrl,
           referenceLinkLabel: activity.referenceLinkLabel,
+          studentTitle: activity.studentTitle,
+          studentDescription: activity.studentDescription,
         };
         get().addTask(studentId, subject, task);
       },
