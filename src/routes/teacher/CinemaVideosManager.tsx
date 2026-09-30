@@ -4,6 +4,7 @@ import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 import { uploadImage, uploadVideo } from '../../lib/upload';
 import { captureVideoThumbnail, getVideoDuration } from '../../lib/videoThumbnail';
 import ImageUploadField from '../../components/ImageUploadField';
+import TagsEditor from '../../components/TagsEditor';
 import type { CinemaVideo } from '../../types';
 
 // Videos shown in the in-world Cinema — direct teacher request: external
@@ -23,7 +24,6 @@ export default function CinemaVideosManager() {
   const [linkUrl, setLinkUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
   // YouTube has no local file to read a real length from, so a teacher
   // enters an estimate in minutes — direct teacher request, shown to
   // students on the shelf so they know roughly how long a video runs
@@ -47,15 +47,7 @@ export default function CinemaVideosManager() {
     setLinkUrl('');
     setCoverUrl('');
     setTags([]);
-    setTagInput('');
     setDurationMinutes('');
-  };
-
-  const addTagToForm = () => {
-    const t = tagInput.trim();
-    if (!t || tags.includes(t)) return;
-    setTags([...tags, t]);
-    setTagInput('');
   };
 
   const addLink = () => {
@@ -161,34 +153,7 @@ export default function CinemaVideosManager() {
             <ImageUploadField label="Cover image (optional, falls back to the YouTube thumbnail)" value={coverUrl} onChange={setCoverUrl} />
           </div>
           <div className="stack" style={{ gap: 6, minWidth: 220 }}>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tags/categories (optional)</label>
-            {tags.length > 0 && (
-              <div className="row-wrap" style={{ gap: 4 }}>
-                {tags.map((t) => (
-                  <span key={t} className="tag-pill tag-pill-sm">
-                    {t}{' '}
-                    <button
-                      aria-label={`Remove tag ${t}`}
-                      onClick={() => setTags(tags.filter((x) => x !== t))}
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="row" style={{ gap: 6 }}>
-              <input
-                className="input"
-                style={{ fontSize: '0.82rem', padding: '5px 8px' }}
-                placeholder="e.g. Math, Silly, Calm-down…"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTagToForm(); } }}
-              />
-              <button className="btn chip-filter-sm" disabled={!tagInput.trim()} onClick={addTagToForm}>+ Add</button>
-            </div>
+            <TagsEditor tags={tags} onChange={setTags} suggestions={allTags} />
             <label style={{ fontSize: '0.78rem', fontWeight: 700, marginTop: 4 }}>
               Length in minutes (YouTube only, uploads read their own length automatically)
             </label>
@@ -225,7 +190,7 @@ export default function CinemaVideosManager() {
           )}
           <div className="stack" style={{ gap: 6 }}>
             {visibleVideos.map((v) => (
-              <CinemaVideoRow key={v.id} video={v} onDelete={() => deleteCinemaVideo(v.id)} />
+              <CinemaVideoRow key={v.id} video={v} onDelete={() => deleteCinemaVideo(v.id)} allTags={allTags} />
             ))}
           </div>
         </>
@@ -234,7 +199,7 @@ export default function CinemaVideosManager() {
   );
 }
 
-function CinemaVideoRow({ video, onDelete }: { video: CinemaVideo; onDelete: () => void }) {
+function CinemaVideoRow({ video, onDelete, allTags }: { video: CinemaVideo; onDelete: () => void; allTags: string[] }) {
   const updateCinemaVideo = useStore((s) => s.updateCinemaVideo);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -242,7 +207,6 @@ function CinemaVideoRow({ video, onDelete }: { video: CinemaVideo; onDelete: () 
   const [editUrl, setEditUrl] = useState(video.url);
   const [editCover, setEditCover] = useState(video.coverImageUrl ?? '');
   const [editTags, setEditTags] = useState<string[]>(video.tags ?? []);
-  const [tagInput, setTagInput] = useState('');
   const [editDurationMinutes, setEditDurationMinutes] = useState(video.durationSeconds ? String(Math.round(video.durationSeconds / 60)) : '');
   const [replacing, setReplacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -255,17 +219,9 @@ function CinemaVideoRow({ video, onDelete }: { video: CinemaVideo; onDelete: () 
     setEditUrl(video.url);
     setEditCover(video.coverImageUrl ?? '');
     setEditTags(video.tags ?? []);
-    setTagInput('');
     setEditDurationMinutes(video.durationSeconds ? String(Math.round(video.durationSeconds / 60)) : '');
     setError(null);
     setEditing(true);
-  };
-
-  const addEditTag = () => {
-    const t = tagInput.trim();
-    if (!t || editTags.includes(t)) return;
-    setEditTags([...editTags, t]);
-    setTagInput('');
   };
 
   const save = () => {
@@ -345,36 +301,7 @@ function CinemaVideoRow({ video, onDelete }: { video: CinemaVideo; onDelete: () 
         <div style={{ maxWidth: 280 }}>
           <ImageUploadField label="Cover image" value={editCover} onChange={setEditCover} />
         </div>
-        <div className="stack" style={{ gap: 6 }}>
-          <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tags/categories</label>
-          {editTags.length > 0 && (
-            <div className="row-wrap" style={{ gap: 4 }}>
-              {editTags.map((t) => (
-                <span key={t} className="tag-pill tag-pill-sm">
-                  {t}{' '}
-                  <button
-                    aria-label={`Remove tag ${t}`}
-                    onClick={() => setEditTags(editTags.filter((x) => x !== t))}
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="row" style={{ gap: 6 }}>
-            <input
-              className="input"
-              style={{ fontSize: '0.82rem', padding: '5px 8px' }}
-              placeholder="e.g. Math, Silly, Calm-down…"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEditTag(); } }}
-            />
-            <button className="btn chip-filter-sm" disabled={!tagInput.trim()} onClick={addEditTag}>+ Add</button>
-          </div>
-        </div>
+        <TagsEditor tags={editTags} onChange={setEditTags} suggestions={allTags} label="Tags/categories" />
         {video.source === 'youtube' ? (
           <div className="stack" style={{ gap: 4 }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Length in minutes</label>

@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import QuizEditor, { validateQuizQuestions, sanitizeQuizQuestions } from './QuizEditor';
 import DrillEditor from './DrillEditor';
 import ImageUploadField from '../../components/ImageUploadField';
+import TagsEditor from '../../components/TagsEditor';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
@@ -317,51 +318,6 @@ function LinkChoiceEditor({ content, onChange }: { content: LinkChoiceContent; o
   );
 }
 
-// A small tag-chip editor: type + Enter (or tap a suggestion) to add,
-// tap a chip to remove. `suggestions` is normally every tag already used
-// elsewhere in the library, so a teacher reuses "Baamboozle Game" instead
-// of accidentally typing a slightly different spelling each time.
-function TagsEditor({ tags, onChange, suggestions }: { tags: string[]; onChange: (tags: string[]) => void; suggestions: string[] }) {
-  const [draft, setDraft] = useState('');
-  const addTag = (raw: string) => {
-    const t = raw.trim();
-    if (!t || tags.includes(t)) return;
-    onChange([...tags, t]);
-    setDraft('');
-  };
-  const unused = suggestions.filter((s) => !tags.includes(s));
-
-  return (
-    <div className="stack" style={{ gap: 6 }}>
-      <label>Tags (activity type, e.g. "YouTube Video", "Baamboozle Game")</label>
-      <div className="row-wrap">
-        {tags.map((t) => (
-          <button key={t} className="tag-pill" style={{ cursor: 'pointer' }} onClick={() => onChange(tags.filter((x) => x !== t))} title="Tap to remove">
-            {t} ✕
-          </button>
-        ))}
-        <input
-          style={{ minWidth: 160 }}
-          placeholder="Type a tag, press Enter"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); addTag(draft); }
-          }}
-        />
-      </div>
-      {unused.length > 0 && (
-        <div className="row-wrap">
-          {unused.slice(0, 10).map((s) => (
-            <button key={s} className="btn btn-sm" style={{ minHeight: 32, fontSize: '0.75rem' }} onClick={() => addTag(s)}>
-              ➕ {s}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export const blankTask = (): Task => ({
   id: makeId(),
@@ -879,7 +835,7 @@ export function CreateActivityForm({ subject }: { subject?: Subject }) {
               initial={blankTask()}
               subject={effectiveSubject}
               matchExisting={(title) => allForSubject.find((a) => a.title.trim().toLowerCase() === title.toLowerCase())}
-              tagsSlot={<TagsEditor tags={tags} onChange={setTags} suggestions={allTags} />}
+              tagsSlot={<TagsEditor tags={tags} onChange={setTags} suggestions={allTags} label={'Tags (activity type, e.g. "YouTube Video", "Baamboozle Game")'} />}
               onSave={(t) => {
                 addLibraryActivity({ ...t, subject: effectiveSubject, tags });
                 setTags([]);
@@ -1012,7 +968,7 @@ export function ActivityLibraryBrowse({
               initial={editingActivity}
               subject={editingActivity.subject}
               matchExisting={(title) => allForSubject.find((x) => x.title.trim().toLowerCase() === title.toLowerCase())}
-              tagsSlot={<TagsEditor tags={editingTags} onChange={setEditingTags} suggestions={allTags} />}
+              tagsSlot={<TagsEditor tags={editingTags} onChange={setEditingTags} suggestions={allTags} label={'Tags (activity type, e.g. "YouTube Video", "Baamboozle Game")'} />}
               onSave={(t) => {
                 updateLibraryActivity(editingActivity.id, { ...t, tags: editingTags });
                 setEditingId(null);
