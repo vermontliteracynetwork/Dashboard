@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import InternalBrowser from '../../components/InternalBrowser';
 import ToolsPanel from '../../components/ToolsPanel';
+import { taskDisplayTitle } from '../../lib/taskOrder';
 import type { Student, Subject, Task } from '../../types';
 
 interface Props {
@@ -31,7 +32,7 @@ export default function LinkTask({ student, subject, task, openToken, onWindowOp
     <InternalBrowser
       key={`${task.id}-${openToken}`}
       url={task.link?.url ?? ''}
-      title={task.title}
+      title={taskDisplayTitle(task)}
       embed={task.link?.embed}
       onClose={() => setBrowsing(false)}
       onWindowOpened={onWindowOpened}

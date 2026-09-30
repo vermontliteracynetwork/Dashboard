@@ -22,6 +22,7 @@ import ArticleReader from '../../components/ArticleReader';
 import SentenceBuilder from '../../components/SentenceBuilder';
 import LinkChoiceTask from './LinkChoiceTask';
 import FocusBanner from '../../components/FocusBanner';
+import { taskDisplayTitle } from '../../lib/taskOrder';
 import { todayISO } from '../../lib/dates';
 import { Icon } from '../../components/Icon';
 import type { Subject, Task } from '../../types';
@@ -199,7 +200,7 @@ export default function SubjectDashboard() {
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h3 style={{ margin: 0 }}>Are you sure you completed this?</h3>
-              <p style={{ margin: 0 }}>{activeTask.icon} {activeTask.title}</p>
+              <p style={{ margin: 0 }}>{activeTask.icon} {taskDisplayTitle(activeTask)}</p>
               <div className="row-wrap" style={{ justifyContent: 'center' }}>
                 <button
                   className="btn btn-primary btn-lg"

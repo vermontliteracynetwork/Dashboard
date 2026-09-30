@@ -453,6 +453,14 @@ export interface TaskReward {
 export interface Task {
   id: string;
   title: string;
+  // Teacher-facing title/icon stay as before (matching/library lookup,
+  // internal organization). studentTitle/studentDescription are optional,
+  // separate copy shown to the student instead — direct teacher ask: "give
+  // me the ability to do a student facing title and description." Falls
+  // back to `title` (and no description) when unset, so every activity
+  // authored before this still renders exactly as it did.
+  studentTitle?: string;
+  studentDescription?: string;
   icon: string;
   type: TaskType;
   quiz?: QuizContent; // used by 'quiz', and as the attached comprehension questions on 'passage'

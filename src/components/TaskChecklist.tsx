@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { speak } from './ReadAloud';
 import StepGuide from './StepGuide';
 import { getTaskSteps } from '../lib/steps';
-import { isTaskLocked, nextRequiredTaskId, sortForDisplay } from '../lib/taskOrder';
+import { isTaskLocked, nextRequiredTaskId, sortForDisplay, taskDisplayTitle } from '../lib/taskOrder';
 import type { Student, Task } from '../types';
 import { Icon } from './Icon';
 
@@ -244,15 +244,18 @@ export default function TaskChecklist({
               className="checklist-thumb-btn"
               disabled={locked}
               onClick={() => !locked && onOpen(t.id)}
-              aria-label={`Open ${t.title}`}
+              aria-label={`Open ${taskDisplayTitle(t)}`}
             >
               <span>{t.icon}</span>
             </button>
 
             <button className="checklist-title-btn2" disabled={locked} onClick={() => !locked && onOpen(t.id)}>
-              {t.title || '(untitled)'}
+              {taskDisplayTitle(t) || '(untitled)'}
               {t.isFinalCheck && <span title="Final Check"> 🏁</span>}
               {skipped && <span className="tag-pill" style={{ marginLeft: 6, fontSize: '0.7rem', background: 'var(--orange)' }}>⏭️ Skipped</span>}
+              {t.studentDescription && (
+                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 500, opacity: 0.7 }}>{t.studentDescription}</span>
+              )}
             </button>
 
             {isCurrent && onSkip && !t.required && t.type !== 'quiz' && !t.isFinalCheck && (skipTokens ?? 0) > 0 && (
@@ -260,7 +263,7 @@ export default function TaskChecklist({
                 className="btn btn-sm"
                 style={{ minHeight: 44 }}
                 onClick={() => setSkipConfirmId(t.id)}
-                aria-label={`Use a Skip Pass on ${t.title}`}
+                aria-label={`Use a Skip Pass on ${taskDisplayTitle(t)}`}
                 title={`Skip Passes left: ${skipTokens}`}
               >
                 🎫 Skip
@@ -269,7 +272,7 @@ export default function TaskChecklist({
 
             <button
               className="checklist-icon-btn"
-              onClick={() => speak(t.title, student.ttsSettings)}
+              onClick={() => speak(taskDisplayTitle(t), student.ttsSettings)}
               aria-label="Read title aloud"
               title="Read aloud"
             >

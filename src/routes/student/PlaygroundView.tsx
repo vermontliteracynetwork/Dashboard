@@ -15,6 +15,7 @@ import WordChainTask from './WordChainTask';
 import SentenceEditTask from './SentenceEditTask';
 import { todayISO } from '../../lib/dates';
 import { getPlaygroundAccess } from '../../lib/playgroundAccess';
+import { taskDisplayTitle } from '../../lib/taskOrder';
 import type { QuestionSet, Subject, Task } from '../../types';
 import { Icon } from '../../components/Icon';
 
@@ -128,7 +129,7 @@ export default function PlaygroundView() {
       {openEntry && openEntry.task.type === 'link' && (
         <InternalBrowser
           url={openEntry.task.link?.url ?? ''}
-          title={openEntry.task.title}
+          title={taskDisplayTitle(openEntry.task)}
           embed={openEntry.task.link?.embed}
           onClose={close}
           toolsButton={<ToolsPanel student={student} subject={openEntry.subject} variant="inline" />}
@@ -138,7 +139,7 @@ export default function PlaygroundView() {
         <div className="overlay-backdrop" onClick={close}>
           <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
             <div className="space-between" style={{ marginBottom: 10 }}>
-              <strong>{openEntry.task.icon} {openEntry.task.title}</strong>
+              <strong>{openEntry.task.icon} {taskDisplayTitle(openEntry.task)}</strong>
               <button className="btn btn-sm" onClick={close}><Icon name="close" size={14} fallback="✕" /> Close</button>
             </div>
             {openEntry.task.type === 'quiz' && <QuizTask student={student} subject={openEntry.subject} task={openEntry.task} onDone={finishActivity} onExit={close} />}
@@ -220,7 +221,7 @@ export default function PlaygroundView() {
           {entries.map(({ task, subject }) => (
             <button key={`${subject}-${task.id}`} className="choice-tile" onClick={() => setOpenEntry({ task, subject })}>
               <span className="choice-icon">{task.icon}</span>
-              <span>{task.title}</span>
+              <span>{taskDisplayTitle(task)}</span>
             </button>
           ))}
         </div>

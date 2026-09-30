@@ -798,6 +798,13 @@ alter table app_settings add column if not exists avatar_price_overrides jsonb n
 alter table app_settings add column if not exists ground_bounds jsonb;
 insert into app_settings (id) values ('global') on conflict (id) do nothing;
 
+-- Student-facing title/description, direct teacher ask: separate copy the
+-- student sees from the teacher's own internal activity title. Null/unset
+-- means "show the regular title, no description," so every activity
+-- authored before this column existed still renders exactly as it did.
+alter table activity_library add column if not exists student_title text;
+alter table activity_library add column if not exists student_description text;
+
 -- ---------------------------------------------------------------------------
 -- Storage: an "images" bucket for teacher-uploaded pictures (reference
 -- images, question/drill/step images, cover images) — replaces asking the
