@@ -456,10 +456,6 @@ function QuestionSetPicker({ subject, onAdd }: { subject: Subject; onAdd: (task:
 
   return (
     <div className="stack">
-      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        Tap "Add" to drop a saved Question Set into this plan as its own activity. Once it's on the plan, pick how
-        it's completed (Quiz/Practice, one specific game, or any gameplay) right on the task itself.
-      </p>
       <input
         placeholder="🔍 Search question sets…"
         value={search}
@@ -469,27 +465,19 @@ function QuestionSetPicker({ subject, onAdd }: { subject: Subject; onAdd: (task:
       {sets.length === 0 ? (
         <p style={{ opacity: 0.7 }}>{search ? 'No question sets match your search.' : 'No saved question sets for this subject yet.'}</p>
       ) : (
-        <div className="library-card-grid library-card-grid-compact">
+        <div className="stack" style={{ gap: 6 }}>
           {sets.map((set) => (
-            <div key={set.id} className="library-card library-card-compact">
-              <div className="library-card-thumb">
-                <span>{set.kind === 'quiz' ? '🧠' : '🗂️'}</span>
-              </div>
-              <div className="library-card-body">
-                <div className="set-card-title">{set.name}</div>
-                {set.description && <div className="set-card-meta">{set.description}</div>}
+            <div key={set.id} className="row" style={{ gap: 8, alignItems: 'center', border: '2px solid var(--content-border)', borderRadius: 10, padding: '6px 8px' }}>
+              <span aria-hidden="true" style={{ fontSize: '1.1rem', flexShrink: 0 }}>{set.kind === 'quiz' ? '🧠' : '🗂️'}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="set-card-title" style={{ fontSize: '0.85rem' }}>{set.name}</div>
                 <div className="set-card-meta">
                   {set.kind === 'quiz' ? `${set.questions.length} question(s)` : `${set.cards.length} card(s)`}
                 </div>
-                <div className="library-card-actions-compact">
-                  <button
-                    className="btn btn-sm btn-success library-card-add-btn"
-                    onClick={() => onAdd(questionSetToTaskSnapshot(set))}
-                  >
-                    Add
-                  </button>
-                </div>
               </div>
+              <button className="btn btn-sm btn-success" style={{ flexShrink: 0 }} onClick={() => onAdd(questionSetToTaskSnapshot(set))}>
+                Add
+              </button>
             </div>
           ))}
         </div>
@@ -669,7 +657,7 @@ export default function AssignmentsIndex() {
               />
             </div>
             <div className="assignments-split-side stack">
-              <CollapsibleZone title="Activity Library" count={activityLibrary.filter((a) => a.subject === subject).length}>
+              <CollapsibleZone title="Activity Library" count={activityLibrary.filter((a) => a.subject === subject).length} defaultOpen={false}>
                 <ActivityLibraryBrowse
                   subject={subject}
                   compact
@@ -679,7 +667,7 @@ export default function AssignmentsIndex() {
                   }}
                 />
               </CollapsibleZone>
-              <CollapsibleZone title="Question Sets" count={questionSets.filter((s) => s.subject === subject).length}>
+              <CollapsibleZone title="Question Sets" count={questionSets.filter((s) => s.subject === subject).length} defaultOpen={false}>
                 <QuestionSetPicker subject={subject} onAdd={(task) => setPlanTasks((prev) => [...prev, task])} />
               </CollapsibleZone>
             </div>
