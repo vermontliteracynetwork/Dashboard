@@ -731,8 +731,16 @@ const activityToRow = (a: ActivityLibraryItem): Row => ({
   custom_steps: a.customSteps ?? null,
   reference_link_url: a.referenceLinkUrl ?? null,
   reference_link_label: a.referenceLinkLabel ?? null,
-  student_title: a.studentTitle ?? null,
-  student_description: a.studentDescription ?? null,
+  // student_title/student_description are temporarily NOT sent — the live
+  // Supabase activity_library table is missing these columns even though
+  // schema.sql already defines them (alter table ... add column if not
+  // exists, right below this comment's own line), which was breaking
+  // every activity save with "Could not find the 'student_description'
+  // column" (production outage, 2026-10-01). Re-add both fields here the
+  // moment the migration is confirmed run against the live database —
+  // until then, a student's own title/description typed in on this
+  // screen is silently not persisted, same "degrade gracefully, don't
+  // break the whole save" choice as every other optional field here.
   is_daily: a.isDaily ?? false,
   created_at: a.createdAt,
   reward_cents: a.rewardCents ?? null,
