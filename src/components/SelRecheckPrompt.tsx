@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
 import { SEL_STARTER_TOOLS, SEL_ZONE_LABELS, SEL_RECHECK_SNOOZE_OPTIONS } from '../lib/selZones';
@@ -6,14 +7,26 @@ import { resolveNpcVoiceProfile } from '../lib/npcVoices';
 import type { SelZone, SelCheckIn } from '../types';
 import SelZoneEmotionPicker from './SelZoneEmotionPicker';
 import SelSupportMenu from './SelSupportMenu';
-import ReadAloud from './ReadAloud';
-
-// Lazy so three.js only loads when a re-check actually opens, not with
-// every page (this component is mounted at the app root).
-const NeighborCharacter3D = lazy(() => import('./NeighborCharacter3D'));
+import NeighborScene, { type NeighborLogEntry as LogEntry } from './NeighborScene';
 
 type Phase = 'ask' | 'result' | 'again' | 'bye';
-type LogEntry = { sender: 'npc' | 'student' | 'history'; text: string };
+
+// Direct teacher instruction (2026-10-01): a re-check must never interrupt
+// a game (or a task). It only opens on these calm "between things"
+// screens; anywhere else (Bakery Match, Castle Defense, Arcade, Cinema, a
+// subject's tasks/quizzes/platformer...) it simply waits, then opens the
+// moment the student lands back on one of these. Town Square also holds
+// it while a conversation or gas question is open (selRecheckHold).
+const RECHECK_OK_PATHS = new Set([
+  '/world/town',
+  '/world/home-room',
+  '/student/home',
+  '/student/mailbox',
+  '/student/piggy-bank',
+  '/student/marketplace',
+  '/student/passport',
+  '/student/pet-journal',
+]);
 
 const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
@@ -41,6 +54,9 @@ export default function SelRecheckPrompt() {
   const completeSelRecheck = useStore((s) => s.completeSelRecheck);
   const addSelCheckInTool = useStore((s) => s.addSelCheckInTool);
   const addSelCheckInNote = useStore((s) => s.addSelCheckInNote);
+  const selRecheckHold = useStore((s) => s.selRecheckHold);
+  const { pathname } = useLocation();
+  const [shownKey, setShownKey] = useState<string | null>(null);
 
   const [now, setNow] = useState(() => Date.now());
   const [phase, setPhase] = useState<Phase>('ask');
@@ -49,7 +65,6 @@ export default function SelRecheckPrompt() {
   const [nextDelay, setNextDelay] = useState<number | undefined>(undefined);
   const [log, setLog] = useState<LogEntry[]>([]);
   const loggedPhaseRef = useRef<string | null>(null);
-  const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -126,115 +141,85 @@ export default function SelRecheckPrompt() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseKey]);
 
+  // Latch open once it's allowed to appear, so it never vanishes
+  // mid-conversation if a hold flips on underneath it.
+  const canOpen = RECHECK_OK_PATHS.has(pathname) && !selRecheckHold;
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [log.length]);
+    if (dueKey && canOpen) setShownKey(dueKey);
+  }, [dueKey, canOpen]);
 
-  if (!due) return null;
+  if (!due || shownKey !== dueKey) return null;
 
   const say = (text: string) => setLog((prev) => [...prev, { sender: 'student', text }]);
   const voice = resolveNpcVoiceProfile(neighbor.id, neighbor.voicePresetId, npcVoiceOverrides);
   const showSupport = phase === 'result' && repickResult && repickResult.zone !== 'green' && !(isRedBranch && repickResult.zone !== 'red');
 
   return (
-    <div className="sel-convo" role="dialog" aria-modal="true" aria-label={`${neighbor.name} is checking in`}>
-      <div className="sel-convo-stage">
-        <div className="sel-convo-character" aria-hidden="true">
-          <Suspense fallback={null}>
-            <NeighborCharacter3D path={neighbor.modelPath} talkKey={phaseKey ?? ''} />
-          </Suspense>
-        </div>
+    <NeighborScene
+      neighbor={neighbor}
+      voice={voice}
+      npcLines={npcLines}
+      sub={phase === 'ask' ? "All four zones are okay to feel. Pick the one that's true right now." : undefined}
+      talkKey={phaseKey ?? ''}
+      log={log}
+    >
+      {phase === 'ask' && (
+        <SelZoneEmotionPicker
+          hideQuestion
+          onPick={(zone, emotion) => {
+            say(`I'm in the ${SEL_ZONE_LABELS[zone]} Zone. I feel ${emotion.toLowerCase()}.`);
+            setRepickResult({ zone, emotion });
+            setPhase('result');
+          }}
+        />
+      )}
 
-        <div className="sel-convo-center">
-          <div className="sel-convo-message" key={phaseKey}>
-            <div className="sel-convo-name">
-              <span>{neighbor.name}</span>
-              <ReadAloud text={npcLines.join(' ')} small npcVoiceProfile={voice} />
-            </div>
-            {npcLines.map((line, i) => (
-              <p key={i} className={`sel-convo-line${i === npcLines.length - 1 ? ' main' : ''}`}>{line}</p>
-            ))}
-            {phase === 'ask' && <p className="sel-convo-sub">All four zones are okay to feel. Pick the one that's true right now.</p>}
-          </div>
-
-          <div className="sel-convo-responses">
-            {phase === 'ask' && (
-              <SelZoneEmotionPicker
-                hideQuestion
-                onPick={(zone, emotion) => {
-                  say(`I'm in the ${SEL_ZONE_LABELS[zone]} Zone. I feel ${emotion.toLowerCase()}.`);
-                  setRepickResult({ zone, emotion });
-                  setPhase('result');
-                }}
-              />
-            )}
-
-            {phase === 'result' && repickResult && (
-              <>
-                {showSupport && (
-                  <SelSupportMenu
-                    zone={repickResult.zone}
-                    tools={student?.selZoneTools?.[repickResult.zone] ?? SEL_STARTER_TOOLS[repickResult.zone]}
-                    onToolTap={(label) => { setToolUsed(label); addSelCheckInTool(due.id, label); say(`I'll try: ${label}.`); }}
-                    onNoteSave={(text) => { addSelCheckInNote(due.id, text); say(`Note for my teacher: ${text}`); }}
-                  />
-                )}
-                <div className="sel-convo-choices">
-                  <button className="sel-pill" onClick={() => setPhase('again')}>Continue</button>
-                </div>
-              </>
-            )}
-
-            {phase === 'again' && repickResult && (
-              <div className="sel-convo-choices">
-                {SEL_RECHECK_SNOOZE_OPTIONS.map((min) => (
-                  <button
-                    key={min}
-                    className="sel-pill"
-                    onClick={() => { say(`Yes, in ${min} minutes please.`); setNextDelay(min); setPhase('bye'); }}
-                  >
-                    {min} min
-                  </button>
-                ))}
-                <button
-                  className="sel-pill sel-pill-secondary"
-                  onClick={() => { say("No thanks, I'm okay."); setNextDelay(undefined); setPhase('bye'); }}
-                >
-                  No thanks, I'm okay
-                </button>
-              </div>
-            )}
-
-            {phase === 'bye' && repickResult && (
-              <div className="sel-convo-choices">
-                <button
-                  className="sel-pill"
-                  onClick={() => completeSelRecheck(due.id, repickResult.zone, repickResult.emotion, toolUsed, nextDelay)}
-                >
-                  Bye, {neighbor.name}!
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <aside className="sel-convo-log" aria-label="Conversation so far">
-        <h2 className="sel-convo-log-title">Talking with {neighbor.name}</h2>
-        <div className="sel-convo-log-scroll">
-          {log.map((m, i) =>
-            m.sender === 'history' ? (
-              <p key={i} className="sel-convo-history">{m.text}</p>
-            ) : (
-              <div key={i} className={`sel-convo-row ${m.sender}`}>
-                {m.sender === 'npc' && <ReadAloud text={m.text} small npcVoiceProfile={voice} />}
-                <div className={`sel-convo-bubble ${m.sender}`}>{m.text}</div>
-              </div>
-            ),
+      {phase === 'result' && repickResult && (
+        <>
+          {showSupport && (
+            <SelSupportMenu
+              zone={repickResult.zone}
+              tools={student?.selZoneTools?.[repickResult.zone] ?? SEL_STARTER_TOOLS[repickResult.zone]}
+              onToolTap={(label) => { setToolUsed(label); addSelCheckInTool(due.id, label); say(`I'll try: ${label}.`); }}
+              onNoteSave={(text) => { addSelCheckInNote(due.id, text); say(`Note for my teacher: ${text}`); }}
+            />
           )}
-          <div ref={logEndRef} />
+          <div className="sel-convo-choices">
+            <button className="sel-pill" onClick={() => setPhase('again')}>Continue</button>
+          </div>
+        </>
+      )}
+
+      {phase === 'again' && repickResult && (
+        <div className="sel-convo-choices">
+          {SEL_RECHECK_SNOOZE_OPTIONS.map((min) => (
+            <button
+              key={min}
+              className="sel-pill"
+              onClick={() => { say(`Yes, in ${min} minutes please.`); setNextDelay(min); setPhase('bye'); }}
+            >
+              {min} min
+            </button>
+          ))}
+          <button
+            className="sel-pill sel-pill-secondary"
+            onClick={() => { say("No thanks, I'm okay."); setNextDelay(undefined); setPhase('bye'); }}
+          >
+            No thanks, I'm okay
+          </button>
         </div>
-      </aside>
-    </div>
+      )}
+
+      {phase === 'bye' && repickResult && (
+        <div className="sel-convo-choices">
+          <button
+            className="sel-pill"
+            onClick={() => completeSelRecheck(due.id, repickResult.zone, repickResult.emotion, toolUsed, nextDelay)}
+          >
+            Bye, {neighbor.name}!
+          </button>
+        </div>
+      )}
+    </NeighborScene>
   );
 }

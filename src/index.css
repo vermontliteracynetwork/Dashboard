@@ -3225,6 +3225,53 @@ body.teacher-mode .content-well { border-radius: 10px; }
   pointer-events: none;
   filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.35));
 }
+/* Town Square: "Chat with {Neighbor}" two-choice menu (jokes or feelings). */
+.neighbor-chat-menu {
+  padding: 24px;
+  max-width: 460px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.neighbor-chat-menu-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; }
+.neighbor-chat-choice {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 20px;
+  border: 3px solid #f5b82e;
+  background: #fff8e1;
+  color: #3b2400;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.neighbor-chat-choice.feelings { border-color: var(--purple); background: #f3edff; color: #2e1065; }
+.neighbor-chat-choice:active { transform: translateY(2px); }
+.neighbor-chat-choice-icon { font-size: 2.4rem; line-height: 1; }
+.sel-convo-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
 .sel-convo-center {
   position: relative;
   z-index: 1;

@@ -122,6 +122,22 @@ export function pickDialogueVariant(variants: ConversationStep[][], heardJokeIds
   return pool[dayIndex % pool.length];
 }
 
+// "Tell me a joke" from the open-world chat menu (direct teacher
+// instruction, 2026-10-01): only variants that actually contain a joke,
+// preferring one the student hasn't collected yet so the Joke Book keeps
+// growing, else a day-varying pick among the jokes. Falls back to the
+// normal picker if a Neighbor somehow has no joke variants.
+export function pickJokeVariant(variants: ConversationStep[][], heardJokeIds: string[]): ConversationStep[] {
+  const jokes = variants.filter((v) => v.some((s) => s.jokeId));
+  if (jokes.length === 0) return pickDialogueVariant(variants, heardJokeIds);
+  const season = currentSeason();
+  const seasonal = jokes.filter((v) => !v[0]?.variantSeason || v[0].variantSeason === season);
+  const pool = seasonal.length > 0 ? seasonal : jokes;
+  const unheard = pool.filter((v) => !heardJokeIds.includes(v.find((s) => s.jokeId)!.jokeId!));
+  if (unheard.length > 0) return unheard[Math.floor(Math.random() * unheard.length)];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 export const QUEST1_NEIGHBORS: Quest1Neighbor[] = [
   {
     id: 'scout',

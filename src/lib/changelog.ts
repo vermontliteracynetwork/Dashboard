@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-neighbor-chat-menu',
+    date: '2026-10-01',
+    icon: '😄',
+    title: 'Chat with Neighbors: jokes or feelings',
+    body: 'When you talk to a Neighbor you have already met, you can pick what to chat about. Tap Tell me a joke for a new joke for your Joke Book, or tap Talk about my feelings to tell them how you feel. You can leave any time.',
+  },
+  {
     id: '2026-10-01-castle-map',
     date: '2026-10-01',
     icon: '🗺️',
