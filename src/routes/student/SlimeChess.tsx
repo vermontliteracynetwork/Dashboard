@@ -74,10 +74,11 @@ interface Pop { id: string; square: Square; src: string }
 // Direct teacher instructions: the computer hesitates before moving, like
 // a real opponent thinking it over ("a 5-10 second moment of hesitation"),
 // and then "after the student has answered the question, the system needs
-// to wait 10 seconds before the computer player takes their turn". The
-// computer always waits the full 10 seconds after the student's move
-// (which itself always comes after that turn's question).
-const COMPUTER_THINK_MS = 10000;
+// to wait 10 seconds before the computer player takes their turn"), later
+// shortened by direct instruction: "reduce the computer waiting time as
+// they're taking their turn to six seconds". The computer waits 6 seconds
+// after the student's move (which always comes after that turn's question).
+const COMPUTER_THINK_MS = 6000;
 // Questions come only at the start of a player's own turn, never during
 // the computer's (direct teacher instruction). After the computer moves,
 // the board stays fully visible for 3 seconds so the student sees what it
