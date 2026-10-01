@@ -111,9 +111,13 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   onPointerOut?: () => void;
   onPointerDown?: (e: { stopPropagation: () => void; nativeEvent: PointerEvent }) => void;
   opacity?: number;
-}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity }, ref) {
+  // Build Mode: while a catalog item is armed for placing, existing objects
+  // stop catching taps so the ghost can slide over (and be dropped on top
+  // of) them, e.g. a chess set onto a table.
+  inert?: boolean;
+}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert }, ref) {
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity);
-  const interactive = !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
+  const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
   return (
     <group ref={ref} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={obj.scale}>
       <primitive object={recentered} />

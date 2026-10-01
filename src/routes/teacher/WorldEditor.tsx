@@ -73,6 +73,9 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
 // independently-duplicated copy of this same bound — keep both in sync.
 const SCALE_MIN = 0.0005;
 const SCALE_MAX = 20;
+const HEIGHT_STEP = 0.1;
+const HEIGHT_FINE_STEP = 0.02;
+const HEIGHT_MAX = 20;
 
 // Claudia's completeness review of the new 'custom' role: a bare domain
 // typed with no scheme (e.g. "example.com") gets passed straight to
@@ -840,13 +843,13 @@ function CameraPanner({ controlsRef }: { controlsRef: React.RefObject<{ target: 
 // layered on top of the existing translucent ghost rather than replacing
 // it (Claudia's spec section 4/6). Position is the object's ground point;
 // the box is centered on its true vertical midpoint.
-function FootprintOutline({ modelPath, x, z, rotationY = 0, scale, color, opacity = 1, lineWidth = 2 }: {
-  modelPath: string; x: number; z: number; rotationY?: number; scale: number; color: string; opacity?: number; lineWidth?: number;
+function FootprintOutline({ modelPath, x, y = 0, z, rotationY = 0, scale, color, opacity = 1, lineWidth = 2 }: {
+  modelPath: string; x: number; y?: number; z: number; rotationY?: number; scale: number; color: string; opacity?: number; lineWidth?: number;
 }) {
   const size = useModelSize(modelPath);
   const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(size.x, size.y, size.z)), [size]);
   return (
-    <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
+    <group position={[x, y, z]} rotation={[0, rotationY, 0]}>
       <lineSegments position={[0, (size.y * scale) / 2, 0]} scale={scale}>
         <primitive object={edges} attach="geometry" />
         <lineBasicMaterial color={color} transparent opacity={opacity} linewidth={lineWidth} />
@@ -1091,9 +1094,22 @@ function captionBtn(icon: string, caption: string, onClick: () => void, active?:
   );
 }
 
+// Raise/lower an object (or the armed ghost) off the ground, for stacking
+// things on tables, shelves and counters. Same press-and-hold buttons as
+// the move arrows; keyboard 9 (lower) / 0 (raise), Shift for fine steps.
+function HeightControl({ height, raiseHold, lowerHold }: { height: number; raiseHold: ReturnType<typeof useHoldRepeat>; lowerHold: ReturnType<typeof useHoldRepeat> }) {
+  return (
+    <div className="row" style={{ gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+      <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: '0 8px' }} title="Lower (9)" {...lowerHold}>▼ Lower</button>
+      <span style={{ fontSize: '0.75rem', minWidth: 58, textAlign: 'center' }} title="Height off the ground">↕ {height.toFixed(2)}</span>
+      <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: '0 8px' }} title="Raise (0)" {...raiseHold}>▲ Raise</button>
+    </div>
+  );
+}
+
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
-  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
+  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold, raiseHold, lowerHold,
   onUpdate, onDelete, onDuplicate, deselect, onMoveModeChange,
   touchMultiSelectMode, onToggleTouchMultiSelect,
 }: {
@@ -1109,6 +1125,8 @@ function SelectedObjectToolbar({
   nudgeSouthHold: ReturnType<typeof useHoldRepeat>;
   nudgeEastHold: ReturnType<typeof useHoldRepeat>;
   nudgeWestHold: ReturnType<typeof useHoldRepeat>;
+  raiseHold: ReturnType<typeof useHoldRepeat>;
+  lowerHold: ReturnType<typeof useHoldRepeat>;
   onUpdate: (patch: Partial<WorldObject>) => void;
   onDelete: () => void;
   onDuplicate: (continuous: boolean) => void;
@@ -1133,7 +1151,7 @@ function SelectedObjectToolbar({
   // the default camera frame entirely for large/"Giant" (5x) objects —
   // clamped so the controls that shrink an object back down stay reachable
   // no matter how big it currently is.
-  const topY = Math.min(size.y * selected.scale, 6);
+  const topY = Math.min(size.y * selected.scale, 6) + (selected.position[1] ?? 0);
   const [openPopover, setOpenPopover] = useState<'resize' | 'color' | 'more' | 'move' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // Direct teacher instruction, reversing an earlier Claudia-audited
@@ -1278,6 +1296,7 @@ function SelectedObjectToolbar({
                 <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward camera" {...nudgeSouthHold}>↓</button>
                 <span />
               </div>
+              <HeightControl height={selected.position[1] ?? 0} raiseHold={raiseHold} lowerHold={lowerHold} />
             </div>
           )}
 
@@ -1508,7 +1527,7 @@ function SelectedWallToolbar({ wall, onDelete, deselect }: { wall: WallSegment; 
 // since this sandbox can't render the actual 3D result either way.
 function SelectedGroupToolbar({
   members, centroid, rotateCwFine, rotateCcwFine, onDragRotate, growHold, shrinkHold,
-  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
+  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold, raiseHold, lowerHold,
   onDelete, onGroup, onUngroup, isExistingGroup,
   touchMultiSelectMode, onToggleTouchMultiSelect,
   deselect, onMoveModeChange,
@@ -1524,6 +1543,8 @@ function SelectedGroupToolbar({
   nudgeSouthHold: ReturnType<typeof useHoldRepeat>;
   nudgeEastHold: ReturnType<typeof useHoldRepeat>;
   nudgeWestHold: ReturnType<typeof useHoldRepeat>;
+  raiseHold: ReturnType<typeof useHoldRepeat>;
+  lowerHold: ReturnType<typeof useHoldRepeat>;
   onDelete: () => void;
   onGroup: () => void;
   onUngroup: () => void;
@@ -1538,7 +1559,7 @@ function SelectedGroupToolbar({
   // A little extra clearance over the single-object toolbar's own topY
   // math, so this reads as floating above the whole group, not glued to
   // just the anchor's own top.
-  const topY = Math.min(size.y * anchor.scale, 6) + 0.6;
+  const topY = Math.min(size.y * anchor.scale, 6) + 0.6 + (anchor.position[1] ?? 0);
   const [openPopover, setOpenPopover] = useState<'resize' | 'move' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const memberKey = members.map((m) => m.id).sort().join(',');
@@ -1638,6 +1659,7 @@ function SelectedGroupToolbar({
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward camera" {...nudgeSouthHold}>↓</button>
               <span />
             </div>
+            <HeightControl height={Math.min(...members.map((m) => m.position[1] ?? 0))} raiseHold={raiseHold} lowerHold={lowerHold} />
           </div>
         )}
 
@@ -1740,6 +1762,9 @@ export default function WorldEditor() {
   // Minecraft's hotbar and Sims 4's "recently used" tab both solve this.
   // Most-recent-first, capped at 8, de-duped by path.
   const [recentAssets, setRecentAssets] = useState<AssetManifestEntry[]>([]);
+  // Height off the ground for the armed ghost (9 lowers, 0 raises), so an
+  // item can be dropped straight onto a table/shelf/counter.
+  const [ghostHeight, setGhostHeight] = useState(0);
   const armAsset = (a: AssetManifestEntry | null) => {
     setHammerMode(false);
     setPaintMode(null);
@@ -1748,6 +1773,7 @@ export default function WorldEditor() {
     setArmedAsset(a);
     setGhostRotationAdjust(0);
     setGhostScaleAdjust(1);
+    setGhostHeight(0);
     if (a) setRecentAssets((prev) => [a, ...prev.filter((r) => r.path !== a.path)].slice(0, 8));
   };
   const [selection, setSelection] = useState<Sel | null>(null);
@@ -2029,6 +2055,7 @@ export default function WorldEditor() {
   // selection — "before i place it, let me ... rotate/shrink/grow it."
   const ghostRotateByRef = useRef<(deg: number) => void>(() => {});
   const ghostNudgeScaleByRef = useRef<(delta: number) => void>(() => {});
+  const nudgeHeightRef = useRef<(dir: number, fine?: boolean) => void>(() => {});
 
   useEffect(() => {
     fetch('/world/asset-manifest.json')
@@ -2104,6 +2131,8 @@ export default function WorldEditor() {
       }
       if (e.key === ',') { rotateByRef.current(-15); ghostRotateByRef.current(-15); return; }
       if (e.key === '.') { rotateByRef.current(15); ghostRotateByRef.current(15); return; }
+      if (e.code === 'Digit9' || e.code === 'Numpad9') { e.preventDefault(); nudgeHeightRef.current(-1, e.shiftKey); return; }
+      if (e.code === 'Digit0' || e.code === 'Numpad0') { e.preventDefault(); nudgeHeightRef.current(1, e.shiftKey); return; }
       if (e.key === '[') { nudgeScaleByRef.current(-1); ghostNudgeScaleByRef.current(-1); return; }
       if (e.key === ']') { nudgeScaleByRef.current(1); ghostNudgeScaleByRef.current(1); return; }
       if (e.key.toLowerCase() === 't') { topViewRef.current(); return; }
@@ -2319,7 +2348,7 @@ export default function WorldEditor() {
     const newId = addWorldObjectH({
       modelPath: selected.modelPath,
       label: selected.label,
-      position: [offX, 0, offZ],
+      position: [offX, selected.position[1] ?? 0, offZ],
       rotationY: selected.rotationY,
       scale: selected.scale,
       tintColor: selected.tintColor,
@@ -2348,7 +2377,7 @@ export default function WorldEditor() {
       const dx = o.position[0] - groupCentroid.x;
       const dz = o.position[2] - groupCentroid.z;
       updateWorldObjectH(o.id, {
-        position: [groupCentroid.x + dx * cos - dz * sin, 0, groupCentroid.z + dx * sin + dz * cos],
+        position: [groupCentroid.x + dx * cos - dz * sin, o.position[1] ?? 0, groupCentroid.z + dx * sin + dz * cos],
         rotationY: o.rotationY + rad,
       });
     });
@@ -2364,7 +2393,7 @@ export default function WorldEditor() {
       const dx = o.position[0] - groupCentroid.x;
       const dz = o.position[2] - groupCentroid.z;
       updateWorldObjectH(o.id, {
-        position: [groupCentroid.x + dx * factor, 0, groupCentroid.z + dz * factor],
+        position: [groupCentroid.x + dx * factor, o.position[1] ?? 0, groupCentroid.z + dz * factor],
         scale: THREE.MathUtils.clamp(o.scale * factor, SCALE_MIN, SCALE_MAX),
       });
     });
@@ -2378,7 +2407,7 @@ export default function WorldEditor() {
     groupMembers.forEach((o) => {
       const nx = clampToGroundX(snapValue(o.position[0] + dx, snapEnabled, gridStep));
       const nz = clampToGroundZ(snapValue(o.position[2] + dz, snapEnabled, gridStep));
-      updateWorldObjectH(o.id, { position: [nx, 0, nz] });
+      updateWorldObjectH(o.id, { position: [nx, o.position[1] ?? 0, nz] });
     });
   };
   // Group — assigns every currently multi-selected object the same fresh
@@ -2465,8 +2494,27 @@ export default function WorldEditor() {
     if (!selected) return;
     const nx = clampToGroundX(snapValue(selected.position[0] + dx, snapEnabled, gridStep));
     const nz = clampToGroundZ(snapValue(selected.position[2] + dz, snapEnabled, gridStep));
-    updateSelected({ position: [nx, 0, nz] });
+    updateSelected({ position: [nx, selected.position[1] ?? 0, nz] });
   };
+  // Height (direct teacher request: "if i press the 9 key, the object
+  // should decrease in height and if i press 0 it should raise in height
+  // so i can put objects on tables and such"). Acts on the armed ghost
+  // while placing, otherwise on the selected object or group. Never goes
+  // below the ground.
+  const nudgeHeight = (dir: number, fine = false) => {
+    const step = (fine ? HEIGHT_FINE_STEP : HEIGHT_STEP) * dir;
+    const clampY = (y: number) => Math.round(THREE.MathUtils.clamp(y, 0, HEIGHT_MAX) * 100) / 100;
+    if (armedAsset) { setGhostHeight((h) => clampY(h + step)); return; }
+    if (multiSelectIds.length >= 2) {
+      groupMembers.forEach((o) => updateWorldObjectH(o.id, { position: [o.position[0], clampY((o.position[1] ?? 0) + step), o.position[2]] }));
+      return;
+    }
+    if (!selected || selection?.kind !== 'placed') return;
+    updateSelected({ position: [selected.position[0], clampY((selected.position[1] ?? 0) + step), selected.position[2]] });
+  };
+  nudgeHeightRef.current = nudgeHeight;
+  const raiseHold = useHoldRepeat(() => nudgeHeight(1));
+  const lowerHold = useHoldRepeat(() => nudgeHeight(-1));
   const nudgeNorthHold = useHoldRepeat(() => nudgePosition(0, -gridStep));
   const nudgeSouthHold = useHoldRepeat(() => nudgePosition(0, gridStep));
   const nudgeEastHold = useHoldRepeat(() => nudgePosition(gridStep, 0));
@@ -2530,10 +2578,10 @@ export default function WorldEditor() {
           const dx = dragPos.x - origin[0];
           const dz = dragPos.z - origin[1];
           Object.entries(dragGroupOrigin).forEach(([id, [mx, mz]]) => {
-            updateWorldObjectH(id, { position: [mx + dx, 0, mz + dz] });
+            updateWorldObjectH(id, { position: [mx + dx, worldObjects.find((w) => w.id === id)?.position[1] ?? 0, mz + dz] });
           });
         } else {
-          updateWorldObjectH(dragObjectId, { position: [dragPos.x, 0, dragPos.z] });
+          updateWorldObjectH(dragObjectId, { position: [dragPos.x, worldObjects.find((w) => w.id === dragObjectId)?.position[1] ?? 0, dragPos.z] });
         }
       }
       setDragObjectId(null);
@@ -2622,7 +2670,7 @@ export default function WorldEditor() {
         z = snap.z;
         rotationY = snap.angle + ghostRotationAdjust;
       }
-      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, 0, z], rotationY, scale: armedDefaultScale * ghostScaleAdjust, collides: defaultCollidesForCategory(armedAsset.category) });
+      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, ghostHeight, z], rotationY, scale: armedDefaultScale * ghostScaleAdjust, collides: defaultCollidesForCategory(armedAsset.category) });
       // ghostPos IS cleared — leaving it set to this exact spot meant the
       // next render's footprintOverlap check found the object we just
       // placed (distance 0) and flashed a false "overlapping itself"
@@ -3190,7 +3238,11 @@ export default function WorldEditor() {
           )}
           {armedAsset && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
-              Tap the ground to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
+              Tap to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
+              <div style={{ marginTop: 6, fontWeight: 600, fontSize: 12 }}>
+                Putting it on a table? Raise it with 0, lower with 9 (Shift for tiny steps).
+                <HeightControl height={ghostHeight} raiseHold={raiseHold} lowerHold={lowerHold} />
+              </div>
               {placementNeedsWater && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Needs water to actually drive — paint some with the ground brush</div>}
               {placementTrackFeedback === 'connects' && <div style={{ color: BUILD_ACCENT, fontWeight: 600, fontSize: 12, marginTop: 4 }}>✅ Connects</div>}
               {placementTrackInvalid && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Won't connect — line it up with the open end of the nearby track</div>}
@@ -3321,7 +3373,7 @@ export default function WorldEditor() {
                     id: '__ghost__',
                     modelPath: armedAsset.path,
                     label: armedAsset.label,
-                    position: [ghostPos.x, 0, ghostPos.z],
+                    position: [ghostPos.x, ghostHeight, ghostPos.z],
                     rotationY: ghostPos.rotationY + ghostRotationAdjust,
                     scale: armedDefaultScale * ghostScaleAdjust,
                     createdAt: '',
@@ -3334,7 +3386,7 @@ export default function WorldEditor() {
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
                 <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
-                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} z={ghostPos.z} scale={armedDefaultScale * ghostScaleAdjust} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
+                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} y={ghostHeight} z={ghostPos.z} scale={armedDefaultScale * ghostScaleAdjust} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
 
@@ -3361,6 +3413,7 @@ export default function WorldEditor() {
                 <group key={item.id}>
                   <WorldObjectRenderer
                     obj={renderObj}
+                    inert={!!armedAsset}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -3430,19 +3483,20 @@ export default function WorldEditor() {
               const isDragging = dragObjectId === obj.id && dragPos && !dragGroupOrigin;
               let livePos: [number, number, number] = obj.position;
               if (isDragging) {
-                livePos = [dragPos!.x, 0, dragPos!.z];
+                livePos = [dragPos!.x, obj.position[1] ?? 0, dragPos!.z];
               } else if (isGroupDragMember) {
                 const origin = dragGroupOrigin![dragObjectId!];
                 const dx = dragPos!.x - origin[0];
                 const dz = dragPos!.z - origin[1];
                 const [mx, mz] = dragGroupOrigin![obj.id];
-                livePos = [mx + dx, 0, mz + dz];
+                livePos = [mx + dx, obj.position[1] ?? 0, mz + dz];
               }
               const liveObj: WorldObject = (isDragging || isGroupDragMember) ? { ...obj, position: livePos } : obj;
               return (
                 <group key={obj.id}>
                   <WorldObjectRenderer
                     obj={liveObj}
+                    inert={!!armedAsset}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -3549,10 +3603,10 @@ export default function WorldEditor() {
                       panel, which this closes. Color is reinforcement, the
                       outline geometry itself is the primary signal. */}
                   {isSelected && (
-                    <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
+                    <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} y={livePos[1] ?? 0} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
                   )}
                   {isHovered && (
-                    <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
+                    <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} y={obj.position[1] ?? 0} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
                   )}
                 </group>
               );
@@ -3635,6 +3689,8 @@ export default function WorldEditor() {
                 nudgeSouthHold={nudgeSouthHold}
                 nudgeEastHold={nudgeEastHold}
                 nudgeWestHold={nudgeWestHold}
+                raiseHold={raiseHold}
+                lowerHold={lowerHold}
                 onDelete={deleteSelected}
                 onGroup={groupSelected}
                 onUngroup={ungroupSelected}
@@ -3658,6 +3714,8 @@ export default function WorldEditor() {
                 nudgeSouthHold={nudgeSouthHold}
                 nudgeEastHold={nudgeEastHold}
                 nudgeWestHold={nudgeWestHold}
+                raiseHold={raiseHold}
+                lowerHold={lowerHold}
                 onUpdate={updateSelected}
                 onDelete={deleteSelected}
                 onDuplicate={duplicateSelected}
