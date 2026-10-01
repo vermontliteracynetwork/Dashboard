@@ -27,7 +27,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: '2026-10-01',
     icon: '💬',
     title: 'Neighbors check in with a new look',
-    body: 'When a Neighbor checks in on you, you will see them right next to their speech bubble, with big buttons to tap your answer.',
+    body: 'When a Neighbor checks in on you, they are right there in the corner, moving and talking. What they say is in the middle, your answer buttons are right under it, and the whole conversation is saved on the side so you can read it again.',
   },
   {
     id: '2026-10-01-sel-checkin',

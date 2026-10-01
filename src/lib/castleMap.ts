@@ -120,9 +120,11 @@ function seeded(seed: number) {
 export function buildDecor(slots: Pt[]): Decor[] {
   const rnd = seeded(11);
   const items: Decor[] = [];
-  const clear = (x: number, y: number, pathGap: number) =>
+  // Checks the base point AND (for anything tall) the middle of its
+  // canopy, so a tree planted below a build plot can't grow up over it.
+  const clear = (x: number, y: number, pathGap: number, height = 0) =>
     distanceToPath(x, y) > pathGap &&
-    slots.every((s) => Math.hypot(s.x - x, s.y - y) > 11) &&
+    slots.every((s) => Math.hypot(s.x - x, s.y - y) > 11 && Math.hypot(s.x - x, s.y - (y - height / 2)) > height / 2 + 9) &&
     !(x > CASTLE_GATE.x - 16 && y > CASTLE_GATE.y - 30 && y < CASTLE_GATE.y + 10) &&
     Math.hypot((x - POND.x) / (POND.rx + 4), (y - POND.y) / (POND.ry + 4)) > 1;
 
@@ -130,7 +132,7 @@ export function buildDecor(slots: Pt[]): Decor[] {
     const jx = x + (rnd() - 0.5) * 5;
     const jy = y + (rnd() - 0.5) * 4;
     const w = 14 + rnd() * 6;
-    if (clear(jx, jy, 9)) items.push({ kind: 'tree', x: jx, y: jy, w });
+    if (clear(jx, jy, 9, w)) items.push({ kind: 'tree', x: jx, y: jy, w });
   };
   for (let x = -4; x <= MAP_W + 4; x += 7) {
     tree(x, 8);
@@ -161,7 +163,7 @@ export function buildDecor(slots: Pt[]): Decor[] {
     { kind: 'rock', x: 104, y: 50, w: 5 },
     { kind: 'rock', x: 20, y: 86, w: 6 },
   ];
-  for (const d of scatter) if (clear(d.x, d.y, d.kind === 'tree' ? 9 : 7.5)) items.push(d);
+  for (const d of scatter) if (clear(d.x, d.y, d.kind === 'tree' ? 9 : 7.5, decorHeight(d))) items.push(d);
 
   return items.sort((a, b) => a.y - b.y);
 }

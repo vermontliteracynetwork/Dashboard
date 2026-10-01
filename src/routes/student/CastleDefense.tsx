@@ -665,6 +665,9 @@ export default function CastleDefense() {
               </div>
 
               {slots.map((slot, i) => {
+                // Empty plots only matter while building; mid-wave they're
+                // just clutter on the battlefield (direct teacher feedback).
+                if (!slot && phase !== 'build') return null;
                 const justFired = phase === 'advance' && projectiles.some((p) => p.slot === i);
                 const nextCost = slot
                   ? slot.tier < 3 ? TOWER_META[slot.type].cost[slot.tier] : null
