@@ -17,6 +17,7 @@ import type { PetDef } from '../lib/petCatalog';
 // R3F bundle into the store.
 import { DEFAULT_GROUND_BOUNDS, clampGroundBoundsValue, sanitizeGroundBounds } from '../routes/world/townLayout';
 import { gameplayProgress, gameplayTarget } from '../lib/gameplayAssignment';
+import { SEL_RECHECK_DELAY_MIN } from '../lib/selZones';
 
 // React StrictMode (and any other accidental re-invocation of initSync)
 // double-fires the mount effect that calls it. Without this guard, a second
@@ -69,6 +70,8 @@ import {
   rowToHelpPing,
   rowToStudentFeedback,
   rowToQuizStruggle,
+  rowToSelCheckIn,
+  pushSelCheckIn,
   rowToOffscreenReview,
   rowToQuizAttempt,
   rowToBadge,
@@ -183,6 +186,8 @@ import type {
   HelpPing,
   StudentFeedback,
   QuizStruggle,
+  SelCheckIn,
+  SelZone,
   OffscreenReview,
   QuizAttemptRecord,
   BadgeDef,
@@ -267,6 +272,18 @@ interface AppState {
   quizStruggles: QuizStruggle[];
   flagQuizStruggle: (studentId: string, subject: Subject, task: Task, questionPrompt: string) => void;
   resolveQuizStruggle: (id: string) => void;
+  // Zones of Regulation check-in (docs/ZONES_OF_REGULATION_CHECKIN.md) —
+  // starts a new record on zone+emotion pick (login gate or re-check),
+  // returning its id so the UI can keep attaching to it (note, tools,
+  // scheduling/completing the automatic re-check) as the flow continues.
+  selCheckIns: SelCheckIn[];
+  recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string) => string;
+  addSelCheckInNote: (id: string, noteText: string) => void;
+  addSelCheckInTool: (id: string, toolLabel: string) => void;
+  scheduleSelRecheck: (id: string, neighborId: string) => void;
+  skipSelRecheck: (id: string) => void;
+  completeSelRecheck: (id: string, zone: SelZone, emotion: string, toolUsedLabel: string | undefined, nextDelayMin: number | undefined) => void;
+  resolveSelCheckIn: (id: string) => void;
   offscreenReviews: OffscreenReview[];
   quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
@@ -699,6 +716,7 @@ export const useStore = create<AppState>()(
       helpPings: [],
       studentFeedback: [],
       quizStruggles: [],
+      selCheckIns: [],
       offscreenReviews: [],
       quizAttempts: [],
       badges: DEFAULT_BADGES,
@@ -835,6 +853,7 @@ export const useStore = create<AppState>()(
           onHelpPing: (e, n, o) => set((s) => ({ helpPings: applyArrayRow(s.helpPings, e, rowToHelpPing, n, o) })),
           onStudentFeedback: (e, n, o) => set((s) => ({ studentFeedback: applyArrayRow(s.studentFeedback, e, rowToStudentFeedback, n, o) })),
           onQuizStruggle: (e, n, o) => set((s) => ({ quizStruggles: applyArrayRow(s.quizStruggles, e, rowToQuizStruggle, n, o) })),
+          onSelCheckIn: (e, n, o) => set((s) => ({ selCheckIns: applyArrayRow(s.selCheckIns, e, rowToSelCheckIn, n, o) })),
           onOffscreenReview: (e, n, o) =>
             set((s) => ({ offscreenReviews: applyArrayRow(s.offscreenReviews, e, rowToOffscreenReview, n, o) })),
           onQuizAttempt: (e, n, o) =>
@@ -2570,6 +2589,93 @@ export const useStore = create<AppState>()(
         set((s) => ({ quizStruggles: s.quizStruggles.map((q) => (q.id === id ? { ...q, resolved: true } : q)) }));
         const updated = get().quizStruggles.find((q) => q.id === id);
         if (updated) pushQuizStruggle(updated);
+      },
+
+      // Zones of Regulation check-in — docs/ZONES_OF_REGULATION_CHECKIN.md.
+      // Red Zone reuses the existing help-ping full-screen teacher alert
+      // (spec §5: "reusing the proven help-ping alert path is zero new
+      // infrastructure") instead of a separate alert system; it never needs
+      // its own Review Inbox entry since the alert already surfaces it.
+      recordSelCheckIn: (studentId, zone, emotion) => {
+        const checkIn: SelCheckIn = {
+          id: makeId(),
+          studentId,
+          timestamp: new Date().toISOString(),
+          zone,
+          emotion,
+          toolsUsedLabels: [],
+        };
+        set((s) => ({ selCheckIns: [checkIn, ...s.selCheckIns] }));
+        pushSelCheckIn(checkIn);
+        if (zone === 'red') get().pingHelp(studentId);
+        return checkIn.id;
+      },
+
+      addSelCheckInNote: (id, noteText) => {
+        set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (c.id === id ? { ...c, noteText } : c)) }));
+        const updated = get().selCheckIns.find((c) => c.id === id);
+        if (updated) pushSelCheckIn(updated);
+      },
+
+      addSelCheckInTool: (id, toolLabel) => {
+        set((s) => ({
+          selCheckIns: s.selCheckIns.map((c) =>
+            c.id === id ? { ...c, toolsUsedLabels: [...c.toolsUsedLabels, toolLabel] } : c,
+          ),
+        }));
+        const updated = get().selCheckIns.find((c) => c.id === id);
+        if (updated) pushSelCheckIn(updated);
+      },
+
+      // Called once the student leaves the support menu for a non-Green
+      // zone — schedules the automatic Neighbor re-check (spec §3-4) and,
+      // for Blue/Yellow, surfaces a normal Review Inbox item (Red already
+      // alerted via recordSelCheckIn above, so it's deliberately excluded).
+      scheduleSelRecheck: (id, neighborId) => {
+        const checkIn = get().selCheckIns.find((c) => c.id === id);
+        if (!checkIn) return;
+        const delayMin = SEL_RECHECK_DELAY_MIN[checkIn.zone];
+        const updated: SelCheckIn = {
+          ...checkIn,
+          neighborId,
+          recheckDelayMin: delayMin,
+          recheckDueAt: delayMin ? new Date(Date.now() + delayMin * 60_000).toISOString() : undefined,
+          inboxResolved: checkIn.zone === 'red' ? true : checkIn.inboxResolved,
+        };
+        set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (c.id === id ? updated : c)) }));
+        pushSelCheckIn(updated);
+      },
+
+      skipSelRecheck: (id) => {
+        set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (c.id === id ? { ...c, recheckDueAt: undefined, recheckCompleted: true } : c)) }));
+        const updated = get().selCheckIns.find((c) => c.id === id);
+        if (updated) pushSelCheckIn(updated);
+      },
+
+      // A re-check that lands on Red re-alerts the teacher exactly like the
+      // original pick would have — the student's state got worse, not better.
+      completeSelRecheck: (id, zone, emotion, toolUsedLabel, nextDelayMin) => {
+        const checkIn = get().selCheckIns.find((c) => c.id === id);
+        if (!checkIn) return;
+        const updated: SelCheckIn = {
+          ...checkIn,
+          recheckZone: zone,
+          recheckEmotion: emotion,
+          recheckToolUsedLabel: toolUsedLabel,
+          recheckTimestamp: new Date().toISOString(),
+          recheckCompleted: !nextDelayMin,
+          recheckDueAt: nextDelayMin ? new Date(Date.now() + nextDelayMin * 60_000).toISOString() : undefined,
+          recheckDelayMin: nextDelayMin ?? checkIn.recheckDelayMin,
+        };
+        set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (c.id === id ? updated : c)) }));
+        pushSelCheckIn(updated);
+        if (zone === 'red') get().pingHelp(checkIn.studentId);
+      },
+
+      resolveSelCheckIn: (id) => {
+        set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (c.id === id ? { ...c, inboxResolved: true } : c)) }));
+        const updated = get().selCheckIns.find((c) => c.id === id);
+        if (updated) pushSelCheckIn(updated);
       },
 
       verifyOffscreen: (id) => {

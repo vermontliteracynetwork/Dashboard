@@ -211,6 +211,46 @@ export interface Student {
   // are unlocked (currently just 'cake', from the Bakery Match tracker).
   unlockedCharacterIds?: string[];
   equippedCharacterId?: string | null; // a CHARACTER_CATALOG id from unlockedCharacterIds, or null/undefined for the default player model
+  // Zones of Regulation check-in (docs/ZONES_OF_REGULATION_CHECKIN.md) —
+  // per-student, teacher-customized 2-3 "tools" offered on the support menu
+  // for each non-Green zone. undefined/missing zone = that zone's
+  // SEL_STARTER_TOOLS curriculum default (src/lib/selZones.ts) still
+  // applies; this only ever holds a teacher's actual override.
+  selZoneTools?: Partial<Record<SelZone, string[]>>;
+}
+
+// One zone/emotion pick, from the mandatory login check-in or a later
+// Neighbor re-check — docs/ZONES_OF_REGULATION_CHECKIN.md. A top-level
+// array keyed by studentId (not nested on Student), same convention as
+// HelpPing/StudentFeedback below: this is an accumulating log a clinician
+// reads over time, not current-state settings.
+export type SelZone = 'blue' | 'green' | 'yellow' | 'red';
+
+export interface SelCheckIn {
+  id: string;
+  studentId: string;
+  timestamp: string; // ISO, when the zone was first picked (login gate)
+  zone: SelZone;
+  emotion: string; // one word from SEL_ZONE_EMOTIONS[zone]
+  toolsUsedLabels: string[]; // tools tapped from the support/re-check board, in the order tapped
+  noteText?: string; // typed, or voice-transcribed via useTextBoxVoiceToText — never recorded audio (spec §6)
+  // Review Inbox: Blue/Yellow land as a normal selNote item (spec §5); Red
+  // never sets this — Red reuses the existing help-ping full-screen alert
+  // instead (see store.ts's recordSelCheckIn), so it never needs its own
+  // inbox resolution step.
+  inboxResolved?: boolean;
+  // Automatic Neighbor re-check (spec §3-4) — scheduled the moment the
+  // student leaves the support menu for a non-Green zone. neighborId is
+  // chosen once, at schedule time, and stays fixed for this record's own
+  // re-check (and any re-re-check chained after it via recheckDelayMin).
+  neighborId?: string;
+  recheckDueAt?: string; // ISO; SelRecheckPrompt polls for due, uncompleted re-checks
+  recheckDelayMin?: number;
+  recheckCompleted?: boolean;
+  recheckZone?: SelZone;
+  recheckEmotion?: string;
+  recheckToolUsedLabel?: string;
+  recheckTimestamp?: string; // ISO
 }
 
 export type QuizTheme = 'standard' | 'pixel' | 'adventure' | 'fantasy';

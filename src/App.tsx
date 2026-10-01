@@ -33,9 +33,11 @@ import BadgeManager from './routes/teacher/BadgeManager';
 import MarketplaceManager from './routes/teacher/MarketplaceManager';
 import TeacherStudentBank from './routes/teacher/TeacherStudentBank';
 import ScoreHistory from './routes/teacher/ScoreHistory';
+import SelCheckInLog from './routes/teacher/SelCheckInLog';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
+import SelRecheckPrompt from './components/SelRecheckPrompt';
 import GlobalMusicPlayer from './components/GlobalMusicPlayer';
 
 // Lazy-loaded: Three.js/react-three-fiber are heavy, and only the world
@@ -103,6 +105,7 @@ export default function App() {
       <div className="app-shell">
         <TeacherHelpAlert />
         <StudentChatAlert />
+        <SelRecheckPrompt />
         <CoinDropOverlay />
         <SyncTroubleAlert />
         {/* Direct teacher instruction: music keeps playing across every
@@ -166,6 +169,7 @@ export default function App() {
             <Route path="/teacher/marketplace" element={<MarketplaceManager />} />
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />
             <Route path="/teacher/scores" element={<ScoreHistory />} />
+            <Route path="/teacher/sel-checkins" element={<SelCheckInLog />} />
             <Route
               path="/teacher/world-editor"
               element={
