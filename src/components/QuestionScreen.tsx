@@ -12,18 +12,19 @@ import { speak } from './ReadAloud';
 // coin amounts, round targets, question sourcing) and just feeds this
 // component the current question plus a couple of callbacks.
 //
-// Retry model (teacher's explicit "wrong answer never resets progress"
-// rule, generalized here as the one shared answering pattern): a wrong pick
-// never advances and never costs anything — it's marked wrong in place and
-// the student keeps trying the SAME question until they get it, instead of
-// this component (or the caller) swapping in a fresh one mid-attempt. Only
-// a correct pick calls onCorrectAnswer, after a short pause so the success
-// state is actually visible. Callers that want a new question after a
-// correct answer (Gas Pump's next random question, Bakery's next round)
-// just do that from onCorrectAnswer — this component doesn't need to know
-// about it, it just re-renders with whatever new `prompt`/`choices`/
-// `correctIndex` the caller passes next, and resets its own local answer
-// state whenever `prompt` changes.
+// Retry model (direct teacher instruction, 2026-10-01, supersedes the
+// earlier "retry the same question" rule this component used to follow):
+// the instant a student picks ANY answer, every choice locks — right or
+// wrong, no further clicking on what's left. A correct pick calls
+// onCorrectAnswer after a short pause so the success state is actually
+// visible; a wrong pick stays locked and shows a real "Next Question ▶"
+// button (via the required `onSkip` prop) instead of ever letting a
+// student keep guessing among the remaining choices on the same question.
+// Callers that want a new question after a correct answer (Gas Pump's next
+// random question, Bakery's next round) just do that from onCorrectAnswer
+// — this component doesn't need to know about it, it just re-renders with
+// whatever new `prompt`/`choices`/`correctIndex` the caller passes next,
+// and resets its own local answer state whenever `prompt` changes.
 //
 // Toolbox (🧮 📝 🔤 🖍️): explicitly a placeholder — the teacher asked to
 // reserve the screen space for these tools, but none of them do anything
@@ -57,17 +58,6 @@ export interface QuestionScreenProps {
   // followed, just adding real forward motion instead of the caller only
   // being locked into "the exact same question, no matter what."
   onSkip?: () => void;
-  // Direct teacher instruction (Castle Defense feedback, 2026-09-30): for
-  // some games, a wrong pick should lock the whole question — no further
-  // clicking on the remaining choices — and hand the student a real "Next
-  // Question" button instead of letting them keep guessing among what's
-  // left. Opt-in and defaults to false so the original retry-the-same-
-  // question model (the prior direct teacher instruction documented
-  // above) stays exactly as-is for every existing caller (Bakery Match,
-  // Gas Pump) unless they explicitly ask for this stricter mode. Only
-  // takes effect when `onSkip` is also supplied — with no onSkip, a wrong
-  // pick would otherwise dead-end the student with no way forward.
-  lockOnWrongAnswer?: boolean;
   ttsSettings?: TTSSettings;
 }
 
@@ -109,10 +99,9 @@ export default function QuestionScreen({
   onCorrectAnswer,
   onExit,
   onSkip,
-  lockOnWrongAnswer,
   ttsSettings,
 }: QuestionScreenProps) {
-  const lockAfterWrong = lockOnWrongAnswer && !!onSkip;
+  const lockAfterWrong = !!onSkip;
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [answeredCorrectly, setAnsweredCorrectly] = useState(false);

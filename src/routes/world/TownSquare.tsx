@@ -1947,10 +1947,34 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       // comfortably covers the visible ground radius with margin — reads
       // the live groundBounds so an expanded wall never falls outside the
       // map view's frame.
+      //
+      // Direct teacher bug report + screenshot: the map view rendered as a
+      // skewed diagonal sliver of ground against a black void, with clicks
+      // landing nowhere near where they visually looked like they should.
+      // Root cause: looking almost straight down (-Y) while the camera's
+      // `up` vector was still left at Three.js's default (0,1,0) — forward
+      // and up end up nearly anti-parallel, which makes `lookAt`'s internal
+      // cross-product (the one it uses to derive the camera's "right" axis)
+      // collapse toward a zero vector. Normalizing that near-zero vector is
+      // numerically unstable, so the camera's actual on-screen rotation came
+      // out essentially arbitrary/skewed rather than a clean top-down
+      // square — exactly the diagonal split in the screenshot, and exactly
+      // why raycasting (ground-click navigation) looked broken too: it was
+      // faithfully following the same skewed camera the student couldn't
+      // see was skewed. Fix: give the camera an `up` vector that's actually
+      // perpendicular to "straight down" before calling lookAt — (0,0,-1),
+      // chosen to match CoordinateGrid's own documented convention that
+      // "up on screen" is north/-Z in this view.
+      camera.up.set(0, 0, -1);
       const mapHeight = mapHeightFor(groundBoundsMaxExtent(useStore.getState().groundBounds));
       camera.position.lerp(new THREE.Vector3(0, mapHeight, 0.01), 1 - Math.pow(0.001, dt));
       camera.lookAt(0, 0, 0);
     } else {
+      // Restore the standard world-up every frame the normal third-person
+      // camera is active — must never stay at the map view's (0,0,-1) once
+      // mapView toggles off, or this camera's own lookAt below would
+      // inherit that same skew.
+      camera.up.set(0, 1, 0);
       const camAngle = facing.current + cameraLook.current;
       const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE;
       const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE;
