@@ -1117,6 +1117,25 @@ function captionBtn(icon: string, caption: string, onClick: () => void, active?:
   );
 }
 
+// The selected-object / group / wall toolbar lives in one fixed spot at the
+// top-center of the Build Mode view (direct teacher instruction: "it needs
+// to always be visible to the user, not in a corner, not off to the side,
+// always fully in view", and the same size however far the camera is
+// zoomed). It used to float in the 3D scene above the object, so it shrank
+// when zoomed out and could slide off-screen with the object. Popovers
+// open straight down underneath it.
+function ToolbarDock({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="build-toolbar-dock"
+      style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif', maxWidth: 'calc(100% - 20px)', maxHeight: 'calc(100% - 120px)', overflowY: 'auto', pointerEvents: 'auto' }}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      {children}
+    </div>
+  );
+}
+
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
@@ -1146,11 +1165,6 @@ function SelectedObjectToolbar({
   onMoveModeChange: (active: boolean) => void;
 }) {
   const size = useModelSize(selected.modelPath);
-  // Claudia's focus-group audit: an unclamped topY sent this toolbar off
-  // the default camera frame entirely for large/"Giant" (5x) objects —
-  // clamped so the controls that shrink an object back down stay reachable
-  // no matter how big it currently is.
-  const topY = Math.min(size.y * selected.scale, 6) + (selected.position[1] ?? 0);
   const [openPopover, setOpenPopover] = useState<'resize' | 'color' | 'more' | 'move' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // Direct teacher instruction, reversing an earlier Claudia-audited
@@ -1207,35 +1221,8 @@ function SelectedObjectToolbar({
 
   return (
     <>
-      {/* Corner delete badge — the second of the two delete affordances
-          Kayden asked for ("the delete button or an X"), sitting right on
-          the selection outline itself so it's visible the instant
-          something is selected, no hunting in a panel. Claudia's audit:
-          this used to delete-on-second-click while the toolbar's own X
-          only ever armed the confirm chip — two identical-looking ✕
-          buttons with different click semantics. Both now do the same
-          single thing (arm the one shared confirm chip below), so there is
-          exactly one place delete actually commits. */}
-      <Html position={[selected.position[0] + (size.x * selected.scale) / 2 + 0.15, topY, selected.position[2]]} center distanceFactor={8} zIndexRange={[60, 0]}>
-        <button
-          title="Delete"
-          aria-label="Delete this object"
-          onClick={() => setConfirmingDelete(true)}
-          style={{ width: 44, height: 44, borderRadius: '50%', border: '2px solid #fff', background: 'var(--danger)', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}
-        >
-          ✕
-        </button>
-      </Html>
 
-      {/* Anchored bottom-center (not drei's `center`, which splits the
-          panel's height evenly above/below the point) — with `center` a
-          tall panel (delete-confirm chip, or the Move popover's D-pad)
-          dipped back down over the object itself, exactly what a small
-          placed object needs clearance from. translate(-50%,-100%) keeps
-          the whole stack growing upward from topY, never covering
-          what's below it, however tall it gets. */}
-      <Html position={[selected.position[0], topY + 0.5, selected.position[2]]} distanceFactor={8} zIndexRange={[60, 0]}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif', transform: 'translate(-50%, -100%)' }}>
+      <ToolbarDock>
           {confirmingDelete ? (
             <div className="row" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 12, boxShadow: '4px 4px 0 var(--ink)', padding: 6 }}>
               <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={doDelete}>Delete</button>
@@ -1462,8 +1449,7 @@ function SelectedObjectToolbar({
               </label>
             </div>
           )}
-        </div>
-      </Html>
+      </ToolbarDock>
     </>
   );
 }
@@ -1475,11 +1461,9 @@ function SelectedObjectToolbar({
 function SelectedWallToolbar({ wall, onDelete, deselect }: { wall: WallSegment; onDelete: () => void; deselect: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   useEffect(() => { setConfirmingDelete(false); }, [wall.id]);
-  const mx = (wall.x1 + wall.x2) / 2;
-  const mz = (wall.z1 + wall.z2) / 2;
   const doDelete = () => { onDelete(); deselect(); };
   return (
-    <Html position={[mx, wall.height + 0.4, mz]} center distanceFactor={8} zIndexRange={[60, 0]}>
+    <ToolbarDock>
       {confirmingDelete ? (
         <div className="row" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 12, boxShadow: '4px 4px 0 var(--ink)', padding: 6, fontFamily: 'system-ui, sans-serif' }}>
           <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={doDelete}>Delete</button>
@@ -1492,7 +1476,7 @@ function SelectedWallToolbar({ wall, onDelete, deselect }: { wall: WallSegment; 
           <button className="btn btn-sm" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, fontSize: '1.05rem' }} title="Deselect" aria-label="Deselect" onClick={deselect}>✕</button>
         </div>
       )}
-    </Html>
+    </ToolbarDock>
   );
 }
 
@@ -1523,13 +1507,12 @@ function SelectedWallToolbar({ wall, onDelete, deselect }: { wall: WallSegment; 
 // measure it. Documented simplification; flagged for a live teacher look
 // since this sandbox can't render the actual 3D result either way.
 function SelectedGroupToolbar({
-  members, centroid, rotateCwFine, rotateCcwFine, onDragRotate, growHold, shrinkHold,
+  members, rotateCwFine, rotateCcwFine, onDragRotate, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onDelete, onGroup, onUngroup, isExistingGroup,
   deselect, onMoveModeChange,
 }: {
   members: WorldObject[];
-  centroid: { x: number; z: number };
   rotateCwFine: ReturnType<typeof useHoldRepeat>;
   rotateCcwFine: ReturnType<typeof useHoldRepeat>;
   onDragRotate: (deg: number) => void;
@@ -1546,12 +1529,6 @@ function SelectedGroupToolbar({
   deselect: () => void;
   onMoveModeChange: (active: boolean) => void;
 }) {
-  const anchor = members[0];
-  const size = useModelSize(anchor.modelPath);
-  // A little extra clearance over the single-object toolbar's own topY
-  // math, so this reads as floating above the whole group, not glued to
-  // just the anchor's own top.
-  const topY = Math.min(size.y * anchor.scale, 6) + 0.6 + (anchor.position[1] ?? 0);
   const [openPopover, setOpenPopover] = useState<'resize' | 'move' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const memberKey = members.map((m) => m.id).sort().join(',');
@@ -1594,8 +1571,7 @@ function SelectedGroupToolbar({
   );
 
   return (
-    <Html position={[centroid.x, topY + 0.5, centroid.z]} distanceFactor={8} zIndexRange={[60, 0]}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: 'system-ui, sans-serif', transform: 'translate(-50%, -100%)' }}>
+    <ToolbarDock>
         <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#fff', border: '2px solid var(--ink)', borderRadius: 999, padding: '2px 10px' }}>
           {members.length} objects selected{isExistingGroup ? ' (grouped)' : ''}
         </span>
@@ -1663,8 +1639,7 @@ function SelectedGroupToolbar({
             </div>
           </div>
         )}
-      </div>
-    </Html>
+    </ToolbarDock>
   );
 }
 
@@ -1738,6 +1713,7 @@ export default function WorldEditor() {
   // release off the ground plane still ends the drag instead of leaving
   // it stuck).
   const [dragObjectId, setDragObjectId] = useState<string | null>(null);
+  const dragEndedAtRef = useRef(0);
   const [dragPos, setDragPos] = useState<{ x: number; z: number } | null>(null);
   // Group drag (Canva-style multi-select move): when the drag-start object
   // is part of an active 2+ multiSelectIds selection, this snapshots every
@@ -2555,6 +2531,11 @@ export default function WorldEditor() {
     if (!dragObjectId) return;
     const commit = () => {
       if (dragPos) {
+        // The object is inert mid-drag (so it can be dropped on top of
+        // another one), which means the release's click lands on the
+        // ground. Without this, that click deselected the object the
+        // moment you let go, so its toolbar vanished.
+        dragEndedAtRef.current = performance.now();
         const origin = dragGroupOrigin?.[dragObjectId];
         if (dragGroupOrigin && origin) {
           const dx = dragPos.x - origin[0];
@@ -2670,7 +2651,7 @@ export default function WorldEditor() {
       // selected feel, but opt-in rather than the previous always-on
       // default).
       if (!shiftHeld) setArmedAsset(null);
-    } else {
+    } else if (e.delta < 6 && performance.now() - dragEndedAtRef.current > 400) {
       setSelection(null);
       setMultiSelectIds([]);
     }
@@ -3394,7 +3375,7 @@ export default function WorldEditor() {
                 <group key={item.id}>
                   <WorldObjectRenderer
                     obj={renderObj}
-                    inert={!!armedAsset}
+                    inert={!!armedAsset || !!dragObjectId}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -3477,7 +3458,7 @@ export default function WorldEditor() {
                 <group key={obj.id}>
                   <WorldObjectRenderer
                     obj={liveObj}
-                    inert={!!armedAsset}
+                    inert={!!armedAsset || !!dragObjectId}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -3640,58 +3621,61 @@ export default function WorldEditor() {
             {/* Live drag preview while drawing a new wall segment. */}
             {wallPreview && <WallMesh wall={wallPreview} color={WALL_ACCENT} opacity={0.6} />}
 
-            {selectedWall && (
-              <SelectedWallToolbar wall={selectedWall} onDelete={() => deleteWallSegment(selectedWall.id)} deselect={() => setSelection(null)} />
-            )}
-
-            {/* A 2+ multi-selection (ad hoc or an already-formed group —
-                see groupMembers/groupCommonId above) always takes over the
-                toolbar slot instead of the single-object one, matching
-                Canva: you don't need to formally Group objects to move/
-                rotate/resize them together, only to make that membership
-                persist across a later reselection. */}
-            {groupMembers.length >= 2 && groupCentroid ? (
-              <SelectedGroupToolbar
-                members={groupMembers}
-                centroid={groupCentroid}
-                rotateCwFine={rotateCwFine}
-                rotateCcwFine={rotateCcwFine}
-                onDragRotate={rotateBy}
-                growHold={growHold}
-                shrinkHold={shrinkHold}
-                nudgeNorthHold={nudgeNorthHold}
-                nudgeSouthHold={nudgeSouthHold}
-                nudgeEastHold={nudgeEastHold}
-                nudgeWestHold={nudgeWestHold}
-                onDelete={deleteSelected}
-                onGroup={groupSelected}
-                onUngroup={ungroupSelected}
-                isExistingGroup={!!groupCommonId}
-                deselect={() => { setMultiSelectIds([]); setSelection(null); }}
-                onMoveModeChange={setMoveModeActive}
-              />
-            ) : selected && selection && (
-              <SelectedObjectToolbar
-                selected={selected}
-                allowNameRole={selection.kind === 'placed'}
-                rotateCwFine={rotateCwFine}
-                rotateCcwFine={rotateCcwFine}
-                onDragRotate={rotateBy}
-                setScale={setScale}
-                growHold={growHold}
-                shrinkHold={shrinkHold}
-                nudgeNorthHold={nudgeNorthHold}
-                nudgeSouthHold={nudgeSouthHold}
-                nudgeEastHold={nudgeEastHold}
-                nudgeWestHold={nudgeWestHold}
-                onUpdate={updateSelected}
-                onDelete={deleteSelected}
-                onDuplicate={duplicateSelected}
-                deselect={() => setSelection(null)}
-                onMoveModeChange={setMoveModeActive}
-              />
-            )}
           </Canvas>
+          {!armedAsset && (
+            <Suspense fallback={null}>
+            {selectedWall && (
+                <SelectedWallToolbar wall={selectedWall} onDelete={() => deleteWallSegment(selectedWall.id)} deselect={() => setSelection(null)} />
+              )}
+
+              {/* A 2+ multi-selection (ad hoc or an already-formed group —
+                  see groupMembers/groupCommonId above) always takes over the
+                  toolbar slot instead of the single-object one, matching
+                  Canva: you don't need to formally Group objects to move/
+                  rotate/resize them together, only to make that membership
+                  persist across a later reselection. */}
+              {groupMembers.length >= 2 && groupCentroid ? (
+                <SelectedGroupToolbar
+                  members={groupMembers}
+                  rotateCwFine={rotateCwFine}
+                  rotateCcwFine={rotateCcwFine}
+                  onDragRotate={rotateBy}
+                  growHold={growHold}
+                  shrinkHold={shrinkHold}
+                  nudgeNorthHold={nudgeNorthHold}
+                  nudgeSouthHold={nudgeSouthHold}
+                  nudgeEastHold={nudgeEastHold}
+                  nudgeWestHold={nudgeWestHold}
+                  onDelete={deleteSelected}
+                  onGroup={groupSelected}
+                  onUngroup={ungroupSelected}
+                  isExistingGroup={!!groupCommonId}
+                  deselect={() => { setMultiSelectIds([]); setSelection(null); }}
+                  onMoveModeChange={setMoveModeActive}
+                />
+              ) : selected && selection && (
+                <SelectedObjectToolbar
+                  selected={selected}
+                  allowNameRole={selection.kind === 'placed'}
+                  rotateCwFine={rotateCwFine}
+                  rotateCcwFine={rotateCcwFine}
+                  onDragRotate={rotateBy}
+                  setScale={setScale}
+                  growHold={growHold}
+                  shrinkHold={shrinkHold}
+                  nudgeNorthHold={nudgeNorthHold}
+                  nudgeSouthHold={nudgeSouthHold}
+                  nudgeEastHold={nudgeEastHold}
+                  nudgeWestHold={nudgeWestHold}
+                  onUpdate={updateSelected}
+                  onDelete={deleteSelected}
+                  onDuplicate={duplicateSelected}
+                  deselect={() => setSelection(null)}
+                  onMoveModeChange={setMoveModeActive}
+                />
+              )}
+            </Suspense>
+          )}
 
           {/* Global mode-level controls, bottom-docked — Sims 4's own
               bottom-toolbar feel, reserved for whole-scene settings rather
