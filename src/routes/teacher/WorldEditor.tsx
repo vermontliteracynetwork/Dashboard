@@ -11,6 +11,7 @@ import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt, SKY_TEXTURE_OPTIONS,
   groundBoundsMaxExtent, GROUND_BOUNDS_STEP, GROUND_BOUNDS_MAX,
+  isChessSetModel,
 } from '../world/townLayout';
 import { isTrackModel, trackPlacementFeedback } from '../world/trainTrack';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
@@ -73,8 +74,8 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
 // independently-duplicated copy of this same bound — keep both in sync.
 const SCALE_MIN = 0.0005;
 const SCALE_MAX = 20;
-const HEIGHT_STEP = 0.1;
-const HEIGHT_FINE_STEP = 0.02;
+const HEIGHT_STEP = 0.25;
+const HEIGHT_FINE_STEP = 0.05;
 const HEIGHT_MAX = 20;
 
 // Claudia's completeness review of the new 'custom' role: a bare domain
@@ -843,6 +844,28 @@ function CameraPanner({ controlsRef }: { controlsRef: React.RefObject<{ target: 
 // layered on top of the existing translucent ghost rather than replacing
 // it (Claudia's spec section 4/6). Position is the object's ground point;
 // the box is centered on its true vertical midpoint.
+// Shown under a lifted object (selected, or the placing ghost): a post from
+// the ground up to the object, a ring on the ground, and the height
+// number, so a 9/0 press is visible even from far away.
+function HeightMarker({ x, y, z }: { x: number; y: number; z: number }) {
+  if (y < 0.001) return null;
+  return (
+    <group>
+      <mesh position={[x, y / 2, z]} raycast={() => null}>
+        <cylinderGeometry args={[0.04, 0.04, y, 8]} />
+        <meshBasicMaterial color={BUILD_ACCENT} transparent opacity={0.8} />
+      </mesh>
+      <mesh position={[x, 0.04, z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <ringGeometry args={[0.22, 0.34, 28]} />
+        <meshBasicMaterial color={BUILD_ACCENT} transparent opacity={0.85} />
+      </mesh>
+      <Html position={[x, 0.05, z]} center zIndexRange={[50, 0]} style={{ pointerEvents: 'none' }}>
+        <div style={{ background: '#fff', border: `2px solid ${BUILD_ACCENT}`, borderRadius: 999, padding: '1px 8px', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap', transform: 'translateY(16px)' }}>↕ {y.toFixed(2)}</div>
+      </Html>
+    </group>
+  );
+}
+
 function FootprintOutline({ modelPath, x, y = 0, z, rotationY = 0, scale, color, opacity = 1, lineWidth = 2 }: {
   modelPath: string; x: number; y?: number; z: number; rotationY?: number; scale: number; color: string; opacity?: number; lineWidth?: number;
 }) {
@@ -2629,7 +2652,7 @@ export default function WorldEditor() {
         z = snap.z;
         rotationY = snap.angle + ghostRotationAdjust;
       }
-      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, ghostHeight, z], rotationY, scale: armedDefaultScale * ghostScaleAdjust, collides: defaultCollidesForCategory(armedAsset.category) });
+      const id = addWorldObjectH({ modelPath: armedAsset.path, label: armedAsset.label, position: [x, ghostHeight, z], rotationY, scale: armedDefaultScale * ghostScaleAdjust, collides: defaultCollidesForCategory(armedAsset.category), role: isChessSetModel(armedAsset.path) ? 'chess' : undefined });
       // ghostPos IS cleared — leaving it set to this exact spot meant the
       // next render's footprintOverlap check found the object we just
       // placed (distance 0) and flashed a false "overlapping itself"
@@ -3146,6 +3169,7 @@ export default function WorldEditor() {
               <div>⌨️ WASD / Arrows — camera</div>
               <div>⌨️ Delete — remove selected</div>
               <div>⌨️ , / . — rotate selected (or the item you're about to place)</div>
+              <div>⌨️ 9 / 0 — lower / raise selected (or the item you're about to place); Shift for small steps</div>
               <div>⌨️ [ / ] — shrink / grow selected (or about to place)</div>
               <div>⌨️ Ctrl/Cmd+Z — undo</div>
             </div>
@@ -3342,6 +3366,7 @@ export default function WorldEditor() {
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
                 <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
+                <HeightMarker x={ghostPos.x} y={ghostHeight} z={ghostPos.z} />
                 <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} y={ghostHeight} z={ghostPos.z} scale={armedDefaultScale * ghostScaleAdjust} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
@@ -3549,7 +3574,10 @@ export default function WorldEditor() {
                       panel, which this closes. Color is reinforcement, the
                       outline geometry itself is the primary signal. */}
                   {isSelected && (
-                    <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} y={livePos[1] ?? 0} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
+                    <>
+                      <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} y={livePos[1] ?? 0} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
+                      <HeightMarker x={livePos[0]} y={livePos[1] ?? 0} z={livePos[2]} />
+                    </>
                   )}
                   {isHovered && (
                     <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} y={obj.position[1] ?? 0} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />

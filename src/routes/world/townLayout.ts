@@ -221,6 +221,16 @@ export const SIGN_MODEL_PATHS = new Set([
   '/world/models/props/sandwich-board.glb',
   '/world/models/props/park-info-board.glb',
 ]);
+// The teacher-uploaded Chess Set model always works as the Slime Chess game
+// (role 'chess') unless a teacher deliberately gave it a different role,
+// so a chess set placed anywhere is playable without an extra setup step.
+export function isChessSetModel(modelPath: string): boolean {
+  return /\/chess-set\.glb$/i.test(modelPath);
+}
+export function withDefaultRoles<T extends { modelPath: string; role?: WorldObjectRole }>(objs: T[]): T[] {
+  return objs.map((o) => (!o.role && isChessSetModel(o.modelPath) ? { ...o, role: 'chess' as WorldObjectRole } : o));
+}
+
 export function isSignModel(modelPath: string): boolean {
   return SIGN_MODEL_PATHS.has(modelPath);
 }

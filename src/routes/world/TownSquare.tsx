@@ -27,7 +27,7 @@ import { WorldObjectRenderer, useModelSize } from './WorldObjectRenderer';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS, groundBoundsMaxExtent } from './townLayout';
+import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS, groundBoundsMaxExtent } from './townLayout';
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
@@ -2832,7 +2832,8 @@ export default function TownSquare() {
   // holding a half-finished edit back until the teacher hits Publish.
   const [searchParams, setSearchParams] = useSearchParams();
   const previewDraft = searchParams.get('previewDraft') === '1';
-  const allWorldObjects = useStore((s) => s.worldObjects);
+  const storeWorldObjects = useStore((s) => s.worldObjects);
+  const allWorldObjects = useMemo(() => withDefaultRoles(storeWorldObjects), [storeWorldObjects]);
   const worldObjects = useMemo(
     () => resolveDraftRows(allWorldObjects.filter((o) => !o.studentId), previewDraft),
     [allWorldObjects, previewDraft]

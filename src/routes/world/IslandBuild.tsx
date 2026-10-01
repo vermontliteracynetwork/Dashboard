@@ -6,7 +6,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
-import { ROLE_VIEWS } from './townLayout';
+import { ROLE_VIEWS, withDefaultRoles } from './townLayout';
 import InternalBrowser from '../../components/InternalBrowser';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import type { WorldObject, WorldObjectRole } from '../../types';
@@ -498,7 +498,8 @@ export default function IslandBuild() {
     if (!currentStudentId) navigate('/student/login');
   }, [currentStudentId, navigate]);
 
-  const allWorldObjects = useStore((s) => s.worldObjects);
+  const storeWorldObjects = useStore((s) => s.worldObjects);
+  const allWorldObjects = useMemo(() => withDefaultRoles(storeWorldObjects), [storeWorldObjects]);
   const addWorldObject = useStore((s) => s.addWorldObject);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
