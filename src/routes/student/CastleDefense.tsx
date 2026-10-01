@@ -741,7 +741,6 @@ export default function CastleDefense() {
           onCorrectAnswer={handleGateCorrect}
           onExit={abandonGame}
           onSkip={() => setChallengeQuestion(pickQuestion(questionMode, challengeQuestion?.id))}
-          lockOnWrongAnswer
           ttsSettings={student?.ttsSettings}
         />
       )}
