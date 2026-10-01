@@ -1102,6 +1102,7 @@ Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`
   alter table question_sets add column if not exists focused_at timestamptz;
   ```
   **Standing lesson, now twice-confirmed:** any `schema.sql` edit made in this sandbox is inert until a human pastes it into the Supabase SQL Editor — a future session should flag this explicitly at the moment a migration is written, not just when it breaks in production.
+- **RESOLVED (2026-10-01) — direct teacher bug report with a screenshot: tapping the star on a Question Set in `QuestionSetsManager.tsx` didn't persist as a focus set.** Root cause was exactly the trade-off flagged above: the stopgap had been live since 2026-09-30 and the migration had never been confirmed run, so every star tap updated local state only and reverted on the next reload/sync. Teacher ran the `alter table question_sets add column ...` statements above with no errors; `description`/`is_focus`/`focused_at` are back in `pushQuestionSet`'s upsert payload (`src/lib/sync.ts`). Starring a set and writing its description now actually persist to Supabase. Verified: `npx tsc --noEmit` and `npm run build` both pass clean.
 
 ### Build Mode: removed the "overlapping" placement warning
 
