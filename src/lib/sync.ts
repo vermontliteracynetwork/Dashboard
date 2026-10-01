@@ -1360,23 +1360,12 @@ export const pushBreakPoolItem = (i: BreakPoolItem) =>
   upsert('break_pool_items', { id: i.id, title: i.title, kind: i.kind, value: i.value, student_id: i.studentId ?? null });
 export const deleteBreakPoolItemRemote = (id: string) => remove('break_pool_items', { id });
 
-// URGENT, direct teacher report (live production error, "FIX CODE NOW"):
-// every question_sets save started failing — "Could not find the
-// 'description' column of 'question_sets' in the schema cache" — because
-// schema.sql's `alter table question_sets add column ...` for
-// description/is_focus/focused_at was only ever written to this repo, not
-// actually run against the live Supabase project (this sandbox has no
-// Supabase credentials/CLI to run it with). description/is_focus/
-// focused_at are dropped from this upsert as a stopgap so ordinary
-// question-set saves work again immediately; starring a set or writing
-// its description will not persist to the database until the migration
-// below is actually run — re-add these three fields to this upsert once
-// it has been. Run this once, in the Supabase SQL editor for this
-// project (exactly what's already sitting in schema.sql, lines near
-// "Question Sets: description..."):
-//   alter table question_sets add column if not exists description text;
-//   alter table question_sets add column if not exists is_focus boolean not null default false;
-//   alter table question_sets add column if not exists focused_at timestamptz;
+// description/is_focus/focused_at were dropped from this upsert for a while
+// as a stopgap (see git history) after a production outage caused by the
+// matching schema.sql migration never having been run — teacher confirmed
+// that migration run 2026-10-01, so all three fields are back in the save
+// payload below; starring a set / writing a description now actually
+// persists to the database.
 export const pushQuestionSet = (q: QuestionSet) =>
   upsert('question_sets', {
     id: q.id,
@@ -1387,6 +1376,9 @@ export const pushQuestionSet = (q: QuestionSet) =>
     cards: q.cards,
     created_at: q.createdAt,
     tags: q.tags ?? [],
+    description: q.description ?? null,
+    is_focus: q.isFocus ?? false,
+    focused_at: q.focusedAt ?? null,
   });
 export const deleteQuestionSetRemote = (id: string) => remove('question_sets', { id });
 
