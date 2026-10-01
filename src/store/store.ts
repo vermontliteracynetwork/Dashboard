@@ -282,6 +282,16 @@ interface AppState {
   addSelCheckInTool: (id: string, toolLabel: string) => void;
   scheduleSelRecheck: (id: string, neighborId: string) => void;
   skipSelRecheck: (id: string) => void;
+  // Cancels every still-pending Neighbor re-check for a student. Runs on
+  // logout AND on login, so a re-check the student asked for ("check on me
+  // in 10 min") never sits waiting after they log out or just close the
+  // site, and never pops up stale in a later session.
+  cancelPendingSelRechecks: (studentId: string) => void;
+  // Session-only (not persisted, not synced): true while the student is in
+  // the middle of something a re-check must not interrupt (a Town Square
+  // conversation, a gas question). SelRecheckPrompt waits until it clears.
+  selRecheckHold: boolean;
+  setSelRecheckHold: (hold: boolean) => void;
   completeSelRecheck: (id: string, zone: SelZone, emotion: string, toolUsedLabel: string | undefined, nextDelayMin: number | undefined) => void;
   resolveSelCheckIn: (id: string) => void;
   offscreenReviews: OffscreenReview[];
@@ -957,8 +967,15 @@ export const useStore = create<AppState>()(
       role: 'none',
 
       setRole: (r) => set({ role: r }),
-      loginStudent: (id) => set({ currentStudentId: id, role: 'student' }),
-      logoutStudent: () => set({ currentStudentId: null, role: 'none' }),
+      loginStudent: (id) => {
+        get().cancelPendingSelRechecks(id);
+        set({ currentStudentId: id, role: 'student' });
+      },
+      logoutStudent: () => {
+        const id = get().currentStudentId;
+        if (id) get().cancelPendingSelRechecks(id);
+        set({ currentStudentId: null, role: 'none', selRecheckHold: false });
+      },
 
       addStudent: (name, avatar) => {
         const id = makeId();
@@ -2645,6 +2662,17 @@ export const useStore = create<AppState>()(
         set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (c.id === id ? updated : c)) }));
         pushSelCheckIn(updated);
       },
+
+      cancelPendingSelRechecks: (studentId) => {
+        const pending = get().selCheckIns.filter((c) => c.studentId === studentId && c.recheckDueAt && !c.recheckCompleted);
+        if (pending.length === 0) return;
+        const ids = new Set(pending.map((c) => c.id));
+        set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (ids.has(c.id) ? { ...c, recheckDueAt: undefined, recheckCompleted: true } : c)) }));
+        get().selCheckIns.filter((c) => ids.has(c.id)).forEach((c) => pushSelCheckIn(c));
+      },
+
+      selRecheckHold: false,
+      setSelRecheckHold: (hold) => set({ selRecheckHold: hold }),
 
       skipSelRecheck: (id) => {
         set((s) => ({ selCheckIns: s.selCheckIns.map((c) => (c.id === id ? { ...c, recheckDueAt: undefined, recheckCompleted: true } : c)) }));

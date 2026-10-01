@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { QUEST1_NEIGHBORS, pickDialogueVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
+import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
@@ -18,6 +18,7 @@ import InternalBrowser from '../../components/InternalBrowser';
 import { BookPanel } from '../../components/BookPanel';
 import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
+import NeighborFeelingsChat from '../../components/NeighborFeelingsChat';
 import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
@@ -2961,6 +2962,7 @@ export default function TownSquare() {
   // a worse mismatch than a role/title being cosmetic).
   const npcTitleOverrides = useStore((s) => s.npcTitleOverrides);
   const npcVoiceOverrides = useStore((s) => s.npcVoiceOverrides);
+  const setSelRecheckHold = useStore((s) => s.setSelRecheckHold);
   // The Focuses system's dialogue-embedding half (see lib/focus.ts):
   // whichever focus is current for a Neighbor's matched lane
   // (NEIGHBOR_FOCUS_LANE — Penny/finance, Pip/math, Wren/literacy,
@@ -3072,6 +3074,12 @@ export default function TownSquare() {
 
   const [playerPos, setPlayerPos] = useState(() => new THREE.Vector3(0, 0, 6));
   const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);
+  // Direct teacher instruction (2026-10-01): talking to a Neighbor you've
+  // already met opens a two-choice menu first: a joke, or talking about
+  // your feelings (the full Neighbor conversation scene, a student-started
+  // Zones check-in).
+  const [chatMenuNeighbor, setChatMenuNeighbor] = useState<Quest1Neighbor | null>(null);
+  const [feelingsNeighbor, setFeelingsNeighbor] = useState<Quest1Neighbor | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   // The full conversation so far, rendered as chat bubbles (NPC left,
   // student right) like a phone messaging app — direct teacher
@@ -3581,8 +3589,32 @@ export default function TownSquare() {
       beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: SCOUT_CHECKIN_VARIANT });
       return;
     }
+    if (metIds.includes(n.id)) {
+      walkTarget.current = null;
+      pendingApproach.current = null;
+      setChatMenuNeighbor(n);
+      return;
+    }
     beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: maybeAppendFocusLine(pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []), currentFocusForNeighbor(n.id)) });
   };
+
+  const chooseJoke = (n: Quest1Neighbor) => {
+    setChatMenuNeighbor(null);
+    beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: maybeAppendFocusLine(pickJokeVariant(n.dialogues, student?.worldJokesHeardIds ?? []), currentFocusForNeighbor(n.id)) });
+  };
+
+  const chooseFeelings = (n: Quest1Neighbor) => {
+    setChatMenuNeighbor(null);
+    setFeelingsNeighbor(n);
+  };
+
+  // An automatic Zones re-check waits while the student is mid-conversation
+  // or answering a gas question here (SelRecheckPrompt reads this hold).
+  const holdRecheck = !!activeConversation || !!gasQuizQuestion || gasLockout || !!chatMenuNeighbor || !!feelingsNeighbor;
+  useEffect(() => {
+    setSelRecheckHold(holdRecheck);
+  }, [holdRecheck, setSelRecheckHold]);
+  useEffect(() => () => setSelRecheckHold(false), [setSelRecheckHold]);
 
   const handleTalkTownsperson = (tp: Townsperson) => {
     beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: maybeAppendFocusLine(pickDialogueVariant(tp.dialogues, student?.worldJokesHeardIds ?? []), currentLiteracyFocus) });
@@ -4475,7 +4507,7 @@ export default function TownSquare() {
             // alone could leave a student stuck with nothing visible and
             // no way out if a future bug ever lets stepIndex drift past
             // the end of a real conversation's steps.
-            frozen={(!!activeConversation && !!activeStep) || mapView || showWizardLock}
+            frozen={(!!activeConversation && !!activeStep) || !!chatMenuNeighbor || !!feelingsNeighbor || mapView || showWizardLock}
             // Driving is "noticeably faster than walking" (docs/
             // TRANSPORTATION.md's Cars spec) — reusing the existing
             // sensitivity-driven speed math rather than a second speed
@@ -4959,6 +4991,28 @@ export default function TownSquare() {
           <br />Click a Neighbor to walk right up and start talking!
         </p>
       )}
+
+      {chatMenuNeighbor && (
+        <div className="overlay-backdrop" role="dialog" aria-modal="true" aria-label={`Chat with ${chatMenuNeighbor.name}`} onClick={() => setChatMenuNeighbor(null)}>
+          <div className="overlay-panel chrome-frame neighbor-chat-menu" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: 0 }}>Chat with {chatMenuNeighbor.name}</h2>
+            <p style={{ margin: 0, opacity: 0.75 }}>What do you want to talk about?</p>
+            <div className="neighbor-chat-menu-choices">
+              <button className="neighbor-chat-choice" onClick={() => chooseJoke(chatMenuNeighbor)}>
+                <span className="neighbor-chat-choice-icon" aria-hidden="true">😄</span>
+                Tell me a joke
+              </button>
+              <button className="neighbor-chat-choice feelings" onClick={() => chooseFeelings(chatMenuNeighbor)}>
+                <span className="neighbor-chat-choice-icon" aria-hidden="true">💛</span>
+                Talk about my feelings
+              </button>
+            </div>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setChatMenuNeighbor(null)}>Not right now</button>
+          </div>
+        </div>
+      )}
+
+      {feelingsNeighbor && <NeighborFeelingsChat neighbor={feelingsNeighbor} onClose={() => setFeelingsNeighbor(null)} />}
 
       {activeConversation && activeStep && (
         <div className="overlay-backdrop" role="dialog" aria-modal="true">
