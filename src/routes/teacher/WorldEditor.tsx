@@ -1094,24 +1094,10 @@ function captionBtn(icon: string, caption: string, onClick: () => void, active?:
   );
 }
 
-// Raise/lower an object (or the armed ghost) off the ground, for stacking
-// things on tables, shelves and counters. Same press-and-hold buttons as
-// the move arrows; keyboard 9 (lower) / 0 (raise), Shift for fine steps.
-function HeightControl({ height, raiseHold, lowerHold }: { height: number; raiseHold: ReturnType<typeof useHoldRepeat>; lowerHold: ReturnType<typeof useHoldRepeat> }) {
-  return (
-    <div className="row" style={{ gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-      <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: '0 8px' }} title="Lower (9)" {...lowerHold}>▼ Lower</button>
-      <span style={{ fontSize: '0.75rem', minWidth: 58, textAlign: 'center' }} title="Height off the ground">↕ {height.toFixed(2)}</span>
-      <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: '0 8px' }} title="Raise (0)" {...raiseHold}>▲ Raise</button>
-    </div>
-  );
-}
-
 function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
-  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold, raiseHold, lowerHold,
+  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onUpdate, onDelete, onDuplicate, deselect, onMoveModeChange,
-  touchMultiSelectMode, onToggleTouchMultiSelect,
 }: {
   selected: WorldObject;
   allowNameRole: boolean;
@@ -1125,8 +1111,6 @@ function SelectedObjectToolbar({
   nudgeSouthHold: ReturnType<typeof useHoldRepeat>;
   nudgeEastHold: ReturnType<typeof useHoldRepeat>;
   nudgeWestHold: ReturnType<typeof useHoldRepeat>;
-  raiseHold: ReturnType<typeof useHoldRepeat>;
-  lowerHold: ReturnType<typeof useHoldRepeat>;
   onUpdate: (patch: Partial<WorldObject>) => void;
   onDelete: () => void;
   onDuplicate: (continuous: boolean) => void;
@@ -1137,14 +1121,6 @@ function SelectedObjectToolbar({
   // full free placement, same as held Option on desktop. Reported up so
   // the parent (which owns the actual drag/snap logic) can apply it.
   onMoveModeChange: (active: boolean) => void;
-  // Grouping, part 2 of that same request: touch users have no Shift key
-  // either, so this toggle (rendered next to Duplicate below, direct
-  // instruction) is THEIR equivalent — while on, tapping another object
-  // adds it to the multi-selection instead of replacing this one. Only
-  // rendered when allowNameRole (a real placed object — grouping doesn't
-  // apply to fixed layout items or walls).
-  touchMultiSelectMode: boolean;
-  onToggleTouchMultiSelect: () => void;
 }) {
   const size = useModelSize(selected.modelPath);
   // Claudia's focus-group audit: an unclamped topY sent this toolbar off
@@ -1268,7 +1244,6 @@ function SelectedObjectToolbar({
                   row/toolbar. Only meaningful for a real placed object
                   (allowNameRole) — grouping doesn't apply to fixed layout
                   items or walls. */}
-              {allowNameRole && captionBtn('➕', touchMultiSelectMode ? 'Adding…' : 'Multi-select', onToggleTouchMultiSelect, touchMultiSelectMode)}
               <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)', margin: '0 2px' }} />
               <button
                 title="Delete"
@@ -1296,7 +1271,6 @@ function SelectedObjectToolbar({
                 <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward camera" {...nudgeSouthHold}>↓</button>
                 <span />
               </div>
-              <HeightControl height={selected.position[1] ?? 0} raiseHold={raiseHold} lowerHold={lowerHold} />
             </div>
           )}
 
@@ -1527,9 +1501,8 @@ function SelectedWallToolbar({ wall, onDelete, deselect }: { wall: WallSegment; 
 // since this sandbox can't render the actual 3D result either way.
 function SelectedGroupToolbar({
   members, centroid, rotateCwFine, rotateCcwFine, onDragRotate, growHold, shrinkHold,
-  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold, raiseHold, lowerHold,
+  nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onDelete, onGroup, onUngroup, isExistingGroup,
-  touchMultiSelectMode, onToggleTouchMultiSelect,
   deselect, onMoveModeChange,
 }: {
   members: WorldObject[];
@@ -1543,14 +1516,10 @@ function SelectedGroupToolbar({
   nudgeSouthHold: ReturnType<typeof useHoldRepeat>;
   nudgeEastHold: ReturnType<typeof useHoldRepeat>;
   nudgeWestHold: ReturnType<typeof useHoldRepeat>;
-  raiseHold: ReturnType<typeof useHoldRepeat>;
-  lowerHold: ReturnType<typeof useHoldRepeat>;
   onDelete: () => void;
   onGroup: () => void;
   onUngroup: () => void;
   isExistingGroup: boolean;
-  touchMultiSelectMode: boolean;
-  onToggleTouchMultiSelect: () => void;
   deselect: () => void;
   onMoveModeChange: (active: boolean) => void;
 }) {
@@ -1630,7 +1599,6 @@ function SelectedGroupToolbar({
               🔄
             </button>
             {iconBtn('⤢', 'Resize the whole group', () => setOpenPopover((v) => (v === 'resize' ? null : 'resize')), undefined, openPopover === 'resize')}
-            {captionBtn('➕', touchMultiSelectMode ? 'Adding…' : 'Multi-select', onToggleTouchMultiSelect, touchMultiSelectMode)}
             {isExistingGroup ? captionBtn('✂️', 'Ungroup', onUngroup) : captionBtn('🔗', 'Group', onGroup)}
             <span style={{ width: 2, alignSelf: 'stretch', background: 'var(--content-border)', margin: '0 2px' }} />
             <button
@@ -1659,7 +1627,6 @@ function SelectedGroupToolbar({
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward camera" {...nudgeSouthHold}>↓</button>
               <span />
             </div>
-            <HeightControl height={Math.min(...members.map((m) => m.position[1] ?? 0))} raiseHold={raiseHold} lowerHold={lowerHold} />
           </div>
         )}
 
@@ -1797,12 +1764,6 @@ export default function WorldEditor() {
   // membership persist so clicking any one member later reselects all of
   // them; Ungroup clears it without moving anything.
   const [multiSelectIds, setMultiSelectIds] = useState<string[]>([]);
-  // Touch users have no Shift key — this toggle, placed next to the
-  // existing Duplicate button on a selected object's toolbar (direct
-  // instruction), is their literal equivalent: while on, tapping another
-  // object adds it to multiSelectIds instead of replacing the selection,
-  // exactly like holding Shift does for a mouse user.
-  const [touchMultiSelectMode, setTouchMultiSelectMode] = useState(false);
   const toggleWallMode = () => {
     setHammerMode(false);
     setPaintMode(null);
@@ -2122,7 +2083,7 @@ export default function WorldEditor() {
         if (e.shiftKey) redoRef.current(); else undoRef.current();
         return;
       }
-      if (e.key === 'Escape') { setHammerMode(false); setArmedAsset(null); setWallMode(false); setWallStart(null); setTouchMultiSelectMode(false); return; }
+      if (e.key === 'Escape') { setHammerMode(false); setArmedAsset(null); setWallMode(false); setWallStart(null); return; }
       if (isTypingTarget(e)) return;
       if ((e.key === 'Delete' || e.key === 'Backspace') && (selectionRef.current || multiSelectIdsRef.current.length >= 2)) {
         e.preventDefault();
@@ -2513,8 +2474,6 @@ export default function WorldEditor() {
     updateSelected({ position: [selected.position[0], clampY((selected.position[1] ?? 0) + step), selected.position[2]] });
   };
   nudgeHeightRef.current = nudgeHeight;
-  const raiseHold = useHoldRepeat(() => nudgeHeight(1));
-  const lowerHold = useHoldRepeat(() => nudgeHeight(-1));
   const nudgeNorthHold = useHoldRepeat(() => nudgePosition(0, -gridStep));
   const nudgeSouthHold = useHoldRepeat(() => nudgePosition(0, gridStep));
   const nudgeEastHold = useHoldRepeat(() => nudgePosition(gridStep, 0));
@@ -3239,10 +3198,7 @@ export default function WorldEditor() {
           {armedAsset && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               Tap to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
-              <div style={{ marginTop: 6, fontWeight: 600, fontSize: 12 }}>
-                Putting it on a table? Raise it with 0, lower with 9 (Shift for tiny steps).
-                <HeightControl height={ghostHeight} raiseHold={raiseHold} lowerHold={lowerHold} />
-              </div>
+              <div style={{ marginTop: 4, fontWeight: 600, fontSize: 12 }}>Height: 0 raises, 9 lowers (Shift for tiny steps)</div>
               {placementNeedsWater && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Needs water to actually drive — paint some with the ground brush</div>}
               {placementTrackFeedback === 'connects' && <div style={{ color: BUILD_ACCENT, fontWeight: 600, fontSize: 12, marginTop: 4 }}>✅ Connects</div>}
               {placementTrackInvalid && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Won't connect — line it up with the open end of the nearby track</div>}
@@ -3508,7 +3464,9 @@ export default function WorldEditor() {
                       // every one of its group's live members at once, so
                       // a shift-click on any member always keeps the whole
                       // group together in the pending selection too.
-                      const addMode = shiftHeld || touchMultiSelectMode;
+                      // Direct teacher instruction: more than one object is
+                      // only ever selected by holding Shift while clicking.
+                      const addMode = shiftHeld;
                       if (addMode) {
                         const idsForClick = obj.groupId
                           ? worldObjects.filter((o) => o.groupId === obj.groupId).map((o) => o.id)
@@ -3521,20 +3479,8 @@ export default function WorldEditor() {
                         else { setMultiSelectIds([]); setSelection(null); }
                         return;
                       }
-                      // A plain click on a grouped object selects every
-                      // member sharing its groupId, not just the one
-                      // clicked — direct spec ("selecting any grouped
-                      // member auto-selects the whole group"). Falls back
-                      // to a normal single select if the group has been
-                      // whittled down to 1 live member (e.g. the rest were
-                      // hammer-deleted individually) rather than getting
-                      // stuck with no toolbar at all.
-                      if (obj.groupId) {
-                        const members = worldObjects.filter((o) => o.groupId === obj.groupId).map((o) => o.id);
-                        if (members.length >= 2) { setMultiSelectIds(members); setSelection(null); }
-                        else { setMultiSelectIds([]); setSelection({ kind: 'placed', id: obj.id }); }
-                        return;
-                      }
+                      // A plain click always selects just this one object,
+                      // even one that's in a group (Shift-click adds more).
                       setMultiSelectIds([]);
                       setSelection({ kind: 'placed', id: obj.id });
                     }}
@@ -3689,14 +3635,10 @@ export default function WorldEditor() {
                 nudgeSouthHold={nudgeSouthHold}
                 nudgeEastHold={nudgeEastHold}
                 nudgeWestHold={nudgeWestHold}
-                raiseHold={raiseHold}
-                lowerHold={lowerHold}
                 onDelete={deleteSelected}
                 onGroup={groupSelected}
                 onUngroup={ungroupSelected}
                 isExistingGroup={!!groupCommonId}
-                touchMultiSelectMode={touchMultiSelectMode}
-                onToggleTouchMultiSelect={() => setTouchMultiSelectMode((v) => !v)}
                 deselect={() => { setMultiSelectIds([]); setSelection(null); }}
                 onMoveModeChange={setMoveModeActive}
               />
@@ -3714,15 +3656,11 @@ export default function WorldEditor() {
                 nudgeSouthHold={nudgeSouthHold}
                 nudgeEastHold={nudgeEastHold}
                 nudgeWestHold={nudgeWestHold}
-                raiseHold={raiseHold}
-                lowerHold={lowerHold}
                 onUpdate={updateSelected}
                 onDelete={deleteSelected}
                 onDuplicate={duplicateSelected}
                 deselect={() => setSelection(null)}
                 onMoveModeChange={setMoveModeActive}
-                touchMultiSelectMode={touchMultiSelectMode}
-                onToggleTouchMultiSelect={() => setTouchMultiSelectMode((v) => !v)}
               />
             )}
           </Canvas>

@@ -123,14 +123,17 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
       <primitive object={recentered} />
       {interactive && (
         <mesh
-          position={[0, size.y / 2, 0]}
+          // No extra padding above the top of the model: a padded box used
+          // to poke up past a table's surface and steal taps meant for
+          // something sitting on it (e.g. a chess set on a table).
+          position={[0, Math.max(size.y, MIN_HIT_SIZE) / 2, 0]}
           onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
           onDoubleClick={onDoubleClick ? (e) => { e.stopPropagation(); onDoubleClick(); } : undefined}
           onPointerOver={onPointerOver ? (e) => { e.stopPropagation(); onPointerOver(); } : undefined}
           onPointerOut={onPointerOut}
           onPointerDown={onPointerDown ? (e) => { e.stopPropagation(); onPointerDown(e); } : undefined}
         >
-          <boxGeometry args={[Math.max(size.x * HIT_PADDING, MIN_HIT_SIZE), Math.max(size.y * HIT_PADDING, MIN_HIT_SIZE), Math.max(size.z * HIT_PADDING, MIN_HIT_SIZE)]} />
+          <boxGeometry args={[Math.max(size.x * HIT_PADDING, MIN_HIT_SIZE), Math.max(size.y, MIN_HIT_SIZE), Math.max(size.z * HIT_PADDING, MIN_HIT_SIZE)]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
       )}
