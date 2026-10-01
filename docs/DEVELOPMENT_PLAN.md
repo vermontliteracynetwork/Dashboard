@@ -22,6 +22,17 @@
 
 **How to use this doc with Claudia:** Part A is what already exists (build on it or revise it explicitly, don't re-propose it). Part B is the open backlog, organized by feature front, each pointing at its own doc where one exists — the best place to start a gameplay-design conversation. Part C is the teacher's own raw notes on the pets system and platformer, preserved close to verbatim. Part D is the standing design/safety/accessibility rules every new feature gets checked against.
 
+## ⚠️ ACTION NEEDED FROM THE TEACHER — a database migration hasn't been run
+
+**2026-10-01, production outage, hotfixed in code but not fully resolved:** saving any activity/question set started failing ("Could not find the 'student_description' column of 'activity_library' in the schema cache") because `supabase/schema.sql` already has `student_title`/`student_description` columns defined for the `activity_library` table (`alter table activity_library add column if not exists ...`), but that migration was never actually run against the live Supabase database — this sandbox has no Supabase credentials/CLI, so a schema.sql edit is local-only and never auto-applies to production. The code was hotfixed to stop sending those two fields so saving works again right now, but that means **a student's own title/description typed into an activity is silently not being saved** until this is fixed for real.
+
+**What she needs to do, in the Supabase SQL Editor (already open in her browser per the screenshot that caught this):**
+```sql
+alter table activity_library add column if not exists student_title text;
+alter table activity_library add column if not exists student_description text;
+```
+Once that's run, tell the next session (or this one) so the two fields can be added back to the save payload in `src/lib/sync.ts`'s `activityToRow`. This is the same class of bug flagged earlier this session as a standing lesson — a schema.sql migration being written doesn't mean it ran — and it's worth a one-time check of the rest of schema.sql's `alter table` statements against the live database for any other silently-unapplied columns, rather than waiting for each one to surface as its own outage.
+
 ---
 
 ## PART A — Shipped Features (the platform as it exists today)
