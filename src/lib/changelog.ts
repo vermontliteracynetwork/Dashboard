@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-castle-map',
+    date: '2026-10-01',
+    icon: '🗺️',
+    title: 'Castle Defense has a brand new map',
+    body: 'The whole screen is the battlefield now: a winding sand road through a forest, a pond, and a real castle at the end. Glowing spots show where you can build or upgrade. Attackers walk the road and your towers fire right at them.',
+  },
+  {
+    id: '2026-10-01-neighbor-checkin-look',
+    date: '2026-10-01',
+    icon: '💬',
+    title: 'Neighbors check in with a new look',
+    body: 'When a Neighbor checks in on you, you will see them right next to their speech bubble, with big buttons to tap your answer.',
+  },
+  {
     id: '2026-10-01-sel-checkin',
     date: '2026-10-01',
     icon: '🌈',

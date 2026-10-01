@@ -59,7 +59,7 @@ export default function ExplosionBurst({
         height: size,
         transform: 'translate(-50%, -50%)',
         pointerEvents: 'none',
-        zIndex: 5,
+        zIndex: 140,
         imageRendering: 'pixelated',
       }}
     />

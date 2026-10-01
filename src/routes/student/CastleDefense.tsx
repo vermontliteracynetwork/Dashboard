@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { MCQuestion, QuestionSet } from '../../types';
@@ -9,6 +9,8 @@ import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import ExplosionBurst from '../../components/ExplosionBurst';
+import { CastleGround, CastleKeepArt } from '../../components/CastleMapArt';
+import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
 
 // Castle Defense — a Town Square building (role 'castle' in
 // townLayout.ts), teacher places the 3D "Low Poly Castle" model (CC-BY-4.0,
@@ -108,7 +110,7 @@ const REWARD_PER_QUESTION_CENTS = 50;
 // live tick loop, not a single precomputed outcome.
 const TICK_MS = 150; // simulation step; also the CSS transition duration on .castle-enemy, so position updates read as continuous motion, not jumps
 const SPAWN_STAGGER_MS = 700; // enemies enter the road one at a time, not as a single clump
-const TRAVEL_MS = 5500; // time a single enemy takes to cross the whole road once spawned
+const TRAVEL_MS = 7000; // time a single enemy takes to cross the whole road once spawned (raised from 5500 with the 2026-10-01 full-screen map, so attackers walk at a readable pace across the much bigger board)
 const TOWER_FIRE_COOLDOWN_MS = 1000; // every tower fires at most once per second; its tier's dps is literally its damage-per-hit at this fixed rate
 const PROJECTILE_TRAVEL_MS = 220;
 const RESULT_BANNER_MS = 2200;
@@ -191,30 +193,17 @@ const TOWER_SLOTS = 5;
 type SlotState = { type: TowerType; tier: 1 | 2 | 3 } | null;
 const ZONE_WIDTH = 100 / TOWER_SLOTS; // each tower slot "owns" an equal stretch of the path, real TD fixed-lane zone targeting
 
-// A winding path across the whole scene, direct teacher reference (screenshots
-// of real pixel-art TD maps: a dirt path snaking through open grass, towers
-// placed right alongside it, trees/rocks scattered as terrain, not a sterile
-// strip). TOWER_SLOTS+1 waypoints = TOWER_SLOTS equal-length segments, so
-// segment i IS zone i — the same fixed-lane targeting math in tick() still
-// applies unchanged, only how `progress` maps to an on-screen (x, y) point
-// changes. Percent coordinates within .castle-scene's own box.
-const PATH_POINTS: [number, number][] = [
-  [3, 24],
-  [27, 24],
-  [27, 76],
-  [68, 76],
-  [68, 28],
-  [93, 28],
-];
-
-function pointAlongPath(progress: number): { x: number; y: number } {
-  const clamped = Math.max(0, Math.min(100, progress));
-  const seg = Math.min(PATH_POINTS.length - 2, Math.floor(clamped / ZONE_WIDTH));
-  const segT = (clamped - seg * ZONE_WIDTH) / ZONE_WIDTH;
-  const [x0, y0] = PATH_POINTS[seg];
-  const [x1, y1] = PATH_POINTS[seg + 1];
-  return { x: x0 + (x1 - x0) * segT, y: y0 + (y1 - y0) * segT };
-}
+// Map redesign (2026-10-01, direct teacher reference: Kingdom Rush / Bloons
+// TD screenshots next to a screenshot of this game's old boxed-in view):
+// a full-screen meadow with a smooth winding sand road, a forest ring, a
+// pond, round build plots and a drawn castle, with the HUD floating on the
+// map like those games. Geometry lives in src/lib/castleMap.ts; the static
+// art in src/components/CastleMapArt.tsx. Zone targeting is unchanged: the
+// road is still split into TOWER_SLOTS equal stretches by distance, and
+// each plot sits beside the middle of the stretch its tower defends.
+const SLOT_POSITIONS = computeSlotPositions(TOWER_SLOTS);
+const TOWER_HEIGHT_BY_TIER = ['72%', '84%', '96%'];
+const HUD_ICON = (name: string) => `/pixel-ui/pixel-ui-free/icons/${name}.png`;
 
 // A live combat participant — advanced every tick, never precomputed to a
 // final state up front. 'pending' = not yet spawned, 'active' = on the
@@ -239,14 +228,14 @@ interface SimEnemy {
   slowTicksRemaining: number;
 }
 
-// A single tower-shot's visible travel from its zone to whatever it hit
-// this tick — a plain positioned div (see castle-projectile CSS), not a
-// sprite, exactly the "not optional" minimum the tower-defense research
-// calls for (a recoiling tower + a traveling shot + an impact flash).
+// A single tower-shot's visible flight from the tower's top to whatever it
+// hit this tick (see castle-projectile CSS), the "not optional" minimum the
+// tower-defense research calls for (a recoiling tower + a traveling shot +
+// an impact flash).
 interface Projectile {
   id: string;
-  zoneX: number; // percent, the firing tower's zone center
-  enemyX: number; // percent, the target's position at the moment of firing
+  slot: number; // the firing tower's slot index
+  targetProgress: number; // the target's road progress at the moment of firing
   towerType: TowerType; // drives the shot's color (CSS only — no new art), so a wave reads as "who's firing" at a glance
 }
 
@@ -505,12 +494,12 @@ export default function CastleDefense() {
       const dps = TOWER_META[slot.type].dps[slot.tier - 1];
       const primary = inZone[0];
       hit(primary.idx, dps);
-      newProjectiles.push({ id: `${i}-${now}-0`, zoneX: zoneStart + ZONE_WIDTH / 2, enemyX: primary.e.progress, towerType: slot.type });
+      newProjectiles.push({ id: `${i}-${now}-0`, slot: i, targetProgress: primary.e.progress, towerType: slot.type });
 
       if (slot.type === 'wood' && inZone.length > 1) {
         const secondary = inZone[1];
         hit(secondary.idx, Math.round(dps * WOOD_CLEAVE_MULTIPLIER));
-        newProjectiles.push({ id: `${i}-${now}-1`, zoneX: zoneStart + ZONE_WIDTH / 2, enemyX: secondary.e.progress, towerType: slot.type });
+        newProjectiles.push({ id: `${i}-${now}-1`, slot: i, targetProgress: secondary.e.progress, towerType: slot.type });
       }
       if (slot.type === 'pink' && arr[primary.idx].status !== 'dead') {
         arr[primary.idx] = { ...arr[primary.idx], slowTicksRemaining: PINK_SLOW_TICKS };
@@ -601,10 +590,11 @@ export default function CastleDefense() {
     setPhase('menu');
   };
 
+
   const showBoard = phase === 'build' || phase === 'advance';
 
   return (
-    <div className="bakery-shell castle-theme">
+    <div className={`bakery-shell castle-theme${showBoard ? ' playing' : ''}`}>
       {phase === 'menu' && (
         <>
           <button className="bakery-back-btn" onClick={() => navigate(backTo)}>
@@ -628,178 +618,169 @@ export default function CastleDefense() {
       )}
 
       {showBoard && (
-        <div className="bakery-game">
-          <div className="bakery-topbar">
-            <button className="bakery-exit-btn" onClick={() => setShowExitConfirm(true)} aria-label="Exit game">
-              <Icon name="close" size={16} fallback="✕" />
-            </button>
-            <div className="bakery-round-block">
-              <span className="bakery-round-label">Wave {wave} of {TOTAL_WAVES}</span>
-              <div className="castle-badges">
-                {Array.from({ length: TOTAL_WAVES }).map((_, i) => (
-                  <img
-                    key={i}
-                    src="/castle-defense/ui-badge.png"
-                    alt=""
-                    className={`castle-badge${i < wave - 1 ? ' cleared' : ''}${perfectWaves[i] ? ' perfect' : ''}`}
-                    title={perfectWaves[i] ? 'Perfect Wave!' : undefined}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="bakery-topbar-pills">
-              <span className="bakery-xp-pill castle-gem-pill">💎 {gems}</span>
-              <button
-                type="button"
-                className="bakery-xp-pill bakery-goal-pill"
-                onClick={() => setShowGoalInfo(true)}
-                title="Tap to see your Castle Defense goal"
-              >
-                🎯 {goalProgress.count}/{goalProgress.target}
-              </button>
-              <span className="bakery-xp-pill bakery-earnings-pill">💰 {formatMoney(sessionEarningsCents)}</span>
-            </div>
-          </div>
+        <div className="castle-game">
+          <div className="castle-frame">
+            <div className="castle-battlefield">
+              <CastleGround slots={SLOT_POSITIONS} />
 
-          {phase === 'build' && (
-            <p className="bakery-hint">Tap an empty slot to build a tower, or tap a built one to upgrade it. No rush!</p>
-          )}
-
-          <div className="castle-scene">
-          <div className="castle-battlefield">
-            {/* The winding dirt path — direct teacher reference (screenshots
-                of real pixel-art TD maps: a path snaking through open grass,
-                not a straight strip). Plain SVG stroke in the same brown/tan
-                already used elsewhere in this theme, not a new image asset —
-                PATH_POINTS' 5 segments are exactly the 5 fixed targeting
-                zones tick() already uses, just drawn as a route instead of a
-                straight line. */}
-            {/* viewBox matches .castle-battlefield's own aspect-ratio (16:11)
-                exactly, so a stroke-width in viewBox units renders the same
-                thickness on every segment regardless of direction — a
-                mismatched viewBox/box aspect would stretch X and Y by
-                different amounts and make horizontal vs. vertical stretches
-                of path render at different visual widths. */}
-            <svg className="castle-path-svg" viewBox="0 0 160 110" aria-hidden="true">
-              <polyline
-                points={PATH_POINTS.map(([x, y]) => `${(x / 100) * 160},${(y / 100) * 110}`).join(' ')}
-                className="castle-path-outline"
-                fill="none"
-              />
-              <polyline
-                points={PATH_POINTS.map(([x, y]) => `${(x / 100) * 160},${(y / 100) * 110}`).join(' ')}
-                className="castle-path-fill"
-                fill="none"
-              />
-            </svg>
-
-            <div className="castle-props" aria-hidden="true">
-              <img src="/castle-defense/prop-tree.png" alt="" className="castle-prop" style={{ top: '4%', left: '14%', width: 28 }} />
-              <img src="/castle-defense/prop-tree.png" alt="" className="castle-prop" style={{ top: '46%', left: '4%', width: 24 }} />
-              <img src="/castle-defense/prop-bush.png" alt="" className="castle-prop" style={{ top: '90%', left: '10%', width: 26 }} />
-              <img src="/castle-defense/prop-rock.png" alt="" className="castle-prop" style={{ top: '10%', left: '48%', width: 20 }} />
-              <img src="/castle-defense/prop-tree.png" alt="" className="castle-prop" style={{ top: '88%', left: '46%', width: 30 }} />
-              <img src="/castle-defense/prop-bush.png" alt="" className="castle-prop" style={{ top: '48%', left: '84%', width: 24 }} />
-              <img src="/castle-defense/prop-rock.png" alt="" className="castle-prop" style={{ top: '82%', left: '88%', width: 18 }} />
-              <img src="/castle-defense/prop-tree.png" alt="" className="castle-prop" style={{ top: '4%', left: '82%', width: 24 }} />
-            </div>
-
-            {slots.map((slot, i) => {
-              const zoneX = i * ZONE_WIDTH + ZONE_WIDTH / 2;
-              const justFired = phase === 'advance' && projectiles.some((p) => p.zoneX === zoneX);
-              // Each tower sits right beside the midpoint of the path
-              // segment it defends, offset perpendicular to that segment so
-              // it never sits ON the dirt itself — same "this tower covers
-              // this stretch" teaching as the old slot-row-above-road layout,
-              // now placed where the terrain reference images put towers.
-              const [sx0, sy0] = PATH_POINTS[i];
-              const [sx1, sy1] = PATH_POINTS[i + 1];
-              const mx = (sx0 + sx1) / 2;
-              const my = (sy0 + sy1) / 2;
-              const dx = sx1 - sx0;
-              const dy = sy1 - sy0;
-              const len = Math.hypot(dx, dy) || 1;
-              const offset = 11; // percent, perpendicular to the path segment
-              const px = mx - (dy / len) * offset;
-              const py = my + (dx / len) * offset;
-              return (
-                <button
-                  key={i}
-                  className={`castle-slot${slot ? ' filled' : ''}${justFired ? ' firing' : ''}`}
-                  style={{ left: `${px}%`, top: `${py}%` }}
-                  onClick={() => setPickerSlot(i)}
-                  disabled={phase !== 'build'}
-                  aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade.` : 'Empty tower slot. Tap to build.'}
-                >
-                  {slot ? <img src={TOWER_SPRITE(slot.type, slot.tier)} alt="" /> : <span className="castle-slot-plus" aria-hidden="true">+</span>}
-                </button>
-              );
-            })}
-
-            {enemiesView.filter((e) => e.status !== 'pending').map((e) => {
-              const pt = pointAlongPath(e.progress);
-              return (
-                <div
-                  key={e.key}
-                  className={`castle-enemy${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}`}
-                  style={{ left: `${pt.x}%`, top: `${pt.y}%`, transitionDuration: `${TICK_MS}ms` }}
-                >
-                  <img src={ENEMY_META[e.type].sprite} alt={ENEMY_META[e.type].label} />
-                  {e.status === 'active' && (
-                    <div className="castle-enemy-hp">
-                      <div className="castle-enemy-hp-fill" style={{ width: `${(e.hp / e.maxHp) * 100}%` }} />
-                    </div>
-                  )}
+              <div className="castle-hud castle-hud-left">
+                <span className="castle-hud-stat" title="Gems to build towers">
+                  <img src={HUD_ICON('gem')} alt="Gems" className="castle-hud-icon" />
+                  {gems}
+                </span>
+                <span className="castle-hud-divider" aria-hidden="true" />
+                <div className="castle-hud-wave">
+                  <span className="castle-hud-wave-label">Wave {wave} of {TOTAL_WAVES}</span>
+                  <div className="castle-badges">
+                    {Array.from({ length: TOTAL_WAVES }).map((_, i) => (
+                      <img
+                        key={i}
+                        src="/castle-defense/ui-badge.png"
+                        alt=""
+                        className={`castle-badge${i < wave - 1 ? ' cleared' : ''}${perfectWaves[i] ? ' perfect' : ''}`}
+                        title={perfectWaves[i] ? 'Perfect Wave!' : undefined}
+                      />
+                    ))}
+                  </div>
                 </div>
-              );
-            })}
+              </div>
 
-            {/* A real explosion sprite burst on every kill — direct teacher
-                asset upload, used here per her own "castle defense and
-                other pixel mini games" framing. Keyed/mounted once per dead
-                enemy and self-terminating (see ExplosionBurst's own header
-                comment), so it never restarts on the frequent tick re-
-                renders this scene already does. */}
-            {enemiesView.filter((e) => e.status === 'dead').map((e) => {
-              const pt = pointAlongPath(e.progress);
-              return <ExplosionBurst key={`boom-${e.key}`} x={pt.x} y={pt.y} />;
-            })}
+              <div className="castle-hud castle-hud-right">
+                <button
+                  type="button"
+                  className="castle-hud-stat castle-hud-btn"
+                  onClick={() => setShowGoalInfo(true)}
+                  title="Tap to see your Castle Defense goal"
+                >
+                  <img src={HUD_ICON('star')} alt="Goal" className="castle-hud-icon" />
+                  {goalProgress.count}/{goalProgress.target}
+                </button>
+                <span className="castle-hud-stat castle-hud-money">
+                  <img src={HUD_ICON('coin')} alt="Money earned" className="castle-hud-icon" />
+                  {formatMoney(sessionEarningsCents)}
+                </span>
+                <button className="castle-hud-exit" onClick={() => setShowExitConfirm(true)} aria-label="Exit game">
+                  <img src={HUD_ICON('cross')} alt="" />
+                </button>
+              </div>
 
-            {projectiles.map((p) => {
-              const pt = pointAlongPath(p.enemyX);
-              return <span key={p.id} className={`castle-projectile castle-projectile-${p.towerType}`} style={{ left: `${pt.x}%`, top: `${pt.y}%` }} />;
-            })}
+              {slots.map((slot, i) => {
+                const justFired = phase === 'advance' && projectiles.some((p) => p.slot === i);
+                const nextCost = slot
+                  ? slot.tier < 3 ? TOWER_META[slot.type].cost[slot.tier] : null
+                  : Math.min(...Object.values(TOWER_META).map((m) => m.cost[0]));
+                const canAct = phase === 'build' && nextCost !== null && gems >= nextCost;
+                return (
+                  <button
+                    key={i}
+                    className={`castle-slot${slot ? ' filled' : ''}${justFired ? ' firing' : ''}${canAct ? ' can-act' : ''}`}
+                    style={{ ...toPct(SLOT_POSITIONS[i]), zIndex: 10 + Math.round(SLOT_POSITIONS[i].y) }}
+                    onClick={() => setPickerSlot(i)}
+                    disabled={phase !== 'build'}
+                    aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade.` : 'Empty build spot. Tap to build a tower.'}
+                  >
+                    <span className="castle-plot" aria-hidden="true" />
+                    {slot ? (
+                      <>
+                        <img
+                          className="castle-tower-img"
+                          src={TOWER_SPRITE(slot.type, slot.tier)}
+                          alt=""
+                          style={{ height: TOWER_HEIGHT_BY_TIER[slot.tier - 1] }}
+                        />
+                        <span className="castle-tier-stars" aria-hidden="true">
+                          {Array.from({ length: slot.tier }).map((_, s) => <img key={s} src={HUD_ICON('star')} alt="" />)}
+                        </span>
+                        {canAct && <span className="castle-upgrade-badge" aria-hidden="true">▲</span>}
+                      </>
+                    ) : (
+                      <span className="castle-slot-plus" aria-hidden="true">+</span>
+                    )}
+                  </button>
+                );
+              })}
 
-            {(() => {
-              const [kx, ky] = PATH_POINTS[PATH_POINTS.length - 1];
-              return (
-                <div className={`castle-keep${castleShake ? ' shake' : ''}`} style={{ left: `${kx}%`, top: `${ky}%` }} aria-hidden="true">🏰</div>
-              );
-            })()}
-          </div>
+              {enemiesView.filter((e) => e.status !== 'pending').map((e) => {
+                const pt = pointAlongPath(e.progress);
+                return (
+                  <div
+                    key={e.key}
+                    className={`castle-enemy${pt.dx < 0 ? ' facing-left' : ''}${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}`}
+                    style={{ ...toPct(pt), zIndex: 10 + Math.round(pt.y), transitionDuration: `${TICK_MS}ms` }}
+                  >
+                    {e.status === 'active' && (
+                      <div className="castle-enemy-hp">
+                        <div className="castle-enemy-hp-fill" style={{ width: `${(e.hp / e.maxHp) * 100}%` }} />
+                      </div>
+                    )}
+                    <span className="castle-enemy-flip">
+                      <img src={ENEMY_META[e.type].sprite} alt={ENEMY_META[e.type].label} />
+                    </span>
+                  </div>
+                );
+              })}
 
-            {phase === 'build' && (
-              <>
-                <div className="castle-preview" aria-hidden="true">
-                  <span className="castle-preview-label">Next wave:</span>
-                  {WAVE_COMPOSITION[Math.min(wave - 1, WAVE_COMPOSITION.length - 1)].map((type, i) => (
-                    <img key={i} src={ENEMY_META[type].sprite} alt="" className="castle-preview-enemy" title={ENEMY_META[type].label} />
+              {/* A real explosion sprite burst on every kill (teacher asset
+                  upload). Keyed once per dead enemy and self-terminating, so
+                  it never restarts on the frequent tick re-renders. */}
+              {enemiesView.filter((e) => e.status === 'dead').map((e) => {
+                const pt = pointAlongPath(e.progress);
+                return <ExplosionBurst key={`boom-${e.key}`} x={(pt.x / MAP_W) * 100} y={(pt.y / MAP_H) * 100} />;
+              })}
+
+              {projectiles.map((p) => {
+                const from = SLOT_POSITIONS[p.slot];
+                const to = pointAlongPath(p.targetProgress);
+                const start = toPct({ x: from.x, y: from.y - 9 });
+                const end = toPct({ x: to.x, y: to.y - 3 });
+                return (
+                  <span
+                    key={p.id}
+                    className={`castle-projectile castle-projectile-${p.towerType}`}
+                    style={{ '--x0': start.left, '--y0': start.top, '--x1': end.left, '--y1': end.top } as CSSProperties}
+                  />
+                );
+              })}
+
+              <div className={`castle-keep${castleShake ? ' shake' : ''}`} style={toPct(CASTLE_GATE)}>
+                <CastleKeepArt />
+              </div>
+
+              {waveResult && (
+                <div className={`castle-result-banner${waveCleared ? ' cleared' : ''}`} role="status">
+                  {waveCleared && (
+                    <span className="castle-result-coins" aria-hidden="true"><span>💰</span><span>💰</span><span>💰</span></span>
+                  )}
+                  {waveResult}
+                </div>
+              )}
+            </div>
+
+            <div className="castle-bar">
+              <div className="castle-bar-info">
+                <p className="castle-bar-hint">
+                  {phase === 'build'
+                    ? 'Tap a glowing spot to build a tower. Tap a tower to make it stronger.'
+                    : 'Your towers are defending the castle!'}
+                </p>
+                <div className="castle-preview">
+                  <span className="castle-preview-label">{phase === 'build' ? 'Next wave' : 'Attackers left'}</span>
+                  {(phase === 'build'
+                    ? WAVE_COMPOSITION[Math.min(wave - 1, WAVE_COMPOSITION.length - 1)]
+                    : enemiesView.filter((e) => e.status === 'active' || e.status === 'pending').map((e) => e.type)
+                  ).map((type, i) => (
+                    <img key={i} src={ENEMY_META[type].sprite} alt={ENEMY_META[type].label} className="castle-preview-enemy" />
                   ))}
                 </div>
-                <button className="bakery-play-btn castle-send-btn" onClick={sendWave}>
-                  <Icon name="play" size={18} fallback="▶️" /> Send Wave {wave}
+              </div>
+              {phase === 'build' ? (
+                <button className="castle-send-btn" onClick={sendWave}>
+                  <img src={HUD_ICON('play')} alt="" /> Send Wave {wave}
                 </button>
-              </>
-            )}
-
-            {waveResult && (
-              <p className={`castle-result-banner${waveCleared ? ' cleared' : ''}`}>
-                {waveCleared && (
-                  <span className="castle-result-coins" aria-hidden="true"><span>💰</span><span>💰</span><span>💰</span></span>
-                )}
-                {waveResult}
-              </p>
-            )}
+              ) : (
+                <span className="castle-send-btn busy" aria-live="polite">Defending...</span>
+              )}
+            </div>
           </div>
         </div>
       )}

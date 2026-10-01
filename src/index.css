@@ -2636,198 +2636,455 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .castle-theme .bakery-modal-card { border-color: #a8c48c; }
 .castle-theme .bakery-modal-title { color: #3d5a2f; }
 .castle-theme .bakery-text-link { color: #3d5a2f; }
-.castle-theme .bakery-topbar { border-color: #a8c48c; }
-.castle-theme .bakery-exit-btn { background: #eef5e4; border-color: #a8c48c; color: #3d5a2f; }
-.castle-theme .bakery-round-label { color: #3d5a2f; }
-.castle-theme .bakery-xp-pill { border-color: #a8c48c; color: #3d5a2f; }
 .castle-theme .bakery-earnings-card { border-color: #7aa85e; }
 
-/* Gem currency pill (Castle Defense's own in-session spend currency,
-   separate from the real-cash earnings pill it sits beside) */
-.castle-gem-pill { background: #eef5e4; color: #6a8a2a; }
-
-/* Five-wave progress row — ui-badge.png (a real shield sprite from the
-   teacher's own supplied kit) tinted by CSS filter for the two states
-   instead of needing a second sprite, since the kit only ships one
-   plain shield shape at the size we sliced. */
-.castle-badges { display: flex; gap: 6px; justify-content: center; }
-.castle-badge { width: 26px; height: auto; opacity: 0.35; filter: grayscale(1); }
-.castle-badge.cleared { opacity: 1; filter: none; }
-/* Perfect Wave (0 leaks, CastleDefense.tsx's resolveWaveEnd) — a gold tint
-   via CSS filter on the existing badge art, no new asset, so a quick
-   glance at the wave-badge row shows which waves were cleared cleanly. */
-.castle-badge.perfect { filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.15) drop-shadow(0 0 3px rgba(230, 180, 20, 0.7)); }
-
-/* The scene — direct teacher reference (screenshots of real pixel-art TD
-   maps): a single open battlefield with a dirt path winding through grass,
-   towers placed right alongside the path, trees/rocks scattered as
-   terrain, not a sterile tower-row-above-a-straight-strip layout. The
-   fixed-path simplification itself is still deliberate scope (see
-   CastleDefense.tsx's header comment): towers never block or reroute the
-   path, so no real pathfinding is needed, just waypoint interpolation
-   along PATH_POINTS — only how that path is DRAWN changed. No new image
-   assets: the grass is layered flat-color CSS gradients (a photo-real
-   ground texture would clash with this crisp pixel-art sprite kit, same
-   reasoning Town Square's own grass-texture comment already documents for
-   its low-poly characters), and the path is an SVG stroke in the same
-   brown/tan already used throughout this theme. */
-.castle-scene {
-  position: relative;
-  background: linear-gradient(180deg, #8ab35e 0%, #7aa04e 100%);
-  border: 3px solid #4a6b3a;
-  border-radius: 18px;
-  padding: 10px 10px 18px;
+/* Full-screen battlefield (2026-10-01 redesign, teacher reference: Kingdom
+   Rush / Bloons TD). The map is the whole screen: a meadow with a winding
+   sand road, a forest ring, round build plots, and the HUD floating on the
+   map in dark wood panels. A wooden control bar under the map holds the
+   next-wave preview and the Send Wave button, so nothing covers the road.
+   Geometry: src/lib/castleMap.ts. Static art: src/components/CastleMapArt.tsx. */
+.castle-theme.bakery-shell.playing {
+  background: radial-gradient(ellipse 120% 90% at 50% 20%, #3f6b2c 0%, #1e3416 80%);
+  justify-content: center;
+  padding: 12px;
+}
+.castle-game {
+  width: min(100%, calc((100vh - 128px) * 1.6));
+  margin: 0 auto;
+}
+@supports (height: 100dvh) {
+  .castle-game { width: min(100%, calc((100dvh - 128px) * 1.6)); }
+}
+.castle-frame {
+  border-radius: 20px;
+  border: 4px solid #2a190c;
+  background: #4a3220;
+  box-shadow: inset 0 0 0 2px #c08a3e, 0 14px 30px rgba(0, 0, 0, 0.45);
+  padding: 6px;
   overflow: hidden;
 }
 .castle-battlefield {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 11;
-  border-radius: 12px;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px;
   overflow: hidden;
-  /* A few soft diagonal light/dark bands, same device the reference
-     screenshots use for grass variation, done with flat color stops
-     instead of a texture photo. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  /* Bright meadow: base green, soft light/dark patches, then three flower
+     colors and grass tufts tiled at different (prime-ish) sizes so the
+     repeat never lines up into a visible grid. */
   background:
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 18px, rgba(0, 0, 0, 0.04) 18px 36px),
-    radial-gradient(ellipse at 30% 20%, #9fc36e 0%, transparent 55%),
-    radial-gradient(ellipse at 75% 70%, #86b25a 0%, transparent 55%),
-    linear-gradient(170deg, #93bd63 0%, #77a04e 100%);
+    radial-gradient(circle at 30% 40%, #ffffff 0 1.4px, transparent 2px) 0 0 / 47px 53px,
+    radial-gradient(circle at 70% 20%, #ffe066 0 1.4px, transparent 2px) 0 0 / 61px 43px,
+    radial-gradient(circle at 50% 70%, #ff9ecf 0 1.2px, transparent 1.8px) 0 0 / 79px 71px,
+    radial-gradient(ellipse 3px 2px at 50% 50%, rgba(46, 110, 30, 0.45) 0 100%, transparent 100%) 0 0 / 23px 29px,
+    radial-gradient(ellipse 2px 3px at 50% 50%, rgba(160, 220, 110, 0.5) 0 100%, transparent 100%) 11px 7px / 31px 37px,
+    radial-gradient(ellipse 40% 30% at 22% 30%, #95d65f 0%, transparent 100%),
+    radial-gradient(ellipse 35% 30% at 78% 72%, #93d35c 0%, transparent 100%),
+    radial-gradient(ellipse 30% 25% at 60% 45%, #6aa83c 0%, transparent 100%),
+    #7cbf4a;
+  box-shadow: inset 0 0 70px rgba(10, 40, 5, 0.45);
 }
-.castle-path-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-.castle-path-outline { stroke: #8a6f42; stroke-width: 15; stroke-linejoin: round; stroke-linecap: round; }
-.castle-path-fill { stroke: #c9a876; stroke-width: 11; stroke-linejoin: round; stroke-linecap: round; }
-.castle-props { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.castle-prop { position: absolute; opacity: 0.9; transform: translate(-50%, -50%); filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.18)); }
-/* Each tower sits beside the midpoint of the path segment it defends (real
-   TD fixed-lane zone targeting, see CastleDefense.tsx's ZONE_WIDTH/
-   PATH_POINTS) — placed at an exact (x, y) point now, not a flex row. */
+.castle-ground-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.castle-road { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.castle-road-rim { stroke: rgba(52, 96, 28, 0.4); stroke-width: 14.5; }
+.castle-road-edge { stroke: #a97d45; stroke-width: 11.5; }
+.castle-road-base { stroke: #dcb878; stroke-width: 9.6; }
+.castle-road-light { stroke: #ecd3a0; stroke-width: 4.5; opacity: 0.75; }
+.castle-road-pebbles { stroke: #b48d58; stroke-width: 1.1; stroke-dasharray: 0.01 4.7; opacity: 0.8; }
+.castle-decor { image-rendering: pixelated; filter: drop-shadow(0 1.5px 0 rgba(0, 0, 0, 0.22)); }
+
+/* Floating HUD, Kingdom Rush style: dark wood plates with a brass inner
+   line, pixel icons from the Pixel UI Free pack (credited on TeacherHome). */
+.castle-hud {
+  position: absolute;
+  top: 1.6%;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.castle-hud-left {
+  left: 1.2%;
+  background: linear-gradient(180deg, #5d3d22, #3c2614);
+  border: 3px solid #23150a;
+  box-shadow: inset 0 0 0 2px #c08a3e, 0 4px 10px rgba(0, 0, 0, 0.35);
+  border-radius: 14px;
+  padding: 6px 12px;
+}
+.castle-hud-right { right: 1.2%; }
+.castle-hud-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #fff3d6;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.castle-hud-right .castle-hud-stat {
+  min-height: 44px;
+  background: linear-gradient(180deg, #5d3d22, #3c2614);
+  border: 3px solid #23150a;
+  box-shadow: inset 0 0 0 2px #c08a3e, 0 4px 10px rgba(0, 0, 0, 0.35);
+  border-radius: 14px;
+  padding: 4px 12px;
+}
+.castle-hud-btn { cursor: pointer; touch-action: manipulation; }
+.castle-hud-btn:active { transform: translateY(2px); }
+.castle-hud-money { color: #b7f5a0; }
+.castle-hud-icon { width: 24px; height: 24px; image-rendering: pixelated; flex-shrink: 0; }
+.castle-hud-divider { width: 2px; align-self: stretch; background: rgba(192, 138, 62, 0.55); border-radius: 2px; }
+.castle-hud-wave { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.castle-hud-wave-label { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 0.85rem; color: #fff3d6; line-height: 1.1; }
+.castle-hud-exit {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid #23150a;
+  background: radial-gradient(circle at 40% 35%, #8a5a33, #4a2e18);
+  box-shadow: inset 0 0 0 2px #c08a3e, 0 4px 10px rgba(0, 0, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.castle-hud-exit img { width: 22px; height: 22px; image-rendering: pixelated; }
+.castle-hud-exit:active { transform: translateY(2px); }
+
+/* Five-wave progress row, ui-badge.png (the teacher's own kit) tinted by
+   CSS filter for cleared / perfect states. */
+.castle-badges { display: flex; gap: 4px; justify-content: center; }
+.castle-badge { width: 20px; height: auto; opacity: 0.4; filter: grayscale(1); image-rendering: pixelated; }
+.castle-badge.cleared { opacity: 1; filter: none; }
+.castle-badge.perfect { filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.15) drop-shadow(0 0 3px rgba(230, 180, 20, 0.7)); }
+
+/* Build plots. The button's bottom-center sits on the plot's point; the
+   tower sprite stands on a round dirt pad like Kingdom Rush's build spots.
+   Sized in % of the map so the whole board scales together (about 95px
+   wide on a landscape iPad, never under 52px). */
 .castle-slot {
   position: absolute;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  width: 52px;
-  height: 58px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.4);
-  border: 2px dashed rgba(74, 107, 58, 0.55);
-  border-radius: 10px;
+  width: 9.5%;
+  min-width: 52px;
+  aspect-ratio: 1 / 1.2;
+  transform: translate(-50%, -82%);
+  z-index: 5;
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  padding: 4px;
-  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+  touch-action: manipulation;
+}
+.castle-slot:disabled { cursor: default; }
+.castle-plot {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 6%;
+  height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 40%, #b58a55 0%, #8a6136 70%, #6b4826 100%);
+  border: 2px solid #4e3219;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 2px 0 rgba(255, 255, 255, 0.18);
+}
+.castle-slot:not(.filled) .castle-plot {
+  background:
+    radial-gradient(circle at 18% 45%, #9a9caa 0 9%, transparent 10%),
+    radial-gradient(circle at 82% 45%, #9a9caa 0 9%, transparent 10%),
+    radial-gradient(circle at 50% 85%, #8d8f9d 0 8%, transparent 9%),
+    radial-gradient(circle at 50% 12%, #a6a8b5 0 8%, transparent 9%),
+    radial-gradient(ellipse at 50% 40%, #b58a55 0%, #8a6136 70%, #6b4826 100%);
+}
+.castle-slot-plus {
+  position: absolute;
+  left: 50%;
+  bottom: 20%;
+  transform: translateX(-50%);
+  width: 36%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fff6dc;
+  border: 3px solid #4e3219;
+  color: #4e3219;
+  font-weight: 900;
+  font-size: clamp(1rem, 1.6vw, 1.5rem);
+  line-height: 1;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+/* "You can afford something here": the plot glows gold and the + bobs. */
+.castle-slot.can-act .castle-plot { animation: castlePlotGlow 1.4s ease-in-out infinite; }
+.castle-slot.can-act .castle-slot-plus { animation: castlePlusBob 1.4s ease-in-out infinite; }
+@keyframes castlePlotGlow {
+  0%, 100% { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 0 0 0 rgba(255, 214, 90, 0); }
+  50% { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 0 0 5px rgba(255, 214, 90, 0.75); }
+}
+@keyframes castlePlusBob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-4px); }
+}
+.castle-tower-img {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  width: auto;
+  max-width: 115%;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.25));
   transition: transform 0.12s ease-out;
 }
-.castle-slot.filled { border-style: solid; background: rgba(255, 255, 255, 0.6); }
-.castle-slot img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
-.castle-slot-plus { font-size: 1.5rem; font-weight: 800; color: #4a6b3a; opacity: 0.6; }
-/* Tower recoil — the "not optional" firing feedback the tower-defense
-   research calls out. Triggered by a live projectile existing for this
-   slot's zone this instant (CastleDefense.tsx's `justFired`), not a fixed
-   timer, so it's tied to a genuine fire event every time. The base
-   transform already centers the slot on its (x, y) point, so the firing
-   recoil composes with it rather than replacing it. */
-.castle-slot.firing { transform: translate(-50%, -50%) scale(0.9) rotate(-4deg); }
+/* Tower recoil on a real fire event (a live projectile from this slot). */
+.castle-slot.firing .castle-tower-img { transform: translateX(-50%) scale(0.92, 0.88); }
+.castle-tier-stars {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1px;
+  pointer-events: none;
+}
+.castle-tier-stars img { width: 14px; height: 14px; image-rendering: pixelated; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5)); }
+.castle-upgrade-badge {
+  position: absolute;
+  top: 4%;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffd23f;
+  border: 2px solid #7a5300;
+  color: #7a5300;
+  font-size: 0.8rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: castlePlusBob 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Attackers: feet on the road point, walk-bob, face the way they walk,
+   a soft shadow, and a red/green health bar over the head. */
 .castle-enemy {
   position: absolute;
-  transform: translate(-50%, -50%);
-  width: 32px;
-  height: auto;
-  left: 0%;
-  top: 0%;
+  width: 4.4%;
+  min-width: 26px;
+  transform: translate(-50%, -88%);
   transition-property: left, top;
   transition-timing-function: linear;
-  z-index: 3;
+  pointer-events: none;
 }
-.castle-enemy img { width: 100%; height: auto; display: block; }
-/* Per-enemy HP sliver — cheap, high-value readability: a tower's hits are
-   now visibly chipping away at a specific target, not an abstract stat. */
-.castle-enemy-hp { width: 28px; height: 4px; margin: 2px auto 0; background: rgba(0, 0, 0, 0.25); border-radius: 999px; overflow: hidden; }
-.castle-enemy-hp-fill { height: 100%; background: #e8871f; transition: width 0.15s linear; }
-/* Hit flash — one CSS animation cycle per real hit (CastleDefense.tsx's
-   per-tick `justHit` flag), the impact half of the fire-travel-impact
-   loop the research calls essential. */
-.castle-enemy.hit img { animation: castleHitFlash 0.2s ease-out; }
+.castle-enemy::after {
+  content: '';
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  bottom: -4%;
+  height: 14%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: -1;
+}
+.castle-enemy-flip { display: block; }
+.castle-enemy.facing-left .castle-enemy-flip { transform: scaleX(-1); }
+.castle-enemy img {
+  width: 100%;
+  height: auto;
+  display: block;
+  image-rendering: pixelated;
+  animation: castleWalkBob 0.42s ease-in-out infinite alternate;
+}
+@keyframes castleWalkBob {
+  from { transform: translateY(0) rotate(-3deg); }
+  to { transform: translateY(-8%) rotate(3deg); }
+}
+.castle-enemy-hp {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: -12%;
+  height: 6px;
+  background: #b3261e;
+  border: 1px solid #1b0d06;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.castle-enemy-hp-fill { height: 100%; background: #5fd35f; transition: width 0.15s linear; }
+/* Hit flash: one cycle per real hit (justHit), filter only so it layers
+   over the walk bob instead of fighting it. */
+.castle-enemy.hit img { animation: castleWalkBob 0.42s ease-in-out infinite alternate, castleHitFlash 0.2s ease-out; }
 @keyframes castleHitFlash {
-  0% { filter: brightness(1); transform: translateX(0); }
-  30% { filter: brightness(2.2) saturate(0) sepia(1) hue-rotate(-50deg) saturate(6); transform: translateX(-2px); }
-  60% { transform: translateX(2px); }
-  100% { filter: brightness(1); transform: translateX(0); }
+  0%, 100% { filter: none; }
+  35% { filter: brightness(2.4) saturate(0) sepia(1) hue-rotate(-50deg) saturate(6); }
 }
-/* Death — visibly different from leaking, so "defeated" and "got through"
-   never look the same mid-wave (the old v1's core readability bug). */
-.castle-enemy.dead { animation: castleDeath 0.35s ease-in forwards; pointer-events: none; }
+/* Mystic Tower's slow: a blue glow while it lasts. */
+.castle-enemy.slowed .castle-enemy-flip { filter: drop-shadow(0 0 4px #7cc3f0) drop-shadow(0 0 2px #7cc3f0); }
+.castle-enemy.dead { animation: castleDeath 0.35s ease-in forwards; }
 @keyframes castleDeath {
-  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(0.15) rotate(50deg); opacity: 0; }
+  0% { transform: translate(-50%, -88%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -88%) scale(0.15) rotate(50deg); opacity: 0; }
 }
-/* A blue-tinted pulse while Mystic Tower's slow is active — crowd control
-   needs to be visibly happening, not just a hidden multiplier on math. */
-.castle-enemy.slowed img { animation: castleSlowPulse 0.6s ease-in-out infinite; filter: drop-shadow(0 0 4px #7cc3f0); }
-@keyframes castleSlowPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-/* Leaked — reaches the castle, bumps it, then fades; never a fail state,
-   just a cosmetic "got past" moment matching the gentle banner copy. */
 .castle-enemy.leaked { animation: castleLeak 0.8s ease-in forwards; }
 @keyframes castleLeak {
-  0% { opacity: 1; }
-  70% { opacity: 1; }
+  0%, 70% { opacity: 1; }
   100% { opacity: 0; }
 }
-/* Positioned by its own left/top % (the target point, same coordinate
-   space as enemies/towers now) — margin-based centering, not a transform,
-   since the drop animation below needs transform for its own motion. */
+
+/* Shots fly from the top of the firing tower to the target's position,
+   via per-shot custom properties in the keyframes. */
 .castle-projectile {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff7d6, #e8871f 70%);
-  box-shadow: 0 0 6px rgba(232, 135, 31, 0.8);
-  z-index: 4;
-  animation: castleProjectileDrop 0.22s ease-in forwards;
+  z-index: 150;
+  pointer-events: none;
+  left: var(--x1);
+  top: var(--y1);
+  animation: castleShot 0.22s linear forwards;
 }
-@keyframes castleProjectileDrop {
-  0% { transform: translateY(-18px); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translateY(0); opacity: 0.3; }
+@keyframes castleShot {
+  0% { left: var(--x0); top: var(--y0); opacity: 1; transform: scale(0.8); }
+  85% { opacity: 1; transform: scale(1.1); }
+  100% { left: var(--x1); top: var(--y1); opacity: 0; transform: scale(1.6); }
 }
-/* One color per tower type (see CastleDefense.tsx's TOWER_META/tick()) —
-   CSS-only, no new art, so a wave reads as "who's firing" at a glance. */
-.castle-projectile-stone { background: radial-gradient(circle, #eef2f7, #6b7f94 70%); box-shadow: 0 0 6px rgba(107, 127, 148, 0.8); }
-.castle-projectile-wood { background: radial-gradient(circle, #fff7d6, #e8871f 70%); box-shadow: 0 0 6px rgba(232, 135, 31, 0.8); }
-.castle-projectile-pink { background: radial-gradient(circle, #fbe6ff, #b24fd6 70%); box-shadow: 0 0 6px rgba(178, 79, 214, 0.8); }
-/* The castle itself — the thing every enemy is actually trying to reach.
-   A plain emoji, not a new sprite asset (the teacher's kit had no
-   dedicated castle icon at this scale) — a flagged real-asset gap, not a
-   design choice. Positioned at the path's final waypoint now, same (x, y)
-   coordinate space as everything else in the battlefield. */
+.castle-projectile-stone { background: radial-gradient(circle, #eef2f7, #6b7f94 70%); box-shadow: 0 0 6px rgba(107, 127, 148, 0.9); }
+.castle-projectile-wood { background: radial-gradient(circle, #fff7d6, #e8871f 70%); box-shadow: 0 0 6px rgba(232, 135, 31, 0.9); }
+.castle-projectile-pink { background: radial-gradient(circle, #fbe6ff, #b24fd6 70%); box-shadow: 0 0 6px rgba(178, 79, 214, 0.9); }
+
+/* The castle, drawn art (CastleKeepArt) standing on the road's last point. */
 .castle-keep {
   position: absolute;
-  transform: translate(-50%, -50%);
-  font-size: 2.1rem;
-  z-index: 2;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+  width: 15%;
+  aspect-ratio: 40 / 46;
+  transform: translate(-50%, -91%);
+  z-index: 120;
+  pointer-events: none;
 }
+.castle-keep-svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .castle-keep.shake { animation: castleKeepShake 0.5s ease-in-out; }
 @keyframes castleKeepShake {
-  0%, 100% { transform: translate(-50%, -50%) translateX(0); }
-  20% { transform: translate(-50%, -50%) translateX(-4px) rotate(-3deg); }
-  40% { transform: translate(-50%, -50%) translateX(4px) rotate(3deg); }
-  60% { transform: translate(-50%, -50%) translateX(-3px) rotate(-2deg); }
-  80% { transform: translate(-50%, -50%) translateX(3px) rotate(2deg); }
+  0%, 100% { transform: translate(-50%, -91%) translateX(0); }
+  20% { transform: translate(-50%, -91%) translateX(-4px) rotate(-3deg); }
+  40% { transform: translate(-50%, -91%) translateX(4px) rotate(3deg); }
+  60% { transform: translate(-50%, -91%) translateX(-3px) rotate(-2deg); }
+  80% { transform: translate(-50%, -91%) translateX(3px) rotate(2deg); }
 }
-/* Anticipation preview — "where do I spend" is a real decision only when
-   the student can see what's coming before committing gems (research:
-   the genre's central planning/reacting tension). */
-.castle-preview { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
-.castle-preview-label { font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 0.78rem; color: #3d5a2f; opacity: 0.8; }
-.castle-preview-enemy { width: 22px; height: auto; opacity: 0.85; }
-.castle-send-btn { margin-top: 10px; }
+
+/* Control bar under the map: preview + hint on the left, Send Wave on the
+   right. Always present so the layout never jumps between phases. */
+.castle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 4px;
+}
+.castle-bar-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.castle-bar-hint { margin: 0; color: #fff3d6; font-weight: 700; font-size: 0.95rem; line-height: 1.25; }
+.castle-preview { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 34px; }
+.castle-preview-label {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e6c48a;
+}
+.castle-preview-enemy { width: 26px; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); }
+.castle-send-btn {
+  flex-shrink: 0;
+  min-height: 60px;
+  padding: 0 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  border: 3px solid #1f4a12;
+  background: linear-gradient(180deg, #8ee05a, #3f9a24);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 5px 0 #1f4a12;
+  color: #fff;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.castle-send-btn img { width: 22px; height: 22px; image-rendering: pixelated; }
+.castle-send-btn:active { transform: translateY(4px); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 1px 0 #1f4a12; }
+.castle-send-btn.busy {
+  background: linear-gradient(180deg, #8a6a45, #5d4128);
+  border-color: #2a190c;
+  box-shadow: 0 5px 0 #2a190c;
+  cursor: default;
+  opacity: 0.9;
+}
+
+/* Wave result: a parchment card in the middle of the map (Pixelkiln ornate
+   panel as a 9-slice border), not a line of text under it. */
+.castle-result-banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 250;
+  width: min(80%, 460px);
+  text-align: center;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #3d2a12;
+  border: 14px solid transparent;
+  border-image: url('/pixel-ui/pixelkiln-oakheart/panels/panel_ornate_48x48.png') 12 fill / 14px round;
+  image-rendering: pixelated;
+  padding: 10px 14px;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.4));
+  animation: castleBannerIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes castleBannerIn {
+  from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+.castle-result-coins { display: flex; justify-content: center; gap: 8px; font-size: 1.5rem; margin-bottom: 4px; }
+.castle-result-coins span { display: inline-block; animation: bakeryCoinPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+.castle-result-coins span:nth-child(1) { animation-delay: 0s; }
+.castle-result-coins span:nth-child(2) { animation-delay: 0.1s; }
+.castle-result-coins span:nth-child(3) { animation-delay: 0.2s; }
+
+/* iPad portrait and smaller: tighter HUD so both plates fit on top. */
+@media (max-width: 820px) {
+  .castle-hud-stat { font-size: 0.95rem; }
+  .castle-hud-icon { width: 20px; height: 20px; }
+  .castle-hud-right { gap: 6px; }
+  .castle-hud-right .castle-hud-stat { padding: 2px 8px; }
+  .castle-badge { width: 16px; }
+  .castle-bar-hint { font-size: 0.85rem; }
+  .castle-send-btn { font-size: 1.05rem; padding: 0 18px; min-height: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .castle-enemy img,
+  .castle-slot.can-act .castle-plot,
+  .castle-slot.can-act .castle-slot-plus,
+  .castle-upgrade-badge { animation: none; }
+}
+
+/* Tower picker modal */
 .castle-tower-picker-btn {
   width: 100%;
   display: flex;
@@ -2842,31 +3099,10 @@ body.teacher-mode .content-well { border-radius: 10px; }
   text-align: left;
 }
 .castle-tower-picker-btn:disabled { opacity: 0.4; cursor: default; }
-.castle-tower-picker-btn img { width: 36px; height: auto; flex-shrink: 0; }
+.castle-tower-picker-btn img { width: 40px; height: auto; flex-shrink: 0; image-rendering: pixelated; }
 .castle-tower-picker-label { font-family: 'Baloo 2', sans-serif; font-weight: 800; color: #3d5a2f; font-size: 0.9rem; }
 .castle-tower-picker-blurb { font-size: 0.76rem; opacity: 0.8; color: #4a6b3a; margin: 1px 0 3px; }
 .castle-tower-picker-cost { font-size: 0.78rem; opacity: 0.75; }
-.castle-result-banner {
-  text-align: center;
-  font-family: 'Baloo 2', sans-serif;
-  font-weight: 800;
-  color: #3d5a2f;
-  background: #eef5e4;
-  border: 2px solid #a8c48c;
-  border-radius: 14px;
-  padding: 10px;
-  margin-top: 10px;
-}
-/* A real payoff moment on a clean wave clear, not just text — reuses the
-   existing bakeryCoinPop keyframe (Bakery Match's own earnings reveal)
-   so this doesn't invent a second "you earned something" animation
-   language elsewhere in the app. */
-.castle-result-banner.cleared { border-color: #7aa85e; background: #e3f2d8; }
-.castle-result-coins { display: flex; justify-content: center; gap: 8px; font-size: 1.4rem; margin-bottom: 4px; }
-.castle-result-coins span { display: inline-block; animation: bakeryCoinPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
-.castle-result-coins span:nth-child(1) { animation-delay: 0s; }
-.castle-result-coins span:nth-child(2) { animation-delay: 0.1s; }
-.castle-result-coins span:nth-child(3) { animation-delay: 0.2s; }
 
 /* Dyslexia-friendly display mode (student.dyslexiaFont, toggled from the
    Reading Settings tool) — a standing requirement in
@@ -2953,9 +3189,105 @@ body.teacher-mode .content-well { border-radius: 10px; }
   font-weight: 600;
   padding: 10px 14px;
 }
-.sel-recheck-panel {
+/* Neighbor re-check (SelRecheckPrompt.tsx), teacher mockup 2026-10-02:
+   character render beside a speech bubble, big pill choices below. Stacks
+   to character-on-top in iPad portrait / phone widths. */
+.sel-recheck-scene {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
   width: 100%;
-  max-width: 520px;
+  max-width: 680px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 8px;
+}
+.sel-recheck-character {
+  flex: 0 0 auto;
+  width: 170px;
+  align-self: flex-end;
+}
+.sel-recheck-character img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.35));
+}
+.sel-recheck-bubble {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #fff;
+  color: #1f1147;
+  border-radius: 28px;
+  padding: 22px 24px 20px;
+  box-shadow: 0 10px 30px rgba(31, 17, 71, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sel-recheck-bubble::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  bottom: 42px;
+  border-style: solid;
+  border-width: 12px 16px 12px 0;
+  border-color: transparent #fff transparent transparent;
+}
+.sel-recheck-name {
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--purple);
+}
+.sel-recheck-line {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.45;
+}
+.sel-recheck-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.sel-pill {
+  min-height: 56px;
+  padding: 12px 26px;
+  border: none;
+  border-radius: 999px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--purple-dark);
+  touch-action: manipulation;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.sel-pill:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--purple-dark);
+}
+.sel-pill-secondary {
+  background: #f5b82e;
+  color: #3b2400;
+  box-shadow: 0 4px 0 #c98d0c;
+}
+.sel-pill-secondary:active { box-shadow: 0 1px 0 #c98d0c; }
+@media (max-width: 700px) {
+  .sel-recheck-scene { flex-direction: column; align-items: center; }
+  .sel-recheck-character { width: 120px; align-self: center; }
+  .sel-recheck-bubble::before {
+    left: 50%;
+    bottom: auto;
+    top: -14px;
+    transform: translateX(-50%);
+    border-width: 0 12px 16px 12px;
+    border-color: transparent transparent #fff transparent;
+  }
+  .sel-pill { flex: 1 1 auto; }
 }
 
 /* Clinical print report (SelCheckInLog.tsx) — same window.print() pattern

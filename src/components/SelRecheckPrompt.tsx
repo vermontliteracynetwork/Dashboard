@@ -16,6 +16,17 @@ type Phase = 'opener' | 'repick' | 'result' | 'close';
 // the full modeling-language script. Reuses the exact same zone/emotion
 // picker and support menu the login check-in uses (spec §3's "same inline
 // components, not a new screen").
+//
+// Visual layout — direct teacher mockup (2026-10-02): the Neighbor's own
+// character render beside a speech bubble, with big colored pill choice
+// buttons underneath, instead of a plain centered card. The character
+// portrait is the real auto-generated 3D-model thumbnail every Neighbor
+// already has (public/world/thumbnails/characters_neighbor-<id>.png, the
+// same one Build Mode's own catalog uses) — not a new asset, and not the
+// chat-log style TownSquare.tsx's own quest-dialogue modal uses (a
+// separate, earlier, explicit teacher instruction — "read like a phone
+// messaging app" — left untouched; this request was scoped to the SEL
+// re-check specifically).
 export default function SelRecheckPrompt() {
   const role = useStore((s) => s.role);
   const currentStudentId = useStore((s) => s.currentStudentId);
@@ -69,87 +80,92 @@ export default function SelRecheckPrompt() {
 
   return (
     <div className="overlay-backdrop" style={{ zIndex: 400 }}>
-      <div className="chrome-frame stack sel-recheck-panel" style={{ padding: 24, maxWidth: 520, alignItems: 'center', textAlign: 'center' }}>
-        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: '2rem' }} aria-hidden="true">🧑‍🤝‍🧑</span>
-          <strong>{neighbor.name}</strong>
+      <div className="sel-recheck-scene" onClick={(e) => e.stopPropagation()}>
+        <div className="sel-recheck-character">
+          <img src={`/world/thumbnails/characters_neighbor-${neighbor.id}.png`} alt={neighbor.name} />
         </div>
 
-        {phase === 'opener' && (
-          <>
-            {openerLines.map((line, i) => (
-              <p key={i} style={{ margin: 0 }}>{line}</p>
-            ))}
-            <p style={{ margin: 0, fontWeight: 700 }}>How are you feeling right now?</p>
-            <button className="btn btn-primary" onClick={() => setPhase('repick')}>Tell {neighbor.name}</button>
-          </>
-        )}
+        <div className="sel-recheck-bubble">
+          <strong className="sel-recheck-name">{neighbor.name}</strong>
 
-        {phase === 'repick' && (
-          <SelZoneEmotionPicker
-            onPick={(zone, emotion) => {
-              setRepickResult({ zone, emotion });
-              setPhase('result');
-            }}
-          />
-        )}
-
-        {phase === 'result' && repickResult && (
-          <>
-            {repickResult.zone === 'green' ? (
-              <p style={{ margin: 0, fontWeight: 700 }}>
-                {isRedBranch
-                  ? "Good to Go? I'm glad."
-                  : "You're in the Green Zone now. I'm glad you found what your body needed."}
-              </p>
-            ) : isRedBranch && repickResult.zone !== 'red' ? (
-              <p style={{ margin: 0, fontWeight: 700 }}>Good to Go? I'm glad.</p>
-            ) : (
-              <>
-                {!isRedBranch ? (
-                  <p style={{ margin: 0 }}>
-                    When I feel {repickResult.emotion.toLowerCase()}, I'm in the {SEL_ZONE_LABELS[repickResult.zone]} Zone.
-                    One tool that helps me is one of these. Want to try it, or pick your own?
-                  </p>
-                ) : (
-                  <p style={{ margin: 0 }}>Let's find something that might help.</p>
-                )}
-                <SelSupportMenu
-                  zone={repickResult.zone}
-                  tools={student?.selZoneTools?.[repickResult.zone] ?? SEL_STARTER_TOOLS[repickResult.zone]}
-                  onToolTap={(label) => { setToolUsed(label); addSelCheckInTool(due.id, label); }}
-                  onNoteSave={(text) => addSelCheckInNote(due.id, text)}
-                />
-              </>
-            )}
-            <button className="btn btn-primary" onClick={() => setPhase('close')}>Continue</button>
-          </>
-        )}
-
-        {phase === 'close' && repickResult && (
-          <>
-            <p style={{ margin: 0, fontWeight: 700 }}>Do you want me to check on you again?</p>
-            <div className="row-wrap" style={{ justifyContent: 'center', gap: 8 }}>
-              {SEL_RECHECK_SNOOZE_OPTIONS.map((min) => (
-                <button
-                  key={min}
-                  className="btn btn-sm"
-                  style={{ minHeight: 44 }}
-                  onClick={() => { completeSelRecheck(due.id, repickResult.zone, repickResult.emotion, toolUsed, min); closeOverlay(); }}
-                >
-                  {min} min
-                </button>
+          {phase === 'opener' && (
+            <>
+              {openerLines.map((line, i) => (
+                <p key={i} className="sel-recheck-line">{line}</p>
               ))}
-              <button
-                className="btn btn-sm btn-primary"
-                style={{ minHeight: 44 }}
-                onClick={() => { completeSelRecheck(due.id, repickResult.zone, repickResult.emotion, toolUsed, undefined); closeOverlay(); }}
-              >
-                No thanks, I'm okay
-              </button>
-            </div>
-          </>
-        )}
+              <p className="sel-recheck-line" style={{ fontWeight: 700 }}>How are you feeling right now?</p>
+              <div className="sel-recheck-choices">
+                <button className="sel-pill" onClick={() => setPhase('repick')}>Tell {neighbor.name}</button>
+              </div>
+            </>
+          )}
+
+          {phase === 'repick' && (
+            <SelZoneEmotionPicker
+              onPick={(zone, emotion) => {
+                setRepickResult({ zone, emotion });
+                setPhase('result');
+              }}
+            />
+          )}
+
+          {phase === 'result' && repickResult && (
+            <>
+              {repickResult.zone === 'green' ? (
+                <p className="sel-recheck-line" style={{ fontWeight: 700 }}>
+                  {isRedBranch
+                    ? "Good to Go? I'm glad."
+                    : "You're in the Green Zone now. I'm glad you found what your body needed."}
+                </p>
+              ) : isRedBranch && repickResult.zone !== 'red' ? (
+                <p className="sel-recheck-line" style={{ fontWeight: 700 }}>Good to Go? I'm glad.</p>
+              ) : (
+                <>
+                  {!isRedBranch ? (
+                    <p className="sel-recheck-line">
+                      When I feel {repickResult.emotion.toLowerCase()}, I'm in the {SEL_ZONE_LABELS[repickResult.zone]} Zone.
+                      One tool that helps me is one of these. Want to try it, or pick your own?
+                    </p>
+                  ) : (
+                    <p className="sel-recheck-line">Let's find something that might help.</p>
+                  )}
+                  <SelSupportMenu
+                    zone={repickResult.zone}
+                    tools={student?.selZoneTools?.[repickResult.zone] ?? SEL_STARTER_TOOLS[repickResult.zone]}
+                    onToolTap={(label) => { setToolUsed(label); addSelCheckInTool(due.id, label); }}
+                    onNoteSave={(text) => addSelCheckInNote(due.id, text)}
+                  />
+                </>
+              )}
+              <div className="sel-recheck-choices">
+                <button className="sel-pill" onClick={() => setPhase('close')}>Continue</button>
+              </div>
+            </>
+          )}
+
+          {phase === 'close' && repickResult && (
+            <>
+              <p className="sel-recheck-line" style={{ fontWeight: 700 }}>Do you want me to check on you again?</p>
+              <div className="sel-recheck-choices">
+                {SEL_RECHECK_SNOOZE_OPTIONS.map((min) => (
+                  <button
+                    key={min}
+                    className="sel-pill"
+                    onClick={() => { completeSelRecheck(due.id, repickResult.zone, repickResult.emotion, toolUsed, min); closeOverlay(); }}
+                  >
+                    {min} min
+                  </button>
+                ))}
+                <button
+                  className="sel-pill sel-pill-secondary"
+                  onClick={() => { completeSelRecheck(due.id, repickResult.zone, repickResult.emotion, toolUsed, undefined); closeOverlay(); }}
+                >
+                  No thanks, I'm okay
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
