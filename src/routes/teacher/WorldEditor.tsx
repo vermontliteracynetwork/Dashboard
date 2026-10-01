@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
@@ -836,6 +836,105 @@ function CameraPanner({ controlsRef }: { controlsRef: React.RefObject<{ target: 
     controls.target.add(move);
     controls.update();
   });
+  return null;
+}
+
+// Direct teacher request: "i want to be able to rotate my fingers on the
+// touchpad of my laptop to turn the view". Turns the camera around the
+// point it's looking at (same orbit right-drag does), from:
+//  - a two-finger twist on a Mac trackpad in Safari (its gesture events
+//    are the only way a browser reports a trackpad twist; Safari's pinch
+//    also arrives here, so it zooms too instead of zooming the page),
+//  - a two-finger sideways swipe on any trackpad, in any browser (Chrome,
+//    Edge and Firefox never report a twist, so this is the version that
+//    works everywhere; up/down swipes still zoom as before),
+//  - a two-finger twist on a touch screen / iPad.
+// The scene turns the same way the fingers move.
+function TrackpadRotate({ controlsRef }: { controlsRef: React.RefObject<{ target: THREE.Vector3; update: () => void; object: THREE.Camera } | null> }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    const el = gl.domElement;
+    const inView = (t: EventTarget | null) => t instanceof Node && el.contains(t);
+    const orbit = (angle: number) => {
+      const controls = controlsRef.current;
+      if (!controls || !angle) return;
+      const cam = controls.object;
+      const offset = cam.position.clone().sub(controls.target);
+      offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+      cam.position.copy(controls.target).add(offset);
+      controls.update();
+    };
+    const zoomBy = (factor: number) => {
+      const controls = controlsRef.current;
+      if (!controls || !factor || !isFinite(factor)) return;
+      const cam = controls.object;
+      const offset = cam.position.clone().sub(controls.target);
+      const dist = THREE.MathUtils.clamp(offset.length() / factor, 6, 42);
+      cam.position.copy(controls.target).add(offset.setLength(dist));
+      controls.update();
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (!inView(e.target) || e.ctrlKey) return;
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) * 1.2) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      orbit(e.deltaX * 0.006);
+    };
+
+    type GestureEvt = Event & { rotation: number; scale: number };
+    let lastRot = 0;
+    let lastScale = 1;
+    const onGestureStart = (e: Event) => {
+      if (!inView(e.target)) return;
+      e.preventDefault();
+      lastRot = (e as GestureEvt).rotation ?? 0;
+      lastScale = (e as GestureEvt).scale ?? 1;
+    };
+    const onGestureChange = (e: Event) => {
+      if (!inView(e.target)) return;
+      e.preventDefault();
+      const g = e as GestureEvt;
+      orbit(THREE.MathUtils.degToRad(g.rotation - lastRot));
+      zoomBy(g.scale / lastScale);
+      lastRot = g.rotation;
+      lastScale = g.scale;
+    };
+
+    let lastTouchAngle: number | null = null;
+    const touchAngle = (t: TouchList) => Math.atan2(t[1].clientY - t[0].clientY, t[1].clientX - t[0].clientX);
+    const onTouchStart = (e: TouchEvent) => {
+      lastTouchAngle = e.touches.length === 2 && inView(e.target) ? touchAngle(e.touches) : null;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (lastTouchAngle === null || e.touches.length !== 2) return;
+      const a = touchAngle(e.touches);
+      let d = a - lastTouchAngle;
+      if (d > Math.PI) d -= Math.PI * 2;
+      if (d < -Math.PI) d += Math.PI * 2;
+      lastTouchAngle = a;
+      orbit(d);
+    };
+    const onTouchEnd = (e: TouchEvent) => { if (e.touches.length < 2) lastTouchAngle = null; };
+
+    const opts = { capture: true, passive: false } as const;
+    window.addEventListener('wheel', onWheel, opts);
+    window.addEventListener('gesturestart', onGestureStart, opts);
+    window.addEventListener('gesturechange', onGestureChange, opts);
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', onWheel, opts);
+      window.removeEventListener('gesturestart', onGestureStart, opts);
+      window.removeEventListener('gesturechange', onGestureChange, opts);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [gl, controlsRef]);
   return null;
 }
 
@@ -3143,6 +3242,7 @@ export default function WorldEditor() {
               <div>🖱️ Right-drag — look around</div>
               <div>🖱️ Middle-drag — pan</div>
               <div>🖱️ Scroll — zoom</div>
+              <div>👆 Turn the view: swipe two fingers sideways on the trackpad (or twist them in Safari / on a touch screen)</div>
               <div>🖱️ Click an object — select it (no dragging)</div>
               <div>🖱️ Option/Alt + click — grab & drag freely, no grid snap</div>
               <div>✥ Move popover — reposition selected</div>
@@ -3294,6 +3394,7 @@ export default function WorldEditor() {
               mouseButtons={{ MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE }}
             />
             <CameraPanner controlsRef={controlsRef} />
+            <TrackpadRotate controlsRef={controlsRef} />
 
             <mesh
               rotation={[-Math.PI / 2, 0, 0]}
