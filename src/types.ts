@@ -505,12 +505,13 @@ export interface TaskReward {
 // Native, question-set-fueled games/assets a gameplay-mode assignment can
 // target — see NATIVE_GAME_STANDARD.md for the wider "native games per
 // building/asset" direction this mirrors. Extend as more ship.
-export type NativeGameId = 'bakery' | 'gasPump' | 'castleDefense';
+export type NativeGameId = 'bakery' | 'gasPump' | 'castleDefense' | 'chess';
 
 export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   bakery: '🧁 Bakery Match',
   gasPump: '⛽ Gas Pump',
   castleDefense: '🏰 Castle Defense',
+  chess: '♟️ Slime Chess',
 };
 
 // How a question-set-backed activity (Quiz or Native Game type) is

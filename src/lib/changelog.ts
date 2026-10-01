@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-slime-chess-questions',
+    date: '2026-10-01',
+    icon: '⚙️',
+    title: 'Slime Chess: a question each turn, and a new settings button',
+    body: 'Before each of your turns in Slime Chess, answer one question, then make your move. Hint, Undo, Danger, Sound and New game are now inside the gear button at the top. Tap it to open a round menu. The pieces you capture show up right under Your turn.',
+  },
+  {
     id: '2026-10-01-slime-chess',
     date: '2026-10-01',
     icon: '♟️',

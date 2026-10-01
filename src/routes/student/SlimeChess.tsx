@@ -8,6 +8,11 @@ import {
   kingSquare, type Hint, type Level,
 } from '../../lib/chessCoach';
 import { slimeSound } from '../../lib/slimeSounds';
+import type { MCQuestion, QuestionSet } from '../../types';
+import { generateAutoQuestion } from '../../lib/autoQuestions';
+import QuestionScreen from '../../components/QuestionScreen';
+import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
+import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 
 // Slime Chess — a native game reached through a Town Square object with
 // the 'chess' role (teacher places the uploaded Chess Set model in Build
@@ -74,6 +79,46 @@ export default function SlimeChess() {
   const students = useStore((s) => s.students);
   const student = students.find((s) => s.id === currentStudentId);
 
+  // Question gate: direct teacher request, "one question should be asked
+  // to the student before each turn". Same sourcing as Castle Defense /
+  // Bakery Match: an active Slime Chess (or any-game) assignment wins,
+  // otherwise random from the teacher's quiz sets or one set the student
+  // picks on the menu, with the auto-generated question as the fallback.
+  // Wrong answers cost nothing (QuestionScreen's retry model), and after
+  // one miss the student can swap to a different question.
+  const questionSets = useStore((s) => s.questionSets);
+  const rotations = useStore((s) => s.rotations);
+  const progress = useStore((s) => s.progress);
+  const submitGameplayAnswer = useStore((s) => s.submitGameplayAnswer);
+  const activeGameplayTask = useMemo(() => {
+    if (!student) return null;
+    return findActiveGameplayTask(
+      { math: rotations[student.id]?.math ?? [], literacy: rotations[student.id]?.literacy ?? [] },
+      { math: progress[student.id]?.math?.completedTaskIds ?? [], literacy: progress[student.id]?.literacy?.completedTaskIds ?? [] },
+      'chess',
+    );
+  }, [student, rotations, progress]);
+  const usableQuestionSets = useMemo<QuestionSet[]>(
+    () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
+    [questionSets],
+  );
+  const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
+  const [challengeQuestion, setChallengeQuestion] = useState<MCQuestion | null>(null);
+  // The move number (history length) the last question was asked for, so
+  // each turn asks exactly once and Undo never re-asks.
+  const askedForPly = useRef<number | null>(null);
+  const pickQuestion = (avoidId?: string): MCQuestion => {
+    if (activeGameplayTask) {
+      const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
+      if (gameplayPick) return gameplayPick;
+    }
+    const pool = questionMode.mode === 'set'
+      ? (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? [])
+      : questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc'));
+    const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
+    return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
+  };
+
   const [screen, setScreen] = useState<Screen>('menu');
   const [mode, setMode] = useState<Mode>('computer');
   const [level, setLevel] = useState<Level>('easy');
@@ -81,6 +126,11 @@ export default function SlimeChess() {
   const [human, setHuman] = useState<Color>('w');
   const [soundOn, setSoundOn] = useState(true);
   const [showDanger, setShowDanger] = useState(true);
+  // Settings pie menu (gear in the turn bubble). Direct teacher request:
+  // every game button except Town Square folds into one gear that opens a
+  // round pie menu. pieAt is the gear's screen spot when it opened.
+  const gearRef = useRef<HTMLButtonElement | null>(null);
+  const [pieAt, setPieAt] = useState<DOMRect | null>(null);
 
   const gameRef = useRef(new Chess());
   const [fen, setFen] = useState(gameRef.current.fen());
@@ -105,6 +155,22 @@ export default function SlimeChess() {
   const bottom: Color = mode === 'computer' ? human : 'w';
   const sound = (fn: () => void) => { if (soundOn) fn(); };
   const isHumanTurn = mode === 'friends' || turn === human;
+
+  useEffect(() => {
+    if (screen !== 'play' || gameOver || thinking || promotion || !isHumanTurn) return;
+    if (askedForPly.current === history.length) return;
+    askedForPly.current = history.length;
+    setPieAt(null);
+    setChallengeQuestion(pickQuestion());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, gameOver, thinking, promotion, isHumanTurn, history.length]);
+
+  const answeredCorrectly = () => {
+    if (student && activeGameplayTask && challengeQuestion) {
+      submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, challengeQuestion.id, true);
+    }
+    setChallengeQuestion(null);
+  };
 
   const legalFromSelected = useMemo(
     () => (selected ? game.moves({ square: selected, verbose: true }) : []),
@@ -154,6 +220,8 @@ export default function SlimeChess() {
     setPops([]);
     setGameOver(null);
     setThinking(false);
+    askedForPly.current = null;
+    setChallengeQuestion(null);
     setScreen('play');
     if (mode === 'computer' && human === 'b') {
       say(`You're ${names.b}. ${names.w} goes first. Watch where the computer moves!`);
@@ -347,6 +415,7 @@ export default function SlimeChess() {
     const g = gameRef.current;
     const steps = mode === 'computer' ? (g.turn() === human ? 2 : 1) : 1;
     for (let i = 0; i < steps && g.history().length > 0; i++) g.undo();
+    askedForPly.current = Math.max(0, history.length - steps);
     setHistory((h) => h.slice(0, Math.max(0, h.length - steps)));
     setFen(g.fen());
     setIds(freshIds(g));
@@ -378,6 +447,9 @@ export default function SlimeChess() {
   }
   const lastMove = history[history.length - 1];
   const capturedBy = (c: Color) => history.filter((m) => m.color === c && m.captured).map((m) => m.captured as PieceSymbol);
+  // Only the pieces this player has taken, as pictures, under the turn
+  // text. Against the computer that is always the student's own haul.
+  const haulSide: Color = mode === 'computer' ? human : turn;
 
   if (screen === 'menu') {
     return (
@@ -436,6 +508,13 @@ export default function SlimeChess() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {!activeGameplayTask && usableQuestionSets.length > 0 && (
+            <div className="sc-menu-section">
+              <h2>Questions before each turn</h2>
+              <QuestionSourcePicker questionSets={usableQuestionSets} value={questionMode} onChange={setQuestionMode} />
             </div>
           )}
 
@@ -514,9 +593,29 @@ export default function SlimeChess() {
         <aside className="sc-panel">
           <div className={`sc-turn ${turn === 'w' ? 'w' : 'b'}`}>
             <img src={pieceSrc(theme, turn, 'k')} alt="" />
-            <span>
-              {gameOver ? 'Game over' : thinking ? 'Computer is thinking...' : mode === 'computer' ? (turn === human ? 'Your turn!' : "Computer's turn") : `${names[turn]}'s turn`}
-            </span>
+            <div className="sc-turn-text">
+              <span>
+                {gameOver ? 'Game over' : thinking ? 'Computer is thinking...' : mode === 'computer' ? (turn === human ? 'Your turn!' : "Computer's turn") : `${names[turn]}'s turn`}
+              </span>
+              {capturedBy(haulSide).length > 0 && (
+                <div className="sc-turn-haul" aria-label={`${names[haulSide]} has captured ${capturedBy(haulSide).map((t) => PIECE_NAME[t]).join(', ')}`}>
+                  {capturedBy(haulSide).map((t, i) => <img key={i} src={pieceSrc(theme, other(haulSide), t)} alt="" />)}
+                </div>
+              )}
+            </div>
+            <button className="sc-corner-btn" onClick={() => navigate(backTo)} aria-label={backLabel} title={backLabel}>
+              <img src="/chess/btn-home.png" alt="" />
+            </button>
+            <button
+              ref={gearRef}
+              className="sc-corner-btn sc-gear"
+              onClick={() => setPieAt((v) => (v ? null : gearRef.current?.getBoundingClientRect() ?? null))}
+              aria-label="Settings"
+              aria-expanded={!!pieAt}
+              title="Settings"
+            >
+              <span className="sc-gear-bubble"><img src="/chess/icon-gear.png" alt="" /></span>
+            </button>
           </div>
 
           <div className={`sc-coach ${coach.tone}`} role="status" aria-live="polite">
@@ -527,27 +626,6 @@ export default function SlimeChess() {
             </div>
           </div>
 
-          <div className="sc-actions">
-            <button className="sc-round" onClick={showHint} disabled={!!gameOver || thinking || !isHumanTurn}>
-              <img src="/chess/btn-hint.png" alt="" /> <span>Hint</span>
-            </button>
-            <button className="sc-round" onClick={undo} disabled={thinking || history.length === 0}>
-              <img src="/chess/btn-undo.png" alt="" /> <span>Undo</span>
-            </button>
-            <button className="sc-round" onClick={() => setShowDanger((v) => !v)} aria-pressed={showDanger}>
-              <img src="/chess/btn-info.png" alt="" /> <span>{showDanger ? 'Danger: on' : 'Danger: off'}</span>
-            </button>
-            <button className="sc-round" onClick={() => setSoundOn((v) => !v)} aria-pressed={soundOn}>
-              <img src="/chess/btn-sound.png" alt="" style={{ opacity: soundOn ? 1 : 0.45 }} /> <span>{soundOn ? 'Sound: on' : 'Sound: off'}</span>
-            </button>
-            <button className="sc-round" onClick={() => { if (aiTimer.current) window.clearTimeout(aiTimer.current); setThinking(false); setScreen('menu'); }}>
-              <img src="/chess/btn-new.png" alt="" /> <span>New game</span>
-            </button>
-            <button className="sc-round" onClick={() => navigate(backTo)}>
-              <img src="/chess/btn-home.png" alt="" /> <span>{backLabel}</span>
-            </button>
-          </div>
-
           <div className="sc-legend">
             <span><i className="dot ok" /> can move</span>
             <span><i className="dot cap" /> can capture</span>
@@ -556,22 +634,22 @@ export default function SlimeChess() {
             {showDanger && <span><i className="dot danger" /> could be captured</span>}
           </div>
 
-          <div className="sc-captured">
-            {(['w', 'b'] as Color[]).map((c) => (
-              <div key={c} className="sc-captured-row">
-                <span>{names[c]} captured:</span>
-                {capturedBy(c).length === 0 ? <em>nothing yet</em> : capturedBy(c).map((t, i) => <img key={i} src={pieceSrc(theme, other(c), t)} alt={PIECE_NAME[t]} />)}
-              </div>
-            ))}
-          </div>
-
-          <ol className="sc-moves" aria-label="Moves so far">
-            {history.slice(-6).map((m, i) => (
-              <li key={history.length - 6 + i}>{describeMove(m, names)}</li>
-            ))}
-          </ol>
         </aside>
       </div>
+
+      {pieAt && (
+        <SettingsPie
+          anchor={pieAt}
+          onClose={() => setPieAt(null)}
+          items={[
+            { key: 'hint', icon: '/chess/btn-hint.png', label: 'Hint', disabled: !!gameOver || thinking || !isHumanTurn, onClick: () => { setPieAt(null); showHint(); } },
+            { key: 'undo', icon: '/chess/btn-undo.png', label: 'Undo', disabled: thinking || history.length === 0, onClick: () => { setPieAt(null); undo(); } },
+            { key: 'danger', icon: '/chess/btn-info.png', label: showDanger ? 'Danger: on' : 'Danger: off', pressed: showDanger, onClick: () => setShowDanger((v) => !v) },
+            { key: 'sound', icon: '/chess/btn-sound.png', label: soundOn ? 'Sound: on' : 'Sound: off', pressed: soundOn, dim: !soundOn, onClick: () => setSoundOn((v) => !v) },
+            { key: 'new', icon: '/chess/btn-new.png', label: 'New game', onClick: () => { setPieAt(null); if (aiTimer.current) window.clearTimeout(aiTimer.current); setThinking(false); setScreen('menu'); } },
+          ]}
+        />
+      )}
 
       {promotion && (
         <div className="sc-modal-backdrop">
@@ -589,6 +667,23 @@ export default function SlimeChess() {
         </div>
       )}
 
+      {challengeQuestion && (
+        <QuestionScreen
+          key={challengeQuestion.id}
+          prompt={challengeQuestion.prompt}
+          choices={challengeQuestion.choices}
+          correctIndex={challengeQuestion.correctIndex}
+          done={0}
+          total={1}
+          imageUrl={challengeQuestion.imageUrl}
+          imageAlt={challengeQuestion.imageAlt}
+          onCorrectAnswer={answeredCorrectly}
+          onExit={() => { setChallengeQuestion(null); navigate(backTo); }}
+          onSkip={() => setChallengeQuestion(pickQuestion(challengeQuestion.id))}
+          ttsSettings={student?.ttsSettings}
+        />
+      )}
+
       {gameOver && (
         <div className="sc-modal-backdrop">
           <div className={`sc-modal sc-gameover${gameOver.win ? ' win' : ''}`}>
@@ -604,6 +699,61 @@ export default function SlimeChess() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+type PieItem = { key: string; icon: string; label: string; onClick: () => void; disabled?: boolean; pressed?: boolean; dim?: boolean };
+
+// A round pie menu that opens under the gear: one slice per button, the
+// gear's own close (X) in the middle. Kept fully on screen at any size
+// (iPad portrait included). Tap outside or press Escape to close.
+const PIE_COLORS = ['#ffe3f1', '#e3f0ff', '#fff4cc', '#e2fbe9', '#efe4ff'];
+function SettingsPie({ anchor, items, onClose }: { anchor: DOMRect; items: PieItem[]; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onClose);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', onClose); };
+  }, [onClose]);
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const R = Math.min(160, (vw - 24) / 2, (vh - 24) / 2);
+  const cx = Math.min(Math.max(anchor.left + anchor.width / 2 - R * 0.55, R + 12), vw - R - 12);
+  const cy = Math.min(Math.max(anchor.bottom + 10 + R, R + 12), vh - R - 12);
+  const slice = 360 / items.length;
+  const gradient = `conic-gradient(from ${-slice / 2}deg, ${items.map((_, i) => `${PIE_COLORS[i % PIE_COLORS.length]} ${i * slice}deg ${(i + 1) * slice}deg`).join(', ')})`;
+  const r = R * 0.62;
+  return (
+    <div className="sc-pie-backdrop" onClick={onClose}>
+      <div
+        className="sc-pie"
+        role="menu"
+        aria-label="Settings"
+        style={{ left: cx - R, top: cy - R, width: R * 2, height: R * 2, background: gradient }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {items.map((it, i) => {
+          const a = (i * slice * Math.PI) / 180;
+          return (
+            <button
+              key={it.key}
+              role="menuitem"
+              className="sc-pie-item"
+              style={{ left: R + r * Math.sin(a), top: R - r * Math.cos(a) }}
+              onClick={it.onClick}
+              disabled={it.disabled}
+              aria-pressed={it.pressed}
+            >
+              <img src={it.icon} alt="" style={{ opacity: it.dim ? 0.45 : 1 }} />
+              <span>{it.label}</span>
+            </button>
+          );
+        })}
+        <button className="sc-pie-close" onClick={onClose} aria-label="Close settings">
+          <img src="/chess/icon-x.png" alt="" />
+        </button>
+      </div>
     </div>
   );
 }
