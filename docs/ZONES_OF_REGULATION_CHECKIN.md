@@ -82,3 +82,50 @@ Red Zone entry (any path, with or without a note) fires the same full-screen, im
 - (e) real commissioned illustrated artwork for the zone faces and the 4 Neighbor portraits, once an art pipeline exists — v1 ships a faithful placeholder (large expressive emoji, zone-colored border, always-visible text label), not the final style.
 
 No Parking Lot items from this spec: every open question the teacher's doc flagged (stock photo source, which Neighbors appear, re-check delay, Red alert policy) is resolved above with a decision and reasoning, not left pending.
+
+## 9. Zones Check-In Considerations (official one-pager), standing design rules
+
+Source: The Zones of Regulation, Inc., "Zones Check-In Considerations" (c)2024, uploaded by the teacher 2026-10-01 and saved at [`curriculum-reference/zones-check-in-considerations.pdf`](./curriculum-reference/zones-check-in-considerations.pdf). Reviewed by Claudia the same day against the shipped code. These are standing rules for every change to this component from here on:
+
+1. **A check-in is an invitation, never a requirement.** Every check-in, login and re-check, has a visible, non-nagging way to skip it, with no consequence.
+2. **Adults and Neighbors model first** by naming their own zone, so check-ins are never one-way ("We all experience all of The Zones").
+3. **Say plainly that ALL ZONES ARE OKAY** wherever a student picks a zone, including inside the re-check, and never praise one zone over another (no "I'm glad you're Green").
+4. **No coins, XP, streaks, badges, unlocks or penalties** are ever tied to checking in or to which zone is picked. The Zones is not a behavior system.
+5. **Never label a zone for a student.** Use observation plus inquiry ("I see your head is down. What Zone are you in?") and the student's own word, with an "I'm not sure" option.
+6. **Check-ins are for every zone and every part of the day**, not only challenging moments: Green students get offered check-ins too, and students can start one themselves.
+7. **Checking in can feel hard:** no rush, no timers, and always a way to change a tap.
+8. **A Red safety alert is a care response, not a consequence**, and the student is told about it in kind words.
+
+### 9.1 Claudia's audit of the shipped build against the one-pager (2026-10-01)
+
+| Item | Verdict | Evidence (summary) |
+|---|---|---|
+| DO model first / own your zone | FAIL | The Neighbor never states its own zone; the only modeling line quotes the student's own pick back (`SelRecheckPrompt.tsx`). |
+| DO non-judgmental, all zones okay | PARTIAL | "All four zones are okay to feel" is on the picker, but Green replies are praised ("I'm glad you found what your body needed") and the line never appears inside the re-check bubble. |
+| DO consider checking in can feel hard | PARTIAL | Back button, "No rush," optional note are good; no "I'm not sure" option, and a Red pick silently pings the teacher. |
+| DO observation plus inquiry | FAIL | No "I see... What Zone are you in?" phrasing anywhere. |
+| DO check-ins throughout the day | PARTIAL | Login plus re-checks after non-green picks only; nothing for a Green student who has a hard hour later. |
+| DON'T make it one-sided | FAIL | Every check-in is student-to-adult; nobody models. |
+| DON'T tie to rewards/punishment | PASS | No coins/XP/streaks/badges anywhere in the check-in path. Caution: the Red full-screen teacher alert can feel like a consequence, kept as a deliberate safety design (§5). |
+| DON'T force a check-in | FAIL | Login check-in is mandatory with no skip; the re-check overlay has no "not now" (`skipSelRecheck` exists in the store but is never called). |
+| DON'T label someone's zone | PASS | Student picks zone and word; teacher views show the student's own pick. |
+| DON'T use only in challenging moments | FAIL | Re-checks are only scheduled after Blue/Yellow/Red. |
+
+### 9.2 Open fixes, prioritized (not built yet, waiting on the teacher's go-ahead because #1 reverses her original "mandatory" call)
+
+**HIGH**
+1. Login check-in (`SelZoneCheckIn.tsx`): add a visible "Not today" secondary button, no follow-up prompt, no reward or penalty; drop "mandatory" from the spec and dev plan.
+2. Neighbor re-check (`SelRecheckPrompt.tsx`): add a "Not right now" pill beside "Tell {Neighbor}" that calls the existing, unused `skipSelRecheck`.
+3. Neighbor owns its zone first: opener becomes "Hi {name}. It's {Neighbor}. I'm in the Green Zone today, feeling calm. I'm checking in with everyone." Rotate a small per-Neighbor model-feeling pool in `selZones.ts` so it covers all four zones over time.
+4. Observation plus inquiry: "I see you picked {Zone} earlier. What Zone are you in now?" (keep the short Red branch).
+
+**MEDIUM**
+5. Neutral Green reply: "Thanks for telling me. All Zones are okay." in place of the praise lines.
+6. Show "All four zones are okay to feel." once inside the re-check bubble.
+7. Quiet "I'm not sure" option on the picker that opens a body-clues prompt ("Is your body fast, slow, or calm?") without labeling the zone.
+8. Student-started check-ins: an always-available "Check in" button (Town Square header or support menu), usable from any zone including Green; optionally one skippable midday Neighbor invitation regardless of the last pick.
+
+**LOW**
+9. After a Red pick, tell the student kindly: "I let your teacher know so they can help. You did nothing wrong."
+10. Caption the teacher log "Student's own pick" so nobody reads it as a diagnosis.
+11. Reword "mandatory" / re-check framing in this spec and A46 as "an invitation, skippable."
