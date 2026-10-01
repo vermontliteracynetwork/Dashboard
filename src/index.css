@@ -2653,66 +2653,91 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .castle-badges { display: flex; gap: 6px; justify-content: center; }
 .castle-badge { width: 26px; height: auto; opacity: 0.35; filter: grayscale(1); }
 .castle-badge.cleared { opacity: 1; filter: none; }
+/* Perfect Wave (0 leaks, CastleDefense.tsx's resolveWaveEnd) — a gold tint
+   via CSS filter on the existing badge art, no new asset, so a quick
+   glance at the wave-badge row shows which waves were cleared cleanly. */
+.castle-badge.perfect { filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.15) drop-shadow(0 0 3px rgba(230, 180, 20, 0.7)); }
 
-/* The scene: a fixed-width "road" strip enemies cross left-to-right
-   during the advance phase, props scattered around it for flavor, and a
-   row of tap-to-build tower slots above it — the fixed-path
-   simplification flagged as deliberate scope (see CastleDefense.tsx's
-   header comment): towers never block or reroute the path, so no real
-   pathfinding is needed, just waypoint interpolation. */
+/* The scene — direct teacher reference (screenshots of real pixel-art TD
+   maps): a single open battlefield with a dirt path winding through grass,
+   towers placed right alongside the path, trees/rocks scattered as
+   terrain, not a sterile tower-row-above-a-straight-strip layout. The
+   fixed-path simplification itself is still deliberate scope (see
+   CastleDefense.tsx's header comment): towers never block or reroute the
+   path, so no real pathfinding is needed, just waypoint interpolation
+   along PATH_POINTS — only how that path is DRAWN changed. No new image
+   assets: the grass is layered flat-color CSS gradients (a photo-real
+   ground texture would clash with this crisp pixel-art sprite kit, same
+   reasoning Town Square's own grass-texture comment already documents for
+   its low-poly characters), and the path is an SVG stroke in the same
+   brown/tan already used throughout this theme. */
 .castle-scene {
   position: relative;
   background: linear-gradient(180deg, #8ab35e 0%, #7aa04e 100%);
   border: 3px solid #4a6b3a;
   border-radius: 18px;
-  padding: 14px 10px 18px;
+  padding: 10px 10px 18px;
   overflow: hidden;
 }
+.castle-battlefield {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  border-radius: 12px;
+  overflow: hidden;
+  /* A few soft diagonal light/dark bands, same device the reference
+     screenshots use for grass variation, done with flat color stops
+     instead of a texture photo. */
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 18px, rgba(0, 0, 0, 0.04) 18px 36px),
+    radial-gradient(ellipse at 30% 20%, #9fc36e 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 70%, #86b25a 0%, transparent 55%),
+    linear-gradient(170deg, #93bd63 0%, #77a04e 100%);
+}
+.castle-path-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.castle-path-outline { stroke: #8a6f42; stroke-width: 15; stroke-linejoin: round; stroke-linecap: round; }
+.castle-path-fill { stroke: #c9a876; stroke-width: 11; stroke-linejoin: round; stroke-linecap: round; }
 .castle-props { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.castle-prop { position: absolute; opacity: 0.85; }
-/* Tower row sits directly on top of the road it defends — each of the 5
-   slots owns the equal-width zone of road directly below it (real TD
-   fixed-lane zone targeting, see CastleDefense.tsx's ZONE_WIDTH), so the
-   visual stacking itself teaches "this tower covers this stretch." */
-.castle-slots { display: flex; justify-content: space-around; gap: 6px; margin-bottom: 2px; position: relative; z-index: 2; }
+.castle-prop { position: absolute; opacity: 0.9; transform: translate(-50%, -50%); filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.18)); }
+/* Each tower sits beside the midpoint of the path segment it defends (real
+   TD fixed-lane zone targeting, see CastleDefense.tsx's ZONE_WIDTH/
+   PATH_POINTS) — placed at an exact (x, y) point now, not a flex row. */
 .castle-slot {
-  width: 56px;
-  height: 64px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 52px;
+  height: 58px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.35);
-  border: 2px dashed rgba(74, 107, 58, 0.5);
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px dashed rgba(74, 107, 58, 0.55);
   border-radius: 10px;
   cursor: pointer;
   padding: 4px;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
   transition: transform 0.12s ease-out;
 }
-.castle-slot.filled { border-style: solid; background: rgba(255, 255, 255, 0.55); }
+.castle-slot.filled { border-style: solid; background: rgba(255, 255, 255, 0.6); }
 .castle-slot img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
-.castle-slot-plus { font-size: 1.6rem; font-weight: 800; color: #4a6b3a; opacity: 0.6; }
+.castle-slot-plus { font-size: 1.5rem; font-weight: 800; color: #4a6b3a; opacity: 0.6; }
 /* Tower recoil — the "not optional" firing feedback the tower-defense
    research calls out. Triggered by a live projectile existing for this
    slot's zone this instant (CastleDefense.tsx's `justFired`), not a fixed
-   timer, so it's tied to a genuine fire event every time. */
-.castle-slot.firing { transform: scale(0.9) rotate(-4deg); }
-.castle-road {
-  position: relative;
-  height: 64px;
-  background: linear-gradient(180deg, #c9a876, #b08e5f);
-  border-radius: 10px;
-  border: 2px solid #8a6f42;
-  z-index: 1;
-  overflow: visible;
-}
+   timer, so it's tied to a genuine fire event every time. The base
+   transform already centers the slot on its (x, y) point, so the firing
+   recoil composes with it rather than replacing it. */
+.castle-slot.firing { transform: translate(-50%, -50%) scale(0.9) rotate(-4deg); }
 .castle-enemy {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 34px;
+  transform: translate(-50%, -50%);
+  width: 32px;
   height: auto;
   left: 0%;
-  transition: left linear;
+  top: 0%;
+  transition-property: left, top;
+  transition-timing-function: linear;
   z-index: 3;
 }
 .castle-enemy img { width: 100%; height: auto; display: block; }
@@ -2734,8 +2759,15 @@ body.teacher-mode .content-well { border-radius: 10px; }
    never look the same mid-wave (the old v1's core readability bug). */
 .castle-enemy.dead { animation: castleDeath 0.35s ease-in forwards; pointer-events: none; }
 @keyframes castleDeath {
-  0% { transform: translateY(-50%) scale(1) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(-50%) scale(0.15) rotate(50deg); opacity: 0; }
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.15) rotate(50deg); opacity: 0; }
+}
+/* A blue-tinted pulse while Mystic Tower's slow is active — crowd control
+   needs to be visibly happening, not just a hidden multiplier on math. */
+.castle-enemy.slowed img { animation: castleSlowPulse 0.6s ease-in-out infinite; filter: drop-shadow(0 0 4px #7cc3f0); }
+@keyframes castleSlowPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 /* Leaked — reaches the castle, bumps it, then fades; never a fail state,
    just a cosmetic "got past" moment matching the gentle banner copy. */
@@ -2745,12 +2777,14 @@ body.teacher-mode .content-well { border-radius: 10px; }
   70% { opacity: 1; }
   100% { opacity: 0; }
 }
+/* Positioned by its own left/top % (the target point, same coordinate
+   space as enemies/towers now) — margin-based centering, not a transform,
+   since the drop animation below needs transform for its own motion. */
 .castle-projectile {
   position: absolute;
-  top: -8px;
   width: 8px;
   height: 8px;
-  margin-left: -4px;
+  margin: -4px 0 0 -4px;
   border-radius: 50%;
   background: radial-gradient(circle, #fff7d6, #e8871f 70%);
   box-shadow: 0 0 6px rgba(232, 135, 31, 0.8);
@@ -2758,30 +2792,34 @@ body.teacher-mode .content-well { border-radius: 10px; }
   animation: castleProjectileDrop 0.22s ease-in forwards;
 }
 @keyframes castleProjectileDrop {
-  0% { top: -22px; opacity: 0; }
+  0% { transform: translateY(-18px); opacity: 0; }
   20% { opacity: 1; }
-  100% { top: 50%; opacity: 0.3; }
+  100% { transform: translateY(0); opacity: 0.3; }
 }
-/* The castle itself — the thing every enemy is actually trying to reach,
-   entirely absent from v1's scene. A plain emoji, not a new sprite asset
-   (the teacher's kit had no dedicated castle icon at this scale) — a
-   flagged real-asset gap, not a design choice. */
+/* One color per tower type (see CastleDefense.tsx's TOWER_META/tick()) —
+   CSS-only, no new art, so a wave reads as "who's firing" at a glance. */
+.castle-projectile-stone { background: radial-gradient(circle, #eef2f7, #6b7f94 70%); box-shadow: 0 0 6px rgba(107, 127, 148, 0.8); }
+.castle-projectile-wood { background: radial-gradient(circle, #fff7d6, #e8871f 70%); box-shadow: 0 0 6px rgba(232, 135, 31, 0.8); }
+.castle-projectile-pink { background: radial-gradient(circle, #fbe6ff, #b24fd6 70%); box-shadow: 0 0 6px rgba(178, 79, 214, 0.8); }
+/* The castle itself — the thing every enemy is actually trying to reach.
+   A plain emoji, not a new sprite asset (the teacher's kit had no
+   dedicated castle icon at this scale) — a flagged real-asset gap, not a
+   design choice. Positioned at the path's final waypoint now, same (x, y)
+   coordinate space as everything else in the battlefield. */
 .castle-keep {
   position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 2rem;
+  transform: translate(-50%, -50%);
+  font-size: 2.1rem;
   z-index: 2;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
 }
 .castle-keep.shake { animation: castleKeepShake 0.5s ease-in-out; }
 @keyframes castleKeepShake {
-  0%, 100% { transform: translateY(-50%) translateX(0); }
-  20% { transform: translateY(-50%) translateX(-4px) rotate(-3deg); }
-  40% { transform: translateY(-50%) translateX(4px) rotate(3deg); }
-  60% { transform: translateY(-50%) translateX(-3px) rotate(-2deg); }
-  80% { transform: translateY(-50%) translateX(3px) rotate(2deg); }
+  0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+  20% { transform: translate(-50%, -50%) translateX(-4px) rotate(-3deg); }
+  40% { transform: translate(-50%, -50%) translateX(4px) rotate(3deg); }
+  60% { transform: translate(-50%, -50%) translateX(-3px) rotate(-2deg); }
+  80% { transform: translate(-50%, -50%) translateX(3px) rotate(2deg); }
 }
 /* Anticipation preview — "where do I spend" is a real decision only when
    the student can see what's coming before committing gems (research:
@@ -2806,6 +2844,7 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .castle-tower-picker-btn:disabled { opacity: 0.4; cursor: default; }
 .castle-tower-picker-btn img { width: 36px; height: auto; flex-shrink: 0; }
 .castle-tower-picker-label { font-family: 'Baloo 2', sans-serif; font-weight: 800; color: #3d5a2f; font-size: 0.9rem; }
+.castle-tower-picker-blurb { font-size: 0.76rem; opacity: 0.8; color: #4a6b3a; margin: 1px 0 3px; }
 .castle-tower-picker-cost { font-size: 0.78rem; opacity: 0.75; }
 .castle-result-banner {
   text-align: center;

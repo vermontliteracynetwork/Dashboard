@@ -92,7 +92,16 @@ export default function TeacherHome() {
             required, unlike the Quaternius models (Pig, Cow, Crops) in the
             same batch, which are CC0 and need none. Third line: the Castle
             building model (Castle Defense, role 'castle') is CC-BY-4.0
-            licensed via Sketchfab — same attribution requirement. */}
+            licensed via Sketchfab — same attribution requirement. Fourth
+            line: "Pixel UI Free" (public/pixel-ui/pixel-ui-free/, teacher
+            upload 2026-10-01, for Castle Defense's kill effect and future
+            pixel-style mini games) is CC-BY-4.0 licensed via itch.io, with
+            an exact required credit string per its own LICENSE.txt — used
+            verbatim below, not paraphrased. The other three packs from the
+            same upload (Craftpix explosions used for the kill effect
+            itself, a Pixelkiln UI sample, and a teacher-purchased
+            Cyberpunk RPG UI pack by etahoshi) don't require a credit line
+            under their own license terms, so none is added for them. */}
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 32 }}>
           Graphics created by Penzilla Design
         </p>
@@ -101,6 +110,9 @@ export default function TeacherHome() {
         </p>
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
           Castle model: "Low Poly Castle" by treymill33, via Sketchfab (CC BY 4.0)
+        </p>
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
+          Pixel UI Free by heyheythere - https://heyheythere.itch.io/pixel-ui-free - CC BY 4.0
         </p>
       </div>
     </div>
