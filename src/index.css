@@ -3886,6 +3886,20 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .sc-turn-card-king { width: 110px; height: 110px; animation: scWobble 1.6s ease-in-out infinite; }
 .sc-turn-card.w { border: 6px solid #ff8fb1; }
 .sc-turn-card.b { border: 6px solid #8fb6ff; }
+.sc-xp-pill { align-self: flex-start; background: #fff4c2; border: 2px solid #ffd23f; border-radius: 999px; padding: 0 10px; font-size: 0.95rem; font-weight: 800; color: #6b4a00; }
+.sc-gameover-xp { font-weight: 800; color: #6b4a00; background: #fff4c2; border-radius: 16px; padding: 8px 14px; }
+.sc-board-of-fame { background: rgba(255, 255, 255, 0.7); border-radius: 24px; padding: 14px 16px; }
+.sc-lb-totals { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; font-size: 1.05rem; }
+.sc-lb-totals strong { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.sc-lb-empty, .sc-lb-values { margin: 6px 0 0; font-size: 0.9rem; font-weight: 600; opacity: 0.8; text-align: center; }
+.sc-lb-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sc-lb-list li { display: grid; grid-template-columns: 36px 72px 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; background: #fff; border-radius: 16px; padding: 6px 10px; text-align: left; }
+.sc-lb-rank { grid-row: 1 / span 2; width: 32px; height: 32px; border-radius: 50%; background: #c9b8ff; color: #2b1452; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.sc-lb-list li:first-child .sc-lb-rank { background: #ffd23f; }
+.sc-lb-xp { grid-row: 1 / span 2; font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.sc-lb-caps { display: flex; flex-wrap: wrap; min-height: 26px; }
+.sc-lb-caps img { width: 26px; height: 26px; }
+.sc-lb-meta { font-size: 0.8rem; font-weight: 600; opacity: 0.75; }
 /* Less motion (the in-game toggle): no wobble, bounce, pulse, splat or
    floating bubbles; pieces jump straight to their new square. */
 .sc-calm *, .sc-calm *::before, .sc-calm *::after { animation: none !important; transition: none !important; }

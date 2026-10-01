@@ -7,6 +7,7 @@ import type {
   HelpPing,
   StudentFeedback,
   SelCheckIn,
+  ChessGameRecord,
   QuizStruggle,
   OffscreenReview,
   QuizAttemptRecord,
@@ -242,6 +243,28 @@ const rowToSelCheckIn = (r: Row): SelCheckIn => ({
   recheckToolUsedLabel: r.recheck_tool_used_label ?? undefined,
   recheckTimestamp: r.recheck_timestamp ?? undefined,
 });
+const rowToChessGame = (r: Row): ChessGameRecord => ({
+  id: r.id,
+  studentId: r.student_id,
+  playedAt: r.played_at,
+  level: r.level,
+  result: r.result,
+  xp: r.xp ?? 0,
+  captured: r.captured ?? [],
+  moves: r.moves ?? 0,
+});
+
+const chessGameToRow = (g: ChessGameRecord): Row => ({
+  id: g.id,
+  student_id: g.studentId,
+  played_at: g.playedAt,
+  level: g.level,
+  result: g.result,
+  xp: g.xp,
+  captured: g.captured,
+  moves: g.moves,
+});
+
 const selCheckInToRow = (c: SelCheckIn): Row => ({
   id: c.id,
   student_id: c.studentId,
@@ -877,6 +900,7 @@ export interface HydratedState {
   studentFeedback: StudentFeedback[];
   quizStruggles: QuizStruggle[];
   selCheckIns: SelCheckIn[];
+  chessGames: ChessGameRecord[];
   offscreenReviews: OffscreenReview[];
   quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
@@ -930,7 +954,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, farmerMarketOffersRes, savedWhiteboardsRes, selCheckInsRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, farmerMarketOffersRes, savedWhiteboardsRes, selCheckInsRes, chessGamesRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -970,6 +994,9 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('farmer_market_offers').select('*'),
     supabase.from('saved_whiteboards').select('*'),
     supabase.from('sel_check_ins').select('*'),
+    // Not in the must-succeed list below: until the chess_games migration
+    // has been run, the rest of the app still loads normally.
+    supabase.from('chess_games').select('*'),
   ]);
 
   for (const res of [studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, selCheckInsRes]) {
@@ -1018,6 +1045,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentFeedback: (studentFeedbackRes.data ?? []).map(rowToStudentFeedback),
     quizStruggles: (quizStrugglesRes.data ?? []).map(rowToQuizStruggle),
     selCheckIns: (selCheckInsRes.data ?? []).map(rowToSelCheckIn),
+    chessGames: (chessGamesRes.data ?? []).map(rowToChessGame),
     offscreenReviews: (reviewsRes.data ?? []).map(rowToOffscreenReview),
     quizAttempts: (quizAttemptsRes.data ?? []).map(rowToQuizAttempt),
     badges: (badgesRes.data ?? []).map(rowToBadge),
@@ -1277,6 +1305,7 @@ export const pushStudentFeedback = (f: StudentFeedback) => upsert('student_feedb
 export const pushQuizStruggle = (q: QuizStruggle) => upsert('quiz_struggles', quizStruggleToRow(q));
 
 export const pushSelCheckIn = (c: SelCheckIn) => upsert('sel_check_ins', selCheckInToRow(c));
+export const pushChessGame = (g: ChessGameRecord) => upsert('chess_games', chessGameToRow(g));
 
 export const pushOffscreenReview = (o: OffscreenReview) =>
   upsert('offscreen_reviews', {

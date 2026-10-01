@@ -104,6 +104,20 @@ create table if not exists sel_check_ins (
   recheck_timestamp timestamptz
 );
 
+-- Slime Chess personal leaderboard (2026-10-01): one row per game against
+-- the computer. xp = traditional point values of the pieces the student
+-- captured (Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9).
+create table if not exists chess_games (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  played_at timestamptz not null default now(),
+  level text not null check (level in ('easy', 'medium', 'hard')),
+  result text not null check (result in ('win', 'loss', 'draw', 'unfinished')),
+  xp int not null default 0,
+  captured jsonb not null default '[]',
+  moves int not null default 0
+);
+
 create table if not exists offscreen_reviews (
   id text primary key,
   student_id text not null references students(id) on delete cascade,
@@ -881,7 +895,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers', 'sel_check_ins'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers', 'sel_check_ins', 'chess_games'
   ];
 begin
   foreach t in array tables loop

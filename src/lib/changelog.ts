@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-chess-leaderboard',
+    date: '2026-10-01',
+    icon: '⭐',
+    title: 'Slime Chess: earn XP and beat your best',
+    body: 'Every piece you capture from the computer earns XP, just like real chess points: Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9. Your top 5 games show on My Chess Leaderboard on the chess start screen. Can you beat your own record?',
+  },
+  {
     id: '2026-10-01-question-tools',
     date: '2026-10-01',
     icon: '🧰',

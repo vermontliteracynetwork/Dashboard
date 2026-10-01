@@ -226,6 +226,20 @@ export interface Student {
 // reads over time, not current-state settings.
 export type SelZone = 'blue' | 'green' | 'yellow' | 'red';
 
+// One Slime Chess game against the computer, for the student's personal
+// chess leaderboard. XP = the traditional point value of every enemy
+// piece the student captured (Pawn 1, Knight 3, Bishop 3, Rook 5, Queen 9).
+export interface ChessGameRecord {
+  id: string;
+  studentId: string;
+  playedAt: string; // ISO, when the game ended (or was left)
+  level: 'easy' | 'medium' | 'hard';
+  result: 'win' | 'loss' | 'draw' | 'unfinished';
+  xp: number;
+  captured: string[]; // piece letters the student captured, in order ('p','n','b','r','q')
+  moves: number; // the student's own moves
+}
+
 export interface SelCheckIn {
   id: string;
   studentId: string;

@@ -4,11 +4,11 @@ import { Chess, type Color, type Move, type PieceSymbol, type Square } from 'che
 import { useStore } from '../../store/store';
 import ReadAloud from '../../components/ReadAloud';
 import {
-  PIECE_NAME, PIECE_RULE, describeMove, explainIllegal, other, pickComputerMove, riskyTargets, suggestMove,
+  PIECE_NAME, PIECE_RULE, PIECE_VALUE, describeMove, explainIllegal, other, pickComputerMove, riskyTargets, suggestMove,
   kingSquare, type Hint, type Level,
 } from '../../lib/chessCoach';
 import { slimeSound } from '../../lib/slimeSounds';
-import type { MCQuestion, QuestionSet } from '../../types';
+import type { ChessGameRecord, MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
@@ -109,6 +109,15 @@ export default function SlimeChess() {
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const submitGameplayAnswer = useStore((s) => s.submitGameplayAnswer);
+  // Personal leaderboard (direct teacher request): every game against the
+  // computer is saved with its XP, the traditional chess point value of
+  // each piece the student captured (worldchess.com/chess-terms/
+  // chess-piece-point-values): Pawn 1, Knight 3, Bishop 3, Rook 5,
+  // Queen 9. Two-player games aren't saved, since they're shared.
+  const recordChessGame = useStore((s) => s.recordChessGame);
+  const allChessGames = useStore((s) => s.chessGames);
+  const myGames = useMemo(() => allChessGames.filter((g) => g.studentId === currentStudentId), [allChessGames, currentStudentId]);
+  const gameIdRef = useRef<string>('');
   const activeGameplayTask = useMemo(() => {
     if (!student) return null;
     return findActiveGameplayTask(
@@ -186,8 +195,27 @@ export default function SlimeChess() {
   const sound = (fn: () => void) => { if (soundOn) fn(); };
   const isHumanTurn = mode === 'friends' || turn === human;
   // A game counts as in progress once anyone has moved and it isn't over.
-  const inProgress = screen === 'play' && !gameOver && history.length > 0;
+  const inProgress = screen === 'play' && !gameOver && !game.isGameOver() && history.length > 0;
+  const myXp = (moves: Move[]) => moves.filter((m) => m.color === human && m.captured).reduce((sum, m) => sum + PIECE_VALUE[m.captured as PieceSymbol], 0);
+  const saveGame = (result: 'win' | 'loss' | 'draw' | 'unfinished') => {
+    if (mode !== 'computer' || !currentStudentId || !gameIdRef.current) return;
+    const moves = gameRef.current.history({ verbose: true });
+    if (!moves.some((m) => m.color === human)) return;
+    recordChessGame({
+      id: gameIdRef.current,
+      studentId: currentStudentId,
+      playedAt: new Date().toISOString(),
+      level,
+      result,
+      xp: myXp(moves),
+      captured: moves.filter((m) => m.color === human && m.captured).map((m) => m.captured as string),
+      moves: moves.filter((m) => m.color === human).length,
+    });
+  };
+  // Leaving or restarting mid-game still saves the XP earned so far.
+  const saveIfUnfinished = () => { if (screen === 'play' && !gameRef.current.isGameOver()) saveGame('unfinished'); };
   const goToMenu = () => {
+    saveIfUnfinished();
     if (aiTimer.current) window.clearTimeout(aiTimer.current);
     setThinking(false);
     setChallengeQuestion(null);
@@ -195,7 +223,7 @@ export default function SlimeChess() {
   };
 
   useEffect(() => {
-    if (screen !== 'play' || gameOver || thinking || promotion || !isHumanTurn) return;
+    if (screen !== 'play' || gameOver || game.isGameOver() || thinking || promotion || !isHumanTurn) return;
     if (askedForPly.current === history.length) return;
     const ask = () => {
       askedForPly.current = history.length;
@@ -237,6 +265,8 @@ export default function SlimeChess() {
   const say = (text: string, tone: Tone = 'info') => setCoach({ text, tone });
 
   const startGame = () => {
+    saveIfUnfinished();
+    gameIdRef.current = `chess-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     if (aiTimer.current) window.clearTimeout(aiTimer.current);
     gameRef.current = new Chess();
     setFen(gameRef.current.fen());
@@ -283,6 +313,7 @@ export default function SlimeChess() {
       result = { title: "It's a tie!", text: '50 moves in a row went by with no captures and no Pawn moves, so the game is a draw.', win: null };
     }
     setGameOver(result);
+    saveGame(result.win === true ? 'win' : result.win === false ? 'loss' : 'draw');
     sound(result.win === false ? slimeSound.draw : result.win === null && !g.isCheckmate() ? slimeSound.draw : slimeSound.win);
     return true;
   };
@@ -545,6 +576,8 @@ export default function SlimeChess() {
             </div>
           )}
 
+          <ChessLeaderboard games={myGames} theme={theme} human={human} />
+
           <button className="sc-play" onClick={startGame}>
             <img src="/chess/btn-play.png" alt="" /> Play!
           </button>
@@ -622,6 +655,7 @@ export default function SlimeChess() {
               <span>
                 {gameOver ? 'Game over' : thinking ? 'Computer is thinking...' : mode === 'computer' ? (turn === human ? 'Your turn!' : "Computer's turn") : `${names[turn]}'s turn`}
               </span>
+ {mode === 'computer' && myXp(history) > 0 && <span className="sc-xp-pill">⭐ {myXp(history)} XP</span>}
               {capturedBy(haulSide).length > 0 && (
                 <div className="sc-turn-haul" aria-label={`${names[haulSide]} has captured ${capturedBy(haulSide).map((t) => PIECE_NAME[t]).join(', ')}`}>
                   {capturedBy(haulSide).map((t, i) => <img key={i} src={pieceSrc(theme, other(haulSide), t)} alt="" />)}
@@ -703,7 +737,7 @@ export default function SlimeChess() {
                 onClick={() => {
                   const which = confirmLeave;
                   setConfirmLeave(null);
-                  if (which === 'leave') { if (aiTimer.current) window.clearTimeout(aiTimer.current); navigate(backTo); } else goToMenu();
+                  if (which === 'leave') { saveIfUnfinished(); if (aiTimer.current) window.clearTimeout(aiTimer.current); navigate(backTo); } else goToMenu();
                 }}
               >
                 {confirmLeave === 'leave' ? 'Leave game' : 'New game'}
@@ -736,7 +770,7 @@ export default function SlimeChess() {
           imageUrl={challengeQuestion.imageUrl}
           imageAlt={challengeQuestion.imageAlt}
           onCorrectAnswer={answeredCorrectly}
-          onExit={() => { setChallengeQuestion(null); navigate(backTo); }}
+          onExit={() => { saveIfUnfinished(); setChallengeQuestion(null); navigate(backTo); }}
           onSkip={() => setChallengeQuestion(pickQuestion(challengeQuestion.id))}
           ttsSettings={student?.ttsSettings}
         />
@@ -748,6 +782,15 @@ export default function SlimeChess() {
             <img className="sc-gameover-badge" src={gameOver.win === false ? '/chess/badge-red.png' : '/chess/badge-green.png'} alt="" />
             <h2>{gameOver.title}</h2>
             <p>{gameOver.text}</p>
+            {mode === 'computer' && (() => {
+              const xp = myXp(history);
+              const best = myGames.filter((g) => g.id !== gameIdRef.current).reduce((m, g) => Math.max(m, g.xp), 0);
+              return (
+                <p className="sc-gameover-xp">
+                  ⭐ You earned {xp} XP this game.{xp > 0 && xp > best ? ' New personal best!' : ''}
+                </p>
+              );
+            })()}
             <ReadAloud text={`${gameOver.title}. ${gameOver.text}`} small />
             <div className="sc-choice-row">
               <button className="sc-soft-btn green" onClick={startGame}>Play again</button>
@@ -757,6 +800,43 @@ export default function SlimeChess() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const RESULT_LABEL: Record<ChessGameRecord['result'], string> = { win: 'Won', loss: 'Lost', draw: 'Tie', unfinished: 'Not finished' };
+
+// The student's own top games, ranked by XP, plus lifetime totals and the
+// point values XP comes from. Personal only: no other student appears.
+function ChessLeaderboard({ games, theme, human }: { games: ChessGameRecord[]; theme: Theme; human: Color }) {
+  const total = games.reduce((sum, g) => sum + g.xp, 0);
+  const wins = games.filter((g) => g.result === 'win').length;
+  const top = [...games].sort((a, b) => b.xp - a.xp || b.playedAt.localeCompare(a.playedAt)).slice(0, 5);
+  return (
+    <div className="sc-menu-section sc-board-of-fame">
+      <h2>My Chess Leaderboard</h2>
+      <div className="sc-lb-totals">
+        <span><strong>{total}</strong> total XP</span>
+        <span><strong>{games.length}</strong> game{games.length === 1 ? '' : 's'}</span>
+        <span><strong>{wins}</strong> win{wins === 1 ? '' : 's'}</span>
+      </div>
+      {top.length === 0 ? (
+        <p className="sc-lb-empty">Capture pieces from the computer to earn XP. Your best games will show up here!</p>
+      ) : (
+        <ol className="sc-lb-list">
+          {top.map((g, i) => (
+            <li key={g.id}>
+              <span className="sc-lb-rank">{i + 1}</span>
+              <span className="sc-lb-xp">{g.xp} XP</span>
+              <span className="sc-lb-caps" aria-label={g.captured.length ? `Captured ${g.captured.map((c) => PIECE_NAME[c as PieceSymbol]).join(', ')}` : 'No captures'}>
+                {g.captured.map((c, k) => <img key={k} src={pieceSrc(theme, other(human), c as PieceSymbol)} alt="" />)}
+              </span>
+              <span className="sc-lb-meta">{LEVEL_LABEL[g.level]} · {RESULT_LABEL[g.result]} · {new Date(g.playedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <p className="sc-lb-values">Points per capture: Pawn 1 · Knight 3 · Bishop 3 · Rook 5 · Queen 9</p>
     </div>
   );
 }

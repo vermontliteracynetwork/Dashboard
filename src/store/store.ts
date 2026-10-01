@@ -72,6 +72,7 @@ import {
   rowToQuizStruggle,
   rowToSelCheckIn,
   pushSelCheckIn,
+  pushChessGame,
   rowToOffscreenReview,
   rowToQuizAttempt,
   rowToBadge,
@@ -187,6 +188,7 @@ import type {
   StudentFeedback,
   QuizStruggle,
   SelCheckIn,
+  ChessGameRecord,
   SelZone,
   OffscreenReview,
   QuizAttemptRecord,
@@ -276,6 +278,10 @@ interface AppState {
   // starts a new record on zone+emotion pick (login gate or re-check),
   // returning its id so the UI can keep attaching to it (note, tools,
   // scheduling/completing the automatic re-check) as the flow continues.
+  // Slime Chess personal leaderboard: one row per game against the
+  // computer (saved again with the same id if an Undo reopens it).
+  chessGames: ChessGameRecord[];
+  recordChessGame: (game: ChessGameRecord) => void;
   selCheckIns: SelCheckIn[];
   recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string) => string;
   addSelCheckInNote: (id: string, noteText: string) => void;
@@ -733,6 +739,7 @@ export const useStore = create<AppState>()(
       studentFeedback: [],
       quizStruggles: [],
       selCheckIns: [],
+      chessGames: [],
       offscreenReviews: [],
       quizAttempts: [],
       badges: DEFAULT_BADGES,
@@ -2619,6 +2626,10 @@ export const useStore = create<AppState>()(
       // (spec §5: "reusing the proven help-ping alert path is zero new
       // infrastructure") instead of a separate alert system; it never needs
       // its own Review Inbox entry since the alert already surfaces it.
+      recordChessGame: (game) => {
+        set((s) => ({ chessGames: [game, ...s.chessGames.filter((g) => g.id !== game.id)] }));
+        pushChessGame(game);
+      },
       recordSelCheckIn: (studentId, zone, emotion) => {
         const checkIn: SelCheckIn = {
           id: makeId(),
