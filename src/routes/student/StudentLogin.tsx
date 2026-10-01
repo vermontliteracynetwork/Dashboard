@@ -1,11 +1,29 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
+import SelZoneCheckIn from '../../components/SelZoneCheckIn';
 
 export default function StudentLogin() {
   const navigate = useNavigate();
   const students = useStore((s) => s.students);
   const loginStudent = useStore((s) => s.loginStudent);
+  // Zones of Regulation mandatory check-in (docs/ZONES_OF_REGULATION_CHECKIN.md)
+  // — fires on every avatar tap, before the world ever loads. Set the
+  // instant a student is tapped; navigation to Town Square happens only
+  // once SelZoneCheckIn calls onDone (immediately for Green, after the
+  // support menu for any other zone).
+  const [checkingInStudent, setCheckingInStudent] = useState<{ id: string; name: string } | null>(null);
+
+  if (checkingInStudent) {
+    return (
+      <SelZoneCheckIn
+        studentId={checkingInStudent.id}
+        studentName={checkingInStudent.name}
+        onDone={() => navigate('/world/town')}
+      />
+    );
+  }
 
   return (
     <div className="center-screen">
@@ -25,12 +43,7 @@ export default function StudentLogin() {
                 style={{ width: 'auto', minWidth: 110, height: 'auto', gap: 6, padding: '16px 18px' }}
                 onClick={() => {
                   loginStudent(st.id);
-                  // Straight into the open world on login now — the 2D
-                  // task-list screen is one tap away via "My Tasks," but
-                  // it's no longer the first thing a student sees
-                  // (explicit teacher direction after watching it built
-                  // the old way).
-                  navigate('/world/town');
+                  setCheckingInStudent({ id: st.id, name: st.name });
                 }}
                 aria-label={st.name}
                 title={st.name}

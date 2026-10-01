@@ -6,6 +6,7 @@ import type {
   SubjectProgress,
   HelpPing,
   StudentFeedback,
+  SelCheckIn,
   QuizStruggle,
   OffscreenReview,
   QuizAttemptRecord,
@@ -120,6 +121,7 @@ const rowToStudent = (r: Row): Student => ({
   castleDefenseMilestoneCount: r.castle_defense_milestone_count ?? 0,
   unlockedCharacterIds: r.unlocked_character_ids ?? [],
   equippedCharacterId: r.equipped_character_id ?? null,
+  selZoneTools: r.sel_zone_tools ?? undefined,
 });
 
 const studentToRow = (s: Student): Row => ({
@@ -188,6 +190,7 @@ const studentToRow = (s: Student): Row => ({
   castle_defense_milestone_count: s.castleDefenseMilestoneCount ?? 0,
   unlocked_character_ids: s.unlockedCharacterIds ?? [],
   equipped_character_id: s.equippedCharacterId ?? null,
+  sel_zone_tools: s.selZoneTools ?? {},
 });
 
 const rowToProgress = (r: Row): SubjectProgress => ({
@@ -219,6 +222,43 @@ const rowToHelpPing = (r: Row): HelpPing => ({
   studentId: r.student_id,
   timestamp: r.occurred_at,
   resolved: r.resolved,
+});
+
+const rowToSelCheckIn = (r: Row): SelCheckIn => ({
+  id: r.id,
+  studentId: r.student_id,
+  timestamp: r.occurred_at,
+  zone: r.zone,
+  emotion: r.emotion,
+  toolsUsedLabels: r.tools_used_labels ?? [],
+  noteText: r.note_text ?? undefined,
+  inboxResolved: r.inbox_resolved ?? false,
+  neighborId: r.neighbor_id ?? undefined,
+  recheckDueAt: r.recheck_due_at ?? undefined,
+  recheckDelayMin: r.recheck_delay_min ?? undefined,
+  recheckCompleted: r.recheck_completed ?? false,
+  recheckZone: r.recheck_zone ?? undefined,
+  recheckEmotion: r.recheck_emotion ?? undefined,
+  recheckToolUsedLabel: r.recheck_tool_used_label ?? undefined,
+  recheckTimestamp: r.recheck_timestamp ?? undefined,
+});
+const selCheckInToRow = (c: SelCheckIn): Row => ({
+  id: c.id,
+  student_id: c.studentId,
+  occurred_at: c.timestamp,
+  zone: c.zone,
+  emotion: c.emotion,
+  tools_used_labels: c.toolsUsedLabels,
+  note_text: c.noteText ?? null,
+  inbox_resolved: c.inboxResolved ?? false,
+  neighbor_id: c.neighborId ?? null,
+  recheck_due_at: c.recheckDueAt ?? null,
+  recheck_delay_min: c.recheckDelayMin ?? null,
+  recheck_completed: c.recheckCompleted ?? false,
+  recheck_zone: c.recheckZone ?? null,
+  recheck_emotion: c.recheckEmotion ?? null,
+  recheck_tool_used_label: c.recheckToolUsedLabel ?? null,
+  recheck_timestamp: c.recheckTimestamp ?? null,
 });
 
 const rowToQuizStruggle = (r: Row): QuizStruggle => ({
@@ -836,6 +876,7 @@ export interface HydratedState {
   helpPings: HelpPing[];
   studentFeedback: StudentFeedback[];
   quizStruggles: QuizStruggle[];
+  selCheckIns: SelCheckIn[];
   offscreenReviews: OffscreenReview[];
   quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
@@ -889,7 +930,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, farmerMarketOffersRes, savedWhiteboardsRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, farmerMarketOffersRes, savedWhiteboardsRes, selCheckInsRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -928,9 +969,10 @@ export async function fetchAll(): Promise<HydratedState> {
     supabase.from('music_tracks').select('*'),
     supabase.from('farmer_market_offers').select('*'),
     supabase.from('saved_whiteboards').select('*'),
+    supabase.from('sel_check_ins').select('*'),
   ]);
 
-  for (const res of [studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes]) {
+  for (const res of [studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, selCheckInsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -975,6 +1017,7 @@ export async function fetchAll(): Promise<HydratedState> {
     helpPings: (pingsRes.data ?? []).map(rowToHelpPing),
     studentFeedback: (studentFeedbackRes.data ?? []).map(rowToStudentFeedback),
     quizStruggles: (quizStrugglesRes.data ?? []).map(rowToQuizStruggle),
+    selCheckIns: (selCheckInsRes.data ?? []).map(rowToSelCheckIn),
     offscreenReviews: (reviewsRes.data ?? []).map(rowToOffscreenReview),
     quizAttempts: (quizAttemptsRes.data ?? []).map(rowToQuizAttempt),
     badges: (badgesRes.data ?? []).map(rowToBadge),
@@ -1196,6 +1239,7 @@ const STUDENT_COLUMNS: Record<keyof Student, string> = {
   castleDefenseMilestoneCount: 'castle_defense_milestone_count',
   unlockedCharacterIds: 'unlocked_character_ids',
   equippedCharacterId: 'equipped_character_id',
+  selZoneTools: 'sel_zone_tools',
 };
 
 // Writes only the changed columns (a real SQL UPDATE), instead of
@@ -1231,6 +1275,8 @@ export const pushHelpPing = (h: HelpPing) =>
 export const pushStudentFeedback = (f: StudentFeedback) => upsert('student_feedback', studentFeedbackToRow(f));
 
 export const pushQuizStruggle = (q: QuizStruggle) => upsert('quiz_struggles', quizStruggleToRow(q));
+
+export const pushSelCheckIn = (c: SelCheckIn) => upsert('sel_check_ins', selCheckInToRow(c));
 
 export const pushOffscreenReview = (o: OffscreenReview) =>
   upsert('offscreen_reviews', {
@@ -1569,7 +1615,7 @@ export function applyStudentMetaRow(
   };
 }
 
-export { rowToStudent, rowToProgress, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToFarmerMarketOffer, rowToSavedWhiteboard };
+export { rowToStudent, rowToProgress, rowToHelpPing, rowToOffscreenReview, rowToQuizAttempt, rowToBadge, rowToBadgeEarn, rowToBreakPoolItem, rowToQuestionSet, rowToActivity, rowToTemplate, rowToWeeklyScheduleEntry, rowToAssignment, rowToTransaction, rowToAnnotation, annotationKey, rowToSbResponse, sbResponseKey, rowToChatMessage, rowToNote, rowToMarketplaceItem, rowToLiteracyFocusSet, rowToWorldObject, rowToWallSegment, rowToFocus, rowToStudentFeedback, rowToQuizStruggle, rowToGroundPatch, rowToStudentPet, rowToHomeRoom, rowToCinemaVideo, rowToScratchGame, rowToMusicTrack, rowToFarmerMarketOffer, rowToSavedWhiteboard, rowToSelCheckIn };
 
 export interface RealtimeHandlers {
   onStudent: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1578,6 +1624,7 @@ export interface RealtimeHandlers {
   onHelpPing: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onStudentFeedback: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onQuizStruggle: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
+  onSelCheckIn: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onGroundPatch: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onStudentPet: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
   onHomeRoom: (e: ChangeEvent, n: Row | null, o: Row | null) => void;
@@ -1630,6 +1677,7 @@ export function subscribeRealtime(handlers: RealtimeHandlers): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'help_pings' }, wire(handlers.onHelpPing))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_feedback' }, wire(handlers.onStudentFeedback))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_struggles' }, wire(handlers.onQuizStruggle))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sel_check_ins' }, wire(handlers.onSelCheckIn))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ground_patches' }, wire(handlers.onGroundPatch))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_pets' }, wire(handlers.onStudentPet))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'home_rooms' }, wire(handlers.onHomeRoom))

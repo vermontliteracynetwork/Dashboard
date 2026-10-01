@@ -80,6 +80,30 @@ create table if not exists quiz_struggles (
   resolved boolean not null default false
 );
 
+-- Zones of Regulation login check-in (docs/ZONES_OF_REGULATION_CHECKIN.md) —
+-- one row per zone/emotion pick (login gate or Neighbor re-check), clinically
+-- reviewed (OT/SLP/psychologist/psychiatrist read this log). Red Zone entries
+-- reuse help_pings for the teacher's urgent alert instead of a flag here;
+-- Blue/Yellow surface in Review Inbox via inbox_resolved.
+create table if not exists sel_check_ins (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  occurred_at timestamptz not null default now(),
+  zone text not null check (zone in ('blue', 'green', 'yellow', 'red')),
+  emotion text not null,
+  tools_used_labels jsonb not null default '[]',
+  note_text text,
+  inbox_resolved boolean not null default false,
+  neighbor_id text,
+  recheck_due_at timestamptz,
+  recheck_delay_min int,
+  recheck_completed boolean not null default false,
+  recheck_zone text check (recheck_zone in ('blue', 'green', 'yellow', 'red')),
+  recheck_emotion text,
+  recheck_tool_used_label text,
+  recheck_timestamp timestamptz
+);
+
 create table if not exists offscreen_reviews (
   id text primary key,
   student_id text not null references students(id) on delete cascade,
@@ -688,6 +712,12 @@ alter table students add column if not exists castle_defense_questions_answered 
 alter table students add column if not exists castle_defense_milestone_tier integer not null default 1;
 alter table students add column if not exists castle_defense_milestone_count integer not null default 0;
 
+-- Per-student, teacher-customized 2-3 "tools" offered per zone on the Zones
+-- of Regulation support menu (docs/ZONES_OF_REGULATION_CHECKIN.md §7) — a
+-- teacher's override of the SEL_STARTER_TOOLS curriculum default; empty/unset
+-- zone keeps using the default.
+alter table students add column if not exists sel_zone_tools jsonb not null default '{}';
+
 -- Every non-character, non-emote thing a student can buy: fonts, text
 -- colors, read-aloud voice skins, power-ups (Skip Pass), and open-ended
 -- prizes ("10 min free time," "a pet," a piece for a build). Fully
@@ -851,7 +881,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers', 'sel_check_ins'
   ];
 begin
   foreach t in array tables loop
@@ -894,7 +924,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers', 'sel_check_ins'
   ];
 begin
   foreach t in array tables loop

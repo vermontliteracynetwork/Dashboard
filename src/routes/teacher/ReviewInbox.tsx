@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 
 type InboxItem =
   | { kind: 'help'; id: string; studentId: string; timestamp: string; done: boolean }
+  | {
+      kind: 'selNote';
+      id: string;
+      studentId: string;
+      timestamp: string;
+      done: boolean;
+      zone: 'blue' | 'yellow';
+      emotion: string;
+      noteText?: string;
+    }
   | {
       kind: 'offscreen';
       id: string;
@@ -43,10 +54,12 @@ export default function ReviewInbox() {
   const helpPings = useStore((s) => s.helpPings);
   const studentFeedback = useStore((s) => s.studentFeedback);
   const quizStruggles = useStore((s) => s.quizStruggles);
+  const selCheckIns = useStore((s) => s.selCheckIns);
   const verifyOffscreen = useStore((s) => s.verifyOffscreen);
   const resolveHelp = useStore((s) => s.resolveHelp);
   const resolveFeedback = useStore((s) => s.resolveFeedback);
   const resolveQuizStruggle = useStore((s) => s.resolveQuizStruggle);
+  const resolveSelCheckIn = useStore((s) => s.resolveSelCheckIn);
 
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const avatarFor = (id: string) => students.find((s) => s.id === id)?.avatar ?? '❓';
@@ -85,6 +98,22 @@ export default function ReviewInbox() {
       taskTitle: q.taskTitle,
       questionPrompt: q.questionPrompt,
     })),
+    // Zones of Regulation check-in (docs/ZONES_OF_REGULATION_CHECKIN.md §5):
+    // only Blue/Yellow land here — Red reuses the help-ping full-screen
+    // alert above instead (recordSelCheckIn/completeSelRecheck in store.ts),
+    // so it's deliberately excluded from this normal-priority list.
+    ...selCheckIns
+      .filter((c) => c.zone === 'blue' || c.zone === 'yellow')
+      .map((c): InboxItem => ({
+        kind: 'selNote',
+        id: c.id,
+        studentId: c.studentId,
+        timestamp: c.timestamp,
+        done: c.inboxResolved ?? false,
+        zone: c.zone as 'blue' | 'yellow',
+        emotion: c.emotion,
+        noteText: c.noteText,
+      })),
   ].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
 
   const CATEGORY_LABEL: Record<string, string> = { gameplay: '🎮 Game Play', visuals: '🎨 Visuals & Design', assignments: '📋 Assignments & Focuses', other: '✏️ Other', wishlist: '🌟 Wishlist' };
@@ -114,6 +143,11 @@ export default function ReviewInbox() {
                   <div className="inbox-subject">
                     {item.kind === 'help' ? (
                       <>{nameFor(item.studentId)} asked for help</>
+                    ) : item.kind === 'selNote' ? (
+                      <>
+                        {SEL_ZONE_FACE[item.zone]} {nameFor(item.studentId)} checked in {SEL_ZONE_LABELS[item.zone]} ({item.emotion})
+                        {item.noteText && <div style={{ fontSize: '0.85rem', marginTop: 4, fontStyle: 'italic' }}>"{item.noteText}"</div>}
+                      </>
                     ) : item.kind === 'offscreen' ? (
                       <>{nameFor(item.studentId)} marked "{item.taskTitle}" done ({item.subject}){item.photoUrl ? ' · 📸 photo attached' : ''}</>
                     ) : item.kind === 'feedback' ? (
@@ -141,6 +175,7 @@ export default function ReviewInbox() {
                       item.kind === 'help' ? resolveHelp(item.id)
                       : item.kind === 'offscreen' ? verifyOffscreen(item.id)
                       : item.kind === 'quizStruggle' ? resolveQuizStruggle(item.id)
+                      : item.kind === 'selNote' ? resolveSelCheckIn(item.id)
                       : resolveFeedback(item.id)
                     }
                   >

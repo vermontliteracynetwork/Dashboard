@@ -2849,3 +2849,106 @@ body.teacher-mode .content-well { border-radius: 10px; }
   word-spacing: 0.08em !important;
   line-height: 1.6 !important;
 }
+
+/* ---------- Zones of Regulation check-in ---------- */
+/* docs/ZONES_OF_REGULATION_CHECKIN.md — iPad is the priority device (CLAUDE.md
+   standing rule): every tappable element here is at least 44px, laid out
+   with row-wrap so it reflows cleanly at iPad width in either orientation,
+   and color is never the only signal (every zone/emotion button carries a
+   text label, never just an icon/color). */
+.sel-checkin-screen {
+  /* A full-screen gate, same visual weight as the login screen it replaces
+     for a moment — never a small dismissible modal, since this is
+     mandatory, not optional, per the login-gate spec. */
+  min-height: 100vh;
+}
+.sel-checkin-panel {
+  width: 100%;
+}
+.sel-checkin-greeting {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.3rem;
+  margin: 0;
+}
+.sel-picker-question {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0;
+}
+.sel-picker-subtext {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  margin: 0;
+}
+.sel-zone-btn, .sel-emotion-btn, .sel-tool-btn {
+  min-height: 72px;
+  min-width: 96px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border-width: 3px;
+  border-style: solid;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: 'Baloo 2', sans-serif;
+  touch-action: manipulation;
+}
+.sel-zone-face, .sel-emotion-face {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+.sel-emotion-btn .sel-emotion-face { font-size: 1.8rem; }
+.sel-zone-label, .sel-emotion-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.sel-tool-btn {
+  min-height: 52px;
+  min-width: auto;
+  flex-direction: row;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px 14px;
+}
+.sel-recheck-panel {
+  width: 100%;
+  max-width: 520px;
+}
+
+/* Clinical print report (SelCheckInLog.tsx) — same window.print() pattern
+   as Literacy Manipulatives (A23-ROADMAP Phase 2): swapping to a dedicated
+   plain-layout view instead of hiding app chrome via @media print, since
+   this report is read by non-teaching clinicians who should never see any
+   app UI at all, printed or on screen. */
+.sel-print-area {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: system-ui, sans-serif;
+  color: #1f1147;
+  background: #fff;
+}
+.sel-print-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.sel-print-record {
+  border-bottom: 2px solid #d8d3ea;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+.sel-print-record h2 {
+  margin-top: 0;
+}
+.sel-print-record p {
+  margin: 4px 0;
+}
+@media print {
+  .sel-print-toolbar { display: none !important; }
+  .sel-print-record { page-break-inside: avoid; border-bottom: 1px solid #ccc; }
+}

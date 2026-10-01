@@ -6,7 +6,9 @@ import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { makeId } from '../../lib/id';
 import { todayISO } from '../../lib/dates';
 import { ALL_TOOL_KEYS, TOOL_LABELS } from '../../types';
-import type { CustomTool, Subject, Student } from '../../types';
+import type { CustomTool, Subject, Student, SelZone } from '../../types';
+import TagsEditor from '../../components/TagsEditor';
+import { SEL_STARTER_TOOLS, SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 
 // Adds `days - 1` days to an ISO date — used to default a new focus set's
 // window to a week (today through six days out) without pulling in a date
@@ -103,6 +105,35 @@ function LiteracyFocusEditor({ student }: { student: Student }) {
           </div>
         </details>
       )}
+    </div>
+  );
+}
+
+// Per-student 2-3-tool customization per non-Green zone
+// (docs/ZONES_OF_REGULATION_CHECKIN.md §7) — a teacher's override of the
+// curriculum-grounded SEL_STARTER_TOOLS default; an empty list for a zone
+// falls back to that default (see SelZoneCheckIn/SelRecheckPrompt), so
+// clearing every tag here is a valid way to go back to the default set.
+const SEL_TOOL_ZONES: SelZone[] = ['blue', 'yellow', 'red'];
+
+function SelZoneToolsEditor({ student }: { student: Student }) {
+  const updateStudent = useStore((s) => s.updateStudent);
+  return (
+    <div className="stack">
+      <strong>🌈 Zones of Regulation Support Tools</strong>
+      <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+        The tools offered to this student on the check-in support menu for each zone. Leave empty to use the
+        curriculum-grounded default list.
+      </p>
+      {SEL_TOOL_ZONES.map((zone) => (
+        <TagsEditor
+          key={zone}
+          label={`${SEL_ZONE_FACE[zone]} ${SEL_ZONE_LABELS[zone]} Zone tools`}
+          tags={student.selZoneTools?.[zone] ?? []}
+          suggestions={SEL_STARTER_TOOLS[zone]}
+          onChange={(tags) => updateStudent(student.id, { selZoneTools: { ...(student.selZoneTools ?? {}), [zone]: tags } })}
+        />
+      ))}
     </div>
   );
 }
@@ -397,6 +428,9 @@ export default function StudentManager() {
                   />{' '}
                   "Count It Out" checkout: tap bill/coin amounts up to the price instead of one Confirm tap
                 </label>
+
+                <hr className="divider" />
+                <SelZoneToolsEditor student={st} />
 
                 <hr className="divider" />
                 <CustomToolsEditor student={st} />

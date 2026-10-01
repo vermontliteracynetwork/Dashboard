@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-sel-checkin',
+    date: '2026-10-01',
+    icon: '🌈',
+    title: 'A quick check-in when you log in',
+    body: 'When you tap your avatar, you will be asked how you are feeling. Pick the zone and word that is true for you right now. Every zone is okay. If you pick anything other than Green, you will see some tools that might help, and you can leave a note for your teacher too.',
+  },
+  {
     id: '2026-09-30-castle-defense',
     date: '2026-09-30',
     icon: '🏰',
