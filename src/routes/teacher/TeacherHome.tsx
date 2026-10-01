@@ -114,6 +114,14 @@ export default function TeacherHome() {
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
           Pixel UI Free by heyheythere - https://heyheythere.itch.io/pixel-ui-free - CC BY 4.0
         </p>
+        {/* Slime Chess (2026-10-01): the in-world Chess Set model is
+            "Chess Set" by Jarlan Perez via Poly Pizza (CC-BY, attribution
+            required). The round table is Quaternius (CC0), and the 2D
+            game art (Jelly Chess, Bubble Buttons, a free UI sample used
+            non-commercially in this classroom app) needs no credit line. */}
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
+          Chess Set model by Jarlan Perez, via Poly Pizza (CC BY)
+        </p>
       </div>
     </div>
   );

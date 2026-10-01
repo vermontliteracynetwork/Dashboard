@@ -3795,7 +3795,9 @@ body.teacher-mode .content-well { border-radius: 10px; }
 }
 .sc-turn img { width: 52px; height: 52px; animation: scWobble 1.6s ease-in-out infinite; }
 .sc-coach { display: flex; align-items: flex-end; gap: 8px; }
-.sc-coach-face { width: 60px; height: 60px; flex-shrink: 0; animation: scWobble 2s ease-in-out infinite; }
+.sc-coach-face { width: 76px; height: 76px; flex-shrink: 0; animation: scWobble 2s ease-in-out infinite; }
+.sc-coach-bubble > button { align-self: flex-start; width: auto !important; min-width: 52px; min-height: 44px; }
+.sc-modal > button:not(.sc-link) { width: auto !important; min-width: 52px; min-height: 44px; }
 .sc-coach-bubble {
   position: relative;
   flex: 1;

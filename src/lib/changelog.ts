@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-slime-chess',
+    date: '2026-10-01',
+    icon: '♟️',
+    title: 'New game: Slime Chess',
+    body: 'Find the chess set in Town Square and play real chess with squishy jelly pieces! Play the computer or a friend. Tap a piece to see every square it can go to. Stuck? Tap Hint for an idea. If a move does not work, a bubble tells you why.',
+  },
+  {
     id: '2026-10-01-neighbor-chat-menu',
     date: '2026-10-01',
     icon: '😄',
