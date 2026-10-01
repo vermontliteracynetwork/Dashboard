@@ -457,6 +457,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/interior/chair-2.glb,Chair 2,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/chair-3.glb,Chair 3,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/chair-4.glb,Chair 4,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/interior/chess-set.glb,Chess Set,interior,Buildings & Places,furniture,category-fallback,1.745,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/column-round1.glb,Column Round1,interior,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/column-round2.glb,Column Round2,interior,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/column-round3.glb,Column Round3,interior,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
@@ -546,6 +547,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/interior/standing-desk.glb,Standing Desk,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/stool.glb,Stool,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/table-round-large.glb,Table Round Large,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/interior/table-round-small-b.glb,Table Round Small B,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/table-round-small.glb,Table Round Small,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/table-round-small2.glb,Table Round Small2,interior,Buildings & Places,furniture,keyword,0.873,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/interior/trashcan-cylindric.glb,Trashcan Cylindric,interior,Buildings & Places,smallObject,keyword,0.436,solid (blocks movement),yes,150,1.50,paid,no,yes,no,static click-to-collect

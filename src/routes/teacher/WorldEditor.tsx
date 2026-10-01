@@ -55,6 +55,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'gas-pump', label: 'Gas Pump → opens the gas refuel questions right in Town Square' },
   { value: 'bakery', label: `Bakery (Bakery Match game) → ${ROLE_VIEWS.bakery}` },
   { value: 'castle', label: `Castle (Castle Defense game) → ${ROLE_VIEWS.castle}` },
+  { value: 'chess', label: `Chess Set (Slime Chess game) → ${ROLE_VIEWS.chess}` },
   { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];
@@ -405,6 +406,10 @@ const SIZE_CLASS_OVERRIDE: Record<string, SizeClass> = {
   // "Sandwich Board" false-hit the tiny food-keyword list on "sandwich" —
   // it's a person-height A-frame sign, not a snack.
   'Sandwich Board': 'personScale',
+  // Teacher upload 2026-10-01 (role 'chess' -> Slime Chess): a board-game
+  // set that sits ON a table, so countertop-object scale, not the
+  // 'interior' category's avatar-height fallback.
+  'Chess Set': 'smallObject',
 };
 function classifySizeForLabel(label: string, category?: string): SizeClass | null {
   if (SIZE_CLASS_OVERRIDE[label]) return SIZE_CLASS_OVERRIDE[label];

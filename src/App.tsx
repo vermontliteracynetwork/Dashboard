@@ -46,6 +46,7 @@ import GlobalMusicPlayer from './components/GlobalMusicPlayer';
 const TownSquare = lazy(() => import('./routes/world/TownSquare'));
 const HomeRoom = lazy(() => import('./routes/world/HomeRoom'));
 const IslandBuild = lazy(() => import('./routes/world/IslandBuild'));
+const SlimeChess = lazy(() => import('./routes/student/SlimeChess'));
 const WorldEditor = lazy(() => import('./routes/teacher/WorldEditor'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
@@ -149,6 +150,14 @@ export default function App() {
           <Route path="/student/farmers-market" element={<FarmersMarket />} />
           <Route path="/student/bakery" element={<BakeryMatch3 />} />
           <Route path="/student/castle-defense" element={<CastleDefense />} />
+          <Route
+            path="/student/chess"
+            element={
+              <Suspense fallback={<div className="app-shell center-screen"><p>Squishing the chess pieces…</p></div>}>
+                <SlimeChess />
+              </Suspense>
+            }
+          />
           <Route path="/student/pet-shelter" element={<PetShelter />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />

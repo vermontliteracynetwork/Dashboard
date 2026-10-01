@@ -17,6 +17,7 @@
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@supabase/supabase-js": "^2.112.4",
+    "chess.js": "^1.4.0",
     "jsdom": "^30.0.1",
     "nanoid": "^6.0.1",
     "react": "^19.2.8",

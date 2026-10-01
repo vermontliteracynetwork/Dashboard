@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T15:10:03.335Z",
+  "generatedAt": "2026-10-01T15:36:04.107Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -2292,6 +2292,11 @@
       "category": "interior"
     },
     {
+      "path": "/world/models/interior/chess-set.glb",
+      "label": "Chess Set",
+      "category": "interior"
+    },
+    {
       "path": "/world/models/interior/column-round1.glb",
       "label": "Column Round1",
       "category": "interior"
@@ -2734,6 +2739,11 @@
     {
       "path": "/world/models/interior/table-round-large.glb",
       "label": "Table Round Large",
+      "category": "interior"
+    },
+    {
+      "path": "/world/models/interior/table-round-small-b.glb",
+      "label": "Table Round Small B",
       "category": "interior"
     },
     {
