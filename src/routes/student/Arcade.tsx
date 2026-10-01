@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { scratchThumbnailUrl, scratchEmbedUrl } from '../../lib/scratch';
 import WebpageFrame from '../../components/WebpageFrame';
@@ -18,6 +19,12 @@ export default function Arcade() {
   const updateStudent = useStore((s) => s.updateStudent);
   const student = students.find((s) => s.id === currentStudentId);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  // Direct teacher instruction: leaving a game always asks first. Holds
+  // what to do if the student says yes.
+  const [confirmLeave, setConfirmLeave] = useState<(() => void) | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const cameFromTownBack = (location.state as { from?: string } | null)?.from === 'town' ? '/world/town' : '/student/home';
   const rowRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -67,10 +74,10 @@ export default function Arcade() {
     <div className="laptop-frame">
       <div className="laptop-screen">
     <div className="container stack">
-      <WebpageFrame url="arcade" />
+      <WebpageFrame url="arcade" onBack={playingId ? () => setConfirmLeave(() => () => navigate(cameFromTownBack)) : undefined} />
       <div className="stack" style={{ minHeight: 460, background: 'linear-gradient(160deg, #2b1055, #7597de)', borderRadius: 14, padding: 20, boxSizing: 'border-box' }}>
       {playing && (
-        <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={() => setPlayingId(null)}>
+        <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={() => setConfirmLeave(() => () => setPlayingId(null))}>
           ⬅️ Game Shelf
         </button>
       )}
@@ -209,6 +216,20 @@ export default function Arcade() {
     </div>
       </div>
       <div className="laptop-deck" />
+      {confirmLeave && (
+        <div className="overlay-backdrop" onClick={() => setConfirmLeave(null)}>
+          <div className="overlay-panel chrome-frame" role="dialog" aria-modal="true" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h2 style={{ margin: 0 }}>Leave this game?</h2>
+              <p style={{ margin: 0 }}>Your game will stop. You can play it again any time from the Game Shelf.</p>
+              <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-lg" style={{ minHeight: 48 }} onClick={() => setConfirmLeave(null)}>Keep playing</button>
+                <button className="btn btn-lg" style={{ minHeight: 48 }} onClick={() => { const go = confirmLeave; setConfirmLeave(null); go(); }}>Leave game</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

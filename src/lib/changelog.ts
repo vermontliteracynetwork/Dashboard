@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-question-tools',
+    date: '2026-10-01',
+    icon: '🧰',
+    title: 'Question tools work now',
+    body: 'Tap the toolbox on any question screen. Calculator does math for you, Scratchpad lets you draw and work it out, Text Size makes the words bigger, and Highlight lets you tap words to mark them. You can drag the Calculator and Scratchpad out of the way.',
+  },
+  {
+    id: '2026-10-01-slime-chess-turns',
+    date: '2026-10-01',
+    icon: '♟️',
+    title: 'Slime Chess: clearer turns and warnings',
+    body: 'After the computer moves, you get 3 seconds to see its move before your question. Playing with a friend? A card shows whose turn it is, and the question says whose it is too. A yellow ! bubble now shows every square where your piece could be captured. Leaving a game asks first, so you never quit by accident.',
+  },
+  {
     id: '2026-10-01-slime-chess-calm',
     date: '2026-10-01',
     icon: '🫧',

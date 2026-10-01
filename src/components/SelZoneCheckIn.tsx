@@ -18,12 +18,14 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
   const addSelCheckInTool = useStore((s) => s.addSelCheckInTool);
   const addSelCheckInNote = useStore((s) => s.addSelCheckInNote);
   const scheduleSelRecheck = useStore((s) => s.scheduleSelRecheck);
+  const markSelLoginCheckInDone = useStore((s) => s.markSelLoginCheckInDone);
 
   const [picked, setPicked] = useState<{ zone: SelZone; emotion: string; checkInId: string } | null>(null);
 
   const handlePick = (zone: SelZone, emotion: string) => {
     const checkInId = recordSelCheckIn(studentId, zone, emotion);
     if (zone === 'green') {
+      markSelLoginCheckInDone(studentId);
       onDone();
       return;
     }
@@ -34,6 +36,7 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
     if (!picked) return;
     const neighbor = QUEST1_NEIGHBORS[Math.floor(Math.random() * QUEST1_NEIGHBORS.length)];
     scheduleSelRecheck(picked.checkInId, neighbor.id);
+    markSelLoginCheckInDone(studentId);
     onDone();
   };
 

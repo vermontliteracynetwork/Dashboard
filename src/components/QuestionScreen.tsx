@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TTSSettings } from '../types';
 import { speak } from './ReadAloud';
+import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
 
 // Shared "question screen" UI — direct teacher instruction: a single visual
 // design (approved through several mockup rounds) for every question-set-
@@ -26,9 +27,11 @@ import { speak } from './ReadAloud';
 // whatever new `prompt`/`choices`/`correctIndex` the caller passes next,
 // and resets its own local answer state whenever `prompt` changes.
 //
-// Toolbox (🧮 📝 🔤 🖍️): explicitly a placeholder — the teacher asked to
-// reserve the screen space for these tools, but none of them do anything
-// yet anywhere in this codebase. The buttons render, disabled, on purpose.
+// Toolbox (🧮 📝 🔤 🖍️): real tools now (direct teacher report, "in
+// question set, tool bar tools arent clickable"). Calculator and
+// Scratchpad open floating panels (QuestionTools.tsx); Text Size cycles
+// the question and answers through 3 sizes (remembered on this device);
+// Highlight lets the student tap words in the question to mark them.
 export interface QuestionScreenProps {
   prompt: string;
   choices: string[];
@@ -59,6 +62,10 @@ export interface QuestionScreenProps {
   // being locked into "the exact same question, no matter what."
   onSkip?: () => void;
   ttsSettings?: TTSSettings;
+  // Whose question this is, shown as a pill on the question card (two
+  // players sharing one iPad, e.g. Slime Chess: "Blueberry's question").
+  whoLabel?: string;
+  whoIcon?: string;
 }
 
 const LETTERS = 'ABCDEFGHIJ';
@@ -100,6 +107,8 @@ export default function QuestionScreen({
   onExit,
   onSkip,
   ttsSettings,
+  whoLabel,
+  whoIcon,
 }: QuestionScreenProps) {
   const lockAfterWrong = !!onSkip;
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -107,6 +116,20 @@ export default function QuestionScreen({
   const [answeredCorrectly, setAnsweredCorrectly] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showToolbox, setShowToolbox] = useState(false);
+  const [showCalc, setShowCalc] = useState(false);
+  const [showPad, setShowPad] = useState(false);
+  const [highlightOn, setHighlightOn] = useState(false);
+  const [marked, setMarked] = useState<Set<number>>(new Set());
+  const [sizeIdx, setSizeIdx] = useState(() => {
+    try { const n = Number(localStorage.getItem('question-text-size')); return n >= 0 && n < TEXT_SIZES.length ? n : 0; } catch { return 0; }
+  });
+  const scale = TEXT_SIZES[sizeIdx];
+  const nextSize = () => {
+    const n = (sizeIdx + 1) % TEXT_SIZES.length;
+    setSizeIdx(n);
+    try { localStorage.setItem('question-text-size', String(n)); } catch { /* private mode */ }
+  };
+  const toggleMark = (i: number) => setMarked((prev) => { const next = new Set(prev); if (next.has(i)) next.delete(i); else next.add(i); return next; });
   const advanceTimer = useRef<number | null>(null);
 
   // A fresh random answer order per question — teacher report: the
@@ -134,6 +157,7 @@ export default function QuestionScreen({
     setFeedback(null);
     setAnsweredCorrectly(false);
     setShowExitConfirm(false);
+    setMarked(new Set());
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
   }, [prompt]);
 
@@ -245,32 +269,32 @@ export default function QuestionScreen({
                 zIndex: 10,
               }}
             >
-              {/* Placeholder only — teacher asked to reserve the space for
-                  these tools; none of them have real functionality
-                  anywhere in this codebase yet. Visual no-ops on purpose. */}
               {[
-                { icon: '🧮', label: 'Calculator' },
-                { icon: '📝', label: 'Scratchpad' },
-                { icon: '🔤', label: 'Text Size' },
-                { icon: '🖍️', label: 'Highlight' },
+                { icon: '🧮', label: 'Calculator', active: showCalc, onClick: () => { setShowCalc((v) => !v); setShowToolbox(false); } },
+                { icon: '📝', label: 'Scratchpad', active: showPad, onClick: () => { setShowPad((v) => !v); setShowToolbox(false); } },
+                { icon: '🔤', label: `Text Size ${['A', 'A+', 'A++'][sizeIdx]}`, active: sizeIdx > 0, onClick: nextSize },
+                { icon: '🖍️', label: highlightOn ? 'Highlight: on' : 'Highlight', active: highlightOn, onClick: () => { setHighlightOn((v) => !v); setShowToolbox(false); } },
               ].map((tool) => (
                 <button
-                  key={tool.label}
+                  key={tool.icon}
                   type="button"
-                  disabled
+                  onClick={tool.onClick}
+                  aria-pressed={tool.active}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: 4,
                     padding: '10px 6px',
+                    minHeight: 64,
                     borderRadius: 12,
-                    border: '1px solid #F2E8D6',
-                    background: '#FBF3E3',
-                    color: '#6B6355',
+                    border: tool.active ? '2px solid #2E7BB8' : '1px solid #F2E8D6',
+                    background: tool.active ? '#E3F0FB' : '#FBF3E3',
+                    color: '#3A342A',
                     fontSize: 12,
                     fontWeight: 600,
-                    cursor: 'not-allowed',
+                    cursor: 'pointer',
+                    touchAction: 'manipulation',
                   }}
                 >
                   <span style={{ fontSize: 20 }}>{tool.icon}</span>
@@ -297,6 +321,12 @@ export default function QuestionScreen({
             gap: 26,
           }}
         >
+          {whoLabel && (
+            <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, background: '#EFE4FF', border: '2px solid #C9B8FF', borderRadius: 999, padding: '4px 16px 4px 6px', fontWeight: 800, fontSize: 18, color: '#2B1452' }}>
+              {whoIcon && <img src={whoIcon} alt="" style={{ width: 36, height: 36 }} />}
+              {whoLabel}
+            </div>
+          )}
           {imageUrl && (
             <div
               style={{
@@ -319,12 +349,12 @@ export default function QuestionScreen({
                 flexGrow: 1,
                 fontFamily: "'Baloo 2', sans-serif",
                 fontWeight: 700,
-                fontSize: 34,
+                fontSize: 34 * scale,
                 lineHeight: 1.25,
                 color: '#3A342A',
               }}
             >
-              {prompt}
+              <HighlightableText text={prompt} active={highlightOn} marked={marked} onToggle={toggleMark} />
             </p>
             <button
               type="button"
@@ -391,7 +421,7 @@ export default function QuestionScreen({
                   >
                     {LETTERS[i] ?? i + 1}
                   </span>
-                  <span style={{ fontSize: 21, fontWeight: 600, color: '#3A342A' }}>{choice}</span>
+                  <span style={{ fontSize: 21 * scale, fontWeight: 600, color: '#3A342A' }}>{choice}</span>
                 </button>
               );
             })}
@@ -455,6 +485,15 @@ export default function QuestionScreen({
           )}
         </div>
       </div>
+
+      {showCalc && <Calculator onClose={() => setShowCalc(false)} />}
+      {showPad && <Scratchpad onClose={() => setShowPad(false)} />}
+      {highlightOn && (
+        <div style={{ position: 'fixed', top: 104, left: '50%', transform: 'translateX(-50%)', zIndex: 204, display: 'flex', alignItems: 'center', gap: 8, background: '#FFF8D6', border: '2px solid #FFE14D', borderRadius: 999, padding: '4px 6px 4px 16px', fontWeight: 700, fontSize: 14, color: '#3A342A' }}>
+          🖍️ Tap words in the question to highlight them
+          <button type="button" onClick={() => setHighlightOn(false)} style={{ minHeight: 40, borderRadius: 999, border: 'none', background: '#fff', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Done</button>
+        </div>
+      )}
 
       {/* Exit confirmation overlay */}
       {showExitConfirm && (

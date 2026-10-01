@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/store';
 import { isSupabaseConfigured } from './lib/supabaseClient';
@@ -38,16 +38,18 @@ import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
 import SelRecheckPrompt from './components/SelRecheckPrompt';
+import SelLoginGate from './components/SelLoginGate';
+import { lazyFresh } from './lib/freshBuild';
 import GlobalMusicPlayer from './components/GlobalMusicPlayer';
 
 // Lazy-loaded: Three.js/react-three-fiber are heavy, and only the world
 // route (and the teacher's 3D Build Mode) needs them — every existing 2D
 // screen should stay unaffected.
-const TownSquare = lazy(() => import('./routes/world/TownSquare'));
-const HomeRoom = lazy(() => import('./routes/world/HomeRoom'));
-const IslandBuild = lazy(() => import('./routes/world/IslandBuild'));
-const SlimeChess = lazy(() => import('./routes/student/SlimeChess'));
-const WorldEditor = lazy(() => import('./routes/teacher/WorldEditor'));
+const TownSquare = lazyFresh(() => import('./routes/world/TownSquare'));
+const HomeRoom = lazyFresh(() => import('./routes/world/HomeRoom'));
+const IslandBuild = lazyFresh(() => import('./routes/world/IslandBuild'));
+const SlimeChess = lazyFresh(() => import('./routes/student/SlimeChess'));
+const WorldEditor = lazyFresh(() => import('./routes/teacher/WorldEditor'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
 
@@ -107,6 +109,7 @@ export default function App() {
         <TeacherHelpAlert />
         <StudentChatAlert />
         <SelRecheckPrompt />
+        <SelLoginGate />
         <CoinDropOverlay />
         <SyncTroubleAlert />
         {/* Direct teacher instruction: music keeps playing across every

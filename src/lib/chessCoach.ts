@@ -108,7 +108,11 @@ export function explainIllegal(chess: Chess, from: Square, to: Square, names: Re
         if (chess.get(sqAt(fileOf(from), rankOf(from) + forward)) || target) return 'Something is in the way. A Pawn can\'t jump over pieces.';
         shapeOk = true;
       } else if (adf === 1 && dr === forward) {
-        if (!target && to !== epSquare(chess)) return 'Pawns only move diagonally when they are capturing a piece. There\'s nothing to capture on that square.';
+        if (!target && !isEnPassantTry(chess, from, to)) {
+          const beside = chess.get(sqAt(fileOf(to), rankOf(from)));
+          if (beside && beside.type === 'p' && beside.color !== me) return `There's nothing on ${to} to capture. The enemy Pawn beside yours can only be captured from the side (called en passant) on the very next turn after it moves 2 squares, and that chance has passed.`;
+          return 'Pawns only move diagonally when they are capturing a piece. There\'s nothing to capture on that square.';
+        }
         shapeOk = true;
       } else if (dr !== 0 && Math.sign(dr) !== forward) {
         return 'Pawns can never move backward. They only go forward, toward the other side of the board.';
@@ -144,12 +148,28 @@ function epSquare(chess: Chess): string {
   return chess.fen().split(' ')[3];
 }
 
+// Is a Pawn going diagonally from `from` to empty `to` trying to capture
+// en passant? chess.js drops the en passant square from its FEN whenever
+// the capture would be illegal (e.g. it would expose the King), so this
+// also checks the game's last move: an enemy Pawn that just moved 2
+// squares to land right beside this one.
+function isEnPassantTry(chess: Chess, from: Square, to: Square): boolean {
+  if (to === epSquare(chess)) return true;
+  const last = chess.history({ verbose: true }).at(-1);
+  if (!last || last.piece !== 'p') return false;
+  const passed = sqAt(fileOf(last.to as Square), (rankOf(last.from as Square) + rankOf(last.to as Square)) / 2);
+  return Math.abs(rankOf(last.to as Square) - rankOf(last.from as Square)) === 2 && passed === to && rankOf(last.to as Square) === rankOf(from);
+}
+
 function attackersAfter(chess: Chess, from: Square, to: Square, kingSq: Square, me: Color): Square[] {
   const t = new Chess(chess.fen());
   const p = t.get(from);
   if (!p) return [];
   t.remove(from);
   t.remove(to);
+  // En passant also takes away the enemy Pawn beside this one, which can
+  // open a line onto the King.
+  if (p.type === 'p' && fileOf(from) !== fileOf(to) && !chess.get(to) && isEnPassantTry(chess, from, to)) t.remove(sqAt(fileOf(to), rankOf(from)));
   t.put(p, to);
   return t.attackers(kingSq, other(me));
 }
@@ -332,23 +352,35 @@ export function explainGoodMove(before: Chess, m: Move): string {
   return `${lead} It keeps your pieces safe and gets you ready for your next move.`;
 }
 
-// Squares a piece could move to but where it could be captured right away
-// and isn't worth the risk (attacked and not defended, or attacked by
-// something cheaper). Used to tint "careful!" moves on the board.
+// Squares a piece could move to where the other side could capture it
+// on their very next move (direct teacher instruction: the warning bubble
+// must show "every time the piece is presented a spot it could be
+// captured", even when it would be a fair trade). Checked by actually
+// making the move and listing the other side's real legal replies, so it
+// is right for every piece and every case: pinned attackers that can't
+// legally capture don't count, a King can't capture onto a guarded
+// square, a move that gives check limits the replies to ones that answer
+// the check, a Pawn that moves 2 squares past an enemy Pawn can be taken
+// en passant, and a Pawn that promotes is judged as the new Queen.
+function capturesOn(chess: Chess, sq: Square): Move[] {
+  return chess.moves({ verbose: true }).filter((mv) => {
+    if (mv.to === sq && mv.captured) return true;
+    // En passant: the captured Pawn sits beside the capturing Pawn, not on
+    // the square it moves to.
+    return mv.flags.includes('e') && `${mv.to[0]}${mv.from[1]}` === sq;
+  });
+}
+
 export function riskyTargets(fen: string, from: Square): Set<string> {
   const chess = new Chess(fen);
   const piece = chess.get(from);
   const risky = new Set<string>();
   if (!piece) return risky;
   for (const m of chess.moves({ square: from, verbose: true })) {
+    // The 4 promotion choices share one square; judge it as a Queen.
+    if (m.promotion && m.promotion !== 'q') continue;
     chess.move(m);
-    const attacked = chess.isAttacked(m.to, other(piece.color));
-    if (attacked) {
-      const defended = chess.attackers(m.to, piece.color).length > 0;
-      const cheapest = Math.min(...chess.attackers(m.to, other(piece.color)).map((s) => PIECE_VALUE[chess.get(s)!.type] || 100));
-      const gain = m.captured ? PIECE_VALUE[m.captured] : 0;
-      if (!defended || cheapest < PIECE_VALUE[piece.type] - gain) risky.add(m.to);
-    }
+    if (!chess.isCheckmate() && capturesOn(chess, m.to as Square).length > 0) risky.add(m.to);
     chess.undo();
   }
   return risky;

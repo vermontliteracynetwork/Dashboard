@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
+import { Suspense, useEffect, useRef, type ReactNode } from 'react';
 import ReadAloud from './ReadAloud';
+import { lazyFresh } from '../lib/freshBuild';
 import type { Quest1Neighbor } from '../lib/worldQuest1';
 import type { NpcVoiceProfile } from '../lib/npcVoices';
 
 // Lazy so three.js only loads when a Neighbor scene actually opens.
-const NeighborCharacter3D = lazy(() => import('./NeighborCharacter3D'));
+const NeighborCharacter3D = lazyFresh(() => import('./NeighborCharacter3D'));
 
 export type NeighborLogEntry = { sender: 'npc' | 'student' | 'history'; text: string };
 

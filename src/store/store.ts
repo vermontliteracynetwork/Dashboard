@@ -291,6 +291,12 @@ interface AppState {
   // the middle of something a re-check must not interrupt (a Town Square
   // conversation, a gas question). SelRecheckPrompt waits until it clears.
   selRecheckHold: boolean;
+  // `${studentId}:${YYYY-MM-DD}` of the last finished login check-in.
+  // Persisted with the session: a student whose iPad stays logged in
+  // never sees the login screen again, so SelLoginGate uses this to give
+  // them the check-in once per login and once per school day.
+  selLoginCheckInKey: string | null;
+  markSelLoginCheckInDone: (studentId: string) => void;
   setSelRecheckHold: (hold: boolean) => void;
   completeSelRecheck: (id: string, zone: SelZone, emotion: string, toolUsedLabel: string | undefined, nextDelayMin: number | undefined) => void;
   resolveSelCheckIn: (id: string) => void;
@@ -969,12 +975,12 @@ export const useStore = create<AppState>()(
       setRole: (r) => set({ role: r }),
       loginStudent: (id) => {
         get().cancelPendingSelRechecks(id);
-        set({ currentStudentId: id, role: 'student' });
+        set({ currentStudentId: id, role: 'student', selLoginCheckInKey: null });
       },
       logoutStudent: () => {
         const id = get().currentStudentId;
         if (id) get().cancelPendingSelRechecks(id);
-        set({ currentStudentId: null, role: 'none', selRecheckHold: false });
+        set({ currentStudentId: null, role: 'none', selRecheckHold: false, selLoginCheckInKey: null });
       },
 
       addStudent: (name, avatar) => {
@@ -2672,6 +2678,8 @@ export const useStore = create<AppState>()(
       },
 
       selRecheckHold: false,
+      selLoginCheckInKey: null,
+      markSelLoginCheckInDone: (studentId) => set({ selLoginCheckInKey: selLoginKey(studentId) }),
       setSelRecheckHold: (hold) => set({ selRecheckHold: hold }),
 
       skipSelRecheck: (id) => {
@@ -3439,9 +3447,14 @@ export const useStore = create<AppState>()(
         deleteLiteracyFocusSetRemote(id);
       },
     }),
-    { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role }) },
+    { name: 'iwd-session', partialize: (s) => ({ currentStudentId: s.currentStudentId, role: s.role, selLoginCheckInKey: s.selLoginCheckInKey }) },
   ),
 );
+
+export function selLoginKey(studentId: string): string {
+  const d = new Date();
+  return `${studentId}:${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 setSyncFailureHandler((label, message) => {
   useStore.setState({ syncTrouble: { at: Date.now(), label, message } });

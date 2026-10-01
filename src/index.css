@@ -3690,7 +3690,7 @@ body.teacher-mode .content-well { border-radius: 10px; }
   border: 6px solid #ff5fb8;
   box-shadow: 0 0 12px #ff5fb8, inset 0 0 10px rgba(255, 95, 184, 0.5);
 }
-.sc-target.capture.risky { border-color: #ffb020; box-shadow: 0 0 12px #ffb020; }
+.sc-target.capture.risky { border-color: #ffb020; box-shadow: 0 0 12px #ffb020; background: rgba(255, 225, 77, 0.55); }
 .sc-target.peek { background: radial-gradient(circle at 32% 30%, #fff 0 14%, #ff6b6b 15% 70%, #c92a2a 71%); width: 28%; opacity: 0.85; }
 .sc-target-bang { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #6b4a00; font-size: clamp(0.7rem, 1.6vw, 1rem); }
 @keyframes scBob {
@@ -3881,6 +3881,11 @@ body.teacher-mode .content-well { border-radius: 10px; }
 }
 .sc-pie-close img { width: 46px; height: 46px; filter: drop-shadow(0 1px 0 #7a4b2a); }
 @media (prefers-reduced-motion: reduce) { .sc-pie, .sc-corner-btn[aria-expanded='true'] .sc-gear-bubble img { animation: none; } }
+.sc-turn-card h2 { margin: 0; font-size: 2rem; }
+.sc-turn-card p { margin: 0; font-size: 1.15rem; font-weight: 600; }
+.sc-turn-card-king { width: 110px; height: 110px; animation: scWobble 1.6s ease-in-out infinite; }
+.sc-turn-card.w { border: 6px solid #ff8fb1; }
+.sc-turn-card.b { border: 6px solid #8fb6ff; }
 /* Less motion (the in-game toggle): no wobble, bounce, pulse, splat or
    floating bubbles; pieces jump straight to their new square. */
 .sc-calm *, .sc-calm *::before, .sc-calm *::after { animation: none !important; transition: none !important; }

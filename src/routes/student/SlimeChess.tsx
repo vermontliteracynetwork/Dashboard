@@ -71,10 +71,22 @@ function applyMoveIds(ids: IdMap, m: Move): IdMap {
 
 interface Pop { id: string; square: Square; src: string }
 
-// Direct teacher instruction: the computer hesitates 5 to 10 seconds
-// before moving, like a real opponent thinking it over.
-const COMPUTER_THINK_MIN_MS = 5000;
-const COMPUTER_THINK_MAX_MS = 10000;
+// Direct teacher instructions: the computer hesitates before moving, like
+// a real opponent thinking it over ("a 5-10 second moment of hesitation"),
+// and then "after the student has answered the question, the system needs
+// to wait 10 seconds before the computer player takes their turn". The
+// computer always waits the full 10 seconds after the student's move
+// (which itself always comes after that turn's question).
+const COMPUTER_THINK_MS = 10000;
+// Questions come only at the start of a player's own turn, never during
+// the computer's (direct teacher instruction). After the computer moves,
+// the board stays fully visible for 3 seconds so the student sees what it
+// did ("give a 3 second wait between the computer players move and the
+// question"). Two-player games get the same 3 seconds after each move,
+// then a "It's Blueberry's turn!" card so it's clear who answers.
+const QUESTION_AFTER_COMPUTER_MS = 3000;
+const FRIEND_MOVE_SETTLE_MS = 3000;
+const TURN_CARD_MS = 2200;
 
 export default function SlimeChess() {
   const navigate = useNavigate();
@@ -114,6 +126,8 @@ export default function SlimeChess() {
   // The move number (history length) the last question was asked for, so
   // each turn asks exactly once and Undo never re-asks.
   const askedForPly = useRef<number | null>(null);
+  // Two-player games: whose turn the "It's X's turn!" card is showing.
+  const [turnCard, setTurnCard] = useState<Color | null>(null);
   const pickQuestion = (avoidId?: string): MCQuestion => {
     if (activeGameplayTask) {
       const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
@@ -145,6 +159,9 @@ export default function SlimeChess() {
   // round pie menu. pieAt is the gear's screen spot when it opened.
   const gearRef = useRef<HTMLButtonElement | null>(null);
   const [pieAt, setPieAt] = useState<DOMRect | null>(null);
+  // Direct teacher instruction: leaving a game in progress always asks
+  // first. 'leave' = back to Town Square / Computer, 'new' = New game.
+  const [confirmLeave, setConfirmLeave] = useState<'leave' | 'new' | null>(null);
 
   const gameRef = useRef(new Chess());
   const [fen, setFen] = useState(gameRef.current.fen());
@@ -168,13 +185,35 @@ export default function SlimeChess() {
   const bottom: Color = mode === 'computer' ? human : 'w';
   const sound = (fn: () => void) => { if (soundOn) fn(); };
   const isHumanTurn = mode === 'friends' || turn === human;
+  // A game counts as in progress once anyone has moved and it isn't over.
+  const inProgress = screen === 'play' && !gameOver && history.length > 0;
+  const goToMenu = () => {
+    if (aiTimer.current) window.clearTimeout(aiTimer.current);
+    setThinking(false);
+    setChallengeQuestion(null);
+    setScreen('menu');
+  };
 
   useEffect(() => {
     if (screen !== 'play' || gameOver || thinking || promotion || !isHumanTurn) return;
     if (askedForPly.current === history.length) return;
-    askedForPly.current = history.length;
-    setPieAt(null);
-    setChallengeQuestion(pickQuestion());
+    const ask = () => {
+      askedForPly.current = history.length;
+      setTurnCard(null);
+      setPieAt(null);
+      setChallengeQuestion(pickQuestion());
+    };
+    const timers: number[] = [];
+    if (mode === 'computer') {
+      if (history.length === 0) ask();
+      else timers.push(window.setTimeout(ask, QUESTION_AFTER_COMPUTER_MS));
+    } else {
+      const who = turn;
+      const showCard = () => { setPieAt(null); setSelected(null); setTurnCard(who); timers.push(window.setTimeout(ask, TURN_CARD_MS)); };
+      if (history.length === 0) showCard();
+      else timers.push(window.setTimeout(showCard, FRIEND_MOVE_SETTLE_MS));
+    }
+    return () => { timers.forEach((t) => window.clearTimeout(t)); setTurnCard(null); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, gameOver, thinking, promotion, isHumanTurn, history.length]);
 
@@ -210,6 +249,7 @@ export default function SlimeChess() {
     setThinking(false);
     askedForPly.current = null;
     setChallengeQuestion(null);
+    setTurnCard(null);
     setScreen('play');
     if (mode === 'computer' && human === 'b') {
       say(`You're ${names.b}. ${names.w} goes first. Watch where the computer moves!`);
@@ -288,7 +328,7 @@ export default function SlimeChess() {
       } else {
         say(`${describeMove(made, names)}. Your turn!`, 'info');
       }
-    }, COMPUTER_THINK_MIN_MS + Math.random() * (COMPUTER_THINK_MAX_MS - COMPUTER_THINK_MIN_MS));
+    }, COMPUTER_THINK_MS);
   };
 
   const afterHumanMove = (m: Move) => {
@@ -309,6 +349,9 @@ export default function SlimeChess() {
 
   const tapSquare = (sq: Square) => {
     if (gameOver || promotion) return;
+    // This turn's question hasn't been asked yet (the short look-at-the-
+    // board pause after the computer moves): no moving until it's answered.
+    if (isHumanTurn && askedForPly.current !== history.length) return;
     const g = gameRef.current;
     if (thinking || !isHumanTurn) {
       say('Hang on, the computer is taking its turn.', 'info');
@@ -374,7 +417,7 @@ export default function SlimeChess() {
     const caps = moves.filter((m) => m.captured).length;
     let text = `${PIECE_RULE[piece.type]} Your ${name} can go to ${moves.length} square${moves.length === 1 ? '' : 's'} (the green bubbles).`;
     if (caps) text += ` Pink rings mean it can capture something!`;
-    if (r.size) text += ` Yellow bubbles are risky: your ${name} could get captured there.`;
+    if (r.size) text += ` Yellow bubbles with a ! are risky: your ${name} could be captured there on their next move.`;
     say(text, 'info');
   };
 
@@ -536,7 +579,7 @@ export default function SlimeChess() {
                   {col === 0 && <span className="sc-coord rank">{sq[1]}</span>}
                   {target && (
                     <span className={`sc-target${target.captured ? ' capture' : ''}${risky.has(sq) ? ' risky' : ''}`} aria-hidden="true">
-                      {risky.has(sq) && !target.captured && <span className="sc-target-bang">!</span>}
+                      {risky.has(sq) && <span className="sc-target-bang">!</span>}
                     </span>
                   )}
                 </button>
@@ -585,7 +628,7 @@ export default function SlimeChess() {
                 </div>
               )}
             </div>
-            <button className="sc-corner-btn" onClick={() => navigate(backTo)} aria-label={backLabel} title={backLabel}>
+            <button className="sc-corner-btn" onClick={() => (inProgress ? setConfirmLeave('leave') : navigate(backTo))} aria-label={backLabel} title={backLabel}>
               <img src="/chess/btn-home.png" alt="" />
             </button>
             <button
@@ -626,7 +669,7 @@ export default function SlimeChess() {
             { key: 'undo', icon: '/chess/btn-undo.png', label: 'Undo', disabled: thinking || history.length === 0, onClick: () => { setPieAt(null); undo(); } },
             { key: 'motion', icon: '/chess/btn-info.png', label: calm ? 'Less motion: on' : 'Less motion: off', pressed: calm, onClick: () => setCalm((v) => !v) },
             { key: 'sound', icon: '/chess/btn-sound.png', label: soundOn ? 'Sound: on' : 'Sound: off', pressed: soundOn, dim: !soundOn, onClick: () => setSoundOn((v) => !v) },
-            { key: 'new', icon: '/chess/btn-new.png', label: 'New game', onClick: () => { setPieAt(null); if (aiTimer.current) window.clearTimeout(aiTimer.current); setThinking(false); setScreen('menu'); } },
+            { key: 'new', icon: '/chess/btn-new.png', label: 'New game', onClick: () => { setPieAt(null); if (inProgress) setConfirmLeave('new'); else goToMenu(); } },
           ]}
         />
       )}
@@ -647,9 +690,44 @@ export default function SlimeChess() {
         </div>
       )}
 
+      {confirmLeave && (
+        <div className="sc-modal-backdrop" onClick={() => setConfirmLeave(null)}>
+          <div className="sc-modal" role="dialog" aria-modal="true" aria-labelledby="sc-leave-title" onClick={(e) => e.stopPropagation()}>
+            <img className="sc-gameover-badge" src="/chess/badge-red.png" alt="" />
+            <h2 id="sc-leave-title">{confirmLeave === 'leave' ? 'Leave this game?' : 'Start a new game?'}</h2>
+            <p>{confirmLeave === 'leave' ? `Your game will end and you'll go back to ${backLabel}.` : 'This game will end and you will pick new settings.'}</p>
+            <div className="sc-choice-row">
+              <button className="sc-soft-btn green" onClick={() => setConfirmLeave(null)}>Keep playing</button>
+              <button
+                className="sc-soft-btn red"
+                onClick={() => {
+                  const which = confirmLeave;
+                  setConfirmLeave(null);
+                  if (which === 'leave') { if (aiTimer.current) window.clearTimeout(aiTimer.current); navigate(backTo); } else goToMenu();
+                }}
+              >
+                {confirmLeave === 'leave' ? 'Leave game' : 'New game'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {turnCard && (
+        <div className="sc-modal-backdrop" role="status" aria-live="assertive">
+          <div className={`sc-modal sc-turn-card ${turnCard}`}>
+            <img className="sc-turn-card-king" src={pieceSrc(theme, turnCard, 'k')} alt="" />
+            <h2>It's {names[turnCard]}'s turn!</h2>
+            <p>{names[turnCard]}, answer a question, then make your move.</p>
+          </div>
+        </div>
+      )}
+
       {challengeQuestion && (
         <QuestionScreen
           key={challengeQuestion.id}
+          whoLabel={mode === 'friends' ? `${names[turn]}'s question` : undefined}
+          whoIcon={mode === 'friends' ? pieceSrc(theme, turn, 'k') : undefined}
           prompt={challengeQuestion.prompt}
           choices={challengeQuestion.choices}
           correctIndex={challengeQuestion.correctIndex}
