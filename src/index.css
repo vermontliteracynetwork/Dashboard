@@ -2670,6 +2670,10 @@ body.teacher-mode .content-well { border-radius: 10px; }
   aspect-ratio: 16 / 10;
   border-radius: 14px;
   overflow: hidden;
+  /* Own stacking context: the depth-sorted plots/attackers/HUD z-indexes
+     stay inside the map, so the tower picker and every other pop-up
+     always sits in front of it. */
+  isolation: isolate;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -3189,68 +3193,113 @@ body.teacher-mode .content-well { border-radius: 10px; }
   font-weight: 600;
   padding: 10px 14px;
 }
-/* Neighbor re-check (SelRecheckPrompt.tsx), teacher mockup 2026-10-02:
-   character render beside a speech bubble, big pill choices below. Stacks
-   to character-on-top in iPad portrait / phone widths. */
-.sel-recheck-scene {
-  display: flex;
-  align-items: flex-end;
-  gap: 18px;
-  width: 100%;
-  max-width: 680px;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  padding: 8px;
+/* Neighbor re-check conversation (SelRecheckPrompt.tsx), direct teacher
+   instruction 2026-10-01: Neighbor's live 3D model bottom-left (no box),
+   the current message center, answer choices centered under it, and the
+   running transcript on the right. */
+.sel-convo {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 30%);
+  background: radial-gradient(ellipse at 35% 60%, rgba(124, 58, 237, 0.55), rgba(31, 17, 71, 0.82));
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
-.sel-recheck-character {
-  flex: 0 0 auto;
-  width: 170px;
-  align-self: flex-end;
-}
-.sel-recheck-character img {
-  display: block;
-  width: 100%;
-  height: auto;
-  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.35));
-}
-.sel-recheck-bubble {
+.sel-convo-stage {
   position: relative;
-  flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 24px 28px clamp(110px, 14vw, 200px);
+  overflow-y: auto;
+}
+.sel-convo-character {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: clamp(200px, 24vw, 320px);
+  height: clamp(270px, 34vw, 430px);
+  pointer-events: none;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.35));
+}
+.sel-convo-center {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+.sel-convo-message {
+  position: relative;
+  width: 100%;
   background: #fff;
   color: #1f1147;
   border-radius: 28px;
-  padding: 22px 24px 20px;
-  box-shadow: 0 10px 30px rgba(31, 17, 71, 0.28);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 22px 28px 24px;
+  text-align: center;
+  box-shadow: 0 14px 34px rgba(20, 8, 50, 0.35);
+  animation: selConvoIn 0.3s ease-out;
 }
-.sel-recheck-bubble::before {
+/* Tail points down-left toward the Neighbor in the corner. */
+.sel-convo-message::after {
   content: '';
   position: absolute;
-  left: -14px;
-  bottom: 42px;
+  left: 34px;
+  bottom: -16px;
   border-style: solid;
-  border-width: 12px 16px 12px 0;
-  border-color: transparent #fff transparent transparent;
+  border-width: 16px 22px 0 0;
+  border-color: #fff transparent transparent transparent;
 }
-.sel-recheck-name {
+@keyframes selConvoIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.sel-convo-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #efe7ff;
+  color: var(--purple);
   font-size: 0.85rem;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--purple);
 }
-.sel-recheck-line {
-  margin: 0;
-  font-size: 1.15rem;
-  line-height: 1.45;
+.sel-convo-line { margin: 0 0 6px; font-size: 1.15rem; line-height: 1.45; }
+.sel-convo-line.main { font-size: 1.6rem; font-weight: 800; line-height: 1.25; margin: 6px 0 0; }
+.sel-convo-sub { margin: 10px 0 0; font-size: 1rem; color: #4b3b78; }
+.sel-convo-responses {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
 }
-.sel-recheck-choices {
+/* The shared picker/support menu were styled for a white card; on the
+   dark stage their own prompts need light text and the buttons a white
+   face so they stay readable. */
+.sel-convo-responses .sel-picker-question,
+.sel-convo-responses .sel-picker-subtext,
+.sel-convo-responses .sel-support-menu p { color: #fff; }
+.sel-convo-responses .sel-zone-btn,
+.sel-convo-responses .sel-emotion-btn,
+.sel-convo-responses .sel-tool-btn { background: #fff; color: #1f1147; }
+.sel-convo-responses .sel-support-menu textarea { border-radius: 12px; border: none; }
+.sel-convo-choices {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
-  margin-top: 8px;
 }
 .sel-pill {
   min-height: 56px;
@@ -3266,28 +3315,68 @@ body.teacher-mode .content-well { border-radius: 10px; }
   touch-action: manipulation;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
-.sel-pill:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--purple-dark);
-}
-.sel-pill-secondary {
-  background: #f5b82e;
-  color: #3b2400;
-  box-shadow: 0 4px 0 #c98d0c;
-}
+.sel-pill:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--purple-dark); }
+.sel-pill-secondary { background: #f5b82e; color: #3b2400; box-shadow: 0 4px 0 #c98d0c; }
 .sel-pill-secondary:active { box-shadow: 0 1px 0 #c98d0c; }
-@media (max-width: 700px) {
-  .sel-recheck-scene { flex-direction: column; align-items: center; }
-  .sel-recheck-character { width: 120px; align-self: center; }
-  .sel-recheck-bubble::before {
-    left: 50%;
-    bottom: auto;
-    top: -14px;
-    transform: translateX(-50%);
-    border-width: 0 12px 16px 12px;
-    border-color: transparent transparent #fff transparent;
-  }
-  .sel-pill { flex: 1 1 auto; }
+
+.sel-convo-log {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fbf9ff;
+  border-left: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: -10px 0 30px rgba(20, 8, 50, 0.25);
+}
+.sel-convo-log-title {
+  margin: 0;
+  padding: 18px 18px 12px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1f1147;
+  border-bottom: 1px solid #ece6f7;
+}
+.sel-convo-log-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sel-convo-history {
+  margin: 0;
+  align-self: center;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b5f8a;
+  background: #efeaf8;
+  border-radius: 10px;
+  padding: 4px 10px;
+}
+.sel-convo-row { display: flex; align-items: flex-end; gap: 4px; }
+.sel-convo-row.student { justify-content: flex-end; }
+.sel-convo-bubble {
+  max-width: 82%;
+  padding: 8px 13px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+.sel-convo-bubble.npc { background: #e9e6df; color: #1f4238; border-bottom-left-radius: 4px; }
+.sel-convo-bubble.student { background: #3e7c6b; color: #fff; border-bottom-right-radius: 4px; }
+
+/* iPad portrait and narrower: transcript drops to a strip along the
+   bottom, the Neighbor shrinks but stays bottom-left of the stage. */
+@media (max-width: 860px) {
+  .sel-convo { grid-template-columns: 1fr; grid-template-rows: 1fr minmax(160px, 28vh); }
+  .sel-convo-log { border-left: none; border-top: 1px solid rgba(124, 58, 237, 0.25); }
+  .sel-convo-character { width: clamp(150px, 26vw, 220px); height: clamp(200px, 34vw, 290px); }
+  .sel-convo-stage { padding: 20px 16px 20px clamp(100px, 18vw, 160px); }
+  .sel-convo-line.main { font-size: 1.35rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sel-convo-message { animation: none; }
 }
 
 /* Clinical print report (SelCheckInLog.tsx) — same window.print() pattern

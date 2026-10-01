@@ -8,14 +8,20 @@ import type { SelZone } from '../types';
 // button stays re-tappable with no timer/auto-advance; "Back" from the
 // emotion grid returns to the zone grid without losing anything, matching
 // the spec's "easy to change your tap."
-export default function SelZoneEmotionPicker({ onPick }: { onPick: (zone: SelZone, emotion: string) => void }) {
+// hideQuestion: the caller already shows the "How are you feeling" line
+// itself (the Neighbor re-check's center message), so don't repeat it.
+export default function SelZoneEmotionPicker({ onPick, hideQuestion }: { onPick: (zone: SelZone, emotion: string) => void; hideQuestion?: boolean }) {
   const [zone, setZone] = useState<SelZone | null>(null);
 
   if (!zone) {
     return (
       <div className="stack sel-picker" style={{ alignItems: 'center', textAlign: 'center', gap: 14 }}>
-        <p className="sel-picker-question">How are you feeling right now?</p>
-        <p className="sel-picker-subtext">All four zones are okay to feel. Pick the one that's true right now.</p>
+        {!hideQuestion && (
+          <>
+            <p className="sel-picker-question">How are you feeling right now?</p>
+            <p className="sel-picker-subtext">All four zones are okay to feel. Pick the one that's true right now.</p>
+          </>
+        )}
         <div className="row-wrap" style={{ justifyContent: 'center', gap: 14 }}>
           {SEL_ZONES.map((z) => (
             <button
