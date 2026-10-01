@@ -20,9 +20,11 @@ import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplay
 // rules, a slime / bubbles / bright-colors theme from the teacher's
 // Jelly Chess pack, fun pop noises on every move, and, because it's for
 // neurodivergent kids, always-visible help: every legal path for the
-// picked piece, risky squares marked, hints with a reason, a "danger"
-// glow on pieces that could be captured, and a plain-language speech
-// bubble explaining exactly why any move that doesn't work doesn't work.
+// picked piece, risky squares marked, hints with a reason, and a
+// plain-language speech bubble explaining exactly why any move that
+// doesn't work doesn't work. (The "danger" glow and the tap-their-piece
+// "their reach" preview were removed by direct teacher instruction: only
+// can move / can capture / risky are shown.)
 //
 // Rules engine: chess.js (castling, en passant, promotion, check,
 // checkmate, stalemate, threefold repetition, 50-move rule, insufficient
@@ -68,6 +70,11 @@ function applyMoveIds(ids: IdMap, m: Move): IdMap {
 }
 
 interface Pop { id: string; square: Square; src: string }
+
+// Direct teacher instruction: the computer hesitates 5 to 10 seconds
+// before moving, like a real opponent thinking it over.
+const COMPUTER_THINK_MIN_MS = 5000;
+const COMPUTER_THINK_MAX_MS = 10000;
 
 export default function SlimeChess() {
   const navigate = useNavigate();
@@ -125,7 +132,14 @@ export default function SlimeChess() {
   const [theme, setTheme] = useState<Theme>(THEMES[0]);
   const [human, setHuman] = useState<Color>('w');
   const [soundOn, setSoundOn] = useState(true);
-  const [showDanger, setShowDanger] = useState(true);
+  // Reduced motion (direct teacher request): stops the wobbling,
+  // bouncing, pulsing and floating bubbles, and pieces slide without
+  // animation. Starts on if the student already has Reduce Motion on in
+  // Town Square or the device asks for less motion.
+  const [calm, setCalm] = useState<boolean>(() => {
+    if (student?.worldReduceMotion) return true;
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+  });
   // Settings pie menu (gear in the turn bubble). Direct teacher request:
   // every game button except Town Square folds into one gear that opens a
   // round pie menu. pieAt is the gear's screen spot when it opened.
@@ -137,7 +151,6 @@ export default function SlimeChess() {
   const [ids, setIds] = useState<IdMap>(() => freshIds(gameRef.current));
   const [history, setHistory] = useState<Move[]>([]);
   const [selected, setSelected] = useState<Square | null>(null);
-  const [peek, setPeek] = useState<Square | null>(null);
   const [hint, setHint] = useState<Hint | null>(null);
   const [coach, setCoach] = useState<{ text: string; tone: Tone }>({ text: '', tone: 'info' });
   const [thinking, setThinking] = useState(false);
@@ -178,31 +191,7 @@ export default function SlimeChess() {
     [selected, fen],
   );
   const risky = useMemo(() => (selected ? riskyTargets(fen, selected) : new Set<string>()), [selected, fen]);
-  const peekTargets = useMemo(() => {
-    if (!peek) return [] as string[];
-    const parts = fen.split(' ');
-    parts[1] = other(turn);
-    parts[3] = '-';
-    try {
-      return new Chess(parts.join(' ')).moves({ square: peek, verbose: true }).map((m) => m.to as string);
-    } catch {
-      return [];
-    }
-  }, [peek, fen, turn]);
 
-  // Pieces of the side to move that could be captured right now and
-  // aren't protected: the "danger glow" recommendation layer.
-  const dangerSquares = useMemo(() => {
-    const set = new Set<string>();
-    if (!showDanger || gameOver) return set;
-    const viewer: Color = mode === 'computer' ? human : turn;
-    for (const row of game.board()) for (const cell of row) {
-      if (!cell || cell.color !== viewer || cell.type === 'k') continue;
-      if (game.isAttacked(cell.square, other(viewer)) && game.attackers(cell.square, viewer).length === 0) set.add(cell.square);
-    }
-    return set;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fen, showDanger, gameOver, mode, human, turn]);
 
   const checkedKing = game.inCheck() ? kingSquare(game, turn) : null;
 
@@ -215,7 +204,6 @@ export default function SlimeChess() {
     setIds(freshIds(gameRef.current));
     setHistory([]);
     setSelected(null);
-    setPeek(null);
     setHint(null);
     setPops([]);
     setGameOver(null);
@@ -271,7 +259,6 @@ export default function SlimeChess() {
     setHistory((h) => [...h, m]);
     setFen(g.fen());
     setSelected(null);
-    setPeek(null);
     setHint(null);
     if (m.captured) {
       const capSq = (m.flags.includes('e') ? `${m.to[0]}${m.from[1]}` : m.to) as Square;
@@ -301,7 +288,7 @@ export default function SlimeChess() {
       } else {
         say(`${describeMove(made, names)}. Your turn!`, 'info');
       }
-    }, 650);
+    }, COMPUTER_THINK_MIN_MS + Math.random() * (COMPUTER_THINK_MAX_MS - COMPUTER_THINK_MIN_MS));
   };
 
   const afterHumanMove = (m: Move) => {
@@ -362,11 +349,11 @@ export default function SlimeChess() {
       selectPiece(sq);
       return;
     }
-    if (piece) {
-      setPeek(sq);
-      say(`That's ${names[piece.color]}'s ${PIECE_NAME[piece.type]}. The red bubbles show where it could go on its turn, so watch those squares! Tap one of your ${names[g.turn()]} pieces to move.`, 'info');
-      return;
-    }
+    // Direct teacher instruction: the other side's pieces can't be picked
+    // (the computer's against the computer; in two-player mode, the
+    // player whose turn it isn't). They're still capture targets once one
+    // of your own pieces is picked (handled above).
+    if (piece) return;
     say(`Tap one of your ${names[g.turn()]} pieces first, then tap where you want it to go.`, 'info');
   };
 
@@ -374,7 +361,6 @@ export default function SlimeChess() {
     const g = gameRef.current;
     const piece = g.get(sq)!;
     setSelected(sq);
-    setPeek(null);
     sound(() => slimeSound.select(piece.type));
     const moves = g.moves({ square: sq, verbose: true });
     const name = PIECE_NAME[piece.type];
@@ -405,7 +391,6 @@ export default function SlimeChess() {
     if (!h) return;
     setHint(h);
     setSelected(null);
-    setPeek(null);
     sound(slimeSound.hint);
     say(h.text, 'hint');
   };
@@ -420,7 +405,6 @@ export default function SlimeChess() {
     setFen(g.fen());
     setIds(freshIds(g));
     setSelected(null);
-    setPeek(null);
     setHint(null);
     setGameOver(null);
     sound(slimeSound.hint);
@@ -453,7 +437,7 @@ export default function SlimeChess() {
 
   if (screen === 'menu') {
     return (
-      <div className="slime-chess">
+      <div className={`slime-chess${calm ? ' sc-calm' : ''}`}>
         <Bubbles />
         <button className="sc-back" onClick={() => navigate(backTo)}>← {backLabel}</button>
         <div className="sc-menu">
@@ -527,7 +511,7 @@ export default function SlimeChess() {
   }
 
   return (
-    <div className="slime-chess playing">
+    <div className={`slime-chess playing${calm ? ' sc-calm' : ''}`}>
       <Bubbles />
       <div className="sc-layout">
         <div className="sc-board-wrap">
@@ -537,7 +521,6 @@ export default function SlimeChess() {
               const r = Number(sq[1]) - 1;
               const light = (f + r) % 2 === 1;
               const target = legalFromSelected.find((m) => m.to === sq);
-              const isPeek = peekTargets.includes(sq);
               const isHint = hint && (hint.from === sq || hint.to === sq);
               const isLast = lastMove && (lastMove.from === sq || lastMove.to === sq);
               const { col, row } = view(sq);
@@ -556,7 +539,6 @@ export default function SlimeChess() {
                       {risky.has(sq) && !target.captured && <span className="sc-target-bang">!</span>}
                     </span>
                   )}
-                  {isPeek && <span className="sc-target peek" aria-hidden="true" />}
                 </button>
               );
             })}
@@ -568,7 +550,7 @@ export default function SlimeChess() {
               return (
                 <div
                   key={id}
-                  className={`sc-piece${selected === sq ? ' selected' : ''}${dangerSquares.has(sq) ? ' danger' : ''}${checkedKing === sq ? ' in-check' : ''}${shakeSquare === sq ? ' nope' : ''}`}
+                  className={`sc-piece${selected === sq ? ' selected' : ''}${checkedKing === sq ? ' in-check' : ''}${shakeSquare === sq ? ' nope' : ''}`}
                   style={{
                     ...posStyle(sq),
                     animationName: landed ? (history.length % 2 ? 'scLandA' : 'scLandB') : undefined,
@@ -630,8 +612,6 @@ export default function SlimeChess() {
             <span><i className="dot ok" /> can move</span>
             <span><i className="dot cap" /> can capture</span>
             <span><i className="dot risky" /> risky</span>
-            <span><i className="dot peek" /> their reach</span>
-            {showDanger && <span><i className="dot danger" /> could be captured</span>}
           </div>
 
         </aside>
@@ -644,7 +624,7 @@ export default function SlimeChess() {
           items={[
             { key: 'hint', icon: '/chess/btn-hint.png', label: 'Hint', disabled: !!gameOver || thinking || !isHumanTurn, onClick: () => { setPieAt(null); showHint(); } },
             { key: 'undo', icon: '/chess/btn-undo.png', label: 'Undo', disabled: thinking || history.length === 0, onClick: () => { setPieAt(null); undo(); } },
-            { key: 'danger', icon: '/chess/btn-info.png', label: showDanger ? 'Danger: on' : 'Danger: off', pressed: showDanger, onClick: () => setShowDanger((v) => !v) },
+            { key: 'motion', icon: '/chess/btn-info.png', label: calm ? 'Less motion: on' : 'Less motion: off', pressed: calm, onClick: () => setCalm((v) => !v) },
             { key: 'sound', icon: '/chess/btn-sound.png', label: soundOn ? 'Sound: on' : 'Sound: off', pressed: soundOn, dim: !soundOn, onClick: () => setSoundOn((v) => !v) },
             { key: 'new', icon: '/chess/btn-new.png', label: 'New game', onClick: () => { setPieAt(null); if (aiTimer.current) window.clearTimeout(aiTimer.current); setThinking(false); setScreen('menu'); } },
           ]}

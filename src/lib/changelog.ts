@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-01-slime-chess-calm',
+    date: '2026-10-01',
+    icon: '🫧',
+    title: 'Slime Chess: Less motion, and a computer that thinks',
+    body: 'Open the gear in Slime Chess and tap Less motion to stop the wobbling and bouncing. The computer now takes a few seconds to think before it moves. The board only shows three colors now: can move, can capture, and risky.',
+  },
+  {
     id: '2026-10-01-slime-chess-questions',
     date: '2026-10-01',
     icon: '⚙️',

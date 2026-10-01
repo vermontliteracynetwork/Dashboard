@@ -3881,6 +3881,10 @@ body.teacher-mode .content-well { border-radius: 10px; }
 }
 .sc-pie-close img { width: 46px; height: 46px; filter: drop-shadow(0 1px 0 #7a4b2a); }
 @media (prefers-reduced-motion: reduce) { .sc-pie, .sc-corner-btn[aria-expanded='true'] .sc-gear-bubble img { animation: none; } }
+/* Less motion (the in-game toggle): no wobble, bounce, pulse, splat or
+   floating bubbles; pieces jump straight to their new square. */
+.sc-calm *, .sc-calm *::before, .sc-calm *::after { animation: none !important; transition: none !important; }
+.sc-calm .sc-bubbles, .sc-calm .sc-pop { display: none; }
 .sc-coach { display: flex; align-items: flex-end; gap: 8px; }
 .sc-coach-face { width: 76px; height: 76px; flex-shrink: 0; animation: scWobble 2s ease-in-out infinite; }
 .sc-coach-bubble > button { align-self: flex-start; width: auto !important; min-width: 52px; min-height: 44px; }
