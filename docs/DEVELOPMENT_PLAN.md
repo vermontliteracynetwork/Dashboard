@@ -705,6 +705,15 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
     - Anything whose largest side would come out bigger than 50 units is now drawn at 5x a character's height instead, in Town Square, Build Mode and collision (`safeScale` in `WorldObjectRenderer.tsx`).
     - Build Mode shows a **📐 Fix N giant objects** button whenever such objects exist. One tap saves the normal size for good, and Undo works.
     - Turning the size rule off now keeps objects that were placed while it was on at the size she saw them (`setTownSizeRule` in `townSize.ts`), so this can't happen again.
+  - **Correction:** that giant-object guess was only part of it (see the root cause below).
+- **ROOT CAUSE FOUND (third report, same day).** Her words, with a screenshot of big black slabs on the horizon: "the fake landscape, mountains need to be removed entirely. i have asked so many times now"
+  - **What it really was:** animated (skinned) models placed in town: the aquarium fish and sharks (35 of them), the creatures pack, the character models, 92 assets in all. The shared object renderer copied a model with a plain `clone()`, which leaves the copy tied to the ORIGINAL model's skeleton. That skeleton never moves or scales with the placed copy, so the GPU stretched the model's triangles into giant black shards across the sky and the horizon. This is the "mountains", "shards" and "fake landscape" from every screenshot.
+  - **How it was confirmed:** a headless render of the shark, a humphead fish and a dinosaur. With the old copy, the shark is a huge black spike and fin, exactly like her screenshots, and the dinosaur is giant. With the fix, all three are normal-sized models standing on the ground.
+  - **Fixed** in `WorldObjectRenderer.tsx`:
+    - Models are copied with `SkeletonUtils.clone`, so each copy gets its own skeleton.
+    - Animated models are measured through their skeleton (`modelBox`) instead of by their unposed mesh, which for many of them is 100 times off. Size, recentering, Build Mode auto-size and the 5x rule all use this now.
+    - Safety net in Town Square and Build Mode: once an object is on screen, its real drawn shape is measured. If it reaches past the town's walls, is bigger than 40 units, or floats more than 15 units up, it is hidden, and Build Mode's 🧹 button lists it so she can remove it.
+  - **Side effect to expect:** fish and creatures placed before this fix were sized by the wrong measurement, so some may now look small. Resize them in Build Mode with the size slider.
 
 ### Solid objects block walking and driving. SHIPPED 2026-10-04 (direct teacher instruction)
 
