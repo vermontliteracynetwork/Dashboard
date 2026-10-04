@@ -226,7 +226,10 @@ function Meter({ r, onOpen }: { r: StreakRow; onOpen: () => void }) {
     }
     onOpen();
   };
-  const style: React.CSSProperties = pos ? { left: pos.x, top: pos.y } : { left: '50%', top: 8, transform: 'translateX(-50%)' };
+  // Default spot: the left edge, a bit above the middle. Top center was taken
+  // by the car dashboard and Space Bowling's round counter, the corners by
+  // menus and the D-pad. Students can drag it anywhere.
+  const style: React.CSSProperties = pos ? { left: pos.x, top: pos.y } : { left: 8, top: '38%' };
   return (
     <div ref={el} className={`streak-pill${min ? ' min' : ''}${saved ? ' saved' : ''}`} style={style} onPointerMove={move}>
       <button

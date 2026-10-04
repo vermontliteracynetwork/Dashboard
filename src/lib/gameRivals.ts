@@ -47,18 +47,23 @@ export function markMemoryTold(studentId: string, at: string) {
   useStore.getState().mergeStyleRow(gameMemoryOwner(studentId), { memories: next });
 }
 
+// Picking this option ends the chat and opens the game picker with that
+// Neighbor ("Let's play now!"), handled in TownSquare's advanceConversation.
+export const PLAY_NOW_NEXT = '__play_now__';
+const playNow = { text: "Let's play now! 🎮", next: PLAY_NOW_NEXT };
+
 // The opening line a Neighbor says about a game they played together.
 export function memoryStep(m: GameMemory): ConversationStep {
   if (m.result === 'npc') {
-    return { npc: `Remember that time we played ${m.game} and I won? I am still doing my happy dance!`, options: ['Rematch soon!', 'You got lucky!'] };
+    return { npc: `Remember that time we played ${m.game} and I won? I am still doing my happy dance!`, options: [playNow, 'Rematch soon!', 'You got lucky!'] };
   }
   if (m.result === 'student') {
-    return { npc: `Remember when we played ${m.game} and you beat me? I have been practicing ever since!`, options: ['Ha ha, I remember!', 'Want a rematch?'] };
+    return { npc: `Remember when we played ${m.game} and you beat me? I have been practicing ever since!`, options: [playNow, 'Ha ha, I remember!', 'Want a rematch?'] };
   }
   if (m.result === 'together') {
-    return { npc: `Remember when we played ${m.game} together? You were amazing!`, options: ['Thanks for cheering!', "Let's play again!"] };
+    return { npc: `Remember when we played ${m.game} together? You were amazing!`, options: [playNow, 'Thanks for cheering!'] };
   }
-  return { npc: `Remember our ${m.game} game? It was a tie! We need a rematch.`, options: ['Rematch!', 'That was so fun!'] };
+  return { npc: `Remember our ${m.game} game? It was a tie! We need a rematch.`, options: [playNow, 'That was so fun!'] };
 }
 
 // Every game this student played with this Neighbor, newest first, for the

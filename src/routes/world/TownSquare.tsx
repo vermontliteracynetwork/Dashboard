@@ -9,7 +9,7 @@ import { useStore } from '../../store/store';
 import DailySpinWheel from '../../components/DailySpinWheel';
 import BawkGuide from '../../components/BawkGuide';
 import CarDashboard from '../../components/CarDashboard';
-import { markMemoryTold, memoryStep, untoldMemory } from '../../lib/gameRivals';
+import { PLAY_NOW_NEXT, markMemoryTold, memoryStep, untoldMemory } from '../../lib/gameRivals';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { asInventory, inventoryOwner } from '../../style/shop';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
@@ -4155,6 +4155,14 @@ export default function TownSquare() {
     }
     const label = typeof picked === 'string' ? picked : picked?.text;
     const nextId = typeof picked === 'object' ? picked.next : undefined;
+    // "Let's play now!" on a Neighbor's game memory: straight to the game
+    // picker with them.
+    if (nextId === PLAY_NOW_NEXT) {
+      const who = { id: activeConversation.id, name: activeConversation.name };
+      setActiveConversation(null);
+      setPlayWith(who);
+      return;
+    }
     const nextIndex = nextId ? activeConversation.steps.findIndex((s) => s.id === nextId) : -1;
     const resolvedIndex = nextIndex !== -1 ? nextIndex : stepIndex + 1;
     const nextStep = activeConversation.steps[resolvedIndex];
