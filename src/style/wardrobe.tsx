@@ -86,8 +86,8 @@ function Shoe({ mats, boot = 0 }: { mats: THREE.Material[]; boot?: number }) {
   const y = -legLen - BODY.footH / 2 + 0.01;
   return (
     <group position={[0, y, 0]}>
-      <mesh material={mats[0]} position={[0, 0.012, 0.045]} scale={[0.95, 0.62, 1.3]}><sphereGeometry args={[0.13, 24, 16]} /></mesh>
-      <mesh material={mats[1] ?? mats[0]} position={[0, -0.035, 0.045]} scale={[1.0, 0.25, 1.36]}><sphereGeometry args={[0.13, 24, 12]} /></mesh>
+      <mesh material={mats[0]} position={[0, 0.012, 0.045]} scale={[1.05, 0.68, 1.62]}><sphereGeometry args={[0.13, 28, 18]} /></mesh>
+      <mesh material={mats[1] ?? mats[0]} position={[0, -0.035, 0.045]} scale={[1.1, 0.27, 1.68]}><sphereGeometry args={[0.13, 28, 14]} /></mesh>
       {boot > 0 && (
         <mesh material={mats[0]} position={[0, boot / 2 + 0.02, 0]}>
           <capsuleGeometry args={[legR * 1.32, boot, 6, 16]} />

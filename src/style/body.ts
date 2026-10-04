@@ -5,9 +5,13 @@ import * as THREE from 'three';
 // a lathe. Tops, dresses and waistbands use the SAME profile, just a bit
 // bigger, so clothes hug every species' body the same way.
 // Each point is [height above the hips, radius].
+// Pear-shaped (bottom-heavy, widest low on the tummy) to match the
+// teacher's reference models (a chubby cartoon capybara and a soft cartoon
+// dog): a big round belly, sloping shoulders, and a short neck the head
+// melts into.
 const PROFILE: [number, number][] = [
-  [0.0, 0.0], [0.015, 0.12], [0.05, 0.205], [0.1, 0.255], [0.17, 0.285], [0.25, 0.298],
-  [0.33, 0.294], [0.41, 0.275], [0.47, 0.245], [0.52, 0.205], [0.56, 0.16], [0.6, 0.13], [0.66, 0.12],
+  [0.0, 0.0], [0.015, 0.15], [0.05, 0.255], [0.1, 0.315], [0.16, 0.338], [0.22, 0.34],
+  [0.29, 0.322], [0.36, 0.288], [0.42, 0.248], [0.48, 0.205], [0.53, 0.172], [0.58, 0.152], [0.66, 0.14],
 ];
 export const BODY_DEPTH = 0.84; // the torso is a little flatter front to back
 
@@ -73,3 +77,23 @@ export function skirtGeometry(top: number, length: number, flare: number): THREE
 
 // How far the back/front surface sits from the center at a height.
 export const backZ = (y: number) => profileR(y) * BODY_DEPTH;
+
+// The tummy patch: a front slice of the same body profile, sitting a hair
+// outside the fur, so it hugs the round belly instead of sticking out.
+export function bellyGeometry(): THREE.LatheGeometry {
+  const key = 'belly';
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const pts: THREE.Vector2[] = [];
+  const from = 0.03, to = 0.46, steps = 22;
+  for (let i = 0; i <= steps; i++) {
+    const y = from + ((to - from) * i) / steps;
+    // Narrower toward the top and bottom so the patch is an oval.
+    pts.push(new THREE.Vector2(profileR(y) * 1.012, y));
+  }
+  const g = new THREE.LatheGeometry(pts, 24, -0.95, 1.9);
+  g.scale(1, 1, BODY_DEPTH);
+  g.computeVertexNormals();
+  cache.set(key, g);
+  return g;
+}

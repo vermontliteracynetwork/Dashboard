@@ -6,16 +6,16 @@ import type { Paint, SpeciesId, StyleBody, StyleLook } from './types';
 // arms, legs and every joint are identical across species, a shirt or a
 // pair of shoes made once fits a dog, a cat, a frog and a capybara.
 export const BODY = {
-  footH: 0.07,
-  legLen: 0.34,
-  legR: 0.1,
-  legX: 0.13,
+  footH: 0.08,
+  legLen: 0.24,
+  legR: 0.115,
+  legX: 0.15,
   torsoW: 0.5,
   torsoH: 0.56,
   torsoD: 0.36,
-  shoulderX: 0.3,
+  shoulderX: 0.26,
   shoulderInset: 0.07, // shoulders sit this far below the torso top
-  armLen: 0.4,
+  armLen: 0.34,
   armR: 0.085,
   headR: 0.33,
   neck: 0.05,
@@ -47,7 +47,7 @@ export const SPECIES: SpeciesDef[] = [
     emoji: '🐶',
     hat: { y: 0.28, z: -0.02, scale: 1 },
     face: { y: 0.06, z: 0.3, scale: 1 },
-    defaultBody: { fur: solid('#c98b4f'), belly: solid('#f3dcc0'), accent: solid('#7a4a24'), eyes: '#2b1a0e', nose: '#1d1414' },
+    defaultBody: { fur: solid('#f4efe6'), belly: solid('#ffffff'), accent: solid('#3b2a20'), eyes: '#1d1414', nose: '#1d1414' },
   },
   {
     id: 'cat',
@@ -71,7 +71,7 @@ export const SPECIES: SpeciesDef[] = [
     emoji: '🦫',
     hat: { y: 0.26, z: -0.06, scale: 1 },
     face: { y: 0.1, z: 0.3, scale: 1 },
-    defaultBody: { fur: solid('#b07c4f'), belly: solid('#d2a77a'), accent: solid('#8a5f3a'), eyes: '#1b130c', nose: '#3a2a1c' },
+    defaultBody: { fur: solid('#d88b2e'), belly: solid('#f4e6cf'), accent: solid('#7a4a28'), eyes: '#141010', nose: '#4a3530' },
   },
 ];
 
