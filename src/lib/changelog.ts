@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: '2026-10-04',
     icon: '🎳',
     title: 'Play games with your Neighbors',
-    body: 'In Space Bowling and Slime Chess you now play against a Neighbor instead of the computer. Talk to them later and they might remember your game! The bowling pins also face you now, tumble down one by one, and the UFO really beams them away.',
+    body: 'In Space Bowling and Slime Chess you now play against a Neighbor instead of the computer. Talk to them later and they might remember your game! The bowling pins also face you now, tumble down one by one, and the UFO really beams them away. Space Bowling has a sparkly new pink galaxy behind it too.',
   },
   {
     id: '2026-10-04-car-dash',

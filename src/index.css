@@ -4175,7 +4175,7 @@ body.teacher-mode .content-well { border-radius: 10px; }
 
 /* ---------- Space Bowling (sci-fi UI, iPad first) ---------- */
 @font-face { font-family: 'Kenvector Future'; src: url('/games/tappy-plane/Font/kenvector_future.ttf') format('truetype'); font-display: swap; }
-.sb-root { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 20%, #2b1a6b, #0b0624 70%); color: #eef4ff; font-family: 'Baloo 2', system-ui, sans-serif; overflow: hidden; }
+.sb-root { position: fixed; inset: 0; background: #1a0b3d url('/games/space-bowling/skybox/galaxy-pink.jpg') center / cover no-repeat; color: #eef4ff; font-family: 'Baloo 2', system-ui, sans-serif; overflow: hidden; }
 .sb-title, .sb-round, .sb-result strong, .sb-modal h2, .sb-panel h2 { font-family: 'Kenvector Future', 'Baloo 2', system-ui, sans-serif; letter-spacing: 0.04em; }
 .sb-btn { min-height: 52px; padding: 8px 20px; border-radius: 16px; border: 2px solid #5ef0ff; background: rgba(15, 30, 70, 0.75); color: #eaffff; font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer; box-shadow: 0 0 14px rgba(94, 240, 255, 0.35); touch-action: manipulation; }
 .sb-btn.big { background: linear-gradient(180deg, #ff5fd2, #a742ff); border-color: #ffd1f5; font-size: 1.3rem; min-height: 64px; box-shadow: 0 0 22px rgba(255, 95, 210, 0.55); }

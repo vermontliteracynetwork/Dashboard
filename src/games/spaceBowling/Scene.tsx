@@ -37,15 +37,21 @@ export type SceneProps = {
   calm: boolean;
 };
 
+// A flat picture behind everything, cropped to fill the screen (like CSS
+// background-size: cover) so it never stretches in either iPad orientation.
+const BG_ASPECT = 16 / 9;
 function useSky(url: string) {
   const tex = useLoader(THREE.TextureLoader, url);
-  const { scene } = useThree();
+  const { scene, size } = useThree();
   useEffect(() => {
-    tex.mapping = THREE.EquirectangularReflectionMapping;
     tex.colorSpace = THREE.SRGBColorSpace;
+    const aspect = size.width / Math.max(1, size.height);
+    if (aspect < BG_ASPECT) { tex.repeat.set(aspect / BG_ASPECT, 1); tex.offset.set((1 - aspect / BG_ASPECT) / 2, 0); }
+    else { tex.repeat.set(1, BG_ASPECT / aspect); tex.offset.set(0, (1 - BG_ASPECT / aspect) / 2); }
+    tex.needsUpdate = true;
     scene.background = tex;
     return () => { scene.background = null; };
-  }, [tex, scene]);
+  }, [tex, scene, size.width, size.height]);
 }
 function Sky({ url }: { url: string }) { useSky(url); return null; }
 

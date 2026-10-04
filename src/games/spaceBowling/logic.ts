@@ -82,7 +82,11 @@ export const PLANETS: { id: string; name: string; src: string }[] = [
   { id: 'planet09', name: 'Cosmic Meatball', src: '/games/space-bowling/planets/planet09.png' },
 ];
 
-export const SKYBOXES = ['galaxy', 'nebula', 'band', 'day', 'dark'].map((n) => `/games/space-bowling/skybox/skybox-space-${n}.png`);
+// The game's background is the teacher's own pink galaxy picture (direct
+// instruction 2026-10-04: "use this image as the background for the space
+// bowling game"). The Kenney space skyboxes stay in the folder, unused.
+export const BACKGROUND = '/games/space-bowling/skybox/galaxy-pink.jpg';
+export const SKYBOXES = [BACKGROUND];
 
 // The Space Alien costume is earned with this many right answers here.
 export const COSTUME_GOAL = 500;
