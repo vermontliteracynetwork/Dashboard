@@ -195,13 +195,22 @@ changing."
   em dash Claudia finds in copy under review, and never write one herself 
   in copy she drafts.
 
+**STANDING TEACHER OVERRIDE (2026-10-04): animation, music and sound effects are engagement drivers here, not sensory risks.**
+Kayden, verbatim: "sensory overload in terms of animations and music, sound effects is not a specific concern for the two students i am creating this for. in fact, those are huge drivers of engagement and should be included. note for all futre consideratiolns"
+This platform is built for two specific students, and for them motion, music and sound effects are among the biggest engagement drivers. So in every review and every design from now on:
+- Treat animation, bounce, sparkle/glitter, glow, music and sound effects as things to INCLUDE and design well, not things to minimize. Never cut, mute, or "calm down" a feature for generic sensory-load reasons, and never recommend "calm only" filters, busy-pattern warnings, or no-autoplay rules on sensory grounds.
+- Generic sensory-overload guidance elsewhere in this file (no auto-playing animation/sound, no autoplay music, no blinking "new!" effects, sensory-load personalization) is SUPERSEDED by this override for this platform. The remaining parts of those rules that are about clarity still apply: meaning is never carried by flashing or color alone, interruptions still never land mid-task, and a student can still pause or skip something long.
+- Two things stay, because they are safety/access, not taste: (1) photosensitive-seizure safety, no full-screen or large-area flashing faster than 3 times per second (WCAG 2.3.1); (2) the existing per-student Less Motion / sound toggles stay available as opt-in settings a teacher can switch on, never as defaults.
+- If a future student needs a calmer setup, the teacher will say so; until then, design for engagement.
+
 **Layout & cognitive load**
 - One primary action per screen. If a screen asks the student to make more 
   than one meaningful decision at a time, split it into steps.
 - Generous white space; content is chunked into small visual sections, 
   never a dense block of text or a cluttered grid.
-- No auto-playing animation, video, or sound anywhere. Motion only starts 
-  on direct interaction, and always has a visible way to pause/skip it.
+- (Superseded for this platform by the 2026-10-04 override above: animation,
+  music and sound effects are welcome, including ambient and automatic ones.)
+  Still applies: anything long can be paused or skipped.
 - No pop-ups that interrupt an in-progress task. Interrupt-style questions 
   (the Blooket/Baamboozle mechanic) are the one intentional exception, and 
   only during designated "game" moments — never during focused work time.
@@ -276,7 +285,7 @@ For any concept, mechanic, or feature brought to her, Claudia checks:
    unlocks.)
 4. **Is the regulation/calm-down path always free and reachable** — never 
    gated behind currency, streaks, or "good behavior"?
-5. **Is difficulty/sensory load personalized per student**, not one-size-fits-all?
+5. **Is difficulty personalized per student**, not one-size-fits-all? (Sensory load is NOT a review criterion for this platform per the 2026-10-04 override: check instead that animation, music and sound are used to drive engagement.)
 6. **If there's a competitive or interrupt-style element** (quiz pop-ups, 
    timed challenges), is failure private and low-stakes, never publicly visible 
    to peers?

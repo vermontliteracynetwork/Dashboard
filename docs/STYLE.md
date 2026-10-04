@@ -32,7 +32,7 @@ Verified in the repo this pass (so the spec is grounded, not guessed):
 **Where it can hurt, and the built-in guard for each**
 - **Decision fatigue (ADHD/autism).** Guard: one category at a time, 6 big tiles per page, Starter Looks, Surprise Me (owned items only, always undoable), "Try it on" is free and instant, one primary button ("Save my look").
 - **Predictability.** Guard: a student's look never changes by itself. No daily auto-rotation, no random re-skin, no item art that gets edited under them (published items are frozen).
-- **Sensory load.** Guard: no animated, glittery, flashing or high-frequency-stripe items. The Studio runs an automatic "busy pattern" check and warns the teacher. Per-student "Calm styles only" filter. Item motion only on tap, respects the existing Less Motion setting (`worldReduceMotion`).
+- **Animation, sparkle and sound are features, not risks (teacher override, 2026-10-04).** Kayden: "sensory overload in terms of animations and music, sound effects is not a specific concern for the two students i am creating this for. in fact, those are huge drivers of engagement and should be included. note for all futre consideratiolns" So Style INCLUDES animated items (sparkle, glitter, glow, shimmer, bounce, spin, trails, wiggling ears and tails), item sound effects (a jingle when a hat is equipped, squeaky shoes on walk, a cape whoosh on jump, a pop on try-on), and a celebratory sound and animation for unlocks and "Save my look". The only limit kept is photosensitive-seizure safety: no large-area flashing faster than 3 times per second. The existing per-student Less Motion setting (`worldReduceMotion`) still exists as an opt-in a teacher can switch on, never a default.
 - **Status and comparison harm (A36).** Guard: no rarity tiers (common/rare/legendary), no "owned by N students," no "most popular," no countdown timers, no numbered scarcity ("only 10 made"). Students never see another student's ownership or progress. Rarity is a ranking mechanic in disguise.
 - **Money anxiety and fairness.** Guard: every item has a free-earnable or teacher-grantable route; making an owned item cheaper or free prompts the teacher to refund owners (neurodivergent kids are often acutely sensitive to "that's not fair").
 - **Purchase vs unlock (ABA).** Earned unlocks are stronger reinforcement of the target behavior (answering questions) than purchases. Recommendation: milestone items default to Earn only. Immediate delivery (within seconds, at a safe moment, see 6f) keeps the contingency clear.
@@ -95,7 +95,7 @@ Verified in the repo this pass (so the spec is grounded, not guessed):
 
 **Saved outfits:** 6 slots per student. Auto-generated thumbnail (offscreen render). Name chosen from a short picklist ("School", "Cozy", "Fancy", "Silly") or just a color dot, no free text in v1 (moderation and decision load). "Wear this" is always a manual tap; the game never swaps outfits by itself.
 
-**Teacher mode:** same screen with every item unlocked (drafts included, labeled "Draft"), plus a "Show me what student X sees" switch. Per-student teacher controls (no code change): Calm styles only, hide specific categories, limit visible item count, "Lock look" (for picture day or a student who needs it to stay stable).
+**Teacher mode:** same screen with every item unlocked (drafts included, labeled "Draft"), plus a "Show me what student X sees" switch. Per-student teacher controls (no code change): hide specific categories, limit visible item count, "Lock look" (for picture day or a student who needs it to stay stable).
 
 #### 2c. The one-size-fits-all clothing library
 
@@ -126,8 +126,8 @@ Verified in the repo this pass (so the spec is grounded, not guessed):
    - Left: a flat "pattern" editor showing the template panels (front, back, sleeves). Right: live 3D preview with Kid / Frog / Bear switch and turntable.
    - Tools: color fill per zone; upload image (PNG/JPG/SVG, 5MB cap); place, scale, rotate, flip; layer order and opacity; repeat patterns (tile, half-drop, scale and spacing sliders) plus generators (stripes, dots, checks, gingham); text (curated fonts, teacher typed); undo/redo; "apply to all panels"; seam safe-area guide.
    - Implementation note: a canvas editor library (for example Konva or Fabric.js) producing a layers JSON (saved, so the item stays re-editable) and a flattened texture PNG per template (512 to 1024px).
-3. **Details and save.** Name, tags, slot, which zones are tintable, sensory check result (see below), source label (Original / Pack name / AI), preview on all species, **Save as draft**. Nothing a student can see.
-- **Sensory check (automatic, advisory):** flags high-frequency stripes/checkerboards, very high contrast, and (with AI items) busy images. Teacher can still override.
+3. **Details and save.** Name, tags, slot, which zones are tintable, effects (see below), source label (Original / Pack name / AI), preview on all species, **Save as draft**. Nothing a student can see.
+- **Effects (animation and sound):** pick from an effects shelf: sparkle, glitter, glow, shimmer, rainbow shift, bounce, spin, float, trail, plus a sound on equip, on walk, on jump, and on tap (from a built-in sound library or an uploaded clip). Effects preview live on the 3D model with sound. The only automatic check is photosensitive safety (no large-area flashing faster than 3 times per second), which blocks saving until fixed.
 - **Honest limits:** this is "POD-style," not real print-on-demand. There is no Printify integration, no physical goods, no fulfilment. The teacher cannot invent new SHAPES in the designer; new templates are built by the dev (request via the plan). Shapes beyond templates come from the AI box (see 2e) or new dev-authored templates.
 
 #### 2e. The AI box (teacher only)
@@ -153,7 +153,7 @@ Verified in the repo this pass (so the spec is grounded, not guessed):
 
 **Safety and moderation (students never see a prompt box, ever)**
 - Prompt gate before any generation: blocks weapons (the platform's zero-weapons rule applies to Style, including held items), violence, sexual content, hate, real brands and logos, real people, copyrighted characters, and anything on the teacher's own "avoid list" (for example spiders or clowns if a student is frightened by them).
-- Output gate: provider safety filter, then an image review pass (a vision-capable model describes the render and flags the same categories), then the mandatory human step: the teacher sees the item on three species and must tick a publish checklist (no weapons, no brands/characters, nothing scary, text is correct, sensory check ok).
+- Output gate: provider safety filter, then an image review pass (a vision-capable model describes the render and flags the same categories), then the mandatory human step: the teacher sees the item on three species and must tick a publish checklist (no weapons, no brands/characters, nothing scary, text is correct, effects play correctly).
 - **Text in AI images is often misspelled.** For a literacy-focused class this matters. The UI warns: "For words, use the Text tool." AI items with detected text get a visible warning.
 - **Em dash sanitizer:** any AI-written item name or description is stripped of em dashes before it can be saved (language models produce them often, and the copy rule is a hard no).
 - No student data (names, scores) is ever sent to any provider. Prompts are teacher-authored only.
@@ -191,7 +191,7 @@ Verified in the repo this pass (so the spec is grounded, not guessed):
 
 - `style_species` (id, name, glb_path or procedural_spec jsonb, face_frames jsonb, socket_offsets jsonb, garment_fit jsonb, palette jsonb, active).
 - `style_templates` (id, slot, name, base_mesh_path or parametric_spec jsonb, uv_panels jsonb, tint_zones int, hides jsonb, thumb_path, active). Dev-authored only.
-- `style_items` (id, template_id, slot, name, description, status draft|published|retired, source original|pack|ai-paint|ai-shape|ai-3d, design jsonb layers, texture_path, mesh_path nullable, fit jsonb per-species overrides, tintable_zones, hides, tags jsonb, sensory_flags jsonb, always_free bool, review jsonb {checked_by, checked_at, checklist}, ai_generation_id nullable, thumb_path, created_at). Insert/update restricted to the authenticated teacher by RLS (stricter than the app's usual open-write posture, because this is the catalog).
+- `style_items` (id, template_id, slot, name, description, status draft|published|retired, source original|pack|ai-paint|ai-shape|ai-3d, design jsonb layers, texture_path, mesh_path nullable, fit jsonb per-species overrides, tintable_zones, hides, tags jsonb, effects jsonb (animation + sound settings), always_free bool, review jsonb {checked_by, checked_at, checklist}, ai_generation_id nullable, thumb_path, created_at). Insert/update restricted to the authenticated teacher by RLS (stricter than the app's usual open-write posture, because this is the catalog).
 - `marketplace_items` gains: `style_item_id text`, `unlock_rule jsonb` ({methods:[{type:'purchase'|'achievement'|'free'|'grant', price_cents, metric, game_id, threshold, count_from:'lifetime'|'publish_date'}]}), `audience jsonb` (all or student ids), `return_plan text`, `return_date date`.
 - `student_style_items` (student_id, style_item_id, acquired_via purchase|achievement|free|grant|migration, acquired_at, seen bool).
 - `student_outfits` (id, student_id, slot_index 0 to 5, name_preset, equipped jsonb {slot: {item_id, tint:[c1,c2]}}, thumb_path, is_current bool). Plus student columns: `style_species_id`, `style_body_colors jsonb`, `style_prefs jsonb` (calm only, hidden categories, lock look). Teacher's own look in `app_settings.teacher_style jsonb`.
@@ -228,7 +228,7 @@ Verified in the repo this pass (so the spec is grounded, not guessed):
 - Out: designing new items. Dependency: Phase 2. Ships alone: yes.
 
 **Phase 4: Style Studio (hand design, no AI).**
-- In: template gallery, flat pattern editor, upload, patterns, text, preview on three species, sensory check, drafts, publish checklist, provenance. About 20 templates.
+- In: template gallery, flat pattern editor, upload, patterns, text, effects shelf (animation and sound), preview on three species, drafts, publish checklist, provenance. About 20 templates.
 - Out: AI. Dependency: Phase 2 (library format) and Phase 3 (to publish). Ships alone: yes.
 
 **Phase 5: AI Tier 1 (Paint it, and Shape it with parametric shapes).**
