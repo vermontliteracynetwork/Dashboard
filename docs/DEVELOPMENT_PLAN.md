@@ -591,6 +591,19 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 
 ## PART B — Open Backlog, by Feature Front
 
+### Tappy Plane (one-tap flying game). SAVED FOR A FUTURE NATIVE GAME (direct teacher instruction 2026-10-04)
+
+- Kayden's words, verbatim: "claudia, save this game. we will add this as a native game in the future"
+- **Asset pack (saved so it can't be lost):** `public/games/tappy-plane/`, "Tappy Plane" by Kenney Vleugels (kenney.nl), **CC0** (`license.txt` in the folder; no credit required, a courtesy "Kenney" credit is welcome). Contents: 4 plane colors (blue, green, red, yellow) with 3 propeller frames each (`PNG/Planes/`), a sky background, 5 ground styles (grass, dirt, ice, rock, snow) each with matching up and down rock spikes, bronze/silver/gold stars, puff clouds for the engine trail, UI art (Get Ready, Game Over, tap hints, bronze/silver/gold medals, buttons, panel), letter and number sprites, two spritesheets (`Spritesheet/sheet.xml`, `planes.xml`) and the Kenvector Future font. The vector source files were left out (not needed for the web).
+- **Game shape (the Flappy Bird style the pack is made for):** tap anywhere to flap the plane up, gravity pulls it down, fly through the gaps between rock spikes, collect stars. One big tap target, so it suits iPads well.
+- **Claudia's intake notes (to settle with Kayden before building, per `NATIVE_GAME_STANDARD.md`):**
+  - Fits the standing native-games pattern: needs a Town Square home (for example an airfield or hangar building with its own role), question sets fuel it, real rewards on completion.
+  - Question breaks between flights (or every N gaps, teacher-set), with zero time pressure, all accessibility tools, and leave-game confirmation, like every native game.
+  - This genre fails fast (one touch of a rock ends the run), which can be harsh for students with high support needs. Proposed defaults: a gentle mode where bumping a rock makes a puff and the plane bounces back with nothing lost, wider gaps and slower scrolling to start, and a friendlier end card than the pack's "Game Over" art (for example "Nice flight!"). The engagement override (animations, sounds, music welcome) applies.
+  - Stars and medals map naturally to rewards (stars collected in a run; bronze/silver/gold medals for distance), all personal-only, no leaderboards (A36).
+  - Ground styles (grass, ice, snow, rock, dirt) can rotate per level or be picked by the student.
+- **Status:** saved only. No code yet. Build when Kayden says to.
+
 ### Space Bowling (space-themed bowling game). IDEA, BEING MOCKED UP BY THE TEACHER (direct teacher note 2026-10-04)
 
 - Kayden's words, verbatim: "i am mocking up a new game that will be a space themed bowling game. the first costume will be earned when students answer 500 correct questions in the space bowling game. build this concept, allow me to use costumes as teacher, and note that a part of the bowling game is this asset"
