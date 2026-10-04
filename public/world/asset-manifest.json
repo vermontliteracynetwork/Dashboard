@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-04T16:27:01.828Z",
+  "generatedAt": "2026-10-04T17:49:28.031Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -6074,6 +6074,11 @@
     {
       "path": "/world/models/space/moon.glb",
       "label": "Moon",
+      "category": "space"
+    },
+    {
+      "path": "/world/models/space/space-bowling-billboard.glb",
+      "label": "Space Bowling Billboard",
       "category": "space"
     },
     {

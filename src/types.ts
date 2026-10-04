@@ -949,9 +949,9 @@ export interface WorldObject {
   // placed back when nothing collided — so only NEWLY placed objects
   // default to colliding; an older object needs a teacher to opt it in.
   // NOTE (TownSquare.tsx's recomputeCollisionLayout has the current,
-  // authoritative word): as of the "all assets solid" teacher correction,
-  // every placed object collides regardless of this flag's value — it's
-  // kept here additive-only, not currently read as a gate.
+  // authoritative word): as of 2026-10-04 ("make sure objects marked solid
+  // cannot be driven through or walked through") this flag IS the gate:
+  // only collides === true blocks walking, driving and Neighbors.
   collides?: boolean;
   // undefined/null = a shared Town Square object (the teacher's WorldEditor
   // usage, everyone sees it); set to a Student.id = that student's own

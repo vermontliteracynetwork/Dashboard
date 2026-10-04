@@ -115,6 +115,18 @@ export function groundBoundsMaxExtent(b: GroundBounds): number {
   return Math.max(b.north, b.south, b.east, b.west);
 }
 
+// Direct teacher instruction 2026-10-04: "remove whatever this is in the
+// distance. there should be nothing there, no random shapes or mountains,
+// etc. the world should be completly flat, like a flat world in minecraft,
+// with nothing on the horizon." Anything placed past the town's edge (plus
+// a small margin) is never drawn in Town Square; Build Mode lists them so
+// she can clear them out.
+export const OUTSIDE_TOWN_MARGIN = 3;
+export function isOutsideTown(x: number, z: number, b: GroundBounds): boolean {
+  const m = OUTSIDE_TOWN_MARGIN;
+  return x < -b.west - m || x > b.east + m || z < -b.north - m || z > b.south + m;
+}
+
 // Direct teacher instruction: Town Square was wiped down to bare ground —
 // every building, stall, road tile, and prop that used to be hand-placed
 // here (including the original 4 anchor buildings) was cleared so the

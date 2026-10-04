@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import DailySpinWheel from '../../components/DailySpinWheel';
 import BawkGuide from '../../components/BawkGuide';
+import CarDashboard from '../../components/CarDashboard';
 import { asInventory, inventoryOwner } from '../../style/shop';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
@@ -35,12 +36,12 @@ import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
-import { WorldObjectRenderer, useModelSize } from './WorldObjectRenderer';
+import { WorldObjectRenderer, useModelSize, isFlatModelSize } from './WorldObjectRenderer';
 import { TownSizeContext, useTownSizeRule } from './townSize';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
-import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS, groundBoundsMaxExtent } from './townLayout';
+import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS, groundBoundsMaxExtent, isOutsideTown } from './townLayout';
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
@@ -88,7 +89,12 @@ const NEIGHBOR_FOCUS_LANE: Record<string, FocusSubject> = {
 // height/distance, the mesh's own edge was inside the frame, and a
 // circle's silhouette against the sky always arcs. Pushing the edge out
 // of view fixes the read without changing the shape.
-const GROUND_VISUAL_RADIUS = GROUND_HALF * 4;
+// Direct teacher instruction 2026-10-04 ("the world should be completly
+// flat, like a flat world in minecraft, with nothing on the horizon"): the
+// ground now runs all the way out to the sky dome in every direction, so
+// the horizon is one straight line of ground meeting sky, never the edge of
+// a disc with sky showing underneath it.
+const GROUND_VISUAL_RADIUS = Math.max(GROUND_HALF * 4, 2000);
 // Reactive replacements for the movement/collision clamps that used to read
 // the single fixed GROUND_HALF directly — see GroundBounds in types.ts and
 // store.ts's groundBounds/expandGroundBounds. Read imperatively via
@@ -329,11 +335,9 @@ const BUILDING_VIEWS: Record<string, string> = ROLE_VIEWS;
 // sides walkable-through, which is exactly the "walk through a building"
 // complaint this whole system exists to prevent.
 const STALL_BLOCK_RADIUS = 0.75;
-// Placed-object/wall collision itself is now off entirely (see
-// recomputeCollisionLayout's own comment for why) — OBJECT_FOOTPRINT_SIZES
-// stays populated by ObjectFootprintProbe further down since WorldEditor's
-// own placement-preview outline still uses real measured model sizes, it
-// just no longer feeds movement collision here.
+// Real measured model sizes, filled by ObjectFootprintProbe further down.
+// Feeds collision for placed objects whose Solid box is checked (see
+// recomputeCollisionLayout); drawn walls still don't block.
 const OBJECT_FOOTPRINT_SIZES: Record<string, { hx: number; hz: number; hy: number }> = {};
 // `let`, not `const` — same reactive-to-layoutOverrides/worldObjects
 // reasoning as BUILDING_FOOTPRINTS above; a deleted market stall or
@@ -385,12 +389,39 @@ let STATIC_WALLS: WallSegment[] = [];
 // file) still constrains where a student, Neighbor, or vehicle can go.
 // `collides`/wall data stays in the data model either way, additive-only,
 // in case a more targeted per-object collision toggle is wanted again.
-function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, _worldObjects: WorldObject[], _wallSegments: WallSegment[]) {
+//
+// Direct teacher instruction 2026-10-04: "make sure objects marked solid
+// cannot be driven through or walked through." Placed objects collide
+// again, but ONLY the ones whose Solid box is checked in Build Mode
+// (collides === true), using each model's real measured footprint
+// (OBJECT_FOOTPRINT_SIZES) times its scale, rotated with the object. This
+// covers walking, driving and Neighbors, since every movement path runs
+// through blockBuildings. Never solid, whatever the box says: flat ground
+// pieces (roads, rugs, tracks: you walk and drive ON them), objects lifted
+// well off the ground (a sign on a wall, a hanging lamp), aircraft, and
+// the car currently being driven (filtered out at the call site). An
+// object whose model hasn't finished measuring yet just doesn't block
+// until it has (a frame or two), rather than guessing a size.
+const SOLID_MAX_LIFT = 1.5;
+function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, worldObjects: WorldObject[], _wallSegments: WallSegment[]) {
   BUILDING_FOOTPRINTS = BUILDINGS.filter((b) => !overrides[b.id]?.deleted).map((b) => {
     const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
     return { x: b.position[0], z: b.position[1], rotationY: b.rotationY, hx: raw.hx * b.scale, hz: raw.hz * b.scale };
   });
-  RECT_FOOTPRINTS = BUILDING_FOOTPRINTS;
+  const solid: RectFootprint[] = [];
+  for (const o of worldObjects) {
+    if (o.collides !== true) continue;
+    if ((o.position[1] ?? 0) > SOLID_MAX_LIFT) continue;
+    if (isPlaneModel(o.modelPath) || isDroneModel(o.modelPath) || isTrackModel(o.modelPath)) continue;
+    const size = OBJECT_FOOTPRINT_SIZES[o.modelPath];
+    if (!size) continue;
+    if (isFlatModelSize({ x: size.hx * 2, y: size.hy, z: size.hz * 2 })) continue;
+    // blockBuildings' local-space math uses the opposite rotation sign from
+    // three.js's rotation.y, so a placed object's own rotation is negated
+    // here to line its footprint up with what is actually drawn.
+    solid.push({ x: o.position[0], z: o.position[2], rotationY: -o.rotationY, hx: size.hx * o.scale, hz: size.hz * o.scale });
+  }
+  RECT_FOOTPRINTS = solid.length ? [...BUILDING_FOOTPRINTS, ...solid] : BUILDING_FOOTPRINTS;
   STATIC_OBSTACLES = MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS }));
   STATIC_WALLS = [];
 }
@@ -2871,6 +2902,7 @@ export default function TownSquare() {
   // holding a half-finished edit back until the teacher hits Publish.
   const [searchParams, setSearchParams] = useSearchParams();
   const previewDraft = searchParams.get('previewDraft') === '1';
+  const groundBounds = useStore((s) => s.groundBounds);
   const storeWorldObjects = useStore((s) => s.worldObjects);
   const allWorldObjects = useMemo(() => withDefaultRoles(storeWorldObjects), [storeWorldObjects]);
   const worldObjects = useMemo(
@@ -3154,6 +3186,9 @@ export default function TownSquare() {
   // of their fixed home spot.
   const wanderingPositions = useRef<Record<string, THREE.Vector3>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [carSettingsOpen, setCarSettingsOpen] = useState(false);
+  const musicVolume = useStore((s) => s.musicVolume);
+  const setMusicVolume = useStore((s) => s.setMusicVolume);
   const [mapView, setMapView] = useState(false);
   // Claudia's review: every other student screen has these two FABs
   // (What do I do? / calm-down + ask-for-help) at the same fixed spot;
@@ -4575,7 +4610,7 @@ export default function TownSquare() {
         </div>
       )}
 
-      <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
+      <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50, far: 2500 }}>
         <TownSizeContext.Provider value={townSizeRule}>
         {/* Direct teacher report, live screenshot: dark jagged shapes on
             the horizon in Town Square. Root cause — this fog was only
@@ -4778,6 +4813,9 @@ export default function TownSquare() {
             );
           })}
           {worldObjects.map((obj) => {
+            // Nothing past the town's edge is drawn (flat, empty horizon).
+            // The car being driven is always drawn, it can't leave anyway.
+            if (obj.id !== drivingObjectId && isOutsideTown(obj.position[0], obj.position[2], groundBounds)) return null;
             const baseObj =
               obj.role === 'home' && student?.houseExteriorPath
                 ? (() => {
@@ -4984,7 +5022,7 @@ export default function TownSquare() {
               scenery here, no click interaction, same as a fixed prop; the
               actual collision comes from STATIC_WALLS/blockWallSegments
               above, not from anything on this mesh. */}
-          {wallSegments.map((wall) => (
+          {wallSegments.filter((w) => !(isOutsideTown(w.x1, w.z1, groundBounds) && isOutsideTown(w.x2, w.z2, groundBounds))).map((wall) => (
             <WallMesh key={wall.id} wall={wall} />
           ))}
         </Suspense>
@@ -5065,7 +5103,7 @@ export default function TownSquare() {
           be described as "stacked above the Tasks FAB," which is now
           gone) rather than crowding the Gas/Brake pedals on the opposite
           side, and only rendered while actually driving. */}
-      {drivingObjectId && (
+      {drivingObjectId && (drivingIsBoat || drivingIsTrain || drivingIsAircraft) && (
         <div style={{ position: 'fixed', bottom: 204, [otherSide]: 16, zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <button
             onClick={() => setShowMusicPicker(true)}
@@ -5086,24 +5124,51 @@ export default function TownSquare() {
           handleGasCorrect below) — never on its own. The Fill Up button is
           the voluntary, non-blocking version of that pump; running fully
           dry opens the un-skippable lockout automatically instead. */}
+      {/* Car dashboard (teacher spec 2026-10-04): gas dial, stereo with
+          volume dial, speedometer, trip distance and car settings, in one
+          card where the gas bar used to be. Replaces the radio button for
+          cars (boats, trains and planes keep the radio button). */}
       {drivingObjectId && !drivingIsBoat && !drivingIsTrain && !drivingIsAircraft && (
-        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.92)', padding: '5px 12px', borderRadius: 999, border: '2px solid var(--ink, #1f4238)', boxShadow: '2px 2px 0 var(--ink, #1f4238)' }}>
-          <span style={{ fontSize: 15 }} aria-hidden="true">⛽</span>
-          <span style={{ fontSize: 9, fontWeight: 800, color: '#1f4238' }}>Gas</span>
-          <div style={{ display: 'flex', gap: 2 }} role="img" aria-label={`${carGasDashes} of 10 gas dashes left`}>
-            {Array.from({ length: 10 }).map((_, i) => (
-              <span key={i} style={{ width: 5, height: 12, borderRadius: 2, background: i < carGasDashes ? (carGasDashes > 3 ? '#2f9e44' : '#f4a300') : '#e2e8f0', border: '1px solid rgba(31,66,56,0.3)' }} />
-            ))}
+        <CarDashboard
+          key={drivingObjectId}
+          speedRef={vehicleSpeedRef}
+          maxSpeed={CAR_MAX_SPEED}
+          gasDashes={carGasDashes}
+          gasSecondsRef={gasSecondsRef}
+          secondsPerDash={15}
+          canFill={carGasDashes < 10 && !gasLockout}
+          onFillUp={openGasQuiz}
+          onPickSong={() => setShowMusicPicker(true)}
+          onSettings={() => setCarSettingsOpen(true)}
+        />
+      )}
+      {carSettingsOpen && student && (
+        <div className="overlay-backdrop" role="dialog" aria-modal="true" onClick={() => setCarSettingsOpen(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ gap: 14 }}>
+              <h2 style={{ margin: 0 }}>⚙️ Car settings</h2>
+              <label className="row" style={{ gap: 10, alignItems: 'center', fontWeight: 700, minHeight: 44 }}>
+                <input type="checkbox" style={{ width: 24, height: 24 }} checked={student.vehicleSoundEnabled !== false} onChange={(e) => updateStudent(student.id, { vehicleSoundEnabled: e.target.checked })} />
+                Engine sound (the rumbly car noise)
+              </label>
+              <label className="row" style={{ gap: 10, alignItems: 'center', fontWeight: 700, minHeight: 44 }}>
+                <input type="checkbox" style={{ width: 24, height: 24 }} checked={student.worldReduceMotion} onChange={(e) => updateStudent(student.id, { worldReduceMotion: e.target.checked })} />
+                Calm driving (no dust trail, less camera bounce)
+              </label>
+              <div className="stack" style={{ gap: 6 }}>
+                <span style={{ fontWeight: 700 }}>Music volume: {musicVolume}%</span>
+                <input type="range" min={0} max={100} value={musicVolume} onChange={(e) => setMusicVolume(Number(e.target.value))} style={{ width: '100%', height: 32 }} aria-label="Music volume" />
+              </div>
+              <div className="stack" style={{ gap: 6 }}>
+                <span style={{ fontWeight: 700 }}>Which side are the drive buttons on?</span>
+                <div className="row-wrap" style={{ gap: 8 }}>
+                  <button className={`btn btn-sm${dpadSide === 'left' ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => updateStudent(student.id, { worldDpadSide: 'left' })}>Left side</button>
+                  <button className={`btn btn-sm${dpadSide === 'right' ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => updateStudent(student.id, { worldDpadSide: 'right' })}>Right side</button>
+                </div>
+              </div>
+              <button className="btn btn-primary btn-lg" onClick={() => setCarSettingsOpen(false)} autoFocus>Done</button>
+            </div>
           </div>
-          {carGasDashes < 10 && !gasLockout && (
-            <button
-              onClick={openGasQuiz}
-              style={{ minHeight: 26, minWidth: 26, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--ink, #1f4238)', background: '#fff7e0', fontSize: '0.68rem', fontWeight: 800, color: '#1f4238', cursor: 'pointer' }}
-              title="Answer a question to fill up"
-            >
-              Fill up
-            </button>
-          )}
         </div>
       )}
 

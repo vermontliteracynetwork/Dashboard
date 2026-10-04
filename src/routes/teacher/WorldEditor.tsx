@@ -13,7 +13,7 @@ import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
   BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt, SKY_TEXTURE_OPTIONS,
   groundBoundsMaxExtent, GROUND_BOUNDS_STEP, GROUND_BOUNDS_MAX,
-  isChessSetModel,
+  isChessSetModel, isOutsideTown,
 } from '../world/townLayout';
 import { isTrackModel, trackPlacementFeedback } from '../world/trainTrack';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
@@ -1742,6 +1742,7 @@ export default function WorldEditor() {
   const townSizeRule = useTownSizeRule();
   const [sizeRuleBusy, setSizeRuleBusy] = useState(false);
   const [confirmSizeRule, setConfirmSizeRule] = useState(false);
+  const [confirmClearOutside, setConfirmClearOutside] = useState(false);
   // Filtered to the shared Town Square only (studentId undefined) — before
   // this filter existed, every student's private Home Room furniture (and
   // now walls) rendered here too, a real bug this pass also closes: a
@@ -2275,6 +2276,9 @@ export default function WorldEditor() {
   const expandGroundBounds = useStore((s) => s.expandGroundBounds);
   const clampToGroundX = (v: number) => THREE.MathUtils.clamp(v, -groundBounds.west + 1, groundBounds.east - 1);
   const clampToGroundZ = (v: number) => THREE.MathUtils.clamp(v, -groundBounds.north + 1, groundBounds.south - 1);
+  // Objects sitting past the town's edge: never drawn in Town Square (flat,
+  // empty horizon), listed here so she can clear them out.
+  const outsideTownObjects = worldObjects.filter((o) => !o.pendingDelete && isOutsideTown(o.position[0], o.position[2], groundBounds));
 
   // Generalized edit/delete for whichever kind is selected — a placed
   // object goes through the normal WorldObject actions, a fixed layout
@@ -2832,6 +2836,17 @@ export default function WorldEditor() {
           >
             📏 {townSizeRule ? '5x size: ON' : '5x size: OFF'}
           </button>
+          {outsideTownObjects.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-flat"
+              style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: 'rgba(255,176,32,0.35)', color: '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+              title="Objects past the edge of the town. Students never see them."
+              onClick={() => setConfirmClearOutside(true)}
+            >
+              🧹 {outsideTownObjects.length} outside town
+            </button>
+          )}
           <span style={{ width: 2, alignSelf: 'stretch', background: 'rgba(255,255,255,0.4)' }} />
           {/* Every edit still saves to Supabase instantly (see flashSaved
               below) — what Publish/Discard control is only whether a
@@ -3935,6 +3950,26 @@ export default function WorldEditor() {
                 <button className="btn btn-primary" disabled={sizeRuleBusy} onClick={async () => { setSizeRuleBusy(true); await setTownSizeRule(!townSizeRule); setSizeRuleBusy(false); setConfirmSizeRule(false); flashSaved(); }}>
                   {sizeRuleBusy ? 'Resizing…' : townSizeRule ? 'Turn it off' : 'Resize everything'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmClearOutside && (
+        <div className="overlay-backdrop" onClick={() => setConfirmClearOutside(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              <h2 style={{ margin: 0 }}>🧹 Clear objects outside the town?</h2>
+              <p style={{ margin: 0 }}>{outsideTownObjects.length === 1 ? 'This object is' : `These ${outsideTownObjects.length} objects are`} past the edge of the town, so students never see {outsideTownObjects.length === 1 ? 'it' : 'them'}:</p>
+              <ul style={{ margin: 0, paddingLeft: 20, maxHeight: 180, overflowY: 'auto' }}>
+                {outsideTownObjects.map((o) => (
+                  <li key={o.id}>{o.customName || o.label} <span style={{ opacity: 0.6 }}>({Math.round(o.position[0])}, {Math.round(o.position[2])})</span></li>
+                ))}
+              </ul>
+              <p style={{ margin: 0, opacity: 0.75 }}>Undo brings them back.</p>
+              <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn" style={{ minHeight: 44 }} onClick={() => setConfirmClearOutside(false)}>Cancel</button>
+                <button className="btn btn-danger" style={{ minHeight: 44 }} onClick={() => { outsideTownObjects.forEach((o) => deleteWorldObjectH(o.id)); setConfirmClearOutside(false); flashSaved(); }}>Remove them</button>
               </div>
             </div>
           </div>

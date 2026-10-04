@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-car-dash',
+    date: '2026-10-04',
+    icon: '🚗',
+    title: 'Cars have a dashboard',
+    body: 'Hop in a car and look at the top of the screen! There is a gas dial, a speedometer, a radio that shows your song, a volume knob you can turn, and a trip counter. Tap the radio to pick a new song.',
+  },
+  {
+    id: '2026-10-04-flat-world',
+    date: '2026-10-04',
+    icon: '🌍',
+    title: 'A clean, flat horizon',
+    body: 'The big strange shapes far away are gone. Now the ground goes all the way to the sky, flat and clear. Solid things in town are really solid too, so you cannot walk or drive through them.',
+  },
+  {
     id: '2026-10-04-clear-skies',
     date: '2026-10-04',
     icon: '🌤️',

@@ -639,6 +639,9 @@ interface AppState {
   updateMusicTrack: (id: string, patch: Partial<MusicTrack>) => void;
   deleteMusicTrack: (id: string) => void;
   setPlayingTrackId: (id: string | null) => void;
+  // Music volume 0 to 100 (shared by the music player and the car stereo).
+  musicVolume: number;
+  setMusicVolume: (v: number) => void;
 
   // Farmer's Market — async student-to-student barter, see FarmerMarketOffer in types.ts
   postFarmerMarketOffer: (studentId: string, offeredItemId: string, wantsItemId: string) => string;
@@ -806,6 +809,7 @@ export const useStore = create<AppState>()(
       scratchGames: [],
       musicTracks: [],
       playingTrackId: null,
+      musicVolume: 80,
       farmerMarketOffers: [],
       layoutOverrides: {},
       groundTexture: null,
@@ -3064,6 +3068,7 @@ export const useStore = create<AppState>()(
       },
 
       setPlayingTrackId: (id) => set({ playingTrackId: id }),
+      setMusicVolume: (v) => set({ musicVolume: Math.max(0, Math.min(100, Math.round(v))) }),
 
       postFarmerMarketOffer: (studentId, offeredItemId, wantsItemId) => {
         const id = makeId();

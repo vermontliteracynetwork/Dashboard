@@ -113,7 +113,10 @@ export default function GlobalMusicPlayer() {
   const ytId = playing ? extractYouTubeId(playing.url) : null;
   const playerRef = useRef<MusicPlayerHandle>(null);
   const [paused, setPaused] = useState(false);
-  const [volume, setVolumeState] = useState(80);
+  const volume = useStore((s) => s.musicVolume);
+  const setVolumeState = useStore((s) => s.setMusicVolume);
+  // Volume lives in the store so the car stereo's volume dial controls it too.
+  useEffect(() => { playerRef.current?.setVolume(volume); }, [volume]);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [ready, setReady] = useState(false);
