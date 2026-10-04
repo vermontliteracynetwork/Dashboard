@@ -1,8 +1,10 @@
-import { createElement, forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { Suspense, createElement, forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BODY, HIP_Y, SHOULDER_Y, speciesById, type SpeciesDef } from './species';
 import { backZ } from './body';
+import { prewarmHats } from './hats';
+import { CostumeBody } from './costumes';
 import { itemById, type Bone, type WardrobeItem } from './wardrobe';
 import { makePaintMaterial, useColorMaterial, usePaintMaterial } from './paint';
 import { paintKey } from './patterns';
@@ -122,7 +124,6 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
   const white = useColorMaterial('#ffffff', 0.25);
   const earMat = useBodyMaterial(look.body.accent, look.body.accent, look.body.accent);
   const catEarMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.accent);
-  const accentSolid = useColorMaterial(look.body.accent.colors[0], 0.7);
   const accentFuzz = usePaintMaterial(look.body.accent, 1, undefined, true);
   const geo = headGeo(species.id);
 
@@ -132,7 +133,7 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
       {species.id === 'dog' && (
         <>
           <mesh material={nose} position={[0, -0.01, 0.43]} scale={[1.35, 0.95, 0.85]}><sphereGeometry args={[0.06, 24, 18]} /></mesh>
-          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} y={0.12} z={0.26} size={0.072} />
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} />
           <Mouth mouthRef={rig.mouth} y={-0.17} z={0.385} width={0.09} />
           {!hideEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
             <group key={k} position={[sd * 0.29, 0.15, -0.03]}>
@@ -146,7 +147,7 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
       {species.id === 'cat' && (
         <>
           <mesh material={nose} position={[0, -0.035, 0.335]} rotation={[Math.PI, 0, 0]} scale={[1.2, 0.8, 1]}><coneGeometry args={[0.032, 0.03, 3]} /></mesh>
-          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} y={0.07} z={0.26} size={0.085} />
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} />
           <Mouth mouthRef={rig.mouth} y={-0.13} z={0.325} width={0.06} />
           {[-1, 1].map((sd) => (
             <group key={sd}>
@@ -166,10 +167,7 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
       )}
       {species.id === 'frog' && (
         <>
-          {[[-0.2, 0.05, 0.28], [0.22, 0.08, -0.22], [-0.1, 0.18, -0.25], [0.3, -0.04, 0.1], [-0.3, 0.0, -0.08]].map(([x, y, z], i) => (
-            <mesh key={i} material={accentSolid} position={[x, y, z]} scale={[1, 0.55, 1]}><sphereGeometry args={[0.045, 14, 10]} /></mesh>
-          ))}
-          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} spread={0.17} y={0.22} z={0.18} size={0.09} />
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} />
           <Mouth mouthRef={rig.mouth} y={-0.07} z={0.35} width={0.18} />
           {[-1, 1].map((sd) => (
             <mesh key={sd} material={nose} position={[sd * 0.045, 0.03, 0.355]}><sphereGeometry args={[0.012, 8, 6]} /></mesh>
@@ -182,7 +180,7 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
           {[-1, 1].map((sd) => (
             <mesh key={sd} material={eyes} position={[sd * 0.045, 0.005, 0.583]} scale={[1, 0.65, 0.45]}><sphereGeometry args={[0.024, 12, 10]} /></mesh>
           ))}
-          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} spread={0.205} y={0.12} z={0.215} size={0.046} beady />
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} beady />
           <Mouth mouthRef={rig.mouth} y={-0.17} z={0.465} width={0.07} />
           {!hideEars && !hideTopEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
             <group key={k} position={[sd * 0.22, 0.27, -0.07]}>
@@ -224,7 +222,12 @@ const ease = (cur: number, target: number, rate: number, dt: number) => cur + (t
 
 export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look, move = 'idle', talking = false, scale = 1, reduceMotion = false, bodyless = false }, handle) {
   const species = speciesById(look.species);
+  useEffect(() => prewarmHats(species.id), [species.id]);
   const bodyMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.accent);
+
+  const costumeEq = look.outfit.costume;
+  const costumeItem = costumeEq ? itemById(costumeEq.itemId) : undefined;
+  const costumeMats = useItemMaterials(costumeEq, costumeItem);
 
   const hides = (what: 'ears' | 'topEars' | 'tail') => Object.values(look.outfit).some((e) => e && itemById(e.itemId)?.hides?.includes(what));
   const hidesEars = hides('ears');
@@ -244,7 +247,7 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
   const shot = useRef<{ name: StyleOneShot; start: number } | null>(null);
   const clockNow = useRef(0);
   // Smoothed pose values (everything eases toward its target).
-  const s = useRef({ lift: 0, bob: 0, roll: 0, yaw: 0, lean: 0, aL: 0, aR: 0, oL: 0.1, oR: 0.1, lL: 0, lR: 0, hX: 0, hY: 0, hZ: 0, sq: 1, ear: 0, earV: 0, prevBob: 0, nextBlink: 2 });
+  const s = useRef({ lift: 0, bob: 0, roll: 0, yaw: 0, lean: 0, aL: 0, aR: 0, oL: 0.1, oR: 0.1, lL: 0, lR: 0, hX: 0, hY: 0, hZ: 0, sq: 1, ear: 0, earV: 0, prevBob: 0, nextBlink: 2, footL: 0, footR: 0, blinkS: 1, mouthS: 0.22 });
 
   useImperativeHandle(handle, () => ({
     play: (name) => { shot.current = { name, start: clockNow.current }; },
@@ -339,6 +342,7 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     }
     if (armL.current) { armL.current.rotation.x = p.aL; armL.current.rotation.z = p.oL; }
     if (armR.current) { armR.current.rotation.x = p.aR; armR.current.rotation.z = -p.oR; }
+    p.footL = footL; p.footR = footR;
     if (legL.current) { legL.current.rotation.x = p.lL; legL.current.position.y = HIP_Y + 0.02 + footL; }
     if (legR.current) { legR.current.rotation.x = p.lR; legR.current.position.y = HIP_Y + 0.02 + footR; }
     if (tail.current) tail.current.rotation.z = Math.sin(t * tailSpeed) * tailAmp * calm;
@@ -346,17 +350,33 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     if (rig.earR.current) rig.earR.current.rotation.x = p.ear * 0.9;
 
     // Irregular blinks (sometimes a double blink).
-    if (rig.blink.current) {
+    {
       if (t > p.nextBlink + 0.5) p.nextBlink = t + 1.8 + ((Math.sin(t * 12.9898) * 43758.5453) % 1 + 1) % 1 * 3;
       const b = t - p.nextBlink;
       const closed = (b > 0 && b < 0.12) || (b > 0.22 && b < 0.32 && Math.floor(p.nextBlink) % 3 === 0);
-      rig.blink.current.scale.y = ease(rig.blink.current.scale.y, closed ? 0.08 : 1, 40, dt);
+      p.blinkS = ease(p.blinkS, closed ? 0.08 : 1, 40, dt);
+      if (rig.blink.current) rig.blink.current.scale.y = p.blinkS;
     }
-    if (rig.mouth.current) {
+    {
       const open = talking ? 0.35 + Math.abs(Math.sin(t * 13)) * 0.65 * (0.6 + 0.4 * Math.sin(t * 3.1)) : (sh?.name === 'cheer' || sh?.name === 'jump' ? 0.9 : 0.22);
-      rig.mouth.current.scale.y = ease(rig.mouth.current.scale.y, open, 25, dt);
+      p.mouthS = ease(p.mouthS, open, 25, dt);
+      if (rig.mouth.current) rig.mouth.current.scale.y = p.mouthS;
     }
   });
+
+  // A costume replaces the animal and everything it wears: the character
+  // becomes the costume, moved by the same animation as everyone else.
+  if (costumeItem?.costume && costumeEq) {
+    return (
+      <group scale={scale}>
+        <group ref={root}>
+          <Suspense fallback={null}>
+            <CostumeBody def={costumeItem.costume} mats={costumeMats} pose={s} />
+          </Suspense>
+        </group>
+      </group>
+    );
+  }
 
   return (
     <group scale={scale}>
@@ -374,12 +394,8 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
 
           <group ref={head} position={[0, HEAD_Y, 0]} scale={HEAD_SCALE}>
             {!bodyless && <Head look={look} species={species} rig={rig} bodyMat={bodyMat} hideEars={hidesEars} hideTopEars={hidesTopEars} />}
-            <group position={[0, species.hat.y - 0.28, species.hat.z]} scale={species.hat.scale}>
-              <OutfitParts bone="hat" look={look} species={species} />
-            </group>
-            <group position={[0, species.face.y, species.face.z]} scale={species.face.scale}>
-              <OutfitParts bone="face" look={look} species={species} />
-            </group>
+            <OutfitParts bone="hat" look={look} species={species} />
+            <OutfitParts bone="face" look={look} species={species} />
             <OutfitParts bone="gear" look={look} species={species} />
           </group>
 

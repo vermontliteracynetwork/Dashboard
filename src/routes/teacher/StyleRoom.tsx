@@ -108,9 +108,20 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
     else styleSound.tap();
   };
 
+  // Costumes students haven't earned yet (the teacher can use everything).
+  const unlockedIds = useStore((s) => s.students.find((st) => st.id === owner)?.unlockedCharacterIds);
+  const lockedReason = (item: WardrobeItem) =>
+    studentMode && item.unlock && !(unlockedIds ?? []).includes(item.unlock.id) ? item.unlock.label : null;
+
   const equip = (slot: WardrobeSlot, itemId: string | null) => {
+    const picked = itemId ? itemFor(itemId) : undefined;
+    const reason = picked ? lockedReason(picked) : null;
+    if (reason) { flash(`Earn it: ${reason}`); styleSound.tap(); return; }
     setLook((l) => {
       const outfit = { ...l.outfit };
+      // A costume replaces everything else (the clothes stay saved under it
+      // and come back when it comes off); picking clothes takes it off.
+      if (slot !== 'costume' && itemId) delete outfit.costume;
       if (!itemId) delete outfit[slot];
       else {
         const item = itemFor(itemId)!;
@@ -160,6 +171,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
     const species = rand(SPECIES).id;
     const outfit: StyleLook['outfit'] = {};
     for (const slot of SLOT_ORDER) {
+      if (slot === 'costume') continue;
       const options = catalog.filter((i) => i.slot === slot);
       const chance = slot === 'top' || slot === 'bottom' || slot === 'shoes' ? 0.9 : 0.4;
       if (options.length && Math.random() < chance) {
@@ -188,7 +200,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   // "Item only" frames the item itself up close (a hat floats up where a
   // head would be, shoes sit on the floor).
   const itemOnly = mode === 'workshop' && preview === 'item';
-  const focusY = !itemOnly || !wsItem ? 0.9 : ({ hat: 1.45, face: 1.25, gear: 1.25, top: 0.82, bottom: 0.4, shoes: 0.08, back: 0.8 } as Record<WardrobeSlot, number>)[wsItem.slot];
+  const focusY = !itemOnly || !wsItem ? 0.9 : ({ hat: 1.45, face: 1.25, gear: 1.25, top: 0.82, bottom: 0.4, shoes: 0.08, back: 0.8, costume: 0.8 } as Record<WardrobeSlot, number>)[wsItem.slot];
   const cam: [number, number, number] = wide ? [0, 1.5, 5.6] : itemOnly ? [0.9, focusY + 0.45, 1.9] : [0, 1.2, 3.3];
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
@@ -323,7 +335,9 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 ) : (
                   <div className="style-section">
                     <h2>{SLOT_LABEL[tab]}{tab === 'gear' ? ' (always free)' : ''}</h2>
-                    <ItemGrid items={catalog.filter((i) => i.slot === tab)} selected={look.outfit[tab]?.itemId ?? null} onPick={(id) => equip(tab, id)} allowNone />
+                    {tab === 'costume' && <p className="style-note">A costume turns your character into someone new, from head to toe. Your clothes are kept and come back when you take it off.</p>}
+                    {tab !== 'costume' && look.outfit.costume && <p className="style-note">You are wearing a costume. Picking something here takes the costume off.</p>}
+                    <ItemGrid items={catalog.filter((i) => i.slot === tab)} selected={look.outfit[tab]?.itemId ?? null} onPick={(id) => equip(tab, id)} allowNone locked={lockedReason} />
                     {(() => {
                       const eq = look.outfit[tab];
                       const item = eq ? itemFor(eq.itemId) : undefined;
@@ -392,7 +406,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   );
 }
 
-function ItemGrid({ items, selected, onPick, allowNone, edited }: { items: WardrobeItem[]; selected: string | null; onPick: (id: string | null) => void; allowNone?: boolean; edited?: Record<string, unknown> }) {
+function ItemGrid({ items, selected, onPick, allowNone, edited, locked }: { items: WardrobeItem[]; selected: string | null; onPick: (id: string | null) => void; allowNone?: boolean; edited?: Record<string, unknown>; locked?: (item: WardrobeItem) => string | null }) {
   return (
     <div className="style-grid">
       {allowNone && (
@@ -401,10 +415,11 @@ function ItemGrid({ items, selected, onPick, allowNone, edited }: { items: Wardr
         </button>
       )}
       {items.map((item) => (
-        <button key={item.id} type="button" className={`style-tile${selected === item.id ? ' on' : ''}`} onClick={() => onPick(item.id)}>
+        <button key={item.id} type="button" className={`style-tile${selected === item.id ? ' on' : ''}${locked?.(item) ? ' locked' : ''}`} onClick={() => onPick(item.id)}>
           <span className="style-tile-emoji">{item.emoji}</span>{item.name}
           {edited?.[item.id] ? <span className="style-tile-badge">edited</span> : null}
-        </button>
+          {locked?.(item) ? <span className="style-tile-badge">🔒 earn it</span> : null}
+                  </button>
       ))}
     </div>
   );

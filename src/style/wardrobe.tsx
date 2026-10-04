@@ -4,7 +4,9 @@ import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { BODY } from './species';
 import { backZ } from './body';
-import { pantLegGeo, seatGeo, shoeGeo, skirtSculptGeo, sleeveGeo, soleGeo, topGeo, triplanar } from './organic';
+import { SPACE_ALIEN, type CostumeDef } from './costumes';
+import { beanieGeo, bucketGeo, capGeo, crownGeo, glassesFit, perch, topHatGeo } from './hats';
+import { capeGeo, pantLegGeo, seatGeo, shoeGeo, skirtSculptGeo, sleeveGeo, soleGeo, topGeo, triplanar } from './organic';
 import type { SpeciesDef } from './species';
 import type { Paint, WardrobeSlot } from './types';
 
@@ -36,6 +38,10 @@ export interface WardrobeItem {
   // on top of the head (cat, capybara) under a covering hat; tail: back items.
   hides?: ('feet' | 'ears' | 'topEars' | 'tail')[];
   comfort?: boolean; // Comfort Gear: always free, never sold or gated
+  costume?: CostumeDef; // a full-body costume (replaces the animal and its clothes)
+  // How students earn it (the teacher can always use everything). Earned
+  // ids are kept in the student's unlockedCharacterIds.
+  unlock?: { id: string; label: string; need: number };
 }
 
 const P = (pattern: Paint['pattern'], a: string, b = '#ffffff'): Paint => ({ pattern, colors: [a, b] });
@@ -115,16 +121,14 @@ function Shoe({ mats, boot = 0 }: { mats: THREE.Material[]; boot?: number }) {
 
 // --- hats ---------------------------------------------------------------------
 
-function Dome({ mat, r = 0.35, cut = 0.45, y = 0 }: { mat: THREE.Material; r?: number; cut?: number; y?: number }) {
-  const m = useTiled(mat, 8, 1.6, true);
-  return (
-    <mesh material={m} position={[0, y, 0]}>
-      <sphereGeometry args={[r, 40, 20, 0, Math.PI * 2, 0, Math.PI * cut]} />
-    </mesh>
-  );
+// A hat sculpted to the head it sits on (see hats.ts).
+function HatMesh({ geo, mat, scale = 7 }: { geo: THREE.BufferGeometry; mat: THREE.Material; scale?: number }) {
+  const m = useTri(mat, scale);
+  return <mesh geometry={geo} material={m} />;
 }
 
-function CheeseWedge({ mats }: PartProps) {
+function CheeseWedge({ mats, species }: PartProps) {
+  const at = perch(species.id, 'cheese');
   const geo = useMemo(() => {
     const a = 0.36;
     const h = 0.46;
@@ -149,7 +153,7 @@ function CheeseWedge({ mats }: PartProps) {
   const tilt = Math.atan2(n.y, n.x) - Math.PI / 2;
   const dents: [number, number, number][] = [[0.2, -0.12, 0.05], [0.45, 0.1, 0.06], [0.7, -0.05, 0.045], [0.35, 0.15, 0.035], [0.6, 0.17, 0.04]];
   return (
-    <group position={[0, 0.22, 0]} scale={0.72}>
+    <group position={[0, at.y, at.z]} scale={at.size}>
       <mesh geometry={geo} material={mats[0]} />
       {dents.map(([t, z, r], i) => {
         const x = a + (-2 * a) * t;
@@ -164,33 +168,23 @@ function CheeseWedge({ mats }: PartProps) {
   );
 }
 
-function Crown({ mats }: PartProps) {
-  const spikes = 7;
+function Crown({ mats, species }: PartProps) {
+  const { geos, at } = crownGeo(species.id);
+  const gems = Object.entries(at).filter(([k]) => k.startsWith('gem'));
   return (
-    <group position={[0, 0.27, 0]}>
-      <mesh material={mats[0]}>
-        <cylinderGeometry args={[0.23, 0.25, 0.13, 28, 1, true]} />
-      </mesh>
-      {Array.from({ length: spikes }).map((_, i) => {
-        const ang = (i / spikes) * Math.PI * 2;
-        return (
-          <group key={i}>
-            <mesh material={mats[0]} position={[Math.sin(ang) * 0.225, 0.11, Math.cos(ang) * 0.225]}>
-              <coneGeometry args={[0.045, 0.1, 8]} />
-            </mesh>
-            <mesh material={mats[1]} position={[Math.sin(ang) * 0.245, 0, Math.cos(ang) * 0.245]}>
-              <sphereGeometry args={[0.022, 10, 8]} />
-            </mesh>
-          </group>
-        );
-      })}
+    <group>
+      <HatMesh geo={geos[0]} mat={mats[0]} />
+      {gems.map(([k, p]) => (
+        <mesh key={k} material={mats[1]} position={p}><sphereGeometry args={[at.size[0], 12, 10]} /></mesh>
+      ))}
     </group>
   );
 }
 
 // --- glasses ------------------------------------------------------------------
 
-function GlassesFrame({ mats, shape }: { mats: THREE.Material[]; shape: 'round' | 'square' | 'star' | 'heart' }) {
+function GlassesFrame({ mats, shape, species }: PartProps & { shape: 'round' | 'square' | 'star' | 'heart' }) {
+  const fit = glassesFit(species.id, species.eye);
   const lensMat = useMemo(() => {
     const m = (mats[1] as THREE.MeshStandardMaterial).clone();
     m.transparent = true;
@@ -216,11 +210,10 @@ function GlassesFrame({ mats, shape }: { mats: THREE.Material[]; shape: 'round' 
     s.closePath();
     return new THREE.ExtrudeGeometry(s, { depth: 0.025, bevelEnabled: false });
   }, [shape]);
-  const x = 0.12;
   return (
     <group>
-      {[-x, x].map((px) => (
-        <group key={px} position={[px, 0, 0]}>
+      {fit.lenses.map((l, i) => (
+        <group key={i} position={l.pos} quaternion={l.quat} scale={l.scale}>
           {shape === 'round' && (
             <>
               <mesh material={mats[0]}><torusGeometry args={[0.08, 0.017, 10, 28]} /></mesh>
@@ -241,12 +234,8 @@ function GlassesFrame({ mats, shape }: { mats: THREE.Material[]; shape: 'round' 
           )}
         </group>
       ))}
-      <mesh material={mats[0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.012, 0.012, 0.09, 8]} /></mesh>
-      {[-1, 1].map((sd) => (
-        <mesh key={sd} material={mats[0]} position={[sd * (x + 0.085), 0, -0.13]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.012, 0.012, 0.26, 6]} />
-        </mesh>
-      ))}
+      <mesh geometry={fit.bridge} material={mats[0]} />
+      {fit.arms.map((g, i) => <mesh key={i} geometry={g} material={mats[0]} />)}
     </group>
   );
 }
@@ -255,17 +244,18 @@ function GlassesFrame({ mats, shape }: { mats: THREE.Material[]; shape: 'round' 
 
 function Cape({ mats }: PartProps) {
   const ref = useRef<THREE.Group>(null);
+  // A gentle sway from the shoulders.
   useFrame(({ clock }) => {
-    if (ref.current) ref.current.rotation.x = 0.12 + Math.sin(clock.elapsedTime * 2.2) * 0.06;
+    if (ref.current) ref.current.rotation.x = 0.03 + Math.sin(clock.elapsedTime * 2.2) * 0.025;
   });
-  const dbl = useDouble(mats[0]);
+  const m = useTri(mats[0]);
   return (
-    <group ref={ref} position={[0, 0.54, -backZ(0.5) - 0.05]}>
-      <mesh material={dbl} position={[0, -0.36, -0.02]}>
-        <boxGeometry args={[0.56, 0.72, 0.02]} />
-      </mesh>
-      <mesh material={mats[1]} position={[0, 0.0, 0.0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.03, 0.03, 0.5, 10]} />
+    <group>
+      <group ref={ref} position={[0, 0.6, 0]}>
+        <mesh geometry={capeGeo()} material={m} position={[0, -0.6, 0]} />
+      </group>
+      <mesh material={mats[1]} position={[0, 0.6, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 0.86, 1]}>
+        <torusGeometry args={[0.16, 0.028, 12, 32]} />
       </mesh>
     </group>
   );
@@ -403,40 +393,49 @@ export const WARDROBE: WardrobeItem[] = [
     id: 'cap', name: 'Ball Cap', slot: 'hat', emoji: '🧢', hides: ['topEars'],
     zones: [{ label: 'Cap', paint: P('solid', '#e74c3c') }, { label: 'Brim', paint: P('solid', '#ffffff') }],
     parts: {
-      hat: ({ mats }) => (
-        <group>
-          <Dome mat={mats[0]} r={0.35} cut={0.35} />
-          <RoundedBox args={[0.34, 0.025, 0.24]} radius={0.012} smoothness={2} position={[0, 0.17, 0.3]} rotation={[0.22, 0, 0]} material={mats[1]} />
-          <mesh material={mats[1]} position={[0, 0.35, 0]}><sphereGeometry args={[0.03, 10, 8]} /></mesh>
-        </group>
-      ),
+      hat: ({ mats, species }) => {
+        const { geos, at } = capGeo(species.id);
+        return (
+          <group>
+            <HatMesh geo={geos[0]} mat={mats[0]} />
+            <HatMesh geo={geos[1]} mat={mats[1]} />
+            <mesh material={mats[1]} position={at.button}><sphereGeometry args={[0.03, 10, 8]} /></mesh>
+          </group>
+        );
+      },
     },
   },
   {
     id: 'beanie', name: 'Beanie', slot: 'hat', emoji: '🧶', hides: ['topEars'],
     zones: [{ label: 'Beanie', paint: P('stripes', '#16a085', '#f1c40f') }, { label: 'Pom-pom', paint: P('solid', '#f1c40f') }],
     parts: {
-      hat: ({ mats }) => (
-        <group>
-          {/* A tall, slouchy knit dome with a rolled cuff that sits above
-              the eyes, so it never covers them. */}
-          <group position={[0, 0.03, 0]} scale={[1, 1.16, 1]}><Dome mat={mats[0]} r={0.35} cut={0.37} /></group>
-          <mesh material={mats[0]} position={[0, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.3, 0.048, 14, 40]} /></mesh>
-          <mesh material={mats[1]} position={[0, 0.47, 0]}><sphereGeometry args={[0.08, 18, 14]} /></mesh>
-        </group>
-      ),
+      hat: ({ mats, species }) => {
+        // A slouchy knit shaped from the animal's own head, with a rolled
+        // cuff resting just above the eyes, so it never covers them.
+        const { geos, at } = beanieGeo(species.id);
+        return (
+          <group>
+            <HatMesh geo={geos[0]} mat={mats[0]} />
+            <mesh material={mats[1]} position={at.pom}><sphereGeometry args={[0.075, 18, 14]} /></mesh>
+          </group>
+        );
+      },
     },
   },
   {
     id: 'partyhat', name: 'Party Hat', slot: 'hat', emoji: '🥳',
     zones: [{ label: 'Hat', paint: P('polka', '#9b59b6', '#f1c40f') }, { label: 'Pom-pom', paint: P('solid', '#ff6b6b') }],
     parts: {
-      hat: ({ mats }) => (
-        <group position={[0.04, 0.42, 0]} rotation={[0, 0, -0.18]}>
-          <mesh material={mats[0]}><coneGeometry args={[0.16, 0.4, 24]} /></mesh>
-          <mesh material={mats[1]} position={[0, 0.21, 0]}><sphereGeometry args={[0.055, 12, 10]} /></mesh>
-        </group>
-      ),
+      hat: ({ mats, species }) => {
+        const at = perch(species.id, 'party');
+        const h = at.size * 2.5;
+        return (
+          <group position={[0, at.y, at.z]} rotation={[0, 0, -0.16]}>
+            <mesh material={mats[0]} position={[0, h / 2, 0]}><coneGeometry args={[at.size, h, 28]} /></mesh>
+            <mesh material={mats[1]} position={[0, h + 0.012, 0]}><sphereGeometry args={[at.size * 0.34, 12, 10]} /></mesh>
+          </group>
+        );
+      },
     },
   },
   {
@@ -448,29 +447,26 @@ export const WARDROBE: WardrobeItem[] = [
     id: 'tophat', name: 'Top Hat', slot: 'hat', emoji: '🎩', hides: ['topEars'],
     zones: [{ label: 'Hat', paint: P('solid', '#222222') }, { label: 'Band', paint: P('solid', '#e74c3c') }],
     parts: {
-      hat: ({ mats }) => (
-        <group position={[0, 0.27, 0]}>
-          <mesh material={mats[0]} position={[0, 0.0, 0]}><cylinderGeometry args={[0.32, 0.32, 0.025, 28]} /></mesh>
-          <mesh material={mats[0]} position={[0, 0.17, 0]}><cylinderGeometry args={[0.2, 0.2, 0.32, 28]} /></mesh>
-          <mesh material={mats[1]} position={[0, 0.05, 0]}><cylinderGeometry args={[0.205, 0.205, 0.06, 28]} /></mesh>
-        </group>
-      ),
+      hat: ({ mats, species }) => {
+        const { geos } = topHatGeo(species.id);
+        return (
+          <group>
+            <HatMesh geo={geos[0]} mat={mats[0]} />
+            <HatMesh geo={geos[1]} mat={mats[1]} />
+          </group>
+        );
+      },
     },
   },
   {
     id: 'buckethat', name: 'Bucket Hat', slot: 'hat', emoji: '👒', hides: ['topEars'],
     zones: [{ label: 'Hat', paint: P('checks', '#f6d743', '#2b2b2b') }],
     parts: {
-      hat: ({ mats }) => (
-        <group position={[0, 0.22, 0]}>
-          <mesh material={mats[0]} position={[0, 0.12, 0]}><cylinderGeometry args={[0.27, 0.34, 0.2, 28]} /></mesh>
-          <mesh material={mats[0]} position={[0, 0.0, 0]}><cylinderGeometry args={[0.34, 0.47, 0.05, 28]} /></mesh>
-        </group>
-      ),
+      hat: ({ mats, species }) => <HatMesh geo={bucketGeo(species.id).geos[0]} mat={mats[0]} />,
     },
   },
   {
-    id: 'cheesehat', name: 'Swiss Cheese Hat', slot: 'hat', emoji: '🧀',
+    id: 'cheesehat', name: 'Swiss Cheese Hat', slot: 'hat', emoji: '🧀', hides: ['topEars'],
     zones: [{ label: 'Cheese', paint: P('solid', '#f7d548') }, { label: 'Holes', paint: P('solid', '#d9a91c') }],
     parts: { hat: (p) => <CheeseWedge {...p} /> },
   },
@@ -478,22 +474,22 @@ export const WARDROBE: WardrobeItem[] = [
   {
     id: 'roundglasses', name: 'Round Glasses', slot: 'face', emoji: '👓', comfort: true,
     zones: [{ label: 'Frame', paint: P('solid', '#2c2c2c') }, { label: 'Lenses', paint: P('solid', '#bfe6ff') }],
-    parts: { face: ({ mats }) => <GlassesFrame mats={mats} shape="round" /> },
+    parts: { face: ({ mats, species }) => <GlassesFrame mats={mats} species={species} shape="round" /> },
   },
   {
     id: 'squareglasses', name: 'Square Glasses', slot: 'face', emoji: '🤓', comfort: true,
     zones: [{ label: 'Frame', paint: P('solid', '#e74c3c') }, { label: 'Lenses', paint: P('solid', '#ffffff') }],
-    parts: { face: ({ mats }) => <GlassesFrame mats={mats} shape="square" /> },
+    parts: { face: ({ mats, species }) => <GlassesFrame mats={mats} species={species} shape="square" /> },
   },
   {
     id: 'starglasses', name: 'Star Shades', slot: 'face', emoji: '🌟',
     zones: [{ label: 'Frame', paint: P('solid', '#ff4fa3') }, { label: 'Lenses', paint: P('solid', '#3b1d5a') }],
-    parts: { face: ({ mats }) => <GlassesFrame mats={mats} shape="star" /> },
+    parts: { face: ({ mats, species }) => <GlassesFrame mats={mats} species={species} shape="star" /> },
   },
   {
     id: 'heartglasses', name: 'Heart Shades', slot: 'face', emoji: '💖',
     zones: [{ label: 'Frame', paint: P('solid', '#e0245e') }, { label: 'Lenses', paint: P('solid', '#ff8fb1') }],
-    parts: { face: ({ mats }) => <GlassesFrame mats={mats} shape="heart" /> },
+    parts: { face: ({ mats, species }) => <GlassesFrame mats={mats} species={species} shape="heart" /> },
   },
   // Comfort gear (always free)
   {
@@ -535,8 +531,8 @@ export const WARDROBE: WardrobeItem[] = [
     parts: {
       torso: ({ mats }) => (
         <group>
-          <RoundedBox args={[0.4, 0.42, 0.2]} radius={0.09} smoothness={4} position={[0, 0.35, -backZ(0.35) - 0.085]} material={mats[0]} />
-          <RoundedBox args={[0.28, 0.15, 0.07]} radius={0.035} smoothness={3} position={[0, 0.25, -backZ(0.35) - 0.205]} material={mats[1]} />
+          <RoundedBox args={[0.4, 0.42, 0.2]} radius={0.09} smoothness={4} position={[0, 0.35, -backZ(0.35) - 0.055]} material={mats[0]} />
+          <RoundedBox args={[0.28, 0.15, 0.07]} radius={0.035} smoothness={3} position={[0, 0.25, -backZ(0.35) - 0.175]} material={mats[1]} />
           {[-0.13, 0.13].map((x) => (
             <mesh key={x} material={mats[1]} position={[x, 0.36, backZ(0.36) + 0.012]} scale={[1, 1, 0.35]}><capsuleGeometry args={[0.03, 0.34, 4, 10]} /></mesh>
           ))}
@@ -554,11 +550,23 @@ export const WARDROBE: WardrobeItem[] = [
     zones: [{ label: 'Wings', paint: P('spots', '#8fd3ff', '#5b2a86') }, { label: 'Center', paint: P('solid', '#5b2a86') }],
     parts: { torso: (p) => <Wings {...p} /> },
   },
+  // Costumes (full body)
+  {
+    id: 'space-alien', name: 'Space Alien', slot: 'costume', emoji: '👽',
+    zones: [
+      { label: 'Skin', paint: P('solid', '#31f09f') },
+      { label: 'Suit', paint: P('solid', '#867eff') },
+      { label: 'Pants & collar', paint: P('solid', '#e1b2fa') },
+    ],
+    parts: {},
+    costume: SPACE_ALIEN,
+    unlock: { id: 'costume:space-alien', label: 'Answer 500 questions right in Space Bowling', need: 500 },
+  },
 ];
 
 export const itemById = (id: string) => WARDROBE.find((i) => i.id === id);
 
-export const SLOT_ORDER: WardrobeSlot[] = ['hat', 'face', 'gear', 'top', 'bottom', 'shoes', 'back'];
+export const SLOT_ORDER: WardrobeSlot[] = ['hat', 'face', 'gear', 'top', 'bottom', 'shoes', 'back', 'costume'];
 export const SLOT_LABEL: Record<WardrobeSlot, string> = {
-  hat: 'Hats', face: 'Glasses', gear: 'Comfort', top: 'Tops', bottom: 'Bottoms', shoes: 'Shoes', back: 'Back',
+  hat: 'Hats', face: 'Glasses', gear: 'Comfort', top: 'Tops', bottom: 'Bottoms', shoes: 'Shoes', back: 'Back', costume: 'Costumes',
 };

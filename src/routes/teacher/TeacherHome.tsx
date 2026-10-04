@@ -122,6 +122,13 @@ export default function TeacherHome() {
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
           Chess Set model by Jarlan Perez, via Poly Pizza (CC BY)
         </p>
+        {/* Style costume (2026-10-04): "Cute Alien Character" by Ndevisuals,
+            downloaded by the teacher from Sketchfab under the Sketchfab
+            Standard license (use inside this project allowed, no resale or
+            sharing of the raw file); credited here as a courtesy. */}
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
+          Space Alien costume: "Cute Alien Character" by Ndevisuals, via Sketchfab
+        </p>
       </div>
     </div>
   );

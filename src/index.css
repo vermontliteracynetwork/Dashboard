@@ -4103,5 +4103,6 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .style-anim-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; background: #fff; border: 2px solid #eadcff; border-radius: 22px; padding: 6px 10px; }
 .style-anim-label { min-width: 64px; text-align: right; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.8rem; }
 .style-tile { position: relative; }
+.style-tile.locked { opacity: 0.6; }
 .style-tile-badge { position: absolute; top: 4px; right: 4px; background: #9b59b6; color: #fff; font-size: 0.65rem; border-radius: 999px; padding: 1px 6px; }
 .style-name-input { min-height: 48px; border-radius: 14px; border: 2px solid #eadcff; padding: 0 14px; font: inherit; font-weight: 700; font-size: 1.05rem; color: #2b1452; }

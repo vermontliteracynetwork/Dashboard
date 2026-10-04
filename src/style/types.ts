@@ -24,7 +24,9 @@ export interface Paint {
   colors: [string, string];
 }
 
-export type WardrobeSlot = 'hat' | 'face' | 'gear' | 'top' | 'bottom' | 'shoes' | 'back';
+// 'costume' replaces the animal and everything else it wears (a full-body
+// character, e.g. the Space Alien).
+export type WardrobeSlot = 'hat' | 'face' | 'gear' | 'top' | 'bottom' | 'shoes' | 'back' | 'costume';
 
 export interface EquippedItem {
   itemId: string;

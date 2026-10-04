@@ -135,9 +135,22 @@ function cached(key: string, make: () => THREE.BufferGeometry) {
   return g;
 }
 
+// The head's shape (for fitting hats to it) and the frog's eyes, which no
+// hat may ever cover.
+const headShapes = new Map<SpeciesId, HeadDef>();
+export const headShape = (species: SpeciesId) => {
+  let d = headShapes.get(species);
+  if (!d) { d = headDef(species); headShapes.set(species, d); }
+  return d;
+};
+export const frogEyes: SDF = (x, y, z) => Math.min(
+  ellipsoid(0.17, 0.21, 0.14, 0.15, 0.145, 0.15)(x, y, z),
+  ellipsoid(-0.17, 0.21, 0.14, 0.15, 0.145, 0.15)(x, y, z),
+);
+
 export const torsoGeo = () => cached('torso', () => meshSDF(torsoSDF(), [-0.42, -0.08, -0.38], [0.42, 0.84, 0.38], 0.016, torsoRegion));
 export const headGeo = (species: SpeciesId) => cached(`head-${species}`, () => {
-  const d = headDef(species);
+  const d = headShape(species);
   return meshSDF(d.sdf, d.min, d.max, 0.014, d.region);
 });
 export const armGeo = () => cached('arm', () => meshSDF(armSDF, [-0.14, -0.43, -0.14], [0.14, 0.16, 0.16], 0.012, armRegion));
@@ -247,7 +260,9 @@ export const seatGeo = (thick: number, to: number) => cached(`seat|${thick}|${to
 // A sleeve from the shoulder down to `len` below it (stops above the paw).
 const armOnly = roundCone([0, 0.03, 0], [0, -0.24, 0.015], 0.098, 0.08);
 export const sleeveGeo = (thick: number, len: number) => cached(`sleeve|${thick}|${len}`, () => {
-  const shoulder = ellipsoid(0, 0.0, 0, 0.13, 0.12, 0.13);
+  // A small rounded cap over the top of the arm that melts into the body
+  // line instead of standing up above the shoulder like a hump.
+  const shoulder = ellipsoid(-0.01, -0.02, 0, 0.11, 0.085, 0.11);
   return meshSDF((x, y, z) => smax(smin(armOnly(x, y, z), shoulder(x, y, z), 0.06) - thick, -len - y, 0.02),
     [-0.2, -len - 0.05, -0.2], [0.2, 0.2, 0.2], 0.011);
 });
@@ -305,4 +320,23 @@ export const skirtSculptGeo = (top: number, len: number, flare: number) => cache
     const q = Math.sqrt(x * x + (z / (BODY_DEPTH + 0.05)) ** 2) - R;
     return smax(smax(q, y - top, 0.02), bottom - y, 0.03);
   }, [-flare - 0.08, bottom - 0.05, -flare - 0.08], [flare + 0.08, top + 0.05, flare + 0.08], 0.013);
+});
+
+// A cape: a soft shell draped over the back from the shoulders, following
+// the round body, then hanging free below the seat with a little flare.
+export const capeGeo = () => cached('cape', () => {
+  const body = torsoShape();
+  // Below the widest part of the tummy the cloth falls straight down
+  // (flaring a little) instead of tucking under the round seat.
+  const drape: SDF = (x, y, z) => {
+    if (y >= 0.2) return body(x, y, z);
+    const flare = 1 + (0.2 - y) * 0.35;
+    return body(x / flare, 0.2, z / flare) * flare;
+  };
+  return meshSDF((x, y, z) => {
+    const d = drape(x, y, z);
+    const shell = smax(d - 0.05, 0.012 - d, 0.01);
+    const backHalf = smax(shell, z + 0.05, 0.04);
+    return smax(smax(backHalf, y - 0.6, 0.02), -0.2 - y, 0.03);
+  }, [-0.52, -0.26, -0.5], [0.52, 0.66, 0.1], 0.01);
 });
