@@ -29,6 +29,7 @@ import { BookPanel } from '../../components/BookPanel';
 import { CHANGELOG_ENTRIES, LATEST_CHANGELOG_ID, hasUnseenChangelog } from '../../lib/changelog';
 import ReadAloud from '../../components/ReadAloud';
 import NeighborFeelingsChat from '../../components/NeighborFeelingsChat';
+import NeighborScene from '../../components/NeighborScene';
 import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
@@ -3133,7 +3134,7 @@ export default function TownSquare() {
   const [townsMenu, setTownsMenu] = useState<Townsperson | null>(null);
   const [aboutNpc, setAboutNpc] = useState<string | null>(null);
   const npcProfiles = useNpcProfiles();
-  const [feelingsNeighbor, setFeelingsNeighbor] = useState<Quest1Neighbor | null>(null);
+  const [feelingsNeighbor, setFeelingsNeighbor] = useState<{ id: string; name: string; voicePresetId: string; modelPath?: string } | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   // The full conversation so far, rendered as chat bubbles (NPC left,
   // student right) like a phone messaging app — direct teacher
@@ -5144,10 +5145,8 @@ export default function TownSquare() {
             onClose={() => setChatMenuNeighbor(null)}
             wedges={[
               { id: 'hi', icon: '👋', label: met ? 'Chat' : 'Say hi', bg: '#3e7c6b', onSelect: () => chooseSayHi(n) },
-              ...(met ? [
-                { id: 'joke', icon: '😄', label: 'Tell me a joke', bg: '#c2953f', onSelect: () => chooseJoke(n) },
-                { id: 'feelings', icon: '💛', label: 'My feelings', bg: '#d9576b', onSelect: () => chooseFeelings(n) },
-              ] : []),
+              ...(met ? [{ id: 'joke', icon: '😄', label: 'Tell me a joke', bg: '#c2953f', onSelect: () => chooseJoke(n) }] : []),
+              { id: 'feelings', icon: '💛', label: 'My feelings', bg: '#d9576b', onSelect: () => chooseFeelings(n) },
               { id: 'about', icon: '📇', label: `About ${prof?.name ?? n.name}`, bg: '#5b6bd6', onSelect: () => setAboutNpc(n.id) },
             ]}
           />
@@ -5164,6 +5163,7 @@ export default function TownSquare() {
             wedges={[
               { id: 'hi', icon: '👋', label: 'Chat', bg: '#3e7c6b', onSelect: () => chatTownsperson(tp) },
               { id: 'joke', icon: '😄', label: 'Tell me a joke', bg: '#c2953f', onSelect: () => chatTownsperson(tp, true) },
+              { id: 'feelings', icon: '💛', label: 'My feelings', bg: '#d9576b', onSelect: () => { setTownsMenu(null); setFeelingsNeighbor({ id: tp.id, name: prof?.name ?? tp.name, voicePresetId: tp.voicePresetId }); } },
               { id: 'about', icon: '📇', label: `About ${prof?.name ?? tp.name}`, bg: '#5b6bd6', onSelect: () => setAboutNpc(tp.id) },
             ]}
           />
@@ -5173,105 +5173,42 @@ export default function TownSquare() {
 
       {feelingsNeighbor && <NeighborFeelingsChat neighbor={feelingsNeighbor} onClose={() => setFeelingsNeighbor(null)} />}
 
-      {activeConversation && activeStep && (
-        <div className="overlay-backdrop" role="dialog" aria-modal="true">
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420, position: 'relative' }}>
-            {/* Claudia's conversation-framework review: every turn needs a
-                free, always-working way out (Functional Communication
-                Training — an escape response that doesn't reliably work
-                stops getting used). A student ending a conversation early
-                never loses anything or gets a guilt line. */}
-            <button
-              onClick={() => setActiveConversation(null)}
-              aria-label="I need a minute, leave this conversation"
-              title="I need a minute"
-              style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', opacity: 0.6, minWidth: 32, minHeight: 32 }}
-            >
-              <Icon name="close" size={16} fallback="✕" />
-            </button>
-            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              {(() => {
-                // Direct instruction: every Neighbor/Townsperson reads in
-                // their own distinct voice, never the student's — resolved
-                // once per open conversation, teacher override (Roster
-                // tab) on top of that character's own hand-picked default.
-                const defaultPresetId =
-                  QUEST1_NEIGHBORS.find((n) => n.id === activeConversation.id)?.voicePresetId
-                  ?? TOWNSPEOPLE[activeConversation.id]?.voicePresetId
-                  ?? 'plain-default';
-                const npcVoiceProfile = resolveNpcVoiceProfile(activeConversation.id, defaultPresetId, npcVoiceOverrides);
-                return (
-                  <>
-                    <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
-                      <h2 style={{ margin: 0 }}>{activeConversation.name}</h2>
-                      {(() => {
-                        const lastNpcLine = [...messageLog].reverse().find((m) => m.sender === 'npc');
-                        return lastNpcLine ? <ReadAloud text={lastNpcLine.text} small npcVoiceProfile={npcVoiceProfile} /> : null;
-                      })()}
-                    </div>
-                    {activeConversation.role && <p style={{ opacity: 0.7, margin: 0, fontSize: '0.85rem' }}>{activeConversation.role}</p>}
-                    {/* Direct teacher instruction: read like a phone
-                        messaging app — the other person's lines on the
-                        left, yours on the right, the whole conversation
-                        kept visible to scroll back through, not just the
-                        current line. Each bubble is individually
-                        replayable: a Neighbor's own bubbles always speak
-                        in their assigned voice, the student's own bubbles
-                        always speak in whatever voice the student has set
-                        as their own default (ReadAloud's own fallback,
-                        untouched here). */}
-                    <div
-                      ref={chatScrollRef}
-                      style={{ width: '100%', maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 2px', textAlign: 'left' }}
-                    >
-                      {messageLog.map((m, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: m.sender === 'player' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 4 }}>
-                          {m.sender === 'npc' && <ReadAloud text={m.text} small npcVoiceProfile={npcVoiceProfile} />}
-                          <div
-                            style={{
-                              maxWidth: '78%',
-                              padding: '8px 13px',
-                              borderRadius: 16,
-                              fontSize: '0.95rem',
-                              lineHeight: 1.35,
-                              background: m.sender === 'player' ? '#3e7c6b' : '#e9e6df',
-                              color: m.sender === 'player' ? '#fff' : '#1f4238',
-                              borderBottomRightRadius: m.sender === 'player' ? 4 : 16,
-                              borderBottomLeftRadius: m.sender === 'player' ? 16 : 4,
-                            }}
-                          >
-                            {m.text}
-                          </div>
-                          {m.sender === 'player' && <ReadAloud text={m.text} small />}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
+      {activeConversation && activeStep && (() => {
+        // Every Neighbor/Townsperson conversation uses the shared scene
+        // (teacher direction 2026-10-04): the Neighbor and the student both
+        // on screen and talking, a floating chat log, replies in the middle.
+        // Each character reads in their own voice (teacher override on top
+        // of the character's own default).
+        const defaultPresetId =
+          QUEST1_NEIGHBORS.find((n) => n.id === activeConversation.id)?.voicePresetId
+          ?? TOWNSPEOPLE[activeConversation.id]?.voicePresetId
+          ?? 'plain-default';
+        const npcVoiceProfile = resolveNpcVoiceProfile(activeConversation.id, defaultPresetId, npcVoiceOverrides);
+        return (
+          <NeighborScene
+            neighbor={{ id: activeConversation.id, name: activeConversation.name, modelPath: QUEST1_NEIGHBORS.find((n) => n.id === activeConversation.id)?.modelPath }}
+            voice={npcVoiceProfile}
+            npcLines={[activeStep.npc]}
+            sub={activeConversation.role}
+            talkKey={`${activeConversation.id}-${stepIndex}`}
+            log={messageLog.map((m) => ({ sender: m.sender === 'player' ? 'student' : 'npc', text: m.text }))}
+            onClose={() => setActiveConversation(null)}
+          >
+            <div className="sel-convo-choices">
               {activeStep.options && !isLastStep ? (
-                <div className="stack" style={{ gap: 8, width: '100%' }}>
-                  {activeStep.options.map((opt) => {
-                    const label = typeof opt === 'string' ? opt : opt.text;
-                    return (
-                      <button key={label} className="btn btn-primary" onClick={() => advanceConversation(opt)}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                  <button className="btn btn-sm" style={{ opacity: 0.7 }} onClick={() => setActiveConversation(null)}>
-                    I need a minute
-                  </button>
-                </div>
+                activeStep.options.map((opt) => {
+                  const label = typeof opt === 'string' ? opt : opt.text;
+                  return <button key={label} className="sel-pill" onClick={() => advanceConversation(opt)}>{label}</button>;
+                })
               ) : (
-                <button className="btn btn-primary btn-lg pulse-cta" onClick={() => advanceConversation()} autoFocus>
+                <button className="sel-pill" onClick={() => advanceConversation()} autoFocus>
                   {isLastStep ? `Thanks, ${activeConversation.name.split(' ')[0]}!` : 'Continue'}
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </NeighborScene>
+        );
+      })()}
 
       {settingsOpen && student && (
         <div className="overlay-backdrop" role="dialog" aria-modal="true">

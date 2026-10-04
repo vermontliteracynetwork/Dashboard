@@ -6,11 +6,12 @@ import type { StyleLook } from '../style/types';
 // A Neighbor (or anyone) shown as their live Style character on a
 // transparent canvas: idles, waves hello when it opens, and talks while
 // `talking` is on. Lazy-loaded by callers so three.js only loads when used.
-export default function NpcPortrait3D({ look, talkKey, talking = false, framing = 'full' }: {
+export default function NpcPortrait3D({ look, talkKey, talking = false, framing = 'full', facing = 'right' }: {
   look: StyleLook;
   talkKey?: string | number;
   talking?: boolean;
   framing?: 'full' | 'bust';
+  facing?: 'left' | 'right'; // which way they turn toward (the student faces left, toward the Neighbor)
 }) {
   const ref = useRef<StyleCharacterHandle>(null);
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function NpcPortrait3D({ look, talkKey, talking = false, framing 
       <hemisphereLight args={['#ffffff', '#f3d6ff', 0.5]} />
       <directionalLight position={[2, 4, 3]} intensity={1.3} />
       <Suspense fallback={null}>
-        <group rotation={[0, 0.35, 0]}>
+        <group rotation={[0, facing === 'left' ? -0.35 : 0.35, 0]}>
           <StyleCharacter ref={ref} look={look} talking={talking} />
         </group>
       </Suspense>

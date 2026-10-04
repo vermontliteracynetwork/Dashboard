@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
-import type { Quest1Neighbor } from '../lib/worldQuest1';
 import { SEL_STARTER_TOOLS, SEL_ZONE_LABELS } from '../lib/selZones';
 import { resolveNpcVoiceProfile } from '../lib/npcVoices';
 import type { SelZone } from '../types';
@@ -19,7 +18,7 @@ type Phase = 'ask' | 'result' | 'bye';
 // does). No automatic re-check is scheduled: the student came to talk on
 // their own and can come back any time. "I need a minute" always closes
 // it, nothing lost.
-export default function NeighborFeelingsChat({ neighbor, onClose }: { neighbor: Quest1Neighbor; onClose: () => void }) {
+export default function NeighborFeelingsChat({ neighbor, onClose }: { neighbor: { id: string; name: string; voicePresetId: string; modelPath?: string }; onClose: () => void }) {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const npcVoiceOverrides = useStore((s) => s.npcVoiceOverrides);

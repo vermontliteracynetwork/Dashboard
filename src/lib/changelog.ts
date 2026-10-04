@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-talk-scene',
+    date: '2026-10-04',
+    icon: '💬',
+    title: 'Talking with Neighbors got a big new look',
+    body: 'Now you and the Neighbor both stand on the screen and your mouths move when you talk! The chat writes itself in the little window at the top. You can tell any Neighbor or townsperson about your feelings too.',
+  },
+  {
     id: '2026-10-04-space-bowling',
     date: '2026-10-04',
     icon: '🪐',
