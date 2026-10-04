@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FREEZE_PRICE_CENTS, buyFreeze, freezesOf, useStreak } from '../lib/streak';
+import { freezePriceCents, buyFreeze, freezesOf, useStreak } from '../lib/streak';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
@@ -717,8 +717,8 @@ export default function Marketplace() {
                   <strong style={{ fontSize: '0.8rem' }}>Streak Freeze</strong>
                   <p style={{ fontSize: '0.66rem', opacity: 0.75, margin: 0 }}>Keeps your streak safe on a day you miss. Used for you automatically, or freeze a day ahead in your streak.</p>
                   <div className="tag-pill" style={{ fontSize: '0.68rem' }}>You have: {freezesOf(streakRow)}</div>
-                  <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={student.coins < FREEZE_PRICE_CENTS} onClick={() => buyFreeze(student.id)}>
-                    Buy for {formatMoney(FREEZE_PRICE_CENTS)}
+                  <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={student.coins < freezePriceCents()} onClick={() => buyFreeze(student.id)}>
+                    Buy for {formatMoney(freezePriceCents())}
                   </button>
                 </div>
                 {powerupItems.filter((p) => matchesSearch(p.name, p.tags, p.category)).map((p) => {

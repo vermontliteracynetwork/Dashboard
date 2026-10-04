@@ -5,7 +5,7 @@ import QuestionScreen from '../../components/QuestionScreen';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { payForAnswers } from '../../lib/gameEarnings';
-import { STREAK_GOAL, useStreak } from '../../lib/streak';
+import { streakGoal, useStreak } from '../../lib/streak';
 import { todayISO } from '../../lib/dates';
 import type { MCQuestion, NativeGameId } from '../../types';
 
@@ -55,8 +55,8 @@ export default function QuizMode() {
       prompt={q.prompt}
       choices={q.choices}
       correctIndex={q.correctIndex}
-      done={Math.min(doneToday, STREAK_GOAL)}
-      total={STREAK_GOAL}
+      done={Math.min(doneToday, streakGoal())}
+      total={streakGoal()}
       imageUrl={q.imageUrl}
       imageAlt={q.imageAlt}
       onCorrectAnswer={() => {

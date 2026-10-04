@@ -2,6 +2,7 @@ import CinemaVideosManager from './CinemaVideosManager';
 import ScratchGamesManager from './ScratchGamesManager';
 import MusicManager from './MusicManager';
 import TeacherNav from '../../components/TeacherNav';
+import EconomySettingsPanel from './EconomySettingsPanel';
 
 // A dedicated home for pure play-for-fun content — direct teacher
 // request, splitting this out of Activities (which is academic tasks/
@@ -15,6 +16,8 @@ export default function GameManager() {
       <TeacherNav />
       <div className="container stack">
         <h1>🎮 Game</h1>
+
+        <EconomySettingsPanel />
 
         <CinemaVideosManager />
 

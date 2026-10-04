@@ -1,5 +1,6 @@
 import { useStore } from '../store/store';
 import { todayISO } from './dates';
+import { getEconomy } from './economy';
 
 // Daily Streak (teacher spec 2026-10-04, full words in the dev plan). A
 // streak day is saved by answering STREAK_GOAL questions right anywhere in
@@ -21,9 +22,9 @@ import { todayISO } from './dates';
 //   money cap for the day is unchanged.
 // - Only right answers count (wrong answers never cost anything).
 
-export const STREAK_GOAL = 20;
-export const MAX_CHESTS = 7;
-export const FREEZE_PRICE_CENTS = 2000;
+// Teacher-editable in Economy Settings (src/lib/economy.ts); defaults 20, 7 and $20.
+export const streakGoal = () => getEconomy().streakGoal;
+export const freezePriceCents = () => getEconomy().freezePriceCents;
 
 export interface StreakRow {
   count?: number;
@@ -96,11 +97,12 @@ export function reconcileStreak(studentId: string): StreakRow {
 // $1 to $10 each, at most $20. Days 20 to 29: $1 to $15, at most $30. Every
 // further 10 days: +$5 per chest, +$10 per day.
 export function chestAmounts(day: number, rand = Math.random): number[] {
-  if (day <= 1) return [500];
+  const econ = getEconomy();
+  if (day <= 1) return [econ.dayOneChestCents];
   const band = Math.floor(day / 10);
   const maxEach = 5 * (band + 1);
   const cap = 10 * (band + 1);
-  const n = Math.min(day, MAX_CHESTS);
+  const n = Math.min(day, econ.maxChests);
   const dollars = Array.from({ length: n }, () => 1 + Math.floor(rand() * maxEach));
   let total = dollars.reduce((a, b) => a + b, 0);
   while (total > cap) {
@@ -122,7 +124,7 @@ export function recordStreakCorrect(studentIdArg?: string) {
   const r = reconcileStreak(studentId);
   const correct = (r.today?.day === today ? r.today.correct : 0) + 1;
   const patch: Partial<StreakRow> = { today: { day: today, correct } };
-  if (correct >= STREAK_GOAL && r.lastSavedDay !== today) {
+  if (correct >= streakGoal() && r.lastSavedDay !== today) {
     const count = (r.count ?? 0) + 1;
     patch.count = count;
     patch.best = Math.max(r.best ?? 0, count);
@@ -164,8 +166,9 @@ export function addFreeze(studentId: string, n = 1) {
 export function buyFreeze(studentId: string): boolean {
   const st = useStore.getState();
   const student = st.students.find((s) => s.id === studentId);
-  if (!student || student.coins < FREEZE_PRICE_CENTS) return false;
-  st.recordTransaction(studentId, -FREEZE_PRICE_CENTS, '🧊 Streak Freeze', '🧊', 'purchase-freeze', false, 'want');
+  const price = freezePriceCents();
+  if (!student || student.coins < price) return false;
+  st.recordTransaction(studentId, -price, '🧊 Streak Freeze', '🧊', 'purchase-freeze', false, 'want');
   addFreeze(studentId);
   return true;
 }

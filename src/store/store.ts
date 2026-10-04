@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
 import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
 import { addFreeze, recordStreakCorrect } from '../lib/streak';
+import { getEconomy } from '../lib/economy';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById, emotePriceFor } from '../lib/emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
@@ -1942,7 +1943,7 @@ export const useStore = create<AppState>()(
         // spread evenly over every other wedge.
         const freezeIndex = segments.findIndex((sg) => sg.kind === 'freeze');
         const others = segments.map((_, i) => i).filter((i) => i !== freezeIndex);
-        const segmentIndex = freezeIndex >= 0 && Math.random() < 0.05 ? freezeIndex : others[Math.floor(Math.random() * others.length)];
+        const segmentIndex = freezeIndex >= 0 && Math.random() < getEconomy().freezeSpinPct / 100 ? freezeIndex : others[Math.floor(Math.random() * others.length)];
         const segment = segments[segmentIndex];
         // Folded into each branch's own updateStudent call below instead of
         // fired as its own separate update — two back-to-back updateStudent

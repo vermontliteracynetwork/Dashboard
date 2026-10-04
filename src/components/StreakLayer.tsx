@@ -4,7 +4,7 @@ import { useStore } from '../store/store';
 import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import {
-  FREEZE_PRICE_CENTS, STREAK_GOAL, buyFreeze, clearFreezeNotice, dayAfter, finishChests, freezeDay, freezesOf,
+  freezePriceCents, streakGoal, buyFreeze, clearFreezeNotice, dayAfter, finishChests, freezeDay, freezesOf,
   markCardShown, openNextChest, reconcileStreak, restoreStreak, useStreak, weekView, type StreakRow,
 } from '../lib/streak';
 import GameDashboard from './GameDashboard';
@@ -74,8 +74,8 @@ function StreakView({ studentId, onClose }: { studentId: string; onClose: () => 
         <p className="streak-sub">Best ever: {r.best ?? 0} day{(r.best ?? 0) === 1 ? '' : 's'}</p>
         <Week r={r} />
         <div className="streak-progress">
-          <div className="streak-bar"><span style={{ width: `${Math.min(100, (correct / STREAK_GOAL) * 100)}%` }} /></div>
-          <strong>{saved ? '✅ Today is saved!' : `${Math.min(correct, STREAK_GOAL)} of ${STREAK_GOAL} right answers today`}</strong>
+          <div className="streak-bar"><span style={{ width: `${Math.min(100, (correct / streakGoal()) * 100)}%` }} /></div>
+          <strong>{saved ? '✅ Today is saved!' : `${Math.min(correct, streakGoal())} of ${streakGoal()} right answers today`}</strong>
         </div>
         {r.lost && r.lost.day === today && (
           <div className="streak-box warn">
@@ -88,8 +88,8 @@ function StreakView({ studentId, onClose }: { studentId: string; onClose: () => 
         <div className="streak-box">
           <strong>🧊 Streak Freezes: {freezesOf(r)}</strong>
           <span>A freeze keeps your streak safe on a day you can't play. If you miss a day, one is used for you.</span>
-          <button className="btn btn-lg" disabled={coins < FREEZE_PRICE_CENTS} onClick={() => setMsg(buyFreeze(studentId) ? '🧊 You bought a Streak Freeze!' : "You don't have enough money yet.")}>
-            Buy a freeze for {formatMoney(FREEZE_PRICE_CENTS)}
+          <button className="btn btn-lg" disabled={coins < freezePriceCents()} onClick={() => setMsg(buyFreeze(studentId) ? '🧊 You bought a Streak Freeze!' : "You don't have enough money yet.")}>
+            Buy a freeze for {formatMoney(freezePriceCents())}
           </button>
           <span>Going to miss a day? Freeze it ahead of time:</span>
           <div className="row-wrap" style={{ gap: 8 }}>
@@ -163,7 +163,7 @@ function DailyCard({ studentId, r, onDone }: { studentId: string; r: StreakRow; 
     return (
       <GameDashboard
         title="Pick a game!"
-        subtitle={`Every right answer counts toward your ${STREAK_GOAL} for today.`}
+        subtitle={`Every right answer counts toward your ${streakGoal()} for today.`}
         games={[...NATIVE_GAME_CARDS, QUIZ_MODE_CARD]}
         onClose={onDone}
         onPick={(g) => { onDone(); navigate(g.route, { state: { from: 'town' } }); }}
@@ -178,8 +178,8 @@ function DailyCard({ studentId, r, onDone }: { studentId: string; r: StreakRow; 
         <p className="streak-card-text">{text}</p>
         {froze > 0 && <p className="streak-card-note">🧊 A Streak Freeze saved your streak while you were away!</p>}
         <Week r={r} />
-        <p className="streak-card-goal">To keep your streak, answer <strong>{STREAK_GOAL} questions</strong> right today.</p>
-        <ReadAloud text={`${count} day streak. ${text} To keep your streak, answer ${STREAK_GOAL} questions right today.`} small />
+        <p className="streak-card-goal">To keep your streak, answer <strong>{streakGoal()} questions</strong> right today.</p>
+        <ReadAloud text={`${count} day streak. ${text} To keep your streak, answer ${streakGoal()} questions right today.`} small />
         <button className="btn btn-lg btn-primary streak-go" onClick={() => { markCardShown(studentId); if (froze) clearFreezeNotice(studentId); setGrid(true); }}>I got this! 💪</button>
       </div>
     </div>
@@ -239,9 +239,9 @@ function Meter({ r, onOpen }: { r: StreakRow; onOpen: () => void }) {
         🔥<span className="streak-pill-count">{r.count ?? 0}</span>
       </button>
       {!min && (
-        <button type="button" className="streak-pill-body" onPointerDown={down} onPointerUp={(e) => up(e, false)} aria-label={saved ? 'Today is saved. Open my streak' : `${correct} of ${STREAK_GOAL} right answers today. Open my streak`}>
-          <span className="streak-pill-bar"><span style={{ width: `${Math.min(100, (correct / STREAK_GOAL) * 100)}%` }} /></span>
-          <span className="streak-pill-text">{saved ? '✅ Saved!' : `${Math.min(correct, STREAK_GOAL)}/${STREAK_GOAL}`}</span>
+        <button type="button" className="streak-pill-body" onPointerDown={down} onPointerUp={(e) => up(e, false)} aria-label={saved ? 'Today is saved. Open my streak' : `${correct} of ${streakGoal()} right answers today. Open my streak`}>
+          <span className="streak-pill-bar"><span style={{ width: `${Math.min(100, (correct / streakGoal()) * 100)}%` }} /></span>
+          <span className="streak-pill-text">{saved ? '✅ Saved!' : `${Math.min(correct, streakGoal())}/${streakGoal()}`}</span>
         </button>
       )}
       {hint && !min && <span className="streak-pill-hint">Drag me anywhere. Double tap the 🔥 to shrink me.</span>}

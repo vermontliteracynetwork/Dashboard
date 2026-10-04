@@ -5,6 +5,7 @@ import { marketplaceItemDisplayName } from './marketplaceDisplay';
 import { itemEarnsVia } from './marketplaceSeed';
 import { PET_CATALOG } from './petCatalog';
 import type { MarketplaceItem } from '../types';
+import { getEconomy, type EconomySettings } from './economy';
 
 export type SpinItemKind = 'avatar' | 'emote' | 'font' | 'color' | 'voice' | 'prize' | 'pet';
 
@@ -37,7 +38,6 @@ function hashString(str: string): number {
   return h;
 }
 
-const CASH_AMOUNTS_CENTS = [100, 200, 250, 300, 500, 1000]; // $1, $2, $2.50, $3, $5, $10
 
 function isAvailableOn(item: MarketplaceItem, dateISO: string): boolean {
   if (item.availableFrom && dateISO < item.availableFrom) return false;
@@ -53,7 +53,7 @@ function isAvailableOn(item: MarketplaceItem, dateISO: string): boolean {
 // their pet home is already full), spinDailyWheel falls back to a small
 // cash consolation so nothing is ever a dead spin. A seasonal/limited-time
 // item only enters the pool on the days it's actually available.
-export function getDailySpinSegments(dateISO: string, marketplaceItems: MarketplaceItem[]): DailySpinSegment[] {
+export function getDailySpinSegments(dateISO: string, marketplaceItems: MarketplaceItem[], econ: EconomySettings = getEconomy()): DailySpinSegment[] {
   const rand = seededRandom(hashString(dateISO));
 
   const segments: DailySpinSegment[] = [];
@@ -62,7 +62,7 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
   // the time (see spinDailyWheel in store.ts), not 1 in 11.
   segments.push({ id: 'freeze', kind: 'freeze', label: '🧊 Streak Freeze' });
 
-  const cashbackPct = rand() < 0.5 ? 3 : 5;
+  const cashbackPct = econ.cashbackPcts[Math.floor(rand() * econ.cashbackPcts.length)];
   segments.push({ id: `cashback-${cashbackPct}`, kind: 'cashback', percent: cashbackPct, label: `💰 ${cashbackPct}% Cashback` });
 
   // One dedicated pet slot per day (its own wedge, like Skip/Cashback) —
@@ -73,7 +73,7 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
   const pet = PET_CATALOG[Math.floor(rand() * PET_CATALOG.length)];
   segments.push({ id: `pet-${pet.id}`, kind: 'pet', itemId: pet.id, label: `🐾 ${pet.name}` });
 
-  const cashPool = [...CASH_AMOUNTS_CENTS];
+  const cashPool = [...econ.spinCashCents];
   for (let i = 0; i < 4 && cashPool.length > 0; i++) {
     const idx = Math.floor(rand() * cashPool.length);
     const amount = cashPool.splice(idx, 1)[0];

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { getEconomy } from '../../lib/economy';
+const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
@@ -110,7 +112,7 @@ const QUESTIONS_PER_GATE = 3;
 const GEMS_PER_CORRECT = 2;
 // $1 per right answer, same as every native game (teacher direction
 // 2026-10-04, src/lib/gameEarnings.ts). Was 50 cents.
-const REWARD_PER_QUESTION_CENTS = 100;
+// Now read from Economy Settings (default $1): see rewardPerQuestionCents().
 // Real-time combat simulation constants (Claudia's redesign spec) — a
 // live tick loop, not a single precomputed outcome.
 const TICK_MS = 150; // simulation step; also the CSS transition duration on .castle-enemy, so position updates read as continuous motion, not jumps
@@ -376,7 +378,7 @@ export default function CastleDefense() {
       }
       recordCastleDefenseQuestionAnswered(student.id);
       sessionQuestionsRef.current += 1;
-      setSessionEarningsCents((c) => c + REWARD_PER_QUESTION_CENTS);
+      setSessionEarningsCents((c) => c + rewardPerQuestionCents());
       setGems((g) => g + GEMS_PER_CORRECT);
     }
     const next = gateCorrectCount + 1;
@@ -580,7 +582,7 @@ export default function CastleDefense() {
       );
       updateStudent(student.id, { castleDefenseMilestoneTier: tier, castleDefenseMilestoneCount: count });
 
-      const totalEarnedCents = sessionQuestionsRef.current * REWARD_PER_QUESTION_CENTS + milestoneCents;
+      const totalEarnedCents = sessionQuestionsRef.current * rewardPerQuestionCents() + milestoneCents;
       if (totalEarnedCents > 0) {
         recordTransaction(student.id, totalEarnedCents, '🏰 Castle Defense: game earnings', '💰', 'castle-defense');
         setSessionEarningsCents(totalEarnedCents);

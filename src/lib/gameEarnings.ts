@@ -10,11 +10,12 @@ import { formatMoney } from './money';
 // $1 per right answer. One bank register row per payout, the app-wide
 // falling coins (CoinDropOverlay), and a message on screen saying what was
 // earned and why.
-export const DOLLARS_PER_CORRECT_CENTS = 100;
+// Teacher-editable in Economy Settings (default $1).
+import { getEconomy } from './economy';
 
 export function payForAnswers(studentId: string, correct: number, game: string, icon: string) {
   if (!studentId || correct <= 0) return;
-  const cents = correct * DOLLARS_PER_CORRECT_CENTS;
+  const cents = correct * getEconomy().perCorrectCents;
   const st = useStore.getState();
   st.recordTransaction(studentId, cents, `${icon} ${game}: ${correct} right answer${correct === 1 ? '' : 's'}`, icon, 'game-answers');
   useStore.setState((s) => ({

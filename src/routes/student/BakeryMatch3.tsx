@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getEconomy } from '../../lib/economy';
+const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -76,7 +78,7 @@ import {
 //    recorded to their own private leaderboard, and they land back on the
 //    main menu.
 //  - Direct teacher instruction, reversing the earlier "no Class Cash"
-//    call: cash prizes are the default now, REWARD_PER_QUESTION_CENTS per
+//    call: cash prizes are the default now, rewardPerQuestionCents() per
 //    correctly-answered question, credited the moment it's answered (real
 //    bank register row + the app-wide coin-drop animation, both via
 //    recordTransaction — see handleChallengeCorrect). The XP system above
@@ -104,7 +106,7 @@ const DRAG_THRESHOLD_PX = 18;
 // question, credited the moment it's answered.
 // $1 per right answer, same as every native game (teacher direction
 // 2026-10-04, src/lib/gameEarnings.ts). Was 50 cents.
-const REWARD_PER_QUESTION_CENTS = 100;
+// Now read from Economy Settings (default $1): see rewardPerQuestionCents().
 
 type Phase = 'menu' | 'playing' | 'challenge';
 
@@ -428,7 +430,7 @@ export default function BakeryMatch3() {
       // session) and settle everything in one recordTransaction call
       // down in the round >= TOTAL_ROUNDS branch below, never per-question.
       sessionQuestionsRef.current += 1;
-      setSessionEarningsCents((c) => c + REWARD_PER_QUESTION_CENTS);
+      setSessionEarningsCents((c) => c + rewardPerQuestionCents());
     }
     const next = gateCorrectCount + 1;
     if (next < QUESTIONS_PER_GATE) {
@@ -464,7 +466,7 @@ export default function BakeryMatch3() {
         );
         updateStudent(student.id, { bakeryMilestoneTier: tier, bakeryMilestoneCount: count });
 
-        const totalEarnedCents = sessionQuestionsRef.current * REWARD_PER_QUESTION_CENTS + milestoneCents;
+        const totalEarnedCents = sessionQuestionsRef.current * rewardPerQuestionCents() + milestoneCents;
         if (totalEarnedCents > 0) {
           // recordTransaction is the app's one choke point for crediting
           // a student's balance — this single call gets the real bank
