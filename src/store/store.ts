@@ -296,6 +296,9 @@ interface AppState {
   // Students' Style things at the Seamstress (src/style/shop.ts): owned
   // animals/items/patterns and whether Bawk's walkthrough is done.
   updateStyleInventory: (studentId: string, patch: Partial<StyleInventory>) => void;
+  // Small per-student game stats kept as a style_looks row (e.g. Space
+  // Bowling's `sb:<studentId>` right-answer count), merged into what's saved.
+  mergeStyleRow: (ownerId: string, patch: Record<string, unknown>) => void;
   // A Neighbor/Townsperson's Style look, name and facts (src/style/npcs.ts),
   // saved as the `npc:<id>` row. Merges into what is already saved.
   saveNpcProfile: (npcId: string, patch: { look?: StyleLook; name?: string; facts?: string[] }) => void;
@@ -2668,6 +2671,13 @@ export const useStore = create<AppState>()(
       updateStyleInventory: (studentId, patch) => {
         const ownerId = inventoryOwner(studentId);
         const cur = asInventory(get().styleLooks.find((r) => r.ownerId === ownerId)?.look);
+        const look = { ...cur, ...patch };
+        const row = { ownerId, look, updatedAt: new Date().toISOString() };
+        set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
+        pushStyleLook(ownerId, look);
+      },
+      mergeStyleRow: (ownerId, patch) => {
+        const cur = (get().styleLooks.find((r) => r.ownerId === ownerId)?.look ?? {}) as Record<string, unknown>;
         const look = { ...cur, ...patch };
         const row = { ownerId, look, updatedAt: new Date().toISOString() };
         set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));

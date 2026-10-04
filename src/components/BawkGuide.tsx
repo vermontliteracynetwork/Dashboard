@@ -3,6 +3,8 @@ import { Canvas } from '@react-three/fiber';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { styleSound } from '../style/styleSounds';
+import ReadAloud from './ReadAloud';
+import { NPC_VOICE_PRESETS } from '../lib/npcVoices';
 
 // Bawk, the announcing rooster ("CrazyCock Character low poly animated" by
 // MichielA, CC-BY-4.0, credited on the Teacher home page). Stands on the
@@ -25,7 +27,7 @@ function Rooster({ talkKey }: { talkKey: string }) {
     a.play();
   }, [talkKey, actions, names]);
   return (
-    <group ref={group} scale={0.0165} rotation={[0, 2.3, 0]}>
+    <group ref={group} scale={0.0165} rotation={[0, 0.3, 0]}>
       <primitive object={scene} />
     </group>
   );
@@ -51,7 +53,7 @@ export default function BawkGuide({ message, talkKey, children, step }: {
       </div>
       <div className="bawk-bar" role="status" aria-live="polite">
         <div className="bawk-bubble">
-          <div className="bawk-name">🐓 Bawk{step ? <span className="bawk-step">{step}</span> : null}</div>
+          <div className="bawk-name">🐓 Bawk{step ? <span className="bawk-step">{step}</span> : null}<ReadAloud text={message} small npcVoiceProfile={NPC_VOICE_PRESETS['country-drawl']} /></div>
           <p className="bawk-text">{message}</p>
         </div>
         <div className="bawk-actions">{children}</div>

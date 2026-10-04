@@ -55,18 +55,26 @@ const randomPaint = (allowed?: PatternId[]): Paint => ({ pattern: Math.random() 
 
 // Bawk's guided walkthrough (required the first time a student opens the
 // Seamstress). Each step unlocks only the controls that step needs.
-type WtStep = { id: string; text: string; allow: string[]; next?: boolean; finish?: boolean };
+type WtStep = { id: string; text: string; allow: string[]; next?: boolean; finish?: boolean; tab?: Tab };
+// Every clothing category gets its own step (teacher direction 2026-10-04),
+// and None is always allowed. Each category step opens its own tab.
+const cat = (tab: WardrobeSlot, text: string): WtStep => ({ id: `cat-${tab}`, text, allow: [`tab:${tab}`, 'items', 'zones'], next: true, tab });
 const WT_STEPS: WtStep[] = [
-  { id: 'hello', text: "Bawk bawk! I'm Bawk. Welcome to the Seamstress, where you make your very own character! Tap Next to start.", allow: [], next: true },
-  { id: 'animal', text: 'First, pick your animal. Your first animal is free! Tap the one you want.', allow: ['species'] },
-  { id: 'fur', text: 'Make it yours! Under Fur, tap a color button, then drag on the color wheel. Tap Next when you like it.', allow: ['fur'], next: true },
-  { id: 'tops', text: 'Time to get dressed! Tap Tops.', allow: ['tab:top'] },
-  { id: 'shirt', text: 'Tap a shirt to put it on. The T-Shirt, Tank Top and Long Sleeve are free!', allow: ['items'] },
-  { id: 'pattern', text: 'Pick a pattern for your shirt. Solid, Stripes and Polka Dots are free. Patterns with a gray lock cost $5 each. Tap Next when you are done.', allow: ['zones'], next: true },
-  { id: 'locks', text: 'See the items with a gray lock? You can try them on to see how they look, but you have to buy them with your Class Cash before you can save them. Tap Next.', allow: [], next: true },
+  { id: 'hello', text: "Well, howdy! I'm Bawk. Welcome to the Seamstress, where you make your very own character! Tap Next to get started.", allow: [], next: true },
+  { id: 'animal', text: 'First, pick your animal. Tap each one to see it. Your first animal is free! When you have the one you want, tap Next.', allow: ['species'], next: true, tab: 'body' },
+  { id: 'fur', text: 'Make it yours! Tap a color button, then drag on the color wheel. You can color the fur, tummy, ears and paws. Tap Next when you like it.', allow: ['fur', 'belly'], next: true, tab: 'body' },
+  cat('hat', 'Hats! Tap a hat to try it on, or tap None for no hat. Tap Next when you are ready.'),
+  cat('face', 'Glasses! Try some on, or tap None. Tap Next when you are ready.'),
+  cat('gear', 'Comfort gear, like ear defenders for loud places. Try them, or tap None. Tap Next.'),
+  cat('top', 'Tops! Tap a shirt to put it on. Then pick a pattern for it. Solid, Stripes and Polka Dots are free. Tap Next when you are done.'),
+  cat('bottom', 'Bottoms! Tap pants, shorts or a skirt, or tap None. Tap Next.'),
+  cat('shoes', 'Shoes! Tap a pair to try them on, or tap None. Tap Next.'),
+  cat('back', 'Back things, like a backpack or a cape. Try one, or tap None. Tap Next.'),
+  cat('costume', 'Costumes turn you into someone brand new! The Space Alien is earned by playing Space Bowling. Tap Next.'),
+  { id: 'locks', text: "See the gray locks? You can try those things on to see how they look, but you need to buy them with your Class Cash before you can save them. Tap Next.", allow: [], next: true },
   { id: 'wave', text: "Let's see your character move! Tap Wave.", allow: ['wave'] },
-  { id: 'save', text: 'Looking great! Tap Save my look to keep it.', allow: ['save'] },
-  { id: 'done', text: 'Bawk! You did it! Your character is ready. Come back to the Seamstress any time to change your look. Tap Finish.', allow: [], finish: true },
+  { id: 'save', text: 'Lookin\' great! Tap Save my look to keep it. If something is locked, take it off first.', allow: ['save'] },
+  { id: 'done', text: 'Bawk! You did it, partner! Your character is ready. Come back to the Seamstress any time to change your look. Tap Finish.', allow: [], finish: true },
 ];
 
 export default function StyleRoom() {
@@ -208,16 +216,15 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const wtNext = () => setWtIndex((i) => Math.min(i + 1, WT_STEPS.length - 1));
   const [freePick, setFreePick] = useState<SpeciesId | null>(null);
   useEffect(() => {
-    if (!wtStep) return;
-    if (wtStep.id === 'animal' || wtStep.id === 'fur') setTab('body');
-    if (wtStep.id === 'tops' && tab === 'top') wtNext();
-    if (wtStep.id === 'shirt') {
-      const eq = look.outfit.top;
-      const item = eq ? itemFor(eq.itemId) : undefined;
-      if (item && !lockOf(item)) wtNext();
-    }
+    if (wtStep?.tab) setTab(wtStep.tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wtStep?.id, tab, look.outfit.top?.itemId]);
+  }, [wtStep?.id]);
+  // Next: on the animal step, confirm the free animal first (the pop-up only
+  // shows when moving on, never while trying animals out).
+  const wtNextPressed = () => {
+    if (wtStep?.id === 'animal') { setFreePick(look.species); styleSound.tap(); return; }
+    wtNext();
+  };
   const finishWalkthrough = () => {
     updateInv(owner, { walkthroughDone: true });
     styleSound.save();
@@ -495,7 +502,6 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                         <button key={sp.id} type="button" className={`style-tile${look.species === sp.id ? ' on' : ''}${spLocked(sp.id) ? ' locked' : ''}`}
                           onClick={() => {
                             setLook((l) => ({ ...l, species: sp.id, body: structuredClone(sp.defaultBody) })); styleSound.pop(); play('wave');
-                            if (wtStep?.id === 'animal') setFreePick(sp.id);
                           }}>
                           <span className="style-tile-emoji">{sp.emoji}</span>{sp.name}
                           {spLocked(sp.id) ? <span className="style-tile-lock" aria-label="Locked">🔒 {money(SPECIES_PRICE)}</span> : null}
@@ -596,7 +602,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
       )}
       {wtStep && (
         <BawkGuide message={wtStep.text} talkKey={wtStep.id} step={`Step ${Math.min(wtIndex, WT_STEPS.length - 1) + 1} of ${WT_STEPS.length}`}>
-          {wtStep.next && <button type="button" className="style-btn primary" onClick={wtNext}>Next ➜</button>}
+          {wtStep.next && <button type="button" className="style-btn primary" onClick={wtNextPressed}>Next ➜</button>}
           {wtStep.finish && <button type="button" className="style-btn primary" onClick={finishWalkthrough}>Finish 🎉</button>}
         </BawkGuide>
       )}

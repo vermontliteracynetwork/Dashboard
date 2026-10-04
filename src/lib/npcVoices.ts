@@ -30,6 +30,10 @@ export const NPC_VOICE_PRESETS: Record<string, NpcVoiceProfile> = {
   'bright-friendly': { label: '🌤️ Bright & Friendly', pitch: 1.3, rate: 1.05, hints: ['female', 'karen', 'moira'] },
   'light-cheerful': { label: '🎈 Light & Cheerful', pitch: 1.5, rate: 1.1, hints: ['female', 'samantha', 'karen'] },
   'playful-quick': { label: '🐿️ Playful & Quick', pitch: 1.6, rate: 1.2, hints: ['female', 'victoria', 'karen'] },
+  // Bawk the rooster (teacher: "country/southern US male if possible").
+  // Browsers ship no true Southern accent, so this picks the deepest US
+  // male voice available and slows it into a easy drawl.
+  'country-drawl': { label: '🤠 Country Drawl', pitch: 0.78, rate: 0.86, hints: ['aaron', 'evan', 'fred', 'tom', 'us english male', 'male'] },
   'plain-default': { label: '🔊 Plain (browser default)', pitch: 1, rate: 1, hints: [] },
 };
 

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-space-bowling',
+    date: '2026-10-04',
+    icon: '🪐',
+    title: 'New game: Space Bowling!',
+    body: 'Roll silly planets at alien cat pins! Answer questions before your turn, tap a lane number to roll, and hit the glowing asteroids for power-ups: the UFO beams up pins, the Strike Shuttle gets a strike, and the Meteor Shower messes up the next player. Play the computer or friends. Get 500 answers right to earn the Space Alien costume!',
+  },
+  {
     id: '2026-10-04-neighbors-new-look',
     date: '2026-10-04',
     icon: '🏘️',

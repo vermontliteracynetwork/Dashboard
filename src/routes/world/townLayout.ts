@@ -161,6 +161,7 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   bakery: '/student/bakery',
   castle: '/student/castle-defense',
   seamstress: '/student/style',
+  'space-bowling': '/student/space-bowling',
   chess: '/student/chess',
   // Never actually read — a 'gas-pump' role opens the in-world gas refuel
   // prompt directly (TownSquare.tsx's openRoleObject special-cases it,
@@ -230,12 +231,16 @@ export function isChessSetModel(modelPath: string): boolean {
 }
 // The Seamstress shop building opens Style (dress up) for students.
 export const isSeamstressModel = (modelPath: string) => /\/seamstress-shop\.glb$/i.test(modelPath);
+// A space billboard opens Space Bowling (teacher spec: "space billboard
+// asset is what connects to the bowling game").
+export const isSpaceBowlingModel = (modelPath: string) => /billboard/i.test(modelPath) && /space/i.test(modelPath);
 
 export function withDefaultRoles<T extends { modelPath: string; role?: WorldObjectRole }>(objs: T[]): T[] {
   return objs.map((o) => {
     if (o.role) return o;
     if (isChessSetModel(o.modelPath)) return { ...o, role: 'chess' as WorldObjectRole };
     if (isSeamstressModel(o.modelPath)) return { ...o, role: 'seamstress' as WorldObjectRole };
+    if (isSpaceBowlingModel(o.modelPath)) return { ...o, role: 'space-bowling' as WorldObjectRole };
     return o;
   });
 }

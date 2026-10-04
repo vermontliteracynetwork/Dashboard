@@ -4172,3 +4172,72 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .npc-sheet-empty { margin: 0; font-size: 1.05rem; opacity: 0.75; }
 .npc-sheet-info .btn { align-self: flex-start; margin-top: auto; min-height: 56px; }
 @media (max-width: 700px) { .npc-sheet { flex-direction: column; } .npc-sheet-portrait { flex-basis: auto; height: 260px; } }
+
+/* ---------- Space Bowling (sci-fi UI, iPad first) ---------- */
+@font-face { font-family: 'Kenvector Future'; src: url('/games/tappy-plane/Font/kenvector_future.ttf') format('truetype'); font-display: swap; }
+.sb-root { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 20%, #2b1a6b, #0b0624 70%); color: #eef4ff; font-family: 'Baloo 2', system-ui, sans-serif; overflow: hidden; }
+.sb-title, .sb-round, .sb-result strong, .sb-modal h2, .sb-panel h2 { font-family: 'Kenvector Future', 'Baloo 2', system-ui, sans-serif; letter-spacing: 0.04em; }
+.sb-btn { min-height: 52px; padding: 8px 20px; border-radius: 16px; border: 2px solid #5ef0ff; background: rgba(15, 30, 70, 0.75); color: #eaffff; font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer; box-shadow: 0 0 14px rgba(94, 240, 255, 0.35); touch-action: manipulation; }
+.sb-btn.big { background: linear-gradient(180deg, #ff5fd2, #a742ff); border-color: #ffd1f5; font-size: 1.3rem; min-height: 64px; box-shadow: 0 0 22px rgba(255, 95, 210, 0.55); }
+.sb-btn.ghost { background: rgba(10, 10, 40, 0.55); }
+.sb-btn:disabled { opacity: 0.5; }
+.sb-launch { height: 100%; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.sb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sb-title { margin: 0; font-size: clamp(1.4rem, 4vw, 2.4rem); text-align: center; text-shadow: 0 0 18px #ff5fd2; }
+.sb-launch-grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.4fr); gap: 16px; }
+@media (max-width: 860px) { .sb-launch-grid { grid-template-columns: 1fr; } }
+.sb-panel { background: rgba(14, 18, 52, 0.72); border: 2px solid rgba(94, 240, 255, 0.55); border-radius: 24px; padding: 16px; box-shadow: inset 0 0 30px rgba(94, 240, 255, 0.12), 0 0 24px rgba(167, 66, 255, 0.25); display: flex; flex-direction: column; gap: 12px; }
+.sb-panel h2 { margin: 0; font-size: 1.1rem; color: #9ff6ff; }
+.sb-prize-stage { height: 280px; border-radius: 18px; background: radial-gradient(circle at 50% 40%, rgba(120, 255, 200, 0.35), transparent 70%); }
+.sb-prize-text { margin: 0; font-size: 1.1rem; font-weight: 700; }
+.sb-prize-count { margin: 0; font-weight: 800; color: #9ff6ff; }
+.sb-meter { height: 18px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; border: 2px solid rgba(94, 240, 255, 0.5); }
+.sb-meter div { height: 100%; background: linear-gradient(90deg, #22d3ee, #a3e635); }
+.sb-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sb-chip { min-height: 52px; padding: 6px 16px; border-radius: 999px; border: 2px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.08); color: #fff; font: inherit; font-weight: 800; font-size: 1rem; cursor: pointer; }
+.sb-chip.on { border-color: #ff5fd2; background: rgba(255, 95, 210, 0.3); box-shadow: 0 0 12px rgba(255, 95, 210, 0.5); }
+.sb-player-rows { display: flex; flex-direction: column; gap: 8px; }
+.sb-player-row { display: flex; align-items: center; gap: 12px; }
+.sb-planet-pick { width: 72px; height: 72px; border-radius: 50%; border: 2px dashed #9ff6ff; background: transparent; padding: 4px; cursor: pointer; flex: none; }
+.sb-planet-pick img { width: 100%; height: 100%; object-fit: contain; }
+.sb-player-fields { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.sb-input { min-height: 48px; border-radius: 12px; border: 2px solid rgba(94, 240, 255, 0.5); background: rgba(0, 0, 0, 0.3); color: #fff; font: inherit; font-size: 1.1rem; font-weight: 700; padding: 4px 12px; }
+.sb-planet-name { font-size: 0.85rem; opacity: 0.8; }
+.sb-slider { display: flex; flex-direction: column; gap: 6px; font-size: 1.05rem; font-weight: 700; }
+.sb-slider input { width: 100%; height: 36px; accent-color: #ff5fd2; }
+.sb-source { background: #fff; color: #2b1452; border-radius: 16px; padding: 8px; }
+.sb-game { position: absolute; inset: 0; }
+.sb-canvas { position: absolute; inset: 0; }
+.sb-loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.4rem; font-weight: 800; }
+.sb-hud-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.sb-hud-top > * { pointer-events: auto; }
+.sb-round { padding: 8px 18px; border-radius: 999px; background: rgba(10, 10, 40, 0.7); border: 2px solid #ff5fd2; font-size: 1rem; }
+.sb-score { position: absolute; top: 76px; right: 12px; display: flex; flex-direction: column; gap: 6px; }
+.sb-score-row { display: flex; align-items: center; gap: 8px; min-width: 190px; padding: 6px 12px; border-radius: 14px; background: rgba(10, 10, 40, 0.72); border: 2px solid rgba(255, 255, 255, 0.25); font-weight: 800; font-size: 1.05rem; }
+.sb-score-row.on { border-color: #5ef0ff; box-shadow: 0 0 14px rgba(94, 240, 255, 0.6); }
+.sb-score-row img { width: 34px; height: 34px; object-fit: contain; }
+.sb-score-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-score-num { font-family: 'Kenvector Future', system-ui; font-size: 1.2rem; color: #ffe066; }
+.sb-powers { position: absolute; right: 12px; top: 50%; transform: translateY(-20%); display: flex; flex-direction: column; gap: 10px; }
+.sb-power { width: 116px; min-height: 96px; border-radius: 22px; border: 3px solid #ffe066; background: rgba(40, 20, 90, 0.85); color: #fff; font: inherit; font-weight: 800; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; box-shadow: 0 0 18px rgba(255, 224, 102, 0.5); animation: sb-glow 1.6s ease-in-out infinite; }
+.sb-power:disabled { opacity: 0.5; animation: none; }
+.sb-power-icon { font-size: 2rem; }
+@keyframes sb-glow { 50% { box-shadow: 0 0 30px rgba(255, 224, 102, 0.9); } }
+.sb-say { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: calc(100vw - 32px); }
+.sb-say span { display: block; padding: 10px 20px; border-radius: 18px; background: rgba(10, 10, 40, 0.78); border: 2px solid #5ef0ff; font-size: 1.15rem; font-weight: 800; text-align: center; }
+.sb-result { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 26px; border-radius: 26px; background: rgba(10, 10, 40, 0.8); border: 3px solid #5ef0ff; text-align: center; animation: sb-pop 0.35s ease-out; }
+.sb-result strong { font-size: clamp(1.6rem, 6vw, 3rem); color: #ffe066; text-shadow: 0 0 16px #ff5fd2; }
+.sb-result.strike strong { font-size: clamp(2.4rem, 9vw, 4.6rem); }
+.sb-result span { font-size: 1.15rem; font-weight: 800; }
+.sb-earned { color: #9dffb0; }
+@keyframes sb-pop { from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; } }
+.sb-modal-back { position: fixed; inset: 0; z-index: 50; background: rgba(5, 3, 20, 0.6); display: grid; place-items: center; padding: 16px; }
+.sb-modal { width: min(520px, 100%); background: rgba(18, 16, 58, 0.97); border: 3px solid #5ef0ff; border-radius: 26px; padding: 22px; display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; box-shadow: 0 0 40px rgba(167, 66, 255, 0.5); }
+.sb-modal h2 { margin: 0; font-size: 1.4rem; color: #ffe066; }
+.sb-modal p { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.sb-turn-planet { width: 110px; height: 110px; object-fit: contain; }
+.sb-final { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.sb-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.sb-level { width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font-weight: 800; }
+.sb-toast { position: fixed; left: 50%; top: 88px; transform: translateX(-50%); z-index: 60; padding: 10px 20px; border-radius: 16px; background: #ffe066; color: #2b1452; font-weight: 800; font-size: 1.05rem; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4); }
+@media (prefers-reduced-motion: reduce) { .sb-power, .sb-result { animation: none; } }
