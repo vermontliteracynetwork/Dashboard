@@ -303,9 +303,10 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
         else if (q < 0.82) { const k = (q - 0.2) / 0.62; lift = Math.sin(k * Math.PI) * 0.6; sq = 1 + 0.1 * Math.sin(k * Math.PI); lL = lR = -0.45; aL = aR = -2.5; oL = oR = 0.55; hX = -0.15; }
         else { const c = (q - 0.82) / 0.18; sq = 1 - 0.12 * Math.sin(c * Math.PI); bob = -0.05 * Math.sin(c * Math.PI); }
       } else if (sh.name === 'wave') {
-        aR = -2.75; oR = 0.3 + Math.sin(t * 11) * 0.38; hZ = 0.2; roll = 0.06; hY = 0.15;
+        // Arm raised out to the side (well clear of the head) and waving.
+        aR = -2.55; oR = 0.8 + Math.sin(t * 11) * 0.3; hZ = 0.2; roll = 0.06; hY = 0.15;
       } else if (sh.name === 'cheer') {
-        aL = aR = -2.85; oL = oR = 0.45 + Math.sin(t * 14) * 0.14;
+        aL = aR = -2.75; oL = oR = 0.62 + Math.sin(t * 14) * 0.14;
         const hop = Math.abs(Math.sin(q * Math.PI * 3));
         lift = hop * 0.2; sq = 1 + (hop - 0.5) * 0.1; hX = -0.2;
       } else if (sh.name === 'dance') {

@@ -4106,3 +4106,35 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .style-tile.locked { opacity: 0.6; }
 .style-tile-badge { position: absolute; top: 4px; right: 4px; background: #9b59b6; color: #fff; font-size: 0.65rem; border-radius: 999px; padding: 1px 6px; }
 .style-name-input { min-height: 48px; border-radius: 14px; border: 2px solid #eadcff; padding: 0 14px; font: inherit; font-weight: 700; font-size: 1.05rem; color: #2b1452; }
+
+/* Bawk the guide rooster: rooster on the left, chat box across the bottom
+   (iPad first: big text, 56px+ buttons, works in both orientations). */
+.bawk-rooster { position: fixed; left: 0; bottom: 0; width: 180px; height: 230px; z-index: 262; pointer-events: none; }
+.bawk-bar { position: fixed; left: 0; right: 0; bottom: 0; min-height: 150px; z-index: 261; display: flex; align-items: center; gap: 16px; padding: 16px 20px 16px 180px; padding-bottom: max(16px, env(safe-area-inset-bottom)); background: #fffaf0; border-top: 4px solid #f5a623; box-shadow: 0 -6px 24px rgba(31, 17, 71, 0.18); }
+.bawk-bubble { flex: 1; min-width: 0; }
+.bawk-name { font-weight: 900; color: #c2410c; font-size: 1rem; display: flex; gap: 10px; align-items: center; }
+.bawk-step { font-weight: 700; font-size: 0.8rem; color: #7c5c2c; background: #fde7c2; border-radius: 999px; padding: 2px 10px; }
+.bawk-text { margin: 4px 0 0; font-size: 1.2rem; line-height: 1.4; font-weight: 700; color: #2d1b4e; }
+.bawk-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.bawk-actions button { min-height: 56px; min-width: 120px; font-size: 1.05rem; }
+@media (max-width: 700px) { .bawk-bar { flex-direction: column; align-items: stretch; padding-left: 130px; } .bawk-rooster { width: 130px; height: 180px; } }
+
+/* The Seamstress (students): locks, purchase notice, walkthrough focus. */
+.style-room.wt-on { padding-bottom: 190px; }
+.wt-locked { opacity: 0.32; pointer-events: none; filter: grayscale(0.5); }
+.style-tile.locked, .style-pattern.locked { position: relative; }
+.style-tile-lock { position: absolute; top: 4px; right: 4px; background: #6b6b78; color: #fff; font-size: 0.72rem; font-weight: 800; border-radius: 999px; padding: 2px 7px; }
+.style-pattern { position: relative; }
+.style-pattern-lock { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: rgba(110, 110, 120, 0.72); font-size: 1.05rem; }
+.style-locked-note { position: absolute; left: 10px; right: 10px; bottom: 10px; background: rgba(255, 255, 255, 0.96); border: 3px solid #8b8b96; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.style-locked-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.style-locked-list .style-btn { min-height: 48px; }
+.style-earn { font-weight: 700; font-size: 0.95rem; padding: 6px 10px; background: #f1ecff; border-radius: 12px; }
+/* Style pop-ups (buy, free animal pick, release switch): above Bawk's bar. */
+.style-confirm-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(31, 17, 71, 0.5); display: grid; place-items: center; padding: 16px; }
+.style-confirm { width: min(460px, 100%); background: #fff; border-radius: 24px; border: 4px solid #e3c8ff; padding: 20px 22px; font-family: 'Baloo 2', system-ui, sans-serif; color: #2b1452; box-shadow: 0 16px 40px rgba(31, 17, 71, 0.3); }
+.style-confirm h2 { margin: 0 0 8px; font-size: 1.5rem; }
+.style-confirm p { margin: 0 0 12px; font-size: 1.1rem; font-weight: 600; }
+.style-confirm .style-head-actions { justify-content: flex-end; }
+.style-confirm .style-btn { min-height: 56px; }
+.bawk-rooster, .bawk-rooster * { pointer-events: none !important; }

@@ -11,7 +11,9 @@ import { useStyleCatalog, useStyleSettings } from '../../style/catalog';
 import { PATTERNS, patternSwatch } from '../../style/patterns';
 import ColorWheel from '../../style/ColorWheel';
 import { styleSound } from '../../style/styleSounds';
-import type { Paint, SpeciesId, StyleLook, StyleMove, StyleOneShot, WardrobeSlot } from '../../style/types';
+import BawkGuide from '../../components/BawkGuide';
+import { SPECIES_PRICE, PATTERN_PRICE, FREE_PATTERNS, asInventory, inventoryOwner, itemLock, money, patternLocked, speciesLocked, type Lock } from '../../style/shop';
+import type { Paint, PatternId, SpeciesId, StyleLook, StyleMove, StyleOneShot, WardrobeSlot } from '../../style/types';
 
 // Style (docs/STYLE.md). Teacher-only for now (direct teacher instruction:
 // students don't get Style until she says it's ready; when she does, it
@@ -48,7 +50,23 @@ function toHex(css: string): string {
   return c.fillStyle as string;
 }
 const randHex = () => toHex(`hsl(${Math.floor(Math.random() * 360)} 70% 55%)`);
-const randomPaint = (): Paint => ({ pattern: Math.random() < 0.55 ? 'solid' : rand(PATTERNS).id, colors: [randHex(), randHex()] });
+const randomPaint = (allowed?: PatternId[]): Paint => ({ pattern: Math.random() < 0.55 ? 'solid' : rand(allowed ?? PATTERNS.map((p) => p.id)), colors: [randHex(), randHex()] });
+
+// Bawk's guided walkthrough (required the first time a student opens the
+// Seamstress). Each step unlocks only the controls that step needs.
+type WtStep = { id: string; text: string; allow: string[]; next?: boolean; finish?: boolean };
+const WT_STEPS: WtStep[] = [
+  { id: 'hello', text: "Bawk bawk! I'm Bawk. Welcome to the Seamstress, where you make your very own character! Tap Next to start.", allow: [], next: true },
+  { id: 'animal', text: 'First, pick your animal. Your first animal is free! Tap the one you want.', allow: ['species'] },
+  { id: 'fur', text: 'Make it yours! Under Fur, tap a color button, then drag on the color wheel. Tap Next when you like it.', allow: ['fur'], next: true },
+  { id: 'tops', text: 'Time to get dressed! Tap Tops.', allow: ['tab:top'] },
+  { id: 'shirt', text: 'Tap a shirt to put it on. The T-Shirt, Tank Top and Long Sleeve are free!', allow: ['items'] },
+  { id: 'pattern', text: 'Pick a pattern for your shirt. Solid, Stripes and Polka Dots are free. Patterns with a gray lock cost $5 each. Tap Next when you are done.', allow: ['zones'], next: true },
+  { id: 'locks', text: 'See the items with a gray lock? You can try them on to see how they look, but you have to buy them with your Class Cash before you can save them. Tap Next.', allow: [], next: true },
+  { id: 'wave', text: "Let's see your character move! Tap Wave.", allow: ['wave'] },
+  { id: 'save', text: 'Looking great! Tap Save my look to keep it.', allow: ['save'] },
+  { id: 'done', text: 'Bawk! You did it! Your character is ready. Come back to the Seamstress any time to change your look. Tap Finish.', allow: [], finish: true },
+];
 
 export default function StyleRoom() {
   return <StyleRoomView owner="teacher" />;
@@ -103,20 +121,102 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
 
   const play = (m: StyleOneShot) => {
     charRefs.current.forEach((c) => c?.play(m));
+    if (m === 'wave' && wtStep?.id === 'wave') wtNext();
     if (m === 'jump') styleSound.boing();
     else if (m === 'cheer') styleSound.cheer();
     else styleSound.tap();
   };
 
-  // Costumes students haven't earned yet (the teacher can use everything).
-  const unlockedIds = useStore((s) => s.students.find((st) => st.id === owner)?.unlockedCharacterIds);
-  const lockedReason = (item: WardrobeItem) =>
-    studentMode && item.unlock && !(unlockedIds ?? []).includes(item.unlock.id) ? item.unlock.label : null;
+  // --- Students at the Seamstress: what they own and what's locked
+  // (src/style/shop.ts). The teacher always has everything.
+  const student = useStore((s) => s.students.find((st) => st.id === owner));
+  const invRow = useStore((s) => s.styleLooks.find((r) => r.ownerId === inventoryOwner(owner)));
+  const inv = useMemo(() => asInventory(invRow?.look), [invRow]);
+  const buyStyle = useStore((s) => s.buyStyle);
+  const updateInv = useStore((s) => s.updateStyleInventory);
+  const unlockedIds = student?.unlockedCharacterIds ?? [];
+  const lockOf = (item: WardrobeItem) => (studentMode ? itemLock(item, inv, unlockedIds) : null);
+  const patLocked = (p: PatternId) => studentMode && patternLocked(p, inv);
+  const spLocked = (sp: SpeciesId) => studentMode && speciesLocked(sp, inv);
+  type Buy = { kind: 'species' | 'item' | 'pattern'; id: string; label: string; emoji: string; price: number; after?: () => void };
+  const [buying, setBuying] = useState<Buy | null>(null);
+  const confirmBuy = () => {
+    if (!buying || !student) return;
+    if (!buyStyle(owner, buying.kind, buying.id, buying.price, buying.label)) return;
+    styleSound.buy();
+    buying.after?.();
+    flash(`You bought ${buying.label}!`);
+    setBuying(null);
+  };
+  // Locked things the student is trying on right now (preview only).
+  type LockedThing = { key: string; label: string; emoji: string; buy?: Buy; earn?: string };
+  const lockedInLook: LockedThing[] = [];
+  if (studentMode) {
+    if (spLocked(look.species)) {
+      const sp = speciesById(look.species);
+      lockedInLook.push({ key: `sp-${sp.id}`, label: sp.name, emoji: sp.emoji, buy: { kind: 'species', id: sp.id, label: `the ${sp.name}`, emoji: sp.emoji, price: SPECIES_PRICE } });
+    }
+    for (const eq of Object.values(look.outfit)) {
+      const item = eq ? itemFor(eq.itemId) : undefined;
+      const lock = item ? lockOf(item) : null;
+      if (!item || !lock) continue;
+      lockedInLook.push(lock.kind === 'buy'
+        ? { key: item.id, label: item.name, emoji: item.emoji, buy: { kind: 'item', id: item.id, label: `the ${item.name}`, emoji: item.emoji, price: lock.price } }
+        : { key: item.id, label: item.name, emoji: item.emoji, earn: lock.label });
+    }
+  }
+  const canSave = lockedInLook.length === 0;
+  const takeOffLocked = () => {
+    setLook((l) => {
+      const outfit = { ...l.outfit };
+      for (const [slot, eq] of Object.entries(outfit)) {
+        const item = eq ? itemFor(eq.itemId) : undefined;
+        if (item && lockOf(item)) delete outfit[slot as WardrobeSlot];
+      }
+      const species = spLocked(l.species) ? (inv.species[0] ?? saved.species) : l.species;
+      return { ...l, species, body: species === l.species ? l.body : structuredClone(speciesById(species).defaultBody), outfit };
+    });
+    styleSound.swish();
+  };
+  const buyPattern = (p: PatternId, apply: () => void) => {
+    const label = PATTERNS.find((x) => x.id === p)?.label ?? p;
+    setBuying({ kind: 'pattern', id: p, label: `the ${label} pattern`, emoji: '🎨', price: PATTERN_PRICE, after: apply });
+  };
+
+  // --- Bawk's walkthrough
+  const wtActive = studentMode && !inv.walkthroughDone;
+  const [wtIndex, setWtIndex] = useState(0);
+  const wtStep = wtActive ? WT_STEPS[Math.min(wtIndex, WT_STEPS.length - 1)] : null;
+  const allow = (key: string) => !wtStep || wtStep.allow.includes(key);
+  const lk = (key: string) => (allow(key) ? '' : ' wt-locked');
+  // Bring the control this step needs into view (on an iPad in portrait it
+  // may be below the fold, under Bawk's chat bar).
+  useEffect(() => {
+    const key = wtStep?.allow[0];
+    if (!key) return;
+    const t = window.setTimeout(() => document.querySelector(`[data-wt="${key}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+    return () => window.clearTimeout(t);
+  }, [wtStep?.id]);
+  const wtNext = () => setWtIndex((i) => Math.min(i + 1, WT_STEPS.length - 1));
+  const [freePick, setFreePick] = useState<SpeciesId | null>(null);
+  useEffect(() => {
+    if (!wtStep) return;
+    if (wtStep.id === 'animal' || wtStep.id === 'fur') setTab('body');
+    if (wtStep.id === 'tops' && tab === 'top') wtNext();
+    if (wtStep.id === 'shirt') {
+      const eq = look.outfit.top;
+      const item = eq ? itemFor(eq.itemId) : undefined;
+      if (item && !lockOf(item)) wtNext();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wtStep?.id, tab, look.outfit.top?.itemId]);
+  const finishWalkthrough = () => {
+    updateInv(owner, { walkthroughDone: true });
+    styleSound.save();
+    navigate(backTo);
+  };
 
   const equip = (slot: WardrobeSlot, itemId: string | null) => {
-    const picked = itemId ? itemFor(itemId) : undefined;
-    const reason = picked ? lockedReason(picked) : null;
-    if (reason) { flash(`Earn it: ${reason}`); styleSound.tap(); return; }
     setLook((l) => {
       const outfit = { ...l.outfit };
       // A costume replaces everything else (the clothes stay saved under it
@@ -143,7 +243,9 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   };
 
   const save = () => {
+    if (!canSave) { flash('Buy or take off the locked items first'); return; }
     saveStyleLook(owner, look);
+    if (wtStep?.id === 'save') wtNext();
     setSaved(look);
     styleSound.save();
     play('cheer');
@@ -168,19 +270,19 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   };
 
   const surprise = () => {
-    const species = rand(SPECIES).id;
+    const species = studentMode && inv.species.length ? rand(inv.species) : rand(SPECIES).id;
     const outfit: StyleLook['outfit'] = {};
     for (const slot of SLOT_ORDER) {
       if (slot === 'costume') continue;
-      const options = catalog.filter((i) => i.slot === slot);
+      const options = catalog.filter((i) => i.slot === slot && !lockOf(i));
       const chance = slot === 'top' || slot === 'bottom' || slot === 'shoes' ? 0.9 : 0.4;
       if (options.length && Math.random() < chance) {
         const item = rand(options);
-        outfit[slot] = { itemId: item.id, zones: item.zones.map(() => randomPaint()) };
+        outfit[slot] = { itemId: item.id, zones: item.zones.map(() => randomPaint(studentMode ? [...FREE_PATTERNS, ...inv.patterns] : undefined)) };
       }
     }
     const body = structuredClone(speciesById(species).defaultBody);
-    if (Math.random() < 0.5) body.fur = randomPaint();
+    if (Math.random() < 0.5) body.fur = randomPaint(studentMode ? [...FREE_PATTERNS, ...inv.patterns] : undefined);
     setLook({ species, body, outfit });
     styleSound.pop();
     play('dance');
@@ -211,15 +313,16 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   return (
     <div className={studentMode ? 'style-student-shell' : 'app-shell'}>
       {!studentMode && <TeacherNav />}
-      <div className="style-room">
+      <div className={`style-room${wtActive ? ' wt-on' : ''}`}>
         <header className="style-head">
           <div>
             {studentMode && (
-              <button type="button" className="style-btn" style={{ marginBottom: 8 }} onClick={() => { if (dirty) save(); navigate(backTo); }}>
-                ← {dirty ? 'Save and go back' : 'Back to Town Square'}
+              <button type="button" className="style-btn" style={{ marginBottom: 8 }} onClick={() => { if (!wtActive && dirty && canSave) save(); navigate(backTo); }}>
+                ← {wtActive ? 'Finish later' : dirty && canSave ? 'Save and go back' : 'Back to Town Square'}
               </button>
             )}
-            <h1>👗 Style</h1>
+            <h1>{studentMode ? '🧵 The Seamstress' : '👗 Style'}</h1>
+            {studentMode && student && <p className="style-note">💵 You have {money(student.coins)}</p>}
             {!studentMode && (
               <p className="style-note">
                 {settings.released ? 'Students can use Style now (from their pie menu).' : 'Only you can see Style right now. Students get it (from their pie menu) when you turn it on.'}
@@ -236,10 +339,10 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
           </div>}
           {mode === 'dress' ? (
             <div className="style-head-actions">
-              <button type="button" className="style-btn" onClick={surprise}>🎲 Surprise me</button>
-              <button type="button" className="style-btn" onClick={() => { setLook(defaultLook(look.species)); styleSound.swish(); }}>↺ Start over</button>
-              <button type="button" className="style-btn" disabled={!dirty} onClick={() => { setLook(saved); styleSound.swish(); }}>Undo changes</button>
-              <button type="button" className="style-btn primary" onClick={save}>{dirty ? '💾 Save my look' : '✓ Saved'}</button>
+              <button type="button" className={`style-btn${lk('surprise')}`} onClick={surprise}>🎲 Surprise me</button>
+              <button type="button" className={`style-btn${lk('reset')}`} onClick={() => { setLook(defaultLook(look.species)); styleSound.swish(); }}>↺ Start over</button>
+              <button type="button" className={`style-btn${lk('undo')}`} disabled={!dirty} onClick={() => { setLook(saved); styleSound.swish(); }}>Undo changes</button>
+              <button type="button" data-wt="save" className={`style-btn primary${lk('save')}`} disabled={!canSave} onClick={save}>{!canSave ? '🔒 Locked items on' : dirty || wtStep?.id === 'save' ? '💾 Save my look' : '✓ Saved'}</button>
             </div>
           ) : (
             <div className="style-head-actions">
@@ -282,9 +385,22 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 <OrbitControls target={[0, focusY, 0]} enablePan={false} minDistance={0.8} maxDistance={9} maxPolarAngle={Math.PI / 1.9} />
               </Canvas>
               {toast && <div className="style-toast">✨ {toast}</div>}
+              {lockedInLook.length > 0 && (
+                <div className="style-locked-note" role="status">
+                  <strong>🔒 You are wearing locked items. Want to purchase?</strong>
+                  <div className="style-locked-list">
+                    {lockedInLook.map((t) => t.buy ? (
+                      <button key={t.key} type="button" className="style-btn primary" onClick={() => setBuying(t.buy!)}>{t.emoji} Buy {t.label} {money(t.buy.price)}</button>
+                    ) : (
+                      <span key={t.key} className="style-earn">{t.emoji} {t.label}: {t.earn}</span>
+                    ))}
+                    <button type="button" className="style-btn" onClick={takeOffLocked}>Take them off</button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="style-anim">
-              <div className="style-anim-group">
+              <div className={`style-anim-group${lk('move')}`}>
                 <span className="style-anim-label">Move</span>
                 {(['idle', 'walk', 'run'] as StyleMove[]).map((m) => (
                   <button key={m} type="button" className={`style-chip${move === m ? ' on' : ''}`} onClick={() => { setMove(m); styleSound.tap(); }}>
@@ -297,10 +413,10 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
               </div>
               <div className="style-anim-group">
                 <span className="style-anim-label">Emotes</span>
-                <button type="button" className="style-chip" onClick={() => play('wave')}>👋 Wave</button>
-                <button type="button" className={`style-chip${talking ? ' on' : ''}`} onClick={() => { setTalking((v) => !v); styleSound.tap(); }}>💬 {talking ? 'Stop talking' : 'Talk'}</button>
-                <button type="button" className="style-chip" onClick={() => play('cheer')}>🙌 Cheer</button>
-                <button type="button" className="style-chip" onClick={() => play('dance')}>💃 Dance</button>
+                <button type="button" data-wt="wave" className={`style-chip${lk('wave')}`} onClick={() => play('wave')}>👋 Wave</button>
+                <button type="button" className={`style-chip${talking ? ' on' : ''}${lk('emote')}`} onClick={() => { setTalking((v) => !v); styleSound.tap(); }}>💬 {talking ? 'Stop talking' : 'Talk'}</button>
+                <button type="button" className={`style-chip${lk('emote')}`} onClick={() => play('cheer')}>🙌 Cheer</button>
+                <button type="button" className={`style-chip${lk('emote')}`} onClick={() => play('dance')}>💃 Dance</button>
               </div>
             </div>
           </section>
@@ -310,7 +426,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
               <>
                 <nav className="style-tabs" aria-label="Style categories">
                   {tabs.map((t) => (
-                    <button key={t.id} type="button" className={`style-tab${tab === t.id ? ' on' : ''}`} onClick={() => { setTab(t.id); styleSound.tap(); }}>
+                    <button key={t.id} type="button" data-wt={`tab:${t.id}`} className={`style-tab${tab === t.id ? ' on' : ''}${lk(`tab:${t.id}`)}`} onClick={() => { setTab(t.id); styleSound.tap(); }}>
                       <span aria-hidden="true">{t.emoji}</span>{t.label}
                     </button>
                   ))}
@@ -318,34 +434,50 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 {tab === 'body' ? (
                   <div className="style-section">
                     <h2>Pick your animal</h2>
-                    <div className="style-grid">
+                    <div data-wt="species" className={`style-grid${lk('species')}`}>
                       {SPECIES.map((sp) => (
-                        <button key={sp.id} type="button" className={`style-tile${look.species === sp.id ? ' on' : ''}`}
-                          onClick={() => { setLook((l) => ({ ...l, species: sp.id, body: structuredClone(sp.defaultBody) })); styleSound.pop(); play('wave'); }}>
+                        <button key={sp.id} type="button" className={`style-tile${look.species === sp.id ? ' on' : ''}${spLocked(sp.id) ? ' locked' : ''}`}
+                          onClick={() => {
+                            setLook((l) => ({ ...l, species: sp.id, body: structuredClone(sp.defaultBody) })); styleSound.pop(); play('wave');
+                            if (wtStep?.id === 'animal') setFreePick(sp.id);
+                          }}>
                           <span className="style-tile-emoji">{sp.emoji}</span>{sp.name}
+                          {spLocked(sp.id) ? <span className="style-tile-lock" aria-label="Locked">🔒 {money(SPECIES_PRICE)}</span> : null}
                         </button>
                       ))}
                     </div>
-                    <PaintEditor label="Fur" paint={look.body.fur} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, fur: p } }))} />
-                    <PaintEditor label={look.species === 'frog' ? 'Tummy & chin' : 'Tummy & muzzle'} paint={look.body.belly} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, belly: p } }))} />
-                    <PaintEditor label={look.species === 'frog' ? 'Spots & feet' : look.species === 'capybara' ? 'Nose tip, ears & feet' : 'Ears, paws & feet'} paint={look.body.accent} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, accent: p } }))} />
-                    <ColorOnlyEditor label="Eyes" color={look.body.eyes} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, eyes: c } }))} />
-                    <ColorOnlyEditor label="Nose" color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
+                    {studentMode && !wtActive && inv.species.length > 0 && <p className="style-note">Your first animal was free. Each new animal costs {money(SPECIES_PRICE)}.</p>}
+                    <div data-wt="fur" className={lk('fur')}>
+                      <PaintEditor label="Fur" paint={look.body.fur} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, fur: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, fur: { ...l.body.fur, pattern: pt } } })))} />
+                    </div>
+                    <div className={lk('belly')}>
+                      <PaintEditor label={look.species === 'frog' ? 'Tummy & chin' : 'Tummy & muzzle'} paint={look.body.belly} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, belly: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, belly: { ...l.body.belly, pattern: pt } } })))} />
+                      <PaintEditor label={look.species === 'frog' ? 'Spots & feet' : look.species === 'capybara' ? 'Nose tip, ears & feet' : 'Ears, paws & feet'} paint={look.body.accent} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, accent: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, accent: { ...l.body.accent, pattern: pt } } })))} />
+                      <ColorOnlyEditor label="Eyes" color={look.body.eyes} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, eyes: c } }))} />
+                      <ColorOnlyEditor label="Nose" color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
+                    </div>
                   </div>
                 ) : (
                   <div className="style-section">
-                    <h2>{SLOT_LABEL[tab]}{tab === 'gear' ? ' (always free)' : ''}</h2>
+                    <h2>{SLOT_LABEL[tab]}</h2>
                     {tab === 'costume' && <p className="style-note">A costume turns your character into someone new, from head to toe. Your clothes are kept and come back when you take it off.</p>}
                     {tab !== 'costume' && look.outfit.costume && <p className="style-note">You are wearing a costume. Picking something here takes the costume off.</p>}
-                    <ItemGrid items={catalog.filter((i) => i.slot === tab)} selected={look.outfit[tab]?.itemId ?? null} onPick={(id) => equip(tab, id)} allowNone locked={lockedReason} />
-                    {(() => {
-                      const eq = look.outfit[tab];
-                      const item = eq ? itemFor(eq.itemId) : undefined;
-                      if (!eq || !item) return null;
-                      return item.zones.map((z, i) => (
-                        <PaintEditor key={`${item.id}-${i}`} label={`${item.name}: ${z.label}`} paint={eq.zones[i] ?? z.paint} onChange={(p) => setZone(tab, i, p)} />
-                      ));
-                    })()}
+                    <div data-wt="items" className={lk('items')}>
+                      <ItemGrid items={catalog.filter((i) => i.slot === tab)} selected={look.outfit[tab]?.itemId ?? null} onPick={(id) => equip(tab, id)} allowNone locked={studentMode ? lockOf : undefined} />
+                    </div>
+                    <div data-wt="zones" className={lk('zones')}>
+                      {(() => {
+                        const eq = look.outfit[tab];
+                        const item = eq ? itemFor(eq.itemId) : undefined;
+                        if (!eq || !item) return null;
+                        const lock = lockOf(item);
+                        if (lock) return <p className="style-note">🔒 This is a preview in its own colors. {lock.kind === 'buy' ? `Buy it for ${money(lock.price)} to change its colors and save it.` : lock.label + ' to earn it.'}</p>;
+                        return item.zones.map((z, i) => (
+                          <PaintEditor key={`${item.id}-${i}`} label={`${item.name}: ${z.label}`} paint={eq.zones[i] ?? z.paint} onChange={(p) => setZone(tab, i, p)}
+                            isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setZone(tab, i, { ...(eq.zones[i] ?? z.paint), pattern: pt }))} />
+                        ));
+                      })()}
+                    </div>
                   </div>
                 )}
               </>
@@ -379,6 +511,39 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
           </section>
         </div>
       </div>
+      {buying && student && (
+        <div className="style-confirm-backdrop" onClick={() => setBuying(null)}>
+          <div className="style-confirm" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h2>{buying.emoji} Buy {buying.label}?</h2>
+            <p>It costs <strong>{money(buying.price)}</strong>. You have {money(student.coins)}.</p>
+            {student.coins < buying.price && <p>You need {money(buying.price - student.coins)} more. Keep working to earn more Class Cash!</p>}
+            <div className="style-head-actions">
+              <button type="button" className="style-btn" onClick={() => setBuying(null)}>Not now</button>
+              {student.coins >= buying.price && <button type="button" className="style-btn primary" onClick={confirmBuy}>Buy it for {money(buying.price)}</button>}
+            </div>
+          </div>
+        </div>
+      )}
+      {freePick && (
+        <div className="style-confirm-backdrop" onClick={() => setFreePick(null)}>
+          <div className="style-confirm" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h2>{speciesById(freePick).emoji} Pick the {speciesById(freePick).name}?</h2>
+            <p>Your first animal is free, and it is yours to keep. More animals cost {money(SPECIES_PRICE)} each later.</p>
+            <div className="style-head-actions">
+              <button type="button" className="style-btn" onClick={() => setFreePick(null)}>Look at the others</button>
+              <button type="button" className="style-btn primary" onClick={() => { updateInv(owner, { species: [freePick] }); setFreePick(null); styleSound.cheer(); play('cheer'); wtNext(); }}>
+                Yes, the {speciesById(freePick).name}!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {wtStep && (
+        <BawkGuide message={wtStep.text} talkKey={wtStep.id} step={`Step ${Math.min(wtIndex, WT_STEPS.length - 1) + 1} of ${WT_STEPS.length}`}>
+          {wtStep.next && <button type="button" className="style-btn primary" onClick={wtNext}>Next ➜</button>}
+          {wtStep.finish && <button type="button" className="style-btn primary" onClick={finishWalkthrough}>Finish 🎉</button>}
+        </BawkGuide>
+      )}
       {confirmRelease && (
         <div className="style-confirm-backdrop" onClick={() => setConfirmRelease(false)}>
           <div className="style-confirm" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
@@ -406,7 +571,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   );
 }
 
-function ItemGrid({ items, selected, onPick, allowNone, edited, locked }: { items: WardrobeItem[]; selected: string | null; onPick: (id: string | null) => void; allowNone?: boolean; edited?: Record<string, unknown>; locked?: (item: WardrobeItem) => string | null }) {
+function ItemGrid({ items, selected, onPick, allowNone, edited, locked }: { items: WardrobeItem[]; selected: string | null; onPick: (id: string | null) => void; allowNone?: boolean; edited?: Record<string, unknown>; locked?: (item: WardrobeItem) => Lock | null }) {
   return (
     <div className="style-grid">
       {allowNone && (
@@ -414,31 +579,39 @@ function ItemGrid({ items, selected, onPick, allowNone, edited, locked }: { item
           <span className="style-tile-emoji">🚫</span>None
         </button>
       )}
-      {items.map((item) => (
-        <button key={item.id} type="button" className={`style-tile${selected === item.id ? ' on' : ''}${locked?.(item) ? ' locked' : ''}`} onClick={() => onPick(item.id)}>
-          <span className="style-tile-emoji">{item.emoji}</span>{item.name}
-          {edited?.[item.id] ? <span className="style-tile-badge">edited</span> : null}
-          {locked?.(item) ? <span className="style-tile-badge">🔒 earn it</span> : null}
-                  </button>
-      ))}
+      {items.map((item) => {
+        const lock = locked?.(item) ?? null;
+        return (
+          <button key={item.id} type="button" className={`style-tile${selected === item.id ? ' on' : ''}${lock ? ' locked' : ''}`} onClick={() => onPick(item.id)}>
+            <span className="style-tile-emoji">{item.emoji}</span>{item.name}
+            {edited?.[item.id] ? <span className="style-tile-badge">edited</span> : null}
+            {lock ? <span className="style-tile-lock" aria-label="Locked">🔒 {lock.kind === 'buy' ? money(lock.price) : 'Earn it'}</span> : null}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 // One color zone: pattern chips plus its two colors on the color wheel.
-function PaintEditor({ label, paint, onChange }: { label: string; paint: Paint; onChange: (p: Paint) => void }) {
+function PaintEditor({ label, paint, onChange, isLocked, onLocked }: { label: string; paint: Paint; onChange: (p: Paint) => void; isLocked?: (p: PatternId) => boolean; onLocked?: (p: PatternId) => void }) {
   const [which, setWhich] = useState<0 | 1 | null>(null);
   return (
     <div className="style-paint">
       <h3>{label}</h3>
       <div className="style-patterns">
-        {PATTERNS.map((pt) => (
-          <button key={pt.id} type="button" className={`style-pattern${paint.pattern === pt.id ? ' on' : ''}`}
-            onClick={() => { onChange({ ...paint, pattern: pt.id }); styleSound.pop(); }}>
-            <img src={patternSwatch({ pattern: pt.id, colors: paint.colors })} alt="" />
-            <span>{pt.label}</span>
-          </button>
-        ))}
+        {PATTERNS.map((pt) => {
+          const locked = isLocked?.(pt.id) ?? false;
+          return (
+            <button key={pt.id} type="button" className={`style-pattern${paint.pattern === pt.id ? ' on' : ''}${locked ? ' locked' : ''}`}
+              aria-label={locked ? `${pt.label}, locked, $5` : pt.label}
+              onClick={() => { if (locked) { onLocked?.(pt.id); styleSound.tap(); return; } onChange({ ...paint, pattern: pt.id }); styleSound.pop(); }}>
+              <img src={patternSwatch({ pattern: pt.id, colors: paint.colors })} alt="" />
+              {locked && <span className="style-pattern-lock" aria-hidden="true">🔒</span>}
+              <span>{pt.label}</span>
+            </button>
+          );
+        })}
       </div>
       <div className="style-color-row">
         <button type="button" className={`style-color-btn${which === 0 ? ' on' : ''}`} onClick={() => setWhich(which === 0 ? null : 0)}>

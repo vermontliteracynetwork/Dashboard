@@ -178,7 +178,8 @@ import {
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
 import type { BadgeCounters, StyleLookRow } from '../lib/sync';
-import type { StyleCatalogOverrides, StyleLook } from '../style/types';
+import type { PatternId, SpeciesId, StyleCatalogOverrides, StyleLook } from '../style/types';
+import { asInventory, inventoryOwner, type StyleInventory } from '../style/shop';
 import { ruleMet } from '../lib/badgeRules';
 import type {
   Student,
@@ -292,6 +293,11 @@ interface AppState {
   // The teacher's item-workshop edits, stored as the 'catalog' row.
   saveStyleCatalog: (overrides: StyleCatalogOverrides) => void;
   setStyleReleased: (released: boolean) => void;
+  // Students' Style things at the Seamstress (src/style/shop.ts): owned
+  // animals/items/patterns and whether Bawk's walkthrough is done.
+  updateStyleInventory: (studentId: string, patch: Partial<StyleInventory>) => void;
+  // Pays Class Cash for an animal, item or pattern; false if they can't afford it.
+  buyStyle: (studentId: string, kind: 'species' | 'item' | 'pattern', id: string, priceCents: number, label: string) => boolean;
   selCheckIns: SelCheckIn[];
   recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string) => string;
   addSelCheckInNote: (id: string, noteText: string) => void;
@@ -2642,6 +2648,24 @@ export const useStore = create<AppState>()(
         set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
         try { localStorage.setItem(`style-look:${ownerId}`, JSON.stringify(look)); } catch { /* private mode */ }
         pushStyleLook(ownerId, look);
+      },
+      updateStyleInventory: (studentId, patch) => {
+        const ownerId = inventoryOwner(studentId);
+        const cur = asInventory(get().styleLooks.find((r) => r.ownerId === ownerId)?.look);
+        const look = { ...cur, ...patch };
+        const row = { ownerId, look, updatedAt: new Date().toISOString() };
+        set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
+        pushStyleLook(ownerId, look);
+      },
+      buyStyle: (studentId, kind, id, priceCents, label) => {
+        const student = get().students.find((st) => st.id === studentId);
+        if (!student || student.coins < priceCents) return false;
+        const inv = asInventory(get().styleLooks.find((r) => r.ownerId === inventoryOwner(studentId))?.look);
+        if (kind === 'species') get().updateStyleInventory(studentId, { species: [...new Set([...inv.species, id as SpeciesId])] });
+        else if (kind === 'item') get().updateStyleInventory(studentId, { items: [...new Set([...inv.items, id])] });
+        else get().updateStyleInventory(studentId, { patterns: [...new Set([...inv.patterns, id as PatternId])] });
+        if (priceCents > 0) get().recordTransaction(studentId, -priceCents, `Style: ${label}`, '🧵', 'purchase-style');
+        return true;
       },
       setStyleReleased: (released) => {
         const row = { ownerId: 'settings', look: { released }, updatedAt: new Date().toISOString() };

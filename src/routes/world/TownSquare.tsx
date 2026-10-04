@@ -6,6 +6,8 @@ import * as THREE from 'three';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import DailySpinWheel from '../../components/DailySpinWheel';
+import BawkGuide from '../../components/BawkGuide';
+import { asInventory, inventoryOwner } from '../../style/shop';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
@@ -3210,6 +3212,24 @@ export default function TownSquare() {
     setShowSpinWheel(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [student?.id, student?.lastSpinDate, student?.bonusSpinAvailable, showArrival, showChangelog, onboardedIds]);
+  // The Seamstress (Style for students): until a student has done Bawk's
+  // guided walkthrough there, it is a required task on their To-Do list,
+  // and Bawk the rooster announces it when they arrive (after the arrival
+  // card, What's New and the Daily Spin, so pop-ups never stack). Only once
+  // the teacher has turned Style on for students.
+  const styleInvRow = useStore((s) => (student ? s.styleLooks.find((r) => r.ownerId === inventoryOwner(student.id)) : undefined));
+  const seamstressDue = styleReleased && !!student && !asInventory(styleInvRow?.look).walkthroughDone;
+  const [showBawk, setShowBawk] = useState(false);
+  const bawkOfferedRef = useRef(false);
+  const spinPending = !!student && (student.lastSpinDate !== todayISO() || !!student.bonusSpinAvailable) && onboardedIds.includes(student.id);
+  useEffect(() => {
+    if (!seamstressDue || bawkOfferedRef.current || showArrival || showChangelog || showSpinWheel) return;
+    if (spinPending && !spinOfferedRef.current) return;
+    bawkOfferedRef.current = true;
+    setShowBawk(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seamstressDue, showArrival, showChangelog, showSpinWheel, spinPending]);
+  const goToSeamstress = () => { setShowBawk(false); navigate('/student/style', { state: { from: 'town' } }); };
   const closeChangelog = () => {
     setShowChangelog(false);
     if (student && LATEST_CHANGELOG_ID) updateStudent(student.id, { lastSeenChangelogId: LATEST_CHANGELOG_ID });
@@ -4123,7 +4143,7 @@ export default function TownSquare() {
           { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(1) },
         ];
         const page2: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
-          { id: 'todo', icon: '📋', label: totalTasksLeft > 0 ? `To-Do List (${totalTasksLeft})` : 'To-Do List', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
+          { id: 'todo', icon: '📋', label: totalTasksLeft + (seamstressDue ? 1 : 0) > 0 ? `To-Do List (${totalTasksLeft + (seamstressDue ? 1 : 0)})` : 'To-Do List', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
           { id: 'computer', icon: '💻', label: 'Computer', bg: '#3e6b7c', onSelect: () => navigate('/student/home') },
           { id: 'settings', icon: '⚙️', iconName: 'settingsAlt', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },
           { id: 'map', icon: '🗺️', label: mapView ? 'Close Map' : 'Map', bg: '#8a6b5b', onSelect: () => setMapView((v) => !v) },
@@ -4305,6 +4325,13 @@ export default function TownSquare() {
                 <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowTodayTasks(false)}><Icon name="close" size={16} fallback="✕" /></button>
               </div>
               <div className="stack" style={{ gap: 8 }}>
+                {seamstressDue && (
+                  <div className="checklist-item">
+                    <span style={{ fontSize: '1.3rem' }}>🧵</span>
+                    <span className="checklist-label" style={{ flex: 1 }}>Required: make your character at the Seamstress</span>
+                    <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => { setShowTodayTasks(false); goToSeamstress(); }}>Go</button>
+                  </div>
+                )}
                 {subjectsToday.map((s) => (
                   <div key={s.subject} className="checklist-item">
                     <span style={{ fontSize: '1.3rem' }}>{s.subject === 'math' ? '🔢' : '📖'}</span>
@@ -4431,6 +4458,13 @@ export default function TownSquare() {
           auto-opening for a student the first time they log in after
           something new that affects them has shipped. */}
       {showSpinWheel && student && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
+      {showBawk && (
+        <BawkGuide talkKey="seamstress-task" step="New task"
+          message="BAWK! Big news! The Seamstress is open! Your new task is to make your very own character there. I'll show you how, step by step. Let's go!">
+          <button type="button" className="btn btn-lg" onClick={() => setShowBawk(false)}>Later</button>
+          <button type="button" className="btn btn-lg btn-primary" onClick={goToSeamstress}>Take me there! 🧵</button>
+        </BawkGuide>
+      )}
       {showChangelog && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 240, background: 'rgba(31,17,71,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={closeChangelog}>
           <div style={{ position: 'relative', width: '100%', maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>

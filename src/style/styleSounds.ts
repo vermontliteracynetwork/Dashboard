@@ -49,4 +49,11 @@ export const styleSound = {
     tone(1400 + Math.random() * 400, 1800, 0.04, 0.05);
   },
   tap: () => tone(700, 900, 0.05, 0.1),
+  // Bawk the rooster: two quick squawks and a little crow.
+  bawk: () => {
+    tone(620, 900, 0.09, 0.16, 'sawtooth');
+    tone(640, 950, 0.09, 0.16, 'sawtooth', 0.13);
+    tone(700, 1250, 0.32, 0.12, 'square', 0.3);
+  },
+  buy: () => [660, 880, 1320].forEach((f, i) => tone(f, f * 1.02, 0.14, 0.15, 'triangle', i * 0.07)),
 };

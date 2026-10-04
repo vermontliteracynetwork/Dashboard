@@ -881,7 +881,8 @@ export type TransactionKind =
   | 'purchase-furniture'
   | 'donation'
   | 'bakery-match'
-  | 'castle-defense';
+  | 'castle-defense'
+  | 'purchase-style';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from
@@ -925,7 +926,7 @@ export interface Transaction {
 // routing to a hardcoded app screen (see ROLE_VIEWS in townLayout.ts), it
 // opens WorldObject.customRoleUrl in the same internal browser a task's
 // own external link already uses.
-export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'arcade' | 'farmers-market' | 'gas-pump' | 'bakery' | 'castle' | 'chess' | 'closed' | 'custom';
+export type WorldObjectRole = 'bank' | 'store' | 'post-office' | 'welcome-center' | 'computer-desk' | 'home' | 'pet-shelter' | 'island-dock' | 'cinema' | 'arcade' | 'farmers-market' | 'gas-pump' | 'bakery' | 'castle' | 'chess' | 'seamstress' | 'closed' | 'custom';
 export interface WorldObject {
   id: string;
   modelPath: string; // from the generated asset manifest, e.g. '/world/models/city/streetLight.glb'

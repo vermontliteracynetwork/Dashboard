@@ -129,6 +129,11 @@ export default function TeacherHome() {
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
           Space Alien costume: "Cute Alien Character" by Ndevisuals, via Sketchfab
         </p>
+        {/* The Seamstress (2026-10-04): three CC-BY-4.0 Sketchfab models,
+            attribution required. */}
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
+          Seamstress: "Low Poly Building" by Sparkling_Milk, "Seamstress Dreaming" by Edu1984, and Bawk the rooster ("CrazyCock Character low poly animated" by MichielA), via Sketchfab (CC BY 4.0)
+        </p>
       </div>
     </div>
   );

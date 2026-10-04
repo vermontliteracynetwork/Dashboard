@@ -33,8 +33,9 @@ export interface SpeciesDef {
   // The eyes (glasses are fitted in front of them in hats.ts, as are hats
   // to each head's real shape).
   eye: { spread: number; y: number; z: number; size: number };
-  // How far the arms rest out from the body when standing (the dog's white
-  // arms sit a little wider so they stand out against its white body).
+  // How far the arms rest out from the body when standing, so they never
+  // look like they sink into the round tummy (the dog's white arms sit a
+  // little wider still, to stand out against its white body).
   armOut: number;
   // Headphones and ear defenders: half the head's width at ear level and
   // the height of the crown above it, so the band hugs the head.
@@ -50,7 +51,7 @@ export const SPECIES: SpeciesDef[] = [
     name: 'Dog',
     emoji: '🐶',
     eye: { spread: 0.12, y: 0.12, z: 0.26, size: 0.072 },
-    armOut: 0.24,
+    armOut: 0.3,
     gear: { w: 0.345, h: 0.355 },
     defaultBody: { fur: solid('#f4efe6'), belly: solid('#ffffff'), accent: solid('#3b2a20'), eyes: '#1d1414', nose: '#1d1414' },
   },
@@ -59,7 +60,7 @@ export const SPECIES: SpeciesDef[] = [
     name: 'Cat',
     emoji: '🐱',
     eye: { spread: 0.12, y: 0.07, z: 0.26, size: 0.085 },
-    armOut: 0.1,
+    armOut: 0.22,
     gear: { w: 0.37, h: 0.34 },
     defaultBody: { fur: { pattern: 'stripes', colors: ['#f2a65a', '#d9772b'] }, belly: solid('#fff3e3'), accent: solid('#ffb3c7'), eyes: '#3f8f3a', nose: '#ff7fa0' },
   },
@@ -68,7 +69,7 @@ export const SPECIES: SpeciesDef[] = [
     name: 'Frog',
     emoji: '🐸',
     eye: { spread: 0.17, y: 0.22, z: 0.18, size: 0.09 },
-    armOut: 0.1,
+    armOut: 0.22,
     gear: { w: 0.415, h: 0.29 },
     defaultBody: { fur: solid('#5cbf4a'), belly: solid('#e8f5a8'), accent: solid('#2f8a2c'), eyes: '#1b1b1b', nose: '#2f8a2c' },
   },
@@ -77,7 +78,7 @@ export const SPECIES: SpeciesDef[] = [
     name: 'Capybara',
     emoji: '🦫',
     eye: { spread: 0.205, y: 0.12, z: 0.215, size: 0.046 },
-    armOut: 0.1,
+    armOut: 0.22,
     gear: { w: 0.335, h: 0.36 },
     defaultBody: { fur: solid('#d88b2e'), belly: solid('#f4e6cf'), accent: solid('#7a4a28'), eyes: '#141010', nose: '#4a3530' },
   },

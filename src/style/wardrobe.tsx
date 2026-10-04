@@ -513,7 +513,7 @@ export const WARDROBE: WardrobeItem[] = [
     },
   },
   {
-    id: 'headphones', name: 'Headphones', slot: 'gear', emoji: '🎵', comfort: true, hides: ['ears'],
+    id: 'headphones', name: 'Headphones', slot: 'gear', emoji: '🎵', hides: ['ears'],
     zones: [{ label: 'Band', paint: P('solid', '#ff6b6b') }, { label: 'Cups', paint: P('solid', '#ffffff') }],
     parts: {
       gear: ({ mats, species: { gear: { w, h } } }) => (

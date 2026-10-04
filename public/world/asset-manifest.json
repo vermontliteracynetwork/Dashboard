@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-04T14:12:10.386Z",
+  "generatedAt": "2026-10-04T16:27:01.828Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -349,6 +349,11 @@
     {
       "path": "/world/models/buildings/post-office.glb",
       "label": "Post Office",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/seamstress-shop.glb",
+      "label": "Seamstress Shop",
       "category": "buildings"
     },
     {
@@ -6224,6 +6229,11 @@
     {
       "path": "/world/models/structures/pack-shop.glb",
       "label": "Pack Shop",
+      "category": "structures"
+    },
+    {
+      "path": "/world/models/structures/seamstress-statue.glb",
+      "label": "Seamstress Statue",
       "category": "structures"
     },
     {
