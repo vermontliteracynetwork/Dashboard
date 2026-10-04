@@ -69,6 +69,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/buildings/office-building-3.glb,Office Building 3,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/office-building.glb,Office Building,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/post-office.glb,Post Office,buildings,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/seamstress-shop.glb,Seamstress Shop,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/store.glb,Store,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/windmill-cottage.glb,Windmill Cottage,buildings,Buildings & Places,smallStructure,keyword,5.235,solid (blocks movement),yes,2000,20.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/camping/Archery_Target.glb,Archery Target,camping,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,no,yes,no,static click-to-collect
@@ -1244,6 +1245,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/structures/pack-house4.glb,Pack House4,structures,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/pack-house5.glb,Pack House5,structures,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/structures/pack-shop.glb,Pack Shop,structures,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/structures/seamstress-statue.glb,Seamstress Statue,structures,Buildings & Places,personScale,category-fallback,4.363,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/suburb/Gas_Pump.glb,Gas Pump,suburb,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/suburb/gas-station.glb,Gas Station,suburb,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/suburb/house-country.glb,House Country,suburb,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
