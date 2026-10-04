@@ -646,6 +646,9 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
     - With no freeze, the streak breaks. Buying one that same day and tapping "Use a freeze to get it back" restores it.
   - **Weekends:** not automatically safe (her spec uses freezes for that).
   - **Quiz Mode** (`/student/quiz-mode`): just the questions, no game, one after another. It's on the Game Dashboard, the streak grid and pick-your-game assignments. It pays $1 per right answer like every native game and counts toward an open "pick any game" assignment.
+- **Teacher test tools (same day):** the Student overview's "Reset for testing" card now shows each student's Daily Streak (days, best, today's right answers, freezes).
+  - The reset also clears the Daily Streak (back to 0, 1 free freeze, the streak card shows again).
+  - New buttons: **Set today to 19 right answers** (one more saves the day, to test the chests) and **Give 1 Streak Freeze**.
 - **Still to settle with her:**
   - Streak interest (A30) and the Passport streak (A10) still use the older "both subjects done" streak. They should probably switch to this one.
   - A per-student goal lower than 20 for students who need it.

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { addFreeze, freezesOf, resetStreakForTesting, setTodayCorrectForTesting, streakGoal, useStreak } from '../../lib/streak';
+import { todayISO as todayIsoForStreak } from '../../lib/dates';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { AVATAR_CATALOG } from '../../store/badges';
@@ -191,21 +193,28 @@ function TestResetEditor({ student }: { student: Student }) {
   const resetStudentForTesting = useStore((s) => s.resetStudentForTesting);
   const [confirm, setConfirm] = useState(false);
   const [done, setDone] = useState(false);
+  const streak = useStreak(student.id);
+  const todayRight = streak.today?.day === todayIsoForStreak() ? streak.today.correct : 0;
   return (
     <div className="stack" style={{ gap: 6 }}>
+      <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>🔥 Daily Streak: {streak.count ?? 0} day{(streak.count ?? 0) === 1 ? '' : 's'} (best {streak.best ?? 0}) · today {Math.min(todayRight, streakGoal())} of {streakGoal()} right · 🧊 {freezesOf(streak)} freeze{freezesOf(streak) === 1 ? '' : 's'}</span>
       <strong>🧪 Reset for testing</strong>
       <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
-        Sets {student.name}'s streak to 0, clears today's Math and Literacy progress, and lets them spin the Daily Spin again. Money and past history are not touched.
+        Sets {student.name}'s streaks to 0 (including the Daily Streak, with 1 free Streak Freeze, and the streak card shows again), clears today's Math and Literacy progress, and lets them spin the Daily Spin again. Money and past history are not touched.
       </p>
       {confirm ? (
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-sm btn-primary" onClick={() => { resetStudentForTesting(student.id); setConfirm(false); setDone(true); }}>Yes, reset {student.name}</button>
+          <button className="btn btn-sm btn-primary" onClick={() => { resetStudentForTesting(student.id); resetStreakForTesting(student.id); setConfirm(false); setDone(true); }}>Yes, reset {student.name}</button>
           <button className="btn btn-sm" onClick={() => setConfirm(false)}>Cancel</button>
         </div>
       ) : (
         <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => { setConfirm(true); setDone(false); }}>Reset streak, today's progress and spin</button>
       )}
       {done && <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>✓ {student.name} is reset. Log in as them to test.</span>}
+      <div className="row-wrap" style={{ gap: 8 }}>
+        <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => { setTodayCorrectForTesting(student.id, streakGoal() - 1); setDone(false); }}>🔥 Set today to {streakGoal() - 1} right answers (one more saves the day)</button>
+        <button className="btn btn-sm" style={{ minHeight: 40 }} onClick={() => { addFreeze(student.id); setDone(false); }}>🧊 Give 1 Streak Freeze</button>
+      </div>
     </div>
   );
 }

@@ -190,6 +190,17 @@ export function restoreStreak(studentId: string): boolean {
   return true;
 }
 
+// Teacher test tools (Student overview, "Reset for testing").
+export function resetStreakForTesting(studentId: string) {
+  useStore.getState().mergeStyleRow(streakOwner(studentId), {
+    count: 0, best: 0, lastSavedDay: undefined, savedDays: [], frozenDays: [], freezes: 1, today: undefined,
+    cardShownDay: undefined, lost: undefined, chestsPending: undefined, noticeFroze: 0,
+  });
+}
+export function setTodayCorrectForTesting(studentId: string, correct: number) {
+  save(studentId, { today: { day: todayISO(), correct } });
+}
+
 // The last 7 days (oldest first) and whether each was saved or frozen.
 export function weekView(r: StreakRow): { day: string; label: string; state: 'saved' | 'frozen' | 'today' | 'none' }[] {
   const today = todayISO();
