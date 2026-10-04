@@ -407,6 +407,8 @@ If she wants any of these exact models in the game, she can download them (check
 4. On the frog, the ball cap, beanie, top hat and bucket hat are now made for a round head and worn up high, tipped back: the front brim shows right above the eyes and the back slopes down toward the back of its head (the eyes are never covered).
 5. Butterfly wings sit further back and sweep backward from the shoulder blades (they flap behind the body, never forward through it), so both wings show from the front, and the wing shape is full where the two wings meet so no back shows between the lobes.
 
+**Tails SHIPPED 2026-10-04 (teacher, with a screenshot: "fix the cats tail so it doesnt look broken and remove the capybaras tail entirely"):** the cat's tail is now one smooth, gently tapering S-curve with a pink tip (it used to be two straight pieces that looked snapped at the bend); the capybara has no tail.
+
 **Next (in order):** students' version + release switch (pie menu entry, replaces the 3D player in Town Square/Home Room/Island, portraits become Style snapshots, old avatars/characters deleted, all at release); Marketplace publishing with price, dates, earn rules counted from publish date, gifting, refunds, sales; Style Studio (templates, POD-style designer, effects shelf, auto-save drafts) with the free Describe-it builder and the request list; more items and the Wheelchair set in Comfort Gear; Seamstress game later.
 
 ### 6. Conflicts with existing standing rules and shipped features (named explicitly)

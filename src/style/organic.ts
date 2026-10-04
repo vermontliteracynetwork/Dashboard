@@ -161,6 +161,20 @@ export const dogEarGeo = () => cached('dog-ear', () => meshSDF(
   (x, y, z) => roundCone([0, 0, 0], [0, -0.21, 0.015], 0.065, 0.11)(x * 2.3, y, z),
   [-0.08, -0.36, -0.15], [0.08, 0.1, 0.16], 0.01,
 ));
+// Cat tail: one smooth, gently tapering S-curve (a chain of soft limb
+// segments melted together, so there are no joints or kinks).
+export const catTailGeo = () => cached('cat-tail', () => {
+  const pts: Vec3[] = [[0, 0, 0.02], [0, 0.02, -0.07], [0, 0.09, -0.16], [0, 0.2, -0.2], [0, 0.31, -0.18], [0, 0.38, -0.12]];
+  const radii = [0.046, 0.043, 0.04, 0.038, 0.036, 0.034];
+  const segs = pts.slice(1).map((p, i) => roundCone(pts[i], p, radii[i], radii[i + 1]));
+  const tail: SDF = (x, y, z) => {
+    let d = segs[0](x, y, z);
+    for (let i = 1; i < segs.length; i++) d = smin(d, segs[i](x, y, z), 0.05);
+    return d;
+  };
+  return meshSDF(tail, [-0.08, -0.07, -0.29], [0.08, 0.46, 0.1], 0.008);
+});
+
 // Cat ear: a soft rounded triangle with a pink inside.
 export const catEarGeo = () => cached('cat-ear', () => meshSDF(
   blend(roundCone([0, -0.02, 0], [0, 0.17, -0.01], 0.1, 0.018)),

@@ -8,7 +8,7 @@ import { CostumeBody } from './costumes';
 import { itemById, type Bone, type WardrobeItem } from './wardrobe';
 import { makePaintMaterial, useColorMaterial, usePaintMaterial } from './paint';
 import { paintKey } from './patterns';
-import { armGeo, catEarGeo, dogEarGeo, headGeo, legGeo, makeBodyMaterial, torsoGeo } from './organic';
+import { armGeo, catEarGeo, catTailGeo, dogEarGeo, headGeo, legGeo, makeBodyMaterial, torsoGeo } from './organic';
 import type { EquippedItem, Paint, StyleLook, StyleMove, StyleOneShot } from './types';
 
 // One Style character. The body is sculpted (organic.ts): a soft pear
@@ -197,7 +197,8 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
   // Plain round shapes (no sculpted color regions), so a regular fuzzy paint.
   const mat = usePaintMaterial(look.body.fur, 1, undefined, true);
   const tip = usePaintMaterial(look.body.accent, 1, undefined, true);
-  if (species.id === 'frog') return null;
+  // No tail on the frog or (teacher request) the capybara.
+  if (species.id === 'frog' || species.id === 'capybara') return null;
   return (
     <group ref={tailRef} position={[0, 0.1, -backZ(0.1) + 0.03]}>
       {species.id === 'dog' && (
@@ -208,12 +209,10 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
       )}
       {species.id === 'cat' && (
         <group>
-          <mesh material={mat} position={[0, 0.06, -0.1]} rotation={[-1.1, 0, 0]}><capsuleGeometry args={[0.042, 0.2, 8, 16]} /></mesh>
-          <mesh material={mat} position={[0, 0.22, -0.18]} rotation={[-0.35, 0, 0]}><capsuleGeometry args={[0.04, 0.18, 8, 16]} /></mesh>
-          <mesh material={tip} position={[0, 0.33, -0.19]}><sphereGeometry args={[0.045, 16, 12]} /></mesh>
+          <mesh geometry={catTailGeo()} material={mat} />
+          <mesh material={tip} position={[0, 0.38, -0.12]}><sphereGeometry args={[0.04, 16, 12]} /></mesh>
         </group>
       )}
-      {species.id === 'capybara' && <mesh material={mat} position={[0, 0.02, -0.02]}><sphereGeometry args={[0.05, 16, 12]} /></mesh>}
     </group>
   );
 }
