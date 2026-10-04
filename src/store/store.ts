@@ -543,6 +543,9 @@ interface AppState {
   skipTask: (studentId: string, subject: Subject, taskId: string) => boolean;
   spinDailyWheel: (studentId: string) => DailySpinResult | null;
   resetDailySpin: (studentId: string) => void;
+  // Teacher testing tool: streak back to 0, today's Math/Literacy progress
+  // cleared, and today's Daily Spin (and any bonus spin) reset.
+  resetStudentForTesting: (studentId: string) => void;
   // Homeplot launch quest ("Meet the Neighbors") — records one Neighbor as
   // met (idempotent, a second call for the same id is a no-op), pays that
   // Neighbor's small item reward, and once all 4 are met also pays the
@@ -2009,6 +2012,16 @@ export const useStore = create<AppState>()(
       // Clears one student's "already spun today" flag so they can spin
       // again — for a teacher who wants to let a student re-roll, or to
       // undo a spin used for testing rather than a real prize.
+      resetStudentForTesting: (studentId) => {
+        if (!get().students.some((st) => st.id === studentId)) return;
+        get().updateStudent(studentId, { streak: 0, lastCompletedDate: null, lastSpinDate: null, bonusSpinAvailable: false });
+        for (const subject of ['math', 'literacy'] as Subject[]) {
+          const fresh = emptyProgress();
+          set((st) => ({ progress: { ...st.progress, [studentId]: { ...(st.progress[studentId] ?? {}), [subject]: fresh } as ProgressMap[string] } }));
+          pushProgress(studentId, subject, fresh);
+        }
+      },
+
       resetDailySpin: (studentId) => {
         const student = get().students.find((st) => st.id === studentId);
         if (!student || student.lastSpinDate === null) return;

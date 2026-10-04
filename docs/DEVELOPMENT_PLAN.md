@@ -157,6 +157,8 @@ A real spinning prize wheel (rendered with a physics-accurate spin library, not 
 
 - **Moved to Town Square arrival, 2026-10-04 (direct teacher instruction: "ensure the daily spin wheel launches the first time the student logs on each day, not when they get to teh computer. it should open in the pop up as soon as they land in the town square."):** the automatic open now lives in `TownSquare.tsx` (it used to be on the Computer, `StudentHome.tsx`). It opens as a pop-up when the student lands in Town Square on a day they haven't spun yet (or while a bonus spin is waiting), after the arrival card and the What's New book so pop-ups never stack, and never before a brand-new student's first-login walkthrough. The Computer's Spin widget still opens it on demand.
 
+- **Teacher "Reset for testing" tool, 2026-10-04 (direct teacher request: "reset azalea streak and daily progress/wheel so i can test", then "put it in student overview for teacher side"):** each student's panel on the teacher Students page now has a 🧪 Reset for testing section (with a confirm) that sets the streak to 0, clears today's Math and Literacy progress, and resets today's Daily Spin and any bonus spin (`resetStudentForTesting` in `store.ts`). Money and past history are untouched.
+
 #### A14. Quiz Theme Picker
 
 A small "change my quiz's look" button inside any quiz activity, letting a student pick a visual skin (Standard, Pixel, Adventure, Fantasy) for the quiz screen's chrome. The choice is saved to the student, not just the session, on the explicit design principle that predictability matters more than novelty for this population: a themed quiz should look the same every time a student opens it, not re-skin itself randomly.

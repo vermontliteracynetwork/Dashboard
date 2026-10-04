@@ -185,6 +185,31 @@ function CustomToolsEditor({ student }: { student: Student }) {
   );
 }
 
+// Teacher testing tool: puts a student back to "fresh today" so the
+// teacher can test the daily flow (streak, today's work, Daily Spin).
+function TestResetEditor({ student }: { student: Student }) {
+  const resetStudentForTesting = useStore((s) => s.resetStudentForTesting);
+  const [confirm, setConfirm] = useState(false);
+  const [done, setDone] = useState(false);
+  return (
+    <div className="stack" style={{ gap: 6 }}>
+      <strong>🧪 Reset for testing</strong>
+      <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
+        Sets {student.name}'s streak to 0, clears today's Math and Literacy progress, and lets them spin the Daily Spin again. Money and past history are not touched.
+      </p>
+      {confirm ? (
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn btn-sm btn-primary" onClick={() => { resetStudentForTesting(student.id); setConfirm(false); setDone(true); }}>Yes, reset {student.name}</button>
+          <button className="btn btn-sm" onClick={() => setConfirm(false)}>Cancel</button>
+        </div>
+      ) : (
+        <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => { setConfirm(true); setDone(false); }}>Reset streak, today's progress and spin</button>
+      )}
+      {done && <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>✓ {student.name} is reset. Log in as them to test.</span>}
+    </div>
+  );
+}
+
 function AddStudentForm() {
   const addStudent = useStore((s) => s.addStudent);
   const [name, setName] = useState('');
@@ -437,6 +462,9 @@ export default function StudentManager() {
 
                 <hr className="divider" />
                 <LiteracyFocusEditor student={st} />
+
+                <hr className="divider" />
+                <TestResetEditor student={st} />
               </div>
             )}
           </div>
