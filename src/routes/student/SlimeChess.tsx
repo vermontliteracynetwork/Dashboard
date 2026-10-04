@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazyFresh } from '../../lib/freshBuild';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Chess, type Color, type Move, type PieceSymbol, type Square } from 'chess.js';
 import { useStore } from '../../store/store';
@@ -10,6 +11,7 @@ import {
 import { slimeSound } from '../../lib/slimeSounds';
 import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
 import { pickRival, recordGameMemory } from '../../lib/gameRivals';
+const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
 import { payForAnswers } from '../../lib/gameEarnings';
 import type { ChessGameRecord, MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
@@ -708,6 +710,16 @@ export default function SlimeChess() {
               <span className="sc-gear-bubble"><img src="/chess/icon-gear.png" alt="" /></span>
             </button>
           </div>
+
+          {mode === 'computer' && rival && (
+            <div className="sc-rival">
+              <div className="sc-rival-stage"><Suspense fallback={null}><NpcPortrait3D look={rival.look} talkKey={`${history.length}-${!!gameOver}`} talking={thinking || !!gameOver} framing="bust" /></Suspense></div>
+              <div className="sc-rival-say">
+                <strong>{rival.name}</strong>
+                <span>{gameOver ? (gameOver.win === true ? 'You got me! Great game!' : gameOver.win === false ? 'Checkmate! Good game, friend!' : 'A tie! We are evenly matched!') : thinking ? 'Hmm, let me think...' : turn === human ? 'Your move!' : 'Here I go!'}</span>
+              </div>
+            </div>
+          )}
 
           <div className={`sc-coach ${coach.tone}`} role="status" aria-live="polite">
             <img className="sc-coach-face" src={pieceSrc(theme, mode === 'computer' ? human : turn, 'p')} alt="" />

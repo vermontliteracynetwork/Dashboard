@@ -688,6 +688,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **Neighbor on screen (SHIPPED 2026-10-04, Claudia's two-hour stretch, from the next-ideas list):**
   - In a game against a Neighbor, their Style character stands in the bottom-left corner of the lane with their name and a speech bubble, mouth moving as they talk: "My turn! Watch this!", "STRIKE! Woo hoo!", "Ooh, so close! You got this!", "Your turn! Pick a lane!"
   - The final score card shows them too: "You beat me! Rematch soon?" / "I won this time! Good game, friend!"
+  - **Slime Chess too:** the Neighbor's portrait sits above the coach bubble with their name and a line that changes with the game: "Your move!", "Hmm, let me think...", "Here I go!", "Checkmate! Good game, friend!", "You got me! Great game!".
 - **Next ideas:** a "Rematch" button in the chat that opens the game with that same Neighbor.
 
 ### Personal leaderboard for every game. SHIPPED 2026-10-04 (direct teacher instruction)

@@ -4513,3 +4513,8 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .sb-rival-end { display: flex; align-items: center; gap: 10px; text-align: left; }
 .sb-rival-end .sb-rival-stage { width: 110px; height: 130px; flex: none; }
 @media (max-width: 700px) { .sb-rival { width: 110px; } .sb-rival-stage { width: 110px; height: 130px; } .sb-rival-bubble { left: 80px; max-width: 150px; } }
+/* Slime Chess: the Neighbor opponent */
+.sc-rival { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 18px; background: rgba(255, 255, 255, 0.9); border: 3px solid #ff9de2; }
+.sc-rival-stage { width: 84px; height: 84px; flex: none; }
+.sc-rival-say { display: flex; flex-direction: column; gap: 2px; font-weight: 700; color: #3a2a5e; }
+.sc-rival-say strong { font-size: 1.05rem; }
