@@ -48,7 +48,7 @@ function rivalLine(phase: string, cpuTurn: boolean, result: { strike: boolean; t
 // choices; see the Space Bowling entry in docs/DEVELOPMENT_PLAN.md.
 
 type Phase = 'launch' | 'turnCard' | 'questions' | 'meteor' | 'aim' | 'abduct' | 'rolling' | 'result' | 'cpu' | 'gameover';
-type Player = { name: string; planet: number; cpu: boolean; score: number; powerups: PowerUp[]; strikes: number };
+type Player = { name: string; planet: number; cpu: boolean; score: number; powerups: PowerUp[]; strikes: number; inARow?: number };
 type Stats = { correct?: number; best?: number };
 
 const CPU_THINK_MS = 2600;
@@ -135,7 +135,7 @@ export default function SpaceBowling() {
   const [meteorFor, setMeteorFor] = useState<boolean[]>([]);
   const [question, setQuestion] = useState<MCQuestion | null>(null);
   const [qDone, setQDone] = useState(0);
-  const [result, setResult] = useState<{ text: string; sub?: string; strike: boolean; earned?: PowerUp } | null>(null);
+  const [result, setResult] = useState<{ text: string; sub?: string; strike: boolean; earned?: PowerUp; banner?: string } | null>(null);
   const [removedThisTurn, setRemovedThisTurn] = useState(0);
   // Power-ups pop up in the middle of the screen once the questions are
   // done, to pick one or just roll (teacher: "power ups should pop up in
@@ -299,11 +299,16 @@ export default function SpaceBowling() {
     const strike = nowStanding.every((s) => !s);
     const earned = !r.gutter && asteroidLane === r.lane && !r.shuttle ? rollPowerUp() : undefined;
     if (earned) setAsteroidLane(null);
-    setPlayers((ps) => ps.map((p, i) => (i === turn ? { ...p, score: p.score + pins, strikes: p.strikes + (strike ? 1 : 0), powerups: earned ? [...p.powerups, earned] : p.powerups } : p)));
+    setPlayers((ps) => ps.map((p, i) => (i === turn ? { ...p, score: p.score + pins, strikes: p.strikes + (strike ? 1 : 0), inARow: strike ? (p.inARow ?? 0) + 1 : 0, powerups: earned ? [...p.powerups, earned] : p.powerups } : p)));
     if (strike) { sfx('strike'); [0, 150, 320].forEach((d, k) => later(() => meow(1 + k * 0.2), d + 500)); }
     else if (r.gutter) sfx('gutter');
     const who = players[turn];
+    // Her Bowling GUI banners: STRIKE, DOUBLE (2 in a row), TURKEY (3+ in a
+    // row) and GUTTER.
+    const inARow = strike ? (who.inARow ?? 0) + 1 : 0;
+    const banner = strike ? (inARow >= 3 ? 'turkey' : inARow === 2 ? 'double' : 'strike') : r.gutter ? 'gutter' : undefined;
     setResult({
+      banner,
       strike,
       text: strike ? 'STRIKE!' : r.gutter ? 'Gutter ball! Shake it off.' : `${pins} pin${pins === 1 ? '' : 's'}!`,
       sub: `${who.name} +${pins}`,
@@ -569,7 +574,9 @@ export default function SpaceBowling() {
 
           {result && phase === 'result' && (
             <div className={`sb-result${result.strike ? ' strike' : ''}`} role="status">
-              <strong>{result.text}</strong>
+              {result.banner
+                ? <img className="sb-banner" src={`/games/space-bowling/ui/${result.banner}.png`} alt={result.banner === 'turkey' ? 'TURKEY! Three strikes in a row!' : result.banner === 'double' ? 'DOUBLE! Two strikes in a row!' : result.text} />
+                : <strong>{result.text}</strong>}
               {result.sub && <span>{result.sub}</span>}
               {result.earned && <span className="sb-earned">{POWER_INFO[result.earned].icon} {players[turn]?.cpu ? players[turn].name : 'You'} found a {POWER_INFO[result.earned].name}! {players[turn]?.cpu ? '' : 'Use it on your next turn.'}</span>}
             </div>
