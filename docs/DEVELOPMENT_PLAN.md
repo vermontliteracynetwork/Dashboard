@@ -732,6 +732,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
     - **Space Bowling and Slime Chess:** the Neighbor is the opponent ("Me vs Scout", "You're playing Scout!").
     - **Bakery Match and Castle Defense** are one-player games, so the Neighbor cheers you on ("Playing with Scout! They're cheering you on.").
   - Gas Pump isn't in the picker, since it's the car's fuel quiz.
+- **Cheering buddy (Claudia's two-hour stretch, 2026-10-04):** in Bakery Match and Castle Defense opened with a Neighbor, their Style character sits in a small circle in the bottom-left corner with a cheer that changes every round or wave ("You're on a roll!", "Keep going, superstar!"), mouth moving (`src/components/CheeringBuddy.tsx`). It never catches taps. **Needs a live look:** make sure it doesn't hide part of either game's board on a small iPad.
 - **Play from the About card + bests on the dashboard (Claudia's two-hour stretch, 2026-10-04):**
   - A Neighbor's About sheet has a **🎮 Play a game with Scout** button that opens the game picker with them.
   - The Game Dashboard page shows each game's **🏆 My best** (Space Bowling pins, Slime Chess XP, Bakery Match XP, Castle Defense right answers), personal only.

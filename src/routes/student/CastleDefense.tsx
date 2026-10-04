@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import CheeringBuddy from '../../components/CheeringBuddy';
 import { getEconomy } from '../../lib/economy';
 const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
 import { useNpcProfiles } from '../../style/npcs';
@@ -656,6 +657,7 @@ export default function CastleDefense() {
         </div>
       )}
 
+      {showBoard && buddy && <CheeringBuddy buddy={buddy} step={wave} />}
       {showBoard && (
         <div className="castle-game">
           <div className="castle-frame">

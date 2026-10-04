@@ -4526,3 +4526,8 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .streak-pill-count, .chest.next::after { color: #a8410a; }
 .streak-x, .game-dash-close { min-width: 96px; padding: 0 12px; }
 .game-dash-best { align-self: flex-start; padding: 3px 10px; border-radius: 999px; background: #fff3c4; color: #6b4a00; font-weight: 800; font-size: 0.85rem; }
+/* A Neighbor cheering in a one-player game (CheeringBuddy.tsx) */
+.cheer-buddy { position: fixed; left: 10px; bottom: 10px; z-index: 30; display: flex; align-items: flex-end; gap: 6px; pointer-events: none; }
+.cheer-buddy-stage { width: 96px; height: 96px; border-radius: 50%; background: rgba(255, 255, 255, 0.85); border: 3px solid #ff9de2; overflow: hidden; }
+.cheer-buddy-bubble { max-width: 200px; margin-bottom: 40px; padding: 8px 12px; border-radius: 16px 16px 16px 4px; background: #fff; color: #3a2a5e; font-weight: 700; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+@media (max-width: 600px) { .cheer-buddy-stage { width: 72px; height: 72px; } .cheer-buddy-bubble { max-width: 150px; font-size: 0.85rem; } }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import CheeringBuddy from '../../components/CheeringBuddy';
 import { getEconomy } from '../../lib/economy';
 const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
 import { useNpcProfiles } from '../../style/npcs';
@@ -550,6 +551,7 @@ export default function BakeryMatch3() {
         </>
       )}
 
+      {showBoard && buddy && <CheeringBuddy buddy={buddy} step={round} />}
       {showBoard && (
         <div className="bakery-game">
           <div className="bakery-topbar">
