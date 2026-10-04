@@ -4525,3 +4525,4 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .chest-prize { background: #1f7a3d; }
 .streak-pill-count, .chest.next::after { color: #a8410a; }
 .streak-x, .game-dash-close { min-width: 96px; padding: 0 12px; }
+.game-dash-best { align-self: flex-start; padding: 3px 10px; border-radius: 999px; background: #fff3c4; color: #6b4a00; font-weight: 800; font-size: 0.85rem; }

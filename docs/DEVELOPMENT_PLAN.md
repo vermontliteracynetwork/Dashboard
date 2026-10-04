@@ -732,6 +732,9 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
     - **Space Bowling and Slime Chess:** the Neighbor is the opponent ("Me vs Scout", "You're playing Scout!").
     - **Bakery Match and Castle Defense** are one-player games, so the Neighbor cheers you on ("Playing with Scout! They're cheering you on.").
   - Gas Pump isn't in the picker, since it's the car's fuel quiz.
+- **Play from the About card + bests on the dashboard (Claudia's two-hour stretch, 2026-10-04):**
+  - A Neighbor's About sheet has a **🎮 Play a game with Scout** button that opens the game picker with them.
+  - The Game Dashboard page shows each game's **🏆 My best** (Space Bowling pins, Slime Chess XP, Bakery Match XP, Castle Defense right answers), personal only.
 - **Rematch from the chat (Claudia's two-hour stretch, 2026-10-04):** when a Neighbor brings up a game you played together, the first reply choice is now **"Let's play now! 🎮"**, which ends the chat and opens the game picker with that Neighbor.
 - **Games on the character sheet:** the Neighbor's About sheet now has **Games we played**, the last 8 games with that Neighbor: game, result (You won! / Scout won / A tie / Played together) and date. These are the same records that make Neighbors bring up games in chat. One-player games played together are remembered too ("Remember when we played Bakery Match together? You were amazing!").
 

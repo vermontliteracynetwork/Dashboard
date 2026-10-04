@@ -3,7 +3,7 @@ import { NATIVE_GAME_CARDS, type NativeGameCard } from '../lib/nativeGames';
 // The game dashboard: a card for every native game with its 16:9 cover.
 // Used for "Play a game" with a Neighbor, the Game Dashboard page (Build
 // Mode role and the computer app, /student/games) and game-mode assignments.
-export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick }: { games?: NativeGameCard[]; onPick: (g: NativeGameCard) => void }) {
+export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick, bests }: { games?: NativeGameCard[]; onPick: (g: NativeGameCard) => void; bests?: Partial<Record<NativeGameCard['id'], string>> }) {
   return (
     <div className="game-dash-grid">
       {games.map((g) => (
@@ -11,6 +11,7 @@ export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick }: { games?: Na
           <span className="game-dash-cover"><img src={g.cover} alt="" /></span>
           <span className="game-dash-title">{g.title}</span>
           <span className="game-dash-blurb">{g.blurb}</span>
+          {bests?.[g.id] && <span className="game-dash-best">🏆 My best: {bests[g.id]}</span>}
         </button>
       ))}
     </div>

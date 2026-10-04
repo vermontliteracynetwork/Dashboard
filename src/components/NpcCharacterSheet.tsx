@@ -8,7 +8,7 @@ const NpcPortrait3D = lazyFresh(() => import('./NpcPortrait3D'));
 
 // "About" a Neighbor: a full character sheet with their picture (their live
 // Style character), name, title/role and the facts the teacher wrote.
-export default function NpcCharacterSheet({ profile, onClose }: { profile: NpcProfile; onClose: () => void }) {
+export default function NpcCharacterSheet({ profile, onClose, onPlay }: { profile: NpcProfile; onClose: () => void; onPlay?: () => void }) {
   const studentId = useStore((s) => s.currentStudentId);
   const games = useGamesWith(studentId, profile.id);
   return (
@@ -40,7 +40,10 @@ export default function NpcCharacterSheet({ profile, onClose }: { profile: NpcPr
           ) : (
             <p className="npc-sheet-empty">No games yet. Tap {profile.name} and pick Play a game!</p>
           )}
-          <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>Done</button>
+          <div className="row-wrap" style={{ gap: 8 }}>
+            {onPlay && <button type="button" className="btn btn-lg" onClick={onPlay}>🎮 Play a game with {profile.name}</button>}
+            <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>Done</button>
+          </div>
         </div>
       </div>
     </div>

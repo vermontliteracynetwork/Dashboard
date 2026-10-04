@@ -5529,7 +5529,7 @@ export default function TownSquare() {
           />
         );
       })()}
-      {aboutNpc && npcProfiles[aboutNpc] && <NpcCharacterSheet profile={npcProfiles[aboutNpc]} onClose={() => setAboutNpc(null)} />}
+      {aboutNpc && npcProfiles[aboutNpc] && <NpcCharacterSheet profile={npcProfiles[aboutNpc]} onClose={() => setAboutNpc(null)} onPlay={() => { const p = npcProfiles[aboutNpc]; setAboutNpc(null); setPlayWith({ id: p.id, name: p.name }); }} />}
       {playWith && (
         <GameDashboard
           title={`Play a game with ${playWith.name}`}
