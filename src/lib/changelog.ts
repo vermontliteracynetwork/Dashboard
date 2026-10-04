@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-daily-streak',
+    date: '2026-10-04',
+    icon: '🔥',
+    title: 'Daily Streaks and treasure chests!',
+    body: 'Answer 20 questions right each day to keep your streak going. Watch the fire meter at the top of your screen. Every day you save your streak, you open treasure chests full of money! Streak Freezes keep your streak safe on days you miss. You start with one free.',
+  },
+  {
     id: '2026-10-04-game-dashboard',
     date: '2026-10-04',
     icon: '🕹️',

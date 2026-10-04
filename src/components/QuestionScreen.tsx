@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { recordStreakCorrect } from '../lib/streak';
 import type { TTSSettings } from '../types';
 import { speak } from './ReadAloud';
 import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
@@ -169,6 +170,8 @@ export default function QuestionScreen({
     if (answeredCorrectly) return;
     if (i === correctIndex) {
       setAnsweredCorrectly(true);
+      // Every right answer anywhere counts toward today's Daily Streak.
+      recordStreakCorrect();
       setFeedback('correct');
       advanceTimer.current = window.setTimeout(() => onCorrectAnswer(), CORRECT_PAUSE_MS);
     } else {

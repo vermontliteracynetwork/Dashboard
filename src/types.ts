@@ -884,7 +884,9 @@ export type TransactionKind =
   | 'bakery-match'
   | 'castle-defense'
   | 'purchase-style'
-  | 'game-answers';
+  | 'game-answers'
+  | 'streak-chest'
+  | 'purchase-freeze';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from

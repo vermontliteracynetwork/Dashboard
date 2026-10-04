@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'quizMode';
   title: string;
   route: string;
   cover: string;
@@ -21,3 +21,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'bakery', title: 'Bakery Match', route: '/student/bakery', cover: '/games/covers/bakery-match.jpg', blurb: 'Match yummy treats in 3 rounds.', versus: false },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false },
 ];
+
+// Quiz mode (Daily Streak spec): just the questions, no game. Shown on the
+// Game Dashboard, the streak card's game grid and pick-your-game
+// assignments, not in "Play a game" with a Neighbor.
+export const QUIZ_MODE_CARD: NativeGameCard = { id: 'quizMode', title: 'Quiz Mode', route: '/student/quiz-mode', cover: '/games/covers/quiz-mode.jpg', blurb: 'Just the questions, no game.', versus: false };

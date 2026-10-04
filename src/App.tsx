@@ -20,6 +20,8 @@ import Arcade from './routes/student/Arcade';
 import FarmersMarket from './routes/student/FarmersMarket';
 import BakeryMatch3 from './routes/student/BakeryMatch3';
 import GamesHub from './routes/student/GamesHub';
+import QuizMode from './routes/student/QuizMode';
+import StreakLayer from './components/StreakLayer';
 import CastleDefense from './routes/student/CastleDefense';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
 import TeacherLogin from './routes/teacher/TeacherLogin';
@@ -115,6 +117,7 @@ export default function App() {
         <SelRecheckPrompt />
         <SelLoginGate />
         <CoinDropOverlay />
+        <StreakLayer />
         <SyncTroubleAlert />
         {/* Direct teacher instruction: music keeps playing across every
             route, including while doing an assignment — mounted once here
@@ -157,6 +160,7 @@ export default function App() {
           <Route path="/student/farmers-market" element={<FarmersMarket />} />
           <Route path="/student/bakery" element={<BakeryMatch3 />} />
           <Route path="/student/games" element={<GamesHub />} />
+          <Route path="/student/quiz-mode" element={<QuizMode />} />
           <Route path="/student/castle-defense" element={<CastleDefense />} />
           <Route path="/student/space-bowling" element={<Suspense fallback={<div className="app-shell center-screen"><p>Fueling the rocket…</p></div>}><SpaceBowling /></Suspense>} />
           <Route

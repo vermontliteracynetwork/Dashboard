@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
 import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
+import { addFreeze, recordStreakCorrect } from '../lib/streak';
 import { DEFAULT_BADGES, DEFAULT_FEATURE_TOGGLES } from './badges';
 import { STARTER_EMOTE_IDS, emoteById, emotePriceFor } from '../lib/emoteCatalog';
 import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETPLACE_ITEMS } from '../lib/marketplaceSeed';
@@ -40,7 +41,7 @@ let realtimeSubscribed = false;
 export const BADGES_PAUSED = true;
 
 export interface DailySpinResult {
-  type: 'cents' | 'skip' | 'cashback' | 'item';
+  type: 'cents' | 'skip' | 'cashback' | 'item' | 'freeze';
   amountCents: number; // for 'cashback' this is the computed payout, not the percent; 0 for 'item' unless it fell back to a cash consolation
   label: string;
   segmentIndex: number; // which of today's 10 segments won, so the wheel UI can land on the same one
@@ -1937,7 +1938,11 @@ export const useStore = create<AppState>()(
         // is never touched by granting a bonus one.
         if (student.lastSpinDate === today && !student.bonusSpinAvailable) return null;
         const segments = getDailySpinSegments(today, get().marketplaceItems);
-        const segmentIndex = Math.floor(Math.random() * segments.length);
+        // The Streak Freeze wedge wins exactly 5% of spins; the rest are
+        // spread evenly over every other wedge.
+        const freezeIndex = segments.findIndex((sg) => sg.kind === 'freeze');
+        const others = segments.map((_, i) => i).filter((i) => i !== freezeIndex);
+        const segmentIndex = freezeIndex >= 0 && Math.random() < 0.05 ? freezeIndex : others[Math.floor(Math.random() * others.length)];
         const segment = segments[segmentIndex];
         // Folded into each branch's own updateStudent call below instead of
         // fired as its own separate update — two back-to-back updateStudent
@@ -1949,6 +1954,12 @@ export const useStore = create<AppState>()(
         // the race entirely.
         const spinPatch: Partial<Student> = { lastSpinDate: today, bonusSpinAvailable: false };
 
+        if (segment.kind === 'freeze') {
+          get().updateStudent(studentId, spinPatch);
+          addFreeze(studentId);
+          get().recordTransaction(studentId, 0, '🎡 Daily Spin: won a Streak Freeze', '🧊', 'spin-cash', true);
+          return { type: 'freeze', amountCents: 0, label: segment.label, segmentIndex };
+        }
         if (segment.kind === 'skip') {
           get().updateStudent(studentId, { ...spinPatch, skipTokens: student.skipTokens + 1 });
           get().recordTransaction(studentId, 0, '🎡 Daily Spin: won a Skip Pass', '🎫', 'spin-cash', true);
@@ -2491,6 +2502,7 @@ export const useStore = create<AppState>()(
         let remainingIds = state.remainingIds.filter((id) => id !== questionId);
         let masteredIds = state.masteredIds;
         if (correct) {
+          recordStreakCorrect(studentId);
           masteredIds = [...masteredIds, questionId];
           if (wasMissedBefore) {
             const n = (get().correctionsCount[studentId] ?? 0) + 1;

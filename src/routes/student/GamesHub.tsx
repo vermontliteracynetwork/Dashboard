@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { GameCardGrid } from '../../components/GameDashboard';
+import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from '../../lib/nativeGames';
 import { findActiveGameplayTask, gameplayProgress, gameplayTarget } from '../../lib/gameplayAssignment';
 import type { NativeGameId } from '../../types';
 
@@ -42,7 +43,7 @@ export default function GamesHub() {
           📝 <strong>{anyGame.task.studentTitle || anyGame.task.title}</strong>: pick any game and answer questions to finish it. {Math.min(done, gameplayTarget(anyGame.task))} of {gameplayTarget(anyGame.task)} done.
         </p>
       )}
-      <GameCardGrid onPick={(g) => navigate(g.route, { state: { from } })} />
+      <GameCardGrid games={[...NATIVE_GAME_CARDS, QUIZ_MODE_CARD]} onPick={(g) => navigate(g.route, { state: { from } })} />
     </div>
   );
 }

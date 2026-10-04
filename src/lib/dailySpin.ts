@@ -10,7 +10,7 @@ export type SpinItemKind = 'avatar' | 'emote' | 'font' | 'color' | 'voice' | 'pr
 
 export interface DailySpinSegment {
   id: string; // stable across the day, used as the React/canvas key and to match a result back to its segment
-  kind: 'cents' | 'cashback' | 'skip' | SpinItemKind;
+  kind: 'cents' | 'cashback' | 'skip' | 'freeze' | SpinItemKind;
   label: string;
   amountCents?: number; // 'cents' kind only
   percent?: number; // 'cashback' kind only
@@ -58,6 +58,9 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
 
   const segments: DailySpinSegment[] = [];
   segments.push({ id: 'skip', kind: 'skip', label: '🎫 Skip Pass' });
+  // A Streak Freeze wedge (Daily Streak spec 2026-10-04), landed on 5% of
+  // the time (see spinDailyWheel in store.ts), not 1 in 11.
+  segments.push({ id: 'freeze', kind: 'freeze', label: '🧊 Streak Freeze' });
 
   const cashbackPct = rand() < 0.5 ? 3 : 5;
   segments.push({ id: `cashback-${cashbackPct}`, kind: 'cashback', percent: cashbackPct, label: `💰 ${cashbackPct}% Cashback` });

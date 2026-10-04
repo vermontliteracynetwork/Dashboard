@@ -22,6 +22,7 @@ import { useNpcProfiles, renameIn } from '../../style/npcs';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
 import GameDashboard from '../../components/GameDashboard';
+import { openStreakView, useStreakCardDue } from '../../components/StreakLayer';
 import { defaultLook } from '../../style/species';
 import { useStyleSettings } from '../../style/catalog';
 import type { StyleLook, StyleMove } from '../../style/types';
@@ -3344,6 +3345,9 @@ export default function TownSquare() {
   // frame. changelogOfferedRef stops it from re-triggering every time
   // showArrival happens to re-render true->false->true within one mount.
   const [showChangelog, setShowChangelog] = useState(false);
+  // The Daily Streak card comes first on the first visit of the day; every
+  // other arrival pop-up waits for it (never stacked).
+  const streakDue = useStreakCardDue();
   const [changelogPageIndex, setChangelogPageIndex] = useState(0);
   const changelogOfferedRef = useRef(false);
   // Direct teacher report: the book showed every entry every time with no
@@ -3353,13 +3357,13 @@ export default function TownSquare() {
   // hadn't seen as of THIS open, not a stale/moving target.
   const changelogOpenedSeenIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!student || changelogOfferedRef.current || showArrival) return;
+    if (!student || changelogOfferedRef.current || showArrival || streakDue) return;
     if (!hasUnseenChangelog(student.lastSeenChangelogId)) return;
     changelogOfferedRef.current = true;
     changelogOpenedSeenIdRef.current = student.lastSeenChangelogId ?? null;
     setShowChangelog(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showArrival, student?.lastSeenChangelogId]);
+  }, [showArrival, streakDue, student?.lastSeenChangelogId]);
   // On-demand reopen, direct teacher instruction: the What's New book must
   // always be reachable, not just the one-time auto-popup — the computer
   // (StudentHome) and Mailbox both link here with ?openChangelog=1. Clears
@@ -3385,13 +3389,13 @@ export default function TownSquare() {
   const spinOfferedRef = useRef(false);
   const onboardedIds = useStore((s) => s.onboardedIds);
   useEffect(() => {
-    if (!student || spinOfferedRef.current || showArrival || showChangelog) return;
+    if (!student || spinOfferedRef.current || showArrival || showChangelog || streakDue) return;
     if (!onboardedIds.includes(student.id)) return;
     if (student.lastSpinDate === todayISO() && !student.bonusSpinAvailable) return;
     spinOfferedRef.current = true;
     setShowSpinWheel(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student?.id, student?.lastSpinDate, student?.bonusSpinAvailable, showArrival, showChangelog, onboardedIds]);
+  }, [student?.id, student?.lastSpinDate, student?.bonusSpinAvailable, showArrival, showChangelog, streakDue, onboardedIds]);
   // The Seamstress (Style for students): until a student has done Bawk's
   // guided walkthrough there, it is a required task on their To-Do list,
   // and Bawk the rooster announces it when they arrive (after the arrival
@@ -3403,12 +3407,12 @@ export default function TownSquare() {
   const bawkOfferedRef = useRef(false);
   const spinPending = !!student && (student.lastSpinDate !== todayISO() || !!student.bonusSpinAvailable) && onboardedIds.includes(student.id);
   useEffect(() => {
-    if (!seamstressDue || bawkOfferedRef.current || showArrival || showChangelog || showSpinWheel) return;
+    if (!seamstressDue || bawkOfferedRef.current || showArrival || showChangelog || showSpinWheel || streakDue) return;
     if (spinPending && !spinOfferedRef.current) return;
     bawkOfferedRef.current = true;
     setShowBawk(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seamstressDue, showArrival, showChangelog, showSpinWheel, spinPending]);
+  }, [seamstressDue, showArrival, showChangelog, showSpinWheel, spinPending, streakDue]);
   const goToSeamstress = () => { setShowBawk(false); navigate('/student/style', { state: { from: 'town' } }); };
   const closeChangelog = () => {
     setShowChangelog(false);
@@ -4265,7 +4269,7 @@ export default function TownSquare() {
           whenever the lock is showing, regardless of how it got opened,
           fixes that without touching the lock's own stacking. */}
       {showHelp && <HelpOverlay studentId={student.id} onClose={() => setShowHelp(false)} aboveLock={showWizardLock} />}
-      {showArrival && totalTasksLeft > 0 && student.worldShowArrivalCard && (
+      {showArrival && !streakDue && totalTasksLeft > 0 && student.worldShowArrivalCard && (
         <div className="overlay-backdrop" onClick={dismissArrival}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
@@ -4422,6 +4426,7 @@ export default function TownSquare() {
           { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(1) },
         ];
         const page2: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
+          { id: 'streak', icon: '🔥', label: 'My Streak', bg: '#e0611a', onSelect: () => openStreakView() },
           { id: 'todo', icon: '📋', label: totalTasksLeft + (seamstressDue ? 1 : 0) > 0 ? `To-Do List (${totalTasksLeft + (seamstressDue ? 1 : 0)})` : 'To-Do List', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
           { id: 'computer', icon: '💻', label: 'Computer', bg: '#3e6b7c', onSelect: () => navigate('/student/home') },
           { id: 'settings', icon: '⚙️', iconName: 'settingsAlt', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },

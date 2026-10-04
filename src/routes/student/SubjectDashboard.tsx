@@ -27,7 +27,7 @@ import { todayISO } from '../../lib/dates';
 import { Icon } from '../../components/Icon';
 import type { Subject, Task } from '../../types';
 import GameDashboard from '../../components/GameDashboard';
-import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
+import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from '../../lib/nativeGames';
 import { gameplayTarget } from '../../lib/gameplayAssignment';
 
 export default function SubjectDashboard() {
@@ -167,7 +167,7 @@ export default function SubjectDashboard() {
         // shows every game; a specific game shows just that one. The Gas
         // Pump lives in Town Square, so that one sends them there.
         if (task.completionMode === 'anyGame' || task.completionMode === 'specificGame') {
-          const only = task.completionMode === 'specificGame' ? NATIVE_GAME_CARDS.filter((g) => g.id === task.nativeGameId) : NATIVE_GAME_CARDS;
+          const only = task.completionMode === 'specificGame' ? NATIVE_GAME_CARDS.filter((g) => g.id === task.nativeGameId) : [...NATIVE_GAME_CARDS, QUIZ_MODE_CARD];
           const need = gameplayTarget(task);
           if (task.completionMode === 'specificGame' && only.length === 0) {
             return (

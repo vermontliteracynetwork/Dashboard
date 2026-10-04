@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { FREEZE_PRICE_CENTS, buyFreeze, freezesOf, useStreak } from '../lib/streak';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { AVATAR_CATALOG } from '../store/badges';
@@ -233,6 +234,8 @@ export default function Marketplace() {
   const furnitureFilter = useItemFilter(furnitureItems);
 
   const student = students.find((s) => s.id === currentStudentId);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const streakRow = useStreak(currentStudentId);
   if (!student) return null;
   const studentId = student.id;
 
@@ -705,6 +708,19 @@ export default function Marketplace() {
 
             {tab === 'powerups' && (
               <div className="shop-product-grid">
+                {/* Streak Freeze (Daily Streak spec 2026-10-04): $20, keeps a
+                    streak safe on a missed day (src/lib/streak.ts). */}
+                <div className="shop-product-card">
+                  <div className="shop-item-icon-frame" style={{ width: 72, height: 72 }}>
+                    <span style={{ fontSize: '2rem' }}>🧊</span>
+                  </div>
+                  <strong style={{ fontSize: '0.8rem' }}>Streak Freeze</strong>
+                  <p style={{ fontSize: '0.66rem', opacity: 0.75, margin: 0 }}>Keeps your streak safe on a day you miss. Used for you automatically, or freeze a day ahead in your streak.</p>
+                  <div className="tag-pill" style={{ fontSize: '0.68rem' }}>You have: {freezesOf(streakRow)}</div>
+                  <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={student.coins < FREEZE_PRICE_CENTS} onClick={() => buyFreeze(student.id)}>
+                    Buy for {formatMoney(FREEZE_PRICE_CENTS)}
+                  </button>
+                </div>
                 {powerupItems.filter((p) => matchesSearch(p.name, p.tags, p.category)).map((p) => {
                   const affordable = student.coins >= p.price;
                   const owned = false; // power-ups always stay buyable (stacking), never "owned"
