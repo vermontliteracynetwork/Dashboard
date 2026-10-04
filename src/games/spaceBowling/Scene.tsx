@@ -442,7 +442,10 @@ function Ball({ src, roll, onRollDone, calm }: { src: string; roll: RollShot | n
 
 function Tiles({ threeLanes, canPick, onPick }: { threeLanes: boolean; canPick: boolean; onPick: (i: number) => void }) {
   const five = useMemo(() => [1, 2, 3, 4, 5].map((n, i) => textTexture(String(n), TILE_COLORS[i])), []);
-  const three = useMemo(() => [['⬅', '#f97316'], ['⬆', '#8b5cf6'], ['➡', '#0ea5e9']].map(([t, c]) => textTexture(t, c, 384, 256, 150)), []);
+  // After a meteor shower the three wide lanes are numbered 1 to 3, like the
+  // regular 1 to 5 (teacher: "after a metor shower, the buttons should
+  // change to 1-3").
+  const three = useMemo(() => [['1', '#f97316'], ['2', '#8b5cf6'], ['3', '#0ea5e9']].map(([t, c]) => textTexture(t, c, 384, 256, 170)), []);
   const hover = useRef<number | null>(null);
   const press = (e: { stopPropagation: () => void }, i: number) => { e.stopPropagation(); if (canPick) onPick(i); };
   if (threeLanes) {

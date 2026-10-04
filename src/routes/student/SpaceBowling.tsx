@@ -478,7 +478,7 @@ export default function SpaceBowling() {
           )}
 
           <div className="sb-say">
-            {phase === 'aim' && cur && !cur.cpu && <span>{threeLanes ? 'Meteor shower! Tap ⬅, ⬆ or ➡ to roll.' : asteroidLane !== null ? `Tap a number to roll! Hit the glowing asteroid in lane ${asteroidLane + 1} for a power-up.` : 'Tap a number to roll your planet down that lane!'}{cur.powerups.length > 0 ? ' Or use a power-up first.' : ''}</span>}
+            {phase === 'aim' && cur && !cur.cpu && <span>{threeLanes ? 'Meteor shower! Tap 1, 2 or 3 to roll.' : asteroidLane !== null ? `Tap a number to roll! Hit the glowing asteroid in lane ${asteroidLane + 1} for a power-up.` : 'Tap a number to roll your planet down that lane!'}{cur.powerups.length > 0 ? ' Or use a power-up first.' : ''}</span>}
             {phase === 'cpu' && <span>🎳 {cur?.name} is aiming…</span>}
             {phase === 'rolling' && <span>Rolling…</span>}
             {phase === 'abduct' && <span>🛸 The UFO is beaming up two pins!</span>}
