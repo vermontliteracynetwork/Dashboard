@@ -805,6 +805,17 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - Her words: "add the bowling sign to assets that i can use in build mode"
 - **Shipped:** `public/world/models/space/space-bowling-billboard.glb` (Build Mode → Space → "Space Bowling Billboard", with a thumbnail): a two-post billboard showing her "Skyline Bowling" neon sign art (`SignFull.psd` from her Bowling GUI pack) on both sides, with a glowing pink frame. Because the file name has "space" and "billboard" in it, placing it gives it the Space Bowling role automatically, so students tap it to play.
 
+### Claudia's two-hour stretch (2026-10-04, her words: "claudia, for the next two hours, you are in charge of keeping this project mvooing forward in development"): what's waiting on her
+
+Everything that could move without her was built and shipped (Daily Streak, Bawk's reminders, Say it questions, Economy Settings, Neighbors on screen in all four games, rematch from chat, bowling banners, test tools, a code review with 10 fixes). These need her call before they can go further:
+- **Streak money:** should streak interest (1% per day) and the Passport streak switch to the new Daily Streak (20 right answers a day)? They still use the old "both subjects done" streak.
+- **Per-student streak goal:** a lower goal than 20 for students who need it?
+- **Chart/Graph activity type** (Weekly Planning Phase 1, item 3): the Activity Library was later cut to 4 creatable types, so adding a 5th needs her yes.
+- **Weekly Planning Phases 2 to 5** (Neighbor-delivered assignments, to-do discovery loop, Catch-Up Lock): designed and ready, but big. Which first?
+- **Tappy Plane:** saved, waiting for her "build it".
+- **Games app look:** her slide asset for the computer app icon didn't come through.
+- **Her Bowling GUI art:** confirm she has rights to it (no license file in the zip).
+
 ### Rooster work reminders ("cockadoodle do this activity"). SHIPPED 2026-10-04 (direct teacher instruction; built by Claudia during her "in charge for two hours" stretch)
 
 - **Update 2026-10-04:** the rooster now has a name, **Bawk**, and is already in use as the announcer and guide for the Seamstress walkthrough (`src/components/BawkGuide.tsx`: rooster bottom-left, chat box across the bottom, squawk + crazy animation per message). The work-reminder feature below should reuse BawkGuide.
@@ -874,7 +885,7 @@ Status values: ✅ Done · 🟡 Partial (named gap) · ⬜ Not started (still on
 | Students | `/teacher/students` (`StudentManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Inbox (help pings, offscreen review, feedback, quiz struggles) | `/teacher/inbox` (`ReviewInbox.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Scores/Reports | `/teacher/scores` (`ScoreHistory.tsx`) | 🟡 | ⬜ | 🟡 | Still its own screen — merging Scores into Academics too needs the `assignmentId` field on `QuizAttemptRecord` (Central Educator Dashboard spec item 3, genuine data-model work, not a UI move) plus the Reports/PDF pipeline (item 8) — real, separate infrastructure, not done in this pass. See "What's still separate infrastructure" below. |
-| Game (Neighbors, dialogue, wheel settings) | `/teacher/game` (`GameManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
+| Game (Neighbors, dialogue, wheel settings) | `/teacher/game` (`GameManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. New 2026-10-04: Economy Settings card at the top (game pay, streak goal, freeze price, chests, Daily Spin cash/cashback/freeze chance). |
 | Achievements/Badges | `/teacher/badges` (`BadgeManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Marketplace Manager | `/teacher/marketplace` (`MarketplaceManager.tsx`) | ✅ | ⬜ | 🟡 | Not yet reviewed. |
 | Build Mode | `/teacher/world-editor` (`WorldEditor.tsx`) | ✅ | ⬜ | ✅ | Functionally mature (many completed Part A entries); genuinely dual-audience (teacher authoring tool that borrows the 3D game view), so "too kid like" may not apply the same way here — review, don't assume. |
