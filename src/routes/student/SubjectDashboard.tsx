@@ -26,6 +26,9 @@ import { taskDisplayTitle } from '../../lib/taskOrder';
 import { todayISO } from '../../lib/dates';
 import { Icon } from '../../components/Icon';
 import type { Subject, Task } from '../../types';
+import GameDashboard from '../../components/GameDashboard';
+import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
+import { gameplayTarget } from '../../lib/gameplayAssignment';
 
 export default function SubjectDashboard() {
   const { subject } = useParams<{ subject: string }>();
@@ -157,7 +160,39 @@ export default function SubjectDashboard() {
 
   const renderTask = (task: Task) => {
     switch (task.type) {
-      case 'quiz': return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
+      case 'quiz': {
+        // A question set assigned to be answered inside games (teacher
+        // direction 2026-10-04): the student first sees the Game Dashboard,
+        // picks the game they want, and answers the set there. "Any game"
+        // shows every game; a specific game shows just that one. The Gas
+        // Pump lives in Town Square, so that one sends them there.
+        if (task.completionMode === 'anyGame' || task.completionMode === 'specificGame') {
+          const only = task.completionMode === 'specificGame' ? NATIVE_GAME_CARDS.filter((g) => g.id === task.nativeGameId) : NATIVE_GAME_CARDS;
+          const need = gameplayTarget(task);
+          if (task.completionMode === 'specificGame' && only.length === 0) {
+            return (
+              <div className="chrome-frame stack" style={{ padding: 24, alignItems: 'center', textAlign: 'center', gap: 12 }}>
+                <h2 style={{ margin: 0 }}>⛽ Answer these at the Gas Pump</h2>
+                <p style={{ margin: 0 }}>Drive a car in Town Square and fill up at the Gas Pump. Answer {need} question{need === 1 ? '' : 's'} there to finish.</p>
+                <div className="row" style={{ gap: 10 }}>
+                  <button className="btn btn-lg" onClick={() => setSelectedTaskId(null)}>Back</button>
+                  <button className="btn btn-lg btn-primary" onClick={() => navigate('/world/town')}>Go to Town Square</button>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <GameDashboard
+              title={`Pick a game: ${taskDisplayTitle(task)}`}
+              subtitle={`Answer ${need} question${need === 1 ? '' : 's'} right in ${only.length === 1 ? only[0].title : 'any game you pick'} to finish.`}
+              games={only}
+              onClose={() => setSelectedTaskId(null)}
+              onPick={(g) => navigate(g.route, { state: { from: 'home' } })}
+            />
+          );
+        }
+        return <QuizTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
+      }
       case 'platformer': return <PlatformerTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
       case 'link':
         return (

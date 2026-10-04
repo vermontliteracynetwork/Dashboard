@@ -61,6 +61,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'seamstress', label: `Seamstress (Style dress up) → ${ROLE_VIEWS.seamstress}` },
   { value: 'space-bowling', label: `Space Bowling (bowling game) → ${ROLE_VIEWS['space-bowling']}` },
   { value: 'chess', label: `Chess Set (Slime Chess game) → ${ROLE_VIEWS.chess}` },
+  { value: 'game-dashboard', label: `Game Dashboard (pick any game) → ${ROLE_VIEWS['game-dashboard']}` },
   { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];

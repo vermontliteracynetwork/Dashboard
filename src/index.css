@@ -4420,3 +4420,13 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .npc-sheet-games { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .npc-sheet-games li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(91, 107, 214, 0.1); font-weight: 600; }
 .npc-sheet-games li span:last-child { opacity: 0.7; font-weight: 500; white-space: nowrap; }
+/* Game Dashboard page (/student/games) */
+.games-hub { min-height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 16px; background: linear-gradient(180deg, #2b1a6b 0%, #5b2a8a 55%, #c2477e 100%); color: #fff; }
+.games-hub-top { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.games-hub-top h1 { margin: 0; text-align: center; font-size: clamp(1.4rem, 4vw, 2.2rem); text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
+.games-hub-task { margin: 0; padding: 12px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.95); color: #2b1a6b; font-size: 1.05rem; }
+.games-hub .game-dash-card { color: #222; }
+@media (max-width: 560px) { .games-hub-top { grid-template-columns: 1fr; text-align: center; } }
+/* Games app on the student computer: a 2 x 2 peek at the covers. */
+.widget-games-covers { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 4px; }
+.widget-games-covers img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 5px; display: block; }

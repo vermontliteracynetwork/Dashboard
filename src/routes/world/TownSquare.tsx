@@ -212,6 +212,19 @@ const PLANE_TURN_RATE = 1.6; // rad/s
 const PLANE_ALTITUDE_RATE = 3.5; // units/s, student-controlled while flying
 const CAMERA_HEIGHT = 2.9;
 const CAMERA_DISTANCE = 5.2;
+// Camera zoom (teacher direction 2026-10-04: "give me ability to zoom in on
+// my student camera view so im closer to the back of the character if i
+// want"). k = 1 is the normal chase camera; smaller k pulls the camera in
+// and down, to just over the character's shoulder at ZOOM_MIN. Pinch on an
+// iPad, the scroll wheel on a computer, or the + and - buttons. Remembered
+// per student on this device.
+const ZOOM_MIN = 0.3;
+const OVER_SHOULDER_HEIGHT = 1.35;
+const CAMERA_ZOOM = { k: 1, key: '' };
+function setCameraZoom(k: number) {
+  CAMERA_ZOOM.k = THREE.MathUtils.clamp(k, ZOOM_MIN, 1);
+  if (CAMERA_ZOOM.key) { try { localStorage.setItem(CAMERA_ZOOM.key, String(CAMERA_ZOOM.k)); } catch { /* private mode */ } }
+}
 const CAMERA_LOOK_CAP = Math.PI * 0.6;
 const DRAG_LOOK_SENSITIVITY = 0.005;
 // Vertical look ("look up/down") is a pure tilt, not an orbit like the
@@ -2152,8 +2165,9 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       // inherit that same skew.
       camera.up.set(0, 1, 0);
       const camAngle = facing.current + cameraLook.current;
-      const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE;
-      const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE;
+      const zoom = CAMERA_ZOOM.k;
+      const camX = pos.current.x - Math.sin(camAngle) * CAMERA_DISTANCE * zoom;
+      const camZ = pos.current.z - Math.cos(camAngle) * CAMERA_DISTANCE * zoom;
       // Planes/Drone while airborne (docs/TRANSPORTATION.md §2's "steep
       // angled third-person bird's-eye chase cam, roughly 60-70 degrees off
       // horizontal — NOT a true 90-degree orthographic top-down"): pulling
@@ -2163,7 +2177,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       // downward angle — no separate camera mode/branch needed for the
       // Drone, it reuses this exact same math per the design doc.
       const airborne = vehicleKind === 'plane' && planePhase.current !== 'grounded' && planeAltitude.current > 0.5;
-      const camHeight = airborne ? CAMERA_HEIGHT + planeAltitude.current : CAMERA_HEIGHT;
+      const groundCamHeight = OVER_SHOULDER_HEIGHT + (CAMERA_HEIGHT - OVER_SHOULDER_HEIGHT) * (zoom - ZOOM_MIN) / (1 - ZOOM_MIN);
+      const camHeight = airborne ? CAMERA_HEIGHT + planeAltitude.current : groundCamHeight;
       const lookY = airborne ? 0.5 : 1 + cameraPitch.current;
       camera.position.lerp(new THREE.Vector3(camX, camHeight, camZ), 1 - Math.pow(0.001, dt));
       camera.lookAt(pos.current.x, lookY, pos.current.z);
@@ -2979,6 +2994,10 @@ function CameraLookButtons({ cameraLook, cameraPitch, side, bottom }: { cameraLo
         <button onClick={() => turn(-1)} style={btnStyle} aria-label="Look left"><span>↺</span></button>
         <button onClick={() => turn(1)} style={btnStyle} aria-label="Look right"><span>↻</span></button>
       </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => { setCameraZoom(CAMERA_ZOOM.k - 0.15); forceTick((n) => n + 1); }} style={btnStyle} aria-label="Zoom in, closer to your character"><span>＋</span></button>
+        <button onClick={() => { setCameraZoom(CAMERA_ZOOM.k + 0.15); forceTick((n) => n + 1); }} style={btnStyle} aria-label="Zoom out"><span>－</span></button>
+      </div>
     </div>
   );
 }
@@ -3764,6 +3783,39 @@ export default function TownSquare() {
     cameraPitch.current = THREE.MathUtils.clamp(cameraPitch.current - dy * DRAG_PITCH_SENSITIVITY, -CAMERA_PITCH_CAP, CAMERA_PITCH_CAP);
   };
   const handleLookPointerUp = () => { isDraggingLook.current = false; };
+  // Camera zoom: load this student's saved zoom, then scroll wheel and
+  // two-finger pinch change it (see CAMERA_ZOOM).
+  useEffect(() => {
+    if (!student?.id) return;
+    CAMERA_ZOOM.key = `town-zoom:${student.id}`;
+    let saved = 1;
+    try { saved = Number(localStorage.getItem(CAMERA_ZOOM.key) ?? '1') || 1; } catch { /* private mode */ }
+    CAMERA_ZOOM.k = THREE.MathUtils.clamp(saved, ZOOM_MIN, 1);
+    const onWheel = (e: WheelEvent) => {
+      if ((e.target as HTMLElement | null)?.tagName !== 'CANVAS') return;
+      setCameraZoom(CAMERA_ZOOM.k + e.deltaY * 0.0015);
+    };
+    let pinchStart = 0;
+    let zoomStart = 1;
+    const span = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const onTouchStart = (e: TouchEvent) => { if (e.touches.length === 2) { pinchStart = span(e.touches); zoomStart = CAMERA_ZOOM.k; } };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || pinchStart <= 0) return;
+      // Fingers apart = zoom in (closer), together = zoom out.
+      setCameraZoom(zoomStart * (pinchStart / Math.max(1, span(e.touches))));
+    };
+    const onTouchEnd = (e: TouchEvent) => { if (e.touches.length < 2) pinchStart = 0; };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [student?.id]);
   // Set by clicking a Neighbor directly (see handleApproach) — names which
   // Neighbor's conversation should auto-start the moment the walk this
   // triggers actually brings the student into talk range.
@@ -3912,7 +3964,20 @@ export default function TownSquare() {
   // the pendingApproach ref is never re-read, and the click silently does
   // nothing. Checking distance up front and firing onTalk directly when
   // already in range sidesteps the whole ref/re-render race.
-  const handleApproach = (n: Quest1Neighbor) => {
+  // Double tap to open a Neighbor's menu (teacher direction 2026-10-04:
+  // "players must double tap a neighbor for their menu to appear"). One tap
+  // only walks over to them; a second tap on the same Neighbor within
+  // DOUBLE_TAP_MS opens the menu (right away if close, or on arrival).
+  const DOUBLE_TAP_MS = 450;
+  const lastNpcTap = useRef<{ id: string; t: number } | null>(null);
+  const isDoubleTap = (id: string) => {
+    const now = performance.now();
+    const last = lastNpcTap.current;
+    const dbl = !!last && last.id === id && now - last.t < DOUBLE_TAP_MS;
+    lastNpcTap.current = dbl ? null : { id, t: now };
+    return dbl;
+  };
+  const handleApproach = (n: Quest1Neighbor, open = true) => {
     if (mapView) return; // the map's click-through is for looking, not acting
     if (wasDraggingLook.current) return; // releasing a look-drag isn't a click to approach
     if (metIds.includes(n.id)) return; // already wandering — nothing to walk up to
@@ -3921,12 +3986,12 @@ export default function TownSquare() {
     const dz = playerPos.z - nz;
     const dist = Math.hypot(dx, dz) || 1;
     if (dist <= TALK_RADIUS) {
-      handleTalk(n);
+      if (open) handleTalk(n);
       return;
     }
     const approachDist = TALK_RADIUS * 0.7;
     hoverTarget.current = null;
-    pendingApproach.current = n.id;
+    pendingApproach.current = open ? n.id : null;
     walkTarget.current = {
       x: clampGroundX(nx + (dx / dist) * approachDist),
       z: clampGroundZ(nz + (dz / dist) * approachDist),
@@ -3938,7 +4003,7 @@ export default function TownSquare() {
   // moves (a met Neighbor or Townsperson wandering) — aims at their live
   // position (wanderingPositions), not a fixed spot, and talks immediately
   // if already close enough.
-  const handleApproachWandering = (id: string, talk: () => void) => {
+  const handleApproachWandering = (id: string, talk: () => void, open = true) => {
     if (mapView) return;
     if (wasDraggingLook.current) return; // releasing a look-drag isn't a click to approach
     const live = wanderingPositions.current[id];
@@ -3947,12 +4012,12 @@ export default function TownSquare() {
     const dz = playerPos.z - live.z;
     const dist = Math.hypot(dx, dz) || 1;
     if (dist <= TALK_RADIUS) {
-      talk();
+      if (open) talk();
       return;
     }
     const approachDist = TALK_RADIUS * 0.7;
     hoverTarget.current = null;
-    pendingApproach.current = id;
+    pendingApproach.current = open ? id : null;
     walkTarget.current = {
       x: clampGroundX(live.x + (dx / dist) * approachDist),
       z: clampGroundZ(live.z + (dz / dist) * approachDist),
@@ -4883,7 +4948,7 @@ export default function TownSquare() {
               wandering={metIds.includes(n.id)}
               pendingApproach={pendingApproach.current === n.id}
               onTalk={() => handleTalk(n)}
-              onApproach={() => (metIds.includes(n.id) ? handleApproachWandering(n.id, () => handleTalk(n)) : handleApproach(n))}
+              onApproach={() => { const open = isDoubleTap(n.id); if (metIds.includes(n.id)) handleApproachWandering(n.id, () => handleTalk(n), open); else handleApproach(n, open); }}
               exposePosition={(v) => { wanderingPositions.current[n.id] = v; }}
               titleOverride={npcTitleOverrides[n.id]}
               look={npcProfiles[n.id]?.look}
@@ -4906,7 +4971,7 @@ export default function TownSquare() {
                   dialogueOpen: !!activeConversation,
                   pendingApproach: pendingApproach.current === npc.id,
                   onTalk: () => handleTalkTownsperson(tp),
-                  onApproach: () => handleApproachWandering(npc.id, () => handleTalkTownsperson(tp)),
+                  onApproach: () => handleApproachWandering(npc.id, () => handleTalkTownsperson(tp), isDoubleTap(npc.id)),
                   exposePosition: (v) => { wanderingPositions.current[npc.id] = v; },
                 } : undefined}
               />

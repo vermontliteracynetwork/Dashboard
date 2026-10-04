@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import Onboarding from '../../components/Onboarding';
@@ -397,6 +398,19 @@ export default function StudentHome() {
             ) : (
               <span className="widget-webpage-hint">{cinemaVideos.length} video{cinemaVideos.length === 1 ? '' : 's'} to watch</span>
             )}
+          </div>
+        </button>
+        {/* Games app (teacher direction 2026-10-04): opens the Game
+            Dashboard, every native game as a cover card. Placeholder look
+            (a peek at the covers) until her slide asset for the icon arrives. */}
+        <button
+          className="widget-card widget-card-tall widget-webpage widget-games"
+          onClick={() => navigate('/student/games')}
+          aria-label="Games"
+        >
+          <div className="widget-webpage-titlebar">🎮 Games</div>
+          <div className="widget-webpage-body widget-games-covers" style={{ padding: 4 }}>
+            {NATIVE_GAME_CARDS.map((g) => <img key={g.id} src={g.cover} alt="" />)}
           </div>
         </button>
         {/* Direct teacher instruction: the What's New book must always be

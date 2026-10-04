@@ -56,7 +56,7 @@ function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: 
       )}
       <label className="row" style={{ gap: 6, fontSize: '0.82rem' }}>
         <input type="radio" checked={mode === 'anyGame'} onChange={() => onChange({ completionMode: 'anyGame', nativeGameId: undefined })} />
-        🌍 Any game in the world — any native game/asset keeps the same count going
+        🎮 Student picks the game: they see the Game Dashboard and choose any game (every game keeps the same count going)
       </label>
       {mode === 'anyGame' && (
         <label className="row" style={{ gap: 4, fontSize: '0.8rem', marginLeft: 24 }}>

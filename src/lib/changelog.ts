@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-game-dashboard',
+    date: '2026-10-04',
+    icon: '🕹️',
+    title: 'The Game Dashboard is here',
+    body: 'Open the new Games app on your computer to see every game in one place and pick the one you want. Some assignments let you choose your game too! In Town Square you can now zoom in close behind your character (pinch, scroll, or tap + and -). Double tap a Neighbor to open their menu.',
+  },
+  {
     id: '2026-10-04-play-with-neighbors',
     date: '2026-10-04',
     icon: '🎮',

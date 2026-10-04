@@ -174,6 +174,9 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   castle: '/student/castle-defense',
   seamstress: '/student/style',
   'space-bowling': '/student/space-bowling',
+  // Any object (playground equipment, a sign) can open the Game Dashboard:
+  // every native game as a cover card (teacher direction 2026-10-04).
+  'game-dashboard': '/student/games',
   chess: '/student/chess',
   // Never actually read — a 'gas-pump' role opens the in-world gas refuel
   // prompt directly (TownSquare.tsx's openRoleObject special-cases it,
