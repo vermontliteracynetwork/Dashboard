@@ -25,6 +25,19 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 
 const Scene = lazyFresh(() => import('../../games/spaceBowling/Scene'));
+const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
+
+// What the Neighbor opponent says (their Style character stands in the
+// corner during the game, mouth moving when they talk).
+function rivalLine(phase: string, cpuTurn: boolean, result: { strike: boolean; text: string } | null): string | null {
+  if (phase === 'cpu') return 'My turn! Watch this!';
+  if (phase === 'result' && result) {
+    if (cpuTurn) return result.strike ? 'STRIKE! Woo hoo!' : result.text.startsWith('Gutter') ? 'Oops! Gutter ball!' : 'Not bad for me!';
+    return result.strike ? 'Wow, what a strike!' : result.text.startsWith('Gutter') ? 'Ooh, so close! You got this!' : 'Nice roll!';
+  }
+  if (phase === 'aim') return 'Your turn! Pick a lane!';
+  return null;
+}
 
 // Space Bowling (docs/SPACE_BOWLING_SPEC.pdf): bowl planets at alien-cat
 // pins down a lane floating in space. Questions come before each player's
@@ -535,6 +548,17 @@ export default function SpaceBowling() {
             </div>
           )}
 
+          {rival && playerCount === 1 && (() => {
+            const line = rivalLine(phase, !!cur?.cpu, result);
+            return (
+              <div className="sb-rival" aria-live="polite">
+                <div className="sb-rival-stage"><Suspense fallback={null}><NpcPortrait3D look={rival.look} talkKey={`${phase}-${turn}-${round}`} talking={!!line} facing="right" /></Suspense></div>
+                <span className="sb-rival-name">{rival.name}</span>
+                {line && <span className="sb-rival-bubble">{line}</span>}
+              </div>
+            );
+          })()}
+
           <div className="sb-say">
             {phase === 'aim' && cur && !cur.cpu && <span>{threeLanes ? 'Meteor shower! Tap 1, 2 or 3 to roll.' : asteroidLane !== null ? `Tap a number to roll! Hit the glowing asteroid in lane ${asteroidLane + 1} for a power-up.` : 'Tap a number to roll your planet down that lane!'}</span>}
             {phase === 'cpu' && <span>🎳 {cur?.name} is aiming…</span>}
@@ -571,6 +595,12 @@ export default function SpaceBowling() {
                     <div key={i} className="sb-score-row"><img src={PLANETS[p.planet].src} alt="" /><span className="sb-score-name">{p.name}</span><span className="sb-score-num">{p.score}</span></div>
                   ))}
                 </div>
+                {rival && playerCount === 1 && (
+                  <div className="sb-rival-end">
+                    <div className="sb-rival-stage"><Suspense fallback={null}><NpcPortrait3D look={rival.look} talkKey="gameover" talking facing="right" /></Suspense></div>
+                    <p><strong>{rival.name}:</strong> {tie ? 'A tie! We are both space bowling stars!' : winner && !winner.cpu ? 'You beat me! Rematch soon?' : 'I won this time! Good game, friend!'}</p>
+                  </div>
+                )}
                 {playerCount === 1 && humans[0] && <p>Your best game: {Math.max(stats.best ?? 0, humans[0].score)} pins.</p>}
                 <div className="sb-row">
                   <button className="sb-btn big" onClick={startGame}>Play again</button>

@@ -685,7 +685,10 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - "only one powerup should be allowed per player turn": the student's power-up popup closes for the rest of the turn once they choose, and the Neighbor uses at most one per turn (Strike Shuttle first, then UFO, then Meteor Shower).
   - "after a metor shower has been adminsitered, chances of hitting pins are less": on a meteor-shower turn the ball wobbles off its line more, hits a narrower band, knocks fewer neighbors over, and edge lanes gutter more often (`knockPins(..., shaken)` in `logic.ts`).
   - "strike shuttle power up should go full speed (not turning)pointing at the first bowling pin and should have a cloud of fire and dust out the back of it, when it collides, all pins should fall": the shuttle no longer spins. It flies nose first (checked in a render) at almost twice the ball's speed, with a trail of fire puffs that cool to grey dust behind it, and the whole rack goes down the moment it hits the head pin.
-- **Next ideas:** show the Neighbor's Style character on the game screen during their turn; a "Rematch" button in the chat that opens the game with that same Neighbor.
+- **Neighbor on screen (SHIPPED 2026-10-04, Claudia's two-hour stretch, from the next-ideas list):**
+  - In a game against a Neighbor, their Style character stands in the bottom-left corner of the lane with their name and a speech bubble, mouth moving as they talk: "My turn! Watch this!", "STRIKE! Woo hoo!", "Ooh, so close! You got this!", "Your turn! Pick a lane!"
+  - The final score card shows them too: "You beat me! Rematch soon?" / "I won this time! Good game, friend!"
+- **Next ideas:** a "Rematch" button in the chat that opens the game with that same Neighbor.
 
 ### Personal leaderboard for every game. SHIPPED 2026-10-04 (direct teacher instruction)
 
