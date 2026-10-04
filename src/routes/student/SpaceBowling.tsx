@@ -21,6 +21,8 @@ import { LEVELS, meow, preloadSfx, setLevels, sfx, startMusic, stopMusic, type L
 import type { RollShot } from '../../games/spaceBowling/Scene';
 import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
 import { pickRival, recordGameMemory } from '../../lib/gameRivals';
+import { payForAnswers } from '../../lib/gameEarnings';
+import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 
 const Scene = lazyFresh(() => import('../../games/spaceBowling/Scene'));
 
@@ -60,6 +62,7 @@ export default function SpaceBowling() {
   const statsRow = useStore((s) => (s.currentStudentId ? s.styleLooks.find((r) => r.ownerId === statsOwner(s.currentStudentId!)) : undefined));
   const stats = (statsRow?.look ?? {}) as Stats;
   const correctSoFar = stats.correct ?? 0;
+  const bestGames = useBestGames(studentId, 'spaceBowling');
   const costumeOwned = (student?.unlockedCharacterIds ?? []).includes('costume:space-alien');
 
   // --- questions (same sourcing as Slime Chess / Castle Defense) ---
@@ -119,6 +122,11 @@ export default function SpaceBowling() {
   const [qDone, setQDone] = useState(0);
   const [result, setResult] = useState<{ text: string; sub?: string; strike: boolean; earned?: PowerUp } | null>(null);
   const [removedThisTurn, setRemovedThisTurn] = useState(0);
+  // Power-ups pop up in the middle of the screen once the questions are
+  // done, to pick one or just roll (teacher: "power ups should pop up in
+  // the middle. of your screen after questions are answered for your to
+  // choose from"). Once they choose, it stays closed for the rest of the turn.
+  const [powerPickDone, setPowerPickDone] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [costumeWin, setCostumeWin] = useState(false);
@@ -147,19 +155,28 @@ export default function SpaceBowling() {
     startMusic(music);
     setLevels(music, effects);
     sfx('ui');
-    beginTurn(0, ps, ps.map(() => false));
+    const perPlayer = Math.max(1, Math.round(rounds * 0.3));
+    asteroidPlan.current = ps.map(() => shuffle(Array.from({ length: rounds }, (_, i) => i < perPlayer)));
+    beginTurn(0, ps, ps.map(() => false), 1);
   };
 
-  const newRack = () => {
+  // The asteroid power-up shows up on about 30% of turns, the same number
+  // of turns for every player, at random rounds (teacher: "asteroid belt
+  // powerups should not be available at every turn, but rather should
+  // appear in about 30% of turns per game, evenly distributed between
+  // players"). Planned once per game: plan[player][round - 1].
+  const asteroidPlan = useRef<boolean[][]>([]);
+  const newRack = (idx: number, rnd: number) => {
     setStanding(Array(10).fill(true));
     setRackId((r) => r + 1);
     setRoll(null);
     setRemovedThisTurn(0);
-    setAsteroidLane(Math.floor(Math.random() * 5));
+    setAsteroidLane(asteroidPlan.current[idx]?.[rnd - 1] ? Math.floor(Math.random() * 5) : null);
   };
 
-  const beginTurn = (idx: number, ps: Player[], _meteors: boolean[]) => {
-    newRack();
+  const beginTurn = (idx: number, ps: Player[], _meteors: boolean[], rnd = 1) => {
+    newRack(idx, rnd);
+    setPowerPickDone(false);
     setThreeLanes(false);
     setResult(null);
     const p = ps[idx];
@@ -176,8 +193,19 @@ export default function SpaceBowling() {
     setPhase('questions');
   };
 
+  // $1 per right answer, paid when the game ends or they leave it (see
+  // src/lib/gameEarnings.ts). A ref so leaving the screen any way still pays.
+  const correctRef = useRef(0);
+  const payOutRef = useRef(() => {});
+  payOutRef.current = () => {
+    if (studentId && correctRef.current > 0) payForAnswers(studentId, correctRef.current, 'Space Bowling', '🎳');
+    correctRef.current = 0;
+  };
+  useEffect(() => () => payOutRef.current(), []);
+
   const countCorrect = () => {
     if (!studentId) return;
+    correctRef.current += 1;
     const next = correctSoFar + 1;
     mergeStyleRow(statsOwner(studentId), { correct: next });
     if (student && activeGameplayTask && question) submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, question.id, true);
@@ -241,7 +269,7 @@ export default function SpaceBowling() {
 
   const doRoll = (choice: number, shuttle = false) => {
     const lane = threeLanes && !shuttle ? METEOR_LANES[choice].lanes[Math.floor(Math.random() * METEOR_LANES[choice].lanes.length)] : choice;
-    const knock = shuttle ? { down: standing.map((s, i) => (s ? i : -1)).filter((i) => i >= 0), gutter: false } : knockPins(LANE_X[lane], standing);
+    const knock = shuttle ? { down: standing.map((s, i) => (s ? i : -1)).filter((i) => i >= 0), gutter: false } : knockPins(LANE_X[lane], standing, Math.random, threeLanes);
     const p = players[turn];
     setPhase('rolling');
     setRoll({ id: idRef.current++, lane, laneX: shuttle ? 0 : LANE_X[lane], down: knock.down, gutter: knock.gutter, shuttle, ballSrc: PLANETS[p.planet].src });
@@ -281,8 +309,8 @@ export default function SpaceBowling() {
     setTurn(idx);
     setRound(rnd);
     const prevCpu = players[turn]?.cpu;
-    if (prevCpu && !players[idx].cpu) later(() => beginTurn(idx, players, meteorFor), AFTER_CPU_MS - 2600 > 0 ? AFTER_CPU_MS - 2600 : 400);
-    else beginTurn(idx, players, meteorFor);
+    if (prevCpu && !players[idx].cpu) later(() => beginTurn(idx, players, meteorFor, rnd), AFTER_CPU_MS - 2600 > 0 ? AFTER_CPU_MS - 2600 : 400);
+    else beginTurn(idx, players, meteorFor, rnd);
   };
   const nextTurn = () => nextRef.current();
 
@@ -304,37 +332,44 @@ export default function SpaceBowling() {
       cpuRef.current(idx, 1);
       return;
     }
+    // One power-up per turn at most (teacher: "only one powerup should be
+    // allowed per player turn"): the Neighbor uses its best one, if any.
     if (step === 1) {
+      if (me.powerups.includes('shuttle')) {
+        setPlayers((ps) => ps.map((p, i) => (i === idx ? { ...p, powerups: removeOne(p.powerups, 'shuttle') } : p)));
+        doRoll(2, true);
+        return;
+      }
       if (me.powerups.includes('ufo')) {
         setPlayers((ps) => ps.map((p, i) => (i === idx ? { ...p, powerups: removeOne(p.powerups, 'ufo') } : p)));
         doAbduct();
         later(() => cpuRef.current(idx, 2), 3800);
         return;
       }
+      if (me.powerups.includes('meteor')) {
+        const target = (idx + 1) % players.length;
+        setPlayers((ps) => ps.map((p, i) => (i === idx ? { ...p, powerups: removeOne(p.powerups, 'meteor') } : p)));
+        setMeteorFor((m) => m.map((v, i) => (i === target ? true : v)));
+        flash(`${me.name} sent a meteor shower at ${players[target].name}!`);
+      }
       cpuRef.current(idx, 2);
-      return;
-    }
-    if (me.powerups.includes('meteor')) {
-      const target = (idx + 1) % players.length;
-      setPlayers((ps) => ps.map((p, i) => (i === idx ? { ...p, powerups: removeOne(p.powerups, 'meteor') } : p)));
-      setMeteorFor((m) => m.map((v, i) => (i === target ? true : v)));
-      flash(`${me.name} sent a meteor shower at ${players[target].name}!`);
-    }
-    if (me.powerups.includes('shuttle')) {
-      setPlayers((ps) => ps.map((p, i) => (i === idx ? { ...p, powerups: removeOne(p.powerups, 'shuttle') } : p)));
-      doRoll(2, true);
       return;
     }
     doRoll(threeLanes ? Math.floor(Math.random() * 3) : cpuLane());
   };
 
   const endGame = () => {
+    payOutRef.current();
     setPhase('gameover');
     stopMusic();
     sfx('victory');
     const me = players.find((p) => !p.cpu);
     if (studentId && me && playerCount === 1 && me.score > (stats.best ?? 0)) mergeStyleRow(statsOwner(studentId), { best: me.score });
     const npc = players.find((p) => p.cpu);
+    if (studentId && me) {
+      const detail = npc ? `vs ${npc.name}: ${me.score > npc.score ? 'you won' : me.score < npc.score ? `${npc.name} won` : 'a tie'}` : `${players.length} players`;
+      recordBestGame(studentId, 'spaceBowling', me.score, detail);
+    }
     if (studentId && me && npc && rival) recordGameMemory(studentId, rival.id, 'Space Bowling', me.score > npc.score ? 'student' : me.score < npc.score ? 'npc' : 'tie');
   };
 
@@ -391,6 +426,18 @@ export default function SpaceBowling() {
                   <p className="sb-prize-count">{Math.min(correctSoFar, COSTUME_GOAL)} of {COSTUME_GOAL}</p>
                 </>
               )}
+              <div className="sb-board">
+                <h2>🏆 My best games</h2>
+                {bestGames.length === 0 ? (
+                  <p className="sb-board-empty">Finish a game to see your best scores here. Just for you!</p>
+                ) : (
+                  <ol>
+                    {bestGames.slice(0, 5).map((g, i) => (
+                      <li key={i}><strong>{g.score} pins</strong><span>{boardDate(g.at)}{g.detail ? ` · ${g.detail}` : ''}</span></li>
+                    ))}
+                  </ol>
+                )}
+              </div>
             </section>
             <section className="sb-panel sb-options">
               <h2>Who's playing?</h2>
@@ -466,19 +513,27 @@ export default function SpaceBowling() {
             ))}
           </div>
 
-          {cur && !cur.cpu && cur.powerups.length > 0 && (
-            <div className="sb-powers" aria-label="Your power-ups">
-              {(['shuttle', 'ufo', 'meteor'] as PowerUp[]).filter((pw) => cur.powerups.includes(pw)).map((pw) => (
-                <button key={pw} className="sb-power" disabled={phase !== 'aim'} onClick={() => applyPowerUp(pw)} title={POWER_INFO[pw].text}>
-                  <span className="sb-power-icon">{POWER_INFO[pw].icon}</span>
-                  <span>{POWER_INFO[pw].name}{count(cur.powerups, pw) > 1 ? ` x${count(cur.powerups, pw)}` : ''}</span>
-                </button>
-              ))}
+          {phase === 'aim' && cur && !cur.cpu && cur.powerups.length > 0 && !powerPickDone && (
+            <div className="sb-modal-back" role="dialog" aria-modal="true" aria-label="Use a power-up?">
+              <div className="sb-modal sb-power-pick">
+                <h2>Use a power-up?</h2>
+                <ReadAloud text={`Use a power-up? ${(['shuttle', 'ufo', 'meteor'] as PowerUp[]).filter((pw) => cur.powerups.includes(pw)).map((pw) => `${POWER_INFO[pw].name}: ${POWER_INFO[pw].text}`).join(' ')} Or just roll.`} small />
+                <div className="sb-power-row">
+                  {(['shuttle', 'ufo', 'meteor'] as PowerUp[]).filter((pw) => cur.powerups.includes(pw)).map((pw) => (
+                    <button key={pw} className="sb-power" onClick={() => { setPowerPickDone(true); applyPowerUp(pw); }}>
+                      <span className="sb-power-icon">{POWER_INFO[pw].icon}</span>
+                      <span>{POWER_INFO[pw].name}{count(cur.powerups, pw) > 1 ? ` x${count(cur.powerups, pw)}` : ''}</span>
+                      <span className="sb-power-text">{POWER_INFO[pw].text}</span>
+                    </button>
+                  ))}
+                </div>
+                <button className="sb-btn" onClick={() => { sfx('blip'); setPowerPickDone(true); }}>Not now, just roll</button>
+              </div>
             </div>
           )}
 
           <div className="sb-say">
-            {phase === 'aim' && cur && !cur.cpu && <span>{threeLanes ? 'Meteor shower! Tap 1, 2 or 3 to roll.' : asteroidLane !== null ? `Tap a number to roll! Hit the glowing asteroid in lane ${asteroidLane + 1} for a power-up.` : 'Tap a number to roll your planet down that lane!'}{cur.powerups.length > 0 ? ' Or use a power-up first.' : ''}</span>}
+            {phase === 'aim' && cur && !cur.cpu && <span>{threeLanes ? 'Meteor shower! Tap 1, 2 or 3 to roll.' : asteroidLane !== null ? `Tap a number to roll! Hit the glowing asteroid in lane ${asteroidLane + 1} for a power-up.` : 'Tap a number to roll your planet down that lane!'}</span>}
             {phase === 'cpu' && <span>🎳 {cur?.name} is aiming…</span>}
             {phase === 'rolling' && <span>Rolling…</span>}
             {phase === 'abduct' && <span>🛸 The UFO is beaming up two pins!</span>}
@@ -569,7 +624,7 @@ export default function SpaceBowling() {
             <p>This game won't be finished. Your right answers still count toward the Space Alien costume.</p>
             <div className="sb-row">
               <button className="sb-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button>
-              <button className="sb-btn big" onClick={() => { setConfirmLeave(false); setQuestion(null); stopMusic(); navigate(backTo); }}>Leave</button>
+              <button className="sb-btn big" onClick={() => { setConfirmLeave(false); setQuestion(null); stopMusic(); payOutRef.current(); navigate(backTo); }}>Leave</button>
             </div>
           </div>
         </div>

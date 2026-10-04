@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-dollar-answers',
+    date: '2026-10-04',
+    icon: '💵',
+    title: '$1 for every right answer in games',
+    body: 'Every right answer in Space Bowling, Slime Chess, Bakery Match, Castle Defense and the Gas Pump now earns you $1. Answer 20 right and earn $20! Space Bowling and Castle Defense also have your own personal best games list now.',
+  },
+  {
     id: '2026-10-04-bowling-neighbors',
     date: '2026-10-04',
     icon: '🎳',

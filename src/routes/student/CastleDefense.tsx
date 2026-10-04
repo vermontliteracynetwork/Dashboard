@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { MCQuestion, QuestionSet } from '../../types';
@@ -105,7 +106,9 @@ import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct 
 const TOTAL_WAVES = 5;
 const QUESTIONS_PER_GATE = 3;
 const GEMS_PER_CORRECT = 2;
-const REWARD_PER_QUESTION_CENTS = 50;
+// $1 per right answer, same as every native game (teacher direction
+// 2026-10-04, src/lib/gameEarnings.ts). Was 50 cents.
+const REWARD_PER_QUESTION_CENTS = 100;
 // Real-time combat simulation constants (Claudia's redesign spec) — a
 // live tick loop, not a single precomputed outcome.
 const TICK_MS = 150; // simulation step; also the CSS transition duration on .castle-enemy, so position updates read as continuous motion, not jumps
@@ -296,6 +299,8 @@ export default function CastleDefense() {
   const [castleShake, setCastleShake] = useState(false);
   // Which wave indices (0-based) were cleared with 0 leaks this game — just
   // for the badge row's gold-tint (resolveWaveEnd below), not persisted.
+  const [showBoard2, setShowBoard2] = useState(false);
+  const bestGames = useBestGames(student?.id, 'castleDefense');
   const [perfectWaves, setPerfectWaves] = useState<boolean[]>(() => Array(TOTAL_WAVES).fill(false));
 
   const [sessionEarningsCents, setSessionEarningsCents] = useState(0);
@@ -552,6 +557,8 @@ export default function CastleDefense() {
 
   const finishGame = () => {
     if (student) {
+      const perfect = perfectWaves.filter(Boolean).length;
+      recordBestGame(student.id, 'castleDefense', sessionQuestionsRef.current, `${perfect} perfect wave${perfect === 1 ? '' : 's'}`);
       updateStudent(student.id, { bonusSpinAvailable: true });
       recordTransaction(student.id, 0, '🎉 Finished Castle Defense: bonus spin!', '🎡', 'castle-defense');
 
@@ -612,9 +619,31 @@ export default function CastleDefense() {
               <button className="bakery-play-btn" onClick={startGame}>
                 <Icon name="play" size={22} fallback="▶️" /> Play New Game
               </button>
+              <button className="bakery-secondary-btn" onClick={() => setShowBoard2(true)}>
+                <Icon name="trophy" size={18} fallback="🏆" /> View My Leaderboard
+              </button>
             </div>
           </div>
         </>
+      )}
+
+      {showBoard2 && (
+        <div className="bakery-modal-backdrop" onClick={() => setShowBoard2(false)}>
+          <div className="bakery-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="bakery-modal-title">My Castle Defense games</h2>
+            <p className="bakery-modal-note">Just for you. No one else can see this.</p>
+            {bestGames.length === 0 ? (
+              <p className="bakery-leaderboard-empty">No finished games yet. Defend all {TOTAL_WAVES} waves to see your scores here!</p>
+            ) : (
+              <ol className="bakery-leaderboard-list">
+                {bestGames.slice(0, 5).map((g, i) => (
+                  <li key={i}><span>{boardDate(g.at)}{g.detail ? ` · ${g.detail}` : ''}</span><span>✅ {g.score} right</span></li>
+                ))}
+              </ol>
+            )}
+            <button className="bakery-play-btn" onClick={() => setShowBoard2(false)}>Done</button>
+          </div>
+        </div>
       )}
 
       {showBoard && (

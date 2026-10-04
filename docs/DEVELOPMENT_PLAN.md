@@ -664,13 +664,28 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **Game memories in chat:** a finished game against a Neighbor is remembered (the `games:<studentId>` row in `style_looks`, last 30, no new SQL). The next time the student talks to that Neighbor in Town Square, the Neighbor brings it up first, once per game: "Remember that time we played Space Bowling and I won? I am still doing my happy dance!", "Remember when we played Slime Chess and you beat me? I have been practicing ever since!", or "Remember our Space Bowling game? It was a tie! We need a rematch." The student picks a reply (e.g. "Rematch soon!" or "You got lucky!") and the normal conversation continues.
 - **New background.** Her words: "use this image as the background for the space bowling game" (her pink and purple galaxy picture). Saved as `public/games/space-bowling/skybox/galaxy-pink.jpg` and used as the only background, both behind the 3D lane (cropped to fill the screen in either iPad orientation, never stretched) and behind the start screen. This replaces the rotating Kenney space skyboxes, which stay in the folder unused.
 - **Meteor shower lanes numbered 1 to 3.** Her words: "after a metor shower, the buttons should change to 1-" then "1-3". The three wide lanes now show 1, 2 and 3 (same colors as before) instead of arrows, the hint says "Tap 1, 2 or 3 to roll", and keys 1 to 3 already worked.
+- **Power-ups pop up in the middle.** Her words: "power ups should pop up in the middle. of your screen after questions are answered for your to choose from rather than stayon on the left". The side column of power-up buttons is gone. Once a student's questions are done (and after any meteor shower lands), a centered card asks "Use a power-up?" with a big button for each power-up they have (icon, name, count, what it does; read aloud available) and "Not now, just roll". After they choose, it stays closed for the rest of that turn.
+- **More Space Bowling rules (her words, in order):**
+  - "asteroid belt powerups should not be available at every turn, but rather should appear in about 30% of turns per game, evenly distributed between players": planned once per game. Each player gets the asteroid on the same number of turns (30% of the rounds, rounded, at least 1), at random rounds.
+  - "only one powerup should be allowed per player turn": the student's power-up popup closes for the rest of the turn once they choose, and the Neighbor uses at most one per turn (Strike Shuttle first, then UFO, then Meteor Shower).
+  - "after a metor shower has been adminsitered, chances of hitting pins are less": on a meteor-shower turn the ball wobbles off its line more, hits a narrower band, knocks fewer neighbors over, and edge lanes gutter more often (`knockPins(..., shaken)` in `logic.ts`).
+  - "strike shuttle power up should go full speed (not turning)pointing at the first bowling pin and should have a cloud of fire and dust out the back of it, when it collides, all pins should fall": the shuttle no longer spins. It flies nose first (checked in a render) at almost twice the ball's speed, with a trail of fire puffs that cool to grey dust behind it, and the whole rack goes down the moment it hits the head pin.
 - **Next ideas:** show the Neighbor's Style character on the game screen during their turn; a "Rematch" button in the chat that opens the game with that same Neighbor.
 
-### Personal leaderboard for every game. QUEUED (direct teacher instruction 2026-10-04)
+### Personal leaderboard for every game. SHIPPED 2026-10-04 (direct teacher instruction)
 
-- Her words: "claudia, remember to add a personal leader board for each game"
-- **Where it stands:** Slime Chess already has one (Your best games: XP per game, wins, total). Space Bowling saves only a personal best score (`sb:<studentId>` row). The other native games have none yet.
-- **Plan:** one shared "My best games" board shown on every native game's start screen (Space Bowling, Slime Chess, Castle Defense, Bakery Match, Platformer, Gas Pump and any new ones): the student's own top 5 results for that game (score, date, who they played, win/loss), personal only, never compared with classmates (the standing no-public-leaderboards rule). Saved per student per game in `style_looks` rows, like the Space Bowling stats, so no new SQL.
+- Her words: "claudia, remember to add a personal leader board for each game", then "ensure personal leaderboards are available for all native games"
+- **Shipped:** every native game with a game to finish now has a personal board, just for that student, never compared with classmates. Slime Chess (already had "Your best games") and Bakery Match (already had "View My Leaderboard") are unchanged. New: **Space Bowling** shows "🏆 My best games" on its start screen (top 5: pins, date, who they played and who won). **Castle Defense** has a "View My Leaderboard" button on its menu (top 5: right answers, date, perfect waves). Shared code `src/lib/personalBoard.ts` (`board:<game>:<studentId>` rows in `style_looks`, best 10 kept, no new SQL).
+- **Not included:** Gas Pump. It's the car's fuel quiz, not a game you start and finish, so there's nothing to rank. It does pay $1 per right answer (below).
+
+### $1 for every right answer in every native game. SHIPPED 2026-10-04 (direct teacher instruction)
+
+- Her words: "for all native games, students earn the equal number of dollars for the correct number of questions answered. example, if i answer 20 correct questions in a game, i will earn $20", and "the coin animation should be shown, a mesage should appear, and the bank register should be updated"
+- **Shipped** (`src/lib/gameEarnings.ts`, `payForAnswers`):
+  - **Space Bowling and Slime Chess:** $1 per right answer, paid when the game ends or when they leave it (nothing answered is lost). One bank register row ("🎳 Space Bowling: 20 right answers", +$20.00), the falling coins, and a message card on screen: "You earned $20.00 for 20 right answers in Space Bowling!"
+  - **Gas Pump:** $1 right away for each right answer, with the same coins, message and register row.
+  - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
+- The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
 ### Car dashboard card. SHIPPED 2026-10-04 (direct teacher instruction, with a screenshot of driving)
 
@@ -696,6 +711,11 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - Her words: "make sure objects marked solid cannot be driven through or walked through"
 - **Shipped:** every placed Town Square object with **Solid** checked in Build Mode now blocks students walking, cars driving and Neighbors wandering, using the model's real measured footprint times its size, turned with the object (`recomputeCollisionLayout` in `TownSquare.tsx`). Unchecked objects stay walk-through. This reverses the earlier "nothing placed blocks movement" setting, but only for objects she has marked Solid. Never solid, whatever the box says: flat ground pieces (roads, rugs, train tracks: you walk and drive on them), things lifted more than 1.5 units off the ground (a sign on a wall), aircraft, and the car the student is driving. Drawn walls still don't block (unchanged).
 - **Note:** every object placed since late September starts with Solid checked, so most of the town is solid now. If a student gets boxed in somewhere, uncheck Solid on the objects there.
+- **Smooth sliding (follow-up, same day).** Her words: "when a player or npc runs or drives into a solid asset, they should move smothly around the permiter of the solid asset while they are walking forward, rather than studdering and getting stuck"
+  - **Cause of the stutter:** the old check used the object's true edge, but the push-out landed half a unit past it. Every step into a wall snapped the player back, then they walked in again.
+  - **Fix:** the edge used for both the check and the push is now the same padded edge, and the push lands exactly on it. A step along a wall glides along it.
+  - **Head-on:** a step that runs almost straight into a wall is turned to follow the wall toward the nearer corner (or the way they were already angling), so holding forward walks them around the object and on past it.
+  - **Applies to:** walking, driving and Neighbors (`slideRects` in `TownSquare.tsx`).
 
 ### Space Bowling sign in Build Mode. SHIPPED 2026-10-04 (direct teacher instruction)
 

@@ -100,7 +100,9 @@ const DRAG_THRESHOLD_PX = 18;
 // Direct teacher instruction: cash prizes are the default now for
 // in-game activities like this one. $0.50 per correctly-answered
 // question, credited the moment it's answered.
-const REWARD_PER_QUESTION_CENTS = 50;
+// $1 per right answer, same as every native game (teacher direction
+// 2026-10-04, src/lib/gameEarnings.ts). Was 50 cents.
+const REWARD_PER_QUESTION_CENTS = 100;
 
 type Phase = 'menu' | 'playing' | 'challenge';
 

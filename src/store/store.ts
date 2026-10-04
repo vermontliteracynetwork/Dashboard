@@ -348,7 +348,7 @@ interface AppState {
   assignments: Assignment[]; // published plans with a date window (repeats daily, or one span with carried-forward progress)
   literacyFocusSets: LiteracyFocusSet[]; // a student's phonics/morpheme/spelling focus for a date window, typically a week
   transactions: Transaction[]; // every student's bank register, newest first
-  lastCoinEarn: { id: string; studentId: string; amountCents: number } | null; // bumped by recordTransaction whenever coins land (spin win, task reward, streak bonus, etc.) — purely a UI trigger for the coin-drop animation/sound, not persisted
+  lastCoinEarn: { id: string; studentId: string; amountCents: number; message?: string } | null; // bumped by recordTransaction whenever coins land (spin win, task reward, streak bonus, etc.) — purely a UI trigger for the coin-drop animation/sound, not persisted
   lastCharacterUnlock: { id: string; studentId: string; characterId: string } | null; // bumped by recordBakeryQuestionAnswered when a character-catalog unlock is earned — same transient-UI-trigger shape as lastCoinEarn, not persisted
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`

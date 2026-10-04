@@ -32,12 +32,17 @@ export function rollPowerUp(rand = Math.random): PowerUp {
 // Which pins a roll down a lane knocks over. Pins in the ball's path go
 // down, and each falling pin can tip over its neighbours behind and beside
 // it, so the middle lane strikes often and the edges get a few.
-export function knockPins(laneX: number, standing: boolean[], rand = Math.random): { down: number[]; gutter: boolean } {
+// shaken: the roll comes right after a meteor shower hit this player, so
+// fewer pins go down (teacher: "after a metor shower has been
+// adminsitered, chances of hitting pins are less"): the ball wobbles off
+// its line more, hits a narrower band, knocks fewer neighbors, and edge
+// lanes gutter more often.
+export function knockPins(laneX: number, standing: boolean[], rand = Math.random, shaken = false): { down: number[]; gutter: boolean } {
   const edge = Math.abs(laneX) >= 0.99;
-  if (edge && rand() < 0.06) return { down: [], gutter: true };
-  const x = laneX + (rand() - 0.5) * 0.24;
+  if (edge && rand() < (shaken ? 0.18 : 0.06)) return { down: [], gutter: true };
+  const x = laneX + (rand() - 0.5) * (shaken ? 0.6 : 0.24);
   const down = new Set<number>();
-  PIN_SPOTS.forEach(([px], i) => { if (standing[i] && Math.abs(px - x) < 0.36) down.add(i); });
+  PIN_SPOTS.forEach(([px], i) => { if (standing[i] && Math.abs(px - x) < (shaken ? 0.26 : 0.36)) down.add(i); });
   const queue = [...down];
   while (queue.length) {
     const k = queue.shift()!;
@@ -47,7 +52,7 @@ export function knockPins(laneX: number, standing: boolean[], rand = Math.random
       const dr = rowOf(i) - rowOf(k);
       const dx = Math.abs(px - kx);
       const p = dr === 1 && dx <= 0.3 ? 0.72 : dr === 0 && dx <= 0.55 ? 0.3 : dr === 2 && dx <= 0.05 ? 0.4 : 0;
-      if (p > 0 && rand() < p) { down.add(i); queue.push(i); }
+      if (p > 0 && rand() < p * (shaken ? 0.5 : 1)) { down.add(i); queue.push(i); }
     });
   }
   return { down: [...down], gutter: false };

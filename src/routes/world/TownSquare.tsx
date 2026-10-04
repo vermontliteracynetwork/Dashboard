@@ -10,6 +10,7 @@ import DailySpinWheel from '../../components/DailySpinWheel';
 import BawkGuide from '../../components/BawkGuide';
 import CarDashboard from '../../components/CarDashboard';
 import { markMemoryTold, memoryStep, untoldMemory } from '../../lib/gameRivals';
+import { payForAnswers } from '../../lib/gameEarnings';
 import { asInventory, inventoryOwner } from '../../style/shop';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
@@ -451,25 +452,69 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
 // little extra for arm-swing reach, so the visible model actually clears
 // the wall instead of just the collision anchor point.
 const BUILDING_COLLISION_MARGIN = 0.55;
+// Direct teacher instruction 2026-10-04: "when a player or npc runs or
+// drives into a solid asset, they should move smothly around the permiter
+// of the solid asset while they are walking forward, rather than studdering
+// and getting stuck." The stutter came from the margin: the inside test used
+// the true footprint but the push-out landed BUILDING_COLLISION_MARGIN past
+// it, so every step into a wall snapped the player back half a unit, then
+// let them walk in again. Now the footprint is grown by the margin for both
+// the test and the push, and the push lands exactly on that grown edge: the
+// part of a step going into the wall is dropped and the part along it is
+// kept, so they glide along the side (see slideRects below for corners and
+// head-on bumps).
+function insideRect(f: RectFootprint, x: number, z: number): { lx: number; lz: number; ex: number; ez: number; c: number; s: number } | null {
+  const c = Math.cos(f.rotationY);
+  const s = Math.sin(f.rotationY);
+  const dx = x - f.x;
+  const dz = z - f.z;
+  const lx = dx * c + dz * s;
+  const lz = -dx * s + dz * c;
+  const ex = f.hx + BUILDING_COLLISION_MARGIN;
+  const ez = f.hz + BUILDING_COLLISION_MARGIN;
+  if (Math.abs(lx) >= ex || Math.abs(lz) >= ez) return null;
+  return { lx, lz, ex, ez, c, s };
+}
 function blockBuildings(x: number, z: number): [number, number] {
   let [bx, bz] = [x, z];
   for (const f of RECT_FOOTPRINTS) {
-    const dx = bx - f.x;
-    const dz = bz - f.z;
-    const c = Math.cos(f.rotationY);
-    const s = Math.sin(f.rotationY);
-    const localX = dx * c + dz * s;
-    const localZ = -dx * s + dz * c;
-    if (Math.abs(localX) >= f.hx || Math.abs(localZ) >= f.hz) continue;
-    const penX = f.hx - Math.abs(localX);
-    const penZ = f.hz - Math.abs(localZ);
-    const pushedLocalX = penX < penZ ? Math.sign(localX || 1) * (f.hx + BUILDING_COLLISION_MARGIN) : localX;
-    const pushedLocalZ = penX < penZ ? localZ : Math.sign(localZ || 1) * (f.hz + BUILDING_COLLISION_MARGIN);
-    // Rotate the pushed-out local point back to world space.
-    bx = f.x + pushedLocalX * c - pushedLocalZ * s;
-    bz = f.z + pushedLocalX * s + pushedLocalZ * c;
+    const h = insideRect(f, bx, bz);
+    if (!h) continue;
+    const penX = h.ex - Math.abs(h.lx);
+    const penZ = h.ez - Math.abs(h.lz);
+    const pushedLocalX = penX < penZ ? Math.sign(h.lx || 1) * (h.ex + 0.001) : h.lx;
+    const pushedLocalZ = penX < penZ ? h.lz : Math.sign(h.lz || 1) * (h.ez + 0.001);
+    bx = f.x + pushedLocalX * h.c - pushedLocalZ * h.s;
+    bz = f.z + pushedLocalX * h.s + pushedLocalZ * h.c;
   }
   return [bx, bz];
+}
+
+// One movement step against the solid rectangles. A step that runs along a
+// wall just slides. A step that runs nearly straight into one (which would
+// otherwise stop dead) is turned to follow the wall toward its nearer
+// corner, using the rest of the step, so holding "forward" walks the
+// student, a car or a Neighbor smoothly around the object and on past it.
+function slideRects(curX: number, curZ: number, tx: number, tz: number): [number, number] {
+  const stepLen = Math.hypot(tx - curX, tz - curZ);
+  const [bx, bz] = blockBuildings(tx, tz);
+  if (stepLen < 1e-5) return [bx, bz];
+  const moved = Math.hypot(bx - curX, bz - curZ);
+  if (moved >= stepLen * 0.5) return [bx, bz];
+  const f = RECT_FOOTPRINTS.find((r) => insideRect(r, tx, tz));
+  if (!f) return [bx, bz];
+  const h = insideRect(f, tx, tz)!;
+  const blockedOnX = h.ex - Math.abs(h.lx) < h.ez - Math.abs(h.lz);
+  // Local position of where they are now, to pick the nearer corner.
+  const cl = { x: (curX - f.x) * h.c + (curZ - f.z) * h.s, z: -(curX - f.x) * h.s + (curZ - f.z) * h.c };
+  const stepL = { x: (tx - curX) * h.c + (tz - curZ) * h.s, z: -(tx - curX) * h.s + (tz - curZ) * h.c };
+  const along = blockedOnX ? cl.z : cl.x;
+  const stepAlong = blockedOnX ? stepL.z : stepL.x;
+  const dir = Math.abs(stepAlong) > stepLen * 0.15 ? Math.sign(stepAlong) : Math.sign(along || 1);
+  const rest = stepLen - moved;
+  const tlx = blockedOnX ? 0 : dir * rest;
+  const tlz = blockedOnX ? dir * rest : 0;
+  return blockBuildings(bx + tlx * h.c - tlz * h.s, bz + tlx * h.s + tlz * h.c);
 }
 
 function blockObstacles(x: number, z: number): [number, number] {
@@ -548,7 +593,7 @@ function blockObstaclesSlide(curX: number, curZ: number, targetX: number, target
       }
     }
   }
-  let [bx, bz] = blockBuildings(targetX, targetZ);
+  let [bx, bz] = slideRects(sx, sz, targetX, targetZ);
   if (insideObstacle(bx, bz)) {
     const slideX = blockBuildings(targetX, sz);
     const slideZ = blockBuildings(sx, targetZ);
@@ -3564,6 +3609,8 @@ export default function TownSquare() {
     if (activeGameplayTask && gasQuizQuestion && student) {
       submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, gasQuizQuestion.id, true);
     }
+    // Gas Pump is a native game too: $1 for every right answer, right away.
+    if (student) payForAnswers(student.id, 1, 'Gas Pump', '⛽');
     if (gasLockout) {
       const streak = gasLockoutStreak + 1;
       if (streak >= 10) {

@@ -32,6 +32,8 @@ export default function CoinDropOverlay() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const lastCoinEarn = useStore((s) => s.lastCoinEarn);
   const [coins, setCoins] = useState<FallingCoin[] | null>(null);
+  // An optional line saying what was earned (native game pay sets one).
+  const [message, setMessage] = useState<string | null>(null);
   const seenId = useRef<string | null>(null);
   const hideTimer = useRef<number | null>(null);
 
@@ -43,19 +45,20 @@ export default function CoinDropOverlay() {
 
     playCoinDrop();
     setCoins(makeCoins());
+    setMessage(lastCoinEarn.message ?? null);
     if (hideTimer.current) window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setCoins(null), 1600);
+    hideTimer.current = window.setTimeout(() => { setCoins(null); setMessage(null); }, lastCoinEarn.message ? 3800 : 1600);
 
     return () => {
       if (hideTimer.current) window.clearTimeout(hideTimer.current);
     };
   }, [lastCoinEarn, role, currentStudentId]);
 
-  if (!coins) return null;
+  if (!coins && !message) return null;
 
   return (
     <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 95, pointerEvents: 'none', overflow: 'hidden' }}>
-      {coins.map((c) => (
+      {(coins ?? []).map((c) => (
         <img
           key={c.key}
           src="/coins/coin.png"
@@ -70,6 +73,9 @@ export default function CoinDropOverlay() {
           }}
         />
       ))}
+      {message && (
+        <div role="status" className="coin-earn-message">💵 {message}</div>
+      )}
     </div>
   );
 }

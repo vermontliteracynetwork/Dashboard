@@ -16,6 +16,12 @@ const TILE_Z = 3.2;
 const ASTEROID_Z = 0.2;
 const END_Z = -5.6;
 const PIN_H = 0.95;
+// The Strike Shuttle flies the lane at full speed, nose first (teacher:
+// "strike shuttle power up should go full speed (not turning) pointing at
+// the first bowling pin and should have a cloud of fire and dust out the
+// back of it, when it collides, all pins should fall").
+const SHUTTLE_TRAVEL = 0.85;
+const travelFor = (r: { shuttle: boolean }) => (r.shuttle ? SHUTTLE_TRAVEL : 1.7);
 const TILE_COLORS = ['#a855f7', '#3b82f6', '#14b8a6', '#22c55e', '#ec4899'];
 
 export type RollShot = { id: number; lane: number; laneX: number; down: number[]; gutter: boolean; shuttle: boolean; ballSrc: string };
@@ -226,16 +232,17 @@ function Pins({ standing, rackId, roll, abduct, onAbductDone }: { standing: bool
   useEffect(() => {
     if (!roll) return;
     const t0 = clock.elapsedTime;
-    const travel = roll.shuttle ? 1.5 : 1.7;
+    const travel = travelFor(roll);
     const power = roll.shuttle ? 1.5 : 1;
     const downSet = new Set(roll.down);
     roll.down.forEach((i) => {
       const [px, pz] = PIN_SPOTS[i];
-      const reach = travel * ((START_Z - pz) / (START_Z - END_Z));
+      // The shuttle knocks the whole rack at once, the moment it hits the head pin.
+      const reach = travel * ((START_Z - (roll.shuttle ? PIN_HEAD_Z : pz)) / (START_Z - END_Z));
       const off = px - roll.laneX;
       const direct = Math.abs(off) < 0.3 || roll.shuttle;
       const side = Math.sign(off || (Math.random() - 0.5));
-      const delay = direct ? Math.random() * 0.05 : 0.08 + Math.random() * 0.28 + Math.abs(off) * 0.18;
+      const delay = roll.shuttle ? Math.random() * 0.12 : direct ? Math.random() * 0.05 : 0.08 + Math.random() * 0.28 + Math.abs(off) * 0.18;
       const vel = direct
         ? new THREE.Vector3(side * (0.4 + Math.random() * 0.8) + off * 1.4, 0.8 + Math.random() * 1.0, -(0.7 + Math.random() * 0.8)).multiplyScalar(power)
         : new THREE.Vector3(side * (0.7 + Math.random() * 1.0), 0.4 + Math.random() * 0.7, -(0.2 + Math.random() * 0.5)).multiplyScalar(power);
@@ -347,6 +354,59 @@ function Pins({ standing, rackId, roll, abduct, onAbductDone }: { standing: bool
 
 // --- ball / shuttle ----------------------------------------------------------
 
+// Fire and dust out the back of the Strike Shuttle: a small pool of puffs
+// that start as hot yellow fire at the engine, turn orange, then cool to
+// grey dust as they grow and fade behind it.
+const PUFFS = 46;
+const FIRE = new THREE.Color('#ffd84a');
+const FLAME = new THREE.Color('#ff5a1f');
+const DUST = new THREE.Color('#8f8796');
+function ShuttleExhaust({ shuttleRef }: { shuttleRef: React.RefObject<THREE.Group | null> }) {
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const parts = useRef(Array.from({ length: PUFFS }, () => ({ age: 9, life: 0.6, pos: new THREE.Vector3(), vel: new THREE.Vector3() })));
+  const next = useRef(0);
+  const geo = useMemo(() => new THREE.SphereGeometry(1, 10, 8), []);
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 1 / 30);
+    const sh = shuttleRef.current;
+    if (sh && sh.visible) {
+      for (let k = 0; k < 3; k++) {
+        const p = parts.current[next.current];
+        next.current = (next.current + 1) % PUFFS;
+        p.age = 0;
+        p.life = 0.45 + Math.random() * 0.4;
+        p.pos.set(sh.position.x + (Math.random() - 0.5) * 0.12, sh.position.y + (Math.random() - 0.5) * 0.12, sh.position.z + 0.55);
+        p.vel.set((Math.random() - 0.5) * 1.4, Math.random() * 0.9, 1.5 + Math.random() * 2.5);
+      }
+    }
+    parts.current.forEach((p, i) => {
+      const m = refs.current[i];
+      if (!m) return;
+      p.age += dt;
+      const k = p.age / p.life;
+      m.visible = k < 1;
+      if (!m.visible) return;
+      p.pos.addScaledVector(p.vel, dt);
+      p.vel.multiplyScalar(Math.exp(-2.5 * dt));
+      m.position.copy(p.pos);
+      m.scale.setScalar(0.07 + k * 0.32);
+      const mat = m.material as THREE.MeshBasicMaterial;
+      if (k < 0.35) mat.color.copy(FIRE).lerp(FLAME, k / 0.35);
+      else mat.color.copy(FLAME).lerp(DUST, Math.min(1, (k - 0.35) / 0.4));
+      mat.opacity = 0.85 * (1 - k);
+    });
+  });
+  return (
+    <group>
+      {parts.current.map((_, i) => (
+        <mesh key={i} ref={(r) => { refs.current[i] = r; }} geometry={geo} visible={false}>
+          <meshBasicMaterial transparent depthWrite={false} opacity={0} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function Ball({ src, roll, onRollDone, calm }: { src: string; roll: RollShot | null; onRollDone: () => void; calm: boolean }) {
   const tex = useLoader(THREE.TextureLoader, roll?.ballSrc ?? src);
   useEffect(() => { tex.colorSpace = THREE.SRGBColorSpace; }, [tex]);
@@ -390,7 +450,7 @@ function Ball({ src, roll, onRollDone, calm }: { src: string; roll: RollShot | n
       if (mat.current) mat.current.rotation = calm ? 0 : Math.sin(c.elapsedTime) * 0.2;
       return;
     }
-    const travel = roll.shuttle ? 1.5 : 1.7;
+    const travel = travelFor(roll);
     const t = Math.min(1, (c.elapsedTime - start.current) / travel);
     const z = START_Z + (END_Z - START_Z) * t;
     let x = roll.laneX * Math.min(1, t * 4);
@@ -399,7 +459,7 @@ function Ball({ src, roll, onRollDone, calm }: { src: string; roll: RollShot | n
       s.visible = false;
       sh.visible = true;
       sh.position.set(0, 0.45, z);
-      sh.rotation.set(-Math.PI / 2, 0, c.elapsedTime * 14);
+      sh.rotation.set(-Math.PI / 2, 0, 0);
     } else {
       s.visible = true;
       sh.visible = false;
@@ -434,6 +494,7 @@ function Ball({ src, roll, onRollDone, calm }: { src: string; roll: RollShot | n
         <spriteMaterial ref={mat} map={tex} transparent />
       </sprite>
       <group ref={shuttleRef} visible={false}><primitive object={shuttleModel} /></group>
+      <ShuttleExhaust shuttleRef={shuttleRef} />
     </group>
   );
 }
@@ -511,7 +572,7 @@ function AsteroidIcon({ lane, roll }: { lane: number | null; roll: RollShot | nu
   useEffect(() => {
     hitAt.current = null;
     if (roll && lane !== null && roll.lane === lane && !roll.gutter) {
-      const travel = roll.shuttle ? 1.5 : 1.7;
+      const travel = travelFor(roll);
       hitAt.current = clock.elapsedTime + travel * ((START_Z - ASTEROID_Z) / (START_Z - END_Z));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

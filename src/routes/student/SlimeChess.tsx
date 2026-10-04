@@ -10,6 +10,7 @@ import {
 import { slimeSound } from '../../lib/slimeSounds';
 import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
 import { pickRival, recordGameMemory } from '../../lib/gameRivals';
+import { payForAnswers } from '../../lib/gameEarnings';
 import type { ChessGameRecord, MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -224,7 +225,16 @@ export default function SlimeChess() {
     });
   };
   // Leaving or restarting mid-game still saves the XP earned so far.
-  const saveIfUnfinished = () => { if (screen === 'play' && !gameRef.current.isGameOver()) saveGame('unfinished'); };
+  // $1 per right answer, paid when the game ends or they leave it (see
+  // src/lib/gameEarnings.ts). A ref so leaving the screen any way still pays.
+  const correctRef = useRef(0);
+  const payOutRef = useRef(() => {});
+  payOutRef.current = () => {
+    if (currentStudentId && correctRef.current > 0) payForAnswers(currentStudentId, correctRef.current, 'Slime Chess', '♟️');
+    correctRef.current = 0;
+  };
+  useEffect(() => () => payOutRef.current(), []);
+  const saveIfUnfinished = () => { if (screen === 'play' && !gameRef.current.isGameOver()) saveGame('unfinished'); payOutRef.current(); };
   const goToMenu = () => {
     saveIfUnfinished();
     if (aiTimer.current) window.clearTimeout(aiTimer.current);
@@ -257,6 +267,7 @@ export default function SlimeChess() {
   }, [screen, gameOver, thinking, promotion, isHumanTurn, history.length]);
 
   const answeredCorrectly = () => {
+    correctRef.current += 1;
     if (student && activeGameplayTask && challengeQuestion) {
       submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, challengeQuestion.id, true);
     }
@@ -329,6 +340,7 @@ export default function SlimeChess() {
     }
     setGameOver(result);
     saveGame(result.win === true ? 'win' : result.win === false ? 'loss' : 'draw');
+    payOutRef.current();
     if (mode === 'computer' && rivalRef.current && currentStudentId) {
       recordGameMemory(currentStudentId, rivalRef.current.id, 'Slime Chess', result.win === true ? 'student' : result.win === false ? 'npc' : 'tie');
     }
