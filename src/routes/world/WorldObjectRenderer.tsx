@@ -1,7 +1,8 @@
-import { useMemo, forwardRef } from 'react';
+import { useMemo, forwardRef, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
-import type { WorldObject } from '../../types';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import type { GroundBounds, WorldObject } from '../../types';
 import { useTownSizeContext } from './townSize';
 
 // Shared by both the World Editor and the real student-facing Town Square —
@@ -75,12 +76,45 @@ export function safeScale(size: { x: number; y: number; z: number }, scale: numb
   return big > OVERSIZE_LIMIT ? scale * (TOWN_ASSET_HEIGHT / big) : scale;
 }
 
+// Town edge guard (teacher, after several reports of big black shapes and
+// "mountains" on the horizon: "the fake landscape, mountains need to be
+// removed entirely. i have asked so many times now"). Checking only an
+// object's center missed objects that sit inside the town but stretch far
+// past it, and a model's stored size can be far smaller than what is drawn
+// (animated models are often posed and scaled by their skeleton, which a
+// plain bounding box ignores). So once an object is on screen, its real
+// drawn shape is measured vertex by vertex, including the skeleton's pose,
+// and it is hidden if it reaches past the town's walls, is bigger than
+// OVERSIZE_DRAWN, or floats high in the sky.
+const EDGE_SLACK = 4;
+const OVERSIZE_DRAWN = 40;
+const FLOAT_LIMIT = 15;
+export function drawnOutOfTown(box: THREE.Box3, b: GroundBounds): boolean {
+  if (box.isEmpty()) return false;
+  const size = box.getSize(new THREE.Vector3());
+  return box.min.x < -b.west - EDGE_SLACK || box.max.x > b.east + EDGE_SLACK
+    || box.min.z < -b.north - EDGE_SLACK || box.max.z > b.south + EDGE_SLACK
+    || Math.max(size.x, size.y, size.z) > OVERSIZE_DRAWN
+    || box.min.y > FLOAT_LIMIT;
+}
+
+// A model's real drawn bounding box. For animated (skinned) models the
+// plain box only covers the unposed mesh, which for many uploaded models is
+// 100 times bigger or smaller than what is drawn (the skeleton scales it),
+// so those are measured vertex by vertex through the skeleton instead.
+export function modelBox(root: THREE.Object3D): THREE.Box3 {
+  let skinned = false;
+  root.traverse((o) => { if ((o as THREE.SkinnedMesh).isSkinnedMesh) skinned = true; });
+  if (skinned) root.updateMatrixWorld(true);
+  return new THREE.Box3().setFromObject(root, skinned);
+}
+
 export function useModelSize(path: string, normalizeArg?: boolean): THREE.Vector3 {
   const ctx = useTownSizeContext();
   const normalize = normalizeArg ?? ctx;
   const { scene } = useGLTF(path);
   return useMemo(() => {
-    const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
+    const size = modelBox(scene).getSize(new THREE.Vector3());
     return normalize ? size.multiplyScalar(townSizeFactor(size)) : size;
   }, [scene, normalize]);
 }
@@ -88,8 +122,15 @@ export function useModelSize(path: string, normalizeArg?: boolean): THREE.Vector
 function useRecenteredScene(path: string, tintColor?: string, opacity?: number, normalize = false) {
   const { scene } = useGLTF(path);
   return useMemo(() => {
-    const clone = scene.clone(true);
-    const box = new THREE.Box3().setFromObject(clone);
+    // SkeletonUtils.clone, not scene.clone(true): a plain clone of an
+    // animated (skinned) model keeps pointing at the ORIGINAL model's
+    // skeleton, which never moves or scales with the placed copy, so the
+    // GPU stretches its triangles across the sky as giant dark shards. This
+    // was the root cause of the "mountains" and floating shapes the teacher
+    // reported again and again (2026-10-04): with the old clone, a skinned
+    // asset placed anywhere in town drew as huge black shapes on the horizon.
+    const clone = cloneSkinned(scene);
+    const box = modelBox(clone);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const lift = size.y > 0 && isFlatModelSize(size) ? FLAT_LIFT : 0;
@@ -155,12 +196,39 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   // of) them, e.g. a chess set onto a table.
   inert?: boolean;
   normalize?: boolean; // apply the Town Square size rule (townSizeFactor)
-}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize }, ref) {
+  // The town's walls: when given, the object is hidden if its drawn shape
+  // goes past them (see drawnOutOfTown), and onOutOfTown reports it.
+  townBounds?: GroundBounds;
+  onOutOfTown?: (id: string, out: boolean) => void;
+}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown }, ref) {
   const ctx = useTownSizeContext();
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity, (normalize ?? ctx) && !obj.studentId);
   const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
+  const inner = useRef<THREE.Group | null>(null);
+  const scale = safeScale(size, obj.scale);
+  const [px, py, pz] = obj.position;
+  useEffect(() => {
+    if (!townBounds) return;
+    const g = inner.current;
+    if (!g) return;
+    const raf = requestAnimationFrame(() => {
+      g.visible = true;
+      g.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(recentered, true);
+      const out = drawnOutOfTown(box, townBounds);
+      g.visible = !out;
+      onOutOfTown?.(obj.id, out);
+    });
+    return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [townBounds?.north, townBounds?.south, townBounds?.east, townBounds?.west, recentered, scale, px, py, pz, obj.rotationY, obj.id]);
+  const setRef = (g: THREE.Group | null) => {
+    inner.current = g;
+    if (typeof ref === 'function') ref(g);
+    else if (ref) ref.current = g;
+  };
   return (
-    <group ref={ref} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={safeScale(size, obj.scale)}>
+    <group ref={setRef} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={scale}>
       <primitive object={recentered} />
       {interactive && (
         <mesh

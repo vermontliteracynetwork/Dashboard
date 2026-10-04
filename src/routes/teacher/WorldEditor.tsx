@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GroundPatchMesh from '../world/GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html, useTexture } from '@react-three/drei';
@@ -1743,6 +1743,18 @@ export default function WorldEditor() {
   const [sizeRuleBusy, setSizeRuleBusy] = useState(false);
   const [confirmSizeRule, setConfirmSizeRule] = useState(false);
   const [confirmClearOutside, setConfirmClearOutside] = useState(false);
+  // Objects whose drawn shape reaches past the town's walls (measured by
+  // WorldObjectRenderer once on screen). Hidden in both views and listed by
+  // the 🧹 button with the ones simply placed outside.
+  const [drawnOutIds, setDrawnOutIds] = useState<Set<string>>(() => new Set());
+  const reportDrawnOut = useCallback((id: string, out: boolean) => {
+    setDrawnOutIds((prev) => {
+      if (prev.has(id) === out) return prev;
+      const next = new Set(prev);
+      if (out) next.add(id); else next.delete(id);
+      return next;
+    });
+  }, []);
   // Filtered to the shared Town Square only (studentId undefined) — before
   // this filter existed, every student's private Home Room furniture (and
   // now walls) rendered here too, a real bug this pass also closes: a
@@ -2299,7 +2311,7 @@ export default function WorldEditor() {
   const clampToGroundZ = (v: number) => THREE.MathUtils.clamp(v, -groundBounds.north + 1, groundBounds.south - 1);
   // Objects sitting past the town's edge: never drawn in Town Square (flat,
   // empty horizon), listed here so she can clear them out.
-  const outsideTownObjects = worldObjects.filter((o) => !o.pendingDelete && isOutsideTown(o.position[0], o.position[2], groundBounds));
+  const outsideTownObjects = worldObjects.filter((o) => !o.pendingDelete && (isOutsideTown(o.position[0], o.position[2], groundBounds) || drawnOutIds.has(o.id)));
 
   // Generalized edit/delete for whichever kind is selected — a placed
   // object goes through the normal WorldObject actions, a fixed layout
@@ -3611,6 +3623,8 @@ export default function WorldEditor() {
                 <group key={obj.id}>
                   <WorldObjectRenderer
                     obj={liveObj}
+                    townBounds={isDragging || isGroupDragMember ? undefined : groundBounds}
+                    onOutOfTown={reportDrawnOut}
                     inert={!!armedAsset || !!dragObjectId}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }

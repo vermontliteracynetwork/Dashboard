@@ -4913,6 +4913,7 @@ export default function TownSquare() {
             <group key={obj.id}>
               <WorldObjectRenderer
                 obj={liveObj}
+                townBounds={isDriving ? undefined : groundBounds}
                 onClick={
                   // A car/boat model always drives, even if it was also
                   // (accidentally or from an old edit) given a role in

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useStore } from '../../store/store';
 import type { WorldObject } from '../../types';
-import { isFlatModelSize, townSizeFactor } from './WorldObjectRenderer';
+import { isFlatModelSize, modelBox, townSizeFactor } from './WorldObjectRenderer';
 
 // The Town Square size rule (teacher direction 2026-10-04: "everything is
 // adjusted to equal 5.00x the player/charcters hight", every asset). When
@@ -32,7 +32,7 @@ export function measureModel(path: string): Promise<THREE.Vector3 | null> {
   let p = sizes.get(path);
   if (!p) {
     p = new GLTFLoader().loadAsync(path)
-      .then((g) => new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3()))
+      .then((g) => modelBox(g.scene).getSize(new THREE.Vector3()))
       .catch(() => null);
     sizes.set(path, p);
   }
