@@ -10,8 +10,17 @@ import type { SpeakQuestion } from '../types';
 // heard and can try again, or tap "That's what I said!" (counted as right
 // and marked for the teacher). Without speech support (rare), it falls back
 // to typing.
-const heardMatches = (heard: string, q: SpeakQuestion) =>
-  [q.targetWord, ...(q.acceptableVariants ?? [])].some((t) => t.trim() && (isCloseEnoughAnswer(heard, t) || heard.toLowerCase().split(/\s+/).some((w) => isCloseEnoughAnswer(w, t))));
+// Speech often writes numbers as digits ("5") and adds punctuation ("cat."),
+// so both sides are normalized before matching.
+const NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+const norm = (t: string) => t.toLowerCase().replace(/\b(\d{1,2})\b/g, (m) => NUM_WORDS[Number(m)] ?? m).replace(/[^a-z0-9\s']/g, ' ').replace(/\s+/g, ' ').trim();
+const heardMatches = (heard: string, q: SpeakQuestion) => {
+  const h = norm(heard);
+  return [q.targetWord, ...(q.acceptableVariants ?? [])].some((raw) => {
+    const t = norm(raw);
+    return !!t && (isCloseEnoughAnswer(h, t) || h.split(' ').some((w) => isCloseEnoughAnswer(w, t)));
+  });
+};
 
 export default function SpeakAnswer({ q, disabled, onResult }: { q: SpeakQuestion; disabled?: boolean; onResult: (correct: boolean, overrideConfirmed?: boolean) => void }) {
   const [heard, setHeard] = useState<string | null>(null);
@@ -20,7 +29,7 @@ export default function SpeakAnswer({ q, disabled, onResult }: { q: SpeakQuestio
     setHeard(text);
     if (heardMatches(text, q)) onResult(true);
   };
-  const { listening, toggle } = useVoiceToText((t) => { check(t); }, { continuous: false });
+  const { listening, toggle, error } = useVoiceToText((t) => { check(t); }, { continuous: false });
   const wrong = heard !== null && !heardMatches(heard, q);
 
   if (!voiceToTextSupported) {
@@ -45,7 +54,10 @@ export default function SpeakAnswer({ q, disabled, onResult }: { q: SpeakQuestio
       >
         🎤
       </button>
-      <strong>{listening ? 'Listening... say your answer!' : heard === null ? 'Tap the microphone and say your answer' : wrong ? `I heard: "${heard}"` : `I heard: "${heard}" ✅`}</strong>
+      <strong role="status" aria-live="polite">{listening ? 'Listening... say your answer!' : heard === null ? (error === 'denied' ? 'The microphone is turned off for this app.' : error ? "I didn't hear anything. Tap the microphone and try again." : 'Tap the microphone and say your answer') : wrong ? `I heard: "${heard}"` : `I heard: "${heard}" ✅`}</strong>
+      {heard === null && error && !listening && !disabled && (
+        <button className="btn btn-lg" onClick={() => onResult(false)}>Skip this one</button>
+      )}
       {wrong && !disabled && (
         <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
           <button className="btn btn-lg" onClick={() => { setHeard(null); toggle(); }}>🎤 Try again</button>

@@ -125,6 +125,10 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeQ?.id, shuffleAnswers]);
 
+  // A "Say it" answer the student confirmed (see SpeakAnswer). Declared up
+  // here with the other hooks, before any early return.
+  const overrideRef = useRef(false);
+
   if (!state) return null;
 
   if (!activeQ) {
@@ -161,7 +165,6 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
     );
   }
 
-  const overrideRef = useRef(false);
   const submitAnswer = (correct: boolean, overrideConfirmed = false) => { overrideRef.current = overrideConfirmed; setPendingCorrect(correct); };
 
   // Claudia's quiz-mode audit: the prompt was read-aloud-able but the

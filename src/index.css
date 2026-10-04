@@ -4519,3 +4519,9 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .sc-rival-say { display: flex; flex-direction: column; gap: 2px; font-weight: 700; color: #3a2a5e; }
 .sc-rival-say strong { font-size: 1.05rem; }
 .sb-banner { width: min(520px, 78vw); height: auto; filter: drop-shadow(0 0 14px rgba(255, 95, 210, 0.6)); }
+/* Review fixes (Claudia, 2026-10-04): the streak pill never sits on top of
+   a quiz (quiz screens show their own progress), and stronger contrast. */
+body:has(.quiz-fullview) .streak-pill { display: none; }
+.chest-prize { background: #1f7a3d; }
+.streak-pill-count, .chest.next::after { color: #a8410a; }
+.streak-x, .game-dash-close { min-width: 96px; padding: 0 12px; }

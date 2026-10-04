@@ -646,6 +646,17 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
     - With no freeze, the streak breaks. Buying one that same day and tapping "Use a freeze to get it back" restores it.
   - **Weekends:** not automatically safe (her spec uses freezes for that).
   - **Quiz Mode** (`/student/quiz-mode`): just the questions, no game, one after another. It's on the Game Dashboard, the streak grid and pick-your-game assignments. It pays $1 per right answer like every native game and counts toward an open "pick any game" assignment.
+- **Claudia's code review of the day's student features (same day), all 10 findings fixed:**
+  1. Quiz screen crash risk: a hook added for "Say it" sat after an early return in `QuizTask.tsx`. Moved up.
+  2. The streak card's "Pick a game!" grid never showed: marking the card seen unmounted it first. It's now marked seen only when the grid closes or a game is picked.
+  3. Quiz Mode re-showed the same question after a right answer and never paid: its question screen was keyed on the streak count, which changed mid-answer. Keyed on the question now.
+  4. The fire pill could sit on top of quiz answers: it hides on quiz screens, which show their own progress.
+  5. A saved pill spot could end up off screen after turning the iPad: it's pulled back on screen on load, resize and rotation.
+  6. Pinch zoom fired from a thumb on the D-pad plus a finger looking around: it only counts two fingers on the world itself now.
+  7. Double tap: the window is wider (0.7 seconds) for students who tap slowly, a look-drag no longer counts as the first tap, and the first tap shows "👆 Tap Scout again to talk".
+  8. "Say it" had no way forward if the microphone was off or heard nothing: it now says why and offers **Skip this one**, announces what it heard, and matches "5" to "five" and ignores punctuation.
+  9. Bawk's reminder could pop up while driving or over the streak chests: it now waits for both.
+  10. Streak pill buttons now work with a keyboard, VoiceOver and Switch Control, with clearer labels. Stronger text contrast on chests and the pill count. The ✕ buttons say "Close". The Buy a freeze button says how much more money is needed.
 - **Teacher test tools (same day):** the Student overview's "Reset for testing" card now shows each student's Daily Streak (days, best, today's right answers, freezes).
   - The reset also clears the Daily Streak (back to 0, 1 free freeze, the streak card shows again).
   - New buttons: **Set today to 19 right answers** (one more saves the day, to test the chests) and **Give 1 Streak Freeze**.

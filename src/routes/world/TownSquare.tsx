@@ -22,7 +22,7 @@ import { useNpcProfiles, renameIn } from '../../style/npcs';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
 import GameDashboard from '../../components/GameDashboard';
-import { openStreakView, useStreakCardDue } from '../../components/StreakLayer';
+import { openStreakView, streakOverlay, useStreakCardDue } from '../../components/StreakLayer';
 import { defaultLook } from '../../style/species';
 import { useStyleSettings } from '../../style/catalog';
 import type { StyleLook, StyleMove } from '../../style/types';
@@ -3680,7 +3680,7 @@ export default function TownSquare() {
   };
   const bawkBusy = !!activeConversation || !!chatMenuNeighbor || !!feelingsNeighbor || !!townsMenu || !!aboutNpc || !!playWith
     || showChangelog || showSpinWheel || streakDue || showBawk || (showArrival && totalTasksLeft > 0) || !!gasQuizQuestion || gasLockout
-    || mapView || showWizardLock || showPetCheckIn || showTodayTasks || !!bawkNudge;
+    || mapView || showWizardLock || showPetCheckIn || showTodayTasks || !!bawkNudge || !!drivingObjectId || streakOverlay.open;
   const bawkBusyRef = useRef(bawkBusy);
   bawkBusyRef.current = bawkBusy;
   const nextUndoneRef = useRef(nextUndoneTask);
@@ -3870,7 +3870,10 @@ export default function TownSquare() {
     let pinchStart = 0;
     let zoomStart = 1;
     const span = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-    const onTouchStart = (e: TouchEvent) => { if (e.touches.length === 2) { pinchStart = span(e.touches); zoomStart = CAMERA_ZOOM.k; } };
+    // Only a real two-finger pinch on the world itself: a thumb on the D-pad
+    // plus a finger looking around must not zoom.
+    const onCanvas = (t: Touch) => (t.target as HTMLElement | null)?.tagName === 'CANVAS';
+    const onTouchStart = (e: TouchEvent) => { if (e.touches.length === 2 && onCanvas(e.touches[0]) && onCanvas(e.touches[1])) { pinchStart = span(e.touches); zoomStart = CAMERA_ZOOM.k; } };
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 2 || pinchStart <= 0) return;
       // Fingers apart = zoom in (closer), together = zoom out.
@@ -4040,13 +4043,21 @@ export default function TownSquare() {
   // "players must double tap a neighbor for their menu to appear"). One tap
   // only walks over to them; a second tap on the same Neighbor within
   // DOUBLE_TAP_MS opens the menu (right away if close, or on arrival).
-  const DOUBLE_TAP_MS = 450;
+  const DOUBLE_TAP_MS = 700;
   const lastNpcTap = useRef<{ id: string; t: number } | null>(null);
-  const isDoubleTap = (id: string) => {
+  const [npcTapHint, setNpcTapHint] = useState<string | null>(null);
+  const npcTapHintTimer = useRef<number | null>(null);
+  const isDoubleTap = (id: string, name?: string) => {
+    // A look-drag release or a tap on the map is never a tap on a Neighbor.
+    if (mapView || wasDraggingLook.current) return false;
     const now = performance.now();
     const last = lastNpcTap.current;
     const dbl = !!last && last.id === id && now - last.t < DOUBLE_TAP_MS;
     lastNpcTap.current = dbl ? null : { id, t: now };
+    // First tap: a small hint so a student knows what a second tap does.
+    if (npcTapHintTimer.current) window.clearTimeout(npcTapHintTimer.current);
+    setNpcTapHint(dbl ? null : `Tap ${name ?? 'them'} again to talk`);
+    if (!dbl) npcTapHintTimer.current = window.setTimeout(() => setNpcTapHint(null), 1800);
     return dbl;
   };
   const handleApproach = (n: Quest1Neighbor, open = true) => {
@@ -4818,6 +4829,11 @@ export default function TownSquare() {
           auto-opening for a student the first time they log in after
           something new that affects them has shipped. */}
       {showSpinWheel && student && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
+      {npcTapHint && (
+        <div role="status" style={{ position: 'fixed', left: '50%', top: 84, transform: 'translateX(-50%)', zIndex: 60, background: '#fff', border: '3px solid var(--ink, #1f4238)', borderRadius: 999, padding: '8px 16px', fontWeight: 800, fontFamily: 'system-ui, sans-serif', color: '#1f4238', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', pointerEvents: 'none' }}>
+          👆 {npcTapHint}
+        </div>
+      )}
       {bawkNudge && (
         <BawkGuide talkKey={bawkNudge.key} step={bawkNudge.subject === 'math' ? 'Math' : 'Literacy'} message={`${bawkNudge.pun} Next up: ${bawkNudge.title}.`}>
           <button type="button" className="btn btn-lg" onClick={() => setBawkNudge(null)}>In a minute</button>
@@ -5035,7 +5051,7 @@ export default function TownSquare() {
               wandering={metIds.includes(n.id)}
               pendingApproach={pendingApproach.current === n.id}
               onTalk={() => handleTalk(n)}
-              onApproach={() => { const open = isDoubleTap(n.id); if (metIds.includes(n.id)) handleApproachWandering(n.id, () => handleTalk(n), open); else handleApproach(n, open); }}
+              onApproach={() => { const open = isDoubleTap(n.id, npcProfiles[n.id]?.name ?? n.name); if (metIds.includes(n.id)) handleApproachWandering(n.id, () => handleTalk(n), open); else handleApproach(n, open); }}
               exposePosition={(v) => { wanderingPositions.current[n.id] = v; }}
               titleOverride={npcTitleOverrides[n.id]}
               look={npcProfiles[n.id]?.look}
@@ -5058,7 +5074,7 @@ export default function TownSquare() {
                   dialogueOpen: !!activeConversation,
                   pendingApproach: pendingApproach.current === npc.id,
                   onTalk: () => handleTalkTownsperson(tp),
-                  onApproach: () => handleApproachWandering(npc.id, () => handleTalkTownsperson(tp), isDoubleTap(npc.id)),
+                  onApproach: () => handleApproachWandering(npc.id, () => handleTalkTownsperson(tp), isDoubleTap(npc.id, npcProfiles[npc.id]?.name ?? tp.name)),
                   exposePosition: (v) => { wanderingPositions.current[npc.id] = v; },
                 } : undefined}
               />

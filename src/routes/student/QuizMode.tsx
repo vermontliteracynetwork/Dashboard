@@ -51,7 +51,7 @@ export default function QuizMode() {
   if (!student) return null;
   return (
     <QuestionScreen
-      key={q.id + doneToday}
+      key={q.id}
       prompt={q.prompt}
       choices={q.choices}
       correctIndex={q.correctIndex}

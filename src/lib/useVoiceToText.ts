@@ -12,6 +12,10 @@ export const voiceToTextSupported = !!SpeechRecognitionCtor;
 
 export function useVoiceToText(onFinalText: (text: string) => void, { continuous = true }: { continuous?: boolean } = {}) {
   const [listening, setListening] = useState(false);
+  // Why the last listen gave nothing back: 'denied' (no microphone
+  // permission), 'nothing' (it ended without hearing a word) or another
+  // browser error. Cleared when listening starts again.
+  const [error, setError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const onFinalTextRef = useRef(onFinalText);
@@ -27,6 +31,8 @@ export function useVoiceToText(onFinalText: (text: string) => void, { continuous
   const toggle = () => {
     if (listening) { stop(); playListeningStopChime(); return; }
     if (!SpeechRecognitionCtor) return;
+    setError(null);
+    let heardSomething = false;
     const rec = new SpeechRecognitionCtor();
     rec.lang = 'en-US';
     rec.continuous = continuous;
@@ -36,15 +42,16 @@ export function useVoiceToText(onFinalText: (text: string) => void, { continuous
     rec.onresult = (e: any) => {
       let added = '';
       for (let i = e.resultIndex; i < e.results.length; i++) added += e.results[i][0].transcript;
-      if (added.trim()) onFinalTextRef.current(added.trim());
+      if (added.trim()) { heardSomething = true; onFinalTextRef.current(added.trim()); }
     };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (e: any) => { setListening(false); setError(e?.error === 'not-allowed' || e?.error === 'service-not-allowed' ? 'denied' : e?.error === 'no-speech' ? 'nothing' : String(e?.error ?? 'error')); };
+    rec.onend = () => { setListening(false); if (!heardSomething) setError((er) => er ?? 'nothing'); };
     rec.start();
     recognitionRef.current = rec;
     setListening(true);
     playListeningStartChime();
   };
 
-  return { listening, toggle, stop, supported: voiceToTextSupported };
+  return { listening, toggle, stop, error, supported: voiceToTextSupported };
 }

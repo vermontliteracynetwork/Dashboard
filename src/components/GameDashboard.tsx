@@ -26,7 +26,7 @@ export default function GameDashboard({ title, subtitle, games, onPick, onClose 
             <h2>{title}</h2>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <button type="button" className="game-dash-close" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="game-dash-close" onClick={onClose}>✕ Close</button>
         </header>
         <GameCardGrid games={games} onPick={onPick} />
       </div>

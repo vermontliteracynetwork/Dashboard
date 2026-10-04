@@ -20,6 +20,9 @@ import ReadAloud from './ReadAloud';
 // - the treasure chests when a day is saved, opened one at a time.
 
 export const OPEN_STREAK_EVENT = 'open-streak-view';
+// True while the streak view or the treasure chests are on screen, so
+// Town Square's Bawk reminder waits.
+export const streakOverlay = { open: false };
 export const openStreakView = () => window.dispatchEvent(new Event(OPEN_STREAK_EVENT));
 
 const HIDE_ON = ['/', '/student/login'];
@@ -68,7 +71,7 @@ function StreakView({ studentId, onClose }: { studentId: string; onClose: () => 
   return (
     <div className="overlay-backdrop" role="dialog" aria-modal="true" aria-label="My streak" onClick={onClose} style={{ zIndex: 320 }}>
       <div className="overlay-panel chrome-frame streak-view" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="streak-x" onClick={onClose} aria-label="Close">✕</button>
+        <button type="button" className="streak-x" onClick={onClose}>✕ Close</button>
         <Flame count={r.count ?? 0} big />
         <h2>{r.count ?? 0} day streak</h2>
         <p className="streak-sub">Best ever: {r.best ?? 0} day{(r.best ?? 0) === 1 ? '' : 's'}</p>
@@ -91,6 +94,7 @@ function StreakView({ studentId, onClose }: { studentId: string; onClose: () => 
           <button className="btn btn-lg" disabled={coins < freezePriceCents()} onClick={() => setMsg(buyFreeze(studentId) ? '🧊 You bought a Streak Freeze!' : "You don't have enough money yet.")}>
             Buy a freeze for {formatMoney(freezePriceCents())}
           </button>
+          {coins < freezePriceCents() && <span>You need {formatMoney(freezePriceCents() - coins)} more.</span>}
           <span>Going to miss a day? Freeze it ahead of time:</span>
           <div className="row-wrap" style={{ gap: 8 }}>
             {upcoming.map((d) => (
@@ -165,8 +169,8 @@ function DailyCard({ studentId, r, onDone }: { studentId: string; r: StreakRow; 
         title="Pick a game!"
         subtitle={`Every right answer counts toward your ${streakGoal()} for today.`}
         games={[...NATIVE_GAME_CARDS, QUIZ_MODE_CARD]}
-        onClose={onDone}
-        onPick={(g) => { onDone(); navigate(g.route, { state: { from: 'town' } }); }}
+        onClose={() => { markCardShown(studentId); onDone(); }}
+        onPick={(g) => { markCardShown(studentId); onDone(); navigate(g.route, { state: { from: 'town' } }); }}
       />
     );
   }
@@ -180,7 +184,7 @@ function DailyCard({ studentId, r, onDone }: { studentId: string; r: StreakRow; 
         <Week r={r} />
         <p className="streak-card-goal">To keep your streak, answer <strong>{streakGoal()} questions</strong> right today.</p>
         <ReadAloud text={`${count} day streak. ${text} To keep your streak, answer ${streakGoal()} questions right today.`} small />
-        <button className="btn btn-lg btn-primary streak-go" onClick={() => { markCardShown(studentId); if (froze) clearFreezeNotice(studentId); setGrid(true); }}>I got this! 💪</button>
+        <button className="btn btn-lg btn-primary streak-go" onClick={() => { if (froze) clearFreezeNotice(studentId); setGrid(true); }}>I got this! 💪</button>
       </div>
     </div>
   );
@@ -197,6 +201,17 @@ function Meter({ r, onOpen }: { r: StreakRow; onOpen: () => void }) {
   const lastFireTap = useRef(0);
   const el = useRef<HTMLDivElement | null>(null);
   useEffect(() => { if (hint) { const t = window.setTimeout(() => { setHint(false); store(HINT_KEY, true); }, 7000); return () => window.clearTimeout(t); } }, [hint]);
+  // A saved spot can end up off screen after turning the iPad: pull it back in.
+  useEffect(() => {
+    const fit = () => setPos((p) => (p ? clamp(p.x, p.y) : p));
+    fit();
+    window.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', fit);
+    return () => { window.removeEventListener('resize', fit); window.removeEventListener('orientationchange', fit); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Keyboard, VoiceOver and Switch Control send a click, not pointer events.
+  const pointerHandled = useRef(false);
   const clamp = (x: number, y: number) => {
     const w = el.current?.offsetWidth ?? 200;
     const h = el.current?.offsetHeight ?? 50;
@@ -217,6 +232,8 @@ function Meter({ r, onOpen }: { r: StreakRow; onOpen: () => void }) {
     const d = drag.current;
     drag.current = null;
     if (!d) return;
+    pointerHandled.current = true;
+    window.setTimeout(() => { pointerHandled.current = false; }, 400);
     if (d.moved) { store(POS_KEY, clamp(e.clientX - d.dx, e.clientY - d.dy)); return; }
     if (onFire) {
       const now = performance.now();
@@ -235,14 +252,15 @@ function Meter({ r, onOpen }: { r: StreakRow; onOpen: () => void }) {
       <button
         type="button"
         className="streak-pill-fire"
-        aria-label={min ? 'Daily streak. Double tap to open the meter' : 'Daily streak. Double tap to shrink the meter'}
+        aria-label={min ? 'Daily streak: grow the meter' : 'Daily streak: shrink the meter'}
         onPointerDown={down}
         onPointerUp={(e) => up(e, true)}
+        onClick={() => { if (pointerHandled.current) return; setMin((m) => { store(MIN_KEY, !m); return !m; }); }}
       >
         🔥<span className="streak-pill-count">{r.count ?? 0}</span>
       </button>
       {!min && (
-        <button type="button" className="streak-pill-body" onPointerDown={down} onPointerUp={(e) => up(e, false)} aria-label={saved ? 'Today is saved. Open my streak' : `${correct} of ${streakGoal()} right answers today. Open my streak`}>
+        <button type="button" className="streak-pill-body" onPointerDown={down} onPointerUp={(e) => up(e, false)} onClick={() => { if (!pointerHandled.current) onOpen(); }} aria-label={saved ? 'Today is saved. Open my streak' : `${correct} of ${streakGoal()} right answers today. Open my streak`}>
           <span className="streak-pill-bar"><span style={{ width: `${Math.min(100, (correct / streakGoal()) * 100)}%` }} /></span>
           <span className="streak-pill-text">{saved ? '✅ Saved!' : `${Math.min(correct, streakGoal())}/${streakGoal()}`}</span>
         </button>
@@ -274,6 +292,7 @@ export default function StreakLayer() {
     return () => window.removeEventListener(OPEN_STREAK_EVENT, open);
   }, []);
   useEffect(() => { setCardDone(false); }, [studentId]);
+  streakOverlay.open = view || !!r.chestsPending;
   if (role !== 'student' || !studentId || HIDE_ON.includes(location.pathname)) return null;
   const cardDue = r.cardShownDay !== todayISO() && !cardDone && location.pathname === '/world/town';
   return (
