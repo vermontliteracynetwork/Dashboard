@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import SpeakAnswer from '../../components/SpeakAnswer';
 import { useStore } from '../../store/store';
 import ReadAloud, { speak } from '../../components/ReadAloud';
 import { isCloseEnoughAnswer } from '../../lib/answerMatch';
@@ -1094,6 +1095,9 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 <MatchingBoard key={activeQ.id} q={activeQ} onSolved={() => submitAnswer(true)} />
               )}
 
+              {activeQ.kind === 'speak' && (
+                <SpeakAnswer key={activeQ.id} q={activeQ} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />
+              )}
               {activeQ.kind === 'fill' && (
                 <div className="stack" style={{ alignItems: 'center' }}>
                   {activeQ.wordBank && activeQ.wordBank.length > 0 ? (

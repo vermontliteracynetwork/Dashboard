@@ -4499,3 +4499,9 @@ body.teacher-mode .content-well { border-radius: 10px; }
   .streak-flame.big .streak-flame-fire, .chest.next, .chest.opening { animation: none; }
   .chest-prize { animation: none; transform: translate(-50%, -18px); }
 }
+/* "Say it" quiz answers (SpeakAnswer.tsx) */
+.speak-mic { width: 96px; height: 96px; border-radius: 50%; border: 4px solid var(--ink, #222); background: #fff; font-size: 2.6rem; cursor: pointer; box-shadow: 4px 4px 0 var(--ink, #222); touch-action: manipulation; }
+.speak-mic.on { background: #ffe3e3; animation: speak-pulse 1s ease-in-out infinite; }
+.speak-mic:disabled { opacity: 0.5; }
+@keyframes speak-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .speak-mic.on { animation: none; } }

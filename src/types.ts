@@ -350,7 +350,20 @@ export interface FillBlankQuestion {
   wordBank?: string[];
 }
 
-export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion;
+// "Say it" (Weekly Planning Phase 1, item 2): the student answers out loud.
+// Graded with the same typo-tolerant matcher as typed answers, against the
+// target word or any acceptable variant.
+export interface SpeakQuestion {
+  id: string;
+  kind: 'speak';
+  prompt: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  targetWord: string;
+  acceptableVariants?: string[];
+}
+
+export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion | SpeakQuestion;
 
 export interface QuizContent {
   questions: QuizQuestion[];
@@ -836,6 +849,10 @@ export interface QuestionAttemptLog {
   questionId: string;
   timestamp: string;
   correct: boolean;
+  // A "Say it" answer the speech check marked wrong, which the student
+  // confirmed they said right ("That's what I said!"). Counted as correct
+  // but kept visible to the teacher, never silently overridden.
+  overrideConfirmed?: boolean;
 }
 
 export interface QuizRuntimeState {

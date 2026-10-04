@@ -1084,8 +1084,14 @@ Two rounds of direct teacher brief feed this: (1) 7 Academics questions + 3 CCSS
 
 #### Phase 1 — Cheap, independent wins (no dependency on anything else in this entry)
 
-1. **Reading → Literacy copy audit.** Every user-facing "Reading" label (starting with the Tier 0 Arrival Card) becomes "Literacy." Zero risk, zero dependencies, do this first and get it off the list.
-2. **Voice-to-text graded check (the new `SpeakQuestion` quiz type).** Needs no new comparison logic (the existing typo-tolerant `isCloseEnoughAnswer` matcher already does the grading) and no new capture mechanism in principle (the existing browser-`SpeechRecognition` wrapper pattern already used three places in this codebase just needs a fourth, arguably-time-to-share instance). A real, standalone content-type win, fully independent of the Neighbor/quest system.
+1. **✅ Done (last two strays fixed 2026-10-04 in Town Square's subject label and Bawk's reminder): Reading → Literacy copy audit.** Every user-facing "Reading" label (starting with the Tier 0 Arrival Card) becomes "Literacy." Zero risk, zero dependencies, do this first and get it off the list.
+2. **✅ SHIPPED 2026-10-04 (Claudia's two-hour stretch): Voice-to-text graded check (the new `SpeakQuestion` quiz type).**
+   - Teachers add a **"Say it (answer out loud)"** question in any quiz editor: the word to say, plus optional extra accepted answers.
+   - Students tap a big 🎤, say the answer, and it's graded with the forgiving `isCloseEnoughAnswer` matcher (any spoken word that's a near-match counts).
+   - If marked wrong, they see "I heard: ..." with **Try again**, **Next question** or **That's what I said!**. That last one counts as right and is logged with `overrideConfirmed` on the attempt.
+   - Works in Quiz/Practice tasks and the Platformer. A device without speech recognition falls back to typing.
+   - The speech hook is now shared (`src/lib/useVoiceToText.ts`, Grammar Sandbox uses it too).
+   - **Not yet:** routing repeated overrides into the Review Inbox (no teacher screen shows per-question logs yet). Native games stay multiple choice only.** Needs no new comparison logic (the existing typo-tolerant `isCloseEnoughAnswer` matcher already does the grading) and no new capture mechanism in principle (the existing browser-`SpeechRecognition` wrapper pattern already used three places in this codebase just needs a fourth, arguably-time-to-share instance). A real, standalone content-type win, fully independent of the Neighbor/quest system.
 3. **Chart/graph Task Type.** New Task Type, reuses the student's own already-synced Transaction data for the Piggy Bank-tied version. Directly answers her own "a concept we're starting but haven't really done yet" priority. No dependency on anything else here.
 4. **Economy Settings screen — everything except the streak interest rate.** Expose the wheel's cash-amount pool, cashback tiers, segment composition, and the Quest1 grand prize as real teacher-editable settings, pre-filled at today's exact defaults. Hold the streak-interest-rate field out of this pass specifically — see Phase 2, item 5 — so this screen isn't shipped exposing a number that's about to be redefined out from under it.
 

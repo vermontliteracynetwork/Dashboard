@@ -3284,7 +3284,7 @@ export default function TownSquare() {
     const prog = student ? progress[student.id]?.[subj] : undefined;
     const doneToday = prog?.date === todayISO() ? prog.completedTaskIds.length : 0;
     const remaining = Math.max(0, tasks.length - doneToday);
-    return { subject: subj, label: subj === 'math' ? 'Math' : 'Reading', remaining, total: tasks.length };
+    return { subject: subj, label: subj === 'math' ? 'Math' : 'Literacy', remaining, total: tasks.length };
   });
   const totalTasksLeft = subjectsToday.reduce((sum, s) => sum + s.remaining, 0);
 
@@ -4811,7 +4811,7 @@ export default function TownSquare() {
           something new that affects them has shipped. */}
       {showSpinWheel && student && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
       {bawkNudge && (
-        <BawkGuide talkKey={bawkNudge.key} step={bawkNudge.subject === 'math' ? 'Math' : 'Reading'} message={`${bawkNudge.pun} Next up: ${bawkNudge.title}.`}>
+        <BawkGuide talkKey={bawkNudge.key} step={bawkNudge.subject === 'math' ? 'Math' : 'Literacy'} message={`${bawkNudge.pun} Next up: ${bawkNudge.title}.`}>
           <button type="button" className="btn btn-lg" onClick={() => setBawkNudge(null)}>In a minute</button>
           <button type="button" className="btn btn-lg btn-primary" onClick={() => { const n = bawkNudge; setBawkNudge(null); navigate(`/student/${n.subject}`, { state: { openTaskId: n.taskId } }); }}>Take me there! 🏃</button>
         </BawkGuide>

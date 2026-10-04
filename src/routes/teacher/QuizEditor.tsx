@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { makeId } from '../../lib/id';
 import SetLibraryControls from './SetLibraryControls';
 import ImageUploadField from '../../components/ImageUploadField';
-import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion, Subject } from '../../types';
+import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion, SpeakQuestion, Subject } from '../../types';
 
 interface Props {
   subject: Subject;
@@ -18,6 +18,7 @@ interface Props {
 const blankMC = (): MCQuestion => ({ id: makeId(), kind: 'mc', prompt: '', choices: ['', ''], correctIndex: 0 });
 const blankMatching = (): MatchingQuestion => ({ id: makeId(), kind: 'matching', prompt: '', pairs: [{ left: '', right: '' }, { left: '', right: '' }] });
 const blankFill = (): FillBlankQuestion => ({ id: makeId(), kind: 'fill', prompt: '', answer: '', wordBank: [] });
+const blankSpeak = (): SpeakQuestion => ({ id: makeId(), kind: 'speak', prompt: '', targetWord: '', acceptableVariants: [] });
 
 // A half-filled-in question isn't just untidy — it's a quiz a student
 // literally cannot pass: a blank fill-in answer means no typed input can
@@ -37,6 +38,7 @@ export function getQuestionIssue(q: QuizQuestion): string | null {
     const completePairs = q.pairs.filter((p) => p.left.trim() && p.right.trim()).length;
     return completePairs < 2 ? 'Needs at least 2 complete pairs (both sides filled in).' : null;
   }
+  if (q.kind === 'speak') return q.targetWord.trim() ? null : 'Needs the word the student should say.';
   // fill
   return q.answer.trim() ? null : 'Needs a correct answer typed in.';
 }
@@ -218,6 +220,23 @@ function QuestionRow({
         </div>
       )}
 
+      {q.kind === 'speak' && (
+        <div className="stack">
+          <div>
+            <label>Word or answer the student should say</label>
+            <input value={q.targetWord} onChange={(e) => onUpdate({ ...q, targetWord: e.target.value })} />
+          </div>
+          <div>
+            <label>Also accept (optional, comma separated; e.g. other spellings speech might hear)</label>
+            <input
+              value={(q.acceptableVariants ?? []).join(', ')}
+              onChange={(e) => onUpdate({ ...q, acceptableVariants: e.target.value.split(',').map((w) => w.trim()).filter(Boolean) })}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+      )}
+
       {q.kind === 'fill' && (
         <div className="stack">
           <div>
@@ -240,12 +259,12 @@ function QuestionRow({
 }
 
 export default function QuizEditor({ subject, questions, onChange, simplified }: Props) {
-  const [addingKind, setAddingKind] = useState<'mc' | 'matching' | 'fill'>('mc');
+  const [addingKind, setAddingKind] = useState<'mc' | 'matching' | 'fill' | 'speak'>('mc');
 
   const update = (id: string, q: QuizQuestion) => onChange(questions.map((existing) => (existing.id === id ? q : existing)));
   const remove = (id: string) => onChange(questions.filter((q) => q.id !== id));
   const add = () => {
-    const blank = addingKind === 'mc' ? blankMC() : addingKind === 'matching' ? blankMatching() : blankFill();
+    const blank = addingKind === 'mc' ? blankMC() : addingKind === 'matching' ? blankMatching() : addingKind === 'speak' ? blankSpeak() : blankFill();
     onChange([...questions, blank]);
   };
 
@@ -261,6 +280,7 @@ export default function QuizEditor({ subject, questions, onChange, simplified }:
             <option value="mc">Multiple choice</option>
             <option value="matching">Matching</option>
             <option value="fill">Fill in the blank</option>
+            <option value="speak">Say it (answer out loud)</option>
           </select>
           <button className="btn btn-sm btn-primary" onClick={add}>➕ Add question</button>
         </div>

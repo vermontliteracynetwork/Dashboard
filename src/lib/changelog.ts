@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-say-it',
+    date: '2026-10-04',
+    icon: '🎤',
+    title: 'Say your answer out loud',
+    body: 'Some quiz questions now let you answer with your voice! Tap the big microphone and say it. If it heard you wrong, you can try again or tap "That\'s what I said!"',
+  },
+  {
     id: '2026-10-04-bawk-reminders',
     date: '2026-10-04',
     icon: '🐓',

@@ -586,7 +586,7 @@ interface AppState {
 
   // quiz
   ensureQuizState: (studentId: string, subject: Subject, task: Task) => QuizRuntimeState;
-  submitQuizAnswer: (studentId: string, subject: Subject, task: Task, questionId: string, correct: boolean) => void;
+  submitQuizAnswer: (studentId: string, subject: Subject, task: Task, questionId: string, correct: boolean, overrideConfirmed?: boolean) => void;
   // Gameplay-mode question-set assignments (specificGame/anyGame) — logs
   // the answer against the same per-task QuizRuntimeState, completing and
   // checking off the task itself once the target is reached. Returns
@@ -2495,10 +2495,10 @@ export const useStore = create<AppState>()(
         return applyState({ remainingIds: orderedIds, masteredIds: [], log: [], attemptStartedAt: new Date().toISOString() });
       },
 
-      submitQuizAnswer: (studentId, subject, task, questionId, correct) => {
+      submitQuizAnswer: (studentId, subject, task, questionId, correct, overrideConfirmed) => {
         const state = get().ensureQuizState(studentId, subject, task);
         const wasMissedBefore = state.log.some((l) => l.questionId === questionId && !l.correct);
-        const log = [...state.log, { questionId, timestamp: new Date().toISOString(), correct }];
+        const log = [...state.log, { questionId, timestamp: new Date().toISOString(), correct, ...(overrideConfirmed ? { overrideConfirmed: true } : {}) }];
         let remainingIds = state.remainingIds.filter((id) => id !== questionId);
         let masteredIds = state.masteredIds;
         if (correct) {

@@ -17,7 +17,7 @@ import {
   LM_PUNCTUATION_COLOR, LM_PUNCTUATION_TEXT_COLOR, LM_PHONO_COLOR, LM_HEART_COLOR,
   LM_WORD_CHAIN_COLOR, LM_SPELLING_RULE_COLOR, LM_DICTATION_COLOR, LM_WRITING_SCAFFOLD_COLOR,
 } from '../../lib/literacyDesignTokens';
-import { playListeningStartChime, playListeningStopChime } from '../../lib/audioCues';
+import { useVoiceToText } from '../../lib/useVoiceToText';
 import {
   SENTENCE_FORMULAS, FORMULA_CATEGORIES, WHO_WORDS, SLOT_MONTESSORI_CLASS, SLOT_LABELS,
   wordBankFor, actionWordsForTense, auxWordFor, retenseActionWord, TENSE_LABELS,
@@ -68,53 +68,9 @@ const HISTORY_LIMIT = 20;
 // "remove STT, but allow TTS for the items or things highlighted by
 // the student" — that removal was about ArticleReader specifically;
 // this is a new, separate, explicit request for this one tool).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SpeechRecognitionCtor: any = typeof window !== 'undefined' ? (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition : null;
-const voiceToTextSupported = !!SpeechRecognitionCtor;
 
-function useTextBoxVoiceToText(onFinalText: (text: string) => void) {
-  const [listening, setListening] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
-  const onFinalTextRef = useRef(onFinalText);
-  onFinalTextRef.current = onFinalText;
-
-  useEffect(() => () => { recognitionRef.current?.stop(); }, []);
-
-  const stop = () => {
-    recognitionRef.current?.stop();
-    setListening(false);
-  };
-
-  // A23-ROADMAP Phase 2: "STT listening cue (chime/TTS + visual state)."
-  // The visual state (listening ? ... : ...) already existed at every
-  // call site of this hook; this adds the paired audio chime so a
-  // student who isn't looking at the button still gets a cue that
-  // listening actually started/stopped, a real accessibility gap for a
-  // population that benefits from more than one sensory channel per cue.
-  const toggle = () => {
-    if (listening) { stop(); playListeningStopChime(); return; }
-    if (!SpeechRecognitionCtor) return;
-    const rec = new SpeechRecognitionCtor();
-    rec.lang = 'en-US';
-    rec.continuous = true;
-    rec.interimResults = false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => {
-      let added = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) added += e.results[i][0].transcript;
-      if (added.trim()) onFinalTextRef.current(added.trim());
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    rec.start();
-    recognitionRef.current = rec;
-    setListening(true);
-    playListeningStartChime();
-  };
-
-  return { listening, toggle, supported: voiceToTextSupported };
-}
+// Shared now (src/lib/useVoiceToText.ts), also used by the "Say it" quiz question.
+const useTextBoxVoiceToText = (onFinalText: (text: string) => void) => useVoiceToText(onFinalText);
 
 const LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const FRAME_SIZES = [2, 3, 4, 5];

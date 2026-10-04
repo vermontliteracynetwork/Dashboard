@@ -4,6 +4,7 @@ import ReadAloud, { speak } from '../../components/ReadAloud';
 import { isCloseEnoughAnswer } from '../../lib/answerMatch';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import QuizThemePicker from '../../components/QuizThemePicker';
+import SpeakAnswer from '../../components/SpeakAnswer';
 import type { Student, Subject, Task, MatchingQuestion } from '../../types';
 
 interface Props {
@@ -160,7 +161,8 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
     );
   }
 
-  const submitAnswer = (correct: boolean) => setPendingCorrect(correct);
+  const overrideRef = useRef(false);
+  const submitAnswer = (correct: boolean, overrideConfirmed = false) => { overrideRef.current = overrideConfirmed; setPendingCorrect(correct); };
 
   // Claudia's quiz-mode audit: the prompt was read-aloud-able but the
   // answer choices themselves never were — for a non/emerging-reader
@@ -186,10 +188,11 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
     // otherwise be stuck staring at an already-answered question with a
     // button that looks like it does nothing.
     try {
-      submitQuizAnswer(student.id, subject, task, activeQ.id, pendingCorrect);
+      submitQuizAnswer(student.id, subject, task, activeQ.id, pendingCorrect, overrideRef.current);
     } catch (err) {
       console.error('submitQuizAnswer failed', err);
     }
+    overrideRef.current = false;
     submittingRef.current = false;
     setPendingCorrect(null);
     setPicked(null);
@@ -285,6 +288,10 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
             // instance and could carry over an already-"solved" state,
             // silently skipping the new question.
             <MatchingBoard key={activeQ.id} q={activeQ} onSolved={() => submitAnswer(true)} />
+          )}
+
+          {activeQ.kind === 'speak' && (
+            <SpeakAnswer key={activeQ.id} q={activeQ} disabled={answered} onResult={(c, o) => submitAnswer(c, o)} />
           )}
 
           {activeQ.kind === 'fill' && (
