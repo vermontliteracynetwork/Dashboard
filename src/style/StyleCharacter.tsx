@@ -261,7 +261,8 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     const p = s.current;
 
     // Targets for this frame.
-    let lift = 0, bob = 0, roll = 0, yaw = 0, lean = 0, aL = 0, aR = 0, oL = 0.1, oR = 0.1, lL = 0, lR = 0;
+    const armOut = costumeItem?.costume ? 0.1 : species.armOut;
+    let lift = 0, bob = 0, roll = 0, yaw = 0, lean = 0, aL = 0, aR = 0, oL = armOut, oR = armOut, lL = 0, lR = 0;
     let hX = 0, hY = 0, hZ = 0, sq = 1, footL = 0, footR = 0, tailSpeed = 2.5, tailAmp = 0.3;
 
     if (move === 'walk' || move === 'run') {
@@ -274,7 +275,7 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
       footL = Math.max(0, Math.cos(ph)) * (run ? 0.06 : 0.035);
       footR = Math.max(0, -Math.cos(ph)) * (run ? 0.06 : 0.035);
       aL = -sw * (run ? 0.9 : 0.5); aR = sw * (run ? 0.9 : 0.5);
-      oL = oR = run ? 0.22 : 0.14;
+      oL = oR = Math.max(armOut, run ? 0.22 : 0.14);
       const step = Math.abs(Math.cos(ph));
       bob = step * (run ? 0.07 : 0.035);
       sq = 1 + (step - 0.5) * (run ? 0.07 : 0.04); // stretch at the top of a step, squash on landing

@@ -20,17 +20,23 @@ type FitSpec = {
   partyR: number;
   topR: number;
   cheese: number;
-  frontCut?: number; // the frog's covering hats stop just behind its eyes
-  topZ?: number; // the frog's top hat sits further back (its brim is wide)
   crownTall?: number; // the frog's crown is taller so it shows above its eyes
+  topLift?: number; // raise the top hat a little (cat, capybara)
+  cheeseLift?: number; // raise the cheese wedge a little
 };
 
 const SPEC: Record<SpeciesId, FitSpec> = {
-  dog: { brow: 0.235, tilt: 0.15, perchZ: -0.01, crownR: 0.2, partyR: 0.16, topR: 0.19, cheese: 0.72 },
-  cat: { brow: 0.2, tilt: 0.15, perchZ: 0.0, crownR: 0.105, partyR: 0.1, topR: 0.19, cheese: 0.68 },
-  frog: { brow: 0.16, tilt: 0.08, frontCut: 0.0, perchZ: -0.06, topZ: -0.12, crownTall: 1.7, crownR: 0.12, partyR: 0.12, topR: 0.17, cheese: 0.62 },
-  capybara: { brow: 0.2, tilt: 0.15, perchZ: 0.0, crownR: 0.14, partyR: 0.13, topR: 0.19, cheese: 0.7 },
+  dog: { brow: 0.235, tilt: 0.15, perchZ: -0.01, crownR: 0.2, partyR: 0.16, topR: 0.19, cheese: 0.72, cheeseLift: 0.06 },
+  cat: { brow: 0.2, tilt: 0.15, perchZ: 0.0, crownR: 0.105, partyR: 0.1, topR: 0.19, cheese: 0.68, cheeseLift: 0.06, topLift: 0.045 },
+  frog: { brow: 0.16, tilt: 0.08, perchZ: -0.06, crownTall: 1.7, crownR: 0.12, partyR: 0.12, topR: 0.17, cheese: 0.62 },
+  capybara: { brow: 0.2, tilt: 0.15, perchZ: 0.0, crownR: 0.14, partyR: 0.13, topR: 0.19, cheese: 0.7, cheeseLift: 0.07, topLift: 0.045 },
 };
+
+// The frog's eyes sit on top of its head, so its covering hats (ball cap,
+// beanie, bucket hat, top hat) are made for a round head and then worn up
+// high and tipped back: the front brim shows just above the eyes and the
+// back slopes down toward the back of its head.
+const FROG_TIP = { head: [0.34, 0.26, 0.29] as Vec3, brow: 0.08, tilt: 0.12, pos: [0, 0.165, -0.06] as Vec3, rotX: -0.5 };
 
 // --- measuring the head ------------------------------------------------------
 
@@ -62,19 +68,52 @@ const rimSeat = (s: SDF, r: number, z0: number) => {
   return lo;
 };
 
-type Fit = FitSpec & { species: SpeciesId; s: SDF; keep: SDF | null; zF: number; zB: number; clip: (z: number, tilt?: number) => number };
-const fits = new Map<SpeciesId, Fit>();
+type Fit = FitSpec & {
+  species: SpeciesId; s: SDF; keep: SDF | null; zF: number; zB: number; clip: (z: number, tilt?: number) => number;
+  box: [Vec3, Vec3];
+  place: THREE.Matrix4 | null; // where a hat made on a stand-in head is worn (the frog)
+};
+const fits = new Map<string, Fit>();
+function makeFit(species: SpeciesId, spec: FitSpec, s: SDF, box: [Vec3, Vec3], place: THREE.Matrix4 | null): Fit {
+  const zF = frontZ(s, spec.brow);
+  const zB = backZ(s, spec.brow);
+  const clip = (z: number, tilt = spec.tilt) => spec.brow - tilt * Math.min(1, Math.max(0, (zF - z) / (zF - zB)));
+  let keep: SDF | null = null;
+  if (species === 'frog') {
+    // Never cover the eyes: carve them out (measured where the hat is worn).
+    const v = new THREE.Vector3();
+    keep = place ? (x, y, z) => { v.set(x, y, z).applyMatrix4(place); return frogEyes(v.x, v.y, v.z); } : frogEyes;
+  }
+  return { ...spec, species, s, keep, zF, zB, clip, box, place };
+}
 function fitFor(species: SpeciesId): Fit {
   const hit = fits.get(species);
   if (hit) return hit;
-  const spec = SPEC[species];
-  const s = headShape(species).sdf;
-  const zF = Math.min(frontZ(s, spec.brow), spec.frontCut ?? Infinity);
-  const zB = backZ(s, spec.brow);
-  const clip = (z: number, tilt = spec.tilt) => spec.brow - tilt * Math.min(1, Math.max(0, (zF - z) / (zF - zB)));
-  const f: Fit = { ...spec, species, s, keep: species === 'frog' ? frogEyes : null, zF, zB, clip };
+  const d = headShape(species);
+  const f = makeFit(species, SPEC[species], d.sdf, [d.min, d.max], null);
   fits.set(species, f);
   return f;
+}
+// Fit for hats that cover the head (on the frog: the tipped-back stand-in).
+function coverFit(species: SpeciesId): Fit {
+  if (species !== 'frog') return fitFor(species);
+  const hit = fits.get('frog-tip');
+  if (hit) return hit;
+  const [rx, ry, rz] = FROG_TIP.head;
+  const place = new THREE.Matrix4().makeTranslation(...FROG_TIP.pos).multiply(new THREE.Matrix4().makeRotationX(FROG_TIP.rotX));
+  const f = makeFit('frog', { ...SPEC.frog, brow: FROG_TIP.brow, tilt: FROG_TIP.tilt, perchZ: 0 }, ellipsoid(0, 0, 0, rx, ry, rz),
+    [[-rx, -ry, -rz], [rx, ry, rz]], place);
+  fits.set('frog-tip', f);
+  return f;
+}
+// Move a finished hat from its stand-in head onto the frog.
+function worn(f: Fit, parts: HatParts): HatParts {
+  if (!f.place) return parts;
+  const m = f.place;
+  parts.geos.forEach((g) => { g.applyMatrix4(m); g.computeBoundingSphere(); });
+  const v = new THREE.Vector3();
+  for (const k of Object.keys(parts.at)) if (k.length && k !== 'size') parts.at[k] = v.set(...parts.at[k]).applyMatrix4(m).toArray() as Vec3;
+  return parts;
 }
 
 const geoCache = new Map<string, unknown>();
@@ -85,14 +124,10 @@ function cached<T>(key: string, make: () => T): T {
 
 function mesh(sdf: SDF, fit: Fit, yMin: number, yMax: number, cell = 0.015) {
   // Only mesh around the head (plus room for brims), so fitting stays quick.
-  const { min, max } = headShape(fit.species);
+  const [min, max] = fit.box;
   const pad = 0.2;
-  const { keep, frontCut } = fit;
-  const carved: SDF = !keep ? sdf : (x, y, z) => {
-    let d = smax(sdf(x, y, z), -(keep(x, y, z) - 0.025), 0.015);
-    if (frontCut !== undefined) d = smax(d, z - frontCut, 0.06);
-    return d;
-  };
+  const { keep } = fit;
+  const carved: SDF = !keep ? sdf : (x, y, z) => smax(sdf(x, y, z), -(keep(x, y, z) - 0.025), 0.015);
   return meshSDF(carved, [min[0] - pad, yMin, min[2] - pad], [max[0] + pad, yMax, max[2] + pad], cell);
 }
 
@@ -101,7 +136,7 @@ export type HatParts = { geos: THREE.BufferGeometry[]; at: Record<string, Vec3> 
 // Beanie: a slouchy knit that is the head's own shape, a little taller,
 // with a rolled cuff resting just above the eyes and dipping at the back.
 export const beanieGeo = (species: SpeciesId) => cached(`beanie|${species}`, (): HatParts => {
-  const f = fitFor(species);
+  const f = coverFit(species);
   const { s, clip } = f;
   const slouch = 1.28;
   const knit: SDF = (x, y, z) => {
@@ -112,37 +147,34 @@ export const beanieGeo = (species: SpeciesId) => cached(`beanie|${species}`, ():
   const hat: SDF = (x, y, z) => smax(smin(knit(x, y, z), cuff(x, y, z), 0.025), clip(z) - y, 0.03);
   const zc = (f.zF + f.zB) / 2;
   const top = surfaceY(knit, 0, zc);
-  return { geos: [mesh(hat, f, f.brow - f.tilt - 0.06, top + 0.06)], at: { pom: [0, top + 0.035, zc] } };
+  return worn(f, { geos: [mesh(hat, f, f.brow - f.tilt - 0.06, top + 0.06)], at: { pom: [0, top + 0.035, zc] } });
 });
 
 // Ball cap: a snug crown from the head's shape, a curved brim over the
 // face, and a button on top.
 export const capGeo = (species: SpeciesId) => cached(`cap|${species}`, (): HatParts => {
-  const f = fitFor(species);
+  const f = coverFit(species);
   const { s } = f;
   const clip = (z: number) => f.clip(z, f.tilt * 0.6);
   const crown: SDF = (x, y, z) => smax(s(x, y, z) - 0.032, clip(z) - y, 0.012);
   const rx = sideX(s, f.brow, (f.zF + f.zB) / 2);
   const brimE = ellipsoid(0, 0, 0, rx * 0.72, 0.017, 0.17);
-  // The frog wears its cap backwards, so the brim never covers its eyes.
-  const back = f.frontCut !== undefined;
   const brim: SDF = (x, y, z) => {
-    const dz = back ? f.zB - 0.06 - z : z - (f.zF + 0.06);
-    const y0 = back ? clip(f.zB) : f.brow;
+    const dz = z - (f.zF + 0.06);
     // Curves down at the sides and slopes down away from the head.
-    return brimE(x, y - y0 + 0.012 + dz * 0.28 + x * x * 0.9, dz);
+    return brimE(x, y - f.brow + 0.012 + dz * 0.28 + x * x * 0.9, dz);
   };
   const zc = (f.zF + f.zB) / 2;
   const top = surfaceY(crown, 0, zc);
-  return {
+  return worn(f, {
     geos: [mesh(crown, f, f.brow - f.tilt - 0.05, top + 0.04), mesh(brim, f, f.brow - f.tilt - 0.2, f.brow + 0.08, 0.009)],
     at: { button: [0, top - 0.004, zc] },
-  };
+  });
 });
 
 // Bucket hat: a soft rounded crown and a brim that slopes down all round.
 export const bucketGeo = (species: SpeciesId) => cached(`bucket|${species}`, (): HatParts => {
-  const f = fitFor(species);
+  const f = coverFit(species);
   const { s } = f;
   const clip = (z: number) => f.clip(z, f.tilt * 0.4);
   const zc = (f.zF + f.zB) / 2;
@@ -156,7 +188,7 @@ export const bucketGeo = (species: SpeciesId) => cached(`bucket|${species}`, ():
     return smax(Math.abs(y - yb) - 0.016, (u - 1.36) * 0.25, 0.012);
   };
   const hat: SDF = (x, y, z) => smin(crown(x, y, z), brim(x, y, z), 0.03);
-  return { geos: [mesh(hat, f, f.brow - f.tilt - 0.15, top + 0.1)], at: {} };
+  return worn(f, { geos: [mesh(hat, f, f.brow - f.tilt - 0.15, top + 0.1)], at: {} });
 });
 
 // Crown: a golden band perched on top (between the cat's and capybara's
@@ -187,17 +219,25 @@ export const crownGeo = (species: SpeciesId) => cached(`crown|${species}`, (): H
 
 // Top hat: brim, tall crown and band, standing where the brim meets the head.
 export const topHatGeo = (species: SpeciesId) => cached(`top|${species}`, (): HatParts => {
-  const f = fitFor(species);
+  const f = coverFit(species);
   const R = f.topR;
-  const zc = f.topZ ?? f.perchZ;
-  const seat = rimSeat(f.s, R, zc) - 0.02;
+  const zc = f.perchZ;
+  const seat = rimSeat(f.s, R, zc) - 0.02 + (f.topLift ?? 0);
   const cyl = (r: number, y0: number, y1: number, k: number): SDF => (x, y, z) =>
     smax(Math.hypot(x, z - zc) - r, smax(y0 - y, y - y1, k), k);
   const tall = cyl(R, seat, seat + 0.34, 0.012);
   const brim = cyl(R + 0.11, seat, seat + 0.024, 0.01);
   const hat: SDF = (x, y, z) => smin(tall(x, y, z), brim(x, y, z), 0.025);
   const band = cyl(R + 0.007, seat + 0.032, seat + 0.095, 0.006);
-  return { geos: [mesh(hat, f, seat - 0.04, seat + 0.4, 0.011), mesh(band, f, seat, seat + 0.12, 0.008)], at: {} };
+  const parts = worn(f, { geos: [mesh(hat, f, seat - 0.04, seat + 0.4, 0.011), mesh(band, f, seat, seat + 0.12, 0.008)], at: {} });
+  if (f.place) {
+    // Tipped back on the frog, the hat's base would hover over the back of
+    // its flat head: lower it until the base rests on the head.
+    const base = new THREE.Vector3(0, seat, zc).applyMatrix4(f.place);
+    const drop = base.y - surfaceY(headShape('frog').sdf, base.x, base.z) + 0.015;
+    if (drop > 0) parts.geos.forEach((g) => g.translate(0, -drop, 0));
+  }
+  return parts;
 });
 
 // Small perched hats (party hat, cheese wedge): where they sit and how big.
@@ -209,7 +249,7 @@ export function perch(species: SpeciesId, kind: 'party' | 'cheese') {
     const w = 0.24 * (f.cheese / 0.72);
     let lo = Infinity;
     for (const x of [-w, 0, w]) for (const dz of [-0.1, 0, 0.1]) lo = Math.min(lo, surfaceY(f.s, x, f.perchZ + dz * (f.cheese / 0.72)));
-    return { y: lo - 0.01, z: f.perchZ, size: f.cheese };
+    return { y: lo - 0.01 + (f.cheeseLift ?? 0), z: f.perchZ, size: f.cheese };
   });
 }
 

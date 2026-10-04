@@ -266,19 +266,23 @@ function Wings({ mats }: PartProps) {
   const r = useRef<THREE.Group>(null);
   const geo = useMemo(() => {
     const s = new THREE.Shape();
-    s.moveTo(0, 0);
-    s.bezierCurveTo(0.25, 0.35, 0.5, 0.3, 0.45, 0.05);
-    s.bezierCurveTo(0.42, -0.1, 0.3, -0.3, 0, -0.05);
+    // A full-height root where the two wings meet, so no back shows
+    // between the upper and lower lobes.
+    s.moveTo(0, 0.12);
+    s.bezierCurveTo(0.16, 0.44, 0.5, 0.34, 0.46, 0.05);
+    s.bezierCurveTo(0.43, -0.13, 0.26, -0.34, 0, -0.16);
     return new THREE.ExtrudeGeometry(s, { depth: 0.015, bevelEnabled: false });
   }, []);
   const dbl = useDouble(mats[0]);
   useFrame(({ clock }) => {
-    const f = Math.sin(clock.elapsedTime * 5) * 0.35;
-    if (l.current) l.current.rotation.y = -0.5 - f;
-    if (r.current) r.current.rotation.y = 0.5 + f;
+    const f = Math.sin(clock.elapsedTime * 5) * 0.28;
+    // Wings sweep backward from the shoulder blades and flap behind the
+    // body (never forward through it), so both show from the front.
+    if (l.current) l.current.rotation.y = 0.32 + f;
+    if (r.current) r.current.rotation.y = -0.32 - f;
   });
   return (
-    <group position={[0, 0.44, -backZ(0.42) - 0.06]} scale={1.45}>
+    <group position={[0, 0.44, -backZ(0.42) - 0.1]} scale={1.45}>
       <group ref={l} position={[0.04, 0, 0]}><mesh geometry={geo} material={dbl} /></group>
       <group ref={r} position={[-0.04, 0, 0]} scale={[-1, 1, 1]}><mesh geometry={geo} material={dbl} /></group>
       <mesh material={mats[1]}><sphereGeometry args={[0.05, 10, 8]} /></mesh>
