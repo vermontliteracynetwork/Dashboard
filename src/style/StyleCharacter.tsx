@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { BODY, HIP_Y, SHOULDER_Y, speciesById, type SpeciesDef } from './species';
+import { backZ, torsoGeometry } from './body';
 import { itemById, type Bone, type WardrobeItem } from './wardrobe';
 import { makePaintMaterial, useColorMaterial, usePaintMaterial } from './paint';
 import { paintKey } from './patterns';
@@ -13,7 +14,7 @@ import type { EquippedItem, StyleLook, StyleMove, StyleOneShot } from './types';
 // species shares (idle, walk, run, jump, wave, cheer, dance) plus a moving
 // mouth while talking and blinking eyes.
 
-const { torsoW: W, torsoH: H, torsoD: D, armLen, armR, legLen, legR, headR } = BODY;
+const { torsoH: H, armLen, armR, legLen, legR, headR } = BODY;
 
 export interface StyleCharacterHandle {
   play: (move: StyleOneShot) => void;
@@ -25,6 +26,9 @@ interface Props {
   talking?: boolean;
   scale?: number;
   reduceMotion?: boolean;
+  // Teacher item workshop: draw only the clothes (no animal), so an item
+  // can be looked at and edited on its own in its worn shape.
+  bodyless?: boolean;
 }
 
 const HEAD_SCALE = 1.18;
@@ -161,16 +165,18 @@ function Head({ look, species, blinkRef, mouthRef, hideEars }: {
       return (
         <group>
           <RoundedBox args={[0.58, 0.52, 0.66]} radius={0.22} smoothness={4} material={fur} position={[0, 0, 0.0]} />
-          <RoundedBox args={[0.44, 0.34, 0.34]} radius={0.15} smoothness={4} material={fur} position={[0, -0.07, 0.26]} />
+          {/* Long, blunt capybara nose. */}
+          <RoundedBox args={[0.42, 0.33, 0.5]} radius={0.16} smoothness={5} material={fur} position={[0, -0.08, 0.34]} />
+          <RoundedBox args={[0.36, 0.1, 0.12]} radius={0.05} smoothness={4} material={accent} position={[0, 0.0, 0.55]} />
           {[-1, 1].map((sd) => (
-            <mesh key={sd} material={nose} position={[sd * 0.07, -0.02, 0.41]} scale={[1, 0.6, 0.6]}><sphereGeometry args={[0.03, 10, 8]} /></mesh>
+            <mesh key={sd} material={nose} position={[sd * 0.07, 0.02, 0.6]} scale={[1, 0.6, 0.6]}><sphereGeometry args={[0.03, 10, 8]} /></mesh>
           ))}
           <Eyes eyes={eyes} white={white} blinkRef={blinkRef} spread={0.19} y={0.12} z={0.22} size={0.06} />
-          <Mouth mouthRef={mouthRef} y={-0.19} z={0.38} width={0.08} />
+          <Mouth mouthRef={mouthRef} y={-0.2} z={0.55} width={0.08} />
           {!hideEars && [-1, 1].map((sd) => (
             <mesh key={sd} material={accent} position={[sd * 0.22, 0.27, -0.1]} scale={[1, 0.8, 0.5]}><sphereGeometry args={[0.06, 12, 10]} /></mesh>
           ))}
-          <mesh material={belly} position={[0, -0.22, 0.12]} scale={[1.6, 0.5, 1]}><sphereGeometry args={[0.12, 14, 10]} /></mesh>
+          <mesh material={belly} position={[0, -0.22, 0.3]} scale={[1.5, 0.5, 1.5]}><sphereGeometry args={[0.12, 14, 10]} /></mesh>
         </group>
       );
   }
@@ -181,7 +187,7 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
   const accent = usePaintMaterial(look.body.accent, 1);
   if (species.id === 'frog') return null;
   return (
-    <group ref={tailRef} position={[0, 0.12, -D / 2]}>
+    <group ref={tailRef} position={[0, 0.1, -backZ(0.1) + 0.02]}>
       {species.id === 'dog' && (
         <mesh material={fur} position={[0, 0.1, -0.06]} rotation={[-0.7, 0, 0]}><capsuleGeometry args={[0.045, 0.2, 6, 10]} /></mesh>
       )}
@@ -199,7 +205,7 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
   );
 }
 
-export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look, move = 'idle', talking = false, scale = 1, reduceMotion = false }, handle) {
+export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look, move = 'idle', talking = false, scale = 1, reduceMotion = false, bodyless = false }, handle) {
   const species = speciesById(look.species);
   const fur = usePaintMaterial(look.body.fur, 2);
   const belly = usePaintMaterial(look.body.belly, 1.5);
@@ -287,18 +293,24 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
       <group ref={root}>
         <group ref={torso} position={[0, HIP_Y, 0]}>
           {/* body */}
-          <RoundedBox args={[W, H, D]} radius={0.11} smoothness={4} position={[0, H / 2, 0]} material={fur} />
-          {!look.outfit.top && (
-            <mesh material={belly} position={[0, H * 0.42, D / 2 - 0.02]} scale={[1, 1.15, 0.35]}><sphereGeometry args={[0.17, 20, 14]} /></mesh>
+          {!bodyless && (
+            <>
+              {/* Soft round bean-shaped body that narrows into the neck, so
+                  the head joins the body with no gap or hard corners. */}
+              <mesh geometry={torsoGeometry(1, 0, 0.66, 0, true)} material={fur} />
+              {!look.outfit.top && (
+                <mesh material={belly} position={[0, 0.26, backZ(0.26) - 0.07]} scale={[1, 1.25, 0.45]}><sphereGeometry args={[0.18, 24, 16]} /></mesh>
+              )}
+              <Tail look={look} species={species} tailRef={tail} />
+            </>
           )}
-          <Tail look={look} species={species} tailRef={tail} />
           <OutfitParts bone="torso" look={look} species={species} />
 
           {/* head */}
           {/* Chibi proportions (big head, big eyes) to match the teacher's
               Sketchfab reference picks: cute cartoon animals. */}
-          <group ref={head} position={[0, H + headR * HEAD_SCALE - 0.04, 0]} scale={HEAD_SCALE}>
-            <Head look={look} species={species} blinkRef={blink} mouthRef={mouth} hideEars={hidesEars} />
+          <group ref={head} position={[0, H + headR * HEAD_SCALE - 0.1, 0]} scale={HEAD_SCALE}>
+            {!bodyless && <Head look={look} species={species} blinkRef={blink} mouthRef={mouth} hideEars={hidesEars} />}
             <group position={[0, species.hat.y - 0.28, species.hat.z]} scale={species.hat.scale}>
               <OutfitParts bone="hat" look={look} species={species} />
             </group>
@@ -311,8 +323,13 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
           {/* arms */}
           {([['L', armLRef, 1], ['R', armRRef, -1]] as const).map(([k, ref, sd]) => (
             <group key={k} ref={ref} position={[sd * BODY.shoulderX, SHOULDER_Y - HIP_Y, 0]}>
-              <mesh material={fur} position={[0, -armLen / 2, 0]}><capsuleGeometry args={[armR, armLen - armR, 6, 14]} /></mesh>
-              <mesh material={accent} position={[0, -armLen + 0.02, 0]}><sphereGeometry args={[armR * 1.15, 14, 10]} /></mesh>
+              {!bodyless && (
+                <>
+                  <mesh material={fur}><sphereGeometry args={[armR * 1.25, 18, 14]} /></mesh>
+                  <mesh material={fur} position={[0, -armLen / 2, 0]}><capsuleGeometry args={[armR, armLen - armR, 8, 18]} /></mesh>
+                  <mesh material={accent} position={[0, -armLen + 0.02, 0]}><sphereGeometry args={[armR * 1.2, 18, 14]} /></mesh>
+                </>
+              )}
               <OutfitParts bone={k === 'L' ? 'armL' : 'armR'} look={look} species={species} />
             </group>
           ))}
@@ -321,9 +338,9 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
         {/* legs */}
         {([['L', legLRef, 1], ['R', legRRef, -1]] as const).map(([k, ref, sd]) => (
           <group key={k} ref={ref} position={[sd * BODY.legX, HIP_Y + 0.02, 0]}>
-            <mesh material={fur} position={[0, -legLen / 2, 0]}><capsuleGeometry args={[legR, legLen - legR, 6, 14]} /></mesh>
-            {!hidesFeet && (
-              <RoundedBox args={[0.21, 0.1, 0.28]} radius={0.045} smoothness={3} position={[0, -legLen - BODY.footH / 2 + 0.01, 0.04]} material={accent} />
+            {!bodyless && <mesh material={fur} position={[0, -legLen / 2, 0]}><capsuleGeometry args={[legR * 1.08, legLen - legR, 8, 18]} /></mesh>}
+            {!bodyless && !hidesFeet && (
+              <mesh material={accent} position={[0, -legLen - BODY.footH / 2 + 0.015, 0.04]} scale={[0.9, 0.55, 1.2]}><sphereGeometry args={[0.12, 22, 16]} /></mesh>
             )}
             <OutfitParts bone={k === 'L' ? 'legL' : 'legR'} look={look} species={species} />
           </group>

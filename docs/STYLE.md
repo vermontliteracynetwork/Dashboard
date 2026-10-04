@@ -360,6 +360,16 @@ If she wants any of these exact models in the game, she can download them (check
 - The **Style** room at Teacher nav → 👗 Style (`/teacher/style`): pick the animal, color everything, wear one outfit (one item per slot), Surprise me, Start over, Undo changes, Save my look, turn buttons plus drag to spin, animation buttons, sound effects on every action (`styleSounds.ts`), and a cheer when saved.
 - Saving: the teacher's look saves to a new `style_looks` table (needs the SQL in `supabase/schema.sql`) and to the device as a backup.
 
+**Edits SHIPPED 2026-10-04 (teacher feedback on the first build: "this is a great start", with 8 edits plus a hat note):**
+1. "make the characters a little more round in the midsection, smoother in shape overall" and 6. "make all shapes look more fluid and less geometric. connect head to body, give more soft angles": the body is now a soft bean shape turned on a lathe (`src/style/body.ts`, widest at the tummy, narrowing into a neck the head sits into, no gap and no box corners), with round shoulders, chubbier shorter legs and rounded feet. Tops, dresses and waistbands use the same body profile slightly larger, so clothes hug the round body; shoes are rounded too.
+2. "the capybara needs to have a longer nose": a long blunt snout with a darker nose tip.
+3. "characters should default without clothes": new and reset looks start with no outfit.
+4. "the butterfly wings need to be moved farther back": wings (and the cape) now attach behind the back surface.
+5. "skirt shape needs to be improved": skirts and the dress use a smooth bell shape with a rounded hem lip.
+7. "ensure me the ability as a teacher to view and edit all assets but not attached to a character. allow me to preview assets as i create them on each character": new **🧵 Item workshop** mode in Style: every item by category, rename it, change its default colors and patterns, Save item / Undo / Back to original (an "edited" badge marks changed items), with a live preview row: Item only (the item floating by itself, framed up close), Dog, Cat, Frog, Capybara, or All four side by side. Edits save as the class catalog (the `catalog` row in `style_looks`) and become the new default for everyone.
+8. "for the animations, divide into two categories: move (run, jump) and emotes (wave, talk)": two labeled rows: **Move** (Stand, Walk, Run, Jump, Turn) and **Emotes** (Wave, Talk, Cheer, Dance).
+- "ensure hats (specifically beanie) dont cover characters eyes": the beanie and ball cap now sit higher on the head, and on the frog every hat sits behind its top eyes.
+
 **Next (in order):** students' version + release switch (pie menu entry, replaces the 3D player in Town Square/Home Room/Island, portraits become Style snapshots, old avatars/characters deleted, all at release); Marketplace publishing with price, dates, earn rules counted from publish date, gifting, refunds, sales; Style Studio (templates, POD-style designer, effects shelf, auto-save drafts) with the free Describe-it builder and the request list; more items and the Wheelchair set in Comfort Gear; Seamstress game later.
 
 ### 6. Conflicts with existing standing rules and shipped features (named explicitly)

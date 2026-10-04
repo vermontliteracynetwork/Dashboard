@@ -47,3 +47,12 @@ export interface StyleLook {
 
 export type StyleMove = 'idle' | 'walk' | 'run';
 export type StyleOneShot = 'jump' | 'wave' | 'cheer' | 'dance';
+
+// Teacher edits to catalog items (item workshop): a new name and/or new
+// default colors and patterns. Saved once for the whole class; per the
+// teacher's instruction, edits reach students even for items they own.
+export interface StyleItemOverride {
+  name?: string;
+  zones?: Paint[];
+}
+export type StyleCatalogOverrides = Record<string, StyleItemOverride>;

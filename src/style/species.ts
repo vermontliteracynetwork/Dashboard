@@ -7,7 +7,7 @@ import type { Paint, SpeciesId, StyleBody, StyleLook } from './types';
 // pair of shoes made once fits a dog, a cat, a frog and a capybara.
 export const BODY = {
   footH: 0.07,
-  legLen: 0.4,
+  legLen: 0.34,
   legR: 0.1,
   legX: 0.13,
   torsoW: 0.5,
@@ -61,7 +61,7 @@ export const SPECIES: SpeciesDef[] = [
     id: 'frog',
     name: 'Frog',
     emoji: '🐸',
-    hat: { y: 0.27, z: -0.1, scale: 1.05 },
+    hat: { y: 0.33, z: -0.2, scale: 0.88 },
     face: { y: 0.22, z: 0.2, scale: 1.15 },
     defaultBody: { fur: solid('#5cbf4a'), belly: solid('#e8f5a8'), accent: solid('#2f8a2c'), eyes: '#1b1b1b', nose: '#2f8a2c' },
   },
@@ -81,10 +81,7 @@ export function defaultLook(species: SpeciesId = 'dog'): StyleLook {
   return {
     species,
     body: structuredClone(speciesById(species).defaultBody),
-    outfit: {
-      top: { itemId: 'tee', zones: [{ pattern: 'solid', colors: ['#4a90e2', '#ffffff'] }] },
-      bottom: { itemId: 'pants', zones: [{ pattern: 'solid', colors: ['#34495e', '#ffffff'] }] },
-      shoes: { itemId: 'sneakers', zones: [{ pattern: 'solid', colors: ['#ffffff', '#e74c3c'] }, { pattern: 'solid', colors: ['#e74c3c', '#ffffff'] }] },
-    },
+    // Direct teacher instruction: characters start with no clothes.
+    outfit: {},
   };
 }

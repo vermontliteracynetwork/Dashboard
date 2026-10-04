@@ -5,21 +5,25 @@ import TeacherNav from '../../components/TeacherNav';
 import { useStore } from '../../store/store';
 import { StyleCharacter, type StyleCharacterHandle } from '../../style/StyleCharacter';
 import { SPECIES, defaultLook, speciesById } from '../../style/species';
-import { WARDROBE, SLOT_LABEL, SLOT_ORDER, itemById } from '../../style/wardrobe';
+import { SLOT_LABEL, SLOT_ORDER, type WardrobeItem } from '../../style/wardrobe';
+import { useStyleCatalog } from '../../style/catalog';
 import { PATTERNS, patternSwatch } from '../../style/patterns';
 import ColorWheel from '../../style/ColorWheel';
 import { styleSound } from '../../style/styleSounds';
-import type { Paint, StyleLook, StyleMove, StyleOneShot, WardrobeSlot } from '../../style/types';
+import type { Paint, SpeciesId, StyleLook, StyleMove, StyleOneShot, WardrobeSlot } from '../../style/types';
 
-// Style (docs/STYLE.md): the dress-up room. Teacher-only for now (direct
-// teacher instruction: students don't get Style until she says it's ready;
-// when she does, it opens from their pie menu). Pick an animal, color
-// every part of it with the color wheel, and wear one outfit: a hat,
-// glasses, comfort gear, a top, bottoms, shoes and a back item, each in
-// any color and pattern.
+// Style (docs/STYLE.md). Teacher-only for now (direct teacher instruction:
+// students don't get Style until she says it's ready; when she does, it
+// opens from their pie menu). Two modes:
+//  - Dress up: pick an animal, color every part of it, wear one outfit.
+//  - Item workshop: every clothing item on its own (not on a character),
+//    rename it and change its default colors and patterns, and preview it
+//    on each animal (or all four at once) while editing.
 
 const OWNER = 'teacher';
 type Tab = 'body' | WardrobeSlot;
+type Mode = 'dress' | 'workshop';
+type Preview = 'item' | SpeciesId | 'all';
 
 function isLook(x: unknown): x is StyleLook {
   const l = x as StyleLook;
@@ -37,22 +41,23 @@ function loadInitial(rowLook: unknown): StyleLook {
 }
 
 const rand = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
-const randHex = () => {
-  const h = Math.floor(Math.random() * 360);
-  return `hsl(${h} 70% 55%)`;
-};
-// Convert any CSS color to #rrggbb (the color wheel works in hex).
 function toHex(css: string): string {
   const c = document.createElement('canvas').getContext('2d');
   if (!c) return '#888888';
   c.fillStyle = css;
   return c.fillStyle as string;
 }
-const randomPaint = (): Paint => ({ pattern: Math.random() < 0.55 ? 'solid' : rand(PATTERNS).id, colors: [toHex(randHex()), toHex(randHex())] });
+const randHex = () => toHex(`hsl(${Math.floor(Math.random() * 360)} 70% 55%)`);
+const randomPaint = (): Paint => ({ pattern: Math.random() < 0.55 ? 'solid' : rand(PATTERNS).id, colors: [randHex(), randHex()] });
 
 export default function StyleRoom() {
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === OWNER));
   const saveStyleLook = useStore((s) => s.saveStyleLook);
+  const saveStyleCatalog = useStore((s) => s.saveStyleCatalog);
+  const { items: catalog, overrides } = useStyleCatalog();
+  const itemFor = (id: string) => catalog.find((i) => i.id === id);
+
+  const [mode, setMode] = useState<Mode>('dress');
   const [saved, setSaved] = useState<StyleLook>(() => loadInitial(row?.look));
   const [look, setLook] = useState<StyleLook>(saved);
   const [tab, setTab] = useState<Tab>('body');
@@ -60,16 +65,33 @@ export default function StyleRoom() {
   const [talking, setTalking] = useState(false);
   const [spin, setSpin] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
-  const charRef = useRef<StyleCharacterHandle>(null);
+  const charRefs = useRef<(StyleCharacterHandle | null)[]>([]);
   const dirty = useMemo(() => JSON.stringify(look) !== JSON.stringify(saved), [look, saved]);
-  // The saved look can arrive from the database after this screen opens.
+
+  // Item workshop state: the item being edited and its working copy.
+  const [wsSlot, setWsSlot] = useState<WardrobeSlot>('hat');
+  const [wsItemId, setWsItemId] = useState<string>('cheesehat');
+  const wsItem = itemFor(wsItemId);
+  const [wsName, setWsName] = useState('');
+  const [wsZones, setWsZones] = useState<Paint[]>([]);
+  const [preview, setPreview] = useState<Preview>('all');
+  useEffect(() => {
+    if (!wsItem) return;
+    setWsName(wsItem.name);
+    setWsZones(wsItem.zones.map((z) => structuredClone(z.paint)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsItemId, overrides]);
+  const wsDirty = !!wsItem && (wsName !== wsItem.name || JSON.stringify(wsZones) !== JSON.stringify(wsItem.zones.map((z) => z.paint)));
+
   useEffect(() => {
     if (row && isLook(row.look) && !dirty) { setSaved(row.look); setLook(row.look); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row?.updatedAt]);
 
+  const flash = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 2000); };
+
   const play = (m: StyleOneShot) => {
-    charRef.current?.play(m);
+    charRefs.current.forEach((c) => c?.play(m));
     if (m === 'jump') styleSound.boing();
     else if (m === 'cheer') styleSound.cheer();
     else styleSound.tap();
@@ -80,7 +102,7 @@ export default function StyleRoom() {
       const outfit = { ...l.outfit };
       if (!itemId) delete outfit[slot];
       else {
-        const item = itemById(itemId)!;
+        const item = itemFor(itemId)!;
         outfit[slot] = { itemId, zones: item.zones.map((z) => structuredClone(z.paint)) };
       }
       return { ...l, outfit };
@@ -102,17 +124,33 @@ export default function StyleRoom() {
     saveStyleLook(OWNER, look);
     setSaved(look);
     styleSound.save();
-    charRef.current?.play('cheer');
-    setToast('Look saved!');
-    window.setTimeout(() => setToast(null), 2000);
+    play('cheer');
+    flash('Look saved!');
+  };
+
+  const saveItem = () => {
+    if (!wsItem) return;
+    const next = { ...overrides, [wsItem.id]: { name: wsName.trim() || wsItem.name, zones: wsZones } };
+    saveStyleCatalog(next);
+    styleSound.save();
+    play('cheer');
+    flash(`${wsName.trim() || wsItem.name} saved!`);
+  };
+  const resetItem = () => {
+    if (!wsItem) return;
+    const next = { ...overrides };
+    delete next[wsItem.id];
+    saveStyleCatalog(next);
+    styleSound.swish();
+    flash('Back to the original');
   };
 
   const surprise = () => {
     const species = rand(SPECIES).id;
     const outfit: StyleLook['outfit'] = {};
     for (const slot of SLOT_ORDER) {
-      const options = WARDROBE.filter((i) => i.slot === slot);
-      const chance = slot === 'top' || slot === 'bottom' || slot === 'shoes' ? 0.95 : 0.45;
+      const options = catalog.filter((i) => i.slot === slot);
+      const chance = slot === 'top' || slot === 'bottom' || slot === 'shoes' ? 0.9 : 0.4;
       if (options.length && Math.random() < chance) {
         const item = rand(options);
         outfit[slot] = { itemId: item.id, zones: item.zones.map(() => randomPaint()) };
@@ -122,12 +160,29 @@ export default function StyleRoom() {
     if (Math.random() < 0.5) body.fur = randomPaint();
     setLook({ species, body, outfit });
     styleSound.pop();
-    charRef.current?.play('dance');
+    play('dance');
   };
+
+  // What the stage shows.
+  const stageLooks: { look: StyleLook; x: number; bodyless?: boolean }[] = useMemo(() => {
+    if (mode === 'dress') return [{ look, x: 0 }];
+    if (!wsItem) return [];
+    const outfitOnly: StyleLook['outfit'] = { [wsItem.slot]: { itemId: wsItem.id, zones: wsZones } };
+    const on = (sp: SpeciesId): StyleLook => ({ species: sp, body: structuredClone(speciesById(sp).defaultBody), outfit: outfitOnly });
+    if (preview === 'item') return [{ look: on('dog'), x: 0, bodyless: true }];
+    if (preview === 'all') return SPECIES.map((sp, i) => ({ look: on(sp.id), x: (i - 1.5) * 1.15 }));
+    return [{ look: on(preview), x: 0 }];
+  }, [mode, look, wsItem, wsZones, preview]);
+  const wide = stageLooks.length > 1;
+  // "Item only" frames the item itself up close (a hat floats up where a
+  // head would be, shoes sit on the floor).
+  const itemOnly = mode === 'workshop' && preview === 'item';
+  const focusY = !itemOnly || !wsItem ? 0.9 : ({ hat: 1.45, face: 1.25, gear: 1.25, top: 0.82, bottom: 0.4, shoes: 0.08, back: 0.8 } as Record<WardrobeSlot, number>)[wsItem.slot];
+  const cam: [number, number, number] = wide ? [0, 1.5, 5.6] : itemOnly ? [0.9, focusY + 0.45, 1.9] : [0, 1.2, 3.3];
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
     { id: 'body', label: 'Body', emoji: '🐾' },
-    ...SLOT_ORDER.map((s) => ({ id: s as Tab, label: SLOT_LABEL[s], emoji: WARDROBE.find((i) => i.slot === s)?.emoji ?? '✨' })),
+    ...SLOT_ORDER.map((s) => ({ id: s as Tab, label: SLOT_LABEL[s], emoji: catalog.find((i) => i.slot === s)?.emoji ?? '✨' })),
   ];
 
   return (
@@ -139,104 +194,171 @@ export default function StyleRoom() {
             <h1>👗 Style</h1>
             <p className="style-note">Only you can see Style right now. Students get it (from their pie menu) when you say it is ready.</p>
           </div>
-          <div className="style-head-actions">
-            <button type="button" className="style-btn" onClick={surprise}>🎲 Surprise me</button>
-            <button type="button" className="style-btn" onClick={() => { setLook(defaultLook(look.species)); styleSound.swish(); }}>↺ Start over</button>
-            <button type="button" className="style-btn" disabled={!dirty} onClick={() => { setLook(saved); styleSound.swish(); }}>Undo changes</button>
-            <button type="button" className="style-btn primary" onClick={save}>{dirty ? '💾 Save my look' : '✓ Saved'}</button>
+          <div className="style-mode" role="tablist" aria-label="Style mode">
+            <button type="button" role="tab" aria-selected={mode === 'dress'} className={`style-mode-btn${mode === 'dress' ? ' on' : ''}`} onClick={() => { setMode('dress'); styleSound.tap(); }}>🪞 Dress up</button>
+            <button type="button" role="tab" aria-selected={mode === 'workshop'} className={`style-mode-btn${mode === 'workshop' ? ' on' : ''}`} onClick={() => { setMode('workshop'); styleSound.tap(); }}>🧵 Item workshop</button>
           </div>
+          {mode === 'dress' ? (
+            <div className="style-head-actions">
+              <button type="button" className="style-btn" onClick={surprise}>🎲 Surprise me</button>
+              <button type="button" className="style-btn" onClick={() => { setLook(defaultLook(look.species)); styleSound.swish(); }}>↺ Start over</button>
+              <button type="button" className="style-btn" disabled={!dirty} onClick={() => { setLook(saved); styleSound.swish(); }}>Undo changes</button>
+              <button type="button" className="style-btn primary" onClick={save}>{dirty ? '💾 Save my look' : '✓ Saved'}</button>
+            </div>
+          ) : (
+            <div className="style-head-actions">
+              <button type="button" className="style-btn" disabled={!overrides[wsItemId]} onClick={resetItem}>↺ Back to original</button>
+              <button type="button" className="style-btn" disabled={!wsDirty} onClick={() => { if (wsItem) { setWsName(wsItem.name); setWsZones(wsItem.zones.map((z) => structuredClone(z.paint))); styleSound.swish(); } }}>Undo changes</button>
+              <button type="button" className="style-btn primary" disabled={!wsDirty} onClick={saveItem}>{wsDirty ? '💾 Save item' : '✓ Saved'}</button>
+            </div>
+          )}
         </header>
 
         <div className="style-main">
           <section className="style-stage">
+            {mode === 'workshop' && (
+              <div className="style-preview-row" aria-label="Preview on">
+                <span>Preview:</span>
+                {([['item', '🧵 Item only'], ...SPECIES.map((s) => [s.id, `${s.emoji} ${s.name}`]), ['all', '👥 All four']] as [Preview, string][]).map(([id, label]) => (
+                  <button key={id} type="button" className={`style-chip${preview === id ? ' on' : ''}`} onClick={() => { setPreview(id); styleSound.tap(); }}>{label}</button>
+                ))}
+              </div>
+            )}
             <div className="style-canvas">
-              <Canvas camera={{ position: [0, 1.25, 3.4], fov: 40 }} shadows dpr={[1, 2]}>
+              <Canvas camera={{ position: cam, fov: 40 }} shadows dpr={[1, 2]} key={`${wide}-${itemOnly}-${focusY}`}>
                 <color attach="background" args={['#fde8ff']} />
-                <ambientLight intensity={0.75} />
-                <directionalLight position={[2.5, 4, 3]} intensity={1.4} castShadow />
+                <ambientLight intensity={0.8} />
+                <hemisphereLight args={['#ffffff', '#f3d6ff', 0.5]} />
+                <directionalLight position={[2.5, 4, 3]} intensity={1.25} castShadow />
                 <directionalLight position={[-3, 2, -2]} intensity={0.45} color="#b8d8ff" />
                 <Suspense fallback={null}>
-                  <group rotation={[0, spin, 0]}>
-                    <StyleCharacter ref={charRef} look={look} move={move} talking={talking} />
-                  </group>
+                  {stageLooks.map((s, i) => (
+                    <group key={`${s.look.species}-${i}`} position={[s.x, 0, 0]} rotation={[0, spin, 0]}>
+                      <StyleCharacter ref={(h) => { charRefs.current[i] = h; }} look={s.look} move={move} talking={talking} bodyless={s.bodyless} />
+                    </group>
+                  ))}
                 </Suspense>
-                <ContactShadows position={[0, 0.001, 0]} opacity={0.35} scale={4} blur={2.4} far={2} />
+                <ContactShadows position={[0, 0.001, 0]} opacity={0.3} scale={wide ? 8 : 4} blur={2.4} far={2} />
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]}>
-                  <circleGeometry args={[1.3, 48]} />
+                  <circleGeometry args={[wide ? 3 : 1.3, 48]} />
                   <meshStandardMaterial color="#ffffff" />
                 </mesh>
-                <OrbitControls target={[0, 0.95, 0]} enablePan={false} minDistance={1.6} maxDistance={6} maxPolarAngle={Math.PI / 1.9} />
+                <OrbitControls target={[0, focusY, 0]} enablePan={false} minDistance={0.8} maxDistance={9} maxPolarAngle={Math.PI / 1.9} />
               </Canvas>
               {toast && <div className="style-toast">✨ {toast}</div>}
             </div>
-            <div className="style-moves">
-              <button type="button" className="style-chip" onClick={() => setSpin((s) => s + Math.PI / 4)} aria-label="Turn left">⟲ Turn</button>
-              <button type="button" className="style-chip" onClick={() => setSpin((s) => s - Math.PI / 4)} aria-label="Turn right">Turn ⟳</button>
-              {(['idle', 'walk', 'run'] as StyleMove[]).map((m) => (
-                <button key={m} type="button" className={`style-chip${move === m ? ' on' : ''}`} onClick={() => { setMove(m); styleSound.tap(); }}>
-                  {m === 'idle' ? '🧍 Stand' : m === 'walk' ? '🚶 Walk' : '🏃 Run'}
-                </button>
-              ))}
-              <button type="button" className="style-chip" onClick={() => play('jump')}>🦘 Jump</button>
-              <button type="button" className="style-chip" onClick={() => play('wave')}>👋 Wave</button>
-              <button type="button" className="style-chip" onClick={() => play('cheer')}>🙌 Cheer</button>
-              <button type="button" className="style-chip" onClick={() => play('dance')}>💃 Dance</button>
-              <button type="button" className={`style-chip${talking ? ' on' : ''}`} onClick={() => { setTalking((v) => !v); styleSound.tap(); }}>💬 {talking ? 'Stop talking' : 'Talk'}</button>
+            <div className="style-anim">
+              <div className="style-anim-group">
+                <span className="style-anim-label">Move</span>
+                {(['idle', 'walk', 'run'] as StyleMove[]).map((m) => (
+                  <button key={m} type="button" className={`style-chip${move === m ? ' on' : ''}`} onClick={() => { setMove(m); styleSound.tap(); }}>
+                    {m === 'idle' ? '🧍 Stand' : m === 'walk' ? '🚶 Walk' : '🏃 Run'}
+                  </button>
+                ))}
+                <button type="button" className="style-chip" onClick={() => play('jump')}>🦘 Jump</button>
+                <button type="button" className="style-chip" onClick={() => setSpin((s) => s + Math.PI / 4)} aria-label="Turn left">⟲ Turn</button>
+                <button type="button" className="style-chip" onClick={() => setSpin((s) => s - Math.PI / 4)} aria-label="Turn right">Turn ⟳</button>
+              </div>
+              <div className="style-anim-group">
+                <span className="style-anim-label">Emotes</span>
+                <button type="button" className="style-chip" onClick={() => play('wave')}>👋 Wave</button>
+                <button type="button" className={`style-chip${talking ? ' on' : ''}`} onClick={() => { setTalking((v) => !v); styleSound.tap(); }}>💬 {talking ? 'Stop talking' : 'Talk'}</button>
+                <button type="button" className="style-chip" onClick={() => play('cheer')}>🙌 Cheer</button>
+                <button type="button" className="style-chip" onClick={() => play('dance')}>💃 Dance</button>
+              </div>
             </div>
           </section>
 
           <section className="style-panel">
-            <nav className="style-tabs" aria-label="Style categories">
-              {tabs.map((t) => (
-                <button key={t.id} type="button" className={`style-tab${tab === t.id ? ' on' : ''}`} onClick={() => { setTab(t.id); styleSound.tap(); }}>
-                  <span aria-hidden="true">{t.emoji}</span>{t.label}
-                </button>
-              ))}
-            </nav>
-
-            {tab === 'body' ? (
-              <div className="style-section">
-                <h2>Pick your animal</h2>
-                <div className="style-grid">
-                  {SPECIES.map((sp) => (
-                    <button key={sp.id} type="button" className={`style-tile${look.species === sp.id ? ' on' : ''}`}
-                      onClick={() => { setLook((l) => ({ ...l, species: sp.id, body: structuredClone(sp.defaultBody) })); styleSound.pop(); charRef.current?.play('wave'); }}>
-                      <span className="style-tile-emoji">{sp.emoji}</span>{sp.name}
+            {mode === 'dress' ? (
+              <>
+                <nav className="style-tabs" aria-label="Style categories">
+                  {tabs.map((t) => (
+                    <button key={t.id} type="button" className={`style-tab${tab === t.id ? ' on' : ''}`} onClick={() => { setTab(t.id); styleSound.tap(); }}>
+                      <span aria-hidden="true">{t.emoji}</span>{t.label}
                     </button>
                   ))}
-                </div>
-                <PaintEditor label="Fur" paint={look.body.fur} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, fur: p } }))} />
-                <PaintEditor label={look.species === 'frog' ? 'Tummy & chin' : 'Tummy & muzzle'} paint={look.body.belly} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, belly: p } }))} />
-                <PaintEditor label={look.species === 'frog' ? 'Spots & feet' : look.species === 'capybara' ? 'Snout, ears & feet' : 'Ears, paws & feet'} paint={look.body.accent} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, accent: p } }))} />
-                <ColorOnlyEditor label="Eyes" color={look.body.eyes} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, eyes: c } }))} />
-                <ColorOnlyEditor label="Nose" color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
-              </div>
+                </nav>
+                {tab === 'body' ? (
+                  <div className="style-section">
+                    <h2>Pick your animal</h2>
+                    <div className="style-grid">
+                      {SPECIES.map((sp) => (
+                        <button key={sp.id} type="button" className={`style-tile${look.species === sp.id ? ' on' : ''}`}
+                          onClick={() => { setLook((l) => ({ ...l, species: sp.id, body: structuredClone(sp.defaultBody) })); styleSound.pop(); play('wave'); }}>
+                          <span className="style-tile-emoji">{sp.emoji}</span>{sp.name}
+                        </button>
+                      ))}
+                    </div>
+                    <PaintEditor label="Fur" paint={look.body.fur} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, fur: p } }))} />
+                    <PaintEditor label={look.species === 'frog' ? 'Tummy & chin' : 'Tummy & muzzle'} paint={look.body.belly} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, belly: p } }))} />
+                    <PaintEditor label={look.species === 'frog' ? 'Spots & feet' : look.species === 'capybara' ? 'Nose tip, ears & feet' : 'Ears, paws & feet'} paint={look.body.accent} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, accent: p } }))} />
+                    <ColorOnlyEditor label="Eyes" color={look.body.eyes} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, eyes: c } }))} />
+                    <ColorOnlyEditor label="Nose" color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
+                  </div>
+                ) : (
+                  <div className="style-section">
+                    <h2>{SLOT_LABEL[tab]}{tab === 'gear' ? ' (always free)' : ''}</h2>
+                    <ItemGrid items={catalog.filter((i) => i.slot === tab)} selected={look.outfit[tab]?.itemId ?? null} onPick={(id) => equip(tab, id)} allowNone />
+                    {(() => {
+                      const eq = look.outfit[tab];
+                      const item = eq ? itemFor(eq.itemId) : undefined;
+                      if (!eq || !item) return null;
+                      return item.zones.map((z, i) => (
+                        <PaintEditor key={`${item.id}-${i}`} label={`${item.name}: ${z.label}`} paint={eq.zones[i] ?? z.paint} onChange={(p) => setZone(tab, i, p)} />
+                      ));
+                    })()}
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="style-section">
-                <h2>{SLOT_LABEL[tab]}{tab === 'gear' ? ' (always free)' : ''}</h2>
-                <div className="style-grid">
-                  <button type="button" className={`style-tile${!look.outfit[tab] ? ' on' : ''}`} onClick={() => equip(tab, null)}>
-                    <span className="style-tile-emoji">🚫</span>None
-                  </button>
-                  {WARDROBE.filter((i) => i.slot === tab).map((item) => (
-                    <button key={item.id} type="button" className={`style-tile${look.outfit[tab]?.itemId === item.id ? ' on' : ''}`} onClick={() => equip(tab, item.id)}>
-                      <span className="style-tile-emoji">{item.emoji}</span>{item.name}
+              <>
+                <nav className="style-tabs" aria-label="Item categories">
+                  {SLOT_ORDER.map((s) => (
+                    <button key={s} type="button" className={`style-tab${wsSlot === s ? ' on' : ''}`} onClick={() => { setWsSlot(s); styleSound.tap(); }}>
+                      <span aria-hidden="true">{catalog.find((i) => i.slot === s)?.emoji ?? '✨'}</span>{SLOT_LABEL[s]}
                     </button>
                   ))}
+                </nav>
+                <div className="style-section">
+                  <h2>All {SLOT_LABEL[wsSlot]}</h2>
+                  <ItemGrid items={catalog.filter((i) => i.slot === wsSlot)} selected={wsItemId} onPick={(id) => { if (id) { setWsItemId(id); styleSound.pop(); } }} edited={overrides} />
+                  {wsItem && (
+                    <>
+                      <div className="style-paint">
+                        <h3>Item name</h3>
+                        <input className="style-name-input" value={wsName} maxLength={40} onChange={(e) => setWsName(e.target.value.replace(/—/g, '-'))} aria-label="Item name" />
+                      </div>
+                      {wsItem.zones.map((z, i) => (
+                        <PaintEditor key={`${wsItem.id}-${i}`} label={`Default ${z.label.toLowerCase()}`} paint={wsZones[i] ?? z.paint} onChange={(p) => setWsZones((zs) => { const next = zs.slice(); next[i] = p; return next; })} />
+                      ))}
+                      <p className="style-note">Saved changes become this item's new look for everyone, including students who already own it.</p>
+                    </>
+                  )}
                 </div>
-                {(() => {
-                  const eq = look.outfit[tab];
-                  const item = eq ? itemById(eq.itemId) : undefined;
-                  if (!eq || !item) return null;
-                  return item.zones.map((z, i) => (
-                    <PaintEditor key={`${item.id}-${i}`} label={`${item.name}: ${z.label}`} paint={eq.zones[i] ?? z.paint} onChange={(p) => setZone(tab, i, p)} />
-                  ));
-                })()}
-              </div>
+              </>
             )}
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ItemGrid({ items, selected, onPick, allowNone, edited }: { items: WardrobeItem[]; selected: string | null; onPick: (id: string | null) => void; allowNone?: boolean; edited?: Record<string, unknown> }) {
+  return (
+    <div className="style-grid">
+      {allowNone && (
+        <button type="button" className={`style-tile${!selected ? ' on' : ''}`} onClick={() => onPick(null)}>
+          <span className="style-tile-emoji">🚫</span>None
+        </button>
+      )}
+      {items.map((item) => (
+        <button key={item.id} type="button" className={`style-tile${selected === item.id ? ' on' : ''}`} onClick={() => onPick(item.id)}>
+          <span className="style-tile-emoji">{item.emoji}</span>{item.name}
+          {edited?.[item.id] ? <span className="style-tile-badge">edited</span> : null}
+        </button>
+      ))}
     </div>
   );
 }

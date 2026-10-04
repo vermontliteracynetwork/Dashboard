@@ -178,7 +178,7 @@ import {
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
 import type { BadgeCounters, StyleLookRow } from '../lib/sync';
-import type { StyleLook } from '../style/types';
+import type { StyleCatalogOverrides, StyleLook } from '../style/types';
 import { ruleMet } from '../lib/badgeRules';
 import type {
   Student,
@@ -289,6 +289,8 @@ interface AppState {
   // so a look survives even before the style_looks migration is run.
   styleLooks: StyleLookRow[];
   saveStyleLook: (ownerId: string, look: StyleLook) => void;
+  // The teacher's item-workshop edits, stored as the 'catalog' row.
+  saveStyleCatalog: (overrides: StyleCatalogOverrides) => void;
   selCheckIns: SelCheckIn[];
   recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string) => string;
   addSelCheckInNote: (id: string, noteText: string) => void;
@@ -2639,6 +2641,12 @@ export const useStore = create<AppState>()(
         set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
         try { localStorage.setItem(`style-look:${ownerId}`, JSON.stringify(look)); } catch { /* private mode */ }
         pushStyleLook(ownerId, look);
+      },
+      saveStyleCatalog: (overrides) => {
+        const row = { ownerId: 'catalog', look: overrides, updatedAt: new Date().toISOString() };
+        set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== 'catalog')] }));
+        try { localStorage.setItem('style-look:catalog', JSON.stringify(overrides)); } catch { /* private mode */ }
+        pushStyleLook('catalog', overrides);
       },
       recordChessGame: (game) => {
         set((s) => ({ chessGames: [game, ...s.chessGames.filter((g) => g.id !== game.id)] }));

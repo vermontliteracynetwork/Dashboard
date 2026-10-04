@@ -4094,3 +4094,14 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .style-color-btn { min-height: 48px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 6px; border-radius: 999px; border: 2px solid #eadcff; background: #fff; font: inherit; font-weight: 800; color: #2b1452; cursor: pointer; touch-action: manipulation; }
 .style-color-btn span { width: 36px; height: 36px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.15); }
 .style-color-btn.on { border-color: #9b59b6; background: #f5ecff; }
+.style-mode { display: flex; gap: 6px; background: #fff; border: 3px solid #e3c8ff; border-radius: 999px; padding: 4px; }
+.style-mode-btn { min-height: 48px; padding: 0 18px; border-radius: 999px; border: none; background: transparent; font: inherit; font-weight: 800; font-size: 1.02rem; color: #2b1452; cursor: pointer; touch-action: manipulation; }
+.style-mode-btn.on { background: #2b1452; color: #fff; }
+.style-preview-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+.style-preview-row > span, .style-anim-label { font-weight: 800; font-size: 0.95rem; opacity: 0.75; }
+.style-anim { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.style-anim-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; background: #fff; border: 2px solid #eadcff; border-radius: 22px; padding: 6px 10px; }
+.style-anim-label { min-width: 64px; text-align: right; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.8rem; }
+.style-tile { position: relative; }
+.style-tile-badge { position: absolute; top: 4px; right: 4px; background: #9b59b6; color: #fff; font-size: 0.65rem; border-radius: 999px; padding: 1px 6px; }
+.style-name-input { min-height: 48px; border-radius: 14px; border: 2px solid #eadcff; padding: 0 14px; font: inherit; font-weight: 700; font-size: 1.05rem; color: #2b1452; }
