@@ -96,6 +96,8 @@ export default function SlimeChess() {
   const navigate = useNavigate();
   const location = useLocation();
   const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
+  // Opened from a Neighbor's "Play a game" (Town Square): play with them.
+  const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
   const backTo = cameFromTown ? '/world/town' : '/student/home';
   const backLabel = cameFromTown ? 'Town Square' : 'Computer';
   const currentStudentId = useStore((s) => s.currentStudentId);
@@ -288,7 +290,7 @@ export default function SlimeChess() {
 
   const startGame = () => {
     saveIfUnfinished();
-    const r = mode === 'computer' ? pickRival(npcProfiles) : null;
+    const r = mode === 'computer' ? ((rivalId && npcProfiles[rivalId]) || pickRival(npcProfiles)) : null;
     rivalRef.current = r;
     setRival(r);
     const rn = r?.name ?? 'Your Neighbor';
@@ -551,7 +553,7 @@ export default function SlimeChess() {
           <div className="sc-menu-section">
             <h2>Who do you want to play?</h2>
             <div className="sc-choice-row">
-              <button className={`sc-pill pill-cyan${mode === 'computer' ? ' on' : ''}`} onClick={() => setMode('computer')}>A Neighbor</button>
+              <button className={`sc-pill pill-cyan${mode === 'computer' ? ' on' : ''}`} onClick={() => setMode('computer')}>{rivalId && npcProfiles[rivalId] ? npcProfiles[rivalId].name : 'A Neighbor'}</button>
               <button className={`sc-pill pill-pink${mode === 'friends' ? ' on' : ''}`} onClick={() => setMode('friends')}>A Friend (same iPad)</button>
             </div>
           </div>

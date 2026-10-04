@@ -137,6 +137,9 @@ export default function TeacherHome() {
         <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
           Space Bowling: "Alien cat bowling pins" by gloomrockcreates (CC BY 4.0); Asteroid, Comet, Flying Saucer and Space Shuttle by Poly by Google (CC BY); bowling strike sounds by juskiddink via qubodup (CC BY-SA 3.0); voice clips by Aimee Smith (CC BY 4.0); planets, skyboxes and sci-fi sounds by Kenney (CC0)
         </p>
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', opacity: 0.45, marginTop: 4 }}>
+          Town Square: car bump jump sound "cfork jump" by qubodup (CC BY 3.0)
+        </p>
       </div>
     </div>
   );

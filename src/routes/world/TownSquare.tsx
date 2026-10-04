@@ -21,6 +21,7 @@ import { StyleCharacter } from '../../style/StyleCharacter';
 import { useNpcProfiles, renameIn } from '../../style/npcs';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
+import GameDashboard from '../../components/GameDashboard';
 import { defaultLook } from '../../style/species';
 import { useStyleSettings } from '../../style/catalog';
 import type { StyleLook, StyleMove } from '../../style/types';
@@ -1105,6 +1106,23 @@ function StyleWanderBody({ look, isMoving }: { look: StyleLook; isMoving: React.
   return <StyleCharacter look={look} move={move} scale={STYLE_IN_WORLD_SCALE} />;
 }
 
+// Car bumps (teacher direction 2026-10-04): "while driving, if a player
+// hits an NPC with thier car, the NPCs must jump in the opposite direction
+// of the colision two square units and this sound must occur" (her uploaded
+// jump sound, qubodup "cfork" CC-BY 3.0). The car writes where it is every
+// frame it moves; each wandering NPC checks it and hops away when hit.
+const CAR_BUMPER = { t: -1e9, x: 0, z: 0, facing: 0, speed: 0 };
+const CAR_HIT_RADIUS = 1.05;
+const HOP_DISTANCE = 2;
+const HOP_SECONDS = 0.55;
+let lastJumpSound = 0;
+function playNpcJump() {
+  const now = performance.now();
+  if (now - lastJumpSound < 120) return;
+  lastJumpSound = now;
+  try { const a = new Audio('/sounds/world/npc-jump.ogg'); a.volume = 0.8; void a.play().catch(() => {}); } catch { /* no audio */ }
+}
+
 function WanderingNPC({
   modelPath,
   home,
@@ -1146,6 +1164,7 @@ function WanderingNPC({
   const progressCheckPos = useRef(new THREE.Vector3(home[0], 0, home[1]));
   const [hovered, setHovered] = useState(false);
   const npcEmote = useMemo(() => ambientEmoteFor(interaction?.id ?? modelPath), [interaction?.id, modelPath]);
+  const hop = useRef<{ fromX: number; fromZ: number; toX: number; toZ: number; start: number } | null>(null);
 
   useEffect(() => {
     interaction?.exposePosition(pos.current);
@@ -1168,6 +1187,32 @@ function WanderingNPC({
 
   useFrame(({ clock }, dt) => {
     if (!groupRef.current) return;
+    // Hit by a moving car: hop 2 squares straight away from it.
+    if (!hop.current && performance.now() - CAR_BUMPER.t < 150 && CAR_BUMPER.speed > 0.3) {
+      const dx = pos.current.x - CAR_BUMPER.x;
+      const dz = pos.current.z - CAR_BUMPER.z;
+      const d = Math.hypot(dx, dz);
+      if (d < CAR_HIT_RADIUS) {
+        const ux = d > 0.01 ? dx / d : Math.sin(CAR_BUMPER.facing);
+        const uz = d > 0.01 ? dz / d : Math.cos(CAR_BUMPER.facing);
+        const [tx, tz] = blockBuildings(clampGroundX(pos.current.x + ux * HOP_DISTANCE), clampGroundZ(pos.current.z + uz * HOP_DISTANCE));
+        hop.current = { fromX: pos.current.x, fromZ: pos.current.z, toX: clampGroundX(tx), toZ: clampGroundZ(tz), start: clock.elapsedTime };
+        target.current = null;
+        isMoving.current = false;
+        facing.current = Math.atan2(-ux, -uz);
+        playNpcJump();
+      }
+    }
+    if (hop.current) {
+      const h = hop.current;
+      const k = Math.min(1, (clock.elapsedTime - h.start) / HOP_SECONDS);
+      pos.current.x = h.fromX + (h.toX - h.fromX) * k;
+      pos.current.z = h.fromZ + (h.toZ - h.fromZ) * k;
+      groupRef.current.position.set(pos.current.x, Math.sin(Math.PI * k) * 0.9, pos.current.z);
+      groupRef.current.rotation.y = facing.current;
+      if (k >= 1) { hop.current = null; pauseUntil.current = clock.elapsedTime + 0.8; }
+      return;
+    }
     if (active) {
       if (!target.current && clock.elapsedTime >= pauseUntil.current) {
         const angle = Math.random() * Math.PI * 2;
@@ -1951,6 +1996,11 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         pos.current.x = fx;
         pos.current.z = fz;
         moved = true;
+        CAR_BUMPER.t = performance.now();
+        CAR_BUMPER.x = fx;
+        CAR_BUMPER.z = fz;
+        CAR_BUMPER.facing = facing.current;
+        CAR_BUMPER.speed = carSpeed.current;
       }
       const carRatio = carSpeed.current / CAR_MAX_SPEED;
       if (speedRef) speedRef.current = carRatio;
@@ -3212,6 +3262,9 @@ export default function TownSquare() {
   const [chatMenuNeighbor, setChatMenuNeighbor] = useState<Quest1Neighbor | null>(null);
   const [townsMenu, setTownsMenu] = useState<Townsperson | null>(null);
   const [aboutNpc, setAboutNpc] = useState<string | null>(null);
+  // "Play a game" from a Neighbor's pie menu: the game picker, then the game
+  // opens with that Neighbor as the other player (teacher direction 2026-10-04).
+  const [playWith, setPlayWith] = useState<{ id: string; name: string } | null>(null);
   const npcProfiles = useNpcProfiles();
   const townSizeRule = useTownSizeRule();
   const [feelingsNeighbor, setFeelingsNeighbor] = useState<{ id: string; name: string; voicePresetId: string; modelPath?: string } | null>(null);
@@ -4751,7 +4804,7 @@ export default function TownSquare() {
             // alone could leave a student stuck with nothing visible and
             // no way out if a future bug ever lets stepIndex drift past
             // the end of a real conversation's steps.
-            frozen={(!!activeConversation && !!activeStep) || !!chatMenuNeighbor || !!feelingsNeighbor || !!townsMenu || !!aboutNpc || mapView || showWizardLock}
+            frozen={(!!activeConversation && !!activeStep) || !!chatMenuNeighbor || !!feelingsNeighbor || !!townsMenu || !!aboutNpc || !!playWith || mapView || showWizardLock}
             // Driving is "noticeably faster than walking" (docs/
             // TRANSPORTATION.md's Cars spec) — reusing the existing
             // sensitivity-driven speed math rather than a second speed
@@ -5284,6 +5337,7 @@ export default function TownSquare() {
               { id: 'hi', icon: '👋', label: met ? 'Chat' : 'Say hi', bg: '#3e7c6b', onSelect: () => chooseSayHi(n) },
               ...(met ? [{ id: 'joke', icon: '😄', label: 'Tell me a joke', bg: '#c2953f', onSelect: () => chooseJoke(n) }] : []),
               { id: 'feelings', icon: '💛', label: 'My feelings', bg: '#d9576b', onSelect: () => chooseFeelings(n) },
+              { id: 'play', icon: '🎮', label: 'Play a game', bg: '#7a4fd6', onSelect: () => setPlayWith({ id: n.id, name: prof?.name ?? n.name }) },
               { id: 'about', icon: '📇', label: `About ${prof?.name ?? n.name}`, bg: '#5b6bd6', onSelect: () => setAboutNpc(n.id) },
             ]}
           />
@@ -5301,12 +5355,21 @@ export default function TownSquare() {
               { id: 'hi', icon: '👋', label: 'Chat', bg: '#3e7c6b', onSelect: () => chatTownsperson(tp) },
               { id: 'joke', icon: '😄', label: 'Tell me a joke', bg: '#c2953f', onSelect: () => chatTownsperson(tp, true) },
               { id: 'feelings', icon: '💛', label: 'My feelings', bg: '#d9576b', onSelect: () => { setTownsMenu(null); setFeelingsNeighbor({ id: tp.id, name: prof?.name ?? tp.name, voicePresetId: tp.voicePresetId }); } },
+              { id: 'play', icon: '🎮', label: 'Play a game', bg: '#7a4fd6', onSelect: () => { setTownsMenu(null); setPlayWith({ id: tp.id, name: prof?.name ?? tp.name }); } },
               { id: 'about', icon: '📇', label: `About ${prof?.name ?? tp.name}`, bg: '#5b6bd6', onSelect: () => setAboutNpc(tp.id) },
             ]}
           />
         );
       })()}
       {aboutNpc && npcProfiles[aboutNpc] && <NpcCharacterSheet profile={npcProfiles[aboutNpc]} onClose={() => setAboutNpc(null)} />}
+      {playWith && (
+        <GameDashboard
+          title={`Play a game with ${playWith.name}`}
+          subtitle="Pick a game!"
+          onClose={() => setPlayWith(null)}
+          onPick={(g) => { const w = playWith; setPlayWith(null); navigate(g.route, { state: { from: 'town', rival: w.id } }); }}
+        />
+      )}
 
       {feelingsNeighbor && <NeighborFeelingsChat neighbor={feelingsNeighbor} onClose={() => setFeelingsNeighbor(null)} />}
 

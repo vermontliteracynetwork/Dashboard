@@ -48,6 +48,8 @@ export default function SpaceBowling() {
   const navigate = useNavigate();
   const location = useLocation();
   const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
+  // Opened from a Neighbor's "Play a game" (Town Square): play with them.
+  const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
   const backTo = cameFromTown ? '/world/town' : '/student/home';
   const backLabel = cameFromTown ? 'Town Square' : 'Computer';
 
@@ -141,7 +143,7 @@ export default function SpaceBowling() {
   const inGame = phase !== 'launch' && phase !== 'gameover';
 
   const startGame = () => {
-    const r = playerCount === 1 ? pickRival(npcProfiles) : null;
+    const r = playerCount === 1 ? ((rivalId && npcProfiles[rivalId]) || pickRival(npcProfiles)) : null;
     setRival(r);
     const ps: Player[] = playerCount === 1
       ? [{ name: names[0] || 'You', planet: planets[0], cpu: false, score: 0, powerups: [], strikes: 0 }, { name: r?.name ?? 'Your Neighbor', planet: (planets[0] + 5) % PLANETS.length, cpu: true, score: 0, powerups: [], strikes: 0 }]
@@ -441,8 +443,9 @@ export default function SpaceBowling() {
             </section>
             <section className="sb-panel sb-options">
               <h2>Who's playing?</h2>
+              {rivalId && npcProfiles[rivalId] && playerCount === 1 && <p className="sb-prize-text">🏡 You're playing {npcProfiles[rivalId].name}!</p>}
               <div className="sb-chips">
-                <button className={`sb-chip${playerCount === 1 ? ' on' : ''}`} onClick={() => setPlayerCount(1)}>🏡 Me vs a Neighbor</button>
+                <button className={`sb-chip${playerCount === 1 ? ' on' : ''}`} onClick={() => setPlayerCount(1)}>🏡 Me vs {rivalId && npcProfiles[rivalId] ? npcProfiles[rivalId].name : 'a Neighbor'}</button>
                 {[2, 3, 4].map((n) => <button key={n} className={`sb-chip${playerCount === n ? ' on' : ''}`} onClick={() => setPlayerCount(n)}>👥 {n} players</button>)}
               </div>
               <div className="sb-player-rows">

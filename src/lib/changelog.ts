@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-play-with-neighbors',
+    date: '2026-10-04',
+    icon: '🎮',
+    title: 'Play games with any Neighbor',
+    body: 'Tap a Neighbor and pick Play a game! Choose Space Bowling, Slime Chess, Bakery Match or Castle Defense and play with them. Their About card remembers every game you played together. And watch out when you drive: bump a Neighbor and they hop out of the way!',
+  },
+  {
     id: '2026-10-04-dollar-answers',
     date: '2026-10-04',
     icon: '💵',

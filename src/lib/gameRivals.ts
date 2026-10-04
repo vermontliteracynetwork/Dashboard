@@ -14,7 +14,8 @@ import type { ConversationStep } from './worldQuest1';
 // row (style_looks, no new SQL). The next time the student talks to that
 // Neighbor in Town Square, the Neighbor brings it up first, once per game.
 
-export type GameResult = 'npc' | 'student' | 'tie';
+// 'together': a one-player game played with a Neighbor cheering along.
+export type GameResult = 'npc' | 'student' | 'tie' | 'together';
 export interface GameMemory { npcId: string; game: string; result: GameResult; at: string; told?: boolean }
 type MemoryRow = { memories?: GameMemory[] };
 
@@ -54,5 +55,24 @@ export function memoryStep(m: GameMemory): ConversationStep {
   if (m.result === 'student') {
     return { npc: `Remember when we played ${m.game} and you beat me? I have been practicing ever since!`, options: ['Ha ha, I remember!', 'Want a rematch?'] };
   }
+  if (m.result === 'together') {
+    return { npc: `Remember when we played ${m.game} together? You were amazing!`, options: ['Thanks for cheering!', "Let's play again!"] };
+  }
   return { npc: `Remember our ${m.game} game? It was a tie! We need a rematch.`, options: ['Rematch!', 'That was so fun!'] };
+}
+
+// Every game this student played with this Neighbor, newest first, for the
+// Neighbor's character sheet (teacher: "played games should be stored in
+// the neighbors character sheet").
+export function useGamesWith(studentId: string | null | undefined, npcId: string): GameMemory[] {
+  const row = useStore((s) => (studentId ? s.styleLooks.find((r) => r.ownerId === gameMemoryOwner(studentId)) : undefined));
+  const all = (row?.look as MemoryRow | undefined)?.memories;
+  return Array.isArray(all) ? all.filter((m) => m.npcId === npcId) : [];
+}
+
+export function resultText(m: GameMemory, npcName: string): string {
+  if (m.result === 'student') return 'You won! 🏆';
+  if (m.result === 'npc') return `${npcName} won`;
+  if (m.result === 'tie') return 'A tie';
+  return 'Played together';
 }

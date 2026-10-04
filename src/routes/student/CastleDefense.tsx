@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useNpcProfiles } from '../../style/npcs';
+import { recordGameMemory } from '../../lib/gameRivals';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
@@ -252,6 +254,10 @@ export default function CastleDefense() {
   const navigate = useNavigate();
   const location = useLocation();
   const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
+  // Opened from a Neighbor's "Play a game" (Town Square): play with them.
+  const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
+  const npcProfiles = useNpcProfiles();
+  const buddy = rivalId ? npcProfiles[rivalId] ?? null : null;
   const backTo = cameFromTown ? '/world/town' : '/student/home';
   const backLabel = cameFromTown ? 'Town Square' : 'Computer';
 
@@ -557,6 +563,7 @@ export default function CastleDefense() {
 
   const finishGame = () => {
     if (student) {
+      if (buddy) recordGameMemory(student.id, buddy.id, 'Castle Defense', 'together');
       const perfect = perfectWaves.filter(Boolean).length;
       recordBestGame(student.id, 'castleDefense', sessionQuestionsRef.current, `${perfect} perfect wave${perfect === 1 ? '' : 's'}`);
       updateStudent(student.id, { bonusSpinAvailable: true });
@@ -614,6 +621,7 @@ export default function CastleDefense() {
           <div className="bakery-menu">
             <div className="bakery-menu-card">
               <h1 className="bakery-title">🏰 Castle Defense</h1>
+              {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
               <p className="bakery-blurb">5 waves. Answer to earn gems. Build towers to defend the castle!</p>
               <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {student?.castleDefenseQuestionsAnswered ?? 0} lifetime questions answered</span>
               <button className="bakery-play-btn" onClick={startGame}>

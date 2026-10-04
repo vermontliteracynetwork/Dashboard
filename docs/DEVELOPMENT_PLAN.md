@@ -687,6 +687,37 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Play a game with a Neighbor + games on the character sheet. SHIPPED 2026-10-04 (direct teacher instruction)
+
+- Her words: "add a feature where students can press a neighbor and an option int heir pie menu is play a game, and another menu pops up with icons of all native games, showing 16:9 cover photos in their unique game themes. a student cn press from the list and they will be launched into playing the game with the neighbor", then "played games should be stored in the neighbors character sheet"
+- **Shipped:**
+  - Every Neighbor's and Townsperson's pie menu has a 🎮 **Play a game** wedge. It opens the **game picker** (`src/components/GameDashboard.tsx`, cards from `src/lib/nativeGames.ts`): one big card per native game, each with a 16:9 cover in that game's own look (`public/games/covers/`):
+    - Space Bowling: a real render of the lane, the alien-cat pins and her galaxy background.
+    - Slime Chess, Bakery Match and Castle Defense: built from each game's own art.
+  - Tapping a card opens that game with the Neighbor:
+    - **Space Bowling and Slime Chess:** the Neighbor is the opponent ("Me vs Scout", "You're playing Scout!").
+    - **Bakery Match and Castle Defense** are one-player games, so the Neighbor cheers you on ("Playing with Scout! They're cheering you on.").
+  - Gas Pump isn't in the picker, since it's the car's fuel quiz.
+- **Games on the character sheet:** the Neighbor's About sheet now has **Games we played**, the last 8 games with that Neighbor: game, result (You won! / Scout won / A tie / Played together) and date. These are the same records that make Neighbors bring up games in chat. One-player games played together are remembered too ("Remember when we played Bakery Match together? You were amazing!").
+
+### Car bumps make Neighbors hop. SHIPPED 2026-10-04 (direct teacher instruction, with her sound file)
+
+- Her words: "while driving, if a player hits an NPC with thier car, the NPCs must jump in the opposite direction of the colision two square units and this sound must occur" (uploaded `qubodup-cfork-ccby3-jump.ogg`)
+- **Shipped:** when a moving car touches a wandering Neighbor or Townsperson, they hop 2 squares straight away from the car in a little arc (about half a second, never into a solid object or off the map), then pause and carry on. Her jump sound plays, saved as `public/sounds/world/npc-jump.ogg` and credited on the Teacher home page (qubodup, CC BY 3.0).
+
+### Game dashboard everywhere + camera and Neighbor tweaks. QUEUED (direct teacher instruction 2026-10-04, "ADD TO QUEUE")
+
+- Her words: "ADD TO QUEUE: 1) give me ability to zoom in on my student camera view so im closer to the back of the character if i want 2) players must double tap a neighbor for their menu to appear 3) add a role for game dashboard (that shows the full card menu cover images of every native game) it will be used in multiple places moving forward including when a question set is added as an assignemnt, students should see the view of all the games to choose from, select their game of chose and then proceed with the question set. the second should be added as a role, if i put playground equipment down, i wan tto be able to assign a blanket game dashboard role and then students will be prompted with the navigatable list with cards. 4) this game dash should also be added to the students computer. the app on their computer should look like the slide asset added and if students click it, they should see this main game dash window"
+- **Plan:**
+  1. **Closer camera:** let the student zoom the Live Mode camera in, right behind their character (pinch on iPad, scroll wheel on a computer, plus +/- buttons), down to over the shoulder, and back out to today's distance. Remembered per student.
+  2. **Double tap a Neighbor** to open their pie menu. A single tap only walks over to them, so a stray tap never opens the menu.
+  3. **Game dashboard role:**
+     - Build on the game picker that just shipped (`GameDashboard`, full cover cards).
+     - (a) New Build Mode role **Game dashboard**: put it on any object (playground equipment), and tapping it opens the picker.
+     - (b) When a question set is assigned, students first see the game dashboard, pick the game they want, then answer that set inside the game.
+  4. **Computer app:** a Game Dashboard app icon on the student's computer that opens the same picker. **Waiting on her slide asset** for the icon look: it didn't come through with the message, so this waits until she re-sends it.
+- **Status:** queued. The picker component it builds on is done.
+
 ### Car dashboard card. SHIPPED 2026-10-04 (direct teacher instruction, with a screenshot of driving)
 
 - Her words: "adjust cars to have a small "dash" card windo on the top where the current fill up is. I want a view where a spedometor is on the right showing teh dial and a speed in the middle (show just numeral, speed equals number of square units traveled on the map), on the left should be a gas metor in the same dial number formal. the number should be a the number of units remaining. in the center across the top should be a sterio view of the title of the song playing with a volume dial (on the volume dial should be a small nuber of the 100% of volume the radio is at. 100% meaning as high as it will go, 0% music volume muted) on the right of the display screen. if the student clicks the dial or display screen, they can change the song. this replaces the current radio icon on the right. below the sterio view should be a display of total miles travel int he trip, and to the right a button with a settings logo. settings logo can turn off vibrating car noise and other car related settings."

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNpcProfiles } from '../../style/npcs';
+import { recordGameMemory } from '../../lib/gameRivals';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { MCQuestion, QuestionSet } from '../../types';
@@ -146,6 +148,10 @@ export default function BakeryMatch3() {
   const navigate = useNavigate();
   const location = useLocation();
   const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
+  // Opened from a Neighbor's "Play a game" (Town Square): play with them.
+  const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
+  const npcProfiles = useNpcProfiles();
+  const buddy = rivalId ? npcProfiles[rivalId] ?? null : null;
   const backTo = cameFromTown ? '/world/town' : '/student/home';
   const backLabel = cameFromTown ? 'Town Square' : 'Computer';
 
@@ -435,6 +441,7 @@ export default function BakeryMatch3() {
     if (round >= TOTAL_ROUNDS) {
       if (student) {
         recordBakeryGameResult(student.id, xpRef.current);
+        if (buddy) recordGameMemory(student.id, buddy.id, 'Bakery Match', 'together');
         // This game's real "total question goal" — every round's gate
         // passed — reached. Same bonusSpinAvailable flag/pattern every
         // other "finished everything" reward already uses (store.ts),
@@ -516,6 +523,7 @@ export default function BakeryMatch3() {
 
             <div className="bakery-menu-card">
               <h1 className="bakery-title">🥐 Bakery Match</h1>
+              {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
               <p className="bakery-blurb">3 rounds. Match treats. Answer to advance. Spin for a prize at the end!</p>
               <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
                 <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {questionsAnswered}/100 questions answered</span>
