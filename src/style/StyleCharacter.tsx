@@ -1,19 +1,28 @@
-import { createElement, forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
+import { createElement, forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BODY, HIP_Y, SHOULDER_Y, speciesById, type SpeciesDef } from './species';
-import { backZ, bellyGeometry, torsoGeometry } from './body';
+import { backZ } from './body';
 import { itemById, type Bone, type WardrobeItem } from './wardrobe';
 import { makePaintMaterial, useColorMaterial, usePaintMaterial } from './paint';
 import { paintKey } from './patterns';
-import type { EquippedItem, StyleLook, StyleMove, StyleOneShot } from './types';
+import { armGeo, catEarGeo, dogEarGeo, headGeo, legGeo, makeBodyMaterial, torsoGeo } from './organic';
+import type { EquippedItem, Paint, StyleLook, StyleMove, StyleOneShot } from './types';
 
-// One Style character: a species head on the shared body template, the
-// student's outfit attached to its bones, and procedural animations every
-// species shares (idle, walk, run, jump, wave, cheer, dance) plus a moving
-// mouth while talking and blinking eyes.
+// One Style character. The body is sculpted (organic.ts): a soft pear
+// body that flows into the neck, a head with cheeks melting into the
+// muzzle, chubby tapered limbs melting into round paws and big feet, all
+// colored by one fur/tummy/paws shader with smooth transitions. The outfit
+// hangs on the same shared joints, so one size fits every species.
+//
+// Movement is layered for life: every pose eases toward its target
+// (nothing snaps), the body breathes and squashes/stretches on each step,
+// hips sway and twist, the head lags behind the body, floppy ears and tails
+// swing on springs, and eyes blink on an irregular rhythm.
 
-const { torsoH: H, armLen, armR, legLen, legR, headR } = BODY;
+const { torsoH: H, headR } = BODY;
+const HEAD_SCALE = 1.12;
+const HEAD_Y = H + headR * HEAD_SCALE - 0.14;
 
 export interface StyleCharacterHandle {
   play: (move: StyleOneShot) => void;
@@ -30,27 +39,19 @@ interface Props {
   bodyless?: boolean;
 }
 
-const HEAD_SCALE = 1.12;
+const ONE_SHOT_LEN: Record<StyleOneShot, number> = { jump: 1.0, wave: 1.9, cheer: 1.7, dance: 2.8 };
 
-const ONE_SHOT_LEN: Record<StyleOneShot, number> = { jump: 0.9, wave: 1.8, cheer: 1.6, dance: 2.6 };
-
-// Materials for each equipped item, rebuilt only when that item's paints change.
 function useItemMaterials(equipped: EquippedItem | undefined, item: WardrobeItem | undefined) {
   const key = equipped ? equipped.zones.map(paintKey).join('/') : '';
-  const mats = useMemo(() => {
+  return useMemo(() => {
     if (!equipped || !item) return [] as THREE.Material[];
     return item.zones.map((z, i) => makePaintMaterial(equipped.zones[i] ?? z.paint, z.label === 'Lenses' ? 1 : 2.5));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, item?.id]);
-  return mats;
 }
 
 function OutfitParts({ bone, look, species }: { bone: Bone; look: StyleLook; species: SpeciesDef }) {
-  return (
-    <>
-      {Object.values(look.outfit).map((eq) => (eq ? <ItemPart key={eq.itemId} bone={bone} eq={eq} species={species} /> : null))}
-    </>
-  );
+  return <>{Object.values(look.outfit).map((eq) => (eq ? <ItemPart key={eq.itemId} bone={bone} eq={eq} species={species} /> : null))}</>;
 }
 
 function ItemPart({ bone, eq, species }: { bone: Bone; eq: EquippedItem; species: SpeciesDef }) {
@@ -61,31 +62,34 @@ function ItemPart({ bone, eq, species }: { bone: Bone; eq: EquippedItem; species
   return createElement(part, { mats, species });
 }
 
-// --- species heads ---------------------------------------------------------
+function useBodyMaterial(fur: Paint, belly: Paint, accent: Paint) {
+  const key = `${paintKey(fur)}/${paintKey(belly)}/${paintKey(accent)}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const m = useMemo(() => makeBodyMaterial(fur, belly, accent), [key]);
+  useEffect(() => () => m.dispose(), [m]);
+  return m;
+}
+
+// --- face details ------------------------------------------------------------
 
 function Eyes({ eyes, white, spread = 0.12, y = 0.06, z = 0.28, size = 0.085, blinkRef, beady = false }: {
   eyes: THREE.Material; white: THREE.Material; spread?: number; y?: number; z?: number; size?: number;
   blinkRef: React.RefObject<THREE.Group | null>; beady?: boolean;
 }) {
-  if (beady) {
-    return (
-      <group ref={blinkRef} position={[0, y, 0]}>
-        {[-spread, spread].map((x) => (
-          <group key={x} position={[x, 0, z]}>
-            <mesh material={eyes} scale={[1, 1.1, 0.8]}><sphereGeometry args={[size, 16, 12]} /></mesh>
-            <mesh material={white} position={[size * 0.35, size * 0.4, size * 0.62]}><sphereGeometry args={[size * 0.24, 8, 6]} /></mesh>
-          </group>
-        ))}
-      </group>
-    );
-  }
   return (
     <group ref={blinkRef} position={[0, y, 0]}>
       {[-spread, spread].map((x) => (
-        <group key={x} position={[x, 0, z]}>
-          <mesh material={white}><sphereGeometry args={[size, 16, 12]} /></mesh>
-          <mesh material={eyes} position={[0, 0, size * 0.55]}><sphereGeometry args={[size * 0.58, 14, 10]} /></mesh>
-          <mesh material={white} position={[size * 0.22, size * 0.25, size * 0.98]}><sphereGeometry args={[size * 0.16, 8, 6]} /></mesh>
+        <group key={x} position={[x, 0, z]} rotation={[0, x * 0.9, 0]}>
+          {beady ? (
+            <mesh material={eyes} scale={[1, 1.12, 0.85]}><sphereGeometry args={[size, 24, 18]} /></mesh>
+          ) : (
+            <>
+              <mesh material={white} scale={[1, 1.08, 0.82]}><sphereGeometry args={[size, 28, 20]} /></mesh>
+              <mesh material={eyes} position={[0, -size * 0.04, size * 0.5]} scale={[1, 1.1, 0.6]}><sphereGeometry args={[size * 0.62, 24, 18]} /></mesh>
+            </>
+          )}
+          <mesh material={white} position={[size * 0.3, size * 0.38, size * 0.86]}><sphereGeometry args={[size * 0.2, 12, 10]} /></mesh>
+          <mesh material={white} position={[-size * 0.2, -size * 0.25, size * 0.88]}><sphereGeometry args={[size * 0.09, 8, 6]} /></mesh>
         </group>
       ))}
     </group>
@@ -97,135 +101,131 @@ function Mouth({ mouthRef, y = -0.1, z = 0.3, width = 0.1 }: { mouthRef: React.R
   const tongue = useColorMaterial('#ff7f95', 0.7);
   return (
     <group ref={mouthRef} position={[0, y, z]} scale={[1, 0.25, 1]}>
-      <mesh material={inside} scale={[width / 0.06, 1, 0.5]}><sphereGeometry args={[0.06, 16, 10]} /></mesh>
-      <mesh material={tongue} position={[0, -0.03, 0.01]} scale={[width / 0.08, 0.5, 0.5]}><sphereGeometry args={[0.04, 12, 8]} /></mesh>
+      <mesh material={inside} scale={[width / 0.06, 1, 0.5]}><sphereGeometry args={[0.06, 20, 12]} /></mesh>
+      <mesh material={tongue} position={[0, -0.03, 0.012]} scale={[width / 0.08, 0.5, 0.5]}><sphereGeometry args={[0.04, 16, 10]} /></mesh>
     </group>
   );
 }
 
-function Head({ look, species, blinkRef, mouthRef, hideEars, hideTopEars }: {
-  look: StyleLook; species: SpeciesDef; blinkRef: React.RefObject<THREE.Group | null>; mouthRef: React.RefObject<THREE.Group | null>; hideEars: boolean; hideTopEars: boolean;
-}) {
-  const fur = usePaintMaterial(look.body.fur, 2, undefined, true);
-  const belly = usePaintMaterial(look.body.belly, 1.5, undefined, true);
-  const accent = usePaintMaterial(look.body.accent, 1.5, undefined, true);
-  const eyes = useColorMaterial(look.body.eyes, 0.3);
-  const nose = useColorMaterial(look.body.nose, 0.35);
-  const white = useColorMaterial('#ffffff', 0.3);
+type Rig = {
+  blink: React.RefObject<THREE.Group | null>;
+  mouth: React.RefObject<THREE.Group | null>;
+  earL: React.RefObject<THREE.Group | null>;
+  earR: React.RefObject<THREE.Group | null>;
+};
 
-  switch (species.id) {
-    case 'dog':
-      return (
-        <group>
-          <mesh material={fur} scale={[1, 0.97, 1.04]}><sphereGeometry args={[headR, 40, 30]} /></mesh>
-          {/* Big soft rounded muzzle, cartoon-dog style. */}
-          <mesh material={belly} position={[0, -0.08, 0.22]} scale={[1.05, 0.8, 1.2]}><sphereGeometry args={[0.2, 32, 24]} /></mesh>
-          <mesh material={nose} position={[0, 0.0, 0.44]} scale={[1.3, 0.95, 0.9]}><sphereGeometry args={[0.06, 20, 14]} /></mesh>
-          <Eyes eyes={eyes} white={white} blinkRef={blinkRef} y={0.11} z={0.27} size={0.07} />
-          <Mouth mouthRef={mouthRef} y={-0.17} z={0.38} width={0.09} />
-          {!hideEars && [-1, 1].map((sd) => (
-            <mesh key={sd} material={accent} position={[sd * 0.31, -0.06, -0.03]} rotation={[0.1, 0, sd * 0.12]} scale={[0.5, 1.65, 0.85]}>
-              <sphereGeometry args={[0.14, 24, 18]} />
-            </mesh>
+function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
+  look: StyleLook; species: SpeciesDef; rig: Rig; bodyMat: THREE.Material; hideEars: boolean; hideTopEars: boolean;
+}) {
+  const eyes = useColorMaterial(look.body.eyes, 0.15);
+  const nose = useColorMaterial(look.body.nose, 0.3);
+  const white = useColorMaterial('#ffffff', 0.25);
+  const earMat = useBodyMaterial(look.body.accent, look.body.accent, look.body.accent);
+  const catEarMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.accent);
+  const accentSolid = useColorMaterial(look.body.accent.colors[0], 0.7);
+  const accentFuzz = usePaintMaterial(look.body.accent, 1, undefined, true);
+  const geo = headGeo(species.id);
+
+  return (
+    <group>
+      <mesh geometry={geo} material={bodyMat} />
+      {species.id === 'dog' && (
+        <>
+          <mesh material={nose} position={[0, -0.01, 0.43]} scale={[1.35, 0.95, 0.85]}><sphereGeometry args={[0.06, 24, 18]} /></mesh>
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} y={0.12} z={0.26} size={0.072} />
+          <Mouth mouthRef={rig.mouth} y={-0.17} z={0.385} width={0.09} />
+          {!hideEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
+            <group key={k} position={[sd * 0.29, 0.15, -0.03]}>
+              <group ref={ref} rotation={[0.08, 0, sd * 0.18]}>
+                <mesh geometry={dogEarGeo()} material={earMat} />
+              </group>
+            </group>
           ))}
-        </group>
-      );
-    case 'cat':
-      return (
-        <group>
-          <mesh material={fur} scale={[1.08, 0.95, 1]}><sphereGeometry args={[headR, 32, 24]} /></mesh>
-          <mesh material={belly} position={[0, -0.09, 0.25]} scale={[1.2, 0.75, 0.9]}><sphereGeometry args={[0.12, 20, 14]} /></mesh>
-          <mesh material={nose} position={[0, -0.04, 0.34]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.03, 0.035, 3]} /></mesh>
-          <Eyes eyes={eyes} white={white} blinkRef={blinkRef} y={0.06} z={0.27} size={0.08} />
-          <Mouth mouthRef={mouthRef} y={-0.14} z={0.31} width={0.06} />
+        </>
+      )}
+      {species.id === 'cat' && (
+        <>
+          <mesh material={nose} position={[0, -0.035, 0.335]} rotation={[Math.PI, 0, 0]} scale={[1.2, 0.8, 1]}><coneGeometry args={[0.032, 0.03, 3]} /></mesh>
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} y={0.07} z={0.26} size={0.085} />
+          <Mouth mouthRef={rig.mouth} y={-0.13} z={0.325} width={0.06} />
           {[-1, 1].map((sd) => (
             <group key={sd}>
-              {[0.02, -0.03].map((dy) => (
-                <mesh key={dy} material={white} position={[sd * 0.2, -0.07 + dy, 0.27]} rotation={[0, 0, Math.PI / 2 + sd * dy * 3]}>
-                  <cylinderGeometry args={[0.004, 0.004, 0.2, 4]} />
+              {[0.025, -0.02].map((dy) => (
+                <mesh key={dy} material={white} position={[sd * 0.21, -0.07 + dy, 0.27]} rotation={[0, sd * 0.4, Math.PI / 2 + sd * dy * 4]}>
+                  <cylinderGeometry args={[0.0035, 0.002, 0.22, 4]} />
                 </mesh>
               ))}
             </group>
           ))}
-          {!hideEars && !hideTopEars && [-1, 1].map((sd) => (
-            <group key={sd} position={[sd * 0.19, 0.27, 0]} rotation={[0, 0, -sd * 0.3]}>
-              <mesh material={fur}><coneGeometry args={[0.11, 0.2, 4]} /></mesh>
-              <mesh material={accent} position={[0, -0.01, 0.035]} scale={[0.6, 0.7, 0.4]}><coneGeometry args={[0.11, 0.2, 4]} /></mesh>
+          {!hideEars && !hideTopEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
+            <group key={k} position={[sd * 0.19, 0.22, -0.02]} rotation={[0, sd * -0.25, sd * -0.3]}>
+              <group ref={ref}><mesh geometry={catEarGeo()} material={catEarMat} /></group>
             </group>
           ))}
-        </group>
-      );
-    case 'frog':
-      return (
-        <group>
-          <mesh material={fur} scale={[1.22, 0.82, 1.02]}><sphereGeometry args={[headR, 32, 24]} /></mesh>
-          <mesh material={belly} position={[0, -0.13, 0.12]} scale={[1.25, 0.45, 0.9]}><sphereGeometry args={[0.25, 20, 14]} /></mesh>
-          {[-1, 1].map((sd) => (
-            <mesh key={sd} material={fur} position={[sd * 0.17, 0.22, 0.12]}><sphereGeometry args={[0.12, 20, 14]} /></mesh>
-          ))}
-          {[[-0.18, 0.05, 0.25], [0.2, 0.1, -0.2], [-0.1, 0.2, -0.22], [0.26, -0.04, 0.12]].map(([x, y, z], i) => (
-            <mesh key={i} material={accent} position={[x, y, z]} scale={[1, 0.6, 1]}><sphereGeometry args={[0.05, 10, 8]} /></mesh>
-          ))}
-          <Eyes eyes={eyes} white={white} blinkRef={blinkRef} spread={0.17} y={0.24} z={0.17} size={0.085} />
-          <Mouth mouthRef={mouthRef} y={-0.06} z={0.31} width={0.17} />
-          {[-1, 1].map((sd) => (
-            <mesh key={sd} material={nose} position={[sd * 0.04, 0.02, 0.33]}><sphereGeometry args={[0.012, 6, 6]} /></mesh>
-          ))}
-        </group>
-      );
-    case 'capybara':
-      return (
-        <group>
-          {/* Modeled on the teacher's capybara reference: a soft round head
-              that melts into a long blunt muzzle, a big dark nose pad, a
-              cream chin, tiny round ears and small shiny black eyes. */}
-          <mesh material={fur} scale={[1.02, 0.95, 1.08]}><sphereGeometry args={[headR, 40, 30]} /></mesh>
-          <mesh material={fur} position={[0, -0.05, 0.25]} scale={[1.0, 0.86, 1.35]}><sphereGeometry args={[0.22, 36, 26]} /></mesh>
-          <mesh material={belly} position={[0, -0.15, 0.3]} scale={[1.05, 0.5, 1.05]}><sphereGeometry args={[0.18, 28, 18]} /></mesh>
-          <mesh material={nose} position={[0, 0.0, 0.52]} scale={[1.25, 0.8, 0.55]}><sphereGeometry args={[0.1, 28, 18]} /></mesh>
-          {[-1, 1].map((sd) => (
-            <mesh key={sd} material={eyes} position={[sd * 0.045, 0.0, 0.575]} scale={[1, 0.6, 0.5]}><sphereGeometry args={[0.022, 10, 8]} /></mesh>
-          ))}
-          <Eyes eyes={eyes} white={white} blinkRef={blinkRef} spread={0.21} y={0.12} z={0.22} size={0.045} beady />
-          <Mouth mouthRef={mouthRef} y={-0.17} z={0.47} width={0.07} />
-          {!hideEars && !hideTopEars && [-1, 1].map((sd) => (
-            <mesh key={sd} material={accent} position={[sd * 0.23, 0.25, -0.06]} scale={[1, 1, 0.55]}><sphereGeometry args={[0.07, 16, 12]} /></mesh>
-          ))}
-        </group>
-      );
-  }
-}
-
-function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef; tailRef: React.RefObject<THREE.Group | null> }) {
-  const fur = usePaintMaterial(look.body.fur, 1, undefined, true);
-  const accent = usePaintMaterial(look.body.accent, 1, undefined, true);
-  if (species.id === 'frog') return null;
-  return (
-    <group ref={tailRef} position={[0, 0.1, -backZ(0.1) + 0.02]}>
-      {species.id === 'dog' && (
-        <mesh material={fur} position={[0, 0.1, -0.06]} rotation={[-0.7, 0, 0]}><capsuleGeometry args={[0.045, 0.2, 6, 10]} /></mesh>
+        </>
       )}
-      {species.id === 'cat' && (
-        <group>
-          <mesh material={fur} position={[0, 0.08, -0.1]} rotation={[-1.0, 0, 0]}><capsuleGeometry args={[0.04, 0.22, 6, 10]} /></mesh>
-          <mesh material={fur} position={[0, 0.26, -0.2]} rotation={[-0.2, 0, 0]}><capsuleGeometry args={[0.04, 0.18, 6, 10]} /></mesh>
-          <mesh material={accent} position={[0, 0.37, -0.21]}><sphereGeometry args={[0.045, 10, 8]} /></mesh>
-        </group>
+      {species.id === 'frog' && (
+        <>
+          {[[-0.2, 0.05, 0.28], [0.22, 0.08, -0.22], [-0.1, 0.18, -0.25], [0.3, -0.04, 0.1], [-0.3, 0.0, -0.08]].map(([x, y, z], i) => (
+            <mesh key={i} material={accentSolid} position={[x, y, z]} scale={[1, 0.55, 1]}><sphereGeometry args={[0.045, 14, 10]} /></mesh>
+          ))}
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} spread={0.17} y={0.22} z={0.18} size={0.09} />
+          <Mouth mouthRef={rig.mouth} y={-0.07} z={0.35} width={0.18} />
+          {[-1, 1].map((sd) => (
+            <mesh key={sd} material={nose} position={[sd * 0.045, 0.03, 0.355]}><sphereGeometry args={[0.012, 8, 6]} /></mesh>
+          ))}
+        </>
       )}
       {species.id === 'capybara' && (
-        <mesh material={fur} position={[0, 0.02, -0.03]}><sphereGeometry args={[0.05, 10, 8]} /></mesh>
+        <>
+          <mesh material={nose} position={[0, 0.005, 0.525]} scale={[1.3, 0.85, 0.6]}><sphereGeometry args={[0.1, 32, 22]} /></mesh>
+          {[-1, 1].map((sd) => (
+            <mesh key={sd} material={eyes} position={[sd * 0.045, 0.005, 0.583]} scale={[1, 0.65, 0.45]}><sphereGeometry args={[0.024, 12, 10]} /></mesh>
+          ))}
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} spread={0.205} y={0.12} z={0.215} size={0.046} beady />
+          <Mouth mouthRef={rig.mouth} y={-0.17} z={0.465} width={0.07} />
+          {!hideEars && !hideTopEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
+            <group key={k} position={[sd * 0.22, 0.27, -0.07]}>
+              <group ref={ref}><mesh material={accentFuzz} scale={[1, 0.95, 0.55]}><sphereGeometry args={[0.072, 20, 16]} /></mesh></group>
+            </group>
+          ))}
+        </>
       )}
     </group>
   );
 }
 
+function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef; tailRef: React.RefObject<THREE.Group | null> }) {
+  // Plain round shapes (no sculpted color regions), so a regular fuzzy paint.
+  const mat = usePaintMaterial(look.body.fur, 1, undefined, true);
+  const tip = usePaintMaterial(look.body.accent, 1, undefined, true);
+  if (species.id === 'frog') return null;
+  return (
+    <group ref={tailRef} position={[0, 0.1, -backZ(0.1) + 0.03]}>
+      {species.id === 'dog' && (
+        <group rotation={[-0.75, 0, 0]}>
+          <mesh material={mat} position={[0, 0.11, 0]}><capsuleGeometry args={[0.045, 0.18, 8, 16]} /></mesh>
+          <mesh material={tip} position={[0, 0.22, 0]}><sphereGeometry args={[0.05, 16, 12]} /></mesh>
+        </group>
+      )}
+      {species.id === 'cat' && (
+        <group>
+          <mesh material={mat} position={[0, 0.06, -0.1]} rotation={[-1.1, 0, 0]}><capsuleGeometry args={[0.042, 0.2, 8, 16]} /></mesh>
+          <mesh material={mat} position={[0, 0.22, -0.18]} rotation={[-0.35, 0, 0]}><capsuleGeometry args={[0.04, 0.18, 8, 16]} /></mesh>
+          <mesh material={tip} position={[0, 0.33, -0.19]}><sphereGeometry args={[0.045, 16, 12]} /></mesh>
+        </group>
+      )}
+      {species.id === 'capybara' && <mesh material={mat} position={[0, 0.02, -0.02]}><sphereGeometry args={[0.05, 16, 12]} /></mesh>}
+    </group>
+  );
+}
+
+const ease = (cur: number, target: number, rate: number, dt: number) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
+
 export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look, move = 'idle', talking = false, scale = 1, reduceMotion = false, bodyless = false }, handle) {
   const species = speciesById(look.species);
-  const fur = usePaintMaterial(look.body.fur, 2, undefined, true);
-  const belly = usePaintMaterial(look.body.belly, 1.5, undefined, true);
-  const accent = usePaintMaterial(look.body.accent, 1.5, undefined, true);
+  const bodyMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.accent);
 
-  const hidesFeet = Object.values(look.outfit).some((e) => e && itemById(e.itemId)?.hides?.includes('feet'));
   const hides = (what: 'ears' | 'topEars' | 'tail') => Object.values(look.outfit).some((e) => e && itemById(e.itemId)?.hides?.includes(what));
   const hidesEars = hides('ears');
   const hidesTopEars = hides('topEars');
@@ -233,75 +233,128 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
 
   const root = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
+  const squash = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
-  const armLRef = useRef<THREE.Group>(null);
-  const armRRef = useRef<THREE.Group>(null);
-  const legLRef = useRef<THREE.Group>(null);
-  const legRRef = useRef<THREE.Group>(null);
-  const blink = useRef<THREE.Group>(null);
-  const mouth = useRef<THREE.Group>(null);
+  const armL = useRef<THREE.Group>(null);
+  const armR = useRef<THREE.Group>(null);
+  const legL = useRef<THREE.Group>(null);
+  const legR = useRef<THREE.Group>(null);
   const tail = useRef<THREE.Group>(null);
+  const rig: Rig = { blink: useRef<THREE.Group>(null), mouth: useRef<THREE.Group>(null), earL: useRef<THREE.Group>(null), earR: useRef<THREE.Group>(null) };
   const shot = useRef<{ name: StyleOneShot; start: number } | null>(null);
   const clockNow = useRef(0);
+  // Smoothed pose values (everything eases toward its target).
+  const s = useRef({ lift: 0, bob: 0, roll: 0, yaw: 0, lean: 0, aL: 0, aR: 0, oL: 0.1, oR: 0.1, lL: 0, lR: 0, hX: 0, hY: 0, hZ: 0, sq: 1, ear: 0, earV: 0, prevBob: 0, nextBlink: 2 });
 
   useImperativeHandle(handle, () => ({
     play: (name) => { shot.current = { name, start: clockNow.current }; },
   }), []);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
+    const dt = Math.min(delta, 0.05);
     const t = clock.elapsedTime;
     clockNow.current = t;
     const calm = reduceMotion ? 0.35 : 1;
-    let lean = 0, bob = 0, aL = 0, aR = 0, lL = 0, lR = 0, armOutL = 0.08, armOutR = 0.08, headTilt = 0, headTurn = 0, sway = 0, lift = 0;
+    const p = s.current;
 
-    if (move === 'walk') {
-      const s = Math.sin(t * 8);
-      lL = s * 0.6; lR = -s * 0.6; aL = -s * 0.55; aR = s * 0.55; bob = Math.abs(Math.cos(t * 8)) * 0.04;
-    } else if (move === 'run') {
-      const s = Math.sin(t * 13);
-      lL = s * 0.95; lR = -s * 0.95; aL = -s * 0.95; aR = s * 0.95; bob = Math.abs(Math.cos(t * 13)) * 0.08; lean = 0.18;
+    // Targets for this frame.
+    let lift = 0, bob = 0, roll = 0, yaw = 0, lean = 0, aL = 0, aR = 0, oL = 0.1, oR = 0.1, lL = 0, lR = 0;
+    let hX = 0, hY = 0, hZ = 0, sq = 1, footL = 0, footR = 0, tailSpeed = 2.5, tailAmp = 0.3;
+
+    if (move === 'walk' || move === 'run') {
+      const run = move === 'run';
+      const f = run ? 12 : 7.5;
+      const ph = t * f;
+      const sw = Math.sin(ph);
+      const amp = run ? 0.85 : 0.55;
+      lL = sw * amp; lR = -sw * amp;
+      footL = Math.max(0, Math.cos(ph)) * (run ? 0.06 : 0.035);
+      footR = Math.max(0, -Math.cos(ph)) * (run ? 0.06 : 0.035);
+      aL = -sw * (run ? 0.9 : 0.5); aR = sw * (run ? 0.9 : 0.5);
+      oL = oR = run ? 0.22 : 0.14;
+      const step = Math.abs(Math.cos(ph));
+      bob = step * (run ? 0.07 : 0.035);
+      sq = 1 + (step - 0.5) * (run ? 0.07 : 0.04); // stretch at the top of a step, squash on landing
+      roll = sw * (run ? 0.05 : 0.07);
+      yaw = sw * 0.09;
+      lean = run ? 0.16 : 0.04;
+      hZ = -roll * 0.6; hX = run ? -0.08 : 0;
+      tailSpeed = run ? 14 : 9; tailAmp = 0.45;
     } else {
-      bob = Math.sin(t * 2) * 0.012 * calm;
-      aL = Math.sin(t * 1.6) * 0.05 * calm; aR = -aL;
-      headTilt = Math.sin(t * 0.9) * 0.06 * calm;
+      // Idle: breathing, a slow weight shift, and looking around.
+      const br = Math.sin(t * 2.2);
+      sq = 1 + br * 0.012 * calm;
+      roll = Math.sin(t * 0.6) * 0.025 * calm;
+      aL = br * 0.04 * calm; aR = -aL;
+      hY = Math.sin(t * 0.43) * Math.sin(t * 0.17 + 1) * 0.35 * calm;
+      hZ = Math.sin(t * 0.9) * 0.07 * calm;
+      hX = Math.sin(t * 0.37) * 0.05 * calm;
     }
 
-    const s = shot.current;
-    if (s) {
-      const p = (t - s.start) / ONE_SHOT_LEN[s.name];
-      if (p >= 1) shot.current = null;
-      else if (s.name === 'jump') {
-        if (p < 0.18) { const c = p / 0.18; bob -= 0.08 * c; lL = lR = 0.3 * c; aL = aR = -0.4 * c; }
-        else if (p < 0.85) { const q = (p - 0.18) / 0.67; lift = Math.sin(q * Math.PI) * 0.55; lL = lR = -0.5; aL = aR = -2.6; armOutL = armOutR = 0.5; }
-        else { const c = (p - 0.85) / 0.15; bob -= 0.06 * (1 - c); lL = lR = 0.2 * (1 - c); }
-      } else if (s.name === 'wave') {
-        aR = -2.7; armOutR = 0.25 + Math.sin(t * 12) * 0.35; headTilt = 0.15;
-      } else if (s.name === 'cheer') {
-        aL = aR = -2.8; armOutL = armOutR = 0.45 + Math.sin(t * 14) * 0.12;
-        lift = Math.abs(Math.sin(p * Math.PI * 3)) * 0.18;
-      } else if (s.name === 'dance') {
-        sway = Math.sin(t * 7) * 0.22;
-        aL = -1.6 + Math.sin(t * 7) * 0.9; aR = -1.6 - Math.sin(t * 7) * 0.9;
-        lL = Math.max(0, Math.sin(t * 7)) * 0.5; lR = Math.max(0, -Math.sin(t * 7)) * 0.5;
-        lift = Math.abs(Math.sin(t * 7)) * 0.06; headTurn = Math.sin(t * 3.5) * 0.3;
+    const sh = shot.current;
+    if (sh) {
+      const q = (t - sh.start) / ONE_SHOT_LEN[sh.name];
+      if (q >= 1) shot.current = null;
+      else if (sh.name === 'jump') {
+        if (q < 0.2) { const c = q / 0.2; sq = 1 - 0.14 * c; bob = -0.06 * c; lL = lR = 0.25 * c; aL = aR = 0.5 * c; }
+        else if (q < 0.82) { const k = (q - 0.2) / 0.62; lift = Math.sin(k * Math.PI) * 0.6; sq = 1 + 0.1 * Math.sin(k * Math.PI); lL = lR = -0.45; aL = aR = -2.5; oL = oR = 0.55; hX = -0.15; }
+        else { const c = (q - 0.82) / 0.18; sq = 1 - 0.12 * Math.sin(c * Math.PI); bob = -0.05 * Math.sin(c * Math.PI); }
+      } else if (sh.name === 'wave') {
+        aR = -2.75; oR = 0.3 + Math.sin(t * 11) * 0.38; hZ = 0.2; roll = 0.06; hY = 0.15;
+      } else if (sh.name === 'cheer') {
+        aL = aR = -2.85; oL = oR = 0.45 + Math.sin(t * 14) * 0.14;
+        const hop = Math.abs(Math.sin(q * Math.PI * 3));
+        lift = hop * 0.2; sq = 1 + (hop - 0.5) * 0.1; hX = -0.2;
+      } else if (sh.name === 'dance') {
+        const d = Math.sin(t * 7);
+        roll = d * 0.14; yaw = Math.sin(t * 3.5) * 0.35;
+        aL = -1.5 + d * 0.9; aR = -1.5 - d * 0.9; oL = oR = 0.4;
+        lL = Math.max(0, d) * 0.45; lR = Math.max(0, -d) * 0.45;
+        lift = Math.abs(d) * 0.07; sq = 1 + Math.abs(d) * 0.05; hY = -yaw * 0.6; hZ = -roll;
       }
     }
 
-    if (root.current) { root.current.position.y = lift + Math.max(bob, -0.1); root.current.rotation.z = sway * 0.4; }
-    if (torso.current) torso.current.rotation.x = lean;
-    if (head.current) { head.current.rotation.z = headTilt; head.current.rotation.y = headTurn; head.current.rotation.x = talking ? Math.sin(t * 6) * 0.05 : 0; }
-    if (armLRef.current) { armLRef.current.rotation.x = aL; armLRef.current.rotation.z = armOutL; }
-    if (armRRef.current) { armRRef.current.rotation.x = aR; armRRef.current.rotation.z = -armOutR; }
-    if (legLRef.current) legLRef.current.rotation.x = lL;
-    if (legRRef.current) legRRef.current.rotation.x = lR;
-    if (tail.current) tail.current.rotation.z = Math.sin(t * (move === 'idle' ? 3 : 9)) * 0.35 * calm;
-    if (blink.current) {
-      const phase = t % 3.6;
-      blink.current.scale.y = phase < 0.12 ? Math.max(0.08, Math.abs(phase - 0.06) / 0.06) : 1;
+    // Ease toward targets: quick for limbs, slower for the head (it lags).
+    const r = sh ? 18 : 10;
+    p.lift = ease(p.lift, lift, 16, dt); p.bob = ease(p.bob, bob, 20, dt);
+    p.roll = ease(p.roll, roll, r, dt); p.yaw = ease(p.yaw, yaw, r, dt); p.lean = ease(p.lean, lean, 6, dt);
+    p.aL = ease(p.aL, aL, r, dt); p.aR = ease(p.aR, aR, r, dt); p.oL = ease(p.oL, oL, r, dt); p.oR = ease(p.oR, oR, r, dt);
+    p.lL = ease(p.lL, lL, 16, dt); p.lR = ease(p.lR, lR, 16, dt);
+    p.hX = ease(p.hX, hX, 5, dt); p.hY = ease(p.hY, hY, 4, dt); p.hZ = ease(p.hZ, hZ, 5, dt);
+    p.sq = ease(p.sq, sq, 22, dt);
+
+    // Floppy ears: a spring driven by the body's vertical motion and sway.
+    const vy = (p.bob + p.lift - p.prevBob) / Math.max(dt, 1e-3);
+    p.prevBob = p.bob + p.lift;
+    const earForce = -p.ear * 90 - p.earV * 9 + vy * 2.2 + p.roll * 25;
+    p.earV += earForce * dt; p.ear += p.earV * dt;
+    p.ear = Math.max(-0.6, Math.min(0.6, p.ear));
+
+    if (root.current) { root.current.position.y = p.lift + p.bob; root.current.rotation.z = p.roll; root.current.rotation.y = p.yaw * 0.4; }
+    if (torso.current) torso.current.rotation.x = p.lean;
+    if (squash.current) { squash.current.scale.set(1 / Math.sqrt(p.sq), p.sq, 1 / Math.sqrt(p.sq)); }
+    if (head.current) {
+      head.current.rotation.set(p.hX + (talking ? Math.sin(t * 6.5) * 0.06 : 0), p.hY - p.yaw * 0.5, p.hZ);
+      head.current.position.y = HEAD_Y + (p.sq - 1) * 0.5;
     }
-    if (mouth.current) {
-      const open = talking ? 0.35 + Math.abs(Math.sin(t * 13)) * 0.65 * (0.6 + 0.4 * Math.sin(t * 3.1)) : (s?.name === 'cheer' ? 0.9 : 0.22);
-      mouth.current.scale.y = open;
+    if (armL.current) { armL.current.rotation.x = p.aL; armL.current.rotation.z = p.oL; }
+    if (armR.current) { armR.current.rotation.x = p.aR; armR.current.rotation.z = -p.oR; }
+    if (legL.current) { legL.current.rotation.x = p.lL; legL.current.position.y = HIP_Y + 0.02 + footL; }
+    if (legR.current) { legR.current.rotation.x = p.lR; legR.current.position.y = HIP_Y + 0.02 + footR; }
+    if (tail.current) tail.current.rotation.z = Math.sin(t * tailSpeed) * tailAmp * calm;
+    if (rig.earL.current) rig.earL.current.rotation.x = p.ear;
+    if (rig.earR.current) rig.earR.current.rotation.x = p.ear * 0.9;
+
+    // Irregular blinks (sometimes a double blink).
+    if (rig.blink.current) {
+      if (t > p.nextBlink + 0.5) p.nextBlink = t + 1.8 + ((Math.sin(t * 12.9898) * 43758.5453) % 1 + 1) % 1 * 3;
+      const b = t - p.nextBlink;
+      const closed = (b > 0 && b < 0.12) || (b > 0.22 && b < 0.32 && Math.floor(p.nextBlink) % 3 === 0);
+      rig.blink.current.scale.y = ease(rig.blink.current.scale.y, closed ? 0.08 : 1, 40, dt);
+    }
+    if (rig.mouth.current) {
+      const open = talking ? 0.35 + Math.abs(Math.sin(t * 13)) * 0.65 * (0.6 + 0.4 * Math.sin(t * 3.1)) : (sh?.name === 'cheer' || sh?.name === 'jump' ? 0.9 : 0.22);
+      rig.mouth.current.scale.y = ease(rig.mouth.current.scale.y, open, 25, dt);
     }
   });
 
@@ -309,25 +362,18 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     <group scale={scale}>
       <group ref={root}>
         <group ref={torso} position={[0, HIP_Y, 0]}>
-          {/* body */}
-          {!bodyless && (
-            <>
-              {/* Soft round bean-shaped body that narrows into the neck, so
-                  the head joins the body with no gap or hard corners. */}
-              <mesh geometry={torsoGeometry(1, 0, 0.66, 0, true)} material={fur} />
-              {!look.outfit.top && (
-                <mesh material={belly} geometry={bellyGeometry()} />
-              )}
-              {!hidesTail && <Tail look={look} species={species} tailRef={tail} />}
-            </>
-          )}
-          <OutfitParts bone="torso" look={look} species={species} />
+          <group ref={squash}>
+            {!bodyless && (
+              <>
+                <mesh geometry={torsoGeo()} material={bodyMat} />
+                {!hidesTail && <Tail look={look} species={species} tailRef={tail} />}
+              </>
+            )}
+            <OutfitParts bone="torso" look={look} species={species} />
+          </group>
 
-          {/* head */}
-          {/* Chibi proportions (big head, big eyes) to match the teacher's
-              Sketchfab reference picks: cute cartoon animals. */}
-          <group ref={head} position={[0, H + headR * HEAD_SCALE - 0.14, 0]} scale={HEAD_SCALE}>
-            {!bodyless && <Head look={look} species={species} blinkRef={blink} mouthRef={mouth} hideEars={hidesEars} hideTopEars={hidesTopEars} />}
+          <group ref={head} position={[0, HEAD_Y, 0]} scale={HEAD_SCALE}>
+            {!bodyless && <Head look={look} species={species} rig={rig} bodyMat={bodyMat} hideEars={hidesEars} hideTopEars={hidesTopEars} />}
             <group position={[0, species.hat.y - 0.28, species.hat.z]} scale={species.hat.scale}>
               <OutfitParts bone="hat" look={look} species={species} />
             </group>
@@ -337,28 +383,17 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
             <OutfitParts bone="gear" look={look} species={species} />
           </group>
 
-          {/* arms */}
-          {([['L', armLRef, 1], ['R', armRRef, -1]] as const).map(([k, ref, sd]) => (
+          {([['L', armL, 1], ['R', armR, -1]] as const).map(([k, ref, sd]) => (
             <group key={k} ref={ref} position={[sd * BODY.shoulderX, SHOULDER_Y - HIP_Y, 0]}>
-              {!bodyless && (
-                <>
-                  <mesh material={fur}><sphereGeometry args={[armR * 1.25, 18, 14]} /></mesh>
-                  <mesh material={fur} position={[0, -armLen / 2, 0]}><capsuleGeometry args={[armR, armLen - armR, 8, 18]} /></mesh>
-                  <mesh material={accent} position={[0, -armLen + 0.02, 0]}><sphereGeometry args={[armR * 1.2, 18, 14]} /></mesh>
-                </>
-              )}
+              {!bodyless && <mesh geometry={armGeo()} material={bodyMat} />}
               <OutfitParts bone={k === 'L' ? 'armL' : 'armR'} look={look} species={species} />
             </group>
           ))}
         </group>
 
-        {/* legs */}
-        {([['L', legLRef, 1], ['R', legRRef, -1]] as const).map(([k, ref, sd]) => (
+        {([['L', legL, 1], ['R', legR, -1]] as const).map(([k, ref, sd]) => (
           <group key={k} ref={ref} position={[sd * BODY.legX, HIP_Y + 0.02, 0]}>
-            {!bodyless && <mesh material={fur} position={[0, -legLen / 2, 0]}><capsuleGeometry args={[legR * 1.08, legLen - legR, 8, 18]} /></mesh>}
-            {!bodyless && !hidesFeet && (
-              <mesh material={accent} position={[0, -legLen - BODY.footH / 2 + 0.015, 0.04]} scale={[0.95, 0.6, 1.5]}><sphereGeometry args={[0.13, 28, 18]} /></mesh>
-            )}
+            {!bodyless && <mesh geometry={legGeo()} material={bodyMat} position={[0, 0, 0]} />}
             <OutfitParts bone={k === 'L' ? 'legL' : 'legR'} look={look} species={species} />
           </group>
         ))}
@@ -366,3 +401,4 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     </group>
   );
 });
+

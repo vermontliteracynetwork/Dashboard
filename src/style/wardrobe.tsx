@@ -3,7 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { BODY } from './species';
-import { backZ, skirtGeometry, torsoGeometry } from './body';
+import { backZ } from './body';
+import { pantLegGeo, seatGeo, shoeGeo, skirtSculptGeo, sleeveGeo, soleGeo, topGeo, triplanar } from './organic';
 import type { SpeciesDef } from './species';
 import type { Paint, WardrobeSlot } from './types';
 
@@ -38,7 +39,7 @@ export interface WardrobeItem {
 }
 
 const P = (pattern: Paint['pattern'], a: string, b = '#ffffff'): Paint => ({ pattern, colors: [a, b] });
-const { armLen, armR, legLen, legR } = BODY;
+const { armR, legR } = BODY;
 
 // --- shared shell pieces ----------------------------------------------------
 
@@ -64,65 +65,50 @@ function useDouble(mat: THREE.Material) {
   return useTiled(mat, 2.5, 2.5, true);
 }
 
-// Tops follow the body's own round profile, just a little bigger.
+// Seamless pattern paint for sculpted clothes (see organic.ts triplanar).
+function useTri(mat: THREE.Material, scale = 6) {
+  const m = useMemo(() => triplanar(mat, scale), [mat, scale]);
+  useEffect(() => () => m.dispose(), [m]);
+  return m;
+}
+
+// Tops are sculpted from the body's own shape, puffed out by the fabric's
+// thickness, so they hug the round tummy and shoulders with soft hems.
 function TorsoShell({ mat, from = 0.05, to = 0.6, grow = 1.08 }: { mat: THREE.Material; from?: number; to?: number; grow?: number }) {
-  const m = useTiled(mat, 8, 2.4, true);
-  return <mesh geometry={torsoGeometry(grow, from, to)} material={m} />;
+  const m = useTri(mat);
+  const thick = Math.round((0.022 + (grow - 1.08) * 0.45) * 1000) / 1000;
+  return <mesh geometry={topGeo(thick, from, to)} material={m} />;
 }
 
+// Sleeves follow the chubby arm and shoulder; `r` sets how puffy they are.
 function Sleeve({ mat, length, r = armR * 1.42 }: { mat: THREE.Material; length: number; r?: number }) {
-  const m = useTiled(mat, 3, Math.max(0.6, length * 5));
-  const cap = useTiled(mat, 3, 1.5);
-  return (
-    <group>
-      <mesh material={cap}><sphereGeometry args={[r * 1.04, 24, 16]} /></mesh>
-      <mesh material={m} position={[0, -length / 2, 0]}>
-        <cylinderGeometry args={[r, r * 1.06, length, 24, 1, false]} />
-      </mesh>
-      {/* Soft rolled hem so the sleeve ends cleanly. */}
-      <mesh material={m} position={[0, -length, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[r * 1.04, 0.014, 8, 24]} />
-      </mesh>
-    </group>
-  );
+  const m = useTri(mat);
+  const thick = Math.round((0.024 + (r / armR - 1.42) * 0.06) * 1000) / 1000;
+  return <mesh geometry={sleeveGeo(thick, length)} material={m} />;
 }
 
-// A pant leg starts up inside the waistband (so shorts and pants are one
-// continuous garment) and ends in a rolled hem.
-function LegShell({ mat, length, r = legR * 1.3, flare = 1.06 }: { mat: THREE.Material; length: number; r?: number; flare?: number }) {
-  const m = useTiled(mat, 4, Math.max(0.8, length * 5));
-  const top = 0.06;
-  return (
-    <group>
-      <mesh material={m} position={[0, top - (length + top) / 2, 0]}>
-        <cylinderGeometry args={[r, r * flare, length + top, 24]} />
-      </mesh>
-      <mesh material={m} position={[0, -length, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[r * flare, 0.014, 8, 24]} />
-      </mesh>
-    </group>
-  );
+// Pant legs follow the thigh down toward the ankle; shorts are just shorter.
+function LegShell({ mat, length, r = legR * 1.3, flare = 0 }: { mat: THREE.Material; length: number; r?: number; flare?: number }) {
+  const m = useTri(mat);
+  const thick = Math.round((0.024 + (r / legR - 1.3) * 0.08) * 1000) / 1000;
+  return <mesh geometry={pantLegGeo(thick, Math.min(length, 0.18), flare)} material={m} />;
 }
 
-// The seat of pants, shorts and skirts: follows the body's own rounded
-// bottom (no flat ledge), so the legs come straight out of it.
+// The seat of pants, shorts and skirts: the body's own round bottom.
 function Waist({ mat, h = 0.16 }: { mat: THREE.Material; h?: number }) {
-  const m = useTiled(mat, 8, 1.3);
-  return <mesh geometry={torsoGeometry(1.06, 0, h, 0, true)} material={m} />;
+  const m = useTri(mat);
+  return <mesh geometry={seatGeo(0.026, h)} material={m} />;
 }
 
-// Soft, rounded shoes (ellipsoids, no hard corners).
+// Shoes shaped like the foot inside them, on a soft sole; boots continue
+// up the ankle.
 function Shoe({ mats, boot = 0 }: { mats: THREE.Material[]; boot?: number }) {
-  const y = -legLen - BODY.footH / 2 + 0.01;
+  const upper = useTri(mats[0], 7);
+  const sole = useTri(mats[1] ?? mats[0], 7);
   return (
-    <group position={[0, y, 0]}>
-      <mesh material={mats[0]} position={[0, 0.012, 0.045]} scale={[1.05, 0.68, 1.62]}><sphereGeometry args={[0.13, 28, 18]} /></mesh>
-      <mesh material={mats[1] ?? mats[0]} position={[0, -0.035, 0.045]} scale={[1.1, 0.27, 1.68]}><sphereGeometry args={[0.13, 28, 14]} /></mesh>
-      {boot > 0 && (
-        <mesh material={mats[0]} position={[0, boot / 2 + 0.02, 0]}>
-          <capsuleGeometry args={[legR * 1.32, boot, 6, 16]} />
-        </mesh>
-      )}
+    <group>
+      <mesh geometry={shoeGeo(0.022, boot)} material={upper} />
+      <mesh geometry={soleGeo()} material={sole} />
     </group>
   );
 }
@@ -310,10 +296,10 @@ function Wings({ mats }: PartProps) {
   );
 }
 
-// A bell skirt that flows out from the waist with a soft rounded hem.
+// A flowing bell skirt sculpted around the body (soft folds, rounded hem).
 function SkirtPart({ mats, length, flare = 0.42, top = 0.14 }: PartProps & { length: number; flare?: number; top?: number }) {
-  const dbl = useDouble(mats[0]);
-  return <mesh geometry={skirtGeometry(top, length, flare)} material={dbl} />;
+  const m = useTri(mats[0]);
+  return <mesh geometry={skirtSculptGeo(top, length, flare)} material={m} />;
 }
 
 // --- the catalog --------------------------------------------------------------
@@ -325,8 +311,8 @@ export const WARDROBE: WardrobeItem[] = [
     zones: [{ label: 'Shirt', paint: P('solid', '#4a90e2') }],
     parts: {
       torso: ({ mats }) => <TorsoShell mat={mats[0]} />,
-      armL: ({ mats }) => <Sleeve mat={mats[0]} length={0.17} />,
-      armR: ({ mats }) => <Sleeve mat={mats[0]} length={0.17} />,
+      armL: ({ mats }) => <Sleeve mat={mats[0]} length={0.11} />,
+      armR: ({ mats }) => <Sleeve mat={mats[0]} length={0.11} />,
     },
   },
   {
@@ -339,8 +325,8 @@ export const WARDROBE: WardrobeItem[] = [
     zones: [{ label: 'Shirt', paint: P('plaid', '#c0392b', '#2c3e50') }, { label: 'Cuffs', paint: P('solid', '#2c3e50') }],
     parts: {
       torso: ({ mats }) => <TorsoShell mat={mats[0]} />,
-      armL: ({ mats }) => <group><Sleeve mat={mats[0]} length={armLen * 0.88} /><mesh material={mats[1]} position={[0, -armLen * 0.86, 0]}><cylinderGeometry args={[armR * 1.45, armR * 1.45, 0.05, 16]} /></mesh></group>,
-      armR: ({ mats }) => <group><Sleeve mat={mats[0]} length={armLen * 0.88} /><mesh material={mats[1]} position={[0, -armLen * 0.86, 0]}><cylinderGeometry args={[armR * 1.45, armR * 1.45, 0.05, 16]} /></mesh></group>,
+      armL: ({ mats }) => <group><Sleeve mat={mats[0]} length={0.2} /><mesh material={mats[1]} position={[0, -0.2, 0.01]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.104, 0.022, 12, 28]} /></mesh></group>,
+      armR: ({ mats }) => <group><Sleeve mat={mats[0]} length={0.2} /><mesh material={mats[1]} position={[0, -0.2, 0.01]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.104, 0.022, 12, 28]} /></mesh></group>,
     },
   },
   {
@@ -359,8 +345,8 @@ export const WARDROBE: WardrobeItem[] = [
           ))}
         </group>
       ),
-      armL: ({ mats }) => <Sleeve mat={mats[0]} length={armLen * 0.9} r={armR * 1.5} />,
-      armR: ({ mats }) => <Sleeve mat={mats[0]} length={armLen * 0.9} r={armR * 1.5} />,
+      armL: ({ mats }) => <Sleeve mat={mats[0]} length={0.21} r={armR * 1.55} />,
+      armR: ({ mats }) => <Sleeve mat={mats[0]} length={0.21} r={armR * 1.55} />,
     },
   },
   {
@@ -368,8 +354,8 @@ export const WARDROBE: WardrobeItem[] = [
     zones: [{ label: 'Dress', paint: P('polka', '#ff8fb1', '#ffffff') }],
     parts: {
       torso: (p) => <group><TorsoShell mat={p.mats[0]} from={0.12} /><SkirtPart {...p} top={0.16} length={0.3} flare={0.42} /></group>,
-      armL: ({ mats }) => <Sleeve mat={mats[0]} length={0.12} r={armR * 1.6} />,
-      armR: ({ mats }) => <Sleeve mat={mats[0]} length={0.12} r={armR * 1.6} />,
+      armL: ({ mats }) => <Sleeve mat={mats[0]} length={0.08} r={armR * 1.75} />,
+      armR: ({ mats }) => <Sleeve mat={mats[0]} length={0.08} r={armR * 1.75} />,
     },
   },
   // Bottoms
@@ -378,8 +364,8 @@ export const WARDROBE: WardrobeItem[] = [
     zones: [{ label: 'Pants', paint: P('solid', '#34495e') }],
     parts: {
       torso: ({ mats }) => <Waist mat={mats[0]} />,
-      legL: ({ mats }) => <LegShell mat={mats[0]} length={legLen * 0.95} />,
-      legR: ({ mats }) => <LegShell mat={mats[0]} length={legLen * 0.95} />,
+      legL: ({ mats }) => <LegShell mat={mats[0]} length={0.17} />,
+      legR: ({ mats }) => <LegShell mat={mats[0]} length={0.17} />,
     },
   },
   {
@@ -387,8 +373,8 @@ export const WARDROBE: WardrobeItem[] = [
     zones: [{ label: 'Shorts', paint: P('gingham', '#27ae60', '#ffffff') }],
     parts: {
       torso: ({ mats }) => <Waist mat={mats[0]} />,
-      legL: ({ mats }) => <LegShell mat={mats[0]} length={0.17} r={legR * 1.42} />,
-      legR: ({ mats }) => <LegShell mat={mats[0]} length={0.17} r={legR * 1.42} />,
+      legL: ({ mats }) => <LegShell mat={mats[0]} length={0.06} r={legR * 1.5} />,
+      legR: ({ mats }) => <LegShell mat={mats[0]} length={0.06} r={legR * 1.5} />,
     },
   },
   {
@@ -434,9 +420,9 @@ export const WARDROBE: WardrobeItem[] = [
         <group>
           {/* A tall, slouchy knit dome with a rolled cuff that sits above
               the eyes, so it never covers them. */}
-          <group scale={[1, 1.3, 1]}><Dome mat={mats[0]} r={0.365} cut={0.36} /></group>
-          <mesh material={mats[0]} position={[0, 0.21, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.335, 0.042, 14, 40]} /></mesh>
-          <mesh material={mats[1]} position={[0, 0.5, 0]}><sphereGeometry args={[0.085, 18, 14]} /></mesh>
+          <group position={[0, 0.03, 0]} scale={[1, 1.16, 1]}><Dome mat={mats[0]} r={0.35} cut={0.37} /></group>
+          <mesh material={mats[0]} position={[0, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.3, 0.048, 14, 40]} /></mesh>
+          <mesh material={mats[1]} position={[0, 0.47, 0]}><sphereGeometry args={[0.08, 18, 14]} /></mesh>
         </group>
       ),
     },
@@ -514,11 +500,11 @@ export const WARDROBE: WardrobeItem[] = [
     id: 'eardefenders', name: 'Ear Defenders', slot: 'gear', emoji: '🎧', comfort: true, hides: ['ears'],
     zones: [{ label: 'Band', paint: P('solid', '#2c3e50') }, { label: 'Cups', paint: P('solid', '#3498db') }],
     parts: {
-      gear: ({ mats }) => (
+      gear: ({ mats, species: { gear: { w, h } } }) => (
         <group>
-          <mesh material={mats[0]} position={[0, 0.02, 0]}><torusGeometry args={[0.37, 0.03, 10, 32, Math.PI]} /></mesh>
+          <mesh material={mats[0]} scale={[1, h / w, 1]}><torusGeometry args={[w + 0.02, 0.03, 10, 32, Math.PI]} /></mesh>
           {[-1, 1].map((sd) => (
-            <mesh key={sd} material={mats[1]} position={[sd * 0.37, 0.0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <mesh key={sd} material={mats[1]} position={[sd * (w + 0.02), 0.0, 0]} rotation={[0, 0, Math.PI / 2]}>
               <cylinderGeometry args={[0.11, 0.11, 0.09, 20]} />
             </mesh>
           ))}
@@ -530,11 +516,11 @@ export const WARDROBE: WardrobeItem[] = [
     id: 'headphones', name: 'Headphones', slot: 'gear', emoji: '🎵', comfort: true, hides: ['ears'],
     zones: [{ label: 'Band', paint: P('solid', '#ff6b6b') }, { label: 'Cups', paint: P('solid', '#ffffff') }],
     parts: {
-      gear: ({ mats }) => (
+      gear: ({ mats, species: { gear: { w, h } } }) => (
         <group>
-          <mesh material={mats[0]} position={[0, 0.02, 0]}><torusGeometry args={[0.36, 0.035, 10, 32, Math.PI]} /></mesh>
+          <mesh material={mats[0]} scale={[1, h / w, 1]}><torusGeometry args={[w + 0.02, 0.035, 10, 32, Math.PI]} /></mesh>
           {[-1, 1].map((sd) => (
-            <mesh key={sd} material={mats[1]} position={[sd * 0.36, -0.02, 0]} scale={[0.7, 1, 1]}>
+            <mesh key={sd} material={mats[1]} position={[sd * (w + 0.02), -0.02, 0]} scale={[0.7, 1, 1]}>
               <sphereGeometry args={[0.11, 16, 12]} />
             </mesh>
           ))}
@@ -549,8 +535,8 @@ export const WARDROBE: WardrobeItem[] = [
     parts: {
       torso: ({ mats }) => (
         <group>
-          <RoundedBox args={[0.4, 0.42, 0.2]} radius={0.09} smoothness={4} position={[0, 0.32, -backZ(0.32) - 0.1]} material={mats[0]} />
-          <RoundedBox args={[0.28, 0.15, 0.07]} radius={0.035} smoothness={3} position={[0, 0.22, -backZ(0.32) - 0.22]} material={mats[1]} />
+          <RoundedBox args={[0.4, 0.42, 0.2]} radius={0.09} smoothness={4} position={[0, 0.35, -backZ(0.35) - 0.085]} material={mats[0]} />
+          <RoundedBox args={[0.28, 0.15, 0.07]} radius={0.035} smoothness={3} position={[0, 0.25, -backZ(0.35) - 0.205]} material={mats[1]} />
           {[-0.13, 0.13].map((x) => (
             <mesh key={x} material={mats[1]} position={[x, 0.36, backZ(0.36) + 0.012]} scale={[1, 1, 0.35]}><capsuleGeometry args={[0.03, 0.34, 4, 10]} /></mesh>
           ))}
