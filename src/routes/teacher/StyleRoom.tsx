@@ -12,6 +12,7 @@ import { PATTERNS, patternSwatch } from '../../style/patterns';
 import ColorWheel from '../../style/ColorWheel';
 import { styleSound } from '../../style/styleSounds';
 import BawkGuide from '../../components/BawkGuide';
+import { NPC_ROSTER, useNpcProfiles, type NpcProfile } from '../../style/npcs';
 import { SPECIES_PRICE, PATTERN_PRICE, FREE_PATTERNS, asInventory, inventoryOwner, itemLock, money, patternLocked, speciesLocked, type Lock } from '../../style/shop';
 import type { Paint, PatternId, SpeciesId, StyleLook, StyleMove, StyleOneShot, WardrobeSlot } from '../../style/types';
 
@@ -24,7 +25,7 @@ import type { Paint, PatternId, SpeciesId, StyleLook, StyleMove, StyleOneShot, W
 //    on each animal (or all four at once) while editing.
 
 type Tab = 'body' | WardrobeSlot;
-type Mode = 'dress' | 'workshop';
+type Mode = 'dress' | 'workshop' | 'neighbors';
 type Preview = 'item' | SpeciesId | 'all';
 
 function isLook(x: unknown): x is StyleLook {
@@ -87,6 +88,13 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const itemFor = (id: string) => catalog.find((i) => i.id === id);
 
   const [mode, setMode] = useState<Mode>('dress');
+  // Teacher's Neighbors tab: which Neighbor is shown, and (when dressing
+  // one) whose look the Dress up screen is editing.
+  const npcProfiles = useNpcProfiles();
+  const saveNpcProfile = useStore((s) => s.saveNpcProfile);
+  const setNpcTitleOverride = useStore((s) => s.setNpcTitleOverride);
+  const [npcSel, setNpcSel] = useState<string>(NPC_ROSTER[0]?.id ?? 'scout');
+  const [dressNpc, setDressNpc] = useState<string | null>(null);
   const [saved, setSaved] = useState<StyleLook>(() => loadInitial(row?.look, owner));
   const [look, setLook] = useState<StyleLook>(saved);
   const [tab, setTab] = useState<Tab>('body');
@@ -113,7 +121,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const wsDirty = !!wsItem && (wsName !== wsItem.name || JSON.stringify(wsZones) !== JSON.stringify(wsItem.zones.map((z) => z.paint)));
 
   useEffect(() => {
-    if (row && isLook(row.look) && !dirty) { setSaved(row.look); setLook(row.look); }
+    if (!dressNpc && row && isLook(row.look) && !dirty) { setSaved(row.look); setLook(row.look); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row?.updatedAt]);
 
@@ -242,8 +250,33 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
     });
   };
 
+  const startDressNpc = (id: string) => {
+    const p = npcProfiles[id];
+    if (!p) return;
+    setDressNpc(id);
+    setSaved(p.look);
+    setLook(p.look);
+    setTab('body');
+    setMode('dress');
+    styleSound.pop();
+  };
+  const stopDressNpc = (toMode: Mode) => {
+    const mine = loadInitial(row?.look, owner);
+    setDressNpc(null);
+    setSaved(mine);
+    setLook(mine);
+    setMode(toMode);
+  };
   const save = () => {
     if (!canSave) { flash('Buy or take off the locked items first'); return; }
+    if (dressNpc) {
+      saveNpcProfile(dressNpc, { look });
+      setSaved(look);
+      styleSound.save();
+      play('cheer');
+      flash(`${npcProfiles[dressNpc]?.name ?? 'Neighbor'}'s look saved!`);
+      return;
+    }
     saveStyleLook(owner, look);
     if (wtStep?.id === 'save') wtNext();
     setSaved(look);
@@ -291,13 +324,14 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   // What the stage shows.
   const stageLooks: { look: StyleLook; x: number; bodyless?: boolean }[] = useMemo(() => {
     if (mode === 'dress') return [{ look, x: 0 }];
+    if (mode === 'neighbors') return npcProfiles[npcSel] ? [{ look: npcProfiles[npcSel].look, x: 0 }] : [];
     if (!wsItem) return [];
     const outfitOnly: StyleLook['outfit'] = { [wsItem.slot]: { itemId: wsItem.id, zones: wsZones } };
     const on = (sp: SpeciesId): StyleLook => ({ species: sp, body: structuredClone(speciesById(sp).defaultBody), outfit: outfitOnly });
     if (preview === 'item') return [{ look: on('dog'), x: 0, bodyless: true }];
     if (preview === 'all') return SPECIES.map((sp, i) => ({ look: on(sp.id), x: (i - 1.5) * 1.15 }));
     return [{ look: on(preview), x: 0 }];
-  }, [mode, look, wsItem, wsZones, preview]);
+  }, [mode, look, wsItem, wsZones, preview, npcProfiles, npcSel]);
   const wide = stageLooks.length > 1;
   // "Item only" frames the item itself up close (a hat floats up where a
   // head would be, shoes sit on the floor).
@@ -334,15 +368,24 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
             )}
           </div>
           {!studentMode && <div className="style-mode" role="tablist" aria-label="Style mode">
-            <button type="button" role="tab" aria-selected={mode === 'dress'} className={`style-mode-btn${mode === 'dress' ? ' on' : ''}`} onClick={() => { setMode('dress'); styleSound.tap(); }}>🪞 Dress up</button>
-            <button type="button" role="tab" aria-selected={mode === 'workshop'} className={`style-mode-btn${mode === 'workshop' ? ' on' : ''}`} onClick={() => { setMode('workshop'); styleSound.tap(); }}>🧵 Item workshop</button>
+            <button type="button" role="tab" aria-selected={mode === 'dress' && !dressNpc} className={`style-mode-btn${mode === 'dress' && !dressNpc ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('dress'); else setMode('dress'); styleSound.tap(); }}>🪞 Dress up</button>
+            <button type="button" role="tab" aria-selected={mode === 'workshop'} className={`style-mode-btn${mode === 'workshop' ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('workshop'); else setMode('workshop'); styleSound.tap(); }}>🧵 Item workshop</button>
+            <button type="button" role="tab" aria-selected={mode === 'neighbors' || !!dressNpc} className={`style-mode-btn${mode === 'neighbors' || dressNpc ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('neighbors'); else setMode('neighbors'); styleSound.tap(); }}>🏘️ Neighbors</button>
           </div>}
-          {mode === 'dress' ? (
+          {mode === 'neighbors' ? (
+            <div className="style-head-actions"><span className="style-note">Edit each Neighbor's name, title, facts and look.</span></div>
+          ) : mode === 'dress' ? (
             <div className="style-head-actions">
+              {dressNpc && (
+                <span className="style-dressing">
+                  🎨 Dressing {npcProfiles[dressNpc]?.name}
+                  <button type="button" className="style-btn" onClick={() => { stopDressNpc('neighbors'); styleSound.swish(); }}>← Back to Neighbors</button>
+                </span>
+              )}
               <button type="button" className={`style-btn${lk('surprise')}`} onClick={surprise}>🎲 Surprise me</button>
               <button type="button" className={`style-btn${lk('reset')}`} onClick={() => { setLook(defaultLook(look.species)); styleSound.swish(); }}>↺ Start over</button>
               <button type="button" className={`style-btn${lk('undo')}`} disabled={!dirty} onClick={() => { setLook(saved); styleSound.swish(); }}>Undo changes</button>
-              <button type="button" data-wt="save" className={`style-btn primary${lk('save')}`} disabled={!canSave} onClick={save}>{!canSave ? '🔒 Locked items on' : dirty || wtStep?.id === 'save' ? '💾 Save my look' : '✓ Saved'}</button>
+              <button type="button" data-wt="save" className={`style-btn primary${lk('save')}`} disabled={!canSave} onClick={save}>{!canSave ? '🔒 Locked items on' : dirty || wtStep?.id === 'save' ? (dressNpc ? `💾 Save ${npcProfiles[dressNpc]?.name}'s look` : '💾 Save my look') : '✓ Saved'}</button>
             </div>
           ) : (
             <div className="style-head-actions">
@@ -422,7 +465,20 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
           </section>
 
           <section className="style-panel">
-            {mode === 'dress' ? (
+            {mode === 'neighbors' ? (
+              <NeighborsPanel
+                profiles={NPC_ROSTER.map((e) => npcProfiles[e.id]).filter(Boolean)}
+                selected={npcSel}
+                onSelect={(id) => { setNpcSel(id); styleSound.tap(); }}
+                onDress={startDressNpc}
+                onSaveDetails={(id, name, title, facts) => {
+                  saveNpcProfile(id, { name: name.trim(), facts });
+                  setNpcTitleOverride(id, title.trim() === NPC_ROSTER.find((e) => e.id === id)?.defaultTitle ? null : title);
+                  styleSound.save();
+                  flash(`${name.trim() || 'Neighbor'} saved!`);
+                }}
+              />
+            ) : mode === 'dress' ? (
               <>
                 <nav className="style-tabs" aria-label="Style categories">
                   {tabs.map((t) => (
@@ -567,6 +623,54 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// The teacher's Neighbors table: every Neighbor and Townsperson with their
+// name, title and facts (shown on their character sheet in Town Square),
+// plus a button to dress them in Style.
+function NeighborsPanel({ profiles, selected, onSelect, onDress, onSaveDetails }: {
+  profiles: NpcProfile[];
+  selected: string;
+  onSelect: (id: string) => void;
+  onDress: (id: string) => void;
+  onSaveDetails: (id: string, name: string, title: string, facts: string[]) => void;
+}) {
+  return (
+    <div className="style-section">
+      <h2>Neighbors</h2>
+      <p className="style-note">Tap a row to see them on the stage. Facts show on their character sheet when students tap "About" in Town Square. One fact per line.</p>
+      <div className="npc-table" role="table" aria-label="Neighbors">
+        <div className="npc-row npc-head" role="row">
+          <span role="columnheader">Look</span><span role="columnheader">Name</span><span role="columnheader">Title / role</span><span role="columnheader">Facts</span><span role="columnheader" />
+        </div>
+        {profiles.map((p) => <NeighborRow key={`${p.id}-${p.name}-${p.title}-${p.facts.join('|')}`} p={p} on={selected === p.id} onSelect={onSelect} onDress={onDress} onSave={onSaveDetails} />)}
+      </div>
+    </div>
+  );
+}
+
+function NeighborRow({ p, on, onSelect, onDress, onSave }: {
+  p: NpcProfile; on: boolean; onSelect: (id: string) => void; onDress: (id: string) => void;
+  onSave: (id: string, name: string, title: string, facts: string[]) => void;
+}) {
+  const [name, setName] = useState(p.name);
+  const [title, setTitle] = useState(p.title);
+  const [facts, setFacts] = useState(p.facts.join('\n'));
+  const clean = (t: string) => t.replace(/—/g, '-');
+  const factList = facts.split('\n').map((f) => f.trim()).filter(Boolean);
+  const changed = name !== p.name || title !== p.title || factList.join('|') !== p.facts.join('|');
+  return (
+    <div className={`npc-row${on ? ' on' : ''}`} role="row" onClick={() => onSelect(p.id)}>
+      <span role="cell" className="npc-look">{speciesById(p.look.species).emoji}<small>{p.kind === 'neighbor' ? 'Neighbor' : 'Townsperson'}</small></span>
+      <input role="cell" className="style-name-input" value={name} maxLength={30} aria-label={`${p.name}'s name`} onChange={(e) => setName(clean(e.target.value))} />
+      <input role="cell" className="style-name-input" value={title} maxLength={40} aria-label={`${p.name}'s title`} onChange={(e) => setTitle(clean(e.target.value))} />
+      <textarea role="cell" className="style-name-input npc-facts" value={facts} rows={3} aria-label={`Facts about ${p.name}`} placeholder="Loves pancakes&#10;Has a pet goldfish" onChange={(e) => setFacts(clean(e.target.value))} />
+      <span role="cell" className="npc-actions">
+        <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={(e) => { e.stopPropagation(); onSave(p.id, name, title, factList); }}>💾 Save</button>
+        <button type="button" className="style-btn" onClick={(e) => { e.stopPropagation(); onDress(p.id); }}>🎨 Dress</button>
+      </span>
     </div>
   );
 }

@@ -296,6 +296,9 @@ interface AppState {
   // Students' Style things at the Seamstress (src/style/shop.ts): owned
   // animals/items/patterns and whether Bawk's walkthrough is done.
   updateStyleInventory: (studentId: string, patch: Partial<StyleInventory>) => void;
+  // A Neighbor/Townsperson's Style look, name and facts (src/style/npcs.ts),
+  // saved as the `npc:<id>` row. Merges into what is already saved.
+  saveNpcProfile: (npcId: string, patch: { look?: StyleLook; name?: string; facts?: string[] }) => void;
   // Pays Class Cash for an animal, item or pattern; false if they can't afford it.
   buyStyle: (studentId: string, kind: 'species' | 'item' | 'pattern', id: string, priceCents: number, label: string) => boolean;
   selCheckIns: SelCheckIn[];
@@ -2670,6 +2673,14 @@ export const useStore = create<AppState>()(
         set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
         pushStyleLook(ownerId, look);
       },
+      saveNpcProfile: (npcId, patch) => {
+        const ownerId = `npc:${npcId}`;
+        const cur = (get().styleLooks.find((r) => r.ownerId === ownerId)?.look ?? {}) as Record<string, unknown>;
+        const look = { ...cur, ...patch };
+        const row = { ownerId, look, updatedAt: new Date().toISOString() };
+        set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
+        pushStyleLook(ownerId, look);
+      },
       buyStyle: (studentId, kind, id, priceCents, label) => {
         const student = get().students.find((st) => st.id === studentId);
         if (!student || student.coins < priceCents) return false;
@@ -2681,9 +2692,9 @@ export const useStore = create<AppState>()(
         return true;
       },
       setStyleReleased: (released) => {
-        const row = { ownerId: 'settings', look: { released }, updatedAt: new Date().toISOString() };
+        const row = { ownerId: 'settings', look: { released, v: 2 }, updatedAt: new Date().toISOString() };
         set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== 'settings')] }));
-        pushStyleLook('settings', { released });
+        pushStyleLook('settings', { released, v: 2 });
       },
       saveStyleCatalog: (overrides) => {
         const row = { ownerId: 'catalog', look: overrides, updatedAt: new Date().toISOString() };

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-seamstress-open',
+    date: '2026-10-04',
+    icon: '🧵',
+    title: 'The Seamstress is open!',
+    body: 'Make your very own character! Pick a dog, cat, frog or capybara (your first one is free), color it any way you like, and dress it up. Bawk the rooster will show you how, step by step. Tap Style in the Menu, or walk into the Seamstress.',
+  },
+  {
     id: '2026-10-04-spin-in-town',
     date: '2026-10-04',
     icon: '🎡',

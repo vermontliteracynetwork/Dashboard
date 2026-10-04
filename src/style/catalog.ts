@@ -40,12 +40,17 @@ export function useStyleCatalog() {
 
 // Style's release switch (direct teacher instruction: students get Style
 // only when she says it's ready). Stored as the 'settings' row in
-// style_looks, so it needs no extra database column. Off by default.
+// style_looks, so it needs no extra database column. ON since the
+// teacher's go-ahead on 2026-10-04 (see useStyleSettings).
 export const SETTINGS_OWNER = 'settings';
 export interface StyleSettings { released: boolean }
 
 export function useStyleSettings(): StyleSettings {
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === SETTINGS_OWNER));
-  const l = row?.look as Partial<StyleSettings> | undefined;
-  return { released: !!l?.released };
+  const l = row?.look as (Partial<StyleSettings> & { v?: number }) | undefined;
+  // Direct teacher go-ahead (2026-10-04, "push to students as we had
+  // described"): Style is ON for students unless she has turned it off with
+  // the switch since then (switch saves carry v: 2; older rows are ignored).
+  if (l?.v === 2) return { released: !!l.released };
+  return { released: true };
 }
