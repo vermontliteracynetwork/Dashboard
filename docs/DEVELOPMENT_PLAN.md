@@ -663,7 +663,13 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - Her words: "the fog fix was MASSIVE in terms of navigation and general UI/UX. now we need to remove whatever this is in the distance. there should be nothing there, no random shapes or mountains, etc. the world should be completly flat, like a flat world in minecraft, with nothing on the horizon"
 - **Why it happened:** the old fog (30 to 90 units) used to hide anything placed far from the town. With fog gone, objects sitting past the town's edge showed up as big shapes on the horizon.
 - **Shipped:** the Town Square ground now runs out to the sky in every direction (2000-unit flat ground, camera view distance 2500), so the horizon is one straight line of ground meeting sky. Anything placed past the town's edge (more than 3 units outside the walls) is never drawn in Town Square, and the same goes for drawn walls entirely outside it (`isOutsideTown` in `townLayout.ts`). In Build Mode a **🧹 N outside town** button appears in the top bar whenever such objects exist; it lists them by name and spot and removes them in one tap (Undo brings them back).
-- **If shapes are still there after this:** they are inside the town's walls. Tell Claude where the student stands (the coordinates in the top-left pill) and it can find them.
+- **Follow-up, same day.** Her words, with a Build Mode screenshot of huge black, dark red and teal shapes arching over the whole town: "the sky still has these weird shape rendorings. is it the shape of the sky? the images? fix this"
+  - **Not the sky:** the sky dome only draws her cloud image, it has no shapes of its own.
+  - **Real cause:** giant objects. Many uploaded models are built in centimeters, so at 1.00x they are hundreds of units tall (the gazebo is 500,000, barns about 800, docks about 2,000). Build Mode normally places them at a tiny auto scale. But objects placed while the 📏 5x size rule was on were saved at 1.00x, and turning the rule off left them at their raw size, far bigger than the whole town. The camera ended up inside them, which is what she saw as shapes in the sky and on the horizon.
+  - **Fixed three ways:**
+    - Anything whose largest side would come out bigger than 50 units is now drawn at 5x a character's height instead, in Town Square, Build Mode and collision (`safeScale` in `WorldObjectRenderer.tsx`).
+    - Build Mode shows a **📐 Fix N giant objects** button whenever such objects exist. One tap saves the normal size for good, and Undo works.
+    - Turning the size rule off now keeps objects that were placed while it was on at the size she saw them (`setTownSizeRule` in `townSize.ts`), so this can't happen again.
 
 ### Solid objects block walking and driving. SHIPPED 2026-10-04 (direct teacher instruction)
 

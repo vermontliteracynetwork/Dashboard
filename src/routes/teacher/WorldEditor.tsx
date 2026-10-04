@@ -5,8 +5,8 @@ import { OrbitControls, Html, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { WorldObjectRenderer, useModelSize } from '../world/WorldObjectRenderer';
-import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule } from '../world/townSize';
+import { WorldObjectRenderer, useModelSize, safeScale, townSizeFactor } from '../world/WorldObjectRenderer';
+import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule, measureModel } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
@@ -1754,6 +1754,27 @@ export default function WorldEditor() {
   const addWorldObject = useStore((s) => s.addWorldObject);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
+  // Objects saved at a giant size (see safeScale in WorldObjectRenderer):
+  // already drawn at a normal size everywhere, listed here so one tap saves
+  // that normal size for good.
+  const [oversized, setOversized] = useState<{ id: string; scale: number }[]>([]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const live = worldObjects.filter((o) => !o.pendingDelete);
+      const raw = await Promise.all(live.map((o) => measureModel(o.modelPath)));
+      const found: { id: string; scale: number }[] = [];
+      live.forEach((o, i) => {
+        const r = raw[i];
+        if (!r) return;
+        const size = townSizeRule ? r.clone().multiplyScalar(townSizeFactor(r)) : r;
+        const fixed = safeScale(size, o.scale);
+        if (fixed !== o.scale) found.push({ id: o.id, scale: fixed });
+      });
+      if (alive) setOversized(found);
+    })();
+    return () => { alive = false; };
+  }, [worldObjects, townSizeRule]);
   const allWallSegments = useStore((s) => s.wallSegments);
   const wallSegments = useMemo(() => allWallSegments.filter((w) => !w.studentId), [allWallSegments]);
   const addWallSegment = useStore((s) => s.addWallSegment);
@@ -2836,6 +2857,17 @@ export default function WorldEditor() {
           >
             📏 {townSizeRule ? '5x size: ON' : '5x size: OFF'}
           </button>
+          {oversized.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-flat"
+              style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: 'rgba(255,176,32,0.35)', color: '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+              title="These objects were saved far bigger than the whole town. They already show at a normal size; tap to save that size."
+              onClick={() => { oversized.forEach((o) => updateWorldObjectH(o.id, { scale: o.scale })); flashSaved(); }}
+            >
+              📐 Fix {oversized.length} giant {oversized.length === 1 ? 'object' : 'objects'}
+            </button>
+          )}
           {outsideTownObjects.length > 0 && (
             <button
               type="button"

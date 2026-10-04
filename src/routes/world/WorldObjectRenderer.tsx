@@ -59,6 +59,22 @@ export function townSizeFactor(size: { x: number; y: number; z: number }): numbe
   return TOWN_ASSET_HEIGHT / size.y;
 }
 
+// Giant-object guard (teacher report 2026-10-04, two screenshots of huge
+// dark, red and teal shapes filling the sky and the horizon). Many uploaded
+// models are authored in centimeters, hundreds of units tall at 1.00x (a
+// gazebo is 500,000 units, a barn 800). Build Mode normally gives them a
+// tiny auto scale, but objects placed while the 5x size rule was on were
+// saved at 1.00x, so turning the rule off left them hundreds of times
+// bigger than the whole town. Anything whose largest side would come out
+// bigger than OVERSIZE_LIMIT (about half a large lot) is drawn at 5x a
+// character's height instead, everywhere it renders; Build Mode offers a
+// one-tap fix that saves the corrected size.
+export const OVERSIZE_LIMIT = 50;
+export function safeScale(size: { x: number; y: number; z: number }, scale: number): number {
+  const big = Math.max(size.x, size.y, size.z) * scale;
+  return big > OVERSIZE_LIMIT ? scale * (TOWN_ASSET_HEIGHT / big) : scale;
+}
+
 export function useModelSize(path: string, normalizeArg?: boolean): THREE.Vector3 {
   const ctx = useTownSizeContext();
   const normalize = normalizeArg ?? ctx;
@@ -144,7 +160,7 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity, (normalize ?? ctx) && !obj.studentId);
   const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
   return (
-    <group ref={ref} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={obj.scale}>
+    <group ref={ref} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={safeScale(size, obj.scale)}>
       <primitive object={recentered} />
       {interactive && (
         <mesh

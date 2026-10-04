@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useStore } from '../../store/store';
 import type { WorldObject } from '../../types';
+import { isFlatModelSize, townSizeFactor } from './WorldObjectRenderer';
 
 // The Town Square size rule (teacher direction 2026-10-04: "everything is
 // adjusted to equal 5.00x the player/charcters hight", every asset). When
@@ -24,20 +25,23 @@ export function useTownSizeRule(): boolean {
 export const TownSizeContext = createContext(false);
 export const useTownSizeContext = () => useContext(TownSizeContext);
 
-const FLAT_RATIO = 6;
-const heights = new Map<string, boolean>();
-async function isFlat(path: string): Promise<boolean> {
-  if (heights.has(path)) return heights.get(path)!;
-  try {
-    const g = await new GLTFLoader().loadAsync(path);
-    const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());
-    const flat = size.y <= 0 || Math.max(size.x, size.z) / size.y > FLAT_RATIO;
-    heights.set(path, flat);
-    return flat;
-  } catch {
-    heights.set(path, true); // can't measure: leave it alone
-    return true;
+// A model's raw (1.00x, no size rule) bounding-box size, cached per path.
+// null when it can't be loaded.
+const sizes = new Map<string, Promise<THREE.Vector3 | null>>();
+export function measureModel(path: string): Promise<THREE.Vector3 | null> {
+  let p = sizes.get(path);
+  if (!p) {
+    p = new GLTFLoader().loadAsync(path)
+      .then((g) => new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3()))
+      .catch(() => null);
+    sizes.set(path, p);
   }
+  return p;
+}
+async function isFlat(path: string): Promise<boolean> {
+  const size = await measureModel(path);
+  if (!size) return true; // can't measure: leave it alone
+  return isFlatModelSize(size);
 }
 
 // Turn the rule on: every non-flat shared object goes to 1.00x (5x the
@@ -64,6 +68,22 @@ export async function setTownSizeRule(on: boolean) {
       scale: prev[o.id],
       publishedSnapshot: o.publishedSnapshot ? { ...o.publishedSnapshot, scale: prev[o.id] } : o.publishedSnapshot,
     }));
+    // Objects placed while the rule was on have no old size to go back to.
+    // They were sized by the rule (1.00x = 5 characters tall), so they keep
+    // exactly that size: their scale absorbs the rule's factor. Before this,
+    // they jumped to their raw model size, hundreds of units tall for
+    // models authored in centimeters.
+    const placedDuring = shared.filter((o) => prev[o.id] === undefined);
+    const raw = await Promise.all(placedDuring.map((o) => measureModel(o.modelPath)));
+    placedDuring.forEach((o, i) => {
+      const f = raw[i] ? townSizeFactor(raw[i]!) : 1;
+      if (f === 1) return;
+      changed.push({
+        ...o,
+        scale: o.scale * f,
+        publishedSnapshot: o.publishedSnapshot ? { ...o.publishedSnapshot, scale: o.publishedSnapshot.scale * f } : o.publishedSnapshot,
+      });
+    });
     st.setWorldObjectsDirect(changed);
     st.mergeStyleRow(WORLD_SIZE_OWNER, { on: false, prev: {} });
   }

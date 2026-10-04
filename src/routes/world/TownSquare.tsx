@@ -36,7 +36,7 @@ import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
-import { WorldObjectRenderer, useModelSize, isFlatModelSize } from './WorldObjectRenderer';
+import { WorldObjectRenderer, useModelSize, isFlatModelSize, safeScale } from './WorldObjectRenderer';
 import { TownSizeContext, useTownSizeRule } from './townSize';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
@@ -419,7 +419,8 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
     // blockBuildings' local-space math uses the opposite rotation sign from
     // three.js's rotation.y, so a placed object's own rotation is negated
     // here to line its footprint up with what is actually drawn.
-    solid.push({ x: o.position[0], z: o.position[2], rotationY: -o.rotationY, hx: size.hx * o.scale, hz: size.hz * o.scale });
+    const k = safeScale({ x: size.hx * 2, y: size.hy, z: size.hz * 2 }, o.scale);
+    solid.push({ x: o.position[0], z: o.position[2], rotationY: -o.rotationY, hx: size.hx * k, hz: size.hz * k });
   }
   RECT_FOOTPRINTS = solid.length ? [...BUILDING_FOOTPRINTS, ...solid] : BUILDING_FOOTPRINTS;
   STATIC_OBSTACLES = MARKET_STALLS.filter((m) => !overrides[m.id]?.deleted).map((m) => ({ x: m.position[0], z: m.position[1], radius: STALL_BLOCK_RADIUS }));
