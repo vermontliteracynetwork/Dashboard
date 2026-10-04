@@ -1,6 +1,6 @@
 # Style: unified avatars, one-size-fits-all wardrobe, Style Studio, AI item maker, Marketplace publishing
 
-**Status: PLANNED, DESIGN COMPLETE, NOTHING BUILT (2026-10-04).** Claudia's full design pass, written at the teacher's request ("lets brainstorm this Claudia, to get this feature completely developed in the dev plan before creating"). Nothing gets built until the teacher answers the Decisions list in section 5 (Decisions 1 to 6 block Phase 0).
+**Status: DECISIONS SETTLED (see 5A); teacher-only Style room SHIPPED 2026-10-04 (see 5B); students unchanged until the teacher releases it.** Claudia's full design pass, written at the teacher's request ("lets brainstorm this Claudia, to get this feature completely developed in the dev plan before creating"). Nothing gets built until the teacher answers the Decisions list in section 5 (Decisions 1 to 6 block Phase 0).
 
 Tracked in `DEVELOPMENT_PLAN.md`, Part B, "Style".
 
@@ -289,6 +289,78 @@ Verified in the repo this pass (so the spec is grounded, not guessed):
 32. **Edits after publish.** Default: art is frozen; name, price, and window can change; new art is a new item.
 33. **Price drops.** Default: a prompt offers a refund of the difference to anyone who already paid more.
 34. **Naming.** "Style" for the feature and the button. Confirm the label and a single icon to pair with it.
+
+### 5A. The teacher's answers (2026-10-04): SETTLED, do not revisit without new instruction
+
+Kayden answered the list in one message ("lets get to wrok"). Her words are paraphrased only where she answered with a number; quotes are verbatim.
+
+- **Assets (her lead note):** "the assets are a main thing here but im having a hard time finding." She then shared 8 Sketchfab models as the look she wants (cute, rounded, big-headed cartoon animals): a cartoon "Animal Friends" dog, a Dalmatian (character209), a dog, a cartoon Bengal cat, a stylized cute cartoon cat, a frog (character156), a rigged cartoon frog, and a cartoon capybara. Links are kept below in "Reference models". Sketchfab is blocked from this build environment, so their licenses and rigs could not be checked; they are a style target, not downloaded assets.
+- **1. Art direction:** match those references: cute cartoon, chibi proportions (big head, big shiny eyes, soft rounded body).
+- **2. Launch species:** **dog, cat, frog, capybara.**
+- **3. How:** "try procedural bodies in code; keep the same body movements for all, same general template so the clothes are one size."
+- **4.** Style **replaces A11's 3D characters completely.**
+- **5.** Yes: the student's portrait becomes their Style character.
+- **6 and 7.** "this should overhaul and delete all previous avatars and portraits. replace with new, styled character." and "delete all old avatars, characters." Supersedes Claudia's "grandfather Classic Portraits" default: the 18 Blocky portraits, the 3D player skin and the Cake Character are all removed **when Style is released to students** (not before; see 20).
+- **8.** Students recolor with a **color wheel drag selector**, and pick **textures/patterns (plaid, polka dots...) and change the colors inside those too.**
+- **9.** "they can change any and all colors with color wheel selector" (body colors included, no curated-only palette).
+- **10.** **One outfit at a time. No saved outfits.**
+- **11.** Free starter set: yes.
+- **12.** Comfort Gear always free and never time-limited: yes.
+- **13.** Achievement items can NOT also be bought.
+- **14.** Correct answers count **from the publish date** (not lifetime).
+- **15.** Badges stay paused (`BADGES_PAUSED` unchanged).
+- **16.** Time-limited items: yes.
+- **17.** Selected-students-only items: not needed.
+- **18.** Teacher gifting: yes.
+- **19.** The teacher's own character: "yes!!"
+- **20.** "students should not have access to style until i explicitly say its ready to send to students (for now keep everything as is for them), but when i say so, style should be selected in their main pie menu."
+- **21.** AI budget: "$0 outside of regular monthly payment from subscription." See "AI box under a $0 budget" below.
+- **22.** The cheese hat "should look like a holey triangle of cheese."
+- **23.** Avoid list: "zero weapons or anything scary. keep whimsical, silly, and fun for middle schoolers/upper elementary."
+- **24.** Review before publish: yes, plus an **auto-save draft** feature in the Studio.
+- **25.** Image rights: "this is personal use only, i will vet everything i send to you so its safe to use."
+- **26.** Student-made designs: yes, later, as a full **Seamstress game** (see below).
+- **27.** Wheelchair and access gear as Comfort Gear: "love yes."
+- **28.** Mouth movement is required ("mouth movements are necessary").
+- **29.** Jump: yes ("jump is just fun for kids").
+- **30.** Students seeing each other: "town square will be live for both students eventually, where they can see each other, but for now its not."
+- **31.** Teacher analytics: sure.
+- **32.** **Teacher edits after publish DO update for students**, even for items they already own (supersedes Claudia's "published art is frozen" default).
+- **33.** Price-drop refunds: sure. Plus a new idea: **sales, including daily sales flyers** for the Marketplace.
+- **34.** Name "Style": yes.
+- **Sensory (2026-10-04, separate message):** animation, music and sound effects are engagement drivers for her two students, not risks (Part D standing override).
+
+**AI box under a $0 budget (consequence of answer 21).** Every text-to-image or text-to-3D service, and Claude's own API, bills per use outside a Claude subscription, so the app cannot call any AI service at runtime without new cost. Plan instead:
+1. **Free in-app "Describe it" builder:** the AI box reads the teacher's words with a built-in word list (shapes like wedge, cone, dome, tall hat; colors; patterns like stripes, polka dots, plaid; words like holes, spots, stars) and builds the item from the parametric shapes and patterns already in the wardrobe code. Instant, free, limited to what the parts kit can make.
+2. **"Ask Claude to build it" requests:** anything the builder can't make is saved as a request (her exact words) to a list Claude works through in a Claude Code session, building it as real code like the Swiss Cheese Hat. This uses her subscription, not a paid API.
+3. A paid image or 3D service stays parked unless she later decides to pay for one.
+
+**Reference models (her picks, 2026-10-04):**
+- https://sketchfab.com/3d-models/animal-friends-cartoon-dog-3ca469323c8641018537b6873303244d
+- https://sketchfab.com/3d-models/character209-dalmatian-dog-6727c6c5bc4f4a68b9681bc61bdd55ee
+- https://sketchfab.com/3d-models/dog-3df1138f25d348b8b5c662439b00d436
+- https://sketchfab.com/3d-models/cartoon-bengal-cat-0cb275d5b70842faadaabe5e8232a73f
+- https://sketchfab.com/3d-models/stylized-cartoon-cat-character-cute-3d-model-26fc00d185cc49e08ad5ac8fbf21db07
+- https://sketchfab.com/3d-models/character156-frog-0cad7665061543a78178bd9228addbe8
+- https://sketchfab.com/3d-models/asset-cartoons-character-animals-frog-rig-de9e52f044fe4bc3a0be27b79a914da1
+- https://sketchfab.com/3d-models/capybara-carton-49a344dcb02b4b14a065f39e7fb8708f
+If she wants any of these exact models in the game, she can download them (checking each one's license) and send the files; each would still need refitting to the shared body template so one-size clothing keeps working.
+
+**Future: the Seamstress game with Webkinz-style clothing recipes (direct teacher idea, 2026-10-04).** "eventurally i want to have a whole seamstress game where they can design their own clothes similar to the style designer i have as a teacher, though with questions intermittently interrupted from question sets." Then, with two Webkinz screenshots ("Clothing Recipe Revealed!" via a Clothing Machine: three items in, one new item out; and "Fashion Week Recipes," rows of item + item + item = new item): "when students have access and we are working on building the seamstress game, i want a webkinz clothing recipe inspired activity for them to do and then have their own custom clothes to wear." Planned shape (to design with Claudia when Seamstress starts): a **Clothing Machine** where students combine 3 items they own (or fabric swatches/patterns) to discover a new item from a recipe book; discovered recipes are logged in a Recipe Book (collect them all); new items go straight into their wardrobe to wear; the machine runs on question-set questions between steps, same gate pattern as the other native games; the student's own design tool is a simplified version of the teacher Studio (pattern + colors on templates). Status: idea recorded, not designed or built; it follows student release.
+
+**Other ideas from this message, recorded:** Town Square going live with both students seeing each other (future multiplayer, not now); Marketplace sales and daily sales flyers (future).
+
+### 5B. Build status
+
+**Shipped 2026-10-04 (teacher-only, students see no change):**
+- `src/style/`: the shared body template (`species.ts`), the four species built in code (`StyleCharacter.tsx`: dog with floppy ears and a wagging tail, cat with pointed ears, whiskers and a striped coat, frog with eyes on top and spots, capybara with a long blunt snout and tiny ears), chibi proportions, big shiny eyes that blink, and shared animations: stand, walk, run, jump, wave, cheer, dance, plus a talking mouth that opens and closes.
+- One-size wardrobe (`wardrobe.tsx`, 27 items): T-Shirt, Tank Top, Long Sleeve, Hoodie, Dress; Pants, Shorts, Skirt; Sneakers, Boots, Rain Boots; Ball Cap, Beanie, Party Hat, Crown, Top Hat, Bucket Hat, **Swiss Cheese Hat** (a holey triangle wedge with holes all the way through and dents on top); Round Glasses, Square Glasses, Star Shades, Heart Shades; Comfort: Ear Defenders, Headphones; Back: Backpack, Hero Cape (sways), Butterfly Wings (flap).
+- 10 patterns (Solid, Polka Dots, Stripes, Plaid, Gingham, Checks, Stars, Hearts, Zigzag, Spots), each with both colors editable, on every clothing zone AND on the animal's fur, tummy and ears/paws.
+- Drag color wheel with brightness bar and quick colors (`ColorWheel.tsx`).
+- The **Style** room at Teacher nav → 👗 Style (`/teacher/style`): pick the animal, color everything, wear one outfit (one item per slot), Surprise me, Start over, Undo changes, Save my look, turn buttons plus drag to spin, animation buttons, sound effects on every action (`styleSounds.ts`), and a cheer when saved.
+- Saving: the teacher's look saves to a new `style_looks` table (needs the SQL in `supabase/schema.sql`) and to the device as a backup.
+
+**Next (in order):** students' version + release switch (pie menu entry, replaces the 3D player in Town Square/Home Room/Island, portraits become Style snapshots, old avatars/characters deleted, all at release); Marketplace publishing with price, dates, earn rules counted from publish date, gifting, refunds, sales; Style Studio (templates, POD-style designer, effects shelf, auto-save drafts) with the free Describe-it builder and the request list; more items and the Wheelchair set in Comfort Gear; Seamstress game later.
 
 ### 6. Conflicts with existing standing rules and shipped features (named explicitly)
 

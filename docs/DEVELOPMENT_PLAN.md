@@ -35,6 +35,26 @@ alter table activity_library add column if not exists student_description text;
 ```
 Once that's run, tell the next session (or this one) so the two fields can be added back to the save payload in `src/lib/sync.ts`'s `activityToRow`. This is the same class of bug flagged earlier this session as a standing lesson — a schema.sql migration being written doesn't mean it ran — and it's worth a one-time check of the rest of schema.sql's `alter table` statements against the live database for any other silently-unapplied columns, rather than waiting for each one to surface as its own outage.
 
+**Also pending (2026-10-01 and 2026-10-04), same SQL Editor, both safe to run any time; until then the app works but these don't save to the database:**
+- `chess_games` (Slime Chess personal leaderboard): the full `create table if not exists chess_games ...` block plus its policies (given in chat 2026-10-01; also in `supabase/schema.sql`).
+- `style_looks` (Style: saved looks; the teacher's look also saves on her device meanwhile):
+```sql
+create table if not exists style_looks (
+  owner_id text primary key,
+  look jsonb not null default '{}',
+  updated_at timestamptz not null default now()
+);
+alter table style_looks enable row level security;
+drop policy if exists style_looks_select on style_looks;
+create policy style_looks_select on style_looks for select to anon, authenticated using (true);
+drop policy if exists style_looks_insert on style_looks;
+create policy style_looks_insert on style_looks for insert to anon, authenticated with check (true);
+drop policy if exists style_looks_update on style_looks;
+create policy style_looks_update on style_looks for update to anon, authenticated using (true) with check (true);
+drop policy if exists style_looks_delete on style_looks;
+create policy style_looks_delete on style_looks for delete to authenticated using (true);
+```
+
 ---
 
 ## PART A — Shipped Features (the platform as it exists today)
@@ -571,7 +591,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 
 ## PART B — Open Backlog, by Feature Front
 
-### Style: unified avatars, one-size-fits-all wardrobe, teacher Style Studio, AI item maker, Marketplace publishing. PLANNED, DESIGN COMPLETE, NOTHING BUILT (2026-10-04)
+### Style: unified avatars, one-size-fits-all wardrobe, teacher Style Studio, AI item maker, Marketplace publishing. DECISIONS SETTLED, TEACHER-ONLY STYLE ROOM SHIPPED 2026-10-04, STUDENTS UNCHANGED UNTIL RELEASE
 
 Full spec: [`STYLE.md`](./STYLE.md) (Claudia's design pass). Standing instruction attached: nothing is built until the plan is complete and the teacher answers the Decisions list (STYLE.md section 5).
 
@@ -588,7 +608,9 @@ Full spec: [`STYLE.md`](./STYLE.md) (Claudia's design pass). Standing instructio
 
 **Build order (each phase ships on its own):** Phase 0 spike + decisions (no UI) → 1 one avatar, many species → 2 Style dress-up + free starter library → 3 Marketplace + unlock rules (generic `student_counters`) → 4 Style Studio (hand design) → 5 AI Tier 1 (Shape + Paint) → 6 optional text-to-3D → 7 extensions (Neighbors wearing Style, Dress for the Day, seasonal drops, Bunny, pet accessories, teacher-run Fashion Show).
 
-**Status: waiting on the teacher's answers to the 34 Decisions in STYLE.md section 5.** Blocking Phase 0: 1 to 6 (art direction, launch species, how species get made and budget ceiling if a commission is needed, Style fully replacing the 3D characters, portraits, the 18 Blocky portraits). Blocking Phase 3: 13 to 18. Blocking Phase 5: 21 to 25 (AI providers, monthly cap, whether parametric shapes are enough for the cheese hat, avoid list, review-before-publish).
+**Status (updated 2026-10-04): all 34 decisions answered and SETTLED (STYLE.md 5A).** Key answers: species **dog, cat, frog, capybara**, built in code on one body template; look like her 8 Sketchfab reference picks (cute chibi cartoon animals); Style replaces all 3D characters and **deletes all old avatars, portraits and characters at release**; color wheel for every color plus patterns with editable colors; **one outfit at a time, no saved outfits**; achievement items can't be bought; unlock counts start at publish date; badges stay paused; teacher edits DO update owned items; mouth movement required; jump yes; Comfort Gear incl. wheelchair always free; **students get nothing until she says it's ready, then Style goes in their pie menu**; **AI budget $0** (so: a free in-app "Describe it" builder plus a request list Claude builds in sessions, no paid API).
+**In progress / shipped:** teacher-only **Style room SHIPPED 2026-10-04** at Teacher nav → 👗 Style: the 4 species with shared animations (stand, walk, run, jump, wave, cheer, dance, talking mouth, blinking), 27 one-size items including the **holey Swiss Cheese Hat**, 10 patterns on clothes and fur, drag color wheel, sound effects, Save my look (new `style_looks` table, SQL in schema.sql, plus on-device backup). **Next:** student version + release switch, Marketplace publishing, Style Studio (POD designer, effects shelf, auto-save drafts, Describe-it builder), Seamstress game later.
+**New ideas from her, recorded in STYLE.md 5A:** a **Seamstress game** where students design their own clothes with question-set interruptions, including a **Webkinz-style Clothing Machine with clothing recipes** (combine 3 items to discover a new one, collect recipes, wear the results); Town Square going live with both students seeing each other (later); Marketplace sales and daily sales flyers (later).
 
 **Conflicts with existing rules, named (STYLE.md section 6):** two different "avatar" systems today; the earlier cake "can't just have its arms out" instruction (superseded by the costume rebuild, needs her OK); 3 duplicated player renderers; A36 no leaderboards; `BADGES_PAUSED` vs. achievement unlocks (Decision 15); regulation tools never behind currency (Comfort Gear); zero weapons extended to held items and AI prompts; Marketplace "won't build" list (no scarcity pressure); the first paid-API serverless function is a new security surface.
 

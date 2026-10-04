@@ -50,6 +50,7 @@ const HomeRoom = lazyFresh(() => import('./routes/world/HomeRoom'));
 const IslandBuild = lazyFresh(() => import('./routes/world/IslandBuild'));
 const SlimeChess = lazyFresh(() => import('./routes/student/SlimeChess'));
 const WorldEditor = lazyFresh(() => import('./routes/teacher/WorldEditor'));
+const StyleRoom = lazyFresh(() => import('./routes/teacher/StyleRoom'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
 
@@ -182,6 +183,14 @@ export default function App() {
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />
             <Route path="/teacher/scores" element={<ScoreHistory />} />
             <Route path="/teacher/sel-checkins" element={<SelCheckInLog />} />
+            <Route
+              path="/teacher/style"
+              element={
+                <Suspense fallback={<div className="app-shell center-screen"><p>Loading Style…</p></div>}>
+                  <StyleRoom />
+                </Suspense>
+              }
+            />
             <Route
               path="/teacher/world-editor"
               element={

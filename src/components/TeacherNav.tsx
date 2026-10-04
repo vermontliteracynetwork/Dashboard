@@ -35,6 +35,7 @@ export default function TeacherNav() {
           📥 Inbox{inboxCount > 0 ? ` (${inboxCount})` : ''}
         </NavLink>
         <NavLink to="/teacher/world-editor" className={({ isActive }) => (isActive ? 'active' : '')}>🏗️ Build Mode</NavLink>
+        <NavLink to="/teacher/style" className={({ isActive }) => (isActive ? 'active' : '')}>👗 Style</NavLink>
         {/* Claudia's audit: 9 flat top-level links exceeded the ~5-6 item
             navigation max. These less-frequently-visited destinations move
             under one grouped "More" menu (a native <details>, so it needs

@@ -73,6 +73,7 @@ import {
   rowToSelCheckIn,
   pushSelCheckIn,
   pushChessGame,
+  pushStyleLook,
   rowToOffscreenReview,
   rowToQuizAttempt,
   rowToBadge,
@@ -176,7 +177,8 @@ import {
   rowToFarmerMarketOffer,
   DEFAULT_ASSIGNMENT_COMPLETION_REWARD,
 } from '../lib/sync';
-import type { BadgeCounters } from '../lib/sync';
+import type { BadgeCounters, StyleLookRow } from '../lib/sync';
+import type { StyleLook } from '../style/types';
 import { ruleMet } from '../lib/badgeRules';
 import type {
   Student,
@@ -282,6 +284,11 @@ interface AppState {
   // computer (saved again with the same id if an Undo reopens it).
   chessGames: ChessGameRecord[];
   recordChessGame: (game: ChessGameRecord) => void;
+  // Style (docs/STYLE.md): each owner's saved look ('teacher' or a student
+  // id), one outfit at a time. Also mirrored to localStorage on this device
+  // so a look survives even before the style_looks migration is run.
+  styleLooks: StyleLookRow[];
+  saveStyleLook: (ownerId: string, look: StyleLook) => void;
   selCheckIns: SelCheckIn[];
   recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string) => string;
   addSelCheckInNote: (id: string, noteText: string) => void;
@@ -740,6 +747,7 @@ export const useStore = create<AppState>()(
       quizStruggles: [],
       selCheckIns: [],
       chessGames: [],
+      styleLooks: [],
       offscreenReviews: [],
       quizAttempts: [],
       badges: DEFAULT_BADGES,
@@ -2626,6 +2634,12 @@ export const useStore = create<AppState>()(
       // (spec §5: "reusing the proven help-ping alert path is zero new
       // infrastructure") instead of a separate alert system; it never needs
       // its own Review Inbox entry since the alert already surfaces it.
+      saveStyleLook: (ownerId, look) => {
+        const row = { ownerId, look, updatedAt: new Date().toISOString() };
+        set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
+        try { localStorage.setItem(`style-look:${ownerId}`, JSON.stringify(look)); } catch { /* private mode */ }
+        pushStyleLook(ownerId, look);
+      },
       recordChessGame: (game) => {
         set((s) => ({ chessGames: [game, ...s.chessGames.filter((g) => g.id !== game.id)] }));
         pushChessGame(game);

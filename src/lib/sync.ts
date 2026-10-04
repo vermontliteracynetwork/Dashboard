@@ -243,6 +243,10 @@ const rowToSelCheckIn = (r: Row): SelCheckIn => ({
   recheckToolUsedLabel: r.recheck_tool_used_label ?? undefined,
   recheckTimestamp: r.recheck_timestamp ?? undefined,
 });
+// Style looks (docs/STYLE.md): one row per owner ('teacher' or a student id).
+export interface StyleLookRow { ownerId: string; look: unknown; updatedAt: string }
+const rowToStyleLook = (r: Row): StyleLookRow => ({ ownerId: r.owner_id, look: r.look, updatedAt: r.updated_at });
+
 const rowToChessGame = (r: Row): ChessGameRecord => ({
   id: r.id,
   studentId: r.student_id,
@@ -901,6 +905,7 @@ export interface HydratedState {
   quizStruggles: QuizStruggle[];
   selCheckIns: SelCheckIn[];
   chessGames: ChessGameRecord[];
+  styleLooks: StyleLookRow[];
   offscreenReviews: OffscreenReview[];
   quizAttempts: QuizAttemptRecord[];
   badges: BadgeDef[];
@@ -954,7 +959,7 @@ export async function fetchAll(): Promise<HydratedState> {
     studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes,
     badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes,
     quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes,
-    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, farmerMarketOffersRes, savedWhiteboardsRes, selCheckInsRes, chessGamesRes,
+    literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, farmerMarketOffersRes, savedWhiteboardsRes, selCheckInsRes, chessGamesRes, styleLooksRes,
   ] = await Promise.all([
     supabase.from('students').select('*'),
     supabase.from('rotations').select('*'),
@@ -997,6 +1002,7 @@ export async function fetchAll(): Promise<HydratedState> {
     // Not in the must-succeed list below: until the chess_games migration
     // has been run, the rest of the app still loads normally.
     supabase.from('chess_games').select('*'),
+    supabase.from('style_looks').select('*'),
   ]);
 
   for (const res of [studentsRes, rotationsRes, progressRes, pingsRes, reviewsRes, badgesRes, earnsRes, poolRes, setsRes, modesRes, metaRes, activitiesRes, templatesRes, scheduleRes, assignmentsRes, quizAttemptsRes, transactionsRes, annotationsRes, sbResponsesRes, chatMessagesRes, notesRes, marketplaceItemsRes, appSettingsRes, literacyFocusSetsRes, worldObjectsRes, focusesRes, wallSegmentsRes, studentFeedbackRes, quizStrugglesRes, groundPatchesRes, studentPetsRes, homeRoomsRes, cinemaVideosRes, scratchGamesRes, musicTracksRes, selCheckInsRes]) {
@@ -1046,6 +1052,7 @@ export async function fetchAll(): Promise<HydratedState> {
     quizStruggles: (quizStrugglesRes.data ?? []).map(rowToQuizStruggle),
     selCheckIns: (selCheckInsRes.data ?? []).map(rowToSelCheckIn),
     chessGames: (chessGamesRes.data ?? []).map(rowToChessGame),
+    styleLooks: (styleLooksRes.data ?? []).map(rowToStyleLook),
     offscreenReviews: (reviewsRes.data ?? []).map(rowToOffscreenReview),
     quizAttempts: (quizAttemptsRes.data ?? []).map(rowToQuizAttempt),
     badges: (badgesRes.data ?? []).map(rowToBadge),
@@ -1306,6 +1313,7 @@ export const pushQuizStruggle = (q: QuizStruggle) => upsert('quiz_struggles', qu
 
 export const pushSelCheckIn = (c: SelCheckIn) => upsert('sel_check_ins', selCheckInToRow(c));
 export const pushChessGame = (g: ChessGameRecord) => upsert('chess_games', chessGameToRow(g));
+export const pushStyleLook = (ownerId: string, look: unknown) => upsert('style_looks', { owner_id: ownerId, look, updated_at: new Date().toISOString() });
 
 export const pushOffscreenReview = (o: OffscreenReview) =>
   upsert('offscreen_reviews', {

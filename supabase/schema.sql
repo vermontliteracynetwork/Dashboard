@@ -118,6 +118,15 @@ create table if not exists chess_games (
   moves int not null default 0
 );
 
+-- Style (docs/STYLE.md, 2026-10-04): each owner's saved look, one outfit
+-- at a time. owner_id is 'teacher' or a student id. look = species, body
+-- colors/patterns and the equipped outfit (see src/style/types.ts).
+create table if not exists style_looks (
+  owner_id text primary key,
+  look jsonb not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists offscreen_reviews (
   id text primary key,
   student_id text not null references students(id) on delete cascade,
@@ -895,7 +904,7 @@ declare
     'students', 'rotations', 'subject_progress', 'break_requests', 'help_pings',
     'offscreen_reviews', 'quiz_attempts', 'badges', 'badge_earns', 'break_pool_items',
     'question_sets', 'rotation_modes', 'student_meta', 'activity_library', 'plan_templates', 'weekly_schedule', 'assignments', 'literacy_focus_sets',
-    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers', 'sel_check_ins', 'chess_games'
+    'transactions', 'article_annotations', 'sentence_builder_responses', 'chat_messages', 'notes', 'saved_whiteboards', 'marketplace_items', 'app_settings', 'world_objects', 'focuses', 'wall_segments', 'student_feedback', 'quiz_struggles', 'ground_patches', 'student_pets', 'home_rooms', 'cinema_videos', 'scratch_games', 'music_tracks', 'farmer_market_offers', 'sel_check_ins', 'chess_games', 'style_looks'
   ];
 begin
   foreach t in array tables loop
