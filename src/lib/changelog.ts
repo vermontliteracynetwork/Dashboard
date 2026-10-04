@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-spin-in-town',
+    date: '2026-10-04',
+    icon: '🎡',
+    title: 'Daily Spin and Piggy Bank in Town Square',
+    body: 'Your Daily Spin now pops up as soon as you get to Town Square each day, so you can spin right away. Your Piggy Bank is in the Menu too: tap Menu, then the pig.',
+  },
+  {
     id: '2026-10-01-chess-leaderboard',
     date: '2026-10-01',
     icon: '⭐',

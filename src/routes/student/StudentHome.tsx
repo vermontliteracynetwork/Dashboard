@@ -54,7 +54,6 @@ export default function StudentHome() {
   const progress = useStore((s) => s.progress);
   const hydrated = useStore((s) => s.hydrated);
   const applyTodaysScheduleIfNeeded = useStore((s) => s.applyTodaysScheduleIfNeeded);
-  const onboardedIds = useStore((s) => s.onboardedIds);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -85,22 +84,9 @@ export default function StudentHome() {
     return () => clearInterval(id);
   }, []);
 
-  // Greets the student with the daily wheel automatically as soon as they
-  // land on Home, for as long as they haven't spun yet today — once
-  // they've spun, lastSpinDate flips to today and this stops firing. Never
-  // stacks on top of the one-time first-login walkthrough (Onboarding) —
-  // that always gets a brand-new student's full attention by itself first.
-  useEffect(() => {
-    if (
-      hydrated &&
-      student &&
-      onboardedIds.includes(student.id) &&
-      (student.lastSpinDate !== todayISO() || student.bonusSpinAvailable)
-    ) {
-      setShowSpinWheel(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, student?.id, student?.lastSpinDate, student?.bonusSpinAvailable, onboardedIds]);
+  // The daily wheel now greets the student in Town Square the first time
+  // they land there each day (direct teacher instruction 2026-10-04), not
+  // here on the Computer; the Spin widget below still opens it any time.
 
   if (!student) return null;
 

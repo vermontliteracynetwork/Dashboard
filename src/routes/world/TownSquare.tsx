@@ -5,6 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import * as THREE from 'three';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import DailySpinWheel from '../../components/DailySpinWheel';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
@@ -3192,6 +3193,23 @@ export default function TownSquare() {
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+  // Direct teacher instruction (2026-10-04): the Daily Spin opens as a
+  // pop-up as soon as the student lands in Town Square on their first visit
+  // of the day (not when they reach the Computer), and keeps greeting them
+  // on arrival until they've spun (or while a bonus spin is waiting). It
+  // waits for the arrival card and the What's New book so pop-ups never
+  // stack, and never before a brand-new student's first-login walkthrough.
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const spinOfferedRef = useRef(false);
+  const onboardedIds = useStore((s) => s.onboardedIds);
+  useEffect(() => {
+    if (!student || spinOfferedRef.current || showArrival || showChangelog) return;
+    if (!onboardedIds.includes(student.id)) return;
+    if (student.lastSpinDate === todayISO() && !student.bonusSpinAvailable) return;
+    spinOfferedRef.current = true;
+    setShowSpinWheel(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student?.id, student?.lastSpinDate, student?.bonusSpinAvailable, showArrival, showChangelog, onboardedIds]);
   const closeChangelog = () => {
     setShowChangelog(false);
     if (student && LATEST_CHANGELOG_ID) updateStudent(student.id, { lastSeenChangelogId: LATEST_CHANGELOG_ID });
@@ -4099,6 +4117,7 @@ export default function TownSquare() {
           { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
           { id: 'whatnow', icon: '❓', iconName: 'question', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
           { id: 'home', icon: '🏠', iconName: 'home', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
+          { id: 'piggybank', icon: '🐷', label: 'Piggy Bank', bg: '#e0709a', onSelect: () => navigate('/student/piggy-bank', { state: { from: 'town' } }) },
           ...(styleReleased ? [{ id: 'style', icon: '👗', label: 'Style', bg: '#b0559a', onSelect: () => navigate('/student/style', { state: { from: 'town' } }) }] : []),
           ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
           { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(1) },
@@ -4411,6 +4430,7 @@ export default function TownSquare() {
           page with the same real page-turn as the Joke Book/Pet Book,
           auto-opening for a student the first time they log in after
           something new that affects them has shipped. */}
+      {showSpinWheel && student && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
       {showChangelog && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 240, background: 'rgba(31,17,71,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={closeChangelog}>
           <div style={{ position: 'relative', width: '100%', maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
