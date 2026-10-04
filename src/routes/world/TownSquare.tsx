@@ -1,4 +1,5 @@
 import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import GroundPatchMesh from './GroundPatchMesh';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -35,6 +36,7 @@ import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer, useModelSize } from './WorldObjectRenderer';
+import { TownSizeContext, useTownSizeRule } from './townSize';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
@@ -2304,19 +2306,6 @@ function GroundMaterial() {
 // system) — same tiny lift-above-ground z-fighting fix used throughout
 // this file, raycast disabled so it never blocks a click-to-walk target
 // on the ground underneath it.
-function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
-  const tex = useTexture(patch.texturePath);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  const tileRepeat = Math.max((patch.radius * 2) / 2, 1);
-  tex.repeat.set(tileRepeat, tileRepeat);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return (
-    <mesh position={[patch.x, 0.012, patch.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-      <circleGeometry args={[patch.radius, 24]} />
-      <meshStandardMaterial map={tex} />
-    </mesh>
-  );
-}
 
 // FOUR attempts at a photographic/equirect sky have now visibly broken on
 // the horizon once actually seen live: a runtime canvas gradient, a cloud
@@ -2896,7 +2885,18 @@ export default function TownSquare() {
   const layoutOverrides = useStore((s) => s.layoutOverrides);
   const skyColor = useStore((s) => s.skyColor);
   const skyTexture = useStore((s) => s.skyTexture);
-  const skyTexturePath = skyTexture ? SKY_TEXTURE_OPTIONS.find((t) => t.id === skyTexture)?.path : undefined;
+  const baseSkyIndex = Math.max(0, SKY_TEXTURE_OPTIONS.findIndex((t) => t.id === skyTexture));
+  // Teacher direction 2026-10-04: the sky changes on its own every 5
+  // minutes of play, cycling through all the uploaded skies, starting from
+  // the one she picked; each new sky gently fades in over the old one.
+  const [skyStep, setSkyStep] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setSkyStep((n) => n + 1), 5 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const skyAt = (k: number) => SKY_TEXTURE_OPTIONS.length ? SKY_TEXTURE_OPTIONS[(baseSkyIndex + k) % SKY_TEXTURE_OPTIONS.length].path : undefined;
+  const skyTexturePath = skyAt(skyStep);
+  const prevSkyPath = skyStep > 0 ? skyAt(skyStep - 1) : undefined;
   // Driveable cars (docs/TRANSPORTATION.md, Phase 1) — declared up here
   // (rather than alongside the rest of the interaction state further
   // down) since the collision-layout effect right below needs
@@ -3134,6 +3134,7 @@ export default function TownSquare() {
   const [townsMenu, setTownsMenu] = useState<Townsperson | null>(null);
   const [aboutNpc, setAboutNpc] = useState<string | null>(null);
   const npcProfiles = useNpcProfiles();
+  const townSizeRule = useTownSizeRule();
   const [feelingsNeighbor, setFeelingsNeighbor] = useState<{ id: string; name: string; voicePresetId: string; modelPath?: string } | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   // The full conversation so far, rendered as chat bubbles (NPC left,
@@ -3594,10 +3595,15 @@ export default function TownSquare() {
   const dragLastY = useRef(0);
   const dragDistanceAccum = useRef(0);
   const wasDraggingLook = useRef(false);
+  // Right-click drag (teacher request 2026-10-04): orbit all the way around
+  // your character, 360 degrees and more, to see them face on. Left drag
+  // keeps its gentle capped look-around.
+  const orbitDrag = useRef(false);
   const handleLookPointerDown = (e: React.PointerEvent) => {
     wasDraggingLook.current = false;
     dragDistanceAccum.current = 0;
-    if (!isDesktop || e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (!isDesktop || e.pointerType !== 'mouse' || (e.button !== 0 && e.button !== 2)) return;
+    orbitDrag.current = e.button === 2;
     isDraggingLook.current = true;
     dragLastX.current = e.clientX;
     dragLastY.current = e.clientY;
@@ -3610,7 +3616,11 @@ export default function TownSquare() {
     dragLastY.current = e.clientY;
     dragDistanceAccum.current += Math.abs(dx) + Math.abs(dy);
     if (dragDistanceAccum.current > 5) wasDraggingLook.current = true;
-    cameraLook.current = THREE.MathUtils.clamp(cameraLook.current + dx * DRAG_LOOK_SENSITIVITY, -CAMERA_LOOK_CAP, CAMERA_LOOK_CAP);
+    cameraLook.current = orbitDrag.current
+      ? cameraLook.current + dx * DRAG_LOOK_SENSITIVITY * 1.4
+      : Math.abs(cameraLook.current) > CAMERA_LOOK_CAP
+        ? cameraLook.current + dx * DRAG_LOOK_SENSITIVITY // already orbited past the cap: no snap back
+        : THREE.MathUtils.clamp(cameraLook.current + dx * DRAG_LOOK_SENSITIVITY, -CAMERA_LOOK_CAP, CAMERA_LOOK_CAP);
     // Dragging up (negative dy, mouse moves toward top of screen) tilts the
     // view up, same "drag the world the direction you'd drag a camera"
     // convention as the horizontal look above.
@@ -4025,6 +4035,7 @@ export default function TownSquare() {
       onPointerMove={handleLookPointerMove}
       onPointerUp={handleLookPointerUp}
       onPointerLeave={handleLookPointerUp}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', gap: 8 }}>
         <span style={{ background: 'white', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 700, color: '#1f4238', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
@@ -4565,6 +4576,7 @@ export default function TownSquare() {
       )}
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50 }}>
+        <TownSizeContext.Provider value={townSizeRule}>
         {/* Direct teacher report, live screenshot: dark jagged shapes on
             the horizon in Town Square. Root cause — this fog was only
             ever rendered when a teacher had explicitly picked a sky tint
@@ -4579,12 +4591,12 @@ export default function TownSquare() {
             with the same '#bfe3ff' default the skybox itself uses, so a
             teacher who hasn't picked a color sees no visible change
             except stray-object fade — only the always-on default. */}
-        <fog attach="fog" args={[skyColor ?? '#bfe3ff', 30, 90]} />
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
         <Suspense fallback={null}>
           <SkyboxBackground skyColor={skyColor} />
-          {skyTexturePath && <SkyDome path={skyTexturePath} />}
+          {prevSkyPath && <SkyDome key={`sky-prev-${skyStep}`} path={prevSkyPath} />}
+          {skyTexturePath && <SkyDome key={`sky-${skyStep}`} path={skyTexturePath} fadeIn={skyStep > 0} layer={1} />}
           <ObjectFootprintTracker modelPaths={objectModelPaths} onSize={handleObjectFootprintSize} />
           <Park
             layoutOverrides={layoutOverrides}
@@ -4976,6 +4988,7 @@ export default function TownSquare() {
             <WallMesh key={wall.id} wall={wall} />
           ))}
         </Suspense>
+        </TownSizeContext.Provider>
       </Canvas>
 
       <div style={{ position: 'absolute', [dpadSide]: 16, bottom: dpadBottom, width: 170, height: 170, zIndex: 10 }}>

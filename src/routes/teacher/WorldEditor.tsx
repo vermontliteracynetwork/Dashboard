@@ -1,10 +1,12 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import GroundPatchMesh from '../world/GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer, useModelSize } from '../world/WorldObjectRenderer';
+import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
@@ -17,7 +19,7 @@ import { isTrackModel, trackPlacementFeedback } from '../world/trainTrack';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../../lib/worldTownspeople';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
-import type { WorldObject, WorldObjectRole, LayoutOverride, WallSegment, GroundPatch } from '../../types';
+import type { WorldObject, WorldObjectRole, LayoutOverride, WallSegment } from '../../types';
 
 // Homeplot's "build mode" (Sims/Minecraft-style) — teacher-only, Town
 // Square only: place any uploaded asset, move/rotate/scale it with real 3D
@@ -722,7 +724,11 @@ function AssetThumb({ modelPath, category, size, iconSize }: { modelPath: string
 // one more purpose.
 function GhostScaleReporter({ path, category, label, onScale }: { path: string; category: string; label: string; onScale: (s: number) => void }) {
   const size = useModelSize(path);
+  const sizeRule = useTownSizeContext();
   useEffect(() => {
+    // Under the 5x size rule a new non-flat asset starts at 1.00x (five
+    // characters tall); flat ones still get their usual auto width.
+    if (sizeRule && size.y > 0 && Math.max(size.x, size.z) / size.y <= FLAT_OBJECT_FOOTPRINT_RATIO) { onScale(1); return; }
     onScale(computeAutoScale(size, category, label));
   }, [size, category, label, onScale]);
   return null;
@@ -788,21 +794,6 @@ function GroundTextureMaterial({ path }: { path: string }) {
 // flat objects. raycast disabled so hovering/clicking an existing patch
 // still reaches the ground plane underneath — painting and erasing both
 // depend on that same pointer hitting the ground, not the patch mesh.
-function GroundPatchMesh({ patch }: { patch: GroundPatch }) {
-  const tex = useTexture(patch.texturePath);
-  useMemo(() => {
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    const tileRepeat = Math.max((patch.radius * 2) / 2, 1);
-    tex.repeat.set(tileRepeat, tileRepeat);
-    tex.colorSpace = THREE.SRGBColorSpace;
-  }, [tex, patch.radius]);
-  return (
-    <mesh position={[patch.x, 0.012, patch.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-      <circleGeometry args={[patch.radius, 24]} />
-      <meshStandardMaterial map={tex} />
-    </mesh>
-  );
-}
 
 // WASD/arrow-key camera panning — Claudia's navigation review: an
 // orbit-only camera with no keyboard travel is the standard "hard to
@@ -1748,6 +1739,9 @@ type Sel = { kind: 'placed' | 'layout' | 'wall'; id: string };
 interface EditorSnapshot { worldObjects: WorldObject[]; layoutOverrides: Record<string, LayoutOverride>; }
 
 export default function WorldEditor() {
+  const townSizeRule = useTownSizeRule();
+  const [sizeRuleBusy, setSizeRuleBusy] = useState(false);
+  const [confirmSizeRule, setConfirmSizeRule] = useState(false);
   // Filtered to the shared Town Square only (studentId undefined) — before
   // this filter existed, every student's private Home Room furniture (and
   // now walls) rendered here too, a real bug this pass also closes: a
@@ -2829,6 +2823,15 @@ export default function WorldEditor() {
           >
             👀 Preview as Student
           </a>
+          <button
+            type="button"
+            className="btn btn-sm btn-flat"
+            style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: townSizeRule ? 'rgba(255,255,255,0.25)' : 'transparent', color: '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+            title="Size rule: every asset at 1.00x stands 5 times as tall as a student's character"
+            onClick={() => setConfirmSizeRule(true)}
+          >
+            📏 {townSizeRule ? '5x size: ON' : '5x size: OFF'}
+          </button>
           <span style={{ width: 2, alignSelf: 'stretch', background: 'rgba(255,255,255,0.4)' }} />
           {/* Every edit still saves to Supabase instantly (see flashSaved
               below) — what Publish/Discard control is only whether a
@@ -3353,6 +3356,7 @@ export default function WorldEditor() {
             // even though the binding itself was always correct.
             onContextMenu={(e) => e.preventDefault()}
           >
+            <TownSizeContext.Provider value={townSizeRule}>
             {/* A solid sky color + fog bound the visible scene to roughly
                 the walkable town square — direct teacher instruction after
                 a mis-scaled test placement produced giant shapes visible
@@ -3362,7 +3366,6 @@ export default function WorldEditor() {
                 instead of dominating the view, and the camera itself can't
                 be zoomed out past the town to go looking for it. */}
             <color attach="background" args={[skyColor ?? '#bfe3ff']} />
-            <fog attach="fog" args={[skyColor ?? '#bfe3ff', 26, 46]} />
             {/* Same SkyDome Town Square itself renders (see SkyDome.tsx) —
                 until this was added, a teacher picking a thumbnail in the
                 Fill Sky panel below could never actually see it applied
@@ -3724,6 +3727,7 @@ export default function WorldEditor() {
             {/* Live drag preview while drawing a new wall segment. */}
             {wallPreview && <WallMesh wall={wallPreview} color={WALL_ACCENT} opacity={0.6} />}
 
+            </TownSizeContext.Provider>
           </Canvas>
           {!armedAsset && (
             <Suspense fallback={null}>
@@ -3910,6 +3914,32 @@ export default function WorldEditor() {
       </div>
       )}
 
+      {confirmSizeRule && (
+        <div className="overlay-backdrop" onClick={() => !sizeRuleBusy && setConfirmSizeRule(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack">
+              {townSizeRule ? (
+                <>
+                  <h2 style={{ margin: 0 }}>📏 Turn off the 5x size rule?</h2>
+                  <p style={{ margin: 0 }}>Every object goes back to the exact size it was before you turned the rule on.</p>
+                </>
+              ) : (
+                <>
+                  <h2 style={{ margin: 0 }}>📏 Resize everything to 5x the character?</h2>
+                  <p style={{ margin: 0 }}>Every asset in Town Square (not roads, rugs or other flat ground pieces) is set to 1.00x, which now means 5 times as tall as a student's character. New assets you place start at 1.00x too, and the size slider still makes any one of them bigger or smaller. Students see it right away.</p>
+                  <p style={{ margin: 0, opacity: 0.75 }}>Changed your mind later? Tap this button again to put every object back the way it was.</p>
+                </>
+              )}
+              <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn" disabled={sizeRuleBusy} onClick={() => setConfirmSizeRule(false)}>Cancel</button>
+                <button className="btn btn-primary" disabled={sizeRuleBusy} onClick={async () => { setSizeRuleBusy(true); await setTownSizeRule(!townSizeRule); setSizeRuleBusy(false); setConfirmSizeRule(false); flashSaved(); }}>
+                  {sizeRuleBusy ? 'Resizing…' : townSizeRule ? 'Turn it off' : 'Resize everything'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {editingSignId && (
         <div className="overlay-backdrop" onClick={() => setEditingSignId(null)}>
           <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 380, gap: 10 }} onClick={(e) => e.stopPropagation()}>

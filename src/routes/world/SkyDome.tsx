@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useTexture } from '@react-three/drei';
 
@@ -67,17 +68,80 @@ import { useTexture } from '@react-three/drei';
 // widthSegments/heightSegments raised well past the default (32x16) so
 // the polygon facets near the pole are fine enough not to show as their
 // own faceted artifact.
+// 11th pass, 2026-10-04 (teacher, with a screenshot of torn grey shards
+// when zoomed out in Build Mode: "extend the rendering view so the sky is
+// just a solid dome of the texture, continuous repeating pattern merging at
+// seams" and "dont make the view foggy or translusent at all when i zoom
+// out"). Two real causes, both fixed:
+//  1. The dome sat at a fixed spot with a fixed radius, so zooming the
+//     Build Mode camera out past it (or past the camera's far plane)
+//     clipped the dome into pieces. It now travels with the camera every
+//     frame and sizes itself just inside the far plane, so it is always a
+//     whole, solid dome however far you zoom.
+//  2. UV-wrapping one image around a sphere always leaves a seam and a
+//     pinched pole. The texture is now projected from the view direction
+//     on three axes (triplanar) and mirrored as it repeats, so every edge
+//     meets its own mirror image: one continuous repeating pattern with no
+//     seam and no pole, anywhere.
 export const SKY_DOME_RADIUS = 180;
 
-export function SkyDome({ path }: { path: string }) {
+const vert = `
+varying vec3 vDir;
+void main() {
+  vDir = normalize(position);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+const frag = `
+uniform sampler2D map;
+uniform float tiles;
+uniform float opacity;
+varying vec3 vDir;
+vec2 mirror(vec2 uv) { return 1.0 - abs(1.0 - mod(uv, 2.0)); }
+void main() {
+  vec3 d = normalize(vDir);
+  vec3 w = pow(abs(d), vec3(6.0));
+  w /= (w.x + w.y + w.z);
+  vec2 s = vec2(0.5);
+  vec3 cx = texture2D(map, mirror(d.zy * tiles + s)).rgb;
+  vec3 cy = texture2D(map, mirror(d.xz * tiles + s)).rgb;
+  vec3 cz = texture2D(map, mirror(d.xy * tiles + s)).rgb;
+  gl_FragColor = vec4(cx * w.x + cy * w.y + cz * w.z, opacity);
+  #include <colorspace_fragment>
+}`;
+
+// fadeIn: the dome fades in over a few seconds (used when the sky changes
+// on its own in Town Square, so the change is gentle and in the background).
+export function SkyDome({ path, fadeIn = false, layer = 0 }: { path: string; fadeIn?: boolean; layer?: number }) {
   const texture = useTexture(path);
-  useMemo(() => {
+  const material = useMemo(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    return new THREE.ShaderMaterial({
+      uniforms: { map: { value: texture }, tiles: { value: 1.6 }, opacity: { value: fadeIn ? 0 : 1 } },
+      transparent: fadeIn,
+      vertexShader: vert,
+      fragmentShader: frag,
+      side: THREE.BackSide,
+      depthWrite: false,
+      depthTest: false,
+      fog: false,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texture]);
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame(({ camera }) => {
+    const m = ref.current;
+    if (!m) return;
+    m.position.copy(camera.position);
+    const far = (camera as THREE.PerspectiveCamera).far || 1000;
+    m.scale.setScalar((Math.min(far * 0.9, 5000) - layer * 5) / SKY_DOME_RADIUS);
+    const u = material.uniforms.opacity;
+    if (u.value < 1) u.value = Math.min(1, u.value + 0.004);
+  });
   return (
-    <mesh renderOrder={-1}>
-      <sphereGeometry args={[SKY_DOME_RADIUS, 64, 40]} />
-      <meshBasicMaterial map={texture} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />
+    <mesh ref={ref} renderOrder={-1000 + layer} frustumCulled={false} material={material}>
+      <sphereGeometry args={[SKY_DOME_RADIUS, 48, 32]} />
     </mesh>
   );
 }

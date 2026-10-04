@@ -429,6 +429,9 @@ interface AppState {
   buyMarketplaceItem: (studentId: string, itemId: string, needsWants?: 'need' | 'want') => boolean;
   addWorldObject: (obj: Omit<WorldObject, 'id' | 'createdAt'>) => string;
   updateWorldObject: (id: string, patch: Partial<WorldObject>) => void;
+  // Replace several shared objects as-is (no draft step), for one-tap
+  // town-wide changes the teacher can undo, like the 5x size rule.
+  setWorldObjectsDirect: (objs: WorldObject[]) => void;
   deleteWorldObject: (id: string) => void;
   parkVehicle: (id: string, position: [number, number, number], rotationY: number) => void;
   addWallSegment: (w: Omit<WallSegment, 'id' | 'createdAt'>) => string;
@@ -1237,6 +1240,12 @@ export const useStore = create<AppState>()(
         set((s) => ({ worldObjects: [...s.worldObjects, full] }));
         pushWorldObject(full);
         return full.id;
+      },
+
+      setWorldObjectsDirect: (objs) => {
+        const byId = new Map(objs.map((o) => [o.id, o]));
+        set((s) => ({ worldObjects: s.worldObjects.map((o) => byId.get(o.id) ?? o) }));
+        objs.forEach((o) => pushWorldObject(o));
       },
 
       updateWorldObject: (id, patch) => {

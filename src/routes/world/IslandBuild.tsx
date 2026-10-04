@@ -894,7 +894,6 @@ export default function IslandBuild() {
         onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
       >
         <color attach="background" args={['#7fd0e8']} />
-        <fog attach="fog" args={['#7fd0e8', 34, 70]} />
         <ambientLight intensity={0.85} />
         <directionalLight position={[12, 18, 8]} intensity={1.25} />
         {mode === 'build' && <OrbitControls makeDefault maxPolarAngle={Math.PI / 2.1} minDistance={6} maxDistance={60} />}

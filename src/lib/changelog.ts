@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-clear-skies',
+    date: '2026-10-04',
+    icon: '🌤️',
+    title: 'Clear views and changing skies',
+    body: 'No more fog! You can see all the way across town now. The sky also changes every few minutes while you play, so keep looking up.',
+  },
+  {
     id: '2026-10-04-talk-scene',
     date: '2026-10-04',
     icon: '💬',

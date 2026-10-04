@@ -2,6 +2,7 @@ import { useMemo, forwardRef } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import type { WorldObject } from '../../types';
+import { useTownSizeContext } from './townSize';
 
 // Shared by both the World Editor and the real student-facing Town Square —
 // what a teacher builds is exactly what a student walks around in, loaded
@@ -44,12 +45,31 @@ export function isFlatModelSize(size: { x: number; y: number; z: number }): bool
 // a bounding box's SIZE (as opposed to its center) doesn't depend on
 // translation — drei caches useGLTF globally by path, so this is a cheap
 // cache hit alongside every other useGLTF call for the same model.
-export function useModelSize(path: string): THREE.Vector3 {
-  const { scene } = useGLTF(path);
-  return useMemo(() => new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3()), [scene]);
+// Town Square size rule (teacher direction 2026-10-04: "everything is
+// adjusted to equal 5.00x the player/charcters hight"): every placed asset
+// in the shared town (Live Mode and Build Mode) is resized so that at
+// 1.00x it stands 5 times as tall as a student's character (their Style
+// animal, about 0.96 units tall in Town Square). Flat things (roads, rugs,
+// ground tiles) keep their own size so the ground stays flat. The Build
+// Mode scale slider still multiplies on top of this.
+export const CHARACTER_HEIGHT = 1.55 * 0.62;
+export const TOWN_ASSET_HEIGHT = CHARACTER_HEIGHT * 5;
+export function townSizeFactor(size: { x: number; y: number; z: number }): number {
+  if (!(size.y > 0) || isFlatModelSize(size)) return 1;
+  return TOWN_ASSET_HEIGHT / size.y;
 }
 
-function useRecenteredScene(path: string, tintColor?: string, opacity?: number) {
+export function useModelSize(path: string, normalizeArg?: boolean): THREE.Vector3 {
+  const ctx = useTownSizeContext();
+  const normalize = normalizeArg ?? ctx;
+  const { scene } = useGLTF(path);
+  return useMemo(() => {
+    const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
+    return normalize ? size.multiplyScalar(townSizeFactor(size)) : size;
+  }, [scene, normalize]);
+}
+
+function useRecenteredScene(path: string, tintColor?: string, opacity?: number, normalize = false) {
   const { scene } = useGLTF(path);
   return useMemo(() => {
     const clone = scene.clone(true);
@@ -57,7 +77,10 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number) 
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const lift = size.y > 0 && isFlatModelSize(size) ? FLAT_LIFT : 0;
-    clone.position.set(-center.x, -box.min.y + lift, -center.z);
+    const k = normalize ? townSizeFactor(size) : 1;
+    clone.position.set(-center.x * k, (-box.min.y + lift) * k, -center.z * k);
+    clone.scale.multiplyScalar(k);
+    size.multiplyScalar(k);
     if (tintColor || opacity !== undefined) {
       const color = tintColor ? new THREE.Color(tintColor) : null;
       clone.traverse((child) => {
@@ -90,7 +113,7 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number) 
       });
     }
     return { scene: clone, size };
-  }, [scene, tintColor, opacity]);
+  }, [scene, tintColor, opacity, normalize]);
 }
 
 // A minimum comfortable hit-target size (world units) for the invisible
@@ -115,8 +138,10 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   // stop catching taps so the ghost can slide over (and be dropped on top
   // of) them, e.g. a chess set onto a table.
   inert?: boolean;
-}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert }, ref) {
-  const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity);
+  normalize?: boolean; // apply the Town Square size rule (townSizeFactor)
+}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize }, ref) {
+  const ctx = useTownSizeContext();
+  const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity, (normalize ?? ctx) && !obj.studentId);
   const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
   return (
     <group ref={ref} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={obj.scale}>
