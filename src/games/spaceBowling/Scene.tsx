@@ -129,13 +129,44 @@ function Lane() {
 
 // --- pins -----------------------------------------------------------------
 
-type PinAnim = { start: number; dir: THREE.Vector3; spin: THREE.Vector3; mode: 'fall' | 'abduct' };
+// Every pin is its own little physics body (teacher direction 2026-10-04:
+// "ensure bowling pins fall independently from one another, not in one
+// unit", "pins must have a falling animation"). A knocked pin gets its own
+// push and spin from where the ball (or a falling neighbor) hit it, then
+// tumbles under gravity, bounces and slides on the deck, and can slide off
+// the back of the lane into space. Pins hit by the ball go first; pins
+// knocked by other pins follow a moment later, so a roll reads as a chain
+// reaction instead of one block tipping over. Pins that stay up wobble
+// when a neighbor goes down next to them.
+
+// Which way every pin turns so the cat faces the player (teacher: "make
+// sure bowling pins are facing forward toward the player").
+const PIN_FACE_Y = -Math.PI / 2;
+const PIN_R = 0.16;
+const GRAVITY = 9.8;
+const DECK_HALF = 1.38;
+const SETTLE_AT = 2.6; // seconds after a pin starts falling: it shrinks away
+type PinBody = {
+  start: number;
+  mode: 'fall' | 'abduct';
+  pos: THREE.Vector3;
+  vel: THREE.Vector3;
+  q: THREE.Quaternion;
+  w: THREE.Vector3;
+};
+type Wobble = { start: number; axis: THREE.Vector3 };
 
 function usePinModels() {
   const { scene } = useGLTF(`${BASE}alien-cat-pins.glb`);
   return useMemo(() => {
     scene.updateMatrixWorld(true);
-    const root = scene.getObjectByName('Alien cats') ?? scene;
+    // The ten cats are the children of the "Alien cats" node. three.js
+    // renames it "Alien_cats" on load (no spaces in node names), and the old
+    // lookup by the spaced name silently fell back to the whole model: all
+    // ten cats were one pin, so they fell as one block and the UFO could
+    // never take any. Found by shape now (the node holding ten children).
+    let root: THREE.Object3D = scene;
+    scene.traverse((o) => { if (root === scene && o.children.length >= 10) root = o; });
     const pins = root.children.slice(0, 10).map((node) => {
       const holder = new THREE.Group();
       const c = node.clone(true);
@@ -145,7 +176,9 @@ function usePinModels() {
       const size = box.getSize(new THREE.Vector3());
       const s = PIN_H / (size.y || 1);
       const center = box.getCenter(new THREE.Vector3());
-      c.position.sub(new THREE.Vector3(center.x, box.min.y, center.z));
+      // Centered on the pin's middle (not its base), so it tumbles around
+      // its own center of mass.
+      c.position.sub(new THREE.Vector3(center.x, center.y, center.z));
       const wrap = new THREE.Group();
       wrap.add(holder);
       holder.scale.setScalar(s);
@@ -156,34 +189,68 @@ function usePinModels() {
   }, [scene]);
 }
 
+const UP = new THREE.Vector3(0, 1, 0);
+const faceQ = new THREE.Quaternion().setFromAxisAngle(UP, PIN_FACE_Y);
+
 function Pins({ standing, rackId, roll, abduct, onAbductDone }: { standing: boolean[]; rackId: number; roll: RollShot | null; abduct: SceneProps['abduct']; onAbductDone: () => void }) {
   const models = usePinModels();
   const refs = useRef<(THREE.Group | null)[]>([]);
-  const anims = useRef<(PinAnim | null)[]>([]);
+  const bodies = useRef<(PinBody | null)[]>([]);
+  const wobbles = useRef<(Wobble | null)[]>([]);
   const clock = useThree((s) => s.clock);
 
+  const place = (g: THREE.Group, i: number) => {
+    g.position.set(PIN_SPOTS[i][0], PIN_H / 2, PIN_SPOTS[i][1]);
+    g.quaternion.copy(faceQ);
+    g.scale.setScalar(1);
+  };
+
   useEffect(() => {
-    anims.current = [];
+    bodies.current = [];
+    wobbles.current = [];
     refs.current.forEach((g, i) => {
       if (!g) return;
-      g.position.set(PIN_SPOTS[i][0], 0, PIN_SPOTS[i][1]);
-      g.rotation.set(0, (i * 1.7) % (Math.PI * 2), 0);
-      g.scale.setScalar(1);
+      place(g, i);
       g.visible = standing[i];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rackId]);
 
-  // Knocked pins fall when the ball reaches their row.
+  // Knocked pins: each gets its own start time, push and spin.
   useEffect(() => {
     if (!roll) return;
     const t0 = clock.elapsedTime;
     const travel = roll.shuttle ? 1.5 : 1.7;
+    const power = roll.shuttle ? 1.5 : 1;
+    const downSet = new Set(roll.down);
     roll.down.forEach((i) => {
       const [px, pz] = PIN_SPOTS[i];
       const reach = travel * ((START_Z - pz) / (START_Z - END_Z));
-      const dir = new THREE.Vector3(px - roll.laneX + (Math.random() - 0.5) * 0.4, 0, -1.2).normalize();
-      anims.current[i] = { start: t0 + reach + Math.random() * 0.12, dir, spin: new THREE.Vector3(Math.random() * 6 - 3, Math.random() * 4 - 2, Math.random() * 6 - 3), mode: 'fall' };
+      const off = px - roll.laneX;
+      const direct = Math.abs(off) < 0.3 || roll.shuttle;
+      const side = Math.sign(off || (Math.random() - 0.5));
+      const delay = direct ? Math.random() * 0.05 : 0.08 + Math.random() * 0.28 + Math.abs(off) * 0.18;
+      const vel = direct
+        ? new THREE.Vector3(side * (0.4 + Math.random() * 0.8) + off * 1.4, 0.8 + Math.random() * 1.0, -(0.7 + Math.random() * 0.8)).multiplyScalar(power)
+        : new THREE.Vector3(side * (0.7 + Math.random() * 1.0), 0.4 + Math.random() * 0.7, -(0.2 + Math.random() * 0.5)).multiplyScalar(power);
+      const tip = new THREE.Vector3(vel.z, 0, -vel.x).normalize().multiplyScalar(5 + Math.random() * 4);
+      tip.y = (Math.random() - 0.5) * 8;
+      const g = refs.current[i];
+      bodies.current[i] = {
+        start: t0 + reach + delay,
+        mode: 'fall',
+        pos: g ? g.position.clone() : new THREE.Vector3(px, PIN_H / 2, pz),
+        vel,
+        q: g ? g.quaternion.clone() : faceQ.clone(),
+        w: tip,
+      };
+      // Standing pins right next to this one wobble when it goes down.
+      PIN_SPOTS.forEach(([qx, qz], k) => {
+        if (downSet.has(k) || !standing[k] || k === i) return;
+        if (Math.hypot(qx - px, qz - pz) < 0.62) {
+          wobbles.current[k] = { start: t0 + reach + delay + 0.05, axis: new THREE.Vector3(qz - pz, 0, -(qx - px)).normalize() };
+        }
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roll?.id]);
@@ -192,7 +259,10 @@ function Pins({ standing, rackId, roll, abduct, onAbductDone }: { standing: bool
   useEffect(() => {
     if (!abduct) return;
     const t0 = clock.elapsedTime + 1.1;
-    abduct.pins.forEach((i, k) => { anims.current[i] = { start: t0 + k * 0.25, dir: new THREE.Vector3(), spin: new THREE.Vector3(0, 3, 0), mode: 'abduct' }; });
+    abduct.pins.forEach((i, k) => {
+      const g = refs.current[i];
+      bodies.current[i] = { start: t0 + k * 0.25, mode: 'abduct', pos: g ? g.position.clone() : new THREE.Vector3(), vel: new THREE.Vector3(), q: g ? g.quaternion.clone() : faceQ.clone(), w: new THREE.Vector3(0, 3, 0) };
+    });
     const done = window.setTimeout(onAbductDone, 3400);
     return () => window.clearTimeout(done);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -201,39 +271,67 @@ function Pins({ standing, rackId, roll, abduct, onAbductDone }: { standing: bool
   const meowed = useRef<Set<number>>(new Set());
   useEffect(() => { meowed.current = new Set(); }, [roll?.id, abduct?.id]);
 
-  useFrame(({ clock: c }, dt) => {
+  const tmpQ = useMemo(() => new THREE.Quaternion(), []);
+  const tmpV = useMemo(() => new THREE.Vector3(), []);
+  useFrame(({ clock: c }, rawDt) => {
+    const dt = Math.min(rawDt, 1 / 30);
     refs.current.forEach((g, i) => {
-      const a = anims.current[i];
-      if (!g || !a) return;
-      const t = c.elapsedTime - a.start;
+      if (!g) return;
+      const b = bodies.current[i];
+      if (!b) {
+        const wb = wobbles.current[i];
+        if (wb) {
+          const t = c.elapsedTime - wb.start;
+          if (t >= 0) {
+            const tilt = 0.16 * Math.sin(t * 17) * Math.exp(-t * 3.2);
+            g.quaternion.copy(faceQ).premultiply(tmpQ.setFromAxisAngle(wb.axis, tilt));
+            if (t > 1.6) { wobbles.current[i] = null; g.quaternion.copy(faceQ); }
+          }
+        }
+        return;
+      }
+      const t = c.elapsedTime - b.start;
       if (t < 0) return;
       if (!meowed.current.has(i)) {
         meowed.current.add(i);
         if (meowed.current.size <= 4) meow(0.85 + Math.random() * 0.5);
       }
-      if (a.mode === 'fall') {
-        // Tip over sideways and skid back, with a little hop, then fade.
-        const k = Math.min(1, t * 2.4);
-        g.position.addScaledVector(a.dir, dt * Math.max(0, 1.6 - t * 1.4));
-        g.position.y = Math.sin(Math.min(t * 4, Math.PI)) * 0.22;
-        g.rotation.z = Math.sign(a.spin.z || 1) * k * (Math.PI / 2);
-        g.rotation.x = -k * 0.5;
-        g.rotation.y += a.spin.y * dt * 0.5;
-        if (t > 1.3) g.scale.setScalar(Math.max(0.001, 1 - (t - 1.3) * 2));
-        if (t > 1.8) g.visible = false;
-      } else {
-        g.position.y = Math.min(2.6, t * 1.6);
+      if (b.mode === 'abduct') {
+        g.position.y = Math.min(2.6, PIN_H / 2 + t * 1.6);
         g.rotation.y += dt * 4;
         g.scale.setScalar(Math.max(0.001, 1 - t * 0.55));
         if (t > 1.8) g.visible = false;
+        return;
       }
+      // Tumble: gravity, spin, bounce and slide on the deck.
+      b.vel.y -= GRAVITY * dt;
+      b.pos.addScaledVector(b.vel, dt);
+      const wl = b.w.length();
+      if (wl > 1e-4) b.q.premultiply(tmpQ.setFromAxisAngle(tmpV.copy(b.w).divideScalar(wl), wl * dt));
+      const onDeck = Math.abs(b.pos.x) < DECK_HALF && b.pos.z > END_Z;
+      if (onDeck) {
+        const upY = Math.abs(tmpV.set(0, 1, 0).applyQuaternion(b.q).y);
+        const lowest = b.pos.y - (upY * PIN_H / 2 + PIN_R * Math.sqrt(Math.max(0, 1 - upY * upY)));
+        if (lowest < 0) {
+          b.pos.y -= lowest;
+          if (b.vel.y < 0) b.vel.y *= -0.28;
+          const f = Math.exp(-5 * dt);
+          b.vel.x *= f;
+          b.vel.z *= f;
+          b.w.multiplyScalar(Math.exp((upY < 0.2 ? -5 : -1.4) * dt));
+        }
+      }
+      g.position.copy(b.pos);
+      g.quaternion.copy(b.q);
+      if (t > SETTLE_AT) g.scale.setScalar(Math.max(0.001, 1 - (t - SETTLE_AT) * 2.2));
+      if (t > SETTLE_AT + 0.45 || b.pos.y < -6) g.visible = false;
     });
   });
 
   return (
     <group>
       {models.map((m, i) => (
-        <group key={i} ref={(r) => { refs.current[i] = r; }} position={[PIN_SPOTS[i][0], 0, PIN_SPOTS[i][1]]} visible={standing[i]}>
+        <group key={i} ref={(r) => { refs.current[i] = r; }} position={[PIN_SPOTS[i][0], PIN_H / 2, PIN_SPOTS[i][1]]} quaternion={faceQ} visible={standing[i]}>
           <primitive object={m} />
         </group>
       ))}
@@ -280,6 +378,7 @@ function Ball({ src, roll, onRollDone, calm }: { src: string; roll: RollShot | n
     if (!s || !sh) return;
     if (!roll || start.current === null) {
       s.visible = true;
+      s.scale.setScalar(0.62);
       sh.visible = false;
       s.position.set(0, 0.3 + (calm ? 0 : Math.sin(c.elapsedTime * 2.4) * 0.05), START_Z);
       if (mat.current) mat.current.rotation = calm ? 0 : Math.sin(c.elapsedTime) * 0.2;
@@ -301,6 +400,21 @@ function Ball({ src, roll, onRollDone, calm }: { src: string; roll: RollShot | n
       s.position.set(x, 0.3, z);
       if (mat.current) mat.current.rotation -= 0.35;
     }
+    // Past the pins the ball drops off the end of the lane into space (the
+    // shuttle zooms up and away), so it is out of sight by the end of the
+    // turn (teacher: "the ball should drop or disappear at the end of the
+    // turn so it is out of sight").
+    const over = c.elapsedTime - start.current - travel;
+    if (over > 0) {
+      if (roll.shuttle) {
+        sh.position.set(0, 0.45 + over * over * 6, END_Z - over * 6);
+        sh.visible = over < 1;
+      } else {
+        s.position.set(x, 0.3 - 0.5 * GRAVITY * over * over, END_Z - over * 2.4);
+        s.scale.setScalar(0.62 * Math.max(0.05, 1 - over * 0.6));
+        s.visible = over < 1.3;
+      }
+    } else if (!roll.shuttle) s.scale.setScalar(0.62);
     if (t >= 1 && !done.current) {
       done.current = true;
       if (roll.down.length >= 6) sfx('crashBig'); else if (roll.down.length > 0) sfx('crash');

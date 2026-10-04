@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-bowling-neighbors',
+    date: '2026-10-04',
+    icon: '🎳',
+    title: 'Play games with your Neighbors',
+    body: 'In Space Bowling and Slime Chess you now play against a Neighbor instead of the computer. Talk to them later and they might remember your game! The bowling pins also face you now, tumble down one by one, and the UFO really beams them away.',
+  },
+  {
     id: '2026-10-04-car-dash',
     date: '2026-10-04',
     icon: '🚗',

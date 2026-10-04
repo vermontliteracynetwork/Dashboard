@@ -8,6 +8,8 @@ import {
   kingSquare, type Hint, type Level,
 } from '../../lib/chessCoach';
 import { slimeSound } from '../../lib/slimeSounds';
+import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
+import { pickRival, recordGameMemory } from '../../lib/gameRivals';
 import type { ChessGameRecord, MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -186,6 +188,14 @@ export default function SlimeChess() {
   const [shakeSquare, setShakeSquare] = useState<Square | null>(null);
   const [gameOver, setGameOver] = useState<{ title: string; text: string; win: boolean | null } | null>(null);
   const aiTimer = useRef<number | null>(null);
+  // The opponent is a random Neighbor, not "the computer" (teacher
+  // direction 2026-10-04, see src/lib/gameRivals.ts). A ref too, since the
+  // computer's move runs from a timer that can outlive the render it was
+  // queued in.
+  const npcProfiles = useNpcProfiles();
+  const [rival, setRival] = useState<NpcProfile | null>(null);
+  const rivalRef = useRef<NpcProfile | null>(null);
+  const rivalName = rival?.name ?? 'Your Neighbor';
 
   useEffect(() => () => { if (aiTimer.current) window.clearTimeout(aiTimer.current); }, []);
 
@@ -267,6 +277,10 @@ export default function SlimeChess() {
 
   const startGame = () => {
     saveIfUnfinished();
+    const r = mode === 'computer' ? pickRival(npcProfiles) : null;
+    rivalRef.current = r;
+    setRival(r);
+    const rn = r?.name ?? 'Your Neighbor';
     gameIdRef.current = `chess-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     if (aiTimer.current) window.clearTimeout(aiTimer.current);
     gameRef.current = new Chess();
@@ -283,11 +297,11 @@ export default function SlimeChess() {
     setTurnCard(null);
     setScreen('play');
     if (mode === 'computer' && human === 'b') {
-      say(`You're ${names.b}. ${names.w} goes first. Watch where the computer moves!`);
+      say(`You're ${names.b}, playing ${rn}. ${names.w} goes first. Watch where ${rn} moves!`);
       queueComputer();
     } else {
       say(mode === 'computer'
-        ? `You're ${names[human]}! Tap one of your pieces to see where it can go. Tap Hint any time for an idea.`
+        ? `You're ${names[human]}, playing ${rn}! Tap one of your pieces to see where it can go. Tap Hint any time for an idea.`
         : `${names.w} goes first. Tap a ${names.w} piece to see where it can go.`);
     }
   };
@@ -300,7 +314,7 @@ export default function SlimeChess() {
       const winnerName = names[moverColor];
       const humanWon = mode === 'friends' ? null : moverColor === human;
       result = {
-        title: mode === 'friends' ? `${winnerName} wins!` : humanWon ? 'You win!' : 'The computer wins this time',
+        title: mode === 'friends' ? `${winnerName} wins!` : humanWon ? 'You win!' : `${rivalRef.current?.name ?? 'Your Neighbor'} wins this time`,
         text: `Checkmate! The ${names[other(moverColor)]} King is in check and has no way to escape.${humanWon === false ? ' Every game makes you a stronger player. Want a rematch?' : ''}`,
         win: humanWon,
       };
@@ -315,6 +329,9 @@ export default function SlimeChess() {
     }
     setGameOver(result);
     saveGame(result.win === true ? 'win' : result.win === false ? 'loss' : 'draw');
+    if (mode === 'computer' && rivalRef.current && currentStudentId) {
+      recordGameMemory(currentStudentId, rivalRef.current.id, 'Slime Chess', result.win === true ? 'student' : result.win === false ? 'npc' : 'tie');
+    }
     sound(result.win === false ? slimeSound.draw : result.win === null && !g.isCheckmate() ? slimeSound.draw : slimeSound.win);
     return true;
   };
@@ -370,7 +387,7 @@ export default function SlimeChess() {
       ? `Splat! ${describeMove(m, names)}.`
       : `${describeMove(m, names)}.`;
     if (mode === 'computer') {
-      say(g.inCheck() ? `${msg} Their King has to escape now.` : `${msg} The computer is thinking...`, m.captured || g.inCheck() ? 'good' : 'info');
+      say(g.inCheck() ? `${msg} Their King has to escape now.` : `${msg} ${rivalName} is thinking...`, m.captured || g.inCheck() ? 'good' : 'info');
       queueComputer();
     } else {
       say(g.inCheck()
@@ -386,7 +403,7 @@ export default function SlimeChess() {
     if (isHumanTurn && askedForPly.current !== history.length) return;
     const g = gameRef.current;
     if (thinking || !isHumanTurn) {
-      say('Hang on, the computer is taking its turn.', 'info');
+      say(`Hang on, ${rivalName} is taking a turn.`, 'info');
       return;
     }
     const piece = g.get(sq);
@@ -522,7 +539,7 @@ export default function SlimeChess() {
           <div className="sc-menu-section">
             <h2>Who do you want to play?</h2>
             <div className="sc-choice-row">
-              <button className={`sc-pill pill-cyan${mode === 'computer' ? ' on' : ''}`} onClick={() => setMode('computer')}>The Computer</button>
+              <button className={`sc-pill pill-cyan${mode === 'computer' ? ' on' : ''}`} onClick={() => setMode('computer')}>A Neighbor</button>
               <button className={`sc-pill pill-pink${mode === 'friends' ? ' on' : ''}`} onClick={() => setMode('friends')}>A Friend (same iPad)</button>
             </div>
           </div>
@@ -654,7 +671,7 @@ export default function SlimeChess() {
             <img src={pieceSrc(theme, turn, 'k')} alt="" />
             <div className="sc-turn-text">
               <span>
-                {gameOver ? 'Game over' : thinking ? 'Computer is thinking...' : mode === 'computer' ? (turn === human ? 'Your turn!' : "Computer's turn") : `${names[turn]}'s turn`}
+                {gameOver ? 'Game over' : thinking ? `${rivalName} is thinking...` : mode === 'computer' ? (turn === human ? 'Your turn!' : `${rivalName}'s turn`) : `${names[turn]}'s turn`}
               </span>
  {mode === 'computer' && myXp(history) > 0 && <span className="sc-xp-pill">⭐ {myXp(history)} XP</span>}
               {capturedBy(haulSide).length > 0 && (
@@ -822,7 +839,7 @@ function ChessLeaderboard({ games, theme, human }: { games: ChessGameRecord[]; t
         <span><strong>{wins}</strong> win{wins === 1 ? '' : 's'}</span>
       </div>
       {top.length === 0 ? (
-        <p className="sc-lb-empty">Capture pieces from the computer to earn XP. Your best games will show up here!</p>
+        <p className="sc-lb-empty">Capture your Neighbor's pieces to earn XP. Your best games will show up here!</p>
       ) : (
         <ol className="sc-lb-list">
           {top.map((g, i) => (

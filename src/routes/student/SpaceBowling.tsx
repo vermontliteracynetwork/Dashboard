@@ -19,6 +19,8 @@ import {
 } from '../../games/spaceBowling/logic';
 import { LEVELS, meow, preloadSfx, setLevels, sfx, startMusic, stopMusic, type Level } from '../../games/spaceBowling/audio';
 import type { RollShot } from '../../games/spaceBowling/Scene';
+import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
+import { pickRival, recordGameMemory } from '../../lib/gameRivals';
 
 const Scene = lazyFresh(() => import('../../games/spaceBowling/Scene'));
 
@@ -84,7 +86,11 @@ export default function SpaceBowling() {
   };
 
   // --- launch options ---
-  const [playerCount, setPlayerCount] = useState(1); // 1 = you vs the computer
+  const [playerCount, setPlayerCount] = useState(1); // 1 = you vs a Neighbor
+  // The computer player is a random Neighbor (teacher direction
+  // 2026-10-04, see src/lib/gameRivals.ts).
+  const npcProfiles = useNpcProfiles();
+  const [rival, setRival] = useState<NpcProfile | null>(null);
   const [names, setNames] = useState<string[]>(() => [student?.name ?? 'Player 1', 'Player 2', 'Player 3', 'Player 4']);
   const [planets, setPlanets] = useState<number[]>([0, 3, 6, 8]);
   const [rounds, setRounds] = useState(10);
@@ -127,8 +133,10 @@ export default function SpaceBowling() {
   const inGame = phase !== 'launch' && phase !== 'gameover';
 
   const startGame = () => {
+    const r = playerCount === 1 ? pickRival(npcProfiles) : null;
+    setRival(r);
     const ps: Player[] = playerCount === 1
-      ? [{ name: names[0] || 'You', planet: planets[0], cpu: false, score: 0, powerups: [], strikes: 0 }, { name: 'Computer', planet: (planets[0] + 5) % PLANETS.length, cpu: true, score: 0, powerups: [], strikes: 0 }]
+      ? [{ name: names[0] || 'You', planet: planets[0], cpu: false, score: 0, powerups: [], strikes: 0 }, { name: r?.name ?? 'Your Neighbor', planet: (planets[0] + 5) % PLANETS.length, cpu: true, score: 0, powerups: [], strikes: 0 }]
       : Array.from({ length: playerCount }, (_, i) => ({ name: names[i] || `Player ${i + 1}`, planet: planets[i], cpu: false, score: 0, powerups: [], strikes: 0 }));
     setPlayers(ps);
     setMeteorFor(ps.map(() => false));
@@ -310,7 +318,7 @@ export default function SpaceBowling() {
       const target = (idx + 1) % players.length;
       setPlayers((ps) => ps.map((p, i) => (i === idx ? { ...p, powerups: removeOne(p.powerups, 'meteor') } : p)));
       setMeteorFor((m) => m.map((v, i) => (i === target ? true : v)));
-      flash(`The computer sent a meteor shower at ${players[target].name}!`);
+      flash(`${me.name} sent a meteor shower at ${players[target].name}!`);
     }
     if (me.powerups.includes('shuttle')) {
       setPlayers((ps) => ps.map((p, i) => (i === idx ? { ...p, powerups: removeOne(p.powerups, 'shuttle') } : p)));
@@ -326,6 +334,8 @@ export default function SpaceBowling() {
     sfx('victory');
     const me = players.find((p) => !p.cpu);
     if (studentId && me && playerCount === 1 && me.score > (stats.best ?? 0)) mergeStyleRow(statsOwner(studentId), { best: me.score });
+    const npc = players.find((p) => p.cpu);
+    if (studentId && me && npc && rival) recordGameMemory(studentId, rival.id, 'Space Bowling', me.score > npc.score ? 'student' : me.score < npc.score ? 'npc' : 'tie');
   };
 
   const pickLane = (choice: number) => {
@@ -385,7 +395,7 @@ export default function SpaceBowling() {
             <section className="sb-panel sb-options">
               <h2>Who's playing?</h2>
               <div className="sb-chips">
-                <button className={`sb-chip${playerCount === 1 ? ' on' : ''}`} onClick={() => setPlayerCount(1)}>🤖 Me vs Computer</button>
+                <button className={`sb-chip${playerCount === 1 ? ' on' : ''}`} onClick={() => setPlayerCount(1)}>🏡 Me vs a Neighbor</button>
                 {[2, 3, 4].map((n) => <button key={n} className={`sb-chip${playerCount === n ? ' on' : ''}`} onClick={() => setPlayerCount(n)}>👥 {n} players</button>)}
               </div>
               <div className="sb-player-rows">
@@ -469,7 +479,7 @@ export default function SpaceBowling() {
 
           <div className="sb-say">
             {phase === 'aim' && cur && !cur.cpu && <span>{threeLanes ? 'Meteor shower! Tap ⬅, ⬆ or ➡ to roll.' : asteroidLane !== null ? `Tap a number to roll! Hit the glowing asteroid in lane ${asteroidLane + 1} for a power-up.` : 'Tap a number to roll your planet down that lane!'}{cur.powerups.length > 0 ? ' Or use a power-up first.' : ''}</span>}
-            {phase === 'cpu' && <span>🤖 The computer is aiming…</span>}
+            {phase === 'cpu' && <span>🎳 {cur?.name} is aiming…</span>}
             {phase === 'rolling' && <span>Rolling…</span>}
             {phase === 'abduct' && <span>🛸 The UFO is beaming up two pins!</span>}
             {phase === 'meteor' && <span>☄️ Meteor shower incoming!</span>}
@@ -479,7 +489,7 @@ export default function SpaceBowling() {
             <div className={`sb-result${result.strike ? ' strike' : ''}`} role="status">
               <strong>{result.text}</strong>
               {result.sub && <span>{result.sub}</span>}
-              {result.earned && <span className="sb-earned">{POWER_INFO[result.earned].icon} {players[turn]?.cpu ? 'The computer' : 'You'} found a {POWER_INFO[result.earned].name}! {players[turn]?.cpu ? '' : 'Use it on your next turn.'}</span>}
+              {result.earned && <span className="sb-earned">{POWER_INFO[result.earned].icon} {players[turn]?.cpu ? players[turn].name : 'You'} found a {POWER_INFO[result.earned].name}! {players[turn]?.cpu ? '' : 'Use it on your next turn.'}</span>}
             </div>
           )}
 

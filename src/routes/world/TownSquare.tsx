@@ -9,6 +9,7 @@ import { useStore } from '../../store/store';
 import DailySpinWheel from '../../components/DailySpinWheel';
 import BawkGuide from '../../components/BawkGuide';
 import CarDashboard from '../../components/CarDashboard';
+import { markMemoryTold, memoryStep, untoldMemory } from '../../lib/gameRivals';
 import { asInventory, inventoryOwner } from '../../style/shop';
 import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_VARIANT, type Quest1Neighbor, type ConversationStep, type ConversationOption } from '../../lib/worldQuest1';
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
@@ -3719,6 +3720,15 @@ export default function TownSquare() {
           jokeBookEntry: st.jokeBookEntry ? { ...st.jokeBookEntry, npcName: to } : undefined,
         })),
       };
+    }
+    // A game they finished together comes up first, once (teacher direction
+    // 2026-10-04: "Remember that time we played bowling and I won?").
+    if (student) {
+      const mem = untoldMemory(student.id, c.id);
+      if (mem) {
+        c = { ...c, steps: [memoryStep(mem), ...c.steps] };
+        markMemoryTold(student.id, mem.at);
+      }
     }
     // A pending click/tap-to-walk destination is cancelled when a
     // conversation starts — resuming a walk toward wherever the student
