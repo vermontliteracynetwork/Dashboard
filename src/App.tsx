@@ -51,6 +51,7 @@ const IslandBuild = lazyFresh(() => import('./routes/world/IslandBuild'));
 const SlimeChess = lazyFresh(() => import('./routes/student/SlimeChess'));
 const WorldEditor = lazyFresh(() => import('./routes/teacher/WorldEditor'));
 const StyleRoom = lazyFresh(() => import('./routes/teacher/StyleRoom'));
+const StudentStyle = lazyFresh(() => import('./routes/student/StudentStyle'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
 
@@ -159,6 +160,14 @@ export default function App() {
             element={
               <Suspense fallback={<div className="app-shell center-screen"><p>Squishing the chess pieces…</p></div>}>
                 <SlimeChess />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/student/style"
+            element={
+              <Suspense fallback={<div className="center-screen"><p>Loading Style…</p></div>}>
+                <StudentStyle />
               </Suspense>
             }
           />

@@ -291,6 +291,7 @@ interface AppState {
   saveStyleLook: (ownerId: string, look: StyleLook) => void;
   // The teacher's item-workshop edits, stored as the 'catalog' row.
   saveStyleCatalog: (overrides: StyleCatalogOverrides) => void;
+  setStyleReleased: (released: boolean) => void;
   selCheckIns: SelCheckIn[];
   recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string) => string;
   addSelCheckInNote: (id: string, noteText: string) => void;
@@ -2641,6 +2642,11 @@ export const useStore = create<AppState>()(
         set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
         try { localStorage.setItem(`style-look:${ownerId}`, JSON.stringify(look)); } catch { /* private mode */ }
         pushStyleLook(ownerId, look);
+      },
+      setStyleReleased: (released) => {
+        const row = { ownerId: 'settings', look: { released }, updatedAt: new Date().toISOString() };
+        set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== 'settings')] }));
+        pushStyleLook('settings', { released });
       },
       saveStyleCatalog: (overrides) => {
         const row = { ownerId: 'catalog', look: overrides, updatedAt: new Date().toISOString() };

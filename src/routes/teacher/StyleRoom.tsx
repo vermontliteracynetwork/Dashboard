@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, OrbitControls } from '@react-three/drei';
 import TeacherNav from '../../components/TeacherNav';
@@ -6,7 +7,7 @@ import { useStore } from '../../store/store';
 import { StyleCharacter, type StyleCharacterHandle } from '../../style/StyleCharacter';
 import { SPECIES, defaultLook, speciesById } from '../../style/species';
 import { SLOT_LABEL, SLOT_ORDER, type WardrobeItem } from '../../style/wardrobe';
-import { useStyleCatalog } from '../../style/catalog';
+import { useStyleCatalog, useStyleSettings } from '../../style/catalog';
 import { PATTERNS, patternSwatch } from '../../style/patterns';
 import ColorWheel from '../../style/ColorWheel';
 import { styleSound } from '../../style/styleSounds';
@@ -20,7 +21,6 @@ import type { Paint, SpeciesId, StyleLook, StyleMove, StyleOneShot, WardrobeSlot
 //    rename it and change its default colors and patterns, and preview it
 //    on each animal (or all four at once) while editing.
 
-const OWNER = 'teacher';
 type Tab = 'body' | WardrobeSlot;
 type Mode = 'dress' | 'workshop';
 type Preview = 'item' | SpeciesId | 'all';
@@ -30,10 +30,10 @@ function isLook(x: unknown): x is StyleLook {
   return !!l && typeof l === 'object' && !!l.species && !!l.body && !!l.outfit && SPECIES.some((s) => s.id === l.species);
 }
 
-function loadInitial(rowLook: unknown): StyleLook {
+function loadInitial(rowLook: unknown, owner: string): StyleLook {
   if (isLook(rowLook)) return rowLook;
   try {
-    const raw = localStorage.getItem(`style-look:${OWNER}`);
+    const raw = localStorage.getItem(`style-look:${owner}`);
     const parsed = raw ? JSON.parse(raw) : null;
     if (isLook(parsed)) return parsed;
   } catch { /* ignore */ }
@@ -51,14 +51,25 @@ const randHex = () => toHex(`hsl(${Math.floor(Math.random() * 360)} 70% 55%)`);
 const randomPaint = (): Paint => ({ pattern: Math.random() < 0.55 ? 'solid' : rand(PATTERNS).id, colors: [randHex(), randHex()] });
 
 export default function StyleRoom() {
-  const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === OWNER));
+  return <StyleRoomView owner="teacher" />;
+}
+
+// Shared by the teacher's Style (owner 'teacher', with the Item workshop and
+// the release switch) and the students' Style (owner = their student id,
+// Dress up only), so both always look and work the same.
+export function StyleRoomView({ owner, studentMode = false, backTo = '/world/town' }: { owner: string; studentMode?: boolean; backTo?: string }) {
+  const navigate = useNavigate();
+  const settings = useStyleSettings();
+  const setStyleReleased = useStore((s) => s.setStyleReleased);
+  const [confirmRelease, setConfirmRelease] = useState(false);
+  const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === owner));
   const saveStyleLook = useStore((s) => s.saveStyleLook);
   const saveStyleCatalog = useStore((s) => s.saveStyleCatalog);
   const { items: catalog, overrides } = useStyleCatalog();
   const itemFor = (id: string) => catalog.find((i) => i.id === id);
 
   const [mode, setMode] = useState<Mode>('dress');
-  const [saved, setSaved] = useState<StyleLook>(() => loadInitial(row?.look));
+  const [saved, setSaved] = useState<StyleLook>(() => loadInitial(row?.look, owner));
   const [look, setLook] = useState<StyleLook>(saved);
   const [tab, setTab] = useState<Tab>('body');
   const [move, setMove] = useState<StyleMove>('idle');
@@ -121,7 +132,7 @@ export default function StyleRoom() {
   };
 
   const save = () => {
-    saveStyleLook(OWNER, look);
+    saveStyleLook(owner, look);
     setSaved(look);
     styleSound.save();
     play('cheer');
@@ -186,18 +197,31 @@ export default function StyleRoom() {
   ];
 
   return (
-    <div className="app-shell">
-      <TeacherNav />
+    <div className={studentMode ? 'style-student-shell' : 'app-shell'}>
+      {!studentMode && <TeacherNav />}
       <div className="style-room">
         <header className="style-head">
           <div>
+            {studentMode && (
+              <button type="button" className="style-btn" style={{ marginBottom: 8 }} onClick={() => { if (dirty) save(); navigate(backTo); }}>
+                ← {dirty ? 'Save and go back' : 'Back to Town Square'}
+              </button>
+            )}
             <h1>👗 Style</h1>
-            <p className="style-note">Only you can see Style right now. Students get it (from their pie menu) when you say it is ready.</p>
+            {!studentMode && (
+              <p className="style-note">
+                {settings.released ? 'Students can use Style now (from their pie menu).' : 'Only you can see Style right now. Students get it (from their pie menu) when you turn it on.'}
+                {' '}
+                <button type="button" className={`style-release${settings.released ? ' on' : ''}`} onClick={() => setConfirmRelease(true)}>
+                  {settings.released ? '✅ Students: ON' : '🔒 Students: OFF'}
+                </button>
+              </p>
+            )}
           </div>
-          <div className="style-mode" role="tablist" aria-label="Style mode">
+          {!studentMode && <div className="style-mode" role="tablist" aria-label="Style mode">
             <button type="button" role="tab" aria-selected={mode === 'dress'} className={`style-mode-btn${mode === 'dress' ? ' on' : ''}`} onClick={() => { setMode('dress'); styleSound.tap(); }}>🪞 Dress up</button>
             <button type="button" role="tab" aria-selected={mode === 'workshop'} className={`style-mode-btn${mode === 'workshop' ? ' on' : ''}`} onClick={() => { setMode('workshop'); styleSound.tap(); }}>🧵 Item workshop</button>
-          </div>
+          </div>}
           {mode === 'dress' ? (
             <div className="style-head-actions">
               <button type="button" className="style-btn" onClick={surprise}>🎲 Surprise me</button>
@@ -341,6 +365,29 @@ export default function StyleRoom() {
           </section>
         </div>
       </div>
+      {confirmRelease && (
+        <div className="style-confirm-backdrop" onClick={() => setConfirmRelease(false)}>
+          <div className="style-confirm" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            {settings.released ? (
+              <>
+                <h2>Turn Style off for students?</h2>
+                <p>Students go back to their old characters and the Style button leaves their pie menu. Their saved looks are kept.</p>
+              </>
+            ) : (
+              <>
+                <h2>Turn Style on for students?</h2>
+                <p>Students get a Style button in their pie menu, and the character they walk around Town Square with becomes their Style animal. You can turn it off again any time.</p>
+              </>
+            )}
+            <div className="style-head-actions">
+              <button type="button" className="style-btn" onClick={() => setConfirmRelease(false)}>Cancel</button>
+              <button type="button" className="style-btn primary" onClick={() => { setStyleReleased(!settings.released); setConfirmRelease(false); styleSound.save(); }}>
+                {settings.released ? 'Turn off' : 'Turn on'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

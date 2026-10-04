@@ -103,8 +103,8 @@ function Mouth({ mouthRef, y = -0.1, z = 0.3, width = 0.1 }: { mouthRef: React.R
   );
 }
 
-function Head({ look, species, blinkRef, mouthRef, hideEars }: {
-  look: StyleLook; species: SpeciesDef; blinkRef: React.RefObject<THREE.Group | null>; mouthRef: React.RefObject<THREE.Group | null>; hideEars: boolean;
+function Head({ look, species, blinkRef, mouthRef, hideEars, hideTopEars }: {
+  look: StyleLook; species: SpeciesDef; blinkRef: React.RefObject<THREE.Group | null>; mouthRef: React.RefObject<THREE.Group | null>; hideEars: boolean; hideTopEars: boolean;
 }) {
   const fur = usePaintMaterial(look.body.fur, 2, undefined, true);
   const belly = usePaintMaterial(look.body.belly, 1.5, undefined, true);
@@ -147,7 +147,7 @@ function Head({ look, species, blinkRef, mouthRef, hideEars }: {
               ))}
             </group>
           ))}
-          {!hideEars && [-1, 1].map((sd) => (
+          {!hideEars && !hideTopEars && [-1, 1].map((sd) => (
             <group key={sd} position={[sd * 0.19, 0.27, 0]} rotation={[0, 0, -sd * 0.3]}>
               <mesh material={fur}><coneGeometry args={[0.11, 0.2, 4]} /></mesh>
               <mesh material={accent} position={[0, -0.01, 0.035]} scale={[0.6, 0.7, 0.4]}><coneGeometry args={[0.11, 0.2, 4]} /></mesh>
@@ -188,7 +188,7 @@ function Head({ look, species, blinkRef, mouthRef, hideEars }: {
           ))}
           <Eyes eyes={eyes} white={white} blinkRef={blinkRef} spread={0.21} y={0.12} z={0.22} size={0.045} beady />
           <Mouth mouthRef={mouthRef} y={-0.17} z={0.47} width={0.07} />
-          {!hideEars && [-1, 1].map((sd) => (
+          {!hideEars && !hideTopEars && [-1, 1].map((sd) => (
             <mesh key={sd} material={accent} position={[sd * 0.23, 0.25, -0.06]} scale={[1, 1, 0.55]}><sphereGeometry args={[0.07, 16, 12]} /></mesh>
           ))}
         </group>
@@ -226,7 +226,10 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
   const accent = usePaintMaterial(look.body.accent, 1.5, undefined, true);
 
   const hidesFeet = Object.values(look.outfit).some((e) => e && itemById(e.itemId)?.hides?.includes('feet'));
-  const hidesEars = Object.values(look.outfit).some((e) => e && itemById(e.itemId)?.hides?.includes('ears'));
+  const hides = (what: 'ears' | 'topEars' | 'tail') => Object.values(look.outfit).some((e) => e && itemById(e.itemId)?.hides?.includes(what));
+  const hidesEars = hides('ears');
+  const hidesTopEars = hides('topEars');
+  const hidesTail = hides('tail');
 
   const root = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
@@ -315,7 +318,7 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
               {!look.outfit.top && (
                 <mesh material={belly} geometry={bellyGeometry()} />
               )}
-              <Tail look={look} species={species} tailRef={tail} />
+              {!hidesTail && <Tail look={look} species={species} tailRef={tail} />}
             </>
           )}
           <OutfitParts bone="torso" look={look} species={species} />
@@ -324,11 +327,11 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
           {/* Chibi proportions (big head, big eyes) to match the teacher's
               Sketchfab reference picks: cute cartoon animals. */}
           <group ref={head} position={[0, H + headR * HEAD_SCALE - 0.14, 0]} scale={HEAD_SCALE}>
-            {!bodyless && <Head look={look} species={species} blinkRef={blink} mouthRef={mouth} hideEars={hidesEars} />}
+            {!bodyless && <Head look={look} species={species} blinkRef={blink} mouthRef={mouth} hideEars={hidesEars} hideTopEars={hidesTopEars} />}
             <group position={[0, species.hat.y - 0.28, species.hat.z]} scale={species.hat.scale}>
               <OutfitParts bone="hat" look={look} species={species} />
             </group>
-            <group position={[0, species.face.y - 0.06, species.face.z]} scale={species.face.scale}>
+            <group position={[0, species.face.y, species.face.z]} scale={species.face.scale}>
               <OutfitParts bone="face" look={look} species={species} />
             </group>
             <OutfitParts bone="gear" look={look} species={species} />

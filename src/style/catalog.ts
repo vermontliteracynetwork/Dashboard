@@ -37,3 +37,15 @@ export function useStyleCatalog() {
   const items = useMemo(() => applyOverrides(overrides), [overrides]);
   return { overrides, items };
 }
+
+// Style's release switch (direct teacher instruction: students get Style
+// only when she says it's ready). Stored as the 'settings' row in
+// style_looks, so it needs no extra database column. Off by default.
+export const SETTINGS_OWNER = 'settings';
+export interface StyleSettings { released: boolean }
+
+export function useStyleSettings(): StyleSettings {
+  const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === SETTINGS_OWNER));
+  const l = row?.look as Partial<StyleSettings> | undefined;
+  return { released: !!l?.released };
+}

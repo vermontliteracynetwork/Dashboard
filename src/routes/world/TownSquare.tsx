@@ -10,6 +10,10 @@ import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
 import { characterDefById } from '../../lib/characterCatalog';
+import { StyleCharacter } from '../../style/StyleCharacter';
+import { defaultLook } from '../../style/species';
+import { useStyleSettings } from '../../style/catalog';
+import type { StyleLook, StyleMove } from '../../style/types';
 import ToolsPanel from '../../components/ToolsPanel';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
@@ -642,7 +646,27 @@ function CharacterModel({ path, scale = CHARACTER_SCALE }: { path: string; scale
 // re-renders — this drives the THREE.AnimationMixer directly via a ref
 // Player already updates each frame, same as everything else in its
 // useFrame loop).
+// Style (docs/STYLE.md): once the teacher turns Style on for students, the
+// student walks around as their Style animal (one shared body, so every
+// outfit fits), at the same height as the old player model.
+const STYLE_IN_WORLD_SCALE = 0.62;
+function StyleAvatar({ isMoving }: { isMoving: React.RefObject<boolean> }) {
+  const currentStudentId = useStore((s) => s.currentStudentId);
+  const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === currentStudentId));
+  const look = useMemo<StyleLook>(() => {
+    const l = row?.look as StyleLook | undefined;
+    return l && l.species && l.body && l.outfit ? l : defaultLook('dog');
+  }, [row]);
+  const [move, setMove] = useState<StyleMove>('idle');
+  useFrame(() => {
+    const next: StyleMove = isMoving.current ? 'walk' : 'idle';
+    if (next !== move) setMove(next);
+  });
+  return <StyleCharacter look={look} move={move} scale={STYLE_IN_WORLD_SCALE} />;
+}
+
 function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
+  const { released: styleReleased } = useStyleSettings();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const equippedCharacterId = students.find((st) => st.id === currentStudentId)?.equippedCharacterId;
@@ -668,6 +692,7 @@ function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
     current.current = next;
   });
 
+  if (styleReleased) return <StyleAvatar isMoving={isMoving} />;
   return (
     <group ref={group}>
       {characterDef ? (
@@ -3014,6 +3039,7 @@ export default function TownSquare() {
   // call that same action, not new following-limit logic.
   const [showCompanionMenu, setShowCompanionMenu] = useState(false);
   const [showSelfMenu, setShowSelfMenu] = useState(false);
+  const { released: styleReleased } = useStyleSettings();
   // Claudia's audit (H3): the pie menu had grown to 7-8 wedges, past her
   // own 5-6 cap and hard to scan under time pressure. Settings/Map/My
   // Stuff, plus the newer Computer and To-Do List wedges, live on a
@@ -4073,6 +4099,7 @@ export default function TownSquare() {
           { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
           { id: 'whatnow', icon: '❓', iconName: 'question', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
           { id: 'home', icon: '🏠', iconName: 'home', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
+          ...(styleReleased ? [{ id: 'style', icon: '👗', label: 'Style', bg: '#b0559a', onSelect: () => navigate('/student/style', { state: { from: 'town' } }) }] : []),
           ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
           { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(1) },
         ];
