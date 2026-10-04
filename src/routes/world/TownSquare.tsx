@@ -14,6 +14,9 @@ import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
 import { characterDefById } from '../../lib/characterCatalog';
 import { StyleCharacter } from '../../style/StyleCharacter';
+import { useNpcProfiles, renameIn } from '../../style/npcs';
+import NpcPieMenu from '../../components/NpcPieMenu';
+import NpcCharacterSheet from '../../components/NpcCharacterSheet';
 import { defaultLook } from '../../style/species';
 import { useStyleSettings } from '../../style/catalog';
 import type { StyleLook, StyleMove } from '../../style/types';
@@ -1010,13 +1013,26 @@ interface WanderingNPCInteraction {
   focusFlag?: boolean;
 }
 
+// A Neighbor/Townsperson drawn as their Style character (src/style/npcs.ts),
+// walking when they wander and idling when they stop.
+function StyleWanderBody({ look, isMoving }: { look: StyleLook; isMoving: React.RefObject<boolean> }) {
+  const [move, setMove] = useState<StyleMove>('idle');
+  useFrame(() => {
+    const next: StyleMove = isMoving.current ? 'walk' : 'idle';
+    if (next !== move) setMove(next);
+  });
+  return <StyleCharacter look={look} move={move} scale={STYLE_IN_WORLD_SCALE} />;
+}
+
 function WanderingNPC({
   modelPath,
   home,
   active,
   scale = CHARACTER_SCALE,
   interaction,
+  look,
 }: {
+  look?: StyleLook;
   modelPath: string;
   home: [number, number];
   active: boolean;
@@ -1150,7 +1166,7 @@ function WanderingNPC({
   return (
     <group ref={groupRef}>
       <Suspense fallback={null}>
-        <WanderBodyModel path={modelPath} scale={scale} isMoving={isMoving} />
+        {look ? <StyleWanderBody look={look} isMoving={isMoving} /> : <WanderBodyModel path={modelPath} scale={scale} isMoving={isMoving} />}
       </Suspense>
       {interaction && (
         <>
@@ -2090,7 +2106,11 @@ function Neighbor({
   onApproach,
   exposePosition,
   titleOverride,
+  look,
+  displayName,
 }: {
+  look?: StyleLook;
+  displayName?: string;
   n: Quest1Neighbor;
   playerPos: THREE.Vector3;
   // While any dialogue is open the player is frozen in place anyway (can't
@@ -2171,11 +2191,12 @@ function Neighbor({
     return (
       <WanderingNPC
         modelPath={n.modelPath}
+        look={look}
         home={n.position}
         active
         interaction={{
           id: n.id,
-          name: `${n.name}, ${titleOverride || n.role}`,
+          name: `${displayName ?? n.name}, ${titleOverride || n.role}`,
           playerPos,
           dialogueOpen,
           pendingApproach,
@@ -2191,7 +2212,7 @@ function Neighbor({
   return (
     <group position={[px, 0, pz]}>
       <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#3e7c6b" /></mesh>}>
-        <CharacterModel path={n.modelPath} />
+        {look ? <StyleCharacter look={look} scale={STYLE_IN_WORLD_SCALE} /> : <CharacterModel path={n.modelPath} />}
       </Suspense>
       {/* A generous invisible cylinder around the character, well bigger
           than the model's actual silhouette — direct teacher feedback that
@@ -2226,7 +2247,7 @@ function Neighbor({
               )}
             </div>
             <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-              {n.name}, {titleOverride || n.role}
+              {displayName ?? n.name}, {titleOverride || n.role}
             </div>
           </div>
         </Html>
@@ -3109,6 +3130,9 @@ export default function TownSquare() {
   // your feelings (the full Neighbor conversation scene, a student-started
   // Zones check-in).
   const [chatMenuNeighbor, setChatMenuNeighbor] = useState<Quest1Neighbor | null>(null);
+  const [townsMenu, setTownsMenu] = useState<Townsperson | null>(null);
+  const [aboutNpc, setAboutNpc] = useState<string | null>(null);
+  const npcProfiles = useNpcProfiles();
   const [feelingsNeighbor, setFeelingsNeighbor] = useState<Quest1Neighbor | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   // The full conversation so far, rendered as chat bubbles (NPC left,
@@ -3630,6 +3654,25 @@ export default function TownSquare() {
     // reports of movement dying after a Neighbor interaction with no
     // visible cause. Never open a conversation with nothing to say.
     if (c.steps.length === 0) return;
+    // A teacher-renamed Neighbor (Style > Neighbors) says their new name and
+    // shows their new title in every line.
+    const prof = npcProfiles[c.id];
+    if (prof) {
+      const from = prof.defaultName;
+      const to = prof.name;
+      const fix = (t: string) => renameIn(t, from, to);
+      c = {
+        ...c,
+        name: to,
+        ...(c.kind === 'neighbor' ? { role: prof.title } : {}),
+        steps: from === to ? c.steps : c.steps.map((st) => ({
+          ...st,
+          npc: fix(st.npc),
+          options: st.options?.map((o) => (typeof o === 'string' ? fix(o) : { ...o, text: fix(o.text) })),
+          jokeBookEntry: st.jokeBookEntry ? { ...st.jokeBookEntry, npcName: to } : undefined,
+        })),
+      };
+    }
     // A pending click/tap-to-walk destination is cancelled when a
     // conversation starts — resuming a walk toward wherever the student
     // last tapped, after they finish talking to someone, would be a
@@ -3654,12 +3697,15 @@ export default function TownSquare() {
       beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: SCOUT_CHECKIN_VARIANT });
       return;
     }
-    if (metIds.includes(n.id)) {
-      walkTarget.current = null;
-      pendingApproach.current = null;
-      setChatMenuNeighbor(n);
-      return;
-    }
+    // Tapping a Neighbor opens the conversation-starter pie menu (teacher
+    // direction 2026-10-04), met or not; "Say hi" starts the usual talk.
+    walkTarget.current = null;
+    pendingApproach.current = null;
+    setChatMenuNeighbor(n);
+  };
+
+  const chooseSayHi = (n: Quest1Neighbor) => {
+    setChatMenuNeighbor(null);
     beginConversation({ kind: 'neighbor', id: n.id, name: n.name, role: n.role, steps: maybeAppendFocusLine(pickDialogueVariant(n.dialogues, student?.worldJokesHeardIds ?? []), currentFocusForNeighbor(n.id)) });
   };
 
@@ -3675,13 +3721,23 @@ export default function TownSquare() {
 
   // An automatic Zones re-check waits while the student is mid-conversation
   // or answering a gas question here (SelRecheckPrompt reads this hold).
-  const holdRecheck = !!activeConversation || !!gasQuizQuestion || gasLockout || !!chatMenuNeighbor || !!feelingsNeighbor;
+  const holdRecheck = !!activeConversation || !!gasQuizQuestion || gasLockout || !!chatMenuNeighbor || !!feelingsNeighbor || !!townsMenu || !!aboutNpc;
   useEffect(() => {
     setSelRecheckHold(holdRecheck);
   }, [holdRecheck, setSelRecheckHold]);
   useEffect(() => () => setSelRecheckHold(false), [setSelRecheckHold]);
 
   const handleTalkTownsperson = (tp: Townsperson) => {
+    walkTarget.current = null;
+    pendingApproach.current = null;
+    setTownsMenu(tp);
+  };
+  const chatTownsperson = (tp: Townsperson, joke = false) => {
+    setTownsMenu(null);
+    if (joke) {
+      beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: maybeAppendFocusLine(pickJokeVariant(tp.dialogues, student?.worldJokesHeardIds ?? []), currentLiteracyFocus) });
+      return;
+    }
     beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: maybeAppendFocusLine(pickDialogueVariant(tp.dialogues, student?.worldJokesHeardIds ?? []), currentLiteracyFocus) });
   };
 
@@ -4589,7 +4645,7 @@ export default function TownSquare() {
             // alone could leave a student stuck with nothing visible and
             // no way out if a future bug ever lets stepIndex drift past
             // the end of a real conversation's steps.
-            frozen={(!!activeConversation && !!activeStep) || !!chatMenuNeighbor || !!feelingsNeighbor || mapView || showWizardLock}
+            frozen={(!!activeConversation && !!activeStep) || !!chatMenuNeighbor || !!feelingsNeighbor || !!townsMenu || !!aboutNpc || mapView || showWizardLock}
             // Driving is "noticeably faster than walking" (docs/
             // TRANSPORTATION.md's Cars spec) — reusing the existing
             // sensitivity-driven speed math rather than a second speed
@@ -4671,6 +4727,8 @@ export default function TownSquare() {
               onApproach={() => (metIds.includes(n.id) ? handleApproachWandering(n.id, () => handleTalk(n)) : handleApproach(n))}
               exposePosition={(v) => { wanderingPositions.current[n.id] = v; }}
               titleOverride={npcTitleOverrides[n.id]}
+              look={npcProfiles[n.id]?.look}
+              displayName={npcProfiles[n.id]?.name}
             />
           ))}
           {AMBIENT_NPCS.map((npc) => {
@@ -4678,12 +4736,13 @@ export default function TownSquare() {
             return (
               <WanderingNPC
                 key={npc.id}
+                look={npcProfiles[npc.id]?.look}
                 modelPath={npc.modelPath}
                 home={npc.home}
                 active
                 interaction={tp ? {
                   id: npc.id,
-                  name: npcTitleOverrides[npc.id] ? `${tp.name}, ${npcTitleOverrides[npc.id]}` : tp.name,
+                  name: npcTitleOverrides[npc.id] ? `${npcProfiles[npc.id]?.name ?? tp.name}, ${npcTitleOverrides[npc.id]}` : (npcProfiles[npc.id]?.name ?? tp.name),
                   playerPos,
                   dialogueOpen: !!activeConversation,
                   pendingApproach: pendingApproach.current === npc.id,
@@ -5074,25 +5133,43 @@ export default function TownSquare() {
         </p>
       )}
 
-      {chatMenuNeighbor && (
-        <div className="overlay-backdrop" role="dialog" aria-modal="true" aria-label={`Chat with ${chatMenuNeighbor.name}`} onClick={() => setChatMenuNeighbor(null)}>
-          <div className="overlay-panel chrome-frame neighbor-chat-menu" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ margin: 0 }}>Chat with {chatMenuNeighbor.name}</h2>
-            <p style={{ margin: 0, opacity: 0.75 }}>What do you want to talk about?</p>
-            <div className="neighbor-chat-menu-choices">
-              <button className="neighbor-chat-choice" onClick={() => chooseJoke(chatMenuNeighbor)}>
-                <span className="neighbor-chat-choice-icon" aria-hidden="true">😄</span>
-                Tell me a joke
-              </button>
-              <button className="neighbor-chat-choice feelings" onClick={() => chooseFeelings(chatMenuNeighbor)}>
-                <span className="neighbor-chat-choice-icon" aria-hidden="true">💛</span>
-                Talk about my feelings
-              </button>
-            </div>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setChatMenuNeighbor(null)}>Not right now</button>
-          </div>
-        </div>
-      )}
+      {chatMenuNeighbor && (() => {
+        const n = chatMenuNeighbor;
+        const prof = npcProfiles[n.id];
+        const met = metIds.includes(n.id);
+        return (
+          <NpcPieMenu
+            name={prof?.name ?? n.name}
+            title={prof?.title ?? n.role}
+            onClose={() => setChatMenuNeighbor(null)}
+            wedges={[
+              { id: 'hi', icon: '👋', label: met ? 'Chat' : 'Say hi', bg: '#3e7c6b', onSelect: () => chooseSayHi(n) },
+              ...(met ? [
+                { id: 'joke', icon: '😄', label: 'Tell me a joke', bg: '#c2953f', onSelect: () => chooseJoke(n) },
+                { id: 'feelings', icon: '💛', label: 'My feelings', bg: '#d9576b', onSelect: () => chooseFeelings(n) },
+              ] : []),
+              { id: 'about', icon: '📇', label: `About ${prof?.name ?? n.name}`, bg: '#5b6bd6', onSelect: () => setAboutNpc(n.id) },
+            ]}
+          />
+        );
+      })()}
+      {townsMenu && (() => {
+        const tp = townsMenu;
+        const prof = npcProfiles[tp.id];
+        return (
+          <NpcPieMenu
+            name={prof?.name ?? tp.name}
+            title={prof?.title}
+            onClose={() => setTownsMenu(null)}
+            wedges={[
+              { id: 'hi', icon: '👋', label: 'Chat', bg: '#3e7c6b', onSelect: () => chatTownsperson(tp) },
+              { id: 'joke', icon: '😄', label: 'Tell me a joke', bg: '#c2953f', onSelect: () => chatTownsperson(tp, true) },
+              { id: 'about', icon: '📇', label: `About ${prof?.name ?? tp.name}`, bg: '#5b6bd6', onSelect: () => setAboutNpc(tp.id) },
+            ]}
+          />
+        );
+      })()}
+      {aboutNpc && npcProfiles[aboutNpc] && <NpcCharacterSheet profile={npcProfiles[aboutNpc]} onClose={() => setAboutNpc(null)} />}
 
       {feelingsNeighbor && <NeighborFeelingsChat neighbor={feelingsNeighbor} onClose={() => setFeelingsNeighbor(null)} />}
 

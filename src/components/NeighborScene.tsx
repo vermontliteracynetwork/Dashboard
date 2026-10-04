@@ -3,9 +3,11 @@ import ReadAloud from './ReadAloud';
 import { lazyFresh } from '../lib/freshBuild';
 import type { Quest1Neighbor } from '../lib/worldQuest1';
 import type { NpcVoiceProfile } from '../lib/npcVoices';
+import { useNpcProfiles } from '../style/npcs';
 
 // Lazy so three.js only loads when a Neighbor scene actually opens.
 const NeighborCharacter3D = lazyFresh(() => import('./NeighborCharacter3D'));
+const NpcPortrait3D = lazyFresh(() => import('./NpcPortrait3D'));
 
 export type NeighborLogEntry = { sender: 'npc' | 'student' | 'history'; text: string };
 
@@ -34,16 +36,19 @@ export default function NeighborScene({
   onClose?: () => void;
 }) {
   const logEndRef = useRef<HTMLDivElement>(null);
+  // The Neighbor as their Style character and teacher-set name (Style > Neighbors).
+  const profile = useNpcProfiles()[neighbor.id];
+  const name = profile?.name ?? neighbor.name;
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [log.length]);
 
   return (
-    <div className="sel-convo" role="dialog" aria-modal="true" aria-label={`Talking with ${neighbor.name}`}>
+    <div className="sel-convo" role="dialog" aria-modal="true" aria-label={`Talking with ${name}`}>
       <div className="sel-convo-stage">
         <div className="sel-convo-character" aria-hidden="true">
           <Suspense fallback={null}>
-            <NeighborCharacter3D path={neighbor.modelPath} talkKey={talkKey} />
+            {profile ? <NpcPortrait3D look={profile.look} talkKey={talkKey} talking /> : <NeighborCharacter3D path={neighbor.modelPath} talkKey={talkKey} />}
           </Suspense>
         </div>
 
@@ -56,7 +61,7 @@ export default function NeighborScene({
         <div className="sel-convo-center">
           <div className="sel-convo-message" key={talkKey}>
             <div className="sel-convo-name">
-              <span>{neighbor.name}</span>
+              <span>{name}</span>
               <ReadAloud text={npcLines.join(' ')} small npcVoiceProfile={voice} />
             </div>
             {npcLines.map((line, i) => (
@@ -69,7 +74,7 @@ export default function NeighborScene({
       </div>
 
       <aside className="sel-convo-log" aria-label="Conversation so far">
-        <h2 className="sel-convo-log-title">Talking with {neighbor.name}</h2>
+        <h2 className="sel-convo-log-title">Talking with {name}</h2>
         <div className="sel-convo-log-scroll">
           {log.map((m, i) =>
             m.sender === 'history' ? (

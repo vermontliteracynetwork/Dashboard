@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-neighbors-new-look',
+    date: '2026-10-04',
+    icon: '🏘️',
+    title: 'Your Neighbors got a new look',
+    body: 'Scout, Penny, Pip, Wren and the townspeople are now cute animals in fun outfits! Tap a Neighbor to pick what to talk about, like a joke or your feelings. Tap About to see their character card with fun facts about them.',
+  },
+  {
     id: '2026-10-04-seamstress-open',
     date: '2026-10-04',
     icon: '🧵',
