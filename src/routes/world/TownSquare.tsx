@@ -51,7 +51,8 @@ import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
 import type { PetDef } from '../../lib/petCatalog';
-import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion } from '../../types';
+import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion, Task } from '../../types';
+import { taskDisplayTitle } from '../../lib/taskOrder';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { VehicleSoundController, type VehicleSoundKind } from '../../lib/vehicleAudio';
@@ -1119,6 +1120,20 @@ function StyleWanderBody({ look, isMoving }: { look: StyleLook; isMoving: React.
   });
   return <StyleCharacter look={look} move={move} scale={STYLE_IN_WORLD_SCALE} />;
 }
+
+// Bawk's silly work-reminder puns (see bawkNudge in TownSquare).
+const BAWK_PUNS = [
+  'BAWK! You need to cockadoodle DO this activity!',
+  "Don't be a chicken, your work is waiting!",
+  'Egg-cellent players finish their work first!',
+  "This activity is no yolk, let's go!",
+  'Stop winging it, your work is ready!',
+  "I'm not squawking around, you have work to do!",
+  "What came first, the chicken or the egg? YOUR WORK! That's what!",
+  'Peep peep! Your activity misses you!',
+  "Let's get cracking! Your activity is ready!",
+  'Bawk bawk! Time to hatch a plan: finish your work, then play!',
+];
 
 // Car bumps (teacher direction 2026-10-04): "while driving, if a player
 // hits an NPC with thier car, the NPCs must jump in the opposite direction
@@ -3634,6 +3649,59 @@ export default function TownSquare() {
   // visible through a miss instead of the drop happening invisibly).
   const [gasLockout, setGasLockout] = useState(false);
   const [gasLockoutStreak, setGasLockoutStreak] = useState(0);
+
+  // Bawk's work reminders (teacher direction 2026-10-04: the rooster
+  // "should be silly, inturrupt the students with silly jokes and puns about
+  // getting their work done "You need to cockadoodle do this activity""),
+  // only when an assigned activity is waiting that isn't done and isn't
+  // already in progress (a question set started inside a game). Claudia's
+  // calls (change any of these): the first reminder comes after 5 minutes
+  // of free play in Town Square, then at most every 12 minutes, only on a
+  // calm screen (never over a conversation, a question, a menu or another
+  // pop-up), and never once today's work is all done.
+  const BAWK_FIRST_MS = 5 * 60 * 1000;
+  const BAWK_EVERY_MS = 12 * 60 * 1000;
+  const [bawkNudge, setBawkNudge] = useState<{ key: string; pun: string; subject: 'math' | 'literacy'; taskId: string; title: string } | null>(null);
+  const townEnteredAt = useRef(Date.now());
+  const nextUndoneTask = (): { subject: 'math' | 'literacy'; task: Task } | null => {
+    if (!student) return null;
+    for (const subj of ['math', 'literacy'] as const) {
+      const prog = progress[student.id]?.[subj];
+      const done = prog?.date === todayISO() ? prog.completedTaskIds : [];
+      for (const t of rotations[student.id]?.[subj] ?? []) {
+        if (done.includes(t.id)) continue;
+        const gameMode = t.completionMode === 'anyGame' || t.completionMode === 'specificGame';
+        const started = (prog?.quizState?.[t.id]?.log.length ?? 0) > 0;
+        if (gameMode && started) continue; // already in progress inside a game
+        return { subject: subj, task: t };
+      }
+    }
+    return null;
+  };
+  const bawkBusy = !!activeConversation || !!chatMenuNeighbor || !!feelingsNeighbor || !!townsMenu || !!aboutNpc || !!playWith
+    || showChangelog || showSpinWheel || streakDue || showBawk || (showArrival && totalTasksLeft > 0) || !!gasQuizQuestion || gasLockout
+    || mapView || showWizardLock || showPetCheckIn || showTodayTasks || !!bawkNudge;
+  const bawkBusyRef = useRef(bawkBusy);
+  bawkBusyRef.current = bawkBusy;
+  const nextUndoneRef = useRef(nextUndoneTask);
+  nextUndoneRef.current = nextUndoneTask;
+  useEffect(() => {
+    if (!student) return;
+    const lastKey = `bawk-nudge-last-${student.id}`;
+    const id = window.setInterval(() => {
+      if (bawkBusyRef.current) return;
+      if (Date.now() - townEnteredAt.current < BAWK_FIRST_MS) return;
+      let last = 0;
+      try { last = Number(sessionStorage.getItem(lastKey) ?? '0') || 0; } catch { /* private mode */ }
+      if (Date.now() - last < BAWK_EVERY_MS) return;
+      const next = nextUndoneRef.current();
+      if (!next) return;
+      try { sessionStorage.setItem(lastKey, String(Date.now())); } catch { /* private mode */ }
+      setBawkNudge({ key: `nudge-${Date.now()}`, pun: BAWK_PUNS[Math.floor(Math.random() * BAWK_PUNS.length)], subject: next.subject, taskId: next.task.id, title: taskDisplayTitle(next.task) });
+    }, 20 * 1000);
+    return () => window.clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student?.id]);
   // Exit-confirmation on a forced gas lockout — direct teacher instruction:
   // exiting mid-lockout has a real cost (lost progress, car stays empty,
   // they're put back on foot), so it needs a real "are you sure" instead of
@@ -4742,6 +4810,12 @@ export default function TownSquare() {
           auto-opening for a student the first time they log in after
           something new that affects them has shipped. */}
       {showSpinWheel && student && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
+      {bawkNudge && (
+        <BawkGuide talkKey={bawkNudge.key} step={bawkNudge.subject === 'math' ? 'Math' : 'Reading'} message={`${bawkNudge.pun} Next up: ${bawkNudge.title}.`}>
+          <button type="button" className="btn btn-lg" onClick={() => setBawkNudge(null)}>In a minute</button>
+          <button type="button" className="btn btn-lg btn-primary" onClick={() => { const n = bawkNudge; setBawkNudge(null); navigate(`/student/${n.subject}`, { state: { openTaskId: n.taskId } }); }}>Take me there! 🏃</button>
+        </BawkGuide>
+      )}
       {showBawk && (
         <BawkGuide talkKey="seamstress-task" step="New task"
           message="BAWK! Big news! The Seamstress is open! Your new task is to make your very own character there. I'll show you how, step by step. Let's go!">

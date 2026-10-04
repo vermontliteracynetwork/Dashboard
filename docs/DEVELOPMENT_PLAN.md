@@ -781,7 +781,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - Her words: "add the bowling sign to assets that i can use in build mode"
 - **Shipped:** `public/world/models/space/space-bowling-billboard.glb` (Build Mode → Space → "Space Bowling Billboard", with a thumbnail): a two-post billboard showing her "Skyline Bowling" neon sign art (`SignFull.psd` from her Bowling GUI pack) on both sides, with a glowing pink frame. Because the file name has "space" and "billboard" in it, placing it gives it the Space Bowling role automatically, so students tap it to play.
 
-### Rooster work reminders ("cockadoodle do this activity"). QUEUED, starts after Style (direct teacher instruction 2026-10-04)
+### Rooster work reminders ("cockadoodle do this activity"). SHIPPED 2026-10-04 (direct teacher instruction; built by Claudia during her "in charge for two hours" stretch)
 
 - **Update 2026-10-04:** the rooster now has a name, **Bawk**, and is already in use as the announcer and guide for the Seamstress walkthrough (`src/components/BawkGuide.tsx`: rooster bottom-left, chat box across the bottom, squawk + crazy animation per message). The work-reminder feature below should reuse BawkGuide.
 
@@ -790,6 +790,11 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **Planned shape:** reuse the shared `NeighborScene.tsx` layout (3D character bottom-left, no box; running chat transcript on the right). The rooster plays its crazy clip with a synthesized rooster crow timed to the animation's big moment, then says a silly work pun, e.g. "You need to cockadoodle DO this activity!", "Don't be a chicken, your math is waiting!", "Egg-cellent players finish their work first!", "This activity is no yolk, let's go!", "Stop winging it, your reading is ready!", "I'm not squawking around, you have work to do!". The student answers with big buttons (e.g. "Take me there!" opens the activity, "In a minute" closes it).
 - **When it appears:** only when the student has an assigned activity that is not done AND not in progress. In progress = a question set already started through an in-game activity (Bakery Match, Castle Defense, Slime Chess, Gas Pump, Platformer...). Like the Neighbor re-check, it waits for a calm screen and never lands mid-game or mid-question (`RECHECK_OK_PATHS` pattern).
 - **Open for the teacher when this starts:** how often it may pop up (Claudia to propose a default, e.g. no more than once every 10 to 15 minutes of idle free play), and whether it should ever stop for the day.
+- **Shipped** (in `TownSquare.tsx`, reusing `BawkGuide`: Bawk bottom-left, his crazy flap-and-crow animation and squawk, the chat bar across the bottom with read aloud in his country voice):
+  - Bawk pops in with a silly pun from a list of 10 ("BAWK! You need to cockadoodle DO this activity!", "This activity is no yolk, let's go!", "What came first, the chicken or the egg? YOUR WORK! That's what!", ...) and names the next activity: "Next up: Fractions Quiz."
+  - Buttons: **Take me there! 🏃** opens that exact activity (`/student/math` or `/student/literacy` with the activity already open), or **In a minute**.
+  - **Which activity:** the first assigned activity today that isn't done and isn't already in progress inside a game (a pick-a-game question set with answers already logged is in progress, so Bawk leaves it alone).
+  - **Claudia's calls (change any of these):** the first reminder comes after 5 minutes of free play in Town Square, then at most every 12 minutes (remembered for the browser session, so leaving and coming back doesn't restart it). It only shows on a calm screen: never over a conversation, a question, the gas quiz, a menu, the map, the Wizard lock, the To-Do list or any other pop-up. It stops once today's work is all done.
 
 ### Style: unified avatars, one-size-fits-all wardrobe, teacher Style Studio, AI item maker, Marketplace publishing. DECISIONS SETTLED, TEACHER-ONLY STYLE ROOM SHIPPED 2026-10-04, STUDENTS UNCHANGED UNTIL RELEASE
 

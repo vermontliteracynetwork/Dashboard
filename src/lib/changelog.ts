@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-04-bawk-reminders',
+    date: '2026-10-04',
+    icon: '🐓',
+    title: 'Bawk has jokes for you',
+    body: 'If you play in Town Square for a while with work still waiting, Bawk the rooster pops in with a silly joke and takes you right to your next activity. You need to cockadoodle DO it!',
+  },
+  {
     id: '2026-10-04-daily-streak',
     date: '2026-10-04',
     icon: '🔥',

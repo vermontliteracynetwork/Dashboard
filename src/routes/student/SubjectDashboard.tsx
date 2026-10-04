@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { StartRitual, SubjectCompleteScreen } from './Rituals';
 import QuizTask from './QuizTask';
@@ -48,7 +48,9 @@ export default function SubjectDashboard() {
 
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  // Bawk's "Take me there!" (Town Square work reminders) opens one activity directly.
+  const location = useLocation();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => (location.state as { openTaskId?: string } | null)?.openTaskId ?? null);
   const [reviewing, setReviewing] = useState(false);
   const [openedTaskIds, setOpenedTaskIds] = useState<Set<string>>(new Set());
   // "I'm done" from any task view never completes it immediately — it
