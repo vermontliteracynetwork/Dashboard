@@ -22,6 +22,7 @@ import BakeryMatch3 from './routes/student/BakeryMatch3';
 import GamesHub from './routes/student/GamesHub';
 import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
+import PetTrainedToast from './components/PetTrainedToast';
 import CastleDefense from './routes/student/CastleDefense';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
 import TeacherLogin from './routes/teacher/TeacherLogin';
@@ -118,6 +119,7 @@ export default function App() {
         <SelLoginGate />
         <CoinDropOverlay />
         <StreakLayer />
+        <PetTrainedToast />
         <SyncTroubleAlert />
         {/* Direct teacher instruction: music keeps playing across every
             route, including while doing an assignment — mounted once here

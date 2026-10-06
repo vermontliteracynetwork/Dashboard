@@ -1,6 +1,7 @@
 import { useStore } from '../store/store';
 import { todayISO } from './dates';
 import { getEconomy } from './economy';
+import { recordPetTrainingAnswer } from './petTraining';
 
 // Daily Streak (teacher spec 2026-10-04, full words in the dev plan). A
 // streak day is saved by answering streakGoal() questions (10 by default) right anywhere in
@@ -120,6 +121,7 @@ export function recordStreakCorrect(studentIdArg?: string) {
   const st = useStore.getState();
   const studentId = studentIdArg ?? st.currentStudentId;
   if (!studentId || st.role !== 'student') return;
+  recordPetTrainingAnswer(studentId);
   const today = todayISO();
   const r = reconcileStreak(studentId);
   const correct = (r.today?.day === today ? r.today.correct : 0) + 1;

@@ -12,7 +12,7 @@ import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } fr
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
-import { petDefById, rarityFor, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_MILESTONES } from '../lib/petCatalog';
+import { petDefById, rarityFor, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_TRAINING_CAP, PET_TRICKS } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 // townLayout.ts is pure data/helpers, no React/Three.js imports (see its own
 // header comment), so importing it here doesn't drag TownSquare.tsx's heavy
@@ -351,6 +351,7 @@ interface AppState {
   literacyFocusSets: LiteracyFocusSet[]; // a student's phonics/morpheme/spelling focus for a date window, typically a week
   transactions: Transaction[]; // every student's bank register, newest first
   lastCoinEarn: { id: string; studentId: string; amountCents: number; message?: string } | null; // bumped by recordTransaction whenever coins land (spin win, task reward, streak bonus, etc.) — purely a UI trigger for the coin-drop animation/sound, not persisted
+  lastPetTraining: { id: string; studentId: string; source: 'assignment' | 'answers'; pets: { petId: string; name: string; before: number; after: number }[] } | null; // bumped by trainPets, read by PetTrainedToast, not persisted
   lastCharacterUnlock: { id: string; studentId: string; characterId: string } | null; // bumped by recordBakeryQuestionAnswered when a character-catalog unlock is earned — same transient-UI-trigger shape as lastCoinEarn, not persisted
   articleAnnotations: Record<string, ArticleAnnotationSet>; // key: `${studentId}:${taskId}:${articleIndex}`
   sentenceBuilderResponses: Record<string, SentenceBuilderResponse>; // key: `${studentId}:${taskId}`
@@ -475,6 +476,9 @@ interface AppState {
   // task: first attempt always succeeds, no retry-until-correct. No-op if
   // the pet doesn't exist or already learned that trick.
   teachTrick: (petId: string, trickId: string) => void;
+  // +amount training to every owned pet below the top of the ladder, from
+  // real work only: a finished assignment, or every 10 right answers.
+  trainPets: (studentId: string, amount: number, source: 'assignment' | 'answers') => void;
   // petId: null unsets whichever pet was following (goes back to no companion).
   setFollowingPet: (studentId: string, petId: string | null) => void;
   sellPet: (petId: string) => void;
@@ -795,6 +799,7 @@ export const useStore = create<AppState>()(
       literacyFocusSets: [],
       transactions: [],
       lastCoinEarn: null,
+      lastPetTraining: null,
       lastCharacterUnlock: null,
       articleAnnotations: {},
       sentenceBuilderResponses: {},
@@ -1552,9 +1557,22 @@ export const useStore = create<AppState>()(
         pushStudentPet(updated);
       },
 
+      trainPets: (studentId, amount, source) => {
+        const trained: { petId: string; name: string; before: number; after: number }[] = [];
+        get().pets.filter((p) => p.studentId === studentId && p.trainingProgress < PET_TRAINING_CAP).forEach((pet) => {
+          const after = Math.min(PET_TRAINING_CAP, pet.trainingProgress + amount);
+          const updated: StudentPet = { ...pet, trainingProgress: after };
+          set((s) => ({ pets: s.pets.map((p) => (p.id === pet.id ? updated : p)) }));
+          pushStudentPet(updated);
+          trained.push({ petId: pet.id, name: pet.customName, before: pet.trainingProgress, after });
+        });
+        if (trained.length) set({ lastPetTraining: { id: makeId(), studentId, source, pets: trained } });
+      },
+
       teachTrick: (petId, trickId) => {
         const pet = get().pets.find((p) => p.id === petId);
-        if (!pet || (pet.tricksLearned ?? []).includes(trickId)) return;
+        const trick = PET_TRICKS.find((t) => t.id === trickId);
+        if (!pet || !trick || (pet.tricksLearned ?? []).includes(trickId) || pet.trainingProgress < trick.unlockAt) return;
         const updated: StudentPet = { ...pet, tricksLearned: [...(pet.tricksLearned ?? []), trickId] };
         set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
         pushStudentPet(updated);
@@ -2333,12 +2351,7 @@ export const useStore = create<AppState>()(
         // unlock) instead of the ladder's actual top threshold froze
         // trainingProgress at 5 forever, silently killing the later
         // "Best Friends"/"Bonded for Life" milestones.
-        const trainingCap = PET_MILESTONES[PET_MILESTONES.length - 1].threshold;
-        get().pets.filter((p) => p.studentId === studentId && p.trainingProgress < trainingCap).forEach((pet) => {
-          const updated: StudentPet = { ...pet, trainingProgress: pet.trainingProgress + 1 };
-          set((s) => ({ pets: s.pets.map((p) => (p.id === pet.id ? updated : p)) }));
-          pushStudentPet(updated);
-        });
+        get().trainPets(studentId, 1, 'assignment');
 
         const student = get().students.find((st) => st.id === studentId);
 

@@ -8,7 +8,9 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS } from '../../lib/petCatalog';
+import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, trickUnlocked } from '../../lib/petCatalog';
+import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
+import PetTrainingSession from '../../components/PetTrainingSession';
 import type { PetDef } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
@@ -404,30 +406,42 @@ function PetCareCard({
   def,
   studentId,
   flashSaved,
+  onCue,
+  onTrain,
 }: {
   pet: StudentPet;
   def: PetDef | undefined;
   studentId: string;
   flashSaved: () => void;
+  onCue: (kind: string) => void;
+  onTrain: () => void;
 }) {
   const carePet = useStore((s) => s.carePet);
   const renamePet = useStore((s) => s.renamePet);
   const setFollowingPet = useStore((s) => s.setFollowingPet);
   const sellPet = useStore((s) => s.sellPet);
   const tintPet = useStore((s) => s.tintPet);
-  const teachTrick = useStore((s) => s.teachTrick);
   const [nameDraft, setNameDraft] = useState(pet.customName);
   const [confirmSell, setConfirmSell] = useState(false);
-  const [justTaught, setJustTaught] = useState<string | null>(null);
-  const justTaughtTimerRef = useRef<number | null>(null);
+  // Pets review (2026-10-06): a care tap used to only move a number. Now
+  // the pet hops or wiggles in the room and says how it feels.
+  const [reaction, setReaction] = useState<string | null>(null);
+  const reactionTimerRef = useRef<number | null>(null);
   const canFollow = canPetFollow(pet.trainingProgress);
+  const name = pet.customName || def?.name || 'Your pet';
+  const learnedCount = (pet.tricksLearned ?? []).length;
+  const teachable = PET_TRICKS.filter((t) => !(pet.tricksLearned ?? []).includes(t.id) && trickUnlocked(t, pet.trainingProgress)).length;
+  const next = nextMilestone(pet.trainingProgress);
+  const prevThreshold = [...PET_MILESTONES].reverse().find((m) => m.threshold <= pet.trainingProgress)?.threshold ?? 0;
 
-  const handleTeachTrick = (trickId: string, label: string) => {
-    teachTrick(pet.id, trickId);
+  const care = (action: 'feed' | 'pet' | 'play') => {
+    carePet(pet.id, action);
     flashSaved();
-    if (justTaughtTimerRef.current) window.clearTimeout(justTaughtTimerRef.current);
-    setJustTaught(label);
-    justTaughtTimerRef.current = window.setTimeout(() => setJustTaught(null), 2200);
+    onCue(action === 'pet' ? 'wiggle' : 'hop');
+    const said = action === 'feed' ? `😋 ${name}: Yum, thank you!` : action === 'pet' ? `💞 ${name} feels loved!` : `🎾 ${name} had so much fun!`;
+    if (reactionTimerRef.current) window.clearTimeout(reactionTimerRef.current);
+    setReaction(said);
+    reactionTimerRef.current = window.setTimeout(() => setReaction(null), 2000);
   };
 
   useEffect(() => setNameDraft(pet.customName), [pet.customName]);
@@ -439,11 +453,11 @@ function PetCareCard({
   };
 
   return (
-    <div style={{ border: '2px solid var(--content-border, #ccc)', borderRadius: 10, padding: 8 }}>
+    <div style={{ border: '2px solid var(--content-border, #ccc)', borderRadius: 12, padding: 10, fontSize: 13 }}>
       {/* Claudia's daily-review audit: this field had no visible label and
           no aria-label — a plain "pet's name is somewhere on this card"
           field a screen-reader user couldn't identify. */}
-      <label htmlFor={`pet-name-${pet.id}`} style={{ display: 'block', fontSize: 9, fontWeight: 700, opacity: 0.65, marginBottom: 2 }}>
+      <label htmlFor={`pet-name-${pet.id}`} style={{ display: 'block', fontSize: 11, fontWeight: 700, opacity: 0.7, marginBottom: 2 }}>
         Pet's name
       </label>
       <input
@@ -452,9 +466,9 @@ function PetCareCard({
         onChange={(e) => setNameDraft(e.target.value)}
         onBlur={commitName}
         onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-        style={{ fontSize: 12, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 44 }}
+        style={{ fontSize: 15, fontWeight: 700, width: '100%', marginBottom: 4, minHeight: 44 }}
       />
-      <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4 }}>
+      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
         {def?.name} • {growthStageIcon(growthStageFor(pet.trainingProgress))} {growthStageLabel(growthStageFor(pet.trainingProgress))}
         {pet.following ? ' • 🚶 walking with you' : ''}
       </div>
@@ -470,119 +484,98 @@ function PetCareCard({
         ['💞 Social', pet.social, 'Lonely', 'Loved'],
         ['❤️ Health', pet.health, 'Not feeling well', 'Healthy'],
       ] as const).map(([label, value, lowFeeling, highFeeling]) => (
-        <div key={label} style={{ marginBottom: 3 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
+        <div key={label} style={{ marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
             <span>{label}{value < 40 ? ` (${lowFeeling})` : value >= 80 ? ` (${highFeeling})` : ''}</span><span>{Math.round(value)}</span>
           </div>
-          <div style={{ height: 5, borderRadius: 3, background: '#eee', overflow: 'hidden' }}>
+          <div style={{ height: 8, borderRadius: 4, background: '#eee', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${value}%`, background: value < 40 ? '#dc2626' : '#22c55e', transition: 'width 0.3s ease-out' }} />
           </div>
         </div>
       ))}
-      <div style={{ fontSize: 9, opacity: 0.7, margin: '4px 0' }}>
-        🎓 Training: {pet.trainingProgress} {canFollow ? '(ready to walk with you!)' : `(${PET_FOLLOW_TRAINING_THRESHOLD - pet.trainingProgress} more assignments to unlock)`}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, margin: '6px 0' }}>
+        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('feed')}>🍗 Feed</button>
+        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('pet')}>🤗 Pet</button>
+        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('play')}>🎾 Play</button>
       </div>
-      {/* ABA shaping ladder (Claudia's plan, Phase 4) — successive
-          milestones on the same counter, purely presentational badges. */}
+      {reaction && (
+        <div role="status" style={{ fontSize: 13, fontWeight: 800, color: '#7c3aed', marginBottom: 4 }}>{reaction}</div>
+      )}
+      {/* ABA shaping ladder: training from real work only (finished
+          assignments, and every 10 right answers in games and quizzes),
+          shown as a bar toward the next milestone. */}
+      <div style={{ fontSize: 12, margin: '6px 0 2px', fontWeight: 700 }}>
+        🎓 Training: {pet.trainingProgress}{next ? ` • next ${next.icon} ${next.label} at ${next.threshold}` : ' • all milestones reached!'}
+      </div>
+      {next && (
+        <div style={{ height: 8, borderRadius: 4, background: '#eee', overflow: 'hidden', marginBottom: 4 }}>
+          <div style={{ height: '100%', width: `${Math.round(((pet.trainingProgress - prevThreshold) / (next.threshold - prevThreshold)) * 100)}%`, background: '#a855f7' }} />
+        </div>
+      )}
+      <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 4 }}>
+        {canFollow ? 'Ready to walk with you!' : `${PET_FOLLOW_TRAINING_THRESHOLD - pet.trainingProgress} more training to walk with you.`} Finish assignments and answer questions in games to train.
+      </div>
       {milestonesReached(pet.trainingProgress).length > 0 && (
-        <div className="row-wrap" style={{ gap: 3, marginBottom: 4 }}>
+        <div className="row-wrap" style={{ gap: 4, marginBottom: 6 }}>
           {milestonesReached(pet.trainingProgress).map((m) => (
-            <span key={m.label} className="tag-pill" style={{ fontSize: 8, background: '#f1eafe' }}>{m.icon} {m.label}</span>
+            <span key={m.label} className="tag-pill" style={{ fontSize: 11, background: '#f1eafe' }}>{m.icon} {m.label}</span>
           ))}
         </div>
       )}
-      {nextMilestone(pet.trainingProgress) && (
-        <div style={{ fontSize: 8, opacity: 0.6, marginBottom: 4 }}>
-          Next: {nextMilestone(pet.trainingProgress)!.icon} {nextMilestone(pet.trainingProgress)!.label} at {nextMilestone(pet.trainingProgress)!.threshold}
-        </div>
-      )}
-      {/* Teach a Trick (Part C's own open question, "I taught it a
-          trick"?, made real) — SEL/bonding, not an academic task: first
-          attempt always succeeds, no retry-until-correct, no skill check.
-          Same 5 generic tricks for every pet, no new 3D assets needed. */}
-      <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.65, marginBottom: 2 }}>🎪 Tricks</div>
-      <div className="row-wrap" style={{ gap: 4, marginBottom: 4 }}>
-        {PET_TRICKS.map((t) => {
-          const learned = (pet.tricksLearned ?? []).includes(t.id);
-          return learned ? (
-            <span key={t.id} className="tag-pill" style={{ fontSize: 8, background: '#eafbea' }}>{t.icon} {t.label} ✓</span>
-          ) : (
-            <button
-              key={t.id}
-              className="btn btn-sm"
-              style={{ minHeight: 22, fontSize: 8, padding: '2px 6px' }}
-              onClick={() => handleTeachTrick(t.id, t.label)}
-            >
-              {t.icon} Teach {t.label}
-            </button>
-          );
-        })}
-      </div>
-      {justTaught && (
-        <div role="status" style={{ fontSize: 9, fontWeight: 700, color: 'var(--success, #22c55e)', marginBottom: 4 }}>
-          🎉 {pet.customName || def?.name} learned {justTaught}!
-        </div>
-      )}
+      {/* Teach a Trick, now a real training session (PetTrainingSession). */}
+      <button
+        className="btn btn-primary"
+        style={{ width: '100%', minHeight: 52, fontSize: 15, fontWeight: 900, marginBottom: 6 }}
+        onClick={onTrain}
+      >
+        🎪 Train {name}{teachable > 0 ? ` (${teachable} new trick${teachable === 1 ? '' : 's'})` : ''}
+      </button>
+      <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>⭐ Knows {learnedCount} of {PET_TRICKS.length} tricks</div>
       {/* Pet paint-brush customization (Part B backlog item, directly
           requested) — same swatch/tint mechanism Build Mode already uses
           for world objects, applied here to the student's own pet. Purely
-          cosmetic autonomy, no cost, no cap, reversible any time. */}
-      <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.65, marginBottom: 2 }}>🎨 Color</div>
-      <div className="row-wrap" style={{ gap: 4, marginBottom: 4, alignItems: 'center' }}>
+          cosmetic autonomy, no cost, no cap, reversible any time. A true
+          Sims-4-style freehand coat brush is still a future build (see the
+          dev plan); the native "more colors" picker covers any color. */}
+      <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75, marginBottom: 4 }}>🎨 Color</div>
+      <div className="row-wrap" style={{ gap: 6, marginBottom: 8, alignItems: 'center' }}>
         {PET_TINT_SWATCHES.map((c) => (
           <button
             key={c}
             title={c}
             aria-label={`Color your pet ${c}`}
             onClick={() => tintPet(pet.id, pet.tintColor === c ? null : c)}
-            style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, padding: 0, borderRadius: 6, background: c, border: pet.tintColor === c ? '2px solid var(--ink, #1f4238)' : '1px solid #0002', cursor: 'pointer' }}
+            style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, padding: 0, borderRadius: 8, background: c, border: pet.tintColor === c ? '3px solid var(--ink, #1f4238)' : '1px solid #0002', cursor: 'pointer' }}
           />
         ))}
-        {/* Direct teacher request for "more freedom... mirror after Sims
-            4": a true freehand paint brush (multiple regions, patterns,
-            painted directly onto the model's coat texture) is a much
-            bigger build than this — it needs a real per-pet UV-mapped
-            paint canvas, not a material-color swap, and this environment
-            can't visually QA a 3D rendering feature before shipping it
-            (see the sky-texture saga's standing "no retry without live
-            visual QA" rule — five failed attempts on exactly that kind of
-            unverifiable 3D/texture work). Flagged in the dev plan as a
-            real future build, not attempted here. What ships now: the
-            same safe "more colors" native picker Build Mode's own tint
-            popover already uses for objects (WorldEditor.tsx), so a
-            student isn't limited to these 12 presets — any color, not
-            just a fixed swatch. */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 8, margin: 0 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 11, margin: 0 }}>
           <input
             type="color"
             value={pet.tintColor ?? '#ffffff'}
             onChange={(e) => tintPet(pet.id, e.target.value)}
-            style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, padding: 0, cursor: 'pointer' }}
+            style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, padding: 0, cursor: 'pointer' }}
             title="More colors"
             aria-label="Pick any color for your pet"
           />
         </label>
         {pet.tintColor && (
-          <button className="btn btn-sm" style={{ minHeight: 22, fontSize: 9, padding: '0 6px' }} onClick={() => tintPet(pet.id, null)}>
+          <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 12, padding: '0 10px' }} onClick={() => tintPet(pet.id, null)}>
             ✕ Reset
           </button>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'feed'); flashSaved(); }}>🍗 Feed</button>
-        <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'pet'); flashSaved(); }}>🤗 Pet</button>
-        <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 10, padding: '2px 8px' }} onClick={() => { carePet(pet.id, 'play'); flashSaved(); }}>🎾 Play</button>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button
           className="btn btn-sm"
-          style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', opacity: canFollow ? 1 : 0.4, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
+          style={{ minHeight: 48, fontSize: 13, padding: '2px 10px', flex: 1, opacity: canFollow ? 1 : 0.45, background: pet.following ? '#a855f7' : undefined, color: pet.following ? '#fff' : undefined }}
           disabled={!canFollow}
           onClick={() => setFollowingPet(studentId, pet.following ? null : pet.id)}
         >
-          {pet.following ? '🚶 Unset companion' : '🚶 Set as companion'}
+          {pet.following ? '🚶 Stop walking with me' : '🚶 Walk with me'}
         </button>
         <button
           className="btn btn-sm"
-          style={{ minHeight: 44, fontSize: 10, padding: '2px 8px', background: confirmSell ? '#c0392b' : undefined, color: confirmSell ? '#fff' : undefined }}
+          style={{ minHeight: 48, fontSize: 13, padding: '2px 10px', background: confirmSell ? '#c0392b' : undefined, color: confirmSell ? '#fff' : undefined }}
           onClick={() => {
             if (confirmSell) { sellPet(pet.id); setConfirmSell(false); }
             else { setConfirmSell(true); setTimeout(() => setConfirmSell(false), 2500); }
@@ -609,7 +602,7 @@ const HOME_PET_SCALE_MAX = 3;
 // heavy code, see this file's own bundle-splitting concerns above), so a
 // student's pet color and a teacher's asset tint always look consistent.
 const PET_TINT_SWATCHES = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#78350f', '#64748b', '#ffffff'];
-function HomePetPresence({ pet, def, position }: { pet: StudentPet; def: PetDef; position: [number, number, number] }) {
+function HomePetPresence({ pet, def, position, cue, onTap }: { pet: StudentPet; def: PetDef; position: [number, number, number]; cue?: PetMoveCue; onTap?: () => void }) {
   const { scene, animations } = useGLTF(def.modelPath);
   const cloned = useMemo(() => {
     const c = cloneSkinned(scene);
@@ -648,9 +641,20 @@ function HomePetPresence({ pet, def, position }: { pet: StudentPet; def: PetDef;
     idle?.reset().play();
     return () => { idle?.stop(); };
   }, [actions]);
+  // Pets review (2026-10-06): care taps and tricks play here too, and a
+  // tap on the pet itself opens its training session.
+  const move = useRef<THREE.Group>(null);
+  usePetMove(move, cue, def.targetHeight * growthScaleFactor(stage));
   return (
-    <group ref={group} position={position}>
-      <primitive object={cloned} scale={scale} />
+    <group position={position}>
+      <group
+        ref={move}
+        onClick={onTap ? (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onTap(); } : undefined}
+      >
+        <group ref={group}>
+          <primitive object={cloned} scale={scale} />
+        </group>
+      </group>
     </group>
   );
 }
@@ -843,6 +847,13 @@ export default function HomeRoom() {
     () => (student ? pets.filter((p) => p.studentId === student.id) : []),
     [pets, student]
   );
+  // Pets review (2026-10-06): care/trick moves the 3D pet plays, and the
+  // pet whose training session is open.
+  const [petCues, setPetCues] = useState<Record<string, PetMoveCue>>({});
+  const cuePet = (petId: string, kind: string) => setPetCues((c) => ({ ...c, [petId]: { kind, at: Date.now() } }));
+  const [trainingPetId, setTrainingPetId] = useState<string | null>(null);
+  const trainingPet = trainingPetId ? myPets.find((p) => p.id === trainingPetId) : undefined;
+  const trainingPetDef = trainingPet ? petDefById(trainingPet.petDefId) : undefined;
 
   // Direct instruction: "Build mode must save if the student toggles
   // between tabs or apps. It must have an auto save, but there must
@@ -1175,17 +1186,17 @@ export default function HomeRoom() {
       </div>
 
       {petPanelOpen && (
-        <div style={{ position: 'fixed', top: 68, right: 16, zIndex: 60, background: 'rgba(255,255,255,0.97)', borderRadius: 12, padding: '10px 12px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', width: 240, maxHeight: '70vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', top: 68, right: 16, zIndex: 60, background: 'rgba(255,255,255,0.97)', borderRadius: 12, padding: '10px 12px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', width: 'min(320px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 90px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <div style={{ fontSize: 12, fontWeight: 800 }}>🐾 Your Pets ({myPets.length}/{PET_OWNERSHIP_CAP})</div>
-            <button className="btn btn-sm" style={{ minHeight: 26, fontSize: 10, padding: '2px 8px' }} onClick={() => navigate('/student/pet-journal')}>📖 Journal</button>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>🐾 Your Pets ({myPets.length}/{PET_OWNERSHIP_CAP})</div>
+            <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 13, padding: '2px 10px' }} onClick={() => navigate('/student/pet-journal')}>📖 Journal</button>
           </div>
           {myPets.length === 0 ? (
-            <p style={{ fontSize: 11, opacity: 0.7 }}>No pets yet. Adopt one at the 🐾 Pet Shelter in Town Square!</p>
+            <p style={{ fontSize: 14, opacity: 0.75 }}>No pets yet. Adopt one at the 🐾 Pet Shelter in Town Square!</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {myPets.map((pet) => (
-                <PetCareCard key={pet.id} pet={pet} def={petDefById(pet.petDefId)} studentId={student.id} flashSaved={flashSaved} />
+                <PetCareCard key={pet.id} pet={pet} def={petDefById(pet.petDefId)} studentId={student.id} flashSaved={flashSaved} onCue={(k) => cuePet(pet.id, k)} onTrain={() => setTrainingPetId(pet.id)} />
               ))}
             </div>
           )}
@@ -1264,6 +1275,8 @@ export default function HomeRoom() {
                     pet={pet}
                     def={def}
                     position={[spread, 0, -(halfD + EXTERIOR_CLEARANCE) + 2.2]}
+                    cue={petCues[pet.id]}
+                    onTap={mode === 'view' ? () => setTrainingPetId(pet.id) : undefined}
                   />
                 );
               })}
@@ -1296,6 +1309,26 @@ export default function HomeRoom() {
                 <meshStandardMaterial color={activeRoom.wallColor || DEFAULT_WALL_COLOR} />
               </mesh>
             ))}
+            {/* Pets review (2026-10-06): "pets live at home", but they
+                only ever showed up in the yard. Now they hang out inside
+                every room too, toward the front so they're easy to tap. */}
+            <Suspense fallback={null}>
+              {myPets.map((pet, i) => {
+                const def = petDefById(pet.petDefId);
+                if (!def) return null;
+                const spread = (i - (myPets.length - 1) / 2) * Math.min(1.4, (roomW - 1) / Math.max(1, myPets.length));
+                return (
+                  <HomePetPresence
+                    key={pet.id}
+                    pet={pet}
+                    def={def}
+                    position={[spread, def.category === 'aquatic' || def.category === 'bird' ? 0.6 : 0, Math.max(0, halfD - 1.4)]}
+                    cue={petCues[pet.id]}
+                    onTap={mode === 'view' ? () => setTrainingPetId(pet.id) : undefined}
+                  />
+                );
+              })}
+            </Suspense>
           </>
         )}
 
@@ -1315,6 +1348,14 @@ export default function HomeRoom() {
           />
         ))}
       </Canvas>
+      {trainingPet && trainingPetDef && (
+        <PetTrainingSession
+          pet={trainingPet}
+          def={trainingPetDef}
+          onClose={() => setTrainingPetId(null)}
+          onCue={(k) => cuePet(trainingPet.id, k)}
+        />
+      )}
 
       {mode === 'build' && (
         <>

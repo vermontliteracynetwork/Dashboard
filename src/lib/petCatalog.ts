@@ -211,7 +211,23 @@ export const PET_MILESTONES: PetMilestone[] = [
   { threshold: PET_FOLLOW_TRAINING_THRESHOLD, label: 'Walks with you', icon: '🚶' },
   { threshold: 10, label: 'Best Friends', icon: '💛' },
   { threshold: 15, label: 'Bonded for Life', icon: '⭐' },
+  { threshold: 25, label: 'Trick Master', icon: '🎪' },
 ];
+
+// Pets review (teacher, 2026-10-06: "lets review the pet training and
+// general pet functions. lets improve them"). Training used to come ONLY
+// from finished assignments, so a student playing native games or Quiz
+// mode never trained a pet, even though the growth-stage spec says pets
+// grow "with attention, love, and native games". Now every 10 right
+// answers anywhere (games, quizzes, the gas pump) is also 1 training.
+export const PET_ANSWERS_PER_TRAINING = 10;
+export const PET_TRAINING_CAP = 25; // the top of the milestone ladder
+
+// The milestone a training count just crossed (for the "can walk with you
+// now!" moment), or null.
+export function milestoneCrossed(before: number, after: number): PetMilestone | null {
+  return PET_MILESTONES.find((m) => before < m.threshold && after >= m.threshold) ?? null;
+}
 export function milestonesReached(trainingProgress: number): PetMilestone[] {
   return PET_MILESTONES.filter((m) => trainingProgress >= m.threshold);
 }
@@ -226,18 +242,45 @@ export function nextMilestone(trainingProgress: number): PetMilestone | null {
 // out of scope, same reasoning as the milestone badges above). First
 // attempt always succeeds; no retry-until-correct, no skill check.
 // ---------------------------------------------------------------------------
+//
+// Pets review (2026-10-06): teaching is now a real training session
+// (PetTrainingSession.tsx) shaped like a discrete trial: say the cue, the
+// pet does the trick, give a treat, three times, then it's learned. It
+// still always succeeds. New tricks unlock as training grows (unlockAt), so
+// the work a student does visibly gives their pet new things to learn, and
+// learned tricks can be shown off any time at home or in Town Square.
+// ---------------------------------------------------------------------------
 export interface PetTrick {
   id: string;
   label: string;
   icon: string;
+  cue: string; // what the student "says"
+  unlockAt: number; // training needed before it can be taught
 }
 export const PET_TRICKS: PetTrick[] = [
-  { id: 'trick-sit', label: 'Sit', icon: '🪑' },
-  { id: 'trick-spin', label: 'Spin', icon: '🌀' },
-  { id: 'trick-shake', label: 'Shake', icon: '🤝' },
-  { id: 'trick-speak', label: 'Speak', icon: '🗣️' },
-  { id: 'trick-playdead', label: 'Play Dead', icon: '🛌' },
+  { id: 'trick-sit', label: 'Sit', icon: '🪑', cue: 'Sit!', unlockAt: 0 },
+  { id: 'trick-shake', label: 'Shake', icon: '🤝', cue: 'Shake!', unlockAt: 0 },
+  { id: 'trick-spin', label: 'Spin', icon: '🌀', cue: 'Spin!', unlockAt: 3 },
+  { id: 'trick-speak', label: 'Speak', icon: '🗣️', cue: 'Speak!', unlockAt: 5 },
+  { id: 'trick-playdead', label: 'Play Dead', icon: '🛌', cue: 'Play dead!', unlockAt: 10 },
+  { id: 'trick-rollover', label: 'Roll Over', icon: '🔄', cue: 'Roll over!', unlockAt: 15 },
+  { id: 'trick-dance', label: 'Dance', icon: '💃', cue: 'Dance!', unlockAt: 20 },
+  { id: 'trick-highfive', label: 'High Five', icon: '🙌', cue: 'High five!', unlockAt: 25 },
 ];
+export const TRICK_REPS_TO_LEARN = 3;
+export function trickUnlocked(trick: PetTrick, trainingProgress: number): boolean {
+  return trainingProgress >= trick.unlockAt;
+}
+// Tricks that just became teachable when training went before -> after.
+export function tricksUnlockedBetween(before: number, after: number): PetTrick[] {
+  return PET_TRICKS.filter((t) => t.unlockAt > before && t.unlockAt <= after);
+}
+const SPEAK_WORD: Record<PetCategory, string> = {
+  dog: 'Woof woof!', cat: 'Meow!', small: 'Squeak!', farm: 'Moo... I mean hi!', bird: 'Tweet tweet!', aquatic: 'Blub blub!', wild: 'Roar!', fun: 'Ta-da!',
+};
+export function speakWordFor(pet: PetDef): string {
+  return SPEAK_WORD[pet.category];
+}
 
 // ---------------------------------------------------------------------------
 // Growth stages — direct teacher spec: "pets should start out as babies/

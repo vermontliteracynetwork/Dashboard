@@ -49,7 +49,8 @@ import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, R
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor } from '../../lib/petCatalog';
+import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PET_TRICKS } from '../../lib/petCatalog';
+import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion, Task } from '../../types';
 import { taskDisplayTitle } from '../../lib/taskOrder';
@@ -884,7 +885,7 @@ const PET_HOVER_BOB_SPEED = 2.2;
 // never approached by anything in this catalog and is unchanged.
 const PET_SCALE_MIN = 0.001;
 const PET_SCALE_MAX = 3;
-function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColor }: { path: string; floating: boolean; targetHeight: number; isMovingRef: React.RefObject<boolean>; tintColor?: string }) {
+function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColor, cue }: { path: string; floating: boolean; targetHeight: number; isMovingRef: React.RefObject<boolean>; tintColor?: string; cue?: PetMoveCue | null }) {
   const { scene, animations } = useGLTF(path);
   const cloned = useMemo(() => {
     const c = cloneSkinned(scene);
@@ -977,16 +978,22 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
     if (to) actions[to]?.reset().fadeIn(0.15).play();
     current.current = next;
   });
+  // Pets review (2026-10-06): learned tricks can be shown off in Town
+  // from the Companion menu.
+  const trickGroup = useRef<THREE.Group>(null);
+  usePetMove(trickGroup, cue, targetHeight);
   return (
     <group ref={group}>
-      <group ref={bobGroup}>
-        <primitive object={cloned} scale={scale} />
+      <group ref={trickGroup}>
+        <group ref={bobGroup}>
+          <primitive object={cloned} scale={scale} />
+        </group>
       </group>
     </group>
   );
 }
 
-function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef, tintColor }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number; facingRef: React.RefObject<number>; tintColor?: string }) {
+function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef, tintColor, cue }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number; facingRef: React.RefObject<number>; tintColor?: string; cue?: PetMoveCue | null }) {
   const groupRef = useRef<THREE.Group>(null);
   const pos = useRef(new THREE.Vector3(playerPos.x - PET_FOLLOW_OFFSET, 0, playerPos.z - PET_FOLLOW_OFFSET));
   const elapsed = useRef(0);
@@ -1023,7 +1030,7 @@ function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef,
   return (
     <group ref={groupRef}>
       <Suspense fallback={null}>
-        <PetCompanionModel path={modelPath} floating={floating} targetHeight={targetHeight} isMovingRef={isMovingRef} tintColor={tintColor} />
+        <PetCompanionModel path={modelPath} floating={floating} targetHeight={targetHeight} isMovingRef={isMovingRef} tintColor={tintColor} cue={cue} />
       </Suspense>
     </group>
   );
@@ -3181,6 +3188,7 @@ export default function TownSquare() {
   // to false in the same write), so this menu is purely a faster way to
   // call that same action, not new following-limit logic.
   const [showCompanionMenu, setShowCompanionMenu] = useState(false);
+  const [companionCue, setCompanionCue] = useState<PetMoveCue | null>(null);
   const [showSelfMenu, setShowSelfMenu] = useState(false);
   const { released: styleReleased } = useStyleSettings();
   // Claudia's audit (H3): the pie menu had grown to 7-8 wedges, past her
@@ -4443,6 +4451,24 @@ export default function TownSquare() {
               🚫 None
             </button>
           </div>
+          {followingPet && (followingPet.tricksLearned ?? []).length > 0 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ position: 'absolute', left: 16, right: 16, bottom: 'max(24px, env(safe-area-inset-bottom))', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', alignItems: 'center' }}
+            >
+              <span style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', width: '100%', textAlign: 'center' }}>Ask {followingPet.customName} to:</span>
+              {PET_TRICKS.filter((t) => (followingPet.tricksLearned ?? []).includes(t.id)).map((t) => (
+                <button
+                  key={t.id}
+                  className="btn"
+                  style={{ minHeight: 52, fontSize: '1rem', fontWeight: 800, background: '#fff', borderRadius: 14 }}
+                  onClick={() => { setCompanionCue({ kind: t.id, at: Date.now() }); setShowCompanionMenu(false); }}
+                >
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {/* Direct teacher instruction: "Pie menu format should be adopted
@@ -4994,6 +5020,7 @@ export default function TownSquare() {
               targetHeight={followingPetDef.targetHeight * growthScaleFactor(growthStageFor(followingPet.trainingProgress))}
               facingRef={playerFacingRef}
               tintColor={followingPet.tintColor}
+              cue={companionCue}
             />
           )}
           {QUEST1_NEIGHBORS.map((n) => (

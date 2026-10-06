@@ -101,7 +101,7 @@ A full adoptable-animal system: dogs, cats, small critters, farm animals, birds,
 
 **Care loop** (Home Room): Food, Social, and Health bars (0-100), each paired with a plain-language feelings word at low and high values (e.g. Food low = "Hungry," high = "Full") rather than just a number. Stats decay softly, only while the student is actively in Town Square (never while they're away), floored at 20 so a pet is never neglected to zero, and pets never die. A student feeds, pets, and plays with their pet from a care card; a pet can be renamed anytime and sold back (with a confirm-tap safety) if a student's 4-pet home is full.
 
-**Companion/follow mechanic**: a pet unlocks "walk beside you" in Town Square only after 5 logged task completions (`PET_FOLLOW_TRAINING_THRESHOLD`), tracked by the same counter used for the ABA shaping ladder (see A26). Training comes exclusively from finishing real assignments and question sets, never from clicking care buttons repeatedly, so the companion unlock reflects genuine engagement rather than idle spam. Only one pet can be the active companion at a time.
+**Companion/follow mechanic**: a pet unlocks "walk beside you" in Town Square only after 5 logged task completions (`PET_FOLLOW_TRAINING_THRESHOLD`), tracked by the same counter used for the ABA shaping ladder (see A26). Training comes exclusively from real learning, never from clicking care buttons repeatedly: every finished assignment is +1, and (since the 2026-10-06 pets review) every 10 right answers anywhere (native games, Quiz mode, quizzes, the gas pump) is +1 too. Only one pet can be the active companion at a time. Pets live in every Home Room room and the yard, react to care taps (hop/wiggle plus a feelings line), and can be tapped to open a training session (see Part B, Pets review).
 
 **Growth stages**: a pet renders visibly smaller as a Baby (0-4 training), Juvenile (5-9), and full-size Adult (10+), using the same training counter, so "raising" a pet from puppy to adult is a real, free visual payoff of ordinary schoolwork, exactly per the teacher's original spec ("pets should start out as babies... and grow to be full adults with attention, love, and native games").
 
@@ -404,7 +404,7 @@ Grounded in the standing principles in Part D: no leaderboards or cross-student 
 
 #### A26. Pets' ABA Shaping Ladder & Growth Stages
 
-Cross-reference: the pet catalog, adoption, and care loop are described in full under A5 (Game & Play). The training system underneath is a deliberate successive-approximation shaping design: a single counter (`trainingProgress`), incremented only by genuine task completions (never by tapping care buttons), gates three visible milestones shown as badges on the pet's care card: "Walks with you" at 5 completions (the companion/follow unlock), "Best Friends" at 10, and "Bonded for Life" at 15. The same counter also drives the pet's visible growth from Baby to Juvenile to Adult, so the reinforcement isn't abstract, a bonded, mature-looking companion is the literal, visible shape of consistent academic effort. Because training only ever moves forward from real work, "I taught it a trick" and "it's the thing I check on first" (both named directly in the original teacher brief) are earned outcomes, not shortcuts.
+Cross-reference: the pet catalog, adoption, and care loop are described in full under A5 (Game & Play). The training system underneath is a deliberate successive-approximation shaping design: a single counter (`trainingProgress`), incremented only by genuine task completions (never by tapping care buttons), gates four visible milestones shown as badges on the pet's care card (with a progress bar to the next one): "Walks with you" at 5 (the companion/follow unlock), "Best Friends" at 10, "Bonded for Life" at 15, and "Trick Master" at 25 (added 2026-10-06). The counter also unlocks new tricks to teach (Sit and Shake at 0, Spin 3, Speak 5, Play Dead 10, Roll Over 15, Dance 20, High Five 25), so finished work visibly gives the pet new things to learn. The same counter also drives the pet's visible growth from Baby to Juvenile to Adult, so the reinforcement isn't abstract, a bonded, mature-looking companion is the literal, visible shape of consistent academic effort. Because training only ever moves forward from real work, "I taught it a trick" and "it's the thing I check on first" (both named directly in the original teacher brief) are earned outcomes, not shortcuts.
 
 #### A27. Mystery Adoption Box's Variable-Ratio Design
 
@@ -722,6 +722,62 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Pets review: training up and running. SHIPPED 2026-10-06 (direct teacher instruction)
+
+- Her words, verbatim: "lets review the pet training and general pet functions. lets improve them. tell me whats in progress and to come on the dev plan. lets get that feature up and running"
+- **What the review found (before this pass):**
+  - Training only ever came from finished assignments. Native games, Quiz mode and the gas pump never trained a pet, even though the growth spec says pets grow "with attention, love, and native games". A student who mostly played games had a pet stuck as a baby forever.
+  - Training happened silently: no message ever told a student their work helped their pet.
+  - "Teach a Trick" was one tap on a tiny 22px button that marked it learned. The pet never did anything, and a learned trick could never be shown.
+  - Pets only appeared in the yard. Inside any room (where students spend their Home time) there were no pets at all.
+  - Care taps (Feed/Pet/Play) only moved a number; the pet didn't react.
+  - The care card used 8 to 9px text and 22px buttons, failing the iPad-first rule.
+  - The training counter stopped at 15, so there was nothing left to work toward after "Bonded for Life".
+- **Shipped:**
+  - **Right answers train pets.** Every 10 right answers anywhere = +1 training for every owned pet (`src/lib/petTraining.ts`, hooked into `recordStreakCorrect`, so it counts in every native game, Quiz mode, quizzes and the gas pump; running count in the `pettrain:<id>` style_looks row, no new SQL). Finished assignments still give +1. New `trainPets` store action is the one place training happens.
+  - **"Your pet learned from your work!" toast** (`PetTrainedToast.tsx`, top of the screen, never blocks a tap): names the pet, and calls out a crossed milestone ("Walks with you! Set it as your companion at home.") and any newly teachable trick.
+  - **Training sessions** (`PetTrainingSession.tsx`): open with "🎪 Train [name]" on the care card or by tapping the pet in the room. The pet stands on a rug in a big 3D stage. Teaching is a tiny discrete trial: tap "Say 'Sit!'", watch the pet do it, tap "🦴 Give a treat"; three treats and it's learned (always succeeds, bonding not a test; learning also counts as a Play). Learned tricks have "⭐ Do it!" to show off any time. Shows training, the next milestone, and how training is earned (with the X/10 answers count).
+  - **8 tricks that unlock with training:** Sit and Shake (from the start), Spin (3), Speak (5, the pet says "Woof woof!", "Meow!" etc. by kind), Play Dead (10), Roll Over (15), Dance (20), High Five (25). Played as simple moves on any pet model (`src/lib/petMoves.ts`), no new 3D assets needed.
+  - **New milestone "🎪 Trick Master" at 25**, so the ladder (and growth) keeps going past 15.
+  - **Pets live inside every room** (front of the room, easy to tap), not only the yard. Fish and birds float.
+  - **Care taps make the pet react** in 3D (hop or wiggle) plus a line like "😋 Biscuit: Yum, thank you!".
+  - **Show off tricks in Town:** the Companion menu has an "Ask [name] to:" row with every learned trick; the walking companion does it right there.
+  - **iPad pass on the care card:** readable text (11 to 15px), 48px care buttons, 36px color swatches, a wider panel that fits the screen, a training progress bar, and "Walk with me" in place of "Set as companion".
+- **Not verified live (no 3D preview here):** how each trick move looks on every pet model (some models face different ways, so a "sit" may tilt oddly on one). Report any pet that looks wrong and it gets a per-model fix.
+
+#### Pets: what's in progress and what's to come
+
+- **In progress:** nothing half-built. Everything above shipped together.
+- **To come (waiting on her decision or assets):**
+  - **Sims-4-style freehand coat painting** (her request): needs a per-pet paint canvas; today's tint and any-color picker are the stand-in.
+  - **Pet accessories (hats, bandanas, collars):** no accessory models exist yet. Needs assets (or the Seamstress wardrobe adapted to pets).
+  - **Quest-earned and teacher-gifted pets:** "completing tasks can unlock certain pets". Needs her call on which quests unlock which pets.
+  - **Selling to the Farmer's Market for coins** (selling back to the Shelter for 40% exists; trading pets between students exists).
+  - **Mightier research:** her brief asked Claudia to study Mightier's SEL gaming for how kids interact with pets. Still not done.
+  - **Real trick animations:** the procedural moves work on every pet; real animated clips would need re-exported models.
+  - **Seasonal featured pets** in the Mystery Box: scaffolding exists, no teacher tool yet.
+  - **Pet in native games:** the pet cheering beside the student in games, like Neighbors do now. Idea, not yet asked for.
+
+### Shape Dash (Geometry Dash inspired native game). QUEUED 2026-10-06 (direct teacher instruction)
+
+- Her words, verbatim: "add to queue and dev plan - a geometry dash inspired native game. a question interupts students after 30 seconds or if they die/loose a life"
+- **Asset pack (saved so it can't be lost):** `public/games/shape-dash/`, "Shape Characters" by Kenney (kenney.nl), **CC0** (`License.txt` in the folder). Contents: body shapes (circle, rhombus, square, squircle) in blue, green, pink, purple, red and yellow, 12 faces plus eyes, eyebrows and mouths, hands in every color, default and double-size PNGs, and spritesheets. Perfect for building a player "cube" with a face.
+- **Game shape:** the player shape auto-runs right through a side-scrolling level; tap anywhere to jump over spikes and gaps, land on blocks, with music-beat style obstacles (Geometry Dash). One big tap target suits iPads.
+- **Question rule (hers):** a question interrupts the run every 30 seconds, and also whenever the student dies or loses a life. Answer, then the run continues from a checkpoint.
+- **Claudia's intake notes (to settle before building, per `NATIVE_GAME_STANDARD.md`):**
+  - Geometry Dash is famously punishing (one touch = restart). For this population, proposed defaults: 3 lives with checkpoints (never back to the very start), slower speed to start, a practice mode with no lives lost, and a friendly end card.
+  - Pairing "question after a death" with failure could feel like a punishment. Proposed framing: the question is a "power-up to get back in" (a right answer gives a shield for the next obstacle), never "you died, now do work". Needs her yes.
+  - Standard native-game wiring: $1 per right answer, Daily Streak, pet training (10 right answers), a Neighbor cheering along, a personal leaderboard (distance or levels), Game Dashboard card with a 16:9 cover, leave-game confirmation.
+  - Town Square home: a new building or the Arcade? Her call.
+- **Status:** queued, assets saved, waiting for her "build it".
+
+### Kenney Construct game sources. SAVED 2026-10-06 (teacher upload, no message)
+
+- She uploaded `kenney_construct-game-sources.zip` with no note, right after the Shape Dash request. It holds 6 small Kenney sample games made in the Construct engine: Platformer, Tappy Plane, Space Shooter, Paddle Ball (brick breaker), Dice Cards and an RPG.
+- **CC0** (`public/games/kenney-construct/License.txt`). The Construct project files can't run inside this app (different engine), so the art from each was extracted and saved: `public/games/kenney-construct/<game>/` (platformer tiles, alien player frames, coins, flags; space shooter ships and enemies; paddle ball blocks; dice and playing cards; RPG tilemaps; tappy plane frames).
+- **Useful for:** Shape Dash (platformer tiles and coins for level art), the existing Platformer task, Tappy Plane, and possible future native games (a space shooter or brick breaker that stops for questions, a card game).
+- **Open question for her:** was this meant for Shape Dash, or are any of these 6 games ones she wants built? Queued until she says.
+
 ### Neighbors always look like their Seamstress characters. SHIPPED 2026-10-06 (direct teacher instruction)
 
 - Her words: "ensure all visuals of neighbors (ie in game play and mini games) relfect the newly designed characters from the seamstress, not the old characters i uploaded"
@@ -823,6 +879,8 @@ Everything that could move without her was built and shipped (Daily Streak, Bawk
 - **Chart/Graph activity type** (Weekly Planning Phase 1, item 3): the Activity Library was later cut to 4 creatable types, so adding a 5th needs her yes.
 - **Weekly Planning Phases 2 to 5** (Neighbor-delivered assignments, to-do discovery loop, Catch-Up Lock): designed and ready, but big. Which first?
 - **Tappy Plane:** saved, waiting for her "build it".
+- **Shape Dash** (Geometry Dash style, queued 2026-10-06): waiting for her "build it" and her yes on lives, checkpoints and the "question as a power-up" framing.
+- **Kenney Construct game sources** (uploaded 2026-10-06, no note): what should they be used for?
 - **Games app look:** her slide asset for the computer app icon didn't come through.
 - **Her Bowling GUI art:** confirm she has rights to it (no license file in the zip).
 
@@ -1327,6 +1385,8 @@ Full design in `TRANSPORTATION.md`; UX upgrade ideas in `DRIVING_UX_RESEARCH.md`
 
 ### Pets — remaining phases of Claudia's 7-phase plan
 
+- **Superseded status (2026-10-06):** see "Pets review: training up and running" above for the current shipped state and the full in-progress / to-come list.
+
 - **Phase 5 — SEL regulation layer:** SHIPPED. The Home Room care panel shows feelings-word tags, a bonded companion appears as a passive comfort presence inside Take a Moment (strictly opt-in, only for a student who already has one), and Take a Moment now also offers a real "🐾 Check on your pet" button (shown whenever a student owns any pet, not only a bonded companion) that navigates to Home Room as a genuine, non-required regulation-break activity, exactly the explicit tie-in this item asked for.
 - **Phase 6 — Companion check-in nudge:** SHIPPED. Stat-threshold-based (any owned pet under 40/100 on food/social/health), delivered as a "(count)" suffix on the Town Square pie menu's Companion wedge (same pattern the Tasks wedge already uses) plus a small heart icon on that pet's thumbnail in the companion-picker wheel. Purely informational, never a popup, never gates anything, and costs a student nothing if they never look.
 - **Pet paint-brush/color-fill customization:** SHIPPED. A new `StudentPet.tintColor` field, editable from a 12-swatch color picker on the pet's Home Room care card (the same palette Build Mode's own paint tool uses), with a Reset option to return to the model's original color. Reuses the exact clone-material-and-override-color mechanism `WorldObjectRenderer` already uses for `WorldObject.tintColor`, applied to both places a pet's own model renders: the Home Room presence (`HomePetPresence`) and the Town Square companion-follow model (`PetCompanionModel`). Purely cosmetic, free, uncapped, reversible any time, no teacher decision needed.
@@ -1627,7 +1687,7 @@ Preserved close to verbatim so intent isn't lost in summarization. Status notes 
 
 > Does the pet do anything, or is it a companion? Roughly by build cost: companion (idle/follow/react) → caretaking (feed/pet/play/clean) → customization (name it, dress it) → emotional-regulation object.
 
-**[Status]** Companion and caretaking tiers fully built. Naming and Teach a Trick (SEL/bonding, SHIPPED this hour, see below) are built; dressing/accessorizing is not — checked the full asset catalog, zero hat/bandana/collar/bow/scarf/cape models exist to attach, so this is a real asset gap, not a build gap. The emotional-regulation-object tier (Phase 5) already SHIPPED in an earlier hour, not still open as this line previously implied.
+**[Status]** Companion and caretaking tiers fully built. Naming and Teach a Trick are built; since the 2026-10-06 pets review, teaching is a real cue/trick/treat training session with 8 tricks that unlock as training grows, and learned tricks can be shown off at home and in Town; dressing/accessorizing is not — checked the full asset catalog, zero hat/bandana/collar/bow/scarf/cape models exist to attach, so this is a real asset gap, not a build gap. The emotional-regulation-object tier (Phase 5) already SHIPPED in an earlier hour, not still open as this line previously implied.
 
 > Can two students have the same pet? Every pet type available to everyone unless specifically gifted by the teacher or earned from assignments or quest completion.
 

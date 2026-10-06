@@ -4531,3 +4531,45 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .cheer-buddy-stage { width: 96px; height: 96px; border-radius: 50%; background: rgba(255, 255, 255, 0.85); border: 3px solid #ff9de2; overflow: hidden; }
 .cheer-buddy-bubble { max-width: 200px; margin-bottom: 40px; padding: 8px 12px; border-radius: 16px 16px 16px 4px; background: #fff; color: #3a2a5e; font-weight: 700; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
 @media (max-width: 600px) { .cheer-buddy-stage { width: 72px; height: 72px; } .cheer-buddy-bubble { max-width: 150px; font-size: 0.85rem; } }
+
+/* Pet training session (PetTrainingSession.tsx), iPad first */
+.pet-train-backdrop { position: fixed; inset: 0; z-index: 320; background: rgba(31, 17, 71, 0.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.pet-train-panel { background: #fffaf2; border-radius: 20px; width: min(980px, 100%); max-height: 100%; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.35); padding: 16px; display: flex; flex-direction: column; gap: 12px; font-family: system-ui, sans-serif; color: #2b1d0e; }
+.pet-train-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pet-train-head h2 { margin: 0; font-size: 1.35rem; }
+.pet-train-close { min-height: 48px; min-width: 48px; font-weight: 800; }
+.pet-train-body { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 760px) and (orientation: landscape) { .pet-train-body { grid-template-columns: 1.1fr 1fr; } }
+.pet-train-stage { position: relative; height: min(42vh, 380px); min-height: 220px; border-radius: 16px; overflow: hidden; background: #fdf3e1; }
+@media (min-width: 760px) and (orientation: landscape) { .pet-train-stage { height: min(62vh, 460px); } }
+.pet-train-bubble { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: #fff; border: 3px solid #2b1d0e; border-radius: 18px; padding: 8px 16px; font-size: 1.3rem; font-weight: 900; animation: pet-pop 0.25s ease-out; }
+.pet-train-cheer { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: #22a35a; color: #fff; border-radius: 999px; padding: 10px 18px; font-size: 1.15rem; font-weight: 900; white-space: nowrap; animation: pet-pop 0.25s ease-out; }
+@keyframes pet-pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+.pet-train-side { display: flex; flex-direction: column; gap: 12px; }
+.pet-train-hint { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.pet-train-tricks { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.pet-train-trick { min-height: 88px; border-radius: 14px; border: 2px solid #d9c4a0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 1rem; font-weight: 800; color: #2b1d0e; cursor: pointer; touch-action: manipulation; }
+.pet-train-trick.known { background: #eafbea; border-color: #22a35a; }
+.pet-train-trick:disabled { opacity: 0.5; cursor: not-allowed; }
+.pet-train-trick small { font-size: 0.8rem; font-weight: 700; opacity: 0.8; }
+.pet-train-trick-icon { font-size: 1.8rem; line-height: 1; }
+.pet-train-trick:focus-visible, .pet-train-big:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.pet-train-lesson { display: flex; flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
+.pet-train-lesson-title { font-size: 1.3rem; font-weight: 900; }
+.pet-train-dots { display: flex; justify-content: center; gap: 10px; font-size: 2rem; }
+.pet-train-dots span { opacity: 0.25; filter: grayscale(1); transition: all 0.2s; }
+.pet-train-dots span.on { opacity: 1; filter: none; transform: scale(1.15); }
+.pet-train-big { min-height: 64px; font-size: 1.25rem; font-weight: 900; border-radius: 16px; }
+.pet-train-treat { animation: pet-treat-pulse 0.9s ease-in-out infinite; }
+@keyframes pet-treat-pulse { 50% { transform: scale(1.05); } }
+.pet-train-wait { min-height: 64px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; opacity: 0.8; }
+.pet-train-small { min-height: 48px; }
+.pet-train-progress { background: #f1eafe; border-radius: 12px; padding: 10px 12px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 4px; }
+.pet-train-how { font-size: 0.85rem; opacity: 0.8; }
+@media (prefers-reduced-motion: reduce) { .pet-train-treat, .pet-train-bubble, .pet-train-cheer { animation: none; } }
+
+/* Pet trained toast (PetTrainedToast.tsx) */
+.pet-trained-toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 450; pointer-events: none; background: #7c5cff; color: #fff; border-radius: 16px; padding: 10px 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); font-family: system-ui, sans-serif; font-weight: 800; text-align: center; max-width: calc(100vw - 32px); animation: pet-toast-in 0.3s ease-out; }
+.pet-trained-toast div + div { font-size: 0.9rem; font-weight: 700; margin-top: 2px; }
+@keyframes pet-toast-in { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pet-trained-toast { animation: none; } }

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-06-pet-training',
+    date: '2026-10-06',
+    icon: '🎪',
+    title: 'Train your pet!',
+    body: 'Tap your pet at home or tap Train on its card. Say the trick, watch your pet do it, and give it a treat 3 times to teach it. Your pet now lives inside your rooms too, and it learns from your games: every 10 right answers trains it a little more. Show off tricks in Town from the Companion menu!',
+  },
+  {
     id: '2026-10-06-streak-ten',
     date: '2026-10-06',
     icon: '🔥',
