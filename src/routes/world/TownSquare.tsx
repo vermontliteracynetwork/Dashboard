@@ -49,7 +49,7 @@ import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, R
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PET_TRICKS } from '../../lib/petCatalog';
+import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PET_TRICKS, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion, Task } from '../../types';
@@ -3169,7 +3169,7 @@ export default function TownSquare() {
     vehicleSoundRef.current?.setEnabled(student?.vehicleSoundEnabled !== false);
   }, [student?.vehicleSoundEnabled]);
   useEffect(() => () => { vehicleSoundRef.current?.stop(); }, []);
-  const ownedPets = student ? pets.filter((p) => p.studentId === student.id) : [];
+  const ownedPets = student && !PETS_PAUSED ? pets.filter((p) => p.studentId === student.id) : [];
   const followingPet = ownedPets.find((p) => p.following);
   // Pets Phase 6 (docs/DEVELOPMENT_PLAN.md Part B) — a gentle, non-punitive
   // companion check-in nudge: no popup or interruption, just the same
@@ -4176,7 +4176,7 @@ export default function TownSquare() {
   // no walk-up-and-confirm equivalent when you're looking top-down), so
   // this skips straight to opening rather than showing another card.
   const openRoleObject = (obj: WorldObject) => {
-    if (obj.role === 'closed') { setClosedBuildingName(obj.customName || obj.label); return; }
+    if (obj.role === 'closed' || (PETS_PAUSED && obj.role === 'pet-shelter')) { setClosedBuildingName(obj.customName || obj.label); return; }
     // Direct teacher request: a placed Gas Pump/Gas Station opens the
     // real refuel-by-questions prompt right where the student is
     // standing, same modal the HUD's own "Fill up" button and the empty-
@@ -4345,7 +4345,7 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {!showArrival && showPetCoupon && !student.petCouponRedeemed && (
+      {!showArrival && showPetCoupon && !student.petCouponRedeemed && !PETS_PAUSED && (
         <div className="overlay-backdrop" onClick={dismissPetCoupon}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
@@ -5145,7 +5145,7 @@ export default function TownSquare() {
                         if (drivingObjectId) return; // already driving a different vehicle
                         setDriveConfirmId(obj.id);
                       }
-                  : obj.role === 'closed' && !mapView && !wasDraggingLook.current ? () => setClosedBuildingName(obj.customName || obj.label)
+                  : (obj.role === 'closed' || (PETS_PAUSED && obj.role === 'pet-shelter')) && !mapView && !wasDraggingLook.current ? () => setClosedBuildingName(obj.customName || obj.label)
                   : obj.role && !mapView && !wasDraggingLook.current ? () => setSelectedRoleObjectId(obj.id)
                   : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
                   : isMusicSource && !mapView && !wasDraggingLook.current

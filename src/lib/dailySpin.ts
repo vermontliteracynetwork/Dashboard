@@ -3,7 +3,7 @@ import { EMOTE_CATALOG } from './emoteCatalog';
 import { formatMoney } from './money';
 import { marketplaceItemDisplayName } from './marketplaceDisplay';
 import { itemEarnsVia } from './marketplaceSeed';
-import { PET_CATALOG } from './petCatalog';
+import { PET_CATALOG, PETS_PAUSED } from './petCatalog';
 import type { MarketplaceItem } from '../types';
 import { getEconomy, type EconomySettings } from './economy';
 
@@ -70,11 +70,13 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
   // gets a real daily shot at one without pets crowding out every other
   // prize kind by sheer catalog size (~37 pets vs. a handful of each other
   // kind) if they were just mixed into the general item pool below.
+  // Pets overhaul 2026-10-06: while pets are paused the pet wedge is a
+  // fifth cash wedge instead, so the wheel keeps its shape.
   const pet = PET_CATALOG[Math.floor(rand() * PET_CATALOG.length)];
-  segments.push({ id: `pet-${pet.id}`, kind: 'pet', itemId: pet.id, label: `🐾 ${pet.name}` });
+  if (!PETS_PAUSED) segments.push({ id: `pet-${pet.id}`, kind: 'pet', itemId: pet.id, label: `🐾 ${pet.name}` });
 
   const cashPool = [...econ.spinCashCents];
-  for (let i = 0; i < 4 && cashPool.length > 0; i++) {
+  for (let i = 0; i < (PETS_PAUSED ? 5 : 4) && cashPool.length > 0; i++) {
     const idx = Math.floor(rand() * cashPool.length);
     const amount = cashPool.splice(idx, 1)[0];
     segments.push({ id: `cash-${amount}`, kind: 'cents', amountCents: amount, label: formatMoney(amount) });

@@ -895,6 +895,7 @@ export type TransactionKind =
   | 'assignment-complete'
   | 'purchase-pet'
   | 'sell-pet'
+  | 'pet-refund' // pets overhaul 2026-10-06: every pet refunded at catalog price and removed
   | 'purchase-yard'
   | 'purchase-furniture'
   | 'donation'

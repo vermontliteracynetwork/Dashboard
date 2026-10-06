@@ -8,7 +8,7 @@ import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
-import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, trickUnlocked } from '../../lib/petCatalog';
+import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, trickUnlocked, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import PetTrainingSession from '../../components/PetTrainingSession';
 import type { PetDef } from '../../lib/petCatalog';
@@ -844,7 +844,7 @@ export default function HomeRoom() {
   }, [roomObjects, exteriorObstacle, marketplaceFurniture]);
 
   const myPets = useMemo(
-    () => (student ? pets.filter((p) => p.studentId === student.id) : []),
+    () => (student && !PETS_PAUSED ? pets.filter((p) => p.studentId === student.id) : []),
     [pets, student]
   );
   // Pets review (2026-10-06): care/trick moves the 3D pet plays, and the
@@ -1159,13 +1159,15 @@ export default function HomeRoom() {
       )}
 
       <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: 8 }}>
-        <button
-          className="btn btn-sm"
-          style={{ minHeight: 44, background: petPanelOpen ? '#a855f7' : '#fff', color: petPanelOpen ? '#fff' : undefined, fontWeight: 800 }}
-          onClick={() => setPetPanelOpen((v) => !v)}
-        >
-          🐾 Pets{myPets.length > 0 ? ` (${myPets.length})` : ''}
-        </button>
+        {!PETS_PAUSED && (
+          <button
+            className="btn btn-sm"
+            style={{ minHeight: 44, background: petPanelOpen ? '#a855f7' : '#fff', color: petPanelOpen ? '#fff' : undefined, fontWeight: 800 }}
+            onClick={() => setPetPanelOpen((v) => !v)}
+          >
+            🐾 Pets{myPets.length > 0 ? ` (${myPets.length})` : ''}
+          </button>
+        )}
         {mode === 'view' ? (
           <button
             className="btn btn-sm"
@@ -1185,7 +1187,7 @@ export default function HomeRoom() {
         )}
       </div>
 
-      {petPanelOpen && (
+      {petPanelOpen && !PETS_PAUSED && (
         <div style={{ position: 'fixed', top: 68, right: 16, zIndex: 60, background: 'rgba(255,255,255,0.97)', borderRadius: 12, padding: '10px 12px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', width: 'min(320px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 90px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>🐾 Your Pets ({myPets.length}/{PET_OWNERSHIP_CAP})</div>

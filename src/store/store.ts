@@ -12,7 +12,7 @@ import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } fr
 import { getDailySpinSegments } from '../lib/dailySpin';
 import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
 import type { SpinItemKind } from '../lib/dailySpin';
-import { petDefById, rarityFor, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_TRAINING_CAP, PET_TRICKS } from '../lib/petCatalog';
+import { petDefById, rarityFor, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_TRAINING_CAP, PET_TRICKS, PETS_PAUSED } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 // townLayout.ts is pure data/helpers, no React/Three.js imports (see its own
 // header comment), so importing it here doesn't drag TownSquare.tsx's heavy
@@ -482,6 +482,9 @@ interface AppState {
   // petId: null unsets whichever pet was following (goes back to no companion).
   setFollowingPet: (studentId: string, petId: string | null) => void;
   sellPet: (petId: string) => void;
+  // Pets overhaul 2026-10-06: refund a pet at its catalog price (a bank
+  // register row) and remove it. See src/lib/petOverhaul.ts.
+  refundPetForOverhaul: (petId: string, refundCents: number, description: string) => void;
   // Soft need-decay — only ever called while a student is actively in Town
   // Square (see TownSquare.tsx's own interval), never on a timer that runs
   // while they're away. "Pets never die," so stats floor at PET_STAT_FLOOR.
@@ -1416,6 +1419,7 @@ export const useStore = create<AppState>()(
       },
 
       adoptPet: (studentId, petDefId, charge = true) => {
+        if (PETS_PAUSED) return false;
         const student = get().students.find((st) => st.id === studentId);
         const def = petDefById(petDefId);
         if (!student || !def) return false;
@@ -1461,6 +1465,7 @@ export const useStore = create<AppState>()(
       // this population. One open per real-world day, mirroring the daily
       // spin wheel's own lastSpinDate gate.
       openMysteryPack: (studentId) => {
+        if (PETS_PAUSED) return null;
         const student = get().students.find((st) => st.id === studentId);
         if (!student) return null;
         const today = todayISO();
@@ -1558,6 +1563,7 @@ export const useStore = create<AppState>()(
       },
 
       trainPets: (studentId, amount, source) => {
+        if (PETS_PAUSED) return;
         const trained: { petId: string; name: string; before: number; after: number }[] = [];
         get().pets.filter((p) => p.studentId === studentId && p.trainingProgress < PET_TRAINING_CAP).forEach((pet) => {
           const after = Math.min(PET_TRAINING_CAP, pet.trainingProgress + amount);
@@ -1600,6 +1606,14 @@ export const useStore = create<AppState>()(
         set((s) => ({ pets: s.pets.filter((p) => p.id !== petId) }));
         deleteStudentPetRemote(petId);
         if (refund > 0) get().recordTransaction(pet.studentId, refund, `Sold pet: ${pet.customName}`, '🐾', 'sell-pet');
+      },
+
+      refundPetForOverhaul: (petId, refundCents, description) => {
+        const pet = get().pets.find((p) => p.id === petId);
+        if (!pet) return;
+        set((s) => ({ pets: s.pets.filter((p) => p.id !== petId) }));
+        deleteStudentPetRemote(petId);
+        get().recordTransaction(pet.studentId, refundCents, description, '🐾', 'pet-refund', true);
       },
 
       tickPetDecay: (studentId) => {
@@ -3110,6 +3124,7 @@ export const useStore = create<AppState>()(
       // from the offered pet's own rarity, never a student's free choice,
       // so there's no way to post "give me something better."
       postPetTradeOffer: (studentId, offeredPetId) => {
+        if (PETS_PAUSED) return '';
         const pet = get().pets.find((p) => p.id === offeredPetId && p.studentId === studentId);
         const def = pet ? petDefById(pet.petDefId) : undefined;
         if (!pet || !def) return '';

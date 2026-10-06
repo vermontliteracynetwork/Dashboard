@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-06-pets-overhaul',
+    date: '2026-10-06',
+    icon: '🚧',
+    title: 'Pets are getting an overhaul!',
+    body: 'The whole pet system is being rebuilt to be bigger and better than ever. While that happens, the Pet Shelter is closed and pets are paused. If you had a pet, it has gone back to the Shelter and the full amount it was worth is now in your bank. Check your bank register! Stay tuned.',
+  },
+  {
     id: '2026-10-06-pet-training',
     date: '2026-10-06',
     icon: '🎪',

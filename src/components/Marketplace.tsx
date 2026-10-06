@@ -10,7 +10,7 @@ import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import { playCashRegister } from '../lib/chime';
 import WebpageFrame from './WebpageFrame';
-import { petDefById, thumbnailFor } from '../lib/petCatalog';
+import { petDefById, thumbnailFor, PETS_PAUSED } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 import { Icon } from './Icon';
@@ -562,9 +562,11 @@ export default function Marketplace() {
                   <Icon name="home" size={16} fallback="🛋️" /> Home
                 </button>
               )}
-              <button className={`shop-sidebar-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
-                🐾 Pets
-              </button>
+              {!PETS_PAUSED && (
+                <button className={`shop-sidebar-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
+                  🐾 Pets
+                </button>
+              )}
               <button className={`shop-sidebar-btn ${tab === 'mystuff' ? 'active' : ''}`} onClick={() => setTab('mystuff')}>
                 🎒 My Stuff
               </button>
@@ -756,7 +758,7 @@ export default function Marketplace() {
               </div>
             )}
 
-            {tab === 'pets' && (
+            {tab === 'pets' && !PETS_PAUSED && (
               <div className="stack" style={{ gap: 16, alignItems: 'center', textAlign: 'center', maxWidth: 420, margin: '0 auto' }}>
                 <span style={{ fontSize: '2.4rem' }}>🐾</span>
                 <h3 style={{ margin: 0 }}>Pets moved to the Pet Shelter!</h3>

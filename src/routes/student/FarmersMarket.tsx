@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
-import { petDefById, rarityFor, thumbnailFor } from '../../lib/petCatalog';
+import { petDefById, rarityFor, thumbnailFor, PETS_PAUSED } from '../../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind, FarmerMarketOffer, StudentPet, Student } from '../../types';
 import WebpageFrame from '../../components/WebpageFrame';
 import { Icon } from '../../components/Icon';
@@ -335,7 +335,7 @@ function PostTradeModal({
           </div>
           <div className="stack" style={{ gap: 8 }}>
             <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('item')}>🎁 A font, color, or voice</button>
-            <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('pet')}>🐾 A pet</button>
+            {!PETS_PAUSED && <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('pet')}>🐾 A pet</button>}
           </div>
         </div>
       </div>

@@ -58,6 +58,14 @@ export function thumbnailFor(pet: PetDef): string {
   return '/world/thumbnails/' + pet.modelPath.replace(/^\/world\/models\//, '').replace(/\.(glb|gltf)$/, '').replace(/[/\s]/g, '_') + '.png';
 }
 
+// Pets overhaul (teacher 2026-10-06): every pet function is paused while
+// the whole system is rebuilt (cats and dogs only, grammar inside
+// training). Adoption, the Shelter, the Journal, the Mystery Box, the
+// daily spin pet wedge, trading, companions, training and the care card
+// are all off, and every existing pet was refunded at its catalog price
+// and removed (src/lib/petOverhaul.ts). Flip to false when v2 ships.
+export const PETS_PAUSED = true;
+
 export const PET_OWNERSHIP_CAP = 4; // direct teacher spec: "Students can have up to 4 pets each"
 
 // Task completions logged (via trainingProgress) before a pet unlocks

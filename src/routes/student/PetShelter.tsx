@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { PET_CATALOG, PET_OWNERSHIP_CAP, MYSTERY_PACK_PRICE_CENTS, bioFor, rarityFor, thumbnailFor } from '../../lib/petCatalog';
+import { PET_CATALOG, PET_OWNERSHIP_CAP, MYSTERY_PACK_PRICE_CENTS, bioFor, rarityFor, thumbnailFor, PETS_PAUSED } from '../../lib/petCatalog';
+import PetsClosed from '../../components/PetsClosed';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { todayISO } from '../../lib/dates';
@@ -44,6 +45,11 @@ const RARITY_LABEL: Record<string, string> = { common: 'Common', uncommon: 'Unco
 const RARITY_COLOR: Record<string, string> = { common: '#5f6f64', uncommon: '#3e7c6b', rare: '#6d3fd1', ultra: '#b8492f' };
 
 export default function PetShelter() {
+  if (PETS_PAUSED) return <PetsClosed title="Pet Shelter" />;
+  return <PetShelterInner />;
+}
+
+function PetShelterInner() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);

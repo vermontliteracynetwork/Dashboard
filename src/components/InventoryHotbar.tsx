@@ -6,7 +6,7 @@ import { EMOTE_CATALOG } from '../lib/emoteCatalog';
 import { ALL_JOKES } from '../lib/worldJokes';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
 import { TOWNSPEOPLE } from '../lib/worldTownspeople';
-import { petDefById, thumbnailFor, bioFor, nextMilestone, milestonesReached, growthStageFor, growthStageLabel, growthStageIcon } from '../lib/petCatalog';
+import { petDefById, thumbnailFor, bioFor, nextMilestone, milestonesReached, growthStageFor, growthStageLabel, growthStageIcon, PETS_PAUSED } from '../lib/petCatalog';
 import { BookPanel } from './BookPanel';
 import type { Student } from '../types';
 import { Icon } from './Icon';
@@ -83,7 +83,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
           <div className="row" style={{ gap: 6 }}>
             <button className={`btn btn-sm${tab === 'stuff' ? ' btn-primary' : ''}`} onClick={() => setTab('stuff')}>🎒 My Stuff</button>
             <button className={`btn btn-sm${tab === 'jokes' ? ' btn-primary' : ''}`} onClick={() => setTab('jokes')}>📖 Joke Book ({heardJokes.length})</button>
-            <button className={`btn btn-sm${tab === 'pets' ? ' btn-primary' : ''}`} onClick={() => setTab('pets')}>🐾 Pet Book ({myPets.length})</button>
+            {!PETS_PAUSED && <button className={`btn btn-sm${tab === 'pets' ? ' btn-primary' : ''}`} onClick={() => setTab('pets')}>🐾 Pet Book ({myPets.length})</button>}
             <button className={`btn btn-sm${tab === 'friends' ? ' btn-primary' : ''}`} onClick={() => setTab('friends')}>🧑‍🤝‍🧑 Friends ({metNpcs.length})</button>
           </div>
           <button className="btn btn-sm" onClick={onClose} aria-label="Close"><Icon name="close" size={16} fallback="✕" /></button>

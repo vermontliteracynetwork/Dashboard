@@ -23,6 +23,7 @@ import GamesHub from './routes/student/GamesHub';
 import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
 import PetTrainedToast from './components/PetTrainedToast';
+import { usePetOverhaulRefunds } from './lib/petOverhaul';
 import CastleDefense from './routes/student/CastleDefense';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
 import TeacherLogin from './routes/teacher/TeacherLogin';
@@ -62,6 +63,7 @@ import SyncTroubleAlert from './components/SyncTroubleAlert';
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated);
+  usePetOverhaulRefunds();
   const hydrationError = useStore((s) => s.hydrationError);
   const initSync = useStore((s) => s.initSync);
   const currentStudentId = useStore((s) => s.currentStudentId);

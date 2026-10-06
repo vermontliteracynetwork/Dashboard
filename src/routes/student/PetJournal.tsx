@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { PET_CATALOG, type PetCategory, type PetDef, bioFor, rarityFor, thumbnailFor } from '../../lib/petCatalog';
+import { PET_CATALOG, type PetCategory, type PetDef, bioFor, rarityFor, thumbnailFor, PETS_PAUSED } from '../../lib/petCatalog';
+import PetsClosed from '../../components/PetsClosed';
 
 // A real rendered picture of the pet, matching the Pet Shelter's own
 // treatment — falls back to the plain paw icon on a 404.
@@ -26,6 +27,11 @@ const RARITY_LABEL: Record<string, string> = { common: 'Common', uncommon: 'Unco
 const RARITY_COLOR: Record<string, string> = { common: '#5f6f64', uncommon: '#3e7c6b', rare: '#6d3fd1', ultra: '#b8492f' };
 
 export default function PetJournal() {
+  if (PETS_PAUSED) return <PetsClosed title="Pet Journal" />;
+  return <PetJournalInner />;
+}
+
+function PetJournalInner() {
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
