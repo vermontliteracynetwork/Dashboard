@@ -1611,6 +1611,12 @@ export const useStore = create<AppState>()(
       refundPetForOverhaul: (petId, refundCents, description) => {
         const pet = get().pets.find((p) => p.id === petId);
         if (!pet) return;
+        // Archive copy (name, species, color, tricks, training) so a student
+        // can "welcome back" the pet they named at relaunch, if the teacher
+        // wants that. style_looks row `petarchive:<studentId>`, no new SQL.
+        const archiveOwner = `petarchive:${pet.studentId}`;
+        const archived = (get().styleLooks.find((r) => r.ownerId === archiveOwner)?.look as { pets?: unknown[] } | undefined)?.pets ?? [];
+        get().mergeStyleRow(archiveOwner, { pets: [...archived, { ...pet, following: false, refundCents, archivedAt: new Date().toISOString() }] });
         set((s) => ({ pets: s.pets.filter((p) => p.id !== petId) }));
         deleteStudentPetRemote(petId);
         get().recordTransaction(pet.studentId, refundCents, description, '🐾', 'pet-refund', true);
