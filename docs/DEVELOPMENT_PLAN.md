@@ -657,6 +657,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   8. "Say it" had no way forward if the microphone was off or heard nothing: it now says why and offers **Skip this one**, announces what it heard, and matches "5" to "five" and ignores punctuation.
   9. Bawk's reminder could pop up while driving or over the streak chests: it now waits for both.
   10. Streak pill buttons now work with a keyboard, VoiceOver and Switch Control, with clearer labels. Stronger text contrast on chests and the pill count. The ✕ buttons say "Close". The Buy a freeze button says how much more money is needed.
+- **Goal lowered to 10 (2026-10-06).** Her words: "streak goal should switch to 10 questions". The default Daily Streak goal is now 10 right answers a day (`ECONOMY_DEFAULTS.streakGoal` in `src/lib/economy.ts`). The card, the meter (0/10), the streak view, Quiz Mode and the "set today to one short" test button all follow it. If she ever saved a different number in Economy Settings, that saved number still wins; the Game tab's Economy Settings card shows the current value.
 - **Teacher test tools (same day):** the Student overview's "Reset for testing" card now shows each student's Daily Streak (days, best, today's right answers, freezes).
   - The reset also clears the Daily Streak (back to 0, 1 free freeze, the streak card shows again).
   - New buttons: **Set today to 19 right answers** (one more saves the day, to test the chests) and **Give 1 Streak Freeze**.

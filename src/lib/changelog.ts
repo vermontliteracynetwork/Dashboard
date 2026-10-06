@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-06-streak-ten',
+    date: '2026-10-06',
+    icon: '🔥',
+    title: 'Streaks just got easier',
+    body: 'Now you only need 10 right answers a day to keep your streak going. Watch your fire meter fill up!',
+  },
+  {
     id: '2026-10-04-say-it',
     date: '2026-10-04',
     icon: '🎤',

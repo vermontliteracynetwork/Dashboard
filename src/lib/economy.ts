@@ -17,7 +17,7 @@ export interface EconomySettings {
 
 export const ECONOMY_DEFAULTS: EconomySettings = {
   perCorrectCents: 100,
-  streakGoal: 20,
+  streakGoal: 10,
   freezePriceCents: 2000,
   maxChests: 7,
   dayOneChestCents: 500,

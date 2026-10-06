@@ -3,7 +3,7 @@ import { todayISO } from './dates';
 import { getEconomy } from './economy';
 
 // Daily Streak (teacher spec 2026-10-04, full words in the dev plan). A
-// streak day is saved by answering STREAK_GOAL questions right anywhere in
+// streak day is saved by answering streakGoal() questions (10 by default) right anywhere in
 // the app (native games, quizzes, the gas pump, Quiz mode). Each saved day
 // adds one to the streak and pays treasure chests. A missed day breaks the
 // streak unless a Streak Freeze covers it: every student starts with one,
@@ -22,7 +22,7 @@ import { getEconomy } from './economy';
 //   money cap for the day is unchanged.
 // - Only right answers count (wrong answers never cost anything).
 
-// Teacher-editable in Economy Settings (src/lib/economy.ts); defaults 20, 7 and $20.
+// Teacher-editable in Economy Settings (src/lib/economy.ts); defaults 10 (teacher change 2026-10-06, was 20), 7 and $20.
 export const streakGoal = () => getEconomy().streakGoal;
 export const freezePriceCents = () => getEconomy().freezePriceCents;
 
