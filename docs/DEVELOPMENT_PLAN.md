@@ -722,6 +722,15 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Neighbors always look like their Seamstress characters. SHIPPED 2026-10-06 (direct teacher instruction)
+
+- Her words: "ensure all visuals of neighbors (ie in game play and mini games) relfect the newly designed characters from the seamstress, not the old characters i uploaded"
+- **Audit result:** Town Square (standing and wandering Neighbors and Townspeople), every conversation and feelings chat, the About sheet, Space Bowling, Slime Chess, and the cheering buddy in Bakery Match and Castle Defense were already drawing each Neighbor's Style look.
+- **Changed:**
+  - The old uploaded character models are no longer a fallback anywhere. If a look were ever missing, the Neighbor's default Style look shows instead. The old model loaders (`CharacterModel`, `WanderBodyModel`) were removed from `TownSquare.tsx`, and `NeighborScene.tsx` no longer imports the old 3D character.
+  - The Mailbox now shows each Neighbor's Style character and their current (teacher-set) name on every letter.
+- **Not touched (students, not Neighbors):** the student's own character in the Home Room and on Creative Island still uses the old player model. Switching those to the student's Style character is a natural follow-up.
+
 ### Play a game with a Neighbor + games on the character sheet. SHIPPED 2026-10-04 (direct teacher instruction)
 
 - Her words: "add a feature where students can press a neighbor and an option int heir pie menu is play a game, and another menu pops up with icons of all native games, showing 16:9 cover photos in their unique game themes. a student cn press from the list and they will be launched into playing the game with the neighbor", then "played games should be stored in the neighbors character sheet"

@@ -1,5 +1,10 @@
 import { useStore } from '../store/store';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
+import { Suspense } from 'react';
+import { lazyFresh } from '../lib/freshBuild';
+import { useNpcProfiles } from '../style/npcs';
+
+const NpcPortrait3D = lazyFresh(() => import('./NpcPortrait3D'));
 import WebpageFrame from './WebpageFrame';
 
 // The Post Office's 2D view — Claudia's full-game audit found it (and the
@@ -13,6 +18,7 @@ import WebpageFrame from './WebpageFrame';
 export default function Mailbox() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
+  const npcProfiles = useNpcProfiles();
   const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
 
@@ -40,9 +46,14 @@ export default function Mailbox() {
           <div className="stack" style={{ gap: 10 }}>
             {received.map((n) => (
               <div key={n.id} className="checklist-item">
-                <span style={{ fontSize: '1.3rem' }}>💌</span>
+                {/* The Neighbor's own Seamstress-made character and current name. */}
+                <span style={{ width: 56, height: 56, flex: 'none' }} aria-hidden="true">
+                  <Suspense fallback={<span style={{ fontSize: '1.3rem' }}>💌</span>}>
+                    {npcProfiles[n.id] ? <NpcPortrait3D look={npcProfiles[n.id].look} framing="bust" /> : <span style={{ fontSize: '1.3rem' }}>💌</span>}
+                  </Suspense>
+                </span>
                 <span className="checklist-label" style={{ flex: 1 }}>
-                  From {n.name}: {n.itemLabel}
+                  💌 From {npcProfiles[n.id]?.name ?? n.name}: {n.itemLabel}
                 </span>
               </div>
             ))}

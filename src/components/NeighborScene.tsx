@@ -2,13 +2,12 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from '
 import ReadAloud from './ReadAloud';
 import { lazyFresh } from '../lib/freshBuild';
 import type { NpcVoiceProfile } from '../lib/npcVoices';
-import { useNpcProfiles } from '../style/npcs';
+import { DEFAULT_NPC_LOOKS, useNpcProfiles } from '../style/npcs';
 import { useStore } from '../store/store';
 import { defaultLook } from '../style/species';
 import type { StyleLook } from '../style/types';
 
 // Lazy so three.js only loads when a Neighbor scene actually opens.
-const NeighborCharacter3D = lazyFresh(() => import('./NeighborCharacter3D'));
 const NpcPortrait3D = lazyFresh(() => import('./NpcPortrait3D'));
 
 export type NeighborLogEntry = { sender: 'npc' | 'student' | 'history'; text: string };
@@ -82,7 +81,10 @@ export default function NeighborScene({
     <div className="sel-convo" role="dialog" aria-modal="true" aria-label={`Talking with ${name}`}>
       <div className="sel-convo-character" aria-hidden="true">
         <Suspense fallback={null}>
-          {profile ? <NpcPortrait3D look={profile.look} talkKey={talkKey} talking={speaking === 'npc'} /> : neighbor.modelPath ? <NeighborCharacter3D path={neighbor.modelPath} talkKey={talkKey} /> : null}
+          {/* Always their Seamstress-made Style character (teacher, 2026-10-06:
+              "ensure all visuals of neighbors ... reflect the newly designed
+              characters from the seamstress, not the old characters"). */}
+          <NpcPortrait3D look={profile?.look ?? DEFAULT_NPC_LOOKS[neighbor.id] ?? defaultLook('dog')} talkKey={talkKey} talking={speaking === 'npc'} />
         </Suspense>
         <span className="sel-convo-tag">{name}</span>
       </div>

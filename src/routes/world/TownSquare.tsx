@@ -18,7 +18,7 @@ import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
 import { characterDefById } from '../../lib/characterCatalog';
 import { StyleCharacter } from '../../style/StyleCharacter';
-import { useNpcProfiles, renameIn } from '../../style/npcs';
+import { useNpcProfiles, renameIn, DEFAULT_NPC_LOOKS } from '../../style/npcs';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
 import GameDashboard from '../../components/GameDashboard';
@@ -725,23 +725,6 @@ function useKeys() {
 // doesn't rebind a SkinnedMesh's skeleton to the cloned bones) so this is
 // safe even if a future model path is ever reused by more than one
 // instance — flagged in review as a landmine when nothing here cloned yet.
-function CharacterModel({ path, scale = CHARACTER_SCALE }: { path: string; scale?: number }) {
-  const { scene, animations } = useGLTF(path);
-  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
-  const group = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, group);
-  useEffect(() => {
-    const idle = actions['idle'];
-    if (!idle) console.warn(`[TownSquare] ${path}: no "idle" animation clip found`);
-    idle?.reset().play();
-    return () => { idle?.stop(); };
-  }, [actions, path]);
-  return (
-    <group ref={group}>
-      <primitive object={cloned} scale={scale} />
-    </group>
-  );
-}
 
 // The Player's own model, split out from CharacterModel so movement can
 // crossfade idle -> walk every frame without going through React state
@@ -865,36 +848,6 @@ function CharacterSkinOverlay({ base, skinPath }: { base: THREE.Object3D; skinPa
   return <primitive object={base} scale={CHARACTER_SCALE} />;
 }
 
-// Shared by every wandering character (freed Neighbors + ambient
-// townspeople) — same idle/walk crossfade as PlayerModel, parameterized
-// by model path and scale instead of hardcoded to the player's own model.
-function WanderBodyModel({ path, scale, isMoving }: { path: string; scale: number; isMoving: React.RefObject<boolean> }) {
-  const { scene, animations } = useGLTF(path);
-  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
-  const group = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, group);
-  const current = useRef<'idle' | 'walk'>('idle');
-
-  useEffect(() => {
-    if (!actions['idle']) console.warn(`[TownSquare] ${path}: no "idle" animation clip found`);
-    actions['idle']?.reset().play();
-    return () => { actions['idle']?.stop(); };
-  }, [actions, path]);
-
-  useFrame(() => {
-    const next = isMoving.current ? 'walk' : 'idle';
-    if (next === current.current) return;
-    actions[current.current]?.fadeOut(0.15);
-    actions[next]?.reset().fadeIn(0.15).play();
-    current.current = next;
-  });
-
-  return (
-    <group ref={group}>
-      <primitive object={cloned} scale={scale} />
-    </group>
-  );
-}
 
 // The student's trained "walk beside you" pet (see StudentPet.following in
 // types.ts) — smooth-follows a step behind the Player. glTF exporters name
@@ -1156,7 +1109,7 @@ function WanderingNPC({
   modelPath,
   home,
   active,
-  scale = CHARACTER_SCALE,
+  scale: _scale = CHARACTER_SCALE,
   interaction,
   look,
 }: {
@@ -1321,7 +1274,7 @@ function WanderingNPC({
   return (
     <group ref={groupRef}>
       <Suspense fallback={null}>
-        {look ? <StyleWanderBody look={look} isMoving={isMoving} /> : <WanderBodyModel path={modelPath} scale={scale} isMoving={isMoving} />}
+        <StyleWanderBody look={look ?? (interaction ? DEFAULT_NPC_LOOKS[interaction.id] : undefined) ?? defaultLook('dog')} isMoving={isMoving} />
       </Suspense>
       {interaction && (
         <>
@@ -2374,7 +2327,8 @@ function Neighbor({
   return (
     <group position={[px, 0, pz]}>
       <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#3e7c6b" /></mesh>}>
-        {look ? <StyleCharacter look={look} scale={STYLE_IN_WORLD_SCALE} /> : <CharacterModel path={n.modelPath} />}
+        {/* Always the Neighbor's Seamstress-made Style character, never the old model. */}
+        <StyleCharacter look={look ?? DEFAULT_NPC_LOOKS[n.id] ?? defaultLook('dog')} scale={STYLE_IN_WORLD_SCALE} />
       </Suspense>
       {/* A generous invisible cylinder around the character, well bigger
           than the model's actual silhouette — direct teacher feedback that
