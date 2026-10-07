@@ -413,6 +413,17 @@ export default function StudentHome() {
             {NATIVE_GAME_CARDS.map((g) => <img key={g.id} src={g.cover} alt="" />)}
           </div>
         </button>
+        {/* Grammar Gus's Contraption (teacher 2026-10-07: "students can
+            access the grammar gus machine game by clicking a card icon in
+            their computer"). */}
+        <button
+          className="widget-card widget-icon-card widget-grammar-gus"
+          onClick={() => navigate('/student/grammar-gus')}
+          aria-label="Grammar Gus's Contraption"
+        >
+          <span className="widget-icon">🧪</span>
+          <span className="widget-label">Grammar Gus</span>
+        </button>
         {/* Direct teacher instruction: the What's New book must always be
             reachable from the computer, not just the one-time popup in
             Town Square. */}

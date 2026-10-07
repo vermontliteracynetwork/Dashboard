@@ -722,6 +722,87 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus's Silly Sentence Contraption (first native tool/game). FIRST PLAYABLE SHIPPED 2026-10-07 (direct teacher instruction)
+
+- **Her words, verbatim, in order:**
+  - "claudia, we are going to build our first native tool/game. this will be styled like a cartoon/industrial/factory/bubble machine game and will function like a sandbox, drag and drop, silly machine builder game."
+  - She uploaded the full build plan: `PLAN.md` (v11, 3,100 lines) and `grammar-gus-plan.zip`, with her Sentence Chart screenshots, the 33-pattern list, her word list and her nine recreated grammar symbols.
+  - Gus himself: "this should be grammar gus" (`hamster_beaver_scientist.glb`).
+  - "grammar gus should have a pop up and conversation box like Bawk does while the students are in the grammar machine view"
+  - "grammar gus, in personality should be silly but a little pretentous in terms of ensuring that everything is grammatically correct. Gus can be a little silly and sarcastic in a joking manner when the machine doesnt run on attemp because it wouldnt be grammaticalyl correct"
+  - "students can access the grammar gus machine game by clicking a card icon in their computer and y clicking this asset with the assigned grammar machine role" (`factory_cartoon_incinerator.glb`).
+  - Visual references: a physics puzzle game ("Put physics to work!") and the Contraption Maker cover; then "use these as reference" for the Contraption Maker electricity parts sheet; then a 3D industrial kit (silver pipes with red valve wheels, a tank with a gauge, an orange cabinet, a control panel, yellow grates), a flat-vector machine parts sheet (blue riveted steel, copper pipes with flanges, gauges, red-knob levers) and a neon slot-machine UI.
+  - "get to a spot where i can test as a student"
+- **Where the plan lives:**
+  - `docs/grammar-gus/PLAN.md` (the whole plan) and `docs/grammar-gus/plan/` (split by section).
+  - `docs/grammar-gus/BUILD_NOTES.md` (the plan's own Claude notes) and `docs/grammar-gus/reference/` (her chart screenshots, pattern and word list PDFs, Contraption Maker reference).
+  - Her symbols are served from `public/games/grammar-gus/symbols/`.
+  - The plan is the source of truth. Rule changes need her approval (plan 25.8).
+- **Shipped (plan milestones 1 to 4, plus a first student screen so she can test):**
+  - **Data** (`src/games/grammarGus/data/`):
+    - Her 33 patterns.
+    - Her word list, plus the extra words her own 33 examples need (fish, dolphin, swam, proudly, safely, at, Phew...) so every example is buildable.
+    - The Color pack, and the start of the Action Pack (attack, chase, hug).
+    - Adjective ranks for describing-word order, the opposites lists for the rubric, and Gus's lines.
+  - **Grammar engine** (`engine/`, pure TypeScript, no UI):
+    - A small automaton of the plan 17.4 grammar gives `legalNext` (the Shape Palette), `completeness` (the two lamps) and the role of every word.
+    - It also finds exactly what is missing (the cheapest set of parts that would finish the sentence), which drives the steam-leak hints.
+    - `validateSentence` covers every row of the plan 3.5 table and the Help levels of 3.6 (Full, Guided, Challenge).
+    - `compose` handles verb forms, a/an by sound, "the" with mice/children/rain, describing-word order, capitals, I, the commas of patterns 13 to 21 and 19, and the shout "!".
+    - Also: SemanticFrame, cast resolution (a / the / pronouns, "the cat" picks the other cat), Gus's star rubric (3.18, all fixtures), the silly score, and the seeded Surprise Hopper generator with locks (only 3-star sentences).
+  - **Director** (`director/`): sentence to a JSON scene script.
+    - Enter, act and settle beats; adverb speed and effects; preposition paths; fallbacks so the screen is never blank.
+    - The 10-second budget function; only 3-star sentences get a script.
+  - **Pixel Cinema** (`render/`):
+    - A 160 x 90, 32-color, 12 fps renderer written in plain TypeScript (identical frames on every device, testable headless).
+    - Red pixel curtains with a gold valance open first and close last; a star stamp at the end.
+    - Procedural quadruped rig (cat, dog, cow, pig, horse, deer, zebra, tiger, rabbit features) and biped rig (hair, spy hat, doctor coat).
+    - Run, walk, jump, chase and pounce, with squash and stretch. Every other verb plays a wiggle with the word floating ("eat!") until its clip is made, and other rigs draw as a named blob (plan 6.8).
+    - Color and size adjectives, stripes and spots. Speed lines, dust, effort lines, a snail trail.
+    - Yesterday: sepia, scanlines, a YESTERDAY tag and a calendar flip. Now: a NOW dot. Tomorrow: ghost dither that turns solid as they act.
+    - Calm mode: three-step curtains, no particles.
+  - **Tests** (`src/games/grammarGus/__tests__/`, run with `npm test`; vitest added). 197 tests, all passing:
+    - All 33 examples valid at Full and done-by-hand at Challenge.
+    - Agreement, tense, a/an, comma and capital tables; every steam-leak case; each Help level blocks exactly its cases.
+    - 6,000 seeded generated sentences per column count with constraint checks, plus random locks.
+    - 10,000 Hopper sentences all 3 stars; a 10,000-sequence Workshop fuzz test; every rubric fixture.
+    - Director scripts for 33 patterns x 3 tenses, all 10.0 s or less (snapshots stored), 2,000 longest random sentences in budget.
+    - Cast fixtures (white cat / black cat), determinism (same frames), and a coverage matrix (every noun x verb, verb x adverb, verb x preposition, noun as ground) that renders without errors.
+  - **Student screen** (`/student/grammar-gus`, `ui/GrammarGusMachine.tsx`):
+    - Housings in her colors with labeled plates: SHOUT, WHO (a or the, two describing words, naming word, or "Use he, she, they..."), WHAT THEY DID, WHAT IT HAPPENED TO (appears when the verb needs it), HOW THEY DID IT, WHERE. Copper pipes link them, and a stamp sits at the end.
+    - A riveted START lever with a red knob, and a time crank (Yesterday / Now / Tomorrow).
+    - Tap a socket, then tap a word tile in the Parts Bin (64px tiles, emoji on nouns, read aloud through Gus).
+    - START runs the machine only on a grammatical sentence:
+      - **Leak:** steam, the problem socket pulses, the cinema stays closed with a "?", and Gus makes a joke then gives a plain fix.
+      - **Run:** rumble, parts fire in order, chimney puffs, then the pixel video (3 stars) or Gus's star review (1 or 2 stars, with Fix it).
+    - Surprise Hopper, New machine, Replay, Slower, Calm, Mute.
+    - Cheese gears (6 / 3 / 1), and a Journal of saved 3-star sentences (`gus:<studentId>` row, no new SQL).
+    - Works for a teacher with no student logged in (nothing saved).
+  - **Gus's pop-up** (`ui/GusGuide.tsx`): Bawk's layout, with her Gus model (shrunk to 2.3 MB at `public/games/grammar-gus/grammar-gus.glb`) on the left, hopping on every new line, and a chat box across the bottom with read-aloud in a new "Prim & Proper" voice.
+  - **Gus's personality** (`data/gusLines.ts`): silly and a little pretentious, with playful sarcasm when the machine will not run ("Splendid. Everyone is standing around doing absolutely nothing.").
+    - Every joke is followed by a plain, literal instruction ("Add a WHAT THEY DID word."), so a student who reads sarcasm literally still knows what to do.
+    - The joke is always about the sentence or Gus, never about the student. Review cards are 12 words or fewer and start positive.
+  - **Access:**
+    - A 🧪 Grammar Gus card on the student computer.
+    - A new **Grammar Machine** world-object role (Build Mode and Creative Island role lists), which opens `/student/grammar-gus`.
+    - Her factory asset is in Build Mode at `public/world/models/buildings/grammar-machine-factory.glb`: place it and give it the Grammar Machine role.
+- **In progress / not built yet (plan releases, each needs her sign-off at its gate):**
+  - Bubbly parametric SVG part art (Noun Boiler, Verb Engine...) to replace the CSS housings. The flat riveted references point the way.
+  - True drag and drop alongside tap; Guided and Challenge levels in the UI (Big Letter Press, Stop Stamp, Comma Clip, Describe Sorter); the Inspector's Clipboard checklist window.
+  - The run sequence as a physics-style chain (her "Put physics to work!" reference).
+  - Paragraph machines, film strip and Play All; Journal posters and video export; the Golden Gear contest and $5 tickets; paragraph frameworks (Knock-Knock first); teacher settings and reports.
+  - Hand pixel rigs for birds, critters, vehicles and objects; real clips for the other verbs; a mixed-case pixel font.
+- **Decisions waiting on her** (defaults are in use; plan section 34 has the full list):
+  1. **Shout sentences end with ! by default** (plan 3.12). Her own examples 32 and 33 end with a period. Keep !, or default to a period?
+  2. **No comma between two describing words** (plan default). Her pattern 15 shows "the pretty, young girl".
+  3. **Pay.** Should 3-star sentences pay Class Cash or count toward the Daily Streak like other games' right answers? Only student-built ones (not Hopper ones) to stop farming. Not wired yet.
+  4. **Slot-machine reference vs the plan's "not a casino" rule** (plan 0.6, 14.1). Claudia's call: borrow the reels and the big round SPIN button for the Surprise Hopper, never coins, bets, "max bet" or near-miss tricks.
+  5. Approve the Cartoon Industrial and pixel cinema look (milestone 4 gate) before more art is made.
+- **Two engine codes the plan's list did not name, recorded here:**
+  - `NO_JOIN` (two words side by side with no joining word, plan 3.5).
+  - `EXTRA_OBJECT` (an action that cannot take a thing, like "run the ball", plan 12).
+- **Not verified on an iPad:** one desktop screenshot only (the machine, Gus's pop-up and a sepia "yesterday" black cat video rendered correctly).
+
 ### Pets v2 overhaul (cats and dogs, grammar-powered training). CLAUDIA'S OVERVIEW 2026-10-06, waiting on her answers
 
 Prepared by Claudia, 2026-10-06, for Kayden. Also delivered to her as `docs/PETS_V2_OVERVIEW.pdf`. Nothing in v2 is built yet; Phase 0 (the pause) shipped. Her answers to the open questions at the end decide Phase 1.

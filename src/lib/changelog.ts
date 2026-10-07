@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-grammar-gus',
+    date: '2026-10-07',
+    icon: '🧪',
+    title: "Meet Grammar Gus's Contraption!",
+    body: "Grammar Gus built a sentence machine, and it only runs on correct sentences. Tap the Grammar Gus card on your computer. Put words into WHO, WHAT THEY DID and HOW, pull START, and a great sentence plays as a little pixel movie. Gus is very fancy about grammar, so if the machine leaks steam, he will tell you what to fix.",
+  },
+  {
     id: '2026-10-06-pets-overhaul',
     date: '2026-10-06',
     icon: '🚧',

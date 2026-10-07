@@ -61,6 +61,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/buildings/castle/castle.gltf,Castle,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/cinema.glb,Cinema,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/concert-hall.glb,Concert Hall,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/grammar-machine-factory.glb,Grammar Machine Factory,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/hospital.glb,Hospital,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/house-2.glb,House 2,buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/house-quaternius.glb,House Quaternius,buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"

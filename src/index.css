@@ -4573,3 +4573,103 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .pet-trained-toast div + div { font-size: 0.9rem; font-weight: 700; margin-top: 2px; }
 @keyframes pet-toast-in { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .pet-trained-toast { animation: none; } }
+
+/* ===== Grammar Gus's Contraption (src/games/grammarGus) =====
+   Cartoon Industrial (plan section 8) with the teacher's references:
+   Contraption Maker parts, flat riveted steel-and-copper machinery, chunky
+   pipes with flanges, red-knob levers, on a bright blue workshop. iPad
+   first: 64px tiles, 56px buttons, both orientations. */
+.gus-page { --gus-ink: #1f2f4d; --gus-blue: #2fa6e0; --gus-steel: #cfe3f5; --gus-copper: #c98a4b; --gus-brass: #e6b54a; --gus-paper: #fff6e3;
+  min-height: 100vh; background: var(--gus-blue) radial-gradient(circle at 20% 30%, rgba(255,255,255,0.12) 0 60px, transparent 61px), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 0 90px, transparent 91px);
+  color: var(--gus-ink); font-family: 'Lexend', 'Nunito', sans-serif; padding: 12px 16px 200px; box-sizing: border-box; }
+.gus-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.gus-top h1 { margin: 0; flex: 1; font-family: 'Baloo 2', system-ui, sans-serif; font-size: clamp(1.3rem, 3vw, 2rem); color: #fff; text-shadow: 0 3px 0 var(--gus-ink); }
+.gus-top-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.gus-gears { background: var(--gus-paper); border: 3px solid var(--gus-ink); border-radius: 999px; padding: 6px 14px; font-weight: 800; min-height: 44px; display: inline-flex; align-items: center; }
+.gus-btn { min-height: 56px; min-width: 56px; padding: 0 16px; border-radius: 16px; border: 3px solid var(--gus-ink); background: #fff; color: var(--gus-ink); font: 700 1rem 'Lexend', sans-serif; cursor: pointer; box-shadow: 0 4px 0 var(--gus-ink); touch-action: manipulation; }
+.gus-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--gus-ink); }
+.gus-btn:disabled { opacity: 0.5; cursor: default; }
+.gus-btn.on { background: #ffe9a8; }
+.gus-btn-primary { background: #ff5a4e; color: #fff; }
+.gus-btn-gold { background: var(--gus-brass); }
+.gus-btn-hopper { background: #9b7ab9; color: #fff; }
+.gus-btn:focus-visible, .gus-socket:focus-visible, .gus-tile:focus-visible, .gus-lever:focus-visible, .gus-crank-btn:focus-visible { outline: 4px solid #ffe14d; outline-offset: 2px; }
+.gus-main { display: grid; gap: 14px; margin-top: 12px; grid-template-columns: 1fr; grid-template-areas: 'cinema' 'machine' 'bin'; }
+@media (min-width: 1000px) and (orientation: landscape) { .gus-main { grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); grid-template-areas: 'machine cinema' 'bin cinema'; align-items: start; } }
+.gus-cinema-wrap { grid-area: cinema; background: #3a4a63; border: 4px solid var(--gus-ink); border-radius: 22px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 0 var(--gus-ink); }
+.gus-cinema-marquee { align-self: center; background: var(--gus-brass); border: 3px solid var(--gus-ink); border-radius: 12px; padding: 4px 16px; font: 800 0.95rem 'Baloo 2', sans-serif; letter-spacing: 0.12em; }
+.gus-cinema { position: relative; border: 5px solid var(--gus-brass); border-radius: 10px; background: #000; line-height: 0; }
+.gus-cinema-canvas { width: 100%; aspect-ratio: 16 / 9; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.gus-chimney { position: absolute; top: -30px; right: 24px; width: 18px; height: 26px; background: var(--gus-copper); border: 3px solid var(--gus-ink); border-radius: 4px 4px 0 0; }
+.gus-chimney i { position: absolute; left: -4px; bottom: 22px; width: 22px; height: 22px; border-radius: 50%; background: #f3f7f8; opacity: 0; animation: gus-puff 1.2s ease-out infinite; }
+.gus-chimney i:nth-child(2) { animation-delay: 0.4s; } .gus-chimney i:nth-child(3) { animation-delay: 0.8s; }
+@keyframes gus-puff { 0% { transform: translateY(0) scale(0.5); opacity: 0.9; } 100% { transform: translateY(-40px) scale(1.6); opacity: 0; } }
+.gus-caption { background: var(--gus-paper); border-radius: 12px; padding: 10px 12px; font-size: 1.35rem; font-weight: 700; display: flex; flex-wrap: wrap; gap: 6px 8px; min-height: 56px; align-items: center; }
+.gus-caption span { border-bottom: 5px solid; padding-bottom: 2px; }
+.gus-cinema-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.gus-machine { grid-area: machine; position: relative; background: #8cc7ec; border: 4px solid var(--gus-ink); border-radius: 22px; padding: 12px; box-shadow: 0 6px 0 var(--gus-ink); background-image: linear-gradient(rgba(31,47,77,0.08) 2px, transparent 2px), linear-gradient(90deg, rgba(31,47,77,0.08) 2px, transparent 2px); background-size: 32px 32px; }
+.gus-machine.rumble .gus-line { animation: gus-rumble 0.25s ease-in-out infinite alternate; }
+@keyframes gus-rumble { 0% { transform: translate(-2px, 0) rotate(-0.2deg); } 100% { transform: translate(2px, -1px) rotate(0.2deg); } }
+.gus-crank { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.gus-crank-label { font: 800 0.85rem 'Baloo 2', sans-serif; letter-spacing: 0.15em; background: var(--gus-ink); color: #fff; border-radius: 8px; padding: 4px 10px; }
+.gus-crank-btn { min-height: 56px; padding: 0 14px; border-radius: 14px; border: 3px solid var(--gus-ink); background: var(--gus-steel); font: 700 1rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; }
+.gus-crank-btn.on { background: var(--gus-brass); box-shadow: inset 0 3px 0 rgba(0,0,0,0.15); }
+.gus-line { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px 0; }
+.gus-lever { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 0 6px 0 0; min-width: 76px; }
+.gus-lever-plate { position: relative; width: 64px; height: 92px; background: #b8c4cf; border: 4px solid var(--gus-ink); border-radius: 12px; background-image: radial-gradient(circle, #e6b54a 0 4px, transparent 5px), radial-gradient(circle, #e6b54a 0 4px, transparent 5px), radial-gradient(circle, #e6b54a 0 4px, transparent 5px), radial-gradient(circle, #e6b54a 0 4px, transparent 5px); background-size: 14px 14px; background-repeat: no-repeat; background-position: 4px 4px, calc(100% - 4px) 4px, 4px calc(100% - 4px), calc(100% - 4px) calc(100% - 4px); }
+.gus-lever-handle { position: absolute; left: 50%; top: 12px; width: 12px; height: 46px; margin-left: -6px; background: #4a5865; border-radius: 6px; transform-origin: 50% 100%; transform: rotate(-20deg); transition: transform 0.25s; }
+.gus-lever-handle::after { content: ''; position: absolute; left: -9px; top: -14px; width: 30px; height: 26px; border-radius: 50%; background: #ff3b3b; border: 3px solid var(--gus-ink); }
+.gus-lever.pulled .gus-lever-handle { transform: rotate(25deg); }
+.gus-lever-text { font: 800 1rem 'Baloo 2', sans-serif; letter-spacing: 0.1em; background: #ff3b3b; color: #fff; border: 3px solid var(--gus-ink); border-radius: 10px; padding: 0 10px; }
+.gus-housing-wrap { display: flex; align-items: center; }
+.gus-pipe { width: 22px; height: 22px; background: linear-gradient(var(--gus-copper), #e7b07a 40%, var(--gus-copper)); border-top: 3px solid var(--gus-ink); border-bottom: 3px solid var(--gus-ink); position: relative; overflow: hidden; }
+.gus-pipe.flowing::after { content: ''; position: absolute; top: 4px; left: -8px; width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: gus-bubble 0.6s linear infinite; }
+@keyframes gus-bubble { to { left: 26px; } }
+.gus-housing { position: relative; border: 4px solid var(--gus-ink); border-radius: 22px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; align-items: center; box-shadow: inset 0 -8px 0 rgba(0,0,0,0.12), inset 0 6px 0 rgba(255,255,255,0.35); }
+.gus-housing.idle { opacity: 0.72; border-style: dashed; }
+.gus-h-shout { background: #ffb067; } .gus-h-who { background: #f3cf6b; } .gus-h-did { background: #7fcfb6; }
+.gus-h-obj { background: #f2967a; } .gus-h-how { background: #8fb9ee; } .gus-h-where { background: #d9a27a; }
+.gus-housing-label { font: 800 0.8rem 'Baloo 2', sans-serif; letter-spacing: 0.22em; background: var(--gus-ink); color: #fff; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+.gus-rivets { position: absolute; inset: 6px; pointer-events: none; background-image: radial-gradient(circle, rgba(31,47,77,0.55) 0 2.5px, transparent 3px), radial-gradient(circle, rgba(31,47,77,0.55) 0 2.5px, transparent 3px); background-size: 8px 8px; background-repeat: no-repeat; background-position: 0 100%, 100% 100%; }
+.gus-sockets { display: flex; gap: 6px; }
+.gus-socket { min-width: 72px; min-height: 92px; border-radius: 16px; border: 3px solid var(--gus-ink); background: var(--gus-paper); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 6px; cursor: pointer; font: 700 1.05rem 'Lexend', sans-serif; color: #1a1a1a; touch-action: manipulation; transition: transform 0.12s; }
+.gus-socket.optional { background: rgba(255, 246, 227, 0.6); border-style: dashed; }
+.gus-socket.selected { box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--gus-ink); }
+.gus-socket.pulse { animation: gus-pulse 0.9s ease-in-out infinite; background: #ffd9a0; }
+@keyframes gus-pulse { 50% { transform: scale(1.06); } }
+.gus-socket.firing { transform: scale(1.12) rotate(-2deg); background: #fff; box-shadow: 0 0 0 4px #ffe14d; }
+.gus-socket.fired { background: #fff; }
+.gus-socket-symbol { width: 40px; height: 40px; object-fit: contain; }
+.gus-socket-word { max-width: 120px; overflow-wrap: anywhere; }
+.gus-mini { min-height: 44px; border-radius: 12px; border: 2px solid var(--gus-ink); background: #fff; font: 600 0.85rem 'Lexend', sans-serif; padding: 0 10px; cursor: pointer; }
+.gus-stamp { align-self: center; margin-left: 8px; width: 56px; height: 56px; display: grid; place-items: center; background: #4a5865; color: #fff; font: 900 2rem 'Baloo 2', sans-serif; border: 4px solid var(--gus-ink); border-radius: 12px; }
+.gus-machine.leak .gus-stamp { animation: gus-pulse 0.9s ease-in-out infinite; }
+.gus-machine-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.gus-bin { grid-area: bin; background: #fff; border: 4px solid var(--gus-ink); border-radius: 22px; padding: 10px; box-shadow: 0 6px 0 var(--gus-ink); }
+.gus-bin-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.gus-bin-head img { width: 36px; height: 36px; object-fit: contain; }
+.gus-bin-head strong { font-size: 1.15rem; text-transform: capitalize; }
+.gus-bin-hint { opacity: 0.75; flex: 1; }
+.gus-tiles { display: flex; flex-wrap: wrap; gap: 8px; max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px; }
+.gus-tile { min-width: 88px; min-height: 64px; padding: 6px 12px; border-radius: 14px; border: 3px solid; background: var(--gus-paper); font: 700 1.1rem 'Lexend', sans-serif; color: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; }
+.gus-tile.on { background: #ffe9a8; box-shadow: inset 0 0 0 3px var(--gus-ink); }
+.gus-tile-emoji { font-size: 1.5rem; line-height: 1; }
+.gus-tile small { font-weight: 600; font-size: 0.7rem; opacity: 0.65; }
+.gus-journal-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(31, 47, 77, 0.55); display: grid; place-items: center; padding: 16px; }
+.gus-journal { width: min(560px, 100%); max-height: 80vh; overflow-y: auto; background: var(--gus-paper); border: 4px solid #1f2f4d; border-radius: 22px; padding: 18px; font-family: 'Lexend', sans-serif; color: #1f2f4d; }
+.gus-journal h2 { margin: 0 0 10px; font-family: 'Baloo 2', sans-serif; }
+.gus-journal ul { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; font-size: 1.1rem; }
+.gus-journal li { background: #fff; border-radius: 12px; padding: 8px 10px; }
+/* Gus's pop-up and conversation box, the same shape as Bawk's. */
+.gus-guide-model { position: fixed; left: 0; bottom: 0; width: 180px; height: 230px; z-index: 262; pointer-events: none; }
+.gus-guide-model * { pointer-events: none !important; }
+.gus-guide-bar { position: fixed; left: 0; right: 0; bottom: 0; min-height: 150px; z-index: 261; display: flex; align-items: center; gap: 16px; padding: 16px 20px 16px 180px; padding-bottom: max(16px, env(safe-area-inset-bottom)); background: #fff6e3; border-top: 5px solid #c98a4b; box-shadow: 0 -6px 24px rgba(31, 47, 77, 0.25); font-family: 'Lexend', sans-serif; }
+.gus-guide-bubble { flex: 1; min-width: 0; }
+.gus-guide-name { font-weight: 900; color: #1f2f4d; font-size: 1rem; display: flex; gap: 10px; align-items: center; }
+.gus-guide-mood { font-weight: 700; font-size: 0.8rem; color: #7a4318; background: #f3cf6b; border-radius: 999px; padding: 2px 10px; }
+.gus-guide-text { margin: 4px 0 0; font-size: 1.2rem; line-height: 1.4; font-weight: 700; color: #1f2f4d; }
+.gus-guide-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 700px) { .gus-guide-bar { flex-direction: column; align-items: stretch; padding-left: 130px; } .gus-guide-model { width: 130px; height: 180px; } .gus-socket { min-width: 64px; } }
+.gus-page.calm *, .gus-page.calm *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .gus-page *, .gus-page *::after { animation: none !important; } }
+.widget-grammar-gus { background: linear-gradient(160deg, #2fa6e0, #1f6fa8); }

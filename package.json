@@ -10,7 +10,8 @@
     "check-weapons": "node scripts/check-weapon-assets.mjs",
     "gen-asset-manifest": "node scripts/generate-asset-manifest.mjs",
     "gen-master-chart": "node scripts/generate-master-asset-chart.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
@@ -37,6 +38,7 @@
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.79.0",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitest": "^5.0.3"
   }
 }
