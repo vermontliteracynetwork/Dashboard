@@ -4,6 +4,7 @@ import MusicManager from './MusicManager';
 import TeacherNav from '../../components/TeacherNav';
 import EconomySettingsPanel from './EconomySettingsPanel';
 import GusSettingsPanel from '../../games/grammarGus/ui/GusSettingsPanel';
+import GusReportPanel from '../../games/grammarGus/ui/GusReportPanel';
 
 // A dedicated home for pure play-for-fun content — direct teacher
 // request, splitting this out of Activities (which is academic tasks/
@@ -21,6 +22,8 @@ export default function GameManager() {
         <EconomySettingsPanel />
 
         <GusSettingsPanel />
+
+        <GusReportPanel />
 
         <CinemaVideosManager />
 

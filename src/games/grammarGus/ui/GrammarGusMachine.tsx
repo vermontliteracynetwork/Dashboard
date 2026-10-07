@@ -7,6 +7,7 @@ import { compose } from '../engine/compose';
 import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase, adjByWord, NOUNS, INTERJECTIONS } from '../data/wordbank';
 import { FRAMEWORKS, frameworkById, type FrameworkLine } from '../data/frameworks';
+import { MAX_ATTEMPTS, type Attempt, type BlueprintDone } from '../engine/report';
 import { buildLines, fillLine, frameworkScript, frameworkText, lineText, machineSetupFor, matchesBlueprint, needsWord, reviewFramework, type BuildLine } from '../engine/framework';
 import { HOUSINGS, POOLS, SLOT_BY_KEY, buildTokens, housingById, housingInUse, orderFor, type HousingId, type Words } from '../engine/machine';
 import { CHEERS, GATE_LINES, GREETINGS, RUBRIC_LINES, lineFor } from '../data/gusLines';
@@ -38,7 +39,7 @@ const TENSES: { id: Tense; label: string; icon: string }[] = [
 
 const gusOwner = (id: string) => `gus:${id}`;
 interface JournalEntry { kind?: 'sentence' | 'story' | 'blueprint'; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number; fwId?: string; setup?: string }
-interface GusRow { gears?: number; journal?: JournalEntry[] }
+interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; blueprints?: BlueprintDone[] }
 const WORKBENCH_COLORS = ['#8cc7ec', '#a5dcc0', '#f2d58f', '#d3bdf0']; // each new machine looks separate (plan 7.1)
 
 // iPad first (teacher 2026-10-07: "we need to prioritze optomization for
@@ -109,6 +110,7 @@ export default function GrammarGusMachine() {
   const [drag, setDrag] = useState<{ payload: DragPayload; x: number; y: number; over: string | null } | null>(null);
   const pending = useRef<{ payload: DragPayload; x0: number; y0: number; id: number } | null>(null);
   const justDragged = useRef(false);
+  const hopperUsed = useRef(false); // prompt dependence for the teacher report
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
   useEffect(() => setGusMuted(muted), [muted]);
@@ -213,6 +215,15 @@ export default function GrammarGusMachine() {
     mergeStyleRow(gusOwner(studentId), { gears: (saved.gears ?? 0) + gears, ...(journal ? { journal } : {}) });
   };
 
+  // Teacher report log (plan 3.18.8): one row per START pull, on the
+  // student's own Gus row, read fresh so nothing is lost between pulls.
+  const gusRowNow = (): GusRow => (studentId ? ((useStore.getState().styleLooks.find((r) => r.ownerId === gusOwner(studentId))?.look ?? {}) as GusRow) : {});
+  const logAttempt = (stars: Attempt['stars'], codes: string[]) => {
+    const used = hopperUsed.current; hopperUsed.current = false;
+    if (!studentId) return;
+    const att: Attempt = { at: new Date().toISOString(), stars, codes, level, words: tokens.filter((t) => t.word).length, tense, text: preview.text, ...(used ? { hopper: true } : {}), ...(fw ? { bp: fw.id } : {}) };
+    mergeStyleRow(gusOwner(studentId), { attempts: [att, ...(gusRowNow().attempts ?? [])].slice(0, MAX_ATTEMPTS) });
+  };
   const pull = () => {
     if (phase === 'running') return;
     if (needSetup && curLine) { gusSound.ahem(); say(`First, the ${wordLine!.label.toLowerCase()}. Pick it in the Parts Bin.`, 'Blueprint'); return; }
@@ -226,6 +237,7 @@ export default function GrammarGusMachine() {
     const seed = hashString(preview.text + tense);
     if (!r.validation.ok) {
       // Steam leak at the first problem (plan 3.5): never a harsh error.
+      logAttempt(0, r.validation.violations.filter((x) => x.blocking).map((x) => x.code));
       const v = r.validation.violations.find((x) => x.blocking)!;
       const targets = v.targets.length ? v.targets : [Math.max(0, (v.insertAt ?? 1) - 1)];
       const pulseKeys = targets.map((i) => keys[i]).filter(Boolean);
@@ -241,6 +253,7 @@ export default function GrammarGusMachine() {
       say(`${line.joke} ${line.fix}`, 'Steam leak!');
       return;
     }
+    logAttempt(r.rubric!.stars, r.rubric!.verdicts.map((x) => x.code));
     // The run show (plan 3.16): rumble, parts fire in order, then the cinema.
     setPhase('running'); setPulse([]);
     say('Pressure building... Stand back. Possibly further back.', 'Running');
@@ -278,7 +291,10 @@ export default function GrammarGusMachine() {
     if (kind === 'replay') { say('Encore! A classic.', 'Replay'); return; }
     if (kind === 'blueprint' && fw) {
       const rv = reviewFramework(fw, bp?.setup, story, timeOnPurpose);
-      if (rv.complete) earn(rv.stars === 3 ? 8 : 3);
+      if (rv.complete) {
+        earn(rv.stars === 3 ? 8 : 3);
+        if (studentId) mergeStyleRow(gusOwner(studentId), { blueprints: [{ at: new Date().toISOString(), id: fw.id, stars: rv.stars }, ...(gusRowNow().blueprints ?? [])].slice(0, 100) });
+      }
       say(`${rv.stars === 3 ? (fw.video === 'compact' ? 'Ha! Ho! I am wheezing. Magnificent.' : 'A blueprint, perfectly built.') : 'Very good.'} ${rv.tip}`, `${rv.stars} stars`);
       return;
     }
@@ -396,7 +412,7 @@ export default function GrammarGusMachine() {
     if (curLine) {
       const o = { tense, castBefore: storyCast(story), sentenceId: `s${story.length + 1}`, setup: bp?.setup, gentleOnly: settings.gentleOnly };
       const f = fillLine(curLine, rng, { ...o, base: words, tries: 200 }) ?? fillLine(curLine, rng, o);
-      if (f) { setWords(f.words); setWhoPron(f.whoPron); setOpenHousings(f.open); setHowFirst(false); setShapeIdx(Math.max(0, curLine.shapes.findIndex((sh) => matchesBlueprint(f.draft.tokens, { ...curLine, shapes: [sh] })))); changed(); gusSound.puff(); say('The Surprise Hopper read the blueprint. Pull START, if you dare.', 'Hopper'); }
+      if (f) { hopperUsed.current = true; setWords(f.words); setWhoPron(f.whoPron); setOpenHousings(f.open); setHowFirst(false); setShapeIdx(Math.max(0, curLine.shapes.findIndex((sh) => matchesBlueprint(f.draft.tokens, { ...curLine, shapes: [sh] })))); changed(); gusSound.puff(); say('The Surprise Hopper read the blueprint. Pull START, if you dare.', 'Hopper'); }
       else say('Even my Hopper is stumped. Try changing a word.', 'Hopper');
       return;
     }
@@ -411,7 +427,7 @@ export default function GrammarGusMachine() {
       if (v?.objectUse === 'T') { if (!next['obj.art']) next['obj.art'] = pick(rng, ['a', 'the']); if (!next['obj.noun']) next['obj.noun'] = pick(rng, POOLS.N); }
       const built = buildTokens(next, whoPron, howFirst);
       const r = runSentence({ tokens: built.tokens, tense, level: 'full' });
-      if (r.rubric?.stars === 3) { setWords(next); changed(); gusSound.puff(); say('The Surprise Hopper has spoken. Pull START, if you dare.', 'Hopper'); return; }
+      if (r.rubric?.stars === 3) { hopperUsed.current = true; setWords(next); changed(); gusSound.puff(); say('The Surprise Hopper has spoken. Pull START, if you dare.', 'Hopper'); return; }
     }
     say('Even my Hopper is stumped. Try changing a word.', 'Hopper');
   };

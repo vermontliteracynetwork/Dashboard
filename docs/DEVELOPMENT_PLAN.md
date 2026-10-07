@@ -722,6 +722,21 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: teacher report (per student). SHIPPED 2026-10-07 (plan 3.18.8 and 25.10)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
+- **Every START pull is logged** on that student's own Gus row (no new SQL; up to 400 pulls kept). The log records stars (or "did not run" when the machine leaked steam), which rules were flagged, the help level, the time on the crank, word count, the sentence, whether the Hopper filled it, and the blueprint if one was in use. Finished blueprints are logged too.
+- **New "📈 Grammar Gus report" panel** on the teacher Game tab, under Grammar Gus's settings. It has one card per student and never ranks students against each other:
+  - This week's tries as a small bar chart (did not run / 1 / 2 / 3 stars) and the 3-star rate.
+  - Tries per 3-star sentence, average words per 3-star sentence, and the share of pulls that came right after the Hopper (prompt dependence).
+  - Blueprints finished and help level.
+  - The most common fixes over 30 days, in plain teacher words ("Subject-verb agreement (6), a / an (3)").
+  - **More** opens: which times they use (Yesterday / Now / Tomorrow), accuracy by help level, sentence length by week (the growth trend), and the last five 3-star sentences.
+  - **⬇ CSV** downloads the full log for IEP notes.
+- Tests: 4 new report tests (weeks start Monday, star counts, tries per 3-star, top fixes, 30-day window, CSV escaping). Full suite: 226 passing.
+- **Not built yet from plan 25.10:** PDF export, IEP goal lines on a progress graph, teacher notes, and Gus's Checkup (the optional baseline inspection). CSV covers the export need for now.
+- **Still in progress next (same background build):** Gus's Orders (goal mode), then remix tools, Garage skins, Label It, Symbol Match and word packs. Golden Gear Contest still waits on her call on the $5 policy.
+
 ### Grammar Gus: the Blueprint Library (paragraph frameworks, Knock-Knock jokes). SHIPPED 2026-10-07 (plan section 11)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
@@ -753,7 +768,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - Full suite: 222 passing.
 - **Did it differently from the plan:** lead-ins ("Once upon a time,") are framework text in front of the scored sentence, so the sentence itself is still checked as a stand-alone sentence. At Guided and Challenge the student still capitalizes the first word of their own sentence; the paragraph text lower-cases it after the lead-in.
 - **Not built yet (later blueprint work):** "Why Did the...?" (needs the question grammar), Silly Recipe and Show and Tell (need two verbs joined by "and"), Letter to a Friend (needs her name list), the Pun Pack cards, the teacher blueprint editor (11.10) and a voice read-through.
-- **Still in progress next (same background build):** teacher reports (star history, common fixes, attempts to 3 stars, per student), Gus's Orders, then remix tools, Garage skins, Label It, Symbol Match and word packs. Golden Gear Contest still waits on her call on the $5 policy.
+- **Next after this:** teacher reports (done, see the report entry above), Gus's Orders, then remix tools, Garage skins, Label It, Symbol Match and word packs. Golden Gear Contest still waits on her call on the $5 policy.
 
 ### Grammar Gus: pixel content pass (every word list noun drawn, every verb animated, adverb effects, mixed-case pixel letters). SHIPPED 2026-10-07 (plan section 6, milestone 7)
 
