@@ -4905,3 +4905,12 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gus-bp-lines { display: flex; flex-direction: column; gap: 3px; }
 .gus-bp-row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
 .gus-blueprint-card em { font-size: 0.74rem; color: #4a5a78; }
+/* Gus's Orders (plan 3.8) */
+.gus-order-strip { background: #fff4d6; border-color: #c98a4b; }
+.gus-order-chip { display: inline-flex; gap: 4px; align-items: center; padding: 3px 8px; border-radius: 8px; border: 2px solid var(--gus-ink); font: 700 0.76rem 'Lexend', sans-serif; }
+.gus-order-chip.plain { background: #fff; }
+.gus-order-chip b { font-size: 0.6rem; letter-spacing: 0.06em; opacity: 0.75; }
+.gus-order-actions { display: inline-flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.gus-order-stickers { font-size: 1rem; }
+.gus-order-stickers small { font: 700 0.7rem 'Lexend', sans-serif; }
+@media (max-width: 900px) { .gus-top h1 { display: none; } }

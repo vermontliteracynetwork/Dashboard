@@ -7,6 +7,7 @@ import { compose } from '../engine/compose';
 import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase, adjByWord, NOUNS, INTERJECTIONS } from '../data/wordbank';
 import { FRAMEWORKS, frameworkById, type FrameworkLine } from '../data/frameworks';
+import { STICKERS, compareOrder, makeOrder, orderCard, type Order } from '../engine/orders';
 import { MAX_ATTEMPTS, type Attempt, type BlueprintDone } from '../engine/report';
 import { buildLines, fillLine, frameworkScript, frameworkText, lineText, machineSetupFor, matchesBlueprint, needsWord, reviewFramework, type BuildLine } from '../engine/framework';
 import { HOUSINGS, POOLS, SLOT_BY_KEY, buildTokens, housingById, housingInUse, orderFor, type HousingId, type Words } from '../engine/machine';
@@ -39,7 +40,7 @@ const TENSES: { id: Tense; label: string; icon: string }[] = [
 
 const gusOwner = (id: string) => `gus:${id}`;
 interface JournalEntry { kind?: 'sentence' | 'story' | 'blueprint'; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number; fwId?: string; setup?: string }
-interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; blueprints?: BlueprintDone[] }
+interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; blueprints?: BlueprintDone[]; stickers?: string[] }
 const WORKBENCH_COLORS = ['#8cc7ec', '#a5dcc0', '#f2d58f', '#d3bdf0']; // each new machine looks separate (plan 7.1)
 
 // iPad first (teacher 2026-10-07: "we need to prioritze optomization for
@@ -93,6 +94,9 @@ export default function GrammarGusMachine() {
   const [bp, setBp] = useState<{ id: string; setup?: string } | null>(null);
   const [shapeIdx, setShapeIdx] = useState(0);
   const [libOpen, setLibOpen] = useState(false);
+  // Gus's Orders (plan 3.8): build any sentence that makes the ordered scene.
+  const [order, setOrder] = useState<Order | null>(null);
+  const [orderDone, setOrderDone] = useState(false);
   const fw = bp ? frameworkById.get(bp.id) : undefined;
   const fwBuilds = fw ? buildLines(fw) : [];
   const curLine: BuildLine | undefined = fw ? fwBuilds[story.length] : undefined;
@@ -288,7 +292,7 @@ export default function GrammarGusMachine() {
       say(`${rv.stars === 3 ? 'A connected, consistent story. Magnificent.' : 'A fine story.'} ${rv.tip}`, `${rv.stars} stars`);
       return;
     }
-    if (kind === 'replay') { say('Encore! A classic.', 'Replay'); return; }
+    if (kind === 'replay') { say(order && !orderDone ? 'That is my order. Now build a sentence that makes the same scene.' : 'Encore! A classic.', 'Replay'); return; }
     if (kind === 'blueprint' && fw) {
       const rv = reviewFramework(fw, bp?.setup, story, timeOnPurpose);
       if (rv.complete) {
@@ -296,6 +300,20 @@ export default function GrammarGusMachine() {
         if (studentId) mergeStyleRow(gusOwner(studentId), { blueprints: [{ at: new Date().toISOString(), id: fw.id, stars: rv.stars }, ...(gusRowNow().blueprints ?? [])].slice(0, 100) });
       }
       say(`${rv.stars === 3 ? (fw.video === 'compact' ? 'Ha! Ho! I am wheezing. Magnificent.' : 'A blueprint, perfectly built.') : 'Very good.'} ${rv.tip}`, `${rv.stars} stars`);
+      return;
+    }
+    if (order && !orderDone && result) {
+      const diffs = compareOrder(order.key, result);
+      if (!diffs.length) {
+        const sticker = pick(makeRng(Date.now()), STICKERS);
+        earn(11);
+        if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
+        setOrderDone(true); gusSound.ding();
+        say(`Order filled! Exactly the scene I wanted. Have a sticker: ${sticker}`, '3 stars');
+        return;
+      }
+      earn(6);
+      say(`A lovely 3-star sentence, but not quite my order. ${diffs[0]}`, '3 stars');
       return;
     }
     earn(6);
@@ -439,8 +457,24 @@ export default function GrammarGusMachine() {
     setShapeIdx(shape); setPhase('build'); setResult(null); setPulse([]);
     setSelected(st.keys.find((k) => !st.words[k]) ?? st.keys[0]);
   }
+  const startOrder = () => {
+    const o = makeOrder(makeRng(Date.now()), { gentleOnly: settings.gentleOnly });
+    setOrder(o); setOrderDone(false); setBp(null); setStory([]); setShapeIdx(0);
+    setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); setForms({}); setCaps([]); setEndMark(null); setShoutMark(false); setOpenerComma(false);
+    setPhase('build'); setResult(null); setPulse([]); setSelected('who.art'); setPlayingScript(null);
+    gusSound.horn();
+    say('An order! Build a sentence that makes this exact scene. Any words that make the same scene count. Tap Watch to see it.', "Gus's Order");
+  };
+  const orderHint = () => {
+    if (!order) return;
+    const r = result?.frame ? result : runSentence(draft, storyCast(story));
+    if (!r.frame) { say('Get the machine running first. Fill WHO and WHAT THEY DID.', 'Hint'); return; }
+    const diffs = compareOrder(order.key, r);
+    say(diffs.length ? diffs[0] : 'That matches my order. Pull START!', 'Hint');
+  };
   const startBlueprint = (id: string) => {
     const f = frameworkById.get(id)!;
+    setOrder(null);
     setBp({ id }); setStory([]); setTimeOnPurpose(false); setLibOpen(false); setPlayingScript(null);
     if (f.tense) setTense(f.tense);
     applyLine(buildLines(f)[0]);
@@ -516,6 +550,7 @@ export default function GrammarGusMachine() {
         <h1>Grammar Gus's Contraption</h1>
         <div className="gus-top-right">
           <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
+          <button type="button" className={`gus-btn${order ? ' on' : ''}`} onClick={startOrder}>🎯 Orders</button>
           <button type="button" className={`gus-btn${fw ? ' on' : ''}`} onClick={() => setLibOpen(true)}>📜 Blueprints</button>
           <button type="button" className="gus-btn" onClick={() => setJournalOpen(true)}>📓 Journal</button>
           <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
@@ -609,6 +644,27 @@ export default function GrammarGusMachine() {
               <span className={`gus-lamp gold${ready ? ' on' : ''}`} title="Ready lamp" /><span className="gus-lamp-label">READY</span>
             </div>
           </div>
+          {order && (() => {
+            const c = orderCard(order.key);
+            return (
+              <div className="gus-bp-strip gus-order-strip" aria-label="Gus's Order">
+                <span className="gus-bp-title">🎯 Gus's Order{orderDone ? ' ✓ filled' : ''}</span>
+                <span className="gus-order-chip gus-h-who"><b>WHO</b> {c.who.emoji} {c.who.words}</span>
+                <span className="gus-order-chip gus-h-did"><b>DID</b> {c.did}</span>
+                {c.obj && <span className="gus-order-chip gus-h-obj"><b>TO</b> {c.obj.emoji} {c.obj.words}</span>}
+                {c.how && <span className="gus-order-chip gus-h-how"><b>HOW</b> {c.how}</span>}
+                {c.where && <span className="gus-order-chip gus-h-where"><b>WHERE</b> {c.where.prep} {c.where.emoji} {c.where.words}</span>}
+                <span className="gus-order-chip plain"><b>TIME</b> {c.time}</span>
+                <span className="gus-order-actions">
+                  <button type="button" className="gus-mini" onClick={() => { setPlayingScript({ script: order.filled.run.script!, kind: 'replay' }); setPhase('playing'); setPlayKey((k) => k + 1); }}>▶ Watch</button>
+                  <button type="button" className="gus-mini" onClick={orderHint}>💡 Hint</button>
+                  <button type="button" className="gus-mini" onClick={startOrder}>🔄 New order</button>
+                  <button type="button" className="gus-mini" onClick={() => { setOrder(null); say('Order cancelled. Free building it is.', 'Orders'); }}>✕</button>
+                </span>
+                {(saved.stickers ?? []).length > 0 && <span className="gus-order-stickers" aria-label={`${saved.stickers!.length} stickers`}>{saved.stickers!.slice(-6).join('')} <small>×{saved.stickers!.length}</small></span>}
+              </div>
+            );
+          })()}
           {fw && (
             <div className="gus-bp-strip" aria-label="Blueprint">
               <span className="gus-bp-title">{fw.icon} {fw.name}</span>
@@ -811,7 +867,8 @@ export default function GrammarGusMachine() {
 
       <GusGuide message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
         {(phase === 'leak' || phase === 'review') && <button type="button" className="gus-btn gus-btn-primary" onClick={() => { setPhase('build'); say('Splendid. Fix it up and pull START again.', 'Fix it'); }}>🔧 Fix it</button>}
-        {phase === 'done' && <button type="button" className="gus-btn gus-btn-primary" onClick={clearAll}>➕ Build another</button>}
+        {phase === 'done' && orderDone && <button type="button" className="gus-btn gus-btn-primary" onClick={startOrder}>🎯 Next order</button>}
+        {phase === 'done' && !orderDone && <button type="button" className="gus-btn gus-btn-primary" onClick={clearAll}>➕ Build another</button>}
         {phase === 'build' && <button type="button" className="gus-btn gus-btn-primary" onClick={pull}>⚡ Pull START</button>}
       </GusGuide>
     </div>

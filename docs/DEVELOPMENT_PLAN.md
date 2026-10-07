@@ -722,6 +722,28 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Gus's Orders (goal mode). SHIPPED 2026-10-07 (plan 3.8)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
+- **🎯 Orders** on the machine's top bar. Gus posts an order as a picture card in the housing colors: WHO (emoji + describing words), DID, HAPPENED TO, HOW, WHERE and TIME. Example: "WHO 🐢 dazzling turtle, DID jump, WHERE underneath 🐰 rabbit, TIME Now".
+- **Any sentence that makes the same scene fills the order.** Scenes are compared, not words:
+  - "a" or "the" both count.
+  - "over" or "above" both count (same path on screen).
+  - "cook" or "bake" both count (same animation).
+  - An adverb with the same look counts too.
+- **▶ Watch** plays the ordered scene in the cinema (the "ghost video" from the plan).
+- **💡 Hint** names one thing that is still different, in kid words, without failing anything. Examples: "The dog is not big yet." "Where? I ordered it over the van." "Check the time crank. I ordered Yesterday."
+- **No timer, no limit, no failing** (plan 3.8):
+  - A 3-star sentence that misses the order still plays and still earns its normal gears, with one hint.
+  - Filling the order earns 11 gears and a sticker (🏅 ⚙️ 🎩 🧪 and more), kept on the student's Gus row. The last six stickers and the total show on the order strip.
+  - "🎯 Next order" appears after a filled order.
+- Orders come from the same engine as the Hopper. They are always 3-star sentences the machine can build, in 10 simple shapes, and respect "Gentle verbs only".
+- Orders and blueprints take turns: starting one closes the other.
+- **iPad:** the machine title hides below 900px wide, so the header buttons (Orders, Blueprints, Journal, Calm, sound) always fit in portrait.
+- Tests: 3 new order tests (40 random orders are all 3-star and buildable, same-scene synonyms match, hints name the difference). Full suite: 229 passing.
+- **Not built yet from plan 3.8:** teacher-written orders (a small editor), and a sticker book page to browse stickers.
+- **Still in progress next (same background build):** remix tools (plan 17.6), Garage skins and colorways (plan 19), Label It and Symbol Match (plan 18.7), word packs. Golden Gear Contest still waits on her call on the $5 policy.
+
 ### Grammar Gus: teacher report (per student). SHIPPED 2026-10-07 (plan 3.18.8 and 25.10)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
@@ -735,7 +757,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **⬇ CSV** downloads the full log for IEP notes.
 - Tests: 4 new report tests (weeks start Monday, star counts, tries per 3-star, top fixes, 30-day window, CSV escaping). Full suite: 226 passing.
 - **Not built yet from plan 25.10:** PDF export, IEP goal lines on a progress graph, teacher notes, and Gus's Checkup (the optional baseline inspection). CSV covers the export need for now.
-- **Still in progress next (same background build):** Gus's Orders (goal mode), then remix tools, Garage skins, Label It, Symbol Match and word packs. Golden Gear Contest still waits on her call on the $5 policy.
+- **Next after this:** Gus's Orders (done, see the Orders entry above), then remix tools, Garage skins, Label It, Symbol Match and word packs. Golden Gear Contest still waits on her call on the $5 policy.
 
 ### Grammar Gus: the Blueprint Library (paragraph frameworks, Knock-Knock jokes). SHIPPED 2026-10-07 (plan section 11)
 
