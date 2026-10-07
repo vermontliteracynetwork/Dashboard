@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-blueprints',
+    date: '2026-10-07',
+    icon: '📜',
+    title: 'Blueprints: jokes, stories and riddles',
+    body: "Tap Blueprints in Gus's machine to build a whole knock-knock joke, a silly story, a news report or a riddle. Gus sets up a machine for every line. You fill in the symbols with silly words, then watch it play as one movie.",
+  },
+  {
     id: '2026-10-07-gus-movies',
     date: '2026-10-07',
     icon: '🎬',

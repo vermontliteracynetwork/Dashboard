@@ -21,6 +21,9 @@ export interface Scene {
   shout?: string; props: { castId: string; x: number }[];
   start: Record<string, { x: number; facing: 1 | -1 }>;
   beats: Beat[]; duration: number; joinIcon?: 'but' | 'for' | 'or';
+  // Blueprint scenes (plan 11.4.1, 11.8): a title card for fixed text and
+  // lead-ins, and speech bubbles plus door knocks for the joke doorway.
+  title?: string; bubbles?: { t: number; dur: number; text: string; x: number }[]; knocks?: number[];
 }
 export interface SceneScript {
   version: 1; cast: CastMember[]; looks: Record<string, Look>; scenes: Scene[];

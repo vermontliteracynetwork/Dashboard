@@ -323,7 +323,27 @@ function drawCurtains(fb: FB, open: number) {
 
 const curtainOpenAt = (p: number, calm: boolean) => (calm ? (p < 1 / 3 ? 0 : p < 2 / 3 ? 0.5 : 1) : Math.floor(clamp01(p) * 11) / 11);
 
+// Blueprint title cards (plan 11.8): gold words on a dark card.
+function drawTitleCard(fb: FB, text: string) {
+  fb.clear(C.black);
+  for (let x = 6; x < W; x += 12) { fb.set(x, 22, C.goldDark); fb.set(x, 70, C.goldDark); }
+  const words = text.split(' '); const lines: string[] = [];
+  for (const w of words) { const last = lines[lines.length - 1]; if (last && textWidth(`${last} ${w}`) <= 120) lines[lines.length - 1] = `${last} ${w}`; else lines.push(w); }
+  const y0 = Math.round(46 - (lines.length * 11) / 2);
+  lines.forEach((l, i) => drawTextCentered(fb, l, W / 2, y0 + i * 11, C.gold));
+}
+
+function drawBubble(fb: FB, text: string, cx: number, y: number) {
+  const w = textWidth(text) + 6;
+  const x = Math.max(12, Math.min(W - 12 - w, Math.round(cx - w / 2)));
+  fb.rect(x - 1, y - 1, w + 2, 13, C.outline); fb.rect(x, y, w, 11, C.white);
+  const tx = Math.max(x + 3, Math.min(x + w - 4, cx));
+  fb.rect(tx, y + 11, 2, 2, C.white); fb.set(tx - 1, y + 12, C.outline); fb.set(tx + 2, y + 12, C.outline); fb.set(tx, y + 13, C.outline); fb.set(tx + 1, y + 13, C.outline);
+  drawText(fb, text, x + 3, y + 2, C.outline, null);
+}
+
 function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: RenderOpts) {
+  if (scene.title !== undefined) { drawTitleCard(fb, scene.title); return; }
   const castById = new Map(script.cast.map((m) => [m.id, m]));
   drawBackdrop(fb);
   const propXs = scene.props.map((p) => p.x);
@@ -370,6 +390,10 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
     drawTextCentered(fb, shout.word, W / 2, 27, C.white);
   }
   if (scene.joinIcon && t > scene.duration / 2) drawTextCentered(fb, scene.joinIcon, W / 2, 44, C.white);
+  for (const k of scene.knocks ?? []) if (t >= k && t < k + 0.25) for (const dy of [-22, -16, -10]) fb.rect(scene.props[0] ? scene.props[0].x - 11 : 100, GROUND + dy, 3, 1, C.white);
+  const bubble = (scene.bubbles ?? []).find((b) => t >= b.t && t < b.t + b.dur);
+  if (bubble) drawBubble(fb, bubble.text, bubble.x, 22);
+  if (scene.bubbles) return; // dialogue scenes happen "now", with no time tag
   // Time on screen (plan 5.4).
   if (scene.tense === 'past') {
     for (let i = 0; i < fb.px.length; i++) fb.px[i] = SEPIA_OF[fb.px[i]];

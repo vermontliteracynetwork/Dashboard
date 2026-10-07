@@ -722,6 +722,39 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: the Blueprint Library (paragraph frameworks, Knock-Knock jokes). SHIPPED 2026-10-07 (plan section 11)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
+- **📜 Blueprints** button on the machine's top bar opens the **Blueprint Library**. Each blueprint is a Mad-Lib recipe for a whole short text, shown with her chart symbols. Six blueprints ship:
+  - **Knock-Knock Joke** (the plan's flagship): Knock knock. Who's there? [setup word]. [word] who? [punchline]. The student picks the setup word (any noun on the list, or a shout like Wow), then builds the punchline in one of three shapes. The setup word is already placed in the punchline machine, so the joke "answers itself" ("Zebra who? The tiny zebra drank loudly!").
+  - **Silly Story** ("Once upon a time," / a shout problem / "In the end," + pronoun).
+  - **Silly News Report** ("Breaking news!" ... "That is all for today!").
+  - **Day in the Life** ("In the morning," / "At lunch," / "At night,").
+  - **Riddle** (two clues with "I" bolted on, "What am I?", then the answer word).
+  - **Rescue Story** (shout and problem / the helper / a happy ending).
+- **How it plays:**
+  - The machine sets itself up for each line: the right housings open, and bolted-on words (like "I" in the riddle) show a 🔒 and cannot be moved.
+  - A blueprint strip on the machine shows the line's symbols and a "✓ matches" badge. START will not run a sentence that does not match the blueprint; Gus names the symbols it wants.
+  - The film strip turns into the blueprint: fixed lines are gray and locked, the line being built is outlined in gold, and sealed lines can be tapped to replay.
+  - Each build line is an ordinary sentence. It runs through the usual checklist and star review, and only a 3-star sentence can be sealed. The Hopper reads the blueprint and fills a line in its shape, and in stories it likes to bring back a character who is already on stage.
+- **Videos:**
+  - The knock-knock joke plays as one 10-second doorway video: a kid knocks, speech bubbles say "Knock knock!" / "Who's there?" / "Zebra." / "Zebra who?", the zebra pops up at the door, then the punchline plays.
+  - The other blueprints play line by line with gold title cards for the fixed lines and lead-ins ("Once upon a time,").
+  - The riddle answer appears on stage with a speech bubble ("I am an owl.").
+- **Blueprint stars** (plan 11.7):
+  - 3 stars when every line is done and the link rule is met: the joke's punchline uses the setup word; stories bring a character back and stay in one time (or "On purpose").
+  - 2 stars with one tip when the link rule is missing. Gears: 8 for 3 stars, 3 for 2.
+  - Saved blueprints go in the Journal with their name and replay with ▶.
+- Autosave includes the blueprint in progress.
+- **Engineering:** the machine model moved to `engine/machine.ts` so the screen and the blueprint engine read the machine the same way. New files: `data/frameworks.ts` and `engine/framework.ts`. 11 new tests cover:
+  - Every blueprint can be completed by the Hopper, all lines 3 stars, and its video plays.
+  - The joke video stays at 10.0 seconds or less across 40 random setup words and punchlines.
+  - Shape checks, bolted-on words, framework stars, lead-in lower-casing and "a" or "an" in the riddle answer.
+  - Full suite: 222 passing.
+- **Did it differently from the plan:** lead-ins ("Once upon a time,") are framework text in front of the scored sentence, so the sentence itself is still checked as a stand-alone sentence. At Guided and Challenge the student still capitalizes the first word of their own sentence; the paragraph text lower-cases it after the lead-in.
+- **Not built yet (later blueprint work):** "Why Did the...?" (needs the question grammar), Silly Recipe and Show and Tell (need two verbs joined by "and"), Letter to a Friend (needs her name list), the Pun Pack cards, the teacher blueprint editor (11.10) and a voice read-through.
+- **Still in progress next (same background build):** teacher reports (star history, common fixes, attempts to 3 stars, per student), Gus's Orders, then remix tools, Garage skins, Label It, Symbol Match and word packs. Golden Gear Contest still waits on her call on the $5 policy.
+
 ### Grammar Gus: pixel content pass (every word list noun drawn, every verb animated, adverb effects, mixed-case pixel letters). SHIPPED 2026-10-07 (plan section 6, milestone 7)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
@@ -748,7 +781,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **Calm mode** still skips the particles and keeps only the props that explain the action (talk bubble, notes, bowl, cup).
 - Tests: a new content test file (every noun drawn, every verb clip real for animals and people, legless things sprout legs, lower-case font). The director snapshots were updated on purpose: 15 example patterns used the old wiggle stand-in and now play their real clip. Full suite: 211 passing.
 - **Not verified on a real iPad yet:** how the new animations look at full speed.
-- **In progress next (same background build):** teacher reports, Knock-Knock and Silly Story frameworks, Golden Gear Contest (needs her call on the $5 policy), Gus's Orders, remix tools, Garage skins, Label It, Symbol Match and word packs.
+- **Next after this:** Knock-Knock and Silly Story frameworks (done, see the Blueprint Library entry above), then teacher reports, Golden Gear Contest (needs her call on the $5 policy), Gus's Orders, remix tools, Garage skins, Label It, Symbol Match and word packs.
 
 ### Grammar Gus: paragraph machines (stories of up to 4 sentences). SHIPPED 2026-10-07 (plan sections 7, 3.14, 3.18.9 and 5.5)
 
