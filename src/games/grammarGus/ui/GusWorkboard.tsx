@@ -99,7 +99,8 @@ const FUN_SOUND: Partial<Record<Kind, () => void>> = { horn: gusSound.honk, spri
   trapdoor: gusSound.popper, mood: gusSound.steam, tunnel: gusSound.warp, slingshot: gusSound.twang, dial: gusSound.tick, switch: gusSound.clank, funnel: gusSound.glug, bridge: gusSound.creak,
   gears: gusSound.whir, sniffer: gusSound.achoo, sorter: gusSound.clack, teleporter: gusSound.zap, detector: gusSound.ding, flag: gusSound.gun,
   stamp: gusSound.clang, crusher: gusSound.crunch, pastpress: gusSound.clang, listtrain: gusSound.choo, turnstile: gusSound.bonk,
-  crane: gusSound.creak, taggun: gusSound.zap, inflator: gusSound.boing, seesaw: gusSound.clank, bubble: gusSound.glug };
+  crane: gusSound.creak, taggun: gusSound.zap, inflator: gusSound.boing, seesaw: gusSound.clank, bubble: gusSound.glug,
+  crate: gusSound.popper, megaphone: gusSound.honk, toaster: gusSound.ding, cannon: gusSound.gun, slots: gusSound.tick };
 // How fast the marble rolls: the how words on the machine set it (How-Dial).
 const speedOf = (line: BoardLine) => Math.max(0.45, Math.min(2, line.items.filter((i) => wordPosOf(i.kind) === 'D' && i.word).reduce((s, i) => s * (ADVERB_SPEED[i.word!.toLowerCase()] ?? 1), 1)));
 const popFor = (it: BoardItem) => (isContraption(it.kind) ? (needsWord(it.kind) && it.word ? `${FUN_ROLE[it.kind].pop} ${it.word}` : FUN_ROLE[it.kind].pop) : isWordKind(it.kind) ? (it.word ?? '?') : POPS[it.kind] ?? '');
@@ -234,6 +235,13 @@ export default function GusWorkboard() {
   const [comboShow, setComboShow] = useState<{ lineId: string; names: string[]; key: number } | null>(null); // confetti over a 3-star machine
   const bounce = (id: string) => { setSnapped(id); timers.current.push(window.setTimeout(() => setSnapped((x) => (x === id ? null : x)), 480)); };
   const [jobsOpen, setJobsOpen] = useState(false);
+  // Spare Parts Bin (teacher's reference chart: "Put extra words here").
+  const [spare, setSpare] = useState<BoardItem[]>([]);
+  const [binOpen, setBinOpen] = useState(false);
+  // Read each word out loud when it is picked (a Menu switch).
+  const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('gus-read') === '1'; } catch { return false; } });
+  useEffect(() => { try { localStorage.setItem('gus-read', readAloud ? '1' : '0'); } catch { /* fine */ } }, [readAloud]);
+  const menuByKbd = useRef<string | null>(null);
   const [spaced, setSpaced] = useState(() => { try { return localStorage.getItem('gus-spaced') === '1'; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem('gus-spaced', spaced ? '1' : '0'); } catch { /* fine */ } }, [spaced]);
   const history = useRef<BoardLine[][]>([]);
@@ -266,13 +274,13 @@ export default function GusWorkboard() {
   useEffect(() => {
     if (restored.current) return; restored.current = true;
     let hadView = false;
-    try { const a = JSON.parse(localStorage.getItem(saveKey) ?? 'null'); if (a?.lines?.length) { setLines(a.lines); if (a.view) { setView(a.view); hadView = true; } } } catch { /* start fresh */ }
+    try { const a = JSON.parse(localStorage.getItem(saveKey) ?? 'null'); if (a?.lines?.length) { setLines(a.lines); if (a.view) { setView(a.view); hadView = true; } } if (Array.isArray(a?.spare)) setSpare(a.spare); } catch { /* start fresh */ }
     if (!hadView) requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
   }, [saveKey]);
   useEffect(() => {
-    const t = window.setTimeout(() => { try { localStorage.setItem(saveKey, JSON.stringify({ lines, view })); } catch { /* fine */ } }, 400);
+    const t = window.setTimeout(() => { try { localStorage.setItem(saveKey, JSON.stringify({ lines, view, spare })); } catch { /* fine */ } }, 400);
     return () => window.clearTimeout(t);
-  }, [lines, view, saveKey]);
+  }, [lines, view, spare, saveKey]);
 
   // ---- geometry -------------------------------------------------------------
   const toBoard = (cx: number, cy: number) => {
@@ -333,7 +341,12 @@ export default function GusWorkboard() {
 
   // ---- adding parts ----------------------------------------------------------
   const openMenuFor = (lineId: string, itemId: string) => { setMenu({ lineId, itemId }); setQuery(''); setDict(null); };
-  useEffect(() => { if (!menu) kbdOpen.current = false; }, [menu]);
+  useEffect(() => {
+    if (menu) { if (kbdOpen.current) menuByKbd.current = menu.itemId; return; }
+    kbdOpen.current = false;
+    // A menu opened from the keyboard hands focus back to its machine.
+    if (menuByKbd.current) { const id = menuByKbd.current; menuByKbd.current = null; requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-item="${id}"]`)?.focus()); }
+  }, [menu]);
   useEffect(() => {
     if (!focusAfter.current) return;
     const el = document.querySelector<HTMLElement>(`[data-item="${focusAfter.current}"]`);
@@ -438,6 +451,7 @@ export default function GusWorkboard() {
 
   useEffect(() => {
     const overDrawer = (x: number, y: number) => !!(document.elementFromPoint(x, y) as HTMLElement | null)?.closest('.gwb-drawer');
+    const overBin = (x: number, y: number) => !!(document.elementFromPoint(x, y) as HTMLElement | null)?.closest('.gwb-bin');
     const overBoard = (x: number, y: number) => { const r = boardRef.current?.getBoundingClientRect(); return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && !overDrawer(x, y); };
     const move = (e: PointerEvent) => {
       if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -527,6 +541,7 @@ export default function GusWorkboard() {
         // A machine left holding only a blank space goes away (unless it is the last one).
         const tidy = () => setLines((ls) => (ls.length > 1 ? ls.filter((l) => !(l.id === g.lineId && l.items.length === 1 && l.items[0].kind === 'blank' && d.target?.lineId !== l.id)) : ls));
         if (overDrawer(e.clientX, e.clientY)) { gusSound.puff(); tidy(); say('Back in the parts menu. Changed your mind? Tap Undo.', 'Recycled'); return; }
+        if (overBin(e.clientX, e.clientY)) { setSpare((sp) => [...sp, d.item].slice(-24)); gusSound.splosh(); tidy(); say(`Saved in the Spare Parts Bin${d.item.word ? `: "${d.item.word}"` : ''}. Tap the bin to take it back out.`, 'Spare parts'); return; }
         gusSound.snap();
         bounce(d.item.id);
         if (d.target?.attach) { attachTo(d.target.lineId, d.target.attach.itemId, d.target.attach.slot, d.item, true); setSelLine(d.target.lineId); clearGhost(d.target.lineId, d.item.kind); }
@@ -610,7 +625,7 @@ export default function GusWorkboard() {
     let line = line0;
     let gadgetNotes = '';
     const pops: Record<string, string> = {};
-    if (line0.items.some((i) => isTool(i.kind) || i.kind === 'tunnel')) {
+    if (line0.items.some((i) => isTool(i.kind) || ['tunnel', 'crate', 'cannon'].includes(i.kind))) {
       const para = paragraphOf(line0.id); const k = para.findIndex((l) => l.id === line0.id);
       const g = applyGadgets(line0, level, k > 0 ? para[k - 1] : undefined);
       if (g.changed) { line = { ...line0, items: g.items }; editLine(line0.id, (l) => ({ ...l, items: g.items })); }
@@ -791,6 +806,29 @@ export default function GusWorkboard() {
     const txt = rd2.draft.tokens.some((t) => t.word) ? compose(rd2.draft).text : '';
     say(verbs.length && txt ? `${when} Listen: "${txt}"` : when, 'Clock');
   };
+  // Slot Machine (Claudia round 4): every unlocked word machine spins to a
+  // new word of the same kind, so the sentence keeps its shape. Lock a word
+  // in its menu to keep it. No prizes: it is a silly-sentence toy.
+  const spinSlots = (line: BoardLine) => {
+    const changed: string[] = [];
+    const items = line.items.map((it) => {
+      const pos = wordPosOf(it.kind);
+      if (!pos || it.locked || isFront(it.kind) || (isContraption(it.kind) && FUN_ROLE[it.kind].preset)) return it;
+      const own = isContraption(it.kind) ? FUN_ROLE[it.kind].words : undefined;
+      let choices = own ?? pool(pos);
+      if (pos === 'V' && it.word) { const use = verbByBase.get(it.word)?.objectUse; choices = choices.filter((w) => verbByBase.get(w)?.objectUse === use); }
+      if (pos === 'A' || pos === 'C' || pos === 'R') return it; // little words stay put
+      const opts = choices.filter((w) => w !== it.word);
+      if (!opts.length) return it;
+      changed.push(it.id);
+      return { ...it, word: opts[Math.floor(Math.random() * opts.length)] };
+    });
+    if (!changed.length) { gusSound.ahem(); say('Every word is locked. Unlock one in its menu to spin it.', 'Slot Machine'); return; }
+    editLine(line.id, (l) => ({ ...l, items }));
+    setRetimed(changed); timers.current.push(window.setTimeout(() => setRetimed([]), 750));
+    gusSound.tick(); timers.current.push(window.setTimeout(() => gusSound.ding(), 450));
+    say('KA-CHING! New words, same sentence shape. Lock a word you love in its menu.', 'Slot Machine');
+  };
   // Paragraph Pipes (Claudia round 2): a time or transition word in front of
   // each sentence in a linked paragraph (First, Then, Finally...). Trains
   // sequence words. Shown in the caption, the paragraph text and the Journal.
@@ -853,6 +891,7 @@ export default function GusWorkboard() {
     if (!menu || !menuItem) return;
     setItem(menu.lineId, menu.itemId, { word: w });
     gusSound.snap(); setMenu(null); setPulse([]);
+    if (readAloud) speak(w);
     const l = lines.find((x) => x.id === menu.lineId);
     const next = l?.items.find((i) => i.id !== menu.itemId && needsWord(i.kind) && !i.word);
     if (next) timers.current.push(window.setTimeout(() => openMenuFor(menu.lineId, next.id), 180));
@@ -904,7 +943,7 @@ export default function GusWorkboard() {
     if (!focusLine || firing || drag) return null;
     const items = focusLine.items;
     if (!items.some((i) => needsWord(i.kind) && i.word)) return null;
-    const empty = items.find((i) => needsWord(i.kind) && !i.word);
+    const empty = items.find((i) => needsWord(i.kind) && !i.word && i.kind !== 'crate');
     if (empty) return { text: `Pick a word for the ${kindInfo(empty.kind).name}`, itemId: empty.id };
     if (!items.some((i) => i.kind === 'lever')) return { text: 'Add a Start Lever', kind: 'lever' };
     if (requireFinish || focusLine.job) {
@@ -991,6 +1030,7 @@ export default function GusWorkboard() {
                 <button type="button" role="menuitem" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 Journal</button>
                 <button type="button" role="menuitem" onClick={() => { setCalm((c) => !c); setTopMenu(false); }}>🌙 {calm ? 'Calm mode is on' : 'Calm mode'}<small>Less moving, same sounds</small></button>
                 <button type="button" role="menuitem" onClick={() => { setMuted((m) => !m); setTopMenu(false); }}>{muted ? '🔇 Sound is off' : '🔊 Sound is on'}</button>
+                <button type="button" role="menuitem" onClick={() => { setReadAloud((v) => !v); setTopMenu(false); }}>🔈 {readAloud ? 'Reading words out loud' : 'Read words out loud'}<small>Each word you pick is read to you</small></button>
                 <button type="button" role="menuitem" onClick={() => { setSpaced((v) => !v); setTopMenu(false); }}>🔤 {spaced ? 'Wider spacing is on' : 'Wider letter spacing'}</button>
                 <button type="button" role="menuitem" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear all</button>
                 <button type="button" role="menuitem" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine</button>
@@ -1077,6 +1117,12 @@ export default function GusWorkboard() {
                           <span className="gwb-gauge" role="img" aria-label={`Pressure ${Math.round(pressure * 100)} percent`}><span style={{ transform: `rotate(${-70 + 140 * pressure}deg)` }} /></span>
                           {line.stars === 3 && <span className="gwb-stars" aria-label="3 stars">⭐⭐⭐</span>}
                         </>}
+                        {item.kind === 'slots' && (
+                          <span className="gwb-clock-btns" onPointerDown={(e) => e.stopPropagation()}>
+                            <button type="button" onClick={() => spinSlots(line)} aria-label="Spin new words into every unlocked machine">🎰 Spin!</button>
+                          </span>
+                        )}
+                        {item.locked && <span className="gwb-lock" aria-label="Locked word">🔒</span>}
                         {item.kind === 'mood' && (
                           <span className="gwb-clock-btns" onPointerDown={(e) => e.stopPropagation()}>
                             <button type="button" className={item.word !== 'big' ? 'on' : ''} onClick={() => { setItem(line.id, item.id, { word: 'calm' }); gusSound.steam(); say('Calm. A calm sentence ends with a period.', 'Mood Meter'); }} aria-label="Calm: a period">😌 .</button>
@@ -1147,6 +1193,21 @@ export default function GusWorkboard() {
             {drag?.kind === 'item' && (
               <div className={`gwb-item gwb-dragging${drag.overDrawer ? ' recycle' : ''}`} style={{ left: drag.x, top: drag.y, width: partWidth(drag.item.kind, drag.item.word), height: ITEM_H }} aria-hidden>
                 <MachinePart kind={drag.item.kind} word={drag.item.word} empty={!drag.item.word && needsWord(drag.item.kind)} />
+              </div>
+            )}
+          </div>
+          <div className={`gwb-bin${drag?.kind === 'item' ? ' ready' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
+            <button type="button" className="gwb-bin-btn" onClick={() => setBinOpen((o) => !o)} aria-expanded={binOpen} aria-label={`Spare Parts Bin: ${spare.length} parts`}>🗑️<span>Spare parts</span><b>{spare.length}</b></button>
+            {binOpen && (
+              <div className="gwb-bin-tray" role="dialog" aria-label="Spare Parts Bin">
+                {spare.length === 0 ? <p>Drag an extra part into the bin to save it for later.</p> : spare.map((sp, k) => (
+                  <button key={sp.id} type="button" className="gwb-bin-part" onClick={() => {
+                    const target = focusLine;
+                    setSpare((x) => x.filter((_, j) => j !== k));
+                    if (target) insertItem(target.id, smartIndex(target, sp.kind), sp); else { const f = freeSpot(); newLineAt(f.x, f.y, sp); }
+                    bounce(sp.id); gusSound.snap(); setBinOpen(false); say(`${kindInfo(sp.kind).name}${sp.word ? ` "${sp.word}"` : ''} is back on the machine.`, 'Spare parts');
+                  }}><MachinePart kind={sp.kind} word={sp.word} scale={0.3} /><span>{sp.word ?? kindInfo(sp.kind).name}</span></button>
+                ))}
               </div>
             )}
           </div>
@@ -1256,7 +1317,7 @@ export default function GusWorkboard() {
             // builder): spin the word up or down without closing the menu.
             const ri = menuItem.word ? all.findIndex((w) => w.toLowerCase() === menuItem.word!.toLowerCase()) : -1;
             const at = (d: number) => all[(ri + d + all.length * 4) % all.length];
-            const spin = (d: number) => { setItem(menuLine.id, menuItem.id, { word: at(d) }); gusSound.tick(); };
+            const spin = (d: number) => { setItem(menuLine.id, menuItem.id, { word: at(d) }); gusSound.tick(); if (readAloud) speak(at(d)); };
             return <>
               {ri >= 0 && all.length > 1 && (
                 <div className="gwb-reel" role="group" aria-label="Word reel">
@@ -1305,6 +1366,7 @@ export default function GusWorkboard() {
             </div>
           )}
           <div className="gwb-wordmenu-foot">
+            {needsWord(menuItem.kind) && menuItem.word && <button type="button" className={`gus-btn${menuItem.locked ? ' on' : ''}`} onClick={() => { setItem(menuLine.id, menuItem.id, { locked: !menuItem.locked }); gusSound.clack(); }}>{menuItem.locked ? '🔒 Locked' : '🔓 Lock this word'}</button>}
             <button type="button" className="gus-btn" onClick={() => removeItem(menuLine.id, menuItem.id)}>♻️ Take it off</button>
           </div>
         </div>

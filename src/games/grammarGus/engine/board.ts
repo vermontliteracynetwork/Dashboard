@@ -16,7 +16,7 @@ import { compareOf, pluralNounOf, possessiveOf } from './dictionary';
 // noun more than one, and the Pixel TV must be plugged on the very end.
 
 // top / bottom: a part snapped on above or below a word machine.
-export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm; top?: BoardItem; bottom?: BoardItem }
+export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm; top?: BoardItem; bottom?: BoardItem; locked?: boolean }
 // Every part on a line, snapped-on parts included.
 export const allParts = (items: BoardItem[]): BoardItem[] => items.flatMap((i) => [i, ...(i.top ? [i.top] : []), ...(i.bottom ? [i.bottom] : [])]);
 export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean }; connector?: string }
@@ -48,7 +48,7 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
   items.forEach((it, i) => {
     const pos = wordPosOf(it.kind); const mark = itemMark(it);
     if (pos) {
-      if (!it.word) problems.push({ code: 'EMPTY_PART', itemId: it.id });
+      if (!it.word && it.kind !== 'crate') problems.push({ code: 'EMPTY_PART', itemId: it.id }); // an empty Mystery Crate is a surprise
       if (isFront(it.kind)) { if (mainStarted) problems.push({ code: 'NOT_FRONT', itemId: it.id }); } else mainStarted = true;
       const under = it.bottom ? itemMark(it.bottom) : null;
       if (pendingCap || capAfterShout || under === 'cap') marks.capitals.push(tokens.length);

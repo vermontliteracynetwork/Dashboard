@@ -164,3 +164,24 @@ describe('LATER parts', () => {
     expect(lineText(l, readLine(l, 'full', false))).toBe('"The cat jumps," said Mia.');
   });
 });
+
+describe("Claudia's round 4 game parts", () => {
+  it('an empty Mystery Crate pops open with a surprise describing word', () => {
+    const l = line([part('A', 'the'), part('crate'), part('N', 'cat'), part('V', 'jump')]);
+    expect(readLine(l, 'full', false).problems).toEqual([]);
+    const g = applyGadgets(l, 'full', undefined, () => 0);
+    const w = g.items.find((i) => i.kind === 'crate')!.word;
+    expect(w).toBeTruthy();
+    expect(runSentence(readLine({ ...l, items: g.items }, 'full', false).draft).validation.ok).toBe(true);
+  });
+  it('the Pronoun Cannon fires the pronoun that matches the sentence before', () => {
+    const prev = line([part('A', 'the'), part('N', 'girl'), part('V', 'sing')]);
+    const l = line([part('cap'), part('cannon', 'he'), part('V', 'jump'), part('stop')]);
+    const g = applyGadgets(l, 'full', prev);
+    expect(g.items.find((i) => i.kind === 'cannon')!.word).toBe('she');
+  });
+  it('the Time Warp Toaster toasts all three times', () => {
+    const g = applyGadgets(line([part('toaster'), part('A', 'the'), part('N', 'cat'), part('V', 'run')]), 'full');
+    expect(g.events[0].pop).toBe('ran / runs / will run');
+  });
+});

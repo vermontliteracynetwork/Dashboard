@@ -722,14 +722,31 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: finishing the plan, round 9 (Claudia's round 4 game parts, Slot Machine with word locks, Spare Parts Bin, read words aloud, focus return). SHIPPED 2026-10-07
+
+- **Mystery Crate** (a describing word in a box): leave it empty and it pops open with a surprise describing word when the lever is pulled (soggy, grumpy, sparkly, wobbly...). The student can keep the word or pick another.
+- **Echo Megaphone:** holds a how word and shouts it as an echo when it fires. It trains adverbs as the answer to "how".
+- **Time Warp Toaster** (helper gadget): toasts the action word in all three times when it fires: "ran / runs / will run".
+- **Pronoun Cannon:** holds he, she, it or they and fires the one that matches the who of the sentence before (the girl → she), fixing a mismatch out loud. This is pronoun and noun agreement across sentences in a paragraph.
+- **Slot Machine** (Claudia's Silly Sentence Slot Machine, and the teacher's slot-machine reference):
+  - Tap 🎰 Spin! and every unlocked word machine spins to a new word of the same kind. Action words keep their kind (an action that needs a thing gets another one), so the sentence keeps its shape.
+  - Little words (a, the, and, pronouns) stay put.
+  - 🔓 Lock this word in any word menu keeps a favorite, and a 🔒 shows on the machine.
+  - It gives no prizes: it is a silly-sentence toy.
+- **Spare Parts Bin** (the teacher's reference chart, "Put extra words here"): a bin in the floor's top corner. Drag any part into it to save it (up to 24, kept with the board). Tap the bin to see them, and tap one to put it back on the machine you are working on.
+- **🔈 Read words out loud** (☰ Menu): every word picked from a word menu or spun on the reel is read aloud. Remembered on the iPad. Closes Claudia's "read-aloud for each word" item.
+- **Focus return:** a word menu opened from the keyboard gives focus back to its machine when it closes. Closes Claudia's last accessibility item.
+- The Plural Photocopier idea is covered by the Duplicator, the Agreement Gears and the Plural Pileup combo.
+- Tests: 3 new. Full Gus suite: 285 passing.
+
 ### Grammar Gus: finishing the plan, round 8 (the LATER parts: questions, possessives, comparing words, because, speech). SHIPPED 2026-10-07 (direct teacher instruction)
 
 **Her words, verbatim:** "run until this dev plan is complete for grammar gus, then claudi ashoudl evaluate and audit all features for design, function, gamification, and accuracy for accademics. claudia should then take that report, evaluate what features the platform doesnt have (garammar gus), what it could have, and research based on accademic componets that need rto be instructed for writing and grammar, and scafoold them in a fun gamified way for my science loving, machine building kids"
 
 **The run, in order:**
 1. Round 8: LATER parts. **Shipped (this entry).**
-2. Round 9: Claudia's round 4 game ideas, Spare Parts Bin, read-aloud for each word, and focus back to the machine. **In progress.**
-3. Round 10: Orders, Blueprints and Remix onto the Workboard. **Queued.**
+2. Round 9: Claudia's round 4 game ideas, Spare Parts Bin, read-aloud for each word, and focus back to the machine. **Shipped (entry above).**
+3. Round 10: Orders, Blueprints and Remix onto the Workboard. **In progress.**
 4. Claudia's full audit (design, function, gamification, academic accuracy), then her gap analysis and a research-based writing and grammar scaffold plan for science-loving machine builders, as a PDF. **Queued.**
 5. Golden Gear Contest still waits on her decision about the $5 prize. **Blocked on the teacher.**
 

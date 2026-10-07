@@ -3,7 +3,7 @@ import { readLine, type BoardItem, type BoardLine } from './board';
 import { adjRank, expectedForms } from './compose';
 import { analyze } from './analyze';
 import { articleFor, tenseOfForm, verbText } from './conjugate';
-import { nounByWord, verbByBase } from '../data/wordbank';
+import { adjByWord, nounByWord, verbByBase } from '../data/wordbank';
 import { pronounFor } from './remix';
 import { caseSwap, OBJ_OF, SUBJ_OF } from './validate';
 import { TIME_TENSE } from '../data/timeWords';
@@ -45,10 +45,33 @@ function subjectNoun(items: BoardItem[]): { idx: number; word: string } | null {
   return null;
 }
 
-export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine): GadgetResult {
+const SURPRISE = ['soggy', 'grumpy', 'sparkly', 'wobbly', 'fuzzy', 'gigantic', 'tiny', 'silly', 'sticky', 'fancy', 'lazy', 'brave'];
+
+export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine, rand: () => number = Math.random): GadgetResult {
   let items = clone(line.items);
   const events: GadgetEvent[] = [];
   const at = (k: string) => items.find((i) => i.kind === k);
+  // Mystery Crate: an empty crate pops open with a surprise describing word.
+  for (const crate of items.filter((i) => i.kind === 'crate' && !i.word)) {
+    const pool = SURPRISE.filter((w) => adjByWord.has(w));
+    crate.word = pool[Math.floor(rand() * pool.length)] ?? 'silly';
+    events.push({ itemId: crate.id, pop: `POP! ${crate.word}!`, fixed: true, note: `The Mystery Crate popped open: "${crate.word}"! A describing word. Keep it, or tap the crate to pick another.` });
+  }
+  // Pronoun Cannon: the pronoun must match the who of the sentence before.
+  const cannon = at('cannon');
+  if (cannon) {
+    const theirs = prev ? subjectNoun(prev.items) : null;
+    const prevPron = prev?.items.find((i) => wordPosOf(i.kind) === 'R' && i.word);
+    const plural = !!prev && prev.items.slice(0, theirs?.idx ?? 0).some((i) => i.kind === 'duplicator' || i.kind === 'crusher');
+    const want = theirs ? (plural || nounByWord.get(theirs.word)?.plural ? 'they' : pronounFor(theirs.word)) : prevPron?.word?.toLowerCase();
+    if (want && cannon.word?.toLowerCase() !== want) { const was = cannon.word; cannon.word = want; events.push({ itemId: cannon.id, pop: `BOOM! ${want}`, fixed: true, note: `The Pronoun Cannon aimed at ${theirs ? `"${theirs.word}"` : 'the sentence before'}${was ? ` and swapped "${was}" for "${want}"` : ''}: ${want}.` }); }
+    else events.push({ itemId: cannon.id, pop: want ? `BOOM! ${want}` : 'aim... no target', fixed: false, note: want ? undefined : 'The Pronoun Cannon needs a sentence before it to aim at. Hook two machines with a Paragraph Link.' });
+  }
+  // Time Warp Toaster: the action word in all three times.
+  const toaster = at('toaster');
+  const firstVerb = items.find((i) => wordPosOf(i.kind) === 'V' && i.word);
+  const tv = firstVerb ? verbByBase.get(firstVerb.word!) : undefined;
+  if (toaster && tv) events.push({ itemId: toaster.id, pop: `${tv.past} / ${tv.third} / will ${tv.base}`, fixed: false, note: `The Time Warp Toaster toasted "${tv.base}" in all three times: ${tv.past} (past), ${tv.third} (present), will ${tv.base} (future).` });
   // Time Tunnel: the time word sets the Clock and the action words.
   const tun = at('tunnel');
   const t = tun?.word ? TIME_TENSE.get(tun.word.toLowerCase()) : undefined;

@@ -5319,3 +5319,23 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-attach.firing .gwb-inflate { animation: gwb-squash 0.2s ease-in-out 3 alternate; }
 .gwb-item.firing .gwb-tilt { animation: gwb-swing 0.4s ease-in-out 2 alternate; }
 .gwb-item.firing .gwb-float { animation: gwb-pump 0.3s ease-in-out infinite alternate; }
+/* round 9: Spare Parts Bin, locks, game-idea parts */
+.gwb-bin { position: absolute; left: 10px; bottom: 10px; z-index: 6; }
+.gwb-bin-btn { display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 0 12px; border-radius: 14px; border: 3px solid var(--gus-ink); background: #9aa6ba; color: #fff; font: 800 0.9rem 'Lexend', sans-serif; cursor: pointer; box-shadow: 0 3px 0 var(--gus-ink); }
+.gwb-bin-btn b { min-width: 26px; padding: 2px 6px; border-radius: 999px; background: #fff; color: var(--gus-ink); }
+.gwb-bin.ready .gwb-bin-btn { outline: 4px dashed #f3cf6b; outline-offset: 3px; transform: scale(1.08); }
+.gwb-bin-tray { position: absolute; left: 0; bottom: calc(100% + 8px); width: min(340px, 80vw); max-height: 300px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; padding: 10px; background: #fff8e6; border: 4px solid var(--gus-ink); border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); font: 700 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); }
+.gwb-bin-tray p { grid-column: 1 / -1; margin: 0; }
+.gwb-bin-part { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 80px; padding: 4px; border-radius: 10px; border: 2px solid var(--gus-ink); background: #fff; cursor: pointer; font: 700 0.8rem 'Lexend', sans-serif; }
+.gwb-zoom { left: auto; }
+.gwb-lock { position: absolute; top: 2px; right: 2px; font-size: max(1rem, calc(1rem / var(--z, 1))); pointer-events: none; }
+.gwb-item.firing .gwb-echo { animation: gwb-blink 0.15s steps(2) 4; }
+.gwb-item.firing .gwb-toast { animation: gwb-pop-toast 0.4s ease-out forwards; }
+@keyframes gwb-pop-toast { to { transform: translateY(-20px); } }
+.gwb-item.firing .gwb-recoil { animation: gwb-pump 0.12s ease-in-out 2 alternate; }
+.gwb-line.running .gwb-reelspin, .gwb-item.retimed .gwb-reelspin { animation: gwb-blink 0.12s steps(2) 6; }
+.gwb-k-slots .gwb-clock-btns { top: auto; bottom: 4px; left: 4px; right: 4px; }
+.gwb-k-slots .gwb-clock-btns button { flex: 1; font-size: 0.95rem; }
+.gwb-bin { left: auto; right: 10px; bottom: auto; top: 10px; }
+.gwb-bin-tray { left: auto; right: 0; bottom: auto; top: calc(100% + 8px); }
+.gwb-zoom { left: 10px; }

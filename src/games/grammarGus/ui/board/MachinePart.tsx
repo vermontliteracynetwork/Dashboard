@@ -328,6 +328,44 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <g className="gwb-float"><path d={`M${c - 10} 14 h56 a10 10 0 0 1 10 10 v26 a10 10 0 0 1 -10 10 h-36 l-12 12 l2 -12 h-10 a10 10 0 0 1 -10 -10 v-26 a10 10 0 0 1 10 -10z`} fill="#fff" stroke={INK} strokeWidth={2.4} />
         <text x={c + 18} y={44} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={20} fill={color}>" "</text></g>
     </g>;
+    case 'crate': return <g>
+      <Pipes w={w} />
+      <g className="gwb-lid" style={{ transformOrigin: `${c - 34}px 30px` }}><rect x={c - 36} y={24} width={72} height={10} rx={2} fill={light} stroke={INK} strokeWidth={2.4} /></g>
+      <rect x={c - 34} y={34} width={68} height={60} rx={3} fill={color} stroke={INK} strokeWidth={2.8} />
+      <line x1={c - 34} y1={34} x2={c + 34} y2={94} stroke={dark} strokeWidth={3} /><line x1={c + 34} y1={34} x2={c - 34} y2={94} stroke={dark} strokeWidth={3} />
+      <text x={c} y={74} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={30} fill="#f3cf6b" stroke={INK} strokeWidth={1.2}>?</text>
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'megaphone': return <g>
+      <Pipes w={w} />
+      <g className="gwb-honk" style={{ transformOrigin: `${c - 20}px 56px` }}><path d={`M${c - 30} 46 L${c + 20} 26 L${c + 20} 86 L${c - 30} 66Z`} fill={color} stroke={INK} strokeWidth={3} strokeLinejoin="round" /><rect x={c - 40} y={46} width={12} height={20} rx={3} fill="#3c455e" stroke={INK} strokeWidth={2} /></g>
+      {[0, 1, 2].map((i) => <path key={i} className="gwb-echo" d={`M${c + 28 + i * 9} ${40 - i * 4} q 8 16 0 32`} fill="none" stroke={INK} strokeWidth={2.4} style={{ animationDelay: `${i * 0.12}s` }} />)}
+      <rect x={c - 5} y={90} width={10} height={32} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'toaster': return <g>
+      <Pipes w={w} />
+      <rect x={c - 36} y={46} width={72} height={58} rx={14} fill={color} stroke={INK} strokeWidth={3} />
+      <rect x={c - 24} y={42} width={18} height={8} rx={2} fill="#3c455e" /><rect x={c + 6} y={42} width={18} height={8} rx={2} fill="#3c455e" />
+      <g className="gwb-toast"><rect x={c - 23} y={22} width={16} height={24} rx={4} fill="#e0b070" stroke={INK} strokeWidth={2} /><rect x={c + 7} y={22} width={16} height={24} rx={4} fill="#c8894a" stroke={INK} strokeWidth={2} /></g>
+      <text x={c} y={84} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill={INK}>past · now · next</text>
+      <rect x={c + 36} y={64} width={8} height={14} rx={2} fill="#e8483b" stroke={INK} strokeWidth={1.6} />
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'cannon': return <g>
+      <Pipes w={w} />
+      <g className="gwb-recoil"><path d={`M${c - 40} 50 L${c + 30} 34 L${c + 34} 58 L${c - 36} 72Z`} fill={color} stroke={INK} strokeWidth={3} strokeLinejoin="round" /><ellipse cx={c + 32} cy={46} rx={6} ry={12} fill="#111" stroke={INK} strokeWidth={2} /></g>
+      <circle cx={c - 10} cy={88} r={18} fill="#8b5a2b" stroke={INK} strokeWidth={3} /><circle cx={c - 10} cy={88} r={5} fill={INK} />
+      {[0, 60, 120, 180, 240, 300].map((a) => <line key={a} x1={c - 10} y1={88} x2={c - 10} y2={72} stroke={INK} strokeWidth={2} transform={`rotate(${a} ${c - 10} 88)`} />)}
+    </g>;
+    case 'slots': return <g>
+      <Pipes w={w} />
+      <rect x={c - 40} y={22} width={80} height={86} rx={10} fill={color} stroke={INK} strokeWidth={3} />
+      <rect x={c - 32} y={36} width={64} height={30} rx={4} fill="#fff" stroke={INK} strokeWidth={2} />
+      {[0, 1, 2].map((i) => <text key={i} className="gwb-reelspin" x={c - 21 + i * 21} y={57} textAnchor="middle" fontSize={15} style={{ animationDelay: `${i * 0.1}s` }}>{['🐸', '⚡', '🍕'][i]}</text>)}
+      <line x1={c + 40} y1={64} x2={c + 50} y2={30} stroke="#c8ced8" strokeWidth={4} /><circle cx={c + 50} cy={28} r={6} fill="#e8483b" stroke={INK} strokeWidth={2} />
+      <text x={c} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill={INK}>SPIN</text>
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
     default: return null;
   }
 }

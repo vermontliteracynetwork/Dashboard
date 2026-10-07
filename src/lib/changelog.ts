@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-slots',
+    date: '2026-10-07',
+    icon: '🎰',
+    title: 'Slot Machine and Spare Parts Bin',
+    body: "Snap on the Slot Machine and tap Spin for brand new words in the same sentence shape. Lock a word you love in its menu. Try the Mystery Crate, the Echo Megaphone, the Time Warp Toaster and the Pronoun Cannon. Drag extra parts into the Spare Parts Bin to save them for later. Turn on Read words out loud in the Menu to hear every word you pick.",
+  },
+  {
     id: '2026-10-07-gus-questions',
     date: '2026-10-07',
     icon: '🏗️',
