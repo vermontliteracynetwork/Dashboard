@@ -114,7 +114,7 @@ export function compose(draft: Draft): Composed {
     }
     if (t.pos === 'R' && text === 'I') text = full || capitals.has(i) ? 'I' : 'i';
     if (t.pos === 'I') text = text.toLowerCase();
-    if (t.pos === 'N' && nounByWord.get(text)?.proper) text = cap(text); // names always get a capital letter
+    if (t.pos === 'N' && nounByWord.get(text.replace(/'s?$/, ''))?.proper) text = cap(text); // names always get a capital letter
     if (capitals.has(i)) text = cap(text);
     if (t.pos === 'I' && marks.shoutMark) text += '!';
     if (commas.has(i)) text += ',';

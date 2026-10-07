@@ -151,6 +151,27 @@ export function pluralNounOf(word: string): string {
   return p;
 }
 
+// The Possessive Tag Gun: "dog" becomes "dog's", "cats" becomes "cats'".
+export function possessiveOf(word: string): string {
+  const w = word.trim();
+  return /s$/i.test(w) && !!nounByWord.get(w.toLowerCase())?.plural ? `${w}'` : `${w}'s`;
+}
+// The Size-Up Inflator: tall, taller (two things), tallest (three or more).
+const IRREG_COMPARE: Record<string, [string, string]> = { good: ['better', 'best'], bad: ['worse', 'worst'], far: ['farther', 'farthest'], little: ['smaller', 'smallest'] };
+export function compareOf(word: string, d: 'er' | 'est'): string {
+  const w = cleanWord(word);
+  const e = adjByWord.get(w);
+  let out: string;
+  if (IRREG_COMPARE[w]) out = IRREG_COMPARE[w][d === 'er' ? 0 : 1];
+  else if (w.length > 7 || /(ful|ous|ing|ed|ive|ish)$/.test(w)) out = `${d === 'er' ? 'more' : 'most'} ${w}`;
+  else if (w.endsWith('e')) out = `${w}${d === 'er' ? 'r' : 'st'}`;
+  else if (/[^aeiou]y$/.test(w)) out = `${w.slice(0, -1)}${d === 'er' ? 'ier' : 'iest'}`;
+  else if (/^[^aeiou]*[aeiou][^aeiouwxy]$/.test(w)) out = `${w}${w.slice(-1)}${d}`;
+  else out = `${w}${d}`;
+  if (e && !adjByWord.has(out)) adjByWord.set(out, { ...e, word: out });
+  return out;
+}
+
 export function customWords(): CustomWord[] {
   try { return JSON.parse(localStorage.getItem(STORE) ?? '[]') as CustomWord[]; } catch { return []; }
 }

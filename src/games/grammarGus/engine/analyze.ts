@@ -6,7 +6,7 @@ import { nounByWord } from '../data/wordbank';
 // where phrases (plan section 15.1). Agreement is always computed from the
 // words, never stored.
 
-export interface NP { art?: number; adjs: number[]; noun?: number }
+export interface NP { art?: number; adjs: number[]; noun?: number; poss?: number }
 export interface ClauseInfo {
   c: 1 | 2;
   open?: number;
@@ -51,7 +51,7 @@ export function analyze(tokens: Token[], p: Parse = parse(tokens)): Analysis {
     else if (a === 'obj' && b === 'pron') cl.objPron = i;
     else {
       const np = npFor(cl, a);
-      if (b === 'art') np.art = i; else if (b === 'adj') np.adjs.push(i); else if (b === 'noun') np.noun = i;
+      if (b === 'art') np.art = i; else if (b === 'adj') np.adjs.push(i); else if (b === 'noun') np.noun = i; else if (b === 'poss') np.poss = i;
     }
   });
   out.clauses.push(clauses[1]);

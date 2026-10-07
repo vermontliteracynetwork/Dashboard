@@ -5313,3 +5313,9 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-layer .gwb-k-clock .gwb-clock-btns button, .gwb-layer .gwb-k-mood .gwb-clock-btns button { min-height: max(44px, calc(36px / var(--z, 1))); }
 .gwb-attach.bottom::before { top: -10px; height: 12px; } .gwb-attach.top::before { bottom: -10px; height: 12px; }
 .gwb-layer .gwb-k-clock .gwb-clock-btns button, .gwb-layer .gwb-k-mood .gwb-clock-btns button { font-size: 0.82rem; padding: 0 2px; }
+/* LATER parts motion */
+.gwb-item.firing .gwb-swing { animation: gwb-swing 0.3s ease-in-out 2 alternate; }
+.gwb-item.firing .gwb-tag, .gwb-attach.firing .gwb-tag { animation: gwb-pump 0.15s ease-in-out 3 alternate; }
+.gwb-attach.firing .gwb-inflate { animation: gwb-squash 0.2s ease-in-out 3 alternate; }
+.gwb-item.firing .gwb-tilt { animation: gwb-swing 0.4s ease-in-out 2 alternate; }
+.gwb-item.firing .gwb-float { animation: gwb-pump 0.3s ease-in-out infinite alternate; }

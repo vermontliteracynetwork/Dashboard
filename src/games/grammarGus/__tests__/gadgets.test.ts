@@ -133,3 +133,34 @@ describe("Gus's review", () => {
     expect(reviewSentence(d, runSentence(d), 2).quiz?.answer).toBe('in the present');
   });
 });
+
+describe('LATER parts', () => {
+  it('the Question Crane turns a telling sentence into a yes or no question', async () => {
+    const { lineText } = await import('../engine/board');
+    const { shortAnswers } = await import('../engine/question');
+    const l = line([part('crane'), part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('ask')]);
+    const r = readLine(l, 'full', false);
+    expect(r.problems).toEqual([]);
+    expect(lineText(l, r)).toBe('Does the cat jump?');
+    expect(shortAnswers(r.draft)?.right).toBe('Yes, it does.');
+    const past = line([part('clock', 'past'), part('crane'), part('cap'), part('A', 'the'), part('N', 'dog'), part('V', 'run'), part('ask')]);
+    expect(lineText(past, readLine(past, 'full', false))).toBe('Did the dog run?');
+    expect(readLine(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('ask')]), 'full', false).problems.map((p) => p.code)).toEqual(['NEED_CRANE']);
+  });
+  it("the Possessive Tag Gun: the dog's bone", () => {
+    const dog = { ...part('N', 'dog'), bottom: part('taggun') };
+    expect(text(line([part('cap'), part('A', 'the'), dog, part('N', 'robot'), part('V', 'jump'), part('stop')]))).toBe("The dog's robot jumps.");
+  });
+  it('the Size-Up Inflator: the biggest cat', () => {
+    const big = { ...part('J', 'big'), bottom: part('inflator', 'est') };
+    expect(text(line([part('cap'), part('A', 'the'), big, part('N', 'cat'), part('V', 'jump'), part('stop')]))).toBe('The biggest cat jumps.');
+  });
+  it('the Because Seesaw joins a reason to a result', () => {
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('seesaw', 'because'), part('A', 'the'), part('N', 'dog'), part('V', 'jump'), part('stop')]))).toBe('The cat runs because the dog jumps.');
+  });
+  it('the Speech Bubble Blower adds quotation marks and a speaker', async () => {
+    const { lineText } = await import('../engine/board');
+    const l = line([part('bubble', 'Mia'), part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('stop')]);
+    expect(lineText(l, readLine(l, 'full', false))).toBe('"The cat jumps," said Mia.');
+  });
+});

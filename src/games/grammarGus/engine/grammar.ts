@@ -38,6 +38,11 @@ const isArt: Test = (w) => w === 'a' || w === 'an' || w === 'the';
 const isAdj: Test = (w) => adjByWord.has(w);
 const isNoun: Test = (w) => nounByWord.has(w) && !nounByWord.get(w)!.proper;
 const isName: Test = (w) => !!nounByWord.get(w)?.proper;
+// A noun that owns something (Possessive Tag Gun): the dog's, the cats', Mia's.
+const possBase = (w: string) => (w.endsWith("'s") ? w.slice(0, -2) : w.endsWith("'") ? w.slice(0, -1) : null);
+const isPoss: Test = (w) => { const b = possBase(w); return !!b && nounByWord.has(b); };
+// Joining words that make one idea depend on the other (Because Seesaw).
+export const SUBORD = ['because', 'so', 'when', 'after', 'before', 'while'];
 export const OBJECT_PRONOUNS = ['me', 'him', 'her', 'us', 'them', 'you', 'it'];
 const isObjPron: Test = (w) => OBJECT_PRONOUNS.includes(w);
 const isSubjPron: Test = (w) => subjectPronounSet.has(w);
@@ -57,7 +62,13 @@ function build() {
   const opt = (f: Frag): Frag => alt(f, empty());
 
   // A name (Mia, Vermont) needs no article (Proper Name Stamp, 2026-10-07).
-  const np = (r: string) => alt(seq(term('A', `${r}.art`, isArt), opt(seq(term('J', `${r}.adj`, isAdj), opt(term('J', `${r}.adj`, isAdj)))), term('N', `${r}.noun`, isNoun)), term('N', `${r}.noun`, isName));
+  const adjs = (r: string) => opt(seq(term('J', `${r}.adj`, isAdj), opt(term('J', `${r}.adj`, isAdj))));
+  const np = (r: string) => alt(
+    seq(term('A', `${r}.art`, isArt), adjs(r), term('N', `${r}.noun`, isNoun)),
+    term('N', `${r}.noun`, isName),
+    // "the dog's bone", "Mia's fuzzy hat" (Possessive Tag Gun)
+    seq(opt(term('A', `${r}.art`, isArt)), adjs(r), term('N', `${r}.poss`, isPoss), adjs(r), term('N', `${r}.noun`, isNoun)),
+  );
   const subject = (c: string) => alt(
     term('R', `${c}.subj.pron`, isSubjPron),
     // Two, or a list of three (Comma List Train): the cat, the dog, and the frog.
@@ -77,7 +88,7 @@ function build() {
     opt(term('I', 'shout', isInterj)),
     opt(term('D', 'c1.open', isAdv)),
     clause('c1'),
-    opt(seq(term('C', 'clauseconj', inPool(CONJ_POOLS.clause)), opt(term('D', 'c2.open', isAdv)), clause('c2'))),
+    opt(seq(term('C', 'clauseconj', (w) => (CONJ_POOLS.clause as readonly string[]).includes(w) || SUBORD.includes(w)), opt(term('D', 'c2.open', isAdv)), clause('c2'))),
   );
   return { edges: b.edges, start: sentence.s, accept: sentence.e };
 }

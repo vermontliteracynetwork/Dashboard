@@ -1,7 +1,9 @@
 import type { Draft, HelpLevel, Marks, Tense, Token, VerbForm } from './types';
 import { isFront, markOf, wordPosOf, type Kind } from '../ui/board/parts';
 import { TIME_TENSE } from '../data/timeWords';
-import { pluralNounOf } from './dictionary';
+import { compose } from './compose';
+import { questionOf, quoteOf } from './question';
+import { compareOf, pluralNounOf, possessiveOf } from './dictionary';
 
 // The Workboard's machine lines (teacher 2026-10-07). A line is a row of
 // snapped-together machines. Word machines (and fun parts that hold a
@@ -19,13 +21,13 @@ export interface BoardItem { id: string; kind: Kind; word: string | null; form?:
 export const allParts = (items: BoardItem[]): BoardItem[] => items.flatMap((i) => [i, ...(i.top ? [i.top] : []), ...(i.bottom ? [i.bottom] : [])]);
 export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean }; connector?: string }
 
-export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT';
+export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA';
 // The Time Tunnel's time word sets the time; otherwise the Clock does.
 export const tenseOf = (line: BoardLine): Tense => {
   const tw = line.items.find((i) => i.kind === 'tunnel' && i.word)?.word;
   return (tw && TIME_TENSE.get(tw.toLowerCase())) || ((line.items.find((i) => i.kind === 'clock')?.word as Tense | undefined) ?? 'present');
 };
-export interface LineRead { draft: Draft; tokenIds: string[]; problems: { code: FinishProblem; itemId?: string }[]; hasTV: boolean }
+export interface LineRead { draft: Draft; tokenIds: string[]; problems: { code: FinishProblem; itemId?: string }[]; hasTV: boolean; question: boolean }
 // The mark an item makes (the Mood Meter Valve's depends on its setting).
 export const itemMark = (it: BoardItem) => (it.kind === 'mood' ? (it.word === 'big' ? 'bang' : 'stop') : markOf(it.kind));
 // Front parts (Confetti Trapdoor, Time Tunnel, Opener Slingshot) only
@@ -40,7 +42,7 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
   const items = line.items;
   const mustFinish = requireFinish || items.some((i) => i.kind === 'flag');
   const lastWord = items.reduce((m, it, i) => (wordPosOf(it.kind) ? i : m), -1);
-  let pendingCap = false; let capAfterShout = false; let mainStarted = false;
+  let pendingCap = false; let capAfterShout = false; let mainStarted = false; let question = false;
   let pendingCopy: string | null = null;
   const commaAt: { tok: number; id: string }[] = [];
   items.forEach((it, i) => {
@@ -54,6 +56,8 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
       let word = it.word;
       if (pos === 'N' && pendingCopy) { if (word) word = pluralNounOf(word); pendingCopy = null; }
       if (under === 'plural') { if (pos === 'N') { if (word) word = pluralNounOf(word); } else problems.push({ code: 'COPY_NO_NOUN', itemId: it.bottom!.id }); }
+      if (under === 'poss') { if (pos === 'N') { if (word) word = possessiveOf(word); } else problems.push({ code: 'WRONG_HOST', itemId: it.bottom!.id }); }
+      if (under === 'size') { if (pos === 'J') { if (word) word = compareOf(word, it.bottom!.word === 'er' ? 'er' : 'est'); } else problems.push({ code: 'WRONG_HOST', itemId: it.bottom!.id }); }
       if (it.kind === 'crusher' && word) word = pluralNounOf(word); // the Plural Crusher's noun is always more than one
       tokens.push({ pos, word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
       tokenIds.push(it.id);
@@ -66,8 +70,8 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
       if (over === 'comma') {
         marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: it.top!.id });
         if (it.top!.kind === 'bridge') { const nx = items.slice(i + 1).find((x) => wordPosOf(x.kind)); if (!nx || wordPosOf(nx.kind) !== 'C') problems.push({ code: 'BRIDGE_UP', itemId: it.top!.id }); }
-      } else if (over === 'stop' || over === 'bang') {
-        if (i === lastWord) marks.endMark = over === 'stop' ? '.' : '!';
+      } else if (over === 'stop' || over === 'bang' || over === 'ask') {
+        if (i === lastWord) { marks.endMark = over === 'bang' ? '!' : '.'; question = over === 'ask'; }
         else if (over === 'bang' && pos === 'I') { marks.shoutMark = true; capAfterShout = true; }
         else problems.push({ code: 'END_NOT_LAST', itemId: it.top!.id });
       }
@@ -77,8 +81,8 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
       if (tokens.length) { marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: it.id }); } else problems.push({ code: 'COMMA_PLACE', itemId: it.id });
       // The Comma Drawbridge only lowers right before a joining word.
       if (it.kind === 'bridge') { const nx = items.slice(i + 1).find((x) => wordPosOf(x.kind)); if (!nx || wordPosOf(nx.kind) !== 'C') problems.push({ code: 'BRIDGE_UP', itemId: it.id }); }
-    } else if (mark === 'stop' || mark === 'bang') {
-      if (i > lastWord) marks.endMark = mark === 'stop' ? '.' : '!';
+    } else if (mark === 'stop' || mark === 'bang' || mark === 'ask') {
+      if (i > lastWord) { marks.endMark = mark === 'bang' ? '!' : '.'; question = mark === 'ask'; }
       else if (mark === 'bang' && tokens[tokens.length - 1]?.pos === 'I') { marks.shoutMark = true; capAfterShout = true; }
       else problems.push({ code: 'END_NOT_LAST', itemId: it.id });
     } else if (it.kind === 'tv' && items.slice(i + 1).some((x) => wordPosOf(x.kind) || markOf(x.kind))) problems.push({ code: 'TV_NOT_LAST', itemId: it.id });
@@ -87,6 +91,11 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
   const tail = commaAt.find((c) => c.tok === tokens.length - 1);
   if (tail) problems.push({ code: 'COMMA_PLACE', itemId: tail.id });
   if (pendingCopy) problems.push({ code: 'COPY_NO_NOUN', itemId: pendingCopy });
+  // A question mark needs the Question Crane, and the crane needs a question mark.
+  const crane = items.find((i) => i.kind === 'crane');
+  const askPart = allParts(items).find((i) => i.kind === 'ask');
+  if (question && !crane && askPart) problems.push({ code: 'NEED_CRANE', itemId: askPart.id });
+  if (crane && tokens.length && !question) problems.push({ code: 'NEED_ASK', itemId: crane.id });
   // The Dead-End Detector: every where word needs a noun after it.
   if (items.some((i) => i.kind === 'detector')) for (const id of deadEnds(line)) problems.push({ code: 'DEAD_END', itemId: id });
   const hasTV = items.some((it) => it.kind === 'tv');
@@ -96,7 +105,22 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
     if (!marks.endMark) problems.push({ code: 'NEED_END' });
     if (!hasTV) problems.push({ code: 'NEED_TV' });
   }
-  return { draft: { tokens, tense: tenseOf(line), level, marks }, tokenIds, problems, hasTV };
+  const draft: Draft = { tokens, tense: tenseOf(line), level, marks };
+  if (crane && question && tokens.every((t) => t.word) && !questionOf(draft)) problems.push({ code: 'CRANE_ONE_IDEA', itemId: crane.id });
+  return { draft, tokenIds, problems, hasTV, question };
+}
+
+// The sentence as it reads on the plate, the TV caption and the Journal:
+// the Question Crane flips it into a question, the Speech Bubble Blower
+// wraps it in quotation marks.
+export function lineText(line: BoardLine, rd: LineRead): string {
+  if (!rd.draft.tokens.some((t) => t.word)) return '';
+  const crane = line.items.some((i) => i.kind === 'crane');
+  let text = (rd.question && crane ? questionOf(rd.draft) : null) ?? compose(rd.draft).text;
+  if (rd.question && !crane) text = text.replace(/[.!]$/, '?');
+  const bubble = line.items.find((i) => i.kind === 'bubble');
+  if (bubble?.word && /[.!?]$/.test(text)) text = quoteOf(text, bubble.word, rd.question);
+  return text;
 }
 
 // Where words (prepositions) with no noun landing after them.
@@ -123,6 +147,10 @@ export const FINISH_LINES: Record<FinishProblem, { joke: string; fix: string }> 
   TV_NOT_LAST: { joke: 'The TV is stuck in the middle of the pipes.', fix: 'Move the Pixel TV after the words and punctuation.' },
   COMMA_PLACE: { joke: 'A comma with no word on one side? That is a pause for nothing.', fix: 'A comma goes right after a word, with more words after it.' },
   BRIDGE_UP: { joke: 'The drawbridge is stuck up. It only comes down right before a joining word.', fix: 'Put the Comma Drawbridge right before and, but or or.' },
+  WRONG_HOST: { joke: 'That part is snapped onto the wrong kind of word. It looks very confused.', fix: 'The Tag Gun goes under a noun. The Size-Up Inflator goes under a describing word.' },
+  NEED_CRANE: { joke: 'A question mark on a telling sentence? Gus is very puzzled?', fix: 'Snap on a Question Crane to turn it into a question, or use a period.' },
+  NEED_ASK: { joke: 'The crane lifted a question, but it has no question mark to land on.', fix: 'End a question with a Question Mark.' },
+  CRANE_ONE_IDEA: { joke: 'The crane can only lift one idea at a time. Two is too heavy!', fix: 'Use the Question Crane on a sentence with one who and one action, and no shout at the front.' },
   NOT_FRONT: { joke: 'That part only launches from the very front of the sentence. In the middle it just wobbles.', fix: 'Snap it at the front, right after the capital letter part.' },
   DEAD_END: { joke: 'ROAD CLOSED! A where word with nowhere to land.', fix: 'Put a noun after the where word: on the mat, under the bed.' },
   COPY_NO_NOUN: { joke: 'The Duplicator is copying... nothing. Very tidy, very useless.', fix: 'Put a noun machine after the Duplicator so it can make more than one.' },

@@ -287,6 +287,47 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <rect x={c + 16} y={88} width={36} height={18} rx={4} fill="#5b8def" stroke={INK} strokeWidth={2} /><text x={c + 34} y={101} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill="#fff">him</text>
       <rect x={c - 30} y={120} width={60} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
+    case 'crane': return <g>
+      <Pipes w={w} />
+      <rect x={14} y={14} width={10} height={110} fill={color} stroke={INK} strokeWidth={2.4} />
+      {[0, 1, 2, 3].map((i) => <line key={i} x1={14} y1={24 + i * 24} x2={24} y2={36 + i * 24} stroke={INK} strokeWidth={1.5} />)}
+      <g className="gwb-swing" style={{ transformOrigin: '19px 16px' }}>
+        <rect x={14} y={10} width={w - 26} height={9} fill={color} stroke={INK} strokeWidth={2.4} />
+        <line x1={w - 22} y1={19} x2={w - 22} y2={58} stroke="#6b7383" strokeWidth={2} />
+        <path d={`M${w - 28} 58 q 6 12 12 0`} fill="none" stroke={INK} strokeWidth={3} />
+        <rect x={w - 46} y={66} width={44} height={22} rx={4} fill="#f3cf6b" stroke={INK} strokeWidth={2} /><text x={w - 24} y={81} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill={INK}>does?</text>
+      </g>
+      <rect x={4} y={120} width={36} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'taggun': return <g>
+      <Pipes w={w} />
+      <path d={`M${c - 30} 40 L${c + 20} 40 L${c + 20} 58 L${c - 8} 58 L${c - 14} 90 L${c - 30} 90Z`} fill={color} stroke={INK} strokeWidth={2.8} strokeLinejoin="round" />
+      <rect x={c + 20} y={44} width={14} height={8} fill="#6b7383" stroke={INK} strokeWidth={2} />
+      <g className="gwb-tag"><path d={`M${c + 36} 34 l18 0 l6 8 l-6 8 l-18 0Z`} fill="#fff8e6" stroke={INK} strokeWidth={2} /><text x={c + 46} y={46} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill={INK}>'s</text></g>
+    </g>;
+    case 'inflator': {
+      const er = word === 'er';
+      return <g>
+        <Pipes w={w} />
+        <rect x={c - 34} y={60} width={14} height={60} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={c - 40} y={56} width={26} height={6} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+        <path d={`M${c - 27} 62 Q${c - 10} 30 ${c + 4} 40`} fill="none" stroke="#3c455e" strokeWidth={3} />
+        <g className="gwb-inflate" style={{ transformOrigin: `${c + 18}px 56px` }}><ellipse cx={c + 18} cy={40} rx={er ? 14 : 22} ry={er ? 17 : 26} fill={color} stroke={INK} strokeWidth={2.4} /><ellipse cx={c + 12} cy={32} rx={4} ry={6} fill="#fff" opacity={0.5} /></g>
+        <text x={c + 18} y={er ? 46 : 48} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={er ? 12 : 15} fill="#fff">-{er ? 'er' : 'est'}</text>
+      </g>;
+    }
+    case 'seesaw': return <g>
+      <Pipes w={w} />
+      <path d={`M${c - 14} 122 L${c} 92 L${c + 14} 122Z`} fill="#8f98a8" stroke={INK} strokeWidth={2.4} />
+      <g className="gwb-tilt" style={{ transformOrigin: `${c}px 92px` }}><rect x={10} y={86} width={w - 20} height={8} rx={3} fill={color} stroke={INK} strokeWidth={2.4} transform={`rotate(-10 ${c} 92)`} />
+        <rect x={16} y={60} width={26} height={26} rx={4} fill="#f3cf6b" stroke={INK} strokeWidth={2} transform={`rotate(-10 ${c} 92)`} /><text x={29} y={78} textAnchor="middle" fontSize={10} fontWeight={900} fontFamily="Lexend, sans-serif" transform={`rotate(-10 ${c} 92)`}>why</text></g>
+    </g>;
+    case 'bubble': return <g>
+      <Pipes w={w} />
+      <rect x={c - 30} y={84} width={18} height={36} fill="#8b5a2b" stroke={INK} strokeWidth={2} />
+      <path d={`M${c - 21} 84 L${c - 10} 66`} stroke="#8b5a2b" strokeWidth={6} />
+      <g className="gwb-float"><path d={`M${c - 10} 14 h56 a10 10 0 0 1 10 10 v26 a10 10 0 0 1 -10 10 h-36 l-12 12 l2 -12 h-10 a10 10 0 0 1 -10 -10 v-26 a10 10 0 0 1 10 -10z`} fill="#fff" stroke={INK} strokeWidth={2.4} />
+        <text x={c + 18} y={44} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={20} fill={color}>" "</text></g>
+    </g>;
     default: return null;
   }
 }
@@ -367,8 +408,8 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
     <Nut x={w / 2 - 20} y={42} r={3.5} /><Nut x={w / 2 + 20} y={42} r={3.5} /><Nut x={w / 2 - 20} y={82} r={3.5} /><Nut x={w / 2 + 20} y={82} r={3.5} />
     <Plate w={w} text="paragraph" />
   </>);
-  if (kind === 'cap' || kind === 'stop' || kind === 'bang' || kind === 'comma') {
-    const mark = kind === 'cap' ? 'Aa' : kind === 'stop' ? '.' : kind === 'bang' ? '!' : ',';
+  if (kind === 'cap' || kind === 'stop' || kind === 'bang' || kind === 'ask' || kind === 'comma') {
+    const mark = kind === 'cap' ? 'Aa' : kind === 'stop' ? '.' : kind === 'bang' ? '!' : kind === 'ask' ? '?' : ',';
     return svg(<>
       <Pipes w={w} />
       {kind === 'cap' && <g>
@@ -378,7 +419,7 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
           <text x={w / 2} y={57} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={16} fill={INK}>A</text></g>
         <rect x={w / 2 - 26} y={94} width={52} height={14} rx={3} fill={base} stroke={INK} strokeWidth={2.4} />
       </g>}
-      {(kind === 'stop' || kind === 'bang') && <g>
+      {(kind === 'stop' || kind === 'bang' || kind === 'ask') && <g>
         <rect x={w / 2 - 5} y={6} width={10} height={30} fill="#8b5a2b" stroke={INK} strokeWidth={2} /><ellipse cx={w / 2} cy={8} rx={11} ry={6} fill="#a0703c" stroke={INK} strokeWidth={2} />
         <g className="gwb-piston"><rect x={w / 2 - 26} y={36} width={52} height={50} rx={10} fill={base} stroke={INK} strokeWidth={3} />
           <text x={w / 2} y={kind === 'stop' ? 74 : 76} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={kind === 'stop' ? 48 : 38} fill={INK}>{mark}</text></g>
@@ -389,7 +430,7 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
         <path d={`M${w / 2 - 16} 96 L${w / 2 - 16} 40 Q${w / 2 - 16} 20 ${w / 2} 20 Q${w / 2 + 16} 20 ${w / 2 + 16} 40 L${w / 2 + 16} 96`} fill="none" stroke={base} strokeWidth={5} />
         <text x={w / 2} y={60} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={30} fill={INK}>,</text>
       </g>}
-      <Plate w={w} text={kind === 'cap' ? 'capital' : kind === 'stop' ? 'period' : kind === 'bang' ? 'exclaim' : 'comma'} />
+      <Plate w={w} text={kind === 'cap' ? 'capital' : kind === 'stop' ? 'period' : kind === 'bang' ? 'exclaim' : kind === 'ask' ? 'question' : 'comma'} />
     </>);
   }
   // A fun part that holds a word shows it on its plate (? until picked).

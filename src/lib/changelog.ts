@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-questions',
+    date: '2026-10-07',
+    icon: '🏗️',
+    title: 'Questions, speech bubbles and more',
+    body: "The Question Crane turns your sentence into a question: Does the cat jump? Add a Question Mark on the end. The Speech Bubble Blower adds quotation marks and a speaker. The Tag Gun makes the dog's bone, the Size-Up Inflator makes bigger and biggest, and the Because Seesaw joins a reason to a result.",
+  },
+  {
     id: '2026-10-07-gus-checklist-review',
     date: '2026-10-07',
     icon: '✅',

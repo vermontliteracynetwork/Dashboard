@@ -722,6 +722,29 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: finishing the plan, round 8 (the LATER parts: questions, possessives, comparing words, because, speech). SHIPPED 2026-10-07 (direct teacher instruction)
+
+**Her words, verbatim:** "run until this dev plan is complete for grammar gus, then claudi ashoudl evaluate and audit all features for design, function, gamification, and accuracy for accademics. claudia should then take that report, evaluate what features the platform doesnt have (garammar gus), what it could have, and research based on accademic componets that need rto be instructed for writing and grammar, and scafoold them in a fun gamified way for my science loving, machine building kids"
+
+**The run, in order:**
+1. Round 8: LATER parts. **Shipped (this entry).**
+2. Round 9: Claudia's round 4 game ideas, Spare Parts Bin, read-aloud for each word, and focus back to the machine. **In progress.**
+3. Round 10: Orders, Blueprints and Remix onto the Workboard. **Queued.**
+4. Claudia's full audit (design, function, gamification, academic accuracy), then her gap analysis and a research-based writing and grammar scaffold plan for science-loving machine builders, as a PDF. **Queued.**
+5. Golden Gear Contest still waits on her decision about the $5 prize. **Blocked on the teacher.**
+
+**What shipped:**
+- **Question Crane + Question Mark:** the student builds the telling sentence, snaps on the crane and a Question Mark (on the end or on top of the last word), and the machine shows the question.
+  - The crane lifts do, does, did or will to the front, and the action goes back to its plain form. "The cat jumps." becomes "Does the cat jump?" and "Did the dog run?"
+  - The quick question becomes "answer it" with short answers: "Yes, it does." against "No, it does not." and "Yes, it do."
+  - Gus catches a question mark with no crane, a crane with no question mark, and a crane on two joined ideas.
+- **Possessive Tag Gun** (snaps under a noun): "The dog's robot jumps." Plural nouns get s' ("the cats'"). Names work too ("Mia's").
+- **Size-Up Inflator** (snaps under a describing word): tap it to switch between -er (two things) and -est (three or more). It covers bigger and biggest, happier, and better and best. Long words use more and most.
+- **Because Seesaw:** a joining word part that makes one idea depend on the other (because, so, when, after, before, while). "The cat runs because the dog jumps."
+- **Speech Bubble Blower:** wraps the sentence in quotation marks with a speaker (Mia, Leo, Gus, Ava, the robot, the teacher, the cat). "The cat jumps," said Mia. A question or a shout keeps its own mark inside: "Does the cat jump?" asked Mia.
+- **Engine:** possessive nouns, subordinating joining words, comparing forms, `engine/question.ts` (question form, short answers, quotation), and `lineText` (what the plate, TV caption and Journal show).
+- Tests: 5 new. Full Gus suite: 282 passing.
+
 ### Grammar Gus: Workboard round 7 (parts snap on top of and under a word, nothing overlaps, docked checklist that checks off on a run, Gus's review with suggestions and a quick question). SHIPPED 2026-10-07 (direct teacher instructions)
 
 **Her words, verbatim:**

@@ -7,9 +7,10 @@ import { runSentence, type Run } from '../engine/pipeline';
 import { compose, expectedForms } from '../engine/compose';
 import { buildChecklist, type ChecklistState } from '../engine/checklist';
 import { reviewSentence, type Review } from '../engine/review';
+import { shortAnswers } from '../engine/question';
 import { verbText } from '../engine/conjugate';
 import { predictWords } from '../engine/phonetic';
-import { readLine, readingOrder, paragraphs, tenseOf, deadEnds, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
+import { readLine, readingOrder, paragraphs, tenseOf, deadEnds, lineText, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
 import { applyGadgets, retimeItems } from '../engine/gadgets';
 import { COMBOS, combosOn } from '../engine/combos';
 import { ADVERB_SPEED } from '../director/clips';
@@ -93,11 +94,12 @@ const snap = (v: number) => Math.round(v / GRID) * GRID;
 const MAGNET = 140;
 // Each part's sound word when the marble rolls through it. Word machines
 // pop their own word.
-const POPS: Partial<Record<Kind, string>> = { lever: 'VROOOM!', cap: 'CLANG!', stop: 'STAMP!', bang: 'TWEET!', comma: 'click', tv: 'BZZT!', clock: 'TICK-TOCK', link: 'CLINK!' };
+const POPS: Partial<Record<Kind, string>> = { lever: 'VROOOM!', cap: 'CLANG!', stop: 'STAMP!', bang: 'TWEET!', ask: 'HMMM?', comma: 'click', tv: 'BZZT!', clock: 'TICK-TOCK', link: 'CLINK!' };
 const FUN_SOUND: Partial<Record<Kind, () => void>> = { horn: gusSound.honk, spring: gusSound.boing, fan: gusSound.whoosh, ramp: gusSound.whee, conveyor: gusSound.clank, bucket: gusSound.splosh, pulley: gusSound.heave, bell: gusSound.ding, dominoes: gusSound.clack, duplicator: gusSound.copy,
   trapdoor: gusSound.popper, mood: gusSound.steam, tunnel: gusSound.warp, slingshot: gusSound.twang, dial: gusSound.tick, switch: gusSound.clank, funnel: gusSound.glug, bridge: gusSound.creak,
   gears: gusSound.whir, sniffer: gusSound.achoo, sorter: gusSound.clack, teleporter: gusSound.zap, detector: gusSound.ding, flag: gusSound.gun,
-  stamp: gusSound.clang, crusher: gusSound.crunch, pastpress: gusSound.clang, listtrain: gusSound.choo, turnstile: gusSound.bonk };
+  stamp: gusSound.clang, crusher: gusSound.crunch, pastpress: gusSound.clang, listtrain: gusSound.choo, turnstile: gusSound.bonk,
+  crane: gusSound.creak, taggun: gusSound.zap, inflator: gusSound.boing, seesaw: gusSound.clank, bubble: gusSound.glug };
 // How fast the marble rolls: the how words on the machine set it (How-Dial).
 const speedOf = (line: BoardLine) => Math.max(0.45, Math.min(2, line.items.filter((i) => wordPosOf(i.kind) === 'D' && i.word).reduce((s, i) => s * (ADVERB_SPEED[i.word!.toLowerCase()] ?? 1), 1)));
 const popFor = (it: BoardItem) => (isContraption(it.kind) ? (needsWord(it.kind) && it.word ? `${FUN_ROLE[it.kind].pop} ${it.word}` : FUN_ROLE[it.kind].pop) : isWordKind(it.kind) ? (it.word ?? '?') : POPS[it.kind] ?? '');
@@ -504,7 +506,11 @@ export default function GusWorkboard() {
       if (!g.active) {
         if (g.kind === 'item' && g.attach) {
           const att = linesRef.current.find((l) => l.id === g.lineId)?.items.find((i) => i.id === g.attach!.parentId)?.[g.attach.slot];
-          if (att) { FUN_SOUND[att.kind]?.(); say(`${kindInfo(att.kind).name}, snapped ${g.attach.slot === 'top' ? 'on top of' : 'under'} this word: ${kindInfo(att.kind).hint}. Drag it off to move it.`, 'Clunk!'); }
+          if (att?.kind === 'inflator') {
+            const nw = att.word === 'er' ? 'est' : 'er';
+            editLine(g.lineId, (l) => ({ ...l, items: l.items.map((i) => (i.id === g.attach!.parentId ? { ...i, bottom: { ...att, word: nw } } : i)) }));
+            gusSound.boing(); say(nw === 'er' ? '-er compares TWO things: taller, bigger.' : '-est is the most of THREE or more: tallest, biggest.', 'Inflator');
+          } else if (att) { FUN_SOUND[att.kind]?.(); say(`${kindInfo(att.kind).name}, snapped ${g.attach.slot === 'top' ? 'on top of' : 'under'} this word: ${kindInfo(att.kind).hint}. Drag it off to move it.`, 'Clunk!'); }
         } else if (g.kind === 'item') {
           const it = linesRef.current.find((l) => l.id === g.lineId)?.items.find((i) => i.id === g.itemId);
           if (it && FUN_SOUND[it.kind]) FUN_SOUND[it.kind]!();
@@ -592,7 +598,7 @@ export default function GusWorkboard() {
       if (l.stars !== 3) continue;
       const rd = readLine(l, level, false);
       const r = runSentence(rd.draft, storyCast(out), `s${out.length + 1}`, settingsRun);
-      if (r.script && r.frame && r.resolution) out.push({ id: `s${out.length + 1}`, draft: rd.draft, text: r.composed.text, script: r.script, frame: r.frame, resolution: r.resolution });
+      if (r.script && r.frame && r.resolution) out.push({ id: `s${out.length + 1}`, draft: rd.draft, text: lineText(l, rd), script: r.script, frame: r.frame, resolution: r.resolution });
     }
     return out;
   };
@@ -664,7 +670,11 @@ export default function GusWorkboard() {
       return;
     }
     logAttempt(rd.draft, r.composed.text, r.rubric!.stars, r.rubric!.verdicts.map((x) => x.code));
-    record(reviewSentence(rd.draft, r, quizRound.current++, ['robot', 'pizza', 'dragon']));
+    const review = reviewSentence(rd.draft, r, quizRound.current++, ['robot', 'pizza', 'dragon']);
+    // A question machine: the quick question is answering it.
+    const sa = rd.question ? shortAnswers(rd.draft) : null;
+    if (sa) review.quiz = { q: `Answer it: ${lineText(line, rd)}`, choices: [sa.wrong[0], sa.right, sa.wrong[1]], answer: sa.right, why: 'A short answer uses the same helper word as the question.' };
+    record(review);
     setPulse([]);
     say(gadgetNotes || 'Pressure building... The marble is rolling. Stand back!', 'Running');
     if (!calm) { gusSound.rumble(); gusSound.whir(); }
@@ -706,7 +716,7 @@ export default function GusWorkboard() {
             if (studentId) mergeStyleRow(gusOwner(studentId), { combos: [...(gusRowNow().combos ?? []), ...fresh.map((c) => c.id)] });
           }
         }
-        say(`"${r.composed.text}" Rolling film!`, `${stars} stars`);
+        { const lt = lineText(line, rd); say(`${lt.startsWith('"') ? lt : `"${lt}"`} Rolling film!`, `${stars} stars`); }
       } else {
         const v = r.rubric!.verdicts[0];
         const rl = lineFor(RUBRIC_LINES[v.code], seed);
@@ -1020,7 +1030,7 @@ export default function GusWorkboard() {
               };
               const ends = line.items.some((i) => i.kind === 'detector') ? deadEnds(line) : [];
               const statusOf = (it: BoardItem): string | undefined => it.kind === 'bridge' ? (rd.problems.some((p) => p.code === 'BRIDGE_UP' && p.itemId === it.id) ? 'up' : 'down') : it.kind === 'detector' ? (ends.length ? 'closed' : 'open') : it.kind === 'dial' ? String(speedOf(line)) : undefined;
-              const text = rd.draft.tokens.some((t) => t.word) ? compose(rd.draft).text : '';
+              const text = lineText(line, rd);
               const cl = buildChecklist(rd.draft);
               const pressure = cl.total ? cl.done / cl.total : 0;
               const isFiring = firing?.lineId === line.id;
@@ -1284,6 +1294,7 @@ export default function GusWorkboard() {
             </>;
           })() : (
             <div className="gwb-finish-menu">
+              {menuItem.kind === 'bubble' && <div className="gwb-mood-btns">{FUN_ROLE.bubble.words!.map((sp) => <button key={sp} type="button" className={`gus-btn${menuItem.word === sp ? ' on' : ''}`} onClick={() => { setItem(menuLine.id, menuItem.id, { word: sp }); gusSound.glug(); }}>🗨️ {sp}</button>)}</div>}
               {menuItem.kind === 'mood' && <div className="gwb-mood-btns">{(['calm', 'big'] as const).map((m) => <button key={m} type="button" className={`gus-btn${(menuItem.word ?? 'calm') === m ? ' on' : ''}`} onClick={() => { setItem(menuLine.id, menuItem.id, { word: m }); gusSound.steam(); }}>{m === 'calm' ? '😌 Calm: period' : '😲 BIG feeling: exclamation point'}</button>)}</div>}
               {isContraption(menuItem.kind) && <p className="gwb-fun-does">{FUN_ROLE[menuItem.kind].does}. <button type="button" className="gus-mini" onClick={() => FUN_SOUND[menuItem.kind]?.()}>🔊 Play its sound</button></p>}
               {(menuItem.kind === 'bell' || menuItem.kind === 'horn') && <button type="button" className="gus-btn" onClick={() => { setItem(menuLine.id, menuItem.id, { kind: menuItem.kind === 'bell' ? 'horn' : 'bell' }); FUN_SOUND[menuItem.kind === 'bell' ? 'horn' : 'bell']?.(); }}>Swap to {menuItem.kind === 'bell' ? 'Big Horn (!)' : 'Bell (.)'}</button>}
