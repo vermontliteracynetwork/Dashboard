@@ -8,6 +8,7 @@ import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase, adjByWord, NOUNS, INTERJECTIONS } from '../data/wordbank';
 import { FRAMEWORKS, frameworkById, type FrameworkLine } from '../data/frameworks';
 import LabelIt from './LabelIt';
+import { SKINS, skinById } from '../data/skins';
 import { makeLonger, makeShorter, pronounSwap, rollPart, sillySwap, type MachineState } from '../engine/remix';
 import { STICKERS, compareOrder, makeOrder, orderCard, type Order } from '../engine/orders';
 import { MAX_ATTEMPTS, type Attempt, type BlueprintDone } from '../engine/report';
@@ -42,8 +43,8 @@ const TENSES: { id: Tense; label: string; icon: string }[] = [
 
 const gusOwner = (id: string) => `gus:${id}`;
 interface JournalEntry { kind?: 'sentence' | 'story' | 'blueprint'; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number; fwId?: string; setup?: string }
-interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; blueprints?: BlueprintDone[]; stickers?: string[] }
-const WORKBENCH_COLORS = ['#8cc7ec', '#a5dcc0', '#f2d58f', '#d3bdf0']; // each new machine looks separate (plan 7.1)
+interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; blueprints?: BlueprintDone[]; stickers?: string[]; skin?: string }
+// Each new machine in a story gets the next workbench color (plan 7.1); the colors come from the skin.
 
 // iPad first (teacher 2026-10-07: "we need to prioritze optomization for
 // ipad size"): the whole game fits one iPad screen in both orientations
@@ -101,6 +102,10 @@ export default function GrammarGusMachine() {
   const [orderDone, setOrderDone] = useState(false);
   const [remixOpen, setRemixOpen] = useState(false);
   const [labelOpen, setLabelOpen] = useState(false);
+  const [garageOpen, setGarageOpen] = useState(false);
+  const [guestSkin, setGuestSkin] = useState<string | undefined>(undefined);
+  const skin = skinById(studentId ? saved.skin : guestSkin);
+  const pickSkin = (id: string) => { if (studentId) mergeStyleRow(gusOwner(studentId), { skin: id }); else setGuestSkin(id); gusSound.ding(); say(`${skinById(id).name}. Very chic. Same grammar, new paint.`, 'Garage'); };
   const fw = bp ? frameworkById.get(bp.id) : undefined;
   const fwBuilds = fw ? buildLines(fw) : [];
   const curLine: BuildLine | undefined = fw ? fwBuilds[story.length] : undefined;
@@ -558,7 +563,7 @@ export default function GrammarGusMachine() {
   const verb = verbByBase.get(words['did.verb'] ?? '');
 
   return (
-    <div className={`gus-page${calm ? ' calm' : ''}`}>
+    <div className={`gus-page${calm ? ' calm' : ''} gus-skin-${skin.id}`}>
       <header className="gus-top">
         <button type="button" className="gus-btn" onClick={() => navigate(-1)}>⬅ Back</button>
         <h1>Grammar Gus's Contraption</h1>
@@ -567,6 +572,7 @@ export default function GrammarGusMachine() {
           <button type="button" className={`gus-btn${order ? ' on' : ''}`} onClick={startOrder}>🎯 Orders</button>
           <button type="button" className={`gus-btn${fw ? ' on' : ''}`} onClick={() => setLibOpen(true)}>📜 Blueprints</button>
           <button type="button" className="gus-btn" onClick={() => setJournalOpen(true)}>📓 Journal</button>
+          <button type="button" className="gus-btn" onClick={() => setGarageOpen(true)} aria-label="Garage: paint the machine">🎨</button>
           <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
           <button type="button" className={`gus-btn${muted ? ' on' : ''}`} onClick={() => setMuted((m) => !m)} aria-pressed={muted}>{muted ? '🔇' : '🔊'}</button>
         </div>
@@ -633,7 +639,7 @@ export default function GrammarGusMachine() {
           )}
         </section>
 
-        <section className={machineClass} style={{ background: WORKBENCH_COLORS[story.length % WORKBENCH_COLORS.length] }} aria-label="The sentence machine">
+        <section className={machineClass} style={{ backgroundColor: skin.workbench[story.length % skin.workbench.length] }} aria-label="The sentence machine">
           <div className="gus-machine-top">
             <div className="gus-crank" role="group" aria-label="Time crank">
               <span className="gus-crank-label">TIME</span>
@@ -851,6 +857,24 @@ export default function GrammarGusMachine() {
         </div>
       )}
       {drag && drag.payload.kind === 'housing' && <div className="gus-drag-ghost gus-drag-housing" style={{ left: drag.x, top: drag.y }} aria-hidden>HOW THEY DID IT</div>}
+      {garageOpen && (
+        <div className="gus-journal-backdrop" onClick={() => setGarageOpen(false)}>
+          <div className="gus-journal gus-library" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Machine Garage">
+            <h2>🎨 Gus's Machine Garage</h2>
+            <p className="gus-library-sub">Paint your machine. A new look never changes the grammar.</p>
+            <div className="gus-library-grid">
+              {SKINS.map((k) => (
+                <button key={k.id} type="button" className={`gus-blueprint-card${skin.id === k.id ? ' on' : ''}`} onClick={() => pickSkin(k.id)} aria-pressed={skin.id === k.id}>
+                  <span className="gus-bp-card-head"><strong>{k.name}</strong>{skin.id === k.id && <span aria-hidden>✓</span>}</span>
+                  <span className="gus-skin-swatch" style={{ background: k.workbench[0] }}>{k.swatch.map((c) => <i key={c} style={{ background: c }} />)}</span>
+                  <small>{k.note}</small>
+                </button>
+              ))}
+            </div>
+            <button type="button" className="gus-btn" onClick={() => setGarageOpen(false)}>✕ Close</button>
+          </div>
+        </div>
+      )}
       {labelOpen && <LabelIt words={preview.words} keys={keys} onGear={() => earn(1)} onSay={say} onClose={() => setLabelOpen(false)} />}
       {libOpen && (
         <div className="gus-journal-backdrop" onClick={() => setLibOpen(false)}>

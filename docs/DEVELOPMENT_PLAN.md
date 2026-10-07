@@ -722,6 +722,22 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: the Garage (machine skins). SHIPPED 2026-10-07 (plan 8.7 and 19.2)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
+- **🎨 Garage** button on the top bar. It offers five paint jobs from the plan's skin list:
+  - **Brass Works** (default).
+  - **Copper and Teal** (copper housings, teal pipes).
+  - **Candy Factory** (pastel enamel, white pipes).
+  - **Night Shift** (dark floor and machine, warm housing colors).
+  - **Calm Flat** (plain fills, no shading, rivets or busy pattern, for students who find the default busy).
+- Each skin also has its own four workbench colors for story sentences. The choice saves on the student's Gus row and comes back next time.
+- **A skin never changes the grammar,** what the machine accepts, or the video (plan 8.7).
+- **iPad:** below 900px wide the header buttons get a little narrower and the row can scroll sideways as a safety net. They fit at 768px portrait (checked).
+- **Did it differently:** all skins are free in v1, following the plan's "basics are free" rule. Pricing in gears (plan 19.1) waits for her call.
+- **Not built yet from plan 19:** lever styles, sound sets, celebration styles, stickers placed on the cabinet, Gus costumes, part variants, and saved machine Blueprints (6 slots). Reel and drum options belong to the slot-machine Spin mode, which is not built.
+- **Still in progress next (same background build):** word packs (plan 17.5: Core plus two interest packs). Golden Gear Contest still waits on her call on the $5 policy.
+
 ### Grammar Gus: Remix tools, Label It! and Symbol Match. SHIPPED 2026-10-07 (plan 17.6 and 18.7)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
@@ -741,7 +757,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **Did it differently:** Label It and Symbol Match use tap a plate, then tap a word, instead of dragging. It is easier on an iPad and for students who find dragging hard. Dragging can be added later.
 - Tests: 4 new tests (60 mixed remix steps always leave a valid sentence, Shorter keeps WHO and the verb, pronoun choices, plates match the housings). Full suite: 233 passing.
 - **Not built yet from plan 17.6:** "Swap two words" exists already as drag-to-swap on the machine. "Mix a new shape" waits for the Workshop rail.
-- **Still in progress next (same background build):** Garage skins and colorways (plan 8.7 and 19), then word packs (plan 17.5). Golden Gear Contest still waits on her call on the $5 policy.
+- **Next after this:** Garage skins (done, see the Garage entry above), then word packs (plan 17.5). Golden Gear Contest still waits on her call on the $5 policy.
 
 ### Grammar Gus: Gus's Orders (goal mode). SHIPPED 2026-10-07 (plan 3.8)
 

@@ -4934,3 +4934,28 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gus-labelit-symbtn img { width: 30px; height: 30px; object-fit: contain; }
 .gus-labelit-done { font: 800 1.1rem 'Lexend', sans-serif; }
 @media (prefers-reduced-motion: reduce) { .gus-labelit-word.wobble { animation: none; } }
+/* Grammar Gus skins (plan 8.7): looks only, never the grammar. */
+.gus-skin-swatch { display: flex; gap: 6px; padding: 8px; border-radius: 10px; border: 2px solid var(--gus-ink); }
+.gus-skin-swatch i { width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--gus-ink); }
+.gus-skin-copper .gus-h-who { background: #e0a070; } .gus-skin-copper .gus-h-did { background: #5fb3a8; } .gus-skin-copper .gus-h-obj { background: #d9825f; }
+.gus-skin-copper .gus-h-how { background: #6fb0c9; } .gus-skin-copper .gus-h-where { background: #b9875a; } .gus-skin-copper .gus-h-shout { background: #f0a050; }
+.gus-skin-copper .gus-pipe { background: linear-gradient(#2e8a86, #6fc7c0 40%, #2e8a86); }
+.gus-skin-candy .gus-h-who { background: #ffd6e8; } .gus-skin-candy .gus-h-did { background: #c9f2e1; } .gus-skin-candy .gus-h-obj { background: #ffd1c1; }
+.gus-skin-candy .gus-h-how { background: #d6e4ff; } .gus-skin-candy .gus-h-where { background: #f3dcc6; } .gus-skin-candy .gus-h-shout { background: #ffe0b0; }
+.gus-skin-candy .gus-pipe { background: linear-gradient(#e9eef3, #fff 40%, #e9eef3); }
+.gus-skin-night { background-color: #1b2238; }
+.gus-skin-night .gus-h-who { background: #c9a646; } .gus-skin-night .gus-h-did { background: #4f9e86; } .gus-skin-night .gus-h-obj { background: #c06a52; }
+.gus-skin-night .gus-h-how { background: #5f86c4; } .gus-skin-night .gus-h-where { background: #9c7558; } .gus-skin-night .gus-h-shout { background: #d98a3c; }
+.gus-skin-night .gus-machine { background-image: linear-gradient(rgba(255,255,255,0.05) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.05) 2px, transparent 2px); }
+.gus-skin-night .gus-crank-label, .gus-skin-night .gus-lamp-label { color: #fff; }
+.gus-skin-flat { background-image: none; background-color: #5a6075; }
+.gus-skin-flat .gus-machine { background-image: none; }
+.gus-skin-flat .gus-housing { box-shadow: none; }
+.gus-skin-flat .gus-h-who { background: #efe3b8; } .gus-skin-flat .gus-h-did { background: #cfe6dc; } .gus-skin-flat .gus-h-obj { background: #f0d4c8; }
+.gus-skin-flat .gus-h-how { background: #d6e2f2; } .gus-skin-flat .gus-h-where { background: #e6d6c6; } .gus-skin-flat .gus-h-shout { background: #f3dcc0; }
+.gus-skin-flat .gus-pipe { background: #c9b8a6; }
+.gus-skin-flat .gus-rivets { display: none; }
+@media (max-width: 900px) {
+  .gus-top-right { flex: 1; justify-content: flex-end; overflow-x: auto; scrollbar-width: none; }
+  .gus-top .gus-btn { padding: 0 9px; font-size: 0.86rem; }
+}

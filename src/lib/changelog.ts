@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-garage',
+    date: '2026-10-07',
+    icon: '🎨',
+    title: "Paint Gus's machine",
+    body: "Tap the paint palette in Gus's machine to open the Garage. Pick Brass Works, Copper and Teal, Candy Factory, Night Shift or Calm Flat. Your machine remembers your pick.",
+  },
+  {
     id: '2026-10-07-gus-remix',
     date: '2026-10-07',
     icon: '🎛️',
