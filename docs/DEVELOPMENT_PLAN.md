@@ -2084,6 +2084,10 @@ A training rep becomes: **the student builds or fixes a sentence, and the senten
   - **Seasonal featured pets** in the Mystery Box: scaffolding exists, no teacher tool yet.
   - **Pet in native games:** the pet cheering beside the student in games, like Neighbors do now. Idea, not yet asked for.
 
+### Game Dashboard froze, so no game would open. FIXED 2026-10-07 (teacher: "GAME isnt loading", with a screenshot)
+- The arcade-cabinet slider (`GameDashboard.tsx` `GameCardGrid`) re-measured itself after every draw and saved a brand-new value each time. The page drew itself again and again forever (React "Maximum update depth exceeded"). Tapping a cabinet changed the address, but the page never got to open the game, so it stayed on the Game Dashboard.
+- **Fix:** it now saves only when something actually changed, and measures once plus on scroll and resize. This affected every game picked from the Game Dashboard and from a Neighbor's "Play a game", not just Shape Dash.
+
 ### Shape Dash (Geometry Dash inspired native game). SHIPPED v1 2026-10-07 (teacher: "Build the shape dash game")
 
 **Shipped** (`/student/shape-dash`, `src/routes/student/ShapeDash.tsx`, rules in `src/games/shapeDash/engine.ts`, sound in `audio.ts`):

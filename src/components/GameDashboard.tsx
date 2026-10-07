@@ -16,9 +16,13 @@ export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick, bests }: { gam
     const el = track.current; if (!el) return;
     const card = el.querySelector<HTMLElement>('.arcade-cab');
     const step = card ? card.offsetWidth + 16 : el.clientWidth;
-    setEdge({ start: el.scrollLeft < 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4, index: Math.round(el.scrollLeft / step) });
+    const next = { start: el.scrollLeft < 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4, index: Math.round(el.scrollLeft / step) };
+    // Only when something changed: setting a fresh object every time looped
+    // the page forever and froze it, so tapping a game never opened it
+    // (teacher report 2026-10-07, "GAME isnt loading").
+    setEdge((e) => (e.start === next.start && e.end === next.end && e.index === next.index ? e : next));
   };
-  useEffect(() => { update(); const el = track.current; el?.addEventListener('scroll', update, { passive: true }); window.addEventListener('resize', update); return () => { el?.removeEventListener('scroll', update); window.removeEventListener('resize', update); }; });
+  useEffect(() => { update(); const el = track.current; el?.addEventListener('scroll', update, { passive: true }); window.addEventListener('resize', update); return () => { el?.removeEventListener('scroll', update); window.removeEventListener('resize', update); }; }, [games.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const go = (dir: 1 | -1) => {
     const el = track.current; if (!el) return;
     const card = el.querySelector<HTMLElement>('.arcade-cab');
