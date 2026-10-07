@@ -19,11 +19,13 @@ const POS_MAP: Record<string, DictPos> = { noun: 'N', verb: 'V', adjective: 'J',
 // Rude or unsafe words are never added, even if a dictionary lists them.
 // Whole words only (plus simple endings), so "hello", "assist" and
 // "cockatoo" stay fine.
-const BLOCKED = new Set(['ass', 'arse', 'bitch', 'bastard', 'crap', 'cunt', 'cock', 'dick', 'damn', 'fag', 'faggot', 'fuck', 'hell', 'jizz', 'nigger', 'nigga', 'piss', 'porn', 'pussy', 'rape', 'retard', 'sex', 'sexy', 'shit', 'slut', 'tit', 'tits', 'twat', 'whore', 'murder', 'suicide', 'gun', 'drug', 'weed', 'beer', 'vodka', 'boob', 'boobs', 'butt']);
+const BLOCKED = new Set(['shitty', 'bitchy', 'ass', 'arse', 'bitch', 'bastard', 'crap', 'cunt', 'cock', 'dick', 'damn', 'fag', 'faggot', 'fuck', 'hell', 'jizz', 'nigger', 'nigga', 'piss', 'porn', 'pussy', 'rape', 'retard', 'sex', 'sexy', 'shit', 'slut', 'tit', 'tits', 'twat', 'whore', 'murder', 'suicide', 'gun', 'drug', 'weed', 'beer', 'vodka', 'boob', 'boobs', 'butt']);
 export const cleanWord = (w: string) => w.trim().toLowerCase().replace(/[^a-z'-]/g, '');
 export const isBlocked = (word: string) => {
   const w = cleanWord(word);
-  return [w, w.replace(/(es|s|ed|ing|er|ty|y)$/, ''), w.replace(/(ed|ing)$/, '').replace(/(.)\1$/, '$1')].some((x) => BLOCKED.has(x));
+  // Only plain endings (s, es, ed, ing) are stripped, so "butter" and "hello" stay fine.
+  const m = w.match(/^(.{3,}?)(es|s|ed|ing)$/);
+  return BLOCKED.has(w) || (!!m && BLOCKED.has(m[1])) || (!!m && BLOCKED.has(m[1].replace(/(.)\1$/, '$1')));
 };
 
 const cache = new Map<string, LookupResult>();
@@ -73,13 +75,25 @@ export type TypedCheck =
   | { kind: 'base'; base: string }
   | { kind: 'otherPos'; pos: DictPos[] }
   | { kind: 'notfound' | 'offline' | 'blocked' };
+const IRREGULAR_PLURAL: Record<string, string> = { child: 'children', mouse: 'mice', person: 'people', man: 'men', woman: 'women', foot: 'feet', tooth: 'teeth', goose: 'geese', ox: 'oxen', fish: 'fish', sheep: 'sheep', deer: 'deer' };
+const ingForms = (b: string) => [`${b}ing`, `${b.replace(/e$/, '')}ing`, `${b}${b.slice(-1)}ing`, b.endsWith('ie') ? `${b.slice(0, -2)}ying` : ''];
+const pluralOf = (b: string) => IRREGULAR_PLURAL[b] ?? (/(s|sh|ch|x|z)$/.test(b) ? `${b}es` : /[^aeiou]y$/.test(b) ? `${b.slice(0, -1)}ies` : `${b}s`);
+// A typed word is a form of a base word only when the base really makes
+// that form: "walked" is walk's past, but "seed" is not see's past.
+function isFormOf(w: string, b: string, pos: DictPos): boolean {
+  if (pos === 'V') { const f = verbForms(b); return f.past === w || f.third === w || ingForms(b).includes(w); }
+  return pluralOf(b) === w;
+}
 // The whole check for a typed word in one machine's menu.
 export async function checkTyped(q: string, pos: DictPos, inBank: (w: string) => boolean, fetchImpl: typeof fetch = fetch): Promise<TypedCheck> {
   const w = cleanWord(q);
   if (isBlocked(w)) return { kind: 'blocked' };
   const isPos = async (x: string) => inBank(x) || ((await lookupWord(x, fetchImpl)).pos.includes(pos));
-  if (pos === 'V') for (const b of baseCandidates(w, 'V')) if (await isPos(b)) return { kind: 'base', base: b };
-  if (pos === 'N') for (const b of baseCandidates(w, 'N')) if (await isPos(b)) return { kind: 'ok', word: w, plural: true };
+  if (pos === 'N') { const irr = Object.entries(IRREGULAR_PLURAL).find(([sing, p]) => p === w && sing !== p); if (irr && await isPos(irr[0])) return { kind: 'ok', word: w, plural: true }; }
+  for (const b of baseCandidates(w, pos)) {
+    if (!isFormOf(w, b, pos) || !(await isPos(b))) continue;
+    return pos === 'V' ? { kind: 'base', base: b } : { kind: 'ok', word: w, plural: true };
+  }
   const r = await lookupWord(w, fetchImpl);
   if (r.status === 'ok') return r.pos.includes(pos) ? { kind: 'ok', word: w } : { kind: 'otherPos', pos: r.pos };
   return { kind: r.status };

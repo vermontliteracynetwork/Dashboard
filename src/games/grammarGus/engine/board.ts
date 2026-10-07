@@ -10,7 +10,7 @@ import type { Kind } from '../ui/board/parts';
 // plugged on the very end.
 
 export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm }
-export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; job?: { kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean } }
+export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; job?: { id?: string; kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean }; connector?: string }
 
 export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS';
 export const tenseOf = (line: BoardLine): Tense => (line.items.find((i) => i.kind === 'clock')?.word as Tense | undefined) ?? 'present';

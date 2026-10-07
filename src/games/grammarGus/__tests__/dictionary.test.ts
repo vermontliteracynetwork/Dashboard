@@ -54,3 +54,24 @@ describe('typed forms (Claudia round 1)', () => {
     expect(isBlocked('shits')).toBe(true);
   });
 });
+
+describe('typed forms (Claudia round 2)', () => {
+  const dict = (words: Record<string, string[]>) => (async (url: string) => {
+    const w = decodeURIComponent(String(url).split('/').pop()!);
+    return words[w] ? { status: 200, ok: true, json: async () => [{ word: w, meanings: words[w].map((p) => ({ partOfSpeech: p })) }] } : { status: 404, ok: false, json: async () => ({}) };
+  }) as unknown as typeof fetch;
+  it('seed, feed and bed are their own words, not forms of see, fee or be', async () => {
+    const { checkTyped } = await import('../engine/dictionary');
+    const f = dict({ seed: ['noun', 'verb'], feed: ['verb'], see: ['verb'], fee: ['noun'], be: ['verb'], bed: ['noun'] });
+    expect(await checkTyped('seed', 'V', () => false, f)).toEqual({ kind: 'ok', word: 'seed' });
+    expect(await checkTyped('feed', 'V', () => false, f)).toEqual({ kind: 'ok', word: 'feed' });
+    expect(await checkTyped('bed', 'N', () => false, f)).toEqual({ kind: 'ok', word: 'bed' });
+  });
+  it('children and people are plural nouns; butter is fine', async () => {
+    const { checkTyped } = await import('../engine/dictionary');
+    const f = dict({ child: ['noun'], person: ['noun'] });
+    expect(await checkTyped('people', 'N', () => false, f)).toEqual({ kind: 'ok', word: 'people', plural: true });
+    expect(isBlocked('butter')).toBe(false);
+    expect(isBlocked('hello')).toBe(false);
+  });
+});

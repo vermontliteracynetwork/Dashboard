@@ -722,6 +722,27 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Claudia improvement round 3 (her second review: fixes, counter-scaled controls, Paragraph Pipes time words, sticker shelf). SHIPPED 2026-10-07
+
+**Claudia's second review:**
+- Checked round 1: fixed were keyboard and switch access, calm mode, the folded Fun parts, double runs, blank fill, joins, reading order, Enter while checking and Add it for me. Partly fixed were zoomed targets, read-aloud of Gus lines, the clock and verb forms, and dictionary forms.
+- Found 9 new defects. All are fixed:
+  - A scroll in the parts menu that the iPad cancels never counts as a tap that adds a part.
+  - Undo after a drag is one tap, not two (the drop no longer saves a second history step), and moving a whole machine saves one step.
+  - A job pays once, even after Undo.
+  - Inspector machines keep their verb forms (no hidden time mistake at Guided and Challenge), and job machines always check the capital letter and punctuation even when the teacher setting adds them automatically.
+  - Dictionary: "seed", "feed" and "bed" stay their own words (a form only counts when the base word really makes it), and "children" and "people" are plural nouns.
+  - The rude-word filter only strips plain endings, so "butter" and "hello" are fine.
+  - Arrow-key moves keep focus on the moved machine and Gus says what moved, and Delete tells you Undo can bring it back.
+  - Escape closes the Jobs menu too, and only one top menu is open at a time.
+  - Wider spacing covers job badges, menus and time words.
+- **Built from her next-round list:**
+  - **Counter-scaled controls:** the move grip, clock and link buttons, the sentence plate and its buttons, job badges and paragraph numbers stay at real iPad size (44px or larger) at any zoom.
+  - **Paragraph Pipes (time words):** every sentence in a linked paragraph gets a "+ time word" chip: First, Next, Then, After that, Later, Finally, Suddenly, Meanwhile, Also, In the end. "Then, the cat jumps." shows on the sentence plate, is read by Hear it, and goes into the big-screen paragraph text and the Journal. A bonus gear when every later sentence has one. Trains sequence and transition words.
+  - **🏅 Sticker shelf** on the Workboard top bar shows every sticker from Jobs and Orders.
+- Tests: 2 new dictionary tests. Full suite: 250 passing. Checked in an iPad-sized browser: two linked machines numbered 1 and 2 with the chain, and "Then," added.
+- **Claudia's open queue:** Noun Boiler Pairs (a "one / more than one" switch with a twin boiler; trains singular and plural, a/an vs some, agreement), read-aloud for each word in the word list, and returning focus to the machine when its menu closes.
+
 ### Grammar Gus: Claudia improvement round 2 (Gus's Jobs, wider letter spacing). SHIPPED 2026-10-07 (teacher: "research, apply, test, repeat")
 
 - **🧰 Jobs** button on the Workboard top bar, with two of Claudia's queued gameplay ideas:

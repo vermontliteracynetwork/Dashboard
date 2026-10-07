@@ -156,7 +156,7 @@ export default function GusWorkboard() {
   const [pulse, setPulse] = useState<string[]>([]);
   const [ghosts, setGhosts] = useState<Record<string, FinishProblem[]>>({});
   const [playing, setPlaying] = useState<{ lineId: string; script: SceneScript; key: number } | null>(null);
-  const [big, setBig] = useState<{ script: SceneScript; key: number; story: SealedSentence[] | null } | null>(null);
+  const [big, setBig] = useState<{ script: SceneScript; key: number; story: SealedSentence[] | null; text?: string } | null>(null);
   const [lastRun, setLastRun] = useState<{ lineId: string; run: Run } | null>(null);
   const [clip, setClip] = useState<string | null>(null);
   const [calm, setCalm] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
@@ -176,6 +176,11 @@ export default function GusWorkboard() {
   const running = useRef(false); // set at once, so a double tap never runs twice (Claudia bug 2)
   const rewardPending = useRef(false); // gears once per run, never for replays (Claudia bug 3)
   const kbdOpen = useRef(false);
+  const lineMoveSaved = useRef(false);
+  const paidJobs = useRef(new Set<string>()); // a job pays once, even after Undo (Claudia round 2)
+  const focusAfter = useRef<string | null>(null);
+  const [connectorFor, setConnectorFor] = useState<string | null>(null);
+  const [shelfOpen, setShelfOpen] = useState(false);
   const [gus, setGus] = useState({ message: `${pick(makeRng(Date.now()), GREETINGS)} Here is a blank word space. Drag a machine part from the parts menu on the right onto it, or tap a part.`, mood: 'Hello', key: 'hello' });
   const say = (message: string, mood: string) => setGus({ message, mood, key: `${mood}-${message}-${Date.now()}` });
 
@@ -231,19 +236,24 @@ export default function GusWorkboard() {
     setLines(prev); setCanUndo(history.current.length > 0); setMenu(null); setPlaying(null); gusSound.swish();
     say('Undone. Back the way it was.', 'Undo');
   };
-  const editLine = (lineId: string, f: (l: BoardLine) => BoardLine | null) => {
-    remember();
+  const editLine = (lineId: string, f: (l: BoardLine) => BoardLine | null, silent = false) => {
+    if (!silent) remember();
     setLines((ls) => ls.flatMap((l) => { if (l.id !== lineId) return [l]; const n = f(l); return n && n.items.length ? [{ ...n, stars: null }] : []; }));
     setPlaying((p) => (p?.lineId === lineId ? null : p));
   };
-  const insertItem = (lineId: string, index: number, item: BoardItem) => editLine(lineId, (l) => ({ ...l, items: placeInto(l.items, index, item) }));
-  const newLineAt = (x: number, y: number, item: BoardItem) => { const id = uid(); remember(); setLines((ls) => [...ls, { id, x, y, items: [item] }]); setSelLine(id); return id; };
+  const insertItem = (lineId: string, index: number, item: BoardItem, silent = false) => editLine(lineId, (l) => ({ ...l, items: placeInto(l.items, index, item) }), silent);
+  const newLineAt = (x: number, y: number, item: BoardItem, silent = false) => { const id = uid(); if (!silent) remember(); setLines((ls) => [...ls, { id, x, y, items: [item] }]); setSelLine(id); return id; };
 
   // ---- adding parts ----------------------------------------------------------
   const openMenuFor = (lineId: string, itemId: string) => { setMenu({ lineId, itemId }); setQuery(''); setDict(null); };
   useEffect(() => { if (!menu) kbdOpen.current = false; }, [menu]);
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenu(null); setTopMenu(false); setConfirmClear(false); } };
+    if (!focusAfter.current) return;
+    const el = document.querySelector<HTMLElement>(`[data-item="${focusAfter.current}"]`);
+    focusAfter.current = null; el?.focus();
+  });
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenu(null); setTopMenu(false); setJobsOpen(false); setShelfOpen(false); setConnectorFor(null); setConfirmClear(false); } };
     window.addEventListener('keydown', esc); return () => window.removeEventListener('keydown', esc);
   }, []);
   const afterAdd = (lineId: string, item: BoardItem) => {
@@ -362,7 +372,7 @@ export default function GusWorkboard() {
         const x = b.x - g.grabX, y = b.y - g.grabY;
         setDrag((d) => (d && d.kind === 'item' ? { ...d, x, y, target: findTarget(x, y), overDrawer: overDrawer(e.clientX, e.clientY) } : d));
       } else if (g.kind === 'line') {
-        if (!drag) remember();
+        if (!lineMoveSaved.current) { remember(); lineMoveSaved.current = true; }
         const b = toBoard(e.clientX, e.clientY);
         setLines((ls) => ls.map((l) => (l.id === g.lineId ? { ...l, x: b.x - g.grabX, y: b.y - g.grabY } : l)));
         const me = linesRef.current.find((l) => l.id === g.lineId);
@@ -379,6 +389,7 @@ export default function GusWorkboard() {
       if (g.kind === 'pinch') { if (pointers.current.size < 2) gesture.current = null; return; }
       if (g.pid !== e.pointerId) return;
       gesture.current = null;
+      if (g.kind === 'line') lineMoveSaved.current = false;
       if (g.kind === 'pan') { if (!g.moved) { setMenu(null); setSelLine(null); setTopMenu(false); setJobsOpen(false); } return; }
       if (!g.active) {
         if (g.kind === 'item') {
@@ -397,15 +408,15 @@ export default function GusWorkboard() {
         const tidy = () => setLines((ls) => (ls.length > 1 ? ls.filter((l) => !(l.id === g.lineId && l.items.length === 1 && l.items[0].kind === 'blank' && d.target?.lineId !== l.id)) : ls));
         if (overDrawer(e.clientX, e.clientY)) { gusSound.puff(); tidy(); say('Back in the parts menu. Changed your mind? Tap Undo.', 'Recycled'); return; }
         gusSound.snap();
-        if (d.target) { insertItem(d.target.lineId, d.target.index, d.item); setSelLine(d.target.lineId); clearGhost(d.target.lineId, d.item.kind); }
-        else newLineAt(d.x - GRIP_W, d.y, d.item);
+        if (d.target) { insertItem(d.target.lineId, d.target.index, d.item, true); setSelLine(d.target.lineId); clearGhost(d.target.lineId, d.item.kind); }
+        else newLineAt(d.x - GRIP_W, d.y, d.item, true);
         tidy();
       } else if (g.kind === 'line' && d?.kind === 'line' && d.target) {
         const me = linesRef.current.find((l) => l.id === g.lineId);
         if (me) {
           const tail = new Set(['stop', 'bang', 'tv', 'link']);
           const keep = me.items.filter((i) => !['lever', 'clock', 'cap', 'blank'].includes(i.kind));
-          editLine(d.target, (l) => { const head = [...l.items]; while (head.length && tail.has(head[head.length - 1].kind)) head.pop(); return { ...l, items: [...head, ...keep] }; });
+          editLine(d.target, (l) => { const head = [...l.items]; while (head.length && tail.has(head[head.length - 1].kind)) head.pop(); return { ...l, items: [...head, ...keep] }; }, true);
           setLines((ls) => ls.filter((l) => l.id !== me.id)); gusSound.snap(); say('Two machines, now one long machine. Check its punctuation.', 'Joined');
         }
       } else if (g.kind === 'new') {
@@ -416,8 +427,16 @@ export default function GusWorkboard() {
     };
     window.addEventListener('pointermove', move, { passive: false });
     window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); };
+    // A cancelled touch (the parts menu scrolled, or iPadOS took over) is
+    // never a tap: it only finishes a drag that had already started.
+    const cancel = (e: PointerEvent) => {
+      const g = gesture.current;
+      if (g && g.kind !== 'pinch' && g.kind !== 'pan' && !g.active && g.pid === e.pointerId) { gesture.current = null; pointers.current.delete(e.pointerId); return; }
+      if (g && g.kind === 'pan' && g.pid === e.pointerId) { gesture.current = null; pointers.current.delete(e.pointerId); return; }
+      up(e);
+    };
+    window.addEventListener('pointercancel', cancel);
+    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); };
   });
   useEffect(() => {
     const el = boardRef.current; if (!el) return;
@@ -465,7 +484,7 @@ export default function GusWorkboard() {
   const run = (line: BoardLine) => {
     if (running.current) return;
     setMenu(null); setSelLine(line.id);
-    const rd = readLine(line, level, requireFinish);
+    const rd = readLine(line, level, requireFinish || !!line.job);
     const seed = hashString(line.id + compose(rd.draft).text);
     if (rd.problems.length) {
       const p = rd.problems[0];
@@ -509,7 +528,9 @@ export default function GusWorkboard() {
       setFiring(null); running.current = false;
       const stars = r.rubric!.stars;
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars, ...(stars === 3 && l.job && !l.job.done ? { job: { ...l.job, done: true } } : {}) } : l)));
-      const finishedJob = stars === 3 && line.job && !line.job.done ? line.job : null;
+      const jobKey = line.job ? (line.job.id ?? line.id) : '';
+      const finishedJob = stars === 3 && line.job && !line.job.done && !paidJobs.current.has(jobKey) ? line.job : null;
+      if (finishedJob) paidJobs.current.add(jobKey);
       if (finishedJob) {
         const sticker = finishedJob.kind === 'delivery' ? '📦' : '🔍';
         earn(8);
@@ -544,8 +565,10 @@ export default function GusWorkboard() {
     const sealed = sealList(para);
     const sc = storyScript(sealed);
     if (!sc) return;
-    setBig({ script: sc, key: Date.now(), story: sealed });
-    say('Lights down. Our paragraph presentation.', 'Paragraph');
+    setBig({ script: sc, key: Date.now(), story: sealed, text: para.filter((l) => l.stars === 3).map((l, i) => withConnector(l, sealed[i]?.text ?? '')).join(' ') });
+    const allLinked = para.slice(1).every((l) => l.connector);
+    if (allLinked) earn(1);
+    say(allLinked ? 'Lights down. Time words on every sentence: a bonus gear for you!' : 'Lights down. Our paragraph presentation. Tip: add a time word like "Then" in front of each sentence.', 'Paragraph');
   };
   const onBigEnd = () => {
     if (!big?.story) return;
@@ -554,10 +577,12 @@ export default function GusWorkboard() {
     say(`${rv.stars === 3 ? 'A connected, consistent paragraph. Magnificent.' : 'A fine paragraph.'} ${rv.tip}`, `${rv.stars} stars`);
   };
   const savePara = (lineId: string) => {
-    const sealed = sealList(paragraphOf(lineId));
+    const para = paragraphOf(lineId);
+    const sealed = sealList(para);
     if (!sealed.length) { say('Run the machine first, then save it.', 'Journal'); return; }
     const rv = reviewStory(sealed);
-    earn(0, { kind: sealed.length > 1 ? 'story' : 'sentence', text: sealed.map((s) => s.text).join(' '), stars: 3, storyStars: rv.stars, drafts: sealed.map((s) => s.draft) });
+    const ran = para.filter((l) => l.stars === 3);
+    earn(0, { kind: sealed.length > 1 ? 'story' : 'sentence', text: sealed.map((s, i) => (ran[i] ? withConnector(ran[i], s.text) : s.text)).join(' '), stars: 3, storyStars: rv.stars, drafts: sealed.map((s) => s.draft) });
     gusSound.ding(); say('Filed in your Journal. A fine specimen.', 'Saved');
   };
   const replayEntry = (e: JournalEntry) => {
@@ -585,6 +610,16 @@ export default function GusWorkboard() {
     else if (verbs.length) { const v = verbByBase.get(verbs[0].word!); say(`${when} Listen: "${v ? verbText(v, next === 'past' ? 'past' : next === 'future' ? 'future' : 'third') : verbs[0].word}".`, 'Clock'); }
     else say(when, 'Clock');
   };
+  // Paragraph Pipes (Claudia round 2): a time or transition word in front of
+  // each sentence in a linked paragraph (First, Then, Finally...). Trains
+  // sequence words. Shown in the caption, the paragraph text and the Journal.
+  const CONNECTORS = ['First', 'Next', 'Then', 'After that', 'Later', 'Finally', 'Suddenly', 'Meanwhile', 'Also', 'In the end'];
+  const setConnector = (lineId: string, word: string | null) => {
+    editLine(lineId, (l) => ({ ...l, connector: word ?? undefined }));
+    setConnectorFor(null); gusSound.snap();
+    if (word) say(`"${word}," glues this sentence to the one before. Very orderly.`, 'Paragraph');
+  };
+  const withConnector = (l: BoardLine, text: string) => (l.connector ? `${l.connector}, ${/^I\b/.test(text) ? text : text.charAt(0).toLowerCase() + text.slice(1)}` : text);
   // Gus's Jobs (Claudia round 2): a new machine delivered under the others.
   const startJob = (kind: JobKind) => {
     setJobsOpen(false);
@@ -702,8 +737,20 @@ export default function GusWorkboard() {
         <h1>Gus's Workboard</h1>
         <div className="gus-top-right">
           <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
+          {(saved.stickers ?? []).length > 0 && (
+            <div className="gwb-menu-wrap">
+              <button type="button" className={`gus-btn${shelfOpen ? ' on' : ''}`} onClick={() => { setShelfOpen((o) => !o); setTopMenu(false); setJobsOpen(false); }} aria-expanded={shelfOpen} aria-label={`Sticker shelf: ${saved.stickers!.length} stickers`}>🏅 {saved.stickers!.length}</button>
+              {shelfOpen && (
+                <div className="gwb-top-menu gwb-shelf" role="dialog" aria-label="Sticker shelf">
+                  <strong>Sticker shelf</strong>
+                  <div className="gwb-shelf-grid">{saved.stickers!.map((st, i) => <span key={i} aria-hidden>{st}</span>)}</div>
+                  <small>Earned from Gus's Jobs and Orders.</small>
+                </div>
+              )}
+            </div>
+          )}
           <div className="gwb-menu-wrap">
-            <button type="button" className={`gus-btn${jobsOpen ? ' on' : ''}`} onClick={() => setJobsOpen((o) => !o)} aria-expanded={jobsOpen}>🧰 Jobs</button>
+            <button type="button" className={`gus-btn${jobsOpen ? ' on' : ''}`} onClick={() => { setJobsOpen((o) => !o); setTopMenu(false); setShelfOpen(false); }} aria-expanded={jobsOpen}>🧰 Jobs</button>
             {jobsOpen && (
               <div className="gwb-top-menu" role="menu">
                 <button type="button" role="menuitem" onClick={() => startJob('delivery')}>📦 Mixed-up Delivery<small>Put the word machines in order</small></button>
@@ -714,7 +761,7 @@ export default function GusWorkboard() {
           <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
           <button type="button" className={`gus-btn${muted ? ' on' : ''}`} onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
           <div className="gwb-menu-wrap">
-            <button type="button" className="gus-btn" onClick={() => setTopMenu((o) => !o)} aria-expanded={topMenu}>☰ Menu</button>
+            <button type="button" className="gus-btn" onClick={() => { setTopMenu((o) => !o); setJobsOpen(false); setShelfOpen(false); }} aria-expanded={topMenu}>☰ Menu</button>
             {topMenu && (
               <div className="gwb-top-menu" role="menu">
                 <button type="button" role="menuitem" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 Journal</button>
@@ -729,7 +776,7 @@ export default function GusWorkboard() {
 
       <main className="gwb-main">
         <section ref={boardRef} className="gwb-board" onPointerDown={onBoardDown} aria-label="Workboard">
-          <div className="gwb-layer" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
+          <div className="gwb-layer" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, ['--z' as string]: view.z }}>
             {/* Paragraph chains: a Paragraph Link hangs a chain down to the next machine. */}
             {order.map((line, i) => {
               const link = line.items.find((it) => it.kind === 'link');
@@ -754,6 +801,7 @@ export default function GusWorkboard() {
               const targetHere = drag && drag.kind !== 'line' && drag.target?.lineId === line.id ? drag.target.index : -1;
               const markX = targetHere >= 0 ? (() => { const s = itemSlots(line, g); return targetHere < s.length ? s[targetHere].x : lineRight(line, g); })() : 0;
               const marbleSlot = isFiring ? itemSlots(line, g)[firing!.idx] : undefined;
+              const inPara = (paras.find((p) => p.some((l) => l.id === line.id))?.length ?? 0) > 1;
               const marbleKind = marbleSlot?.item?.kind;
               return (
                 <div key={line.id} className={`gwb-line${selLine === line.id ? ' selected' : ''}${drag?.kind === 'line' && drag.target === line.id ? ' join-target' : ''}`}>
@@ -773,13 +821,13 @@ export default function GusWorkboard() {
                     const item = s.item!; const idx = line.items.indexOf(item);
                     return (
                       <div key={item.id} className={`gwb-item gwb-k-${item.kind}${pulse.includes(item.id) ? ' leak' : ''}${isFiring && firing!.idx === idx ? ' firing' : ''}${isFiring && firing!.idx > idx ? ' fired' : ''}${!item.word && isWordKind(item.kind) ? ' empty' : ''}${menu?.itemId === item.id ? ' open' : ''}${spinning === item.id ? ' spinning' : ''}`}
-                        style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} onPointerDown={(e) => onItemDown(e, line, item)}
+                        data-item={item.id} style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} onPointerDown={(e) => onItemDown(e, line, item)}
                         role="button" tabIndex={0} aria-label={`${kindInfo(item.kind).name}${item.word ? `: ${item.word}` : ''}. Tap to change, drag to move.`}
                         onKeyDown={(e) => {
                           if (e.target !== e.currentTarget) return;
                           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (item.kind === 'lever') run(line); else { kbdOpen.current = true; openMenuFor(line.id, item.id); } }
-                          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); const to = idx + (e.key === 'ArrowLeft' ? -1 : 1); if (to >= 0 && to < line.items.length) { editLine(line.id, (l) => { const it2 = [...l.items]; [it2[idx], it2[to]] = [it2[to], it2[idx]]; return { ...l, items: it2 }; }); gusSound.snap(); } }
-                          if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeItem(line.id, item.id); }
+                          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); const to = idx + (e.key === 'ArrowLeft' ? -1 : 1); if (to >= 0 && to < line.items.length) { editLine(line.id, (l) => { const it2 = [...l.items]; [it2[idx], it2[to]] = [it2[to], it2[idx]]; return { ...l, items: it2 }; }); gusSound.snap(); focusAfter.current = item.id; say(`${kindInfo(item.kind).name} moved ${e.key === 'ArrowLeft' ? 'left' : 'right'}.`, 'Moved'); } }
+                          if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeItem(line.id, item.id); say(`${kindInfo(item.kind).name} taken off. Tap Undo to bring it back.`, 'Removed'); }
                         }}>
                         <MachinePart kind={item.kind} word={item.kind === 'V' && level !== 'full' && item.word && verbByBase.get(item.word) ? verbText(verbByBase.get(item.word)!, item.form ?? 'base') : item.word} empty={!item.word && isWordKind(item.kind)} />
                         {item.kind === 'lever' && <>
@@ -814,8 +862,9 @@ export default function GusWorkboard() {
                   {text && (
                     <div className="gwb-caption" style={{ left: line.x + GRIP_W, top: line.y + ITEM_H + 6 }}>
                       <span className="gwb-caption-time">{TENSE_NAMES[tenseOf(line)]}</span>
-                      <span>{text}</span>
-                      <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => speak(text)} aria-label="Hear the sentence">🔈 Hear it</button>
+                      {inPara && <button type="button" className={`gwb-connector${line.connector ? ' set' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => setConnectorFor(connectorFor === line.id ? null : line.id)} aria-label={line.connector ? `Time word: ${line.connector}. Tap to change.` : 'Add a time word'}>{line.connector ? `${line.connector},` : '+ time word'}</button>}
+                      <span>{line.connector ? withConnector(line, text).slice(line.connector.length + 2) : text}</span>
+                      <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => speak(withConnector(line, text))} aria-label="Hear the sentence">🔈 Hear it</button>
                       <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => setClip(clip === line.id ? null : line.id)}>📋 {cl.done}/{cl.total}</button>
                       {line.stars === 3 && <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => savePara(line.id)}>📓 Save</button>}
                     </div>
@@ -955,6 +1004,20 @@ export default function GusWorkboard() {
         </aside>
       )}
 
+      {connectorFor && (() => { const l = lines.find((x) => x.id === connectorFor); if (!l) return null; return (
+        <div className="gus-journal-backdrop" onClick={() => setConnectorFor(null)}>
+          <div className="gus-journal gwb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Pick a time word">
+            <h2>🔗 Time word</h2>
+            <p>Pick a word that tells when this sentence happens in your paragraph.</p>
+            <div className="gwb-connector-grid">
+              {CONNECTORS.map((c) => <button key={c} type="button" className={`gus-btn${l.connector === c ? ' on' : ''}`} onClick={() => setConnector(l.id, c)}>{c},</button>)}
+            </div>
+            <div className="gwb-confirm-btns">
+              {l.connector && <button type="button" className="gus-btn" onClick={() => setConnector(l.id, null)}>Take it off</button>}
+              <button type="button" className="gus-btn" onClick={() => setConnectorFor(null)}>✕ Close</button>
+            </div>
+          </div>
+        </div>); })()}
       {confirmClear && (
         <div className="gus-journal-backdrop" onClick={() => setConfirmClear(false)}>
           <div className="gus-journal gwb-confirm" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label="Clear all">
@@ -972,7 +1035,7 @@ export default function GusWorkboard() {
         <div className="gus-journal-backdrop" onClick={() => setBig(null)}>
           <div className="gwb-bigscreen" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Big screen">
             <PixelCinema script={big.script} playKey={big.key} calm={calm} onEnd={onBigEnd} />
-            {big.story && <p className="gwb-bigscreen-text">{big.story.map((s) => s.text).join(' ')}</p>}
+            {big.story && <p className="gwb-bigscreen-text">{big.text ?? big.story.map((s) => s.text).join(' ')}</p>}
             <button type="button" className="gus-btn" onClick={() => setBig(null)}>✕ Close</button>
           </div>
         </div>

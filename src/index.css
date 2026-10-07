@@ -5125,3 +5125,17 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-job.done { background: #e3f6e9; }
 .gwb-spaced .gwb-svg text { letter-spacing: 0.06em; word-spacing: 0.12em; }
 .gwb-spaced .gwb-word, .gwb-spaced .gwb-caption, .gwb-spaced .gwb-didyou, .gwb-spaced .gus-guide-text, .gwb-spaced .gwb-type, .gwb-spaced .gwb-drawer-text { letter-spacing: 0.06em; word-spacing: 0.16em; line-height: 1.5; }
+/* Claudia round 3: controls keep real 44px+ size at every zoom (counter-scaled
+   by the floor's zoom --z), time words for paragraphs, the sticker shelf. */
+.gwb-layer .gwb-grip { width: max(44px, calc(44px / var(--z, 1))); }
+.gwb-layer .gwb-clock-btns button, .gwb-layer .gwb-link-btns button { min-width: max(56px, calc(48px / var(--z, 1))); min-height: max(52px, calc(46px / var(--z, 1))); font-size: max(1.25rem, calc(1.1rem / var(--z, 1))); }
+.gwb-layer .gwb-caption { font-size: max(1rem, calc(0.95rem / var(--z, 1))); gap: max(8px, calc(8px / var(--z, 1))); }
+.gwb-layer .gwb-caption .gus-mini, .gwb-layer .gwb-connector { min-height: max(44px, calc(44px / var(--z, 1))); font-size: max(0.8rem, calc(0.8rem / var(--z, 1))); }
+.gwb-layer .gwb-job { font-size: max(0.95rem, calc(0.95rem / var(--z, 1))); }
+.gwb-layer .gwb-para-num { width: max(44px, calc(44px / var(--z, 1))); height: max(26px, calc(26px / var(--z, 1))); font-size: max(0.85rem, calc(0.85rem / var(--z, 1))); }
+.gwb-connector { padding: 0 10px; border-radius: 10px; border: 2px dashed #8b6bb3; background: #f1eafa; font: 800 0.8rem 'Lexend', sans-serif; color: #5b3f86; cursor: pointer; white-space: nowrap; }
+.gwb-connector.set { border-style: solid; background: #8b6bb3; color: #fff; }
+.gwb-connector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.gwb-shelf { padding: 12px; gap: 6px; min-width: 240px; font-family: 'Lexend', sans-serif; }
+.gwb-shelf-grid { display: flex; flex-wrap: wrap; gap: 6px; font-size: 1.6rem; max-height: 200px; overflow-y: auto; }
+.gwb-spaced .gwb-job, .gwb-spaced .gwb-wordmenu, .gwb-spaced .gwb-top-menu, .gwb-spaced .gwb-connector { letter-spacing: 0.06em; word-spacing: 0.16em; }

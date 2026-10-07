@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-time-words',
+    date: '2026-10-07',
+    icon: '🔗',
+    title: 'Time words for paragraphs',
+    body: 'When you hook sentences together with a Paragraph Link, tap "+ time word" under a sentence to add First, Then, Next or Finally. Your paragraph reads in order, and you earn a bonus gear. Your stickers now show on the Workboard too.',
+  },
+  {
     id: '2026-10-07-gus-jobs',
     date: '2026-10-07',
     icon: '🧰',

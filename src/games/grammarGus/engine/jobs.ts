@@ -15,7 +15,7 @@ import type { BoardItem } from './board';
 
 export type JobKind = 'delivery' | 'inspector';
 export type Flaw = 'missing-end' | 'end-middle' | 'missing-cap' | 'cap-late';
-export interface BoardJob { kind: JobKind; text: string; flaw?: Flaw }
+export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw }
 export const FLAW_HINTS: Record<Flaw, string> = {
   'missing-end': 'This sentence has no punctuation at the end.',
   'end-middle': 'Some punctuation is in the wrong place.',
@@ -27,13 +27,13 @@ export function makeJob(kind: JobKind, rng: Rng, uid: () => string, o: { gentleO
   const order = makeOrder(rng, o);
   const tokens = order.filled.draft.tokens;
   const tense = order.filled.draft.tense;
-  const words: BoardItem[] = tokens.map((t) => ({ id: uid(), kind: t.pos, word: t.word }));
+  const words: BoardItem[] = tokens.map((t) => ({ id: uid(), kind: t.pos, word: t.word, ...(t.form ? { form: t.form } : {}) }));
   const lever: BoardItem = { id: uid(), kind: 'lever', word: null };
   const clock: BoardItem = { id: uid(), kind: 'clock', word: tense };
   if (kind === 'delivery') {
     let mixed = [...words];
     for (let k = 0; k < 20 && mixed.every((w, i) => w.word === words[i].word); k++) mixed = [...words].sort(() => rng() - 0.5);
-    return { items: [lever, clock, ...mixed], job: { kind, text: order.text }, tense };
+    return { items: [lever, clock, ...mixed], job: { id: uid(), kind, text: order.text }, tense };
   }
   const cap: BoardItem = { id: uid(), kind: 'cap', word: null };
   const stop: BoardItem = { id: uid(), kind: 'stop', word: null };
@@ -44,5 +44,5 @@ export function makeJob(kind: JobKind, rng: Rng, uid: () => string, o: { gentleO
   if (flaw === 'missing-cap') items = items.filter((i) => i !== cap);
   if (flaw === 'end-middle') { items = items.filter((i) => i !== stop); items.splice(items.indexOf(words[1]) + 1, 0, stop); }
   if (flaw === 'cap-late') { items = items.filter((i) => i !== cap); items.splice(items.indexOf(words[1]), 0, cap); }
-  return { items, job: { kind, text: order.text, flaw }, tense };
+  return { items, job: { id: uid(), kind, text: order.text, flaw }, tense };
 }
