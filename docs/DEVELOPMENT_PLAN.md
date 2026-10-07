@@ -722,6 +722,43 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Workboard round 5 (all 14 NOW parts from Claudia's catalog, the Clock rewrites the action words, parts only run in the right order). SHIPPED 2026-10-07 (direct teacher instructions)
+
+**Her words, verbatim:**
+1. "i cant see the pdf list" (the parts list PDF was re-sent to open in the side panel, with a GitHub link).
+2. "build now" (build the NOW tier of `docs/grammar-gus/CONTRAPTION_PARTS.md`).
+3. "make sure the time click changes the words in the machine (tenses)"
+4. "make sure all the fun building parts have a legitimate, gramatical purpose. the play/go feature makes the machine run only if the sentnece is gramatically correct, ensure everything snaps to click in the machine, in the right order in order to run"
+
+**What shipped:**
+- **The Clock changes the words in the machine.** Tapping ⏪ Past or Future ⏩ turns every action word on the machine to its past, present or future form (jumps, jumped, will jump), and the plates flip with a tick. At Full help the plates always show the form for the Clock's time. At Guided and Challenge the Clock sets the form too (the student can still change it in the word menu). Gus reads the new sentence in the bubble. Noun plates show the Duplicator's plural ("cats").
+- **Every part has exactly one grammar job** (a test checks it): it holds a word, makes a mark (capital letter, punctuation, comma, plural), or is a helper gadget.
+- **The Start Lever only runs a grammatically correct, correctly ordered machine.** New order rules: the Trapdoor, Time Tunnel and Opener Slingshot only work at the very front; the Comma Drawbridge only before a joining word; end punctuation only at the end; the Duplicator only before a noun. A wrong order stops the machine with a kind Gus line, and the part shakes.
+- **14 NOW parts** (Fun parts and a new folding **🔧 HELPER GADGETS** group):
+
+  | Part | What it does | Grammar |
+  |---|---|---|
+  | Confetti Trapdoor | POP! a shout word first, with confetti | interjection + its "!" and the capital letter after it |
+  | Mood Meter Valve | 😌 calm or 😲 BIG needle | period or exclamation point |
+  | Time Tunnel | WARP! holds a time word (long ago, every day, next week...) | sets past, present or future, turns the Clock and the action words; "Long ago, the cat jumped." |
+  | Opener Slingshot | TWANG! a how word at the front | adverb opener and its comma: "Quickly, the cat jumps." |
+  | How-Dial | 🐌 to 🚀 speedometer | adverb; the how words set how fast the marble rolls |
+  | Where-To Switchyard | the track turns into a bridge (over), a tunnel (under) or a ring (through) | preposition |
+  | Merge Funnel | GLUG! comes with "and" | compound subject that takes "run": "The cat and the dog run." |
+  | Comma Drawbridge | lowers only before a joining word | comma in a compound sentence: "The cat runs, and the dog jumps." |
+  | Agreement Gears | MESH! or GRIND... | fixes the action to match the who (jumps vs jump) at Guided and Challenge |
+  | A/An Sniffer | ACHOO! | fixes a and an by sound, and "the" with more than one |
+  | Describe Sorter | CLACK-CLACK! | puts describing words in order (feeling, size, age, look, color) |
+  | Pronoun Teleporter | ZAP! | in a paragraph, a noun repeated from the sentence before becomes he, she, it or they |
+  | Dead-End Detector | ROAD CLOSED / OPEN sign, live | every where word needs a noun after it |
+  | Sprinter Flag | starting gun, the flag waves | the line needs its capital letter and end punctuation even when the teacher setting adds them |
+
+- Each new part has its own drawing, motion while running and sound (popper, steam, warp, twang, tick, clank, glug, creak, whir, sneeze, zap, starting gun). Gadgets say out loud what they fixed and pop it over the part.
+- **Engine:** at Full help a student's own end punctuation (the Big Horn or Mood Meter "!") and extra commas (the Drawbridge) now show in the sentence. Before this, Full help replaced them.
+- Tests: 14 new (`__tests__/gadgets.test.ts`). Full Gus suite: 269 passing.
+
+**Queued next:** the SOON parts (Proper Name Stamp, Comma List Train, Subject and Object Turnstile, Irregular Trapdoor, Irregular Past Press), the combos (Plural Pileup, Time Warp, Dramatic Entrance, Big Merge, Road Closed Repair), Claudia's round 4 game ideas, sound words on the TV, then the earlier open items listed in round 4.
+
 ### Grammar Gus: Workboard round 4 (fun parts do grammar, Big Horn, Duplicator, parts menu on the left with folding categories, everything snaps, steam and gears, sound words, Claudia round 4). SHIPPED 2026-10-07 (direct teacher instructions)
 
 **Her words, verbatim:**

@@ -37,6 +37,10 @@ Every fun part now has a grammar job:
 | Dominoes | CLACK-CLACK | Comma |
 | Duplicator (new) | COPY! COPY! Copies the next noun | Plural noun, and the verb has to agree |
 
+## Shipped 2026-10-07: every NOW part
+
+All 14 NOW parts below are on the Workboard, plus a rule from the teacher: parts only run when they are snapped in the right order and the sentence is correct. The Clock now changes the action words to past, present or future.
+
 ## 1. Capital letters and punctuation
 
 **1. Proper Name Stamp** (SOON)
@@ -45,7 +49,7 @@ Every fun part now has a grammar job:
 - **Trains:** Proper nouns.
 - **Example:** "gus visited vermont" becomes "Gus visited Vermont."
 
-**2. Mood Meter Valve** (NOW)
+**2. Mood Meter Valve** (NOW, shipped)
 - **What it does:** A pressure gauge whose needle swings from "calm" to "BIG FEELING." It opens the Bell or the Big Horn.
 - **Grammar job:** Matches the end punctuation to the sentence. Calm gets a period and a strong feeling gets an exclamation point.
 - **Trains:** Choosing end punctuation on purpose.
@@ -57,7 +61,7 @@ Every fun part now has a grammar job:
 - **Trains:** Commas in a series.
 - **Example:** "I packed pizza chips and cake" becomes "I packed pizza, chips, and cake."
 
-**4. Sentence Sprinter Flag** (NOW)
+**4. Sentence Sprinter Flag** (NOW, shipped)
 - **What it does:** A starting gun fires at the first word and a checkered flag drops at the last mark.
 - **Grammar job:** A capital letter at the start and punctuation at the end.
 - **Trains:** Sentence boundaries.
@@ -71,7 +75,7 @@ Every fun part now has a grammar job:
 - **Trains:** Irregular plural nouns.
 - **Example:** "two mouse" becomes "two mice."
 
-**6. A/An Vowel Sniffer** (NOW)
+**6. A/An Vowel Sniffer** (NOW, shipped)
 - **What it does:** A vacuum nozzle on a spring sniffs the next word's first letter. A vowel sound makes it sneeze and swap the Bucket Drop's "a" for "an."
 - **Grammar job:** a versus an.
 - **Trains:** Articles before vowel sounds.
@@ -79,7 +83,7 @@ Every fun part now has a grammar job:
 
 ## 3. Pronouns
 
-**7. Pronoun Teleporter** (NOW)
+**7. Pronoun Teleporter** (NOW, shipped)
 - **What it does:** A glowing yellow pad. When a noun repeats, the second one steps on it and zaps into a pronoun.
 - **Grammar job:** Replaces a repeated noun with the right pronoun.
 - **Trains:** Pronoun reference.
@@ -99,13 +103,13 @@ Every fun part now has a grammar job:
 
 ## 4. Verbs and time
 
-**10. Agreement Gears** (NOW)
+**10. Agreement Gears** (NOW, shipped)
 - **What it does:** The noun machine and the action machine each get a gear. Matching gears mesh with a smooth whir. A mismatch grinds and throws sparks.
 - **Grammar job:** Subject and verb agreement.
 - **Trains:** One and more than one.
 - **Example:** "The dogs runs" becomes "The dogs run."
 
-**11. Time Tunnel** (NOW)
+**11. Time Tunnel** (NOW, shipped)
 - **What it does:** A three-lane tunnel with a past, present and future gate. The action machine changes shape as the marble passes through.
 - **Grammar job:** The verb's time matches the Clock and any time word.
 - **Trains:** Consistent verb tense.
@@ -119,19 +123,19 @@ Every fun part now has a grammar job:
 
 ## 5. Adjectives and adverbs
 
-**13. Describe Sorter Chute** (NOW)
+**13. Describe Sorter Chute** (NOW, shipped)
 - **What it does:** A chute with slots in order (opinion, size, color). The words roll in and clack into their slots.
 - **Grammar job:** Describing words in the right order.
 - **Trains:** Adjective order.
 - **Example:** "a red big ugly truck" becomes "an ugly big red truck."
 
-**14. How-Dial** (NOW)
+**14. How-Dial** (NOW, shipped)
 - **What it does:** A big dial on the Fan. "slowly" makes the marble creep and "quickly" makes it zoom.
 - **Grammar job:** How the action happens, with the adverb beside its verb.
 - **Trains:** Adverbs of manner.
 - **Example:** "The turtle moved slowly."
 
-**15. Opener Slingshot** (NOW)
+**15. Opener Slingshot** (NOW, shipped)
 - **What it does:** A slingshot flings a how word to the front of the line, and a tiny comma domino tips behind it.
 - **Grammar job:** An adverb opener with its comma.
 - **Trains:** Sentence openers.
@@ -145,13 +149,13 @@ Every fun part now has a grammar job:
 
 ## 6. Prepositions
 
-**17. Where-To Switchyard** (NOW)
+**17. Where-To Switchyard** (NOW, shipped)
 - **What it does:** A rail switch with three paths. The marble goes over a bridge, under a tunnel or through a ring, depending on the preposition.
 - **Grammar job:** The preposition shows where.
 - **Trains:** Position words.
 - **Example:** "The cat jumped over the fence."
 
-**18. Dead-End Detector** (NOW)
+**18. Dead-End Detector** (NOW, shipped)
 - **What it does:** A Ramp with no landing gets a "ROAD CLOSED" sign. Add a noun and the landing pad pops into place.
 - **Grammar job:** Every preposition needs a noun after it.
 - **Trains:** Complete prepositional phrases.
@@ -159,13 +163,13 @@ Every fun part now has a grammar job:
 
 ## 7. Conjunctions
 
-**19. Merge Funnel** (NOW)
+**19. Merge Funnel** (NOW, shipped)
 - **What it does:** A big purple funnel. Two noun marbles pour in and one fat marble comes out.
 - **Grammar job:** Two nouns joined by "and" count as more than one.
 - **Trains:** Compound subjects.
 - **Example:** "Tom and Mia run."
 
-**20. Comma Hinge Drawbridge** (NOW)
+**20. Comma Hinge Drawbridge** (NOW, shipped)
 - **What it does:** A drawbridge joins two sentence islands. It only lowers when a comma domino sits at the hinge, right before the joining word.
 - **Grammar job:** The comma before and, but or so when two sentences join.
 - **Trains:** Compound sentences.
@@ -179,7 +183,7 @@ Every fun part now has a grammar job:
 
 ## 8. Interjections and sentence types
 
-**22. Confetti Trapdoor** (NOW)
+**22. Confetti Trapdoor** (NOW, shipped)
 - **What it does:** An orange popper at the start of the pipe. "Wow!" pops up and confetti falls on the first machine.
 - **Grammar job:** An interjection goes first, followed by punctuation.
 - **Trains:** Interjections.

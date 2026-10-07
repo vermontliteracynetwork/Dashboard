@@ -1,5 +1,6 @@
 import type { Pos } from '../../engine/types';
 import { SYMBOLS } from '../../data/symbols';
+import { TIME_WORDS } from '../../data/timeWords';
 
 // Workboard parts (teacher 2026-10-07). Every part of speech is its own
 // factory machine shaped like its grammar symbol, in its symbol's color.
@@ -14,15 +15,21 @@ import { SYMBOLS } from '../../data/symbols';
 // Mat bounces in a describing word, the Big Horn blasts an exclamation
 // point, the Duplicator copies the next noun into more than one, and so on.
 export type FinishKind = 'cap' | 'stop' | 'bang' | 'comma' | 'tv' | 'lever' | 'clock' | 'link';
-export type ContraptionKind = 'spring' | 'pulley' | 'ramp' | 'conveyor' | 'fan' | 'bell' | 'dominoes' | 'bucket' | 'horn' | 'duplicator';
+export type ContraptionKind = 'spring' | 'pulley' | 'ramp' | 'conveyor' | 'fan' | 'bell' | 'dominoes' | 'bucket' | 'horn' | 'duplicator'
+  // Claudia's parts catalog, NOW tier (teacher: "build now", 2026-10-07)
+  | 'mood' | 'bridge' | 'dial' | 'slingshot' | 'tunnel' | 'switch' | 'funnel' | 'trapdoor'
+  | 'gears' | 'sniffer' | 'sorter' | 'flag' | 'detector' | 'teleporter';
 export type Kind = Pos | FinishKind | ContraptionKind | 'blank';
 export const isWordKind = (k: Kind): k is Pos => k.length === 1;
-export const CONTRAPTIONS: ContraptionKind[] = ['horn', 'spring', 'fan', 'ramp', 'conveyor', 'bucket', 'pulley', 'bell', 'dominoes', 'duplicator'];
+export const CONTRAPTIONS: ContraptionKind[] = ['horn', 'spring', 'fan', 'ramp', 'conveyor', 'bucket', 'pulley', 'bell', 'dominoes', 'duplicator', 'trapdoor', 'mood', 'tunnel', 'slingshot', 'dial', 'switch', 'funnel', 'bridge', 'gears', 'sniffer', 'sorter', 'teleporter', 'detector', 'flag'];
 export const isContraption = (k: Kind): k is ContraptionKind => (CONTRAPTIONS as string[]).includes(k);
 export type MarkRole = 'cap' | 'stop' | 'bang' | 'comma' | 'plural';
 // pos: the fun part holds a word of that part of speech. mark: it acts
 // like that capital letter or punctuation machine. pop: its sound word.
-export interface FunRole { pos?: Pos; mark?: MarkRole; pop: string; does: string; grammar: string }
+// front: its word is flung to the front of the sentence. words: its own
+// word list. preset: the word it arrives with. tool: a helper gadget
+// that checks or fixes the sentence when the marble rolls through.
+export interface FunRole { pos?: Pos; mark?: MarkRole; tool?: true; front?: boolean; words?: string[]; preset?: string; pop: string; does: string; grammar: string }
 export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   horn: { mark: 'bang', pop: 'HONK!', does: 'Blasts an exclamation point', grammar: 'exclamation point' },
   spring: { pos: 'J', pop: 'BOING!', does: 'Bounces in a describing word', grammar: 'adjective' },
@@ -34,7 +41,23 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   bell: { mark: 'stop', pop: 'DING!', does: 'Rings a period at the end', grammar: 'period' },
   dominoes: { mark: 'comma', pop: 'CLACK-CLACK', does: 'Topples a comma pause after a word', grammar: 'comma' },
   duplicator: { mark: 'plural', pop: 'COPY! COPY!', does: 'Copies the next noun: more than one', grammar: 'plural noun' },
+  trapdoor: { pos: 'I', front: true, pop: 'POP! CONFETTI!', does: 'Pops a shout word out first', grammar: 'interjection with its punctuation' },
+  mood: { mark: 'stop', preset: 'calm', pop: 'PSSSH!', does: 'Calm gets a period, BIG feelings get an exclamation point', grammar: 'end punctuation' },
+  tunnel: { pos: 'D', front: true, words: [...TIME_WORDS.past, ...TIME_WORDS.present, ...TIME_WORDS.future], pop: 'WARP!', does: 'Zooms the sentence to a time', grammar: 'past, present and future' },
+  slingshot: { pos: 'D', front: true, pop: 'TWANG!', does: 'Flings a how word to the front', grammar: 'adverb opener and its comma' },
+  dial: { pos: 'D', pop: 'TICK-TICK', does: 'Sets how fast the marble rolls', grammar: 'adverb' },
+  switch: { pos: 'P', pop: 'KA-CHUNK!', does: 'Sends the marble over, under or through', grammar: 'preposition' },
+  funnel: { pos: 'C', words: ['and'], preset: 'and', pop: 'GLUG! MERGE!', does: 'Pours two nouns into one big team', grammar: 'compound subject' },
+  bridge: { mark: 'comma', pop: 'CREAK... CLUNK!', does: 'Lowers a comma right before a joining word', grammar: 'comma in a compound sentence' },
+  gears: { tool: true, pop: 'MESH!', does: 'Makes the who and the action match', grammar: 'subject and verb agreement' },
+  sniffer: { tool: true, pop: 'SNIFF SNIFF', does: 'Sniffs for a or an', grammar: 'a and an' },
+  sorter: { tool: true, pop: 'CLACK!', does: 'Sorts describing words into order', grammar: 'adjective order' },
+  teleporter: { tool: true, pop: 'ZAP!', does: 'Zaps a repeated noun into he, she, it or they', grammar: 'pronouns' },
+  detector: { tool: true, pop: 'ROAD OPEN!', does: 'Checks every where word has a landing', grammar: 'complete prepositional phrase' },
+  flag: { tool: true, pop: 'FINISH!', does: 'Waves when the sentence starts and ends right', grammar: 'capital letter and end punctuation' },
 };
+export const isTool = (k: Kind) => isContraption(k) && !!FUN_ROLE[k].tool;
+export const isFront = (k: Kind) => isContraption(k) && !!FUN_ROLE[k].front;
 // The part of speech a part holds a word for (word machines and fun parts).
 export const wordPosOf = (k: Kind): Pos | null => (isWordKind(k) ? k : isContraption(k) ? FUN_ROLE[k].pos ?? null : null);
 export const needsWord = (k: Kind) => wordPosOf(k) !== null;
@@ -45,10 +68,10 @@ export const isEndMark = (k: Kind) => { const m = markOf(k); return m === 'stop'
 // grammar is inside.
 export const EXAMPLES: Record<Pos, string> = { A: 'a, an, the', J: 'fuzzy, giant, silly', N: 'dog, pizza, robot', R: 'he, she, they', V: 'jump, eat, zoom', D: 'quickly, loudly', P: 'on, under, over', C: 'and, but, or', I: 'Wow! Oops! Yikes!' };
 
-export type Job = 'power' | 'time' | 'paragraph' | 'who' | 'did' | 'where' | 'join' | 'shout' | 'finish' | 'contraption';
+export type Job = 'power' | 'time' | 'paragraph' | 'who' | 'did' | 'where' | 'join' | 'shout' | 'finish' | 'contraption' | 'gadget';
 export interface KindInfo { kind: Kind; name: string; machine: string; hint: string; color: string; job: Job }
 const W = (pos: Pos, name: string, machine: string, job: Job): KindInfo => ({ kind: pos, name, machine, hint: SYMBOLS[pos].kidHint, color: SYMBOLS[pos].color, job });
-const X = (kind: ContraptionKind, name: string, color: string): KindInfo => ({ kind, name, machine: FUN_ROLE[kind].does, hint: `${FUN_ROLE[kind].does} (${FUN_ROLE[kind].grammar})`, color, job: 'contraption' });
+const X = (kind: ContraptionKind, name: string, color: string): KindInfo => ({ kind, name, machine: FUN_ROLE[kind].does, hint: `${FUN_ROLE[kind].does} (${FUN_ROLE[kind].grammar})`, color, job: FUN_ROLE[kind].tool ? 'gadget' : 'contraption' });
 export const KINDS: KindInfo[] = [
   { kind: 'lever', name: 'Start Lever', machine: 'Power', hint: 'Every machine starts with a Start Lever at the front', color: '#6b7790', job: 'power' },
   { kind: 'clock', name: 'Clock', machine: 'Time machine', hint: 'Spin it back for the past, keep it still for the present, spin it forward for the future', color: '#e6b54a', job: 'time' },
@@ -77,14 +100,29 @@ export const KINDS: KindInfo[] = [
   X('bell', 'Bell', '#e6b54a'),
   X('dominoes', 'Dominoes', '#d95f5f'),
   X('duplicator', 'Duplicator', '#5b8def'),
+  X('trapdoor', 'Confetti Trapdoor', '#f08a3c'),
+  X('mood', 'Mood Meter Valve', '#e8483b'),
+  X('tunnel', 'Time Tunnel', '#7a5cc4'),
+  X('slingshot', 'Opener Slingshot', '#a8743a'),
+  X('dial', 'How-Dial', '#3fa7a0'),
+  X('switch', 'Where-To Switchyard', '#c9902f'),
+  X('funnel', 'Merge Funnel', '#8b4fc4'),
+  X('bridge', 'Comma Drawbridge', '#9a6b3f'),
+  X('gears', 'Agreement Gears', '#5f9e4a'),
+  X('sniffer', 'A/An Sniffer', '#d96a9a'),
+  X('sorter', 'Describe Sorter', '#3f8fd6'),
+  X('teleporter', 'Pronoun Teleporter', '#e6c43a'),
+  X('detector', 'Dead-End Detector', '#e07b2c'),
+  X('flag', 'Sprinter Flag', '#4a5878'),
 ];
 export const kindInfo = (k: Kind): KindInfo => KINDS.find((x) => x.kind === k) ?? { kind: 'blank', name: 'Blank word space', machine: 'Empty space', hint: 'Drag a machine part onto it', color: '#ffffff', job: 'power' };
-export const JOB_TITLES: Record<Job, string> = { power: 'START and TV', time: 'TIME', paragraph: 'PARAGRAPH', shout: 'INTERJECTION', who: 'WHO parts', did: 'DID parts', where: 'WHERE parts', join: 'JOIN parts', finish: 'CAPITAL LETTER and PUNCTUATION', contraption: 'FUN PARTS' };
+export const JOB_TITLES: Record<Job, string> = { power: 'START and TV', time: 'TIME', paragraph: 'PARAGRAPH', shout: 'INTERJECTION', who: 'WHO parts', did: 'DID parts', where: 'WHERE parts', join: 'JOIN parts', finish: 'CAPITAL LETTER and PUNCTUATION', contraption: 'FUN PARTS', gadget: 'HELPER GADGETS' };
 
 export const PART_H = 172;
 // How big each symbol body is, Montessori style: the noun and verb are the
 // biggest, the article is the smallest.
 export const BODY: Record<Pos, number> = { N: 112, V: 104, R: 96, P: 96, C: 100, J: 86, I: 84, D: 76, A: 64 };
+const FUN_W: Partial<Record<ContraptionKind, number>> = { conveyor: 150, dominoes: 150, horn: 150, duplicator: 124, tunnel: 140, switch: 130, bridge: 150, gears: 124, sniffer: 124, sorter: 140, mood: 120, teleporter: 116 };
 export const textW = (word: string | null) => (word ? word.length * 10.5 : 10);
 export function partWidth(kind: Kind, word: string | null): number {
   if (kind === 'tv') return 214;
@@ -95,6 +133,6 @@ export function partWidth(kind: Kind, word: string | null): number {
   if (kind === 'cap') return 104;
   if (kind === 'comma') return 78;
   if (kind === 'stop' || kind === 'bang') return 90;
-  if (isContraption(kind)) return Math.ceil(Math.max(kind === 'conveyor' || kind === 'dominoes' || kind === 'horn' ? 150 : kind === 'duplicator' ? 124 : 112, word ? textW(word) + 44 : 0));
+  if (isContraption(kind)) return Math.ceil(Math.max(FUN_W[kind] ?? 112, word && FUN_ROLE[kind].pos ? textW(word) + 44 : 0));
   return Math.ceil(Math.max(BODY[kind] + 34, textW(word) + 44, 96));
 }

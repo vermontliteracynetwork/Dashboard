@@ -55,7 +55,7 @@ function Stand({ w, top }: { w: number; top: number }) {
   </g>;
 }
 
-function Contraption({ kind, w, color }: { kind: Kind; w: number; color: string }) {
+function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; color: string; word: string | null; status?: string }) {
   const c = w / 2;
   const dark = shade(color, -0.3), light = shade(color, 0.45);
   switch (kind) {
@@ -124,11 +124,134 @@ function Contraption({ kind, w, color }: { kind: Kind; w: number; color: string 
       <Nut x={c - 32} y={20} r={3.5} /><Nut x={c + 32} y={20} r={3.5} /><Nut x={c - 32} y={100} r={3.5} /><Nut x={c + 32} y={100} r={3.5} />
       <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
+    case 'trapdoor': return <g>
+      <Pipes w={w} />
+      <rect x={c - 30} y={50} width={60} height={56} rx={6} fill={color} stroke={INK} strokeWidth={3} />
+      <g className="gwb-lid" style={{ transformOrigin: `${c - 30}px 50px` }}><rect x={c - 32} y={42} width={64} height={10} rx={3} fill={light} stroke={INK} strokeWidth={2.4} /></g>
+      {[[-18, 30, '#e8483b'], [0, 20, '#3fbf5a'], [16, 32, '#5b8def'], [-6, 8, '#f3cf6b'], [22, 12, '#b48ad6']].map(([dx, y, f], i) => <rect key={i} className="gwb-confetti-bit" x={c + (dx as number)} y={y as number} width={6} height={8} rx={1} fill={f as string} stroke={INK} strokeWidth={1} transform={`rotate(${i * 37} ${c + (dx as number)} ${y as number})`} />)}
+      <text x={c} y={86} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={26} fill={INK}>!</text>
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'mood': {
+      const big = word === 'big';
+      return <g>
+        <Pipes w={w} />
+        <path d={`M${c - 40} 70 A40 40 0 0 1 ${c + 40} 70Z`} fill="#fff8e6" stroke={INK} strokeWidth={3} />
+        <path d={`M${c - 34} 70 A34 34 0 0 1 ${c} 36`} fill="none" stroke="#3fbf5a" strokeWidth={7} />
+        <path d={`M${c} 36 A34 34 0 0 1 ${c + 34} 70`} fill="none" stroke="#e8483b" strokeWidth={7} />
+        <g className="gwb-mood-needle" style={{ transformOrigin: `${c}px 68px`, transform: `rotate(${big ? 55 : -55}deg)` }}><line x1={c} y1={68} x2={c} y2={38} stroke={INK} strokeWidth={4} strokeLinecap="round" /></g>
+        <circle cx={c} cy={68} r={5} fill={color} stroke={INK} strokeWidth={2} />
+        <text x={c - 26} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={11} fill={INK}>calm .</text>
+        <text x={c + 26} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill={INK}>BIG !</text>
+        <rect x={c - 5} y={92} width={10} height={30} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+      </g>;
+    }
+    case 'tunnel': return <g>
+      <Pipes w={w} />
+      <path d={`M14 124 L14 62 Q${c} 0 ${w - 14} 62 L${w - 14} 124Z`} fill={color} stroke={INK} strokeWidth={3} />
+      <path d={`M30 124 L30 70 Q${c} 22 ${w - 30} 70 L${w - 30} 124Z`} fill="#1d1430" stroke={INK} strokeWidth={2} />
+      <g className="gwb-spin" style={{ transformOrigin: `${c}px 82px` }}>{[0, 120, 240].map((a, i) => <path key={a} d={`M${c} 82 q 14 -22 28 0`} fill="none" stroke={['#8c6a3c', '#f3cf6b', '#3b7be8'][i]} strokeWidth={4} transform={`rotate(${a} ${c} 82)`} />)}</g>
+      <text x={c - 30} y={56} textAnchor="middle" fontSize={9} fontWeight={800} fill="#fff" fontFamily="Lexend, sans-serif">past</text>
+      <text x={c + 30} y={56} textAnchor="middle" fontSize={9} fontWeight={800} fill="#fff" fontFamily="Lexend, sans-serif">future</text>
+    </g>;
+    case 'slingshot': return <g>
+      <path d={`M${c} 124 L${c} 80 L${c - 26} 30 M${c} 80 L${c + 26} 30`} fill="none" stroke="#8b5a2b" strokeWidth={9} strokeLinecap="round" />
+      <path d={`M${c} 124 L${c} 80 L${c - 26} 30 M${c} 80 L${c + 26} 30`} fill="none" stroke={light} strokeWidth={3} strokeLinecap="round" />
+      <g className="gwb-band"><path d={`M${c - 26} 32 Q${c} 70 ${c + 26} 32`} fill="none" stroke="#e8483b" strokeWidth={4} /><circle cx={c} cy={56} r={8} fill="#c8ced8" stroke={INK} strokeWidth={2} /></g>
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'dial': {
+      const sp = Math.max(0.4, Math.min(2, Number(status ?? 1)));
+      const ang = -80 + ((sp - 0.4) / 1.6) * 160;
+      return <g>
+        <Pipes w={w} />
+        <circle cx={c} cy={52} r={40} fill={color} stroke={INK} strokeWidth={3} /><circle cx={c} cy={52} r={32} fill="#fff8e6" stroke={INK} strokeWidth={2} />
+        <text x={c - 22} y={70} textAnchor="middle" fontSize={14}>🐌</text><text x={c + 22} y={70} textAnchor="middle" fontSize={14}>🚀</text>
+        <g style={{ transformOrigin: `${c}px 52px`, transform: `rotate(${ang}deg)`, transition: 'transform 0.4s' }}><line x1={c} y1={52} x2={c} y2={26} stroke="#e8483b" strokeWidth={4} strokeLinecap="round" /></g>
+        <circle cx={c} cy={52} r={4} fill={INK} />
+        <rect x={c - 5} y={92} width={10} height={30} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+      </g>;
+    }
+    case 'switch': {
+      const wd = (word ?? '').toLowerCase();
+      return <g>
+        <rect x={6} y={110} width={w - 12} height={6} fill="#8b5a2b" stroke={INK} strokeWidth={1.6} />
+        {Array.from({ length: Math.floor((w - 12) / 14) }, (_, i) => <rect key={i} x={10 + i * 14} y={116} width={6} height={8} fill="#6b4a2b" />)}
+        {wd === 'over' || wd === 'across' || wd === 'on' || wd === 'onto'
+          ? <path d={`M10 108 Q${c} 10 ${w - 10} 108`} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />
+          : wd === 'under' || wd === 'below' || wd === 'beneath'
+            ? <><rect x={c - 30} y={40} width={60} height={70} rx={8} fill={color} stroke={INK} strokeWidth={3} /><path d={`M${c - 18} 110 L${c - 18} 82 Q${c} 64 ${c + 18} 82 L${c + 18} 110Z`} fill="#1d1430" /></>
+            : wd === 'through' || wd === 'in' || wd === 'into' || wd === 'inside'
+              ? <circle cx={c} cy={80} r={28} fill="none" stroke={color} strokeWidth={8} />
+              : <path d={`M16 90 L${w - 30} 90 L${w - 30} 78 L${w - 12} 96 L${w - 30} 114 L${w - 30} 102 L16 102Z`} fill={color} stroke={INK} strokeWidth={2.4} />}
+        <g className="gwb-knob" style={{ transformOrigin: '20px 110px' }}><line x1={20} y1={110} x2={30} y2={84} stroke={INK} strokeWidth={4} /><circle cx={30} cy={82} r={6} fill="#e8483b" stroke={INK} strokeWidth={2} /></g>
+      </g>;
+    }
+    case 'funnel': return <g>
+      <Pipes w={w} />
+      <path d={`M${c - 46} 14 L${c + 46} 14 L${c + 10} 66 L${c + 10} 96 L${c - 10} 96 L${c - 10} 66Z`} fill={color} stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+      <ellipse cx={c} cy={14} rx={46} ry={8} fill={light} stroke={INK} strokeWidth={2.4} />
+      <circle cx={c - 16} cy={10} r={7} fill="#c8ced8" stroke={INK} strokeWidth={1.6} className="gwb-drop" /><circle cx={c + 16} cy={10} r={7} fill="#c8ced8" stroke={INK} strokeWidth={1.6} className="gwb-drop" />
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'bridge': {
+      const down = status !== 'up';
+      return <g>
+        <Pipes w={w} />
+        <rect x={10} y={30} width={22} height={94} fill={color} stroke={INK} strokeWidth={2.6} /><rect x={w - 32} y={30} width={22} height={94} fill={color} stroke={INK} strokeWidth={2.6} />
+        <path d={`M8 30 l6 -8 l6 8 l6 -8 l6 8`} fill="none" stroke={INK} strokeWidth={2} /><path d={`M${w - 34} 30 l6 -8 l6 8 l6 -8 l6 8`} fill="none" stroke={INK} strokeWidth={2} />
+        <g style={{ transformOrigin: `32px 60px`, transform: `rotate(${down ? 0 : -62}deg)`, transition: 'transform 0.5s' }}><rect x={32} y={56} width={w - 64} height={10} fill={light} stroke={INK} strokeWidth={2.4} /><line x1={32} y1={60} x2={w - 34} y2={60} stroke={dark} strokeWidth={1.5} strokeDasharray="6 4" /></g>
+        <line x1={20} y1={34} x2={down ? w - 34 : 60} y2={down ? 58 : 10} stroke="#8f98a8" strokeWidth={2} />
+        <text x={c} y={104} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={30} fill={INK}>,</text>
+      </g>;
+    }
+    case 'gears': return <g>
+      <Pipes w={w} />
+      <Gear x={c - 22} y={56} r={22} color={shade(color, 0.3)} /><Gear x={c + 24} y={70} r={16} color="#c8ced8" rev />
+      <rect x={c - 5} y={92} width={10} height={30} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'sniffer': return <g>
+      <Pipes w={w} />
+      <rect x={c - 40} y={50} width={52} height={56} rx={10} fill={color} stroke={INK} strokeWidth={3} />
+      <path d={`M${c + 12} 66 C${c + 40} 66 ${c + 30} 30 ${c + 46} 26`} fill="none" stroke="#6b7383" strokeWidth={9} strokeDasharray="3 3" />
+      <g className="gwb-sniff" style={{ transformOrigin: `${c + 46}px 26px` }}><ellipse cx={c + 46} cy={24} rx={12} ry={8} fill="#f4b6c9" stroke={INK} strokeWidth={2.4} /><circle cx={c + 42} cy={25} r={2} fill={INK} /><circle cx={c + 50} cy={25} r={2} fill={INK} /></g>
+      <text x={c - 14} y={84} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={16} fill="#fff">a/an</text>
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} /><rect x={c - 18} y={106} width={8} height={14} fill="#6b7383" /><rect x={c - 4} y={106} width={8} height={14} fill="#6b7383" />
+    </g>;
+    case 'sorter': return <g>
+      <path d={`M10 24 L${w - 10} 70`} stroke={color} strokeWidth={10} strokeLinecap="round" />
+      {['feel', 'size', 'look', 'color'].map((lb, i) => { const x = 18 + i * ((w - 36) / 4); return <g key={lb}><rect x={x} y={84} width={(w - 36) / 4 - 4} height={36} rx={4} fill={['#f3cf6b', '#8fd18f', '#9ec7f0', '#e8483b'][i]} stroke={INK} strokeWidth={2} /><text x={x + ((w - 36) / 4 - 4) / 2} y={106} textAnchor="middle" fontSize={8.5} fontWeight={800} fontFamily="Lexend, sans-serif" fill={INK}>{lb}</text></g>; })}
+      <g className="gwb-roll"><circle cx={30} cy={26} r={7} fill="#c8ced8" stroke={INK} strokeWidth={2} /></g>
+      <rect x={10} y={120} width={w - 20} height={6} fill="#6b7383" />
+    </g>;
+    case 'teleporter': return <g>
+      <Pipes w={w} />
+      {[0, 1, 2].map((i) => <ellipse key={i} className="gwb-ring-glow" cx={c} cy={104 - i * 26} rx={36 - i * 4} ry={7} fill="none" stroke={color} strokeWidth={3} style={{ animationDelay: `${i * 0.2}s` }} />)}
+      <ellipse cx={c} cy={112} rx={42} ry={10} fill={color} stroke={INK} strokeWidth={3} />
+      <text x={c} y={50} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={14} fill={INK}>he she it they</text>
+      <rect x={c - 30} y={120} width={60} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'detector': {
+      const closed = status === 'closed';
+      return <g>
+        <rect x={c - 4} y={44} width={8} height={80} fill="#6b7383" stroke={INK} strokeWidth={2} />
+        <rect x={c - 44} y={12} width={88} height={40} rx={6} fill={closed ? '#e8483b' : '#3fbf5a'} stroke={INK} strokeWidth={3} />
+        <text x={c} y={30} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={12} fill="#fff">{closed ? 'ROAD' : 'ROAD'}</text>
+        <text x={c} y={45} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={12} fill="#fff">{closed ? 'CLOSED' : 'OPEN'}</text>
+        <circle className={closed ? 'gwb-beacon' : undefined} cx={c} cy={64} r={7} fill={closed ? '#f3cf6b' : '#c8ced8'} stroke={INK} strokeWidth={2} />
+        <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+      </g>;
+    }
+    case 'flag': return <g>
+      <rect x={c - 22} y={10} width={6} height={114} fill="#6b7383" stroke={INK} strokeWidth={2} />
+      <g className="gwb-wave" style={{ transformOrigin: `${c - 16}px 14px` }}>{Array.from({ length: 12 }, (_, i) => <rect key={i} x={c - 16 + (i % 4) * 11} y={14 + Math.floor(i / 4) * 11} width={11} height={11} fill={(i + Math.floor(i / 4)) % 2 ? '#fff' : INK} />)}<rect x={c - 16} y={14} width={44} height={33} fill="none" stroke={INK} strokeWidth={2} /></g>
+      <rect x={c - 30} y={120} width={36} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
     default: return null;
   }
 }
 
-export default function MachinePart({ kind, word, empty = false, scale = 1 }: { kind: Kind; word: string | null; empty?: boolean; scale?: number }) {
+export default function MachinePart({ kind, word, empty = false, scale = 1, status }: { kind: Kind; word: string | null; empty?: boolean; scale?: number; status?: string }) {
   const info = kindInfo(kind);
   const w = partWidth(kind, word);
   const H = PART_H;
@@ -229,6 +352,6 @@ export default function MachinePart({ kind, word, empty = false, scale = 1 }: { 
     </>);
   }
   // A fun part that holds a word shows it on its plate (? until picked).
-  const plate = needsWord(kind) ? (word ?? (empty ? '?' : info.name.toLowerCase())) : info.name.toLowerCase();
-  return svg(<><Contraption kind={kind} w={w} color={base} /><Plate w={w} text={plate} y={140} blank={needsWord(kind) && empty} />{void dark}{void light}</>);
+  const plate = needsWord(kind) ? (word ?? (empty ? '?' : info.name.toLowerCase())) : kind === 'mood' ? (word === 'big' ? 'BIG!' : 'calm') : info.name.toLowerCase();
+  return svg(<><Contraption kind={kind} w={w} color={base} word={word} status={status} /><Plate w={w} text={plate} y={140} blank={needsWord(kind) && empty} />{void dark}{void light}</>);
 }

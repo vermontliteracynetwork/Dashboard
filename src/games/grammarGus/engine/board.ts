@@ -1,5 +1,6 @@
 import type { Draft, HelpLevel, Marks, Tense, Token, VerbForm } from './types';
-import { markOf, wordPosOf, type Kind } from '../ui/board/parts';
+import { isFront, markOf, wordPosOf, type Kind } from '../ui/board/parts';
+import { TIME_TENSE } from '../data/timeWords';
 import { pluralNounOf } from './dictionary';
 
 // The Workboard's machine lines (teacher 2026-10-07). A line is a row of
@@ -15,49 +16,84 @@ import { pluralNounOf } from './dictionary';
 export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm }
 export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean }; connector?: string }
 
-export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN';
-export const tenseOf = (line: BoardLine): Tense => (line.items.find((i) => i.kind === 'clock')?.word as Tense | undefined) ?? 'present';
+export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT';
+// The Time Tunnel's time word sets the time; otherwise the Clock does.
+export const tenseOf = (line: BoardLine): Tense => {
+  const tw = line.items.find((i) => i.kind === 'tunnel' && i.word)?.word;
+  return (tw && TIME_TENSE.get(tw.toLowerCase())) || ((line.items.find((i) => i.kind === 'clock')?.word as Tense | undefined) ?? 'present');
+};
 export interface LineRead { draft: Draft; tokenIds: string[]; problems: { code: FinishProblem; itemId?: string }[]; hasTV: boolean }
+// The mark an item makes (the Mood Meter Valve's depends on its setting).
+export const itemMark = (it: BoardItem) => (it.kind === 'mood' ? (it.word === 'big' ? 'bang' : 'stop') : markOf(it.kind));
+// Front parts (Confetti Trapdoor, Time Tunnel, Opener Slingshot) only
+// work at the very front of the sentence, in the order they are snapped
+// (teacher 2026-10-07: "everything snaps to click in the machine, in the
+// right order in order to run").
 
 export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true): LineRead {
   const tokens: Token[] = []; const tokenIds: string[] = [];
   const marks: Marks = { capitals: [], endMark: null, shoutMark: false, commas: [] };
   const problems: LineRead['problems'] = [];
-  const lastWord = line.items.reduce((m, it, i) => (wordPosOf(it.kind) ? i : m), -1);
-  let pendingCap = false;
+  const items = line.items;
+  const mustFinish = requireFinish || items.some((i) => i.kind === 'flag');
+  const lastWord = items.reduce((m, it, i) => (wordPosOf(it.kind) ? i : m), -1);
+  let pendingCap = false; let capAfterShout = false; let mainStarted = false;
   let pendingCopy: string | null = null;
   const commaAt: { tok: number; id: string }[] = [];
-  line.items.forEach((it, i) => {
-    const pos = wordPosOf(it.kind); const mark = markOf(it.kind);
+  items.forEach((it, i) => {
+    const pos = wordPosOf(it.kind); const mark = itemMark(it);
     if (pos) {
       if (!it.word) problems.push({ code: 'EMPTY_PART', itemId: it.id });
-      if (pendingCap) marks.capitals.push(tokens.length);
-      pendingCap = false;
+      if (isFront(it.kind)) { if (mainStarted) problems.push({ code: 'NOT_FRONT', itemId: it.id }); } else mainStarted = true;
+      if (pendingCap || capAfterShout) marks.capitals.push(tokens.length);
+      pendingCap = false; capAfterShout = false;
       let word = it.word;
       if (pos === 'N' && pendingCopy) { if (word) word = pluralNounOf(word); pendingCopy = null; }
       tokens.push({ pos, word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
       tokenIds.push(it.id);
+      // The Trapdoor's shout comes with its "!" and a capital letter after it;
+      // the Slingshot and Time Tunnel bring their comma.
+      if (it.kind === 'trapdoor') { marks.shoutMark = true; capAfterShout = true; }
+      else if (isFront(it.kind) && it.word) marks.commas.push(tokens.length - 1);
     } else if (mark === 'cap') pendingCap = true;
     else if (mark === 'plural') pendingCopy = it.id;
-    else if (mark === 'comma') { if (tokens.length) { marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: it.id }); } else problems.push({ code: 'COMMA_PLACE', itemId: it.id }); }
-    else if (mark === 'stop' || mark === 'bang') {
+    else if (mark === 'comma') {
+      if (tokens.length) { marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: it.id }); } else problems.push({ code: 'COMMA_PLACE', itemId: it.id });
+      // The Comma Drawbridge only lowers right before a joining word.
+      if (it.kind === 'bridge') { const nx = items.slice(i + 1).find((x) => wordPosOf(x.kind)); if (!nx || wordPosOf(nx.kind) !== 'C') problems.push({ code: 'BRIDGE_UP', itemId: it.id }); }
+    } else if (mark === 'stop' || mark === 'bang') {
       if (i > lastWord) marks.endMark = mark === 'stop' ? '.' : '!';
-      else if (mark === 'bang' && tokens[tokens.length - 1]?.pos === 'I') marks.shoutMark = true;
+      else if (mark === 'bang' && tokens[tokens.length - 1]?.pos === 'I') { marks.shoutMark = true; capAfterShout = true; }
       else problems.push({ code: 'END_NOT_LAST', itemId: it.id });
-    } else if (it.kind === 'tv' && line.items.slice(i + 1).some((x) => wordPosOf(x.kind) || markOf(x.kind))) problems.push({ code: 'TV_NOT_LAST', itemId: it.id });
+    } else if (it.kind === 'tv' && items.slice(i + 1).some((x) => wordPosOf(x.kind) || markOf(x.kind))) problems.push({ code: 'TV_NOT_LAST', itemId: it.id });
   });
   // A comma after the last word is a pause before nothing.
   const tail = commaAt.find((c) => c.tok === tokens.length - 1);
   if (tail) problems.push({ code: 'COMMA_PLACE', itemId: tail.id });
   if (pendingCopy) problems.push({ code: 'COPY_NO_NOUN', itemId: pendingCopy });
-  const hasTV = line.items.some((it) => it.kind === 'tv');
+  // The Dead-End Detector: every where word needs a noun after it.
+  if (items.some((i) => i.kind === 'detector')) for (const id of deadEnds(line)) problems.push({ code: 'DEAD_END', itemId: id });
+  const hasTV = items.some((it) => it.kind === 'tv');
   if (!tokens.length) problems.unshift({ code: 'NO_WORDS' });
-  if (requireFinish && tokens.length) {
+  if (mustFinish && tokens.length) {
     if (!marks.capitals.includes(0)) problems.push({ code: 'NEED_CAP' });
     if (!marks.endMark) problems.push({ code: 'NEED_END' });
     if (!hasTV) problems.push({ code: 'NEED_TV' });
   }
   return { draft: { tokens, tense: tenseOf(line), level, marks }, tokenIds, problems, hasTV };
+}
+
+// Where words (prepositions) with no noun landing after them.
+export function deadEnds(line: BoardLine): string[] {
+  const out: string[] = [];
+  const items = line.items.filter((i) => wordPosOf(i.kind));
+  items.forEach((it, k) => {
+    if (wordPosOf(it.kind) !== 'P') return;
+    let landed = false;
+    for (const nx of items.slice(k + 1)) { const p = wordPosOf(nx.kind); if (p === 'N' || p === 'R') { landed = true; break; } if (p === 'V' || p === 'P' || p === 'C') break; }
+    if (!landed) out.push(it.id);
+  });
+  return out;
 }
 
 // Gus's words for each finishing problem (kid words, never a trap).
@@ -70,6 +106,9 @@ export const FINISH_LINES: Record<FinishProblem, { joke: string; fix: string }> 
   END_NOT_LAST: { joke: 'End punctuation in the middle? The sentence would trip over it.', fix: 'Move the punctuation to the end of the sentence.' },
   TV_NOT_LAST: { joke: 'The TV is stuck in the middle of the pipes.', fix: 'Move the Pixel TV after the words and punctuation.' },
   COMMA_PLACE: { joke: 'A comma with no word on one side? That is a pause for nothing.', fix: 'A comma goes right after a word, with more words after it.' },
+  BRIDGE_UP: { joke: 'The drawbridge is stuck up. It only comes down right before a joining word.', fix: 'Put the Comma Drawbridge right before and, but or or.' },
+  NOT_FRONT: { joke: 'That part only launches from the very front of the sentence. In the middle it just wobbles.', fix: 'Snap it at the front, right after the capital letter part.' },
+  DEAD_END: { joke: 'ROAD CLOSED! A where word with nowhere to land.', fix: 'Put a noun after the where word: on the mat, under the bed.' },
   COPY_NO_NOUN: { joke: 'The Duplicator is copying... nothing. Very tidy, very useless.', fix: 'Put a noun machine after the Duplicator so it can make more than one.' },
 };
 

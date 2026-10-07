@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-gadgets',
+    date: '2026-10-07',
+    icon: '🔧',
+    title: '14 new machine parts',
+    body: "Turn the Clock to Past or Future and watch the action words change. New parts: the Time Tunnel (long ago, next week), the Mood Meter (calm or BIG feelings), the Confetti Trapdoor, the Slingshot, the How-Dial that makes the marble creep or zoom, the Merge Funnel, the Comma Drawbridge, and Helper Gadgets that sniff out a and an, sort describing words and zap repeated nouns into he, she, it or they. Snap every part in the right order or the machine will not run!",
+  },
+  {
     id: '2026-10-07-gus-fun-parts',
     date: '2026-10-07',
     icon: '📯',

@@ -89,10 +89,15 @@ export function compose(draft: Draft): Composed {
   const full = draft.level === 'full';
   const tokens = draft.level === 'challenge' ? draft.tokens : autoFixWords(draft.tokens, a);
   const forms = expectedForms(draft, a);
-  const marks: Marks = full ? autoMarks(draft, a) : {
-    ...(draft.marks ?? { capitals: [], endMark: null, shoutMark: false, commas: [] }),
+  // At Full help the engine places the marks, but a Workboard student's own
+  // end punctuation (a Big Horn "!") and extra commas (the Comma
+  // Drawbridge) still show.
+  const own = draft.marks;
+  const auto = full ? autoMarks(draft, a) : null;
+  const marks: Marks = auto ? { ...auto, endMark: own?.endMark ?? auto.endMark, commas: [...new Set([...auto.commas, ...(own?.commas ?? [])])], shoutMark: auto.shoutMark || !!own?.shoutMark } : {
+    ...(own ?? { capitals: [], endMark: null, shoutMark: false, commas: [] }),
     // Guided: the engine still places commas and the shout mark.
-    ...(draft.level === 'guided' ? { commas: requiredCommas(a), shoutMark: a.shout !== undefined } : {}),
+    ...(draft.level === 'guided' ? { commas: [...new Set([...requiredCommas(a), ...(own?.commas ?? [])])], shoutMark: a.shout !== undefined } : {}),
   };
   const capitals = new Set(marks.capitals);
   const commas = new Set(marks.commas);

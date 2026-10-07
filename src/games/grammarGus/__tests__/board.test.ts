@@ -42,8 +42,8 @@ describe('workboard lines', () => {
 // Fun parts with a grammar job (teacher 2026-10-07: "make sure all fun parts
 // have a grammatical purpose").
 describe('fun parts do grammar', () => {
-  it('every fun part holds a word or makes a mark', () => {
-    for (const k of CONTRAPTIONS) expect(!!FUN_ROLE[k].pos !== !!FUN_ROLE[k].mark).toBe(true);
+  it('every fun part holds a word, makes a mark, or is a helper gadget (exactly one job)', () => {
+    for (const k of CONTRAPTIONS) expect([FUN_ROLE[k].pos, FUN_ROLE[k].mark, FUN_ROLE[k].tool].filter(Boolean).length).toBe(1);
   });
   it('word fun parts are words; Pulley, Bell and Dominoes are capital letter, period and comma', () => {
     const r = readLine(line([part('pulley'), part('bucket', 'the'), part('spring', 'fuzzy'), part('N', 'cat'), part('V', 'run'), part('fan', 'quickly'), part('dominoes'), part('conveyor', 'and'), part('A', 'the'), part('N', 'dog'), part('V', 'sit'), part('bell'), part('tv')]), 'full');
