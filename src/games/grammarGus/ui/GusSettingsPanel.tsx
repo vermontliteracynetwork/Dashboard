@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../../store/store';
 import { GUS_SETTINGS_OWNER, useGusSettings, type GusSettings } from '../settings';
 import type { HelpLevel } from '../engine/types';
@@ -12,6 +13,7 @@ const LEVELS: { id: HelpLevel; label: string; hint: string }[] = [
 ];
 
 export default function GusSettingsPanel() {
+  const navigate = useNavigate();
   const settings = useGusSettings();
   const students = useStore((s) => s.students);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -22,6 +24,10 @@ export default function GusSettingsPanel() {
   return (
     <section className="chrome-frame stack" style={{ padding: 16, gap: 12 }}>
       <h2 style={{ margin: 0 }}>🧪 Grammar Gus's Contraption</h2>
+      <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
+        <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => navigate('/teacher/grammar-gus')}>🖥️ Open my Workboard (share live with a code)</button>
+        <span style={{ opacity: 0.8 }}>Use it on your screen, or tap 📡 Share to give students a 4-number code. You can lock their screens to view only.</span>
+      </div>
       <p style={{ margin: 0, opacity: 0.8 }}>How much the machine does for each student, and how strict Gus's star review is. Changes reach students right away.</p>
       <div className="stack" style={{ gap: 8 }}>
         <strong>Grammar Help level</strong>

@@ -111,7 +111,9 @@ export function beText(tokens: Token[], a: Analysis, vi: number, form: VerbForm)
   return plural ? 'are' : 'is';
 }
 
-export function compose(draft: Draft): Composed {
+// plain: show only the marks the student snapped on (the Workboard's
+// sentence plate during guess and check, so it never gives the answer).
+export function compose(draft: Draft, plain = false): Composed {
   const a = analyze(draft.tokens);
   const full = draft.level === 'full';
   const tokens = draft.level === 'challenge' ? draft.tokens : autoFixWords(draft.tokens, a);
@@ -120,11 +122,11 @@ export function compose(draft: Draft): Composed {
   // end punctuation (a Big Horn "!") and extra commas (the Comma
   // Drawbridge) still show.
   const own = draft.marks;
-  const auto = full ? autoMarks(draft, a) : null;
+  const auto = full && !plain ? autoMarks(draft, a) : null;
   const marks: Marks = auto ? { ...auto, endMark: own?.endMark ?? auto.endMark, commas: [...new Set([...auto.commas, ...(own?.commas ?? [])])], shoutMark: auto.shoutMark || !!own?.shoutMark } : {
     ...(own ?? { capitals: [], endMark: null, shoutMark: false, commas: [] }),
     // Guided: the engine still places commas and the shout mark.
-    ...(draft.level === 'guided' ? { commas: [...new Set([...requiredCommas(a, draft.tokens), ...(own?.commas ?? [])])], shoutMark: a.shout !== undefined } : {}),
+    ...(draft.level === 'guided' && !plain ? { commas: [...new Set([...requiredCommas(a, draft.tokens), ...(own?.commas ?? [])])], shoutMark: a.shout !== undefined } : {}),
   };
   const capitals = new Set(marks.capitals);
   const commas = new Set(marks.commas);

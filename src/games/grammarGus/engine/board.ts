@@ -2,7 +2,8 @@ import type { Draft, HelpLevel, Marks, Tense, Token, VerbForm } from './types';
 import { isFront, markOf, wordPosOf, type Kind } from '../ui/board/parts';
 import { TIME_TENSE } from '../data/timeWords';
 import type { OrderCard, SceneKey } from './orders';
-import { compose } from './compose';
+import { compose, requiredCommas } from './compose';
+import { analyze } from './analyze';
 import { questionOf, quoteOf } from './question';
 import { canCompare, compareOf, pluralNounOf, possessiveOf } from './dictionary';
 
@@ -22,7 +23,7 @@ export interface BoardItem { id: string; kind: Kind; word: string | null; form?:
 export const allParts = (items: BoardItem[]): BoardItem[] => items.flatMap((i) => [i, ...(i.top ? [i.top] : []), ...(i.bottom ? [i.bottom] : [])]);
 export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector' | 'order' | 'blueprint' | 'spark'; text: string; flaw?: string; done?: boolean; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }; connector?: string }
 
-export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA' | 'NO_SIZES';
+export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA' | 'NO_SIZES' | 'NEED_COMMA';
 // The Time Tunnel's time word sets the time; otherwise the Clock does.
 export const tenseOf = (line: BoardLine): Tense => {
   const tw = line.items.find((i) => i.kind === 'tunnel' && i.word)?.word;
@@ -107,6 +108,13 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
     if (!marks.capitals.includes(Math.max(0, tokens.findIndex((t) => !t.hidden)))) problems.push({ code: 'NEED_CAP' });
     if (!marks.endMark) problems.push({ code: 'NEED_END' });
     if (!hasTV) problems.push({ code: 'NEED_TV' });
+    // Guess and check (teacher 2026-10-07): "if they're making a compound
+    // sentence and they need a comma, that needs to be put in there." The
+    // machine only runs once every comma it needs is snapped on.
+    if (tokens.every((t) => t.word)) {
+      const a = analyze(tokens);
+      if (a.parse.viable) for (const k of requiredCommas(a, tokens)) if (!marks.commas.includes(k) && k < tokens.length - 1) problems.push({ code: 'NEED_COMMA', itemId: tokenIds[k] });
+    }
   }
   const draft: Draft = { tokens, tense: tenseOf(line), level, marks };
   if (crane && question && tokens.every((t) => t.word) && !questionOf(draft)) problems.push({ code: 'CRANE_ONE_IDEA', itemId: crane.id });
@@ -116,10 +124,10 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
 // The sentence as it reads on the plate, the TV caption and the Journal:
 // the Question Crane flips it into a question, the Speech Bubble Blower
 // wraps it in quotation marks.
-export function lineText(line: BoardLine, rd: LineRead): string {
+export function lineText(line: BoardLine, rd: LineRead, plain = false): string {
   if (!rd.draft.tokens.some((t) => t.word)) return '';
   const crane = line.items.some((i) => i.kind === 'crane');
-  let text = (rd.question && crane ? questionOf(rd.draft) : null) ?? compose(rd.draft).text;
+  let text = (rd.question && crane ? questionOf(rd.draft) : null) ?? compose(rd.draft, plain).text;
   if (rd.question && !crane) text = text.replace(/[.!]$/, '?');
   const bubble = line.items.find((i) => i.kind === 'bubble');
   if (bubble?.word && /[.!?]$/.test(text)) text = quoteOf(text, bubble.word, rd.question);
@@ -148,6 +156,7 @@ export const FINISH_LINES: Record<FinishProblem, { joke: string; fix: string }> 
   NEED_TV: { joke: 'Lovely sentence. But where will the movie play?', fix: 'Plug a Pixel TV onto the very end.' },
   END_NOT_LAST: { joke: 'End punctuation in the middle? The sentence would trip over it.', fix: 'Move the punctuation to the end of the sentence.' },
   TV_NOT_LAST: { joke: 'The TV is stuck in the middle of the pipes.', fix: 'Move the Pixel TV after the words and punctuation.' },
+  NEED_COMMA: { joke: 'The marble zipped right past a spot where it needed to pause.', fix: 'Snap a comma on top of the glowing word.' },
   COMMA_PLACE: { joke: 'A comma with no word on one side? That is a pause for nothing.', fix: 'A comma goes right after a word, with more words after it.' },
   BRIDGE_UP: { joke: 'The drawbridge is stuck up. It only comes down right before a joining word.', fix: 'Put the Comma Drawbridge right before and, but or or.' },
   WRONG_HOST: { joke: 'That part is snapped onto the wrong kind of word. It looks very confused.', fix: 'The Tag Gun goes under a noun. The Size-Up Inflator goes under a describing word.' },

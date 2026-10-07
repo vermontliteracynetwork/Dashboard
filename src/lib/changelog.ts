@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-live-join',
+    date: '2026-10-07',
+    icon: '🔗',
+    title: "Join your class machine",
+    body: "Tap Join at the top of Gus's Workboard and type the 4 numbers your teacher shows you. You will see the class machine live! When your teacher unlocks it, you can build it together.",
+  },
+  {
+    id: '2026-10-07-gus-guess-check',
+    date: '2026-10-07',
+    icon: '💡',
+    title: 'Guess, check and hints',
+    body: "Gus's machines are now a puzzle, like Scratch. If your machine will not run, Gus says hmm and lets you try again. Still stuck? Tap Yes, a hint and a see-through ghost shows where a part goes, like a comma. Then you drag the real part on yourself!",
+  },
+  {
     id: '2026-10-07-gus-mini-machines',
     date: '2026-10-07',
     icon: '🚂',

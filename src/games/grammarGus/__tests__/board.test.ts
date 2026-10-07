@@ -87,3 +87,17 @@ describe('parts snapped on top and bottom', () => {
     expect(early.problems.map((p) => p.code)).toEqual(['END_NOT_LAST']);
   });
 });
+
+describe('guess and check: the machine needs its commas (teacher 2026-10-07)', () => {
+  it('a compound sentence will not run until the comma is snapped on', () => {
+    const cat = part('N', 'cat'); const sat = part('V', 'run'); const dog = part('N', 'girl'); const ran = part('V', 'sing');
+    const items = [part('cap'), part('A', 'the'), cat, sat, part('C', 'and'), part('A', 'the'), dog, ran, part('stop'), part('tv')];
+    const r = readLine(line(items), 'full');
+    expect(r.problems).toEqual([{ code: 'NEED_COMMA', itemId: sat.id }]);
+    const fixed = items.map((it) => (it === sat ? { ...it, top: part('comma') } : it));
+    expect(readLine(line(fixed), 'full').problems).toEqual([]);
+  });
+  it('commas are not asked for while the machine is still being built', () => {
+    expect(readLine(line([part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('C', 'and'), part('A', 'the'), part('N', 'girl'), part('V', 'sing')]), 'full', false).problems).toEqual([]);
+  });
+});

@@ -208,6 +208,7 @@ export default function App() {
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />
             <Route path="/teacher/scores" element={<ScoreHistory />} />
             <Route path="/teacher/sel-checkins" element={<SelCheckInLog />} />
+            <Route path="/teacher/grammar-gus" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the machine…</p></div>}><GusWorkboard host /></Suspense>} />
             <Route
               path="/teacher/style"
               element={

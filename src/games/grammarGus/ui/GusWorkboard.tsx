@@ -32,6 +32,7 @@ import { useGusSettings, levelFor } from '../settings';
 import GusGuide from './GusGuide';
 import PixelCinema from './PixelCinema';
 import { gusSound, setGusMuted } from './sound';
+import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
 import MachinePart from './board/MachinePart';
 import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, EXAMPLES, type Kind, type Job } from './board/parts';
 import type { SceneScript } from '../director/director';
@@ -78,6 +79,7 @@ const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProb
   { id: 'order', label: 'Parts snapped in the right order', hint: 'Front parts at the front, punctuation at the end, a comma right after a word.', codes: ['NOT_FRONT', 'BRIDGE_UP', 'COMMA_PLACE', 'COPY_NO_NOUN', 'DEAD_END', 'TV_NOT_LAST', 'END_NOT_LAST'] },
   { id: 'cap', label: 'Capital letter under the first word', hint: 'Snap a Capital Letter Press under the first word.', codes: ['NEED_CAP'], finish: true },
   { id: 'end', label: 'Punctuation at the end', hint: 'Snap a period or exclamation point on the end, or on top of the last word.', codes: ['NEED_END'], finish: true },
+  { id: 'commas', label: 'Commas where the machine pauses', hint: 'Some sentences need a pause. Snap a comma on top of the word right before the pause.', codes: ['NEED_COMMA'], finish: true },
   { id: 'tv', label: 'Pixel TV on the end', hint: 'Plug a Pixel TV on the very end.', codes: ['NEED_TV'], finish: true },
 ];
 type Tested = { sig: string; rows: { id: string; label: string; hint: string; state: 'pass' | 'fix' | 'auto' }[]; review: Review | null };
@@ -97,6 +99,11 @@ function rigLamps(line: BoardLine, rd: { draft: Draft }): string {
   const why = t.some((x) => x.pos === 'C' && ['because', 'so', 'if'].includes((x.word ?? '').toLowerCase()));
   return [has('N') || has('R'), has('V'), when, has('P'), why, t.some((x) => x.pos === 'D' && !['then'].includes((x.word ?? '').toLowerCase()))].map((b) => (b ? '1' : '0')).join('');
 }
+type Hint = { text: string; ghosts: FinishProblem[]; commaOn: string[]; pulse: string[]; glow?: Kind };
+const FIRST_MISS = ["Hmm, that's not right. Try that again.", 'Hmm. You might be missing something.', 'Sputter, cough... Not quite yet. Look over your machine and try again.', 'Hmm, the marble got stuck. Something is not right yet. Try again.'];
+const STILL_STUCK = ["Looks like you're still trying to figure it out. Would you like a hint?", 'Still stuck? That is how inventors work. Would you like a hint?'];
+const GATE_GLOW: Partial<Record<Violation, Kind>> = { NO_COMMA: 'comma', NO_CAPITAL: 'cap', NO_END_MARK: 'stop', NO_SHOUT_MARK: 'bang' };
+const FINISH_GLOW: Partial<Record<FinishProblem, Kind>> = { NEED_CAP: 'cap', NEED_END: 'stop', NEED_TV: 'tv', NEED_COMMA: 'comma' };
 const sigOf = (l: BoardLine) => JSON.stringify([l.items, l.connector]);
 const SORTS: { id: Sort; label: string }[] = [{ id: 'job', label: 'By job' }, { id: 'order', label: 'Sentence order' }, { id: 'color', label: 'By color' }, { id: 'az', label: 'A to Z' }];
 const JOB_ORDER: Job[] = ['power', 'time', 'shout', 'who', 'did', 'where', 'join', 'finish', 'paragraph', 'contraption', 'gadget'];
@@ -203,11 +210,14 @@ type DragView =
   | { kind: 'line'; lineId: string; target: string | null };
 type Dict = { q: string; pos: DictPos; result: TypedCheck | 'checking' } | null;
 
-export default function GusWorkboard() {
+// host: the teacher's own Workboard (Game tab), which can share a live
+// class machine by a 4-number code.
+export default function GusWorkboard({ host = false }: { host?: boolean } = {}) {
   useLockBodyScroll();
   const navigate = useNavigate();
-  const studentId = useStore((s) => s.currentStudentId);
-  const row = useStore((s) => (s.currentStudentId ? s.styleLooks.find((r) => r.ownerId === gusOwner(s.currentStudentId!)) : undefined));
+  const signedIn = useStore((s) => s.currentStudentId);
+  const studentId = host ? null : signedIn;
+  const row = useStore((s) => (studentId ? s.styleLooks.find((r) => r.ownerId === gusOwner(studentId)) : undefined));
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const saved = (row?.look as GusRow | undefined) ?? {};
   const settings = useGusSettings();
@@ -246,7 +256,16 @@ export default function GusWorkboard() {
   const [journalOpen, setJournalOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [sessionGears, setSessionGears] = useState(0);
-  const [offerFix, setOfferFix] = useState<string | null>(null);
+  // Guess and check (teacher 2026-10-07): "Gus should not give the answer
+  // right away." The first miss only says hmm; the second offers a hint
+  // button; the hint shows a see-through ghost of the missing part, and the
+  // student drags the real part on from the parts menu.
+  const tries = useRef<Record<string, number>>({});
+  const pendingHint = useRef<Record<string, Hint>>({});
+  const [hintOffer, setHintOffer] = useState<string | null>(null);
+  const [hinted, setHinted] = useState<Record<string, boolean>>({});
+  const [commaGhost, setCommaGhost] = useState<Record<string, string[]>>({});
+  const [cough, setCough] = useState<{ lineId: string; key: number } | null>(null);
   const [spinning, setSpinning] = useState<string | null>(null);
   // Collapsible categories in the parts menu, remembered on this iPad.
   const [folds, setFolds] = useState<string[]>(() => { try { const f = localStorage.getItem('gus-folds'); if (f) return JSON.parse(f) as string[]; } catch { /* fine */ } return ['contraption', 'gadget']; });
@@ -282,6 +301,20 @@ export default function GusWorkboard() {
   const [shelfOpen, setShelfOpen] = useState(false);
   const [gus, setGus] = useState({ message: `${pick(makeRng(Date.now()), GREETINGS)} Here is a blank word space. Drag a part from the parts menu on the left onto it, or tap a part.`, mood: 'Hello', key: 'hello' });
   const say = (message: string, mood: string) => setGus({ message, mood, key: `${mood}-${message}-${Date.now()}` });
+  // Live share (teacher 2026-10-07): the teacher shares a class machine by a
+  // 4-number code; students Join and watch it (locked) or build on it with
+  // her (unlocked). See ../live.ts.
+  const [live, setLive] = useState<{ code: string; role: 'host' | 'guest'; locked: boolean; students: number } | null>(null);
+  const liveRef = useRef(live); liveRef.current = live;
+  const room = useRef<LiveRoom | null>(null);
+  const remoteSig = useRef(''); // the last board that came from the room, never echoed back
+  const liveRev = useRef(0);
+  const ownBoard = useRef<BoardLine[] | null>(null);
+  const me = useRef(uid());
+  const [liveOpen, setLiveOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinMsg, setJoinMsg] = useState('');
+  const guestLocked = live?.role === 'guest' && live.locked;
 
   const boardRef = useRef<HTMLDivElement>(null);
   const linesRef = useRef(lines); linesRef.current = lines;
@@ -294,7 +327,7 @@ export default function GusWorkboard() {
   useEffect(() => { setGusMuted(muted); speechOff = muted; }, [muted]);
 
   // Autosave: the board comes back next time (per student, on this iPad).
-  const saveKey = `gus-board2-${studentId ?? 'guest'}`;
+  const saveKey = `gus-board2-${host ? 'teacher' : studentId ?? 'guest'}`;
   const restored = useRef(false);
   const fitRef = useRef(() => {});
   useEffect(() => {
@@ -304,6 +337,7 @@ export default function GusWorkboard() {
     if (!hadView) requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
   }, [saveKey]);
   useEffect(() => {
+    if (liveRef.current?.role === 'guest') return; // the class machine is not saved over a student's own board
     const t = window.setTimeout(() => { try { localStorage.setItem(saveKey, JSON.stringify({ lines, view, spare })); } catch { /* fine */ } }, 400);
     return () => window.clearTimeout(t);
   }, [lines, view, spare, saveKey]);
@@ -426,23 +460,6 @@ export default function GusWorkboard() {
     if (code) setGhosts((g) => ({ ...g, [lineId]: (g[lineId] ?? []).filter((x) => x !== code) }));
   };
   const addGhostPart = (lineId: string, k: Kind) => { const l = linesRef.current.find((x) => x.id === lineId); if (!l) return; const item = { id: uid(), kind: k, word: null }; const first = l.items.find((i) => needsWord(i.kind)); if (k === 'cap' && first) attachTo(lineId, first.id, 'bottom', item); else insertItem(lineId, smartIndex(l, k), item); clearGhost(lineId, k); bounce(item.id); gusSound.snap(); say(`${kindInfo(k).name} plugged in. Very good.`, 'Clunk!'); };
-  const fixFinishing = (lineId: string) => {
-    const l = linesRef.current.find((x) => x.id === lineId); if (!l) return;
-    let items = [...l.items];
-    const rd = readLine(l, level, true);
-    if (!items.some((i) => i.kind === 'lever')) items = [{ id: uid(), kind: 'lever', word: null }, ...items];
-    if (rd.problems.some((p) => p.code === 'NEED_CAP')) {
-      // The Capital Letter Press goes under the first word.
-      const old = items.find((i) => markOf(i.kind) === 'cap'); if (old) items = items.filter((i) => i !== old);
-      const f = items.findIndex((i) => needsWord(i.kind));
-      if (f >= 0) items[f] = { ...items[f], bottom: old ?? items[f].bottom ?? { id: uid(), kind: 'cap', word: null } };
-    }
-    if (rd.problems.some((p) => p.code === 'NEED_END')) { const tv = items.findIndex((i) => i.kind === 'tv' || i.kind === 'link'); items.splice(tv >= 0 ? tv : items.length, 0, { id: uid(), kind: 'stop', word: null }); }
-    if (rd.problems.some((p) => p.code === 'NEED_TV')) { const link = items.findIndex((i) => i.kind === 'link'); items.splice(link >= 0 ? link : items.length, 0, { id: uid(), kind: 'tv', word: null }); }
-    editLine(lineId, (x) => ({ ...x, items }));
-    setGhosts((g) => ({ ...g, [lineId]: [] })); setOfferFix(null); gusSound.snap();
-    say('There. Bolted on. Pull the Start Lever!', 'Fixed');
-  };
 
   // ---- gestures --------------------------------------------------------------
   // A second finger (or a palm) during a drag never steals the part.
@@ -654,8 +671,36 @@ export default function GusWorkboard() {
     return out;
   };
   const paragraphOf = (lineId: string) => paragraphs(linesRef.current).find((p) => p.some((l) => l.id === lineId)) ?? [];
+  // A miss: the machine coughs. First try, Gus only says hmm; from the
+  // second try on he offers a hint (teacher 2026-10-07).
+  const missed = (lineId: string, hint: Hint, notes: string) => {
+    pendingHint.current[lineId] = hint;
+    const n = (tries.current[lineId] ?? 0) + 1; tries.current[lineId] = n;
+    setGhosts((g) => ({ ...g, [lineId]: [] })); setCommaGhost((c) => ({ ...c, [lineId]: [] })); setHinted((h) => ({ ...h, [lineId]: false }));
+    setPulse([]); setGlowKind(null);
+    setCough({ lineId, key: Date.now() }); timers.current.push(window.setTimeout(() => setCough((c) => (c?.lineId === lineId ? null : c)), 1400));
+    gusSound.steam(); if (!calm) gusSound.puff();
+    const rng = makeRng(Date.now());
+    if (n === 1) { setHintOffer(null); say(`${notes ? `${notes} ` : ''}${pick(rng, FIRST_MISS)}`, 'Hmm...'); }
+    else { setHintOffer(lineId); say(`${notes ? `${notes} ` : ''}${pick(rng, STILL_STUCK)}`, 'Need a hint?'); }
+  };
+  const showHint = (lineId: string) => {
+    const h = pendingHint.current[lineId]; if (!h) return;
+    setHintOffer(null); setHinted((x) => ({ ...x, [lineId]: true })); setSelLine(lineId);
+    const showGhost = level !== 'challenge' && (h.ghosts.length > 0 || h.commaOn.length > 0);
+    if (level !== 'challenge') {
+      setGhosts((g) => ({ ...g, [lineId]: h.ghosts })); setCommaGhost((c) => ({ ...c, [lineId]: h.commaOn }));
+      if (h.glow) { setGlowKind(h.glow); setDrawerOpen(true); setFolds((f) => f.filter((j) => j !== kindInfo(h.glow!).job)); }
+    }
+    setPulse([...h.pulse, ...h.commaOn]);
+    // Make room so a comma ghost on top of a word is not cut off at the top.
+    const hl = linesRef.current.find((l) => l.id === lineId);
+    if (hl && h.commaOn.length && level !== 'challenge') { const v = viewRef.current; const top = (hl.y - ATT_H - 14) * v.z + v.y; if (top < 8) setView({ ...v, y: v.y + 8 - top }); }
+    gusSound.ding();
+    say(`Hint: ${h.text}${showGhost ? ' The see-through ghost shows where it goes. Drag the real part on from the parts menu.' : ''}`, '💡 Hint');
+  };
   const run = (line0: BoardLine) => {
-    if (running.current) return;
+    if (running.current || (liveRef.current?.role === 'guest' && liveRef.current.locked)) return;
     setMenu(null); setSelLine(line0.id);
     // Helper gadgets check and fix their grammar job first, out loud.
     let line = line0;
@@ -687,7 +732,7 @@ export default function GusWorkboard() {
     const record = (review: Review | null) => {
       const rows: Tested['rows'] = [
         ...MACHINE_ROWS.map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: (m.finish && !finishOn ? 'auto' : m.codes.some((c) => codes.has(c)) ? 'fix' : 'pass') as 'pass' | 'fix' | 'auto' })),
-        ...sentence.items.filter((it) => it.id !== 'capital' && it.id !== 'end').map((it) => ({ id: it.id, label: it.label, hint: it.hint, state: (it.status === 'done' ? 'pass' : it.status === 'auto' ? 'auto' : 'fix') as 'pass' | 'fix' | 'auto' })),
+        ...sentence.items.filter((it) => it.id !== 'capital' && it.id !== 'end' && it.id !== 'comma').map((it) => ({ id: it.id, label: it.label, hint: it.hint, state: (it.status === 'done' ? 'pass' : it.status === 'auto' ? 'auto' : 'fix') as 'pass' | 'fix' | 'auto' })),
       ];
       setTests((t) => ({ ...t, [line.id]: { sig: sigOf(line), rows, review } }));
       setQuiz((q) => { const n = { ...q }; delete n[line.id]; return n; });
@@ -695,20 +740,25 @@ export default function GusWorkboard() {
     record(null);
     if (rd.problems.length) {
       const p = rd.problems[0];
-      const fin = rd.problems.filter((x) => x.code === 'NEED_CAP' || x.code === 'NEED_END' || x.code === 'NEED_TV').map((x) => x.code);
-      // The fade ladder (Claudia's Phase 1): Full shows the missing spots and
-      // offers "Add it for me"; Guided shows the spots; Challenge only says
-      // something is missing.
-      if (fin.length && level !== 'challenge') { setGhosts((g) => ({ ...g, [line.id]: fin })); if (level === 'full') setOfferFix(line.id); }
-      setPulse(level === 'challenge' && fin.includes(p.code as 'NEED_CAP') ? [] : rd.problems.map((x) => x.itemId).filter(Boolean) as string[]);
-      gusSound.steam();
+      // Still building (an empty machine or a ? word): say so plainly.
+      if (p.code === 'NO_WORDS' || p.code === 'EMPTY_PART') {
+        setPulse(rd.problems.map((x) => x.itemId).filter(Boolean) as string[]);
+        const l = FINISH_LINES[p.code];
+        say(`${l.joke} ${l.fix}`, 'Not built yet');
+        return;
+      }
       const l = FINISH_LINES[p.code];
-      if (level === 'challenge' && fin.length && fin.includes(p.code as 'NEED_CAP')) say(`${gadgetNotes ? `${gadgetNotes} ` : ''}Something is missing for the machine to finish. Look at Gus's Checklist and find it.`, 'Steam leak!');
-      else say(`${gadgetNotes ? `${gadgetNotes} ` : ''}${l.joke} ${l.fix}`, 'Steam leak!');
-      if (!['NO_WORDS', 'NEED_CAP', 'NEED_END', 'NEED_TV', 'EMPTY_PART'].includes(p.code)) logAttempt(rd.draft, compose(rd.draft).text, 0, [p.code]);
+      missed(line.id, {
+        text: `${l.joke} ${l.fix}`,
+        ghosts: rd.problems.filter((x) => x.code === 'NEED_CAP' || x.code === 'NEED_END' || x.code === 'NEED_TV').map((x) => x.code),
+        commaOn: rd.problems.filter((x) => x.code === 'NEED_COMMA').map((x) => x.itemId!),
+        pulse: rd.problems.filter((x) => x.code !== 'NEED_COMMA').map((x) => x.itemId).filter(Boolean) as string[],
+        glow: FINISH_GLOW[p.code],
+      }, gadgetNotes);
+      if (!['NEED_CAP', 'NEED_END', 'NEED_TV'].includes(p.code)) logAttempt(rd.draft, compose(rd.draft).text, 0, [p.code]);
       return;
     }
-    setOfferFix(null); setGhosts((g) => ({ ...g, [line.id]: [] }));
+    setGhosts((g) => ({ ...g, [line.id]: [] })); setCommaGhost((c) => ({ ...c, [line.id]: [] }));
     running.current = true; rewardPending.current = false;
     const para = paragraphOf(line.id);
     const sealed = sealList(para.slice(0, para.findIndex((l) => l.id === line.id)));
@@ -717,15 +767,15 @@ export default function GusWorkboard() {
     if (!r.validation.ok) {
       const v = r.validation.violations.find((x) => x.blocking)!;
       const targets = v.targets.length ? v.targets : [Math.max(0, (v.insertAt ?? 1) - 1)];
-      setPulse(targets.map((i) => rd.tokenIds[i]).filter(Boolean));
-      gusSound.steam();
+      const ids = targets.map((i) => rd.tokenIds[i]).filter(Boolean);
       const gl = lineFor(GATE_LINES[v.code as Violation] ?? GATE_LINES.BAD_SHAPE!, seed);
-      say(`${gadgetNotes ? `${gadgetNotes} ` : ''}${gl.joke} ${gl.fix}`, 'Steam leak!');
+      missed(line.id, { text: `${gl.joke} ${gl.fix}`, ghosts: [], commaOn: v.code === 'NO_COMMA' ? ids : [], pulse: v.code === 'NO_COMMA' ? [] : ids, glow: GATE_GLOW[v.code as Violation] }, gadgetNotes);
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars: 0 } : l)));
       logAttempt(rd.draft, r.composed.text, 0, r.validation.violations.filter((x) => x.blocking).map((x) => x.code));
       running.current = false;
       return;
     }
+    tries.current[line.id] = 0; setHintOffer((h) => (h === line.id ? null : h)); setHinted((h) => ({ ...h, [line.id]: false }));
     logAttempt(rd.draft, r.composed.text, r.rubric!.stars, r.rubric!.verdicts.map((x) => x.code));
     const review = reviewSentence(rd.draft, r, quizRound.current++, ['robot', 'pizza', 'dragon']);
     // A question machine: the quick question is answering it.
@@ -945,7 +995,7 @@ export default function GusWorkboard() {
   };
   const clearAll = () => {
     remember();
-    setLines([blankLine()]); setGhosts({}); setPlaying(null); setMenu(null); setOfferFix(null); setConfirmClear(false); setSelLine(null);
+    setLines([blankLine()]); setGhosts({}); setCommaGhost({}); setHintOffer(null); setHinted({}); tries.current = {}; setPlaying(null); setMenu(null); setConfirmClear(false); setSelLine(null);
     requestAnimationFrame(() => fitRef.current());
     gusSound.puff(); say('All cleared. A blank word space and a gleaming floor.', 'Clear all');
   };
@@ -1024,17 +1074,94 @@ export default function GusWorkboard() {
     }
     return list;
   }, [sortBy]);
+  // ---- live share -----------------------------------------------------------
+  const takeRemote = (ls: BoardLine[]) => { remoteSig.current = JSON.stringify(ls); history.current = []; setCanUndo(false); setMenu(null); setLines(ls); };
+  const hostSend = (ls = linesRef.current, locked = liveRef.current?.locked ?? true) => room.current?.send('state', { lines: ls, locked, rev: ++liveRev.current });
+  const startShare = () => {
+    if (!liveAvailable) { say('Live share needs the class server. Check the internet connection and try again.', 'Live share'); return; }
+    let code = '';
+    try { code = sessionStorage.getItem('gus-live-code') ?? ''; } catch { /* fine */ }
+    if (!validCode(code)) code = newLiveCode();
+    try { sessionStorage.setItem('gus-live-code', code); } catch { /* fine */ }
+    room.current?.close();
+    room.current = openLiveRoom(code, 'host', me.current, {
+      hello: () => hostSend(),
+      edit: (ls) => { if (liveRef.current?.locked) { hostSend(); return; } takeRemote(ls); hostSend(ls, false); },
+      people: (n) => setLive((l) => (l ? { ...l, students: n } : l)),
+    }, () => hostSend());
+    setLive({ code, role: 'host', locked: true, students: 0 }); setLiveOpen(true); gusSound.ding();
+    say(`Your class code is ${code}. Students tap Join on their Workboard and type it in. They start locked, so they can watch. Unlock to build together.`, 'Live share');
+  };
+  const toggleLock = () => {
+    const l = liveRef.current; if (!l || l.role !== 'host') return;
+    const locked = !l.locked; setLive({ ...l, locked }); hostSend(linesRef.current, locked); gusSound.clank();
+    say(locked ? 'Student screens are locked. They can watch your machine.' : 'Unlocked! Everyone can build on the class machine together.', locked ? '🔒 Locked' : '🔓 Unlocked');
+  };
+  const leaveLive = (msg?: string) => {
+    const l = liveRef.current;
+    if (l?.role === 'host') { room.current?.send('bye', {}); try { sessionStorage.removeItem('gus-live-code'); } catch { /* fine */ } }
+    room.current?.close(); room.current = null;
+    if (l?.role === 'guest' && ownBoard.current) { const own = ownBoard.current; ownBoard.current = null; remoteSig.current = ''; history.current = []; setCanUndo(false); setLines(own); requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current())); }
+    setLive(null); setLiveOpen(false); setJoinCode(''); setJoinMsg('');
+    say(msg ?? (l?.role === 'host' ? 'Sharing stopped. Student screens went back to their own boards.' : 'You left the class machine. Here is your own board again.'), 'Live share');
+  };
+  const joinLive = (code: string) => {
+    if (!validCode(code)) { setJoinMsg('Type all 4 numbers.'); return; }
+    if (!liveAvailable) { setJoinMsg('Joining needs the class server. Check the internet connection.'); return; }
+    room.current?.close();
+    setJoinMsg('Looking for the class machine...');
+    let got = false;
+    const r: LiveRoom = openLiveRoom(code, 'guest', me.current, {
+      state: (st: LiveState) => {
+        const was = liveRef.current;
+        if (!got) {
+          got = true; if (!ownBoard.current) ownBoard.current = linesRef.current;
+          setLiveOpen(false); setJoinMsg(''); gusSound.ding();
+          say(st.locked ? 'You joined the class machine! Your teacher is driving, so watch closely.' : "You joined the class machine! You can build together. Every change shows on everyone's screen.", 'Live share');
+          requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
+        } else if (was && was.locked !== st.locked) { gusSound.clank(); say(st.locked ? 'Your teacher locked the machine. Time to watch.' : 'Your teacher unlocked the machine. Build together!', st.locked ? '🔒 Locked' : '🔓 Unlocked'); }
+        takeRemote(st.lines);
+        setLive({ code, role: 'guest', locked: st.locked, students: 0 });
+      },
+      bye: () => leaveLive('Your teacher stopped sharing. Here is your own board again.'),
+    }, () => r.send('hello', {}));
+    room.current = r;
+    timers.current.push(window.setTimeout(() => { if (!got && room.current === r) { r.close(); room.current = null; setJoinMsg('No class machine with that code yet. Check the numbers with your teacher.'); gusSound.ahem(); } }, 6000));
+  };
+  // Every change goes out: the teacher's screen sends the board, an unlocked
+  // student's screen sends its change to the teacher's.
+  useEffect(() => {
+    const l = liveRef.current; if (!l || !room.current) return;
+    if (JSON.stringify(lines) === remoteSig.current) return;
+    const t = window.setTimeout(() => {
+      if (l.role === 'host') hostSend(lines);
+      else if (!l.locked) room.current?.send('edit', { lines, from: me.current });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [lines]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The teacher's screen resends now and then, so nobody drifts; a teacher
+  // refresh picks the same code back up.
+  useEffect(() => {
+    if (live?.role !== 'host') return;
+    const t = window.setInterval(() => hostSend(), 15000);
+    return () => window.clearInterval(t);
+  }, [live?.role]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (host) { try { if (validCode(sessionStorage.getItem('gus-live-code') ?? '')) startShare(); } catch { /* fine */ } }
+    return () => { if (liveRef.current?.role === 'host') room.current?.send('bye', {}); room.current?.close(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // What to do next on the machine in focus (Claudia round 4): one step at
   // a time, and the matching part in the menu glows.
   const focusLine = lines.find((l) => l.id === selLine) ?? (lines.length === 1 ? lines[0] : undefined);
   const nextStep = ((): { text: string; kind?: Kind; itemId?: string; pull?: boolean } | null => {
-    if (!focusLine || firing || drag) return null;
+    if (!focusLine || firing || drag || hintOffer === focusLine.id || guestLocked) return null;
     const items = focusLine.items;
     if (!items.some((i) => needsWord(i.kind) && i.word)) return null;
     const empty = items.find((i) => needsWord(i.kind) && !i.word && i.kind !== 'crate');
     if (empty) return { text: `Pick a word for the ${kindInfo(empty.kind).name}`, itemId: empty.id };
     if (!items.some((i) => i.kind === 'lever')) return { text: 'Add a Start Lever', kind: 'lever' };
-    if ((requireFinish || focusLine.job) && level !== 'challenge') {
+    if ((requireFinish || focusLine.job) && level !== 'challenge' && hinted[focusLine.id]) {
       const codes = readLine(focusLine, level, true).problems.map((p) => p.code);
       if (codes.includes('NEED_CAP')) return { text: 'Add a capital letter at the front', kind: 'cap' };
       if (codes.includes('NEED_END')) return { text: 'Add punctuation at the end', kind: 'stop' };
@@ -1082,7 +1209,7 @@ export default function GusWorkboard() {
   const order = readingOrder(lines);
   const paras = paragraphs(lines);
   return (
-    <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}`}>
+    <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}${guestLocked ? ' gwb-locked' : ''}`}>
       <header className="gus-top gwb-top">
         <button type="button" className="gus-btn" onClick={() => navigate(-1)}>⬅ Back</button>
         <h1>Gus's Workboard</h1>
@@ -1102,7 +1229,7 @@ export default function GusWorkboard() {
               )}
             </div>
           )}
-          <div className="gwb-menu-wrap">
+          {live?.role !== 'guest' && <div className="gwb-menu-wrap">
             <button type="button" className={`gus-btn${jobsOpen ? ' on' : ''}`} onClick={() => { setJobsOpen((o) => !o); setTopMenu(false); setShelfOpen(false); }} aria-expanded={jobsOpen}>🧰 Jobs</button>
             {jobsOpen && (
               <div className="gwb-top-menu" role="menu">
@@ -1119,12 +1246,52 @@ export default function GusWorkboard() {
                 {WORKBOARD_BLUEPRINTS.map((id) => { const fw = frameworkById.get(id)!; return <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{fw.icon} {fw.name}<small>{fw.teaches}</small></button>; })}
               </div>
             )}
+          </div>}
+          <div className="gwb-menu-wrap">
+            <button type="button" className={`gus-btn${live ? ' on' : ''}`} onClick={() => { setLiveOpen((o) => !o); setTopMenu(false); setJobsOpen(false); setShelfOpen(false); }} aria-expanded={liveOpen} aria-label={host ? 'Share this machine live with your class' : 'Join your class machine'}>
+              {host ? (live ? `📡 ${live.code}` : '📡 Share') : live ? `🔗 ${live.code} ${live.locked ? '🔒' : '🔓'}` : '🔗 Join'}
+            </button>
+            {liveOpen && (
+              <div className="gwb-top-menu gwb-live" role="dialog" aria-label={host ? 'Live share' : 'Join a class machine'}>
+                {host ? (live ? <>
+                  <strong>📡 Sharing live</strong>
+                  <div className="gwb-live-code" aria-label={`Class code ${live.code.split('').join(' ')}`}>{live.code.split('').map((d, i) => <span key={i}>{d}</span>)}</div>
+                  <small>Students tap 🔗 Join on Gus's Workboard and type this code.</small>
+                  <span className="gwb-live-count">👥 {live.students} {live.students === 1 ? 'student' : 'students'} joined</span>
+                  <button type="button" className={`gwb-live-lock${live.locked ? ' locked' : ''}`} onClick={toggleLock} aria-pressed={live.locked}>
+                    {live.locked ? '🔒 Locked: students watch' : '🔓 Unlocked: building together'}<small>{live.locked ? 'Tap to let them build with you' : 'Tap to lock student screens'}</small>
+                  </button>
+                  <button type="button" className="gus-btn" onClick={() => leaveLive()}>⏹ Stop sharing</button>
+                </> : <>
+                  <strong>📡 Share with your class</strong>
+                  <small>Put this machine on everyone's iPad. You get a 4-number code to give students. Their screens start locked, and you can unlock them to build together.</small>
+                  {!liveAvailable && <small className="gwb-live-msg">Live share needs the class server, which this copy of the app is not connected to.</small>}
+                  <button type="button" className="gus-btn gus-btn-primary" onClick={startShare}>📡 Start sharing</button>
+                </>) : (live ? <>
+                  <strong>🔗 Class machine {live.code}</strong>
+                  <span className="gwb-live-count">{live.locked ? '🔒 Your teacher is driving. Watch closely!' : '🔓 Build together! Your changes show on everyone\'s screen.'}</span>
+                  <button type="button" className="gus-btn" onClick={() => leaveLive()}>🚪 Leave and go back to my board</button>
+                </> : <>
+                  <strong>🔗 Join your class machine</strong>
+                  <small>Type the 4 numbers your teacher shows you.</small>
+                  <div className="gwb-live-code entry" aria-live="polite" aria-label={`Code so far: ${joinCode.split('').join(' ') || 'empty'}`}>{[0, 1, 2, 3].map((i) => <span key={i} className={joinCode[i] ? 'on' : ''}>{joinCode[i] ?? ''}</span>)}</div>
+                  <div className="gwb-keypad">
+                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', 'Join'].map((k) => (
+                      <button key={k} type="button" className={k === 'Join' ? 'go' : ''} disabled={k === 'Join' && joinCode.length < 4}
+                        onClick={() => { if (k === 'Join') joinLive(joinCode); else if (k === '⌫') { setJoinCode((c) => c.slice(0, -1)); setJoinMsg(''); } else if (joinCode.length < 4) { const c = joinCode + k; setJoinCode(c); setJoinMsg(''); gusSound.part(Number(k)); if (c.length === 4) joinLive(c); } }}
+                        aria-label={k === '⌫' ? 'Delete a number' : k === 'Join' ? 'Join' : k}>{k}</button>
+                    ))}
+                  </div>
+                  {joinMsg && <small className="gwb-live-msg" role="status">{joinMsg}</small>}
+                </>)}
+              </div>
+            )}
           </div>
           <div className="gwb-menu-wrap">
             <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
           </div>
           <div className="gwb-menu-wrap">
-            <button type="button" className="gus-btn" onClick={() => { setTopMenu((o) => !o); setJobsOpen(false); setShelfOpen(false); }} aria-expanded={topMenu}>☰ Menu</button>
+            <button type="button" className="gus-btn" onClick={() => { setTopMenu((o) => !o); setJobsOpen(false); setShelfOpen(false); setLiveOpen(false); }} aria-expanded={topMenu}>☰ Menu</button>
             {topMenu && (
               <div className="gwb-top-menu" role="menu">
                 <button type="button" role="menuitem" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 Journal</button>
@@ -1132,7 +1299,7 @@ export default function GusWorkboard() {
                 <button type="button" role="menuitem" onClick={() => { setMuted((m) => !m); setTopMenu(false); }}>{muted ? '🔇 Sound is off' : '🔊 Sound is on'}</button>
                 <button type="button" role="menuitem" onClick={() => { setReadAloud((v) => !v); setTopMenu(false); }}>🔈 {readAloud ? 'Reading words out loud' : 'Read words out loud'}<small>Each word you pick is read to you</small></button>
                 <button type="button" role="menuitem" onClick={() => { setSpaced((v) => !v); setTopMenu(false); }}>🔤 {spaced ? 'Wider spacing is on' : 'Wider letter spacing'}</button>
-                <button type="button" role="menuitem" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear all</button>
+                {live?.role !== 'guest' && <button type="button" role="menuitem" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear all</button>}
                 <button type="button" role="menuitem" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine</button>
               </div>
             )}
@@ -1159,6 +1326,7 @@ export default function GusWorkboard() {
             {lines.map((line) => {
               const g = ghosts[line.id] ?? [];
               const slots = layout(line, g);
+              const needComma = commaGhost[line.id]?.length ? readLine(line, level, true).problems.filter((p) => p.code === 'NEED_COMMA').map((p) => p.itemId!).filter((id) => commaGhost[line.id].includes(id)) : [];
               const rd = readLine(line, level, false);
               // What each plate says: action words in the Clock's time, nouns as the Duplicator made them.
               const fullForms = level === 'full' ? expectedForms(rd.draft) : null;
@@ -1170,7 +1338,8 @@ export default function GusWorkboard() {
               };
               const ends = line.items.some((i) => i.kind === 'detector') ? deadEnds(line) : [];
               const statusOf = (it: BoardItem): string | undefined => it.kind === 'bridge' ? (rd.problems.some((p) => p.code === 'BRIDGE_UP' && p.itemId === it.id) ? 'up' : 'down') : it.kind === 'detector' ? (ends.length ? 'closed' : 'open') : it.kind === 'dial' ? String(speedOf(line)) : it.kind === 'rig' ? rigLamps(line, rd) : undefined;
-              const text = lineText(line, rd);
+              // Guess and check: with finishing parts on, the plate shows only what was snapped on.
+              const text = lineText(line, rd, requireFinish || !!line.job);
               const cl = buildChecklist(rd.draft);
               const pressure = cl.total ? cl.done / cl.total : 0;
               const isFiring = firing?.lineId === line.id;
@@ -1196,14 +1365,20 @@ export default function GusWorkboard() {
                   <button type="button" className="gwb-grip" style={{ left: line.x - 14, top: line.y + 40, height: ITEM_H - 80 }} onPointerDown={(e) => onGripDown(e, line)} aria-label="Move this whole machine">⠿</button>
                   {(() => { const para = paras.find((p) => p.some((l) => l.id === line.id)); return para && para.length > 1 ? <span className="gwb-para-num" style={{ left: line.x - 14, top: line.y + 12 }} aria-label={`Sentence ${para.indexOf(line) + 1} of the paragraph`}>{para.indexOf(line) + 1}</span> : null; })()}
                   {slots.map((s) => {
-                    if (s.ghost) return (
-                      <button key={`ghost-${s.ghost}`} type="button" className="gwb-ghost" style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} onPointerDown={(e) => e.stopPropagation()} onClick={() => addGhostPart(line.id, s.ghost!)} aria-label={`Missing: ${kindInfo(s.ghost).name}. Tap to plug it in.`}>
-                        <span>{s.ghost === 'lever' ? '⚡' : s.ghost === 'cap' ? 'Aa' : s.ghost === 'stop' ? '. !' : '📺'}</span><small>{kindInfo(s.ghost).name}?</small>
+                    if (s.ghost === 'lever') return (
+                      <button key="ghost-lever" type="button" className="gwb-ghost" style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} onPointerDown={(e) => e.stopPropagation()} onClick={() => addGhostPart(line.id, 'lever')} aria-label="Missing: Start Lever. Tap to plug it in.">
+                        <span>⚡</span><small>{kindInfo('lever').name}?</small>
                       </button>
+                    );
+                    // A hint ghost is only a picture: the student drags the real part on.
+                    if (s.ghost) return (
+                      <div key={`ghost-${s.ghost}`} className="gwb-ghost hint" style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} role="img" aria-label={`Hint: a ${kindInfo(s.ghost).name} goes here. Drag one on from the parts menu.`}>
+                        <span>{s.ghost === 'cap' ? 'Aa' : s.ghost === 'stop' ? '. !' : '📺'}</span><small>{kindInfo(s.ghost).name}?</small>
+                      </div>
                     );
                     const item = s.item!; const idx = line.items.indexOf(item);
                     return (
-                      <div key={item.id} className={`gwb-item gwb-k-${item.kind}${pulse.includes(item.id) ? ' leak' : ''}${isFiring && firing!.idx === idx ? ' firing' : ''}${isFiring && firing!.idx > idx ? ' fired' : ''}${!item.word && needsWord(item.kind) ? ' empty' : ''}${menu?.itemId === item.id ? ' open' : ''}${spinning === item.id ? ' spinning' : ''}${retimed.includes(item.id) ? ' retimed' : ''}${snapped === item.id || snapped === line.id ? ' snapped' : ''}${nextStep?.itemId === item.id ? ' next' : ''}`}
+                      <div key={item.id} className={`gwb-item gwb-k-${item.kind}${pulse.includes(item.id) ? ' leak' : ''}${isFiring && firing!.idx === idx ? ' firing' : ''}${isFiring && firing!.idx > idx ? ' fired' : ''}${!item.word && needsWord(item.kind) ? ' empty' : ''}${menu?.itemId === item.id ? ' open' : ''}${spinning === item.id ? ' spinning' : ''}${retimed.includes(item.id) ? ' retimed' : ''}${cough?.lineId === line.id ? ' cough' : ''}${snapped === item.id || snapped === line.id ? ' snapped' : ''}${nextStep?.itemId === item.id ? ' next' : ''}`}
                         data-item={item.id} style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} onPointerDown={(e) => onItemDown(e, line, item)}
                         role="button" tabIndex={0} aria-label={`${kindInfo(item.kind).name}${item.word ? `: ${item.word}` : ''}. Tap to change, drag to move.`}
                         onKeyDown={(e) => {
@@ -1256,7 +1431,7 @@ export default function GusWorkboard() {
                             {playing?.lineId === line.id && !calm && <span key={playing.key} className="gwb-tv-pops" aria-hidden>{line.items.filter((x) => isContraption(x.kind)).slice(0, 6).map((x, k) => <i key={x.id} style={{ animationDelay: `${0.3 + k * 0.55}s`, left: `${10 + ((k * 37) % 60)}%`, top: `${12 + ((k * 23) % 50)}%` }}>{FUN_ROLE[x.kind as keyof typeof FUN_ROLE].pop}</i>)}</span>}
                           </div>
                         )}
-                        {pulse.includes(item.id) && !calm && <span className="gwb-steam" aria-hidden><i /><i /><i /></span>}
+                        {(pulse.includes(item.id) || (cough?.lineId === line.id && item.kind === 'lever')) && !calm && <span className="gwb-steam" aria-hidden><i /><i /><i /></span>}
                       </div>
                     );
                   })}
@@ -1280,7 +1455,8 @@ export default function GusWorkboard() {
                         </div>;
                       }
                       if (want === side) return <span key={`sock-${host.id}-${side}`} className={`gwb-socket ${side}${tgt?.itemId === host.id && tgt.slot === side ? ' hot' : ''}`} style={{ left: s.x + s.w / 2 - 34, top: side === 'top' ? line.y - 62 : line.y + ITEM_H - 6 }} aria-hidden />;
-                      if (side === 'bottom' && first && g.includes('NEED_CAP')) return <button key={`ghost-cap-${host.id}`} type="button" className="gwb-ghost gwb-ghost-under" style={{ left: s.x + s.w / 2 - 50, top: line.y + ITEM_H - 10, width: 100, height: 76 }} onPointerDown={(e) => e.stopPropagation()} onClick={() => addGhostPart(line.id, 'cap')} aria-label="Missing: a Capital Letter Press under the first word. Tap to snap it on."><span>Aa</span><small>Capital letter?</small></button>;
+                      if (side === 'bottom' && first && g.includes('NEED_CAP')) return <div key={`ghost-cap-${host.id}`} className="gwb-ghost gwb-ghost-under hint" style={{ left: s.x + s.w / 2 - 50, top: line.y + ITEM_H - 10, width: 100, height: 76 }} role="img" aria-label="Hint: a Capital Letter Press snaps under the first word. Drag one on from the parts menu."><span>Aa</span><small>Capital letter?</small></div>;
+                      if (side === 'top' && needComma.includes(host.id)) return <div key={`ghost-comma-${host.id}`} className="gwb-ghost gwb-ghost-over hint" style={{ left: s.x + s.w / 2 - 50, top: line.y - ATT_H - 4, width: 100, height: ATT_H + 4 }} role="img" aria-label={`Hint: a comma snaps on top of ${host.word ?? 'this word'}. Drag one on from the parts menu.`}><span>,</span><small>Comma?</small></div>;
                       return null;
                     });
                   })}
@@ -1359,11 +1535,11 @@ export default function GusWorkboard() {
                   <button type="button" className="gus-btn" onClick={() => setClipMin(true)} aria-label="Minimize the checklist">▁ Minimize</button>
                 </div>
                 {!cLine ? <p className="gwb-check-note">Tap a machine to see its checklist.</p> : <>
-                  <p className="gwb-check-note">{!test ? 'Pull the Start Lever to test your sentence. Gus checks off every item that is right.' : fresh ? `Tested! ${passed} of ${test.rows.length} are right.` : 'You changed the machine. Pull the Start Lever to test it again.'}</p>
+                  <p className="gwb-check-note">{!test ? 'Pull the Start Lever to test your sentence. Gus checks off every item that is right.' : fresh ? (hinted[cLine.id] || passed === test.rows.length ? `Tested! ${passed} of ${test.rows.length} are right.` : `Tested! ${passed} checked off. Keep tinkering and test again.`) : 'You changed the machine. Pull the Start Lever to test it again.'}</p>
                   <div className="gwb-check-rows">
                     {(test?.rows ?? MACHINE_ROWS.map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: 'todo' as const }))).map((r, k) => {
-                      const st = test && fresh ? r.state : 'todo';
-                      return <button key={`${r.id}-${test && fresh ? test.sig.length : 0}`} type="button" className={`gwb-check-row ${st}`} style={{ animationDelay: `${k * 0.08}s` }} onClick={() => say(st === 'pass' ? `${r.label}: right! Splendid.` : st === 'auto' ? `${r.label}: the machine does this one for you.` : r.hint, 'Checklist')}>
+                      const st = test && fresh ? (r.state === 'fix' && !hinted[cLine.id] ? 'todo' : r.state) : 'todo';
+                      return <button key={`${r.id}-${test && fresh ? test.sig.length : 0}`} type="button" className={`gwb-check-row ${st}`} style={{ animationDelay: `${k * 0.08}s` }} onClick={() => say(st === 'pass' ? `${r.label}: right! Splendid.` : st === 'auto' ? `${r.label}: the machine does this one for you.` : test && fresh && !hinted[cLine.id] ? 'Not checked off yet. Keep tinkering and test it again!' : r.hint, 'Checklist')}>
                         <span aria-hidden>{st === 'pass' ? '✅' : st === 'fix' ? '🔧' : st === 'auto' ? '⚙️' : '⬜'}</span><span>{r.label}</span>
                       </button>;
                     })}
@@ -1548,8 +1724,10 @@ export default function GusWorkboard() {
       )}
 
       <GusGuide message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
-        {nextStep && !offerFix && <button type="button" className="gus-btn gwb-next-btn" onClick={doNext}>👉 Next: {nextStep.text}</button>}
-        {offerFix && lines.some((l) => l.id === offerFix) && <button type="button" className="gus-btn gus-btn-primary" onClick={() => fixFinishing(offerFix)}>🔧 Add it for me</button>}
+        {hintOffer && lines.some((l) => l.id === hintOffer) ? <>
+          <button type="button" className="gus-btn gus-btn-primary gwb-hint-btn" onClick={() => showHint(hintOffer)}>💡 Yes, a hint</button>
+          <button type="button" className="gus-btn" onClick={() => { setHintOffer(null); say('Okay, inventor! Keep tinkering. Pull the Start Lever when you are ready.', 'You got this'); }}>🔧 I'll keep trying</button>
+        </> : nextStep && <button type="button" className="gus-btn gwb-next-btn" onClick={doNext}>👉 Next: {nextStep.text}</button>}
       </GusGuide>
     </div>
   );
