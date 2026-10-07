@@ -1,5 +1,5 @@
 import type { Kind } from './parts';
-import { kindInfo, PART_H, partWidth, isWordKind, BODY } from './parts';
+import { kindInfo, PART_H, partWidth, isWordKind, needsWord, BODY } from './parts';
 import PartSvg from '../PartSvg';
 import { nounByWord } from '../../data/wordbank';
 
@@ -41,6 +41,11 @@ function Plate({ w, text, y = 138, blank = false }: { w: number; text: string; y
     <circle cx={x + 6} cy={y + 14} r={2} fill={INK} /><circle cx={x + pw - 6} cy={y + 14} r={2} fill={INK} />
     <text x={w / 2} y={y + 20} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={text.length > 14 ? 13 : 17} fill={INK}>{text}</text>
   </g>;
+}
+// A little cog on every stand: it whirs while the machine runs.
+function Gear({ x, y, r = 10, color = '#c8ced8', rev = false }: { x: number; y: number; r?: number; color?: string; rev?: boolean }) {
+  const teeth = Array.from({ length: 8 }, (_, i) => { const a = (Math.PI / 4) * i; return <rect key={i} x={x - 2.5} y={y - r - 4} width={5} height={6} rx={1} fill={color} stroke={INK} strokeWidth={1.4} transform={`rotate(${(a * 180) / Math.PI} ${x} ${y})`} />; });
+  return <g className={`gwb-gear${rev ? ' rev' : ''}`} style={{ transformOrigin: `${x}px ${y}px` }}>{teeth}<circle cx={x} cy={y} r={r} fill={color} stroke={INK} strokeWidth={2} /><circle cx={x} cy={y} r={r * 0.35} fill="#7d8796" stroke={INK} strokeWidth={1.4} /></g>;
 }
 function Stand({ w, top }: { w: number; top: number }) {
   return <g>
@@ -95,6 +100,30 @@ function Contraption({ kind, w, color }: { kind: Kind; w: number; color: string 
       <g className="gwb-tip" style={{ transformOrigin: `${c}px 30px` }}><path d={`M${c - 28} 30 L${c + 28} 30 L${c + 22} 64 L${c - 22} 64Z`} fill={color} stroke={INK} strokeWidth={2.8} /><rect x={c - 30} y={26} width={60} height={6} rx={2} fill={light} stroke={INK} strokeWidth={2} /></g>
       <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
+    case 'horn': return <g>
+      <Pipes w={30} />
+      <circle className="gwb-bulb" cx={18} cy={PIPE_Y - 26} r={13} fill="#e8483b" stroke={INK} strokeWidth={2.6} style={{ transformOrigin: `18px ${PIPE_Y - 16}px` }} />
+      <rect x={14} y={PIPE_Y - 16} width={8} height={10} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+      <g className="gwb-honk" style={{ transformOrigin: `30px ${PIPE_Y}px` }}>
+        <path d={`M24 ${PIPE_Y - 6} L${c - 4} ${PIPE_Y - 14} Q${c + 30} ${PIPE_Y - 26} ${w - 12} 8 L${w - 12} ${PIPE_Y + 52} Q${c + 30} ${PIPE_Y + 14} ${c - 4} ${PIPE_Y + 10} L24 ${PIPE_Y + 6}Z`} fill={color} stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+        <path d={`M${c - 4} ${PIPE_Y - 10} Q${c + 30} ${PIPE_Y - 20} ${w - 16} 14`} fill="none" stroke={light} strokeWidth={3} />
+        <ellipse cx={w - 12} cy={(8 + PIPE_Y + 52) / 2} rx={11} ry={(PIPE_Y + 44) / 2} fill={dark} stroke={INK} strokeWidth={3} />
+        <ellipse cx={w - 10} cy={(8 + PIPE_Y + 52) / 2} rx={5} ry={(PIPE_Y + 20) / 2} fill="#3a2a10" />
+      </g>
+      <rect x={c - 5} y={PIPE_Y + 8} width={10} height={124 - PIPE_Y - 8} fill="#6b7383" stroke={INK} strokeWidth={2} />
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'duplicator': return <g>
+      <Pipes w={w} />
+      <rect x={c - 38} y={14} width={76} height={92} rx={10} fill={color} stroke={INK} strokeWidth={3} />
+      <rect x={c - 30} y={22} width={44} height={26} rx={4} fill="#111" stroke={INK} strokeWidth={2} />
+      <text x={c - 8} y={42} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={17} fill="#7dff8a" className="gwb-blink">x2</text>
+      <g className="gwb-spin" style={{ transformOrigin: `${c + 24}px 34px` }}><circle cx={c + 24} cy={34} r={8} fill={light} stroke={INK} strokeWidth={2} /><line x1={c + 24} y1={34} x2={c + 24} y2={22} stroke={INK} strokeWidth={3} strokeLinecap="round" /></g>
+      <rect x={c - 30} y={92} width={22} height={18} rx={3} fill={light} stroke={INK} strokeWidth={2} /><rect x={c + 8} y={92} width={22} height={18} rx={3} fill={light} stroke={INK} strokeWidth={2} />
+      <g className="gwb-copy"><rect x={c - 26} y={96} width={14} height={10} fill="#fff" stroke={INK} strokeWidth={1.4} /><rect x={c + 12} y={96} width={14} height={10} fill="#fff" stroke={INK} strokeWidth={1.4} /></g>
+      <Nut x={c - 32} y={20} r={3.5} /><Nut x={c + 32} y={20} r={3.5} /><Nut x={c - 32} y={100} r={3.5} /><Nut x={c + 32} y={100} r={3.5} />
+      <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
     default: return null;
   }
 }
@@ -117,6 +146,7 @@ export default function MachinePart({ kind, word, empty = false, scale = 1 }: { 
       <Pipes w={w} />
       <Stand w={w} top={top + size * 0.8} />
       <PartSvg pos={kind} word={word} ghost={empty} box={{ x: (w - size) / 2, y: top, w: size, h: size }} />
+      <Gear x={13} y={PIPE_Y + 26} r={7} /><Gear x={w - 13} y={PIPE_Y + 26} r={7} rev />
       <Plate w={w} text={word ?? '?'} blank={empty} />
       {kind === 'N' && word && nounByWord.get(word) && <text x={w - 14} y={134} textAnchor="end" fontSize={15}>{nounByWord.get(word)!.emoji}</text>}
     </>);
@@ -198,5 +228,7 @@ export default function MachinePart({ kind, word, empty = false, scale = 1 }: { 
       <Plate w={w} text={kind === 'cap' ? 'capital' : kind === 'stop' ? 'period' : kind === 'bang' ? 'exclaim' : 'comma'} />
     </>);
   }
-  return svg(<><Contraption kind={kind} w={w} color={base} /><Plate w={w} text={info.name.toLowerCase()} y={140} />{void dark}{void light}</>);
+  // A fun part that holds a word shows it on its plate (? until picked).
+  const plate = needsWord(kind) ? (word ?? (empty ? '?' : info.name.toLowerCase())) : info.name.toLowerCase();
+  return svg(<><Contraption kind={kind} w={w} color={base} /><Plate w={w} text={plate} y={140} blank={needsWord(kind) && empty} />{void dark}{void light}</>);
 }

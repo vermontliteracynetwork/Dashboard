@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-fun-parts',
+    date: '2026-10-07',
+    icon: '📯',
+    title: 'Fun parts that do grammar',
+    body: "Gus's parts menu is on the left now, and you can fold each group. Every fun part does a job: the Big Horn honks an exclamation point, the Spring Mat bounces in a describing word, the Bell rings a period, and the Duplicator copies a noun so there are more than one. Parts snap into place, gears whir, steam puffs from the pipes, and every part pops its sound. Try Surprise me in a word menu and watch your Silly-o-meter!",
+  },
+  {
     id: '2026-10-07-gus-time-words',
     date: '2026-10-07',
     icon: '🔗',

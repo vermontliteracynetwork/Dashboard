@@ -1,44 +1,55 @@
 import type { Draft, HelpLevel, Marks, Tense, Token, VerbForm } from './types';
-import type { Kind } from '../ui/board/parts';
+import { markOf, wordPosOf, type Kind } from '../ui/board/parts';
+import { pluralNounOf } from './dictionary';
 
 // The Workboard's machine lines (teacher 2026-10-07). A line is a row of
-// snapped-together machines. Word machines become rail tokens in order;
-// finishing machines become the marks: the Big Letter Press capitalizes
-// the word after it, a Comma Clip adds a comma after the word before it,
-// a Stop Stamp or Bang Whistle at the end is the end mark, a Bang Whistle
-// right after a shout word is the shout's "!", and the Pixel TV must be
-// plugged on the very end.
+// snapped-together machines. Word machines (and fun parts that hold a
+// word) become rail tokens in order; finishing machines (and fun parts
+// that act like them) become the marks: the Capital Letter Press or
+// Pulley capitalizes the word after it, a Comma or Dominoes adds a comma
+// after the word before it, a period, exclamation point, Bell or Big Horn
+// at the end is the end mark, an exclamation point or Big Horn right
+// after a shout word is the shout's "!", the Duplicator makes the next
+// noun more than one, and the Pixel TV must be plugged on the very end.
 
 export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm }
-export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; job?: { id?: string; kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean }; connector?: string }
+export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean }; connector?: string }
 
-export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS';
+export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN';
 export const tenseOf = (line: BoardLine): Tense => (line.items.find((i) => i.kind === 'clock')?.word as Tense | undefined) ?? 'present';
 export interface LineRead { draft: Draft; tokenIds: string[]; problems: { code: FinishProblem; itemId?: string }[]; hasTV: boolean }
-
-const isWord = (k: Kind) => k.length === 1;
 
 export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true): LineRead {
   const tokens: Token[] = []; const tokenIds: string[] = [];
   const marks: Marks = { capitals: [], endMark: null, shoutMark: false, commas: [] };
   const problems: LineRead['problems'] = [];
-  const lastWord = line.items.reduce((m, it, i) => (isWord(it.kind) ? i : m), -1);
+  const lastWord = line.items.reduce((m, it, i) => (wordPosOf(it.kind) ? i : m), -1);
   let pendingCap = false;
+  let pendingCopy: string | null = null;
+  const commaAt: { tok: number; id: string }[] = [];
   line.items.forEach((it, i) => {
-    if (isWord(it.kind)) {
+    const pos = wordPosOf(it.kind); const mark = markOf(it.kind);
+    if (pos) {
       if (!it.word) problems.push({ code: 'EMPTY_PART', itemId: it.id });
       if (pendingCap) marks.capitals.push(tokens.length);
       pendingCap = false;
-      tokens.push({ pos: it.kind as Token['pos'], word: it.word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
+      let word = it.word;
+      if (pos === 'N' && pendingCopy) { if (word) word = pluralNounOf(word); pendingCopy = null; }
+      tokens.push({ pos, word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
       tokenIds.push(it.id);
-    } else if (it.kind === 'cap') pendingCap = true;
-    else if (it.kind === 'comma') { if (tokens.length) marks.commas.push(tokens.length - 1); }
-    else if (it.kind === 'stop' || it.kind === 'bang') {
-      if (i > lastWord) marks.endMark = it.kind === 'stop' ? '.' : '!';
-      else if (it.kind === 'bang' && tokens[tokens.length - 1]?.pos === 'I') marks.shoutMark = true;
+    } else if (mark === 'cap') pendingCap = true;
+    else if (mark === 'plural') pendingCopy = it.id;
+    else if (mark === 'comma') { if (tokens.length) { marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: it.id }); } else problems.push({ code: 'COMMA_PLACE', itemId: it.id }); }
+    else if (mark === 'stop' || mark === 'bang') {
+      if (i > lastWord) marks.endMark = mark === 'stop' ? '.' : '!';
+      else if (mark === 'bang' && tokens[tokens.length - 1]?.pos === 'I') marks.shoutMark = true;
       else problems.push({ code: 'END_NOT_LAST', itemId: it.id });
-    } else if (it.kind === 'tv' && line.items.slice(i + 1).some((x) => isWord(x.kind) || ['cap', 'stop', 'bang', 'comma'].includes(x.kind))) problems.push({ code: 'TV_NOT_LAST', itemId: it.id });
+    } else if (it.kind === 'tv' && line.items.slice(i + 1).some((x) => wordPosOf(x.kind) || markOf(x.kind))) problems.push({ code: 'TV_NOT_LAST', itemId: it.id });
   });
+  // A comma after the last word is a pause before nothing.
+  const tail = commaAt.find((c) => c.tok === tokens.length - 1);
+  if (tail) problems.push({ code: 'COMMA_PLACE', itemId: tail.id });
+  if (pendingCopy) problems.push({ code: 'COPY_NO_NOUN', itemId: pendingCopy });
   const hasTV = line.items.some((it) => it.kind === 'tv');
   if (!tokens.length) problems.unshift({ code: 'NO_WORDS' });
   if (requireFinish && tokens.length) {
@@ -58,6 +69,8 @@ export const FINISH_LINES: Record<FinishProblem, { joke: string; fix: string }> 
   NEED_TV: { joke: 'Lovely sentence. But where will the movie play?', fix: 'Plug a Pixel TV onto the very end.' },
   END_NOT_LAST: { joke: 'End punctuation in the middle? The sentence would trip over it.', fix: 'Move the punctuation to the end of the sentence.' },
   TV_NOT_LAST: { joke: 'The TV is stuck in the middle of the pipes.', fix: 'Move the Pixel TV after the words and punctuation.' },
+  COMMA_PLACE: { joke: 'A comma with no word on one side? That is a pause for nothing.', fix: 'A comma goes right after a word, with more words after it.' },
+  COPY_NO_NOUN: { joke: 'The Duplicator is copying... nothing. Very tidy, very useless.', fix: 'Put a noun machine after the Duplicator so it can make more than one.' },
 };
 
 // Paragraphs (teacher 2026-10-07: "another machine part that makes it so

@@ -40,5 +40,17 @@ export const gusSound = {
   swish: () => noise(0.35, 0.02),
   ding: () => { tone(988, 0.25, 'sine', 0.06); tone(1319, 0.35, 'sine', 0.05, undefined, 0.12); },
   horn: () => { tone(330, 0.18, 'sawtooth', 0.04, 300); tone(262, 0.3, 'sawtooth', 0.04, 240, 0.16); },
+  // Fun part sounds (teacher 2026-10-07: "sound effects ... whenever possible").
+  honk: () => { tone(196, 0.55, 'sawtooth', 0.07, 185); tone(247, 0.55, 'square', 0.025, 233); },
+  boing: () => tone(160, 0.4, 'sine', 0.09, 620),
+  whoosh: () => noise(0.45, 0.045),
+  whee: () => tone(420, 0.45, 'sine', 0.05, 980),
+  clack: () => { for (let i = 0; i < 5; i++) tone(1100 - i * 60, 0.03, 'square', 0.03, undefined, i * 0.07); },
+  clank: () => { for (let i = 0; i < 3; i++) tone(170, 0.07, 'square', 0.035, 120, i * 0.12); },
+  splosh: () => { noise(0.25, 0.05); tone(320, 0.22, 'sine', 0.06, 90); },
+  heave: () => { tone(140, 0.25, 'triangle', 0.07, 210); tone(180, 0.3, 'triangle', 0.07, 300, 0.22); },
+  copy: () => { tone(660, 0.07, 'square', 0.03); tone(880, 0.07, 'square', 0.03, undefined, 0.1); tone(660, 0.07, 'square', 0.03, undefined, 0.2); },
+  whir: () => tone(90, 0.9, 'sawtooth', 0.018, 150),
+  tada: () => { tone(523, 0.12, 'triangle', 0.06); tone(659, 0.12, 'triangle', 0.06, undefined, 0.12); tone(784, 0.3, 'triangle', 0.07, undefined, 0.24); },
   ahem: () => { tone(520, 0.08, 'square', 0.03, 440); tone(660, 0.1, 'square', 0.03, 560, 0.1); },
 };

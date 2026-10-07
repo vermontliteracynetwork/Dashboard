@@ -126,6 +126,21 @@ export function registerWord(cw: CustomWord): void {
   if (cw.pos === 'D' && !adverbSet.has(w)) { ADVERBS.push({ word: w, pack }); adverbSet.add(w); }
   if (cw.pos === 'I') interjectionSet.add(w.charAt(0).toUpperCase() + w.slice(1));
 }
+// The Duplicator (teacher 2026-10-07, fun parts with a grammar job): the
+// next noun becomes more than one. Its plural joins the lexicon as a
+// plural noun that keeps the singular's picture, so "cats" is drawn as a
+// few cats and the verb has to agree with it.
+export function pluralNounOf(word: string): string {
+  const w = cleanWord(word);
+  if (!w || word !== word.toLowerCase()) return word; // names stay as they are
+  const e = nounByWord.get(w);
+  if (e?.plural || e?.group || e?.singular) return w;
+  const p = pluralOf(w);
+  if (p === w) return w;
+  if (!nounByWord.has(p)) nounByWord.set(p, { ...(e ?? { tier: 3 as const, kind: 'thing' as const, rig: 'object' as const, emoji: '📖', pack: 'custom' as Pack }), word: p, plural: true, noA: true, singular: w });
+  return p;
+}
+
 export function customWords(): CustomWord[] {
   try { return JSON.parse(localStorage.getItem(STORE) ?? '[]') as CustomWord[]; } catch { return []; }
 }

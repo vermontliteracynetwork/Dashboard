@@ -722,6 +722,54 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Workboard round 4 (fun parts do grammar, Big Horn, Duplicator, parts menu on the left with folding categories, everything snaps, steam and gears, sound words, Claudia round 4). SHIPPED 2026-10-07 (direct teacher instructions)
+
+**Her words, verbatim:**
+1. "make sure all fun parts have a gramatical purpose. i want lots of parts of the contraption that can do funny things and gramaticlly functional things. like maybe we can add a large horn that be snap clicked to add to the machine. this menu should be on the left side. ensure main categroeis can be collaspable. everything needs to snap into place. claudia, what we have is a good start but it needs to be improved in terms of general user function, ensuring all parts have a purpose, and that it is possible to make it silly goofy and fun for my 5/6th graders"
+2. "claudia, lets develop a list of features that can be physics/contraptioh/rube goldburg fun plug and play machine elements that are rooted in gramatical concpets"
+3. "the animations (thing steam coming from pipes if the machine is running, gears wuring and twisting), sound effects, and other ui features should be added whenever possible to increase engagemnet." **Standing rule for Gus from now on:** every Gus change looks for a chance to add animation, sound or a playful UI touch (calm mode and reduced motion always still them).
+4. "i want this to be a sandbox style for the kids to play around with grammar in the same STEAM style way they like to play other games, with hidden grammar concepts" **The Workboard's north star:** a play-first STEAM sandbox. Parts are described by what they do ("Bounces in a describing word"), and the grammar is inside the play.
+
+**What shipped:**
+- **Every fun part has a grammar job** (`ui/board/parts.ts` `FUN_ROLE`, read by `engine/board.ts`):
+
+  | Part | Does | Grammar |
+  |---|---|---|
+  | Big Horn (new) | HONK! | exclamation point, or the "!" right after an interjection |
+  | Spring Mat | BOING! holds a word | adjective |
+  | Fan | WHOOSH! holds a word | adverb |
+  | Ramp | WHEEE! holds a word | preposition |
+  | Conveyor Belt | CLANK-CLANK, holds a word | conjunction |
+  | Bucket Drop | SPLOSH! holds a word | article |
+  | Pulley | HEAVE-HO! | capital letter on the next word |
+  | Bell | DING! | period (swaps with the Big Horn) |
+  | Dominoes | CLACK-CLACK | comma |
+  | Duplicator (new) | COPY! COPY! | the next noun becomes more than one, and the verb must agree; the movie shows a few of them |
+
+- Fun parts that hold a word open the same word menu as the word machines (typing, dictionary, Did you mean). The others open a card that says what they do and plays their sound.
+- New kind messages from Gus: a comma with no word on one side ("a pause for nothing"), and a Duplicator with no noun after it.
+- **Parts menu on the left**, open by default on an iPad in both orientations. Every category header (START and TV, TIME, WHO parts, FUN PARTS and so on) folds and unfolds with a tap and is remembered on the iPad. Fun parts start folded. Each row shows an example ("dog, pizza, robot") or what the part does, and has a 44px "?" button that explains the part out loud without placing it.
+- **Everything snaps:** parts snap into a machine from farther away, whole machines land on a grid, and every drop lands with a little bounce.
+- **Machine life while running:** every gear on the machine whirs, the pipes chug, steam puffs out of every pipe joint, each part pops its sound word (word machines pop their word), and each fun part plays its own sound. 3 stars: a fanfare and confetti. Calm mode and reduced motion still all of it.
+- **Silly-o-meter** under each sentence after a run (0 to 5, from the grammar engine's silly score). **🎲 Surprise me** in every word menu picks a random word.
+- **From Claudia's round 4 review:**
+  - A "👉 Next:" button in Gus's bubble says the one next step (pick a word, add a Start Lever, a capital letter, punctuation, a TV, or pull the lever) and the matching part glows in the menu.
+  - "＋ New machine" button. Tapping a part with no machine picked adds a new machine below the others instead of stacking them.
+  - Calm and Sound moved into ☰ Menu. The second Clear all (next to Undo) is gone. Undo is big and colored when it can undo, and Gus says "Changed your mind? Tap Undo." after every removal.
+  - Buttons with words, not just icons: "⏪ Past", "Future ⏩", "▶ Play", "− Out", "+ In". Small button text is bigger.
+  - Bug fixed: a second finger or a palm during a drag no longer makes the part vanish.
+  - Copy fixed: "It is happening in the present." and "Two machines became one long machine."
+- **Claudia's parts catalog:** 24 grammar contraption parts in NOW, SOON and LATER tiers, with combos and a build order: `docs/grammar-gus/CONTRAPTION_PARTS.md` (and PDF).
+- Tests: 5 new (fun part roles, Big Horn, Duplicator agreement, comma placement). Full Gus suite: 255 passing.
+
+**Queued next (in order):**
+1. Catalog first NOW batch: Agreement Gears, Time Tunnel, Merge Funnel, A/An Vowel Sniffer.
+2. The rest of the NOW parts: Mood Meter Valve, Sentence Sprinter Flag, Pronoun Teleporter, Describe Sorter Chute, How-Dial, Opener Slingshot, Where-To Switchyard, Dead-End Detector, Comma Hinge Drawbridge, Confetti Trapdoor.
+3. SOON parts: Proper Name Stamp, Comma List Train, Subject and Object Turnstile, Irregular Trapdoor, Irregular Past Press.
+4. Claudia's round 4 game ideas: Mystery Crate (adjective), Echo Megaphone (adverb), Time Warp Toaster (verb time), Pronoun Swap Cannon, Plural Photocopier (agreement, pairs with the Duplicator), Silly Sentence Slot Machine (lock reels to keep a favorite word; no prizes).
+5. Sound-word pops on the Pixel TV during the movie.
+6. Still open from earlier: read-aloud for each word in the word list, focus back to the machine when its menu closes, Orders, Blueprints and Remix onto the Workboard, Golden Gear Contest (waits on her prize decision).
+
 ### Grammar Gus: Claudia improvement round 3 (her second review: fixes, counter-scaled controls, Paragraph Pipes time words, sticker shelf). SHIPPED 2026-10-07
 
 **Claudia's second review:**

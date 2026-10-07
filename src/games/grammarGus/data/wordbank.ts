@@ -15,6 +15,7 @@ export const isPackWord = (p: Pack) => p === 'space' || p === 'ocean';
 export interface NounEntry {
   word: string; tier: 1 | 2 | 3; kind: NounKind; rig: Rig; emoji: string; pack: Pack;
   plural?: boolean; noA?: boolean; group?: number; // group: how many sprites (children, crowd)
+  singular?: string; // a Duplicator plural ("cats") drawn with its singular's picture
   food?: boolean; drink?: boolean; size?: 'small' | 'normal' | 'big';
 }
 

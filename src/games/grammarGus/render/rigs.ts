@@ -4,6 +4,7 @@ import type { Look } from '../director/director';
 import type { CastMember } from '../director/cast';
 import { drawText, textWidth } from './font';
 import { FB } from './fb';
+import { nounByWord } from '../data/wordbank';
 
 // Procedural pixel rigs (plan 6.2): quadruped and biped templates cover
 // the four-legged animals and people; a feature kit (ears, tail, stripes,
@@ -493,6 +494,8 @@ function propSprite(m: CastMember, look: Look): Sprite {
 
 const cache = new Map<string, Sprite>();
 export function spriteFor(m: CastMember, look: Look, pose: Pose): Sprite {
+  const sing = nounByWord.get(m.noun)?.singular; // a Duplicator plural looks like its singular
+  if (sing) m = { ...m, noun: sing };
   const key = `${m.id}|${m.noun}|${m.rig}|${JSON.stringify(look)}|${pose.frame % 4}|${pose.squash}|${pose.sprout ? 1 : 0}`;
   let s = cache.get(key);
   if (!s) {
