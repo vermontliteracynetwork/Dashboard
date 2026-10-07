@@ -12,9 +12,10 @@ export interface GusSettings {
   focusMode: boolean; // checklist shows only the next three items
   rumble: 'off' | 'soft' | 'normal';
   packs: string[]; // interest word packs in the Parts Bin (plan 17.5)
+  finishParts: 'required' | 'auto'; // Workboard: students plug in the Big Letter Press, Stop Stamp and Pixel TV themselves
 }
 export const GUS_SETTINGS_OWNER = 'gus-settings';
-export const GUS_DEFAULTS: GusSettings = { levels: {}, strictness: 'cartoon', videoThreshold: 3, gentleOnly: false, grownUp: 'tap', focusMode: false, rumble: 'soft', packs: ['space', 'ocean'] };
+export const GUS_DEFAULTS: GusSettings = { levels: {}, strictness: 'cartoon', videoThreshold: 3, gentleOnly: false, grownUp: 'tap', focusMode: false, rumble: 'soft', packs: ['space', 'ocean'], finishParts: 'required' };
 
 export function useGusSettings(): GusSettings {
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === GUS_SETTINGS_OWNER));

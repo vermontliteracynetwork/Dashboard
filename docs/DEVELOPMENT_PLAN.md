@@ -722,6 +722,59 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: the Workboard redesign (every part its own machine, zoomable floor). SHIPPED 2026-10-07 (direct teacher instructions)
+
+**Her words, verbatim:**
+1. "Each machine part in the grammar bus needs to be independently movable. The catalog should be an inventory menu on the left-hand side that can collapse in and out. It should be sorted by different things. So this should be modeled similarly to our literacy manipulatives component where it's like a whiteboard where they can zoom in and out. I want the workboard space that they're using to be able to be zoomed in and out so they can make sentences with the machines, but then eventually like collections of sentences. Each part, like noun, verb, should be added individually. There shouldn't be a main word bank where all words are shown, but instead it should be like a click and then like a menu appears where they can see. I also want the ability for the students to start typing a word and for it to be predictive based on their phonetic spelling. So if they're typing the word balloon, they may spell it wrong. But I want the system to pick up that they're probably looking for the word balloon, especially if it's in a noun section, and then go from there. I want each one of the machine pieces to look like old factory looking machines with pipes and screws, nuts and bolts. They should be the color that each symbol is."
+2. "right now the design is super confusing and not helpful" (with a screenshot of the old machine screen).
+3. "claudia, research similar word building (i know theres similar tools for morphology) but make it for sentences. this sentence builder should have many machine parts that can add to the gamification, includignthe tv screen being attatched to the actual machine. of the plug-and-play gameplay and the skill building grammar learning component of this game are important but for getting students engaged we need to increase the gamification amount i love the little dials and levers anything that looks like cartoon industrial factory machine physics games like pbs style that is drag and drop like making a contraption but at the end of the day we're making a sentence like they'll have to add the punctuation component they'll have to add the maybe like certain component that makes the first letter capital, like think about this in the factory machine building way. But learning the skills of grammar"
+
+**Research (Claudia's review):** what we borrow from each tool:
+- **Toy Theater Morphology Tiles:** a free workspace where tiles drop in and snap.
+- **RootWords:** tap a piece to learn what it is (each machine's hint).
+- **Wordcraft** (a research prototype): drag-and-drop cards that instantly animate the sentence as a scene. That is our Pixel TV.
+- **Big Box of Sentence Building:** color-coded pieces with punctuation as its own group. That is our finishing parts.
+- **Planeta 42 puzzle:** pieces only fit where they belong.
+- **Fantastic Contraptions:** a build, run it, tinker and retry rhythm.
+- **Grammaropolis Word Sort and Twinkl matching:** keep sorting as a side job, not the main game.
+
+**What shipped** (`ui/GusWorkboard.tsx`, `ui/board/`, `engine/board.ts`, `engine/phonetic.ts`):
+- **Grammar Gus now opens on the Workboard,** a zoomable factory floor: pinch, the mouse wheel, ➖ / % / ➕ and ⤢ Fit. One finger on the empty floor pans. The old machine screen moved to Menu, "Classic machine" (Orders, Blueprints and Remix still live there for now).
+- **The Parts drawer** on the left collapses to a slim rail and opens again. It sorts four ways: By job (SHOUT / WHO / DID / WHERE / JOIN / FINISHING parts), Sentence order, By color and A to Z.
+- **Every part of speech is its own factory machine in its symbol's exact color:**
+  - Shared details: copper pipe stubs that line up when parts snap together, hex nuts on every corner, a little lever and a dial on each machine, and the symbol badge.
+  - Each part of speech has its own topper: Noun Boiler with a smokestack, Action Engine with a big gear, Paint Sprayer, How Gauge with a needle, Valve Wheel, Swap Valve, Where Pipe, Join Clamp and Steam Whistle.
+- **Finishing machines the student plugs in** (her capital and punctuation idea): the Big Letter Press (capitalizes the word after it), the Stop Stamp (.), the Bang Whistle (!; right after a shout it is the shout's own "!") and the Comma Clip.
+- **The Pixel TV plugs onto the end of the machine** and the movie plays right on it. Tap the TV for Replay or ⤢ Big screen.
+- **Each machine line has a handle block:** a MOVE grip, a big pull-down START lever, a Yesterday / Now / Tomorrow time dial, a pressure gauge and stars.
+- **Each part is added one at a time,** and every one moves on its own. Tap a part in the drawer and it plugs into the selected machine in a sensible spot (the press in front, stamps before the TV, words before the finishing parts), or drag it anywhere on the floor. Drag a machine between two others and a green marker shows where it will slot in. Drag one out and the rest close up. Drag it back to the drawer to recycle it. Drag a line's MOVE grip onto the end of another line to join them.
+- **No word bank:** tapping a machine opens its own menu with only that part's words.
+  - Each machine has a typing box with **phonetic predictive typing**: "baloon", "bloon" and "balun" all find balloon; "kat" finds cat; "dolfin" finds dolphin; "quikly" finds quickly. It matches the start of the word, the whole word with typos, and how it sounds, and shows "Did you mean 🎈 balloon?".
+  - Enter picks the top guess. After picking, the next empty machine opens on its own.
+  - Verb form buttons appear at Guided and Challenge.
+- **Gentle finishing scaffold** (Claudia's non-negotiable):
+  - The first machine on the floor already has a Big Letter Press, Article, Noun and Verb, a Stop Stamp and a Pixel TV, so students see every kind of part from the start.
+  - If a finishing part is missing when they pull the lever, steam leaks and Gus names the part. A glowing ghost socket appears where it belongs (tap to plug it in), and **🔧 Add it for me** is offered right away.
+  - A wrong word order leaks steam at the part that needs fixing, with Gus's usual joke and fix.
+- **Collections of sentences:** several machine lines on the floor make a story. ▶ Play story appears with two or more 3-star lines and plays them in reading order (top to bottom) on the big screen. Characters carry over, and Gus gives story stars. Menu, Save my sentences puts them in the Journal.
+- **Teacher setting** (Game tab): "Workboard finishing parts": Students add them (default) or Machine adds them.
+- Autosave keeps the board per student on the iPad. START pulls still feed the teacher report.
+- **iPad:** the drawer starts collapsed under 900px wide, the floor zooms to fit the first machine, and the word menu opens below the machine, or above it when there is no room. Checked in an iPad-sized browser in landscape and portrait, not on a real iPad.
+- Tests: 7 new tests (phonetic typing, finishing parts become capitals, end marks and commas, finishing problems are named, the stamp and TV must be at the end). Full suite: 240 passing.
+
+**In progress / next (Workboard round 2):**
+- Bring Orders, Blueprints, Remix and Label It onto the Workboard so the classic screen can retire.
+- Read-aloud of words in the menu.
+- Pinch-zoom check on a real iPad.
+- Claudia's gamification list, parked for her approval:
+  - Conveyor input hopper (words arrive on a belt).
+  - Repair wrench on steam leaks.
+  - Sorting belt mini-job (earns a bolt).
+  - **Upgrade shelf:** earned bolts unlock new finishing parts like a Question Hook (?), Quote Clamps and a Plural Gear, plus machine paint.
+  - Contract jobs ("build one with a WHERE part").
+  - **Gus's Gadget Mailbox:** a weekly surprise part or TV theme, with no random odds.
+  - Rewards stay tied to effort and repairs, never lost, with no streaks or leaderboards.
+
 ### Grammar Gus: word packs (Space and Ocean). SHIPPED 2026-10-07 (plan 17.5)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan in the background. The plan says "Ship Core plus two packs in v1".

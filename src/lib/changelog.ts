@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-workboard',
+    date: '2026-10-07',
+    icon: '🏭',
+    title: "Gus's new Workboard",
+    body: "Grammar Gus now has a big factory floor. Pull machines out of the Parts drawer: every word is its own machine. Tap a machine to pick its word, or start typing and Gus guesses the word for you. Plug in the Big Letter Press, a Stop Stamp and the Pixel TV, then pull the lever and watch your sentence on the TV. Pinch to zoom, and build more machines to make a story.",
+  },
+  {
     id: '2026-10-07-gus-packs',
     date: '2026-10-07',
     icon: '🚀',

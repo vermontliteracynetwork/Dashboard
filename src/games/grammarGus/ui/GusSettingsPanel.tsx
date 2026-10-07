@@ -73,6 +73,14 @@ export default function GusSettingsPanel() {
           </div>
         </div>
         <div className="stack" style={{ gap: 6 }}>
+          <strong>Workboard finishing parts</strong>
+          <div className="row-wrap" style={{ gap: 6 }}>
+            {pill(settings.finishParts === 'required', 'Students add them', () => save({ finishParts: 'required' }))}
+            {pill(settings.finishParts === 'auto', 'Machine adds them', () => save({ finishParts: 'auto' }))}
+          </div>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Big Letter Press, Stop Stamp and Pixel TV.</span>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
           <strong>Word packs</strong>
           <div className="row-wrap" style={{ gap: 6 }}>
             {WORD_PACKS.map((wp) => pill(settings.packs.includes(wp.id), `${wp.icon} ${wp.name}`, () => save({ packs: settings.packs.includes(wp.id) ? settings.packs.filter((x) => x !== wp.id) : [...settings.packs, wp.id] })))}
