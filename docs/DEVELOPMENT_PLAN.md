@@ -722,6 +722,18 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: paragraph machines (stories of up to 4 sentences). SHIPPED 2026-10-07 (plan sections 7, 3.14, 3.18.9 and 5.5)
+
+- Built under her standing instruction: "claudia, keep developingin the background until the ful dev plan for this is completed. when it is, give me a list of what to test".
+- **Seal it** (`engine/story.ts`, film strip on the machine): after a sentence plays, the student taps "🔏 Seal it". The sentence drops into a film strip frame and the machine resets to a fresh build, with a new workbench color for each sentence. Up to 4 sentences (the plan's MVP; 8 later).
+- **The cast carries over:** "a white cat" in sentence one and "the white cat" in sentence two are the same cat on screen. He, she, it and they point to the most recent matching character. Cast chips under the film strip show who is in the story.
+- **▶ Play All:** one movie, curtains open once, a quick 0.3 second pixel dissolve between sentences (a plain cut in calm mode), curtains close once.
+- **Story stars** (the Story Clipboard): 1 star for a story, 2 when every sentence stays in the same time (or the student taps "🗓 On purpose" to say the time change was on purpose), 3 when a character comes back in another sentence. Up to 3 bonus gears for: meeting someone with "a" then calling them "the", starting sentences with different words, and every he/she/it/they pointing to someone already in the story. Gus gives one tip for the next step.
+- **↩︎ Unseal** takes the last sentence back onto the machine. **📓 Save** puts the whole story in the Journal; Journal entries now have a ▶ replay button that rebuilds and replays the movie.
+- **Autosave:** the machine and the story in progress are saved on the iPad (per student) and come back after a reload or an accidental close.
+- Tests: 4 new story tests (shared cast, "a then the" bonus, time-change toggle, Play All timing). Full suite: 207 passing.
+- **In progress next (same background build):** pixel content pass (more animal and object rigs, more verb clips like eat, sing, fall, spin, hide, adverb effects, mixed-case pixel font), then teacher reports, Knock-Knock and Silly Story frameworks, Golden Gear Contest (needs her call on the $5 policy), Gus's Orders, remix tools, Garage skins, Label It, Symbol Match and word packs.
+
 ### Grammar Gus: the Inspector's Clipboard, Guided and Challenge levels, teacher settings. SHIPPED 2026-10-07 (plan milestone 6 and sections 3.6, 3.9 to 3.15)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan.

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-stories',
+    date: '2026-10-07',
+    icon: '🎞️',
+    title: 'Build a whole story with Gus',
+    body: 'After your sentence plays, tap Seal it. It drops into the film strip and you get a fresh machine. Seal up to 4 sentences, then tap Play All to watch your story as one movie. Bring a character back with "the" and Gus gives you extra stars.',
+  },
+  {
     id: '2026-10-07-arcade-picker',
     date: '2026-10-07',
     icon: '🕹️',

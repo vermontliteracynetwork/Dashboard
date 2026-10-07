@@ -4810,6 +4810,18 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gus-check-auto { opacity: 0.75; }
 .gus-check.optional .gus-check-label::after { content: ' (tip)'; font-weight: 600; opacity: 0.6; }
 .gus-check small { font-weight: 600; opacity: 0.65; }
+.gus-filmstrip { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; align-items: stretch; padding-bottom: 2px; scrollbar-width: none; }
+.gus-filmstrip::-webkit-scrollbar { display: none; }
+.gus-frame { flex: none; width: 104px; min-height: 52px; display: flex; gap: 4px; align-items: flex-start; padding: 4px 6px; border-radius: 6px; border: 3px solid #111; background: #fff6e3; font: 600 0.72rem/1.15 'Lexend', sans-serif; color: #1f2f4d; text-align: left; cursor: pointer; box-shadow: inset 0 4px 0 #111, inset 0 -4px 0 #111; background-image: repeating-linear-gradient(90deg, #111 0 6px, transparent 6px 12px), repeating-linear-gradient(90deg, #111 0 6px, transparent 6px 12px); background-size: 100% 3px, 100% 3px; background-position: 0 0, 0 100%; background-repeat: no-repeat; }
+.gus-frame-num { font: 900 1rem 'Baloo 2', sans-serif; }
+.gus-frame-text { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.gus-frame-empty { background: rgba(255,255,255,0.25); color: #fff; border-style: dashed; border-color: rgba(255,255,255,0.6); box-shadow: none; background-image: none; align-items: center; justify-content: center; cursor: default; font-weight: 700; }
+.gus-filmstrip-actions { display: flex; gap: 6px; align-items: center; flex: none; }
+.gus-cast { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.gus-cast-label { font: 800 0.65rem 'Baloo 2', sans-serif; letter-spacing: 0.15em; color: #fff; background: #1f2f4d; border-radius: 6px; padding: 1px 6px; }
+.gus-cast-chip { background: #fff6e3; border-radius: 999px; padding: 2px 8px; font: 700 0.78rem 'Lexend', sans-serif; color: #1f2f4d; }
+.gus-journal li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gus-journal-play { min-width: 48px; padding: 0; }
 /* Short screens (landscape iPad with Safari's bars): tighten vertically. */
 @media (max-height: 760px) {
   .gus-socket { min-height: 68px; }

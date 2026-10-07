@@ -172,14 +172,41 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
 
 // One frame of the whole video at `time` seconds: curtains open, the
 // scene, curtains close, the star stamp. 10.0 seconds at most.
+// The scenes part of the timeline: one scene, or a whole story with a
+// quick pixel dissolve between sentences (plan 5.5, 7.2).
+const DISSOLVE = 0.3;
+const scratch = new FB();
+function drawBody(fb: FB, script: SceneScript, t: number, opts: RenderOpts) {
+  let start = 0;
+  for (let i = 0; i < script.scenes.length; i++) {
+    const sc = script.scenes[i];
+    const end = start + sc.duration;
+    const last = i === script.scenes.length - 1;
+    if (t < end || last) { drawScene(fb, script, sc, Math.min(Math.max(0, t - start), sc.duration), opts); return; }
+    if (t < end + DISSOLVE) {
+      // Pixel dissolve: the next scene appears dot by dot (calm: a cut).
+      drawScene(fb, script, sc, sc.duration, opts);
+      const next = script.scenes[i + 1];
+      drawScene(scratch, script, next, 0, opts);
+      const p = opts.calm ? 1 : (t - end) / DISSOLVE;
+      for (let k = 0; k < fb.px.length; k++) if (((k * 2654435761) >>> 24) / 256 < p) fb.px[k] = scratch.px[k];
+      return;
+    }
+    start = end + DISSOLVE;
+  }
+}
+const bodyLength = (script: SceneScript) => script.scenes.reduce((a, sc) => a + sc.duration, 0) + DISSOLVE * (script.scenes.length - 1);
+
+// One frame of the whole video at `time` seconds: curtains open, the
+// scene (or every scene of a story), curtains close, the star stamp.
 export function renderVideoFrame(fb: FB, script: SceneScript, time: number, opts: RenderOpts = {}) {
   const tq = Math.floor(time * FPS + 1e-6) / FPS;
   const { curtainsOpen, curtainsClose, stamp } = script.timing;
-  const scene = script.scenes[0];
-  const sceneEnd = curtainsOpen + scene.duration;
-  if (tq < curtainsOpen) { drawScene(fb, script, scene, 0, opts); drawCurtains(fb, curtainOpenAt(tq / curtainsOpen, !!opts.calm)); return; }
-  if (tq < sceneEnd) { drawScene(fb, script, scene, tq - curtainsOpen, opts); drawCurtains(fb, 1); return; }
-  if (tq < sceneEnd + curtainsClose) { drawScene(fb, script, scene, scene.duration, opts); drawCurtains(fb, 1 - curtainOpenAt((tq - sceneEnd) / curtainsClose, !!opts.calm)); return; }
+  const body = bodyLength(script);
+  const sceneEnd = curtainsOpen + body;
+  if (tq < curtainsOpen) { drawBody(fb, script, 0, opts); drawCurtains(fb, curtainOpenAt(tq / curtainsOpen, !!opts.calm)); return; }
+  if (tq < sceneEnd) { drawBody(fb, script, tq - curtainsOpen, opts); drawCurtains(fb, 1); return; }
+  if (tq < sceneEnd + curtainsClose) { drawBody(fb, script, body, opts); drawCurtains(fb, 1 - curtainOpenAt((tq - sceneEnd) / curtainsClose, !!opts.calm)); return; }
   drawCurtains(fb, 0);
   const k = clamp01((tq - sceneEnd - curtainsClose) / stamp);
   const shown = Math.max(1, Math.ceil(k * 3));

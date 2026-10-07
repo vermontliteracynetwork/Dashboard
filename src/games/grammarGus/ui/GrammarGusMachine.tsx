@@ -21,6 +21,7 @@ import { buildChecklist, focusItems, GROUP_TITLES, type ChecklistItem } from '..
 import { useGusSettings, levelFor } from '../settings';
 import { verbText } from '../engine/conjugate';
 import type { Draft, Marks, VerbForm } from '../engine/types';
+import { MAX_STORY_SENTENCES, reviewStory, storyCast, storyScript, type SealedSentence } from '../engine/story';
 
 // Grammar Gus's Silly Sentence Contraption, first playable version.
 // Plan: docs/grammar-gus/PLAN.md. Students tap words into the machine's
@@ -92,7 +93,9 @@ function buildTokens(w: Words, whoPron: boolean, howFirst = false): { tokens: To
 }
 
 const gusOwner = (id: string) => `gus:${id}`;
-interface GusRow { gears?: number; journal?: { text: string; stars: number; at: string }[] }
+interface JournalEntry { kind?: 'sentence' | 'story'; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
+interface GusRow { gears?: number; journal?: JournalEntry[] }
+const WORKBENCH_COLORS = ['#8cc7ec', '#a5dcc0', '#f2d58f', '#d3bdf0']; // each new machine looks separate (plan 7.1)
 
 // iPad first (teacher 2026-10-07: "we need to prioritze optomization for
 // ipad size"): the whole game fits one iPad screen in both orientations
@@ -137,6 +140,10 @@ export default function GrammarGusMachine() {
   const [shoutMark, setShoutMark] = useState(false);
   const [openerComma, setOpenerComma] = useState(false);
   const [clipOpen, setClipOpen] = useState(false);
+  // Paragraph machines (plan 7): sealed 3-star sentences feed one screen.
+  const [story, setStory] = useState<SealedSentence[]>([]);
+  const [playingScript, setPlayingScript] = useState<{ script: NonNullable<Run['script']>; kind: 'sentence' | 'story' | 'replay' } | null>(null);
+  const [timeOnPurpose, setTimeOnPurpose] = useState(false);
   const [snapped, setSnapped] = useState<string | null>(null);
   // Drag and drop (teacher 2026-10-07: "the machine pieces need to be drag
   // and drop individually ... a simple snap to click, drag to rearrange").
@@ -241,7 +248,7 @@ export default function GrammarGusMachine() {
   });
   const selectedSlot = selected === 'who.pron' ? { pos: 'R' as Pos, key: 'who.pron', label: 'pronoun', housing: 'who' as HousingId } : SLOT_BY_KEY.get(selected)!;
 
-  const earn = (gears: number, saveText?: { text: string; stars: number }) => {
+  const earn = (gears: number, saveText?: Omit<JournalEntry, 'at'>) => {
     setSessionGears((g) => g + gears);
     if (!studentId) return;
     const journal = saveText ? [{ ...saveText, at: new Date().toISOString() }, ...(saved.journal ?? [])].slice(0, 50) : saved.journal;
@@ -250,7 +257,7 @@ export default function GrammarGusMachine() {
 
   const pull = () => {
     if (phase === 'running') return;
-    const r = runSentence(draft, [], 's1', { strictness: settings.strictness, videoThreshold: settings.videoThreshold });
+    const r = runSentence(draft, storyCast(story), `s${story.length + 1}`, { strictness: settings.strictness, videoThreshold: settings.videoThreshold });
     setResult(r);
     const seed = hashString(preview.text + tense);
     if (!r.validation.ok) {
@@ -280,6 +287,7 @@ export default function GrammarGusMachine() {
       setFiring(-1);
       const stars = r.rubric!.stars;
       if (r.script) {
+        setPlayingScript({ script: r.script, kind: 'sentence' });
         setPhase('playing'); setPlayKey((k) => k + 1);
         say(`"${r.composed.text}" Rolling film! ${r.rubric!.silly >= 3 ? `${sillyLabel(r.rubric!.silly)}. I approve.` : ''}`.trim(), `${stars} stars`);
       } else {
@@ -295,16 +303,96 @@ export default function GrammarGusMachine() {
 
   const onVideoEnd = () => {
     setPhase('done');
+    const kind = playingScript?.kind;
+    if (kind === 'story') {
+      // Gus's story review on the curtains (plan 3.18.9).
+      const rv = reviewStory(story, timeOnPurpose);
+      earn(rv.bonus);
+      say(`${rv.stars === 3 ? 'A connected, consistent story. Magnificent.' : 'A fine story.'} ${rv.tip}`, `${rv.stars} stars`);
+      return;
+    }
+    if (kind === 'replay') { say('Encore! A classic.', 'Replay'); return; }
     earn(6);
-    say(lineFor(CHEERS, hashString(preview.text)), '3 stars');
+    say(`${lineFor(CHEERS, hashString(preview.text))}${story.length < MAX_STORY_SENTENCES ? ' Seal it to start a story!' : ''}`, '3 stars');
   };
 
+  const draftsOf = (list: SealedSentence[]) => list.map((x) => x.draft);
   const saveToJournal = () => {
     if (!result?.rubric || result.rubric.stars !== 3) return;
-    earn(0, { text: result.composed.text, stars: 3 });
+    earn(0, { kind: 'sentence', text: result.composed.text, stars: 3, drafts: [draft] });
     gusSound.ding();
     say('Filed in your Journal. A fine specimen of a sentence.', 'Saved');
   };
+
+  // Seal (plan 7.1): the 3-star sentence becomes its own sealed machine on
+  // the film strip, and a fresh machine appears for the next sentence.
+  const seal = () => {
+    if (!result?.script || !result.frame || !result.resolution || result.rubric?.stars !== 3 || story.length >= MAX_STORY_SENTENCES) return;
+    const sealed: SealedSentence = { id: `s${story.length + 1}`, draft, text: result.composed.text, script: result.script, frame: result.frame, resolution: result.resolution };
+    setStory((st) => [...st, sealed]);
+    earn(2);
+    gusSound.ding();
+    setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); setForms({}); setCaps([]); setEndMark(null); setShoutMark(false); setOpenerComma(false);
+    setPhase('build'); setResult(null); setPulse([]); setSelected('who.noun');
+    say(story.length + 1 < MAX_STORY_SENTENCES ? 'Sealed! A brand new machine for your next sentence. Bring a character back with "the".' : 'Sealed! Your story is full. Press Play All.', 'Sealed');
+  };
+  const playAll = () => {
+    const sc = storyScript(story);
+    if (!sc) return;
+    setPlayingScript({ script: sc, kind: 'story' });
+    setPhase('playing'); setPlayKey((k) => k + 1);
+    say('Lights down, please. Our feature presentation.', 'Play All');
+  };
+  const playOne = (i: number) => { setPlayingScript({ script: story[i].script, kind: 'replay' }); setPhase('playing'); setPlayKey((k) => k + 1); };
+  const unsealLast = () => { setStory((st) => st.slice(0, -1)); gusSound.puff(); say('Unsealed and recycled. Very tidy.', 'Film strip'); };
+  const saveStory = () => {
+    if (!story.length) return;
+    const rv = reviewStory(story, timeOnPurpose);
+    earn(0, { kind: 'story', text: story.map((x) => x.text).join(' '), stars: 3, storyStars: rv.stars, drafts: draftsOf(story) });
+    gusSound.ding();
+    say('Your story is in the Journal. I may read it at bedtime.', 'Saved');
+  };
+  // Replay any Journal entry: scripts are rebuilt from the saved machines
+  // (deterministic), so nothing heavy is stored (plan 5.7).
+  const replayEntry = (e: JournalEntry) => {
+    if (!e.drafts?.length) return;
+    const list: SealedSentence[] = [];
+    for (const [i, dr] of e.drafts.entries()) {
+      const r = runSentence(dr, storyCast(list), `s${i + 1}`);
+      if (!r.script || !r.frame || !r.resolution) return;
+      list.push({ id: `s${i + 1}`, draft: dr, text: r.composed.text, script: r.script, frame: r.frame, resolution: r.resolution });
+    }
+    const sc = storyScript(list);
+    if (!sc) return;
+    setJournalOpen(false);
+    setPlayingScript({ script: sc, kind: 'replay' }); setPhase('playing'); setPlayKey((k) => k + 1);
+  };
+
+  // Autosave (plan 17.3, 29.3): the machine and story come back next time.
+  const saveKey = `gus-autosave-${studentId ?? 'guest'}`;
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    try {
+      const raw = localStorage.getItem(saveKey); if (!raw) return;
+      const a = JSON.parse(raw);
+      setWords(a.words ?? {}); setWhoPron(!!a.whoPron); setTense(a.tense ?? 'past'); setHowFirst(!!a.howFirst); setOpenHousings(a.openHousings ?? []);
+      setForms(a.forms ?? {}); setCaps(a.caps ?? []); setEndMark(a.endMark ?? null); setShoutMark(!!a.shoutMark); setOpenerComma(!!a.openerComma);
+      const list: SealedSentence[] = [];
+      for (const [i, dr] of ((a.storyDrafts ?? []) as Draft[]).entries()) {
+        const r = runSentence(dr, storyCast(list), `s${i + 1}`);
+        if (r.script && r.frame && r.resolution) list.push({ id: `s${i + 1}`, draft: dr, text: r.composed.text, script: r.script, frame: r.frame, resolution: r.resolution });
+      }
+      setStory(list);
+    } catch { /* storage unavailable: start fresh */ }
+  }, [saveKey]);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try { localStorage.setItem(saveKey, JSON.stringify({ words, whoPron, tense, howFirst, openHousings, forms, caps, endMark, shoutMark, openerComma, storyDrafts: draftsOf(story) })); } catch { /* fine */ }
+    }, 400);
+    return () => window.clearTimeout(t);
+  });
 
   // Surprise Hopper (plan 3.7): fill the empty sockets with words that make
   // a 3-star sentence. Never fills in something broken.
@@ -326,7 +414,7 @@ export default function GrammarGusMachine() {
     say('Even my Hopper is stumped. Try changing a word.', 'Hopper');
   };
 
-  const clearAll = () => { setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); setForms({}); setCaps([]); setEndMark(null); setShoutMark(false); setOpenerComma(false); changed(); setSelected('who.noun'); say('A fresh machine. Gleaming. Full of grammatical promise.', 'New machine'); };
+  const clearAll = () => { setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); setForms({}); setCaps([]); setEndMark(null); setShoutMark(false); setOpenerComma(false); setStory([]); setTimeOnPurpose(false); changed(); setSelected('who.noun'); say('A fresh machine. Gleaming. Full of grammatical promise.', 'New machine'); };
 
   const options = selectedSlot.pos === 'V' && settings.gentleOnly ? POOLS.V.filter((w) => verbByBase.get(w)?.gentle !== false)
     : selectedSlot.pos === 'A' && level === 'challenge' ? ['a', 'an', 'the'] : POOLS[selectedSlot.pos];
@@ -394,7 +482,7 @@ export default function GrammarGusMachine() {
           <div className="gus-cinema-marquee">{phase === 'leak' ? '? NEEDS A FIX ?' : phase === 'playing' ? 'NOW SHOWING' : phase === 'review' ? "GUS'S REVIEW" : 'PIXEL CINEMA'}</div>
           <div className={`gus-cinema${phase === 'running' && !calm ? ' warming' : ''}`}>
             <div className="gus-chimney" aria-hidden>{phase === 'running' && !calm && <><i /><i /><i /></>}</div>
-            <PixelCinema script={phase === 'playing' || phase === 'done' ? result?.script ?? null : null} playKey={playKey} speed={slow ? 0.6 : 1} calm={calm} question={phase === 'leak'} onEnd={onVideoEnd} />
+            <PixelCinema script={phase === 'playing' || phase === 'done' ? playingScript?.script ?? null : null} playKey={playKey} speed={slow ? 0.6 : 1} calm={calm} question={phase === 'leak'} onEnd={onVideoEnd} />
           </div>
           <div className="gus-caption" aria-live="polite">{preview.words.length ? preview.words.map((w) => (
             <span key={w.index} style={{ borderBottomColor: SYMBOLS[w.pos].color }}>{w.text}</span>
@@ -402,11 +490,38 @@ export default function GrammarGusMachine() {
           <div className="gus-cinema-controls">
             <button type="button" className="gus-btn" disabled={!result?.script} onClick={() => { setPhase('playing'); setPlayKey((k) => k + 1); }}>▶ Replay</button>
             <button type="button" className={`gus-btn${slow ? ' on' : ''}`} onClick={() => setSlow((s) => !s)} aria-pressed={slow}>🐢 Slower</button>
-            {result?.rubric?.stars === 3 && (phase === 'done' || phase === 'playing') && <button type="button" className="gus-btn gus-btn-gold" onClick={saveToJournal}>📓 Save it</button>}
+            {result?.rubric?.stars === 3 && playingScript?.kind === 'sentence' && (phase === 'done' || phase === 'playing') && <>
+              {story.length < MAX_STORY_SENTENCES && <button type="button" className="gus-btn gus-btn-gold" onClick={seal}>🔏 Seal it</button>}
+              <button type="button" className="gus-btn" onClick={saveToJournal}>📓 Save</button>
+            </>}
           </div>
+          <div className="gus-filmstrip" aria-label="Film strip">
+            {story.map((x, i) => (
+              <button key={x.id} type="button" className="gus-frame" onClick={() => playOne(i)} aria-label={`Play sentence ${i + 1}: ${x.text}`}>
+                <span className="gus-frame-num">{i + 1}</span><span className="gus-frame-text">{x.text}</span>
+              </button>
+            ))}
+            {story.length < MAX_STORY_SENTENCES && <span className="gus-frame gus-frame-empty" aria-hidden>{story.length ? '+ next' : 'Seal a 3-star sentence'}</span>}
+            {story.length > 0 && (
+              <span className="gus-filmstrip-actions">
+                <button type="button" className="gus-btn gus-btn-gold" onClick={playAll}>▶ Play All</button>
+                <button type="button" className="gus-btn" onClick={saveStory}>📓</button>
+                <button type="button" className="gus-btn" onClick={unsealLast} aria-label="Unseal the last sentence">↩︎</button>
+                {new Set(story.map((x) => x.draft.tense)).size > 1 && (
+                  <button type="button" className={`gus-btn${timeOnPurpose ? ' on' : ''}`} onClick={() => setTimeOnPurpose((v) => !v)} aria-pressed={timeOnPurpose}>🗓 On purpose</button>
+                )}
+              </span>
+            )}
+          </div>
+          {storyCast(story).filter((m) => !m.isDefault).length > 0 && (
+            <div className="gus-cast" aria-label="Cast">
+              <span className="gus-cast-label">CAST</span>
+              {storyCast(story).filter((m) => !m.isDefault).map((m) => <span key={m.id} className="gus-cast-chip">{nounByWord.get(m.noun)?.emoji ?? '🎭'} {m.label}</span>)}
+            </div>
+          )}
         </section>
 
-        <section className={machineClass} aria-label="The sentence machine">
+        <section className={machineClass} style={{ background: WORKBENCH_COLORS[story.length % WORKBENCH_COLORS.length] }} aria-label="The sentence machine">
           <div className="gus-machine-top">
             <div className="gus-crank" role="group" aria-label="Time crank">
               <span className="gus-crank-label">TIME</span>
@@ -561,7 +676,7 @@ export default function GrammarGusMachine() {
           <div className="gus-journal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Silly Journal">
             <h2>📓 Gus's Silly Journal</h2>
             {(saved.journal ?? []).length === 0 ? <p>No sentences yet. Make a 3-star sentence and tap Save it.</p> : (
-              <ul>{saved.journal!.map((j, i) => <li key={i}><span className="gus-guide-stars">{[1, 2, 3].map((k) => <img key={k} src={k <= j.stars ? '/games/ui-kit/gold-star.png' : '/games/ui-kit/gold-star-empty.png'} alt="" />)}</span> {j.text}</li>)}</ul>
+              <ul>{saved.journal!.map((j, i) => <li key={i}>{j.drafts?.length ? <button type="button" className="gus-btn gus-journal-play" onClick={() => replayEntry(j)} aria-label="Play">▶</button> : null}{j.kind === 'story' && <strong>📜 Story </strong>}<span className="gus-guide-stars">{[1, 2, 3].map((k) => <img key={k} src={k <= j.stars ? '/games/ui-kit/gold-star.png' : '/games/ui-kit/gold-star-empty.png'} alt="" />)}</span> {j.text}</li>)}</ul>
             )}
             <button type="button" className="gus-btn" onClick={() => setJournalOpen(false)}>✕ Close</button>
           </div>
