@@ -214,3 +214,45 @@ describe("Claudia's audit: accuracy fixes", () => {
     expect(readLine(l, 'full', false).problems.map((p) => p.code)).toContain('CRANE_ONE_IDEA');
   });
 });
+
+describe("Claudia's Phase 1 engine", () => {
+  it('a because, when or if idea can come first, with a comma after it', () => {
+    const l = line([part('cap'), part('C', 'when'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('A', 'the'), part('N', 'dog'), part('V', 'run'), part('stop')]);
+    expect(text(l)).toBe('When the cat jumps, the dog runs.');
+    expect(runSentence(readLine(l, 'full', false).draft).validation.ok).toBe(true);
+  });
+  it('the Logic Gate: but and so take a comma, because does not', () => {
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('gate', 'because'), part('A', 'the'), part('N', 'dog'), part('V', 'jump'), part('stop')]))).toBe('The cat runs because the dog jumps.');
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('gate', 'but'), part('A', 'the'), part('N', 'dog'), part('V', 'jump'), part('stop')]))).toBe('The cat runs, but the dog jumps.');
+  });
+  it('the Equals Sign Machine: is, are, was, were, will be', () => {
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('equals', 'be'), part('J', 'happy'), part('stop')]))).toBe('The cat is happy.');
+    const past = line([part('clock', 'past'), part('cap'), part('A', 'the'), part('N', 'children'), part('equals', 'be'), part('J', 'happy'), part('stop')]);
+    expect(text(past)).toBe('The children were happy.');
+    expect(runSentence(readLine(past, 'full', false).draft).validation.ok).toBe(true);
+  });
+  it('how and where words after an object, and a pronoun after a where word', () => {
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'chase'), part('A', 'the'), part('N', 'dog'), part('D', 'quickly'), part('stop')]))).toBe('The cat chases the dog quickly.');
+    const her = line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('P', 'with'), part('R', 'her'), part('stop')]);
+    expect(text(her)).toBe('The cat runs with her.');
+    expect(runSentence(readLine(her, 'full', false).draft).validation.ok).toBe(true);
+  });
+  it('the Command Conveyor: a command has a hidden you', () => {
+    const l = line([part('command'), { ...part('V', 'eat'), bottom: part('cap') }, part('A', 'the'), part('N', 'apple'), part('stop')]);
+    expect(readLine(l, 'full', true).problems.map((p) => p.code)).toEqual(['NEED_TV']);
+    expect(text(l)).toBe('Eat the apple.');
+    expect(runSentence(readLine(l, 'full', false).draft).validation.ok).toBe(true);
+  });
+  it('the Hypothesis Engine: If the ramp is..., then ... will', () => {
+    const l = line([part('clock', 'future'), part('cap'), part('hypo', 'if'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('D', 'then'), part('A', 'the'), part('N', 'dog'), part('V', 'run'), part('stop')]);
+    expect(text(l)).toBe('If the cat jumps, then the dog will run.');
+  });
+  it('a question with "be": Is the cat happy? Yes, it is.', async () => {
+    const { lineText } = await import('../engine/board');
+    const { shortAnswers } = await import('../engine/question');
+    const l = line([part('crane'), part('cap'), part('A', 'the'), part('N', 'cat'), part('equals', 'be'), part('J', 'happy'), part('ask')]);
+    const r = readLine(l, 'full', false);
+    expect(lineText(l, r)).toBe('Is the cat happy?');
+    expect(shortAnswers(r.draft)?.right).toBe('Yes, it is.');
+  });
+});

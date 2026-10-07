@@ -81,10 +81,10 @@ export const NOUNS: NounEntry[] = [
 ];
 
 export interface VerbEntry {
-  base: string; third: string; past: string; objectUse: 'T' | 'B' | 'I';
+  base: string; third: string; past: string; objectUse: 'T' | 'B' | 'I' | 'L'; // L: a linking verb (is, are, was)
   clip: string; pack: Pack; gentle?: boolean;
 }
-const v = (base: string, third: string, past: string, objectUse: 'T' | 'B' | 'I', clip: string, pack: Pack = 'core', gentle = true): VerbEntry =>
+const v = (base: string, third: string, past: string, objectUse: 'T' | 'B' | 'I' | 'L', clip: string, pack: Pack = 'core', gentle = true): VerbEntry =>
   ({ base, third, past, objectUse, clip, pack, gentle });
 
 // hid and slid are stored as hide and slide so every tense works (plan 13.3).
@@ -164,3 +164,9 @@ export const interjectionSet = new Set<string>(INTERJECTIONS);
 
 // Every word of a part of speech (for the generator and the word shelf).
 export const nounsForTier = (tier: 1 | 2 | 3) => NOUNS.filter((x) => x.tier <= tier).map((x) => x.word);
+
+// The linking verb "be" (Equals Sign Machine, Claudia's Phase 1, 2026-10-07):
+// "The magnet is strong." It links the who to what it is like. It lives
+// only in the dictionary of real words, not in the everyday word lists.
+const BE: VerbEntry = { base: 'be', third: 'is', past: 'was', objectUse: 'L', clip: 'wiggle', pack: 'custom', gentle: true };
+if (!verbByBase.has('be')) verbByBase.set('be', BE);

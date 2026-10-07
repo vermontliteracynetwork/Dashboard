@@ -722,6 +722,30 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Claudia's Phase 1, batches A and B (fade ladder on finishing parts, Logic Gate and Flip Switch, Equals Sign Machine, Expansion Rig, Procedure Conveyor, Hypothesis Engine). SHIPPED 2026-10-07 (teacher: "Keep building this out Claudia")
+
+**What shipped:**
+- **Fade ladder on the finishing parts** (capital letter, punctuation and TV):
+  - Full help: the missing spots glow, with "🔧 Add it for me".
+  - Guided: the spots glow, and the student adds the parts.
+  - Challenge: Gus only says something is missing and points to the checklist. The "Next" button stops naming the finishing parts at Challenge.
+- **Logic Gate** (Writing Revolution because, but, so): a joining-word part with BECAUSE (why), BUT (surprise) and SO (what happened next), each with its own pipe lamp and gate swing. "but" and "so" get their comma before them automatically at Full help and checked at Challenge. "because" takes none.
+- **Flip Switch:** tap 🔄 Flip to move a because, when, after, before, while or if idea to the front. The comma snaps on after it, and the Capital Letter Press moves to the new first word: "Because the dog jumps, the cat runs." Tap again to flip it back. The engine now accepts a depending idea first, with its comma.
+- **Equals Sign Machine** (linking verbs): a balance with an equals sign that holds "be". "The magnet is strong.", "The children were happy." It changes with its who and time (am, is, are, was, were, will be). The describing word shows on the who in the movie. Questions work too: "Is the cat happy?" "Yes, it is."
+- **Expansion Rig:** six lamps (who, what, when, where, why, how) light up as the sentence answers each question. Tap it to see which are dark, and 👉 Show me lights up the part that answers that question.
+- **The engine grew for expansion:**
+  - How and where words can now follow an object: "The cat chases the dog quickly."
+  - Pronouns work after a where word: "The cat runs with her."
+  - New where words: with, near, beside, toward, inside, outside.
+- **Command Conveyor and 🧪 Procedure Conveyor** (🧰 Jobs, 🔬 Science writing):
+  - A command has a hidden "you" ("Eat the apple."), and the capital letter goes on the first word you see.
+  - The job delivers 4 linked command steps with First, Next, Then and Finally.
+- **Hypothesis Engine and 🔬 Hypothesis job:** an "if" part. "If the cat jumps, then the dog will run." The if idea stays in the present while the rest is in the future. The job delivers a Hypothesis machine (future) and an Observation machine (past), linked.
+- The classic machine's random sentences keep the original grammar. The Workboard uses the bigger one.
+- Tests: 7 new. Full Gus suite: 299 passing.
+
+**Next (Phase 1, batch C):** Spark Check fragment job, Homophone Sorter and Transition Track. Then a Claudia review of Phase 1, then Phase 2.
+
 ### Grammar Gus: Claudia's full audit, the fixes, and her writing scaffold plan. SHIPPED 2026-10-07 (teacher: "claudia should evaluate and audit all features ... then ... scaffold them in a fun gamified way")
 
 **The report:** `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md` and its PDF. It has three parts: the audit, the gap analysis with its research base, and 16 scaffolded machines with a build order.
@@ -797,7 +821,9 @@ These come from `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md`, Part 3. Every
 - opinion-writing machines
 - seasonal Paint Shop floors
 
-**Status:** none started. Waiting for the teacher to pick a starting point, or start Phase 1 in order.
+**Status (2026-10-07, teacher: "Keep building this out Claudia"):**
+- Phase 1 batches A and B shipped (see the entry above): the fade ladder, Logic Gate, Flip Switch, Equals Sign Machine, Expansion Rig, Procedure Conveyor and Hypothesis Engine.
+- Batch C is in progress: Spark Check, Homophone Sorter and Transition Track.
 
 ### Grammar Gus: finishing the plan, round 10 (Orders, Blueprints and Remix move onto the Workboard). SHIPPED 2026-10-07
 

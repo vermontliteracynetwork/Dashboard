@@ -1,6 +1,7 @@
 import type { HelpLevel } from './types';
 import { readLine, type BoardItem, type BoardLine } from './board';
 import { runSentence } from './pipeline';
+import { analyze } from './analyze';
 import { pronounFor } from './remix';
 import { ADJECTIVES, ADVERBS, NOUNS, PREPOSITIONS, nounByWord } from '../data/wordbank';
 import { wordPosOf } from '../ui/board/parts';
@@ -60,4 +61,40 @@ export function remixLine(line: BoardLine, kind: RemixKind, level: HelpLevel, rn
   if (works(line, c, level)) return { items: c, note: `Pronoun swap! "${word}" became "${pron}".` };
   void PREPOSITIONS;
   return 'Gus could not swap that one.';
+}
+
+// The Flip Switch (Logic Gate, Claudia's Phase 1): moves a because, when,
+// after, before, while or if idea to the front with a comma after it, or
+// back to the end. The Capital Letter Press moves to the new first word.
+const SUB_WORDS = ['because', 'when', 'after', 'before', 'while', 'if'];
+export function flipIdeas(items: BoardItem[], uid: () => string): { items: BoardItem[]; front: boolean } | string {
+  const isWord = (i: BoardItem) => !!wordPosOf(i.kind);
+  const firstW = items.findIndex(isWord);
+  let lastW = -1; items.forEach((it, i) => { if (isWord(it)) lastW = i; });
+  const conj = items.findIndex((i) => wordPosOf(i.kind) === 'C' && SUB_WORDS.includes((i.word ?? '').toLowerCase()));
+  if (conj < 0 || firstW < 0) return 'The Flip Switch needs a because, when, after, before, while or if joining two ideas.';
+  const strip = (i: BoardItem): BoardItem => ({ ...i, ...(i.bottom && i.bottom.kind !== 'duplicator' && i.bottom.kind !== 'taggun' && i.bottom.kind !== 'inflator' ? { bottom: undefined } : {}), ...(i.top && (i.top.kind === 'comma' || i.top.kind === 'dominoes') ? { top: undefined } : {}) });
+  const before = items.slice(0, firstW);
+  const after = items.slice(lastW + 1);
+  const words = items.slice(firstW, lastW + 1).map(strip);
+  const k = conj - firstW;
+  const capOf = items.slice(firstW, lastW + 1).find((i) => i.bottom && ['cap', 'pulley'].includes(i.bottom.kind))?.bottom ?? { id: uid(), kind: 'cap' as const, word: null };
+  let out: BoardItem[];
+  let front: boolean;
+  if (k === 0) {
+    // Already in front: find where the main idea starts (the second who) and move the depending idea back.
+    const rd = readLine({ id: 'flip', x: 0, y: 0, items }, 'full', false);
+    const c1 = analyze(rd.draft.tokens).parse.roles.findIndex((r) => !!r && r.startsWith('c1.') && r !== 'c1.open');
+    const mainStart = c1 >= 0 ? words.findIndex((w) => w.id === rd.tokenIds[c1]) : -1;
+    if (mainStart < 0) return 'Gus could not find where the main idea starts.';
+    const sub = words.slice(0, mainStart); const main = words.slice(mainStart);
+    out = [...before, { ...main[0], bottom: capOf }, ...main.slice(1), ...sub, ...after];
+    front = false;
+  } else {
+    const main = words.slice(0, k); const sub = words.slice(k);
+    const lastSub = sub[sub.length - 1];
+    out = [...before, { ...sub[0], bottom: capOf }, ...sub.slice(1, -1), ...(sub.length > 1 ? [{ ...lastSub, top: { id: uid(), kind: 'comma' as const, word: null } }] : []), ...main, ...after];
+    front = true;
+  }
+  return { items: out, front };
 }

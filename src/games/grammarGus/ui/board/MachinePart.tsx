@@ -366,6 +366,53 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <text x={c} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill={INK}>SPIN</text>
       <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
+    case 'gate': {
+      const wd = (word ?? '').toLowerCase();
+      const pipe = wd === 'because' ? '#f3cf6b' : wd === 'but' ? '#e8483b' : wd === 'so' ? '#3fbf5a' : '#c8ced8';
+      return <g>
+        <Pipes w={w} />
+        <rect x={c - 40} y={20} width={80} height={56} rx={8} fill={color} stroke={INK} strokeWidth={3} />
+        <g className="gwb-swing" style={{ transformOrigin: `${c}px 48px` }}><rect x={c - 4} y={24} width={8} height={48} rx={3} fill="#fff" stroke={INK} strokeWidth={2} transform={`rotate(${wd === 'because' ? -35 : wd === 'so' ? 35 : 0} ${c} 48)`} /></g>
+        {[['why', -26, '#f3cf6b'], ['but', 0, '#e8483b'], ['so', 26, '#3fbf5a']].map(([t, dx, col]) => <g key={t as string}><circle cx={c + (dx as number)} cy={92} r={8} fill={pipe === col ? (col as string) : '#3c455e'} stroke={INK} strokeWidth={2} /><text x={c + (dx as number)} y={110} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={9} fill={INK}>{t as string}</text></g>)}
+      </g>;
+    }
+    case 'flip': return <g>
+      <Pipes w={w} />
+      <rect x={c - 30} y={30} width={60} height={60} rx={10} fill={color} stroke={INK} strokeWidth={3} />
+      <g className="gwb-spin" style={{ transformOrigin: `${c}px 60px` }}><path d={`M${c - 16} 52 a16 16 0 0 1 30 -4 l4 -8 l2 14 l-14 -2 l6 -3 a10 10 0 0 0 -20 3z`} fill="#fff" stroke={INK} strokeWidth={1.6} /><path d={`M${c + 16} 68 a16 16 0 0 1 -30 4 l-4 8 l-2 -14 l14 2 l-6 3 a10 10 0 0 0 20 -3z`} fill="#fff" stroke={INK} strokeWidth={1.6} /></g>
+      <rect x={c - 5} y={90} width={10} height={32} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+    case 'equals': return <g>
+      <Pipes w={w} />
+      <path d={`M${c - 6} 122 L${c} 70 L${c + 6} 122Z`} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+      <g className="gwb-tilt" style={{ transformOrigin: `${c}px 70px` }}><rect x={c - 46} y={66} width={92} height={7} rx={3} fill={color} stroke={INK} strokeWidth={2} />
+        <path d={`M${c - 44} 66 l-8 -22 h28 l-8 22`} fill="#fff8e6" stroke={INK} strokeWidth={1.6} /><path d={`M${c + 44} 66 l8 -22 h-28 l8 22`} fill="#fff8e6" stroke={INK} strokeWidth={1.6} /></g>
+      <rect x={c - 18} y={18} width={36} height={30} rx={6} fill="#fff" stroke={INK} strokeWidth={2.4} />
+      <text x={c} y={42} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={26} fill={color}>=</text>
+    </g>;
+    case 'command': return <g>
+      <rect x={8} y={84} width={w - 16} height={22} rx={11} fill="#3c455e" stroke={INK} strokeWidth={2.4} />
+      {Array.from({ length: Math.floor((w - 24) / 22) }, (_, i) => <g key={i} className="gwb-spin" style={{ transformOrigin: `${20 + i * 22}px 95px` }}><circle cx={20 + i * 22} cy={95} r={7} fill="#c8ced8" stroke={INK} strokeWidth={1.6} /></g>)}
+      <rect x={c - 34} y={22} width={68} height={50} rx={8} fill={color} stroke={INK} strokeWidth={3} />
+      <text x={c} y={45} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={13} fill="#fff">DO IT!</text>
+      <text x={c} y={63} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={700} fontSize={9.5} fill="#fff">(you)</text>
+      <rect x={20} y={106} width={8} height={18} fill="#6b7383" /><rect x={w - 28} y={106} width={8} height={18} fill="#6b7383" />
+    </g>;
+    case 'hypo': return <g>
+      <Pipes w={w} />
+      <rect x={c - 22} y={10} width={44} height={20} rx={4} fill="#c8ced8" stroke={INK} strokeWidth={2} />
+      <path d={`M${c - 10} 30 L${c - 10} 50 L${c - 32} 100 Q${c} 116 ${c + 32} 100 L${c + 10} 50 L${c + 10} 30Z`} fill="#e9f3ff" stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+      <path d={`M${c - 24} 86 Q${c} 96 ${c + 24} 86 L${c + 30} 100 Q${c} 114 ${c - 30} 100Z`} fill={color} />
+      {[0, 1, 2].map((i) => <circle key={i} className="gwb-drop" cx={c - 8 + i * 8} cy={78 - i * 10} r={3 + i} fill="#fff" stroke={INK} strokeWidth={1} />)}
+    </g>;
+    case 'rig': {
+      const lit = status ?? '000000';
+      return <g>
+        <Pipes w={w} />
+        <rect x={8} y={14} width={w - 16} height={96} rx={10} fill={color} stroke={INK} strokeWidth={3} />
+        {['who', 'what', 'when', 'where', 'why', 'how'].map((q, i) => { const x = 22 + (i % 3) * ((w - 44) / 2); const y = 38 + Math.floor(i / 3) * 40; const on = lit[i] === '1'; return <g key={q}><circle cx={x} cy={y} r={10} fill={on ? '#f3cf6b' : '#3c455e'} stroke={INK} strokeWidth={2} /><text x={x} y={y + 22} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={10} fill="#fff">{q}</text></g>; })}
+      </g>;
+    }
     default: return null;
   }
 }

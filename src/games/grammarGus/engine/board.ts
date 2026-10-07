@@ -48,6 +48,8 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
   const commaAt: { tok: number; id: string }[] = [];
   items.forEach((it, i) => {
     const pos = wordPosOf(it.kind); const mark = itemMark(it);
+    // The Command Conveyor: a command's who is a hidden "you" (Pour the water.).
+    if (it.kind === 'command') { if (mainStarted) problems.push({ code: 'NOT_FRONT', itemId: it.id }); else { tokens.push({ pos: 'R', word: 'you', hidden: true }); tokenIds.push(it.id); } return; }
     if (pos) {
       if (!it.word && it.kind !== 'crate') problems.push({ code: 'EMPTY_PART', itemId: it.id }); // an empty Mystery Crate is a surprise
       if (isFront(it.kind)) { if (mainStarted) problems.push({ code: 'NOT_FRONT', itemId: it.id }); } else mainStarted = true;
@@ -100,9 +102,9 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
   // The Dead-End Detector: every where word needs a noun after it.
   if (items.some((i) => i.kind === 'detector')) for (const id of deadEnds(line)) problems.push({ code: 'DEAD_END', itemId: id });
   const hasTV = items.some((it) => it.kind === 'tv');
-  if (!tokens.length) problems.unshift({ code: 'NO_WORDS' });
+  if (!tokens.some((t) => !t.hidden)) problems.unshift({ code: 'NO_WORDS' });
   if (mustFinish && tokens.length) {
-    if (!marks.capitals.includes(0)) problems.push({ code: 'NEED_CAP' });
+    if (!marks.capitals.includes(Math.max(0, tokens.findIndex((t) => !t.hidden)))) problems.push({ code: 'NEED_CAP' });
     if (!marks.endMark) problems.push({ code: 'NEED_END' });
     if (!hasTV) problems.push({ code: 'NEED_TV' });
   }

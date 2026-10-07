@@ -10,7 +10,8 @@ export type VerbForm = 'base' | 'third' | 'past' | 'future';
 // One socket on the Sentence Rail. word null = empty socket.
 // form is only used at Guided and Challenge, where the student picks the
 // verb form; at Full help the engine conjugates.
-export interface Token { pos: Pos; word: string | null; form?: VerbForm }
+// hidden: the "you" a command means but never says (Procedure Conveyor).
+export interface Token { pos: Pos; word: string | null; form?: VerbForm; hidden?: boolean }
 
 // What the student placed by hand (Guided and Challenge). At Full help the
 // engine applies all of these itself and marks are ignored.

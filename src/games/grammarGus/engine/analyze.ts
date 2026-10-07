@@ -12,7 +12,7 @@ export interface ClauseInfo {
   open?: number;
   subj: NP[]; subjConj?: number; subjPron?: number;
   verbs: number[]; verbConj?: number;
-  obj?: NP; objPron?: number; subjMid?: boolean;
+  obj?: NP; objPron?: number; subjMid?: boolean; comps?: number[]; compConj?: number; ppPron?: number;
   advs: number[]; advConj?: number;
   preps: number[]; prepConj?: number; pp?: NP;
 }
@@ -49,6 +49,9 @@ export function analyze(tokens: Token[], p: Parse = parse(tokens)): Analysis {
     else if (a === 'subj' && b === 'pron') cl.subjPron = i;
     else if (a === 'subj' && b === 'conj') cl.subjConj = i;
     else if (a === 'obj' && b === 'pron') cl.objPron = i;
+    else if (a === 'pp' && b === 'pron') cl.ppPron = i;
+    else if (a === 'comp') (cl.comps ??= []).push(i);
+    else if (a === 'compconj') cl.compConj = i;
     else {
       const np = npFor(cl, a);
       if (b === 'art') np.art = i; else if (b === 'adj') np.adjs.push(i); else if (b === 'noun') np.noun = i; else if (b === 'poss') np.poss = i;

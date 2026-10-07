@@ -23,7 +23,7 @@ export interface Reel extends Token { locked?: boolean }
 export interface SpinResult { pattern: Pattern; reels: Reel[]; tense: Tense; attempts: number }
 
 function rolesFor(pattern: Pattern): string[] {
-  return parse(pattern.symbols.map((pos) => ({ pos, word: null }))).roles.map((r) => r ?? '');
+  return parse(pattern.symbols.map((pos) => ({ pos, word: null })), true).roles.map((r) => r ?? '');
 }
 
 const ADJ_POOL = ADJECTIVES.filter((a) => a.pack !== 'example').map((a) => a.word);

@@ -18,9 +18,12 @@ export const adjRank = (w: string) => ADJ_RANK[adjByWord.get(w.toLowerCase())?.k
 // The verb form the time crank and subject call for.
 export function expectedForms(draft: Draft, a: Analysis = analyze(draft.tokens)): Map<number, VerbForm> {
   const m = new Map<number, VerbForm>();
+  const ifWord = a.clauseConj !== undefined && (draft.tokens[a.clauseConj]?.word ?? '').toLowerCase() === 'if';
   for (const cl of a.clauses) {
     const plural = subjectIsPlural(draft.tokens, cl);
-    for (const v of cl.verbs) m.set(v, formFor(draft.tense, plural));
+    // "If the ramp rises, the marble will roll.": the if idea stays in the present (Hypothesis Engine).
+    const tense = ifWord && cl.c === 2 && draft.tense === 'future' ? 'present' : draft.tense;
+    for (const v of cl.verbs) m.set(v, formFor(tense, plural));
   }
   return m;
 }
@@ -33,10 +36,14 @@ export function expectedForms(draft: Draft, a: Analysis = analyze(draft.tokens))
 export function requiredCommas(a: Analysis, tokens: Token[] = []): number[] {
   const out: number[] = [];
   const c1 = a.clauses[0];
-  if (c1?.open !== undefined) out.push(c1.open);
+  // ("then" after an if idea takes no comma of its own.)
+  if (c1?.open !== undefined && !(normWord(tokens[c1.open]?.word ?? '') === 'then' && a.clauseConj !== undefined && a.clauseConj < c1.open)) out.push(c1.open);
   const c2 = a.clauses[1];
   const cw = a.clauseConj !== undefined ? (tokens[a.clauseConj]?.word ?? '').toLowerCase() : '';
-  if (c2 && a.clauseConj !== undefined && (c2.open !== undefined || COORD.includes(cw))) out.push(a.clauseConj - 1);
+  // The depending idea first: a comma after it ("When the gear spins, the lamp glows.").
+  const c1Start = a.parse.roles.findIndex((r) => !!r && r.startsWith('c1.'));
+  if (c2 && a.clauseConj !== undefined && c1Start > a.clauseConj) { if (c1Start > 0) out.push(c1Start - 1); }
+  else if (c2 && a.clauseConj !== undefined && (c2.open !== undefined || COORD.includes(cw))) out.push(a.clauseConj - 1);
   // A list of three: a comma after each item before "and" (Comma List Train).
   for (const cl of a.clauses) if (cl.subj.length === 3) for (const np of cl.subj.slice(0, 2)) { const last = np.noun ?? Math.max(np.art ?? -1, ...np.adjs); if (last >= 0) out.push(last); }
   return out;
@@ -46,7 +53,9 @@ export function requiredCommas(a: Analysis, tokens: Token[] = []): number[] {
 // and the word I.
 export function requiredCapitals(tokens: Token[], a: Analysis, includeI: boolean): number[] {
   const out = new Set<number>();
-  if (tokens.length) out.add(0);
+  // A command's hidden "you" is never shown: the first word you see gets the capital letter.
+  const first = tokens.findIndex((t) => !t.hidden);
+  if (first >= 0) out.add(first);
   if (a.shout !== undefined && a.shout + 1 < tokens.length) out.add(a.shout + 1);
   if (includeI) tokens.forEach((t, i) => { if (t.pos === 'R' && t.word && normWord(t.word) === 'I') out.add(i); });
   return [...out].sort((x, y) => x - y);
@@ -91,6 +100,17 @@ export function autoFixWords(tokens: Token[], a: Analysis): Token[] {
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+// "be" changes with its who: I am, she is, they are; I was, they were.
+export function beText(tokens: Token[], a: Analysis, vi: number, form: VerbForm): string {
+  const cl = a.clauses.find((c) => c.verbs.includes(vi)) ?? a.clauses[0];
+  const plural = cl ? subjectIsPlural(tokens, cl) : false;
+  const isI = !!cl && cl.subjPron !== undefined && normWord(tokens[cl.subjPron].word ?? '') === 'I';
+  if (form === 'future') return 'will be';
+  if (form === 'past') return plural && !isI ? 'were' : 'was';
+  if (isI) return 'am';
+  return plural ? 'are' : 'is';
+}
+
 export function compose(draft: Draft): Composed {
   const a = analyze(draft.tokens);
   const full = draft.level === 'full';
@@ -110,12 +130,13 @@ export function compose(draft: Draft): Composed {
   const commas = new Set(marks.commas);
   const words: Word[] = [];
   tokens.forEach((t, i) => {
-    if (t.word === null) return;
+    if (t.word === null || t.hidden) return;
     let text = normWord(t.word);
     if (t.pos === 'V') {
       const v = verbByBase.get(text);
       const form = full ? forms.get(i) : (t.form ?? forms.get(i));
       if (v && form) text = verbText(v, form);
+      if (v?.base === 'be') text = beText(draft.tokens, a, i, form ?? 'third');
     }
     if (t.pos === 'R' && text === 'I') text = full || capitals.has(i) ? 'I' : 'i';
     if (t.pos === 'I') text = text.toLowerCase();

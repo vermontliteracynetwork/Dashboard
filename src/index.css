@@ -5354,3 +5354,10 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-grip { background: #5d6a82; }
 .gwb-line.selected .gwb-grip { background: #f3cf6b; }
 .gwb-item.firing .gwb-blink { animation: none; }
+/* Claudia Phase 1: Expansion Rig menu, Flip Switch button */
+.gwb-rig-menu { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.gwb-rig-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 8px; border-radius: 10px; background: #fff; border: 2px solid var(--gus-ink); font: 700 0.95rem 'Lexend', sans-serif; }
+.gwb-rig-row.on { background: #fff4c2; }
+.gwb-rig-row .gus-mini { min-height: 40px; padding: 0 10px; }
+.gwb-layer .gwb-k-flip .gwb-clock-btns { top: auto; bottom: 4px; left: 4px; right: 4px; }
+.gwb-layer .gwb-k-flip .gwb-clock-btns button { flex: 1; font-size: 0.9rem; }

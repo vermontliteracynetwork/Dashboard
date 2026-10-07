@@ -1,5 +1,6 @@
 import type { Pos, Token } from './types';
 import '../data/extraNouns'; // names and weird-plural nouns join the dictionary
+import '../data/timeWords'; // time words and "then" are how words
 import {
   adjByWord, adverbSet, CONJ_POOLS, interjectionSet, nounByWord, prepSet, reflexiveSet, subjectPronounSet, verbByBase,
 } from '../data/wordbank';
@@ -43,7 +44,7 @@ const possBase = (w: string) => (w.endsWith("'s") ? w.slice(0, -2) : w.endsWith(
 const isPoss: Test = (w) => { const b = possBase(w); return !!b && nounByWord.has(b); };
 // Joining words that make one idea depend on the other (Because Seesaw).
 // (Claudia's audit: "so" joins two whole ideas like and/but, with a comma.)
-export const SUBORD = ['because', 'when', 'after', 'before', 'while'];
+export const SUBORD = ['because', 'when', 'after', 'before', 'while', 'if'];
 // Joining words for two whole ideas: they take a comma before them.
 export const COORD = ['and', 'but', 'or', 'so', 'yet', 'for'];
 export const OBJECT_PRONOUNS = ['me', 'him', 'her', 'us', 'them', 'you', 'it'];
@@ -56,7 +57,9 @@ const isInterj: Test = (w) => interjectionSet.has(w) || interjectionSet.has(w.ch
 const inPool = (pool: readonly string[]): Test => (w) => pool.includes(w);
 const verbTakes = (uses: string): Test => (w) => { const v = verbByBase.get(w); return !!v && uses.includes(v.objectUse); };
 
-function build() {
+// extended: the Workboard's newer sentence shapes (Claudia's Phase 1). The
+// classic machine's random sentence maker keeps the original shapes.
+function build(extended: boolean) {
   const b = new Builder();
   const term = (pos: Pos, role: string, test: Test): Frag => { const s = b.state(); const e = b.state(); b.link(s, { to: e, pos, role, test }); return { s, e }; };
   const empty = (): Frag => { const s = b.state(); const e = b.state(); b.link(s, { to: e }); return { s, e }; };
@@ -77,26 +80,36 @@ function build() {
     // Two, or a list of three (Comma List Train): the cat, the dog, and the frog.
     seq(np(`${c}.subj`), opt(seq(opt(np(`${c}.subjm`)), term('C', `${c}.subj.conj`, inPool(CONJ_POOLS.subject)), np(`${c}.subj2`)))),
   );
-  const pp = (c: string) => seq(term('P', `${c}.prep`, isPrep), opt(seq(term('C', `${c}.prepconj`, inPool(CONJ_POOLS.prep)), term('P', `${c}.prep2`, isPrep))), np(`${c}.pp`));
+  // After a where word: a noun, or an object pronoun ("with her", Claudia's Expansion Rig).
+  const pp = (c: string) => seq(term('P', `${c}.prep`, isPrep), opt(seq(term('C', `${c}.prepconj`, inPool(CONJ_POOLS.prep)), term('P', `${c}.prep2`, isPrep))), (extended ? alt(np(`${c}.pp`), term('R', `${c}.pp.pron`, isObjPron)) : np(`${c}.pp`)));
   const mods = (c: string) => seq(opt(seq(term('D', `${c}.adv`, isAdv), opt(seq(term('C', `${c}.advconj`, inPool(CONJ_POOLS.adverb)), term('D', `${c}.adv2`, isAdv))))), opt(pp(c)));
   // Object pronouns too (Subject and Object Turnstile): the cat saw him.
   const obj = (c: string) => alt(np(`${c}.obj`), term('R', `${c}.obj.pron`, (w) => isReflexive(w) || isObjPron(w)));
   const pred = (c: string) => alt(
     seq(term('V', `${c}.verb`, verbTakes('IB')), opt(seq(term('C', `${c}.verbconj`, inPool(CONJ_POOLS.verb)), term('V', `${c}.verb2`, verbTakes('IB')))), mods(c)),
-    seq(term('V', `${c}.verb`, verbTakes('TB')), obj(c)),
+    // How and where words can come after the object too: "chased the ball quickly under the bed".
+    extended ? seq(term('V', `${c}.verb`, verbTakes('TB')), obj(c), mods(c)) : seq(term('V', `${c}.verb`, verbTakes('TB')), obj(c)),
+    // A linking verb and what the who is like: "is strong", "was cold and wet" (Equals Sign Machine).
+    ...(extended ? [seq(term('V', `${c}.verb`, verbTakes('L')), term('J', `${c}.comp`, isAdj), opt(seq(term('C', `${c}.compconj`, inPool(CONJ_POOLS.adverb)), term('J', `${c}.comp`, isAdj))))] : []),
     seq(term('V', `${c}.verb`, verbTakes('IB')), term('C', `${c}.verbconj`, inPool(CONJ_POOLS.verb)), term('V', `${c}.verb2`, verbTakes('TB')), obj(c)),
   );
   const clause = (c: string) => seq(subject(c), pred(c));
-  const sentence = seq(
-    opt(term('I', 'shout', isInterj)),
-    opt(term('D', 'c1.open', isAdv)),
-    clause('c1'),
-    opt(seq(term('C', 'clauseconj', (w) => (CONJ_POOLS.clause as readonly string[]).includes(w) || COORD.includes(w) || SUBORD.includes(w)), opt(term('D', 'c2.open', isAdv)), clause('c2'))),
+  // A command has a hidden "you" as its who (Procedure Conveyor).
+  const sentence = alt(
+    seq(
+      opt(term('I', 'shout', isInterj)),
+      opt(term('D', 'c1.open', isAdv)),
+      clause('c1'),
+      opt(seq(term('C', 'clauseconj', (w) => (CONJ_POOLS.clause as readonly string[]).includes(w) || COORD.includes(w) || SUBORD.includes(w)), opt(term('D', 'c2.open', isAdv)), clause('c2'))),
+    ),
+    // The depending idea first, then a comma: "When the gear spins, the lamp glows." (Logic Gate)
+    ...(extended ? [seq(opt(term('I', 'shout', isInterj)), term('C', 'clauseconj', inPool(SUBORD)), clause('c2'), opt(term('D', 'c1.open', (w) => w === 'then')), clause('c1'))] : []),
   );
   return { edges: b.edges, start: sentence.s, accept: sentence.e };
 }
 
-const NFA = build();
+const NFA_FULL = build(true);
+const NFA_CLASSIC = build(false);
 
 // Word tiles are lower case except I and the shout words.
 export const normWord = (w: string) => (w === 'I' || w === 'i' ? 'I' : interjectionSet.has(w) ? w : w.toLowerCase());
@@ -112,7 +125,8 @@ export interface Parse {
 // a matching edge (cost 0) or an edge is "skipped" as a missing part
 // (cost 1). 0-1 BFS over (token index, state). Empty sockets (word null)
 // match any word of their part of speech.
-export function parse(tokens: Token[]): Parse {
+export function parse(tokens: Token[], classic = false): Parse {
+  const NFA = classic ? NFA_CLASSIC : NFA_FULL;
   const n = tokens.length;
   const S = NFA.edges.length;
   const key = (i: number, s: number) => i * S + s;

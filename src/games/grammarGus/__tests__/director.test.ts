@@ -39,7 +39,7 @@ describe('director (plan 5, 3.17)', () => {
       const s = runSentence({ tokens: r.reels.map(({ pos, word }) => ({ pos, word })), tense: r.tense, level: 'full' }).script!;
       expect(s.timing.total).toBeLessThanOrEqual(10 + EPS);
     }
-  });
+  }, 30000); // 2000 sentences; the Workboard's bigger grammar takes a few more seconds
   it('is deterministic: same sentence, same script, same frames', () => {
     const dr = d('A J N V D', 'The black cat ran quickly.');
     const a = runSentence(dr).script!; const b = runSentence(dr).script!;

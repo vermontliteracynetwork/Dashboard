@@ -39,7 +39,13 @@ export function buildFrame(draft: Draft, a: Analysis = analyze(draft.tokens)): S
       object = sp ? { id: `e${nextId++}`, noun: sp, plural: sp === 'we' || sp === 'they', adjectives: [], article: null, pronoun: sp, tokens: [cl.objPron] }
         : { id: `e${nextId++}`, noun: w(cl.objPron), plural: w(cl.objPron) === 'themselves', adjectives: [], article: null, reflexive: true, tokens: [cl.objPron] };
     }
-    const places = cl.pp ? [{ prep: w(cl.preps[0]), preps: cl.preps.map(w), ground: entity(cl.pp) }] : [];
+    const ppPronoun = (): EntityRef => {
+      const sp = ({ me: 'I', him: 'he', her: 'she', us: 'we', them: 'they', you: 'you', it: 'it' } as Record<string, EntityRef['pronoun']>)[w(cl.ppPron!).toLowerCase()] ?? 'it';
+      return { id: `e${nextId++}`, noun: sp!, plural: sp === 'we' || sp === 'they', adjectives: [], article: null, pronoun: sp, tokens: [cl.ppPron!] };
+    };
+    const places = cl.pp ? [{ prep: w(cl.preps[0]), preps: cl.preps.map(w), ground: entity(cl.pp) }] : cl.ppPron !== undefined ? [{ prep: w(cl.preps[0]), preps: cl.preps.map(w), ground: ppPronoun() }] : [];
+    // A linking verb: what the who is like shows on the who ("The magnet is strong").
+    if (cl.comps?.length) subject = { ...subject, adjectives: [...subject.adjectives, ...cl.comps.map(w)] };
     const adverbs = [...(cl.open !== undefined ? [w(cl.open)] : []), ...cl.advs.map(w)];
     const tenseAt = (i: number) => {
       const f = draft.level === 'full' ? forms.get(i) : (tokens[i].form ?? forms.get(i));

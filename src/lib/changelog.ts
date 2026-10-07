@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-logic-gate',
+    date: '2026-10-07',
+    icon: '🔀',
+    title: 'Logic Gate, Flip Switch and science jobs',
+    body: "The Logic Gate joins two ideas with because, but or so. Tap the Flip Switch to move a because idea to the front: Because the dog jumps, the cat runs. The Equals Sign Machine makes sentences like The magnet is strong. The Expansion Rig lights up who, what, when, where, why and how. In Jobs, try the Procedure Conveyor (First, pour the water.) and the Hypothesis Engine (If..., then...).",
+  },
+  {
     id: '2026-10-07-gus-audit-fixes',
     date: '2026-10-07',
     icon: '🔧',

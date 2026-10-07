@@ -87,3 +87,31 @@ export function makeBlueprint(id: string, uid: () => string): { items: BoardItem
   if (pending.length && out.length) out[out.length - 1].job.text = `${out[out.length - 1].job.text}${out[out.length - 1].job.text ? ' ' : ''}After: ${pending.join(' ')}`;
   return out;
 }
+
+// Science writing jobs (Claudia's Phase 1 scaffold plan, 2026-10-07).
+// Procedure Conveyor: numbered command steps (First, Next, Then, Finally).
+// Hypothesis Engine: "If ..., then ... will ..." and a past observation.
+export type ScienceJob = 'procedure' | 'hypothesis';
+export function makeScienceJob(kind: ScienceJob, uid: () => string): { items: BoardItem[]; job: BoardJob; connector?: string }[] {
+  const group = uid();
+  const cap = (): BoardItem => ({ id: uid(), kind: 'cap', word: null });
+  const tail = (last: boolean): BoardItem[] => [{ id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }, ...(last ? [] : [{ id: uid(), kind: 'link' as const, word: null }])];
+  const w = (kind: Pos, word: string | null = null): BoardItem => ({ id: uid(), kind, word });
+  if (kind === 'procedure') {
+    const steps: { lead: string; shape: Pos[] }[] = [
+      { lead: 'First', shape: ['V', 'A', 'N'] }, { lead: 'Next', shape: ['V', 'A', 'J', 'N'] },
+      { lead: 'Then', shape: ['V', 'A', 'N', 'D'] }, { lead: 'Finally', shape: ['V', 'A', 'N'] },
+    ];
+    return steps.map((st, k) => {
+      const words = st.shape.map((p) => w(p));
+      words[0] = { ...words[0], bottom: cap() };
+      return { items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'command', word: null }, ...words, ...tail(k === steps.length - 1)], job: { id: uid(), kind: 'blueprint', text: '', group, label: `Step ${k + 1}`, part: k + 1, of: steps.length, blueprint: 'procedure' }, connector: st.lead };
+    });
+  }
+  const hypo: BoardItem[] = [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: 'future' }, { id: uid(), kind: 'hypo', word: 'if', bottom: cap() }, w('A'), w('N'), { ...w('V'), top: { id: uid(), kind: 'comma', word: null } }, w('D', 'then'), w('A'), w('N'), w('V'), ...tail(false)];
+  const obs: BoardItem[] = [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: 'past' }, { ...w('A'), bottom: cap() }, w('N'), w('V'), w('D'), ...tail(true)];
+  return [
+    { items: hypo, job: { id: uid(), kind: 'blueprint', text: 'If (a change), then (what will happen).', group, label: 'Hypothesis', part: 1, of: 2, blueprint: 'hypothesis' } },
+    { items: obs, job: { id: uid(), kind: 'blueprint', text: 'What really happened, in the past.', group, label: 'Observation', part: 2, of: 2, blueprint: 'hypothesis' } },
+  ];
+}
