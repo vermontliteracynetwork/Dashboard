@@ -18,10 +18,12 @@ import { reviewStory, storyCast, storyScript, type SealedSentence } from '../eng
 import { POOLS, packWords } from '../engine/machine';
 import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
-import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
+import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
 import { compareOrder } from '../engine/orders';
 import { frameworkById } from '../data/frameworks';
 import { remixLine, flipIdeas, type RemixKind } from '../engine/boardRemix';
+import { HomophoneSorter, TransitionTrack } from './MiniGames';
+import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase } from '../data/wordbank';
@@ -752,14 +754,14 @@ export default function GusWorkboard() {
       const finishedJob = jobDone && !paidJobs.current.has(jobKey) ? line.job! : null;
       if (finishedJob) paidJobs.current.add(jobKey);
       if (finishedJob) {
-        const sticker = finishedJob.kind === 'delivery' ? '📦' : finishedJob.kind === 'inspector' ? '🔍' : finishedJob.kind === 'order' ? '📜' : '📐';
+        const sticker = finishedJob.kind === 'delivery' ? '📦' : finishedJob.kind === 'inspector' ? '🔍' : finishedJob.kind === 'order' ? '📜' : finishedJob.kind === 'spark' ? '⚡' : '📐';
         const group = finishedJob.group;
         const groupDone = finishedJob.kind !== 'blueprint' || linesRef.current.filter((l) => l.job?.group === group).every((l) => l.id === line.id || l.job?.done);
         if (groupDone) {
           earn(finishedJob.kind === 'blueprint' ? 12 : 8);
           if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
         } else earn(2);
-        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
+        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : finishedJob.kind === 'spark' ? `The dud sparks to life! It had no ${finishedJob.flaw === 'who' ? 'who' : 'action'}, and you added it.` : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
         timers.current.push(window.setTimeout(() => say(`${groupDone ? 'Job done! ' : ''}${msg}${groupDone ? ` Have a sticker: ${sticker}` : ''}`, '3 stars'), 2600));
       }
       if (r.script) {
@@ -883,7 +885,7 @@ export default function GusWorkboard() {
   // Paragraph Pipes (Claudia round 2): a time or transition word in front of
   // each sentence in a linked paragraph (First, Then, Finally...). Trains
   // sequence words. Shown in the caption, the paragraph text and the Journal.
-  const CONNECTORS = ['First', 'Next', 'Then', 'After that', 'Later', 'Finally', 'Suddenly', 'Meanwhile', 'Also', 'In the end'];
+  const CONNECTORS = ['First', 'Next', 'Then', 'After that', 'Later', 'Finally', 'Suddenly', 'Meanwhile', 'In the end'];
   const setConnector = (lineId: string, word: string | null) => {
     editLine(lineId, (l) => ({ ...l, connector: word ?? undefined }));
     setConnectorFor(null); gusSound.snap();
@@ -906,7 +908,7 @@ export default function GusWorkboard() {
     if (kind === 'blueprint' && blueprint) {
       for (const b of (SCIENCE_JOBS[blueprint] ? makeScienceJob(blueprint as 'procedure' | 'hypothesis', uid) : makeBlueprint(blueprint, uid))) { add.push({ id: uid(), x: 60, y, items: b.items, job: b.job, ...(b.connector ? { connector: b.connector } : {}) }); y = snap(y + ITEM_H + ATT_H + 150); }
     } else {
-      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeJob(kind, rng, uid, { gentleOnly: settings.gentleOnly });
+      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : kind === 'spark' ? makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
       add.push({ id: uid(), x: 60, y, items, job });
     }
     if (!add.length) return;
@@ -920,10 +922,12 @@ export default function GusWorkboard() {
       ? 'A delivery! These word machines arrived all mixed up. Drag them into the right order, add a capital letter, punctuation and a TV, then pull the lever.'
       : kind === 'inspector' ? `Inspector, I need you. ${FLAW_HINTS[add[0].job!.flaw as Flaw]} Find it, fix it, then pull the lever.`
       : kind === 'order' ? 'An order! Build any sentence that makes the scene on my order card. Set the Clock to the right time.'
-      : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : 'Blueprint');
+      : kind === 'spark' ? 'Spark Check! This sentence is a dud: a sentence needs a who and an action. Find what is missing and add it.'
+      : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : kind === 'spark' ? 'Spark Check' : 'Blueprint');
   };
   // Remix tools (moved from the classic machine).
   const [remixFor, setRemixFor] = useState<string | null>(null);
+  const [mini, setMini] = useState<'homo' | 'trans' | null>(null);
   const doFlip = (line: BoardLine) => {
     const res = flipIdeas(line.items, uid);
     if (typeof res === 'string') { gusSound.ahem(); say(res, 'Flip Switch'); return; }
@@ -1105,6 +1109,10 @@ export default function GusWorkboard() {
                 <button type="button" role="menuitem" onClick={() => startJob('delivery')}>📦 Mixed-up Delivery<small>Put the word machines in order</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Punctuation Inspector<small>Find the capital letter or punctuation mistake</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('order')}>📜 Gus's Order<small>Build any sentence that makes the scene on the card</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('spark')}>⚡ Spark Check<small>A dud sentence: is it missing a who or an action?</small></button>
+                <div className="gwb-menu-sub">🎮 Mini machines</div>
+                <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('homo'); }}>🎯 Homophone Sorter<small>their, there, they're and more</small></button>
+                <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('trans'); }}>🚂 Transition Track<small>Couple sentences with the right transition</small></button>
                 <div className="gwb-menu-sub">🔬 Science writing</div>
                 {Object.entries(SCIENCE_JOBS).map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
                 <div className="gwb-menu-sub">📐 Blueprints: build a whole paragraph</div>
@@ -1180,6 +1188,7 @@ export default function GusWorkboard() {
                       {line.job.done ? `✅ ${line.job.kind === 'blueprint' ? `${line.job.label} built!` : 'Job done!'}`
                         : line.job.kind === 'delivery' ? '📦 Mixed-up Delivery: put the word machines in order.'
                         : line.job.kind === 'inspector' ? `🔍 Punctuation Inspector: ${FLAW_HINTS[line.job.flaw as Flaw]}`
+                        : line.job.kind === 'spark' ? '⚡ Spark Check: this sentence is a dud. Is it missing a WHO or an ACTION?'
                         : line.job.kind === 'order' && line.job.card ? <>📜 Order: {line.job.card.who.emoji} {line.job.card.who.words} · {line.job.card.did}{line.job.card.obj ? ` · ${line.job.card.obj.emoji} ${line.job.card.obj.words}` : ''}{line.job.card.where ? ` · ${line.job.card.where.prep} ${line.job.card.where.emoji} ${line.job.card.where.words}` : ''}{line.job.card.how ? ` · ${line.job.card.how}` : ''} · ⏰ {line.job.card.time}</>
                         : `${bpInfo(line.job.blueprint)?.icon ?? '📐'} ${bpInfo(line.job.blueprint)?.name ?? 'Blueprint'} ${line.job.part} of ${line.job.of}: ${line.job.label}${line.job.text ? `  "${line.job.text}"` : ''}`}
                     </div>
@@ -1482,14 +1491,21 @@ export default function GusWorkboard() {
         </div>
       )}
 
+      {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} gear${g === 1 ? '' : 's'} for first-try sorting!`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
+      {mini === 'trans' && <TransitionTrack calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} gear${g === 1 ? '' : 's'} for first-try couplings!`, 'Transition Track'); } }} say={say} speak={speak} />}
       {connectorFor && (() => { const l = lines.find((x) => x.id === connectorFor); if (!l) return null; return (
         <div className="gus-journal-backdrop" onClick={() => setConnectorFor(null)}>
           <div className="gus-journal gwb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Pick a time word">
-            <h2>🔗 Time word</h2>
-            <p>Pick a word that tells when this sentence happens in your paragraph.</p>
-            <div className="gwb-connector-grid">
-              {CONNECTORS.map((c) => <button key={c} type="button" className={`gus-btn${l.connector === c ? ' on' : ''}`} onClick={() => setConnector(l.id, c)}>{c},</button>)}
-            </div>
+            <h2>🔗 Transition word</h2>
+            <p>Pick a word that shows how this sentence connects to the one before it.</p>
+            {(Object.keys(TRANS_KINDS) as TransKind[]).map((tk) => (
+              <div key={tk} className="gwb-trans-group">
+                <strong>{TRANS_KINDS[tk].icon} {TRANS_KINDS[tk].name}</strong>
+                <div className="gwb-connector-grid">
+                  {(tk === 'time' ? CONNECTORS : TRANS_KINDS[tk].words).map((c) => <button key={c} type="button" className={`gus-btn${l.connector === c ? ' on' : ''}`} onClick={() => setConnector(l.id, c)}>{c},</button>)}
+                </div>
+              </div>
+            ))}
             <div className="gwb-confirm-btns">
               {l.connector && <button type="button" className="gus-btn" onClick={() => setConnector(l.id, null)}>Take it off</button>}
               <button type="button" className="gus-btn" onClick={() => setConnectorFor(null)}>✕ Close</button>

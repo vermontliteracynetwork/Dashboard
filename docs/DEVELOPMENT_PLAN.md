@@ -722,6 +722,23 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Claudia's Phase 1, batch C (Spark Check, Homophone Sorter, Transition Track). SHIPPED 2026-10-07. Phase 1 is complete.
+
+- **⚡ Spark Check** (🧰 Jobs): Gus delivers a "dud": a fragment missing its who or its action, taken from a real 3-star sentence. The badge asks "Is it missing a WHO or an ACTION?" The student adds what is missing. When it runs to 3 stars, "The dud sparks to life!" pays 8 gears and a ⚡ sticker. This trains complete sentences and fragments (L.3.1, L.5.1). Run-ons come in Phase 2.
+- **🎯 Homophone Sorter** (Jobs, 🎮 Mini machines): 6 science sentences per round, each with a blank and two or three chutes (their / there / they're, to / too / two, its / it's, your / you're, than / then, hear / here, know / no). The picture clues fade after the first three. A wrong chute gives a gentle "read the sentence again" with that word's meaning. There is a 🔈 Hear button, and one gear for each first-try answer. Trains commonly confused words (L.3.2, L.4.2).
+- **🚂 Transition Track** (Jobs, 🎮 Mini machines): two sentence cars and three couplings (adds more, shows a difference, shows a result, gives an example, time order). The right coupling makes the train chug on and reads the joined sentence. 6 cars per round, one gear for each first-try coupling. Trains transitions (W.4.2, W.5.2).
+- **The paragraph "time word" picker is now a Transition word picker,** grouped the same way (time order, adds more, shows a difference, shows a result, gives an example).
+- Tests: 2 new. Full Gus suite: 301 passing.
+
+**Next: Phase 2 of Claudia's plan** (queued, in order):
+1. Run-on detection and the fix mini-game.
+2. Appositive Clamp.
+3. Fusion Reactor (sentence combining).
+4. Revision Workshop (ARMS).
+5. CER Lab Report.
+6. Label and Unit Maker.
+7. Gus's Paint Shop (gear sink).
+
 ### Grammar Gus: Claudia's Phase 1, batches A and B (fade ladder on finishing parts, Logic Gate and Flip Switch, Equals Sign Machine, Expansion Rig, Procedure Conveyor, Hypothesis Engine). SHIPPED 2026-10-07 (teacher: "Keep building this out Claudia")
 
 **What shipped:**
@@ -823,7 +840,8 @@ These come from `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md`, Part 3. Every
 
 **Status (2026-10-07, teacher: "Keep building this out Claudia"):**
 - Phase 1 batches A and B shipped (see the entry above): the fade ladder, Logic Gate, Flip Switch, Equals Sign Machine, Expansion Rig, Procedure Conveyor and Hypothesis Engine.
-- Batch C is in progress: Spark Check, Homophone Sorter and Transition Track.
+- Batch C shipped: Spark Check, Homophone Sorter and Transition Track. **Phase 1 is complete.**
+- Phase 2 is next.
 
 ### Grammar Gus: finishing the plan, round 10 (Orders, Blueprints and Remix move onto the Workboard). SHIPPED 2026-10-07
 

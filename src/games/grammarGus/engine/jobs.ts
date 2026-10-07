@@ -15,9 +15,9 @@ import type { BoardItem } from './board';
 //    capital letters and end punctuation.
 // No timer, no failing: a job is done the first time its machine earns 3 stars.
 
-export type JobKind = 'delivery' | 'inspector' | 'order' | 'blueprint';
+export type JobKind = 'delivery' | 'inspector' | 'order' | 'blueprint' | 'spark';
 export type Flaw = 'missing-end' | 'end-middle' | 'missing-cap' | 'cap-late';
-export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }
+export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw | 'who' | 'did'; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }
 export const FLAW_HINTS: Record<Flaw, string> = {
   'missing-end': 'This sentence has no punctuation at the end.',
   'end-middle': 'Some punctuation is in the wrong place.',
@@ -114,4 +114,20 @@ export function makeScienceJob(kind: ScienceJob, uid: () => string): { items: Bo
     { items: hypo, job: { id: uid(), kind: 'blueprint', text: 'If (a change), then (what will happen).', group, label: 'Hypothesis', part: 1, of: 2, blueprint: 'hypothesis' } },
     { items: obs, job: { id: uid(), kind: 'blueprint', text: 'What really happened, in the past.', group, label: 'Observation', part: 2, of: 2, blueprint: 'hypothesis' } },
   ];
+}
+
+// Spark Check (Claudia's Phase 1): Gus delivers a fragment, a "dud" missing
+// its who or its action. The student finds what is missing and adds it.
+export function makeSparkJob(rng: Rng, uid: () => string, o: { gentleOnly?: boolean } = {}): { items: BoardItem[]; job: BoardJob } {
+  const order = makeOrder(rng, o);
+  const tokens = order.filled.draft.tokens;
+  const v = tokens.findIndex((t) => t.pos === 'V');
+  const missing = rng() < 0.5 ? 'who' : 'did';
+  const keep = tokens.filter((_, i) => (missing === 'who' ? i >= v : i !== v));
+  const words: BoardItem[] = keep.map((t) => ({ id: uid(), kind: t.pos, word: t.word, ...(t.form ? { form: t.form } : {}) }));
+  if (words[0]) words[0] = { ...words[0], bottom: { id: uid(), kind: 'cap', word: null } };
+  return {
+    items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: order.filled.draft.tense }, ...words, { id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }],
+    job: { id: uid(), kind: 'spark', text: order.text, flaw: missing },
+  };
 }

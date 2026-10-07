@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-mini-machines',
+    date: '2026-10-07',
+    icon: '🚂',
+    title: 'Spark Check and mini machines',
+    body: "New in Jobs: Spark Check gives you a dud sentence. Is it missing a who or an action? Fix it to make it spark! Try the Homophone Sorter (their, there, they're) and the Transition Track, where sentence cars only move with the right transition word.",
+  },
+  {
     id: '2026-10-07-gus-logic-gate',
     date: '2026-10-07',
     icon: '🔀',

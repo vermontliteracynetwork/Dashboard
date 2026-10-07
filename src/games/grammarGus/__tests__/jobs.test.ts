@@ -62,3 +62,22 @@ describe('Orders, Blueprints and Remix on the Workboard', () => {
     expect(typeof remixLine(ln, 'shorter', 'full', makeRng(3), uid)).toBe('string');
   });
 });
+
+describe("Claudia's Phase 1 batch C", () => {
+  it('a Spark Check machine is a fragment: missing its who or its action', async () => {
+    const { makeSparkJob } = await import('../engine/jobs');
+    for (let s = 1; s < 12; s++) {
+      let k = 0;
+      const j = makeSparkJob(makeRng(s), () => `s${k++}`);
+      const words = j.items.filter((i) => i.word && i.kind.length === 1);
+      if (j.job.flaw === 'did') expect(words.some((i) => i.kind === 'V')).toBe(false);
+      else expect(words[0].kind === 'V' || words.some((i) => i.kind === 'V')).toBe(true);
+      expect(runSentence(readLine({ id: 'x', x: 0, y: 0, items: j.items }, 'full', false).draft).validation.ok).toBe(false);
+    }
+  });
+  it('every homophone and transition item has its answer among the choices', async () => {
+    const { HOMO_ITEMS, TRANS_ITEMS, TRANS_KINDS } = await import('../data/miniGames');
+    for (const h of HOMO_ITEMS) expect(h.choices).toContain(h.answer);
+    for (const t of TRANS_ITEMS) expect(TRANS_KINDS[t.kind]).toBeTruthy();
+  });
+});
