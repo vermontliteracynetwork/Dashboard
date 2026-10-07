@@ -5102,3 +5102,19 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-bigscreen-text { margin: 0; color: #fff; font: 700 1.1rem 'Lexend', sans-serif; text-align: center; }
 .gwb-drawer-text strong { color: #fff; }
 .gwb.calm .gwb-marble { transition: none; }
+/* Claudia round 1 (accessibility): 44px+ targets, drawer scrolls by touch,
+   no endless glow, tap-to-hear buttons, folded Fun parts. */
+.gwb-drawer-item { touch-action: pan-y; }
+.gwb-sorts .gus-mini { min-height: 44px; }
+.gwb-forms .gus-mini { min-height: 44px; }
+.gwb-caption .gus-mini { min-height: 44px; padding: 0 10px; font-size: 0.8rem; }
+.gwb-grip { width: 44px; border-radius: 12px; border-right: 3px solid var(--gus-ink); }
+.gwb-clock-btns button, .gwb-link-btns button { min-width: 56px; min-height: 52px; font-size: 1.25rem; }
+.gwb-k-clock .gwb-clock-btns { top: 100px; }
+.gwb-item.empty .gwb-svg { animation: none; filter: drop-shadow(0 0 5px rgba(243,207,107,0.9)); }
+.gwb.calm .gwb-insert, .gwb.calm .gwb-ghost { animation: none !important; }
+.gwb.calm .gwb-item.firing { outline: 5px solid #f3cf6b; outline-offset: 2px; border-radius: 14px; }
+.gwb-hear { min-width: 44px; min-height: 44px; border-radius: 12px; border: 2px solid var(--gus-ink); background: #fff; font-size: 1.1rem; cursor: pointer; }
+.gwb-para-num { position: absolute; width: 44px; height: 26px; display: grid; place-items: center; border-radius: 999px; background: #8b6bb3; color: #fff; border: 2px solid var(--gus-ink); font: 900 0.85rem 'Lexend', sans-serif; pointer-events: none; }
+.gwb-fun-toggle { width: 100%; min-height: 48px; border-radius: 12px; border: 2px dashed rgba(255,255,255,0.4); background: #2c3348; color: #f3cf6b; font: 800 0.85rem 'Lexend', sans-serif; cursor: pointer; text-align: left; padding: 0 10px; }
+.gwb-zoom .gus-btn:disabled { opacity: 0.45; }

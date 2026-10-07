@@ -17,10 +17,14 @@ export type LookupResult = { status: 'ok'; pos: DictPos[] } | { status: 'notfoun
 const API = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
 const POS_MAP: Record<string, DictPos> = { noun: 'N', verb: 'V', adjective: 'J', adverb: 'D', interjection: 'I', exclamation: 'I' };
 // Rude or unsafe words are never added, even if a dictionary lists them.
-const BLOCK = /^(ass|arse|bitch|bastard|crap|cunt|cock|dick|damn|fag|fuck|hell|jizz|nigg|piss|porn|pussy|rape|retard|sex|shit|slut|tit|twat|whore|kill|murder|suicide|gun|drug|weed|beer|vodka)/i;
-
+// Whole words only (plus simple endings), so "hello", "assist" and
+// "cockatoo" stay fine.
+const BLOCKED = new Set(['ass', 'arse', 'bitch', 'bastard', 'crap', 'cunt', 'cock', 'dick', 'damn', 'fag', 'faggot', 'fuck', 'hell', 'jizz', 'nigger', 'nigga', 'piss', 'porn', 'pussy', 'rape', 'retard', 'sex', 'sexy', 'shit', 'slut', 'tit', 'tits', 'twat', 'whore', 'murder', 'suicide', 'gun', 'drug', 'weed', 'beer', 'vodka', 'boob', 'boobs', 'butt']);
 export const cleanWord = (w: string) => w.trim().toLowerCase().replace(/[^a-z'-]/g, '');
-export const isBlocked = (w: string) => BLOCK.test(cleanWord(w));
+export const isBlocked = (word: string) => {
+  const w = cleanWord(word);
+  return [w, w.replace(/(es|s|ed|ing|er|ty|y)$/, ''), w.replace(/(ed|ing)$/, '').replace(/(.)\1$/, '$1')].some((x) => BLOCKED.has(x));
+};
 
 const cache = new Map<string, LookupResult>();
 export async function lookupWord(word: string, fetchImpl: typeof fetch = fetch): Promise<LookupResult> {
@@ -42,6 +46,45 @@ export async function lookupWord(word: string, fetchImpl: typeof fetch = fetch):
 
 // Verb forms by rule: walk/walks/walked, fix/fixes, cry/cries/cried,
 // stop/stopped, bake/baked, plus the irregular table (sit/sat).
+// Typed forms that are not the base word: "walked" should be "walk" (the
+// Clock sets the time), and "cats" is a plural noun, not a new singular.
+const PAST_TO_BASE = new Map(Object.entries(IRREGULAR_PAST).map(([b, p]) => [p, b]));
+export function baseCandidates(q: string, pos: DictPos): string[] {
+  const w = cleanWord(q); const out: string[] = [];
+  if (pos === 'V') {
+    if (PAST_TO_BASE.has(w)) out.push(PAST_TO_BASE.get(w)!);
+    if (w.endsWith('ied')) out.push(`${w.slice(0, -3)}y`);
+    if (w.endsWith('ies')) out.push(`${w.slice(0, -3)}y`);
+    if (w.endsWith('ing')) { const s = w.slice(0, -3); out.push(s, `${s}e`, s.replace(/(.)\1$/, '$1')); }
+    if (w.endsWith('ed')) { const s = w.slice(0, -2); out.push(s, `${s}e`, s.replace(/(.)\1$/, '$1'), w.slice(0, -1)); }
+    if (w.endsWith('es')) out.push(w.slice(0, -2));
+    if (w.endsWith('s') && !w.endsWith('ss')) out.push(w.slice(0, -1));
+  }
+  if (pos === 'N') {
+    if (w.endsWith('ies')) out.push(`${w.slice(0, -3)}y`);
+    if (w.endsWith('es')) out.push(w.slice(0, -2));
+    if (w.endsWith('s') && !w.endsWith('ss')) out.push(w.slice(0, -1));
+  }
+  return [...new Set(out)].filter((x) => x.length >= 2 && x !== w);
+}
+
+export type TypedCheck =
+  | { kind: 'ok'; word: string; plural?: boolean }
+  | { kind: 'base'; base: string }
+  | { kind: 'otherPos'; pos: DictPos[] }
+  | { kind: 'notfound' | 'offline' | 'blocked' };
+// The whole check for a typed word in one machine's menu.
+export async function checkTyped(q: string, pos: DictPos, inBank: (w: string) => boolean, fetchImpl: typeof fetch = fetch): Promise<TypedCheck> {
+  const w = cleanWord(q);
+  if (isBlocked(w)) return { kind: 'blocked' };
+  const isPos = async (x: string) => inBank(x) || ((await lookupWord(x, fetchImpl)).pos.includes(pos));
+  if (pos === 'V') for (const b of baseCandidates(w, 'V')) if (await isPos(b)) return { kind: 'base', base: b };
+  if (pos === 'N') for (const b of baseCandidates(w, 'N')) if (await isPos(b)) return { kind: 'ok', word: w, plural: true };
+  const r = await lookupWord(w, fetchImpl);
+  if (r.status === 'ok') return r.pos.includes(pos) ? { kind: 'ok', word: w } : { kind: 'otherPos', pos: r.pos };
+  return { kind: r.status };
+}
+
 export function verbForms(base: string): { third: string; past: string } {
   const b = cleanWord(base);
   const third = /(s|sh|ch|x|z|o)$/.test(b) ? `${b}es` : /[^aeiou]y$/.test(b) ? `${b.slice(0, -1)}ies` : `${b}s`;

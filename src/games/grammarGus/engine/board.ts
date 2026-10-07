@@ -76,4 +76,13 @@ export function paragraphs(lines: BoardLine[]): BoardLine[][] {
 }
 
 // Reading order on the board: top to bottom, then left to right.
-export const readingOrder = (lines: BoardLine[]) => [...lines].sort((a, b) => (Math.abs(a.y - b.y) > 60 ? a.y - b.y : a.x - b.x));
+export function readingOrder(lines: BoardLine[]): BoardLine[] {
+  // Bands of rows (top to bottom), then left to right inside a band. A
+  // stable order, so paragraph order never flips (Claudia round 1).
+  const bands: BoardLine[][] = [];
+  for (const l of [...lines].sort((a, b) => a.y - b.y || a.x - b.x)) {
+    const band = bands[bands.length - 1];
+    if (band && l.y - band[0].y <= 60) band.push(l); else bands.push([l]);
+  }
+  return bands.flatMap((b) => b.sort((a, c) => a.x - c.x));
+}

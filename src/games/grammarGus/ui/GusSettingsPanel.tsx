@@ -81,6 +81,13 @@ export default function GusSettingsPanel() {
           <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Capital Letter Press, punctuation and Pixel TV.</span>
         </div>
         <div className="stack" style={{ gap: 6 }}>
+          <strong>Workboard fun parts</strong>
+          <div className="row-wrap" style={{ gap: 6 }}>
+            {(['collapsed', 'open', 'off'] as const).map((c) => pill(settings.contraptions === c, c === 'collapsed' ? 'Folded away' : c === 'open' ? 'Always shown' : 'Hidden', () => save({ contraptions: c })))}
+          </div>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Spring mats, pulleys and the other Rube Goldberg parts.</span>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
           <strong>Word packs</strong>
           <div className="row-wrap" style={{ gap: 6 }}>
             {WORD_PACKS.map((wp) => pill(settings.packs.includes(wp.id), `${wp.icon} ${wp.name}`, () => save({ packs: settings.packs.includes(wp.id) ? settings.packs.filter((x) => x !== wp.id) : [...settings.packs, wp.id] })))}

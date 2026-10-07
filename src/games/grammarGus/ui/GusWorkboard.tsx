@@ -11,7 +11,7 @@ import { predictWords } from '../engine/phonetic';
 import { readLine, readingOrder, paragraphs, tenseOf, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
 import { reviewStory, storyCast, storyScript, type SealedSentence } from '../engine/story';
 import { POOLS, packWords } from '../engine/machine';
-import { addCustomWord, cleanWord, customFor, loadCustomWords, lookupWord, type DictPos, type LookupResult } from '../engine/dictionary';
+import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
@@ -58,6 +58,11 @@ type Sort = 'job' | 'order' | 'color' | 'az';
 const SORTS: { id: Sort; label: string }[] = [{ id: 'job', label: 'By job' }, { id: 'order', label: 'Sentence order' }, { id: 'color', label: 'By color' }, { id: 'az', label: 'A to Z' }];
 const JOB_ORDER: Job[] = ['power', 'time', 'shout', 'who', 'did', 'where', 'join', 'finish', 'paragraph', 'contraption'];
 
+// Tap-to-hear (Claudia round 1): never auto-plays.
+function speak(text: string) {
+  try { const sy = window.speechSynthesis; if (!sy) return; sy.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.9; sy.speak(u); } catch { /* no speech on this device */ }
+}
+
 const blankLine = (x = 60, y = 80): BoardLine => ({ id: uid(), x, y, items: [{ id: uid(), kind: 'blank', word: null }] });
 
 // Where each part sits on its line, ghosts included: a glowing Start Lever
@@ -93,17 +98,22 @@ function smartIndex(line: BoardLine, k: Kind): number {
   const items = line.items;
   if (k === 'lever') return 0;
   if (k === 'clock') { const lv = items.findIndex((i) => i.kind === 'lever'); return lv + 1; }
-  if (k === 'cap') { const f = items.findIndex((i) => isWordKind(i.kind)); return f >= 0 ? f : items.length; }
+  if (k === 'cap') { const f = items.findIndex((i) => isWordKind(i.kind) || i.kind === 'blank'); return f >= 0 ? f : items.length; }
   if (k === 'link') return items.length;
   const tv = items.findIndex((i) => i.kind === 'tv');
   if (k === 'tv') { const link = items.findIndex((i) => i.kind === 'link'); return link >= 0 ? link : items.length; }
   if (k === 'stop' || k === 'bang') return tv >= 0 ? tv : items.filter((i) => i.kind !== 'link').length;
+  // The first word goes right after a waiting Capital Letter Press.
+  const cap = items.findIndex((i) => i.kind === 'cap');
+  if (isWordKind(k) && cap >= 0 && !items.some((i) => isWordKind(i.kind))) return cap + 1;
   let end = items.length;
   while (end > 0 && ['stop', 'bang', 'tv', 'link'].includes(items[end - 1].kind)) end--;
   return end;
 }
 // Dropping a part onto (or right beside) a blank word space fills it.
 function placeInto(items: BoardItem[], index: number, item: BoardItem): BoardItem[] {
+  const fills = isWordKind(item.kind) || isContraption(item.kind);
+  if (!fills) return [...items.slice(0, index), item, ...items.slice(index)];
   if (items[index]?.kind === 'blank') return items.map((x, i) => (i === index ? item : x));
   if (items[index - 1]?.kind === 'blank') return items.map((x, i) => (i === index - 1 ? item : x));
   return [...items.slice(0, index), item, ...items.slice(index)];
@@ -119,7 +129,7 @@ type DragView =
   | { kind: 'item'; item: BoardItem; x: number; y: number; target: { lineId: string; index: number } | null; overDrawer: boolean }
   | { kind: 'new'; k: Kind; sx: number; sy: number; target: { lineId: string; index: number } | null }
   | { kind: 'line'; lineId: string; target: string | null };
-type Dict = { q: string; pos: DictPos; result: LookupResult | 'checking' } | null;
+type Dict = { q: string; pos: DictPos; result: TypedCheck | 'checking' } | null;
 
 export default function GusWorkboard() {
   useLockBodyScroll();
@@ -156,6 +166,12 @@ export default function GusWorkboard() {
   const [sessionGears, setSessionGears] = useState(0);
   const [offerFix, setOfferFix] = useState<string | null>(null);
   const [spinning, setSpinning] = useState<string | null>(null);
+  const [funOpen, setFunOpen] = useState(settings.contraptions === 'open');
+  const history = useRef<BoardLine[][]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const running = useRef(false); // set at once, so a double tap never runs twice (Claudia bug 2)
+  const rewardPending = useRef(false); // gears once per run, never for replays (Claudia bug 3)
+  const kbdOpen = useRef(false);
   const [gus, setGus] = useState({ message: `${pick(makeRng(Date.now()), GREETINGS)} Here is a blank word space. Drag a machine part from the parts menu on the right onto it, or tap a part.`, mood: 'Hello', key: 'hello' });
   const say = (message: string, mood: string) => setGus({ message, mood, key: `${mood}-${message}-${Date.now()}` });
 
@@ -204,15 +220,28 @@ export default function GusWorkboard() {
     return b ? { lineId: b.lineId, index: b.index } : null;
   };
   // Any change to a line clears its stars and TV until it runs again.
+  const remember = () => { history.current = [...history.current.slice(-29), linesRef.current]; setCanUndo(true); };
+  const undo = () => {
+    const prev = history.current.pop();
+    if (!prev) return;
+    setLines(prev); setCanUndo(history.current.length > 0); setMenu(null); setPlaying(null); gusSound.swish();
+    say('Undone. Back the way it was.', 'Undo');
+  };
   const editLine = (lineId: string, f: (l: BoardLine) => BoardLine | null) => {
+    remember();
     setLines((ls) => ls.flatMap((l) => { if (l.id !== lineId) return [l]; const n = f(l); return n && n.items.length ? [{ ...n, stars: null }] : []; }));
     setPlaying((p) => (p?.lineId === lineId ? null : p));
   };
   const insertItem = (lineId: string, index: number, item: BoardItem) => editLine(lineId, (l) => ({ ...l, items: placeInto(l.items, index, item) }));
-  const newLineAt = (x: number, y: number, item: BoardItem) => { const id = uid(); setLines((ls) => [...ls, { id, x, y, items: [item] }]); setSelLine(id); return id; };
+  const newLineAt = (x: number, y: number, item: BoardItem) => { const id = uid(); remember(); setLines((ls) => [...ls, { id, x, y, items: [item] }]); setSelLine(id); return id; };
 
   // ---- adding parts ----------------------------------------------------------
   const openMenuFor = (lineId: string, itemId: string) => { setMenu({ lineId, itemId }); setQuery(''); setDict(null); };
+  useEffect(() => { if (!menu) kbdOpen.current = false; }, [menu]);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenu(null); setTopMenu(false); setConfirmClear(false); } };
+    window.addEventListener('keydown', esc); return () => window.removeEventListener('keydown', esc);
+  }, []);
   const afterAdd = (lineId: string, item: BoardItem) => {
     clearGhost(lineId, item.kind);
     if (isWordKind(item.kind)) openMenuFor(lineId, item.id);
@@ -243,7 +272,11 @@ export default function GusWorkboard() {
     let items = [...l.items];
     const rd = readLine(l, level, true);
     if (!items.some((i) => i.kind === 'lever')) items = [{ id: uid(), kind: 'lever', word: null }, ...items];
-    if (rd.problems.some((p) => p.code === 'NEED_CAP')) { const f = items.findIndex((i) => isWordKind(i.kind)); items.splice(f, 0, { id: uid(), kind: 'cap', word: null }); }
+    if (rd.problems.some((p) => p.code === 'NEED_CAP')) {
+      const old = items.find((i) => i.kind === 'cap'); if (old) items = items.filter((i) => i !== old);
+      const f = items.findIndex((i) => isWordKind(i.kind));
+      if (f >= 0) items.splice(f, 0, old ?? { id: uid(), kind: 'cap', word: null });
+    }
     if (rd.problems.some((p) => p.code === 'NEED_END')) { const tv = items.findIndex((i) => i.kind === 'tv' || i.kind === 'link'); items.splice(tv >= 0 ? tv : items.length, 0, { id: uid(), kind: 'stop', word: null }); }
     if (rd.problems.some((p) => p.code === 'NEED_TV')) { const link = items.findIndex((i) => i.kind === 'link'); items.splice(link >= 0 ? link : items.length, 0, { id: uid(), kind: 'tv', word: null }); }
     editLine(lineId, (x) => ({ ...x, items }));
@@ -279,7 +312,7 @@ export default function GusWorkboard() {
   };
   const zoomAt = (cx: number, cy: number, z: number) => {
     const r = boardRef.current!.getBoundingClientRect(); const v = viewRef.current;
-    const nz = Math.max(0.3, Math.min(2.2, z));
+    const nz = Math.max(0.6, Math.min(2.2, z));
     const bx = (cx - r.left - v.x) / v.z, by = (cy - r.top - v.y) / v.z;
     setView({ z: nz, x: cx - r.left - bx * nz, y: cy - r.top - by * nz });
   };
@@ -295,7 +328,7 @@ export default function GusWorkboard() {
         const [a, b] = [...pointers.current.values()];
         const r = boardRef.current!.getBoundingClientRect();
         const bx = (g.mx - r.left - g.vx) / g.z0, by = (g.my - r.top - g.vy) / g.z0;
-        const nz = Math.max(0.3, Math.min(2.2, g.z0 * (Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, g.d0))));
+        const nz = Math.max(0.6, Math.min(2.2, g.z0 * (Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, g.d0))));
         setView({ z: nz, x: (a.x + b.x) / 2 - r.left - bx * nz, y: (a.y + b.y) / 2 - r.top - by * nz });
         return;
       }
@@ -309,11 +342,13 @@ export default function GusWorkboard() {
       if (g.pid !== e.pointerId) return;
       if (!g.active) {
         if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < 8) return;
+        // In the parts menu an up-and-down swipe scrolls; sideways drags a part out.
+        if (g.kind === 'new' && Math.abs(e.clientY - g.sy) > Math.abs(e.clientX - g.sx)) { gesture.current = null; return; }
         g.active = true; setMenu(null);
         if (g.kind === 'item') {
           const line = linesRef.current.find((l) => l.id === g.lineId); const item = line?.items.find((i) => i.id === g.itemId);
           if (!line || !item) { gesture.current = null; return; }
-          editLine(line.id, (l) => ({ ...l, items: l.items.filter((i) => i.id !== item.id) }));
+          editLine(line.id, (l) => { const rest = l.items.filter((i) => i.id !== item.id); return { ...l, items: rest.length ? rest : [{ id: uid(), kind: 'blank', word: null }] }; });
           setDrag({ kind: 'item', item, x: 0, y: 0, target: null, overDrawer: false });
         }
       }
@@ -323,6 +358,7 @@ export default function GusWorkboard() {
         const x = b.x - g.grabX, y = b.y - g.grabY;
         setDrag((d) => (d && d.kind === 'item' ? { ...d, x, y, target: findTarget(x, y), overDrawer: overDrawer(e.clientX, e.clientY) } : d));
       } else if (g.kind === 'line') {
+        if (!drag) remember();
         const b = toBoard(e.clientX, e.clientY);
         setLines((ls) => ls.map((l) => (l.id === g.lineId ? { ...l, x: b.x - g.grabX, y: b.y - g.grabY } : l)));
         const me = linesRef.current.find((l) => l.id === g.lineId);
@@ -353,13 +389,21 @@ export default function GusWorkboard() {
       const d = drag;
       setDrag(null);
       if (g.kind === 'item' && d?.kind === 'item') {
-        if (overDrawer(e.clientX, e.clientY)) { gusSound.puff(); say('Back in the parts menu. Recycling is very responsible of you.', 'Recycled'); return; }
+        // A machine left holding only a blank space goes away (unless it is the last one).
+        const tidy = () => setLines((ls) => (ls.length > 1 ? ls.filter((l) => !(l.id === g.lineId && l.items.length === 1 && l.items[0].kind === 'blank' && d.target?.lineId !== l.id)) : ls));
+        if (overDrawer(e.clientX, e.clientY)) { gusSound.puff(); tidy(); say('Back in the parts menu. Changed your mind? Tap Undo.', 'Recycled'); return; }
         gusSound.snap();
         if (d.target) { insertItem(d.target.lineId, d.target.index, d.item); setSelLine(d.target.lineId); clearGhost(d.target.lineId, d.item.kind); }
         else newLineAt(d.x - GRIP_W, d.y, d.item);
+        tidy();
       } else if (g.kind === 'line' && d?.kind === 'line' && d.target) {
         const me = linesRef.current.find((l) => l.id === g.lineId);
-        if (me) { editLine(d.target, (l) => ({ ...l, items: [...l.items, ...me.items] })); setLines((ls) => ls.filter((l) => l.id !== me.id)); gusSound.snap(); say('Two machines, now one. Very efficient.', 'Joined'); }
+        if (me) {
+          const tail = new Set(['stop', 'bang', 'tv', 'link']);
+          const keep = me.items.filter((i) => !['lever', 'clock', 'cap', 'blank'].includes(i.kind));
+          editLine(d.target, (l) => { const head = [...l.items]; while (head.length && tail.has(head[head.length - 1].kind)) head.pop(); return { ...l, items: [...head, ...keep] }; });
+          setLines((ls) => ls.filter((l) => l.id !== me.id)); gusSound.snap(); say('Two machines, now one long machine. Check its punctuation.', 'Joined');
+        }
       } else if (g.kind === 'new') {
         if (!overBoard(e.clientX, e.clientY)) return;
         const b = toBoard(e.clientX, e.clientY);
@@ -383,7 +427,7 @@ export default function GusWorkboard() {
     if (!ls.length) { setView({ x: 24, y: 24, z: 1 }); return; }
     const minX = Math.min(...ls.map((l) => l.x)), minY = Math.min(...ls.map((l) => l.y)) - 30;
     const maxX = Math.max(...ls.map((l) => lineRight(l, ghostsRef.current[l.id]))), maxY = Math.max(...ls.map((l) => l.y + ITEM_H + 40));
-    const z = Math.max(0.3, Math.min(1.25, Math.min((r.width - 90) / (maxX - minX), (r.height - 90) / (maxY - minY))));
+    const z = Math.max(0.6, Math.min(1.25, Math.min((r.width - 90) / (maxX - minX), (r.height - 90) / (maxY - minY))));
     setView({ z, x: 30 - minX * z, y: 30 - minY * z });
   };
   fitRef.current = fitAll;
@@ -415,7 +459,7 @@ export default function GusWorkboard() {
   };
   const paragraphOf = (lineId: string) => paragraphs(linesRef.current).find((p) => p.some((l) => l.id === lineId)) ?? [];
   const run = (line: BoardLine) => {
-    if (firing) return;
+    if (running.current) return;
     setMenu(null); setSelLine(line.id);
     const rd = readLine(line, level, requireFinish);
     const seed = hashString(line.id + compose(rd.draft).text);
@@ -431,6 +475,7 @@ export default function GusWorkboard() {
       return;
     }
     setOfferFix(null); setGhosts((g) => ({ ...g, [line.id]: [] }));
+    running.current = true; rewardPending.current = false;
     const para = paragraphOf(line.id);
     const sealed = sealList(para.slice(0, para.findIndex((l) => l.id === line.id)));
     const r = runSentence(rd.draft, storyCast(sealed), `s${sealed.length + 1}`, settingsRun);
@@ -444,6 +489,7 @@ export default function GusWorkboard() {
       say(`${gl.joke} ${gl.fix}`, 'Steam leak!');
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars: 0 } : l)));
       logAttempt(rd.draft, r.composed.text, 0, r.validation.violations.filter((x) => x.blocking).map((x) => x.code));
+      running.current = false;
       return;
     }
     logAttempt(rd.draft, r.composed.text, r.rubric!.stars, r.rubric!.verdicts.map((x) => x.code));
@@ -456,10 +502,11 @@ export default function GusWorkboard() {
       if (it.kind === 'bell') gusSound.ding(); else if (isContraption(it.kind)) gusSound.puff(); else gusSound.part(i);
     }, 250 + i * step)));
     timers.current.push(window.setTimeout(() => {
-      setFiring(null);
+      setFiring(null); running.current = false;
       const stars = r.rubric!.stars;
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars } : l)));
       if (r.script) {
+        rewardPending.current = true;
         setPlaying({ lineId: line.id, script: r.script, key: Date.now() });
         say(`"${r.composed.text}" Rolling film!`, `${stars} stars`);
       } else {
@@ -472,6 +519,8 @@ export default function GusWorkboard() {
     }, 250 + line.items.length * step + (calm ? 150 : 500)));
   };
   const onLineVideoEnd = () => {
+    if (!rewardPending.current) return;
+    rewardPending.current = false;
     earn(6);
     const hasLink = linesRef.current.some((l) => l.items.some((i) => i.kind === 'link'));
     say(`${lineFor(CHEERS, hashString(lastRun?.run.composed.text ?? 'x'))} ${hasLink ? 'Run the next machine in your paragraph!' : 'Add a Paragraph Link to hook another sentence on below.'}`, '3 stars');
@@ -519,9 +568,14 @@ export default function GusWorkboard() {
     editLine(line.id, (l) => ({ ...l, items: l.items.map((x) => (x.id === item.id ? { ...x, word: next } : x)) }));
     setSpinning(item.id); timers.current.push(window.setTimeout(() => setSpinning((s) => (s === item.id ? null : s)), 700));
     gusSound.swish();
-    say(next === 'past' ? 'Rewound to the PAST. It already happened.' : next === 'future' ? 'Wound forward to the FUTURE. It will happen.' : 'Set to the PRESENT. It is happening now.', 'Clock');
+    const verbs = line.items.filter((x) => x.kind === 'V' && x.word);
+    const when = next === 'past' ? 'Rewound to the PAST. It already happened.' : next === 'future' ? 'Wound forward to the FUTURE. It will happen.' : 'Set to the PRESENT. It is happening now.';
+    if (verbs.length && level !== 'full') { setPulse(verbs.map((v) => v.id)); say(`${when} Tap the action machine and pick its ${next} form.`, 'Clock'); }
+    else if (verbs.length) { const v = verbByBase.get(verbs[0].word!); say(`${when} Listen: "${v ? verbText(v, next === 'past' ? 'past' : next === 'future' ? 'future' : 'third') : verbs[0].word}".`, 'Clock'); }
+    else say(when, 'Clock');
   };
   const clearAll = () => {
+    remember();
     setLines([blankLine()]); setGhosts({}); setPlaying(null); setMenu(null); setOfferFix(null); setConfirmClear(false); setSelLine(null);
     requestAnimationFrame(() => fitRef.current());
     gusSound.puff(); say('All cleared. A blank word space and a gleaming floor.', 'Clear all');
@@ -543,8 +597,9 @@ export default function GusWorkboard() {
     const q = cleanWord(query);
     if (q.length < 2 || pool(menuItem.kind).some((w) => w.toLowerCase() === q)) { setDict(null); return; }
     const pos = menuItem.kind as DictPos;
+    const bank = new Set(pool(menuItem.kind).map((w) => w.toLowerCase()));
     setDict({ q, pos, result: 'checking' });
-    const t = window.setTimeout(() => { lookupWord(q).then((result) => setDict((d) => (d && d.q === q ? { q, pos, result } : d))); }, 380);
+    const t = window.setTimeout(() => { checkTyped(q, pos, (w) => bank.has(w)).then((result) => setDict((d) => (d && d.q === q ? { q, pos, result } : d))); }, 380);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, menuItem?.id, menuItem?.kind]);
@@ -559,10 +614,17 @@ export default function GusWorkboard() {
     else say(`"${w}". Splendid. ${l?.items.some((i) => i.kind === 'lever') ? 'Pull the Start Lever when you are ready!' : 'Every machine needs a Start Lever at the front.'}`, 'Clunk!');
   };
   const useDictWord = () => {
-    if (!dict || dict.result === 'checking' || dict.result.status !== 'ok' || !dict.result.pos.includes(dict.pos)) return;
-    addCustomWord({ pos: dict.pos, word: dict.q });
-    say(`"${dict.q}" is in the dictionary. Added to your parts!`, 'Dictionary');
-    chooseWord(dict.pos === 'I' ? dict.q.charAt(0).toUpperCase() + dict.q.slice(1) : dict.q);
+    if (!dict || dict.result === 'checking') return;
+    const r = dict.result;
+    if (r.kind === 'base') {
+      if (!pool(dict.pos as Pos).includes(r.base)) addCustomWord({ pos: dict.pos, word: r.base });
+      say(`"${r.base}" is the action word. The Clock decides past, present or future.`, 'Dictionary');
+      chooseWord(r.base); return;
+    }
+    if (r.kind !== 'ok') return;
+    addCustomWord({ pos: dict.pos, word: r.word, plural: r.plural });
+    say(`"${r.word}" is in the dictionary${r.plural ? ' (more than one)' : ''}. Added to your parts!`, 'Dictionary');
+    chooseWord(dict.pos === 'I' ? r.word.charAt(0).toUpperCase() + r.word.slice(1) : r.word);
   };
   const removeItem = (lineId: string, itemId: string) => { editLine(lineId, (l) => ({ ...l, items: l.items.filter((i) => i.id !== itemId) })); setMenu(null); gusSound.puff(); };
   const menuPos = (() => {
@@ -593,7 +655,7 @@ export default function GusWorkboard() {
   const drawerRow = (k: Kind) => {
     const info = kindInfo(k);
     return (
-      <button key={k} type="button" className="gwb-drawer-item" onPointerDown={(e) => onDrawerDown(e, k)} aria-label={`${info.name}: ${info.hint}`} title={info.hint}>
+      <button key={k} type="button" className="gwb-drawer-item" onPointerDown={(e) => onDrawerDown(e, k)} onClick={(e) => { if (e.detail === 0) addKind(k); }} aria-label={`${info.name}: ${info.hint}`} title={info.hint}>
         <span className="gwb-drawer-pic"><MachinePart kind={k} word={isWordKind(k) ? info.name.toLowerCase() : k === 'clock' ? 'present' : null} scale={k === 'tv' || k === 'conveyor' || k === 'dominoes' ? 0.26 : 0.36} /></span>
         {drawerOpen && <span className="gwb-drawer-text"><strong>{info.name}</strong><small>{info.machine}</small></span>}
       </button>
@@ -605,6 +667,7 @@ export default function GusWorkboard() {
   const clipLine = clip ? lines.find((l) => l.id === clip) : undefined;
   const clipList = clipLine ? buildChecklist(readLine(clipLine, level, false).draft) : null;
   const order = readingOrder(lines);
+  const paras = paragraphs(lines);
   return (
     <div className={`gus-page gwb${calm ? ' calm' : ''}`}>
       <header className="gus-top gwb-top">
@@ -612,13 +675,13 @@ export default function GusWorkboard() {
         <h1>Gus's Workboard</h1>
         <div className="gus-top-right">
           <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
+          <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
           <button type="button" className={`gus-btn${muted ? ' on' : ''}`} onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
           <div className="gwb-menu-wrap">
             <button type="button" className="gus-btn" onClick={() => setTopMenu((o) => !o)} aria-expanded={topMenu}>☰ Menu</button>
             {topMenu && (
               <div className="gwb-top-menu" role="menu">
                 <button type="button" role="menuitem" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 Journal</button>
-                <button type="button" role="menuitem" onClick={() => { setCalm((c) => !c); setTopMenu(false); }}>🌙 {calm ? 'Calm is on' : 'Calm mode'}</button>
                 <button type="button" role="menuitem" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear all</button>
                 <button type="button" role="menuitem" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine</button>
               </div>
@@ -657,7 +720,8 @@ export default function GusWorkboard() {
               const marbleKind = marbleSlot?.item?.kind;
               return (
                 <div key={line.id} className={`gwb-line${selLine === line.id ? ' selected' : ''}${drag?.kind === 'line' && drag.target === line.id ? ' join-target' : ''}`}>
-                  <button type="button" className="gwb-grip" style={{ left: line.x, top: line.y + 40, height: ITEM_H - 80 }} onPointerDown={(e) => onGripDown(e, line)} aria-label="Move this whole machine">⠿</button>
+                  <button type="button" className="gwb-grip" style={{ left: line.x - 14, top: line.y + 40, height: ITEM_H - 80 }} onPointerDown={(e) => onGripDown(e, line)} aria-label="Move this whole machine">⠿</button>
+                  {(() => { const para = paras.find((p) => p.some((l) => l.id === line.id)); return para && para.length > 1 ? <span className="gwb-para-num" style={{ left: line.x - 14, top: line.y + 12 }} aria-label={`Sentence ${para.indexOf(line) + 1} of the paragraph`}>{para.indexOf(line) + 1}</span> : null; })()}
                   {slots.map((s) => {
                     if (s.ghost) return (
                       <button key={`ghost-${s.ghost}`} type="button" className="gwb-ghost" style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} onPointerDown={(e) => e.stopPropagation()} onClick={() => addGhostPart(line.id, s.ghost!)} aria-label={`Missing: ${kindInfo(s.ghost).name}. Tap to plug it in.`}>
@@ -669,11 +733,16 @@ export default function GusWorkboard() {
                       <div key={item.id} className={`gwb-item gwb-k-${item.kind}${pulse.includes(item.id) ? ' leak' : ''}${isFiring && firing!.idx === idx ? ' firing' : ''}${isFiring && firing!.idx > idx ? ' fired' : ''}${!item.word && isWordKind(item.kind) ? ' empty' : ''}${menu?.itemId === item.id ? ' open' : ''}${spinning === item.id ? ' spinning' : ''}`}
                         style={{ left: s.x, top: line.y, width: s.w, height: ITEM_H }} onPointerDown={(e) => onItemDown(e, line, item)}
                         role="button" tabIndex={0} aria-label={`${kindInfo(item.kind).name}${item.word ? `: ${item.word}` : ''}. Tap to change, drag to move.`}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (item.kind === 'lever') run(line); else openMenuFor(line.id, item.id); } }}>
+                        onKeyDown={(e) => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (item.kind === 'lever') run(line); else { kbdOpen.current = true; openMenuFor(line.id, item.id); } }
+                          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); const to = idx + (e.key === 'ArrowLeft' ? -1 : 1); if (to >= 0 && to < line.items.length) { editLine(line.id, (l) => { const it2 = [...l.items]; [it2[idx], it2[to]] = [it2[to], it2[idx]]; return { ...l, items: it2 }; }); gusSound.snap(); } }
+                          if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeItem(line.id, item.id); }
+                        }}>
                         <MachinePart kind={item.kind} word={item.kind === 'V' && level !== 'full' && item.word && verbByBase.get(item.word) ? verbText(verbByBase.get(item.word)!, item.form ?? 'base') : item.word} empty={!item.word && isWordKind(item.kind)} />
                         {item.kind === 'lever' && <>
                           <button type="button" className={`gwb-lever${isFiring ? ' pulled' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => run(line)} aria-label="Pull the Start Lever to run this machine">
-                            <span className="gwb-lever-arm" /><span className="gwb-lever-text">START</span>
+                            <span className="gwb-lever-arm" />
                           </button>
                           <span className="gwb-gauge" role="img" aria-label={`Pressure ${Math.round(pressure * 100)} percent`}><span style={{ transform: `rotate(${-70 + 140 * pressure}deg)` }} /></span>
                           {line.stars === 3 && <span className="gwb-stars" aria-label="3 stars">⭐⭐⭐</span>}
@@ -698,12 +767,13 @@ export default function GusWorkboard() {
                       </div>
                     );
                   })}
-                  {marbleSlot && !calm && <span className={`gwb-marble${marbleKind === 'spring' ? ' bounce' : ''}`} style={{ left: marbleSlot.x + marbleSlot.w / 2 - 10, top: line.y + (marbleKind === 'spring' || marbleKind === 'pulley' ? 10 : 54) }} aria-hidden />}
+                  {marbleSlot && <span className={`gwb-marble${marbleKind === 'spring' ? ' bounce' : ''}`} style={{ left: marbleSlot.x + marbleSlot.w / 2 - 10, top: line.y + (marbleKind === 'spring' || marbleKind === 'pulley' ? 10 : 54) }} aria-hidden />}
                   {targetHere >= 0 && <span className="gwb-insert" style={{ left: markX - 4, top: line.y + 30, height: ITEM_H - 40 }} aria-hidden />}
                   {text && (
                     <div className="gwb-caption" style={{ left: line.x + GRIP_W, top: line.y + ITEM_H + 6 }}>
                       <span className="gwb-caption-time">{TENSE_NAMES[tenseOf(line)]}</span>
                       <span>{text}</span>
+                      <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => speak(text)} aria-label="Hear the sentence">🔈 Hear it</button>
                       <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => setClip(clip === line.id ? null : line.id)}>📋 {cl.done}/{cl.total}</button>
                       {line.stars === 3 && <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => savePara(line.id)}>📓 Save</button>}
                     </div>
@@ -718,6 +788,7 @@ export default function GusWorkboard() {
             )}
           </div>
           <div className="gwb-zoom" onPointerDown={(e) => e.stopPropagation()}>
+            <button type="button" className="gus-btn" onClick={undo} disabled={!canUndo}>↩ Undo</button>
             <button type="button" className="gus-btn" onClick={() => setConfirmClear(true)}>🧹 Clear all</button>
             <button type="button" className="gus-btn" onClick={() => zoomBtn(-0.2)} aria-label="Zoom out">➖</button>
             <button type="button" className="gus-btn gwb-zoom-pct" onClick={() => setView((v) => ({ ...v, z: 1 }))} aria-label="Reset zoom">{Math.round(view.z * 100)}%</button>
@@ -737,13 +808,19 @@ export default function GusWorkboard() {
           )}
           <div className="gwb-drawer-list">
             {sortBy === 'job'
-              ? JOB_ORDER.map((job) => (
+              ? JOB_ORDER.filter((job) => job !== 'contraption').map((job) => (
                   <div key={job} className="gwb-drawer-group">
                     {drawerOpen && <div className="gwb-drawer-title">{JOB_TITLES[job]}</div>}
                     {KINDS.filter((k) => k.job === job).map((k) => drawerRow(k.kind))}
                   </div>
                 ))
-              : sortedKinds.map((k) => drawerRow(k.kind))}
+              : sortedKinds.filter((k) => !isContraption(k.kind)).map((k) => drawerRow(k.kind))}
+            {settings.contraptions !== 'off' && (
+              <div className="gwb-drawer-group">
+                <button type="button" className="gwb-fun-toggle" onClick={() => setFunOpen((o) => !o)} aria-expanded={funOpen}>{drawerOpen ? `⚙️ Fun parts (${KINDS.filter((k) => isContraption(k.kind)).length}) ${funOpen ? '▾' : '▸'}` : '⚙️'}</button>
+                {funOpen && KINDS.filter((k) => isContraption(k.kind)).map((k) => drawerRow(k.kind))}
+              </div>
+            )}
           </div>
           {drawerOpen && <p className="gwb-drawer-tip">Tap a part to plug it in, or drag it onto the floor. Drag a part back here to recycle it.</p>}
         </aside>
@@ -759,6 +836,7 @@ export default function GusWorkboard() {
             {isWordKind(menuItem.kind) && <img src={SYMBOLS[menuItem.kind].asset} alt="" />}
             <strong style={{ color: kindInfo(menuItem.kind).color }}>{kindInfo(menuItem.kind).name}</strong>
             <span>{kindInfo(menuItem.kind).hint}</span>
+            <button type="button" className="gwb-hear" onClick={() => speak(`${kindInfo(menuItem.kind).name}. ${kindInfo(menuItem.kind).hint}.${menuItem.word ? ` ${menuItem.word}` : ''}`)} aria-label="Hear this machine">🔈</button>
             <button type="button" className="gus-mini" onClick={() => setMenu(null)} aria-label="Close">✕</button>
           </div>
           {isWordKind(menuItem.kind) ? (() => {
@@ -766,19 +844,21 @@ export default function GusWorkboard() {
             const list = query.trim() ? predictWords(query, all, 24) : all;
             const q = cleanWord(query);
             const exact = list.some((w) => w.toLowerCase() === q);
-            const dictOk = !!dict && dict.q === q && dict.result !== 'checking' && dict.result.status === 'ok' && dict.result.pos.includes(dict.pos);
             const dr = dict && dict.q === q && !exact ? dict.result : null;
+            const dictOk = !!dr && dr !== 'checking' && (dr.kind === 'ok' || dr.kind === 'base');
+            const checking = dr === 'checking';
             return <>
               <input className="gwb-type" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Type a word, or tap one below" autoCapitalize="off" autoCorrect="off" spellCheck={false} inputMode="text"
-                onKeyDown={(e) => { if (e.key !== 'Enter') return; if (exact) chooseWord(list.find((w) => w.toLowerCase() === q)!); else if (dictOk) useDictWord(); else if (list[0]) chooseWord(list[0]); }} aria-label={`Type a ${kindInfo(menuItem.kind).name.toLowerCase()}`} />
+                autoFocus={kbdOpen.current} onKeyDown={(e) => { if (e.key === 'Escape') { setMenu(null); return; } if (e.key !== 'Enter') return; if (exact) chooseWord(list.find((w) => w.toLowerCase() === q)!); else if (dictOk) useDictWord(); else if (!checking && list[0] && q.length < 2) chooseWord(list[0]); }} aria-label={`Type a ${kindInfo(menuItem.kind).name.toLowerCase()}`} />
               {dr === 'checking' && <div className="gwb-didyou">📖 Checking Gus's dictionary for "{q}"...</div>}
-              {dr && dr !== 'checking' && (dictOk
-                ? <div className="gwb-didyou">📖 "{q}" is a real {kindInfo(menuItem.kind).name.toLowerCase()}! <button type="button" className="gwb-didyou-btn" onClick={useDictWord}>Use "{q}"</button></div>
-                : dr.status === 'ok' ? <div className="gwb-didyou">📖 "{q}" is in the dictionary as {dr.pos.map((p) => kindInfo(p).name.toLowerCase()).join(' or ')}, not {kindInfo(menuItem.kind).name.toLowerCase()}. Try that machine instead.</div>
-                : dr.status === 'offline' ? <div className="gwb-didyou">Gus's dictionary is out of reach right now. Pick a word below.</div>
-                : dr.status === 'blocked' ? <div className="gwb-didyou">Gus does not use that word. Pick another one.</div>
+              {dr && dr !== 'checking' && (dr.kind === 'ok'
+                ? <div className="gwb-didyou">📖 "{q}" is a real {kindInfo(menuItem.kind).name.toLowerCase()}{dr.plural ? ' (more than one)' : ''}! <button type="button" className="gwb-didyou-btn" onClick={useDictWord}>Use "{q}"</button></div>
+                : dr.kind === 'base' ? <div className="gwb-didyou">📖 "{q}" comes from the action word "{dr.base}". The Clock sets the time. <button type="button" className="gwb-didyou-btn" onClick={useDictWord}>Use "{dr.base}"</button></div>
+                : dr.kind === 'otherPos' ? <div className="gwb-didyou">📖 "{q}" is in the dictionary as {dr.pos.map((p) => kindInfo(p).name.toLowerCase()).join(' or ')}, not {kindInfo(menuItem.kind).name.toLowerCase()}. Try that machine instead.</div>
+                : dr.kind === 'offline' ? <div className="gwb-didyou">Gus's dictionary is out of reach right now. Pick a word below.</div>
+                : dr.kind === 'blocked' ? <div className="gwb-didyou">Gus does not use that word. Pick another one.</div>
                 : null)}
-              {query.trim() && list.length > 0 && !exact && !dictOk && <div className="gwb-didyou">Did you mean <button type="button" className="gwb-didyou-btn" onClick={() => chooseWord(list[0])}>{menuItem.kind === 'N' ? `${nounByWord.get(list[0])?.emoji ?? ''} ` : ''}{list[0]}</button>?</div>}
+              {query.trim() && list.length > 0 && !exact && !dictOk && !checking && <div className="gwb-didyou">Did you mean <button type="button" className="gwb-didyou-btn" onClick={() => chooseWord(list[0])}>{menuItem.kind === 'N' ? `${nounByWord.get(list[0])?.emoji ?? ''} ` : ''}{list[0]}</button>? <button type="button" className="gwb-hear" onClick={() => speak(list[0])} aria-label={`Hear ${list[0]}`}>🔈</button></div>}
               <div className="gwb-words">
                 {(list.length ? list : all).map((w) => (
                   <button key={w} type="button" className={`gwb-word${menuItem.word === w ? ' on' : ''}`} style={{ borderColor: SYMBOLS[menuItem.kind as Pos].color }} onClick={() => chooseWord(w)}>

@@ -33,3 +33,24 @@ describe('real dictionary words', () => {
     expect(r.script).toBeTruthy();
   });
 });
+
+describe('typed forms (Claudia round 1)', () => {
+  const verbDict = (words: Record<string, string[]>) => (async (url: string) => {
+    const w = decodeURIComponent(String(url).split('/').pop()!);
+    return words[w] ? { status: 200, ok: true, json: async () => [{ word: w, meanings: words[w].map((p) => ({ partOfSpeech: p })) }] } : { status: 404, ok: false, json: async () => ({}) };
+  }) as unknown as typeof fetch;
+  it('walked becomes walk, sat becomes sit, cats is a plural noun', async () => {
+    const f = verbDict({ wobble: ['verb'], giraffe: ['noun'] });
+    const { checkTyped } = await import('../engine/dictionary');
+    expect(await checkTyped('wobbled', 'V', () => false, f)).toEqual({ kind: 'base', base: 'wobble' });
+    expect(await checkTyped('sat', 'V', (w) => w === 'sit', f)).toEqual({ kind: 'base', base: 'sit' });
+    expect(await checkTyped('giraffes', 'N', () => false, f)).toEqual({ kind: 'ok', word: 'giraffes', plural: true });
+    expect(await checkTyped('giraffe', 'V', () => false, f)).toEqual({ kind: 'otherPos', pos: ['N'] });
+  });
+  it('the block list matches whole words only', () => {
+    expect(isBlocked('hello')).toBe(false);
+    expect(isBlocked('assist')).toBe(false);
+    expect(isBlocked('cockatoo')).toBe(false);
+    expect(isBlocked('shits')).toBe(true);
+  });
+});

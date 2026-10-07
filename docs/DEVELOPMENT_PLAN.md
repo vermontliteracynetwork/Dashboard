@@ -722,6 +722,43 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Claudia improvement round 1 (accessibility, gameplay, bug fixes). SHIPPED 2026-10-07 (teacher: "research, apply, test, repeat")
+
+**Claudia's review** read the Workboard code and returned 12 bugs, 5 accessibility items and 5 gameplay ideas.
+
+**Shipped from it:**
+- **Bugs fixed:**
+  - The parts menu now scrolls with a finger (up and down scrolls, sideways drags a part out).
+  - A quick double tap on the Start Lever can no longer run twice.
+  - Replaying a movie no longer pays gears again.
+  - Only word and contraption parts fill a blank space.
+  - Joining two machines no longer doubles the lever, clock, capital letter press or TV.
+  - Paragraph order is stable (rows, then left to right).
+  - "Add it for me" moves a misplaced Capital Letter Press instead of adding a second one.
+  - Dragging the last part off a machine leaves a blank space until the drop.
+  - The dictionary now turns "walked" into the action word "walk" (and "sat" into "sit") because the Clock sets the time. "giraffes" is added as a plural noun ("The giraffes ran.").
+  - The rude-word filter matches whole words, so "hello", "assist" and "cockatoo" are fine.
+  - Enter no longer picks a different word while the dictionary is still checking.
+- **Accessibility:**
+  - Every part in the parts menu can be added with a keyboard or switch. On a focused machine, arrows move it left or right, Enter opens its menu (the typing box gets focus) and Delete removes it. Escape closes menus.
+  - Zoom stops at 60% so buttons stay big. The machine grip, sort buttons, verb form buttons, clock and link buttons and caption buttons are 44px or larger.
+  - **Tap-to-hear** (never automatic): "🔈 Hear it" on every sentence, a speaker in each machine's menu, and one next to "Did you mean".
+  - The blank-space glow is steady, not blinking. Calm mode also stills the drop marker and shows a ring on the running part. 🌙 Calm is now a visible top button.
+  - The 8 Rube Goldberg parts sit in a folded **⚙️ Fun parts** group, so the menu shows sentence parts first. New teacher setting "Workboard fun parts": Folded away (default), Always shown, or Hidden.
+- **Gameplay:**
+  - **↩ Undo** (up to 30 steps) next to Clear all.
+  - Numbered badges (1, 2, 3) show each sentence's place in a paragraph.
+  - **Clock teaching moment:** at Guided and Challenge, turning the clock pulses the action machine and Gus asks for its past, present or future form. At Full help, Gus reads the new form aloud in the guide ("Listen: sat").
+- Tests: 2 new (typed word forms, whole-word blocking). Full suite: 246 passing. Checked in an iPad-sized browser: tap-only build, dictionary plural, clock to past, "The giraffes ran." on the TV.
+
+**Queued for the next rounds (Claudia's list, still open):**
+- Dyslexia spacing toggle on the Workboard.
+- Counter-scaled buttons at low zoom.
+- Mixed-up Delivery (rebuild a scrambled sentence from a conveyor).
+- Noun Boiler Pairs (singular and plural, "a" vs "some").
+- Punctuation Inspector (fix a wrong punctuation stamp, the TV shows the tone).
+- Paragraph Pipes (a Join Clamp ghost when two machines are linked).
+
 ### Grammar Gus: Workboard round 2 (symbol-shaped machines, build the whole machine, right-hand parts menu, Clock, Paragraph Link, Rube Goldberg parts, real dictionary words, Clear all). SHIPPED 2026-10-07 (direct teacher instructions)
 
 **Her words, verbatim:**
@@ -760,7 +797,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - Tests: 4 new dictionary tests (verb forms, dictionary parts of speech, blocked words, a new word runs to 3 stars with a movie). Board tests updated for the Clock. Full suite: 244 passing.
 - **Checked:** in an iPad-sized browser: drawer taps, the dictionary flow, a full build with spring mat, pulley and bell, the clock rewound to the past, and "The dog sat." playing on the TV. Not yet checked on a real iPad.
 
-**In progress:** Claudia's improvement rounds (accessibility and gameplay). The classic machine (Orders, Blueprints, Remix) is still reachable from Menu until those modes move onto the Workboard.
+**In progress:** Claudia's improvement rounds (round 1 shipped above). The classic machine (Orders, Blueprints, Remix) is still reachable from Menu until those modes move onto the Workboard.
 
 ### Grammar Gus: the Workboard redesign (every part its own machine, zoomable floor). SHIPPED 2026-10-07 (direct teacher instructions)
 
