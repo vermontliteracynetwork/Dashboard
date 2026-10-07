@@ -2084,7 +2084,33 @@ A training rep becomes: **the student builds or fixes a sentence, and the senten
   - **Seasonal featured pets** in the Mystery Box: scaffolding exists, no teacher tool yet.
   - **Pet in native games:** the pet cheering beside the student in games, like Neighbors do now. Idea, not yet asked for.
 
-### Shape Dash (Geometry Dash inspired native game). QUEUED 2026-10-06 (direct teacher instruction)
+### Shape Dash (Geometry Dash inspired native game). SHIPPED v1 2026-10-07 (teacher: "Build the shape dash game")
+
+**Shipped** (`/student/shape-dash`, `src/routes/student/ShapeDash.tsx`, rules in `src/games/shapeDash/engine.ts`, sound in `audio.ts`):
+- **Play:** your shape runs by itself. Tap anywhere (or Space) to jump; hold to keep jumping. Spikes, blocks to hop onto, stairs, gaps, jump pads that throw you over spike walls, stars to collect, flag checkpoints and a FINISH flag.
+- **Levels:** each level is a little faster and longer. Level 1 is slow. A robot test player finishes levels 1 to 8 with no crashes, so every level is fair. The sky color changes each level. Students can start from any level they have reached.
+- **Your shape:** pick the body (square, squircle, circle, rhombus), one of 6 colors and one of 12 faces from her Kenney pack. It is remembered on that iPad.
+- **Her question rule:** a question every 30 seconds of running, with a "Question coming up!" warning, landing at a calm moment (never right before a spike). A question also comes after every crash.
+- **Claudia's answers to the open questions** (from her earlier choices; change any of these):
+  - 3 hearts with checkpoints: a crash puts you back at the last flag, never the very start.
+  - 🧸 Practice mode: no hearts lost.
+  - The crash question is a **power-up**: a right answer gives a 🛡️ shield that saves you from the next crash.
+  - A friendly "Nice run!" end card with "Try level N again".
+  - Lives in any Town Square object with the new **Shape Dash** role; no new building.
+- **Standard wiring:**
+  - $1 per right answer, paid at the end or on leaving.
+  - Daily Streak and pet training through the question screen.
+  - A game-mode assignment can name Shape Dash, and its questions are used first.
+  - Question source picker.
+  - A Neighbor cheers you on (from "Play a game" too) and remembers playing with you.
+  - Personal best runs (blocks, level, stars).
+  - A Game Dashboard card with a new 16:9 cover (made from her pack).
+  - Leave-game confirmation.
+- **Look and sound:** her pack's tiles for the ground and blocks, trees and clouds in the background, a spinning shape with a face, a shadow, bursts of confetti, a bouncy beat that speeds up each level, and jump, star, flag, crash, shield and win sounds. Music and sounds can each be turned off. Calm mode turns off shake and bursts.
+- **Credit** on the Teacher home page (Kenney, CC0).
+- **Not yet:** the teacher sliders for how often questions come and how many come at once (fixed at her 30 seconds and 1 question for now), and a teacher inbox report for each session.
+
+### Shape Dash: the original request (2026-10-06)
 
 - Her words, verbatim: "add to queue and dev plan - a geometry dash inspired native game. a question interupts students after 30 seconds or if they die/loose a life"
 - **Asset pack (saved so it can't be lost):** `public/games/shape-dash/`, "Shape Characters" by Kenney (kenney.nl), **CC0** (`License.txt` in the folder). Contents: body shapes (circle, rhombus, square, squircle) in blue, green, pink, purple, red and yellow, 12 faces plus eyes, eyebrows and mouths, hands in every color, default and double-size PNGs, and spritesheets. Perfect for building a player "cube" with a face.

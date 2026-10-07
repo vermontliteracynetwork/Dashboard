@@ -5523,3 +5523,57 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-cloud-tag { position: absolute; padding: 4px 10px; border-radius: 10px; border: 3px solid var(--gus-ink); background: #fff8e6; font: 800 0.95rem 'Lexend', sans-serif; color: var(--gus-ink); white-space: nowrap; z-index: 3; }
 .gwb-cloud-said { color: var(--gus-ink); font-weight: 700; }
 .rdr-text h2 { font-family: inherit; letter-spacing: inherit; word-spacing: inherit; }
+
+/* ===== Shape Dash (teacher 2026-10-07): a Geometry Dash style runner with
+   her Kenney Shape Characters. Soft pastel world, big tap targets. ===== */
+.sd { --sd-ink: #1f2b3d; --sd-paper: #eef2f8; --sd-card: #ffffff; --sd-blue: #4d8de8; --sd-gold: #f6c13d; --sd-go: #3fbf5a;
+  position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--sd-paper); color: var(--sd-ink); font-family: 'Lexend', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sd-launch { flex: 1; min-height: 0; overflow-y: auto; touch-action: pan-y; }
+.sd-top { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.sd-top h1 { flex: 1; margin: 0; text-align: center; font: 900 2rem 'Lexend', sans-serif; letter-spacing: 0.02em; color: var(--sd-blue); text-shadow: 0 3px 0 var(--sd-ink); }
+.sd-btn { min-height: 48px; padding: 0 16px; border-radius: 14px; border: 3px solid var(--sd-ink); background: #fff; color: var(--sd-ink); font: 800 1rem 'Lexend', sans-serif; cursor: pointer; box-shadow: 0 4px 0 var(--sd-ink); touch-action: manipulation; }
+.sd-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--sd-ink); }
+.sd-btn.on { background: var(--sd-gold); }
+.sd-go { background: var(--sd-go); color: #fff; font-size: 1.2rem; min-height: 60px; }
+.sd-launch-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; padding: 0 16px 24px; max-width: 1200px; margin: 0 auto; }
+.sd-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--sd-card); border: 4px solid var(--sd-ink); border-radius: 20px; box-shadow: 0 6px 0 var(--sd-ink); }
+.sd-card h2 { margin: 0; font: 900 1.25rem 'Lexend', sans-serif; }
+.sd-card p { margin: 0; line-height: 1.5; }
+.sd-preview { position: relative; width: 120px; height: 120px; margin: 0 auto; animation: sd-bob 1.6s ease-in-out infinite; }
+.sd-preview img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sd-preview .sd-preview-face { inset: auto; left: 16%; top: 33%; width: 68%; height: auto; }
+@keyframes sd-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(-4deg); } }
+.sd.calm .sd-preview { animation: none; }
+.sd-pick-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.sd-pick { width: 56px; height: 56px; padding: 4px; border-radius: 12px; border: 3px solid #c8d2e2; background: #f4f6fa; cursor: pointer; touch-action: manipulation; }
+.sd-pick img { width: 100%; height: 100%; object-fit: contain; }
+.sd-pick.on { border-color: var(--sd-ink); background: #fff3c8; }
+.sd-swatch.on { box-shadow: 0 0 0 3px #fff inset; }
+.sd-faces .sd-pick { background: #ffe2b8; }
+.sd-seg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sd-lvl { min-width: 48px; padding: 0; }
+.sd-bests { display: flex; flex-direction: column; gap: 4px; font-variant-numeric: tabular-nums; }
+.sd-rival { align-items: center; text-align: center; }
+.sd-rival-stage { width: 200px; height: 220px; }
+.sd-rival-stage.small { width: 120px; height: 140px; }
+.sd-stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; background: #2c3348; cursor: pointer; }
+.sd-canvas { width: min(100vw, calc(100dvh * 16 / 9)); height: auto; max-height: 100dvh; aspect-ratio: 16 / 9; display: block; }
+.sd-hud { position: absolute; left: 12px; right: 12px; top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; pointer-events: none; }
+.sd-hud > * { pointer-events: auto; }
+.sd-hearts, .sd-stars, .sd-level, .sd-shield { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; border: 3px solid var(--sd-ink); background: rgba(255,255,255,0.92); font: 800 1.05rem 'Lexend', sans-serif; font-variant-numeric: tabular-nums; }
+.sd-shield { background: #d6ecff; }
+.sd-bar { flex: 1 1 160px; height: 18px; border-radius: 10px; border: 3px solid var(--sd-ink); background: rgba(255,255,255,0.8); overflow: hidden; }
+.sd-bar span { display: block; height: 100%; background: var(--sd-go); transition: width 0.2s; }
+.sd-warn, .sd-ready { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); padding: 12px 22px; border-radius: 18px; border: 4px solid var(--sd-ink); background: var(--sd-gold); font: 900 1.4rem 'Lexend', sans-serif; pointer-events: none; animation: sd-pulse 0.9s ease-in-out infinite; }
+.sd-ready { background: #fff; top: 40%; }
+@keyframes sd-pulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }
+.sd.calm .sd-warn, .sd.calm .sd-ready { animation: none; }
+.sd-cheer { position: absolute; right: 16px; bottom: 16px; max-width: min(360px, 70vw); padding: 10px 14px; border-radius: 16px; border: 3px solid var(--sd-ink); background: #fff; font: 700 1rem 'Lexend', sans-serif; pointer-events: none; }
+.sd-modal-back { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(20,26,40,0.55); padding: 16px; }
+.sd-modal { position: absolute; z-index: 20; display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; width: min(520px, calc(100vw - 32px)); padding: 20px; background: #fff; border: 4px solid var(--sd-ink); border-radius: 22px; box-shadow: 0 8px 0 var(--sd-ink); cursor: default; }
+.sd-modal-back .sd-modal { position: static; }
+.sd-modal h2 { margin: 0; font: 900 1.6rem 'Lexend', sans-serif; }
+.sd-modal p { margin: 0; }
+.sd-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.sd-rival-end { display: flex; align-items: center; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .sd-preview, .sd-warn, .sd-ready { animation: none; } }

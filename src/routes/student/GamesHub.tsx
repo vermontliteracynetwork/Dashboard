@@ -33,6 +33,7 @@ export default function GamesHub() {
   // Each card shows this student's own best (personal only, never compared).
   const bowling = useBestGames(student?.id, 'spaceBowling');
   const castle = useBestGames(student?.id, 'castleDefense');
+  const dash = useBestGames(student?.id, 'shapeDash');
   const chessGames = useStore((s) => s.chessGames);
   const chessBest = Math.max(0, ...chessGames.filter((g) => g.studentId === student?.id).map((g) => g.xp));
   const bakeryBest = Math.max(0, ...(student?.bakeryLeaderboard ?? []).map((e) => e.xp));
@@ -41,6 +42,7 @@ export default function GamesHub() {
     ...(chessBest > 0 ? { chess: `${chessBest} XP` } : {}),
     ...(bakeryBest > 0 ? { bakery: `${bakeryBest} XP` } : {}),
     ...(castle[0] ? { castleDefense: `${castle[0].score} right` } : {}),
+    ...(dash[0] ? { shapeDash: `${dash[0].score} blocks` } : {}),
   };
   const done = anyGame ? gameplayProgress(progress[student!.id]?.[anyGame.subject]?.quizState?.[anyGame.task.id]) : 0;
 

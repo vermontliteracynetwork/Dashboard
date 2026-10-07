@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-shape-dash',
+    date: '2026-10-07',
+    icon: '🟦',
+    title: 'New game: Shape Dash!',
+    body: "Make your own shape with a funny face, then tap to jump over spikes and gaps! Grab stars, reach the flags, and finish each level. A question pops up every 30 seconds. If you crash, answer a question to get a shield. Find it in the Game Dashboard.",
+  },
+  {
     id: '2026-10-07-gus-read-respond',
     date: '2026-10-07',
     icon: '📚',

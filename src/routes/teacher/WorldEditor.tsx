@@ -64,6 +64,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'game-dashboard', label: `Game Dashboard (pick any game) → ${ROLE_VIEWS['game-dashboard']}` },
   { value: 'grammar-machine', label: `Grammar Machine (Grammar Gus) → ${ROLE_VIEWS['grammar-machine']}` },
   { value: 'library', label: `Library (articles to read) → ${ROLE_VIEWS.library}` },
+  { value: 'shape-dash', label: `Shape Dash (tap-to-jump game) → ${ROLE_VIEWS['shape-dash']}` },
   { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];
