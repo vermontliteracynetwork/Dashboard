@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-tidy-workboard',
+    date: '2026-10-07',
+    icon: '⭐',
+    title: "A tidier Gus's Workboard",
+    body: "Gus now stands in the right corner, above your checklist. Your sentences show up on a writing page under the machines. Tap the star next to any part to keep it in Favorites at the top. The Menu has a Settings section for sound, reading words out loud, and spacing.",
+  },
+  {
     id: '2026-10-07-shape-dash',
     date: '2026-10-07',
     icon: '🟦',

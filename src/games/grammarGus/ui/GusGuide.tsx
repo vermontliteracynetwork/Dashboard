@@ -56,19 +56,20 @@ function GusModel({ talkKey, calm }: { talkKey: string; calm: boolean }) {
   );
 }
 
-export default function GusGuide({ message, talkKey, children, mood, stars, calm = false }: {
+export default function GusGuide({ message, talkKey, children, mood, stars, calm = false, docked = false }: {
   message: string;
   talkKey: string; // changes whenever Gus says something new
   children?: React.ReactNode; // buttons for this moment
   mood?: string; // small tag: "Steam leak!", "Running" ...
   stars?: number; // 1 to 3: Gus's star review, shown as gold stars
   calm?: boolean;
+  docked?: boolean; // in the Workboard's right column, above the checklist (teacher 2026-10-07)
 }) {
   useEffect(() => { gusSound.ahem(); }, [talkKey]);
   // Docked into the page layout (not floating over it) so on an iPad it
   // never covers the machine or the Parts Bin.
   return (
-    <div className="gus-guide">
+    <div className={`gus-guide${docked ? ' docked' : ''}`}>
       <div className="gus-guide-model" aria-hidden="true">
         <Canvas camera={{ position: [0, 1.15, 4.6], fov: 32 }} dpr={[1, 2]} onCreated={({ camera }) => camera.lookAt(0, 1, 0)}>
           <ambientLight intensity={1} />

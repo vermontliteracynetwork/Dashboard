@@ -722,6 +722,37 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Workboard declutter (Gus in the right column, a writing page, a short parts menu with Favorites, plain-word Jobs, a real Menu with Settings, no remix). SHIPPED 2026-10-07 (direct teacher instructions, with a screenshot)
+**Teacher's words (2026-10-07, verbatim):** "lets go back to editing this. move grammar gus and their text bubnle to be half of the hight of the current checklist and teh same column width. both should stay there. the current machine space is so busy its hard to see what is what. in the bottom have a word processor view instead of a floating text ox. reduce uneneccary additional things in the left hand bar. its so cluttered and hard to navitate. allow students to star/favorite key things. capitilzation should be stared on default. current jobs are so confusing"
+Then: "calm button is unnecessary", "dont allow machine remixes. change menu to an actual menu and add settings so its more orgnized", and "claudia, you can do better".
+
+Shipped:
+- **Gus lives in the right column.** He and his speech bubble take the top half of the column, the checklist the bottom half, both always there. Hint and Next buttons sit under his bubble. On an iPad held upright the column moves under the floor, with Gus and the checklist side by side. Nothing floats over the machines anymore.
+- **📝 My writing, a word processor page under the floor.**
+  - Replaces the floating text box under every machine.
+  - Every machine's sentence is shown as lined writing, with paragraphs kept together and a ✓ on 3-star sentences.
+  - Tap a sentence to jump to its machine.
+  - Its bar holds the selected sentence's time, transition word, 🔈 Hear it and 📓 Save, plus 🔈 Read it all.
+  - Undo, New machine and the zoom buttons moved out of the floor into a row above the page.
+- **Parts menu, much shorter.**
+  - The four sort buttons, the ? buttons and the description under every part are gone.
+  - Each row is the picture and the name.
+  - Fewer groups start open: time, shout, paragraph and the fun parts start folded.
+- **⭐ Favorites.** Tap ☆ on any part to add it to a Favorites group at the top. The Capital Letter Press is starred from the start. Favorites are remembered on that iPad, per student.
+- **Jobs in plain words.**
+  - The main list is: 🧩 Put the words in order, 🔍 Fix the mistake, ⚡ Fix the broken sentence, and 📜 Build from a recipe card. Each has one sentence saying exactly what to do.
+  - Games, science writing and paragraph blueprints are under "▸ More jobs".
+  - The order card is now a labeled recipe card: WHO, DID, WHAT, WHERE, HOW, WHEN chips.
+- **☰ Menu is a real menu.**
+  - My things: Journal, Library, Classic machine, Clear the board.
+  - ⚙️ Settings, as on/off switches: Sound, Read words out loud, Wider letter spacing, Calm mode.
+  - The 🌙 Calm button is gone from the top bar.
+- **No machine remixes.** The Remix tools are removed from the Workboard.
+
+Still to consider (Claudia):
+- A short first-time tour of the new layout.
+- Whether the sticker shelf button should also move into the Menu.
+
 ### Grammar Gus: Daily Challenge and daily streak. QUEUED (Read and Respond, its content, shipped first as an activity)
 **Teacher's words (2026-10-07, verbatim):** "lets have a daily challenge in gus' grammar machine. it should pop up on the first sign in to gus' machine each day, be sent to the students in mail, and also gus should be walking around the town square and they are able to be clicked on to have the students be asked in the chat if they want to complete the daily challenge. gus should show them, once it is completed, a calnedar grid with the day checked off like a streak completion- day one of the daily challenges. $25 earned for each day. making it the most valuable daily streak in the game, wich should be promoted to students."
 Then: "Gus's daily streak, daily challenge, will be reading comprehension, respond with paragraphs, using the machines. So students will not be presented with read this passage and answer the question, but rather they will be completely immersed in the reading and also the writing." Her full design for how it works is under Read and Respond below. Then: "dont build this as a daily challenge at first but rather an activity option within gus's machine as we get it going."

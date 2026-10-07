@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../../store/store';
 import { useLockBodyScroll } from '../../../lib/useLockBodyScroll';
@@ -21,7 +21,7 @@ import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
 import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
 import { compareOrder } from '../engine/orders';
 import { frameworkById } from '../data/frameworks';
-import { remixLine, flipIdeas, type RemixKind } from '../engine/boardRemix';
+import { flipIdeas } from '../engine/boardRemix';
 import { HomophoneSorter, TransitionTrack } from './MiniGames';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
@@ -36,7 +36,7 @@ import ImmersiveReader from '../reading/ImmersiveReader';
 import { bankFor, registerArticleWords, starterItems, useLibrary, type GusArticle } from '../reading/library';
 import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
 import MachinePart from './board/MachinePart';
-import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, EXAMPLES, type Kind, type Job } from './board/parts';
+import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, type Kind, type Job } from './board/parts';
 import type { SceneScript } from '../director/director';
 
 // Gus's Workboard (teacher 2026-10-07). Her words, in order:
@@ -74,7 +74,6 @@ const TENSE_NAMES: Record<Tense, string> = { past: 'Past', present: 'Present', f
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
 interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[] }
-type Sort = 'job' | 'order' | 'color' | 'az';
 // The machine rows of Gus's Checklist: the Workboard's own jobs.
 const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
   { id: 'words', label: 'Every machine has its word', hint: 'Tap a machine with a ? and pick its word.', codes: ['EMPTY_PART', 'NO_WORDS'] },
@@ -107,7 +106,6 @@ const STILL_STUCK = ["Looks like you're still trying to figure it out. Would you
 const GATE_GLOW: Partial<Record<Violation, Kind>> = { NO_COMMA: 'comma', NO_CAPITAL: 'cap', NO_END_MARK: 'stop', NO_SHOUT_MARK: 'bang' };
 const FINISH_GLOW: Partial<Record<FinishProblem, Kind>> = { NEED_CAP: 'cap', NEED_END: 'stop', NEED_TV: 'tv', NEED_COMMA: 'comma' };
 const sigOf = (l: BoardLine) => JSON.stringify([l.items, l.connector]);
-const SORTS: { id: Sort; label: string }[] = [{ id: 'job', label: 'By job' }, { id: 'order', label: 'Sentence order' }, { id: 'color', label: 'By color' }, { id: 'az', label: 'A to Z' }];
 const JOB_ORDER: Job[] = ['power', 'time', 'shout', 'who', 'did', 'where', 'join', 'finish', 'paragraph', 'contraption', 'gadget'];
 // Everything snaps: whole machines land on a 20px grid, parts snap into a
 // machine from farther away.
@@ -235,7 +233,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [view, setView] = useState({ x: 0, y: 0, z: typeof window !== 'undefined' && window.innerWidth < 900 ? 0.8 : 1 });
   // Open by default on an iPad in either orientation (Claudia round 4).
   const [drawerOpen, setDrawerOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 700);
-  const [sortBy, setSortBy] = useState<Sort>('job');
   const [selLine, setSelLine] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ lineId: string; itemId: string } | null>(null);
   const [query, setQuery] = useState('');
@@ -275,8 +272,16 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [cough, setCough] = useState<{ lineId: string; key: number } | null>(null);
   const [spinning, setSpinning] = useState<string | null>(null);
   // Collapsible categories in the parts menu, remembered on this iPad.
-  const [folds, setFolds] = useState<string[]>(() => { try { const f = localStorage.getItem('gus-folds'); if (f) return JSON.parse(f) as string[]; } catch { /* fine */ } return ['contraption', 'gadget']; });
-  useEffect(() => { try { localStorage.setItem('gus-folds', JSON.stringify(folds)); } catch { /* fine */ } }, [folds]);
+  // Teacher 2026-10-07: the parts menu was "so cluttered and hard to
+  // navigate". Fewer groups open at the start, and a ⭐ Favorites group on
+  // top ("allow students to star/favorite key things. capitilzation should
+  // be stared on default").
+  const [folds, setFolds] = useState<string[]>(() => { try { const f = localStorage.getItem('gus-folds2'); if (f) return JSON.parse(f) as string[]; } catch { /* fine */ } return ['time', 'shout', 'paragraph', 'contraption', 'gadget']; });
+  useEffect(() => { try { localStorage.setItem('gus-folds2', JSON.stringify(folds)); } catch { /* fine */ } }, [folds]);
+  const favKey = `gus-favs-${host ? 'teacher' : signedIn ?? 'guest'}`;
+  const [favs, setFavs] = useState<Kind[]>(() => { try { const f = localStorage.getItem(favKey); if (f) return JSON.parse(f) as Kind[]; } catch { /* fine */ } return ['cap']; });
+  useEffect(() => { try { localStorage.setItem(favKey, JSON.stringify(favs)); } catch { /* fine */ } }, [favs, favKey]);
+  const toggleFav = (k: Kind) => { setFavs((f) => (f.includes(k) ? f.filter((x) => x !== k) : [...f, k])); gusSound.ding(); };
   const toggleFold = (job: string) => { setFolds((f) => (f.includes(job) ? f.filter((x) => x !== job) : [...f, job])); gusSound.part(2); };
   const [snapped, setSnapped] = useState<string | null>(null); // a part or machine that just snapped in (bounces)
   const [party, setParty] = useState<string | null>(null);
@@ -287,6 +292,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [comboShow, setComboShow] = useState<{ lineId: string; names: string[]; key: number } | null>(null); // confetti over a 3-star machine
   const bounce = (id: string) => { setSnapped(id); timers.current.push(window.setTimeout(() => setSnapped((x) => (x === id ? null : x)), 480)); };
   const [jobsOpen, setJobsOpen] = useState(false);
+  const [jobsMore, setJobsMore] = useState(false);
   // Spare Parts Bin (teacher's reference chart: "Put extra words here").
   const [spare, setSpare] = useState<BoardItem[]>([]);
   const [binOpen, setBinOpen] = useState(false);
@@ -1017,8 +1023,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const t = window.setTimeout(() => (st?.respond ? startRespond(a) : setReading(a)), 50);
     return () => window.clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // Remix tools (moved from the classic machine).
-  const [, setRemixFor] = useState<string | null>(null);
+  // Machine remixes are gone (teacher 2026-10-07: "dont allow machine remixes").
   const [mini, setMini] = useState<'homo' | 'trans' | null>(null);
   const doFlip = (line: BoardLine) => {
     const res = flipIdeas(line.items, uid);
@@ -1026,14 +1031,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     editLine(line.id, (l) => ({ ...l, items: res.items }));
     gusSound.whoosh(); bounce(line.id);
     say(res.front ? 'FLIP! The depending idea is in front now, so a comma goes after it. The Capital Letter Press moved to the new first word.' : 'FLIP! The depending idea is at the end now. No comma needed before because, when or if.', 'Flip Switch');
-  };
-  const doRemix = (line: BoardLine, k: RemixKind) => {
-    setRemixFor(null);
-    const res = remixLine(line, k, level, makeRng(Date.now()), uid);
-    if (typeof res === 'string') { gusSound.ahem(); say(res, 'Remix'); return; }
-    editLine(line.id, (l) => ({ ...l, items: res.items }));
-    gusSound.whoosh(); setRetimed(res.items.filter((i) => !line.items.includes(i)).map((i) => i.id)); timers.current.push(window.setTimeout(() => setRetimed([]), 750));
-    say(`${res.note} Pull the lever to see it.`, 'Remix');
   };
   const clearAll = () => {
     remember();
@@ -1110,15 +1107,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   })();
 
   // ---- the parts menu (left side) --------------------------------------------
-  const sortedKinds = useMemo(() => {
-    const list = [...KINDS];
-    if (sortBy === 'az') list.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === 'color') {
-      const hue = (hex: string) => { const n = parseInt(hex.slice(1), 16); const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); if (mx === mn) return 400; const d = mx - mn; const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; };
-      list.sort((a, b) => hue(a.color) - hue(b.color));
-    }
-    return list;
-  }, [sortBy]);
   // ---- the Speech Bubble's cloud --------------------------------------------------
   // Teacher 2026-10-07: "make sure the speech bubble is a streatching thing so
   // the student can move it to start at one spot and end at another with a
@@ -1245,16 +1233,17 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     else if (nextStep.pull) run(focusLine);
     else if (nextStep.kind) { setDrawerOpen(true); setFolds((f) => f.filter((j) => j !== kindInfo(nextStep.kind!).job)); say(`Find the glowing ${kindInfo(nextStep.kind).name} in the parts menu. Tap it or drag it on.`, 'Next'); }
   };
-  const blurb = (k: Kind) => (isWordKind(k) ? EXAMPLES[k] : isContraption(k) ? FUN_ROLE[k].does : kindInfo(k).machine);
-  const drawerRow = (k: Kind) => {
+  // A row is just the part's picture and name; a star saves it to Favorites.
+  const drawerRow = (k: Kind, inFavs = false) => {
     const info = kindInfo(k);
+    const fav = favs.includes(k);
     return (
-      <div key={k} className={`gwb-drawer-row${nextStep?.kind === k || glowKind === k ? ' next' : ''}`}>
+      <div key={`${inFavs ? 'fav-' : ''}${k}`} className={`gwb-drawer-row${nextStep?.kind === k || glowKind === k ? ' next' : ''}`}>
         <button type="button" className="gwb-drawer-item" onPointerDown={(e) => onDrawerDown(e, k)} onClick={(e) => { if (e.detail === 0) addKind(k); }} aria-label={`${info.name}: ${info.hint}`}>
           <span className="gwb-drawer-pic"><MachinePart kind={k} word={isWordKind(k) ? info.name.toLowerCase() : k === 'clock' ? 'present' : null} scale={k === 'tv' || k === 'conveyor' || k === 'dominoes' || k === 'horn' ? 0.26 : 0.36} /></span>
-          {drawerOpen && <span className="gwb-drawer-text"><strong>{info.name}</strong><small>{blurb(k)}</small></span>}
+          {drawerOpen && <span className="gwb-drawer-text"><strong>{info.name}</strong></span>}
         </button>
-        {drawerOpen && <button type="button" className="gwb-drawer-info" onClick={() => { say(`${info.name}: ${info.hint}.`, 'What is it?'); speak(`${info.name}. ${info.hint}`); }} aria-label={`What does the ${info.name} do?`}>?</button>}
+        {drawerOpen && <button type="button" className={`gwb-star${fav ? ' on' : ''}`} onClick={() => toggleFav(k)} aria-pressed={fav} aria-label={fav ? `Take ${info.name} out of Favorites` : `Add ${info.name} to Favorites`}>{fav ? '★' : '☆'}</button>}
       </div>
     );
   };
@@ -1265,13 +1254,23 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     return (
       <div key={job} className={`gwb-drawer-group${job === 'contraption' || job === 'gadget' ? ' fun' : ''}`}>
         {drawerOpen && <button type="button" className={`gwb-drawer-title${glow ? ' next' : ''}`} onClick={() => toggleFold(job)} aria-expanded={!folded}>
-          <span>{job === 'contraption' ? '⚙️ ' : job === 'gadget' ? '🔧 ' : ''}{JOB_TITLES[job]}</span><span aria-hidden>{folded ? `${kinds.length} ▸` : '▾'}</span>
+          <span>{job === 'contraption' ? '⚙️ ' : job === 'gadget' ? '🔧 ' : ''}{JOB_TITLES[job]}</span><span aria-hidden>{folded ? '▸' : '▾'}</span>
         </button>}
         {!folded && kinds.map((k) => drawerRow(k))}
       </div>
     );
   };
 
+  // Gus and his speech bubble live in the right column, above the checklist
+  // (teacher 2026-10-07), so nothing floats over the machines.
+  const gusPanel = (
+      <GusGuide docked message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
+        {hintOffer && lines.some((l) => l.id === hintOffer) ? <>
+          <button type="button" className="gus-btn gus-btn-primary gwb-hint-btn" onClick={() => showHint(hintOffer)}>💡 Yes, a hint</button>
+          <button type="button" className="gus-btn" onClick={() => { setHintOffer(null); say('Okay, inventor! Keep tinkering. Pull the Start Lever when you are ready.', 'You got this'); }}>🔧 I'll keep trying</button>
+        </> : nextStep && <button type="button" className="gus-btn gwb-next-btn" onClick={doNext}>👉 Next: {nextStep.text}</button>}
+      </GusGuide>
+  );
   // ---- render ---------------------------------------------------------------
   const zoomBtn = (d: number) => { const r = boardRef.current!.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, view.z + d); };
   const foundCombos = [...new Set([...(saved.combos ?? []), ...sessionCombos])];
@@ -1304,18 +1303,21 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               <div className="gwb-top-menu" role="menu">
                 <div className="gwb-menu-sub">📖 Read and Respond</div>
                 {library.map((a) => <button key={a.id} type="button" role="menuitem" onClick={() => { setJobsOpen(false); setReading(a); }}>📰 {a.title}<small>Read it, then answer: {a.question}</small></button>)}
-                <div className="gwb-menu-sub">🧰 Gus's Jobs</div>
-                <button type="button" role="menuitem" onClick={() => startJob('delivery')}>📦 Mixed-up Delivery<small>Put the word machines in order</small></button>
-                <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Punctuation Inspector<small>Find the capital letter or punctuation mistake</small></button>
-                <button type="button" role="menuitem" onClick={() => startJob('order')}>📜 Gus's Order<small>Build any sentence that makes the scene on the card</small></button>
-                <button type="button" role="menuitem" onClick={() => startJob('spark')}>⚡ Spark Check<small>A dud sentence: is it missing a who or an action?</small></button>
-                <div className="gwb-menu-sub">🎮 Mini machines</div>
-                <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('homo'); }}>🎯 Homophone Sorter<small>their, there, they're and more</small></button>
-                <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('trans'); }}>🚂 Transition Track<small>Couple sentences with the right transition</small></button>
-                <div className="gwb-menu-sub">🔬 Science writing</div>
-                {Object.entries(SCIENCE_JOBS).map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
-                <div className="gwb-menu-sub">📐 Blueprints: build a whole paragraph</div>
-                {WORKBOARD_BLUEPRINTS.map((id) => { const fw = frameworkById.get(id)!; return <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{fw.icon} {fw.name}<small>{fw.teaches}</small></button>; })}
+                <div className="gwb-menu-sub">🧰 Grammar jobs</div>
+                <button type="button" role="menuitem" onClick={() => startJob('delivery')}>🧩 Put the words in order<small>The word machines came mixed up. Line them up so the sentence makes sense.</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Fix the mistake<small>One capital letter or punctuation mark is wrong. Find it and fix it.</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('spark')}>⚡ Fix the broken sentence<small>It is missing a who or an action. Add the missing part.</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('order')}>📜 Build from a recipe card<small>The card lists who, what they did and when. Build a sentence with them.</small></button>
+                <button type="button" className={`gwb-menu-more${jobsMore ? ' on' : ''}`} onClick={() => setJobsMore((m) => !m)} aria-expanded={jobsMore}>{jobsMore ? '▾ Fewer jobs' : '▸ More jobs: games, science and paragraphs'}</button>
+                {jobsMore && <>
+                  <div className="gwb-menu-sub">🎮 Mini games</div>
+                  <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('homo'); }}>🎯 Homophone Sorter<small>their, there, they're and more</small></button>
+                  <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('trans'); }}>🚂 Transition Track<small>Couple sentences with the right transition</small></button>
+                  <div className="gwb-menu-sub">🔬 Science writing</div>
+                  {Object.entries(SCIENCE_JOBS).map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
+                  <div className="gwb-menu-sub">📐 Build a whole paragraph</div>
+                  {WORKBOARD_BLUEPRINTS.map((id) => { const fw = frameworkById.get(id)!; return <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{fw.icon} {fw.name}<small>{fw.teaches}</small></button>; })}
+                </>}
               </div>
             )}
           </div>}
@@ -1360,26 +1362,30 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             )}
           </div>
           <div className="gwb-menu-wrap">
-            <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
-          </div>
-          <div className="gwb-menu-wrap">
             <button type="button" className="gus-btn" onClick={() => { setTopMenu((o) => !o); setJobsOpen(false); setShelfOpen(false); setLiveOpen(false); }} aria-expanded={topMenu}>☰ Menu</button>
             {topMenu && (
-              <div className="gwb-top-menu" role="menu">
-                <button type="button" role="menuitem" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 Journal</button>
-                <button type="button" role="menuitem" onClick={() => { setCalm((c) => !c); setTopMenu(false); }}>🌙 {calm ? 'Calm mode is on' : 'Calm mode'}<small>Less moving, same sounds</small></button>
-                <button type="button" role="menuitem" onClick={() => { setMuted((m) => !m); setTopMenu(false); }}>{muted ? '🔇 Sound is off' : '🔊 Sound is on'}</button>
-                <button type="button" role="menuitem" onClick={() => { setReadAloud((v) => !v); setTopMenu(false); }}>🔈 {readAloud ? 'Reading words out loud' : 'Read words out loud'}<small>Each word you pick is read to you</small></button>
-                <button type="button" role="menuitem" onClick={() => { setSpaced((v) => !v); setTopMenu(false); }}>🔤 {spaced ? 'Wider spacing is on' : 'Wider letter spacing'}</button>
-                {live?.role !== 'guest' && <button type="button" role="menuitem" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear all</button>}
-                {focusLine && focusLine.items.some((i) => needsWord(i.kind) && i.word) && live?.role !== 'guest' && <>
-                  <div className="gwb-menu-sub">🎛 Remix the selected machine</div>
-                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'longer'); }}>➕ Make it longer</button>
-                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'shorter'); }}>➖ Make it shorter</button>
-                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'silly'); }}>🤪 Silly swap</button>
-                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'pronoun'); }}>🔁 Who → pronoun</button>
-                </>}
-                <button type="button" role="menuitem" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine</button>
+              <div className="gwb-sheet" role="dialog" aria-label="Menu">
+                <div className="gwb-sheet-head"><strong>☰ Menu</strong><button type="button" className="gus-btn" onClick={() => setTopMenu(false)}>✕ Close</button></div>
+                <div className="gwb-sheet-sec">
+                  <span className="gwb-sheet-label">My things</span>
+                  <button type="button" className="gwb-sheet-item" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 My Journal<small>Sentences and stories you saved</small></button>
+                  <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/library')}>📚 Library<small>Articles to read and answer</small></button>
+                  <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine<small>Gus's first sentence machine</small></button>
+                  {live?.role !== 'guest' && <button type="button" className="gwb-sheet-item" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear the board<small>Start over with a blank word space</small></button>}
+                </div>
+                <div className="gwb-sheet-sec">
+                  <span className="gwb-sheet-label">⚙️ Settings</span>
+                  {([
+                    ['🔊 Sound', 'Machine sounds and music', !muted, () => setMuted((m) => !m)],
+                    ['🔈 Read words out loud', 'Each word you pick is read to you', readAloud, () => setReadAloud((v) => !v)],
+                    ['🔤 Wider letter spacing', 'More room between letters and words', spaced, () => setSpaced((v) => !v)],
+                    ['🌙 Calm mode', 'Less moving, same sounds', calm, () => setCalm((c) => !c)],
+                  ] as const).map(([label, sub, on, flip]) => (
+                    <button key={label} type="button" role="switch" aria-checked={on} className={`gwb-switch${on ? ' on' : ''}`} onClick={() => { flip(); gusSound.part(on ? 1 : 4); }}>
+                      <span><strong>{label}</strong><small>{sub}</small></span><span className="gwb-switch-track" aria-hidden><i /></span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1437,7 +1443,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               const targetHere = drag && drag.kind !== 'line' && drag.target?.lineId === line.id ? drag.target.index : -1;
               const markX = targetHere >= 0 ? (() => { const s = itemSlots(line, g); return targetHere < s.length ? s[targetHere].x : lineRight(line, g); })() : 0;
               const marbleSlot = isFiring ? itemSlots(line, g)[firing!.idx] : undefined;
-              const inPara = (paras.find((p) => p.some((l) => l.id === line.id))?.length ?? 0) > 1;
               const marbleKind = marbleSlot?.item?.kind;
               return (
                 <div key={line.id} className={`gwb-line${selLine === line.id ? ' selected' : ''}${isFiring ? ' running' : ''}${snapped === line.id ? ' snapped' : ''}${drag?.kind === 'line' && drag.target === line.id ? ' join-target' : ''}`}>
@@ -1446,11 +1451,11 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   {line.job && (
                     <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 8 - (hasTop(line) ? ATT_H : 0) }}>
                       {line.job.done ? `✅ ${line.job.kind === 'blueprint' ? `${line.job.label} built!` : 'Job done!'}`
-                        : line.job.kind === 'delivery' ? '📦 Mixed-up Delivery: put the word machines in order.'
-                        : line.job.kind === 'inspector' ? `🔍 Punctuation Inspector: ${FLAW_HINTS[line.job.flaw as Flaw]}`
-                        : line.job.kind === 'spark' ? '⚡ Spark Check: this sentence is a dud. Is it missing a WHO or an ACTION?'
+                        : line.job.kind === 'delivery' ? '🧩 Put the words in order, then pull the lever.'
+                        : line.job.kind === 'inspector' ? `🔍 Fix the mistake: ${FLAW_HINTS[line.job.flaw as Flaw]}`
+                        : line.job.kind === 'spark' ? '⚡ Fix the broken sentence: is it missing a WHO or an ACTION?'
                         : line.job.kind === 'read' ? `📖 ${line.job.done ? 'Answered! ' : ''}${line.job.question ?? ''}`
-                        : line.job.kind === 'order' && line.job.card ? <>📜 Order: {line.job.card.who.emoji} {line.job.card.who.words} · {line.job.card.did}{line.job.card.obj ? ` · ${line.job.card.obj.emoji} ${line.job.card.obj.words}` : ''}{line.job.card.where ? ` · ${line.job.card.where.prep} ${line.job.card.where.emoji} ${line.job.card.where.words}` : ''}{line.job.card.how ? ` · ${line.job.card.how}` : ''} · ⏰ {line.job.card.time}</>
+                        : line.job.kind === 'order' && line.job.card ? <span className="gwb-recipe">📜 Recipe card: <b>Who</b> {line.job.card.who.emoji} {line.job.card.who.words} <b>Did</b> {line.job.card.did}{line.job.card.obj ? <> <b>What</b> {line.job.card.obj.emoji} {line.job.card.obj.words}</> : null}{line.job.card.where ? <> <b>Where</b> {line.job.card.where.prep} {line.job.card.where.emoji} {line.job.card.where.words}</> : null}{line.job.card.how ? <> <b>How</b> {line.job.card.how}</> : null} <b>When</b> {line.job.card.time}</span>
                         : `${bpInfo(line.job.blueprint)?.icon ?? '📐'} ${bpInfo(line.job.blueprint)?.name ?? 'Blueprint'} ${line.job.part} of ${line.job.of}: ${line.job.label}${line.job.text ? `  "${line.job.text}"` : ''}`}
                     </div>
                   )}
@@ -1570,17 +1575,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   })()}
                   {marbleSlot && <span className={`gwb-marble${marbleKind === 'spring' ? ' bounce' : ''}`} style={{ left: marbleSlot.x + marbleSlot.w / 2 - 10, top: line.y + (marbleKind === 'spring' || marbleKind === 'pulley' ? 10 : 54) }} aria-hidden />}
                   {targetHere >= 0 && <span className="gwb-insert" style={{ left: markX - 4, top: line.y + 30, height: ITEM_H - 40 }} aria-hidden />}
-                  {text && (
-                    <div className="gwb-caption" style={{ left: line.x + GRIP_W, top: line.y + ITEM_H + 6 + (hasBottom(line) || g.includes('NEED_CAP') ? ATT_H + 4 : 0) }}>
-                      <span className="gwb-caption-time">{TENSE_NAMES[tenseOf(line)]}</span>
-                      {inPara && <button type="button" className={`gwb-connector${line.connector ? ' set' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => setConnectorFor(connectorFor === line.id ? null : line.id)} aria-label={line.connector ? `Time word: ${line.connector}. Tap to change.` : 'Add a time word'}>{line.connector ? `${line.connector},` : '+ time word'}</button>}
-                      <span>{line.connector ? withConnector(line, text).slice(line.connector.length + 2) : text}</span>
-                      <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => speak(withConnector(line, text))} aria-label="Hear the sentence">🔈 Hear it</button>
-                      <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setSelLine(line.id); setClipMin(false); }} aria-label="Open Gus's Checklist">📋 Checklist</button>
-                      {line.stars === 3 && <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => savePara(line.id)}>📓 Save</button>}
-                      {line.stars != null && line.silly != null && <span className="gwb-silly" role="img" aria-label={`Silly-o-meter: ${line.silly} out of 5`}><span aria-hidden>{line.silly >= 4 ? '🤪' : line.silly >= 2 ? '😜' : '🙂'}</span><span className="gwb-silly-bar"><span style={{ width: `${line.silly * 20}%` }} /></span></span>}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -1605,7 +1599,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               </div>
             )}
           </div>
-          <div className="gwb-zoom" onPointerDown={(e) => e.stopPropagation()}>
+        </section>
+        <div className="gwb-toolbar">
+          <div className="gwb-zoom">
             <button type="button" className={`gus-btn gwb-undo${canUndo ? ' gus-btn-primary' : ''}`} onClick={undo} disabled={!canUndo}>↩ Undo</button>
             <button type="button" className="gus-btn" onClick={newMachine}>＋ New machine</button>
             <button type="button" className="gus-btn" onClick={() => zoomBtn(-0.2)} aria-label="Zoom out">− Out</button>
@@ -1613,9 +1609,42 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             <button type="button" className="gus-btn" onClick={() => zoomBtn(0.2)} aria-label="Zoom in">+ In</button>
             <button type="button" className="gus-btn" onClick={fitAll} aria-label="Fit everything">⤢ Fit</button>
           </div>
+        </div>
+        {/* The word processor (teacher 2026-10-07: "in the bottom have a word
+            processor view instead of a floating text box"): every machine's
+            sentence as a page of writing, paragraphs kept together. Tap a
+            sentence to jump to its machine. */}
+        <section className="gwb-doc" aria-label="My writing">
+          <div className="gwb-doc-bar">
+            <strong>📝 My writing</strong>
+            {focusLine && (() => {
+              const rd = readLine(focusLine, level, false);
+              const t = lineText(focusLine, rd, requireFinish || !!focusLine.job);
+              const inPara = (paras.find((p) => p.some((l) => l.id === focusLine.id))?.length ?? 0) > 1;
+              return <>
+                <span className="gwb-caption-time">{TENSE_NAMES[tenseOf(focusLine)]}</span>
+                {inPara && <button type="button" className={`gwb-connector${focusLine.connector ? ' set' : ''}`} onClick={() => setConnectorFor(focusLine.id)} aria-label={focusLine.connector ? `Transition word: ${focusLine.connector}. Tap to change.` : 'Add a transition word'}>{focusLine.connector ? `${focusLine.connector},` : '+ transition word'}</button>}
+                {t && <button type="button" className="gus-mini" onClick={() => speak(withConnector(focusLine, t))}>🔈 Hear it</button>}
+                {focusLine.stars === 3 && <button type="button" className="gus-mini" onClick={() => savePara(focusLine.id)}>📓 Save</button>}
+              </>;
+            })()}
+            {lines.some((l) => readLine(l, level, false).draft.tokens.some((x) => x.word)) && <button type="button" className="gus-mini" onClick={() => speak(paras.map((p) => p.map((l) => { const rd = readLine(l, level, false); const t = lineText(l, rd, requireFinish || !!l.job); return t ? withConnector(l, t) : ''; }).filter(Boolean).join(' ')).filter(Boolean).join(' '))}>🔈 Read it all</button>}
+          </div>
+          <div className="gwb-doc-page">
+            {(() => {
+              const out = paras.map((p, pi) => {
+                const sents = p.map((l) => { const rd = readLine(l, level, false); const t = lineText(l, rd, requireFinish || !!l.job); return t ? { l, t: withConnector(l, t) } : null; }).filter(Boolean) as { l: BoardLine; t: string }[];
+                if (!sents.length) return null;
+                return <p key={pi}>{sents.map(({ l, t }, k) => <span key={l.id}>{k > 0 ? ' ' : ''}<button type="button" className={`gwb-doc-sent${l.id === focusLine?.id ? ' on' : ''}${l.stars === 3 ? ' done' : ''}`} onClick={() => { setSelLine(l.id); setView((v) => ({ ...v, x: 40 - (l.x - 20) * v.z, y: 60 - (l.y - 60) * v.z })); }}>{t}</button></span>)}</p>;
+              }).filter(Boolean);
+              return out.length ? out : <p className="gwb-doc-empty">Your sentences show up here as you build them.</p>;
+            })()}
+          </div>
         </section>
         </div>
 
+        <div className={`gwb-side${clipMin ? ' check-min' : ''}`}>
+        {gusPanel}
         {(() => {
           const cLine = focusLine;
           const test = cLine ? tests[cLine.id] : undefined;
@@ -1663,23 +1692,17 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             </aside>
           );
         })()}
+        </div>
         <aside className={`gwb-drawer${drawerOpen ? ' open' : ''}`} aria-label="Parts menu">
           <button type="button" className="gwb-drawer-toggle" onClick={() => setDrawerOpen((o) => !o)} aria-expanded={drawerOpen} aria-label={drawerOpen ? 'Close the parts menu' : 'Open the parts menu'}>
             {drawerOpen ? '◀ Parts' : '▶'}
           </button>
-          {drawerOpen && (
-            <div className="gwb-sorts" role="group" aria-label="Sort parts">
-              {SORTS.map((s) => <button key={s.id} type="button" className={`gus-mini${sortBy === s.id ? ' on' : ''}`} onClick={() => setSortBy(s.id)} aria-pressed={sortBy === s.id}>{s.label}</button>)}
-            </div>
-          )}
           <div className="gwb-drawer-list">
-            {sortBy === 'job'
-              ? JOB_ORDER.filter((job) => (job !== 'contraption' && job !== 'gadget') || funOn).map((job) => drawerGroup(job, KINDS.filter((k) => k.job === job).map((k) => k.kind)))
-              : <>
-                  {sortedKinds.filter((k) => !isContraption(k.kind)).map((k) => drawerRow(k.kind))}
-                  {funOn && drawerGroup('contraption', sortedKinds.filter((k) => isContraption(k.kind) && !isTool(k.kind)).map((k) => k.kind))}
-                  {funOn && drawerGroup('gadget', sortedKinds.filter((k) => isTool(k.kind)).map((k) => k.kind))}
-                </>}
+            {favs.length > 0 && <div className="gwb-drawer-group gwb-favs">
+              {drawerOpen && <div className="gwb-drawer-title fav"><span>⭐ Favorites</span></div>}
+              {favs.filter((k) => KINDS.some((x) => x.kind === k)).map((k) => drawerRow(k, true))}
+            </div>}
+            {JOB_ORDER.filter((job) => (job !== 'contraption' && job !== 'gadget') || funOn).map((job) => drawerGroup(job, KINDS.filter((k) => k.job === job).map((k) => k.kind)))}
           </div>
         </aside>
       </main>
@@ -1825,12 +1848,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       )}
 
       {reading && <ImmersiveReader article={reading} calm={calm} onClose={() => setReading(null)} onAnswer={() => startRespond(reading)} />}
-      <GusGuide message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
-        {hintOffer && lines.some((l) => l.id === hintOffer) ? <>
-          <button type="button" className="gus-btn gus-btn-primary gwb-hint-btn" onClick={() => showHint(hintOffer)}>💡 Yes, a hint</button>
-          <button type="button" className="gus-btn" onClick={() => { setHintOffer(null); say('Okay, inventor! Keep tinkering. Pull the Start Lever when you are ready.', 'You got this'); }}>🔧 I'll keep trying</button>
-        </> : nextStep && <button type="button" className="gus-btn gwb-next-btn" onClick={doNext}>👉 Next: {nextStep.text}</button>}
-      </GusGuide>
     </div>
   );
 }
