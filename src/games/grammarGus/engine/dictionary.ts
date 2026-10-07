@@ -77,7 +77,9 @@ export type TypedCheck =
   | { kind: 'notfound' | 'offline' | 'blocked' };
 export const IRREGULAR_PLURAL: Record<string, string> = { child: 'children', mouse: 'mice', person: 'people', man: 'men', woman: 'women', foot: 'feet', tooth: 'teeth', goose: 'geese', ox: 'oxen', fish: 'fish', sheep: 'sheep', deer: 'deer' };
 const ingForms = (b: string) => [`${b}ing`, `${b.replace(/e$/, '')}ing`, `${b}${b.slice(-1)}ing`, b.endsWith('ie') ? `${b.slice(0, -2)}ying` : ''];
-const pluralOf = (b: string) => IRREGULAR_PLURAL[b] ?? (/(s|sh|ch|x|z)$/.test(b) ? `${b}es` : /[^aeiou]y$/.test(b) ? `${b.slice(0, -1)}ies` : `${b}s`);
+const F_VES: Record<string, string> = { leaf: 'leaves', wolf: 'wolves', knife: 'knives', life: 'lives', shelf: 'shelves', half: 'halves', loaf: 'loaves', calf: 'calves', elf: 'elves', thief: 'thieves', wife: 'wives', scarf: 'scarves' };
+const O_OES = new Set(['potato', 'tomato', 'hero', 'echo', 'volcano', 'mosquito', 'torpedo']);
+const pluralOf = (b: string) => IRREGULAR_PLURAL[b] ?? F_VES[b] ?? (O_OES.has(b) ? `${b}es` : /(s|sh|ch|x|z)$/.test(b) ? `${b}es` : /[^aeiou]y$/.test(b) ? `${b.slice(0, -1)}ies` : `${b}s`);
 // A typed word is a form of a base word only when the base really makes
 // that form: "walked" is walk's past, but "seed" is not see's past.
 function isFormOf(w: string, b: string, pos: DictPos): boolean {
@@ -111,7 +113,7 @@ export function regularPast(base: string): string {
 
 export function verbForms(base: string): { third: string; past: string } {
   const b = cleanWord(base);
-  const third = /(s|sh|ch|x|z|o)$/.test(b) ? `${b}es` : /[^aeiou]y$/.test(b) ? `${b.slice(0, -1)}ies` : `${b}s`;
+  const third = b === 'have' ? 'has' : /(s|sh|ch|x|z|o)$/.test(b) ? `${b}es` : /[^aeiou]y$/.test(b) ? `${b.slice(0, -1)}ies` : `${b}s`;
   let past = IRREGULAR_PAST[b];
   if (!past) {
     if (b.endsWith('e')) past = `${b}d`;
@@ -157,18 +159,23 @@ export function possessiveOf(word: string): string {
   return /s$/i.test(w) && !!nounByWord.get(w.toLowerCase())?.plural ? `${w}'` : `${w}'s`;
 }
 // The Size-Up Inflator: tall, taller (two things), tallest (three or more).
-const IRREG_COMPARE: Record<string, [string, string]> = { good: ['better', 'best'], bad: ['worse', 'worst'], far: ['farther', 'farthest'], little: ['smaller', 'smallest'] };
+const IRREG_COMPARE: Record<string, [string, string]> = { good: ['better', 'best'], bad: ['worse', 'worst'], far: ['farther', 'farthest'], little: ['littler', 'littlest'] };
+// Words that do not come in sizes (Claudia's audit), and words that compare
+// only with more and most.
+const NO_SIZES = new Set(['striped', 'spotted', 'cosmic', 'wooden', 'golden', 'plastic', 'metal', 'dead', 'alive', 'square', 'round', 'empty', 'full']);
+const MORE_ONLY = new Set(['purple', 'orange', 'silver', 'famous', 'spotted', 'polite', 'brave']);
+export const canCompare = (word: string) => !NO_SIZES.has(cleanWord(word));
 export function compareOf(word: string, d: 'er' | 'est'): string {
   const w = cleanWord(word);
   const e = adjByWord.get(w);
   let out: string;
   if (IRREG_COMPARE[w]) out = IRREG_COMPARE[w][d === 'er' ? 0 : 1];
-  else if (w.length > 7 || /(ful|ous|ing|ed|ive|ish)$/.test(w)) out = `${d === 'er' ? 'more' : 'most'} ${w}`;
+  else if (MORE_ONLY.has(w) || w.length > 7 || /(ful|ous|ing|ive|ish)$/.test(w) || (w.length > 4 && w.endsWith('ed'))) out = `${d === 'er' ? 'more' : 'most'} ${w}`;
   else if (w.endsWith('e')) out = `${w}${d === 'er' ? 'r' : 'st'}`;
   else if (/[^aeiou]y$/.test(w)) out = `${w.slice(0, -1)}${d === 'er' ? 'ier' : 'iest'}`;
   else if (/^[^aeiou]*[aeiou][^aeiouwxy]$/.test(w)) out = `${w}${w.slice(-1)}${d}`;
   else out = `${w}${d}`;
-  if (e && !adjByWord.has(out)) adjByWord.set(out, { ...e, word: out });
+  if (e && !adjByWord.has(out)) adjByWord.set(out, { ...e, word: out, degree: d });
   return out;
 }
 

@@ -5348,3 +5348,9 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-job { white-space: normal; max-width: max(520px, calc(520px / var(--z, 1))); }
 .gwb-job { transform: translateY(-100%); }
 .gwb-job { width: max-content; }
+/* Claudia's audit fixes: bigger hit areas for snapped parts, readable contrast, no flashing */
+.gwb-attach::after { content: ''; position: absolute; inset: max(-12px, calc(-12px / var(--z, 1))); }
+.gwb-bin-btn { background: #4f5d78; }
+.gwb-grip { background: #5d6a82; }
+.gwb-line.selected .gwb-grip { background: #f3cf6b; }
+.gwb-item.firing .gwb-blink { animation: none; }

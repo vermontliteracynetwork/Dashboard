@@ -19,7 +19,7 @@ export const CODE_NAMES: Record<string, string> = {
   A_AN: 'a / an', A_WITH_PLURAL: '"a" with a plural noun', ADJ_ORDER: 'Order of adjectives', ADV_NO_VERB: 'Adverb with no verb',
   PREP_INCOMPLETE: 'Unfinished prepositional phrase', CONJ_UNBALANCED: 'Conjunction joins unlike parts', HALF_INCOMPLETE: 'Half of a compound sentence is incomplete',
   NO_COMMA: 'Comma', PRONOUN_NO_REFERENT: 'Pronoun with no referent', TENSE_SHIFT: 'Tense shift', NO_JOIN: 'Two verbs with no join word',
-  EXTRA_OBJECT: 'Object after an intransitive verb', EMPTY_SOCKET: 'Empty part', BAD_SHAPE: 'Word order', PRONOUN_CASE: 'Pronoun case (he / him)',
+  EXTRA_OBJECT: 'Object after an intransitive verb', EMPTY_SOCKET: 'Empty part', BAD_SHAPE: 'Word order', PRONOUN_CASE: 'Pronoun case (he / him)', EXTRA_COMMA: 'Extra comma', EXTRA_CAPITAL: 'Extra capital letter', SUPERLATIVE_THE: '"the" with a superlative (-est)',
   SELF_ACTION: 'Subject acts on itself', SELF_PLACE: 'Something placed by itself', CONTRADICTORY_DESCRIBERS: 'Adjectives that contradict',
   CONTRADICTORY_HOW: 'Adverbs that contradict', TENSE_MIX: 'Mixed times', AMBIGUOUS_REFERENCE: 'Unclear "the" reference',
   SAME_THING_TWICE: 'Same thing named twice', EAT_NOT_FOOD: 'Eats something that is not food', DRINK_NOT_DRINKABLE: 'Drinks something not drinkable',

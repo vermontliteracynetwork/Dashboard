@@ -32,7 +32,9 @@ export type Violation =
   // object"). Recorded in the dev plan.
   | 'NO_JOIN' | 'EXTRA_OBJECT' | 'EMPTY_SOCKET' | 'BAD_SHAPE'
   // Workboard round 6 (2026-10-07): he / him, I / me in the wrong place.
-  | 'PRONOUN_CASE';
+  | 'PRONOUN_CASE'
+  // Claudia's audit (2026-10-07): extra commas and capital letters, and "the" with -est words.
+  | 'EXTRA_COMMA' | 'EXTRA_CAPITAL' | 'SUPERLATIVE_THE';
 
 export interface ViolationHit { code: Violation; targets: number[]; insertAt?: number; blocking: boolean }
 

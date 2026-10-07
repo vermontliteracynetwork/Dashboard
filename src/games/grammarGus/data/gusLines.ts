@@ -14,6 +14,15 @@ import type { RubricCode, Violation } from '../engine/types';
 type Line = { joke: string; fix: string };
 
 export const GATE_LINES: Partial<Record<Violation, Line[]>> = {
+  EXTRA_COMMA: [
+    { joke: 'A comma in the middle of nowhere! My machine paused for no reason.', fix: 'Take off the extra comma. Commas go after an opener, between list items, or before and, but, or, so joining two whole ideas.' },
+  ],
+  EXTRA_CAPITAL: [
+    { joke: 'A capital letter in the middle? That word is not a name!', fix: 'Capital letters go on the first word, on names, and on I. Take the extra one off.' },
+  ],
+  SUPERLATIVE_THE: [
+    { joke: '"A tallest cat"? There can only be ONE tallest!', fix: 'Words ending in -est (the most of all) take "the": the tallest cat.' },
+  ],
   PRONOUN_CASE: [
     { joke: '"Him jumped"? My turnstile just spun in a circle and bonked itself.', fix: 'A doer pronoun goes first: I, he, she, we, they. After the action: me, him, her, us, them.' },
     { joke: 'Right pronoun, wrong door. Very confusing for the pronoun.', fix: 'Swap it: he or him, she or her, I or me. A Subject and Object Turnstile can do it for you.' },

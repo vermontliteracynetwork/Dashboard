@@ -42,7 +42,10 @@ const isName: Test = (w) => !!nounByWord.get(w)?.proper;
 const possBase = (w: string) => (w.endsWith("'s") ? w.slice(0, -2) : w.endsWith("'") ? w.slice(0, -1) : null);
 const isPoss: Test = (w) => { const b = possBase(w); return !!b && nounByWord.has(b); };
 // Joining words that make one idea depend on the other (Because Seesaw).
-export const SUBORD = ['because', 'so', 'when', 'after', 'before', 'while'];
+// (Claudia's audit: "so" joins two whole ideas like and/but, with a comma.)
+export const SUBORD = ['because', 'when', 'after', 'before', 'while'];
+// Joining words for two whole ideas: they take a comma before them.
+export const COORD = ['and', 'but', 'or', 'so', 'yet', 'for'];
 export const OBJECT_PRONOUNS = ['me', 'him', 'her', 'us', 'them', 'you', 'it'];
 const isObjPron: Test = (w) => OBJECT_PRONOUNS.includes(w);
 const isSubjPron: Test = (w) => subjectPronounSet.has(w);
@@ -88,7 +91,7 @@ function build() {
     opt(term('I', 'shout', isInterj)),
     opt(term('D', 'c1.open', isAdv)),
     clause('c1'),
-    opt(seq(term('C', 'clauseconj', (w) => (CONJ_POOLS.clause as readonly string[]).includes(w) || SUBORD.includes(w)), opt(term('D', 'c2.open', isAdv)), clause('c2'))),
+    opt(seq(term('C', 'clauseconj', (w) => (CONJ_POOLS.clause as readonly string[]).includes(w) || COORD.includes(w) || SUBORD.includes(w)), opt(term('D', 'c2.open', isAdv)), clause('c2'))),
   );
   return { edges: b.edges, start: sentence.s, accept: sentence.e };
 }

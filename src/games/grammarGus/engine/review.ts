@@ -2,7 +2,7 @@ import type { Draft, Tense } from './types';
 import type { Run } from './pipeline';
 import type { Kind } from '../ui/board/parts';
 import { RUBRIC_LINES, lineFor } from '../data/gusLines';
-import { verbByBase } from '../data/wordbank';
+import { nounByWord, verbByBase } from '../data/wordbank';
 import { verbText } from './conjugate';
 
 // Gus's review of a sentence (teacher 2026-10-07: "grammar gus should
@@ -38,29 +38,37 @@ export function reviewSentence(draft: Draft, run: Run, round = 0, distractors: s
     { label: 'Variety', level: Math.min(3, variety) as ScoreRow['level'], note: variety ? 'Nice sentence shape!' : 'Try a new shape: an opener, a team of two, or two ideas joined.' },
   ];
   // Ways to grow the sentence, each with the part that does it.
-  const subj = word(cl?.subj[0]?.noun) || word(cl?.subjPron) || 'it';
+  const raw = word(cl?.subj[0]?.noun) || word(cl?.subjPron) || 'it';
+  const isName = !!nounByWord.get(raw.toLowerCase())?.proper;
+  const isPron = cl?.subjPron !== undefined;
+  // "the cat", "Mia", "she": names and pronouns take no "the" (Claudia's audit).
+  const subj = isName ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase() : raw.toLowerCase();
+  const theSubj = isName || isPron ? subj : `the ${subj}`;
   const verb = word(cl?.verbs[0]);
+  const hasObj = !!cl?.obj || cl?.objPron !== undefined;
   const tips: Tip[] = [];
-  if (!has('J') && cl?.subj[0]?.noun !== undefined) tips.push({ text: `Describe the ${subj}: snap a Spring Mat or Adjective in front of it (fuzzy, giant, silly).`, kind: 'spring' });
-  if (!has('D') && verb) tips.push({ text: `Tell how they ${verb}: add a Fan or Adverb (quickly, loudly).`, kind: 'fan' });
-  if (!has('P')) tips.push({ text: 'Tell where it happens: a Ramp or Preposition, then a noun (on the moon, under the bed).', kind: 'ramp' });
+  if (!has('J') && cl?.subj[0]?.noun !== undefined && !isName) tips.push({ text: `Describe the ${subj}: snap a Spring Mat or Adjective in front of it (fuzzy, giant, silly).`, kind: 'spring' });
+  if (!has('D') && verb && !hasObj) tips.push({ text: `Tell how: add a Fan or Adverb after "${verb}" (quickly, loudly).`, kind: 'fan' });
+  if (!has('P') && !hasObj) tips.push({ text: 'Tell where it happens: a Ramp or Preposition, then a noun (on the moon, under the bed).', kind: 'ramp' });
   if (a.clauses.length < 2) tips.push({ text: 'Add a second idea: a Comma Drawbridge, a Conveyor Belt (and, but), then another who and action.', kind: 'bridge' });
   if (cl?.open === undefined && a.shout === undefined) tips.push({ text: 'Start with a bang: an Opener Slingshot (Quickly,) or a Time Tunnel (Long ago,).', kind: 'slingshot' });
-  if ((cl?.subj.length ?? 0) < 2 && cl?.subjPron === undefined) tips.push({ text: `Make a team: a Merge Funnel and another noun ("the ${subj} and the dog").`, kind: 'funnel' });
+  if ((cl?.subj.length ?? 0) < 2 && !isPron) tips.push({ text: `Make a team: a Merge Funnel and another noun ("${theSubj} and the dog").`, kind: 'funnel' });
   // One quick question, a different kind each run.
   let quiz: Quiz | null = null;
   if (ok && t.length) {
-    const nouns = t.filter((x) => (x.pos === 'N' || x.pos === 'R') && x.word).map((x) => x.word!.toLowerCase());
+    const nameCase = (w: string) => (nounByWord.get(w.toLowerCase())?.proper ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase());
+    const nouns = t.filter((x) => (x.pos === 'N' || x.pos === 'R') && x.word).map((x) => nameCase(x.word!));
     const verbs = t.filter((x) => x.pos === 'V' && x.word).map((x) => x.word!);
     const kinds = ['who', 'did', 'when', ...(cl?.preps.length ? ['where'] : [])];
     const k = kinds[round % kinds.length];
     const shuffle = (xs: string[]) => [...new Set(xs)].sort((x, y) => ((x.length * 7 + round) % 5) - ((y.length * 7 + round) % 5));
     const pad = (right: string, others: string[]) => shuffle([right, ...others.filter((x) => x !== right), ...distractors.filter((x) => x !== right)].slice(0, 3));
-    if (k === 'who' && subj) quiz = { q: 'Who or what is this sentence about?', choices: pad(subj.toLowerCase(), nouns), answer: subj.toLowerCase(), why: `It is about the ${subj}: that is the who (the subject).` };
+    if (k === 'who' && subj) quiz = { q: 'Who or what is this sentence about?', choices: pad(nameCase(subj), nouns), answer: nameCase(subj), why: `It is about ${theSubj}: that is the who (the subject).` };
     else if (k === 'did' && verb) {
       const v = verbByBase.get(verb.toLowerCase());
       const shown = (w: string) => { const e = verbByBase.get(w.toLowerCase()); return e ? verbText(e, draft.tense === 'past' ? 'past' : draft.tense === 'future' ? 'future' : 'base') : w; };
-      quiz = { q: `What did the ${subj} do?`, choices: pad(shown(verb), [...verbs.map(shown), ...['sleep', 'sing', 'dance'].map(shown)]), answer: shown(verb), why: `"${v ? shown(verb) : verb}" is the action (the verb).` };
+      const helper = draft.tense === 'past' ? 'did' : draft.tense === 'future' ? 'will' : 'does';
+      quiz = { q: draft.tense === 'future' ? `What will ${theSubj} do?` : `What ${helper} ${theSubj} do?`, choices: pad(shown(verb), [...verbs.map(shown), ...['sleep', 'sing', 'dance'].map(shown)]), answer: shown(verb), why: `"${v ? shown(verb) : verb}" is the action (the verb).` };
     } else if (k === 'when') quiz = { q: 'When does this happen?', choices: ['in the past', 'in the present', 'in the future'], answer: TIME_Q[draft.tense], why: `The action word tells the time: ${TIME_Q[draft.tense]}.` };
     else if (k === 'where' && cl?.pp?.noun !== undefined) { const place = word(cl.pp.noun).toLowerCase(); quiz = { q: 'Where does it happen?', choices: pad(`${word(cl.preps[0])} the ${place}`, nouns.filter((x) => x !== place).map((x) => `${word(cl.preps[0])} the ${x}`)), answer: `${word(cl.preps[0])} the ${place}`, why: 'The where words (preposition and its noun) tell the place.' }; }
     if (quiz && quiz.choices.length < 2) quiz = null;

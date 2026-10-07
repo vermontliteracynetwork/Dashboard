@@ -722,6 +722,83 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Claudia's full audit, the fixes, and her writing scaffold plan. SHIPPED 2026-10-07 (teacher: "claudia should evaluate and audit all features ... then ... scaffold them in a fun gamified way")
+
+**The report:** `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md` and its PDF. It has three parts: the audit, the gap analysis with its research base, and 16 scaffolded machines with a build order.
+
+**Fixed from the audit (academic accuracy, the MUST FIX list):**
+- **Comma before a joining word:** a comma is required before and, but, or, so and yet when they join two whole ideas ("The cat runs, and the dog jumps."; L.4.2.c). An extra comma before a team of two is caught.
+- **Conjunctions:** "so" is now taught as a joining word for two ideas, with a comma. "so" and "yet" were added to the Conveyor's list, and "for" was removed. The Because Seesaw holds because, when, after, before and while.
+- **Extra commas and capital letters** are caught: new codes EXTRA_COMMA and EXTRA_CAPITAL, new checklist rows "No extra commas" and "Capital letters only where they belong", and new kind Gus lines.
+- **Superlatives take "the"** ("the biggest cat"; new code SUPERLATIVE_THE).
+- **Comparing words:** red becomes redder. Purple and orange use more and most. Striped, wooden, cosmic and similar words do not come in sizes (new problem NO_SIZES).
+- **Plurals and "have":** wolves, leaves, knives, potatoes, heroes; has.
+- **The Question Crane** refuses a sentence with an opener.
+- The classic pattern 16 sentence and its movie captions now include the correct comma.
+
+**Fixed from the audit (function, design and gamification):**
+- **Fade ladder:** the A/An Sniffer, Agreement Gears, Describe Sorter, Pronoun Turnstile, Teleporter and Cannon fix the mistake at Full help. At Guided they light up the machine and name the rule. At Challenge they say only "one thing is off".
+- Tapping a comma snaps it on top of the word before the joining word.
+- Snapping onto a taken spot sends the old part to the Spare Parts Bin, with a message.
+- Gears pay once per sentence, not per lever pull.
+- Combos check the real grammar: Plural Pileup needs a plural noun, and Name Parade needs a name in a list of three.
+- **Gus's review:** names get capital letters, names and pronouns get no "the", the question matches the time ("What does / did / will..."), and tips appear only when they can be built.
+- Time words keep names capitalized ("Then, Mia ran.").
+- Teleporter and Cannon use "they" for a team of two. The Cannon uses him, her or them after the action.
+- Read-aloud honors the sound switch.
+- Setup problems (a missing TV, capital letter part or punctuation part) no longer count as failed grammar attempts in teacher reports.
+- **Overlaps:** the "Capital letter?" helper pushes the sentence plate down, and the COMBO banner sits above snapped parts and job badges.
+- Snapped-on parts have a 44px-plus tap area at any zoom.
+- 🌙 Calm is back on the top bar and is remembered.
+- Darker bin and grip for contrast. No blinking beacon or flickering screen.
+- "now" removed from the Toaster label and two Gus lines.
+- The Slot Machine is renamed the **Word Shuffler** ("🔀 Shuffle!", neutral sound), so it never feels like a casino.
+- Tests: 4 new, plus updated gadget tests for the fade ladder. Full Gus suite: 292 passing.
+
+**Still open from the audit (queued):**
+- Hard words in the everyday word lists (move them to an off-by-default pack).
+- Sub-folds for the 40 fun parts.
+- Tiny labels inside the drawings.
+- Undo for the Spare Parts Bin.
+- Reflexive pronoun agreement.
+- The teacher's choice on "they" for one person.
+- Interjection commas.
+- Pronouns after where words.
+- A "because" idea at the front of the sentence.
+- Board sync to the teacher's account.
+
+### Grammar Gus: backlog, Claudia's scaffolded writing machines (from her 2026-10-07 plan). QUEUED
+
+These come from `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md`, Part 3. Every one has sound, motion, a TV payoff, the Full / Guided / Challenge fade, and an iPad check.
+
+**Phase 1 (current engine):**
+- the fade ladder on the Capital Letter Press, punctuation parts and Comma List Train
+- Logic Gate (because / but / so, and a joining idea first with its comma)
+- Equals Sign Machine (linking verbs)
+- Expansion Rig (where phrases after an object, pronouns after where words)
+- Spark Check fragment detector
+- Homophone Sorter
+- Hypothesis Engine
+- Procedure Conveyor
+- Transition Track
+
+**Phase 2 (small engine additions):**
+- run-on detection and the fix mini-game
+- Appositive Clamp
+- Fusion Reactor (sentence combining)
+- Revision Workshop (ARMS: add, remove, move, substitute)
+- CER Lab Report
+- Label and Unit Maker
+- Gus's Paint Shop: a gear sink for paint, decals and factory floors, never hints
+
+**Phase 3 (later):**
+- Showcase Wall (teacher-approved, no counts or rankings)
+- relative clauses, progressive and perfect tenses, modals, titles, dialogue paragraphs
+- opinion-writing machines
+- seasonal Paint Shop floors
+
+**Status:** none started. Waiting for the teacher to pick a starting point, or start Phase 1 in order.
+
 ### Grammar Gus: finishing the plan, round 10 (Orders, Blueprints and Remix move onto the Workboard). SHIPPED 2026-10-07
 
 - **📜 Gus's Order** (🧰 Jobs): Gus delivers a machine with a Start Lever, Clock, blank space and TV, plus an order card that shows the scene as pictures and words, never the sentence. Example: "📜 Order: ✈️ great plane · sing · 🪟 fancy window · ⏰ Past".
@@ -764,7 +841,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 1. Round 8: LATER parts. **Shipped (this entry).**
 2. Round 9: Claudia's round 4 game ideas, Spare Parts Bin, read-aloud for each word, and focus back to the machine. **Shipped (entry above).**
 3. Round 10: Orders, Blueprints and Remix onto the Workboard. **Shipped (entry above).**
-4. Claudia's full audit (design, function, gamification, academic accuracy), then her gap analysis and a research-based writing and grammar scaffold plan for science-loving machine builders, as a PDF. **In progress.**
+4. Claudia's full audit (design, function, gamification, academic accuracy), then her gap analysis and a research-based writing and grammar scaffold plan for science-loving machine builders, as a PDF. **Done (entry above); her new machines are in the backlog entry below it.**
 5. Golden Gear Contest still waits on her decision about the $5 prize. **Blocked on the teacher.**
 
 **What shipped:**
@@ -2831,6 +2908,8 @@ Preserved close to verbatim so intent isn't lost in summarization. Status notes 
 ---
 
 ## PARKING LOT — Historical Chat Requests Audited, Not Yet Built
+
+- **Compare and Contrast Balance** (Grammar Gus, Claudia's scaffold plan 2026-10-07, Tier C): a scale where "both" and "unlike" words weigh each side. Parked until the Phase 1 and 2 writing machines prove out.
 
 Per the standing Intake Protocol (`.claude/agents/claudia.md`): no teacher input should go undeveloped or get lost. This section is the first real pass at it — extracted from a full-session chat digest (471 of the teacher's own messages across this project's history), grep'd for request-signal phrasing, then each candidate individually verified against the current codebase before listing here (most historical requests, it turns out, have already been built somewhere along the way and are correctly NOT listed below — verified, not assumed). Genuinely still-open items, each concrete enough to build directly when picked up:
 

@@ -72,13 +72,13 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   crane: { tool: true, pop: 'CREAK... SWING!', does: 'Lifts a helper word to the front to ask a question', grammar: 'yes or no questions (do, does, did, will)' },
   taggun: { mark: 'poss', pop: 'THWIP! TAG!', does: "Snaps under a noun and tags what it owns: the dog's bone", grammar: 'possessive nouns' },
   inflator: { mark: 'size', preset: 'est', pop: 'PUMP PUMP!', does: 'Snaps under a describing word: tall, taller, tallest', grammar: 'comparing describing words' },
-  seesaw: { pos: 'C', words: SUBORD, pop: 'TIP... TAP!', does: 'Tips a reason onto a result: because, so, when', grammar: 'joining a reason and a result' },
+  seesaw: { pos: 'C', words: SUBORD, pop: 'TIP... TAP!', does: 'Hangs one idea on another: because, when, after, before, while', grammar: 'joining words for an idea that depends on another' },
   bubble: { tool: true, preset: 'Mia', words: ['Mia', 'Leo', 'Gus', 'Ava', 'the robot', 'the teacher', 'the cat'], pop: 'BLUB BLUB!', does: 'Puts the sentence in a speech bubble with quotation marks', grammar: 'quotation marks and dialogue' },
   crate: { pos: 'J', pop: 'POP! SURPRISE!', does: 'A describing word in a box: leave it empty for a surprise', grammar: 'adjectives' },
   megaphone: { pos: 'D', pop: 'ECHO... echo...', does: 'Shouts how the action happens, again and again', grammar: 'adverbs answer how' },
   toaster: { tool: true, pop: 'DING! TOAST!', does: 'Toasts the action word in all three times', grammar: 'past, present and future verb forms' },
-  cannon: { pos: 'R', words: ['he', 'she', 'it', 'they'], pop: 'BOOM!', does: 'Fires the right pronoun at the noun from the sentence before', grammar: 'pronoun and noun agreement' },
-  slots: { tool: true, pop: 'KA-CHING!', does: 'Spins new words into every unlocked machine', grammar: 'parts of speech stay in their spots' },
+  cannon: { pos: 'R', words: ['he', 'she', 'it', 'they', 'him', 'her', 'them'], pop: 'BOOM!', does: 'Fires the right pronoun at the noun from the sentence before', grammar: 'pronoun and noun agreement' },
+  slots: { tool: true, pop: 'SHUFFLE!', does: 'Shuffles new words into every unlocked machine', grammar: 'parts of speech stay in their spots' },
   flag: { tool: true, pop: 'FINISH!', does: 'Waves when the sentence starts and ends right', grammar: 'capital letter and end punctuation' },
 };
 // Parts that snap on above or below a word machine (teacher 2026-10-07:
@@ -164,7 +164,7 @@ export const KINDS: KindInfo[] = [
   X('megaphone', 'Echo Megaphone', '#e8483b'),
   X('toaster', 'Time Warp Toaster', '#c8ced8'),
   X('cannon', 'Pronoun Cannon', '#3c455e'),
-  X('slots', 'Slot Machine', '#e6b54a'),
+  X('slots', 'Word Shuffler', '#e6b54a'),
 ];
 export const kindInfo = (k: Kind): KindInfo => KINDS.find((x) => x.kind === k) ?? { kind: 'blank', name: 'Blank word space', machine: 'Empty space', hint: 'Drag a machine part onto it', color: '#ffffff', job: 'power' };
 export const JOB_TITLES: Record<Job, string> = { power: 'START and TV', time: 'TIME', paragraph: 'PARAGRAPH', shout: 'INTERJECTION', who: 'WHO parts', did: 'DID parts', where: 'WHERE parts', join: 'JOIN parts', finish: 'CAPITAL LETTER and PUNCTUATION', contraption: 'FUN PARTS', gadget: 'HELPER GADGETS' };

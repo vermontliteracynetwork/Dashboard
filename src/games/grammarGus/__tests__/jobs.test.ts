@@ -25,7 +25,7 @@ describe("Gus's Jobs", { timeout: 60000 }, () => {
       expect(r.problems.length).toBe(job.flaw === 'end-middle' ? 2 : 1);
       for (const p of r.problems) expect(['NEED_END', 'END_NOT_LAST', 'NEED_CAP']).toContain(p.code);
       expect(job.flaw).toBeTruthy();
-      expect(runSentence(r.draft).rubric?.stars).toBe(3);
+      expect(runSentence({ ...r.draft, marks: undefined }).rubric?.stars).toBe(3); // the words themselves are a 3-star sentence
     }
   });
 });

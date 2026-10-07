@@ -37,7 +37,7 @@ const DEFS: Def[] = [
   { id: 'case', group: 'match', label: 'Pronouns in the right place', grownUp: 'pronoun case', hint: 'First: I, he, she, we, they. After the action: me, him, her, us, them.', codes: ['PRONOUN_CASE'], applies: (c) => c.has('R') },
   { id: 'time', group: 'match', label: 'The verb matches the time', grownUp: 'tense', hint: 'Use a verb for the time on the crank.', codes: ['TENSE'],
     applies: (c) => c.has('V'), studentDoes: ['guided', 'challenge'], requiredAt: ['challenge'] },
-  { id: 'aan', group: 'describe', label: 'a or an sounds right', grownUp: 'a / an', hint: 'Listen to the next word.', codes: ['A_AN', 'A_WITH_PLURAL'],
+  { id: 'aan', group: 'describe', label: 'a or an sounds right', grownUp: 'a / an', hint: 'Listen to the next word.', codes: ['A_AN', 'A_WITH_PLURAL', 'SUPERLATIVE_THE'],
     applies: (c) => c.draft.tokens.some((t) => t.pos === 'A' && t.word && t.word.toLowerCase() !== 'the'), studentDoes: ['challenge'] },
   { id: 'order', group: 'describe', label: 'Describing words in order', grownUp: 'order of adjectives', hint: 'Feeling, then size, then age, then color.', codes: ['ADJ_ORDER'],
     applies: (c) => c.draft.tokens.some((t, i) => t.pos === 'J' && c.draft.tokens[i + 1]?.pos === 'J'), studentDoes: ['guided', 'challenge'] },
@@ -49,7 +49,9 @@ const DEFS: Def[] = [
     applies: (c) => c.v.analysis.clauseConj !== undefined || c.v.violations.some((x) => x.code === 'HALF_INCOMPLETE') },
   { id: 'capital', group: 'finish', label: 'Starts with a capital letter', grownUp: 'capital letter', hint: 'Use the Capital Letter Press on the first word.', codes: ['NO_CAPITAL'], applies: () => true, studentDoes: ['guided', 'challenge'] },
   { id: 'shout', group: 'finish', label: 'The shout has its own !', grownUp: 'interjection mark', hint: 'A shout word gets an exclamation mark.', codes: ['NO_SHOUT_MARK'], applies: (c) => c.has('I'), studentDoes: ['challenge'] },
-  { id: 'comma', group: 'finish', label: 'A comma is where it belongs', grownUp: 'comma', hint: 'Put a comma after the opening HOW word.', codes: ['NO_COMMA'], applies: (c) => requiredCommas(c.v.analysis).length > 0, studentDoes: ['challenge'] },
+  { id: 'comma', group: 'finish', label: 'A comma is where it belongs', grownUp: 'comma', hint: 'Put a comma after the opening HOW word.', codes: ['NO_COMMA'], applies: (c) => requiredCommas(c.v.analysis, c.draft.tokens).length > 0, studentDoes: ['challenge'] },
+  { id: 'extracomma', group: 'finish', label: 'No extra commas', grownUp: 'comma use', hint: 'A comma only goes after an opener, between list items, or before and, but, or, so joining two whole ideas.', codes: ['EXTRA_COMMA'], applies: (c) => (c.draft.marks?.commas.length ?? 0) > 0 },
+  { id: 'extracap', group: 'finish', label: 'Capital letters only where they belong', grownUp: 'capitalization', hint: 'Capital letters go on the first word, names, and I.', codes: ['EXTRA_CAPITAL'], applies: (c) => (c.draft.marks?.capitals.length ?? 0) > 1 },
   { id: 'end', group: 'finish', label: 'Ends with punctuation', grownUp: 'end punctuation', hint: 'Add punctuation at the end: . or !', codes: ['NO_END_MARK'], applies: () => true, studentDoes: ['guided', 'challenge'] },
 ];
 

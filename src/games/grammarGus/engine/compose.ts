@@ -1,6 +1,6 @@
 import type { Draft, Marks, Token, VerbForm } from './types';
 import { analyze, subjectIsPlural, type Analysis } from './analyze';
-import { normWord } from './grammar';
+import { COORD, normWord } from './grammar';
 import { articleFor, formFor, verbText } from './conjugate';
 import { ADJ_RANK, adjByWord, nounByWord, verbByBase } from '../data/wordbank';
 
@@ -12,6 +12,7 @@ import { ADJ_RANK, adjByWord, nounByWord, verbByBase } from '../data/wordbank';
 export interface Word { text: string; index: number; pos: Token['pos'] }
 export interface Composed { words: Word[]; text: string; analysis: Analysis }
 
+export const isSuperlative = (w: string | null | undefined) => !!w && adjByWord.get(w.toLowerCase())?.degree === 'est';
 export const adjRank = (w: string) => ADJ_RANK[adjByWord.get(w.toLowerCase())?.kind ?? 'feeling'];
 
 // The verb form the time crank and subject call for.
@@ -27,12 +28,15 @@ export function expectedForms(draft: Draft, a: Analysis = analyze(draft.tokens))
 // Where commas belong (plan section 12): after an opening HOW word at the
 // start, and before a clause joining word when the second half starts with
 // a HOW word (pattern 19). No other commas in v1.
-export function requiredCommas(a: Analysis): number[] {
+// Claudia's audit (L.4.2.c): a comma also goes before and, but, or, so and
+// yet when they join two whole ideas.
+export function requiredCommas(a: Analysis, tokens: Token[] = []): number[] {
   const out: number[] = [];
   const c1 = a.clauses[0];
   if (c1?.open !== undefined) out.push(c1.open);
   const c2 = a.clauses[1];
-  if (c2?.open !== undefined && a.clauseConj !== undefined) out.push(a.clauseConj - 1);
+  const cw = a.clauseConj !== undefined ? (tokens[a.clauseConj]?.word ?? '').toLowerCase() : '';
+  if (c2 && a.clauseConj !== undefined && (c2.open !== undefined || COORD.includes(cw))) out.push(a.clauseConj - 1);
   // A list of three: a comma after each item before "and" (Comma List Train).
   for (const cl of a.clauses) if (cl.subj.length === 3) for (const np of cl.subj.slice(0, 2)) { const last = np.noun ?? Math.max(np.art ?? -1, ...np.adjs); if (last >= 0) out.push(last); }
   return out;
@@ -54,7 +58,7 @@ export const defaultEndMark = (a: Analysis): '.' | '!' => (a.shout === 0 ? '!' :
 // The marks a student would place to finish the sentence correctly
 // (used by Full help, the generator and tests).
 export function autoMarks(draft: Draft, a: Analysis = analyze(draft.tokens)): Marks {
-  return { capitals: requiredCapitals(draft.tokens, a, true), endMark: defaultEndMark(a), shoutMark: a.shout !== undefined, commas: requiredCommas(a) };
+  return { capitals: requiredCapitals(draft.tokens, a, true), endMark: defaultEndMark(a), shoutMark: a.shout !== undefined, commas: requiredCommas(a, draft.tokens) };
 }
 export function autoForms(draft: Draft): Token[] {
   const forms = expectedForms(draft);
@@ -74,7 +78,8 @@ export function autoFixWords(tokens: Token[], a: Analysis): Token[] {
     }
     if (np.art !== undefined && out[np.art].word && out[np.art].word!.toLowerCase() !== 'the') {
       const noun = np.noun !== undefined ? nounByWord.get((out[np.noun].word ?? '').toLowerCase()) : undefined;
-      if (noun?.plural || noun?.noA) out[np.art].word = 'the';
+      // "the" with more than one, and with the most of all (the tallest cat).
+      if (noun?.plural || noun?.noA || np.adjs.some((i) => isSuperlative(out[i].word))) out[np.art].word = 'the';
       else {
         const next = out[np.art + 1]?.word;
         out[np.art].word = next ? articleFor(next) : 'a';
@@ -99,7 +104,7 @@ export function compose(draft: Draft): Composed {
   const marks: Marks = auto ? { ...auto, endMark: own?.endMark ?? auto.endMark, commas: [...new Set([...auto.commas, ...(own?.commas ?? [])])], shoutMark: auto.shoutMark || !!own?.shoutMark } : {
     ...(own ?? { capitals: [], endMark: null, shoutMark: false, commas: [] }),
     // Guided: the engine still places commas and the shout mark.
-    ...(draft.level === 'guided' ? { commas: [...new Set([...requiredCommas(a), ...(own?.commas ?? [])])], shoutMark: a.shout !== undefined } : {}),
+    ...(draft.level === 'guided' ? { commas: [...new Set([...requiredCommas(a, draft.tokens), ...(own?.commas ?? [])])], shoutMark: a.shout !== undefined } : {}),
   };
   const capitals = new Set(marks.capitals);
   const commas = new Set(marks.commas);

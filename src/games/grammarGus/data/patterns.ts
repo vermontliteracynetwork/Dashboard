@@ -23,7 +23,7 @@ export const PATTERNS: Pattern[] = [
   p(13, 'D A N V', 'Softly, the girl sings.'),
   p(14, 'D A J N V', 'Softly, the young girl sings.'),
   p(15, 'D A J J N V', 'Softly, the pretty, young girl sings.'),
-  p(16, 'A N V D C A N V D', 'The bug crawled slowly and the bird flew quickly.'),
+  p(16, 'A N V D C A N V D', 'The bug crawled slowly, and the bird flew quickly.'),
   p(17, 'A N C A N V C V', 'The fish and the dolphin swam and jumped.'),
   p(18, 'D A N C A N V', 'Quickly, the boy and the girl ran.'),
   p(19, 'D A N V C D A N V', 'Slowly, the turtle crawled, and quickly the hare ran.'),

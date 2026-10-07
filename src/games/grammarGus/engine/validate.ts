@@ -1,7 +1,7 @@
 import type { Draft, HelpLevel, Token, Violation, ViolationHit } from './types';
 import { parse } from './grammar';
 import { analyze, type Analysis } from './analyze';
-import { adjRank, autoFixWords, expectedForms, requiredCapitals, requiredCommas } from './compose';
+import { adjRank, autoFixWords, expectedForms, isSuperlative, requiredCapitals, requiredCommas } from './compose';
 import { articleFor, tenseOfForm } from './conjugate';
 import { nounByWord, verbByBase } from '../data/wordbank';
 
@@ -136,7 +136,8 @@ export function validateSentence(draft: Draft): Validation {
         if (np.art === undefined || !words[np.art].word) continue;
         const art = lw(np.art);
         const noun = np.noun !== undefined ? nounByWord.get(lw(np.noun)) : undefined;
-        if (art !== 'the' && (noun?.plural || noun?.noA)) add('A_WITH_PLURAL', [np.art]);
+        if (art !== 'the' && np.adjs.some((i) => isSuperlative(words[i].word))) add('SUPERLATIVE_THE', [np.art]);
+        else if (art !== 'the' && (noun?.plural || noun?.noA)) add('A_WITH_PLURAL', [np.art]);
         else if (art !== 'the' && words[np.art + 1]?.word && articleFor(words[np.art + 1].word!) !== art) add('A_AN', [np.art]);
       }
     }
@@ -147,9 +148,20 @@ export function validateSentence(draft: Draft): Validation {
       if (!m.endMark) add('NO_END_MARK', [tokens.length - 1]);
       if (level === 'challenge') {
         if (a.shout !== undefined && !m.shoutMark) add('NO_SHOUT_MARK', [a.shout]);
-        const missingCommas = requiredCommas(a).filter((i) => !m.commas.includes(i));
+        const missingCommas = requiredCommas(a, tokens).filter((i) => !m.commas.includes(i));
         if (missingCommas.length) add('NO_COMMA', missingCommas);
       }
+    }
+    // Extra commas and capital letters (Claudia's audit, L.4.2 and L.5.2):
+    // the student's own marks must each belong somewhere.
+    if (draft.marks) {
+      const okCommas = new Set(requiredCommas(a, tokens));
+      const extraCommas = draft.marks.commas.filter((i) => !okCommas.has(i) && i < tokens.length - 1);
+      if (extraCommas.length) add('EXTRA_COMMA', extraCommas);
+      const okCaps = new Set(requiredCapitals(tokens, a, true));
+      tokens.forEach((t, i) => { const w = (t.word ?? '').toLowerCase().replace(/'s?$/, ''); if (t.pos === 'N' && nounByWord.get(w)?.proper) okCaps.add(i); });
+      const extraCaps = draft.marks.capitals.filter((i) => !okCaps.has(i));
+      if (extraCaps.length) add('EXTRA_CAPITAL', extraCaps);
     }
   }
   return { ok: violations.every((v) => !v.blocking), complete, violations, analysis: a };

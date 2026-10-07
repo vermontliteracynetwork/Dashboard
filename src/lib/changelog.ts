@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-audit-fixes',
+    date: '2026-10-07',
+    icon: '🔧',
+    title: 'Sharper grammar checks',
+    body: "Gus now checks for a comma before and, but or so when they join two whole ideas, and catches extra commas and extra capital letters. The biggest cat takes \"the\". On Guided and Challenge help, the gadgets light up a mistake for you to fix instead of fixing it for you. The Slot Machine is now the Word Shuffler, and the Calm button is back on the top bar.",
+  },
+  {
     id: '2026-10-07-gus-blueprints',
     date: '2026-10-07',
     icon: '📐',

@@ -19,7 +19,8 @@ export function questionOf(draft: Draft): string | null {
   const a = analyze(draft.tokens);
   if (a.clauses.length !== 1 || a.shout !== undefined || !a.parse.viable) return null;
   const cl = a.clauses[0]; const v = cl.verbs[0];
-  if (v === undefined) return null;
+  // An opener at the front (Quickly, Long ago,) would land in the wrong place.
+  if (v === undefined || cl.open !== undefined) return null;
   const words = compose({ ...draft, marks: { ...(draft.marks ?? { capitals: [], shoutMark: false, commas: [] }), endMark: null } }).words;
   const vi = words.findIndex((w) => w.index === v);
   if (vi < 0) return null;

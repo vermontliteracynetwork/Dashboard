@@ -18,7 +18,7 @@ import { wordPosOf } from '../ui/board/parts';
 // make the action match the who.
 
 export interface GadgetEvent { itemId: string; pop: string; note?: string; fixed: boolean }
-export interface GadgetResult { items: BoardItem[]; events: GadgetEvent[]; changed: boolean }
+export interface GadgetResult { items: BoardItem[]; events: GadgetEvent[]; changed: boolean; flags: string[] }
 
 const clone = (items: BoardItem[]) => items.map((i) => ({ ...i }));
 const readOf = (line: BoardLine, items: BoardItem[], level: HelpLevel) => readLine({ ...line, items }, level, false);
@@ -36,15 +36,28 @@ export function retimeItems(line: BoardLine, tense: Tense, level: HelpLevel): Bo
 }
 
 // The first noun before the first action word: who the sentence is about.
-function subjectNoun(items: BoardItem[]): { idx: number; word: string } | null {
+// A who of two or more ("the cat and the dog") is "they" (Claudia's audit).
+function subjectNoun(items: BoardItem[]): { idx: number; word: string; team?: boolean } | null {
   for (let i = 0; i < items.length; i++) {
     const p = wordPosOf(items[i].kind);
     if (p === 'V') return null;
-    if (p === 'N' && items[i].word) return { idx: i, word: items[i].word!.toLowerCase() };
+    if (p === 'N' && items[i].word) {
+      const v = items.findIndex((x) => wordPosOf(x.kind) === 'V');
+      const team = items.slice(i + 1, v < 0 ? undefined : v).some((x) => wordPosOf(x.kind) === 'C' || x.kind === 'listtrain');
+      return { idx: i, word: items[i].word!.toLowerCase(), team };
+    }
   }
   return null;
 }
 
+const RULES: Record<string, string> = {
+  sniffer: '"a" goes before a consonant sound, "an" before a vowel sound, and "the" with more than one.',
+  gears: 'One who takes "jumps". More than one takes "jump".',
+  sorter: 'Describing words go in order: opinion, size, age, look, then color.',
+  turnstile: 'First: I, he, she, we, they. After the action: me, him, her, us, them.',
+  teleporter: 'Say he, she, it or they instead of the same noun again.',
+  cannon: 'The pronoun must match the who from the sentence before.',
+};
 const SURPRISE = ['soggy', 'grumpy', 'sparkly', 'wobbly', 'fuzzy', 'gigantic', 'tiny', 'silly', 'sticky', 'fancy', 'lazy', 'brave'];
 
 export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine, rand: () => number = Math.random): GadgetResult {
@@ -63,7 +76,10 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
     const theirs = prev ? subjectNoun(prev.items) : null;
     const prevPron = prev?.items.find((i) => wordPosOf(i.kind) === 'R' && i.word);
     const plural = !!prev && prev.items.slice(0, theirs?.idx ?? 0).some((i) => i.kind === 'duplicator' || i.kind === 'crusher');
-    const want = theirs ? (plural || nounByWord.get(theirs.word)?.plural ? 'they' : pronounFor(theirs.word)) : prevPron?.word?.toLowerCase();
+    const subjWant = theirs ? (plural || theirs.team || nounByWord.get(theirs.word)?.plural ? 'they' : pronounFor(theirs.word)) : prevPron?.word?.toLowerCase();
+    // After the action, the object form: him, her, them.
+    const afterVerb = items.indexOf(cannon) > items.findIndex((i) => wordPosOf(i.kind) === 'V') && items.some((i) => wordPosOf(i.kind) === 'V');
+    const want = subjWant && afterVerb ? (OBJ_OF[subjWant] ?? subjWant) : subjWant;
     if (want && cannon.word?.toLowerCase() !== want) { const was = cannon.word; cannon.word = want; events.push({ itemId: cannon.id, pop: `BOOM! ${want}`, fixed: true, note: `The Pronoun Cannon aimed at ${theirs ? `"${theirs.word}"` : 'the sentence before'}${was ? ` and swapped "${was}" for "${want}"` : ''}: ${want}.` }); }
     else events.push({ itemId: cannon.id, pop: want ? `BOOM! ${want}` : 'aim... no target', fixed: false, note: want ? undefined : 'The Pronoun Cannon needs a sentence before it to aim at. Hook two machines with a Paragraph Link.' });
   }
@@ -86,7 +102,7 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
   const tel = at('teleporter');
   if (tel) {
     const mine = subjectNoun(items); const theirs = prev ? subjectNoun(prev.items) : null;
-    if (mine && theirs && (mine.word === theirs.word || nounByWord.get(mine.word)?.singular === theirs.word)) {
+    if (mine && theirs && !mine.team && !theirs.team && (mine.word === theirs.word || nounByWord.get(mine.word)?.singular === theirs.word)) {
       let start = mine.idx;
       while (start > 0 && ['A', 'J'].includes(wordPosOf(items[start - 1].kind) ?? '') || (start > 0 && items[start - 1].kind === 'duplicator')) start--;
       const plural = items.slice(start, mine.idx).some((i) => i.kind === 'duplicator') || !!nounByWord.get(mine.word)?.plural;
@@ -156,5 +172,27 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
     }
     events.push({ itemId: gears.id, pop: fixed.length ? `GRIND... ${fixed[0]}` : 'MESH! Whirrr', fixed: !!fixed.length, note: fixed.length ? `The Agreement Gears ground and shifted: ${fixed.join(', ')}. One who takes "jumps", more than one takes "jump".` : undefined });
   }
-  return { items, events, changed: JSON.stringify(items) !== JSON.stringify(line.items) };
+  // The fade ladder (Claudia's audit and scaffold plan): at Full help a
+  // gadget fixes the mistake and says why. At Guided it lights up the spot
+  // and names the rule, and the student fixes it. At Challenge it only
+  // says something is off. Retrieval beats rescue.
+  let flags: string[] = [];
+  if (level !== 'full') {
+    const fixers = new Set(['sniffer', 'gears', 'sorter', 'turnstile', 'teleporter', 'cannon']);
+    const fixedIds = new Set(events.filter((e) => e.fixed && fixers.has(line.items.find((i) => i.id === e.itemId)?.kind ?? '')).map((e) => e.itemId));
+    if (fixedIds.size) {
+      const changed = line.items.filter((o) => { const n = items.find((x) => x.id === o.id); return !n || n.word !== o.word || n.form !== o.form; }).filter((o) => o.kind !== 'clock' && o.kind !== 'crate' && o.kind !== 'tunnel').map((o) => o.id);
+      // Keep only the Clock, crate and tunnel changes; put the student's words back.
+      items = line.items.map((o) => { const n = items.find((x) => x.id === o.id); return n && (o.kind === 'clock' || o.kind === 'crate') ? n : o; });
+      flags = level === 'guided' ? changed : [];
+      for (const e of events) {
+        const k = line.items.find((i) => i.id === e.itemId)?.kind ?? '';
+        if (!fixedIds.has(e.itemId)) continue;
+        const name = k === 'sniffer' ? 'A/An Sniffer' : k === 'gears' ? 'Agreement Gears' : k === 'sorter' ? 'Describe Sorter' : k === 'turnstile' ? 'Pronoun Turnstile' : k === 'teleporter' ? 'Pronoun Teleporter' : 'Pronoun Cannon';
+        e.fixed = false; e.pop = '?!';
+        e.note = level === 'guided' ? `The ${name} found something to fix on the glowing machine. ${RULES[k] ?? ''} Can you fix it?` : `The ${name} says one thing is off. Can you find it and fix it?`;
+      }
+    }
+  }
+  return { items, events, changed: JSON.stringify(items) !== JSON.stringify(line.items), flags };
 }

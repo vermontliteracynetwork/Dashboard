@@ -58,19 +58,26 @@ describe('helper gadgets', () => {
     expect(past.find((i) => i.kind === 'clock')!.word).toBe('past');
     expect(retimeItems({ ...l, items: past }, 'future', 'guided').find((i) => i.kind === 'V')!.form).toBe('future');
   });
-  it('the A/An Sniffer sneezes a into an', () => {
+  it('the A/An Sniffer sneezes a into an at Full help, and only lights the spot at Guided (the fade ladder)', () => {
     const l = line([part('sniffer'), part('A', 'a'), part('N', 'apple'), part('V', 'jump')]);
-    const g = applyGadgets(l, 'challenge');
+    const g = applyGadgets(l, 'full');
     expect(g.items.find((i) => i.kind === 'A')!.word).toBe('an');
     expect(g.events[0].fixed).toBe(true);
+    const guided = applyGadgets(l, 'guided');
+    expect(guided.items.find((i) => i.kind === 'A')!.word).toBe('a');
+    expect(guided.flags).toEqual([l.items[1].id]);
+    const challenge = applyGadgets(l, 'challenge');
+    expect(challenge.flags).toEqual([]);
+    expect(challenge.events[0].note).toMatch(/one thing is off/);
   });
   it('the Describe Sorter puts describing words in order', () => {
     const l = line([part('sorter'), part('A', 'the'), part('J', 'red'), part('J', 'big'), part('N', 'dog'), part('V', 'run')]);
-    expect(applyGadgets(l, 'guided').items.filter((i) => i.kind === 'J').map((i) => i.word)).toEqual(['big', 'red']);
+    expect(applyGadgets(l, 'full').items.filter((i) => i.kind === 'J').map((i) => i.word)).toEqual(['big', 'red']);
+    expect(applyGadgets(l, 'guided').flags.length).toBe(2);
   });
-  it('the Agreement Gears shift the action to match the who', () => {
+  it('the Agreement Gears light up an action that does not match the who', () => {
     const l = line([part('gears'), part('A', 'the'), part('N', 'cat'), part('V', 'jump', 'base')]);
-    expect(applyGadgets(l, 'guided').items.find((i) => i.kind === 'V')!.form).toBe('third');
+    expect(applyGadgets(l, 'guided').flags).toEqual([l.items[3].id]);
   });
   it('the Time Tunnel turns the Clock to match its time word', () => {
     const l = line([part('clock', 'present'), part('tunnel', 'next week'), part('A', 'the'), part('N', 'cat'), part('V', 'jump', 'third')]);
@@ -183,5 +190,27 @@ describe("Claudia's round 4 game parts", () => {
   it('the Time Warp Toaster toasts all three times', () => {
     const g = applyGadgets(line([part('toaster'), part('A', 'the'), part('N', 'cat'), part('V', 'run')]), 'full');
     expect(g.events[0].pop).toBe('ran / runs / will run');
+  });
+});
+
+describe("Claudia's audit: accuracy fixes", () => {
+  it('a comma before and, but, so joining two whole ideas; no comma before a team of two', () => {
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('C', 'so'), part('A', 'the'), part('N', 'dog'), part('V', 'jump'), part('stop')]))).toBe('The cat runs, so the dog jumps.');
+    const team = line([part('cap'), part('A', 'the'), part('N', 'cat'), part('comma'), part('C', 'and'), part('A', 'the'), part('N', 'dog'), part('V', 'run'), part('stop')]);
+    expect(runSentence(readLine(team, 'full', false).draft).validation.violations.map((v) => v.code)).toContain('EXTRA_COMMA');
+  });
+  it('an extra capital letter in the middle is caught; a name is fine', () => {
+    const extra = line([{ ...part('A', 'the'), bottom: part('cap') }, { ...part('N', 'cat'), bottom: part('cap') }, part('V', 'run'), part('stop')]);
+    expect(runSentence(readLine(extra, 'full', false).draft).validation.violations.map((v) => v.code)).toContain('EXTRA_CAPITAL');
+  });
+  it('superlatives take "the"; red becomes redder; striped does not come in sizes', () => {
+    const big = { ...part('J', 'big'), bottom: part('inflator', 'est') };
+    expect(text(line([part('cap'), part('A', 'a'), big, part('N', 'cat'), part('V', 'jump'), part('stop')]))).toBe('The biggest cat jumps.');
+    const red = { ...part('J', 'red'), bottom: part('inflator', 'er') };
+    expect(text(line([part('cap'), part('A', 'the'), red, part('N', 'cat'), part('V', 'jump'), part('stop')]))).toBe('The redder cat jumps.');
+  });
+  it('the Question Crane will not lift a sentence with an opener', () => {
+    const l = line([part('crane'), part('cap'), part('slingshot', 'quickly'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('ask')]);
+    expect(readLine(l, 'full', false).problems.map((p) => p.code)).toContain('CRANE_ONE_IDEA');
   });
 });

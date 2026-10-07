@@ -4,7 +4,7 @@ import { TIME_TENSE } from '../data/timeWords';
 import type { OrderCard, SceneKey } from './orders';
 import { compose } from './compose';
 import { questionOf, quoteOf } from './question';
-import { compareOf, pluralNounOf, possessiveOf } from './dictionary';
+import { canCompare, compareOf, pluralNounOf, possessiveOf } from './dictionary';
 
 // The Workboard's machine lines (teacher 2026-10-07). A line is a row of
 // snapped-together machines. Word machines (and fun parts that hold a
@@ -22,7 +22,7 @@ export interface BoardItem { id: string; kind: Kind; word: string | null; form?:
 export const allParts = (items: BoardItem[]): BoardItem[] => items.flatMap((i) => [i, ...(i.top ? [i.top] : []), ...(i.bottom ? [i.bottom] : [])]);
 export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector' | 'order' | 'blueprint'; text: string; flaw?: string; done?: boolean; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }; connector?: string }
 
-export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA';
+export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA' | 'NO_SIZES';
 // The Time Tunnel's time word sets the time; otherwise the Clock does.
 export const tenseOf = (line: BoardLine): Tense => {
   const tw = line.items.find((i) => i.kind === 'tunnel' && i.word)?.word;
@@ -58,7 +58,7 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
       if (pos === 'N' && pendingCopy) { if (word) word = pluralNounOf(word); pendingCopy = null; }
       if (under === 'plural') { if (pos === 'N') { if (word) word = pluralNounOf(word); } else problems.push({ code: 'COPY_NO_NOUN', itemId: it.bottom!.id }); }
       if (under === 'poss') { if (pos === 'N') { if (word) word = possessiveOf(word); } else problems.push({ code: 'WRONG_HOST', itemId: it.bottom!.id }); }
-      if (under === 'size') { if (pos === 'J') { if (word) word = compareOf(word, it.bottom!.word === 'er' ? 'er' : 'est'); } else problems.push({ code: 'WRONG_HOST', itemId: it.bottom!.id }); }
+      if (under === 'size') { if (pos !== 'J') problems.push({ code: 'WRONG_HOST', itemId: it.bottom!.id }); else if (word && !canCompare(word)) problems.push({ code: 'NO_SIZES', itemId: it.bottom!.id }); else if (word) word = compareOf(word, it.bottom!.word === 'er' ? 'er' : 'est'); }
       if (it.kind === 'crusher' && word) word = pluralNounOf(word); // the Plural Crusher's noun is always more than one
       tokens.push({ pos, word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
       tokenIds.push(it.id);
@@ -151,7 +151,8 @@ export const FINISH_LINES: Record<FinishProblem, { joke: string; fix: string }> 
   WRONG_HOST: { joke: 'That part is snapped onto the wrong kind of word. It looks very confused.', fix: 'The Tag Gun goes under a noun. The Size-Up Inflator goes under a describing word.' },
   NEED_CRANE: { joke: 'A question mark on a telling sentence? Gus is very puzzled?', fix: 'Snap on a Question Crane to turn it into a question, or use a period.' },
   NEED_ASK: { joke: 'The crane lifted a question, but it has no question mark to land on.', fix: 'End a question with a Question Mark.' },
-  CRANE_ONE_IDEA: { joke: 'The crane can only lift one idea at a time. Two is too heavy!', fix: 'Use the Question Crane on a sentence with one who and one action, and no shout at the front.' },
+  CRANE_ONE_IDEA: { joke: 'The crane can only lift one idea at a time. Two is too heavy!', fix: 'Use the Question Crane on a sentence with one who and one action, with no opener or shout at the front.' },
+  NO_SIZES: { joke: 'That describing word does not come in sizes. Stripier? Stripiest? Nope!', fix: 'Snap the Size-Up Inflator under a describing word like tall, big or happy.' },
   NOT_FRONT: { joke: 'That part only launches from the very front of the sentence. In the middle it just wobbles.', fix: 'Snap it at the front, right after the capital letter part.' },
   DEAD_END: { joke: 'ROAD CLOSED! A where word with nowhere to land.', fix: 'Put a noun after the where word: on the mat, under the bed.' },
   COPY_NO_NOUN: { joke: 'The Duplicator is copying... nothing. Very tidy, very useless.', fix: 'Put a noun machine after the Duplicator so it can make more than one.' },

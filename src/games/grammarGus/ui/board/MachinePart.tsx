@@ -238,7 +238,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
         <rect x={c - 44} y={12} width={88} height={40} rx={6} fill={closed ? '#e8483b' : '#3fbf5a'} stroke={INK} strokeWidth={3} />
         <text x={c} y={30} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={12} fill="#fff">{closed ? 'ROAD' : 'ROAD'}</text>
         <text x={c} y={45} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={12} fill="#fff">{closed ? 'CLOSED' : 'OPEN'}</text>
-        <circle className={closed ? 'gwb-beacon' : undefined} cx={c} cy={64} r={7} fill={closed ? '#f3cf6b' : '#c8ced8'} stroke={INK} strokeWidth={2} />
+        <circle cx={c} cy={64} r={7} fill={closed ? '#f3cf6b' : '#c8ced8'} stroke={INK} strokeWidth={2} />
         <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
       </g>;
     }
@@ -347,7 +347,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <rect x={c - 36} y={46} width={72} height={58} rx={14} fill={color} stroke={INK} strokeWidth={3} />
       <rect x={c - 24} y={42} width={18} height={8} rx={2} fill="#3c455e" /><rect x={c + 6} y={42} width={18} height={8} rx={2} fill="#3c455e" />
       <g className="gwb-toast"><rect x={c - 23} y={22} width={16} height={24} rx={4} fill="#e0b070" stroke={INK} strokeWidth={2} /><rect x={c + 7} y={22} width={16} height={24} rx={4} fill="#c8894a" stroke={INK} strokeWidth={2} /></g>
-      <text x={c} y={84} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill={INK}>past · now · next</text>
+      <text x={c} y={84} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={8.5} fill={INK}>past·present·future</text>
       <rect x={c + 36} y={64} width={8} height={14} rx={2} fill="#e8483b" stroke={INK} strokeWidth={1.6} />
       <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;

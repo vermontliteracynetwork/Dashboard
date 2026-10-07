@@ -117,7 +117,7 @@ export const VERBS: VerbEntry[] = [
 
 export type AdjKind = 'feeling' | 'size' | 'age' | 'look' | 'color';
 export const ADJ_RANK: Record<AdjKind, number> = { feeling: 1, size: 2, age: 3, look: 4, color: 5 };
-export interface AdjEntry { word: string; kind: AdjKind; pack: Pack }
+export interface AdjEntry { word: string; kind: AdjKind; pack: Pack; degree?: 'er' | 'est' }
 const adj = (kind: AdjKind, pack: Pack, words: string) => words.split(' ').map((word) => ({ word, kind, pack }));
 
 // Order of describing words: feeling, size, age, look, color (plan 3.13).
