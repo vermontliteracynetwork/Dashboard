@@ -10,10 +10,11 @@ import { verbText } from '../engine/conjugate';
 import { predictWords } from '../engine/phonetic';
 import { readLine, readingOrder, paragraphs, tenseOf, deadEnds, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
 import { applyGadgets, retimeItems } from '../engine/gadgets';
+import { COMBOS, combosOn } from '../engine/combos';
 import { ADVERB_SPEED } from '../director/clips';
 import { reviewStory, storyCast, storyScript, type SealedSentence } from '../engine/story';
 import { POOLS, packWords } from '../engine/machine';
-import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, type DictPos, type TypedCheck } from '../engine/dictionary';
+import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
 import { FLAW_HINTS, makeJob, type Flaw, type JobKind } from '../engine/jobs';
 import { hashString, makeRng, pick } from '../engine/rng';
@@ -62,7 +63,7 @@ const gusOwner = (id: string) => `gus:${id}`;
 const TENSE_NAMES: Record<Tense, string> = { past: 'Past', present: 'Present', future: 'Future' };
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[] }
+interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[] }
 type Sort = 'job' | 'order' | 'color' | 'az';
 const SORTS: { id: Sort; label: string }[] = [{ id: 'job', label: 'By job' }, { id: 'order', label: 'Sentence order' }, { id: 'color', label: 'By color' }, { id: 'az', label: 'A to Z' }];
 const JOB_ORDER: Job[] = ['power', 'time', 'shout', 'who', 'did', 'where', 'join', 'finish', 'paragraph', 'contraption', 'gadget'];
@@ -76,7 +77,8 @@ const MAGNET = 140;
 const POPS: Partial<Record<Kind, string>> = { lever: 'VROOOM!', cap: 'CLANG!', stop: 'STAMP!', bang: 'TWEET!', comma: 'click', tv: 'BZZT!', clock: 'TICK-TOCK', link: 'CLINK!' };
 const FUN_SOUND: Partial<Record<Kind, () => void>> = { horn: gusSound.honk, spring: gusSound.boing, fan: gusSound.whoosh, ramp: gusSound.whee, conveyor: gusSound.clank, bucket: gusSound.splosh, pulley: gusSound.heave, bell: gusSound.ding, dominoes: gusSound.clack, duplicator: gusSound.copy,
   trapdoor: gusSound.popper, mood: gusSound.steam, tunnel: gusSound.warp, slingshot: gusSound.twang, dial: gusSound.tick, switch: gusSound.clank, funnel: gusSound.glug, bridge: gusSound.creak,
-  gears: gusSound.whir, sniffer: gusSound.achoo, sorter: gusSound.clack, teleporter: gusSound.zap, detector: gusSound.ding, flag: gusSound.gun };
+  gears: gusSound.whir, sniffer: gusSound.achoo, sorter: gusSound.clack, teleporter: gusSound.zap, detector: gusSound.ding, flag: gusSound.gun,
+  stamp: gusSound.clang, crusher: gusSound.crunch, pastpress: gusSound.clang, listtrain: gusSound.choo, turnstile: gusSound.bonk };
 // How fast the marble rolls: the how words on the machine set it (How-Dial).
 const speedOf = (line: BoardLine) => Math.max(0.45, Math.min(2, line.items.filter((i) => wordPosOf(i.kind) === 'D' && i.word).reduce((s, i) => s * (ADVERB_SPEED[i.word!.toLowerCase()] ?? 1), 1)));
 const popFor = (it: BoardItem) => (isContraption(it.kind) ? (needsWord(it.kind) && it.word ? `${FUN_ROLE[it.kind].pop} ${it.word}` : FUN_ROLE[it.kind].pop) : isWordKind(it.kind) ? (it.word ?? '?') : POPS[it.kind] ?? '');
@@ -200,7 +202,10 @@ export default function GusWorkboard() {
   const [snapped, setSnapped] = useState<string | null>(null); // a part or machine that just snapped in (bounces)
   const [party, setParty] = useState<string | null>(null);
   const [retimed, setRetimed] = useState<string[]>([]); // action words the Clock just changed (they flip)
-  const [gadgetPops, setGadgetPops] = useState<Record<string, string>>({}); // confetti over a 3-star machine
+  const [gadgetPops, setGadgetPops] = useState<Record<string, string>>({});
+  const reelY = useRef(0);
+  const [sessionCombos, setSessionCombos] = useState<string[]>([]);
+  const [comboShow, setComboShow] = useState<{ lineId: string; names: string[]; key: number } | null>(null); // confetti over a 3-star machine
   const bounce = (id: string) => { setSnapped(id); timers.current.push(window.setTimeout(() => setSnapped((x) => (x === id ? null : x)), 480)); };
   const [jobsOpen, setJobsOpen] = useState(false);
   const [spaced, setSpaced] = useState(() => { try { return localStorage.getItem('gus-spaced') === '1'; } catch { return false; } });
@@ -537,13 +542,22 @@ export default function GusWorkboard() {
     // Helper gadgets check and fix their grammar job first, out loud.
     let line = line0;
     let gadgetNotes = '';
+    const pops: Record<string, string> = {};
     if (line0.items.some((i) => isTool(i.kind) || i.kind === 'tunnel')) {
       const para = paragraphOf(line0.id); const k = para.findIndex((l) => l.id === line0.id);
       const g = applyGadgets(line0, level, k > 0 ? para[k - 1] : undefined);
       if (g.changed) { line = { ...line0, items: g.items }; editLine(line0.id, (l) => ({ ...l, items: g.items })); }
-      setGadgetPops(Object.fromEntries(g.events.map((e) => [e.itemId, e.pop])));
+      Object.assign(pops, Object.fromEntries(g.events.map((e) => [e.itemId, e.pop])));
       gadgetNotes = g.events.map((e) => e.note).filter(Boolean).join(' ');
-    } else setGadgetPops({});
+    }
+    // Word parts that show their grammar as they fire.
+    for (const it of line.items) {
+      if (!it.word) continue;
+      if (it.kind === 'crusher') pops[it.id] = `CRUNCH! ${it.word} → ${pluralNounOf(it.word)}`;
+      if (it.kind === 'stamp') pops[it.id] = `CLANG! ${it.word}`;
+      if (it.kind === 'pastpress' && tenseOf(line) === 'past') { const v = verbByBase.get(it.word); if (v) pops[it.id] = `STAMP! not "${regularPast(it.word)}": ${v.past}!`; }
+    }
+    setGadgetPops(pops);
     const rd = readLine(line, level, requireFinish || !!line.job);
     const seed = hashString(line.id + compose(rd.draft).text);
     if (rd.problems.length) {
@@ -603,6 +617,20 @@ export default function GusWorkboard() {
         rewardPending.current = true;
         setPlaying({ lineId: line.id, script: r.script, key: Date.now() });
         if (stars === 3) { gusSound.tada(); if (!calm) { setParty(line.id); timers.current.push(window.setTimeout(() => setParty((p) => (p === line.id ? null : p)), 1800)); } }
+        // Chain-reaction combos: a bonus the first time each one is found.
+        const combos = stars === 3 ? combosOn(line.items, rd.draft.marks?.endMark ?? null) : [];
+        if (combos.length) {
+          const known = new Set([...(gusRowNow().combos ?? []), ...sessionCombos]);
+          const fresh = combos.filter((c) => !known.has(c.id));
+          setComboShow({ lineId: line.id, names: combos.map((c) => c.name), key: Date.now() });
+          timers.current.push(window.setTimeout(() => setComboShow(null), 2600));
+          timers.current.push(window.setTimeout(() => { gusSound.tada(); say(`COMBO! ${combos.map((c) => `${c.name}: ${c.cheer}`).join(' ')}${fresh.length ? ` New combo found: ${fresh.length * 5} bonus gears!` : ''}`, 'Combo!'); }, 1200));
+          if (fresh.length) {
+            earn(fresh.length * 5);
+            setSessionCombos((x) => [...x, ...fresh.map((c) => c.id)]);
+            if (studentId) mergeStyleRow(gusOwner(studentId), { combos: [...(gusRowNow().combos ?? []), ...fresh.map((c) => c.id)] });
+          }
+        }
         say(`"${r.composed.text}" Rolling film!`, `${stars} stars`);
       } else {
         const v = r.rubric!.verdicts[0];
@@ -717,6 +745,7 @@ export default function GusWorkboard() {
   const pool = (pos: Pos): string[] => {
     if (pos === 'A') return level === 'challenge' ? ['a', 'an', 'the'] : ['a', 'the'];
     if (pos === 'C') return ['and', 'but', 'or', 'for'];
+    if (pos === 'R') return [...POOLS.R, 'me', 'him', 'her', 'us', 'them']; // object pronouns too (Turnstile)
     const extra = pos === 'N' || pos === 'V' || pos === 'J' || pos === 'D' || pos === 'I' ? customFor(pos) : [];
     const all = [...new Set([...POOLS[pos], ...packWords(pos, settings.packs), ...extra])];
     return pos === 'V' && settings.gentleOnly ? all.filter((w) => verbByBase.get(w)?.gentle !== false) : all;
@@ -839,6 +868,7 @@ export default function GusWorkboard() {
   const zoomBtn = (d: number) => { const r = boardRef.current!.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, view.z + d); };
   const clipLine = clip ? lines.find((l) => l.id === clip) : undefined;
   const clipList = clipLine ? buildChecklist(readLine(clipLine, level, false).draft) : null;
+  const foundCombos = [...new Set([...(saved.combos ?? []), ...sessionCombos])];
   const order = readingOrder(lines);
   const paras = paragraphs(lines);
   return (
@@ -848,14 +878,16 @@ export default function GusWorkboard() {
         <h1>Gus's Workboard</h1>
         <div className="gus-top-right">
           <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
-          {(saved.stickers ?? []).length > 0 && (
+          {((saved.stickers ?? []).length > 0 || foundCombos.length > 0) && (
             <div className="gwb-menu-wrap">
-              <button type="button" className={`gus-btn${shelfOpen ? ' on' : ''}`} onClick={() => { setShelfOpen((o) => !o); setTopMenu(false); setJobsOpen(false); }} aria-expanded={shelfOpen} aria-label={`Sticker shelf: ${saved.stickers!.length} stickers`}>🏅 {saved.stickers!.length}</button>
+              <button type="button" className={`gus-btn${shelfOpen ? ' on' : ''}`} onClick={() => { setShelfOpen((o) => !o); setTopMenu(false); setJobsOpen(false); }} aria-expanded={shelfOpen} aria-label={`Sticker shelf: ${(saved.stickers ?? []).length} stickers, ${foundCombos.length} combos`}>🏅 {(saved.stickers ?? []).length + foundCombos.length}</button>
               {shelfOpen && (
                 <div className="gwb-top-menu gwb-shelf" role="dialog" aria-label="Sticker shelf">
                   <strong>Sticker shelf</strong>
-                  <div className="gwb-shelf-grid">{saved.stickers!.map((st, i) => <span key={i} aria-hidden>{st}</span>)}</div>
+                  <div className="gwb-shelf-grid">{(saved.stickers ?? []).map((st, i) => <span key={i} aria-hidden>{st}</span>)}</div>
                   <small>Earned from Gus's Jobs and Orders.</small>
+                  <strong>Combos found: {foundCombos.length} of {COMBOS.length}</strong>
+                  <ul className="gwb-combo-list">{COMBOS.map((c) => <li key={c.id} className={foundCombos.includes(c.id) ? 'found' : ''}>{foundCombos.includes(c.id) ? `💥 ${c.name}` : '❓ ???'}</li>)}</ul>
                 </div>
               )}
             </div>
@@ -926,6 +958,7 @@ export default function GusWorkboard() {
               const marbleKind = marbleSlot?.item?.kind;
               return (
                 <div key={line.id} className={`gwb-line${selLine === line.id ? ' selected' : ''}${isFiring ? ' running' : ''}${snapped === line.id ? ' snapped' : ''}${drag?.kind === 'line' && drag.target === line.id ? ' join-target' : ''}`}>
+                  {comboShow?.lineId === line.id && <span key={comboShow.key} className="gwb-combo" style={{ left: line.x + GRIP_W, top: line.y - 54 }} role="status">💥 COMBO! {comboShow.names.join(' + ')}</span>}
                   {party === line.id && <span className="gwb-confetti" style={{ left: line.x + GRIP_W, top: line.y - 10, width: lineRight(line, g) - line.x - GRIP_W }} aria-hidden>{Array.from({ length: 14 }, (_, k) => <i key={k} style={{ left: `${(k * 7.3) % 100}%`, animationDelay: `${(k % 5) * 0.09}s` }} />)}</span>}
                   {line.job && (
                     <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 40 }}>
@@ -981,6 +1014,7 @@ export default function GusWorkboard() {
                         {item.kind === 'tv' && (
                           <div className="gwb-tv-screen">
                             <PixelCinema script={playing?.lineId === line.id ? playing.script : null} playKey={playing?.lineId === line.id ? playing.key : 0} calm={calm} question={line.stars === 0} onEnd={onLineVideoEnd} />
+                            {playing?.lineId === line.id && !calm && <span key={playing.key} className="gwb-tv-pops" aria-hidden>{line.items.filter((x) => isContraption(x.kind)).slice(0, 6).map((x, k) => <i key={x.id} style={{ animationDelay: `${0.3 + k * 0.55}s`, left: `${10 + ((k * 37) % 60)}%`, top: `${12 + ((k * 23) % 50)}%` }}>{FUN_ROLE[x.kind as keyof typeof FUN_ROLE].pop}</i>)}</span>}
                           </div>
                         )}
                         {pulse.includes(item.id) && !calm && <span className="gwb-steam" aria-hidden><i /><i /><i /></span>}
@@ -1065,7 +1099,21 @@ export default function GusWorkboard() {
             const dr = dict && dict.q === q && !exact ? dict.result : null;
             const dictOk = !!dr && dr !== 'checking' && (dr.kind === 'ok' || dr.kind === 'base');
             const checking = dr === 'checking';
+            // Word reel (teacher's reference, 2026-10-07: a slot-machine sentence
+            // builder): spin the word up or down without closing the menu.
+            const ri = menuItem.word ? all.findIndex((w) => w.toLowerCase() === menuItem.word!.toLowerCase()) : -1;
+            const at = (d: number) => all[(ri + d + all.length * 4) % all.length];
+            const spin = (d: number) => { setItem(menuLine.id, menuItem.id, { word: at(d) }); gusSound.tick(); };
             return <>
+              {ri >= 0 && all.length > 1 && (
+                <div className="gwb-reel" role="group" aria-label="Word reel">
+                  <button type="button" onClick={() => spin(-1)} aria-label={`Spin to ${at(-1)}`}>▲</button>
+                  <div className="gwb-reel-window" onPointerDown={(e) => { reelY.current = e.clientY; }} onPointerUp={(e) => { const dy = e.clientY - reelY.current; if (Math.abs(dy) > 18) spin(dy < 0 ? 1 : -1); }}>
+                    <span>{at(-1)}</span><strong key={menuItem.word}>{menuItem.word}</strong><span>{at(1)}</span>
+                  </div>
+                  <button type="button" onClick={() => spin(1)} aria-label={`Spin to ${at(1)}`}>▼</button>
+                </div>
+              )}
               <input className="gwb-type" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Type a word, or tap one below" autoCapitalize="off" autoCorrect="off" spellCheck={false} inputMode="text"
                 autoFocus={kbdOpen.current} onKeyDown={(e) => { if (e.key === 'Escape') { setMenu(null); return; } if (e.key !== 'Enter') return; if (exact) chooseWord(list.find((w) => w.toLowerCase() === q)!); else if (dictOk) useDictWord(); else if (!checking && list[0] && q.length < 2) chooseWord(list[0]); }} aria-label={`Type a ${mname}`} />
               <button type="button" className="gus-mini gwb-surprise" onClick={() => { const w = all[Math.floor(Math.random() * all.length)]; if (w) { gusSound.boing(); chooseWord(w); } }}>🎲 Surprise me</button>

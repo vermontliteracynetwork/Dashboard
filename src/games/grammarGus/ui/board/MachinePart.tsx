@@ -247,6 +247,46 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <g className="gwb-wave" style={{ transformOrigin: `${c - 16}px 14px` }}>{Array.from({ length: 12 }, (_, i) => <rect key={i} x={c - 16 + (i % 4) * 11} y={14 + Math.floor(i / 4) * 11} width={11} height={11} fill={(i + Math.floor(i / 4)) % 2 ? '#fff' : INK} />)}<rect x={c - 16} y={14} width={44} height={33} fill="none" stroke={INK} strokeWidth={2} /></g>
       <rect x={c - 30} y={120} width={36} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
+    case 'stamp': return <g>
+      <Pipes w={w} />
+      <rect x={c - 34} y={6} width={68} height={10} rx={3} fill="#6b7383" stroke={INK} strokeWidth={2.4} />
+      <rect x={c - 34} y={14} width={8} height={110} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={c + 26} y={14} width={8} height={110} fill="#6b7383" stroke={INK} strokeWidth={2} />
+      <g className="gwb-piston"><rect x={c - 5} y={16} width={10} height={18} fill="#c8ced8" stroke={INK} strokeWidth={2} /><rect x={c - 20} y={32} width={40} height={14} rx={3} fill="#8b5a2b" stroke={INK} strokeWidth={2.2} /><rect x={c - 22} y={46} width={44} height={10} rx={2} fill={color} stroke={INK} strokeWidth={2.2} /></g>
+      <text x={c} y={96} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={22} fill="#f3cf6b" stroke={INK} strokeWidth={1}>{(word ?? 'Name').charAt(0).toUpperCase()}</text>
+    </g>;
+    case 'crusher': return <g>
+      <Pipes w={w} />
+      <rect x={c - 36} y={8} width={72} height={12} rx={3} fill="#6b7383" stroke={INK} strokeWidth={2.4} />
+      <g className="gwb-crush"><rect x={c - 30} y={20} width={60} height={26} rx={4} fill={color} stroke={INK} strokeWidth={2.6} />{[-18, -6, 6, 18].map((dx) => <path key={dx} d={`M${c + dx - 5} 46 l5 8 l5 -8`} fill="#c8ced8" stroke={INK} strokeWidth={1.4} />)}</g>
+      <rect x={c - 34} y={92} width={68} height={28} rx={4} fill="#3c455e" stroke={INK} strokeWidth={2.4} />
+      <text x={c} y={112} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={13} fill="#f3cf6b">x → ?!</text>
+    </g>;
+    case 'pastpress': return <g>
+      <Pipes w={w} />
+      <rect x={c - 40} y={10} width={80} height={12} rx={3} fill="#6b7383" stroke={INK} strokeWidth={2.4} />
+      <g className="gwb-piston"><rect x={c - 30} y={22} width={60} height={30} rx={4} fill={color} stroke={INK} strokeWidth={2.6} /><text x={c} y={42} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={12} fill="#fff">PAST</text></g>
+      <rect x={c - 40} y={92} width={80} height={10} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+      <text x={c - 22} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={11} fill="#c0392b" textDecoration="line-through">-ed</text>
+      <text x={c + 22} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={13} fill="#1e7a44">✓</text>
+      <rect x={c - 34} y={102} width={8} height={22} fill="#6b7383" /><rect x={c + 26} y={102} width={8} height={22} fill="#6b7383" />
+    </g>;
+    case 'listtrain': return <g>
+      <rect x={6} y={112} width={w - 12} height={5} fill="#8b5a2b" />
+      {[0, 1, 2].map((i) => { const x = 10 + i * ((w - 20) / 3); const cw = (w - 20) / 3 - 10; return <g key={i} className="gwb-chug" style={{ animationDelay: `${i * 0.08}s` }}>
+        <rect x={x} y={i === 0 ? 50 : 70} width={cw} height={i === 0 ? 56 : 36} rx={4} fill={i === 0 ? color : light} stroke={INK} strokeWidth={2.4} />
+        {i === 0 && <rect x={x + cw - 14} y={36} width={10} height={16} fill={dark} stroke={INK} strokeWidth={2} />}
+        <circle cx={x + 8} cy={110} r={6} fill="#3c455e" stroke={INK} strokeWidth={2} /><circle cx={x + cw - 8} cy={110} r={6} fill="#3c455e" stroke={INK} strokeWidth={2} />
+        {i < 2 && <text x={x + cw + 5} y={98} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={22} fill={INK}>,</text>}
+      </g>; })}
+    </g>;
+    case 'turnstile': return <g>
+      <Pipes w={w} />
+      <rect x={c - 6} y={30} width={12} height={94} fill="#6b7383" stroke={INK} strokeWidth={2} />
+      <g className="gwb-spin" style={{ transformOrigin: `${c}px 52px` }}>{[0, 120, 240].map((a) => <rect key={a} x={c - 3} y={18} width={6} height={34} rx={3} fill={color} stroke={INK} strokeWidth={1.8} transform={`rotate(${a} ${c} 52)`} />)}<circle cx={c} cy={52} r={7} fill={light} stroke={INK} strokeWidth={2} /></g>
+      <rect x={c - 52} y={88} width={36} height={18} rx={4} fill="#3fbf5a" stroke={INK} strokeWidth={2} /><text x={c - 34} y={101} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill="#fff">he</text>
+      <rect x={c + 16} y={88} width={36} height={18} rx={4} fill="#5b8def" stroke={INK} strokeWidth={2} /><text x={c + 34} y={101} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill="#fff">him</text>
+      <rect x={c - 30} y={120} width={60} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
     default: return null;
   }
 }

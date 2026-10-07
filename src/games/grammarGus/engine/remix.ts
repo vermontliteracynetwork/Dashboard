@@ -1,3 +1,4 @@
+import { HE_NAMES, SHE_NAMES } from '../data/extraNouns';
 import type { Tense } from './types';
 import { buildTokens, CORE_VERBS, POOLS, SLOT_BY_KEY, type HousingId, type Words } from './machine';
 import { runSentence, type Run } from './pipeline';
@@ -91,6 +92,8 @@ const HE = new Set(['boy', 'man', 'dad', 'son', 'uncle']);
 export function pronounFor(noun: string): string {
   const e = nounByWord.get(noun);
   if (!e) return 'it';
+  if (SHE_NAMES.has(noun)) return 'she';
+  if (HE_NAMES.has(noun)) return 'he';
   if (e.plural || e.group) return 'they';
   if (SHE.has(noun)) return 'she';
   if (HE.has(noun)) return 'he';

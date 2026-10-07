@@ -5,6 +5,7 @@ import { analyze } from './analyze';
 import { articleFor, tenseOfForm, verbText } from './conjugate';
 import { nounByWord, verbByBase } from '../data/wordbank';
 import { pronounFor } from './remix';
+import { caseSwap, OBJ_OF, SUBJ_OF } from './validate';
 import { TIME_TENSE } from '../data/timeWords';
 import { wordPosOf } from '../ui/board/parts';
 
@@ -101,6 +102,20 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
       if (want !== art) { it.word = want; fixes.push(`${art} → ${want}`); }
     }
     events.push({ itemId: sniff.id, pop: fixes.length ? `ACHOO! ${fixes[0]}` : 'sniff... all good!', fixed: !!fixes.length, note: fixes.length ? `The A/An Sniffer sneezed: ${fixes.join(', ')}. "an" goes before a vowel sound, "the" with more than one.` : undefined });
+  }
+  // Subject and Object Turnstile: he goes first, him after the action.
+  const turn = at('turnstile');
+  if (turn) {
+    const rd = readOf(line, items, level);
+    const swaps: string[] = [];
+    for (const k of caseSwap(rd.draft.tokens)) {
+      const it = items.find((x) => x.id === rd.tokenIds[k]);
+      if (!it?.word) continue;
+      const w = it.word === 'I' || it.word === 'i' ? 'I' : it.word.toLowerCase();
+      const other = SUBJ_OF[w] ?? OBJ_OF[w];
+      swaps.push(`${it.word} → ${other}`); it.word = other;
+    }
+    events.push({ itemId: turn.id, pop: swaps.length ? `BONK! ${swaps[0]}` : 'CLICK-CLICK', fixed: !!swaps.length, note: swaps.length ? `The Pronoun Turnstile bonked and swapped: ${swaps.join(', ')}. The doer takes I, he, she, we, they. After the action: me, him, her, us, them.` : undefined });
   }
   // Agreement Gears: the action matches the who (one or more than one).
   const gears = at('gears');

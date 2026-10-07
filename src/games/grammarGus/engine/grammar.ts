@@ -1,4 +1,5 @@
 import type { Pos, Token } from './types';
+import '../data/extraNouns'; // names and weird-plural nouns join the dictionary
 import {
   adjByWord, adverbSet, CONJ_POOLS, interjectionSet, nounByWord, prepSet, reflexiveSet, subjectPronounSet, verbByBase,
 } from '../data/wordbank';
@@ -35,7 +36,10 @@ interface Frag { s: number; e: number }
 
 const isArt: Test = (w) => w === 'a' || w === 'an' || w === 'the';
 const isAdj: Test = (w) => adjByWord.has(w);
-const isNoun: Test = (w) => nounByWord.has(w);
+const isNoun: Test = (w) => nounByWord.has(w) && !nounByWord.get(w)!.proper;
+const isName: Test = (w) => !!nounByWord.get(w)?.proper;
+export const OBJECT_PRONOUNS = ['me', 'him', 'her', 'us', 'them', 'you', 'it'];
+const isObjPron: Test = (w) => OBJECT_PRONOUNS.includes(w);
 const isSubjPron: Test = (w) => subjectPronounSet.has(w);
 const isReflexive: Test = (w) => reflexiveSet.has(w);
 const isAdv: Test = (w) => adverbSet.has(w);
@@ -52,14 +56,17 @@ function build() {
   const alt = (...fs: Frag[]): Frag => { const s = b.state(); const e = b.state(); for (const f of fs) { b.link(s, { to: f.s }); b.link(f.e, { to: e }); } return { s, e }; };
   const opt = (f: Frag): Frag => alt(f, empty());
 
-  const np = (r: string) => seq(term('A', `${r}.art`, isArt), opt(seq(term('J', `${r}.adj`, isAdj), opt(term('J', `${r}.adj`, isAdj)))), term('N', `${r}.noun`, isNoun));
+  // A name (Mia, Vermont) needs no article (Proper Name Stamp, 2026-10-07).
+  const np = (r: string) => alt(seq(term('A', `${r}.art`, isArt), opt(seq(term('J', `${r}.adj`, isAdj), opt(term('J', `${r}.adj`, isAdj)))), term('N', `${r}.noun`, isNoun)), term('N', `${r}.noun`, isName));
   const subject = (c: string) => alt(
     term('R', `${c}.subj.pron`, isSubjPron),
-    seq(np(`${c}.subj`), opt(seq(term('C', `${c}.subj.conj`, inPool(CONJ_POOLS.subject)), np(`${c}.subj2`)))),
+    // Two, or a list of three (Comma List Train): the cat, the dog, and the frog.
+    seq(np(`${c}.subj`), opt(seq(opt(np(`${c}.subjm`)), term('C', `${c}.subj.conj`, inPool(CONJ_POOLS.subject)), np(`${c}.subj2`)))),
   );
   const pp = (c: string) => seq(term('P', `${c}.prep`, isPrep), opt(seq(term('C', `${c}.prepconj`, inPool(CONJ_POOLS.prep)), term('P', `${c}.prep2`, isPrep))), np(`${c}.pp`));
   const mods = (c: string) => seq(opt(seq(term('D', `${c}.adv`, isAdv), opt(seq(term('C', `${c}.advconj`, inPool(CONJ_POOLS.adverb)), term('D', `${c}.adv2`, isAdv))))), opt(pp(c)));
-  const obj = (c: string) => alt(np(`${c}.obj`), term('R', `${c}.obj.pron`, isReflexive));
+  // Object pronouns too (Subject and Object Turnstile): the cat saw him.
+  const obj = (c: string) => alt(np(`${c}.obj`), term('R', `${c}.obj.pron`, (w) => isReflexive(w) || isObjPron(w)));
   const pred = (c: string) => alt(
     seq(term('V', `${c}.verb`, verbTakes('IB')), opt(seq(term('C', `${c}.verbconj`, inPool(CONJ_POOLS.verb)), term('V', `${c}.verb2`, verbTakes('IB')))), mods(c)),
     seq(term('V', `${c}.verb`, verbTakes('TB')), obj(c)),

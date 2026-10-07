@@ -85,3 +85,36 @@ describe('helper gadgets', () => {
     expect(text({ ...l, items: g.items })).toBe('She jumps.');
   });
 });
+
+describe('SOON parts', () => {
+  it('the Proper Name Stamp: names need no article and always get a capital letter', () => {
+    const l = line([part('cap'), part('stamp', 'Mia'), part('V', 'jump'), part('stop')]);
+    expect(text(l)).toBe('Mia jumps.');
+    expect(runSentence(readLine(l, 'full', false).draft).validation.ok).toBe(true);
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('P', 'to'), part('stamp', 'Vermont'), part('stop')]))).toBe('The cat runs to Vermont.');
+  });
+  it('the Plural Crusher makes a weird plural, and the action agrees', () => {
+    const l = line([part('cap'), part('A', 'the'), part('crusher', 'mouse'), part('V', 'jump'), part('stop')]);
+    expect(text(l)).toBe('The mice jump.');
+    expect(text(line([part('cap'), part('A', 'the'), part('crusher', 'child'), part('V', 'run'), part('stop')]))).toBe('The children run.');
+  });
+  it('the Irregular Past Press holds verbs whose past breaks the rule', async () => {
+    const { FUN_ROLE } = await import('../ui/board/parts');
+    const { regularPast } = await import('../engine/dictionary');
+    expect(FUN_ROLE.pastpress.words!.length).toBeGreaterThan(3);
+    expect(regularPast('go')).toBe('goed');
+    expect(regularPast('hop')).toBe('hopped');
+  });
+  it('the Comma List Train: a list of three who all take "run", with commas', () => {
+    const l = line([part('cap'), part('A', 'the'), part('N', 'cat'), part('listtrain'), part('A', 'the'), part('N', 'dog'), part('listtrain'), part('C', 'and'), part('A', 'the'), part('N', 'frog'), part('V', 'run'), part('stop')]);
+    expect(text(l)).toBe('The cat, the dog, and the frog run.');
+    expect(runSentence(readLine(l, 'challenge', false).draft).validation.ok).toBe(true);
+  });
+  it('object pronouns work after the action, and the Turnstile fixes the wrong case', () => {
+    expect(text(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'chase'), part('R', 'him'), part('stop')]))).toBe('The cat chases him.');
+    const wrong = line([part('turnstile'), part('cap'), part('R', 'him'), part('V', 'jump'), part('stop')]);
+    expect(runSentence(readLine(wrong, 'full', false).draft).validation.violations[0].code).toBe('PRONOUN_CASE');
+    const g = applyGadgets(wrong, 'full');
+    expect(text({ ...wrong, items: g.items })).toBe('He jumps.');
+  });
+});

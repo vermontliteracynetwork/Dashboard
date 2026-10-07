@@ -33,7 +33,12 @@ export function buildFrame(draft: Draft, a: Analysis = analyze(draft.tokens)): S
     } else subject = entity(cl.subj[0] ?? { adjs: [] });
     let object: EntityRef | undefined;
     if (cl.obj) object = entity(cl.obj);
-    else if (cl.objPron !== undefined) object = { id: `e${nextId++}`, noun: w(cl.objPron), plural: w(cl.objPron) === 'themselves', adjectives: [], article: null, reflexive: true, tokens: [cl.objPron] };
+    else if (cl.objPron !== undefined) {
+      const op = w(cl.objPron).toLowerCase();
+      const sp = ({ me: 'I', him: 'he', her: 'she', us: 'we', them: 'they', you: 'you', it: 'it' } as Record<string, EntityRef['pronoun']>)[op];
+      object = sp ? { id: `e${nextId++}`, noun: sp, plural: sp === 'we' || sp === 'they', adjectives: [], article: null, pronoun: sp, tokens: [cl.objPron] }
+        : { id: `e${nextId++}`, noun: w(cl.objPron), plural: w(cl.objPron) === 'themselves', adjectives: [], article: null, reflexive: true, tokens: [cl.objPron] };
+    }
     const places = cl.pp ? [{ prep: w(cl.preps[0]), preps: cl.preps.map(w), ground: entity(cl.pp) }] : [];
     const adverbs = [...(cl.open !== undefined ? [w(cl.open)] : []), ...cl.advs.map(w)];
     const tenseAt = (i: number) => {

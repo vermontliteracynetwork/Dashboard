@@ -49,6 +49,7 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
       pendingCap = false; capAfterShout = false;
       let word = it.word;
       if (pos === 'N' && pendingCopy) { if (word) word = pluralNounOf(word); pendingCopy = null; }
+      if (it.kind === 'crusher' && word) word = pluralNounOf(word); // the Plural Crusher's noun is always more than one
       tokens.push({ pos, word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
       tokenIds.push(it.id);
       // The Trapdoor's shout comes with its "!" and a capital letter after it;

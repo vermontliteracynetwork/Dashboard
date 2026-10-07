@@ -28,6 +28,7 @@ const STUDENT_JOB: Partial<Record<Violation, HelpLevel[]>> = {
 function codeForRole(role: string): Violation {
   if (role === 'clauseconj') return 'NO_JOIN';
   const [c, a] = role.split('.');
+  if (a === 'subjm') return 'CONJ_UNBALANCED';
   if (a === 'subj' && role.endsWith('.conj')) return 'NO_JOIN';
   if (a === 'verbconj' || a === 'advconj' || a === 'prepconj') return 'NO_JOIN';
   if (a === 'subj2' || a === 'verb2' || a === 'adv2' || a === 'prep2') return 'CONJ_UNBALANCED';
@@ -47,6 +48,9 @@ function structural(tokens: Token[], a: Analysis): ViolationHit[] {
     hits.set(code, h);
   };
   const p = a.parse;
+  // "Him jumped": the right pronoun in the wrong case (Turnstile).
+  const swap = caseSwap(tokens);
+  if (swap.length) { for (const i of swap) add('PRONOUN_CASE', i); return [...hits.values()]; }
   if (!p.viable) {
     // Not finishable. Explain the most likely reason.
     const noWords = tokens.map((t) => ({ ...t, word: null }));
@@ -74,6 +78,27 @@ function structural(tokens: Token[], a: Analysis): ViolationHit[] {
     for (const cl of a.clauses) if (cl.advs.length || cl.open !== undefined) add('ADV_NO_VERB', cl.advs[0] ?? cl.open!);
   }
   return [...hits.values()];
+}
+
+// Pronoun case: he / him, she / her, I / me, we / us, they / them. The
+// pronouns whose case, once swapped, lets the sentence fit.
+export const SUBJ_OF: Record<string, string> = { me: 'I', him: 'he', her: 'she', us: 'we', them: 'they' };
+export const OBJ_OF: Record<string, string> = { I: 'me', he: 'him', she: 'her', we: 'us', they: 'them' };
+export function caseSwap(tokens: Token[]): number[] {
+  const out: number[] = [];
+  const now = parse(tokens);
+  const cost = now.viable ? now.cost : Infinity;
+  if (cost === 0) return out;
+  tokens.forEach((t, i) => {
+    if (t.pos !== 'R' || !t.word) return;
+    const w = t.word === 'I' || t.word === 'i' ? 'I' : t.word.toLowerCase();
+    const other = SUBJ_OF[w] ?? OBJ_OF[w];
+    if (!other) return;
+    const next = tokens.map((x, k) => (k === i ? { ...x, word: other } : x));
+    const p2 = parse(next);
+    if (p2.viable && p2.cost < cost) out.push(i);
+  });
+  return out;
 }
 
 export function validateSentence(draft: Draft): Validation {

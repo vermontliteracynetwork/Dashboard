@@ -12,7 +12,7 @@ export interface ClauseInfo {
   open?: number;
   subj: NP[]; subjConj?: number; subjPron?: number;
   verbs: number[]; verbConj?: number;
-  obj?: NP; objPron?: number;
+  obj?: NP; objPron?: number; subjMid?: boolean;
   advs: number[]; advConj?: number;
   preps: number[]; prepConj?: number; pp?: NP;
 }
@@ -28,7 +28,8 @@ export function analyze(tokens: Token[], p: Parse = parse(tokens)): Analysis {
   const out: Analysis = { parse: p, clauses: [] };
   const npFor = (cl: ClauseInfo, key: string): NP => {
     if (key === 'subj') { if (!cl.subj[0]) cl.subj[0] = emptyNP(); return cl.subj[0]; }
-    if (key === 'subj2') { if (!cl.subj[1]) cl.subj[1] = emptyNP(); return cl.subj[1]; }
+    if (key === 'subjm') { cl.subjMid = true; if (!cl.subj[1]) cl.subj[1] = emptyNP(); return cl.subj[1]; }
+    if (key === 'subj2') { const k = cl.subjMid ? 2 : 1; if (!cl.subj[k]) cl.subj[k] = emptyNP(); return cl.subj[k]; }
     if (key === 'obj') { if (!cl.obj) cl.obj = emptyNP(); return cl.obj; }
     if (!cl.pp) cl.pp = emptyNP(); return cl.pp;
   };
@@ -69,7 +70,7 @@ export function subjectIsPlural(tokens: Token[], cl: ClauseInfo): boolean {
   const nounPlural = (np?: NP) => !!(np?.noun !== undefined && nounByWord.get((tokens[np.noun].word ?? '').toLowerCase())?.plural);
   if (cl.subj.length > 1) {
     const conj = cl.subjConj !== undefined ? (tokens[cl.subjConj].word ?? 'and').toLowerCase() : 'and';
-    return conj === 'and' ? true : nounPlural(cl.subj[1]);
+    return conj === 'and' ? true : nounPlural(cl.subj[cl.subj.length - 1]);
   }
   return nounPlural(cl.subj[0]);
 }

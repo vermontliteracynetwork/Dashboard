@@ -75,7 +75,7 @@ export type TypedCheck =
   | { kind: 'base'; base: string }
   | { kind: 'otherPos'; pos: DictPos[] }
   | { kind: 'notfound' | 'offline' | 'blocked' };
-const IRREGULAR_PLURAL: Record<string, string> = { child: 'children', mouse: 'mice', person: 'people', man: 'men', woman: 'women', foot: 'feet', tooth: 'teeth', goose: 'geese', ox: 'oxen', fish: 'fish', sheep: 'sheep', deer: 'deer' };
+export const IRREGULAR_PLURAL: Record<string, string> = { child: 'children', mouse: 'mice', person: 'people', man: 'men', woman: 'women', foot: 'feet', tooth: 'teeth', goose: 'geese', ox: 'oxen', fish: 'fish', sheep: 'sheep', deer: 'deer' };
 const ingForms = (b: string) => [`${b}ing`, `${b.replace(/e$/, '')}ing`, `${b}${b.slice(-1)}ing`, b.endsWith('ie') ? `${b.slice(0, -2)}ying` : ''];
 const pluralOf = (b: string) => IRREGULAR_PLURAL[b] ?? (/(s|sh|ch|x|z)$/.test(b) ? `${b}es` : /[^aeiou]y$/.test(b) ? `${b.slice(0, -1)}ies` : `${b}s`);
 // A typed word is a form of a base word only when the base really makes
@@ -97,6 +97,16 @@ export async function checkTyped(q: string, pos: DictPos, inBank: (w: string) =>
   const r = await lookupWord(w, fetchImpl);
   if (r.status === 'ok') return r.pos.includes(pos) ? { kind: 'ok', word: w } : { kind: 'otherPos', pos: r.pos };
   return { kind: r.status };
+}
+
+// The past a verb would have if it followed the rule (walk, walked). For
+// the Irregular Past Press: "goed" goes in, "went" comes out.
+export function regularPast(base: string): string {
+  const b = cleanWord(base);
+  if (b.endsWith('e')) return `${b}d`;
+  if (/[^aeiou]y$/.test(b)) return `${b.slice(0, -1)}ied`;
+  if (/^[^aeiou]*[aeiou][^aeiouwxy]$/.test(b)) return `${b}${b.slice(-1)}ed`;
+  return `${b}ed`;
 }
 
 export function verbForms(base: string): { third: string; past: string } {
@@ -134,7 +144,7 @@ export function pluralNounOf(word: string): string {
   const w = cleanWord(word);
   if (!w || word !== word.toLowerCase()) return word; // names stay as they are
   const e = nounByWord.get(w);
-  if (e?.plural || e?.group || e?.singular) return w;
+  if (e?.plural || e?.group || e?.singular || e?.proper) return w;
   const p = pluralOf(w);
   if (p === w) return w;
   if (!nounByWord.has(p)) nounByWord.set(p, { ...(e ?? { tier: 3 as const, kind: 'thing' as const, rig: 'object' as const, emoji: '📖', pack: 'custom' as Pack }), word: p, plural: true, noA: true, singular: w });

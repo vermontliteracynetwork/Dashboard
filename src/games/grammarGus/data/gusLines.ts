@@ -14,6 +14,10 @@ import type { RubricCode, Violation } from '../engine/types';
 type Line = { joke: string; fix: string };
 
 export const GATE_LINES: Partial<Record<Violation, Line[]>> = {
+  PRONOUN_CASE: [
+    { joke: '"Him jumped"? My turnstile just spun in a circle and bonked itself.', fix: 'A doer pronoun goes first: I, he, she, we, they. After the action: me, him, her, us, them.' },
+    { joke: 'Right pronoun, wrong door. Very confusing for the pronoun.', fix: 'Swap it: he or him, she or her, I or me. A Subject and Object Turnstile can do it for you.' },
+  ],
   NO_SUBJECT: [
     { joke: 'Ahem. A sentence about... nobody? How mysterious. How incorrect.', fix: 'Add a WHO. Who or what is it about?' },
     { joke: 'My machine refuses to run for an invisible character.', fix: 'Put a noun or a pronoun in WHO.' },

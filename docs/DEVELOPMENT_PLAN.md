@@ -722,6 +722,47 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Workboard round 6 (the 5 SOON parts, names, lists of three, him and her, combos, sound words on the TV, word reel). SHIPPED 2026-10-07 (direct teacher instructions)
+
+**Her words, verbatim:**
+1. "keep building"
+2. "https://www.sentenceplay.co.uk/games/sentence-laboratory https://rollama.com/orderarama/sentence-builder/ https://www.englishoo.com/sentence-builder-game sdding as references for grammar gus" with two screenshots:
+   - **Exhibit A English Club chart:** color-coded columns for closed questions (do/does yellow, Subject red, Verb blue, Complement orange) and their answers (Yes/No, Subject Pronoun, do/does, Not), plus a grey bin labeled "Put extra words here."
+   - **An iPad slot-machine sentence builder:** word reels (He / is / smelling / will / tight.) the student spins, then taps Select, and a cartoon acts out the sentence.
+
+**Reference notes (kept for every future Gus round):** the three sites are blocked from the build sandbox, so their notes come from the screenshots. Taken from them:
+- **Word reel** (built this round): spin a word like a slot reel.
+- **Question and answer machines** (queued, below).
+- **Spare Parts Bin** for extra words (queued).
+- Color columns that match each word job, which the Workboard's symbol colors already do.
+
+**What shipped:**
+- **The 5 SOON parts** from `docs/grammar-gus/CONTRAPTION_PARTS.md`:
+  - **Proper Name Stamp:** names (Mia, Ava, Zoe, Leo, Max, Gus, Vermont, Boston, Paris, Mars) need no article and always get a capital letter. "Mia jumps." "The cat runs to Vermont." Names show over the actor in the movie.
+  - **Plural Crusher** (the catalog's Irregular Trapdoor): CRUNCH! mouse → mice, child → children, man → men, goose → geese, foot → feet, tooth → teeth, person → people, ox → oxen. The action word agrees ("The mice jump.").
+  - **Irregular Past Press:** holds verbs whose past breaks the rule. In the past it pops STAMP! not "goed": went!
+  - **Comma List Train:** lists of three who words, with the list commas. "The cat, the dog, and the frog run."
+  - **Pronoun Turnstile:** object pronouns (me, him, her, us, them) now work after the action ("The cat chases him."). The Pronoun machine offers them. "Him jumps" is caught kindly as a new checklist item, "Pronouns in the right place". The Turnstile bonks it into "He jumps."
+- **Engine:**
+  - Names with no article.
+  - Subjects that are a list of three, with their commas.
+  - Object pronouns, and pronoun case checking (new code PRONOUN_CASE, teacher report name "Pronoun case (he / him)").
+- **Combos** (chain reactions, always caused by the grammar, never random):
+  - The seven combos are Plural Pileup, Time Warp, Dramatic Entrance, Big Merge, Road Closed Repair, Name Parade and Pronoun Shuffle.
+  - A combo goes off when its parts are on a machine that earns 3 stars. A COMBO! banner and a fanfare play, and Gus cheers.
+  - The first time each combo is found it pays 5 gears.
+  - The sticker shelf shows the combos found so far; the ones not yet found show as ???.
+- **Sound words on the Pixel TV:** the machine's fun parts pop their sound words over the movie (calm mode hides them).
+- **Word reel** in every word menu: ▲ and ▼ (or a swipe on the reel window) spin the word to the one before or after, live, with a tick.
+- Tests: 5 new. Full Gus suite: 274 passing.
+
+**Queued next:**
+1. **Question and answer machines** (from her chart): closed questions with do and does ("Does the cat jump?"), short answers ("Yes, it does." "No, it does not."), and a question mark part. The engine needs question word order first; this is the catalog's Question Crane.
+2. **Spare Parts Bin** (from her chart): a bin on the floor for extra word machines, so the board stays tidy and nothing is lost.
+3. LATER parts: Possessive Tag Gun, Size-Up Inflator, Because Seesaw, Speech Bubble Blower.
+4. Claudia's round 4 game ideas: Mystery Crate, Echo Megaphone, Time Warp Toaster, Plural Photocopier, Silly Sentence Slot Machine (the word reel is its first step).
+5. The earlier open items listed in round 4.
+
 ### Grammar Gus: Workboard round 5 (all 14 NOW parts from Claudia's catalog, the Clock rewrites the action words, parts only run in the right order). SHIPPED 2026-10-07 (direct teacher instructions)
 
 **Her words, verbatim:**

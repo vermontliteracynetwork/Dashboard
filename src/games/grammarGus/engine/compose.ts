@@ -33,6 +33,8 @@ export function requiredCommas(a: Analysis): number[] {
   if (c1?.open !== undefined) out.push(c1.open);
   const c2 = a.clauses[1];
   if (c2?.open !== undefined && a.clauseConj !== undefined) out.push(a.clauseConj - 1);
+  // A list of three: a comma after each item before "and" (Comma List Train).
+  for (const cl of a.clauses) if (cl.subj.length === 3) for (const np of cl.subj.slice(0, 2)) { const last = np.noun ?? Math.max(np.art ?? -1, ...np.adjs); if (last >= 0) out.push(last); }
   return out;
 }
 
@@ -112,6 +114,7 @@ export function compose(draft: Draft): Composed {
     }
     if (t.pos === 'R' && text === 'I') text = full || capitals.has(i) ? 'I' : 'i';
     if (t.pos === 'I') text = text.toLowerCase();
+    if (t.pos === 'N' && nounByWord.get(text)?.proper) text = cap(text); // names always get a capital letter
     if (capitals.has(i)) text = cap(text);
     if (t.pos === 'I' && marks.shoutMark) text += '!';
     if (commas.has(i)) text += ',';

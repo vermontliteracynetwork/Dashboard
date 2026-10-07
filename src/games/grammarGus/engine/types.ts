@@ -30,7 +30,9 @@ export type Violation =
   // Two codes the plan's rules need that its list did not name (section 3.5
   // "two verbs side by side" and section 12 "intransitive verbs never get an
   // object"). Recorded in the dev plan.
-  | 'NO_JOIN' | 'EXTRA_OBJECT' | 'EMPTY_SOCKET' | 'BAD_SHAPE';
+  | 'NO_JOIN' | 'EXTRA_OBJECT' | 'EMPTY_SOCKET' | 'BAD_SHAPE'
+  // Workboard round 6 (2026-10-07): he / him, I / me in the wrong place.
+  | 'PRONOUN_CASE';
 
 export interface ViolationHit { code: Violation; targets: number[]; insertAt?: number; blocking: boolean }
 

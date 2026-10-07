@@ -34,6 +34,7 @@ const DEFS: Def[] = [
     applies: (c) => c.v.violations.some((x) => x.code === 'NO_OBJECT' || x.code === 'EXTRA_OBJECT') || c.v.analysis.clauses.some((cl) => !!cl.obj || cl.objPron !== undefined) },
   { id: 'agree', group: 'match', label: 'WHO and the verb match', grownUp: 'subject-verb agreement', hint: 'Say it out loud: the cats run.', codes: ['AGREEMENT'],
     applies: (c) => c.has('V') && (c.has('N') || c.has('R')), studentDoes: ['guided', 'challenge'] },
+  { id: 'case', group: 'match', label: 'Pronouns in the right place', grownUp: 'pronoun case', hint: 'First: I, he, she, we, they. After the action: me, him, her, us, them.', codes: ['PRONOUN_CASE'], applies: (c) => c.has('R') },
   { id: 'time', group: 'match', label: 'The verb matches the time', grownUp: 'tense', hint: 'Use a verb for the time on the crank.', codes: ['TENSE'],
     applies: (c) => c.has('V'), studentDoes: ['guided', 'challenge'], requiredAt: ['challenge'] },
   { id: 'aan', group: 'describe', label: 'a or an sounds right', grownUp: 'a / an', hint: 'Listen to the next word.', codes: ['A_AN', 'A_WITH_PLURAL'],

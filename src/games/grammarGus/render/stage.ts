@@ -379,6 +379,7 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
     if (a.s.poof && !opts.calm) { fb.ellipse(a.s.x - 4, GROUND - 10, 4, 3, C.white); drawStar(fb, a.s.x + 2, top - 6, C.yellow); }
     if (a.s.word) drawTextCentered(fb, a.s.word, a.s.x, Math.max(14, top - 11), C.yellow);
     else if (a.s.tags.length) drawTextCentered(fb, a.s.tags[0], a.s.x, Math.max(14, top - 11), C.white);
+    else if (nounByWord.get(a.m.noun)?.proper) drawTextCentered(fb, a.m.noun.charAt(0).toUpperCase() + a.m.noun.slice(1), a.s.x, Math.max(14, top - 11), C.yellow); // a name: Mia, Vermont
     else if (nounByWord.get(a.m.noun)?.pack === 'custom') drawTextCentered(fb, a.m.noun, a.s.x, Math.max(14, top - 11), C.white); // a dictionary word: its name shows
   };
   for (const a of states) if (a.s.behind) drawActor(a);

@@ -62,5 +62,9 @@ export const gusSound = {
   tick: () => { for (let i = 0; i < 4; i++) tone(1800, 0.03, 'square', 0.025, undefined, i * 0.09); },
   creak: () => { tone(150, 0.4, 'sawtooth', 0.03, 110); tone(110, 0.12, 'square', 0.05, 80, 0.42); },
   grind: () => { noise(0.4, 0.05); tone(80, 0.4, 'sawtooth', 0.04, 70); },
+  crunch: () => { noise(0.25, 0.09); tone(120, 0.25, 'square', 0.05, 60); },
+  clang: () => { tone(880, 0.3, 'triangle', 0.06, 860); tone(1320, 0.25, 'sine', 0.03, undefined, 0.02); },
+  choo: () => { noise(0.18, 0.05); noise(0.18, 0.05, 0.25); tone(587, 0.3, 'triangle', 0.05, undefined, 0.5); tone(740, 0.3, 'triangle', 0.04, undefined, 0.5); },
+  bonk: () => tone(260, 0.18, 'square', 0.05, 120),
   ahem: () => { tone(520, 0.08, 'square', 0.03, 440); tone(660, 0.1, 'square', 0.03, 560, 0.1); },
 };

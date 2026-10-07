@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-combos',
+    date: '2026-10-07',
+    icon: '💥',
+    title: 'Combos, names and weird plurals',
+    body: "Five more machine parts: the Name Stamp (Mia, Vermont), the Plural Crusher (mouse to mice!), the Irregular Past Press (not goed, went!), the Comma List Train and the Pronoun Turnstile (he or him?). Put certain parts together on one machine for a COMBO and bonus gears. Can you find all seven? Spin words with the new reel in any word menu, and watch sound words pop on the TV.",
+  },
+  {
     id: '2026-10-07-gus-gadgets',
     date: '2026-10-07',
     icon: '🔧',

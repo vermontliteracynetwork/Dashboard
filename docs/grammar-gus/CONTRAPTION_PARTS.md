@@ -41,9 +41,11 @@ Every fun part now has a grammar job:
 
 All 14 NOW parts below are on the Workboard, plus a rule from the teacher: parts only run when they are snapped in the right order and the sentence is correct. The Clock now changes the action words to past, present or future.
 
+Round 2 (also 2026-10-07): every SOON part shipped too, the Irregular Trapdoor as the "Plural Crusher" and the Subject and Object Turnstile as the "Pronoun Turnstile." Seven combos go off on a 3-star run (the five below plus Name Parade and Pronoun Shuffle).
+
 ## 1. Capital letters and punctuation
 
-**1. Proper Name Stamp** (SOON)
+**1. Proper Name Stamp** (SOON, shipped)
 - **What it does:** A giant rubber stamp hangs over the pipe. When a name passes, it slams down and a gold capital letter pops up with a clang.
 - **Grammar job:** Names of people, places and days start with a capital letter.
 - **Trains:** Proper nouns.
@@ -55,7 +57,7 @@ All 14 NOW parts below are on the Workboard, plus a rule from the teacher: parts
 - **Trains:** Choosing end punctuation on purpose.
 - **Example:** "The roof is on fire." becomes "The roof is on fire!"
 
-**3. Comma List Train** (SOON)
+**3. Comma List Train** (SOON, shipped)
 - **What it does:** A little train with one cart per item. Each coupler between carts is a comma, and the last cart hooks on with an "and" hook.
 - **Grammar job:** Commas between items in a list.
 - **Trains:** Commas in a series.
@@ -69,7 +71,7 @@ All 14 NOW parts below are on the Workboard, plus a rule from the teacher: parts
 
 ## 2. Nouns and articles
 
-**5. Irregular Trapdoor** (SOON)
+**5. Irregular Trapdoor** (SOON, shipped)
 - **What it does:** The Duplicator's weird cousin. The marble drops through a trapdoor and comes out odd: a cartoon "mouses" gets crushed and "mice" comes out.
 - **Grammar job:** Irregular plurals.
 - **Trains:** Irregular plural nouns.
@@ -89,7 +91,7 @@ All 14 NOW parts below are on the Workboard, plus a rule from the teacher: parts
 - **Trains:** Pronoun reference.
 - **Example:** "Mia fed the cat. Mia smiled." becomes "Mia fed the cat. She smiled."
 
-**8. Subject and Object Turnstile** (SOON)
+**8. Subject and Object Turnstile** (SOON, shipped)
 - **What it does:** A two-way gate. The doer side lets I, he and she through. The receiver side lets me, him and her through. A wrong pronoun makes the gate spin and bonk.
 - **Grammar job:** Pronoun case.
 - **Trains:** Subject pronouns and object pronouns.
@@ -115,7 +117,7 @@ All 14 NOW parts below are on the Workboard, plus a rule from the teacher: parts
 - **Trains:** Consistent verb tense.
 - **Example:** "Last night, we walk" becomes "Last night, we walked."
 
-**12. Irregular Past Press** (SOON)
+**12. Irregular Past Press** (SOON, shipped)
 - **What it does:** A heavy press. "goed" goes in and "went" gets stamped out.
 - **Grammar job:** True irregular past forms.
 - **Trains:** Irregular past verbs.
