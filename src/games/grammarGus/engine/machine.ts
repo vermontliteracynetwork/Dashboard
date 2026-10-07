@@ -1,5 +1,5 @@
 import type { Pos, Token } from './types';
-import { ADJECTIVES, ADVERBS, INTERJECTIONS, NOUNS, PREPOSITIONS, SUBJECT_PRONOUNS, VERBS, verbByBase } from '../data/wordbank';
+import { ADJECTIVES, ADVERBS, INTERJECTIONS, NOUNS, PREPOSITIONS, SUBJECT_PRONOUNS, VERBS, verbByBase, isPackWord, type Pack } from '../data/wordbank';
 
 // The sentence machine's model (plan 4): housings, their sockets, and how
 // the parts on the machine become rail tokens. Shared by the machine
@@ -30,10 +30,18 @@ export const HOUSINGS: { id: HousingId; label: string; slots: MachineSlot[] }[] 
 ];
 export const SLOT_BY_KEY = new Map(HOUSINGS.flatMap((h) => h.slots.map((s) => [s.key, { ...s, housing: h.id }] as const)));
 
+// Word pools. POOLS is the core word list (the Hopper, Orders and Remix
+// use it); interest packs join the Parts Bin when the teacher turns them on.
+const core = <T extends { pack: Pack }>(xs: T[]) => xs.filter((x) => !isPackWord(x.pack));
+export const CORE_VERBS = core(VERBS);
 export const POOLS: Record<Pos, string[]> = {
-  A: ['a', 'the'], N: NOUNS.map((n) => n.word), J: ADJECTIVES.map((a) => a.word), D: ADVERBS.map((a) => a.word),
-  V: VERBS.map((v) => v.base), P: PREPOSITIONS, R: [...SUBJECT_PRONOUNS], I: [...INTERJECTIONS], C: ['and', 'but', 'or'],
+  A: ['a', 'the'], N: core(NOUNS).map((n) => n.word), J: core(ADJECTIVES).map((a) => a.word), D: core(ADVERBS).map((a) => a.word),
+  V: CORE_VERBS.map((v) => v.base), P: PREPOSITIONS, R: [...SUBJECT_PRONOUNS], I: [...INTERJECTIONS], C: ['and', 'but', 'or'],
 };
+export function packWords(pos: Pos, packs: string[]): string[] {
+  const on = <T extends { pack: Pack }>(xs: T[]) => xs.filter((x) => isPackWord(x.pack) && packs.includes(x.pack));
+  return pos === 'N' ? on(NOUNS).map((n) => n.word) : pos === 'J' ? on(ADJECTIVES).map((a) => a.word) : pos === 'D' ? on(ADVERBS).map((a) => a.word) : pos === 'V' ? on(VERBS).map((v) => v.base) : [];
+}
 
 export type Words = Record<string, string | null>;
 

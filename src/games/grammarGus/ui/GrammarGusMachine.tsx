@@ -13,7 +13,7 @@ import { makeLonger, makeShorter, pronounSwap, rollPart, sillySwap, type Machine
 import { STICKERS, compareOrder, makeOrder, orderCard, type Order } from '../engine/orders';
 import { MAX_ATTEMPTS, type Attempt, type BlueprintDone } from '../engine/report';
 import { buildLines, fillLine, frameworkScript, frameworkText, lineText, machineSetupFor, matchesBlueprint, needsWord, reviewFramework, type BuildLine } from '../engine/framework';
-import { HOUSINGS, POOLS, SLOT_BY_KEY, buildTokens, housingById, housingInUse, orderFor, type HousingId, type Words } from '../engine/machine';
+import { HOUSINGS, POOLS, SLOT_BY_KEY, packWords, buildTokens, housingById, housingInUse, orderFor, type HousingId, type Words } from '../engine/machine';
 import { CHEERS, GATE_LINES, GREETINGS, RUBRIC_LINES, lineFor } from '../data/gusLines';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { sillyLabel } from '../engine/silly';
@@ -514,8 +514,8 @@ export default function GrammarGusMachine() {
     if (curLine) { applyLine(curLine, bp?.setup, shapeIdx); say('Fresh parts for this line. The blueprint stays.', 'New machine'); return; }
     setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); setForms({}); setCaps([]); setEndMark(null); setShoutMark(false); setOpenerComma(false); setStory([]); setTimeOnPurpose(false); changed(); setSelected('who.noun'); say('A fresh machine. Gleaming. Full of grammatical promise.', 'New machine'); };
 
-  const options = selectedSlot.pos === 'V' && settings.gentleOnly ? POOLS.V.filter((w) => verbByBase.get(w)?.gentle !== false)
-    : selectedSlot.pos === 'A' && level === 'challenge' ? ['a', 'an', 'the'] : POOLS[selectedSlot.pos];
+  const options = selectedSlot.pos === 'V' && settings.gentleOnly ? [...POOLS.V, ...packWords('V', settings.packs)].filter((w) => verbByBase.get(w)?.gentle !== false)
+    : selectedSlot.pos === 'A' && level === 'challenge' ? ['a', 'an', 'the'] : [...POOLS[selectedSlot.pos], ...packWords(selectedSlot.pos, settings.packs)];
   const wordTile = (w: string) => {
     const emoji = selectedSlot.pos === 'N' ? nounByWord.get(w)?.emoji : undefined;
     const active = (selected === 'who.pron' ? words['who.pron'] : words[selected]) === w;

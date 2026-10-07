@@ -6,7 +6,11 @@
 
 export type Rig = 'biped' | 'quadruped' | 'critter' | 'bird' | 'serpent' | 'vehicle' | 'object' | 'weather' | 'prop';
 export type NounKind = 'human' | 'animal' | 'thing';
-export type Pack = 'core' | 'example' | 'color' | 'action';
+export type Pack = 'core' | 'example' | 'color' | 'action' | 'space' | 'ocean';
+// Interest word packs (plan 17.5). The teacher turns them on or off; they
+// follow the same data model and agreement rules as every other word.
+export const WORD_PACKS: { id: Pack; name: string; icon: string }[] = [{ id: 'space', name: 'Space', icon: '🚀' }, { id: 'ocean', name: 'Ocean', icon: '🌊' }];
+export const isPackWord = (p: Pack) => p === 'space' || p === 'ocean';
 
 export interface NounEntry {
   word: string; tier: 1 | 2 | 3; kind: NounKind; rig: Rig; emoji: string; pack: Pack;
@@ -60,6 +64,18 @@ export const NOUNS: NounEntry[] = [
     n('window', 3, 'thing', 'prop', '🪟'), n('floor', 3, 'thing', 'prop', '🟫'), n('table', 3, 'thing', 'prop', '🪑'),
     n('kitchen', 3, 'thing', 'prop', '🍳'), n('door', 3, 'thing', 'prop', '🚪'), n('bus', 3, 'thing', 'vehicle', '🚌', { size: 'big' }),
   ].map((e) => ({ ...e, pack: 'example' as Pack }))),
+  // Space pack.
+  ...([
+    n('astronaut', 3, 'human', 'biped', '🧑‍🚀'), n('alien', 3, 'animal', 'biped', '👽'), n('robot', 3, 'thing', 'biped', '🤖'),
+    n('rocket', 3, 'thing', 'vehicle', '🚀', { size: 'big' }), n('planet', 3, 'thing', 'object', '🪐', { size: 'big' }),
+    n('moon', 3, 'thing', 'object', '🌙'), n('comet', 3, 'thing', 'object', '☄️'),
+  ].map((e) => ({ ...e, pack: 'space' as Pack }))),
+  // Ocean pack.
+  ...([
+    n('shark', 3, 'animal', 'critter', '🦈', { size: 'big' }), n('octopus', 3, 'animal', 'critter', '🐙'), n('whale', 3, 'animal', 'critter', '🐋', { size: 'big' }),
+    n('crab', 3, 'animal', 'critter', '🦀', { size: 'small' }), n('jellyfish', 3, 'animal', 'critter', '🪼', { size: 'small' }),
+    n('submarine', 3, 'thing', 'vehicle', '🚢', { size: 'big' }), n('shell', 3, 'thing', 'object', '🐚', { size: 'small' }),
+  ].map((e) => ({ ...e, pack: 'ocean' as Pack }))),
 ];
 
 export interface VerbEntry {
@@ -89,6 +105,12 @@ export const VERBS: VerbEntry[] = [
   // Start of the Action Pack (the white cat / black cat example needs attack).
   v('attack', 'attacks', 'attacked', 'T', 'pounce', 'action', false), v('chase', 'chases', 'chased', 'T', 'chase', 'action'),
   v('hug', 'hugs', 'hugged', 'T', 'hug', 'action'),
+  // Space pack.
+  v('float', 'floats', 'floated', 'I', 'fly', 'space'), v('zoom', 'zooms', 'zoomed', 'I', 'run', 'space'),
+  v('beep', 'beeps', 'beeped', 'I', 'talk', 'space'), v('orbit', 'orbits', 'orbited', 'B', 'spin', 'space'),
+  // Ocean pack.
+  v('dive', 'dives', 'dived', 'I', 'swim', 'ocean'), v('splash', 'splashes', 'splashed', 'I', 'jump', 'ocean'),
+  v('tickle', 'tickles', 'tickled', 'T', 'hug', 'ocean'),
 ];
 
 export type AdjKind = 'feeling' | 'size' | 'age' | 'look' | 'color';
@@ -104,11 +126,15 @@ export const ADJECTIVES: AdjEntry[] = [
   ...adj('look', 'core', 'bald'),
   ...adj('look', 'example', 'hard'),
   ...adj('color', 'color', 'red blue green yellow white black pink purple orange brown gray striped spotted'),
+  ...adj('feeling', 'space', 'cosmic'), ...adj('look', 'space', 'shiny glowing'),
+  ...adj('look', 'ocean', 'slimy sparkly soggy'),
 ];
 
 export const ADVERBS: { word: string; pack: Pack }[] = [
   ...'gently innocently lightly loudly messily quickly quietly slowly softly swiftly tenderly warmly wildly zealously'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'proudly safely'.split(' ').map((word) => ({ word, pack: 'example' as Pack })),
+  ...'weirdly silently'.split(' ').map((word) => ({ word, pack: 'space' as Pack })),
+  ...'gracefully sneakily'.split(' ').map((word) => ({ word, pack: 'ocean' as Pack })),
 ];
 
 export const PREPOSITIONS: string[] = 'above across along around below behind down from in into on over past through to under underneath up upon within at'.split(' ');

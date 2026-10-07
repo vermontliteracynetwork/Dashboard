@@ -722,6 +722,28 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: word packs (Space and Ocean). SHIPPED 2026-10-07 (plan 17.5)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan in the background. The plan says "Ship Core plus two packs in v1".
+- **🚀 Space pack:**
+  - Naming words: astronaut (helmet and suit), alien (green, antennae), robot (box head, blue eyes), rocket (flame flickers), planet (ringed), moon (craters), comet (streaming tail).
+  - Action words: float, zoom, beep, orbit. Describing words: cosmic, shiny, glowing. How words: weirdly (zigzag), silently ("shh").
+- **🌊 Ocean pack:**
+  - Naming words: shark (fin and teeth), octopus (wiggling arms), whale (spout), crab (claws that snap), jellyfish, submarine (periscope and portholes), shell.
+  - Action words: dive, splash, tickle. Describing words: slimy, sparkly, soggy. How words: gracefully (feather), sneakily ("shh").
+- Every pack word has its own pixel drawing and a real animation. It follows the same grammar rules (verb forms, which verbs need a thing, and so on) and is checked by the same tests, including the every-noun-times-every-verb video test.
+- **Teacher control:** Game tab, Grammar Gus settings, new **Word packs** toggles (🚀 Space, 🌊 Ocean). Both start on. Pack words join the Parts Bin; the Hopper, Orders and Remix stick to the core word list.
+- **Did it differently:** the plan has packs unlocking with cheese gears or by the teacher. v1 uses the teacher switch only, so there is no gear price to decide yet.
+- **Not built yet from plan 17.5:** the teacher word tool (add a student's special-interest word with its forms and a picture), and more packs (Dinosaurs, Food, Superheroes, Trains and Cars).
+- Full suite: 233 passing.
+- **Grammar Gus plan status after this push:** every main system in the plan now has a first version. The plan's remaining items are:
+  - Golden Gear Contest: needs her decision on the $5 prize.
+  - Waiting on question grammar or more machine parts: "Why Did the...?", Recipe, Show and Tell and Letter blueprints, and the Question Machine.
+  - Slot-machine Spin mode with reels, locks and drums (plan 14 to 16 and 19.3).
+  - The Workshop free rail (plan 17).
+  - Teacher tools: word tool, framework editor, written orders.
+  - PDF reports, buddy sharing and video export.
+
 ### Grammar Gus: the Garage (machine skins). SHIPPED 2026-10-07 (plan 8.7 and 19.2)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
@@ -736,7 +758,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **iPad:** below 900px wide the header buttons get a little narrower and the row can scroll sideways as a safety net. They fit at 768px portrait (checked).
 - **Did it differently:** all skins are free in v1, following the plan's "basics are free" rule. Pricing in gears (plan 19.1) waits for her call.
 - **Not built yet from plan 19:** lever styles, sound sets, celebration styles, stickers placed on the cabinet, Gus costumes, part variants, and saved machine Blueprints (6 slots). Reel and drum options belong to the slot-machine Spin mode, which is not built.
-- **Still in progress next (same background build):** word packs (plan 17.5: Core plus two interest packs). Golden Gear Contest still waits on her call on the $5 policy.
+- **Next after this:** word packs (done, see the word packs entry above). Golden Gear Contest still waits on her call on the $5 policy.
 
 ### Grammar Gus: Remix tools, Label It! and Symbol Match. SHIPPED 2026-10-07 (plan 17.6 and 18.7)
 

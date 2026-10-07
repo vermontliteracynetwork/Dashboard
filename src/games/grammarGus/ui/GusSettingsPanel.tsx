@@ -1,6 +1,7 @@
 import { useStore } from '../../../store/store';
 import { GUS_SETTINGS_OWNER, useGusSettings, type GusSettings } from '../settings';
 import type { HelpLevel } from '../engine/types';
+import { WORD_PACKS } from '../data/wordbank';
 
 // Teacher settings for Grammar Gus's Contraption (Game tab). Plain teacher
 // styling. Every change saves right away and reaches students live.
@@ -70,6 +71,13 @@ export default function GusSettingsPanel() {
             {pill(!settings.focusMode, 'Show all', () => save({ focusMode: false }))}
             {pill(settings.focusMode, 'Next 3 only', () => save({ focusMode: true }))}
           </div>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          <strong>Word packs</strong>
+          <div className="row-wrap" style={{ gap: 6 }}>
+            {WORD_PACKS.map((wp) => pill(settings.packs.includes(wp.id), `${wp.icon} ${wp.name}`, () => save({ packs: settings.packs.includes(wp.id) ? settings.packs.filter((x) => x !== wp.id) : [...settings.packs, wp.id] })))}
+          </div>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Extra naming, action, describing and how words in the Parts Bin.</span>
         </div>
         <div className="stack" style={{ gap: 6 }}>
           <strong>Machine rumble</strong>

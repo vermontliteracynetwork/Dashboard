@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-packs',
+    date: '2026-10-07',
+    icon: '🚀',
+    title: 'Space and Ocean words for Gus',
+    body: "Gus's Parts Bin has new Space and Ocean words: astronauts, aliens, robots, rockets, sharks, octopuses, whales, submarines and more. Try \"The shiny robot zoomed weirdly.\" and watch it on the pixel screen.",
+  },
+  {
     id: '2026-10-07-gus-garage',
     date: '2026-10-07',
     icon: '🎨',

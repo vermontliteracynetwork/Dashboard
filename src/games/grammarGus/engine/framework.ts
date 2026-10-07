@@ -1,9 +1,9 @@
 import type { Draft, Pos, Tense, Token } from './types';
 import { runSentence, type Run } from './pipeline';
-import { buildTokens, POOLS, SLOT_BY_KEY, type HousingId, type Words } from './machine';
+import { buildTokens, CORE_VERBS, POOLS, SLOT_BY_KEY, type HousingId, type Words } from './machine';
 import { pick, type Rng } from './rng';
 import { DISSOLVE_SECONDS, reviewStory, storyCast, type SealedSentence } from './story';
-import { nounByWord, VERBS, INTERJECTIONS } from '../data/wordbank';
+import { nounByWord, INTERJECTIONS } from '../data/wordbank';
 import type { Framework, FrameworkLine, LinkRule } from '../data/frameworks';
 import { CURTAIN_SECONDS, STAMP_SECONDS, fitBudget, type Look, type Scene, type SceneScript } from '../director/director';
 import type { CastMember } from '../director/cast';
@@ -85,7 +85,7 @@ export function fillLine(line: BuildLine, rng: Rng, o: { tense: Tense; castBefor
     for (const key of st.keys) {
       if (w[key]) continue;
       if (key === 'did.verb') {
-        const pool = VERBS.filter((v) => (hasObj ? v.objectUse !== 'I' : v.objectUse !== 'T') && (!o.gentleOnly || v.gentle !== false)).map((v) => v.base);
+        const pool = CORE_VERBS.filter((v) => (hasObj ? v.objectUse !== 'I' : v.objectUse !== 'T') && (!o.gentleOnly || v.gentle !== false)).map((v) => v.base);
         w[key] = pick(rng, pool);
       } else w[key] = pick(rng, POOLS[key === 'who.pron' ? 'R' : SLOT_BY_KEY.get(key)!.pos]);
     }

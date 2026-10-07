@@ -70,8 +70,8 @@ function biped(m: CastMember, look: Look, pose: Pose): Sprite {
   const p = new Painter(Math.ceil(16 * s * sx), Math.ceil(28 * s * sy));
   const X = (v: number) => v * s * sx; const Y = (v: number) => v * s * sy;
   const h = nameHash(m.noun + m.id);
-  const [skin, skinShade] = SKIN[h % SKIN.length];
-  let [shirt, shirtShade] = m.noun === 'doctor' ? [C.white, C.lightGray] : m.noun === 'spy' ? [C.darkGray, C.black] : SHIRTS[h % SHIRTS.length];
+  const [skin, skinShade] = m.noun === 'alien' ? [C.green, C.grassDark] : m.noun === 'robot' ? [C.lightGray, C.gray] : SKIN[h % SKIN.length];
+  let [shirt, shirtShade] = m.noun === 'doctor' || m.noun === 'astronaut' ? [C.white, C.lightGray] : m.noun === 'spy' ? [C.darkGray, C.black] : m.noun === 'robot' ? [C.gray, C.darkGray] : m.noun === 'alien' ? [C.purple, C.teal] : SHIRTS[h % SHIRTS.length];
   if (look.color && COLOR_SWATCH[look.color]) [shirt, shirtShade] = COLOR_SWATCH[look.color];
   p.shade.set(shirt, shirtShade); p.shade.set(skin, skinShade);
   const swing = [0, 1.8, 0, -1.8][pose.frame % 4];
@@ -80,10 +80,14 @@ function biped(m: CastMember, look: Look, pose: Pose): Sprite {
   p.rect(X(-3.5), Y(-16), X(3.5), Y(-7.5), shirt);
   p.line(X(-3.5), Y(-15), X(-4.5 - swing), Y(-9.5), skin, 1.6);
   p.line(X(3.5), Y(-15), X(4.5 + swing), Y(-9.5), skin, 1.6);
-  p.ellipse(0, Y(-20.5), X(4), Y(4), skin);
+  const space = m.noun === 'astronaut' || m.noun === 'alien' || m.noun === 'robot';
+  if (m.noun === 'robot') { p.rect(X(-4), Y(-24.5), X(4), Y(-17), skin); p.line(0, Y(-24.5), 0, Y(-28), C.gray); p.dot(0, Y(-29), C.red); p.rect(X(-2.5), Y(-13), X(2.5), Y(-11), C.yellow); }
+  else p.ellipse(0, Y(-20.5), X(4), Y(4), skin);
+  if (m.noun === 'alien') { p.line(X(-2), Y(-24), X(-3.5), Y(-28), C.green); p.line(X(2), Y(-24), X(3.5), Y(-28), C.green); p.dot(X(-3.5), Y(-29), C.yellow); p.dot(X(3.5), Y(-29), C.yellow); }
+  if (m.noun === 'astronaut') { p.ring(0, Y(-20.5), 5.6 * s, C.lightGray, 1.5); p.rect(X(-2), Y(-12.5), X(2), Y(-10), C.blue); p.rect(X(-5.5), Y(-15), X(-4), Y(-9), C.lightGray); }
   const long = ['girl', 'woman', 'mom', 'aunt', 'sister', 'grandmother'].includes(m.noun);
   const hair = m.noun === 'grandmother' || m.adjectives.includes('old') ? C.lightGray : [C.brown, C.black, C.orange, C.sepia3][h % 4];
-  if (!m.adjectives.includes('bald')) {
+  if (!m.adjectives.includes('bald') && !space) {
     p.ellipse(0, Y(-23), X(4.2), Y(2.2), hair);
     if (long) { p.rect(X(-4.3), Y(-23), X(-3), Y(-17), hair); p.rect(X(3), Y(-23), X(4.3), Y(-17), hair); }
   }
@@ -91,7 +95,8 @@ function biped(m: CastMember, look: Look, pose: Pose): Sprite {
   if (m.noun === 'doctor') p.dot(X(1.5), Y(-13), C.teal);
   const spr = p.finish();
   const ex = Math.round(X(1.6)) + spr.ax, ey = Math.round(Y(-21)) + spr.ay;
-  setPx(spr, ex, ey, m.noun === 'spy' ? C.black : C.outline);
+  setPx(spr, ex, ey, m.noun === 'spy' ? C.black : m.noun === 'robot' ? C.blue : C.outline);
+  if (m.noun === 'alien' || m.noun === 'robot') setPx(spr, ex - 2, ey, m.noun === 'robot' ? C.blue : C.outline);
   if (m.noun === 'spy') setPx(spr, ex - 2, ey, C.black);
   return spr;
 }
@@ -214,6 +219,34 @@ function critter(m: CastMember, look: Look, pose: Pose): Sprite {
     p.ellipse(0, Y(-5), X(6), Y(4), b);
     for (const [a, c] of [[-2.5, -5.5], [2, -6], [0, -3.5]] as const) p.ellipse(X(a), Y(c), X(1.2), Y(1), sh);
     eyeAt = [X(7.2), Y(-4.6)];
+  } else if (n === 'shark' || n === 'whale') {
+    const whale = n === 'whale';
+    const [b, sh] = colorsFor(m, look, whale ? [C.blue, C.teal] : [C.gray, C.darkGray]);
+    p.shade.set(b, sh);
+    p.tri(X(-8), Y(-6), X(-13), Y(-11 + step * 2), X(-13), Y(-1 - step * 2), sh);
+    if (!whale) p.tri(X(-2), Y(-9), X(1), Y(-15), X(3), Y(-9), sh);
+    p.ellipse(0, Y(-6), X(9.5), Y(whale ? 5 : 3.8), b);
+    p.ellipse(X(1), Y(whale ? -3 : -4.5), X(7), Y(whale ? 2.2 : 1.5), C.white);
+    if (!whale) for (let k = 0; k < 3; k++) p.dot(X(5 + k * 1.2), Y(-4.5), C.white);
+    if (whale && step) { p.line(X(2), Y(-11), X(1), Y(-15), C.skyLight); p.line(X(2), Y(-11), X(3.5), Y(-15), C.skyLight); }
+    eyeAt = [X(6), Y(-7)];
+  } else if (n === 'octopus' || n === 'jellyfish') {
+    const jelly = n === 'jellyfish';
+    const [b, sh] = colorsFor(m, look, jelly ? [C.pink, C.curtainLight] : [C.purple, C.teal]);
+    p.shade.set(b, sh);
+    for (let k = -3; k <= 3; k += jelly ? 2 : 1.5) p.line(X(k), Y(-5), X(k + (step ? 1 : -1) * (k % 2 ? 1 : -1)), 0, jelly ? C.pink : b, jelly ? 1 : 1.6);
+    p.ellipse(0, Y(-8), X(jelly ? 5 : 5.5), Y(jelly ? 4 : 5), b);
+    if (jelly) p.rect(X(-5), Y(-5), X(5), Y(-4.5), sh);
+    eyeAt = [X(2), Y(-8)];
+  } else if (n === 'crab') {
+    const [b, sh] = colorsFor(m, look, [C.red, C.curtainDark]);
+    p.shade.set(b, sh);
+    for (const lx of [-4, -2, 2, 4]) p.line(X(lx), Y(-2), X(lx + (lx < 0 ? -1.5 : 1.5)), Y(step && lx > 0 ? -0.5 : 0), b);
+    p.ellipse(0, Y(-4), X(5), Y(3), b);
+    p.ellipse(X(-6.5), Y(-7.5 - step), X(1.8), Y(1.6), b); p.ellipse(X(6.5), Y(-7.5 - (1 - step)), X(1.8), Y(1.6), b);
+    p.line(X(-4), Y(-5), X(-6), Y(-7), b); p.line(X(4), Y(-5), X(6), Y(-7), b);
+    p.line(X(-1), Y(-6), X(-1), Y(-8.5), C.outline); p.line(X(1), Y(-6), X(1), Y(-8.5), C.outline);
+    eyeAt = [X(1), Y(-9)];
   } else {
     // Rat, mice and anything small with a tail.
     const [b, sh] = colorsFor(m, look, [C.gray, C.darkGray]);
@@ -229,6 +262,7 @@ function critter(m: CastMember, look: Look, pose: Pose): Sprite {
   const spr = p.finish();
   eye(spr, eyeAt[0], eyeAt[1]);
   if (n === 'frog') eye(spr, X(-1.2), Y(-9));
+  if (n === 'crab' || n === 'octopus' || n === 'jellyfish') eye(spr, n === 'crab' ? X(-1) : X(-2), n === 'crab' ? Y(-9) : Y(-8));
   return spr;
 }
 
@@ -256,10 +290,10 @@ function serpent(m: CastMember, look: Look, pose: Pose): Sprite {
 function vehicle(m: CastMember, look: Look, pose: Pose): Sprite {
   const { s, sx, sy } = squashXY(look, pose, 1.15);
   const n = m.noun;
-  const wide = n === 'bus' ? 38 : n === 'plane' ? 34 : n === 'wheel' ? 16 : 28;
-  const p = new Painter(Math.ceil(wide * s * sx), Math.ceil(22 * s * sy));
+  const wide = n === 'bus' ? 38 : n === 'plane' || n === 'submarine' ? 38 : n === 'wheel' ? 16 : 28;
+  const p = new Painter(Math.ceil(wide * s * sx), Math.ceil((n === 'rocket' ? 34 : 22) * s * sy));
   const X = (v: number) => v * s * sx; const Y = (v: number) => v * s * sy;
-  const defaults: Record<string, [number, number]> = { car: [C.red, C.curtainDark], van: [C.white, C.lightGray], bus: [C.yellow, C.gold], tank: [C.gray, C.darkGray], bike: [C.blue, C.teal], plane: [C.white, C.lightGray], wheel: [C.darkGray, C.black] };
+  const defaults: Record<string, [number, number]> = { rocket: [C.white, C.lightGray], submarine: [C.yellow, C.gold], car: [C.red, C.curtainDark], van: [C.white, C.lightGray], bus: [C.yellow, C.gold], tank: [C.gray, C.darkGray], bike: [C.blue, C.teal], plane: [C.white, C.lightGray], wheel: [C.darkGray, C.black] };
   const [b, sh] = colorsFor(m, look, defaults[n] ?? [C.red, C.curtainDark]);
   p.shade.set(b, sh);
   const wheel = (cx: number, r: number) => {
@@ -286,6 +320,17 @@ function vehicle(m: CastMember, look: Look, pose: Pose): Sprite {
     p.tri(X(-4), Y(-7), X(4), Y(-7), X(-2), Y(-1), sh);
     for (const wx of [-6, -2, 2, 6]) p.dot(X(wx), Y(-8), C.skyLight);
     p.rect(X(15), Y(-11 + (pose.frame % 2) * 4), X(16), Y(-7 + (pose.frame % 2) * 4), C.gray);
+  } else if (n === 'rocket') {
+    p.tri(X(-4), Y(-4), X(-8), 0, X(-4), Y(-10), C.red); p.tri(X(4), Y(-4), X(8), 0, X(4), Y(-10), C.red);
+    p.rect(X(-4), Y(-22), X(4), Y(-3), b);
+    p.tri(X(-4), Y(-22), X(4), Y(-22), 0, Y(-30), C.red);
+    p.ellipse(0, Y(-15), X(2), Y(2), C.skyLight);
+    if (pose.frame % 2) { p.tri(X(-2.5), Y(-3), X(2.5), Y(-3), 0, Y(1.5), C.orange); p.dot(0, Y(-1), C.yellow); }
+  } else if (n === 'submarine') {
+    p.ellipse(0, Y(-7), X(14), Y(5.5), b);
+    p.rect(X(-3), Y(-15), X(3), Y(-11), b); p.line(X(1), Y(-15), X(1), Y(-19), C.gray); p.line(X(1), Y(-19), X(4), Y(-19), C.gray);
+    for (const wx of [-7, -1, 5]) { p.ellipse(X(wx), Y(-7), X(1.8), Y(1.8), C.skyLight); }
+    p.tri(X(-14), Y(-7), X(-18), Y(-12 + (pose.frame % 2) * 2), X(-18), Y(-2 - (pose.frame % 2) * 2), sh);
   } else if (n === 'tank') {
     // A big rolling water tank on a cart (the word list's tank, drawn like its 🛢️ picture).
     wheel(-8, 2.5); wheel(8, 2.5);
@@ -390,6 +435,29 @@ function object(m: CastMember, look: Look, pose: Pose): Sprite {
     case 'rock': {
       const [b] = col([C.gray, C.darkGray]);
       p.ellipse(0, Y(-3.5), X(5.5), Y(3.5), b); p.ellipse(X(-2), Y(-5), X(2), Y(1.4), b); p.dot(X(1.5), Y(-3), C.darkGray);
+      break;
+    }
+    case 'planet': {
+      const [b, sh] = col([C.orange, C.brown]);
+      p.ellipse(0, Y(-7), X(6), Y(6), b); p.line(X(-4), Y(-9), X(3), Y(-10), sh); p.line(X(-5), Y(-5), X(4), Y(-4), sh);
+      p.line(X(-10), Y(-5), X(10), Y(-9), C.yellow, 1.5); p.dot(X(-2), Y(-10), C.white);
+      break;
+    }
+    case 'moon': {
+      const [b] = col([C.lightGray, C.gray]);
+      p.ellipse(0, Y(-6), X(5.5), Y(5.5), b); p.ellipse(X(-2), Y(-7), X(1.3), Y(1.3), C.gray); p.ellipse(X(2), Y(-4), X(1), Y(1), C.gray); p.dot(X(1.5), Y(-9), C.gray);
+      break;
+    }
+    case 'comet': {
+      const [b] = col([C.yellow, C.gold]);
+      for (let k = 0; k < 4; k++) p.line(X(-2), Y(-6 + k - 1.5), X(-9 - (f % 2) - k), Y(-8 + k * 1.5), k % 2 ? C.orange : C.white);
+      p.ellipse(0, Y(-6), X(3), Y(3), b); p.dot(X(1), Y(-7), C.white);
+      break;
+    }
+    case 'shell': {
+      const [b, sh] = col([C.pink, C.curtainLight]);
+      p.ellipse(0, Y(-3.5), X(4.5), Y(3.5), b);
+      for (const k of [-3, -1.5, 0, 1.5, 3]) p.line(X(k * 0.4), Y(-0.5), X(k), Y(-6), k % 3 ? sh : C.white);
       break;
     }
     default: return blob(m, look);

@@ -1,8 +1,8 @@
 import type { Tense } from './types';
-import { buildTokens, POOLS, SLOT_BY_KEY, type HousingId, type Words } from './machine';
+import { buildTokens, CORE_VERBS, POOLS, SLOT_BY_KEY, type HousingId, type Words } from './machine';
 import { runSentence, type Run } from './pipeline';
 import { pick, type Rng } from './rng';
-import { VERBS, nounByWord, verbByBase } from '../data/wordbank';
+import { nounByWord, verbByBase } from '../data/wordbank';
 
 // Remix tools (plan 17.6). Every tool goes through the grammar engine, so
 // a remixed machine still only makes real sentences: a tool returns null
@@ -17,7 +17,7 @@ const threeStar = (m: MachineState, tense: Tense) => runOf(m, tense).rubric?.sta
 const hasObj = (w: Words) => !!w['obj.noun'] || verbByBase.get(w['did.verb'] ?? '')?.objectUse === 'T';
 
 function candidates(key: string, w: Words, o: Opts): string[] {
-  if (key === 'did.verb') return VERBS.filter((v) => (hasObj(w) && w['obj.noun'] ? v.objectUse !== 'I' : v.objectUse !== 'T') && (!o.gentleOnly || v.gentle !== false)).map((v) => v.base);
+  if (key === 'did.verb') return CORE_VERBS.filter((v) => (hasObj(w) && w['obj.noun'] ? v.objectUse !== 'I' : v.objectUse !== 'T') && (!o.gentleOnly || v.gentle !== false)).map((v) => v.base);
   return POOLS[key === 'who.pron' ? 'R' : SLOT_BY_KEY.get(key)!.pos];
 }
 
