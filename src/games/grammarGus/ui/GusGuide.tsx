@@ -56,11 +56,12 @@ function GusModel({ talkKey, calm }: { talkKey: string; calm: boolean }) {
   );
 }
 
-export default function GusGuide({ message, talkKey, children, mood, calm = false }: {
+export default function GusGuide({ message, talkKey, children, mood, stars, calm = false }: {
   message: string;
   talkKey: string; // changes whenever Gus says something new
   children?: React.ReactNode; // buttons for this moment
-  mood?: string; // small tag: "Steam leak!", "3 stars" ...
+  mood?: string; // small tag: "Steam leak!", "Running" ...
+  stars?: number; // 1 to 3: Gus's star review, shown as gold stars
   calm?: boolean;
 }) {
   useEffect(() => { gusSound.ahem(); }, [talkKey]);
@@ -78,7 +79,7 @@ export default function GusGuide({ message, talkKey, children, mood, calm = fals
       <div className="gus-guide-bar" role="status" aria-live="polite">
         <div className="gus-guide-bubble">
           <div className="gus-guide-name">
-            🧪 Grammar Gus{mood ? <span className="gus-guide-mood">{mood}</span> : null}
+            🧪 Grammar Gus{stars ? <span className="gus-guide-stars" aria-label={`${stars} of 3 stars`}>{[1, 2, 3].map((i) => <img key={i} src={i <= stars ? '/games/ui-kit/gold-star.png' : '/games/ui-kit/gold-star-empty.png'} alt="" />)}</span> : mood ? <span className="gus-guide-mood">{mood}</span> : null}
             <ReadAloud text={message} small npcVoiceProfile={NPC_VOICE_PRESETS['gus-posh']} />
           </div>
           <p className="gus-guide-text">{message}</p>

@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-arcade-picker',
+    date: '2026-10-07',
+    icon: '🕹️',
+    title: 'Pick your game at the arcade',
+    body: 'Every game now sits in its own arcade cabinet. Swipe, or tap the big gold arrows, to slide through them, then tap Play.',
+  },
+  {
+    id: '2026-10-07-gus-drag',
+    date: '2026-10-07',
+    icon: '🏭',
+    title: "Drag parts into Gus's machine",
+    body: "Every word is now a real machine part: a boiler, an engine, a gauge and more. Drag a part onto the machine and it snaps in. Drag it again to move it, or drag it off to recycle it. Watch the lights, and pull START!",
+  },
+  {
     id: '2026-10-07-grammar-gus',
     date: '2026-10-07',
     icon: '🧪',

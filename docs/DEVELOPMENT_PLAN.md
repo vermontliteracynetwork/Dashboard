@@ -722,6 +722,26 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Game picker as an arcade-cabinet slider; teacher UI packs; Gus's factory wall. SHIPPED 2026-10-07 (direct teacher instructions)
+
+- **Her words, verbatim:**
+  - "when showing game options to studnts (ex picking a game to complete an assinged question set) put the cover images in these views and have it on a horizontal slider with left and right arrows". This came with a reference sheet of arcade cabinets: a themed marquee on top, a black screen, and a themed control panel with a joystick and buttons.
+  - With four UI packs: "use for this".
+  - With a factory game screenshot: "this is a reference photo for the grammar game". The screenshot shows riveted purple-gray wall panels, a girder with bolts, a radiation tank, control consoles, hazard-striped crates and red barrels.
+- **Game picker** (`GameCardGrid` in `src/components/GameDashboard.tsx`, used everywhere students pick a game: "Play a game" with a Neighbor, the Games app and Game Dashboard role, pick-your-game assignments, the streak card):
+  - Each game's 16:9 cover sits inside its own arcade cabinet, drawn in code from her reference: a marquee in the game's colors with its icon and name, a black bezel screen, a control panel with a red joystick and three buttons, then the blurb, "My best" and a big green Play.
+  - The cabinets sit on a horizontal slider with big gold left and right arrows (from her gold UI pack; the left arrow fades at the start, the right at the end). Swipe with scroll snap works too, and dots show where you are.
+  - Three cabinets show across in iPad landscape, two in portrait, one on a phone.
+  - Cabinet colors live on each game card (`cabinet` in `src/lib/nativeGames.ts`).
+- **Her UI packs** (copied pieces in `public/games/ui-kit/`, sources in `SOURCES.txt`):
+  - "GUI Interface Kit Free" by Jamie Cross, **CC0**:
+    - Used: the green riveted panel (the Pixel Cinema frame), and the check and X icons (ready for the Inspector's Clipboard).
+    - Copied but not used yet: the riveted steel bar.
+  - "cga_ui_gold": gold arrows (the slider), gold and empty stars (Gus's star reviews in his chat box and the Journal), the gold coin (the gear counter), and the cream-and-gold panel (the Journal). **No license file in that zip: please confirm you have the rights.**
+  - "Basic GUI Bundle" (538 files; buttons, icons, banners, sliders): not used yet, kept for the checklist and settings screens. **No license file either.**
+  - "Ui Pack Version 5 By Zxgly": **cannot be used.** It is a Roblox model file (.rbxm), not images. If you have the PNGs, send those.
+- **Gus's factory wall:** the page background is now riveted purple-gray factory panels with a bolted girder along the top (her reference). The machine's workbench stays the light blueprint grid, now with a yellow-and-black hazard stripe under it, and the cinema has the green riveted frame.
+
 ### Grammar Gus: iPad-first layout, drag-and-drop factory pieces, gizmos, Gus comes alive. SHIPPED 2026-10-07 (direct teacher instructions)
 
 - Her words, verbatim:

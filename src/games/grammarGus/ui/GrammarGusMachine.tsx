@@ -343,7 +343,7 @@ export default function GrammarGusMachine() {
         <button type="button" className="gus-btn" onClick={() => navigate(-1)}>⬅ Back</button>
         <h1>Grammar Gus's Contraption</h1>
         <div className="gus-top-right">
-          <span className="gus-gears" title="Cheese gears">⚙️ {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
+          <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
           <button type="button" className="gus-btn" onClick={() => setJournalOpen(true)}>📓 Journal</button>
           <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
           <button type="button" className={`gus-btn${muted ? ' on' : ''}`} onClick={() => setMuted((m) => !m)} aria-pressed={muted}>{muted ? '🔇' : '🔊'}</button>
@@ -467,14 +467,14 @@ export default function GrammarGusMachine() {
           <div className="gus-journal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Silly Journal">
             <h2>📓 Gus's Silly Journal</h2>
             {(saved.journal ?? []).length === 0 ? <p>No sentences yet. Make a 3-star sentence and tap Save it.</p> : (
-              <ul>{saved.journal!.map((j, i) => <li key={i}><span>{'⭐'.repeat(j.stars)}</span> {j.text}</li>)}</ul>
+              <ul>{saved.journal!.map((j, i) => <li key={i}><span className="gus-guide-stars">{[1, 2, 3].map((k) => <img key={k} src={k <= j.stars ? '/games/ui-kit/gold-star.png' : '/games/ui-kit/gold-star-empty.png'} alt="" />)}</span> {j.text}</li>)}</ul>
             )}
             <button type="button" className="gus-btn" onClick={() => setJournalOpen(false)}>✕ Close</button>
           </div>
         </div>
       )}
 
-      <GusGuide message={gus.message} talkKey={gus.key} mood={gus.mood} calm={calm}>
+      <GusGuide message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
         {(phase === 'leak' || phase === 'review') && <button type="button" className="gus-btn gus-btn-primary" onClick={() => { setPhase('build'); say('Splendid. Fix it up and pull START again.', 'Fix it'); }}>🔧 Fix it</button>}
         {phase === 'done' && <button type="button" className="gus-btn gus-btn-primary" onClick={clearAll}>➕ Build another</button>}
         {phase === 'build' && <button type="button" className="gus-btn gus-btn-primary" onClick={pull}>⚡ Pull START</button>}

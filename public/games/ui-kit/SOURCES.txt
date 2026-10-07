@@ -1,0 +1,2 @@
+gold-*.png: from cga_ui_gold_1.zip, uploaded by the teacher 2026-10-07 (no license file in the zip; the teacher confirms rights).
+riveted-panel-green.png, steel-bar.png, check.png, x.png: GUI Interface Kit Free by Jamie Cross, CC0 (see LICENSE-jamie-cross-CC0.txt).
