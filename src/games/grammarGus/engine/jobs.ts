@@ -1,5 +1,7 @@
 import type { Tense } from './types';
-import { makeOrder } from './orders';
+import { makeOrder, orderCard, type OrderCard, type SceneKey } from './orders';
+import { frameworkById } from '../data/frameworks';
+import type { Pos } from './types';
 import { pick, type Rng } from './rng';
 import type { BoardItem } from './board';
 
@@ -13,9 +15,9 @@ import type { BoardItem } from './board';
 //    capital letters and end punctuation.
 // No timer, no failing: a job is done the first time its machine earns 3 stars.
 
-export type JobKind = 'delivery' | 'inspector';
+export type JobKind = 'delivery' | 'inspector' | 'order' | 'blueprint';
 export type Flaw = 'missing-end' | 'end-middle' | 'missing-cap' | 'cap-late';
-export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw }
+export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }
 export const FLAW_HINTS: Record<Flaw, string> = {
   'missing-end': 'This sentence has no punctuation at the end.',
   'end-middle': 'Some punctuation is in the wrong place.',
@@ -45,4 +47,43 @@ export function makeJob(kind: JobKind, rng: Rng, uid: () => string, o: { gentleO
   if (flaw === 'end-middle') { items = items.filter((i) => i !== stop); items.splice(items.indexOf(words[1]) + 1, 0, stop); }
   if (flaw === 'cap-late') { items = items.filter((i) => i !== cap); items.splice(items.indexOf(words[1]), 0, cap); }
   return { items, job: { id: uid(), kind, text: order.text, flaw }, tense };
+}
+
+// Gus's Orders on the Workboard (moved from the classic machine, teacher
+// 2026-10-07 "run until this dev plan is complete"): Gus posts a scene as
+// pictures and words, never the sentence, and the student builds ANY
+// sentence that makes that scene, with the right time on the Clock.
+export function makeOrderJob(rng: Rng, uid: () => string, o: { gentleOnly?: boolean } = {}): { items: BoardItem[]; job: BoardJob } {
+  const order = makeOrder(rng, o);
+  return {
+    items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: 'present' }, { id: uid(), kind: 'blank', word: null }, { id: uid(), kind: 'tv', word: null }],
+    job: { id: uid(), kind: 'order', text: order.text, key: order.key, card: orderCard(order.key) },
+  };
+}
+
+// Blueprints on the Workboard: a paragraph plan delivered as linked
+// machines, one per sentence, each with its empty word machines in a
+// working order, its label (Beginning, Middle, End) and any fixed lines.
+export const WORKBOARD_BLUEPRINTS = ['silly-story', 'news', 'day-in-the-life', 'rescue', 'knock-knock'];
+export function makeBlueprint(id: string, uid: () => string): { items: BoardItem[]; job: BoardJob; connector?: string }[] {
+  const fw = frameworkById.get(id);
+  if (!fw) return [];
+  const group = uid();
+  const builds = fw.lines.filter((l) => l.kind === 'build');
+  const out: { items: BoardItem[]; job: BoardJob; connector?: string }[] = [];
+  let pending: string[] = [];
+  fw.lines.forEach((l) => {
+    if (l.kind === 'fixed') { pending.push(l.text); return; }
+    if (l.kind !== 'build') return;
+    const shape = l.shapes[0] as Pos[];
+    const words: BoardItem[] = shape.map((pos) => ({ id: uid(), kind: pos, word: pos === 'R' && l.locks?.['who.pron'] ? l.locks['who.pron'] : null }));
+    words[0] = { ...words[0], bottom: { id: uid(), kind: 'cap', word: null } };
+    const k = builds.indexOf(l);
+    const last = k === builds.length - 1;
+    const items: BoardItem[] = [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: fw.tense ?? 'present' }, ...words, { id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }, ...(last ? [] : [{ id: uid(), kind: 'link' as const, word: null }])];
+    out.push({ items, job: { id: uid(), kind: 'blueprint', text: pending.join(' '), group, label: l.label, part: k + 1, of: builds.length, blueprint: fw.id }, connector: l.lead?.replace(/,$/, '') });
+    pending = [];
+  });
+  if (pending.length && out.length) out[out.length - 1].job.text = `${out[out.length - 1].job.text}${out[out.length - 1].job.text ? ' ' : ''}After: ${pending.join(' ')}`;
+  return out;
 }

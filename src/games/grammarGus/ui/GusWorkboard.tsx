@@ -18,7 +18,10 @@ import { reviewStory, storyCast, storyScript, type SealedSentence } from '../eng
 import { POOLS, packWords } from '../engine/machine';
 import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
-import { FLAW_HINTS, makeJob, type Flaw, type JobKind } from '../engine/jobs';
+import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
+import { compareOrder } from '../engine/orders';
+import { frameworkById } from '../data/frameworks';
+import { remixLine, type RemixKind } from '../engine/boardRemix';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase } from '../data/wordbank';
@@ -703,15 +706,24 @@ export default function GusWorkboard() {
     timers.current.push(window.setTimeout(() => {
       setFiring(null); running.current = false;
       const stars = r.rubric!.stars;
-      setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars, silly: r.rubric!.silly, ...(stars === 3 && l.job && !l.job.done ? { job: { ...l.job, done: true } } : {}) } : l)));
+      // An Order is done only when the scene matches; a hint names one difference.
+      const orderMiss = line.job?.kind === 'order' && line.job.key ? compareOrder(line.job.key, r) : [];
+      const jobDone = stars === 3 && !!line.job && !line.job.done && !orderMiss.length;
+      setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars, silly: r.rubric!.silly, ...(jobDone ? { job: { ...l.job!, done: true } } : {}) } : l)));
+      if (orderMiss.length && stars === 3) timers.current.push(window.setTimeout(() => say(`Lovely sentence, but not quite my order. ${orderMiss[0]}`, 'Order'), 2600));
       const jobKey = line.job ? (line.job.id ?? line.id) : '';
-      const finishedJob = stars === 3 && line.job && !line.job.done && !paidJobs.current.has(jobKey) ? line.job : null;
+      const finishedJob = jobDone && !paidJobs.current.has(jobKey) ? line.job! : null;
       if (finishedJob) paidJobs.current.add(jobKey);
       if (finishedJob) {
-        const sticker = finishedJob.kind === 'delivery' ? '📦' : '🔍';
-        earn(8);
-        if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
-        timers.current.push(window.setTimeout(() => say(`Job done! ${finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : 'Inspected and fixed.'} Have a sticker: ${sticker}`, '3 stars'), 2600));
+        const sticker = finishedJob.kind === 'delivery' ? '📦' : finishedJob.kind === 'inspector' ? '🔍' : finishedJob.kind === 'order' ? '📜' : '📐';
+        const group = finishedJob.group;
+        const groupDone = finishedJob.kind !== 'blueprint' || linesRef.current.filter((l) => l.job?.group === group).every((l) => l.id === line.id || l.job?.done);
+        if (groupDone) {
+          earn(finishedJob.kind === 'blueprint' ? 12 : 8);
+          if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
+        } else earn(2);
+        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : groupDone ? `The whole ${frameworkById.get(finishedJob.blueprint ?? '')?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
+        timers.current.push(window.setTimeout(() => say(`${groupDone ? 'Job done! ' : ''}${msg}${groupDone ? ` Have a sticker: ${sticker}` : ''}`, '3 stars'), 2600));
       }
       if (r.script) {
         rewardPending.current = true;
@@ -840,20 +852,41 @@ export default function GusWorkboard() {
   };
   const withConnector = (l: BoardLine, text: string) => (l.connector ? `${l.connector}, ${/^I\b/.test(text) ? text : text.charAt(0).toLowerCase() + text.slice(1)}` : text);
   // Gus's Jobs (Claudia round 2): a new machine delivered under the others.
-  const startJob = (kind: JobKind) => {
+  const startJob = (kind: JobKind, blueprint?: string) => {
     setJobsOpen(false);
     remember();
-    const { items, job } = makeJob(kind, makeRng(Date.now()), uid, { gentleOnly: settings.gentleOnly });
+    const rng = makeRng(Date.now());
     const ls = linesRef.current;
-    const y = ls.length ? snap(Math.max(...ls.map(lineBottom)) + ATT_H + 20) : 80;
-    const id = uid();
-    setLines((cur) => [...cur.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank')), { id, x: 60, y, items, job }]);
-    setSelLine(id);
-    requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
+    let y = ls.length ? snap(Math.max(...ls.map(lineBottom)) + ATT_H + 20) : 80;
+    const add: BoardLine[] = [];
+    if (kind === 'blueprint' && blueprint) {
+      for (const b of makeBlueprint(blueprint, uid)) { add.push({ id: uid(), x: 60, y, items: b.items, job: b.job, ...(b.connector ? { connector: b.connector } : {}) }); y = snap(y + ITEM_H + ATT_H + 150); }
+    } else {
+      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeJob(kind, rng, uid, { gentleOnly: settings.gentleOnly });
+      add.push({ id: uid(), x: 60, y, items, job });
+    }
+    if (!add.length) return;
+    setLines((cur) => [...cur.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank')), ...add]);
+    setSelLine(add[0].id);
+    // Bring the new machine into view (its badge at the top), keeping the zoom.
+    const top = add[0].y - 70; setView((v) => ({ ...v, x: 30 - 20 * v.z, y: 20 - top * v.z }));
     gusSound.horn();
+    const fw = blueprint ? frameworkById.get(blueprint) : undefined;
     say(kind === 'delivery'
       ? 'A delivery! These word machines arrived all mixed up. Drag them into the right order, add a capital letter, punctuation and a TV, then pull the lever.'
-      : `Inspector, I need you. ${FLAW_HINTS[job.flaw as Flaw]} Find it, fix it, then pull the lever.`, kind === 'delivery' ? 'Delivery' : 'Inspector');
+      : kind === 'inspector' ? `Inspector, I need you. ${FLAW_HINTS[add[0].job!.flaw as Flaw]} Find it, fix it, then pull the lever.`
+      : kind === 'order' ? 'An order! Build any sentence that makes the scene on my order card. Set the Clock to the right time.'
+      : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : 'Blueprint');
+  };
+  // Remix tools (moved from the classic machine).
+  const [remixFor, setRemixFor] = useState<string | null>(null);
+  const doRemix = (line: BoardLine, k: RemixKind) => {
+    setRemixFor(null);
+    const res = remixLine(line, k, level, makeRng(Date.now()), uid);
+    if (typeof res === 'string') { gusSound.ahem(); say(res, 'Remix'); return; }
+    editLine(line.id, (l) => ({ ...l, items: res.items }));
+    gusSound.whoosh(); setRetimed(res.items.filter((i) => !line.items.includes(i)).map((i) => i.id)); timers.current.push(window.setTimeout(() => setRetimed([]), 750));
+    say(`${res.note} Pull the lever to see it.`, 'Remix');
   };
   const clearAll = () => {
     remember();
@@ -1020,6 +1053,9 @@ export default function GusWorkboard() {
               <div className="gwb-top-menu" role="menu">
                 <button type="button" role="menuitem" onClick={() => startJob('delivery')}>📦 Mixed-up Delivery<small>Put the word machines in order</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Punctuation Inspector<small>Find the capital letter or punctuation mistake</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('order')}>📜 Gus's Order<small>Build any sentence that makes the scene on the card</small></button>
+                <div className="gwb-menu-sub">📐 Blueprints: build a whole paragraph</div>
+                {WORKBOARD_BLUEPRINTS.map((id) => { const fw = frameworkById.get(id)!; return <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{fw.icon} {fw.name}<small>{fw.teaches}</small></button>; })}
               </div>
             )}
           </div>
@@ -1084,8 +1120,12 @@ export default function GusWorkboard() {
                   {comboShow?.lineId === line.id && <span key={comboShow.key} className="gwb-combo" style={{ left: line.x + GRIP_W, top: line.y - 54 }} role="status">💥 COMBO! {comboShow.names.join(' + ')}</span>}
                   {party === line.id && <span className="gwb-confetti" style={{ left: line.x + GRIP_W, top: line.y - 10, width: lineRight(line, g) - line.x - GRIP_W }} aria-hidden>{Array.from({ length: 14 }, (_, k) => <i key={k} style={{ left: `${(k * 7.3) % 100}%`, animationDelay: `${(k % 5) * 0.09}s` }} />)}</span>}
                   {line.job && (
-                    <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 40 - (hasTop(line) ? ATT_H : 0) }}>
-                      {line.job.done ? '✅ Job done!' : line.job.kind === 'delivery' ? '📦 Mixed-up Delivery: put the word machines in order.' : `🔍 Punctuation Inspector: ${FLAW_HINTS[line.job.flaw as Flaw]}`}
+                    <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 8 - (hasTop(line) ? ATT_H : 0) }}>
+                      {line.job.done ? `✅ ${line.job.kind === 'blueprint' ? `${line.job.label} built!` : 'Job done!'}`
+                        : line.job.kind === 'delivery' ? '📦 Mixed-up Delivery: put the word machines in order.'
+                        : line.job.kind === 'inspector' ? `🔍 Punctuation Inspector: ${FLAW_HINTS[line.job.flaw as Flaw]}`
+                        : line.job.kind === 'order' && line.job.card ? <>📜 Order: {line.job.card.who.emoji} {line.job.card.who.words} · {line.job.card.did}{line.job.card.obj ? ` · ${line.job.card.obj.emoji} ${line.job.card.obj.words}` : ''}{line.job.card.where ? ` · ${line.job.card.where.prep} ${line.job.card.where.emoji} ${line.job.card.where.words}` : ''}{line.job.card.how ? ` · ${line.job.card.how}` : ''} · ⏰ {line.job.card.time}</>
+                        : `${frameworkById.get(line.job.blueprint ?? '')?.icon ?? '📐'} ${frameworkById.get(line.job.blueprint ?? '')?.name ?? 'Blueprint'} ${line.job.part} of ${line.job.of}: ${line.job.label}${line.job.text ? `  "${line.job.text}"` : ''}`}
                     </div>
                   )}
                   <button type="button" className="gwb-grip" style={{ left: line.x - 14, top: line.y + 40, height: ITEM_H - 80 }} onPointerDown={(e) => onGripDown(e, line)} aria-label="Move this whole machine">⠿</button>
@@ -1184,6 +1224,14 @@ export default function GusWorkboard() {
                       <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => speak(withConnector(line, text))} aria-label="Hear the sentence">🔈 Hear it</button>
                       <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setSelLine(line.id); setClipMin(false); }} aria-label="Open Gus's Checklist">📋 Checklist</button>
                       {line.stars === 3 && <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => savePara(line.id)}>📓 Save</button>}
+                      <span className="gwb-menu-wrap"><button type="button" className={`gus-mini${remixFor === line.id ? ' on' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => setRemixFor(remixFor === line.id ? null : line.id)} aria-expanded={remixFor === line.id}>🎛 Remix</button>
+                        {remixFor === line.id && <span className="gwb-remix" role="menu" onPointerDown={(e) => e.stopPropagation()}>
+                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'longer')}>➕ Make it longer</button>
+                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'shorter')}>➖ Make it shorter</button>
+                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'silly')}>🤪 Silly swap</button>
+                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'pronoun')}>🔁 Who → pronoun</button>
+                        </span>}
+                      </span>
                       {line.stars != null && line.silly != null && <span className="gwb-silly" role="img" aria-label={`Silly-o-meter: ${line.silly} out of 5`}><span aria-hidden>{line.silly >= 4 ? '🤪' : line.silly >= 2 ? '😜' : '🙂'}</span><span className="gwb-silly-bar"><span style={{ width: `${line.silly * 20}%` }} /></span></span>}
                     </div>
                   )}

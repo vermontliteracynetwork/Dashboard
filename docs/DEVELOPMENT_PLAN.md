@@ -722,6 +722,23 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: finishing the plan, round 10 (Orders, Blueprints and Remix move onto the Workboard). SHIPPED 2026-10-07
+
+- **📜 Gus's Order** (🧰 Jobs): Gus delivers a machine with a Start Lever, Clock, blank space and TV, plus an order card that shows the scene as pictures and words, never the sentence. Example: "📜 Order: ✈️ great plane · sing · 🪟 fancy window · ⏰ Past".
+  - The student builds any sentence that makes that scene ("a" or "the", "over" or "above" all count).
+  - A 3-star sentence that does not match gets one kind hint naming one difference (from the existing `compareOrder`).
+  - A match finishes the job: 8 gears and a 📜 sticker.
+- **📐 Blueprints** (🧰 Jobs): Silly Story, Silly News Report, Day in the Life, Rescue Story and Knock-Knock Joke.
+  - Each delivers a whole paragraph: one linked machine per sentence, already chained with Paragraph Links.
+  - Each machine has its empty word machines in a working order, a Capital Letter Press under the first word, a period, a TV, and the blueprint's opening words as its time word ("Once upon a time,", "In the morning,").
+  - A badge on each names its part: "📖 Silly Story 1 of 3: Beginning". Fixed lines such as "Breaking news!" show on the badge.
+  - Each machine built pays 2 gears. The whole blueprint pays 12 gears and a 📐 sticker, and Gus says to tap ▶ Play on the Paragraph Link to watch it.
+  - The Riddle stays on the classic machine: it needs "I am a ___", which the Workboard cannot build yet.
+- **🎛 Remix** on every sentence plate: ➕ Make it longer (adds a describing word, then a how word, then where words), ➖ Make it shorter, 🤪 Silly swap (a sillier noun) and 🔁 Who → pronoun. A change is kept only if it still makes a working sentence; otherwise Gus says why.
+- A new job comes into view at the current zoom instead of zooming everything out.
+- The classic machine is still in ☰ Menu, but everything it offered now has a Workboard home except the Riddle blueprint.
+- Tests: 3 new. Full Gus suite: 288 passing.
+
 ### Grammar Gus: finishing the plan, round 9 (Claudia's round 4 game parts, Slot Machine with word locks, Spare Parts Bin, read words aloud, focus return). SHIPPED 2026-10-07
 
 - **Mystery Crate** (a describing word in a box): leave it empty and it pops open with a surprise describing word when the lever is pulled (soggy, grumpy, sparkly, wobbly...). The student can keep the word or pick another.
@@ -746,8 +763,8 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 **The run, in order:**
 1. Round 8: LATER parts. **Shipped (this entry).**
 2. Round 9: Claudia's round 4 game ideas, Spare Parts Bin, read-aloud for each word, and focus back to the machine. **Shipped (entry above).**
-3. Round 10: Orders, Blueprints and Remix onto the Workboard. **In progress.**
-4. Claudia's full audit (design, function, gamification, academic accuracy), then her gap analysis and a research-based writing and grammar scaffold plan for science-loving machine builders, as a PDF. **Queued.**
+3. Round 10: Orders, Blueprints and Remix onto the Workboard. **Shipped (entry above).**
+4. Claudia's full audit (design, function, gamification, academic accuracy), then her gap analysis and a research-based writing and grammar scaffold plan for science-loving machine builders, as a PDF. **In progress.**
 5. Golden Gear Contest still waits on her decision about the $5 prize. **Blocked on the teacher.**
 
 **What shipped:**

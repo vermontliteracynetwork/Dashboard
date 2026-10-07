@@ -5339,3 +5339,12 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-bin { left: auto; right: 10px; bottom: auto; top: 10px; }
 .gwb-bin-tray { left: auto; right: 0; bottom: auto; top: calc(100% + 8px); }
 .gwb-zoom { left: 10px; }
+/* round 10: Orders, Blueprints and Remix on the Workboard */
+.gwb-menu-sub { padding: 8px 12px 2px; font: 800 0.72rem 'Lexend', sans-serif; letter-spacing: 0.06em; color: #8b6bb3; }
+.gwb-top-menu { max-height: 70vh; overflow-y: auto; }
+.gwb-remix { position: absolute; left: 0; top: calc(100% + 6px); z-index: 9; display: flex; flex-direction: column; min-width: 220px; padding: 6px; background: #fff8e6; border: 3px solid var(--gus-ink); border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+.gwb-remix button { min-height: max(44px, calc(44px / var(--z, 1))); padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font: 700 max(0.95rem, calc(0.9rem / var(--z, 1))) 'Lexend', sans-serif; color: var(--gus-ink); text-align: left; cursor: pointer; white-space: nowrap; }
+.gwb-remix button:hover, .gwb-remix button:focus-visible { background: #ffe9a8; }
+.gwb-job { white-space: normal; max-width: max(520px, calc(520px / var(--z, 1))); }
+.gwb-job { transform: translateY(-100%); }
+.gwb-job { width: max-content; }
