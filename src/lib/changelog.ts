@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-contraption',
+    date: '2026-10-07',
+    icon: '⚙️',
+    title: 'Build the whole contraption',
+    body: "Every word machine is now shaped like its grammar symbol: the noun is a big red triangle and the verb is a green wheel. Start from a blank space and build the whole machine yourself: Start Lever, words, Capital Letter Press, punctuation and the Pixel TV. Add a Clock to set past, present or future, spring mats and pulleys for the marble to roll through, and a Paragraph Link to hook sentences into a paragraph. Type any real word and Gus checks his dictionary.",
+  },
+  {
     id: '2026-10-07-gus-workboard',
     date: '2026-10-07',
     icon: '🏭',

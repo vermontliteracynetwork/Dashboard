@@ -722,6 +722,46 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Workboard round 2 (symbol-shaped machines, build the whole machine, right-hand parts menu, Clock, Paragraph Link, Rube Goldberg parts, real dictionary words, Clear all). SHIPPED 2026-10-07 (direct teacher instructions)
+
+**Her words, verbatim:**
+1. "the design is just not what i wan.t make sure they can create the whole machine, that the machine starts out with just a blank word space. each grammar symbol should become the physical shape of that machine part. drag and drop comes from right hand menu, collapsale like the literacy manipulatives and polypad" (with a screenshot of the old classic screen).
+2. "alwyas say capital letter and punctiaiton not big letter and stop mark" (now a standing copy rule in CLAUDE.md).
+3. "add literal machine parts like spring mats and pulleys to make a rube goldburg inspired thing."
+4. "if the student types a real word, make sure it adds. reference a real disctionary" (with a screenshot: typing "sit" in the Verb menu only offered sing, spin, swim and zoom).
+5. "Add a drag and drop clock that can connect to the machine that the student can determine time. So like they can either like rewind it a bunch and then it's like in the past they can set it to present time or they can set it to future time. Don't say like today, tomorrow, but instead of past, future." (also a standing copy rule now).
+6. "add a clear all function"
+7. "add another machine part that makes it so paragraphs/colelctions of sentences can be added"
+8. "claudia, i need oyu to take this idea, expasion,a nd improvement role" / "research, apply, test, repeat. adding features each time for accesability and game play" (Claudia's review rounds follow below as they ship).
+
+**What shipped:**
+- **Each grammar symbol is the physical shape of its machine.** The machine body IS the teacher's symbol, at Montessori sizes:
+  - big red triangle Noun Boiler with a porthole; big green circle Flywheel Engine (the flywheel spins when it runs);
+  - medium blue triangle Paint Tank; small dark blue circle How Gauge with a needle; small pink triangle Valve Cone;
+  - yellow upside-down triangle Swap Valve; brown arch Pipe; purple arrow Join Clamp; orange drop Steam Whistle.
+  - Each sits on a copper pipe line with hex-nut flanges and a stand, and the word is on a brass nameplate hanging below.
+- **Students build the whole machine.** The floor starts with just one blank word space. Drop a part on it (or tap a part) and it becomes that machine.
+  - The **Start Lever** is a part now. A glowing "Start Lever?" spot appears at the front once words are on the machine.
+  - Every other part is added by the student too.
+- **The parts menu is on the right** and collapses to a slim rail, like Literacy Manipulatives and Polypad. It sorts by job, sentence order, color or A to Z. A grip on the left of each machine moves the whole machine.
+- **Copy rule:** the parts are named Capital Letter Press, Period, Exclamation Point and Comma (the punctuation group). Gus and the checklist say "capital letter" and "punctuation" everywhere, the classic machine too.
+- **Clock part:** a brass clock that plugs onto the machine. ⏪ rewinds the hands toward the PAST, ⏩ winds them toward the FUTURE, and the middle is the PRESENT. The hands and a dashed arc show which way it is wound. Without a clock a machine is in the present.
+  - Past / Present / Future replaces Yesterday / Now / Tomorrow everywhere (pixel movie tags, classic machine, Orders, teacher report).
+- **Paragraph Link part:** plug it on the end of a machine and a chain hangs down to the next machine below. Linked machines make a paragraph: characters carry from one sentence to the next.
+  - The link's ▶ plays the whole paragraph on the big screen once every machine in it has 3 stars, then Gus gives paragraph stars.
+  - 📓 Save under a machine saves its whole paragraph to the Journal.
+- **Rube Goldberg contraption parts:** Spring Mat, Pulley (hoists a bucket), Ramp, Conveyor Belt, Fan, Bell (dings), Dominoes (topple) and Bucket Drop. When the Start Lever is pulled, a marble rolls through every part in order, bouncing on spring mats and riding pulleys, and each part animates. They never change the grammar.
+- **Real dictionary words:**
+  - When a student types a word that is not in Gus's bank, Gus checks a real dictionary (Free Dictionary API, built from Wiktionary).
+  - If it is listed as the part of speech they are building, it shows "📖 sit is a real verb! Use sit" (Enter works too). The word is added, with verb forms from spelling rules plus a 120-verb irregular table (sit / sat), and works in the grammar engine and the movie (a new noun shows its name over its picture).
+  - If it is a different part of speech, Gus says which machine to use. Rude words are never added.
+  - Added words are remembered on that iPad.
+- **🧹 Clear all** next to the zoom buttons (and in the Menu), with a "Yes, clear all / Keep my machines" check. The Journal is kept.
+- Tests: 4 new dictionary tests (verb forms, dictionary parts of speech, blocked words, a new word runs to 3 stars with a movie). Board tests updated for the Clock. Full suite: 244 passing.
+- **Checked:** in an iPad-sized browser: drawer taps, the dictionary flow, a full build with spring mat, pulley and bell, the clock rewound to the past, and "The dog sat." playing on the TV. Not yet checked on a real iPad.
+
+**In progress:** Claudia's improvement rounds (accessibility and gameplay). The classic machine (Orders, Blueprints, Remix) is still reachable from Menu until those modes move onto the Workboard.
+
 ### Grammar Gus: the Workboard redesign (every part its own machine, zoomable floor). SHIPPED 2026-10-07 (direct teacher instructions)
 
 **Her words, verbatim:**

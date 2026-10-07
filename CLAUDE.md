@@ -33,6 +33,7 @@ No narration between tool calls. Final message is a short `## Done` / `## Test i
 
 ## Copy
 No em dashes anywhere in student- or teacher-facing text.
+Grammar words (direct teacher rule, 2026-10-07): always say "capital letter" and "punctuation", never "big letter" or "stop mark". Always say past, present and future for time, never "yesterday", "now" or "tomorrow".
 
 ## File deliverables
 Whenever handing the teacher a `.md` file (a dev log, a doc, a summary), convert it to PDF and give her that instead of raw markdown.

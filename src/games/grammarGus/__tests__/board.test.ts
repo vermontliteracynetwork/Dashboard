@@ -29,8 +29,8 @@ describe('workboard lines', () => {
     expect(r.draft.marks?.endMark).toBe('.');
   });
   it('the Comma Clip and the Big Letter Press work at Challenge', () => {
-    const items = [part('cap'), part('D', 'softly'), part('comma'), part('A', 'the'), part('N', 'girl'), part('V', 'sing'), part('stop'), part('tv')];
-    items[5].form = 'past';
+    const items = [part('clock', 'past'), part('cap'), part('D', 'softly'), part('comma'), part('A', 'the'), part('N', 'girl'), part('V', 'sing'), part('stop'), part('tv')];
+    items[6].form = 'past';
     const r = readLine(line(items), 'challenge');
     expect(r.draft.marks?.commas).toEqual([0]);
     expect(compose(r.draft).text).toBe('Softly, the girl sang.');

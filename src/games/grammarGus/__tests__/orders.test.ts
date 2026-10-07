@@ -28,7 +28,7 @@ describe("Gus's Orders", { timeout: 60000 }, () => {
     const order = keyOf('A J N V P A N', 'A big dog jumped over the van.');
     expect(compareOrder(order, run('A N V P A N', 'A dog jumped over the van.'))[0]).toContain('not big yet');
     expect(compareOrder(order, run('A J N V P A N', 'A big dog jumped under the van.'))[0]).toContain('over the van');
-    expect(compareOrder(order, run('A J N V P A N', 'A big dog jumps over the van.'))[0]).toContain('Yesterday');
+    expect(compareOrder(order, run('A J N V P A N', 'A big dog jumps over the van.'))[0]).toContain('Past');
     expect(compareOrder(order, run('A J N V P A N', 'A big cat jumped over the van.'))[0]).toContain('big dog');
   });
 });

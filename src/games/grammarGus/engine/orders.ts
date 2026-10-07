@@ -50,7 +50,7 @@ export function makeOrder(rng: Rng, o: { gentleOnly?: boolean } = {}): Order {
 }
 
 const an = (w: string) => (/^[aeiou]/i.test(w) ? 'an' : 'a');
-const TIME_NAMES: Record<Tense, string> = { past: 'Yesterday', present: 'Now', future: 'Tomorrow' };
+const TIME_NAMES: Record<Tense, string> = { past: 'Past', present: 'Present', future: 'Future' };
 const sameNP = (a?: NP, b?: NP) => !!a && !!b && a.noun === b.noun && a.adjs.join() === b.adjs.join();
 
 // Every difference between the ordered scene and the student's scene, as

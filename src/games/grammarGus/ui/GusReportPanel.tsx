@@ -68,7 +68,7 @@ export default function GusReportPanel() {
             )}
             {isOpen && (
               <div className="stack" style={{ gap: 6, fontSize: '0.9rem' }}>
-                <div><strong>Times used (3-star, 30 days):</strong> Yesterday {r.tenses.past}, Now {r.tenses.present}, Tomorrow {r.tenses.future}</div>
+                <div><strong>Times used (3-star, 30 days):</strong> Past {r.tenses.past}, Present {r.tenses.present}, Future {r.tenses.future}</div>
                 <div><strong>By help level (30 days):</strong> {Object.entries(r.levels).map(([l, v]) => `${LEVEL_NAMES[l as keyof typeof LEVEL_NAMES]}: ${v!.three} of ${v!.tries} at 3 stars`).join('; ') || '–'}</div>
                 <div><strong>Sentence length by week:</strong> {r.lengthTrend.map((w) => `${w.week}: ${w.avg} words (${w.count})`).join('; ') || '–'}</div>
                 {r.recent.length > 0 && <div><strong>Recent 3-star sentences:</strong><ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{r.recent.map((t, i) => <li key={i}>{t}</li>)}</ul></div>}

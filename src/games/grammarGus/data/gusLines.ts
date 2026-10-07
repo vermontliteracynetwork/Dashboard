@@ -50,10 +50,10 @@ export const GATE_LINES: Partial<Record<Violation, Line[]>> = {
     { joke: 'The time crank says one day, your verb says another. Scandalous.', fix: 'Pick the verb that matches the time crank.' },
   ],
   NO_CAPITAL: [
-    { joke: 'A sentence starting small? How very casual.', fix: 'Press the Big Letter Press on the first word.' },
+    { joke: 'A sentence starting small? How very casual.', fix: 'Use the Capital Letter Press on the first word.' },
   ],
   NO_END_MARK: [
-    { joke: 'It just... keeps going. Forever. Please make it stop.', fix: 'Stamp a stop mark at the end: . or !' },
+    { joke: 'It just... keeps going. Forever. Please make it stop.', fix: 'Add punctuation at the end: . or !' },
   ],
   NO_SHOUT_MARK: [
     { joke: 'A shout with no shout mark is just a whisper.', fix: 'Put ! after the shout word.' },
@@ -95,7 +95,7 @@ export const RUBRIC_LINES: Record<RubricCode, Line[]> = {
     { joke: 'Good grammar! Fast and slow at once? Impossible. Sadly.', fix: 'Pick one HOW word, or join them with or.' },
   ],
   TENSE_MIX: [
-    { joke: 'Good sentence! Yesterday and tomorrow at once? Time travel denied.', fix: 'Make every action happen at the same time.' },
+    { joke: 'Good sentence! The past and the future at once? Time travel denied.', fix: 'Make every action happen at the same time.' },
   ],
   AMBIGUOUS_REFERENCE: [
     { joke: 'Well built! But which one? There are two!', fix: 'Add a describing word so I know which one.' },

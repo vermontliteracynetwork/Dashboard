@@ -35,10 +35,10 @@ import { MAX_STORY_SENTENCES, reviewStory, storyCast, storyScript, type SealedSe
 // WHERE), pull START, and the machine only runs on a grammatical
 // sentence. A 3-star sentence plays as a pixel video; 1 and 2 stars get
 // Gus's review. Full help: the engine handles verb endings, a/an,
-// capitals, commas and the stop mark. iPad first: tap to place, 64px tiles.
+// capital letters, commas and end punctuation. iPad first: tap to place, 64px tiles.
 
 const TENSES: { id: Tense; label: string; icon: string }[] = [
-  { id: 'past', label: 'Yesterday', icon: '⏪' }, { id: 'present', label: 'Now', icon: '⏺' }, { id: 'future', label: 'Tomorrow', icon: '⏩' },
+  { id: 'past', label: 'Past', icon: '⏪' }, { id: 'present', label: 'Present', icon: '⏺' }, { id: 'future', label: 'Future', icon: '⏩' },
 ];
 
 const gusOwner = (id: string) => `gus:${id}`;
@@ -83,7 +83,7 @@ export default function GrammarGusMachine() {
   const settings = useGusSettings();
   const level = levelFor(settings, studentId);
   const [forms, setForms] = useState<Record<string, VerbForm>>({});
-  const [caps, setCaps] = useState<string[]>([]); // socket keys pressed with the Big Letter Press
+  const [caps, setCaps] = useState<string[]>([]); // socket keys pressed with the Capital Letter Press
   const [pressMode, setPressMode] = useState(false);
   const [endMark, setEndMark] = useState<'.' | '!' | null>(null);
   const [shoutMark, setShoutMark] = useState(false);
@@ -508,7 +508,7 @@ export default function GrammarGusMachine() {
   };
   const remixOpts = () => ({ tense, gentleOnly: settings.gentleOnly });
   const remixRoll = () => remix(rollPart(machineNow(), selected, makeRng(Date.now()), remixOpts()), 'Rolled! A fresh part, still perfectly grammatical.', 'No other word fits that spot right now. Try another part.');
-  const timeZap = () => { const order: Tense[] = ['past', 'present', 'future']; const t = order[(order.indexOf(tense) + 1) % 3]; setTense(t); changed(); gusSound.swish(); say(`Zap! Now it happens ${t === 'past' ? 'Yesterday' : t === 'present' ? 'Now' : 'Tomorrow'}: "${compose({ ...draft, tense: t }).text}"`, 'Time zap'); };
+  const timeZap = () => { const order: Tense[] = ['past', 'present', 'future']; const t = order[(order.indexOf(tense) + 1) % 3]; setTense(t); changed(); gusSound.swish(); say(`Zap! Now it is in the ${t === 'past' ? 'past' : t === 'present' ? 'present' : 'future'}: "${compose({ ...draft, tense: t }).text}"`, 'Time zap'); };
 
   const clearAll = () => {
     if (curLine) { applyLine(curLine, bp?.setup, shapeIdx); say('Fresh parts for this line. The blueprint stays.', 'New machine'); return; }
@@ -649,7 +649,7 @@ export default function GrammarGusMachine() {
             </div>
             {level !== 'full' && (
               <button type="button" className={`gus-press${pressMode ? ' on' : ''}`} onClick={() => { setPressMode((m) => !m); gusSound.snap(); }} aria-pressed={pressMode}>
-                <span aria-hidden>🅰</span> Big Letter Press
+                <span aria-hidden>🅰</span> Capital Letter Press
               </button>
             )}
             <button type="button" className="gus-clipboard-btn" onClick={() => setClipOpen((o) => !o)} aria-expanded={clipOpen}>
@@ -756,7 +756,7 @@ export default function GrammarGusMachine() {
             {drag?.payload.kind === 'housing' && howFirst && <span data-hdrop="back" className={`gus-hdrop${drag.over === 'h:back' ? ' over' : ''}`}>Drop HOW here to end with it</span>}
             {level === 'full'
               ? <span className="gus-stamp" aria-hidden>{preview.text.endsWith('!') ? '!' : '.'}</span>
-              : <button type="button" className={`gus-stamp gus-stamp-btn${endMark ? '' : ' empty'}`} aria-label={`Stop Stamp: ${endMark ?? 'none'}. Tap to change.`}
+              : <button type="button" className={`gus-stamp gus-stamp-btn${endMark ? '' : ' empty'}`} aria-label={`Punctuation: ${endMark ?? 'none'}. Tap to change.`}
                   onClick={() => { setEndMark((m) => (m === null ? '.' : m === '.' ? '!' : null)); gusSound.snap(); changed(); }}>{endMark ?? '?'}</button>}
           </div>
           {remixOpen && !fw && (

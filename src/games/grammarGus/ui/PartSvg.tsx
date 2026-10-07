@@ -33,7 +33,7 @@ function Rivets({ pts, fill }: { pts: [number, number][]; fill: string }) {
   return <>{pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={3.4} fill={fill} stroke={INK} strokeWidth={1.6} />)}</>;
 }
 
-export default function PartSvg({ pos, word, ghost = false, className = '' }: { pos: Pos; word: string | null; ghost?: boolean; className?: string }) {
+export default function PartSvg({ pos, word, ghost = false, className = '', box }: { pos: Pos; word: string | null; ghost?: boolean; className?: string; box?: { x: number; y: number; w: number; h: number } }) {
   const base = SYMBOLS[pos].color;
   const dark = shade(base, -0.28);
   const light = shade(base, 0.45);
@@ -150,7 +150,7 @@ export default function PartSvg({ pos, word, ghost = false, className = '' }: { 
     }
   }
   return (
-    <svg viewBox="-2 -2 104 100" className={`gp gp-${pos}${ghost ? ' gp-ghost' : ''} ${className}`} aria-hidden="true">
+    <svg viewBox="-2 -2 104 100" className={`gp gp-${pos}${ghost ? ' gp-ghost' : ''} ${className}`} aria-hidden="true" {...(box ? { x: box.x, y: box.y, width: box.w, height: box.h, overflow: 'visible' } : {})}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={light} /><stop offset="0.18" stopColor={base} /><stop offset="0.74" stopColor={base} /><stop offset="0.74" stopColor={dark} /><stop offset="1" stopColor={dark} />

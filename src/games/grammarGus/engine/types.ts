@@ -15,8 +15,8 @@ export interface Token { pos: Pos; word: string | null; form?: VerbForm }
 // What the student placed by hand (Guided and Challenge). At Full help the
 // engine applies all of these itself and marks are ignored.
 export interface Marks {
-  capitals: number[]; // token indices pressed with the Big Letter Press
-  endMark: '.' | '!' | null; // the Stop Stamp
+  capitals: number[]; // token indices pressed with the Capital Letter Press
+  endMark: '.' | '!' | null; // end punctuation
   shoutMark: boolean; // ! after the interjection
   commas: number[]; // comma placed after token index
 }

@@ -6,7 +6,7 @@
 
 export type Rig = 'biped' | 'quadruped' | 'critter' | 'bird' | 'serpent' | 'vehicle' | 'object' | 'weather' | 'prop';
 export type NounKind = 'human' | 'animal' | 'thing';
-export type Pack = 'core' | 'example' | 'color' | 'action' | 'space' | 'ocean';
+export type Pack = 'core' | 'example' | 'color' | 'action' | 'space' | 'ocean' | 'custom';
 // Interest word packs (plan 17.5). The teacher turns them on or off; they
 // follow the same data model and agreement rules as every other word.
 export const WORD_PACKS: { id: Pack; name: string; icon: string }[] = [{ id: 'space', name: 'Space', icon: '🚀' }, { id: 'ocean', name: 'Ocean', icon: '🌊' }];

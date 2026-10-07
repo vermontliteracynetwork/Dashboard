@@ -6,8 +6,8 @@ import { WORD_PACKS } from '../data/wordbank';
 // Teacher settings for Grammar Gus's Contraption (Game tab). Plain teacher
 // styling. Every change saves right away and reaches students live.
 const LEVELS: { id: HelpLevel; label: string; hint: string }[] = [
-  { id: 'full', label: 'Full help', hint: 'The machine does verb endings, a/an, capitals, commas and the stop mark.' },
-  { id: 'guided', label: 'Guided', hint: 'Student picks verb forms, presses the Big Letter Press and the Stop Stamp, and orders describing words.' },
+  { id: 'full', label: 'Full help', hint: 'The machine does verb endings, a/an, capital letters, commas and end punctuation.' },
+  { id: 'guided', label: 'Guided', hint: 'Student picks verb forms, uses the Capital Letter Press and adds the end punctuation, and orders describing words.' },
   { id: 'challenge', label: 'Challenge', hint: 'Everything: also a/an, capital I, the shout !, and commas with the Comma Clip.' },
 ];
 
@@ -78,7 +78,7 @@ export default function GusSettingsPanel() {
             {pill(settings.finishParts === 'required', 'Students add them', () => save({ finishParts: 'required' }))}
             {pill(settings.finishParts === 'auto', 'Machine adds them', () => save({ finishParts: 'auto' }))}
           </div>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Big Letter Press, Stop Stamp and Pixel TV.</span>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Capital Letter Press, punctuation and Pixel TV.</span>
         </div>
         <div className="stack" style={{ gap: 6 }}>
           <strong>Word packs</strong>

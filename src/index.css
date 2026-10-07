@@ -4964,7 +4964,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
    a collapsible parts drawer on the left, every part its own machine. ===== */
 .gwb .gwb-top h1 { flex: 1; }
 .gwb-main { flex: 1; min-height: 0; display: flex; gap: 8px; }
-.gwb-drawer { flex: none; width: 74px; display: flex; flex-direction: column; gap: 6px; background: #2c3348; border: 4px solid var(--gus-ink); border-radius: 18px; padding: 6px; box-shadow: 0 4px 0 var(--gus-ink); transition: width 0.18s; min-height: 0; }
+.gwb-drawer { order: 2; flex: none; width: 74px; display: flex; flex-direction: column; gap: 6px; background: #2c3348; border: 4px solid var(--gus-ink); border-radius: 18px; padding: 6px; box-shadow: 0 4px 0 var(--gus-ink); transition: width 0.18s; min-height: 0; }
 .gwb-drawer.open { width: 236px; }
 .gwb-drawer-toggle { min-height: 44px; border-radius: 12px; border: 3px solid var(--gus-ink); background: #f3cf6b; font: 800 0.9rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; box-shadow: 0 3px 0 var(--gus-ink); }
 .gwb-sorts { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -5061,3 +5061,44 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-bigscreen canvas { width: 100% !important; height: auto !important; aspect-ratio: 16 / 9; image-rendering: pixelated; border-radius: 10px; }
 .gwb.calm .gwb-item .gwb-svg, .gwb.calm .gwb-ghost { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .gwb-item .gwb-svg, .gwb-ghost, .gwb-insert { animation: none !important; } }
+
+/* Workboard round 2 (teacher 2026-10-07): parts menu on the right, a grip
+   to move a whole machine, the Start Lever, Clock and Paragraph Link as
+   parts, a marble that rolls through the Rube Goldberg contraption. */
+.gwb-board { order: 1; }
+.gwb-grip { position: absolute; width: 28px; padding: 0; border-radius: 10px 0 0 10px; border: 3px solid var(--gus-ink); border-right: 0; background: #9aa6ba; color: #fff; font-size: 1rem; cursor: grab; touch-action: none; }
+.gwb-grip::before { content: ''; position: absolute; inset: -6px -10px -6px -12px; }
+.gwb-line.selected .gwb-grip { background: #f3cf6b; color: var(--gus-ink); }
+.gwb-line.join-target .gwb-grip { outline: 4px dashed #3fbf5a; }
+.gwb-k-lever .gwb-lever { position: absolute; left: 12px; top: 20px; width: 78px; height: 74px; }
+.gwb-k-lever .gwb-lever-arm { bottom: 26px; height: 32px; }
+.gwb-k-lever .gwb-gauge { position: absolute; left: 30px; top: 104px; }
+.gwb-k-lever .gwb-stars { top: -14px; right: 4px; }
+.gwb-clock-btns, .gwb-link-btns { position: absolute; left: 0; right: 0; top: 118px; display: flex; justify-content: center; gap: 10px; }
+.gwb-clock-btns button, .gwb-link-btns button { min-width: 48px; min-height: 40px; border-radius: 12px; border: 3px solid var(--gus-ink); background: #fff8e6; font-size: 1.05rem; cursor: pointer; box-shadow: 0 3px 0 var(--gus-ink); }
+.gwb-clock-btns button:active, .gwb-link-btns button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--gus-ink); }
+.gwb-k-clock .gwb-clock-btns { top: 106px; }
+.gwb-k-link .gwb-link-btns { top: 54px; }
+.gwb-k-clock.spinning .gwb-hands { animation: gwb-spin 0.35s linear 2; }
+.gwb-caption-time { padding: 1px 8px; border-radius: 999px; background: #e6b54a; font: 800 0.72rem 'Lexend', sans-serif; letter-spacing: 0.04em; }
+.gwb-chain { position: absolute; overflow: visible; pointer-events: none; }
+.gwb-marble { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #c8ced8 30%, #6b7383 80%); border: 2px solid var(--gus-ink); z-index: 4; pointer-events: none; transition: left 0.24s ease-in-out, top 0.24s ease-in-out; }
+.gwb-marble.bounce { animation: gwb-bounce 0.26s ease-out; }
+@keyframes gwb-bounce { 0% { transform: translateY(40px); } 60% { transform: translateY(-16px); } 100% { transform: translateY(0); } }
+.gwb-item.firing .gwb-spring { animation: gwb-squash 0.25s ease-in-out 2 alternate; transform-origin: 50% 120px; }
+@keyframes gwb-squash { to { transform: scaleY(0.6); } }
+.gwb-item.firing .gwb-hoist, .gwb-item.fired .gwb-hoist { transform: translateY(-60px); transition: transform 0.25s; }
+.gwb-item.firing .gwb-ring { animation: gwb-swing 0.18s ease-in-out 4 alternate; }
+.gwb-item.firing .gwb-domino, .gwb-item.fired .gwb-domino { animation: gwb-topple 0.4s ease-in forwards; }
+@keyframes gwb-topple { to { transform: rotate(70deg); } }
+.gwb-item.firing .gwb-tip { animation: gwb-tipit 0.3s ease-in-out 2 alternate; }
+@keyframes gwb-tipit { to { transform: rotate(-35deg); } }
+.gwb-item.firing .gp-fly, .gwb-item.fired .gp-fly { animation: gwb-spin 0.8s linear infinite; }
+.gwb-item.firing .gp-needle { animation: gwb-swing 0.3s ease-in-out infinite alternate; }
+.gwb-item.firing .gp-piston, .gwb-item.firing .gp-pump, .gwb-item.firing .gp-clamp { animation: gwb-pump 0.2s ease-in-out infinite alternate; }
+.gwb-item.firing .gp-steam { opacity: 1; animation: gwb-rise 0.6s ease-out infinite; }
+.gwb-confirm h2 { margin-top: 0; }
+.gwb-confirm-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.gwb-bigscreen-text { margin: 0; color: #fff; font: 700 1.1rem 'Lexend', sans-serif; text-align: center; }
+.gwb-drawer-text strong { color: #fff; }
+.gwb.calm .gwb-marble { transition: none; }

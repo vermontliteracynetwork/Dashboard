@@ -4,6 +4,7 @@ import { drawText, drawTextCentered, textWidth } from './font';
 import { spriteFor, drawProp } from './rigs';
 import type { Beat, Scene, SceneScript } from '../director/director';
 import type { CastMember } from '../director/cast';
+import { nounByWord } from '../data/wordbank';
 
 // The Pixel Cinema player (plan 3.17, 5.5, 6). Reads a scene script and
 // draws one frame for a moment in time. Stepped at 12 frames per second,
@@ -378,6 +379,7 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
     if (a.s.poof && !opts.calm) { fb.ellipse(a.s.x - 4, GROUND - 10, 4, 3, C.white); drawStar(fb, a.s.x + 2, top - 6, C.yellow); }
     if (a.s.word) drawTextCentered(fb, a.s.word, a.s.x, Math.max(14, top - 11), C.yellow);
     else if (a.s.tags.length) drawTextCentered(fb, a.s.tags[0], a.s.x, Math.max(14, top - 11), C.white);
+    else if (nounByWord.get(a.m.noun)?.pack === 'custom') drawTextCentered(fb, a.m.noun, a.s.x, Math.max(14, top - 11), C.white); // a dictionary word: its name shows
   };
   for (const a of states) if (a.s.behind) drawActor(a);
   for (const p of scene.props) { const m = castById.get(p.castId); drawProp(fb, m, m ? script.looks[m.id] : undefined, p.x, GROUND); }
@@ -404,7 +406,7 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
     fb.rect(140, 14, 14, 13, C.outline); fb.rect(141, 15, 12, 11, C.white); fb.rect(141, 15, 12, 3, C.red);
     if (flip === 1) fb.rect(141, 18, 12, 4, C.lightGray);
   }
-  const tag = scene.tense === 'past' ? 'Yesterday' : scene.tense === 'future' ? 'Tomorrow' : 'Now';
+  const tag = scene.tense === 'past' ? 'Past' : scene.tense === 'future' ? 'Future' : 'Present';
   drawText(fb, tag, 15, 13, scene.tense === 'past' ? C.sepia0 : C.white);
   if (scene.tense === 'present') fb.ellipse(11, 16, 2, 2, C.red);
 }

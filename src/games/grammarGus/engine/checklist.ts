@@ -46,10 +46,10 @@ const DEFS: Def[] = [
     applies: (c) => c.has('C') || c.v.violations.some((x) => x.code === 'NO_JOIN') },
   { id: 'halves', group: 'join', label: 'Both halves tell a whole idea', grownUp: 'compound sentence', hint: 'Each half needs a WHO and a WHAT THEY DID.', codes: ['HALF_INCOMPLETE'],
     applies: (c) => c.v.analysis.clauseConj !== undefined || c.v.violations.some((x) => x.code === 'HALF_INCOMPLETE') },
-  { id: 'capital', group: 'finish', label: 'Starts with a BIG letter', grownUp: 'capital letter', hint: 'Press the Big Letter Press on the first word.', codes: ['NO_CAPITAL'], applies: () => true, studentDoes: ['guided', 'challenge'] },
+  { id: 'capital', group: 'finish', label: 'Starts with a capital letter', grownUp: 'capital letter', hint: 'Use the Capital Letter Press on the first word.', codes: ['NO_CAPITAL'], applies: () => true, studentDoes: ['guided', 'challenge'] },
   { id: 'shout', group: 'finish', label: 'The shout has its own !', grownUp: 'interjection mark', hint: 'A shout word gets an exclamation mark.', codes: ['NO_SHOUT_MARK'], applies: (c) => c.has('I'), studentDoes: ['challenge'] },
   { id: 'comma', group: 'finish', label: 'A comma is where it belongs', grownUp: 'comma', hint: 'Put a comma after the opening HOW word.', codes: ['NO_COMMA'], applies: (c) => requiredCommas(c.v.analysis).length > 0, studentDoes: ['challenge'] },
-  { id: 'end', group: 'finish', label: 'Ends with a stop mark', grownUp: 'end punctuation', hint: 'Stamp a stop mark at the end: . or !', codes: ['NO_END_MARK'], applies: () => true, studentDoes: ['guided', 'challenge'] },
+  { id: 'end', group: 'finish', label: 'Ends with punctuation', grownUp: 'end punctuation', hint: 'Add punctuation at the end: . or !', codes: ['NO_END_MARK'], applies: () => true, studentDoes: ['guided', 'challenge'] },
 ];
 
 const MISSING: Violation[] = ['NO_SUBJECT', 'NO_VERB', 'NO_OBJECT', 'PREP_INCOMPLETE', 'HALF_INCOMPLETE', 'EMPTY_SOCKET', 'NO_END_MARK', 'NO_CAPITAL', 'NO_SHOUT_MARK', 'NO_COMMA', 'ADV_NO_VERB'];
