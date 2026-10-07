@@ -722,6 +722,41 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Workboard round 7 (parts snap on top of and under a word, nothing overlaps, docked checklist that checks off on a run, Gus's review with suggestions and a quick question). SHIPPED 2026-10-07 (direct teacher instructions)
+
+**Her words, verbatim:**
+1. "ensure that pieces can be added to the top and bottom of the machine. think the capitilzation press, it should go under the article component"
+2. "make sure text and other features dont overlap so the machine isnt used" (with a screenshot: the clock's Past and Future buttons covered its plate, and the parts menu tip sat under Gus).
+3. "usable and functionality is the priotity" (standing rule for every Gus change, now in CLAUDE.md).
+4. "grammar gus should evaluate quality, comprehesnin, and understanding of sentences. gus should also give suggestions on how to improve and expand on the machine/sentence"
+5. "the checklist shoul dbe open on default with a minimize button. the checklist should check off on running/testing a sentence which items are correct"
+
+**What shipped:**
+- **Snap-on parts, top and bottom.**
+  - Under a word goes whatever changes that word: the Capital Letter Press or Pulley (capital letter) and the Duplicator (more than one).
+  - On top of a word goes the punctuation that follows it: period, exclamation point, comma, Bell, Big Horn, Mood Meter, Dominoes, Comma List Train and Comma Drawbridge.
+  - **Placing:** tapping a Capital Letter Press snaps it under the first word, and a Duplicator under the first noun. While a part is being dragged, sockets glow above or below every word and the one it will land in turns green.
+  - **Moving and removing:** drag a snapped part off to move it. Delete removes it, and Undo brings it back.
+  - The engine reads them in order, and a period on top of a middle word is still "in the wrong place". The "missing capital letter" glow is now a socket under the first word, and "Add it for me" snaps the press under the first word.
+- **Nothing overlaps.**
+  - The Clock's ◀ Past and Future ▶ sit in its own plate area, with the time written on the clock face.
+  - The Mood Meter's buttons work the same way.
+  - Snapped-on parts push the sentence plate down and the job badge up.
+  - New machines, Jobs and Fit leave room for them.
+  - The parts menu tip that sat under Gus is gone, and the list scrolls clear of him.
+- **Gus's Checklist is docked, open by default, with ▁ Minimize.** It sits beside the floor in landscape and under it in portrait, and the iPad remembers if it is minimized. Before a test it lists what Gus will check.
+  - **Pulling the lever tests the machine:** every row turns ✅ or 🔧 with a little check-off animation.
+  - **Rows checked:** every machine has its word, parts in the right order, a capital letter under the first word, punctuation at the end, Pixel TV on the end, and the sentence items (who, what they did, a whole idea, agreement, time, describing order and the rest).
+  - **Rows the machine handles itself** show ⚙️.
+  - Changing the machine says "test it again".
+- **Gus's review** after a run:
+  - **Scorecard:** Complete sentence, Makes sense, Detail (describing word, how word, where words), and Variety (opener, a team, two ideas), each with stars and a kid-friendly note.
+  - **Make it bigger:** up to two suggestions, each with a 👉 Show me button that opens and lights up the exact part in the parts menu.
+  - **🧠 Quick question:** one question about the student's own sentence (who it is about, what they did, when, or where). A right answer earns one gear. A wrong one gets "read your sentence again".
+- Tests: 3 new. Full Gus suite: 277 passing.
+
+**Queued next:** question and answer machines, Spare Parts Bin, LATER parts, Claudia's round 4 game ideas (see round 6).
+
 ### Grammar Gus: Workboard round 6 (the 5 SOON parts, names, lists of three, him and her, combos, sound words on the TV, word reel). SHIPPED 2026-10-07 (direct teacher instructions)
 
 **Her words, verbatim:**

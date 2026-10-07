@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-checklist-review',
+    date: '2026-10-07',
+    icon: '✅',
+    title: 'Snap parts on top and underneath',
+    body: "Snap the Capital Letter Press under the first word, and punctuation on top of the last word. Gus's Checklist now stays open next to your machine. Pull the Start Lever and watch it check off everything you got right. Then read Gus's review: stars for your sentence, ideas to make it bigger, and a quick question about it for a bonus gear.",
+  },
+  {
     id: '2026-10-07-gus-combos',
     date: '2026-10-07',
     icon: '💥',

@@ -42,10 +42,10 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   ramp: { pos: 'P', pop: 'WHEEE!', does: 'Rolls in a where word', grammar: 'preposition' },
   conveyor: { pos: 'C', pop: 'CLANK-CLANK', does: 'Carries in a joining word', grammar: 'conjunction' },
   bucket: { pos: 'A', pop: 'SPLOSH!', does: 'Drops in a, an or the', grammar: 'article' },
-  pulley: { mark: 'cap', pop: 'HEAVE-HO!', does: 'Hoists the next word to a capital letter', grammar: 'capital letter' },
+  pulley: { mark: 'cap', pop: 'HEAVE-HO!', does: 'Hangs under a word and hoists it to a capital letter', grammar: 'capital letter' },
   bell: { mark: 'stop', pop: 'DING!', does: 'Rings a period at the end', grammar: 'period' },
   dominoes: { mark: 'comma', pop: 'CLACK-CLACK', does: 'Topples a comma pause after a word', grammar: 'comma' },
-  duplicator: { mark: 'plural', pop: 'COPY! COPY!', does: 'Copies the next noun: more than one', grammar: 'plural noun' },
+  duplicator: { mark: 'plural', pop: 'COPY! COPY!', does: 'Snaps under a noun and copies it: more than one', grammar: 'plural noun' },
   trapdoor: { pos: 'I', front: true, pop: 'POP! CONFETTI!', does: 'Pops a shout word out first', grammar: 'interjection with its punctuation' },
   mood: { mark: 'stop', preset: 'calm', pop: 'PSSSH!', does: 'Calm gets a period, BIG feelings get an exclamation point', grammar: 'end punctuation' },
   tunnel: { pos: 'D', front: true, words: [...TIME_WORDS.past, ...TIME_WORDS.present, ...TIME_WORDS.future], pop: 'WARP!', does: 'Zooms the sentence to a time', grammar: 'past, present and future' },
@@ -65,6 +65,16 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   listtrain: { mark: 'comma', pop: 'CHOO-CHOO!', does: 'Hooks a list of three together with commas', grammar: 'commas in a list' },
   turnstile: { tool: true, pop: 'CLICK-CLICK', does: 'Sends he and him through the right door', grammar: 'subject and object pronouns' },
   flag: { tool: true, pop: 'FINISH!', does: 'Waves when the sentence starts and ends right', grammar: 'capital letter and end punctuation' },
+};
+// Parts that snap on above or below a word machine (teacher 2026-10-07:
+// "pieces can be added to the top and bottom of the machine. think the
+// capitalization press, it should go under the article component").
+// Under a word: what changes the word itself (capital letter, more than
+// one). On top of a word: the punctuation that comes right after it.
+export type AttachSlot = 'top' | 'bottom';
+export const attachSlotOf = (k: Kind): AttachSlot | null => {
+  const m = k === 'mood' ? 'stop' : markOf(k);
+  return m === 'cap' || m === 'plural' ? 'bottom' : m === 'comma' || m === 'stop' || m === 'bang' ? 'top' : null;
 };
 export const isTool = (k: Kind) => isContraption(k) && !!FUN_ROLE[k].tool;
 export const isFront = (k: Kind) => isContraption(k) && !!FUN_ROLE[k].front;
@@ -96,10 +106,10 @@ export const KINDS: KindInfo[] = [
   W('D', 'Adverb', 'How Gauge', 'did'),
   W('P', 'Preposition', 'Arch Pipe', 'where'),
   W('C', 'Conjunction', 'Join Clamp', 'join'),
-  { kind: 'cap', name: 'Capital Letter Press', machine: 'Capital letter', hint: 'Put it in front of a word to give it a capital letter', color: '#8f9bb0', job: 'finish' },
-  { kind: 'stop', name: 'Period', machine: 'Punctuation stamp', hint: 'Punctuation that ends a telling sentence', color: '#c9a646', job: 'finish' },
-  { kind: 'bang', name: 'Exclamation Point', machine: 'Punctuation whistle', hint: 'Punctuation for a strong feeling, or after a shout word', color: '#e0703c', job: 'finish' },
-  { kind: 'comma', name: 'Comma', machine: 'Punctuation clip', hint: 'Punctuation for a little pause', color: '#b48ad6', job: 'finish' },
+  { kind: 'cap', name: 'Capital Letter Press', machine: 'Snaps under a word', hint: 'Snap it under the first word to give it a capital letter', color: '#8f9bb0', job: 'finish' },
+  { kind: 'stop', name: 'Period', machine: 'Snaps on the end or on top', hint: 'Punctuation that ends a telling sentence. Snap it on the end, or on top of the last word', color: '#c9a646', job: 'finish' },
+  { kind: 'bang', name: 'Exclamation Point', machine: 'Snaps on the end or on top', hint: 'Punctuation for a strong feeling, or on top of a shout word', color: '#e0703c', job: 'finish' },
+  { kind: 'comma', name: 'Comma', machine: 'Snaps on top of a word', hint: 'Punctuation for a little pause. Snap it on top of the word before the pause', color: '#b48ad6', job: 'finish' },
   X('horn', 'Big Horn', '#e0a030'),
   X('spring', 'Spring Mat', '#7fb3d5'),
   X('fan', 'Fan', '#69b7a8'),

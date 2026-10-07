@@ -68,3 +68,22 @@ describe('fun parts do grammar', () => {
     expect(readLine(line([part('A', 'the'), part('N', 'cat'), part('V', 'run'), part('dominoes'), part('stop')]), 'full', false).problems.map((p) => p.code)).toEqual(['COMMA_PLACE']);
   });
 });
+
+// Snap-on parts (teacher 2026-10-07: "pieces can be added to the top and
+// bottom of the machine ... the capitalization press, it should go under
+// the article component").
+describe('parts snapped on top and bottom', () => {
+  it('a Capital Letter Press under the article, a period on top of the last word', () => {
+    const the = { ...part('A', 'the'), bottom: part('cap') };
+    const run = { ...part('V', 'run'), top: part('stop') };
+    const r = readLine(line([the, part('N', 'cat'), run, part('tv')]), 'full');
+    expect(r.problems).toEqual([]);
+    expect(compose(r.draft).text).toBe('The cat runs.');
+  });
+  it('a Duplicator under a noun, a comma on top of a word, a period on top of a middle word is a mistake', () => {
+    const cat = { ...part('N', 'cat'), bottom: part('duplicator') };
+    expect(compose(readLine(line([{ ...part('A', 'the'), bottom: part('cap') }, cat, part('V', 'run'), part('stop')]), 'full', false).draft).text).toBe('The cats run.');
+    const early = readLine(line([{ ...part('A', 'the'), top: part('stop') }, part('N', 'cat'), part('V', 'run')]), 'full', false);
+    expect(early.problems.map((p) => p.code)).toEqual(['END_NOT_LAST']);
+  });
+});

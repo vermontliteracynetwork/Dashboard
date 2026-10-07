@@ -36,7 +36,7 @@ No em dashes anywhere in student- or teacher-facing text.
 Grammar words (direct teacher rule, 2026-10-07): always say "capital letter" and "punctuation", never "big letter" or "stop mark". Always say past, present and future for time, never "yesterday", "now" or "tomorrow".
 
 ## Grammar Gus: play first, grammar inside
-Direct teacher rules (2026-10-07): the Workboard is "a sandbox style for the kids to play around with grammar in the same STEAM style way they like to play other games, with hidden grammar concepts", and "the animations (like steam coming from pipes if the machine is running, gears whirring and twisting), sound effects, and other ui features should be added whenever possible to increase engagement." On every Gus change, look for a chance to add motion, sound or a playful touch (calm mode and reduced motion still them), and give every new fun part a real grammar job.
+Direct teacher rules (2026-10-07): the Workboard is "a sandbox style for the kids to play around with grammar in the same STEAM style way they like to play other games, with hidden grammar concepts", and "the animations (like steam coming from pipes if the machine is running, gears whirring and twisting), sound effects, and other ui features should be added whenever possible to increase engagement." Also direct (2026-10-07): "usable and functionality is the priority", and nothing may overlap the machine (text, buttons, panels). On every Gus change, look for a chance to add motion, sound or a playful touch (calm mode and reduced motion still them), and give every new fun part a real grammar job.
 
 ## File deliverables
 Whenever handing the teacher a `.md` file (a dev log, a doc, a summary), convert it to PDF and give her that instead of raw markdown.

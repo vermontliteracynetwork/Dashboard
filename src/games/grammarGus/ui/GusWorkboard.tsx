@@ -5,7 +5,8 @@ import { useLockBodyScroll } from '../../../lib/useLockBodyScroll';
 import type { Pos, Tense, VerbForm, Draft, Violation } from '../engine/types';
 import { runSentence, type Run } from '../engine/pipeline';
 import { compose, expectedForms } from '../engine/compose';
-import { buildChecklist, GROUP_TITLES } from '../engine/checklist';
+import { buildChecklist, type ChecklistState } from '../engine/checklist';
+import { reviewSentence, type Review } from '../engine/review';
 import { verbText } from '../engine/conjugate';
 import { predictWords } from '../engine/phonetic';
 import { readLine, readingOrder, paragraphs, tenseOf, deadEnds, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
@@ -26,7 +27,7 @@ import GusGuide from './GusGuide';
 import PixelCinema from './PixelCinema';
 import { gusSound, setGusMuted } from './sound';
 import MachinePart from './board/MachinePart';
-import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, FUN_ROLE, EXAMPLES, type Kind, type Job } from './board/parts';
+import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, EXAMPLES, type Kind, type Job } from './board/parts';
 import type { SceneScript } from '../director/director';
 
 // Gus's Workboard (teacher 2026-10-07). Her words, in order:
@@ -65,11 +66,29 @@ const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
 interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[] }
 type Sort = 'job' | 'order' | 'color' | 'az';
+// The machine rows of Gus's Checklist: the Workboard's own jobs.
+const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
+  { id: 'words', label: 'Every machine has its word', hint: 'Tap a machine with a ? and pick its word.', codes: ['EMPTY_PART', 'NO_WORDS'] },
+  { id: 'order', label: 'Parts snapped in the right order', hint: 'Front parts at the front, punctuation at the end, a comma right after a word.', codes: ['NOT_FRONT', 'BRIDGE_UP', 'COMMA_PLACE', 'COPY_NO_NOUN', 'DEAD_END', 'TV_NOT_LAST', 'END_NOT_LAST'] },
+  { id: 'cap', label: 'Capital letter under the first word', hint: 'Snap a Capital Letter Press under the first word.', codes: ['NEED_CAP'], finish: true },
+  { id: 'end', label: 'Punctuation at the end', hint: 'Snap a period or exclamation point on the end, or on top of the last word.', codes: ['NEED_END'], finish: true },
+  { id: 'tv', label: 'Pixel TV on the end', hint: 'Plug a Pixel TV on the very end.', codes: ['NEED_TV'], finish: true },
+];
+type Tested = { sig: string; rows: { id: string; label: string; hint: string; state: 'pass' | 'fix' | 'auto' }[]; review: Review | null };
+const sigOf = (l: BoardLine) => JSON.stringify([l.items, l.connector]);
 const SORTS: { id: Sort; label: string }[] = [{ id: 'job', label: 'By job' }, { id: 'order', label: 'Sentence order' }, { id: 'color', label: 'By color' }, { id: 'az', label: 'A to Z' }];
 const JOB_ORDER: Job[] = ['power', 'time', 'shout', 'who', 'did', 'where', 'join', 'finish', 'paragraph', 'contraption', 'gadget'];
 // Everything snaps: whole machines land on a 20px grid, parts snap into a
 // machine from farther away.
 const GRID = 20;
+// Parts snapped on above or below a word machine are drawn smaller.
+const ATT = 0.55;
+const ATT_H = Math.round(ITEM_H * ATT);
+type Target = { lineId: string; index: number; attach?: { itemId: string; slot: AttachSlot } };
+const hasTop = (l: BoardLine) => l.items.some((i) => i.top);
+const hasBottom = (l: BoardLine) => l.items.some((i) => i.bottom);
+// How far below a line its parts and sentence plate reach (for spacing).
+const lineBottom = (l: BoardLine) => l.y + ITEM_H + (hasBottom(l) ? ATT_H + 10 : 0) + 80;
 const snap = (v: number) => Math.round(v / GRID) * GRID;
 const MAGNET = 140;
 // Each part's sound word when the marble rolls through it. Word machines
@@ -101,10 +120,8 @@ function layout(line: BoardLine, ghosts: FinishProblem[] = []): Slot[] {
   const hasWord = line.items.some((i) => needsWord(i.kind));
   const leverAt = line.items.findIndex((i) => i.kind === 'lever');
   if (hasWord && leverAt < 0) push({ ghost: 'lever', w: partWidth('lever', null) });
-  const firstWord = line.items.findIndex((i) => needsWord(i.kind) || markOf(i.kind) === 'cap');
   const tvIdx = line.items.findIndex((i) => i.kind === 'tv');
   line.items.forEach((item, i) => {
-    if (i === firstWord && ghosts.includes('NEED_CAP')) push({ ghost: 'cap', w: partWidth('cap', null) });
     if (i === tvIdx && ghosts.includes('NEED_END')) push({ ghost: 'stop', w: partWidth('stop', null) });
     push({ item, w: partWidth(item.kind, item.word) });
   });
@@ -148,14 +165,14 @@ function placeInto(items: BoardItem[], index: number, item: BoardItem): BoardIte
 }
 
 type Gesture =
-  | { kind: 'item'; pid: number; lineId: string; itemId: string; sx: number; sy: number; grabX: number; grabY: number; active: boolean }
+  | { kind: 'item'; pid: number; lineId: string; itemId: string; sx: number; sy: number; grabX: number; grabY: number; active: boolean; attach?: { parentId: string; slot: AttachSlot } }
   | { kind: 'line'; pid: number; lineId: string; sx: number; sy: number; grabX: number; grabY: number; active: boolean }
   | { kind: 'new'; pid: number; k: Kind; sx: number; sy: number; active: boolean }
   | { kind: 'pan'; pid: number; sx: number; sy: number; vx: number; vy: number; moved: boolean }
   | { kind: 'pinch'; d0: number; z0: number; mx: number; my: number; vx: number; vy: number };
 type DragView =
-  | { kind: 'item'; item: BoardItem; x: number; y: number; target: { lineId: string; index: number } | null; overDrawer: boolean }
-  | { kind: 'new'; k: Kind; sx: number; sy: number; target: { lineId: string; index: number } | null }
+  | { kind: 'item'; item: BoardItem; x: number; y: number; target: Target | null; overDrawer: boolean }
+  | { kind: 'new'; k: Kind; sx: number; sy: number; target: Target | null }
   | { kind: 'line'; lineId: string; target: string | null };
 type Dict = { q: string; pos: DictPos; result: TypedCheck | 'checking' } | null;
 
@@ -186,7 +203,14 @@ export default function GusWorkboard() {
   const [playing, setPlaying] = useState<{ lineId: string; script: SceneScript; key: number } | null>(null);
   const [big, setBig] = useState<{ script: SceneScript; key: number; story: SealedSentence[] | null; text?: string } | null>(null);
   const [lastRun, setLastRun] = useState<{ lineId: string; run: Run } | null>(null);
-  const [clip, setClip] = useState<string | null>(null);
+  // Gus's Checklist: docked open by default, with a minimize button
+  // (teacher 2026-10-07). It checks items off when the lever is pulled.
+  const [clipMin, setClipMin] = useState(() => { try { return localStorage.getItem('gus-check-min') === '1'; } catch { return false; } });
+  useEffect(() => { try { localStorage.setItem('gus-check-min', clipMin ? '1' : '0'); } catch { /* fine */ } }, [clipMin]);
+  const [tests, setTests] = useState<Record<string, Tested>>({});
+  const [quiz, setQuiz] = useState<Record<string, { pick: string; paid: boolean }>>({});
+  const [glowKind, setGlowKind] = useState<Kind | null>(null);
+  const quizRound = useRef(0);
   const [calm, setCalm] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [muted, setMuted] = useState(false);
   const [topMenu, setTopMenu] = useState(false);
@@ -253,7 +277,20 @@ export default function GusWorkboard() {
     const r = boardRef.current!.getBoundingClientRect(); const v = viewRef.current;
     return { x: (cx - r.left - v.x) / v.z, y: (cy - r.top - v.y) / v.z };
   };
-  const findTarget = (x: number, y: number): { lineId: string; index: number } | null => {
+  const findTarget = (x: number, y: number, k?: Kind): Target | null => {
+    // A part that snaps on above or below a word looks for that socket first.
+    const slot = k ? attachSlotOf(k) : null;
+    if (slot) {
+      const cx = x + 50, cy = y + ITEM_H / 2;
+      let near: { t: Target; d: number } | null = null;
+      for (const l of linesRef.current) for (const s of itemSlots(l, ghostsRef.current[l.id])) {
+        if (!s.item || !needsWord(s.item.kind)) continue;
+        const sy = slot === 'top' ? l.y - 20 : l.y + ITEM_H + 20;
+        const d = Math.hypot(cx - (s.x + s.w / 2), cy - sy);
+        if (d < 110 && (!near || d < near.d)) near = { t: { lineId: l.id, index: 0, attach: { itemId: s.item.id, slot } }, d };
+      }
+      if (near) return near.t;
+    }
     let best: { lineId: string; index: number; d: number } | null = null;
     for (const l of linesRef.current) {
       const slots = itemSlots(l, ghostsRef.current[l.id]);
@@ -283,7 +320,9 @@ export default function GusWorkboard() {
   const insertItem = (lineId: string, index: number, item: BoardItem, silent = false) => editLine(lineId, (l) => ({ ...l, items: placeInto(l.items, index, item) }), silent);
   const newLineAt = (x: number, y: number, item: BoardItem, silent = false) => { const id = uid(); if (!silent) remember(); setLines((ls) => [...ls, { id, x: snap(x), y: snap(y), items: [item] }]); setSelLine(id); return id; };
   // A free spot under the lowest machine, so new machines never stack.
-  const freeSpot = () => { const ls = linesRef.current; return { x: 60, y: ls.length ? snap(Math.max(...ls.map((l) => l.y)) + ITEM_H + 90) : 80 }; };
+  const freeSpot = () => { const ls = linesRef.current; return { x: 60, y: ls.length ? snap(Math.max(...ls.map(lineBottom)) + ATT_H + 20) : 80 }; };
+  // Snap a part onto the top or bottom of a word machine.
+  const attachTo = (lineId: string, itemId: string, slot: AttachSlot, part: BoardItem, silent = false) => editLine(lineId, (l) => ({ ...l, items: l.items.map((i) => (i.id === itemId ? { ...i, [slot]: part } : i)) }), silent);
   const newMachine = () => {
     const s = freeSpot(); newLineAt(s.x, s.y, { id: uid(), kind: 'blank', word: null });
     gusSound.snap(); requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
@@ -303,18 +342,26 @@ export default function GusWorkboard() {
     window.addEventListener('keydown', esc); return () => window.removeEventListener('keydown', esc);
   }, []);
   const afterAdd = (lineId: string, item: BoardItem) => {
-    clearGhost(lineId, item.kind); bounce(item.id);
+    clearGhost(lineId, item.kind); bounce(item.id); if (item.kind === glowKind) setGlowKind(null);
     FUN_SOUND[item.kind]?.();
     if (needsWord(item.kind) && !item.word) openMenuFor(lineId, item.id);
     else say(`${kindInfo(item.kind).name}: ${kindInfo(item.kind).hint}.`, 'Clunk!');
   };
-  const addKind = (k: Kind, at?: { x: number; y: number; target: { lineId: string; index: number } | null }) => {
+  const addKind = (k: Kind, at?: { x: number; y: number; target: Target | null }) => {
     const item: BoardItem = { id: uid(), kind: k, word: k === 'clock' ? 'present' : isContraption(k) ? FUN_ROLE[k].preset ?? null : null };
     gusSound.snap();
+    if (at?.target?.attach) { attachTo(at.target.lineId, at.target.attach.itemId, at.target.attach.slot, item); setSelLine(at.target.lineId); afterAdd(at.target.lineId, item); return; }
     if (at?.target) { insertItem(at.target.lineId, at.target.index, item); setSelLine(at.target.lineId); afterAdd(at.target.lineId, item); return; }
     if (at) { const id = newLineAt(at.x - GRIP_W, at.y, item); afterAdd(id, item); return; }
     const target = linesRef.current.find((l) => l.id === selLine) ?? (linesRef.current.length === 1 ? linesRef.current[0] : undefined);
     if (target) {
+      // Tapped: a capital letter part snaps under the first word, a
+      // Duplicator under the first noun (if they have room).
+      if (attachSlotOf(k) === 'bottom') {
+        const host = target.items.find((i) => !i.bottom && (markOf(k) === 'plural' ? wordPosOf(i.kind) === 'N' : needsWord(i.kind)));
+        const first = target.items.find((i) => needsWord(i.kind));
+        if (host && (markOf(k) === 'plural' || host === first)) { attachTo(target.id, host.id, 'bottom', item); afterAdd(target.id, item); return; }
+      }
       const blank = target.items.findIndex((i) => i.kind === 'blank');
       const idx = blank >= 0 && needsWord(k) ? blank : smartIndex(target, k);
       insertItem(target.id, idx, item); afterAdd(target.id, item); return;
@@ -327,16 +374,17 @@ export default function GusWorkboard() {
     const code: FinishProblem | null = markOf(k) === 'cap' ? 'NEED_CAP' : isEndMark(k) ? 'NEED_END' : k === 'tv' ? 'NEED_TV' : null;
     if (code) setGhosts((g) => ({ ...g, [lineId]: (g[lineId] ?? []).filter((x) => x !== code) }));
   };
-  const addGhostPart = (lineId: string, k: Kind) => { const l = linesRef.current.find((x) => x.id === lineId); if (!l) return; const item = { id: uid(), kind: k, word: null }; insertItem(lineId, smartIndex(l, k), item); clearGhost(lineId, k); bounce(item.id); gusSound.snap(); say(`${kindInfo(k).name} plugged in. Very good.`, 'Clunk!'); };
+  const addGhostPart = (lineId: string, k: Kind) => { const l = linesRef.current.find((x) => x.id === lineId); if (!l) return; const item = { id: uid(), kind: k, word: null }; const first = l.items.find((i) => needsWord(i.kind)); if (k === 'cap' && first) attachTo(lineId, first.id, 'bottom', item); else insertItem(lineId, smartIndex(l, k), item); clearGhost(lineId, k); bounce(item.id); gusSound.snap(); say(`${kindInfo(k).name} plugged in. Very good.`, 'Clunk!'); };
   const fixFinishing = (lineId: string) => {
     const l = linesRef.current.find((x) => x.id === lineId); if (!l) return;
     let items = [...l.items];
     const rd = readLine(l, level, true);
     if (!items.some((i) => i.kind === 'lever')) items = [{ id: uid(), kind: 'lever', word: null }, ...items];
     if (rd.problems.some((p) => p.code === 'NEED_CAP')) {
+      // The Capital Letter Press goes under the first word.
       const old = items.find((i) => markOf(i.kind) === 'cap'); if (old) items = items.filter((i) => i !== old);
       const f = items.findIndex((i) => needsWord(i.kind));
-      if (f >= 0) items.splice(f, 0, old ?? { id: uid(), kind: 'cap', word: null });
+      if (f >= 0) items[f] = { ...items[f], bottom: old ?? items[f].bottom ?? { id: uid(), kind: 'cap', word: null } };
     }
     if (rd.problems.some((p) => p.code === 'NEED_END')) { const tv = items.findIndex((i) => i.kind === 'tv' || i.kind === 'link'); items.splice(tv >= 0 ? tv : items.length, 0, { id: uid(), kind: 'stop', word: null }); }
     if (rd.problems.some((p) => p.code === 'NEED_TV')) { const link = items.findIndex((i) => i.kind === 'link'); items.splice(link >= 0 ? link : items.length, 0, { id: uid(), kind: 'tv', word: null }); }
@@ -353,6 +401,12 @@ export default function GusWorkboard() {
     const b = toBoard(e.clientX, e.clientY);
     const slot = itemSlots(line, ghosts[line.id]).find((s) => s.item?.id === item.id)!;
     gesture.current = { kind: 'item', pid: e.pointerId, lineId: line.id, itemId: item.id, sx: e.clientX, sy: e.clientY, grabX: b.x - slot.x, grabY: b.y - line.y, active: false };
+    setSelLine(line.id);
+  };
+  const onAttachDown = (e: React.PointerEvent, line: BoardLine, parent: BoardItem, slot: AttachSlot) => {
+    e.stopPropagation(); if (e.button > 0 || dragging()) return;
+    const att = parent[slot]; if (!att) return;
+    gesture.current = { kind: 'item', pid: e.pointerId, lineId: line.id, itemId: att.id, sx: e.clientX, sy: e.clientY, grabX: 40, grabY: ITEM_H / 2, active: false, attach: { parentId: parent.id, slot } };
     setSelLine(line.id);
   };
   const onGripDown = (e: React.PointerEvent, line: BoardLine) => {
@@ -409,9 +463,12 @@ export default function GusWorkboard() {
         if (g.kind === 'new' && Math.abs(e.clientY - g.sy) > Math.abs(e.clientX - g.sx)) { gesture.current = null; return; }
         g.active = true; setMenu(null);
         if (g.kind === 'item') {
-          const line = linesRef.current.find((l) => l.id === g.lineId); const item = line?.items.find((i) => i.id === g.itemId);
+          const line = linesRef.current.find((l) => l.id === g.lineId);
+          const at = g.attach;
+          const item = at ? line?.items.find((i) => i.id === at.parentId)?.[at.slot] : line?.items.find((i) => i.id === g.itemId);
           if (!line || !item) { gesture.current = null; return; }
-          editLine(line.id, (l) => { const rest = l.items.filter((i) => i.id !== item.id); return { ...l, items: rest.length ? rest : [{ id: uid(), kind: 'blank', word: null }] }; });
+          if (at) editLine(line.id, (l) => ({ ...l, items: l.items.map((i) => (i.id === at.parentId ? { ...i, [at.slot]: undefined } : i)) }));
+          else editLine(line.id, (l) => { const rest = l.items.filter((i) => i.id !== item.id); return { ...l, items: rest.length ? rest : [{ id: uid(), kind: 'blank', word: null }] }; });
           setDrag({ kind: 'item', item, x: 0, y: 0, target: null, overDrawer: false });
         }
       }
@@ -419,7 +476,7 @@ export default function GusWorkboard() {
       if (g.kind === 'item') {
         const b = toBoard(e.clientX, e.clientY);
         const x = b.x - g.grabX, y = b.y - g.grabY;
-        setDrag((d) => (d && d.kind === 'item' ? { ...d, x, y, target: findTarget(x, y), overDrawer: overDrawer(e.clientX, e.clientY) } : d));
+        setDrag((d) => (d && d.kind === 'item' ? { ...d, x, y, target: findTarget(x, y, d.item.kind), overDrawer: overDrawer(e.clientX, e.clientY) } : d));
       } else if (g.kind === 'line') {
         if (!lineMoveSaved.current) { remember(); lineMoveSaved.current = true; }
         const b = toBoard(e.clientX, e.clientY);
@@ -429,7 +486,7 @@ export default function GusWorkboard() {
         setDrag({ kind: 'line', lineId: g.lineId, target: join?.id ?? null });
       } else if (g.kind === 'new') {
         const b = overBoard(e.clientX, e.clientY) ? toBoard(e.clientX, e.clientY) : null;
-        setDrag({ kind: 'new', k: g.k, sx: e.clientX, sy: e.clientY, target: b ? findTarget(b.x - 30, b.y - ITEM_H / 2) : null });
+        setDrag({ kind: 'new', k: g.k, sx: e.clientX, sy: e.clientY, target: b ? findTarget(b.x - 30, b.y - ITEM_H / 2, g.k) : null });
       }
     };
     const up = (e: PointerEvent) => {
@@ -445,7 +502,10 @@ export default function GusWorkboard() {
       }
       if (g.kind === 'pan') { if (!g.moved) { setMenu(null); setSelLine(null); setTopMenu(false); setJobsOpen(false); } return; }
       if (!g.active) {
-        if (g.kind === 'item') {
+        if (g.kind === 'item' && g.attach) {
+          const att = linesRef.current.find((l) => l.id === g.lineId)?.items.find((i) => i.id === g.attach!.parentId)?.[g.attach.slot];
+          if (att) { FUN_SOUND[att.kind]?.(); say(`${kindInfo(att.kind).name}, snapped ${g.attach.slot === 'top' ? 'on top of' : 'under'} this word: ${kindInfo(att.kind).hint}. Drag it off to move it.`, 'Clunk!'); }
+        } else if (g.kind === 'item') {
           const it = linesRef.current.find((l) => l.id === g.lineId)?.items.find((i) => i.id === g.itemId);
           if (it && FUN_SOUND[it.kind]) FUN_SOUND[it.kind]!();
           if (it?.kind === 'blank') say('A blank word space. Drag a part from the parts menu on the left onto it, or tap a part.', 'Blank space');
@@ -463,14 +523,15 @@ export default function GusWorkboard() {
         if (overDrawer(e.clientX, e.clientY)) { gusSound.puff(); tidy(); say('Back in the parts menu. Changed your mind? Tap Undo.', 'Recycled'); return; }
         gusSound.snap();
         bounce(d.item.id);
-        if (d.target) { insertItem(d.target.lineId, d.target.index, d.item, true); setSelLine(d.target.lineId); clearGhost(d.target.lineId, d.item.kind); }
+        if (d.target?.attach) { attachTo(d.target.lineId, d.target.attach.itemId, d.target.attach.slot, d.item, true); setSelLine(d.target.lineId); clearGhost(d.target.lineId, d.item.kind); }
+        else if (d.target) { insertItem(d.target.lineId, d.target.index, d.item, true); setSelLine(d.target.lineId); clearGhost(d.target.lineId, d.item.kind); }
         else newLineAt(d.x - GRIP_W, d.y, d.item, true);
         tidy();
       } else if (g.kind === 'line' && d?.kind === 'line' && d.target) {
         const me = linesRef.current.find((l) => l.id === g.lineId);
         if (me) {
           const isTail = (k: Kind) => isEndMark(k) || k === 'tv' || k === 'link';
-          const keep = me.items.filter((i) => !['lever', 'clock', 'blank'].includes(i.kind) && markOf(i.kind) !== 'cap');
+          const keep = me.items.filter((i) => !['lever', 'clock', 'blank'].includes(i.kind) && markOf(i.kind) !== 'cap').map((i) => (i.bottom && markOf(i.bottom.kind) === 'cap' ? { ...i, bottom: undefined } : i));
           editLine(d.target, (l) => { const head = [...l.items]; while (head.length && isTail(head[head.length - 1].kind)) head.pop(); return { ...l, items: [...head, ...keep] }; }, true);
           setLines((ls) => ls.filter((l) => l.id !== me.id)); gusSound.snap(); bounce(d.target); say('Two machines became one long machine. Check its punctuation.', 'Joined');
         }
@@ -503,8 +564,8 @@ export default function GusWorkboard() {
     const r = boardRef.current?.getBoundingClientRect(); if (!r) return;
     const ls = linesRef.current;
     if (!ls.length) { setView({ x: 24, y: 24, z: 1 }); return; }
-    const minX = Math.min(...ls.map((l) => l.x)), minY = Math.min(...ls.map((l) => l.y)) - 30;
-    const maxX = Math.max(...ls.map((l) => lineRight(l, ghostsRef.current[l.id]))), maxY = Math.max(...ls.map((l) => l.y + ITEM_H + 40));
+    const minX = Math.min(...ls.map((l) => l.x)), minY = Math.min(...ls.map((l) => l.y - (hasTop(l) ? ATT_H : 0))) - 30;
+    const maxX = Math.max(...ls.map((l) => lineRight(l, ghostsRef.current[l.id]))), maxY = Math.max(...ls.map(lineBottom));
     const z = Math.max(0.6, Math.min(1.25, Math.min((r.width - 90) / (maxX - minX), (r.height - 90) / (maxY - minY))));
     setView({ z, x: 30 - minX * z, y: 30 - minY * z });
   };
@@ -560,6 +621,19 @@ export default function GusWorkboard() {
     setGadgetPops(pops);
     const rd = readLine(line, level, requireFinish || !!line.job);
     const seed = hashString(line.id + compose(rd.draft).text);
+    // Test the machine: Gus checks off every checklist item that is right.
+    const finishOn = requireFinish || !!line.job || line.items.some((i) => i.kind === 'flag');
+    const codes = new Set(rd.problems.map((p) => p.code));
+    const sentence: ChecklistState = buildChecklist(readLine(line, level, false).draft);
+    const record = (review: Review | null) => {
+      const rows: Tested['rows'] = [
+        ...MACHINE_ROWS.map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: (m.finish && !finishOn ? 'auto' : m.codes.some((c) => codes.has(c)) ? 'fix' : 'pass') as 'pass' | 'fix' | 'auto' })),
+        ...sentence.items.filter((it) => it.id !== 'capital' && it.id !== 'end').map((it) => ({ id: it.id, label: it.label, hint: it.hint, state: (it.status === 'done' ? 'pass' : it.status === 'auto' ? 'auto' : 'fix') as 'pass' | 'fix' | 'auto' })),
+      ];
+      setTests((t) => ({ ...t, [line.id]: { sig: sigOf(line), rows, review } }));
+      setQuiz((q) => { const n = { ...q }; delete n[line.id]; return n; });
+    };
+    record(null);
     if (rd.problems.length) {
       const p = rd.problems[0];
       const fin = rd.problems.filter((x) => x.code === 'NEED_CAP' || x.code === 'NEED_END' || x.code === 'NEED_TV').map((x) => x.code);
@@ -590,6 +664,7 @@ export default function GusWorkboard() {
       return;
     }
     logAttempt(rd.draft, r.composed.text, r.rubric!.stars, r.rubric!.verdicts.map((x) => x.code));
+    record(reviewSentence(rd.draft, r, quizRound.current++, ['robot', 'pizza', 'dragon']));
     setPulse([]);
     say(gadgetNotes || 'Pressure building... The marble is rolling. Stand back!', 'Running');
     if (!calm) { gusSound.rumble(); gusSound.whir(); }
@@ -722,7 +797,7 @@ export default function GusWorkboard() {
     remember();
     const { items, job } = makeJob(kind, makeRng(Date.now()), uid, { gentleOnly: settings.gentleOnly });
     const ls = linesRef.current;
-    const y = ls.length ? Math.max(...ls.map((l) => l.y)) + ITEM_H + 130 : 80;
+    const y = ls.length ? snap(Math.max(...ls.map(lineBottom)) + ATT_H + 20) : 80;
     const id = uid();
     setLines((cur) => [...cur.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank')), { id, x: 60, y, items, job }]);
     setSelLine(id);
@@ -841,7 +916,7 @@ export default function GusWorkboard() {
   const drawerRow = (k: Kind) => {
     const info = kindInfo(k);
     return (
-      <div key={k} className={`gwb-drawer-row${nextStep?.kind === k ? ' next' : ''}`}>
+      <div key={k} className={`gwb-drawer-row${nextStep?.kind === k || glowKind === k ? ' next' : ''}`}>
         <button type="button" className="gwb-drawer-item" onPointerDown={(e) => onDrawerDown(e, k)} onClick={(e) => { if (e.detail === 0) addKind(k); }} aria-label={`${info.name}: ${info.hint}`}>
           <span className="gwb-drawer-pic"><MachinePart kind={k} word={isWordKind(k) ? info.name.toLowerCase() : k === 'clock' ? 'present' : null} scale={k === 'tv' || k === 'conveyor' || k === 'dominoes' || k === 'horn' ? 0.26 : 0.36} /></span>
           {drawerOpen && <span className="gwb-drawer-text"><strong>{info.name}</strong><small>{blurb(k)}</small></span>}
@@ -853,7 +928,7 @@ export default function GusWorkboard() {
   const funOn = settings.contraptions !== 'off';
   const drawerGroup = (job: Job, kinds: Kind[]) => {
     const folded = drawerOpen && folds.includes(job) && !((job === 'contraption' || job === 'gadget') && settings.contraptions === 'open');
-    const glow = folded && !!nextStep?.kind && kinds.includes(nextStep.kind);
+    const glow = folded && ((!!nextStep?.kind && kinds.includes(nextStep.kind)) || (!!glowKind && kinds.includes(glowKind)));
     return (
       <div key={job} className={`gwb-drawer-group${job === 'contraption' || job === 'gadget' ? ' fun' : ''}`}>
         {drawerOpen && <button type="button" className={`gwb-drawer-title${glow ? ' next' : ''}`} onClick={() => toggleFold(job)} aria-expanded={!folded}>
@@ -866,8 +941,6 @@ export default function GusWorkboard() {
 
   // ---- render ---------------------------------------------------------------
   const zoomBtn = (d: number) => { const r = boardRef.current!.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, view.z + d); };
-  const clipLine = clip ? lines.find((l) => l.id === clip) : undefined;
-  const clipList = clipLine ? buildChecklist(readLine(clipLine, level, false).draft) : null;
   const foundCombos = [...new Set([...(saved.combos ?? []), ...sessionCombos])];
   const order = readingOrder(lines);
   const paras = paragraphs(lines);
@@ -961,7 +1034,7 @@ export default function GusWorkboard() {
                   {comboShow?.lineId === line.id && <span key={comboShow.key} className="gwb-combo" style={{ left: line.x + GRIP_W, top: line.y - 54 }} role="status">💥 COMBO! {comboShow.names.join(' + ')}</span>}
                   {party === line.id && <span className="gwb-confetti" style={{ left: line.x + GRIP_W, top: line.y - 10, width: lineRight(line, g) - line.x - GRIP_W }} aria-hidden>{Array.from({ length: 14 }, (_, k) => <i key={k} style={{ left: `${(k * 7.3) % 100}%`, animationDelay: `${(k % 5) * 0.09}s` }} />)}</span>}
                   {line.job && (
-                    <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 40 }}>
+                    <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 40 - (hasTop(line) ? ATT_H : 0) }}>
                       {line.job.done ? '✅ Job done!' : line.job.kind === 'delivery' ? '📦 Mixed-up Delivery: put the word machines in order.' : `🔍 Punctuation Inspector: ${FLAW_HINTS[line.job.flaw as Flaw]}`}
                     </div>
                   )}
@@ -1002,8 +1075,8 @@ export default function GusWorkboard() {
                         )}
                         {item.kind === 'clock' && (
                           <span className="gwb-clock-btns" onPointerDown={(e) => e.stopPropagation()}>
-                            <button type="button" onClick={() => turnClock(line, item, -1)} aria-label="Rewind the clock toward the past">⏪ Past</button>
-                            <button type="button" onClick={() => turnClock(line, item, 1)} aria-label="Wind the clock toward the future">Future ⏩</button>
+                            <button type="button" onClick={() => turnClock(line, item, -1)} aria-label="Rewind the clock toward the past">◀ Past</button>
+                            <button type="button" onClick={() => turnClock(line, item, 1)} aria-label="Wind the clock toward the future">Future ▶</button>
                           </span>
                         )}
                         {item.kind === 'link' && (
@@ -1021,15 +1094,39 @@ export default function GusWorkboard() {
                       </div>
                     );
                   })}
+                  {itemSlots(line, g).map((s) => {
+                    const host = s.item!; const hIdx = line.items.indexOf(host);
+                    if (!needsWord(host.kind)) return null;
+                    const dk = drag?.kind === 'item' ? drag.item.kind : drag?.kind === 'new' ? drag.k : null;
+                    const want = dk ? attachSlotOf(dk) : null;
+                    const tgt = drag && drag.kind !== 'line' ? drag.target?.attach : undefined;
+                    const first = line.items.find((i) => needsWord(i.kind)) === host;
+                    return (['top', 'bottom'] as const).map((side) => {
+                      const a = host[side];
+                      const y = side === 'top' ? line.y - ATT_H + 2 : line.y + ITEM_H + 4;
+                      if (a) {
+                        const aw = partWidth(a.kind, a.word) * ATT;
+                        return <div key={a.id} className={`gwb-attach ${side}${pulse.includes(a.id) ? ' leak' : ''}${isFiring && firing!.idx === hIdx ? ' firing' : ''}${snapped === a.id ? ' snapped' : ''}`} style={{ left: s.x + (s.w - aw) / 2, top: y, width: aw, height: ATT_H }}
+                          onPointerDown={(e) => onAttachDown(e, line, host, side)} role="button" tabIndex={0} aria-label={`${kindInfo(a.kind).name}, snapped ${side === 'top' ? 'on top of' : 'under'} ${host.word ?? 'this word'}. Drag it off to move it.`}
+                          onKeyDown={(e) => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); editLine(line.id, (l) => ({ ...l, items: l.items.map((i) => (i.id === host.id ? { ...i, [side]: undefined } : i)) })); gusSound.puff(); say('Taken off. Changed your mind? Tap Undo.', 'Removed'); } }}>
+                          <MachinePart kind={a.kind} word={a.word} scale={ATT} />
+                          {isFiring && firing!.idx === hIdx && <span className="gwb-pop fun" aria-hidden>{isContraption(a.kind) ? FUN_ROLE[a.kind].pop : POPS[a.kind] ?? ''}</span>}
+                        </div>;
+                      }
+                      if (want === side) return <span key={`sock-${host.id}-${side}`} className={`gwb-socket ${side}${tgt?.itemId === host.id && tgt.slot === side ? ' hot' : ''}`} style={{ left: s.x + s.w / 2 - 34, top: side === 'top' ? line.y - 62 : line.y + ITEM_H - 6 }} aria-hidden />;
+                      if (side === 'bottom' && first && g.includes('NEED_CAP')) return <button key={`ghost-cap-${host.id}`} type="button" className="gwb-ghost gwb-ghost-under" style={{ left: s.x + s.w / 2 - 50, top: line.y + ITEM_H - 10, width: 100, height: 76 }} onPointerDown={(e) => e.stopPropagation()} onClick={() => addGhostPart(line.id, 'cap')} aria-label="Missing: a Capital Letter Press under the first word. Tap to snap it on."><span>Aa</span><small>Capital letter?</small></button>;
+                      return null;
+                    });
+                  })}
                   {marbleSlot && <span className={`gwb-marble${marbleKind === 'spring' ? ' bounce' : ''}`} style={{ left: marbleSlot.x + marbleSlot.w / 2 - 10, top: line.y + (marbleKind === 'spring' || marbleKind === 'pulley' ? 10 : 54) }} aria-hidden />}
                   {targetHere >= 0 && <span className="gwb-insert" style={{ left: markX - 4, top: line.y + 30, height: ITEM_H - 40 }} aria-hidden />}
                   {text && (
-                    <div className="gwb-caption" style={{ left: line.x + GRIP_W, top: line.y + ITEM_H + 6 }}>
+                    <div className="gwb-caption" style={{ left: line.x + GRIP_W, top: line.y + ITEM_H + 6 + (hasBottom(line) ? ATT_H + 4 : 0) }}>
                       <span className="gwb-caption-time">{TENSE_NAMES[tenseOf(line)]}</span>
                       {inPara && <button type="button" className={`gwb-connector${line.connector ? ' set' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => setConnectorFor(connectorFor === line.id ? null : line.id)} aria-label={line.connector ? `Time word: ${line.connector}. Tap to change.` : 'Add a time word'}>{line.connector ? `${line.connector},` : '+ time word'}</button>}
                       <span>{line.connector ? withConnector(line, text).slice(line.connector.length + 2) : text}</span>
                       <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => speak(withConnector(line, text))} aria-label="Hear the sentence">🔈 Hear it</button>
-                      <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => setClip(clip === line.id ? null : line.id)}>📋 {cl.done}/{cl.total}</button>
+                      <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setSelLine(line.id); setClipMin(false); }} aria-label="Open Gus's Checklist">📋 Checklist</button>
                       {line.stars === 3 && <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => savePara(line.id)}>📓 Save</button>}
                       {line.stars != null && line.silly != null && <span className="gwb-silly" role="img" aria-label={`Silly-o-meter: ${line.silly} out of 5`}><span aria-hidden>{line.silly >= 4 ? '🤪' : line.silly >= 2 ? '😜' : '🙂'}</span><span className="gwb-silly-bar"><span style={{ width: `${line.silly * 20}%` }} /></span></span>}
                     </div>
@@ -1053,6 +1150,53 @@ export default function GusWorkboard() {
           </div>
         </section>
 
+        {(() => {
+          const cLine = focusLine;
+          const test = cLine ? tests[cLine.id] : undefined;
+          const fresh = !!test && !!cLine && test.sig === sigOf(cLine);
+          const passed = test ? test.rows.filter((r) => r.state !== 'fix').length : 0;
+          const showMe = (k: Kind) => {
+            const plain: Partial<Record<Kind, Kind>> = { spring: 'J', fan: 'D', ramp: 'P', bridge: 'comma', slingshot: 'D', funnel: 'C' };
+            const kk = funOn ? k : plain[k] ?? k;
+            setGlowKind(kk); setDrawerOpen(true); setFolds((f) => f.filter((j) => j !== kindInfo(kk).job)); gusSound.part(3);
+          };
+          return (
+            <aside className={`gwb-check${clipMin ? ' min' : ''}`} aria-label="Gus's Checklist">
+              {clipMin ? (
+                <button type="button" className="gwb-check-tab" onClick={() => setClipMin(false)} aria-label="Open Gus's Checklist">📋<span>Checklist</span>{test && fresh ? <b>{passed}/{test.rows.length}</b> : null}</button>
+              ) : <>
+                <div className="gwb-check-head">
+                  <strong>📋 Gus's Checklist</strong>
+                  <button type="button" className="gus-btn" onClick={() => setClipMin(true)} aria-label="Minimize the checklist">▁ Minimize</button>
+                </div>
+                {!cLine ? <p className="gwb-check-note">Tap a machine to see its checklist.</p> : <>
+                  <p className="gwb-check-note">{!test ? 'Pull the Start Lever to test your sentence. Gus checks off every item that is right.' : fresh ? `Tested! ${passed} of ${test.rows.length} are right.` : 'You changed the machine. Pull the Start Lever to test it again.'}</p>
+                  <div className="gwb-check-rows">
+                    {(test?.rows ?? MACHINE_ROWS.map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: 'todo' as const }))).map((r, k) => {
+                      const st = test && fresh ? r.state : 'todo';
+                      return <button key={`${r.id}-${test && fresh ? test.sig.length : 0}`} type="button" className={`gwb-check-row ${st}`} style={{ animationDelay: `${k * 0.08}s` }} onClick={() => say(st === 'pass' ? `${r.label}: right! Splendid.` : st === 'auto' ? `${r.label}: the machine does this one for you.` : r.hint, 'Checklist')}>
+                        <span aria-hidden>{st === 'pass' ? '✅' : st === 'fix' ? '🔧' : st === 'auto' ? '⚙️' : '⬜'}</span><span>{r.label}</span>
+                      </button>;
+                    })}
+                  </div>
+                  {test?.review && fresh && <div className="gwb-review">
+                    <strong>Gus's review</strong>
+                    {test.review.score.map((r) => <div key={r.label} className="gwb-score" role="img" aria-label={`${r.label}: ${r.level} of 3. ${r.note}`}><span>{r.label}</span><b aria-hidden>{'★'.repeat(r.level)}{'☆'.repeat(3 - r.level)}</b><small>{r.note}</small></div>)}
+                    {test.review.tips.length > 0 && <strong>Make it bigger</strong>}
+                    {test.review.tips.map((t) => <div key={t.text} className="gwb-tip"><span>{t.text}</span><button type="button" className="gus-mini" onClick={() => { showMe(t.kind); say(t.text, 'Make it bigger'); }}>👉 Show me</button></div>)}
+                    {test.review.quiz && (() => { const qz = test.review!.quiz!; const got = quiz[cLine.id]; return <div className="gwb-quiz">
+                      <strong>🧠 Quick question: {qz.q}</strong>
+                      <div className="gwb-quiz-choices">{qz.choices.map((c) => <button key={c} type="button" className={`gus-btn${got?.pick === c ? (c === qz.answer ? ' right' : ' wrong') : ''}`} onClick={() => {
+                        if (c === qz.answer) { gusSound.ding(); say(`Yes! ${qz.why}${got?.paid ? '' : ' One gear for you.'}`, 'Right!'); if (!got?.paid) earn(1); setQuiz((q) => ({ ...q, [cLine.id]: { pick: c, paid: true } })); }
+                        else { gusSound.ahem(); say(`Not quite. Read your sentence again and look for it. ${qz.q}`, 'Look again'); setQuiz((q) => ({ ...q, [cLine.id]: { pick: c, paid: !!got?.paid } })); }
+                      }}>{c}</button>)}</div>
+                    </div>; })()}
+                  </div>}
+                </>}
+              </>}
+            </aside>
+          );
+        })()}
         <aside className={`gwb-drawer${drawerOpen ? ' open' : ''}`} aria-label="Parts menu">
           <button type="button" className="gwb-drawer-toggle" onClick={() => setDrawerOpen((o) => !o)} aria-expanded={drawerOpen} aria-label={drawerOpen ? 'Close the parts menu' : 'Open the parts menu'}>
             {drawerOpen ? '◀ Parts' : '▶'}
@@ -1071,7 +1215,6 @@ export default function GusWorkboard() {
                   {funOn && drawerGroup('gadget', sortedKinds.filter((k) => isTool(k.kind)).map((k) => k.kind))}
                 </>}
           </div>
-          {drawerOpen && <p className="gwb-drawer-tip">Tap or drag a part. Drag it back here to recycle it.</p>}
         </aside>
       </main>
 
@@ -1154,33 +1297,6 @@ export default function GusWorkboard() {
             <button type="button" className="gus-btn" onClick={() => removeItem(menuLine.id, menuItem.id)}>♻️ Take it off</button>
           </div>
         </div>
-      )}
-
-      {clipLine && clipList && (
-        <aside className="gus-clipboard" aria-label="Gus's Checklist">
-          <div className="gus-clipboard-head">
-            <span className="gus-clipboard-clip" aria-hidden />
-            <strong>Gus's Checklist</strong>
-            <button type="button" className="gus-btn" onClick={() => setClip(null)} aria-label="Close checklist">✕</button>
-          </div>
-          <div className="gus-clipboard-items">
-            {(['pieces', 'match', 'describe', 'join', 'finish'] as const).map((grp) => {
-              const items = clipList.items.filter((i) => i.group === grp);
-              if (!items.length) return null;
-              return (
-                <div key={grp} className="gus-clipboard-group">
-                  <div className="gus-clipboard-group-title">{GROUP_TITLES[grp]}</div>
-                  {items.map((it) => (
-                    <button key={it.id} type="button" className={`gus-check gus-check-${it.status}${it.required ? '' : ' optional'}`} onClick={() => say(it.status === 'done' ? `${it.label}: done. Splendid.` : it.status === 'auto' ? `${it.label}: my machine does this for you.` : it.hint, 'Checklist')}>
-                      <span className="gus-check-icon" aria-hidden>{it.status === 'done' ? <img src="/games/ui-kit/check.png" alt="" /> : it.status === 'fix' ? '🔧' : it.status === 'auto' ? '⚙️' : ''}</span>
-                      <span className="gus-check-label">{it.label}</span>
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </aside>
       )}
 
       {connectorFor && (() => { const l = lines.find((x) => x.id === connectorFor); if (!l) return null; return (

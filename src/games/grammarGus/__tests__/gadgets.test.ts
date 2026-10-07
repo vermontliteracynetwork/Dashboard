@@ -118,3 +118,18 @@ describe('SOON parts', () => {
     expect(text({ ...wrong, items: g.items })).toBe('He jumps.');
   });
 });
+
+describe("Gus's review", () => {
+  it('scores the sentence, suggests real parts to grow it, and asks a question about it', async () => {
+    const { reviewSentence } = await import('../engine/review');
+    const l = line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('stop')]);
+    const d = readLine(l, 'full', false).draft;
+    const rv = reviewSentence(d, runSentence(d), 0, ['robot']);
+    expect(rv.score.map((s) => s.label)).toEqual(['Complete sentence', 'Makes sense', 'Detail', 'Variety']);
+    expect(rv.score[0].level).toBe(3);
+    expect(rv.tips.map((t) => t.kind)).toEqual(['spring', 'fan']);
+    expect(rv.quiz?.answer).toBe('cat');
+    expect(rv.quiz?.choices).toContain('cat');
+    expect(reviewSentence(d, runSentence(d), 2).quiz?.answer).toBe('in the present');
+  });
+});

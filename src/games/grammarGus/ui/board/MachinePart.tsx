@@ -353,7 +353,8 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
       </g>
       <circle cx={cx} cy={cy} r={4.5} fill={INK} />
       <rect x={cx - 6} y={4} width={12} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
-      <Plate w={w} text={t} />
+      <rect x={cx - 30} y={cy + 14} width={60} height={15} rx={4} fill={t === 'past' ? '#8c6a3c' : t === 'future' ? '#3b7be8' : '#3fbf5a'} stroke={INK} strokeWidth={1.5} />
+      <text x={cx} y={cy + 25.5} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill="#fff">{t.toUpperCase()}</text>
     </>);
   }
   if (kind === 'link') return svg(<>
@@ -392,6 +393,7 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
     </>);
   }
   // A fun part that holds a word shows it on its plate (? until picked).
-  const plate = needsWord(kind) ? (word ?? (empty ? '?' : info.name.toLowerCase())) : kind === 'mood' ? (word === 'big' ? 'BIG!' : 'calm') : info.name.toLowerCase();
-  return svg(<><Contraption kind={kind} w={w} color={base} word={word} status={status} /><Plate w={w} text={plate} y={140} blank={needsWord(kind) && empty} />{void dark}{void light}</>);
+  const plate = needsWord(kind) ? (word ?? (empty ? '?' : info.name.toLowerCase())) : info.name.toLowerCase();
+  // The Mood Meter's plate area holds its calm / BIG buttons.
+  return svg(<><Contraption kind={kind} w={w} color={base} word={word} status={status} />{kind !== 'mood' && <Plate w={w} text={plate} y={140} blank={needsWord(kind) && empty} />}{void dark}{void light}</>);
 }

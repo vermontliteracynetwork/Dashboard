@@ -13,7 +13,10 @@ import { pluralNounOf } from './dictionary';
 // after a shout word is the shout's "!", the Duplicator makes the next
 // noun more than one, and the Pixel TV must be plugged on the very end.
 
-export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm }
+// top / bottom: a part snapped on above or below a word machine.
+export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm; top?: BoardItem; bottom?: BoardItem }
+// Every part on a line, snapped-on parts included.
+export const allParts = (items: BoardItem[]): BoardItem[] => items.flatMap((i) => [i, ...(i.top ? [i.top] : []), ...(i.bottom ? [i.bottom] : [])]);
 export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector'; text: string; flaw?: string; done?: boolean }; connector?: string }
 
 export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT';
@@ -45,10 +48,12 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
     if (pos) {
       if (!it.word) problems.push({ code: 'EMPTY_PART', itemId: it.id });
       if (isFront(it.kind)) { if (mainStarted) problems.push({ code: 'NOT_FRONT', itemId: it.id }); } else mainStarted = true;
-      if (pendingCap || capAfterShout) marks.capitals.push(tokens.length);
+      const under = it.bottom ? itemMark(it.bottom) : null;
+      if (pendingCap || capAfterShout || under === 'cap') marks.capitals.push(tokens.length);
       pendingCap = false; capAfterShout = false;
       let word = it.word;
       if (pos === 'N' && pendingCopy) { if (word) word = pluralNounOf(word); pendingCopy = null; }
+      if (under === 'plural') { if (pos === 'N') { if (word) word = pluralNounOf(word); } else problems.push({ code: 'COPY_NO_NOUN', itemId: it.bottom!.id }); }
       if (it.kind === 'crusher' && word) word = pluralNounOf(word); // the Plural Crusher's noun is always more than one
       tokens.push({ pos, word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
       tokenIds.push(it.id);
@@ -56,6 +61,16 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
       // the Slingshot and Time Tunnel bring their comma.
       if (it.kind === 'trapdoor') { marks.shoutMark = true; capAfterShout = true; }
       else if (isFront(it.kind) && it.word) marks.commas.push(tokens.length - 1);
+      // Punctuation snapped on top: it comes right after this word.
+      const over = it.top ? itemMark(it.top) : null;
+      if (over === 'comma') {
+        marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: it.top!.id });
+        if (it.top!.kind === 'bridge') { const nx = items.slice(i + 1).find((x) => wordPosOf(x.kind)); if (!nx || wordPosOf(nx.kind) !== 'C') problems.push({ code: 'BRIDGE_UP', itemId: it.top!.id }); }
+      } else if (over === 'stop' || over === 'bang') {
+        if (i === lastWord) marks.endMark = over === 'stop' ? '.' : '!';
+        else if (over === 'bang' && pos === 'I') { marks.shoutMark = true; capAfterShout = true; }
+        else problems.push({ code: 'END_NOT_LAST', itemId: it.top!.id });
+      }
     } else if (mark === 'cap') pendingCap = true;
     else if (mark === 'plural') pendingCopy = it.id;
     else if (mark === 'comma') {

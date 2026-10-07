@@ -1,4 +1,4 @@
-import type { BoardItem } from './board';
+import { allParts, type BoardItem } from './board';
 import type { Kind } from '../ui/board/parts';
 
 // Chain-reaction combos (Claudia's parts catalog; teacher 2026-10-07 "keep
@@ -15,4 +15,4 @@ export const COMBOS: Combo[] = [
   { id: 'shuffle', name: 'Pronoun Shuffle', needs: [['teleporter', 'turnstile'], ['R']], cheer: 'Pronouns zapped and sorted through the right doors!' },
 ];
 export const combosOn = (items: BoardItem[], endMark: string | null): Combo[] =>
-  COMBOS.filter((c) => c.needs.every((any) => items.some((i) => any.includes(i.kind))) && (!c.bang || endMark === '!'));
+  COMBOS.filter((c) => c.needs.every((any) => allParts(items).some((i) => any.includes(i.kind))) && (!c.bang || endMark === '!'));
