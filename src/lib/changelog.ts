@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-remix',
+    date: '2026-10-07',
+    icon: '🎛️',
+    title: 'Remix and Label It',
+    body: "Tap Remix on Gus's machine to roll a new word, make your sentence sillier, longer or shorter, swap in he, she or it, or zap the time. Then try Label It: put the WHO, WHAT THEY DID and WHERE brackets on your sentence, or match the symbols to the words.",
+  },
+  {
     id: '2026-10-07-gus-orders',
     date: '2026-10-07',
     icon: '🎯',

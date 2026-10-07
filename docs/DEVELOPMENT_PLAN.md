@@ -722,6 +722,27 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Remix tools, Label It! and Symbol Match. SHIPPED 2026-10-07 (plan 17.6 and 18.7)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
+- **🎛 Remix** button next to the Hopper opens a tray of remix tools (plan 17.6). Every tool goes through the grammar engine, and if a tool cannot keep the sentence working it does nothing and Gus says why:
+  - **🎲 Roll this part:** a random new word for the selected spot.
+  - **🤪 Silly Swap:** swaps naming, action and how words for sillier ones. The silly score never goes down, and the sentence keeps 3 stars.
+  - **➕ Longer / ➖ Shorter:** adds a describing word, a how word or a where phrase, or takes one off. It never removes WHO or the action.
+  - **🔁 He / She / It:** swaps the WHO for the matching pronoun (cat to it, girl to she, crowd to they) and back.
+  - **⏰ Time Zap:** cycles Yesterday, Now and Tomorrow and Gus reads the new sentence.
+  - **🏷 Label It.**
+  - The tray is hidden in blueprint mode, where the blueprint decides the shape.
+- **🏷 Label It!** (plan 18.7, from her worksheet): opens from the Remix tray, or after any 3-star video.
+  - The sentence's words sit in a row, and bracket plates (WHO, WHAT THEY DID, WHAT IT HAPPENED TO, HOW THEY DID IT, WHERE, SHOUT) sit in a tray in the housing colors.
+  - Tap a plate, then a word it covers. A right tap locks the colored bracket under the words with a click and a gear.
+  - A wrong tap wobbles, and Gus gives the plate's hint ("WHO is the one doing it. Which pieces tell WHO?"). After two tries Gus slides it in. There is no score loss.
+- **🔣 Symbol Match** (same dialog, second tab): the symbols over the words are hidden. Tap one of her symbols, then its word. Same rules: a gear for each right tap, a hint for a wrong one, and Gus helps after two tries.
+- **Did it differently:** Label It and Symbol Match use tap a plate, then tap a word, instead of dragging. It is easier on an iPad and for students who find dragging hard. Dragging can be added later.
+- Tests: 4 new tests (60 mixed remix steps always leave a valid sentence, Shorter keeps WHO and the verb, pronoun choices, plates match the housings). Full suite: 233 passing.
+- **Not built yet from plan 17.6:** "Swap two words" exists already as drag-to-swap on the machine. "Mix a new shape" waits for the Workshop rail.
+- **Still in progress next (same background build):** Garage skins and colorways (plan 8.7 and 19), then word packs (plan 17.5). Golden Gear Contest still waits on her call on the $5 policy.
+
 ### Grammar Gus: Gus's Orders (goal mode). SHIPPED 2026-10-07 (plan 3.8)
 
 - Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
@@ -742,7 +763,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **iPad:** the machine title hides below 900px wide, so the header buttons (Orders, Blueprints, Journal, Calm, sound) always fit in portrait.
 - Tests: 3 new order tests (40 random orders are all 3-star and buildable, same-scene synonyms match, hints name the difference). Full suite: 229 passing.
 - **Not built yet from plan 3.8:** teacher-written orders (a small editor), and a sticker book page to browse stickers.
-- **Still in progress next (same background build):** remix tools (plan 17.6), Garage skins and colorways (plan 19), Label It and Symbol Match (plan 18.7), word packs. Golden Gear Contest still waits on her call on the $5 policy.
+- **Next after this:** remix tools (done, see the Remix entry above), Garage skins and colorways (plan 19), Label It and Symbol Match (plan 18.7), word packs. Golden Gear Contest still waits on her call on the $5 policy.
 
 ### Grammar Gus: teacher report (per student). SHIPPED 2026-10-07 (plan 3.18.8 and 25.10)
 

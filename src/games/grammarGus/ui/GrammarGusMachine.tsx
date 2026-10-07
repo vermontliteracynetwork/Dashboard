@@ -7,6 +7,8 @@ import { compose } from '../engine/compose';
 import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase, adjByWord, NOUNS, INTERJECTIONS } from '../data/wordbank';
 import { FRAMEWORKS, frameworkById, type FrameworkLine } from '../data/frameworks';
+import LabelIt from './LabelIt';
+import { makeLonger, makeShorter, pronounSwap, rollPart, sillySwap, type MachineState } from '../engine/remix';
 import { STICKERS, compareOrder, makeOrder, orderCard, type Order } from '../engine/orders';
 import { MAX_ATTEMPTS, type Attempt, type BlueprintDone } from '../engine/report';
 import { buildLines, fillLine, frameworkScript, frameworkText, lineText, machineSetupFor, matchesBlueprint, needsWord, reviewFramework, type BuildLine } from '../engine/framework';
@@ -97,6 +99,8 @@ export default function GrammarGusMachine() {
   // Gus's Orders (plan 3.8): build any sentence that makes the ordered scene.
   const [order, setOrder] = useState<Order | null>(null);
   const [orderDone, setOrderDone] = useState(false);
+  const [remixOpen, setRemixOpen] = useState(false);
+  const [labelOpen, setLabelOpen] = useState(false);
   const fw = bp ? frameworkById.get(bp.id) : undefined;
   const fwBuilds = fw ? buildLines(fw) : [];
   const curLine: BuildLine | undefined = fw ? fwBuilds[story.length] : undefined;
@@ -491,6 +495,16 @@ export default function GrammarGusMachine() {
     say(fw?.id === 'knock-knock' ? `${word} who? Ooh, the suspense. Now build the punchline.` : `${word}. Excellent. Press Play All!`, 'Blueprint');
   };
 
+  // Remix tools (plan 17.6): every tool keeps the sentence grammatical.
+  const machineNow = (): MachineState => ({ words, whoPron, howFirst, open: openHousings });
+  const remix = (next: MachineState | null, ok: string, fail: string) => {
+    if (!next) { gusSound.ahem(); say(fail, 'Remix'); return; }
+    setWords(next.words); setWhoPron(next.whoPron); setHowFirst(next.howFirst); setOpenHousings(next.open); changed(); gusSound.puff(); say(ok, 'Remix');
+  };
+  const remixOpts = () => ({ tense, gentleOnly: settings.gentleOnly });
+  const remixRoll = () => remix(rollPart(machineNow(), selected, makeRng(Date.now()), remixOpts()), 'Rolled! A fresh part, still perfectly grammatical.', 'No other word fits that spot right now. Try another part.');
+  const timeZap = () => { const order: Tense[] = ['past', 'present', 'future']; const t = order[(order.indexOf(tense) + 1) % 3]; setTense(t); changed(); gusSound.swish(); say(`Zap! Now it happens ${t === 'past' ? 'Yesterday' : t === 'present' ? 'Now' : 'Tomorrow'}: "${compose({ ...draft, tense: t }).text}"`, 'Time zap'); };
+
   const clearAll = () => {
     if (curLine) { applyLine(curLine, bp?.setup, shapeIdx); say('Fresh parts for this line. The blueprint stays.', 'New machine'); return; }
     setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); setForms({}); setCaps([]); setEndMark(null); setShoutMark(false); setOpenerComma(false); setStory([]); setTimeOnPurpose(false); changed(); setSelected('who.noun'); say('A fresh machine. Gleaming. Full of grammatical promise.', 'New machine'); };
@@ -739,6 +753,17 @@ export default function GrammarGusMachine() {
               : <button type="button" className={`gus-stamp gus-stamp-btn${endMark ? '' : ' empty'}`} aria-label={`Stop Stamp: ${endMark ?? 'none'}. Tap to change.`}
                   onClick={() => { setEndMark((m) => (m === null ? '.' : m === '.' ? '!' : null)); gusSound.snap(); changed(); }}>{endMark ?? '?'}</button>}
           </div>
+          {remixOpen && !fw && (
+            <div className="gus-remix" role="group" aria-label="Remix tools">
+              <button type="button" className="gus-btn" onClick={remixRoll}>🎲 Roll this part</button>
+              <button type="button" className="gus-btn" onClick={() => remix(sillySwap(machineNow(), makeRng(Date.now()), remixOpts()), 'Sillier! My monocle nearly fell out.', 'That is already as silly as it gets. Impressive.')}>🤪 Silly Swap</button>
+              <button type="button" className="gus-btn" onClick={() => remix(makeLonger(machineNow(), makeRng(Date.now()), remixOpts()), 'Longer! More parts, more pressure. Lovely.', 'No more room on this machine. It is magnificently long.')}>➕ Longer</button>
+              <button type="button" className="gus-btn" onClick={() => remix(makeShorter(machineNow(), makeRng(Date.now()), remixOpts()), 'Shorter. Sleek. Efficient.', 'I cannot take off WHO or the action. Those are load-bearing.')}>➖ Shorter</button>
+              <button type="button" className="gus-btn" onClick={() => remix(pronounSwap(machineNow(), remixOpts()), whoPron ? 'Back to the naming word.' : 'Swapped in a pronoun. Same character, fewer letters.', 'Put a naming word in WHO first.')}>🔁 He / She / It</button>
+              <button type="button" className="gus-btn" onClick={timeZap}>⏰ Time Zap</button>
+              <button type="button" className="gus-btn" onClick={() => { if (!rawTokens.some((t) => t.word)) { say('Build a sentence first, then label it.', 'Label It'); return; } setLabelOpen(true); }}>🏷 Label It</button>
+            </div>
+          )}
           <div className="gus-machine-foot">
             <div className="gus-chips">
               {OPTIONAL.filter((id) => !housingInUse(id, words) && !openHousings.includes(id) && !(id === 'obj' && verb?.objectUse !== 'B')).map((id) => (
@@ -749,6 +774,7 @@ export default function GrammarGusMachine() {
             </div>
             <div className="gus-machine-actions">
               <button type="button" className="gus-btn gus-horn" onClick={() => { gusSound.horn(); }} aria-label="Honk the horn">📯</button>
+              {!fw && <button type="button" className={`gus-btn${remixOpen ? ' on' : ''}`} onClick={() => setRemixOpen((o) => !o)} aria-expanded={remixOpen}>🎛 Remix</button>}
               <button type="button" className="gus-btn gus-btn-hopper" onClick={hopper}>🎰 Hopper</button>
               <button type="button" className="gus-btn" onClick={clearAll}>🧹 New</button>
             </div>
@@ -825,6 +851,7 @@ export default function GrammarGusMachine() {
         </div>
       )}
       {drag && drag.payload.kind === 'housing' && <div className="gus-drag-ghost gus-drag-housing" style={{ left: drag.x, top: drag.y }} aria-hidden>HOW THEY DID IT</div>}
+      {labelOpen && <LabelIt words={preview.words} keys={keys} onGear={() => earn(1)} onSay={say} onClose={() => setLabelOpen(false)} />}
       {libOpen && (
         <div className="gus-journal-backdrop" onClick={() => setLibOpen(false)}>
           <div className="gus-journal gus-library" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Blueprint Library">
@@ -867,6 +894,7 @@ export default function GrammarGusMachine() {
 
       <GusGuide message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
         {(phase === 'leak' || phase === 'review') && <button type="button" className="gus-btn gus-btn-primary" onClick={() => { setPhase('build'); say('Splendid. Fix it up and pull START again.', 'Fix it'); }}>🔧 Fix it</button>}
+        {phase === 'done' && playingScript?.kind === 'sentence' && <button type="button" className="gus-btn" onClick={() => setLabelOpen(true)}>🏷 Label It</button>}
         {phase === 'done' && orderDone && <button type="button" className="gus-btn gus-btn-primary" onClick={startOrder}>🎯 Next order</button>}
         {phase === 'done' && !orderDone && <button type="button" className="gus-btn gus-btn-primary" onClick={clearAll}>➕ Build another</button>}
         {phase === 'build' && <button type="button" className="gus-btn gus-btn-primary" onClick={pull}>⚡ Pull START</button>}

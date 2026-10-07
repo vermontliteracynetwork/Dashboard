@@ -4914,3 +4914,23 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gus-order-stickers { font-size: 1rem; }
 .gus-order-stickers small { font: 700 0.7rem 'Lexend', sans-serif; }
 @media (max-width: 900px) { .gus-top h1 { display: none; } }
+/* Grammar Gus remix tray (plan 17.6) and Label It (plan 18.7) */
+.gus-remix { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; padding: 6px; border-radius: 10px; background: rgba(255,255,255,0.45); border: 2px dashed rgba(31,47,77,0.35); }
+.gus-remix .gus-btn { min-height: 44px; font-size: 0.85rem; }
+.gus-labelit { width: min(720px, 100%); }
+.gus-labelit-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.gus-labelit-sentence { display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: flex-end; margin: 10px 0 14px; }
+.gus-labelit-word { display: flex; flex-direction: column; align-items: stretch; gap: 3px; min-width: 52px; min-height: 64px; padding: 4px 6px 0; border: 3px solid var(--gus-ink); border-radius: 10px; background: #fff; font: 700 1.15rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; }
+.gus-labelit-word.wobble { animation: gus-wobble 0.4s ease-in-out; }
+@keyframes gus-wobble { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-2deg); } 75% { transform: translateX(5px) rotate(2deg); } }
+.gus-labelit-text { text-align: center; padding: 2px 4px; }
+.gus-labelit-sym { display: grid; place-items: center; height: 30px; font-size: 1.1rem; color: #8a94a6; }
+.gus-labelit-sym img { width: 28px; height: 28px; object-fit: contain; }
+.gus-labelit-bar { display: block; min-height: 20px; margin: 0 -6px; border-radius: 0 0 7px 7px; font: 800 0.62rem/20px 'Lexend', sans-serif; letter-spacing: 0.04em; white-space: nowrap; overflow: visible; text-align: left; padding-left: 4px; }
+.gus-labelit-tray { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.gus-labelit-plate { min-height: 48px; padding: 6px 14px; border-radius: 10px; border: 3px solid var(--gus-ink); font: 800 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; box-shadow: 0 3px 0 var(--gus-ink); }
+.gus-labelit-plate.picked { outline: 4px solid #e6b54a; outline-offset: 2px; transform: translateY(-2px); }
+.gus-labelit-symbtn { display: inline-flex; gap: 6px; align-items: center; background: #fff; }
+.gus-labelit-symbtn img { width: 30px; height: 30px; object-fit: contain; }
+.gus-labelit-done { font: 800 1.1rem 'Lexend', sans-serif; }
+@media (prefers-reduced-motion: reduce) { .gus-labelit-word.wobble { animation: none; } }
