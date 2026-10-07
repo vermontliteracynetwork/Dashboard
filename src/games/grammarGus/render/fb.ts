@@ -28,13 +28,14 @@ export class FB {
   }
   // Paste a sprite with its anchor at (x, y). mirror flips it; dither
   // draws every other pixel (the "tomorrow" ghost look).
-  blit(s: Sprite, x: number, y: number, mirror = false, dither = false) {
+  blit(s: Sprite, x: number, y: number, mirror = false, dither = false, maxY = H) {
     const bx = Math.round(x) - (mirror ? s.w - 1 - s.ax : s.ax);
     const by = Math.round(y) - s.ay;
     for (let j = 0; j < s.h; j++) for (let i = 0; i < s.w; i++) {
       const c = s.px[j * s.w + (mirror ? s.w - 1 - i : i)];
       if (c === T) continue;
       if (dither && ((bx + i + by + j) & 1)) continue;
+      if (by + j > maxY) continue;
       this.set(bx + i, by + j, c);
     }
   }
@@ -65,6 +66,13 @@ export class Painter {
     for (let y = Math.floor(cy - ry) - 1; y <= Math.ceil(cy + ry) + 1; y++) for (let x = Math.floor(cx - rx) - 1; x <= Math.ceil(cx + rx) + 1; x++) {
       const dx = (x - cx) / Math.max(rx, 0.6), dy = (y - cy) / Math.max(ry, 0.6);
       if (dx * dx + dy * dy <= 1.05) this.put(x, y, c);
+    }
+  }
+  // A circle outline (wheels, bubbles), thick pixels wide.
+  ring(cx: number, cy: number, r: number, c: number, thick = 1) {
+    for (let y = Math.floor(cy - r) - 1; y <= Math.ceil(cy + r) + 1; y++) for (let x = Math.floor(cx - r) - 1; x <= Math.ceil(cx + r) + 1; x++) {
+      const d = Math.hypot(x - cx, y - cy);
+      if (d <= r + 0.3 && d >= r - thick + 0.3) this.put(x, y, c);
     }
   }
   rect(x0: number, y0: number, x1: number, y1: number, c: number) {

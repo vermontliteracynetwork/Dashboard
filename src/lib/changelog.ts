@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-movies',
+    date: '2026-10-07',
+    icon: '🎬',
+    title: "Gus's movies got way more action",
+    body: 'Every animal, car and thing now has its own pixel picture, and every action word really happens. Birds fly, frogs hop, snakes slither, cats sing music notes, things melt into puddles and kids hide behind bushes. Try loudly, tenderly or messily and watch what changes.',
+  },
+  {
     id: '2026-10-07-gus-stories',
     date: '2026-10-07',
     icon: '🎞️',

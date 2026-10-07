@@ -1,6 +1,6 @@
 import type { Event, RubricResult, SemanticFrame } from '../engine/types';
 import type { CastMember, Resolution } from './cast';
-import { ADVERB_FX, ADVERB_SPEED, CLIP_BASE_SECONDS, clipFor, pathFor, type PathKind } from './clips';
+import { ADVERB_FX, ADVERB_SPEED, APPROACH_CLIPS, CLIP_BASE_SECONDS, ONTO_CLIPS, clipFor, pathFor, type PathKind } from './clips';
 import { adjByWord, nounByWord, verbByBase } from '../data/wordbank';
 
 // Sentence-to-video director (plan section 5). Pure and deterministic:
@@ -73,8 +73,10 @@ function eventBeats(ev: Event, res: Resolution, castById: Map<string, CastMember
       x1 = tx === undefined ? STAGE_RIGHT : path === 'to' || base === 'chase' ? tx - 14 : path === 'none' ? tx - 14 : tx + 26;
     } else if (base === 'jump') {
       x1 = tx !== undefined && path !== 'none' && path !== 'to' ? tx + 22 : x0;
-    } else if (base === 'pounce' || base === 'hug' || base === 'kick') {
-      x1 = tx !== undefined ? tx - 12 : x0 + 20;
+    } else if (APPROACH_CLIPS.has(base)) {
+      x1 = tx !== undefined ? tx - 12 : base === 'pounce' || base === 'hug' || base === 'kick' ? x0 + 20 : x0;
+    } else if (ONTO_CLIPS.has(base)) {
+      x1 = tx !== undefined && (ground === target || base === 'climb') ? tx : x0;
     }
     beats.push({
       t: 0, dur: (CLIP_BASE_SECONDS[clip.do] ?? 1.6) / speed, do: clip.do, who: subj, target,

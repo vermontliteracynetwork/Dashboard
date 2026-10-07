@@ -9,14 +9,23 @@ export const CLIP_BASE_SECONDS: Record<string, number> = {
   melt: 2, pounce: 1.4, chase: 2.2, hug: 1.6, wiggle: 1.6,
 };
 
-// Which rigs each clip is drawn for today (the content library status).
-// Anything else falls back (plan 6.8): a rig that cannot do a clip sprouts
-// legs if the biped can; a clip nobody can do plays a wiggle with the
-// verb word floating over the character. The screen is never blank.
-const MOVERS: Rig[] = ['biped', 'quadruped'];
+// Which rigs each clip is drawn for (the content library status). Anything
+// else falls back (plan 6.8): a rig that cannot do a clip sprouts legs if
+// the biped can; a clip nobody can do plays a wiggle with the verb word
+// floating over the character. The screen is never blank.
+const ALL: Rig[] = ['biped', 'quadruped', 'critter', 'bird', 'serpent', 'vehicle', 'object', 'weather', 'prop'];
+const ANIMATE: Rig[] = ['biped', 'quadruped', 'critter', 'bird', 'serpent'];
+const MOVERS: Rig[] = [...ANIMATE, 'vehicle'];
 export const CLIP_RIGS: Record<string, Rig[]> = {
-  run: MOVERS, walk: MOVERS, jump: MOVERS, chase: MOVERS, pounce: MOVERS,
+  run: MOVERS, walk: MOVERS, chase: MOVERS, jump: [...MOVERS, 'object'], pounce: ANIMATE,
+  fly: ALL, swim: ALL, fall: ALL, spin: ALL, slide: ALL, hide: ALL, break: ALL, miss: ALL, melt: ALL, sing: ALL, talk: ALL,
+  climb: ANIMATE, kick: ANIMATE, chop: ANIMATE, mix: ANIMATE, eat: ANIMATE, drink: ANIMATE, clean: ANIMATE, hug: ANIMATE,
 };
+
+// Clips that walk over to their target first, then act (plan 6.3).
+export const APPROACH_CLIPS = new Set(['kick', 'hug', 'pounce', 'chop', 'mix', 'eat', 'drink', 'clean', 'break', 'miss', 'sing', 'talk']);
+// Clips that end on top of, or behind, their where-word ground.
+export const ONTO_CLIPS = new Set(['climb', 'hide', 'fall']);
 
 export function clipFor(clip: string, rig: Rig): { do: string; sprout: boolean; fallback: boolean } {
   const rigs = CLIP_RIGS[clip];

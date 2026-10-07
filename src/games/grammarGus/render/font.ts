@@ -2,8 +2,10 @@ import { FB } from './fb';
 import { C } from './palette';
 
 // A 5 x 7 bitmap font for words inside the Pixel Cinema (tense tags, shout
-// bursts, fallback action words). Upper case only for now; the full
-// sentence is always also shown in Lexend under the cinema (plan 3.17).
+// bursts, fallback action words). Mixed case (plan 6, milestone 7): lower
+// case letters sit on the same baseline and g j p q y drop two rows below
+// it. The full sentence is always also shown in Lexend under the cinema
+// (plan 3.17).
 const G: Record<string, number[]> = {
   A: [14, 17, 17, 31, 17, 17, 17], B: [30, 17, 17, 30, 17, 17, 30], C: [14, 17, 16, 16, 16, 17, 14], D: [30, 17, 17, 17, 17, 17, 30],
   E: [31, 16, 16, 30, 16, 16, 31], F: [31, 16, 16, 30, 16, 16, 16], G: [14, 17, 16, 23, 17, 17, 15], H: [17, 17, 17, 31, 17, 17, 17],
@@ -16,6 +18,13 @@ const G: Record<string, number[]> = {
   '4': [2, 6, 10, 18, 31, 2, 2], '5': [31, 16, 30, 1, 1, 17, 14], '6': [6, 8, 16, 30, 17, 17, 14], '7': [31, 1, 2, 4, 8, 8, 8],
   '8': [14, 17, 17, 14, 17, 17, 14], '9': [14, 17, 17, 15, 1, 2, 12],
   '!': [4, 4, 4, 4, 4, 0, 4], '?': [14, 17, 1, 2, 4, 0, 4], '.': [0, 0, 0, 0, 0, 12, 12], ',': [0, 0, 0, 0, 12, 4, 8],
+  a: [0, 0, 14, 1, 15, 17, 15], b: [16, 16, 30, 17, 17, 17, 30], c: [0, 0, 14, 16, 16, 17, 14], d: [1, 1, 15, 17, 17, 17, 15],
+  e: [0, 0, 14, 17, 31, 16, 14], f: [6, 9, 8, 28, 8, 8, 8], g: [0, 0, 15, 17, 17, 17, 15, 1, 14], h: [16, 16, 22, 25, 17, 17, 17],
+  i: [4, 0, 12, 4, 4, 4, 14], j: [2, 0, 6, 2, 2, 2, 2, 18, 12], k: [16, 16, 18, 20, 24, 20, 18], l: [12, 4, 4, 4, 4, 4, 14],
+  m: [0, 0, 26, 21, 21, 21, 21], n: [0, 0, 22, 25, 17, 17, 17], o: [0, 0, 14, 17, 17, 17, 14], p: [0, 0, 30, 17, 17, 17, 30, 16, 16],
+  q: [0, 0, 15, 17, 17, 17, 15, 1, 1], r: [0, 0, 22, 25, 16, 16, 16], s: [0, 0, 15, 16, 14, 1, 30], t: [8, 8, 28, 8, 8, 9, 6],
+  u: [0, 0, 17, 17, 17, 19, 13], v: [0, 0, 17, 17, 17, 10, 4], w: [0, 0, 17, 17, 21, 21, 10], x: [0, 0, 17, 10, 4, 10, 17],
+  y: [0, 0, 17, 17, 17, 17, 15, 1, 14], z: [0, 0, 31, 2, 4, 8, 31],
   "'": [4, 4, 8, 0, 0, 0, 0], '-': [0, 0, 0, 31, 0, 0, 0], '+': [0, 4, 4, 31, 4, 4, 0], ':': [0, 12, 12, 0, 12, 12, 0], ' ': [0, 0, 0, 0, 0, 0, 0],
 };
 
@@ -23,11 +32,11 @@ export const textWidth = (s: string) => s.length * 6 - 1;
 
 // Text with a dark outline so it reads on any background.
 export function drawText(fb: FB, s: string, x: number, y: number, color: number = C.white, outline: number | null = C.outline) {
-  const str = s.toUpperCase();
+  const str = s;
   const draw = (ox: number, oy: number, c: number) => {
     for (let k = 0; k < str.length; k++) {
-      const g = G[str[k]] ?? G['?'];
-      for (let row = 0; row < 7; row++) for (let col = 0; col < 5; col++) if (g[row] & (16 >> col)) fb.set(x + ox + k * 6 + col, y + oy + row, c);
+      const g = G[str[k]] ?? G[str[k].toUpperCase()] ?? G['?'];
+      for (let row = 0; row < g.length; row++) for (let col = 0; col < 5; col++) if (g[row] & (16 >> col)) fb.set(x + ox + k * 6 + col, y + oy + row, c);
     }
   };
   if (outline !== null) for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]]) draw(dx, dy, outline);

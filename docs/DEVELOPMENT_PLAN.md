@@ -722,6 +722,34 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: pixel content pass (every word list noun drawn, every verb animated, adverb effects, mixed-case pixel letters). SHIPPED 2026-10-07 (plan section 6, milestone 7)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan in the background.
+- **New pixel rigs** (`render/rigs.ts`). Every noun on her word list now has its own drawing instead of a placeholder blob (a test checks all of them, 4 animation frames each):
+  - **Birds:** bird, bat (membrane wings, red eye), chicken (comb and wattle), goose (long neck), owl (big eyes, ear tufts). Wings flap.
+  - **Critters:** rat and mice (pink tail and ears), clam (opens and shuts), snail (spiral shell, eye stalks), frog, fish, dolphin, bug (ladybug), turtle.
+  - **Snake:** a wavy body that slithers, with a flicking tongue.
+  - **Vehicles:** car, van, bus, bike, wheel, plane, and the tank, drawn like the word list's 🛢️ picture (a rolling water tank, not a weapon). Wheel spokes turn.
+  - **Things:** ball (rolls), kite, apple, book, crayon, dime, rose, shoe, straw, swing (sways), balloon, popsicle and rock.
+  - **Rain:** a cloud with falling drops. **Scenery** (door, window, table, floor, kitchen) can also be the WHO of a sentence.
+  - Any WHERE ground ("over the car") now shows the real picture instead of a labeled crate. The kitchen has a stove.
+- **Every verb plays its own animation** (`director/clips.ts`, `render/stage.ts`). Before, only run, walk, jump, chase and attack moved and everything else wiggled with the word floating above:
+  - **Travel:** fly (an arc up and back down), swim (a water band and bobbing), slide (glides with no steps).
+  - **Body moves:** fall (a hop, a plop and dizzy stars), climb (up the ground object, or up a ladder that appears), spin, melt (sinks into a puddle in its own color).
+  - **Hide:** goes behind the scenery, or behind a bush that pops up with eyes peeking out.
+  - **Actions:** kick (a thing flies off; a person or animal only gets a gentle bump), hug (hearts), chop (a little axe and wood chips), mix (bowl and spoon), eat (food disappears bite by bite; an animal hops away surprised instead of being eaten), drink (a cup and straw).
+  - **More actions:** clean (bubbles and sparkles), break (shakes, then cracks; people and animals only shake), miss (the target hops out of the way, a puff and "?"), sing (floating music notes), talk (a speech bubble with dots).
+  - Characters walk over to whoever or whatever they act on first, then act. Things without legs sprout two little legs to walk or run.
+- **Adverb effects** (plan 6.4) now draw:
+  - loudly: sound waves. quietly: "shh". softly, gently and lightly: a drifting feather.
+  - tenderly: hearts. warmly: a glow ring. messily: paint splats. wildly: a zigzag bolt and a bouncy path.
+  - innocently: a halo. proudly and zealously: stars.
+- **Mixed-case pixel letters:** the cinema's pixel font now has lower case (g, j, p, q and y drop below the line). Tense tags read "Yesterday", "Tomorrow" and "Now", and shouts read the way they were typed ("Wow!").
+- **Calm mode** still skips the particles and keeps only the props that explain the action (talk bubble, notes, bowl, cup).
+- Tests: a new content test file (every noun drawn, every verb clip real for animals and people, legless things sprout legs, lower-case font). The director snapshots were updated on purpose: 15 example patterns used the old wiggle stand-in and now play their real clip. Full suite: 211 passing.
+- **Not verified on a real iPad yet:** how the new animations look at full speed.
+- **In progress next (same background build):** teacher reports, Knock-Knock and Silly Story frameworks, Golden Gear Contest (needs her call on the $5 policy), Gus's Orders, remix tools, Garage skins, Label It, Symbol Match and word packs.
+
 ### Grammar Gus: paragraph machines (stories of up to 4 sentences). SHIPPED 2026-10-07 (plan sections 7, 3.14, 3.18.9 and 5.5)
 
 - Built under her standing instruction: "claudia, keep developingin the background until the ful dev plan for this is completed. when it is, give me a list of what to test".
@@ -732,7 +760,7 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **↩︎ Unseal** takes the last sentence back onto the machine. **📓 Save** puts the whole story in the Journal; Journal entries now have a ▶ replay button that rebuilds and replays the movie.
 - **Autosave:** the machine and the story in progress are saved on the iPad (per student) and come back after a reload or an accidental close.
 - Tests: 4 new story tests (shared cast, "a then the" bonus, time-change toggle, Play All timing). Full suite: 207 passing.
-- **In progress next (same background build):** pixel content pass (more animal and object rigs, more verb clips like eat, sing, fall, spin, hide, adverb effects, mixed-case pixel font), then teacher reports, Knock-Knock and Silly Story frameworks, Golden Gear Contest (needs her call on the $5 policy), Gus's Orders, remix tools, Garage skins, Label It, Symbol Match and word packs.
+- **Next after this:** pixel content pass (done, see the entry above), then teacher reports, Knock-Knock and Silly Story frameworks, Golden Gear Contest (needs her call on the $5 policy), Gus's Orders, remix tools, Garage skins, Label It, Symbol Match and word packs.
 
 ### Grammar Gus: the Inspector's Clipboard, Guided and Challenge levels, teacher settings. SHIPPED 2026-10-07 (plan milestone 6 and sections 3.6, 3.9 to 3.15)
 
