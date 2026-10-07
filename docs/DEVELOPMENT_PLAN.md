@@ -722,6 +722,52 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: iPad-first layout, drag-and-drop factory pieces, gizmos, Gus comes alive. SHIPPED 2026-10-07 (direct teacher instructions)
+
+- Her words, verbatim:
+  - "we need to prioritze optomization for ipad size"
+  - "the machine pieces need to be drag and drop individually. claudia, add a gamifcation feel to the design. a simple snap to click, drag to rearrage, different color pieces, pieces that are tectured and shaped like insdustrial factory pieces. slighly different designs for each. button and other gizmos to enhance gamifcation feel"
+  - "add human/player/character animations to gus to give me a little live feel, slighly moving"
+  - "claudia, keep developingin the background until the ful dev plan for this is completed. when it is, give me a list of what to test" (standing instruction for the whole Grammar Gus plan; see the progress list below).
+- **iPad layout:**
+  - The game is one iPad screen in both orientations, with no page scrolling. Checked at 1180x740, 1024x690 (landscape with Safari bars), 820x1100 and 768x950: page scroll height equals the window every time.
+  - Landscape: the machine sits left with the cinema right, and the Parts Bin runs full width along the bottom.
+  - Portrait: a short cinema strip (video beside its caption and buttons), then the machine, then the Parts Bin, which fills the rest.
+  - Only the Parts Bin scrolls. Gus's chat box is docked into the layout and never covers the game.
+  - Optional housings (SHOUT, WHAT IT HAPPENED TO, HOW, WHERE) wait as "+" chips until needed. The second describing word appears once the first is filled.
+  - Targets are 48px and up; word tiles are 60px. No text selection or long-press callouts, no hover-only anything, and safe-area insets are respected.
+- **Factory pieces** (`ui/PartSvg.tsx`): every word is a Cartoon Industrial part shaped from its grammar symbol, in the symbol's color, with a light top, a darker bottom band, rivets, scuffs and a highlight.
+  - The nine parts: Noun Boiler with a porthole; Pop Valve or Spotlight Lamp for a / the; Dab Sprayer with a pump, plus a smile dial for feeling words and a paint tank in the word's own color; Swap Valve with a Y pipe; Verb Engine with a flywheel and piston; Pressure Gauge with a needle; copper Arch Pipe; Union Coupling clamp; Steam Whistle.
+  - Each word gets one of three slightly different looks.
+  - Empty sockets show the dashed outline of the shape that fits.
+  - When the machine runs, flywheels spin, needles swing, pistons pump and whistles steam.
+- **Drag and drop** (pointer events, so it works with a finger, a pencil or a mouse):
+  - Drag a part from the Parts Bin onto the machine. Matching sockets glow green and the part snaps in with a squash and a spark.
+  - The wrong shape bounces off, and Gus explains the shapes do not fit.
+  - Drag a part between same-shape sockets to rearrange or swap. Drag one off the machine to recycle it.
+  - Drop a part on a "+" chip to add that housing.
+  - Drag the HOW THEY DID IT housing by its handle to the front of the sentence for an opening HOW word ("Softly, the girl sings."); the engine adds the comma.
+  - Tap-a-socket then tap-a-part still works for students who find dragging hard.
+- **Gizmos:**
+  - WHO and DID lamps (the plan's two lamps, lit from the real grammar check).
+  - A pressure gauge that climbs as the required parts fill.
+  - A READY lamp when the sentence will run (steady, never flashing).
+  - A horn toy, plus the START lever, time crank and Surprise Hopper.
+- **Gus comes alive:** his model has no skeleton, so the life is whole-body acting:
+  - Breathing, a slow weight shift, and a glance off to the side every few seconds.
+  - Chatty nods and a hop whenever he says something new.
+  - Calm mode keeps only the breathing.
+- **Still not verified on a real iPad.**
+- **Progress on the full plan:**
+  - Done: milestones 1 to 4 plus these interaction passes.
+  - Next, in order:
+    - The Inspector's Clipboard checklist and the Guided and Challenge levels.
+    - Paragraph machines with the film strip and Play All.
+    - The pixel content pass (more rigs and clips).
+    - Teacher settings and reports.
+    - Knock-Knock and Silly Story frameworks.
+    - The contest, Orders, remix and Garage.
+
 ### Grammar Gus's Silly Sentence Contraption (first native tool/game). FIRST PLAYABLE SHIPPED 2026-10-07 (direct teacher instruction)
 
 - **Her words, verbatim, in order:**

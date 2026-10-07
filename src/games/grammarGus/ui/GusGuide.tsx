@@ -26,13 +26,28 @@ function GusModel({ talkKey, calm }: { talkKey: string; calm: boolean }) {
     return { s, x: -center.x * s, y: -box.min.y * s, z: -center.z * s };
   }, [scene]);
   useEffect(() => { started.current = performance.now(); }, [talkKey]);
+  // A little life (teacher 2026-10-07: "add human/player/character
+  // animations to gus to give me a little live feel, slightly moving").
+  // The model has no rig, so this is whole-body acting: breathing, a slow
+  // weight shift, glancing around now and then, and chatty nods plus a
+  // hop whenever he says something new. Calm mode keeps only breathing.
   useFrame(() => {
     const g = group.current; if (!g) return;
-    const t = (performance.now() - started.current) / 1000;
-    const hop = !calm && t < 0.7 ? Math.sin((t / 0.7) * Math.PI) * 0.18 : 0;
+    const now = performance.now() / 1000;
+    const t = now - started.current / 1000;
+    const breathe = Math.sin(now * 1.6) * 0.018;
+    g.scale.set(1 - breathe * 0.5, 1 + breathe, 1 - breathe * 0.5);
+    if (calm) { g.position.set(0, 0, 0); g.rotation.set(0, 0.35, 0); return; }
+    const talking = t < 1.8;
+    const hop = t < 0.6 ? Math.sin((t / 0.6) * Math.PI) * 0.16 : 0;
+    // Glance: every ~7 s he looks off to the side, then back at the student.
+    const cycle = now % 7;
+    const glance = cycle > 5 && cycle < 6.4 ? Math.sin(((cycle - 5) / 1.4) * Math.PI) * 0.45 : 0;
+    g.position.x = Math.sin(now * 0.55) * 0.04;
     g.position.y = hop;
-    g.rotation.z = !calm && t < 0.7 ? Math.sin(t * 18) * 0.05 : 0;
-    g.rotation.y = 0.35 + (calm ? 0 : Math.sin(performance.now() / 1400) * 0.05);
+    g.rotation.y = 0.35 + glance + Math.sin(now * 0.4) * 0.05;
+    g.rotation.z = Math.sin(now * 0.55) * 0.025 + (t < 0.6 ? Math.sin(t * 18) * 0.04 : 0);
+    g.rotation.x = talking ? Math.sin(t * 9) * 0.05 * (1 - t / 1.8) : Math.sin(now * 0.9) * 0.012;
   });
   return (
     <group ref={group}>
@@ -49,8 +64,10 @@ export default function GusGuide({ message, talkKey, children, mood, calm = fals
   calm?: boolean;
 }) {
   useEffect(() => { gusSound.ahem(); }, [talkKey]);
+  // Docked into the page layout (not floating over it) so on an iPad it
+  // never covers the machine or the Parts Bin.
   return (
-    <>
+    <div className="gus-guide">
       <div className="gus-guide-model" aria-hidden="true">
         <Canvas camera={{ position: [0, 1.15, 4.6], fov: 32 }} dpr={[1, 2]} onCreated={({ camera }) => camera.lookAt(0, 1, 0)}>
           <ambientLight intensity={1} />
@@ -68,7 +85,7 @@ export default function GusGuide({ message, talkKey, children, mood, calm = fals
         </div>
         <div className="gus-guide-actions">{children}</div>
       </div>
-    </>
+    </div>
   );
 }
 

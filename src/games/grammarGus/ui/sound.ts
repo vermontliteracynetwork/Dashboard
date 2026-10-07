@@ -39,5 +39,6 @@ export const gusSound = {
   rumble: () => tone(70, 1.8, 'sawtooth', 0.025, 60),
   swish: () => noise(0.35, 0.02),
   ding: () => { tone(988, 0.25, 'sine', 0.06); tone(1319, 0.35, 'sine', 0.05, undefined, 0.12); },
+  horn: () => { tone(330, 0.18, 'sawtooth', 0.04, 300); tone(262, 0.3, 'sawtooth', 0.04, 240, 0.16); },
   ahem: () => { tone(520, 0.08, 'square', 0.03, 440); tone(660, 0.1, 'square', 0.03, 560, 0.1); },
 };
