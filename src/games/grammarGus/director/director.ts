@@ -1,6 +1,6 @@
 import type { Event, RubricResult, SemanticFrame } from '../engine/types';
 import type { CastMember, Resolution } from './cast';
-import { ADVERB_FX, ADVERB_SPEED, APPROACH_CLIPS, CLIP_BASE_SECONDS, ONTO_CLIPS, clipFor, pathFor, type PathKind } from './clips';
+import { ADVERB_FX, ADVERB_SPEED, APPROACH_CLIPS, CLIP_BASE_SECONDS, ONTO_CLIPS, clipFor, pathEnd, pathFor, type PathKind } from './clips';
 import { adjByWord, nounByWord, verbByBase } from '../data/wordbank';
 
 // Sentence-to-video director (plan section 5). Pure and deterministic:
@@ -70,17 +70,23 @@ function eventBeats(ev: Event, res: Resolution, castById: Map<string, CastMember
     const path = place ? pathFor(place.prep) : 'none';
     const target = obj ?? ground;
     const tx = target ? (start[target]?.x ?? props.find((p) => p.castId === target)?.x ?? STAGE_CENTER) : undefined;
-    const x0 = start[subj[0]]?.x ?? STAGE_LEFT;
+    // "from": the mover starts at the place and goes away from it.
+    let x0 = start[subj[0]]?.x ?? STAGE_LEFT;
+    if (path === 'from' && ground !== undefined && tx !== undefined) x0 = tx;
     let x1 = x0;
+    const groundX = ground !== undefined ? (start[ground]?.x ?? props.find((p) => p.castId === ground)?.x) : undefined;
     if (['run', 'walk', 'chase', 'swim', 'fly', 'slide'].includes(base)) {
-      x1 = tx === undefined ? STAGE_RIGHT : path === 'to' || base === 'chase' ? tx - 14 : path === 'none' ? tx - 14 : tx + 26;
+      x1 = tx === undefined ? STAGE_RIGHT : base === 'chase' || path === 'none' ? tx - 14 : pathEnd(path, tx, x0, STAGE_RIGHT);
     } else if (base === 'jump') {
-      x1 = tx !== undefined && path !== 'none' && path !== 'to' ? tx + 22 : x0;
+      x1 = tx !== undefined && path !== 'none' ? pathEnd(path, tx, x0, STAGE_RIGHT) : x0;
     } else if (APPROACH_CLIPS.has(base)) {
       x1 = tx !== undefined ? tx - 12 : base === 'pounce' || base === 'hug' || base === 'kick' ? x0 + 20 : x0;
     } else if (ONTO_CLIPS.has(base)) {
       x1 = tx !== undefined && (ground === target || base === 'climb') ? tx : x0;
     }
+    // Any action with a where word happens literally at that place: sat on
+    // the table ends on the table, slept under the tree ends under it.
+    if (groundX !== undefined && path !== 'none' && !['run', 'walk', 'chase', 'swim', 'fly', 'slide', 'jump'].includes(base) && !(APPROACH_CLIPS.has(base) && obj)) x1 = pathEnd(path, groundX, x0, STAGE_RIGHT);
     beats.push({
       t: 0, dur: (CLIP_BASE_SECONDS[clip.do] ?? 1.6) / speed, do: clip.do, who: subj, target,
       path, speed, fx, tags, sprout: clip.sprout, x0, x1,

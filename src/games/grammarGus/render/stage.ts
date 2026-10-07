@@ -30,7 +30,8 @@ const APPROACH = 0.4;
 const actPart = (b: Beat, p: number) => ((b.x0 ?? 0) === (b.x1 ?? 0) ? p : p < APPROACH ? -1 : (p - APPROACH) / (1 - APPROACH));
 const ANIMATE_RIGS = new Set(['biped', 'quadruped', 'critter', 'bird', 'serpent']);
 
-function actorAt(scene: Scene, id: string, t: number, propXs: number[], m: CastMember): ActorState {
+interface PropSpot { x: number; top: number }
+function actorAt(scene: Scene, id: string, t: number, props: PropSpot[], m: CastMember): ActorState {
   const st = scene.start[id] ?? { x: 80, facing: 1 as const };
   const s: ActorState = { x: st.x, y: 0, facing: st.facing, visible: true, frame: 0, squash: 0, sprout: false, behind: false, ghost: false, moving: false, tags: [], fx: [], sparkle: false, poof: false, actQ: 0, reactQ: 0, water: false, bush: false, dizzy: false, sink: 0, broken: false };
   const enter = scene.beats.find((b) => b.do === 'enter');
@@ -41,7 +42,7 @@ function actorAt(scene: Scene, id: string, t: number, propXs: number[], m: CastM
     if (t < b.t) break;
     const p = clamp01((t - b.t) / b.dur);
     const active = p < 1;
-    if (b.who.includes(id)) moveBy(s, b, p, active, t, propXs);
+    if (b.who.includes(id)) moveBy(s, b, p, active, t, props);
     else if (b.target === id) reactTo(s, b, p, active, st.x, t, m);
   }
   return s;
@@ -55,7 +56,8 @@ function walkTo(s: ActorState, x0: number, x1: number, p: number, active: boolea
   if (s.moving) s.y = -(s.frame % 2);
 }
 
-function moveBy(s: ActorState, b: Beat, p: number, active: boolean, t: number, propXs: number[]) {
+function moveBy(s: ActorState, b: Beat, p: number, active: boolean, t: number, props: PropSpot[]) {
+  const propXs = props.map((q) => q.x);
   const x0 = b.x0 ?? s.x, x1 = b.x1 ?? s.x;
   s.fx = active ? b.fx : []; s.tags = active ? b.tags : [];
   s.act = active ? b.do : undefined;
@@ -141,6 +143,23 @@ function moveBy(s: ActorState, b: Beat, p: number, active: boolean, t: number, p
     }
     default: break;
   }
+  // The where word, literally (teacher 2026-10-07: "especially literal in the prepositions").
+  const spot = props.find((q) => Math.abs(q.x - s.x) < 14);
+  const done = !active || p > 0.9;
+  if (spot) {
+    const close = 1 - Math.min(1, Math.abs(s.x - spot.x) / 12);
+    switch (b.path) {
+      case 'on': if (done) s.y = Math.min(s.y, -spot.top); else if (s.moving) s.y = Math.min(s.y, -Math.round(spot.top * close)); break;
+      case 'under': s.behind = true; if (done) { s.squash = 1; s.y = Math.max(s.y, 2); } break;
+      case 'in': s.behind = true; if (done) s.sink = Math.max(s.sink, 0.5); break;
+      case 'behind': s.behind = true; break;
+      case 'around': if (!done) { s.behind = true; s.y -= Math.round(close * 5); } break;
+      case 'through': if (!done) s.behind = true; break;
+      default: break;
+    }
+  }
+  if (b.path === 'up') s.y = Math.min(s.y, -Math.round((active ? p : 1) * 22));
+  if (b.path === 'down' && active) s.y = Math.min(s.y, -Math.round((1 - p) * 22));
   if (active && s.moving && b.fx.includes('zigzag')) s.y -= (Math.floor(t * 12) % 2) * 3;
   if (active && b.sprout) { s.sprout = true; s.frame = Math.floor(t * 8); }
 }
@@ -347,10 +366,16 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
   if (scene.title !== undefined) { drawTitleCard(fb, scene.title); return; }
   const castById = new Map(script.cast.map((m) => [m.id, m]));
   drawBackdrop(fb);
-  const propXs = scene.props.map((p) => p.x);
+  // How tall each scenery prop is, so "on the table" stands right on top of it.
+  const PROP_TOPS: Record<string, number> = { table: 13, door: 30, window: 34, floor: 1, kitchen: 20 };
+  const props: PropSpot[] = scene.props.map((p) => {
+    const m = castById.get(p.castId); const look = script.looks[p.castId];
+    const top = m && PROP_TOPS[m.noun] !== undefined ? PROP_TOPS[m.noun] : m && look ? spriteFor(m, look, { frame: 0, squash: 0 }).h - 1 : 14;
+    return { x: p.x, top };
+  });
   const actorIds = Object.keys(scene.start);
   const states = actorIds.map((id) => ({ id, m: castById.get(id)!, s: null as unknown as ActorState })).filter((a) => a.m);
-  for (const a of states) a.s = actorAt(scene, a.id, t, propXs, a.m);
+  for (const a of states) a.s = actorAt(scene, a.id, t, props, a.m);
   const drawActor = (a: { id: string; m: CastMember; s: ActorState }) => {
     if (!a.s.visible) return;
     const look = script.looks[a.id] ?? { scale: 1, wide: false, extras: [] };

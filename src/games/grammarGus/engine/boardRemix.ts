@@ -1,5 +1,5 @@
 import type { HelpLevel } from './types';
-import { readLine, type BoardItem, type BoardLine } from './board';
+import { itemMark, readLine, type BoardItem, type BoardLine } from './board';
 import { runSentence } from './pipeline';
 import { analyze } from './analyze';
 import { pronounFor } from './remix';
@@ -56,7 +56,7 @@ export function remixLine(line: BoardLine, kind: RemixKind, level: HelpLevel, rn
   let s = n; while (s > 0 && ['A', 'J'].includes(wordPosOf(items[s - 1].kind) ?? '')) s--;
   const word = (items[n].word ?? '').toLowerCase();
   const pron = nounByWord.get(word)?.plural || items.slice(s, n).some((i) => i.bottom?.kind === 'duplicator') || items[n].bottom?.kind === 'duplicator' ? 'they' : pronounFor(word);
-  const capUnder = items.slice(s, n + 1).find((i) => i.bottom && i.bottom.kind !== 'duplicator')?.bottom;
+  const capUnder = items.slice(s, n + 1).find((i) => i.bottom && itemMark(i.bottom) === 'cap')?.bottom;
   const c = [...items.slice(0, s), { id: uid(), kind: 'R' as const, word: pron, ...(capUnder ? { bottom: capUnder } : {}) }, ...items.slice(n + 1)];
   if (works(line, c, level)) return { items: c, note: `Pronoun swap! "${word}" became "${pron}".` };
   void PREPOSITIONS;
@@ -73,7 +73,7 @@ export function flipIdeas(items: BoardItem[], uid: () => string): { items: Board
   let lastW = -1; items.forEach((it, i) => { if (isWord(it)) lastW = i; });
   const conj = items.findIndex((i) => wordPosOf(i.kind) === 'C' && SUB_WORDS.includes((i.word ?? '').toLowerCase()));
   if (conj < 0 || firstW < 0) return 'The Flip Switch needs a because, when, after, before, while or if joining two ideas.';
-  const strip = (i: BoardItem): BoardItem => ({ ...i, ...(i.bottom && i.bottom.kind !== 'duplicator' && i.bottom.kind !== 'taggun' && i.bottom.kind !== 'inflator' ? { bottom: undefined } : {}), ...(i.top && (i.top.kind === 'comma' || i.top.kind === 'dominoes') ? { top: undefined } : {}) });
+  const strip = (i: BoardItem): BoardItem => ({ ...i, ...(i.bottom && i.bottom.kind !== 'duplicator' && i.bottom.kind !== 'taggun' && i.bottom.kind !== 'inflator' ? { bottom: undefined } : {}), ...(i.top && (i.top.kind === 'comma' || i.top.kind === 'dominoes') ? { top: undefined } : {}), ...(i.bottom && (i.bottom.kind === 'comma' || i.bottom.kind === 'dominoes') ? { bottom: undefined } : {}) });
   const before = items.slice(0, firstW);
   const after = items.slice(lastW + 1);
   const words = items.slice(firstW, lastW + 1).map(strip);
@@ -93,7 +93,7 @@ export function flipIdeas(items: BoardItem[], uid: () => string): { items: Board
   } else {
     const main = words.slice(0, k); const sub = words.slice(k);
     const lastSub = sub[sub.length - 1];
-    out = [...before, { ...sub[0], bottom: capOf }, ...sub.slice(1, -1), ...(sub.length > 1 ? [{ ...lastSub, top: { id: uid(), kind: 'comma' as const, word: null } }] : []), ...main, ...after];
+    out = [...before, { ...sub[0], bottom: capOf }, ...sub.slice(1, -1), ...(sub.length > 1 ? [{ ...lastSub, bottom: { id: uid(), kind: 'comma' as const, word: null } }] : []), ...main, ...after];
     front = true;
   }
   return { items: out, front };

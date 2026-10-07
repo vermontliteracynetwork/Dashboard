@@ -4,6 +4,9 @@
 let ctx: AudioContext | null = null;
 let muted = false;
 export const setGusMuted = (m: boolean) => { muted = m; };
+// Machine noises go soft while Gus reads the sentence out loud (teacher 2026-10-07).
+let level = 1;
+export const setGusLevel = (v: number) => { level = v; };
 
 function tone(freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.08, slideTo?: number, delay = 0) {
   if (muted) return;
@@ -13,7 +16,7 @@ function tone(freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.
     const o = ctx.createOscillator(); const g = ctx.createGain();
     o.type = type; o.frequency.setValueAtTime(freq, t0);
     if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
-    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    g.gain.setValueAtTime(Math.max(0.0002, vol * level), t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(g).connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
   } catch { /* no audio on this device: silent is fine */ }
 }
@@ -26,7 +29,7 @@ function noise(dur: number, vol = 0.05, delay = 0) {
     const d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
     const src = ctx.createBufferSource(); const g = ctx.createGain(); const f = ctx.createBiquadFilter();
-    f.type = 'highpass'; f.frequency.value = 1800; g.gain.value = vol;
+    f.type = 'highpass'; f.frequency.value = 1800; g.gain.value = vol * level;
     src.buffer = buf; src.connect(f).connect(g).connect(ctx.destination); src.start(ctx.currentTime + delay);
   } catch { /* silent */ }
 }

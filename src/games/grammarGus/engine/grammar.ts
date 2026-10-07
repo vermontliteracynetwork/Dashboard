@@ -39,6 +39,7 @@ const isArt: Test = (w) => w === 'a' || w === 'an' || w === 'the';
 const isAdj: Test = (w) => adjByWord.has(w);
 const isNoun: Test = (w) => nounByWord.has(w) && !nounByWord.get(w)!.proper;
 const isName: Test = (w) => !!nounByWord.get(w)?.proper;
+const isBareNoun: Test = (w) => { const n = nounByWord.get(w); return !!n && !n.proper && (!!n.plural || !!n.noA); };
 // A noun that owns something (Possessive Tag Gun): the dog's, the cats', Mia's.
 const possBase = (w: string) => (w.endsWith("'s") ? w.slice(0, -2) : w.endsWith("'") ? w.slice(0, -1) : null);
 const isPoss: Test = (w) => { const b = possBase(w); return !!b && nounByWord.has(b); };
@@ -74,6 +75,9 @@ function build(extended: boolean) {
     term('N', `${r}.noun`, isName),
     // "the dog's bone", "Mia's fuzzy hat" (Possessive Tag Gun)
     seq(opt(term('A', `${r}.art`, isArt)), adjs(r), term('N', `${r}.poss`, isPoss), adjs(r), term('N', `${r}.noun`, isNoun)),
+    // More than one, or stuff you cannot count, needs no article: "Cats purr.",
+    // "they want food" (Read and Respond, teacher 2026-10-07: "Cats purr because").
+    ...(extended ? [seq(adjs(r), term('N', `${r}.noun`, isBareNoun))] : []),
   );
   const subject = (c: string) => alt(
     term('R', `${c}.subj.pron`, isSubjPron),

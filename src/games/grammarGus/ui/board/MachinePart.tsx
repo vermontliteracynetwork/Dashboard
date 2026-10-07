@@ -1,5 +1,5 @@
 import type { Kind } from './parts';
-import { kindInfo, PART_H, partWidth, isWordKind, needsWord, BODY } from './parts';
+import { kindInfo, PART_H, partWidth, isWordKind, wordPosOf, BODY } from './parts';
 import PartSvg from '../PartSvg';
 import { nounByWord } from '../../data/wordbank';
 
@@ -32,14 +32,20 @@ function Pipes({ w }: { w: number }) {
     <Nut x={5.5} y={PIPE_Y - 8} r={3} /><Nut x={5.5} y={PIPE_Y + 8} r={3} /><Nut x={w - 5.5} y={PIPE_Y - 8} r={3} /><Nut x={w - 5.5} y={PIPE_Y + 8} r={3} />
   </g>;
 }
-function Plate({ w, text, y = 138, blank = false }: { w: number; text: string; y?: number; blank?: boolean }) {
+// The word tag under a word machine, in that word's own grammar color
+// (teacher 2026-10-07: "make the word tags under the same color as the
+// corresponding machine/grammar symbols"). Parts that hold no word get no
+// tag at all: "dont have title tags underneath each machine part that
+// isnt a word becuase it is confusing".
+const inkOn = (hex: string) => { const n = parseInt(hex.slice(1), 16); const l = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; return l > 0.6 ? INK : '#fff'; };
+function Plate({ w, text, y = 138, blank = false, color = '#f3d27a' }: { w: number; text: string; y?: number; blank?: boolean; color?: string }) {
   const pw = Math.min(w - 8, Math.max(46, text.length * 10.5 + 24));
   const x = (w - pw) / 2;
   return <g>
     <line x1={x + 10} y1={y} x2={x + 10} y2={y - 10} stroke={INK} strokeWidth={2} /><line x1={x + pw - 10} y1={y} x2={x + pw - 10} y2={y - 10} stroke={INK} strokeWidth={2} />
-    <rect x={x} y={y} width={pw} height={28} rx={6} fill={blank ? '#fff' : '#f3d27a'} stroke={INK} strokeWidth={2.6} strokeDasharray={blank ? '6 4' : undefined} />
-    <circle cx={x + 6} cy={y + 14} r={2} fill={INK} /><circle cx={x + pw - 6} cy={y + 14} r={2} fill={INK} />
-    <text x={w / 2} y={y + 20} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={text.length > 14 ? 13 : 17} fill={INK}>{text}</text>
+    <rect x={x} y={y} width={pw} height={28} rx={6} fill={blank ? '#fff' : color} stroke={INK} strokeWidth={2.6} strokeDasharray={blank ? '6 4' : undefined} />
+    <circle cx={x + 6} cy={y + 14} r={2} fill={blank ? INK : inkOn(color)} /><circle cx={x + pw - 6} cy={y + 14} r={2} fill={blank ? INK : inkOn(color)} />
+    <text x={w / 2} y={y + 20} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={text.length > 14 ? 13 : 17} fill={blank ? INK : inkOn(color)}>{text}</text>
   </g>;
 }
 // A little cog on every stand: it whirs while the machine runs.
@@ -426,7 +432,6 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
   if (kind === 'blank') return svg(<>
     <rect x={6} y={10} width={w - 12} height={120} rx={14} fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth={4} strokeDasharray="10 7" />
     <text x={w / 2} y={74} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={40} fill="#fff">+</text>
-    <Plate w={w} text="blank" blank />
   </>);
   if (isWordKind(kind)) {
     const size = BODY[kind];
@@ -436,7 +441,7 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
       <Stand w={w} top={top + size * 0.8} />
       <PartSvg pos={kind} word={word} ghost={empty} box={{ x: (w - size) / 2, y: top, w: size, h: size }} />
       <Gear x={13} y={PIPE_Y + 26} r={7} /><Gear x={w - 13} y={PIPE_Y + 26} r={7} rev />
-      <Plate w={w} text={word ?? '?'} blank={empty} />
+      <Plate w={w} text={word ?? '?'} blank={empty} color={base} />
       {kind === 'N' && word && nounByWord.get(word) && <text x={w - 14} y={134} textAnchor="end" fontSize={15}>{nounByWord.get(word)!.emoji}</text>}
     </>);
   }
@@ -448,7 +453,6 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
     <rect x={16} y={12} width={w - 32} height={100} rx={8} fill="#111" stroke={INK} strokeWidth={2} />
     <rect x={24} y={122} width={14} height={10} fill="#6b7383" stroke={INK} strokeWidth={2} /><rect x={w - 38} y={122} width={14} height={10} fill="#6b7383" stroke={INK} strokeWidth={2} />
     <Nut x={14} y={12} r={4} /><Nut x={w - 14} y={12} r={4} /><Nut x={14} y={116} r={4} /><Nut x={w - 14} y={116} r={4} />
-    <Plate w={w} text="Pixel TV" y={140} />
   </>);
   if (kind === 'lever') return svg(<>
     <rect x={w - 14} y={PIPE_Y - 7} width={14} height={14} fill="#c98a4b" stroke={INK} strokeWidth={2.2} />
@@ -491,7 +495,6 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
     {Array.from({ length: 4 }, (_, i) => <ellipse key={i} cx={w / 2} cy={96 + i * 9} rx={i % 2 ? 3 : 6} ry={6} fill="none" stroke="#8f98a8" strokeWidth={3} />)}
     <path d={`M${w / 2} 128 q -10 4 -6 12 q 4 6 10 0`} fill="none" stroke="#8f98a8" strokeWidth={3.5} />
     <Nut x={w / 2 - 20} y={42} r={3.5} /><Nut x={w / 2 + 20} y={42} r={3.5} /><Nut x={w / 2 - 20} y={82} r={3.5} /><Nut x={w / 2 + 20} y={82} r={3.5} />
-    <Plate w={w} text="paragraph" />
   </>);
   if (kind === 'cap' || kind === 'stop' || kind === 'bang' || kind === 'ask' || kind === 'comma') {
     const mark = kind === 'cap' ? 'Aa' : kind === 'stop' ? '.' : kind === 'bang' ? '!' : kind === 'ask' ? '?' : ',';
@@ -515,11 +518,10 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
         <path d={`M${w / 2 - 16} 96 L${w / 2 - 16} 40 Q${w / 2 - 16} 20 ${w / 2} 20 Q${w / 2 + 16} 20 ${w / 2 + 16} 40 L${w / 2 + 16} 96`} fill="none" stroke={base} strokeWidth={5} />
         <text x={w / 2} y={60} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={30} fill={INK}>,</text>
       </g>}
-      <Plate w={w} text={kind === 'cap' ? 'capital' : kind === 'stop' ? 'period' : kind === 'bang' ? 'exclaim' : kind === 'ask' ? 'question' : 'comma'} />
     </>);
   }
-  // A fun part that holds a word shows it on its plate (? until picked).
-  const plate = needsWord(kind) ? (word ?? (empty ? '?' : info.name.toLowerCase())) : info.name.toLowerCase();
-  // The Mood Meter's plate area holds its calm / BIG buttons.
-  return svg(<><Contraption kind={kind} w={w} color={base} word={word} status={status} />{kind !== 'mood' && <Plate w={w} text={plate} y={140} blank={needsWord(kind) && empty} />}{void dark}{void light}</>);
+  // A fun part that holds a word shows it on a tag in that word's grammar
+  // color (? until picked). Parts with no word get no tag.
+  const wp = wordPosOf(kind);
+  return svg(<><Contraption kind={kind} w={w} color={base} word={word} status={status} />{wp && <Plate w={w} text={word ?? '?'} y={140} blank={!word} color={kindInfo(wp).color} />}{void dark}{void light}</>);
 }

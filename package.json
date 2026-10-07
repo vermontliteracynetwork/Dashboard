@@ -14,12 +14,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource/opendyslexic": "^5.3.0",
     "@mozilla/readability": "^0.6.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@supabase/supabase-js": "^2.112.4",
     "chess.js": "^1.4.0",
     "jsdom": "^30.0.1",
+    "linkedom": "^0.18.13",
     "nanoid": "^6.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

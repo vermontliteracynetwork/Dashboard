@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { JSDOM } from 'jsdom';
+import { parseHTML } from 'linkedom';
 import { Readability } from '@mozilla/readability';
 
 // Fetches a teacher-provided article URL server-side (browsers can't do this
@@ -49,8 +49,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const html = await response.text();
 
-    const dom = new JSDOM(html, { url: parsed.toString() });
-    const reader = new Readability(dom.window.document);
+    // linkedom, not jsdom: jsdom crashed the serverless function on load
+    // (FUNCTION_INVOCATION_FAILED, found 2026-10-07 importing a Kiddle article).
+    const { document } = parseHTML(html);
+    // Readability resolves relative image links against the page address.
+    const base = document.createElement('base'); base.setAttribute('href', parsed.toString());
+    document.head?.prepend(base);
+    const reader = new Readability(document as unknown as Document);
     const article = reader.parse();
 
     if (!article || !article.textContent || article.textContent.trim().length < 50) {

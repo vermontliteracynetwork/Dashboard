@@ -57,6 +57,7 @@ const SlimeChess = lazyFresh(() => import('./routes/student/SlimeChess'));
 const SpaceBowling = lazyFresh(() => import('./routes/student/SpaceBowling'));
 const GrammarGusMachine = lazyFresh(() => import('./games/grammarGus/ui/GrammarGusMachine'));
 const GusWorkboard = lazyFresh(() => import('./games/grammarGus/ui/GusWorkboard'));
+const GusLibrary = lazyFresh(() => import('./games/grammarGus/reading/Library'));
 const WorldEditor = lazyFresh(() => import('./routes/teacher/WorldEditor'));
 const StyleRoom = lazyFresh(() => import('./routes/teacher/StyleRoom'));
 const StudentStyle = lazyFresh(() => import('./routes/student/StudentStyle'));
@@ -167,6 +168,7 @@ export default function App() {
           <Route path="/student/bakery" element={<BakeryMatch3 />} />
           <Route path="/student/games" element={<GamesHub />} />
           <Route path="/student/grammar-gus" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the machine…</p></div>}><GusWorkboard /></Suspense>} />
+          <Route path="/student/library" element={<Suspense fallback={<div className="app-shell center-screen"><p>Opening the Library…</p></div>}><GusLibrary /></Suspense>} />
           <Route path="/student/grammar-gus/classic" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the machine…</p></div>}><GrammarGusMachine /></Suspense>} />
           <Route path="/student/quiz-mode" element={<QuizMode />} />
           <Route path="/student/castle-defense" element={<CastleDefense />} />

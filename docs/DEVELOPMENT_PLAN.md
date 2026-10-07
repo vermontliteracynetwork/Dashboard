@@ -722,17 +722,72 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
-### Grammar Gus: Daily Challenge and daily streak (reading comprehension answered in paragraphs with the machines). QUEUED, waiting on the rest of the teacher's description
+### Grammar Gus: Daily Challenge and daily streak. QUEUED (Read and Respond, its content, shipped first as an activity)
 **Teacher's words (2026-10-07, verbatim):** "lets have a daily challenge in gus' grammar machine. it should pop up on the first sign in to gus' machine each day, be sent to the students in mail, and also gus should be walking around the town square and they are able to be clicked on to have the students be asked in the chat if they want to complete the daily challenge. gus should show them, once it is completed, a calnedar grid with the day checked off like a streak completion- day one of the daily challenges. $25 earned for each day. making it the most valuable daily streak in the game, wich should be promoted to students."
-Then: "Gus's daily streak, daily challenge, will be reading comprehension, respond with paragraphs, using the machines. So students will not be presented with read this passage and answer the question, but rather they will be completely immersed in the reading and also the writing. Here's how it will work. ..." (the message arrived cut off at "Here's how it will work." The full design is needed before the challenge content is built.)
+Then: "Gus's daily streak, daily challenge, will be reading comprehension, respond with paragraphs, using the machines. So students will not be presented with read this passage and answer the question, but rather they will be completely immersed in the reading and also the writing." Her full design for how it works is under Read and Respond below. Then: "dont build this as a daily challenge at first but rather an activity option within gus's machine as we get it going."
 
-What is already clear and will be built:
-- **Pops up** on the first visit to Gus's Workboard each day.
-- **Mailed** to every student each day (the student Mailbox).
-- **Gus walks around the Town Square.** Tapping him opens the chat, where he asks if they want to do the daily challenge.
-- **Streak calendar.** When the challenge is done, Gus shows a calendar grid with the day checked off ("Day 1 of the daily challenges", and so on).
-- **$25 for each day completed.** This is the most valuable daily streak in the game, and it gets promoted to students (What's New, the mail, Gus in the Town Square).
-- **The challenge itself** is reading comprehension answered in paragraphs built with the machines, immersive, never "read this passage and answer the question". Exact flow: waiting on the teacher's full description.
+Status: Read and Respond (the reading and the answering) SHIPPED 2026-10-07 as an activity in Gus's Jobs menu and the Library app. Still queued for when she says go:
+- **Pop-up** on the first visit to Gus's Workboard each day.
+- **Mail** to every student each day.
+- **Gus walks around the Town Square.** Tapping him opens the chat and asks if they want to do the daily challenge.
+- **Streak calendar** when it is done ("Day 1 of the daily challenges"), with weekends not breaking it (a suggestion to confirm with her).
+- **$25 for each day.** This is the most valuable daily streak in the game, promoted to students.
+
+### Grammar Gus: Read and Respond (immersive reader, picture gallery, question view in the machines, Library app, teacher article shelf). SHIPPED 2026-10-07 as an activity
+**Teacher's words (2026-10-07, verbatim):**
+"* Male british voice - an actually good narration voice so the kids will want to listen
+   * Settings needed: speed (.5, .75. 1x, 1.25, 1.5), pause/play. rewind 10 seconds, forward 10 seconds, and general audio settings otherwise.
+* Visual highlight of each word being said at pace with narrator.
+* Open dyslexic font, wide text spacing, required double space between each word. no breaking text in two lines. double space each line, triple space between paragraphs. bold all headings.
+* keep all photos from original article, but store at bottom of text viewer in a gallery form with side arrows. all images should be able to be enlarged, downloaded to devices, annotated, and saved to the students in game inventory. photos can be added as resizable wall decor in students homes.
+* Each article will have a question that students will be prompted with, using sentence prompts/starters in the machines, students will have to complete a sentence response using the machines to write a full sentence.
+* Word banks should be adjusted to be appropriate words needed for accurate responses to the question.
+* this feature should have three very different screens. 1) the highly visually accessible immersive screen reader. a nice voice will be used, words will be highlighted one at a time as they are being read aloud. the background music/sound effects can be turned off if wanting, or kept on using the settings. REQUIREMENTS: Open dyslexic font, wide text spacing, required double space between each word. no breaking text in two lines. double space each line, triple space between paragraphs. bold all headings. 2) the gallery view should live collapsed closed at the bottom of the immersive reader. it can be opened and navigated in full screen view, or closed  to return back to the immersive reader. 3) the question view should be the same as the primary gus's grammar machine screen. on the top where i've circled in red should be the question that the students are to respond to based on the article they read and the sentence machine should have the sentence starter if there is one or if there is a specific framework to support the students. Remember: these are high support needs students with dyslexia, dysgraphia, communication disorders, ASD, etc. writing is their greatest deficit and we are here to support them in engaging ways.
+* all articles uploaded will be saved and readable in the same reader/gallery view through the new "Library" app in their computer that can also be accessed as a building role
+* new heading sound effect, then text reads heading title. sound effect at every new bullet point (don't otherwise announce bullet points). sparkly completion sound at the end of the audio."
+"https://kids.kiddle.co/Why_cats_purr lets use this article as the first one to test. the question will be "Why do cats purr?" and the studnts will have the sentence frame "Cats purr because" in the machines to start and they must complete the question. - dont build this as a daily challenge at first but rather an activity option within gus's machine as we get it going"
+
+Shipped:
+- **The first article.** "Why cats purr" (Kiddle) is on Gus's shelf. The question is "Why do cats purr?" and the machine starts with "Cats purr because". Its word bank includes cats, kittens, bones, purr, heal, be, happy, content, calm, safe, hurt and scared. Answers like "Cats purr because they are happy." and "Cats purr because it heals bones." run. The engine now accepts "cats" and "food" without "the" (more than one, or stuff you cannot count).
+- **Screen 1, the immersive reader** (`reading/ImmersiveReader.tsx`):
+  - **Narrator:** the best British male voice the device has. On an iPad that is Daniel or Arthur, and the Enhanced versions are clearest; the settings explain how to download one. Speeds 0.5x, 0.75x, 1x, 1.25x and 1.5x, Read to me / Pause, back 10 seconds and forward 10 seconds. Tap any word to read from there.
+  - **Highlight:** each word lights up as it is read. When a voice gives no word timing, the highlight is paced by the clock.
+  - **Text:** OpenDyslexic, double spaced lines, triple spaced paragraphs, a double space between words, no word split across two lines, and bold headings.
+  - **Sounds:** a chime before each heading (then the heading is read), a soft blip at each bullet (bullets are not announced), and a sparkly sound at the end. Soft background music.
+  - **⚙️ Sound settings:** pick the voice, voice volume, music on/off and volume, sound effects on/off, and text size.
+- **Screen 2, the gallery:** collapsed along the bottom of the reader with thumbnails. It opens full screen with side arrows, 🔍 Bigger, ✏️ Draw (4 pen colors, undo, clear; drawings are kept on that iPad) and ⬇️ Save to my iPad. Back to reading closes it.
+- **Screen 3, the question view:** Gus's Workboard with the question across the top (where she circled), with 🔈 Hear it and 📖 Read it again. A machine starts with the sentence starter as locked word machines, and each word list shows the article's words first. Guess and check still applies. Any correct sentence finishes it: a 📖 sticker, gears, and the answer saved in the Journal with the question.
+- **Where students find it:** 🧰 Jobs → 📖 Read and Respond, and the new 📚 **Library** app (computer card, `/student/library`, and the new **library** building role in Build Mode).
+- **Teacher's shelf:** Game tab → 📚 Gus's Library. Add an article by its link: Gus fetches the text and pictures and suggests word bank words from the article. Write the question, the sentence starter and the word bank (naming, action, describing and how words, plus which naming words mean more than one). Edit, hide, delete, or reset the built-in one.
+- **Fixed the article importer:** `/api/extract-article` crashed on production (FUNCTION_INVOCATION_FAILED) when fetching the Kiddle page. It now uses linkedom instead of jsdom. This also fixes the Activities article link importer.
+
+In progress / queued:
+- **Save a picture to the in-game inventory** and **hang it as resizable wall decor at home**. These need a picture item type in the inventory and in the Home Room; next round.
+- **A downloaded picture** is the original, without the student's drawing (pictures from other websites cannot be merged with drawings on the iPad).
+- **A truly premium narrator voice** needs a text to speech service (for example, a neural voice API with its own key, added by the teacher in Vercel). For now it is the device's best British male voice.
+- **Not yet checked on production:** the first time the cats article opens, the reader fetches it through the fixed importer, then keeps it on that iPad. Saving it from the teacher shelf stores it for everyone.
+
+### Grammar Gus: Workboard polish from the teacher's screenshot (tags, colors, lever, stretchy speech bubble, Remix, comma and apostrophe spots, no sound words, read aloud, literal Pixel TV). SHIPPED 2026-10-07 (direct teacher instructions)
+**Teacher's words (2026-10-07, verbatim):** "edits to make 1) dont have title tags underneath each machine part that isnt a word becuase it is confusing 2) make the word tags under the same color as the corresponding machine/grammar symbols. 3) make sure the lever doesnt cover the wrd start 4) make sure the speech bubble is a streatching thing so the student can move it sto start at one spot and end at another with a cloud overhead of the words, ensure the speech tag shows as text as well. 5) remove the remix button from the main bar"
+"commas should snap to bottom, apostrophess should snap to top."
+"dont show the onemonepias/sound words above the machine parts, instead, read the sentenc ein tts with the various machine noises soft in the background as it begins to work."
+"ensure the pixel tv is as accurate and literal as possible based on the sentence. it should be especially literal in the prepositions"
+
+Shipped:
+1. **Tags:** only parts that hold a word have a tag under them. The capital letter, punctuation, Pixel TV, Paragraph Link, flag, blank space and other no-word parts have none.
+2. **Tag colors:** each word tag is its grammar color (noun red, verb green, describing word, how word and so on). A fun part's word tag uses the color of the kind of word it holds.
+3. **Lever:** the pressure gauge sits below START now.
+4. **Speech Bubble Blower:** a cloud floats over the spoken words with the speech tag inside it as text ("said Mia"). The ⟨ and ⟩ grips stretch it to start and end on any word machine. Only the words inside the cloud get the quotation marks. Also fixed a doubled comma before a closing quotation mark.
+5. **Remix:** off the sentence bar and into ☰ Menu ("Remix the selected machine").
+6. **Commas** snap under a word, **apostrophes** (the Tag Gun) on top. A comma under a word that already has its capital letter below it goes on top instead. Machines built the old way still work.
+7. **No sound words** over the parts. When the machine runs, Gus reads the sentence aloud (a British voice where the device has one) with the machine noises soft underneath.
+8. **Literal Pixel TV, where words:**
+   - on ends standing on top (at the prop's real height); in ends inside; under ends underneath, crouched.
+   - over arcs above and lands past; through goes behind and comes out the other side; around goes round the back.
+   - behind ends behind; beside, near, by and with stop next to it; to, at and toward stop in front.
+   - from starts at it and walks away; off, out and outside go away; up rises; down comes down.
+   - This works for every action, not just walking: "sat on the table" ends on the table.
+   - Still to do: "with" showing both walking together.
 
 ### Grammar Gus: guess and check, hints only after the second try, and teacher live share by a 4-number code. SHIPPED 2026-10-07 (direct teacher instructions)
 **Teacher's words (2026-10-07, verbatim):** "two things that I want added. One, I want to make sure that there is a game logic, machine logic component so that the sentence needs to be in the grammatically correct order and that to the student, the machine pieces need to be in the same specific order in order for the machine to run. So this should be like a guess and check. At first. My students love the guess and check nature of programs like MIT Scratch. So let's think about when they're building the machine, how they need certain factors. And Gus should not give the answer right away. Like if they're making a compound sentence and they need a comma, that needs to be put in there, but Gus shouldn't immediately put the template for a comma. It should instead, Grammar Gus should say something like, hmm, that's not right, try that again. Or you might be missing something. On the second attempt, if they run it and the machine doesn't run again, Gus should offer to give them a hint. So it should be like a button that they could press in response to Gus, like Gus would say something like, looks like you're still trying to figure it out. Would you like a hint? And a student can press to get a hint and then it could be like showing the ghost visual of like the comma and so then the student would have to drag the comma machine component that's option not option one that is something that needs to be added to the dev plan and Claudia can build that"

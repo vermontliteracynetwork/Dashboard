@@ -63,6 +63,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'chess', label: `Chess Set (Slime Chess game) → ${ROLE_VIEWS.chess}` },
   { value: 'game-dashboard', label: `Game Dashboard (pick any game) → ${ROLE_VIEWS['game-dashboard']}` },
   { value: 'grammar-machine', label: `Grammar Machine (Grammar Gus) → ${ROLE_VIEWS['grammar-machine']}` },
+  { value: 'library', label: `Library (articles to read) → ${ROLE_VIEWS.library}` },
   { value: 'closed', label: 'Closed / Coming Soon → shows "come back later" instead of opening anything' },
   { value: 'custom', label: 'Custom (type a link) → opens in the internal browser' },
 ];

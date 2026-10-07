@@ -2737,7 +2737,7 @@ exports[`director (plan 5, 3.17) > pattern 10 future: a script of 10.0 s or less
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -2846,7 +2846,7 @@ exports[`director (plan 5, 3.17) > pattern 10 past: a script of 10.0 s or less 1
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -2955,7 +2955,7 @@ exports[`director (plan 5, 3.17) > pattern 10 present: a script of 10.0 s or les
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -3066,7 +3066,7 @@ exports[`director (plan 5, 3.17) > pattern 11 future: a script of 10.0 s or less
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -3177,7 +3177,7 @@ exports[`director (plan 5, 3.17) > pattern 11 past: a script of 10.0 s or less 1
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -3288,7 +3288,7 @@ exports[`director (plan 5, 3.17) > pattern 11 present: a script of 10.0 s or les
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -3399,7 +3399,7 @@ exports[`director (plan 5, 3.17) > pattern 12 future: a script of 10.0 s or less
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -3510,7 +3510,7 @@ exports[`director (plan 5, 3.17) > pattern 12 past: a script of 10.0 s or less 1
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -3621,7 +3621,7 @@ exports[`director (plan 5, 3.17) > pattern 12 present: a script of 10.0 s or les
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -6070,7 +6070,7 @@ exports[`director (plan 5, 3.17) > pattern 20 future: a script of 10.0 s or less
           "fx": [
             "sound",
           ],
-          "path": "over",
+          "path": "on",
           "speed": 1,
           "sprout": false,
           "t": 0.6,
@@ -6080,7 +6080,7 @@ exports[`director (plan 5, 3.17) > pattern 20 future: a script of 10.0 s or less
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 90,
         },
         {
           "do": "settle",
@@ -6183,7 +6183,7 @@ exports[`director (plan 5, 3.17) > pattern 20 past: a script of 10.0 s or less 1
           "fx": [
             "sound",
           ],
-          "path": "over",
+          "path": "on",
           "speed": 1,
           "sprout": false,
           "t": 0.6,
@@ -6193,7 +6193,7 @@ exports[`director (plan 5, 3.17) > pattern 20 past: a script of 10.0 s or less 1
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 90,
         },
         {
           "do": "settle",
@@ -6296,7 +6296,7 @@ exports[`director (plan 5, 3.17) > pattern 20 present: a script of 10.0 s or les
           "fx": [
             "sound",
           ],
-          "path": "over",
+          "path": "on",
           "speed": 1,
           "sprout": false,
           "t": 0.6,
@@ -6306,7 +6306,7 @@ exports[`director (plan 5, 3.17) > pattern 20 present: a script of 10.0 s or les
             "c1",
           ],
           "x0": 28,
-          "x1": 112,
+          "x1": 90,
         },
         {
           "do": "settle",
@@ -6421,7 +6421,7 @@ exports[`director (plan 5, 3.17) > pattern 21 future: a script of 10.0 s or less
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -6536,7 +6536,7 @@ exports[`director (plan 5, 3.17) > pattern 21 past: a script of 10.0 s or less 1
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -6651,7 +6651,7 @@ exports[`director (plan 5, 3.17) > pattern 21 present: a script of 10.0 s or les
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 116,
         },
         {
           "do": "settle",
@@ -8843,7 +8843,7 @@ exports[`director (plan 5, 3.17) > pattern 29 future: a script of 10.0 s or less
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 76,
         },
         {
           "do": "drink",
@@ -8858,8 +8858,8 @@ exports[`director (plan 5, 3.17) > pattern 29 future: a script of 10.0 s or less
           "who": [
             "c1",
           ],
-          "x0": 78,
-          "x1": 78,
+          "x0": 76,
+          "x1": 76,
         },
         {
           "do": "settle",
@@ -8969,7 +8969,7 @@ exports[`director (plan 5, 3.17) > pattern 29 past: a script of 10.0 s or less 1
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 76,
         },
         {
           "do": "drink",
@@ -8984,8 +8984,8 @@ exports[`director (plan 5, 3.17) > pattern 29 past: a script of 10.0 s or less 1
           "who": [
             "c1",
           ],
-          "x0": 78,
-          "x1": 78,
+          "x0": 76,
+          "x1": 76,
         },
         {
           "do": "settle",
@@ -9095,7 +9095,7 @@ exports[`director (plan 5, 3.17) > pattern 29 present: a script of 10.0 s or les
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 76,
         },
         {
           "do": "drink",
@@ -9110,8 +9110,8 @@ exports[`director (plan 5, 3.17) > pattern 29 present: a script of 10.0 s or les
           "who": [
             "c1",
           ],
-          "x0": 78,
-          "x1": 78,
+          "x0": 76,
+          "x1": 76,
         },
         {
           "do": "settle",
@@ -9211,7 +9211,7 @@ exports[`director (plan 5, 3.17) > pattern 30 future: a script of 10.0 s or less
           "do": "mix",
           "dur": 2,
           "fx": [],
-          "path": "through",
+          "path": "in",
           "speed": 1,
           "sprout": false,
           "t": 0.6,
@@ -9221,13 +9221,13 @@ exports[`director (plan 5, 3.17) > pattern 30 future: a script of 10.0 s or less
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 90,
         },
         {
           "do": "mix",
           "dur": 2,
           "fx": [],
-          "path": "through",
+          "path": "in",
           "speed": 1,
           "sprout": false,
           "t": 2.6,
@@ -9236,8 +9236,8 @@ exports[`director (plan 5, 3.17) > pattern 30 future: a script of 10.0 s or less
           "who": [
             "c1",
           ],
-          "x0": 78,
-          "x1": 78,
+          "x0": 90,
+          "x1": 90,
         },
         {
           "do": "settle",
@@ -9337,7 +9337,7 @@ exports[`director (plan 5, 3.17) > pattern 30 past: a script of 10.0 s or less 1
           "do": "mix",
           "dur": 2,
           "fx": [],
-          "path": "through",
+          "path": "in",
           "speed": 1,
           "sprout": false,
           "t": 0.6,
@@ -9347,13 +9347,13 @@ exports[`director (plan 5, 3.17) > pattern 30 past: a script of 10.0 s or less 1
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 90,
         },
         {
           "do": "mix",
           "dur": 2,
           "fx": [],
-          "path": "through",
+          "path": "in",
           "speed": 1,
           "sprout": false,
           "t": 2.6,
@@ -9362,8 +9362,8 @@ exports[`director (plan 5, 3.17) > pattern 30 past: a script of 10.0 s or less 1
           "who": [
             "c1",
           ],
-          "x0": 78,
-          "x1": 78,
+          "x0": 90,
+          "x1": 90,
         },
         {
           "do": "settle",
@@ -9463,7 +9463,7 @@ exports[`director (plan 5, 3.17) > pattern 30 present: a script of 10.0 s or les
           "do": "mix",
           "dur": 2,
           "fx": [],
-          "path": "through",
+          "path": "in",
           "speed": 1,
           "sprout": false,
           "t": 0.6,
@@ -9473,13 +9473,13 @@ exports[`director (plan 5, 3.17) > pattern 30 present: a script of 10.0 s or les
             "c1",
           ],
           "x0": 28,
-          "x1": 78,
+          "x1": 90,
         },
         {
           "do": "mix",
           "dur": 2,
           "fx": [],
-          "path": "through",
+          "path": "in",
           "speed": 1,
           "sprout": false,
           "t": 2.6,
@@ -9488,8 +9488,8 @@ exports[`director (plan 5, 3.17) > pattern 30 present: a script of 10.0 s or les
           "who": [
             "c1",
           ],
-          "x0": 78,
-          "x1": 78,
+          "x0": 90,
+          "x1": 90,
         },
         {
           "do": "settle",

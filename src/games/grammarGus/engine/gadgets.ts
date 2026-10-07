@@ -1,5 +1,5 @@
 import type { HelpLevel, Tense } from './types';
-import { readLine, type BoardItem, type BoardLine } from './board';
+import { itemMark, readLine, type BoardItem, type BoardLine } from './board';
 import { adjRank, expectedForms } from './compose';
 import { analyze } from './analyze';
 import { articleFor, tenseOfForm, verbText } from './conjugate';
@@ -109,7 +109,7 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
       const pron = plural ? 'they' : pronounFor(mine.word);
       const gone = items.slice(start, mine.idx + 1).filter((i) => wordPosOf(i.kind) || i.kind === 'duplicator');
       const keep = items.slice(start, mine.idx + 1).filter((i) => !gone.includes(i));
-      const capUnder = gone.find((i) => i.bottom)?.bottom; // a capital letter press under "the" moves under the pronoun
+      const capUnder = gone.find((i) => i.bottom && itemMark(i.bottom) === 'cap')?.bottom; // a capital letter press under "the" moves under the pronoun
       items = [...items.slice(0, start), ...keep, { id: `${gone[gone.length - 1].id}-r`, kind: 'R', word: pron, ...(capUnder && capUnder.kind !== 'duplicator' ? { bottom: capUnder } : {}) }, ...items.slice(mine.idx + 1)];
       events.push({ itemId: tel.id, pop: `ZAP! ${pron}`, fixed: true, note: `The Pronoun Teleporter zapped "${mine.word}" into "${pron}", so it does not repeat.` });
     } else events.push({ itemId: tel.id, pop: 'zzz...', fixed: false, note: prev ? undefined : 'The Pronoun Teleporter waits for a noun that repeats from the sentence before. Hook two sentences with a Paragraph Link.' });

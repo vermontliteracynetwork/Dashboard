@@ -92,12 +92,15 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
 // Parts that snap on above or below a word machine (teacher 2026-10-07:
 // "pieces can be added to the top and bottom of the machine. think the
 // capitalization press, it should go under the article component").
-// Under a word: what changes the word itself (capital letter, more than
-// one). On top of a word: the punctuation that comes right after it.
+// Under a word: the capital letter, more than one, comparing sizes, and
+// the comma (it sits low on the line, like a written comma). On top of a
+// word: the apostrophe (it sits high, like a written apostrophe) and the
+// end punctuation. Teacher 2026-10-07: "commas should snap to bottom,
+// apostrophess should snap to top." A part reads the same in either slot.
 export type AttachSlot = 'top' | 'bottom';
 export const attachSlotOf = (k: Kind): AttachSlot | null => {
   const m = k === 'mood' ? 'stop' : markOf(k);
-  return m === 'cap' || m === 'plural' || m === 'poss' || m === 'size' ? 'bottom' : m === 'comma' || m === 'stop' || m === 'bang' || m === 'ask' ? 'top' : null;
+  return m === 'cap' || m === 'plural' || m === 'size' || m === 'comma' ? 'bottom' : m === 'poss' || m === 'stop' || m === 'bang' || m === 'ask' ? 'top' : null;
 };
 export const isTool = (k: Kind) => isContraption(k) && !!FUN_ROLE[k].tool;
 export const isFront = (k: Kind) => isContraption(k) && !!FUN_ROLE[k].front;

@@ -44,14 +44,43 @@ export const ADVERB_FX: Record<string, string[]> = {
   weirdly: ['zigzag'], silently: ['shh'], sneakily: ['shh'], gracefully: ['feather'],
 };
 
-// Prepositions: the path relative to the ground (plan 6.6).
-export type PathKind = 'over' | 'under' | 'through' | 'around' | 'across' | 'behind' | 'to' | 'none';
+// Prepositions: the path relative to the ground (plan 6.6). Teacher
+// 2026-10-07: "ensure the pixel tv is as accurate and literal as possible
+// based on the sentence. it should be especially literal in the
+// prepositions." So each where word has its own picture: on ends standing
+// on top, in ends inside, under ends underneath, over arcs above and lands
+// past, through goes in one side and out the other, around goes round the
+// back, beside and near stop next to it, to and at stop in front of it,
+// from starts at it and walks away, up rises and down comes down.
+export type PathKind = 'over' | 'on' | 'up' | 'down' | 'under' | 'in' | 'through' | 'around' | 'across' | 'past' | 'behind' | 'beside' | 'to' | 'from' | 'away' | 'none';
 export function pathFor(prep: string): PathKind {
-  if (['over', 'above', 'upon', 'on', 'up'].includes(prep)) return 'over';
-  if (['under', 'underneath', 'below', 'down'].includes(prep)) return 'under';
-  if (['through', 'into', 'in', 'within'].includes(prep)) return 'through';
-  if (prep === 'around') return 'around';
-  if (prep === 'behind') return 'behind';
-  if (['to', 'at', 'from'].includes(prep)) return 'to';
-  return 'across';
+  switch (prep) {
+    case 'over': case 'above': return 'over';
+    case 'on': case 'upon': case 'onto': return 'on';
+    case 'up': return 'up';
+    case 'down': return 'down';
+    case 'under': case 'underneath': case 'below': case 'beneath': return 'under';
+    case 'in': case 'into': case 'inside': case 'within': return 'in';
+    case 'through': return 'through';
+    case 'around': return 'around';
+    case 'past': return 'past';
+    case 'behind': return 'behind';
+    case 'beside': case 'near': case 'by': case 'with': return 'beside';
+    case 'to': case 'at': case 'toward': case 'towards': return 'to';
+    case 'from': return 'from';
+    case 'outside': case 'off': case 'out': return 'away';
+    default: return 'across'; // across, along
+  }
+}
+// Where the mover ends up, for each where word (x on the little stage).
+export function pathEnd(path: PathKind, tx: number, x0: number, right: number): number {
+  switch (path) {
+    case 'over': case 'through': case 'past': return tx + 26;
+    case 'around': return tx + 22;
+    case 'across': case 'from': case 'away': return Math.max(right, tx + 30);
+    case 'on': case 'under': case 'in': case 'behind': return tx;
+    case 'beside': return tx - 13;
+    case 'up': case 'down': return x0;
+    default: return tx - 14;
+  }
 }

@@ -18,10 +18,11 @@ import { canCompare, compareOf, pluralNounOf, possessiveOf } from './dictionary'
 // noun more than one, and the Pixel TV must be plugged on the very end.
 
 // top / bottom: a part snapped on above or below a word machine.
-export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm; top?: BoardItem; bottom?: BoardItem; locked?: boolean }
+// span: the Speech Bubble's cloud stretches from one word machine to another (teacher 2026-10-07).
+export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm; top?: BoardItem; bottom?: BoardItem; locked?: boolean; span?: { from: string; to: string } }
 // Every part on a line, snapped-on parts included.
 export const allParts = (items: BoardItem[]): BoardItem[] => items.flatMap((i) => [i, ...(i.top ? [i.top] : []), ...(i.bottom ? [i.bottom] : [])]);
-export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector' | 'order' | 'blueprint' | 'spark'; text: string; flaw?: string; done?: boolean; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }; connector?: string }
+export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector' | 'order' | 'blueprint' | 'spark' | 'read'; article?: string; question?: string; text: string; flaw?: string; done?: boolean; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }; connector?: string }
 
 export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA' | 'NO_SIZES' | 'NEED_COMMA';
 // The Time Tunnel's time word sets the time; otherwise the Clock does.
@@ -54,14 +55,17 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
     if (pos) {
       if (!it.word && it.kind !== 'crate') problems.push({ code: 'EMPTY_PART', itemId: it.id }); // an empty Mystery Crate is a surprise
       if (isFront(it.kind)) { if (mainStarted) problems.push({ code: 'NOT_FRONT', itemId: it.id }); } else mainStarted = true;
-      const under = it.bottom ? itemMark(it.bottom) : null;
-      if (pendingCap || capAfterShout || under === 'cap') marks.capitals.push(tokens.length);
+      // A part snapped on above or below works the same in either spot.
+      const att = [it.bottom, it.top].filter((a): a is BoardItem => !!a);
+      const on = (m: string) => att.find((a) => itemMark(a) === m);
+      const plu = on('plural'), pos2 = on('poss'), sz = on('size');
+      if (pendingCap || capAfterShout || on('cap')) marks.capitals.push(tokens.length);
       pendingCap = false; capAfterShout = false;
       let word = it.word;
       if (pos === 'N' && pendingCopy) { if (word) word = pluralNounOf(word); pendingCopy = null; }
-      if (under === 'plural') { if (pos === 'N') { if (word) word = pluralNounOf(word); } else problems.push({ code: 'COPY_NO_NOUN', itemId: it.bottom!.id }); }
-      if (under === 'poss') { if (pos === 'N') { if (word) word = possessiveOf(word); } else problems.push({ code: 'WRONG_HOST', itemId: it.bottom!.id }); }
-      if (under === 'size') { if (pos !== 'J') problems.push({ code: 'WRONG_HOST', itemId: it.bottom!.id }); else if (word && !canCompare(word)) problems.push({ code: 'NO_SIZES', itemId: it.bottom!.id }); else if (word) word = compareOf(word, it.bottom!.word === 'er' ? 'er' : 'est'); }
+      if (plu) { if (pos === 'N') { if (word) word = pluralNounOf(word); } else problems.push({ code: 'COPY_NO_NOUN', itemId: plu.id }); }
+      if (pos2) { if (pos === 'N') { if (word) word = possessiveOf(word); } else problems.push({ code: 'WRONG_HOST', itemId: pos2.id }); }
+      if (sz) { if (pos !== 'J') problems.push({ code: 'WRONG_HOST', itemId: sz.id }); else if (word && !canCompare(word)) problems.push({ code: 'NO_SIZES', itemId: sz.id }); else if (word) word = compareOf(word, sz.word === 'er' ? 'er' : 'est'); }
       if (it.kind === 'crusher' && word) word = pluralNounOf(word); // the Plural Crusher's noun is always more than one
       tokens.push({ pos, word, ...(level !== 'full' ? { form: it.form ?? 'base' } : {}) });
       tokenIds.push(it.id);
@@ -69,15 +73,18 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
       // the Slingshot and Time Tunnel bring their comma.
       if (it.kind === 'trapdoor') { marks.shoutMark = true; capAfterShout = true; }
       else if (isFront(it.kind) && it.word) marks.commas.push(tokens.length - 1);
-      // Punctuation snapped on top: it comes right after this word.
-      const over = it.top ? itemMark(it.top) : null;
-      if (over === 'comma') {
-        marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: it.top!.id });
-        if (it.top!.kind === 'bridge') { const nx = items.slice(i + 1).find((x) => wordPosOf(x.kind)); if (!nx || wordPosOf(nx.kind) !== 'C') problems.push({ code: 'BRIDGE_UP', itemId: it.top!.id }); }
-      } else if (over === 'stop' || over === 'bang' || over === 'ask') {
+      // Punctuation snapped on: it comes right after this word.
+      const cm = on('comma');
+      if (cm) {
+        marks.commas.push(tokens.length - 1); commaAt.push({ tok: tokens.length - 1, id: cm.id });
+        if (cm.kind === 'bridge') { const nx = items.slice(i + 1).find((x) => wordPosOf(x.kind)); if (!nx || wordPosOf(nx.kind) !== 'C') problems.push({ code: 'BRIDGE_UP', itemId: cm.id }); }
+      }
+      const em = att.find((a) => ['stop', 'bang', 'ask'].includes(itemMark(a) ?? ''));
+      if (em) {
+        const over = itemMark(em);
         if (i === lastWord) { marks.endMark = over === 'bang' ? '!' : '.'; question = over === 'ask'; }
         else if (over === 'bang' && pos === 'I') { marks.shoutMark = true; capAfterShout = true; }
-        else problems.push({ code: 'END_NOT_LAST', itemId: it.top!.id });
+        else problems.push({ code: 'END_NOT_LAST', itemId: em.id });
       }
     } else if (mark === 'cap') pendingCap = true;
     else if (mark === 'plural') pendingCopy = it.id;
@@ -130,8 +137,34 @@ export function lineText(line: BoardLine, rd: LineRead, plain = false): string {
   let text = (rd.question && crane ? questionOf(rd.draft) : null) ?? compose(rd.draft, plain).text;
   if (rd.question && !crane) text = text.replace(/[.!]$/, '?');
   const bubble = line.items.find((i) => i.kind === 'bubble');
-  if (bubble?.word && /[.!?]$/.test(text)) text = quoteOf(text, bubble.word, rd.question);
+  if (bubble?.word && /[.!?]$/.test(text)) {
+    // The cloud may cover only some of the words: only those are spoken.
+    const ids = bubbleSpan(line, bubble);
+    const words = rd.question && crane ? null : compose(rd.draft, plain).words;
+    const inside = words ? words.map((w, k) => (ids.includes(rd.tokenIds[w.index]) ? k : -1)).filter((k) => k >= 0) : [];
+    if (!words || !inside.length || inside.length === words.length) text = quoteOf(text, bubble.word, rd.question);
+    else {
+      const m = text.match(/[.!?]$/)?.[0] ?? '.';
+      const parts = words.map((w) => w.text.replace(/[.!?]$/, ''));
+      const a = inside[0], b = inside[inside.length - 1];
+      const q = parts.slice(a, b + 1).join(' ').replace(/,$/, '');
+      const quote = q.charAt(0).toUpperCase() + q.slice(1);
+      const before = parts.slice(0, a).join(' ').replace(/,$/, ''); const after = parts.slice(b + 1).join(' ');
+      const verb = rd.question || m === '?' ? 'asked' : 'said';
+      text = a === 0
+        ? `"${quote}${m === '.' ? ',' : m}" ${verb} ${bubble.word}${after ? ` ${after}` : ''}.`
+        : `${before.charAt(0).toUpperCase() + before.slice(1)} ${verb}, "${quote}${b === words.length - 1 ? m : ''}"${b < words.length - 1 ? ` ${after}${m}` : ''}`;
+    }
+  }
   return text;
+}
+// The word machines inside the Speech Bubble's cloud, in order (all of them until it is stretched).
+export function bubbleSpan(line: BoardLine, bubble: BoardItem): string[] {
+  const words = line.items.filter((i) => wordPosOf(i.kind));
+  let a = bubble.span ? words.findIndex((w) => w.id === bubble.span!.from) : 0;
+  let b = bubble.span ? words.findIndex((w) => w.id === bubble.span!.to) : words.length - 1;
+  if (a < 0) a = 0; if (b < 0 || b < a) b = words.length - 1;
+  return words.slice(a, b + 1).map((w) => w.id);
 }
 
 // Where words (prepositions) with no noun landing after them.
@@ -156,10 +189,10 @@ export const FINISH_LINES: Record<FinishProblem, { joke: string; fix: string }> 
   NEED_TV: { joke: 'Lovely sentence. But where will the movie play?', fix: 'Plug a Pixel TV onto the very end.' },
   END_NOT_LAST: { joke: 'End punctuation in the middle? The sentence would trip over it.', fix: 'Move the punctuation to the end of the sentence.' },
   TV_NOT_LAST: { joke: 'The TV is stuck in the middle of the pipes.', fix: 'Move the Pixel TV after the words and punctuation.' },
-  NEED_COMMA: { joke: 'The marble zipped right past a spot where it needed to pause.', fix: 'Snap a comma on top of the glowing word.' },
+  NEED_COMMA: { joke: 'The marble zipped right past a spot where it needed to pause.', fix: 'Snap a comma under the glowing word.' },
   COMMA_PLACE: { joke: 'A comma with no word on one side? That is a pause for nothing.', fix: 'A comma goes right after a word, with more words after it.' },
   BRIDGE_UP: { joke: 'The drawbridge is stuck up. It only comes down right before a joining word.', fix: 'Put the Comma Drawbridge right before and, but or or.' },
-  WRONG_HOST: { joke: 'That part is snapped onto the wrong kind of word. It looks very confused.', fix: 'The Tag Gun goes under a noun. The Size-Up Inflator goes under a describing word.' },
+  WRONG_HOST: { joke: 'That part is snapped onto the wrong kind of word. It looks very confused.', fix: 'The Tag Gun goes on top of a noun. The Size-Up Inflator goes under a describing word.' },
   NEED_CRANE: { joke: 'A question mark on a telling sentence? Gus is very puzzled?', fix: 'Snap on a Question Crane to turn it into a question, or use a period.' },
   NEED_ASK: { joke: 'The crane lifted a question, but it has no question mark to land on.', fix: 'End a question with a Question Mark.' },
   CRANE_ONE_IDEA: { joke: 'The crane can only lift one idea at a time. Two is too heavy!', fix: 'Use the Question Crane on a sentence with one who and one action, with no opener or shout at the front.' },

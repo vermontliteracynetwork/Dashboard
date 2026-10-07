@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../../store/store';
 import { useLockBodyScroll } from '../../../lib/useLockBodyScroll';
 import type { Pos, Tense, VerbForm, Draft, Violation } from '../engine/types';
@@ -10,7 +10,7 @@ import { reviewSentence, type Review } from '../engine/review';
 import { shortAnswers } from '../engine/question';
 import { verbText } from '../engine/conjugate';
 import { predictWords } from '../engine/phonetic';
-import { readLine, readingOrder, paragraphs, tenseOf, deadEnds, lineText, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
+import { bubbleSpan, readLine, readingOrder, paragraphs, tenseOf, deadEnds, lineText, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
 import { applyGadgets, retimeItems } from '../engine/gadgets';
 import { COMBOS, combosOn } from '../engine/combos';
 import { ADVERB_SPEED } from '../director/clips';
@@ -31,7 +31,9 @@ import { CHEERS, GATE_LINES, GREETINGS, RUBRIC_LINES, lineFor } from '../data/gu
 import { useGusSettings, levelFor } from '../settings';
 import GusGuide from './GusGuide';
 import PixelCinema from './PixelCinema';
-import { gusSound, setGusMuted } from './sound';
+import { gusSound, setGusLevel, setGusMuted } from './sound';
+import ImmersiveReader from '../reading/ImmersiveReader';
+import { bankFor, registerArticleWords, starterItems, useLibrary, type GusArticle } from '../reading/library';
 import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
 import MachinePart from './board/MachinePart';
 import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, EXAMPLES, type Kind, type Job } from './board/parts';
@@ -79,7 +81,7 @@ const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProb
   { id: 'order', label: 'Parts snapped in the right order', hint: 'Front parts at the front, punctuation at the end, a comma right after a word.', codes: ['NOT_FRONT', 'BRIDGE_UP', 'COMMA_PLACE', 'COPY_NO_NOUN', 'DEAD_END', 'TV_NOT_LAST', 'END_NOT_LAST'] },
   { id: 'cap', label: 'Capital letter under the first word', hint: 'Snap a Capital Letter Press under the first word.', codes: ['NEED_CAP'], finish: true },
   { id: 'end', label: 'Punctuation at the end', hint: 'Snap a period or exclamation point on the end, or on top of the last word.', codes: ['NEED_END'], finish: true },
-  { id: 'commas', label: 'Commas where the machine pauses', hint: 'Some sentences need a pause. Snap a comma on top of the word right before the pause.', codes: ['NEED_COMMA'], finish: true },
+  { id: 'commas', label: 'Commas where the machine pauses', hint: 'Some sentences need a pause. Snap a comma under the word right before the pause.', codes: ['NEED_COMMA'], finish: true },
   { id: 'tv', label: 'Pixel TV on the end', hint: 'Plug a Pixel TV on the very end.', codes: ['NEED_TV'], finish: true },
 ];
 type Tested = { sig: string; rows: { id: string; label: string; hint: string; state: 'pass' | 'fix' | 'auto' }[]; review: Review | null };
@@ -120,9 +122,6 @@ const hasBottom = (l: BoardLine) => l.items.some((i) => i.bottom);
 const lineBottom = (l: BoardLine) => l.y + ITEM_H + (hasBottom(l) ? ATT_H + 10 : 0) + 80;
 const snap = (v: number) => Math.round(v / GRID) * GRID;
 const MAGNET = 140;
-// Each part's sound word when the marble rolls through it. Word machines
-// pop their own word.
-const POPS: Partial<Record<Kind, string>> = { lever: 'VROOOM!', cap: 'CLANG!', stop: 'STAMP!', bang: 'TWEET!', ask: 'HMMM?', comma: 'click', tv: 'BZZT!', clock: 'TICK-TOCK', link: 'CLINK!' };
 const FUN_SOUND: Partial<Record<Kind, () => void>> = { horn: gusSound.honk, spring: gusSound.boing, fan: gusSound.whoosh, ramp: gusSound.whee, conveyor: gusSound.clank, bucket: gusSound.splosh, pulley: gusSound.heave, bell: gusSound.ding, dominoes: gusSound.clack, duplicator: gusSound.copy,
   trapdoor: gusSound.popper, mood: gusSound.steam, tunnel: gusSound.warp, slingshot: gusSound.twang, dial: gusSound.tick, switch: gusSound.clank, funnel: gusSound.glug, bridge: gusSound.creak,
   gears: gusSound.whir, sniffer: gusSound.achoo, sorter: gusSound.clack, teleporter: gusSound.zap, detector: gusSound.ding, flag: gusSound.gun,
@@ -132,13 +131,20 @@ const FUN_SOUND: Partial<Record<Kind, () => void>> = { horn: gusSound.honk, spri
   crate: gusSound.popper, megaphone: gusSound.honk, toaster: gusSound.ding, cannon: gusSound.gun, slots: gusSound.tick };
 // How fast the marble rolls: the how words on the machine set it (How-Dial).
 const speedOf = (line: BoardLine) => Math.max(0.45, Math.min(2, line.items.filter((i) => wordPosOf(i.kind) === 'D' && i.word).reduce((s, i) => s * (ADVERB_SPEED[i.word!.toLowerCase()] ?? 1), 1)));
-const popFor = (it: BoardItem) => (isContraption(it.kind) ? (needsWord(it.kind) && it.word ? `${FUN_ROLE[it.kind].pop} ${it.word}` : FUN_ROLE[it.kind].pop) : isWordKind(it.kind) ? (it.word ?? '?') : POPS[it.kind] ?? '');
 
 // Tap-to-hear (Claudia round 1): never auto-plays.
 let speechOff = false;
-function speak(text: string) {
-  if (speechOff) return;
-  try { const sy = window.speechSynthesis; if (!sy) return; sy.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.9; sy.speak(u); } catch { /* no speech on this device */ }
+// A British voice where the device has one (Daniel, Arthur), like the reader's narrator.
+const narrator = () => { const vs = window.speechSynthesis?.getVoices() ?? []; return vs.find((v) => /en[-_]gb/i.test(v.lang) && /daniel|arthur|oliver|george|uk english male/i.test(v.name)) ?? vs.find((v) => /en[-_]gb/i.test(v.lang)) ?? null; };
+function speak(text: string, onEnd?: () => void) {
+  if (speechOff) { onEnd?.(); return; }
+  try {
+    const sy = window.speechSynthesis; if (!sy) { onEnd?.(); return; }
+    sy.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.9;
+    const v = narrator(); if (v) { u.voice = v; u.lang = v.lang; }
+    if (onEnd) { u.onend = onEnd; u.onerror = onEnd; }
+    sy.speak(u);
+  } catch { onEnd?.(); }
 }
 
 const blankLine = (x = 60, y = 80): BoardLine => ({ id: uid(), x, y, items: [{ id: uid(), kind: 'blank', word: null }] });
@@ -215,6 +221,7 @@ type Dict = { q: string; pos: DictPos; result: TypedCheck | 'checking' } | null;
 export default function GusWorkboard({ host = false }: { host?: boolean } = {}) {
   useLockBodyScroll();
   const navigate = useNavigate();
+  const location = useLocation();
   const signedIn = useStore((s) => s.currentStudentId);
   const studentId = host ? null : signedIn;
   const row = useStore((s) => (studentId ? s.styleLooks.find((r) => r.ownerId === gusOwner(studentId)) : undefined));
@@ -274,7 +281,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [snapped, setSnapped] = useState<string | null>(null); // a part or machine that just snapped in (bounces)
   const [party, setParty] = useState<string | null>(null);
   const [retimed, setRetimed] = useState<string[]>([]); // action words the Clock just changed (they flip)
-  const [gadgetPops, setGadgetPops] = useState<Record<string, string>>({});
+  const [, setGadgetPops] = useState<Record<string, string>>({});
   const reelY = useRef(0);
   const [sessionCombos, setSessionCombos] = useState<string[]>([]);
   const [comboShow, setComboShow] = useState<{ lineId: string; names: string[]; key: number } | null>(null); // confetti over a 3-star machine
@@ -315,6 +322,10 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [joinCode, setJoinCode] = useState('');
   const [joinMsg, setJoinMsg] = useState('');
   const guestLocked = live?.role === 'guest' && live.locked;
+  // Read and Respond (teacher 2026-10-07): an article in the immersive
+  // reader, then the question across the top and the starter in a machine.
+  const library = useLibrary();
+  const [reading, setReading] = useState<GusArticle | null>(null);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const linesRef = useRef(lines); linesRef.current = lines;
@@ -355,9 +366,12 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       let near: { t: Target; d: number } | null = null;
       for (const l of linesRef.current) for (const s of itemSlots(l, ghostsRef.current[l.id])) {
         if (!s.item || !needsWord(s.item.kind)) continue;
-        const sy = slot === 'top' ? l.y - 20 : l.y + ITEM_H + 20;
+        // A comma under a word that already has its capital letter there goes on top instead.
+        const other: AttachSlot = slot === 'top' ? 'bottom' : 'top';
+        const sl = markOf(k!) === 'comma' && s.item[slot] && !s.item[other] ? other : slot;
+        const sy = sl === 'top' ? l.y - 20 : l.y + ITEM_H + 20;
         const d = Math.hypot(cx - (s.x + s.w / 2), cy - sy);
-        if (d < 110 && (!near || d < near.d)) near = { t: { lineId: l.id, index: 0, attach: { itemId: s.item.id, slot } }, d };
+        if (d < 110 && (!near || d < near.d)) near = { t: { lineId: l.id, index: 0, attach: { itemId: s.item.id, slot: sl } }, d };
       }
       if (near) return near.t;
     }
@@ -443,9 +457,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       }
       if (markOf(k) === 'comma') {
         const c = target.items.findIndex((i) => wordPosOf(i.kind) === 'C');
-        const host = c > 0 ? [...target.items.slice(0, c)].reverse().find((i) => needsWord(i.kind) && !i.top) : undefined;
-        if (host) { attachTo(target.id, host.id, 'top', item); afterAdd(target.id, item); return; }
-        timers.current.push(window.setTimeout(() => say('A comma goes right after a word, before the pause. Drag it on top of that word.', 'Comma'), 60));
+        const host = c > 0 ? [...target.items.slice(0, c)].reverse().find((i) => needsWord(i.kind) && (!i.bottom || !i.top)) : undefined;
+        if (host) { attachTo(target.id, host.id, host.bottom ? 'top' : 'bottom', item); afterAdd(target.id, item); return; }
+        timers.current.push(window.setTimeout(() => say('A comma goes right after a word, before the pause. Drag it under that word.', 'Comma'), 60));
       }
       const blank = target.items.findIndex((i) => i.kind === 'blank');
       const idx = blank >= 0 && needsWord(k) ? blank : smartIndex(target, k);
@@ -638,7 +652,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const r = boardRef.current?.getBoundingClientRect(); if (!r) return;
     const ls = linesRef.current;
     if (!ls.length) { setView({ x: 24, y: 24, z: 1 }); return; }
-    const minX = Math.min(...ls.map((l) => l.x)), minY = Math.min(...ls.map((l) => l.y - (hasTop(l) ? ATT_H : 0))) - 30;
+    const minX = Math.min(...ls.map((l) => l.x)), minY = Math.min(...ls.map((l) => l.y - (hasTop(l) ? ATT_H : 0) - (l.items.some((i) => i.kind === 'bubble' && i.word) ? 90 : 0))) - 30;
     const maxX = Math.max(...ls.map((l) => lineRight(l, ghostsRef.current[l.id]))), maxY = Math.max(...ls.map(lineBottom));
     const z = Math.max(0.6, Math.min(1.25, Math.min((r.width - 90) / (maxX - minX), (r.height - 90) / (maxY - minY))));
     setView({ z, x: 30 - minX * z, y: 30 - minY * z });
@@ -693,7 +707,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       if (h.glow) { setGlowKind(h.glow); setDrawerOpen(true); setFolds((f) => f.filter((j) => j !== kindInfo(h.glow!).job)); }
     }
     setPulse([...h.pulse, ...h.commaOn]);
-    // Make room so a comma ghost on top of a word is not cut off at the top.
+    // Make room so a hint ghost above a word is not cut off at the top.
     const hl = linesRef.current.find((l) => l.id === lineId);
     if (hl && h.commaOn.length && level !== 'challenge') { const v = viewRef.current; const top = (hl.y - ATT_H - 14) * v.z + v.y; if (top < 8) setView({ ...v, y: v.y + 8 - top }); }
     gusSound.ding();
@@ -784,6 +798,11 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     record(review);
     setPulse(gFlags);
     say(gadgetNotes || 'Pressure building... The marble is rolling. Stand back!', 'Running');
+    // Teacher 2026-10-07: no sound words over the parts; the machine reads
+    // the sentence out loud with its noises soft in the background.
+    setGusLevel(0.35);
+    speak(withConnector(line, lineText(line, rd)), () => setGusLevel(1));
+    timers.current.push(window.setTimeout(() => setGusLevel(1), 9000));
     if (!calm) { gusSound.rumble(); gusSound.whir(); }
     const sp = speedOf(line);
     const step = calm ? 120 : Math.round(320 / sp);
@@ -797,21 +816,21 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       const stars = r.rubric!.stars;
       // An Order is done only when the scene matches; a hint names one difference.
       const orderMiss = line.job?.kind === 'order' && line.job.key ? compareOrder(line.job.key, r) : [];
-      const jobDone = stars === 3 && !!line.job && !line.job.done && !orderMiss.length;
+      const jobDone = (line.job?.kind === 'read' ? stars >= 1 : stars === 3) && !!line.job && !line.job.done && !orderMiss.length;
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars, silly: r.rubric!.silly, ...(jobDone ? { job: { ...l.job!, done: true } } : {}) } : l)));
       if (orderMiss.length && stars === 3) timers.current.push(window.setTimeout(() => say(`Lovely sentence, but not quite my order. ${orderMiss[0]}`, 'Order'), 2600));
       const jobKey = line.job ? (line.job.id ?? line.id) : '';
       const finishedJob = jobDone && !paidJobs.current.has(jobKey) ? line.job! : null;
       if (finishedJob) paidJobs.current.add(jobKey);
       if (finishedJob) {
-        const sticker = finishedJob.kind === 'delivery' ? '📦' : finishedJob.kind === 'inspector' ? '🔍' : finishedJob.kind === 'order' ? '📜' : finishedJob.kind === 'spark' ? '⚡' : '📐';
+        const sticker = finishedJob.kind === 'delivery' ? '📦' : finishedJob.kind === 'inspector' ? '🔍' : finishedJob.kind === 'order' ? '📜' : finishedJob.kind === 'spark' ? '⚡' : finishedJob.kind === 'read' ? '📖' : '📐';
         const group = finishedJob.group;
         const groupDone = finishedJob.kind !== 'blueprint' || linesRef.current.filter((l) => l.job?.group === group).every((l) => l.id === line.id || l.job?.done);
         if (groupDone) {
-          earn(finishedJob.kind === 'blueprint' ? 12 : 8);
+          earn(finishedJob.kind === 'blueprint' ? 12 : 8, finishedJob.kind === 'read' ? { kind: 'read', text: `${finishedJob.question ?? ''} ${r.composed.text}`.trim(), stars } : undefined);
           if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
         } else earn(2);
-        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : finishedJob.kind === 'spark' ? `The dud sparks to life! It had no ${finishedJob.flaw === 'who' ? 'who' : 'action'}, and you added it.` : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
+        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : finishedJob.kind === 'read' ? `You answered the question! "${r.composed.text}" It is saved in your Journal.` : finishedJob.kind === 'spark' ? `The dud sparks to life! It had no ${finishedJob.flaw === 'who' ? 'who' : 'action'}, and you added it.` : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
         timers.current.push(window.setTimeout(() => say(`${groupDone ? 'Job done! ' : ''}${msg}${groupDone ? ` Have a sticker: ${sticker}` : ''}`, '3 stars'), 2600));
       }
       if (r.script) {
@@ -975,8 +994,31 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       : kind === 'spark' ? 'Spark Check! This sentence is a dud: a sentence needs a who and an action. Find what is missing and add it.'
       : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : kind === 'spark' ? 'Spark Check' : 'Blueprint');
   };
+  const startRespond = (a: GusArticle) => {
+    setReading(null); setJobsOpen(false);
+    registerArticleWords(a);
+    const open = linesRef.current.find((l) => l.job?.kind === 'read' && l.job.article === a.id && !l.job.done);
+    if (open) { setSelLine(open.id); say(`Your answer machine is waiting. ${a.question} Finish "${a.starter}", then pull the lever.`, '📖 Read and Respond'); return; }
+    remember();
+    const ls = linesRef.current.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank'));
+    const y = ls.length ? snap(Math.max(...ls.map(lineBottom)) + ATT_H + 20) : 100;
+    const line: BoardLine = { id: uid(), x: 60, y, items: starterItems(a, uid), job: { kind: 'read', article: a.id, question: a.question, text: a.starter } };
+    setLines((cur) => [...cur.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank')), line]);
+    setSelLine(line.id); setDrawerOpen(true);
+    const top = y - 70; setView((v) => ({ ...v, x: 30 - 20 * v.z, y: 20 - top * v.z }));
+    gusSound.horn();
+    say(`Here is the question: ${a.question} Your machine starts with "${a.starter}". Add word machines to finish the sentence. The words from the article are at the top of each word list.`, '📖 Read and Respond');
+  };
+  // Opened from the Library: read an article, or go straight to answering it.
+  useEffect(() => {
+    const st = location.state as { read?: string; respond?: string } | null;
+    const a = library.find((x) => x.id === (st?.respond ?? st?.read));
+    if (!a) return;
+    const t = window.setTimeout(() => (st?.respond ? startRespond(a) : setReading(a)), 50);
+    return () => window.clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Remix tools (moved from the classic machine).
-  const [remixFor, setRemixFor] = useState<string | null>(null);
+  const [, setRemixFor] = useState<string | null>(null);
   const [mini, setMini] = useState<'homo' | 'trans' | null>(null);
   const doFlip = (line: BoardLine) => {
     const res = flipIdeas(line.items, uid);
@@ -1008,7 +1050,10 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     if (pos === 'C') return ['and', 'but', 'or', 'so', 'yet'];
     if (pos === 'R') return [...POOLS.R, 'me', 'him', 'her', 'us', 'them']; // object pronouns too (Turnstile)
     const extra = pos === 'N' || pos === 'V' || pos === 'J' || pos === 'D' || pos === 'I' ? customFor(pos) : [];
-    const all = [...new Set([...POOLS[pos], ...packWords(pos, settings.packs), ...extra])];
+    // Read and Respond: the words a good answer needs come first.
+    const artId = menuLine?.job?.kind === 'read' ? menuLine.job.article : focusLine?.job?.kind === 'read' ? focusLine.job.article : undefined;
+    const first = bankFor(library.find((a) => a.id === artId), pos);
+    const all = [...new Set([...first, ...POOLS[pos], ...packWords(pos, settings.packs), ...extra])];
     return pos === 'V' && settings.gentleOnly ? all.filter((w) => verbByBase.get(w)?.gentle !== false) : all;
   };
   // Typing a real word that is not in the bank: check Gus's dictionary.
@@ -1074,6 +1119,30 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     }
     return list;
   }, [sortBy]);
+  // ---- the Speech Bubble's cloud --------------------------------------------------
+  // Teacher 2026-10-07: "make sure the speech bubble is a streatching thing so
+  // the student can move it to start at one spot and end at another with a
+  // cloud overhead of the words, ensure the speech tag shows as text as well."
+  const startSpanDrag = (e: React.PointerEvent, lineId: string, bubbleId: string, side: 'from' | 'to') => {
+    e.stopPropagation(); e.preventDefault();
+    if (liveRef.current?.role === 'guest' && liveRef.current.locked) return;
+    remember();
+    const move = (ev: PointerEvent) => {
+      const p = toBoard(ev.clientX, ev.clientY);
+      const l = linesRef.current.find((x) => x.id === lineId); const b = l?.items.find((i) => i.id === bubbleId); if (!l || !b) return;
+      const words = itemSlots(l, ghostsRef.current[l.id]).filter((sl) => sl.item && wordPosOf(sl.item.kind));
+      const cur = bubbleSpan(l, b);
+      const fi = words.findIndex((w) => w.item!.id === cur[0]); const ti = words.findIndex((w) => w.item!.id === cur[cur.length - 1]);
+      let best = side === 'from' ? fi : ti; let bd = Infinity;
+      words.forEach((w, k) => { const edge = side === 'from' ? w.x : w.x + w.w; const d = Math.abs(edge - p.x); if (d < bd && (side === 'from' ? k <= ti : k >= fi)) { bd = d; best = k; } });
+      const next = side === 'from' ? { from: words[best].item!.id, to: words[ti].item!.id } : { from: words[fi].item!.id, to: words[best].item!.id };
+      if (b.span?.from === next.from && b.span?.to === next.to) return;
+      gusSound.tick();
+      editLine(lineId, (x) => ({ ...x, items: x.items.map((i) => (i.id === bubbleId ? { ...i, span: next } : i)) }), true);
+    };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); gusSound.snap(); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  };
   // ---- live share -----------------------------------------------------------
   const takeRemote = (ls: BoardLine[]) => { remoteSig.current = JSON.stringify(ls); history.current = []; setCanUndo(false); setMenu(null); setLines(ls); };
   const hostSend = (ls = linesRef.current, locked = liveRef.current?.locked ?? true) => room.current?.send('state', { lines: ls, locked, rev: ++liveRev.current });
@@ -1233,6 +1302,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             <button type="button" className={`gus-btn${jobsOpen ? ' on' : ''}`} onClick={() => { setJobsOpen((o) => !o); setTopMenu(false); setShelfOpen(false); }} aria-expanded={jobsOpen}>🧰 Jobs</button>
             {jobsOpen && (
               <div className="gwb-top-menu" role="menu">
+                <div className="gwb-menu-sub">📖 Read and Respond</div>
+                {library.map((a) => <button key={a.id} type="button" role="menuitem" onClick={() => { setJobsOpen(false); setReading(a); }}>📰 {a.title}<small>Read it, then answer: {a.question}</small></button>)}
+                <div className="gwb-menu-sub">🧰 Gus's Jobs</div>
                 <button type="button" role="menuitem" onClick={() => startJob('delivery')}>📦 Mixed-up Delivery<small>Put the word machines in order</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Punctuation Inspector<small>Find the capital letter or punctuation mistake</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('order')}>📜 Gus's Order<small>Build any sentence that makes the scene on the card</small></button>
@@ -1300,6 +1372,13 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 <button type="button" role="menuitem" onClick={() => { setReadAloud((v) => !v); setTopMenu(false); }}>🔈 {readAloud ? 'Reading words out loud' : 'Read words out loud'}<small>Each word you pick is read to you</small></button>
                 <button type="button" role="menuitem" onClick={() => { setSpaced((v) => !v); setTopMenu(false); }}>🔤 {spaced ? 'Wider spacing is on' : 'Wider letter spacing'}</button>
                 {live?.role !== 'guest' && <button type="button" role="menuitem" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear all</button>}
+                {focusLine && focusLine.items.some((i) => needsWord(i.kind) && i.word) && live?.role !== 'guest' && <>
+                  <div className="gwb-menu-sub">🎛 Remix the selected machine</div>
+                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'longer'); }}>➕ Make it longer</button>
+                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'shorter'); }}>➖ Make it shorter</button>
+                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'silly'); }}>🤪 Silly swap</button>
+                  <button type="button" role="menuitem" onClick={() => { setTopMenu(false); doRemix(focusLine, 'pronoun'); }}>🔁 Who → pronoun</button>
+                </>}
                 <button type="button" role="menuitem" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine</button>
               </div>
             )}
@@ -1308,6 +1387,18 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       </header>
 
       <main className="gwb-main">
+        <div className="gwb-boardcol">
+        {(() => {
+          const ql = focusLine?.job?.kind === 'read' ? focusLine : lines.find((l) => l.job?.kind === 'read' && !l.job.done);
+          if (!ql?.job) return null;
+          const art = library.find((a) => a.id === ql.job!.article);
+          return <div className={`gwb-qbar${ql.job.done ? ' done' : ''}`} role="note" aria-label={`Question: ${ql.job.question}`}>
+            <span aria-hidden style={{ fontSize: '1.6rem' }}>{ql.job.done ? '✅' : '❓'}</span>
+            <strong>{ql.job.question}</strong>
+            <button type="button" className="gus-btn" onClick={() => speak(ql.job!.question ?? '')}>🔈 Hear it</button>
+            {art && <button type="button" className="gus-btn" onClick={() => setReading(art)}>📖 Read it again</button>}
+          </div>;
+        })()}
         <section ref={boardRef} className="gwb-board" onPointerDown={onBoardDown} aria-label="Workboard">
           <div className="gwb-layer" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, ['--z' as string]: view.z }}>
             {/* Paragraph chains: a Paragraph Link hangs a chain down to the next machine. */}
@@ -1358,6 +1449,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                         : line.job.kind === 'delivery' ? '📦 Mixed-up Delivery: put the word machines in order.'
                         : line.job.kind === 'inspector' ? `🔍 Punctuation Inspector: ${FLAW_HINTS[line.job.flaw as Flaw]}`
                         : line.job.kind === 'spark' ? '⚡ Spark Check: this sentence is a dud. Is it missing a WHO or an ACTION?'
+                        : line.job.kind === 'read' ? `📖 ${line.job.done ? 'Answered! ' : ''}${line.job.question ?? ''}`
                         : line.job.kind === 'order' && line.job.card ? <>📜 Order: {line.job.card.who.emoji} {line.job.card.who.words} · {line.job.card.did}{line.job.card.obj ? ` · ${line.job.card.obj.emoji} ${line.job.card.obj.words}` : ''}{line.job.card.where ? ` · ${line.job.card.where.prep} ${line.job.card.where.emoji} ${line.job.card.where.words}` : ''}{line.job.card.how ? ` · ${line.job.card.how}` : ''} · ⏰ {line.job.card.time}</>
                         : `${bpInfo(line.job.blueprint)?.icon ?? '📐'} ${bpInfo(line.job.blueprint)?.name ?? 'Blueprint'} ${line.job.part} of ${line.job.of}: ${line.job.label}${line.job.text ? `  "${line.job.text}"` : ''}`}
                     </div>
@@ -1389,7 +1481,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                         }}>
                         <MachinePart kind={item.kind} word={plateWord(item)} empty={!item.word && needsWord(item.kind)} status={statusOf(item)} />
                         {isFiring && firing!.idx >= idx && !calm && <span className="gwb-pipe-steam" aria-hidden><i /><i /><i /></span>}
-                        {isFiring && firing!.idx === idx && (gadgetPops[item.id] ?? popFor(item)) && <span className={`gwb-pop${isContraption(item.kind) ? ' fun' : ''}`} aria-hidden>{gadgetPops[item.id] ?? popFor(item)}</span>}
                         {item.kind === 'lever' && <>
                           <button type="button" className={`gwb-lever${isFiring ? ' pulled' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => run(line)} aria-label="Pull the Start Lever to run this machine">
                             <span className="gwb-lever-arm" />
@@ -1451,15 +1542,32 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                           onPointerDown={(e) => onAttachDown(e, line, host, side)} role="button" tabIndex={0} aria-label={`${kindInfo(a.kind).name}, snapped ${side === 'top' ? 'on top of' : 'under'} ${host.word ?? 'this word'}. Drag it off to move it.`}
                           onKeyDown={(e) => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); editLine(line.id, (l) => ({ ...l, items: l.items.map((i) => (i.id === host.id ? { ...i, [side]: undefined } : i)) })); gusSound.puff(); say('Taken off. Changed your mind? Tap Undo.', 'Removed'); } }}>
                           <MachinePart kind={a.kind} word={a.word} scale={ATT} />
-                          {isFiring && firing!.idx === hIdx && <span className="gwb-pop fun" aria-hidden>{isContraption(a.kind) ? FUN_ROLE[a.kind].pop : POPS[a.kind] ?? ''}</span>}
                         </div>;
                       }
                       if (want === side) return <span key={`sock-${host.id}-${side}`} className={`gwb-socket ${side}${tgt?.itemId === host.id && tgt.slot === side ? ' hot' : ''}`} style={{ left: s.x + s.w / 2 - 34, top: side === 'top' ? line.y - 62 : line.y + ITEM_H - 6 }} aria-hidden />;
                       if (side === 'bottom' && first && g.includes('NEED_CAP')) return <div key={`ghost-cap-${host.id}`} className="gwb-ghost gwb-ghost-under hint" style={{ left: s.x + s.w / 2 - 50, top: line.y + ITEM_H - 10, width: 100, height: 76 }} role="img" aria-label="Hint: a Capital Letter Press snaps under the first word. Drag one on from the parts menu."><span>Aa</span><small>Capital letter?</small></div>;
-                      if (side === 'top' && needComma.includes(host.id)) return <div key={`ghost-comma-${host.id}`} className="gwb-ghost gwb-ghost-over hint" style={{ left: s.x + s.w / 2 - 50, top: line.y - ATT_H - 4, width: 100, height: ATT_H + 4 }} role="img" aria-label={`Hint: a comma snaps on top of ${host.word ?? 'this word'}. Drag one on from the parts menu.`}><span>,</span><small>Comma?</small></div>;
+                      if (needComma.includes(host.id) && (side === 'bottom' ? !(first && g.includes('NEED_CAP')) && !host.bottom : (!!host.bottom || (first && g.includes('NEED_CAP'))) && !host.top)) return <div key={`ghost-comma-${host.id}`} className="gwb-ghost gwb-ghost-over hint" style={{ left: s.x + s.w / 2 - 50, top: side === 'bottom' ? line.y + ITEM_H - 10 : line.y - ATT_H - 4, width: 100, height: ATT_H + 4 }} role="img" aria-label={`Hint: a comma snaps under ${host.word ?? 'this word'}. Drag one on from the parts menu.`}><span>,</span><small>Comma?</small></div>;
                       return null;
                     });
                   })}
+                  {(() => {
+                    const bub = line.items.find((i) => i.kind === 'bubble');
+                    if (!bub?.word) return null;
+                    const ids = bubbleSpan(line, bub);
+                    const ws = slots.filter((sl) => sl.item && ids.includes(sl.item.id));
+                    if (!ws.length) return null;
+                    const x1 = ws[0].x, x2 = ws[ws.length - 1].x + ws[ws.length - 1].w;
+                    const top = line.y - (hasTop(line) ? ATT_H : 0) - (line.job ? 56 : 0) - 86;
+                    const quote = text.match(/"([^"]*)"/)?.[1] ?? ws.map((sl) => plateWord(sl.item!) ?? '?').join(' ');
+                    const tag = text.match(/"\s+((?:said|asked)\s+[^".]+)/)?.[1] ?? `${rd.question ? 'asked' : 'said'} ${bub.word}`;
+                    return <>
+                      <div className="gwb-cloud" style={{ left: x1, top, width: Math.max(140, x2 - x1) }} role="img" aria-label={`Speech bubble: ${quote}`}>
+                        <button type="button" className="gwb-cloud-grip" onPointerDown={(e) => startSpanDrag(e, line.id, bub.id, 'from')} aria-label="Stretch the speech bubble: move where it starts">⟨</button>
+                        <span className="gwb-cloud-text">“{quote}”<span className="gwb-cloud-said"> {tag}</span></span>
+                        <button type="button" className="gwb-cloud-grip" onPointerDown={(e) => startSpanDrag(e, line.id, bub.id, 'to')} aria-label="Stretch the speech bubble: move where it ends">⟩</button>
+                      </div>
+                    </>;
+                  })()}
                   {marbleSlot && <span className={`gwb-marble${marbleKind === 'spring' ? ' bounce' : ''}`} style={{ left: marbleSlot.x + marbleSlot.w / 2 - 10, top: line.y + (marbleKind === 'spring' || marbleKind === 'pulley' ? 10 : 54) }} aria-hidden />}
                   {targetHere >= 0 && <span className="gwb-insert" style={{ left: markX - 4, top: line.y + 30, height: ITEM_H - 40 }} aria-hidden />}
                   {text && (
@@ -1470,14 +1578,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                       <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => speak(withConnector(line, text))} aria-label="Hear the sentence">🔈 Hear it</button>
                       <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setSelLine(line.id); setClipMin(false); }} aria-label="Open Gus's Checklist">📋 Checklist</button>
                       {line.stars === 3 && <button type="button" className="gus-mini" onPointerDown={(e) => e.stopPropagation()} onClick={() => savePara(line.id)}>📓 Save</button>}
-                      <span className="gwb-menu-wrap"><button type="button" className={`gus-mini${remixFor === line.id ? ' on' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => setRemixFor(remixFor === line.id ? null : line.id)} aria-expanded={remixFor === line.id}>🎛 Remix</button>
-                        {remixFor === line.id && <span className="gwb-remix" role="menu" onPointerDown={(e) => e.stopPropagation()}>
-                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'longer')}>➕ Make it longer</button>
-                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'shorter')}>➖ Make it shorter</button>
-                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'silly')}>🤪 Silly swap</button>
-                          <button type="button" role="menuitem" onClick={() => doRemix(line, 'pronoun')}>🔁 Who → pronoun</button>
-                        </span>}
-                      </span>
                       {line.stars != null && line.silly != null && <span className="gwb-silly" role="img" aria-label={`Silly-o-meter: ${line.silly} out of 5`}><span aria-hidden>{line.silly >= 4 ? '🤪' : line.silly >= 2 ? '😜' : '🙂'}</span><span className="gwb-silly-bar"><span style={{ width: `${line.silly * 20}%` }} /></span></span>}
                     </div>
                   )}
@@ -1514,6 +1614,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             <button type="button" className="gus-btn" onClick={fitAll} aria-label="Fit everything">⤢ Fit</button>
           </div>
         </section>
+        </div>
 
         {(() => {
           const cLine = focusLine;
@@ -1723,6 +1824,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         </div>
       )}
 
+      {reading && <ImmersiveReader article={reading} calm={calm} onClose={() => setReading(null)} onAnswer={() => startRespond(reading)} />}
       <GusGuide message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
         {hintOffer && lines.some((l) => l.id === hintOffer) ? <>
           <button type="button" className="gus-btn gus-btn-primary gwb-hint-btn" onClick={() => showHint(hintOffer)}>💡 Yes, a hint</button>

@@ -51,7 +51,7 @@ export function shortAnswers(draft: Draft): { right: string; wrong: string[] } |
 // Wrap a finished sentence in quotation marks with a speaker tag.
 export function quoteOf(text: string, speaker: string, question: boolean): string {
   const m = text.match(/[.!?]$/)?.[0] ?? '.';
-  const inner = text.replace(/[.!?]$/, '');
+  const inner = text.replace(/[.!?]$/, '').replace(/,$/, ''); // a comma the student added before the quote ends is the same comma
   const who = /^[A-Z]/.test(speaker) ? speaker : speaker;
   if (m === '.') return `"${inner}," said ${who}.`;
   return `"${inner}${m}" ${question || m === '?' ? 'asked' : 'said'} ${who}.`;

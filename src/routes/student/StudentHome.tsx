@@ -424,6 +424,15 @@ export default function StudentHome() {
           <span className="widget-icon">🧪</span>
           <span className="widget-label">Grammar Gus</span>
         </button>
+        {/* The Library (teacher 2026-10-07): every Read and Respond article. */}
+        <button
+          className="widget-card widget-icon-card widget-grammar-gus"
+          onClick={() => navigate('/student/library')}
+          aria-label="Library"
+        >
+          <span className="widget-icon">📚</span>
+          <span className="widget-label">Library</span>
+        </button>
         {/* Direct teacher instruction: the What's New book must always be
             reachable from the computer, not just the one-time popup in
             Town Square. */}

@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-read-respond',
+    date: '2026-10-07',
+    icon: '📚',
+    title: 'Read and Respond, and the Library',
+    body: "Gus can read to you! Open Jobs, then Read and Respond, or the new Library app on your computer. A narrator reads the article and each word lights up. Tap any word to start there. Look at the pictures in the gallery, then answer Gus's question by building a sentence in the machine.",
+  },
+  {
+    id: '2026-10-07-gus-workboard-polish',
+    date: '2026-10-07',
+    icon: '💬',
+    title: 'Stretchy speech bubbles and a reading machine',
+    body: "Word tags now match their grammar colors. Commas snap under a word and apostrophes snap on top. The Speech Bubble's cloud stretches over the words someone says. When your machine runs, Gus reads your sentence out loud. The Pixel TV now shows on, in, under, over, through and around exactly!",
+  },
+  {
     id: '2026-10-07-gus-live-join',
     date: '2026-10-07',
     icon: '🔗',
