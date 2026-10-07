@@ -722,6 +722,16 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: Claudia improvement round 2 (Gus's Jobs, wider letter spacing). SHIPPED 2026-10-07 (teacher: "research, apply, test, repeat")
+
+- **🧰 Jobs** button on the Workboard top bar, with two of Claudia's queued gameplay ideas:
+  - **📦 Mixed-up Delivery** (trains word order: who, then what they did, then the rest). Gus delivers a new machine under the others: a Start Lever, a Clock set to the sentence's time, and the word machines of a 3-star sentence in a scrambled order. The student drags them into order, adds the capital letter, punctuation and Pixel TV, and pulls the lever.
+  - **🔍 Punctuation Inspector** (trains capital letters and end punctuation). Gus delivers a whole machine with one mistake: the end punctuation is missing, punctuation is in the middle, the Capital Letter Press is missing, or the press is on the wrong word. A badge over the machine names the kind of mistake, and the student finds and fixes it.
+  - Both are done the first time the machine earns 3 stars: 8 gears and a sticker (📦 or 🔍), and the badge turns to "✅ Job done!". No timer, no failing.
+- **🔤 Wider letter spacing** (Menu): extra letter, word and line spacing on the machine nameplates, word menu, captions and Gus's lines. Remembered on the iPad. Claudia's dyslexia item.
+- Tests: 2 new job tests (deliveries keep the words, and every inspector machine has exactly one capital letter or punctuation mistake on a 3-star sentence). Full suite: 248 passing.
+- **Next Claudia round:** her review of these jobs, then Noun Boiler Pairs, Paragraph Pipes and counter-scaled buttons at low zoom.
+
 ### Grammar Gus: Claudia improvement round 1 (accessibility, gameplay, bug fixes). SHIPPED 2026-10-07 (teacher: "research, apply, test, repeat")
 
 **Claudia's review** read the Workboard code and returned 12 bugs, 5 accessibility items and 5 gameplay ideas.

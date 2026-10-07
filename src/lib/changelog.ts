@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-07-gus-jobs',
+    date: '2026-10-07',
+    icon: '🧰',
+    title: "Gus's Jobs",
+    body: "Tap Jobs on Gus's Workboard. A Mixed-up Delivery brings word machines in the wrong order for you to fix. The Punctuation Inspector brings a machine with one capital letter or punctuation mistake to find. Finish a job for gears and a sticker. You can also tap Hear it under any sentence, and Undo any change.",
+  },
+  {
     id: '2026-10-07-gus-contraption',
     date: '2026-10-07',
     icon: '⚙️',

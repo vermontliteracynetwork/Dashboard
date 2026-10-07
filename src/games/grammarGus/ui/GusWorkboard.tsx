@@ -13,6 +13,7 @@ import { reviewStory, storyCast, storyScript, type SealedSentence } from '../eng
 import { POOLS, packWords } from '../engine/machine';
 import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
+import { FLAW_HINTS, makeJob, type Flaw, type JobKind } from '../engine/jobs';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase } from '../data/wordbank';
@@ -53,7 +54,7 @@ const gusOwner = (id: string) => `gus:${id}`;
 const TENSE_NAMES: Record<Tense, string> = { past: 'Past', present: 'Present', future: 'Future' };
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[] }
+interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[] }
 type Sort = 'job' | 'order' | 'color' | 'az';
 const SORTS: { id: Sort; label: string }[] = [{ id: 'job', label: 'By job' }, { id: 'order', label: 'Sentence order' }, { id: 'color', label: 'By color' }, { id: 'az', label: 'A to Z' }];
 const JOB_ORDER: Job[] = ['power', 'time', 'shout', 'who', 'did', 'where', 'join', 'finish', 'paragraph', 'contraption'];
@@ -167,6 +168,9 @@ export default function GusWorkboard() {
   const [offerFix, setOfferFix] = useState<string | null>(null);
   const [spinning, setSpinning] = useState<string | null>(null);
   const [funOpen, setFunOpen] = useState(settings.contraptions === 'open');
+  const [jobsOpen, setJobsOpen] = useState(false);
+  const [spaced, setSpaced] = useState(() => { try { return localStorage.getItem('gus-spaced') === '1'; } catch { return false; } });
+  useEffect(() => { try { localStorage.setItem('gus-spaced', spaced ? '1' : '0'); } catch { /* fine */ } }, [spaced]);
   const history = useRef<BoardLine[][]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const running = useRef(false); // set at once, so a double tap never runs twice (Claudia bug 2)
@@ -375,7 +379,7 @@ export default function GusWorkboard() {
       if (g.kind === 'pinch') { if (pointers.current.size < 2) gesture.current = null; return; }
       if (g.pid !== e.pointerId) return;
       gesture.current = null;
-      if (g.kind === 'pan') { if (!g.moved) { setMenu(null); setSelLine(null); setTopMenu(false); } return; }
+      if (g.kind === 'pan') { if (!g.moved) { setMenu(null); setSelLine(null); setTopMenu(false); setJobsOpen(false); } return; }
       if (!g.active) {
         if (g.kind === 'item') {
           const it = linesRef.current.find((l) => l.id === g.lineId)?.items.find((i) => i.id === g.itemId);
@@ -504,7 +508,14 @@ export default function GusWorkboard() {
     timers.current.push(window.setTimeout(() => {
       setFiring(null); running.current = false;
       const stars = r.rubric!.stars;
-      setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars } : l)));
+      setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars, ...(stars === 3 && l.job && !l.job.done ? { job: { ...l.job, done: true } } : {}) } : l)));
+      const finishedJob = stars === 3 && line.job && !line.job.done ? line.job : null;
+      if (finishedJob) {
+        const sticker = finishedJob.kind === 'delivery' ? '📦' : '🔍';
+        earn(8);
+        if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
+        timers.current.push(window.setTimeout(() => say(`Job done! ${finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : 'Inspected and fixed.'} Have a sticker: ${sticker}`, '3 stars'), 2600));
+      }
       if (r.script) {
         rewardPending.current = true;
         setPlaying({ lineId: line.id, script: r.script, key: Date.now() });
@@ -573,6 +584,22 @@ export default function GusWorkboard() {
     if (verbs.length && level !== 'full') { setPulse(verbs.map((v) => v.id)); say(`${when} Tap the action machine and pick its ${next} form.`, 'Clock'); }
     else if (verbs.length) { const v = verbByBase.get(verbs[0].word!); say(`${when} Listen: "${v ? verbText(v, next === 'past' ? 'past' : next === 'future' ? 'future' : 'third') : verbs[0].word}".`, 'Clock'); }
     else say(when, 'Clock');
+  };
+  // Gus's Jobs (Claudia round 2): a new machine delivered under the others.
+  const startJob = (kind: JobKind) => {
+    setJobsOpen(false);
+    remember();
+    const { items, job } = makeJob(kind, makeRng(Date.now()), uid, { gentleOnly: settings.gentleOnly });
+    const ls = linesRef.current;
+    const y = ls.length ? Math.max(...ls.map((l) => l.y)) + ITEM_H + 130 : 80;
+    const id = uid();
+    setLines((cur) => [...cur.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank')), { id, x: 60, y, items, job }]);
+    setSelLine(id);
+    requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
+    gusSound.horn();
+    say(kind === 'delivery'
+      ? 'A delivery! These word machines arrived all mixed up. Drag them into the right order, add a capital letter, punctuation and a TV, then pull the lever.'
+      : `Inspector, I need you. ${FLAW_HINTS[job.flaw as Flaw]} Find it, fix it, then pull the lever.`, kind === 'delivery' ? 'Delivery' : 'Inspector');
   };
   const clearAll = () => {
     remember();
@@ -669,12 +696,21 @@ export default function GusWorkboard() {
   const order = readingOrder(lines);
   const paras = paragraphs(lines);
   return (
-    <div className={`gus-page gwb${calm ? ' calm' : ''}`}>
+    <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}`}>
       <header className="gus-top gwb-top">
         <button type="button" className="gus-btn" onClick={() => navigate(-1)}>⬅ Back</button>
         <h1>Gus's Workboard</h1>
         <div className="gus-top-right">
           <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
+          <div className="gwb-menu-wrap">
+            <button type="button" className={`gus-btn${jobsOpen ? ' on' : ''}`} onClick={() => setJobsOpen((o) => !o)} aria-expanded={jobsOpen}>🧰 Jobs</button>
+            {jobsOpen && (
+              <div className="gwb-top-menu" role="menu">
+                <button type="button" role="menuitem" onClick={() => startJob('delivery')}>📦 Mixed-up Delivery<small>Put the word machines in order</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Punctuation Inspector<small>Find the capital letter or punctuation mistake</small></button>
+              </div>
+            )}
+          </div>
           <button type="button" className={`gus-btn${calm ? ' on' : ''}`} onClick={() => setCalm((c) => !c)} aria-pressed={calm}>🌙 Calm</button>
           <button type="button" className={`gus-btn${muted ? ' on' : ''}`} onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
           <div className="gwb-menu-wrap">
@@ -682,6 +718,7 @@ export default function GusWorkboard() {
             {topMenu && (
               <div className="gwb-top-menu" role="menu">
                 <button type="button" role="menuitem" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 Journal</button>
+                <button type="button" role="menuitem" onClick={() => { setSpaced((v) => !v); setTopMenu(false); }}>🔤 {spaced ? 'Wider spacing is on' : 'Wider letter spacing'}</button>
                 <button type="button" role="menuitem" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear all</button>
                 <button type="button" role="menuitem" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine</button>
               </div>
@@ -720,6 +757,11 @@ export default function GusWorkboard() {
               const marbleKind = marbleSlot?.item?.kind;
               return (
                 <div key={line.id} className={`gwb-line${selLine === line.id ? ' selected' : ''}${drag?.kind === 'line' && drag.target === line.id ? ' join-target' : ''}`}>
+                  {line.job && (
+                    <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 40 }}>
+                      {line.job.done ? '✅ Job done!' : line.job.kind === 'delivery' ? '📦 Mixed-up Delivery: put the word machines in order.' : `🔍 Punctuation Inspector: ${FLAW_HINTS[line.job.flaw as Flaw]}`}
+                    </div>
+                  )}
                   <button type="button" className="gwb-grip" style={{ left: line.x - 14, top: line.y + 40, height: ITEM_H - 80 }} onPointerDown={(e) => onGripDown(e, line)} aria-label="Move this whole machine">⠿</button>
                   {(() => { const para = paras.find((p) => p.some((l) => l.id === line.id)); return para && para.length > 1 ? <span className="gwb-para-num" style={{ left: line.x - 14, top: line.y + 12 }} aria-label={`Sentence ${para.indexOf(line) + 1} of the paragraph`}>{para.indexOf(line) + 1}</span> : null; })()}
                   {slots.map((s) => {
