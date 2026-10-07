@@ -722,6 +722,46 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
   - **Bakery Match and Castle Defense:** raised from 50 cents to $1 per right answer. They keep their existing rule of paying at the end of a finished game, plus their milestone bonus, and they keep their own earnings card.
 - The message card is part of the app-wide coin animation (`CoinDropOverlay`), and the register rows use a new `game-answers` kind.
 
+### Grammar Gus: the Inspector's Clipboard, Guided and Challenge levels, teacher settings. SHIPPED 2026-10-07 (plan milestone 6 and sections 3.6, 3.9 to 3.15)
+
+- Built under her standing instruction to keep developing the full Grammar Gus plan.
+- **Inspector's Clipboard** (`engine/checklist.ts`, plus the 📋 button and drawer on the machine):
+  - The plan's checklist items, in kid wording (7 words or fewer), grouped as The big pieces, Match, Describe, Join and Finish.
+  - Each item shows done (green check from her CC0 kit), to do, needs a fix (🔧) or "machine did this" (⚙️ at Full help). Tips that do not block (for example, the time check at Guided) are marked "(tip)".
+  - The list grows and shrinks with the machine's parts. A broken rule always shows its item.
+  - Tapping an item pulses the parts it is about, and Gus reads the hint (plus the grown-up word, if the teacher chose "on tap").
+  - It slides in on the right whenever START leaks steam. A pressure bar shows required items done out of total.
+  - **One source of truth:** the items are built from the validator's own codes. A 6,000-case fuzz test proves the machine runs exactly when every required item is done, at all three levels.
+- **Grammar Help levels** (plan 3.6), set per student by the teacher:
+  - **Full help** (default): unchanged. The machine does everything.
+  - **Guided:**
+    - Verb form buttons appear under the verb (run / runs / ran / will run).
+    - The **Big Letter Press** (tap the press, then the word to capitalize).
+    - The **Stop Stamp** (tap to cycle . ! or empty).
+    - Describing words must be in order (drag to swap them).
+    - Agreement blocks the machine; a wrong time is a tip, and Gus's star review gives it 2 stars.
+  - **Challenge:** everything above, plus:
+    - "an" joins the article tiles, and a/an must match the next word.
+    - A plural noun cannot take "a".
+    - Capital I.
+    - The **! clip** on a shout.
+    - The **Comma Clip** on an opening HOW word.
+    - The wrong time blocks the machine.
+  - The machine's sockets show the student's own forms and capitals, and the caption shows their punctuation.
+- **Teacher settings** (Game tab, new "Grammar Gus's Contraption" panel; `gus-settings` row, no new SQL):
+  - Grammar Help level per student.
+  - Cartoon or Real-world logic.
+  - Video for 3 stars only, or 2 and 3.
+  - Gentle verbs only (hides attack).
+  - Grown-up words on the checklist: never, on tap or always.
+  - Focus mode (next 3 items only).
+  - Machine rumble: off, soft or normal.
+- **Tests:** 203 passing (6 new checklist tests, including the fuzz test).
+- **Not built yet from these plan sections:**
+  - The Describe Sorter conveyor animation; swapping by drag covers the rule today.
+  - "Allow Do it for me after 2 taps".
+  - Hiding item groups.
+
 ### Game picker as an arcade-cabinet slider; teacher UI packs; Gus's factory wall. SHIPPED 2026-10-07 (direct teacher instructions)
 
 - **Her words, verbatim:**

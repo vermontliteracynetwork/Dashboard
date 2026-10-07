@@ -4776,6 +4776,40 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gus-gauge::before { content: ''; position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; background: conic-gradient(from -90deg, #e8483b 0 60deg, #f7d23e 60deg 120deg, #3fbf5a 120deg 180deg, transparent 180deg); border: 2px solid #1f2f4d; box-sizing: border-box; }
 .gus-gauge-needle { position: absolute; left: 19px; bottom: 0; width: 2px; height: 18px; background: #1f2f4d; transform-origin: 50% 100%; transition: transform 0.4s cubic-bezier(.3,1.6,.5,1); }
 .gus-horn { padding: 0 10px; font-size: 1.2rem; }
+/* Help levels: verb forms, Big Letter Press, Stop Stamp, clips. */
+.gus-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.gus-form { min-height: 44px; min-width: 64px; padding: 0 6px; border-radius: 10px; border: 2px solid var(--gus-ink); background: #fff; font: 700 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; }
+.gus-form.on { background: #3fbf5a; color: #fff; }
+.gus-clip { min-height: 44px; padding: 0 10px; border-radius: 10px; border: 2px dashed var(--gus-ink); background: #fff; font: 800 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; }
+.gus-clip.on { border-style: solid; background: #e6b54a; }
+.gus-stamp-btn { cursor: pointer; padding: 0; min-width: 52px; min-height: 52px; }
+.gus-stamp-btn.empty { background: #fff; color: #9aa3b5; border-style: dashed; }
+.gus-press { min-height: 48px; padding: 0 10px; border-radius: 12px; border: 3px solid var(--gus-ink); background: #b8c4cf; font: 800 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.gus-press.on { background: #ffe14d; box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--gus-ink); }
+.gus-machine.rumble-normal .gus-line { animation-duration: 0.16s; }
+/* The Inspector's Clipboard (plan 3.9): a riveted clipboard that slides
+   over the right side, never over the machine on its own. */
+.gus-clipboard-btn { min-height: 48px; padding: 0 12px; border-radius: 12px; border: 3px solid var(--gus-ink); background: #fff6e3; font: 800 0.95rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; }
+.gus-clipboard { position: fixed; z-index: 280; top: 64px; right: max(12px, env(safe-area-inset-right)); bottom: 108px; width: min(360px, calc(100vw - 24px)); display: flex; flex-direction: column; background: #c9d2dc; border: 4px solid #1f2f4d; border-radius: 18px; box-shadow: 0 12px 30px rgba(31,47,77,0.4); padding: 10px; gap: 8px; animation: gus-slide 0.2s ease-out; }
+@keyframes gus-slide { from { transform: translateX(30px); opacity: 0; } }
+.gus-clipboard-head { display: flex; align-items: center; gap: 8px; position: relative; }
+.gus-clipboard-head strong { flex: 1; font: 900 1.1rem 'Baloo 2', sans-serif; }
+.gus-clipboard-clip { position: absolute; left: 50%; top: -24px; width: 70px; height: 18px; margin-left: -35px; background: linear-gradient(#f0cf73, #b8892e); border: 3px solid #1f2f4d; border-radius: 6px; }
+.gus-clipboard-level { font: 800 0.75rem 'Lexend', sans-serif; background: #1f2f4d; color: #fff; border-radius: 999px; padding: 2px 10px; }
+.gus-clipboard-pressure { font: 700 0.9rem 'Lexend', sans-serif; display: flex; flex-direction: column; gap: 4px; }
+.gus-clipboard-bar { display: block; height: 14px; border-radius: 7px; background: #fff; border: 2px solid #1f2f4d; overflow: hidden; }
+.gus-clipboard-bar i { display: block; height: 100%; background: repeating-linear-gradient(135deg, #3fbf5a 0 10px, #36a84f 10px 20px); transition: width 0.3s; }
+.gus-clipboard-items { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #fffdf6; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.gus-clipboard-group-title { font: 800 0.75rem 'Baloo 2', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.6; margin-top: 4px; }
+.gus-check { width: 100%; min-height: 56px; display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 8px; text-align: left; border: 2px solid #d5d9e2; border-radius: 12px; background: #fff; font: 700 1rem 'Lexend', sans-serif; color: #1f2f4d; cursor: pointer; padding: 4px 8px; }
+.gus-check-icon { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #1f2f4d; display: grid; place-items: center; font-size: 1.1rem; background: #fff; }
+.gus-check-icon img { width: 30px; height: 30px; }
+.gus-check-done { background: #eafbea; border-color: #3fbf5a; }
+.gus-check-done .gus-check-icon { border-color: #3fbf5a; }
+.gus-check-fix { background: #fff3d6; border-color: #e6b54a; }
+.gus-check-auto { opacity: 0.75; }
+.gus-check.optional .gus-check-label::after { content: ' (tip)'; font-weight: 600; opacity: 0.6; }
+.gus-check small { font-weight: 600; opacity: 0.65; }
 /* Short screens (landscape iPad with Safari's bars): tighten vertically. */
 @media (max-height: 760px) {
   .gus-socket { min-height: 68px; }
@@ -4831,3 +4865,5 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .arcade-dots i.on { background: #1f2f4d; }
 @media (max-width: 600px) { .arcade-slider { grid-template-columns: 48px minmax(0, 1fr) 48px; } .arcade-arrow { width: 48px; height: 60px; } .arcade-cab { width: 100%; } }
 @media (orientation: portrait) and (min-width: 601px) { .arcade-cab { width: clamp(220px, calc((100% - 16px) / 2), 320px); } }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }

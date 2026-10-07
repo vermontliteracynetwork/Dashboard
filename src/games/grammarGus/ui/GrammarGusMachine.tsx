@@ -17,7 +17,10 @@ import { gusSound, setGusMuted } from './sound';
 import { useLockBodyScroll } from '../../../lib/useLockBodyScroll';
 import PartSvg from './PartSvg';
 import { completeness } from '../engine/grammar';
-import { validateSentence } from '../engine/validate';
+import { buildChecklist, focusItems, GROUP_TITLES, type ChecklistItem } from '../engine/checklist';
+import { useGusSettings, levelFor } from '../settings';
+import { verbText } from '../engine/conjugate';
+import type { Draft, Marks, VerbForm } from '../engine/types';
 
 // Grammar Gus's Silly Sentence Contraption, first playable version.
 // Plan: docs/grammar-gus/PLAN.md. Students tap words into the machine's
@@ -124,6 +127,16 @@ export default function GrammarGusMachine() {
   const [openHousings, setOpenHousings] = useState<HousingId[]>([]);
   const [sessionGears, setSessionGears] = useState(0);
   const [howFirst, setHowFirst] = useState(false);
+  // Grammar Help levels (plan 3.6): what the student does by hand.
+  const settings = useGusSettings();
+  const level = levelFor(settings, studentId);
+  const [forms, setForms] = useState<Record<string, VerbForm>>({});
+  const [caps, setCaps] = useState<string[]>([]); // socket keys pressed with the Big Letter Press
+  const [pressMode, setPressMode] = useState(false);
+  const [endMark, setEndMark] = useState<'.' | '!' | null>(null);
+  const [shoutMark, setShoutMark] = useState(false);
+  const [openerComma, setOpenerComma] = useState(false);
+  const [clipOpen, setClipOpen] = useState(false);
   const [snapped, setSnapped] = useState<string | null>(null);
   // Drag and drop (teacher 2026-10-07: "the machine pieces need to be drag
   // and drop individually ... a simple snap to click, drag to rearrange").
@@ -137,12 +150,24 @@ export default function GrammarGusMachine() {
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
   useEffect(() => setGusMuted(muted), [muted]);
 
-  const { tokens, keys } = useMemo(() => buildTokens(words, whoPron, howFirst), [words, whoPron, howFirst]);
+  const { tokens: rawTokens, keys } = useMemo(() => buildTokens(words, whoPron, howFirst), [words, whoPron, howFirst]);
+  // The draft the engine checks: at Guided and Challenge it carries the
+  // student's verb forms and hand-placed marks.
+  const draft: Draft = useMemo(() => {
+    const tokens = rawTokens.map((t, i) => (t.pos === 'V' ? { ...t, form: forms[keys[i]] ?? 'base' } : t));
+    const marks: Marks = {
+      capitals: keys.map((k, i) => (caps.includes(k) ? i : -1)).filter((i) => i >= 0),
+      endMark, shoutMark,
+      commas: openerComma && howFirst ? [keys.indexOf('how.adv')].filter((i) => i >= 0) : [],
+    };
+    return level === 'full' ? { tokens: rawTokens, tense, level } : { tokens, tense, level, marks };
+  }, [rawTokens, keys, forms, caps, endMark, shoutMark, openerComma, howFirst, tense, level]);
+  const tokens = draft.tokens;
+  const checklist = useMemo(() => buildChecklist(draft), [draft]);
   const lamps = useMemo(() => completeness(tokens)[0] ?? { subject: false, predicate: false }, [tokens]);
-  const ready = useMemo(() => validateSentence({ tokens, tense, level: 'full' }).ok, [tokens, tense]);
-  const requiredKeys = useMemo(() => [whoPron ? 'who.pron' : 'who.art', ...(whoPron ? [] : ['who.noun']), 'did.verb', ...(verbByBase.get(words['did.verb'] ?? '')?.objectUse === 'T' ? ['obj.art', 'obj.noun'] : [])], [whoPron, words]);
-  const pressure = requiredKeys.filter((k) => words[k]).length / requiredKeys.length;
-  const preview = useMemo(() => compose({ tokens, tense, level: 'full' }), [tokens, tense]);
+  const ready = checklist.allRequiredDone;
+  const pressure = checklist.total ? checklist.done / checklist.total : 0;
+  const preview = useMemo(() => compose(draft), [draft]);
   const say = (message: string, mood: string) => setGus({ message, mood, key: `${mood}-${message}-${Date.now()}` });
 
   const changed = () => { if (phase !== 'build' && phase !== 'running') { setPhase('build'); setResult(null); } setPulse([]); };
@@ -225,8 +250,7 @@ export default function GrammarGusMachine() {
 
   const pull = () => {
     if (phase === 'running') return;
-    const draft = { tokens, tense, level: 'full' as const };
-    const r = runSentence(draft);
+    const r = runSentence(draft, [], 's1', { strictness: settings.strictness, videoThreshold: settings.videoThreshold });
     setResult(r);
     const seed = hashString(preview.text + tense);
     if (!r.validation.ok) {
@@ -242,6 +266,7 @@ export default function GrammarGusMachine() {
       const line = lineFor(GATE_LINES[v.code as Violation] ?? GATE_LINES.BAD_SHAPE!, seed);
       gusSound.steam();
       setPhase('leak');
+      setClipOpen(true); // the Inspector's Clipboard shows what is left (plan 3.9)
       say(`${line.joke} ${line.fix}`, 'Steam leak!');
       return;
     }
@@ -301,9 +326,10 @@ export default function GrammarGusMachine() {
     say('Even my Hopper is stumped. Try changing a word.', 'Hopper');
   };
 
-  const clearAll = () => { setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); changed(); setSelected('who.noun'); say('A fresh machine. Gleaming. Full of grammatical promise.', 'New machine'); };
+  const clearAll = () => { setWords({}); setWhoPron(false); setOpenHousings([]); setHowFirst(false); setForms({}); setCaps([]); setEndMark(null); setShoutMark(false); setOpenerComma(false); changed(); setSelected('who.noun'); say('A fresh machine. Gleaming. Full of grammatical promise.', 'New machine'); };
 
-  const options = POOLS[selectedSlot.pos];
+  const options = selectedSlot.pos === 'V' && settings.gentleOnly ? POOLS.V.filter((w) => verbByBase.get(w)?.gentle !== false)
+    : selectedSlot.pos === 'A' && level === 'challenge' ? ['a', 'an', 'the'] : POOLS[selectedSlot.pos];
   const wordTile = (w: string) => {
     const emoji = selectedSlot.pos === 'N' ? nounByWord.get(w)?.emoji : undefined;
     const active = (selected === 'who.pron' ? words['who.pron'] : words[selected]) === w;
@@ -318,6 +344,15 @@ export default function GrammarGusMachine() {
     );
   };
 
+  // What a socket shows: at Guided and Challenge, the student's own verb
+  // form and their own capitals; at Full help, the plain tile word.
+  const shownWord = (key: string, pos: Pos, word: string) => {
+    let w = word;
+    if (level !== 'full' && pos === 'V') { const v = verbByBase.get(word); if (v) w = verbText(v, forms[key] ?? 'base'); }
+    if (level !== 'full' && caps.includes(key)) w = w.charAt(0).toUpperCase() + w.slice(1);
+    if (level !== 'full' && pos === 'R' && word === 'I' && !caps.includes(key)) w = 'i';
+    return pos === 'I' ? (level === 'challenge' ? `${w}${shoutMark ? '!' : ''}` : `${w}!`) : w;
+  };
   const socket = (key: string, pos: Pos, label: string, optional?: boolean) => {
     const idx = keys.indexOf(key);
     const word = words[key] ?? null;
@@ -327,14 +362,18 @@ export default function GrammarGusMachine() {
       <button key={key} type="button" data-socket={key}
         className={`gus-socket${selected === key ? ' selected' : ''}${pulse.includes(key) ? ' pulse' : ''}${firing >= 0 && idx === firing ? ' firing' : ''}${firing > idx && idx >= 0 ? ' fired' : ''}${optional && !word ? ' optional' : ''}${word ? ' filled' : ''}${snapped === key ? ' snapped' : ''}${dropOk ? ' drop-ok' : ''}${over ? (dropOk ? ' drop-over' : ' drop-bad') : ''}${drag?.payload.kind === 'word' && drag.payload.from === key ? ' lifting' : ''}`}
         onPointerDown={(e) => { if (word) startPress(e, { kind: 'word', word, pos, from: key }); }}
-        onClick={() => { if (!justDragged.current) setSelected(key); }} aria-label={`${label}: ${word ?? 'empty'}`}>
+        onClick={() => {
+          if (justDragged.current) return;
+          if (pressMode && word) { setCaps((c) => (c.includes(key) ? c.filter((x) => x !== key) : [...c, key])); setPressMode(false); gusSound.snap(); changed(); return; }
+          setSelected(key);
+        }} aria-label={`${label}: ${word ?? 'empty'}`}>
         <PartSvg pos={pos} word={word} ghost={!word} />
-        <span className="gus-socket-word">{word ? (pos === 'I' ? `${word}!` : word) : optional ? '+' : '?'}</span>
+        <span className="gus-socket-word">{word ? shownWord(key, pos, word) : optional ? '+' : '?'}</span>
       </button>
     );
   };
 
-  const machineClass = `gus-machine${phase === 'running' && !calm ? ' rumble' : ''}${phase === 'leak' ? ' leak' : ''}`;
+  const machineClass = `gus-machine${phase === 'running' && !calm && settings.rumble !== 'off' ? ` rumble rumble-${settings.rumble}` : ''}${phase === 'leak' ? ' leak' : ''}`;
   const verb = verbByBase.get(words['did.verb'] ?? '');
 
   return (
@@ -375,6 +414,14 @@ export default function GrammarGusMachine() {
                 <button key={t.id} type="button" className={`gus-crank-btn${tense === t.id ? ' on' : ''}`} onClick={() => { setTense(t.id); changed(); gusSound.snap(); }} aria-pressed={tense === t.id}>{t.icon} {t.label}</button>
               ))}
             </div>
+            {level !== 'full' && (
+              <button type="button" className={`gus-press${pressMode ? ' on' : ''}`} onClick={() => { setPressMode((m) => !m); gusSound.snap(); }} aria-pressed={pressMode}>
+                <span aria-hidden>🅰</span> Big Letter Press
+              </button>
+            )}
+            <button type="button" className="gus-clipboard-btn" onClick={() => setClipOpen((o) => !o)} aria-expanded={clipOpen}>
+              📋 {checklist.done}/{checklist.total}
+            </button>
             <div className="gus-gizmos" aria-label="Machine lights">
               <span className={`gus-lamp red${lamps.subject ? ' on' : ''}`} title="WHO lamp" /><span className="gus-lamp-label">WHO</span>
               <span className={`gus-lamp green${lamps.predicate ? ' on' : ''}`} title="WHAT THEY DID lamp" /><span className="gus-lamp-label">DID</span>
@@ -413,6 +460,19 @@ export default function GrammarGusMachine() {
                         ? socket('who.pron', 'R', 'pronoun')
                         : h.slots.filter((s) => s.key !== 'who.adj2' || words['who.adj1'] || words['who.adj2']).map((s) => socket(s.key, s.pos, s.label, s.optional))}
                     </div>
+                    {h.id === 'did' && level !== 'full' && verb && (
+                      <div className="gus-forms" role="group" aria-label="Pick the verb form">
+                        {(['base', 'third', 'past', 'future'] as VerbForm[]).map((f) => (
+                          <button key={f} type="button" className={`gus-form${(forms['did.verb'] ?? 'base') === f ? ' on' : ''}`} onClick={() => { setForms((m) => ({ ...m, 'did.verb': f })); gusSound.snap(); changed(); }}>{verbText(verb, f)}</button>
+                        ))}
+                      </div>
+                    )}
+                    {h.id === 'shout' && level === 'challenge' && words.shout && (
+                      <button type="button" className={`gus-clip${shoutMark ? ' on' : ''}`} onClick={() => { setShoutMark((m) => !m); gusSound.snap(); changed(); }} aria-pressed={shoutMark}>! clip</button>
+                    )}
+                    {h.id === 'how' && howFirst && level === 'challenge' && (
+                      <button type="button" className={`gus-clip${openerComma ? ' on' : ''}`} onClick={() => { setOpenerComma((m) => !m); gusSound.snap(); changed(); }} aria-pressed={openerComma}>, Comma Clip</button>
+                    )}
                     {OPTIONAL.includes(h.id) && !(h.id === 'obj' && verb?.objectUse === 'T') && (
                       <button type="button" className="gus-housing-close" aria-label={`Take off ${CHIP_LABEL[h.id]}`}
                         onClick={() => { setWords((w) => { const n = { ...w }; h.slots.forEach((s) => { n[s.key] = null; }); return n; }); setOpenHousings((o) => o.filter((x) => x !== h.id)); changed(); if (SLOT_BY_KEY.get(selected)?.housing === h.id) setSelected('who.noun'); }}>✕</button>
@@ -423,7 +483,10 @@ export default function GrammarGusMachine() {
               );
             })}
             {drag?.payload.kind === 'housing' && howFirst && <span data-hdrop="back" className={`gus-hdrop${drag.over === 'h:back' ? ' over' : ''}`}>Drop HOW here to end with it</span>}
-            <span className="gus-stamp" aria-hidden>{preview.text.endsWith('!') ? '!' : '.'}</span>
+            {level === 'full'
+              ? <span className="gus-stamp" aria-hidden>{preview.text.endsWith('!') ? '!' : '.'}</span>
+              : <button type="button" className={`gus-stamp gus-stamp-btn${endMark ? '' : ' empty'}`} aria-label={`Stop Stamp: ${endMark ?? 'none'}. Tap to change.`}
+                  onClick={() => { setEndMark((m) => (m === null ? '.' : m === '.' ? '!' : null)); gusSound.snap(); changed(); }}>{endMark ?? '?'}</button>}
           </div>
           <div className="gus-machine-foot">
             <div className="gus-chips">
@@ -455,6 +518,37 @@ export default function GrammarGusMachine() {
         </section>
       </main>
 
+      {clipOpen && (
+        <aside className="gus-clipboard" aria-label="Gus's Checklist">
+          <div className="gus-clipboard-head">
+            <span className="gus-clipboard-clip" aria-hidden />
+            <strong>Gus's Checklist</strong>
+            <span className="gus-clipboard-level">{level === 'full' ? 'Full help' : level === 'guided' ? 'Guided' : 'Challenge'}</span>
+            <button type="button" className="gus-btn" onClick={() => setClipOpen(false)} aria-label="Close checklist">✕</button>
+          </div>
+          <div className="gus-clipboard-pressure">Machine pressure {checklist.done} of {checklist.total}
+            <span className="gus-clipboard-bar"><i style={{ width: `${pressure * 100}%` }} /></span></div>
+          <div className="gus-clipboard-items">
+            {(['pieces', 'match', 'describe', 'join', 'finish'] as const).map((g) => {
+              const items = (settings.focusMode ? focusItems(checklist) : checklist.items).filter((i) => i.group === g);
+              if (!items.length) return null;
+              return (
+                <div key={g} className="gus-clipboard-group">
+                  <div className="gus-clipboard-group-title">{GROUP_TITLES[g]}</div>
+                  {items.map((it: ChecklistItem) => (
+                    <button key={it.id} type="button" className={`gus-check gus-check-${it.status}${it.required ? '' : ' optional'}`}
+                      onClick={() => { setPulse(it.targets.map((i) => keys[i]).filter(Boolean)); say((it.status === 'done' ? `${it.label}: done. Splendid.` : it.status === 'auto' ? `${it.label}: my machine does this for you. You are welcome.` : it.hint) + (settings.grownUp === 'tap' ? ` Grown-up word: ${it.grownUp}.` : ''), 'Checklist'); }}>
+                      <span className="gus-check-icon" aria-hidden>{it.status === 'done' ? <img src="/games/ui-kit/check.png" alt="" /> : it.status === 'fix' ? '🔧' : it.status === 'auto' ? '⚙️' : ''}</span>
+                      <span className="gus-check-label">{it.label}{settings.grownUp === 'always' && <small> ({it.grownUp})</small>}</span>
+                      <span className="sr-only">{it.status === 'done' ? 'done' : it.status === 'auto' ? 'machine did this' : it.status === 'fix' ? 'needs a fix' : 'to do'}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      )}
       {drag && drag.payload.kind === 'word' && (
         <div className="gus-drag-ghost" style={{ left: drag.x, top: drag.y }} aria-hidden>
           <PartSvg pos={drag.payload.pos} word={drag.payload.word} />
