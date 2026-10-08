@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-alchemy',
+    date: '2026-10-08',
+    icon: '⚗️',
+    title: 'New app: Alchemy!',
+    body: 'Open Alchemy on your computer. Start with fire, water, earth and air, and drag one onto another to discover something new. Can you make a dragon, a wizard or a rocket? There are 89 things to find. In Grammar Gus, both joined things now show on the Pixel TV.',
+  },
+  {
     id: '2026-10-08-gus-joins-figurative',
     date: '2026-10-08',
     icon: '🎭',

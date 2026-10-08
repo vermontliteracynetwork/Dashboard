@@ -31,15 +31,19 @@ export function evaluate(draft: Draft, frame: SemanticFrame, res: Resolution, se
     const how = ev.adverbs;
     if (ev.adverbJoin !== 'or' && how.some((a, i) => how.some((b, j) => j > i && areOpposites(HOW_OPPOSITES, a, b)))) verdict('CONTRADICTORY_HOW', 'possible', 'hard', [ev.verbToken]);
   }
-  const nps = events.flatMap((ev) => [ev.subject, ...(ev.subject.conjoined ?? []), ...(ev.object ? [ev.object] : []), ...ev.places.map((p) => p.ground)]);
+  const nps = events.flatMap((ev) => [ev.subject, ...(ev.subject.conjoined ?? []), ...(ev.object ? [ev.object, ...(ev.object.conjoined ?? [])] : []), ...ev.places.map((p) => p.ground)]);
   for (const np of nps) {
     if (np.adjectives.some((a, i) => np.adjectives.some((b, j) => j > i && areOpposites(DESCRIBER_OPPOSITES, a, b)))) verdict('CONTRADICTORY_DESCRIBERS', 'possible', 'hard', np.tokens);
   }
   if (settings.strictness === 'real') {
     for (const ev of events) {
-      const obj = ev.object && nounByWord.get(ev.object.noun);
-      if (ev.verb === 'eat' && ev.object && !obj?.food) verdict('EAT_NOT_FOOD', 'possible', 'hard', ev.object.tokens);
-      if (ev.verb === 'drink' && ev.object && !obj?.drink) verdict('DRINK_NOT_DRINKABLE', 'possible', 'hard', ev.object.tokens);
+      const objs = ev.object ? (ev.object.conjoined ?? [ev.object]) : [];
+      const obj = ev.object && nounByWord.get(objs[0].noun);
+      for (const o of objs) {
+        const e = nounByWord.get(o.noun);
+        if (ev.verb === 'eat' && !e?.food) verdict('EAT_NOT_FOOD', 'possible', 'hard', o.tokens);
+        if (ev.verb === 'drink' && !e?.drink) verdict('DRINK_NOT_DRINKABLE', 'possible', 'hard', o.tokens);
+      }
       if (ev.verb === 'chop' && ev.object && ev.subject.adjectives.includes('tiny') && (ev.object.adjectives.includes('big') || obj?.size === 'big')) verdict('SIZE_PARADOX', 'possible', 'hard', ev.object.tokens);
     }
   }

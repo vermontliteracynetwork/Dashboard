@@ -128,8 +128,8 @@ export function direct(frame: SemanticFrame, res: Resolution, rubric: RubricResu
         const id = res.refs[pl.ground.id]?.[0];
         if (id && !start[id] && !props.some((p) => p.castId === id)) props.push({ castId: id, x: STAGE_CENTER });
       }
-      const oid = cur.object ? res.refs[cur.object.id]?.[0] : undefined;
-      if (oid && !start[oid]) { start[oid] = { x: rightX, facing: -1 }; rightX += 16; }
+      // Every joined thing stands on the stage, so the last frame shows them together.
+      for (const oid of cur.object ? res.refs[cur.object.id] ?? [] : []) if (!start[oid]) { start[oid] = { x: rightX, facing: -1 }; rightX += 16; }
     }
   }
   const startCopy: Scene['start'] = JSON.parse(JSON.stringify(start));

@@ -32,12 +32,18 @@ export function buildFrame(draft: Draft, a: Analysis = analyze(draft.tokens)): S
       subject = { id: `e${nextId++}`, noun: parts.map((x) => x.noun).join('+'), plural: true, adjectives: [], article: null, conjoined: parts, joinWord: cl.subjConj !== undefined ? w(cl.subjConj) : 'and', tokens: parts.flatMap((x) => x.tokens) };
     } else subject = entity(cl.subj[0] ?? { adjs: [] });
     let object: EntityRef | undefined;
-    if (cl.obj) object = entity(cl.obj);
-    else if (cl.objPron !== undefined) {
-      const op = w(cl.objPron).toLowerCase();
+    const objPronoun = (i: number): EntityRef => {
+      const op = w(i).toLowerCase();
       const sp = ({ me: 'I', him: 'he', her: 'she', us: 'we', them: 'they', you: 'you', it: 'it' } as Record<string, EntityRef['pronoun']>)[op];
-      object = sp ? { id: `e${nextId++}`, noun: sp, plural: sp === 'we' || sp === 'they', adjectives: [], article: null, pronoun: sp, tokens: [cl.objPron] }
-        : { id: `e${nextId++}`, noun: w(cl.objPron), plural: w(cl.objPron) === 'themselves', adjectives: [], article: null, reflexive: true, tokens: [cl.objPron] };
+      return sp ? { id: `e${nextId++}`, noun: sp, plural: sp === 'we' || sp === 'they', adjectives: [], article: null, pronoun: sp, tokens: [i] }
+        : { id: `e${nextId++}`, noun: w(i), plural: w(i) === 'themselves', adjectives: [], article: null, reflexive: true, tokens: [i] };
+    };
+    if (cl.obj) object = entity(cl.obj);
+    else if (cl.objPron !== undefined) object = objPronoun(cl.objPron);
+    // Two things joined after the action ("hugs Xander and Yoga"): both are cast and both end on screen (teacher 2026-10-08).
+    if (object && (cl.obj2 || cl.obj2Pron !== undefined)) {
+      const parts = [object, cl.obj2 ? entity(cl.obj2) : objPronoun(cl.obj2Pron!)];
+      object = { id: `e${nextId++}`, noun: parts.map((x) => x.noun).join('+'), plural: true, adjectives: [], article: null, conjoined: parts, joinWord: cl.objConj !== undefined ? w(cl.objConj) : 'and', tokens: parts.flatMap((x) => x.tokens) };
     }
     const ppPronoun = (): EntityRef => {
       const sp = ({ me: 'I', him: 'he', her: 'she', us: 'we', them: 'they', you: 'you', it: 'it' } as Record<string, EntityRef['pronoun']>)[w(cl.ppPron!).toLowerCase()] ?? 'it';

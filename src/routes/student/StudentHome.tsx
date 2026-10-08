@@ -433,6 +433,15 @@ export default function StudentHome() {
           <span className="widget-icon">📚</span>
           <span className="widget-label">Library</span>
         </button>
+        {/* Alchemy (teacher 2026-10-08: "lets get the alchemy game going. make an app in the computer"). */}
+        <button
+          className="widget-card widget-icon-card widget-grammar-gus"
+          onClick={() => navigate('/student/alchemy')}
+          aria-label="Alchemy"
+        >
+          <span className="widget-icon">⚗️</span>
+          <span className="widget-label">Alchemy</span>
+        </button>
         {/* Direct teacher instruction: the What's New book must always be
             reachable from the computer, not just the one-time popup in
             Town Square. */}

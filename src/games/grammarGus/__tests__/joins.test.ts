@@ -20,3 +20,19 @@ describe('joining words', () => {
     expect(r.rubric?.stars).toBe(3);
   });
 });
+
+describe('joined things on the Pixel TV', () => {
+  it('both joined things are cast and on the stage together', () => {
+    const r = run([['N', 'Mom'], ['V', 'hug'], ['N', 'Xander'], ['C', 'and'], ['N', 'Yoga']]);
+    const s = r.script!;
+    const nouns = s.cast.map((m) => m.noun);
+    expect(nouns).toEqual(expect.arrayContaining(['Mom', 'xander', 'yoga']));
+    const onStage = Object.keys(s.scenes[0].start).map((id) => s.cast.find((m) => m.id === id)!.noun);
+    expect(onStage).toEqual(expect.arrayContaining(['xander', 'yoga']));
+  });
+  it('eating two foods is fine, eating a food and a rock is silly', () => {
+    const codes = (ws: [string, string][]) => (runSentence({ tokens: ws.map(([pos, word]) => ({ pos: pos as never, word })), tense: 'present', level: 'full' }, undefined, 's1', { strictness: 'real' } as never).rubric?.verdicts ?? []).map((v) => v.code);
+    expect(codes([['R', 'she'], ['V', 'eat'], ['A', 'the'], ['N', 'pizza'], ['C', 'and'], ['A', 'the'], ['N', 'cake']])).not.toContain('EAT_NOT_FOOD');
+    expect(codes([['R', 'she'], ['V', 'eat'], ['A', 'the'], ['N', 'pizza'], ['C', 'and'], ['A', 'the'], ['N', 'rock']])).toContain('EAT_NOT_FOOD');
+  });
+});
