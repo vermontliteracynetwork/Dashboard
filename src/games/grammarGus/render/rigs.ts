@@ -461,6 +461,30 @@ function object(m: CastMember, look: Look, pose: Pose): Sprite {
       for (const k of [-3, -1.5, 0, 1.5, 3]) p.line(X(k * 0.4), Y(-0.5), X(k), Y(-6), k % 3 ? sh : C.white);
       break;
     }
+    // New everyday words (teacher 2026-10-08): each gets its own picture.
+    case 'cake': {
+      const [b] = col([C.pink, C.curtainLight]);
+      p.rect(X(-6), Y(-8), X(6), 0, C.tan); p.rect(X(-6), Y(-10), X(6), Y(-7), b); p.rect(X(-0.5), Y(-14), X(0.5), Y(-10), C.white); p.dot(0, Y(-15), f % 2 ? C.yellow : C.orange);
+      break;
+    }
+    case 'cookie': { const [b] = col([C.tan, C.brown]); p.ellipse(0, Y(-4), X(4.5), Y(4), b); for (const [dx, dy] of [[-2, -5], [1.5, -3], [0, -6.5], [2.5, -5.5]]) p.dot(X(dx), Y(dy), C.brown); break; }
+    case 'pizza': { const [b] = col([C.yellow, C.gold]); p.tri(X(-6), Y(-1), X(6), Y(-1), 0, Y(-12), b); p.rect(X(-6), Y(-2), X(6), 0, C.tan); p.dot(X(-1.5), Y(-5), C.red); p.dot(X(1.5), Y(-4), C.red); p.dot(0, Y(-8), C.red); break; }
+    case 'banana': { const [b] = col([C.yellow, C.gold]); p.line(X(-5), Y(-6), X(0), Y(-2), b, Math.max(2, 2.5 * s)); p.line(X(0), Y(-2), X(5), Y(-6), b, Math.max(2, 2.5 * s)); p.dot(X(5.5), Y(-7), C.brown); break; }
+    case 'carrot': { const [b] = col([C.orange, C.brown]); p.tri(X(-2.5), Y(-11), X(2.5), Y(-11), 0, 0, b); p.line(0, Y(-11), X(-1.5), Y(-15), C.green); p.line(0, Y(-11), X(1.5), Y(-15), C.green); break; }
+    case 'sandwich': { const [b] = col([C.tan, C.brown]); p.rect(X(-6), Y(-3), X(6), 0, b); p.rect(X(-6), Y(-5), X(6), Y(-3), C.green); p.rect(X(-6), Y(-6), X(6), Y(-5), C.red); p.rect(X(-6), Y(-9), X(6), Y(-6), b); break; }
+    case 'milk': case 'juice': case 'water': case 'cup': {
+      const [b] = col(n === 'milk' ? [C.white, C.lightGray] : n === 'juice' ? [C.orange, C.brown] : n === 'water' ? [C.skyLight, C.blue] : [C.red, C.curtainDark]);
+      p.rect(X(-3.5), Y(-10), X(3.5), 0, n === 'cup' ? b : C.lightGray); if (n !== 'cup') p.rect(X(-2.5), Y(-7), X(2.5), Y(-1), b); p.rect(X(3.5), Y(-7), X(5), Y(-4), C.lightGray);
+      break;
+    }
+    case 'hat': { const [b] = col([C.black, C.outline]); p.rect(X(-6), Y(-2), X(6), 0, b); p.rect(X(-3.5), Y(-10), X(3.5), Y(-2), b); p.rect(X(-3.5), Y(-4), X(3.5), Y(-3), C.red); break; }
+    case 'box': { const [b, sh] = col([C.tan, C.brown]); p.rect(X(-6), Y(-10), X(6), 0, b); p.line(X(-6), Y(-7), X(6), Y(-7), sh); p.rect(X(-1), Y(-10), X(1), Y(-7), C.lightGray); break; }
+    case 'tree': { const [b] = col([C.green, C.grassDark]); p.rect(X(-1.5), Y(-10), X(1.5), 0, C.brown); p.ellipse(0, Y(-16), X(7), Y(7), b); p.dot(X(-2), Y(-18), C.grass); p.dot(X(3), Y(-14), C.grass); break; }
+    case 'flower': { const [b] = col([C.yellow, C.gold]); p.line(0, 0, 0, Y(-9), C.green); for (const [dx, dy] of [[-2.5, -11], [2.5, -11], [0, -13.5], [0, -8.5]]) p.ellipse(X(dx), Y(dy), X(1.8), Y(1.8), b); p.dot(0, Y(-11), C.orange); break; }
+    case 'drum': { const [b] = col([C.red, C.curtainDark]); p.rect(X(-5), Y(-8), X(5), 0, b); p.ellipse(0, Y(-8), X(5), Y(1.5), C.white); p.line(X(-5), Y(-6), X(5), Y(-2), C.gold); p.line(X(3), Y(-12 + (f % 2)), X(6), Y(-15 + (f % 2)), C.brown); break; }
+    case 'sun': { const [b] = col([C.yellow, C.gold]); for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + (f % 2) * 0.2; p.line(X(Math.cos(a) * 6), Y(-8 + Math.sin(a) * 6), X(Math.cos(a) * 9), Y(-8 + Math.sin(a) * 9), C.orange); } p.ellipse(0, Y(-8), X(5), Y(5), b); break; }
+    case 'star': { const [b] = col([C.yellow, C.gold]); p.tri(X(-6), Y(-8), X(6), Y(-8), 0, Y(-1), b); p.tri(X(-6), Y(-4.5), X(6), Y(-4.5), 0, Y(-12), b); if (f % 2) p.dot(X(1), Y(-7), C.white); break; }
+    case 'house': { const [b] = col([C.tan, C.brown]); p.rect(X(-8), Y(-11), X(8), 0, b); p.tri(X(-10), Y(-11), X(10), Y(-11), 0, Y(-19), C.red); p.rect(X(-2), Y(-6), X(2), 0, C.brown); p.rect(X(4), Y(-9), X(7), Y(-6), C.skyLight); break; }
     default: return blob(m, look);
   }
   return p.finish();
@@ -493,6 +517,9 @@ function propSprite(m: CastMember, look: Look): Sprite {
 }
 
 const cache = new Map<string, Sprite>();
+// Things with their own picture; any other thing shows its name on the Pixel TV.
+export const OBJECT_DRAWINGS = new Set(['ball', 'kite', 'apple', 'book', 'crayon', 'dime', 'rose', 'shoe', 'straw', 'swing', 'balloon', 'popsicle', 'rock', 'planet', 'moon', 'comet', 'shell',
+  'cake', 'cookie', 'pizza', 'banana', 'carrot', 'sandwich', 'milk', 'juice', 'water', 'cup', 'hat', 'box', 'tree', 'flower', 'drum', 'sun', 'star', 'house']);
 export function spriteFor(m: CastMember, look: Look, pose: Pose): Sprite {
   const sing = nounByWord.get(m.noun)?.singular; // a Duplicator plural looks like its singular
   if (sing) m = { ...m, noun: sing };

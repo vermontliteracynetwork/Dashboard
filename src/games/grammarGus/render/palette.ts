@@ -28,6 +28,7 @@ export const COLOR_SWATCH: Record<string, [number, number]> = {
   red: [C.red, C.curtainDark], blue: [C.blue, C.teal], green: [C.green, C.grassDark], yellow: [C.yellow, C.gold],
   white: [C.white, C.lightGray], black: [C.black, C.outline], pink: [C.pink, C.curtainLight], purple: [C.purple, C.teal],
   orange: [C.orange, C.brown], brown: [C.brown, C.sepia3], gray: [C.gray, C.darkGray], tan: [C.tan, C.brown],
+  gold: [C.gold, C.goldDark], silver: [C.lightGray, C.gray],
 };
 
 export const RGB: [number, number, number][] = PALETTE.map((h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);

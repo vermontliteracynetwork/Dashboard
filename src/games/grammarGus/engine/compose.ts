@@ -136,7 +136,8 @@ export function compose(draft: Draft, plain = false): Composed {
     let text = normWord(t.word);
     if (t.pos === 'V') {
       const v = verbByBase.get(text);
-      const form = full ? forms.get(i) : (t.form ?? forms.get(i));
+      // The Clock's time always shows, even before the whole sentence makes sense (teacher 2026-10-08: walk becomes walked in the past).
+      const form = full ? (forms.get(i) ?? (draft.tense === 'past' ? 'past' : draft.tense === 'future' ? 'future' : undefined)) : (t.form ?? forms.get(i));
       if (v && form) text = verbText(v, form);
       if (v?.base === 'be') text = beText(draft.tokens, a, i, form ?? 'third');
     }

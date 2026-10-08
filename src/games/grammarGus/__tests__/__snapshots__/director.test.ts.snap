@@ -283,6 +283,9 @@ exports[`director (plan 5, 3.17) > pattern 2 future: a script of 10.0 s or less 
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
@@ -373,6 +376,9 @@ exports[`director (plan 5, 3.17) > pattern 2 past: a script of 10.0 s or less 1`
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
@@ -463,6 +469,9 @@ exports[`director (plan 5, 3.17) > pattern 2 present: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
@@ -554,6 +563,10 @@ exports[`director (plan 5, 3.17) > pattern 3 future: a script of 10.0 s or less 
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+        "white",
+      ],
       "color": "white",
       "extras": [],
       "scale": 0.75,
@@ -646,6 +659,10 @@ exports[`director (plan 5, 3.17) > pattern 3 past: a script of 10.0 s or less 1`
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+        "white",
+      ],
       "color": "white",
       "extras": [],
       "scale": 0.75,
@@ -738,6 +755,10 @@ exports[`director (plan 5, 3.17) > pattern 3 present: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+        "white",
+      ],
       "color": "white",
       "extras": [],
       "scale": 0.75,
@@ -1102,6 +1123,9 @@ exports[`director (plan 5, 3.17) > pattern 5 future: a script of 10.0 s or less 
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
@@ -1195,6 +1219,9 @@ exports[`director (plan 5, 3.17) > pattern 5 past: a script of 10.0 s or less 1`
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
@@ -1288,6 +1315,9 @@ exports[`director (plan 5, 3.17) > pattern 5 present: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
@@ -1382,6 +1412,10 @@ exports[`director (plan 5, 3.17) > pattern 6 future: a script of 10.0 s or less 
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+        "white",
+      ],
       "color": "white",
       "extras": [],
       "scale": 0.75,
@@ -1477,6 +1511,10 @@ exports[`director (plan 5, 3.17) > pattern 6 past: a script of 10.0 s or less 1`
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+        "white",
+      ],
       "color": "white",
       "extras": [],
       "scale": 0.75,
@@ -1572,6 +1610,10 @@ exports[`director (plan 5, 3.17) > pattern 6 present: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+        "white",
+      ],
       "color": "white",
       "extras": [],
       "scale": 0.75,
@@ -2009,11 +2051,17 @@ exports[`director (plan 5, 3.17) > pattern 8 future: a script of 10.0 s or less 
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
     },
     "c2": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -2123,11 +2171,17 @@ exports[`director (plan 5, 3.17) > pattern 8 past: a script of 10.0 s or less 1`
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
     },
     "c2": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -2237,11 +2291,17 @@ exports[`director (plan 5, 3.17) > pattern 8 present: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
     },
     "c2": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -2351,11 +2411,17 @@ exports[`director (plan 5, 3.17) > pattern 9 future: a script of 10.0 s or less 
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
     },
     "c2": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -2468,11 +2534,17 @@ exports[`director (plan 5, 3.17) > pattern 9 past: a script of 10.0 s or less 1`
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
     },
     "c2": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -2585,11 +2657,17 @@ exports[`director (plan 5, 3.17) > pattern 9 present: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.75,
       "wide": false,
     },
     "c2": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -3027,6 +3105,9 @@ exports[`director (plan 5, 3.17) > pattern 11 future: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -3138,6 +3219,9 @@ exports[`director (plan 5, 3.17) > pattern 11 past: a script of 10.0 s or less 1
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -3249,6 +3333,9 @@ exports[`director (plan 5, 3.17) > pattern 11 present: a script of 10.0 s or les
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -3360,6 +3447,9 @@ exports[`director (plan 5, 3.17) > pattern 12 future: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -3471,6 +3561,9 @@ exports[`director (plan 5, 3.17) > pattern 12 past: a script of 10.0 s or less 1
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -3582,6 +3675,9 @@ exports[`director (plan 5, 3.17) > pattern 12 present: a script of 10.0 s or les
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "big",
+      ],
       "extras": [],
       "scale": 1.5,
       "wide": false,
@@ -3952,6 +4048,9 @@ exports[`director (plan 5, 3.17) > pattern 14 future: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "young",
+      ],
       "extras": [
         "young",
       ],
@@ -4046,6 +4145,9 @@ exports[`director (plan 5, 3.17) > pattern 14 past: a script of 10.0 s or less 1
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "young",
+      ],
       "extras": [
         "young",
       ],
@@ -4140,6 +4242,9 @@ exports[`director (plan 5, 3.17) > pattern 14 present: a script of 10.0 s or les
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "young",
+      ],
       "extras": [
         "young",
       ],
@@ -4235,6 +4340,10 @@ exports[`director (plan 5, 3.17) > pattern 15 future: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "pretty",
+        "young",
+      ],
       "extras": [
         "young",
       ],
@@ -4331,6 +4440,10 @@ exports[`director (plan 5, 3.17) > pattern 15 past: a script of 10.0 s or less 1
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "pretty",
+        "young",
+      ],
       "extras": [
         "young",
       ],
@@ -4427,6 +4540,10 @@ exports[`director (plan 5, 3.17) > pattern 15 present: a script of 10.0 s or les
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "pretty",
+        "young",
+      ],
       "extras": [
         "young",
       ],
@@ -6039,6 +6156,9 @@ exports[`director (plan 5, 3.17) > pattern 20 future: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.6000000000000001,
       "wide": false,
@@ -6152,6 +6272,9 @@ exports[`director (plan 5, 3.17) > pattern 20 past: a script of 10.0 s or less 1
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.6000000000000001,
       "wide": false,
@@ -6265,6 +6388,9 @@ exports[`director (plan 5, 3.17) > pattern 20 present: a script of 10.0 s or les
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "small",
+      ],
       "extras": [],
       "scale": 0.6000000000000001,
       "wide": false,
@@ -6378,6 +6504,9 @@ exports[`director (plan 5, 3.17) > pattern 21 future: a script of 10.0 s or less
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "hard",
+      ],
       "extras": [
         "hard",
       ],
@@ -6493,6 +6622,9 @@ exports[`director (plan 5, 3.17) > pattern 21 past: a script of 10.0 s or less 1
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "hard",
+      ],
       "extras": [
         "hard",
       ],
@@ -6608,6 +6740,9 @@ exports[`director (plan 5, 3.17) > pattern 21 present: a script of 10.0 s or les
   ],
   "looks": {
     "c1": {
+      "adjs": [
+        "hard",
+      ],
       "extras": [
         "hard",
       ],

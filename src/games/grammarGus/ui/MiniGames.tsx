@@ -44,7 +44,7 @@ export function HomophoneSorter({ calm, onClose, onEarn, say, speak }: Props) {
         {done ? <>
           <p className="gwb-mini-big">All sorted! {firsts} of {items.length} on the first try.</p>
           <p>Words that sound the same can mean different things. The clue tells you which one.</p>
-          <button type="button" className="gus-btn gus-btn-primary" onClick={finish}>Collect {firsts} gear{firsts === 1 ? '' : 's'}</button>
+          <button type="button" className="gus-btn gus-btn-primary" onClick={finish}>Done</button>
         </> : <>
           <p className="gwb-mini-progress">Part {k + 1} of {items.length}</p>
           <div className="gwb-mini-card">
@@ -102,7 +102,7 @@ export function TransitionTrack({ calm, onClose, onEarn, say, speak }: Props) {
         {done ? <>
           <p className="gwb-mini-big">The train made it! {firsts} of {items.length} couplings on the first try.</p>
           <p>Transition words show how ideas connect: more, a difference, a result, an example, or time order.</p>
-          <button type="button" className="gus-btn gus-btn-primary" onClick={finish}>Collect {firsts} gear{firsts === 1 ? '' : 's'}</button>
+          <button type="button" className="gus-btn gus-btn-primary" onClick={finish}>Done</button>
         </> : <>
           <p className="gwb-mini-progress">Car {k + 1} of {items.length}</p>
           <div className={`gwb-train${coupled?.ok && !calm ? ' go' : ''}`}>

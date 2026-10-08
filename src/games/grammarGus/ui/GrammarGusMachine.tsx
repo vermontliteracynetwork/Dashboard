@@ -77,7 +77,7 @@ export default function GrammarGusMachine() {
   const [gus, setGus] = useState({ message: pick(makeRng(Date.now()), GREETINGS) + ' Drag a part onto my machine, or tap a spot and then a part.', mood: 'Hello', key: 'hello' });
   const [journalOpen, setJournalOpen] = useState(false);
   const [openHousings, setOpenHousings] = useState<HousingId[]>([]);
-  const [sessionGears, setSessionGears] = useState(0);
+  const [, setSessionGears] = useState(0);
   const [howFirst, setHowFirst] = useState(false);
   // Grammar Help levels (plan 3.6): what the student does by hand.
   const settings = useGusSettings();
@@ -568,7 +568,6 @@ export default function GrammarGusMachine() {
         <button type="button" className="gus-btn" onClick={() => navigate(-1)}>⬅ Back</button>
         <h1>Grammar Gus's Contraption</h1>
         <div className="gus-top-right">
-          <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
           <button type="button" className={`gus-btn${order ? ' on' : ''}`} onClick={startOrder}>🎯 Orders</button>
           <button type="button" className={`gus-btn${fw ? ' on' : ''}`} onClick={() => setLibOpen(true)}>📜 Blueprints</button>
           <button type="button" className="gus-btn" onClick={() => setJournalOpen(true)}>📓 Journal</button>

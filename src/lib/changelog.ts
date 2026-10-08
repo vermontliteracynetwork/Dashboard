@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-gus-pixel-words',
+    date: '2026-10-08',
+    icon: '📺',
+    title: 'Gus has more words, and the TV shows them all',
+    body: 'Gus knows lots of new words: pizza, penguins, pirates, dancing, sneaking and more. Every describing word shows on the Pixel TV now: sleepy makes zzz, slimy drips, sparkly sparkles. Save a sentence and its video with the Save button under the TV. Spin the Clock and every action word changes, like walk to walked.',
+  },
+  {
     id: '2026-10-08-gus-examples-typing',
     date: '2026-10-08',
     icon: '📝',

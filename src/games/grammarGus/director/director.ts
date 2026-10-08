@@ -10,6 +10,8 @@ import { adjByWord, nounByWord, verbByBase } from '../data/wordbank';
 export interface Look {
   color?: string; pattern?: 'striped' | 'spotted'; scale: number; wide: boolean;
   mood?: string; extras: string[];
+  // Every describing word, so each one shows on the Pixel TV (teacher 2026-10-08).
+  adjs?: string[];
 }
 export interface Beat {
   t: number; dur: number; do: string; who: string[];
@@ -35,12 +37,13 @@ export const STAMP_SECONDS = 0.6;
 export const SCENE_BUDGET = 7.6;
 const ENTER = 0.6; const SETTLE = 0.5; const SHOUT = 0.8;
 
-const SIZE_SCALE: Record<string, number> = { tiny: 0.6, small: 0.75, big: 1.5, great: 1.35, chubby: 1, plump: 1 };
+const SIZE_SCALE: Record<string, number> = { tiny: 0.6, small: 0.75, big: 1.5, great: 1.35, chubby: 1, plump: 1, huge: 1.7, giant: 1.85, little: 0.7, tall: 1.35, short: 0.8 };
 
 export function lookFor(m: CastMember): Look {
   const look: Look = { scale: 1, wide: false, extras: [] };
   const base = nounByWord.get(m.noun)?.size;
   if (base === 'small') look.scale = 0.8; else if (base === 'big') look.scale = 1.25;
+  if (m.adjectives.length) look.adjs = [...m.adjectives];
   for (const a of m.adjectives) {
     const kind = adjByWord.get(a)?.kind;
     if (kind === 'size') { look.scale *= SIZE_SCALE[a] ?? 1; if (a === 'chubby' || a === 'plump') look.wide = true; }

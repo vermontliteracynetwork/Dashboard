@@ -692,6 +692,24 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Grammar Gus: no coins, a plain third hint, the Clock changes every word, simpler My writing, save sentence and video, describing words on the Pixel TV, bigger word lists. SHIPPED 2026-10-08 (direct teacher instructions)
+
+- **Her words (verbatim):** "coins in grammar gus need to be removed, they dont equart to anything"; "in grammar gus, if a student sentence is not working after two hints, have gus explicitly say what is wrong and why it isnt running at the third hint request"; "if a time clock is being used, ensure all words change in the my writing (remove header from my writing, just show text field and small TTS icon) and on the prview bubbles (example, walk should change to walked if past tense clock is selectred"; "in grammar gus, the adjuectives and all meaningful word parts need to adapt the pixel screen videos. example the adjective. if sentences are saved and a pixel screen is used, they can save the sentence and video"; "in grammar gus, the detaul word lists need to be exapanded for increased vocab and more options (ensure they will display on the pixel tv)"; "make sure grammar gu's whiteboard eidts are prioriuty".
+- **Coins gone:** the gear coin counter is off the Workboard and the classic machine, and Gus no longer promises gears (mini-games end with "Done").
+- **Third hint:** the third time a student asks for a hint on the same stuck sentence, Gus names the exact words and the rule ("'the dog' and 'run' do not match. One who takes an action word with -s...") and says that is why the machine will not run (`data/explain.ts`, every blocking code).
+- **The Clock:** action words on the machines and in My writing always show the Clock's time, even before the whole sentence makes sense (walk shows walked in the past).
+- **My writing:** no header bar; just the writing and a small 🔈 read-aloud button.
+- **Save sentence and video:** a 📓 Save button under the Pixel TV on a 3-star machine saves the sentence and its video to the Journal (replay it there).
+- **Describing words on the Pixel TV:** every describing word now changes the video (`render/adjFx.ts`): sparkles, a glow, drips for slimy and wet, zzz for sleepy, hearts for kind, steam for angry, sweat for scared, a tear for sad, shivers for cold, heat for hot, stink lines, fluffy puffs, spikes, mud, a cane for old, ? for curious, ! for surprised, music notes for happy, speed lines, grr for hungry, and more. Size words (huge, giant, little, tall, short) resize and gold and silver repaint. A word with no picture yet is written above the character, so nothing is ever invisible. New how words show too (sadly: a tear, angrily: steam, sleepily: zzz, nervously: sweat).
+- **Bigger word lists (all on the Pixel TV):** 44 new naming words (baby, teacher, king, queen, chef, pirate, bear, lion, monkey, duck, penguin, elephant, giraffe, fox, bee, butterfly, cake, cookie, pizza, banana, carrot, sandwich, milk, juice, water, cup, hat, box, tree, flower, drum, sun, star, house, boat, train, truck...), each thing with its own new pixel drawing; 27 new action words (dance, hop, skip, race, march, roll, twirl, tumble, sneak, laugh, yell, whisper, read, throw, push, wash, sweep, paint, build, munch, gobble, sip, slurp, drive, visit...), each on a real clip; 39 new describing words; 12 new how words. All 317 Gus tests pass (director snapshots updated for the new describing-word list).
+
+### Queued from her messages this session (2026-10-08, verbatim, not built yet)
+
+- "in ipad optomization for grammar gus, allow them to drag and resize all components, collapsing everything, rezising, so they can get the most out of their main whiteboard space as needed" (with "the navigation for grammar gus needs to be optomized for ipads, right now things are sized weird so they cant see all words, cant navigate buttons"). Next, top priority.
+- "in gus's checklist, students should be able to click on each item to get a note of explanation of how to do each step explicilty. make sure the checklist is only things explicitly needed to make the sentence run as the machine. if they are continuously clicking and its not running, gus needs to tell them exactly what to fix after a few attempts" (the third-hint explanation above covers the last part; the checklist notes are next).
+- "in accademics tab, as teacher, allow me to add a new section beneth actiities that adds a grammar gus whiteboard where i can click, launch in a new tab, create a grammar board to join/share to me students for live edits or share as a copy so they can do it independently".
+- Question Sets (with a screenshot of the Academics Question Sets section): "allow me in this view to download csv file and uplaod a csv. when i upload a csv, give me option to upload a zip file of images. take the file and assume that the order the images are saved are the corresponsiding quesions in order. apply one image to each question. allow me to preview all questions with images (editing as needed) before i save the question set".
+
 ### Marketplace edits, game power-ups, real-life prizes, every home item, bank link. SHIPPED 2026-10-08 (direct teacher instruction)
 
 - **Her words (verbatim):** "marketplace edits: characters need to be removed and replaced with the new patters/colors/pets add ons. those should be replaced. 2) writing and whiteboard tools should become one category 3) in game power ups and IRL prizes need to be added 4) add all home items like furniture in their own category 5) in marketplace students should be ale to click their total balance to access their bank. a back button should return them to the marketplace screen"
@@ -712,15 +730,6 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - **📝 Example sentences** at the top of the parts menu (8 of them, `data/examples.ts`, each tested to read exactly as labeled and earn 3 stars). Drag one onto the board or tap it for a whole working machine; every word stays unlocked, so tapping a word swaps it.
 - **Typing:** a ✓ Save button beside the box, Enter, or simply closing the menu saves a typed word. If the word belongs to another kind of word machine (because in an Article), the machine turns into that kind and keeps the word ("Switcheroo"). Words Gus only finds in the online dictionary convert the same way. "because", "when", "if", "after", "before" and "while" are now in the Conjunction list.
 - **My writing** shows each sentence exactly as built: only the capital letters and punctuation the student snapped on.
-
-### In progress / queued from her messages this session (2026-10-08, verbatim, not built yet)
-
-- "the navigation for grammar gus needs to be optomized for ipads, right now things are sized weird so they cant see all words, cant navigate buttons" (next).
-- "in grammar gus, the adjuectives and all meaningful word parts need to adapt the pixel screen videos. example the adjective. if sentences are saved and a pixel screen is used, they can save the sentence and video" (next).
-- "coins in grammar gus need to be removed, they dont equart to anything" (next).
-- "in accademics tab, as teacher, allow me to add a new section beneth actiities that adds a grammar gus whiteboard where i can click, launch in a new tab, create a grammar board to join/share to me students for live edits or share as a copy so they can do it independently" (next).
-- "in grammar gus, the detaul word lists need to be exapanded for increased vocab and more options (ensure they will display on the pixel tv)" (next).
-
 
 ### Style character everywhere a student walks (Town Square, Home Room, Creative Island). SHIPPED 2026-10-08 (direct teacher instruction)
 

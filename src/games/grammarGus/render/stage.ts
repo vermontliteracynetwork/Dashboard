@@ -1,7 +1,8 @@
 import { FB, W, H } from './fb';
 import { C, SEPIA_OF, SEPIA_DARKER } from './palette';
 import { drawText, drawTextCentered, textWidth } from './font';
-import { spriteFor, drawProp } from './rigs';
+import { spriteFor, drawProp, OBJECT_DRAWINGS } from './rigs';
+import { drawAdjFx, hasAdjPicture } from './adjFx';
 import type { Beat, Scene, SceneScript } from '../director/director';
 import type { CastMember } from '../director/cast';
 import { nounByWord } from '../data/wordbank';
@@ -398,6 +399,9 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
     if (a.s.broken) drawCracks(fb, a.s.x, top);
     if (a.s.water) { fb.rect(a.s.x - 18, GROUND - 5, 36, 6, C.blue); for (let x = -18; x < 18; x += 4) fb.set(a.s.x + x + (Math.floor(t * 6) % 2) * 2, GROUND - 6, C.skyLight); }
     if (a.s.bush) drawBush(fb, a.s.x, t);
+    // Every describing word shows (teacher 2026-10-08); calm mode keeps them still.
+    const advFx = a.s.fx.map((f) => ({ tear: 'sad', steam: 'angry', zzz: 'sleepy', sweat: 'nervous' } as Record<string, string>)[f]).filter(Boolean);
+    drawAdjFx(fb, [...(look.adjs ?? []), ...advFx], a.s.x, top, GROUND + a.s.y, t, !!opts.calm);
     if (!opts.calm) { drawFx(fb, a.s, top, t); drawAction(fb, a.s, top, t, sprColor); }
     else if (a.s.act === 'talk' || a.s.act === 'sing' || a.s.act === 'mix' || a.s.act === 'drink') drawAction(fb, a.s, top, t, sprColor);
     if (a.s.sparkle && !opts.calm) { fb.set(a.s.x - 8, top - 2, C.yellow); fb.set(a.s.x + 8, top, C.yellow); fb.set(a.s.x, top - 5, C.white); }
@@ -406,6 +410,8 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
     else if (a.s.tags.length) drawTextCentered(fb, a.s.tags[0], a.s.x, Math.max(14, top - 11), C.white);
     else if (nounByWord.get(a.m.noun)?.proper) drawTextCentered(fb, a.m.noun.charAt(0).toUpperCase() + a.m.noun.slice(1), a.s.x, Math.max(14, top - 11), C.yellow); // a name: Mia, Vermont
     else if (nounByWord.get(a.m.noun)?.pack === 'custom') drawTextCentered(fb, a.m.noun, a.s.x, Math.max(14, top - 11), C.white); // a dictionary word: its name shows
+    else if (look.adjs?.some((x) => !hasAdjPicture(x))) drawTextCentered(fb, look.adjs.find((x) => !hasAdjPicture(x))!, a.s.x, Math.max(14, top - 11), C.white); // a describing word with no picture yet
+    else if (a.m.rig === 'object' && !OBJECT_DRAWINGS.has(nounByWord.get(a.m.noun)?.singular ?? a.m.noun)) drawTextCentered(fb, a.m.noun, a.s.x, Math.max(14, top - 11), C.white); // a thing with no drawing yet: its name shows
   };
   for (const a of states) if (a.s.behind) drawActor(a);
   for (const p of scene.props) { const m = castById.get(p.castId); drawProp(fb, m, m ? script.looks[m.id] : undefined, p.x, GROUND); }

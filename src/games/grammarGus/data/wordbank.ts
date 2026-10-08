@@ -57,6 +57,23 @@ export const NOUNS: NounEntry[] = [
   n('spy', 3, 'human', 'biped', '🕵️'), n('tiger', 3, 'animal', 'quadruped', '🐯'),
   n('uncle', 3, 'human', 'biped', '👨'), n('wheel', 3, 'thing', 'vehicle', '🛞'),
   n('zebra', 3, 'animal', 'quadruped', '🦓', { size: 'big' }),
+  // Bigger everyday lists (teacher 2026-10-08: "the detaul word lists need to
+  // be exapanded for increased vocab and more options (ensure they will
+  // display on the pixel tv)"). Every one has a Pixel TV drawing.
+  n('baby', 2, 'human', 'biped', '👶', { size: 'small' }), n('teacher', 2, 'human', 'biped', '🧑‍🏫'), n('friend', 2, 'human', 'biped', '🧑'),
+  n('king', 2, 'human', 'biped', '🤴'), n('queen', 2, 'human', 'biped', '👸'), n('chef', 2, 'human', 'biped', '🧑‍🍳'),
+  n('farmer', 2, 'human', 'biped', '🧑‍🌾'), n('pirate', 2, 'human', 'biped', '🏴‍☠️'), n('nurse', 2, 'human', 'biped', '🧑‍⚕️'),
+  n('bear', 2, 'animal', 'quadruped', '🐻', { size: 'big' }), n('lion', 2, 'animal', 'quadruped', '🦁'), n('monkey', 2, 'animal', 'biped', '🐵'),
+  n('duck', 2, 'animal', 'bird', '🦆', { size: 'small' }), n('penguin', 2, 'animal', 'bird', '🐧'), n('elephant', 2, 'animal', 'quadruped', '🐘', { size: 'big' }),
+  n('giraffe', 2, 'animal', 'quadruped', '🦒', { size: 'big' }), n('fox', 2, 'animal', 'quadruped', '🦊'), n('puppy', 2, 'animal', 'quadruped', '🐶', { size: 'small' }),
+  n('bunny', 2, 'animal', 'quadruped', '🐰', { size: 'small' }), n('bee', 2, 'animal', 'critter', '🐝', { size: 'small' }), n('butterfly', 2, 'animal', 'bird', '🦋', { size: 'small' }),
+  n('cake', 2, 'thing', 'object', '🎂', { food: true }), n('cookie', 2, 'thing', 'object', '🍪', { food: true, size: 'small' }), n('pizza', 2, 'thing', 'object', '🍕', { food: true }),
+  n('banana', 2, 'thing', 'object', '🍌', { food: true, size: 'small' }), n('carrot', 2, 'thing', 'object', '🥕', { food: true, size: 'small' }), n('sandwich', 2, 'thing', 'object', '🥪', { food: true }),
+  n('milk', 2, 'thing', 'object', '🥛', { drink: true, noA: true }), n('juice', 2, 'thing', 'object', '🧃', { drink: true, noA: true }), n('water', 2, 'thing', 'object', '💧', { drink: true, noA: true }),
+  n('cup', 2, 'thing', 'object', '🥤', { size: 'small' }), n('hat', 2, 'thing', 'object', '🎩', { size: 'small' }), n('box', 2, 'thing', 'object', '📦'),
+  n('tree', 2, 'thing', 'object', '🌳', { size: 'big' }), n('flower', 2, 'thing', 'object', '🌼', { size: 'small' }), n('drum', 2, 'thing', 'object', '🥁'),
+  n('sun', 2, 'thing', 'object', '☀️', { size: 'big' }), n('star', 2, 'thing', 'object', '⭐'), n('house', 2, 'thing', 'object', '🏠', { size: 'big' }),
+  n('boat', 2, 'thing', 'vehicle', '⛵', { size: 'big' }), n('train', 2, 'thing', 'vehicle', '🚂', { size: 'big' }), n('truck', 2, 'thing', 'vehicle', '🚚', { size: 'big' }),
   // Words her 33 example sentences use (pack "example", tier 3).
   ...([
     n('fish', 3, 'animal', 'critter', '🐟', { size: 'small' }), n('dolphin', 3, 'animal', 'critter', '🐬'),
@@ -97,6 +114,16 @@ export const VERBS: VerbEntry[] = [
   v('sing', 'sings', 'sang', 'B', 'sing'), v('slide', 'slides', 'slid', 'I', 'slide'),
   v('spin', 'spins', 'spun', 'B', 'spin'), v('talk', 'talks', 'talked', 'I', 'talk'),
   v('walk', 'walks', 'walked', 'B', 'walk'),
+  // Bigger everyday list (teacher 2026-10-08), each on a real Pixel TV clip.
+  v('dance', 'dances', 'danced', 'I', 'spin'), v('hop', 'hops', 'hopped', 'I', 'jump'), v('skip', 'skips', 'skipped', 'I', 'jump'),
+  v('race', 'races', 'raced', 'I', 'run'), v('march', 'marches', 'marched', 'I', 'walk'), v('stomp', 'stomps', 'stomped', 'I', 'walk'),
+  v('roll', 'rolls', 'rolled', 'I', 'spin'), v('twirl', 'twirls', 'twirled', 'I', 'spin'), v('tumble', 'tumbles', 'tumbled', 'I', 'fall'),
+  v('trip', 'trips', 'tripped', 'I', 'fall'), v('sneak', 'sneaks', 'sneaked', 'I', 'hide'), v('laugh', 'laughs', 'laughed', 'I', 'talk'),
+  v('yell', 'yells', 'yelled', 'I', 'talk'), v('whisper', 'whispers', 'whispered', 'I', 'talk'), v('read', 'reads', 'read', 'B', 'talk'),
+  v('throw', 'throws', 'threw', 'T', 'kick'), v('push', 'pushes', 'pushed', 'T', 'kick'), v('wash', 'washes', 'washed', 'B', 'clean'),
+  v('sweep', 'sweeps', 'swept', 'B', 'clean'), v('paint', 'paints', 'painted', 'B', 'clean'), v('build', 'builds', 'built', 'B', 'mix'),
+  v('munch', 'munches', 'munched', 'B', 'eat'), v('gobble', 'gobbles', 'gobbled', 'T', 'eat'), v('sip', 'sips', 'sipped', 'B', 'drink'),
+  v('slurp', 'slurps', 'slurped', 'B', 'drink'), v('drive', 'drives', 'drove', 'B', 'run'), v('visit', 'visits', 'visited', 'T', 'walk'),
   // Verbs her example sentences use.
   v('crawl', 'crawls', 'crawled', 'I', 'walk', 'example'), v('fly', 'flies', 'flew', 'I', 'fly', 'example'),
   v('swim', 'swims', 'swam', 'I', 'swim', 'example'), v('bounce', 'bounces', 'bounced', 'I', 'jump', 'example'),
@@ -128,6 +155,12 @@ export const ADJECTIVES: AdjEntry[] = [
   ...adj('look', 'core', 'bald'),
   ...adj('look', 'example', 'hard'),
   ...adj('color', 'color', 'red blue green yellow white black pink purple orange brown gray striped spotted'),
+  // Bigger everyday list (teacher 2026-10-08); each one shows on the Pixel TV.
+  ...adj('feeling', 'core', 'sad angry scared sleepy tired hungry excited proud shy grumpy curious surprised worried kind friendly cheerful'),
+  ...adj('size', 'core', 'huge giant little tall short'),
+  ...adj('age', 'core', 'ancient'),
+  ...adj('look', 'core', 'fluffy furry spiky wet dirty muddy smelly sticky strong fast slow hot cold soft loud quiet bright round'),
+  ...adj('color', 'core', 'gold silver'),
   ...adj('feeling', 'space', 'cosmic'), ...adj('look', 'space', 'shiny glowing'),
   ...adj('look', 'ocean', 'slimy sparkly soggy'),
 ];
@@ -135,6 +168,7 @@ export const ADJECTIVES: AdjEntry[] = [
 export const ADVERBS: { word: string; pack: Pack }[] = [
   ...'gently innocently lightly loudly messily quickly quietly slowly softly swiftly tenderly warmly wildly zealously'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'proudly safely'.split(' ').map((word) => ({ word, pack: 'example' as Pack })),
+  ...'happily sadly carefully bravely angrily calmly sleepily eagerly nervously kindly politely playfully'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'weirdly silently'.split(' ').map((word) => ({ word, pack: 'space' as Pack })),
   ...'gracefully sneakily'.split(' ').map((word) => ({ word, pack: 'ocean' as Pack })),
 ];

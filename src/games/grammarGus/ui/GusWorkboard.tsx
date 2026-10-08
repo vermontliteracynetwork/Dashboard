@@ -30,6 +30,7 @@ import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase, adjByWord, adverbSet, VERBS } from '../data/wordbank';
 import { SUBORD } from '../engine/grammar';
 import { CHEERS, GATE_LINES, GREETINGS, RUBRIC_LINES, lineFor } from '../data/gusLines';
+import { explainFinish, explainViolation } from '../data/explain';
 import { useGusSettings, levelFor } from '../settings';
 import GusGuide from './GusGuide';
 import PixelCinema from './PixelCinema';
@@ -73,7 +74,6 @@ const GRIP_W = 30;
 const ITEM_H = PART_H + 14;
 const uid = () => Math.random().toString(36).slice(2, 10);
 const gusOwner = (id: string) => `gus:${id}`;
-const TENSE_NAMES: Record<Tense, string> = { past: 'Past', present: 'Present', future: 'Future' };
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
 interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[] }
@@ -103,7 +103,7 @@ function rigLamps(line: BoardLine, rd: { draft: Draft }): string {
   const why = t.some((x) => x.pos === 'C' && ['because', 'so', 'if'].includes((x.word ?? '').toLowerCase()));
   return [has('N') || has('R'), has('V'), when, has('P'), why, t.some((x) => x.pos === 'D' && !['then'].includes((x.word ?? '').toLowerCase()))].map((b) => (b ? '1' : '0')).join('');
 }
-type Hint = { text: string; ghosts: FinishProblem[]; commaOn: string[]; pulse: string[]; glow?: Kind };
+type Hint = { text: string; ghosts: FinishProblem[]; commaOn: string[]; pulse: string[]; glow?: Kind; explain?: string };
 const FIRST_MISS = ["Hmm, that's not right. Try that again.", 'Hmm. You might be missing something.', 'Sputter, cough... Not quite yet. Look over your machine and try again.', 'Hmm, the marble got stuck. Something is not right yet. Try again.'];
 const STILL_STUCK = ["Looks like you're still trying to figure it out. Would you like a hint?", 'Still stuck? That is how inventors work. Would you like a hint?'];
 const GATE_GLOW: Partial<Record<Violation, Kind>> = { NO_COMMA: 'comma', NO_CAPITAL: 'cap', NO_END_MARK: 'stop', NO_SHOUT_MARK: 'bang' };
@@ -263,7 +263,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [topMenu, setTopMenu] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [sessionGears, setSessionGears] = useState(0);
+  const [, setSessionGears] = useState(0);
   // Guess and check (teacher 2026-10-07): "Gus should not give the answer
   // right away." The first miss only says hmm; the second offers a hint
   // button; the hint shows a see-through ghost of the missing part, and the
@@ -726,9 +726,11 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     if (n === 1) { setHintOffer(null); say(`${notes ? `${notes} ` : ''}${pick(rng, FIRST_MISS)}`, 'Hmm...'); }
     else { setHintOffer(lineId); say(`${notes ? `${notes} ` : ''}${pick(rng, STILL_STUCK)}`, 'Need a hint?'); }
   };
+  const hintsShown = useRef<Record<string, number>>({});
   const showHint = (lineId: string) => {
     const h = pendingHint.current[lineId]; if (!h) return;
     setHintOffer(null); setHinted((x) => ({ ...x, [lineId]: true })); setSelLine(lineId);
+    const asked = (hintsShown.current[lineId] ?? 0) + 1; hintsShown.current[lineId] = asked;
     const showGhost = level !== 'challenge' && (h.ghosts.length > 0 || h.commaOn.length > 0);
     if (level !== 'challenge') {
       setGhosts((g) => ({ ...g, [lineId]: h.ghosts })); setCommaGhost((c) => ({ ...c, [lineId]: h.commaOn }));
@@ -739,6 +741,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const hl = linesRef.current.find((l) => l.id === lineId);
     if (hl && h.commaOn.length && level !== 'challenge') { const v = viewRef.current; const top = (hl.y - ATT_H - 14) * v.z + v.y; if (top < 8) setView({ ...v, y: v.y + 8 - top }); }
     gusSound.ding();
+    // Third hint: Gus says exactly what is wrong and why it will not run.
+    if (asked >= 3 && h.explain) { say(`Here is exactly what is wrong. ${h.explain} That is why the machine will not run yet.`, '🔎 What is wrong'); return; }
     say(`Hint: ${h.text}${showGhost ? ' The see-through ghost shows where it goes. Drag the real part on from the parts menu.' : ''}`, '💡 Hint');
   };
   const run = (line0: BoardLine) => {
@@ -796,6 +800,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         commaOn: rd.problems.filter((x) => x.code === 'NEED_COMMA').map((x) => x.itemId!),
         pulse: rd.problems.filter((x) => x.code !== 'NEED_COMMA').map((x) => x.itemId).filter(Boolean) as string[],
         glow: FINISH_GLOW[p.code],
+        explain: explainFinish(p.code),
       }, gadgetNotes);
       if (!['NEED_CAP', 'NEED_END', 'NEED_TV'].includes(p.code)) logAttempt(rd.draft, compose(rd.draft).text, 0, [p.code]);
       return;
@@ -811,13 +816,14 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       const targets = v.targets.length ? v.targets : [Math.max(0, (v.insertAt ?? 1) - 1)];
       const ids = targets.map((i) => rd.tokenIds[i]).filter(Boolean);
       const gl = lineFor(GATE_LINES[v.code as Violation] ?? GATE_LINES.BAD_SHAPE!, seed);
-      missed(line.id, { text: `${gl.joke} ${gl.fix}`, ghosts: [], commaOn: v.code === 'NO_COMMA' ? ids : [], pulse: v.code === 'NO_COMMA' ? [] : ids, glow: GATE_GLOW[v.code as Violation] }, gadgetNotes);
+      const named = targets.map((i) => rd.draft.tokens[i]?.word).filter(Boolean) as string[];
+      missed(line.id, { text: `${gl.joke} ${gl.fix}`, ghosts: [], commaOn: v.code === 'NO_COMMA' ? ids : [], pulse: v.code === 'NO_COMMA' ? [] : ids, glow: GATE_GLOW[v.code as Violation], explain: explainViolation(v.code as Violation, named) }, gadgetNotes);
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars: 0 } : l)));
       logAttempt(rd.draft, r.composed.text, 0, r.validation.violations.filter((x) => x.blocking).map((x) => x.code));
       running.current = false;
       return;
     }
-    tries.current[line.id] = 0; setHintOffer((h) => (h === line.id ? null : h)); setHinted((h) => ({ ...h, [line.id]: false }));
+    tries.current[line.id] = 0; hintsShown.current[line.id] = 0; setHintOffer((h) => (h === line.id ? null : h)); setHinted((h) => ({ ...h, [line.id]: false }));
     logAttempt(rd.draft, r.composed.text, r.rubric!.stars, r.rubric!.verdicts.map((x) => x.code));
     const review = reviewSentence(rd.draft, r, quizRound.current++, ['robot', 'pizza', 'dragon']);
     // A question machine: the quick question is answering it.
@@ -873,7 +879,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
           const fresh = combos.filter((c) => !known.has(c.id));
           setComboShow({ lineId: line.id, names: combos.map((c) => c.name), key: Date.now() });
           timers.current.push(window.setTimeout(() => setComboShow(null), 2600));
-          timers.current.push(window.setTimeout(() => { gusSound.tada(); say(`COMBO! ${combos.map((c) => `${c.name}: ${c.cheer}`).join(' ')}${fresh.length ? ` New combo found: ${fresh.length * 5} bonus gears!` : ''}`, 'Combo!'); }, 1200));
+          timers.current.push(window.setTimeout(() => { gusSound.tada(); say(`COMBO! ${combos.map((c) => `${c.name}: ${c.cheer}`).join(' ')}${fresh.length ? ' A new combo for your collection!' : ''}`, 'Combo!'); }, 1200));
           if (fresh.length) {
             earn(fresh.length * 5);
             setSessionCombos((x) => [...x, ...fresh.map((c) => c.id)]);
@@ -909,7 +915,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     setBig({ script: sc, key: Date.now(), story: sealed, text: para.filter((l) => l.stars === 3).map((l, i) => withConnector(l, sealed[i]?.text ?? '')).join(' ') });
     const allLinked = para.slice(1).every((l) => l.connector);
     if (allLinked) earn(1);
-    say(allLinked ? 'Lights down. Time words on every sentence: a bonus gear for you!' : 'Lights down. Our paragraph presentation. Tip: add a time word like "Then" in front of each sentence.', 'Paragraph');
+    say(allLinked ? 'Lights down. Time words on every sentence. Beautiful!' : 'Lights down. Our paragraph presentation. Tip: add a time word like "Then" in front of each sentence.', 'Paragraph');
   };
   const onBigEnd = () => {
     if (!big?.story) return;
@@ -924,7 +930,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const rv = reviewStory(sealed);
     const ran = para.filter((l) => l.stars === 3);
     earn(0, { kind: sealed.length > 1 ? 'story' : 'sentence', text: sealed.map((s, i) => (ran[i] ? withConnector(ran[i], s.text) : s.text)).join(' '), stars: 3, storyStars: rv.stars, drafts: sealed.map((s) => s.draft) });
-    gusSound.ding(); say('Filed in your Journal. A fine specimen.', 'Saved');
+    gusSound.ding(); say('Saved in your Journal, sentence and video. Open the Journal to watch it again.', 'Saved');
   };
   const replayEntry = (e: JournalEntry) => {
     if (!e.drafts?.length) return;
@@ -1346,7 +1352,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         <button type="button" className="gus-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>
         <h1>Gus's Workboard</h1>
         <div className="gus-top-right">
-          <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
+          {/* Gear coins removed (teacher 2026-10-08: "coins in grammar gus need to be removed, they dont equart to anything"). */}
           {((saved.stickers ?? []).length > 0 || foundCombos.length > 0) && (
             <div className="gwb-menu-wrap">
               <button type="button" className={`gus-btn${shelfOpen ? ' on' : ''}`} onClick={() => { setShelfOpen((o) => !o); setTopMenu(false); setJobsOpen(false); }} aria-expanded={shelfOpen} aria-label={`Sticker shelf: ${(saved.stickers ?? []).length} stickers, ${foundCombos.length} combos`}>🏅 {(saved.stickers ?? []).length + foundCombos.length}</button>
@@ -1493,7 +1499,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               const fullForms = level === 'full' ? expectedForms(rd.draft) : null;
               const plateWord = (it: BoardItem): string | null => {
                 const k = rd.tokenIds.indexOf(it.id);
-                if (wordPosOf(it.kind) === 'V' && it.word) { const v = verbByBase.get(it.word); const f = fullForms ? fullForms.get(k) : (it.form ?? 'base'); return v && f ? verbText(v, f) : it.word; }
+                if (wordPosOf(it.kind) === 'V' && it.word) { const v = verbByBase.get(it.word); const tense = rd.draft.tense; const f = fullForms ? (fullForms.get(k) ?? (tense === 'past' ? 'past' : tense === 'future' ? 'future' : undefined)) : (it.form ?? 'base'); return v && f ? verbText(v, f) : it.word; }
                 if (wordPosOf(it.kind) === 'N' && k >= 0) return rd.draft.tokens[k].word;
                 return it.word;
               };
@@ -1585,12 +1591,14 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                             <button type="button" onClick={() => playParagraph(line.id)} aria-label="Play this paragraph">▶ Play</button>
                           </span>
                         )}
-                        {item.kind === 'tv' && (
+                        {item.kind === 'tv' && (<>
                           <div className="gwb-tv-screen">
                             <PixelCinema script={playing?.lineId === line.id ? playing.script : null} playKey={playing?.lineId === line.id ? playing.key : 0} calm={calm} question={line.stars === 0} onEnd={onLineVideoEnd} />
                             {playing?.lineId === line.id && !calm && <span key={playing.key} className="gwb-tv-pops" aria-hidden>{line.items.filter((x) => isContraption(x.kind)).slice(0, 6).map((x, k) => <i key={x.id} style={{ animationDelay: `${0.3 + k * 0.55}s`, left: `${10 + ((k * 37) % 60)}%`, top: `${12 + ((k * 23) % 50)}%` }}>{FUN_ROLE[x.kind as keyof typeof FUN_ROLE].pop}</i>)}</span>}
                           </div>
-                        )}
+                          {/* Teacher 2026-10-08: save the sentence with its Pixel TV video (replay it from the Journal). */}
+                          {line.stars === 3 && <button type="button" className="gwb-tv-save" onPointerDown={(e) => e.stopPropagation()} onClick={() => savePara(line.id)} aria-label="Save this sentence and its video in your Journal">📓 Save</button>}
+                        </>)}
                         {(pulse.includes(item.id) || (cough?.lineId === line.id && item.kind === 'lever')) && !calm && <span className="gwb-steam" aria-hidden><i /><i /><i /></span>}
                       </div>
                     );
@@ -1679,21 +1687,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             sentence as a page of writing, paragraphs kept together. Tap a
             sentence to jump to its machine. */}
         <section className="gwb-doc" aria-label="My writing">
-          <div className="gwb-doc-bar">
-            <strong>📝 My writing</strong>
-            {focusLine && (() => {
-              const rd = readLine(focusLine, level, false);
-              const t = lineText(focusLine, rd, requireFinish || !!focusLine.job);
-              const inPara = (paras.find((p) => p.some((l) => l.id === focusLine.id))?.length ?? 0) > 1;
-              return <>
-                <span className="gwb-caption-time">{TENSE_NAMES[tenseOf(focusLine)]}</span>
-                {inPara && <button type="button" className={`gwb-connector${focusLine.connector ? ' set' : ''}`} onClick={() => setConnectorFor(focusLine.id)} aria-label={focusLine.connector ? `Transition word: ${focusLine.connector}. Tap to change.` : 'Add a transition word'}>{focusLine.connector ? `${focusLine.connector},` : '+ transition word'}</button>}
-                {t && <button type="button" className="gus-mini" onClick={() => speak(withConnector(focusLine, t))}>🔈 Hear it</button>}
-                {focusLine.stars === 3 && <button type="button" className="gus-mini" onClick={() => savePara(focusLine.id)}>📓 Save</button>}
-              </>;
-            })()}
-            {lines.some((l) => readLine(l, level, false).draft.tokens.some((x) => x.word)) && <button type="button" className="gus-mini" onClick={() => speak(paras.map((p) => p.map((l) => { const rd = readLine(l, level, false); const t = lineText(l, rd, requireFinish || !!l.job); return t ? withConnector(l, t) : ''; }).filter(Boolean).join(' ')).filter(Boolean).join(' '))}>🔈 Read it all</button>}
-          </div>
+          {/* Teacher 2026-10-08: no header, just the writing and a small read-aloud button. */}
+          {lines.some((l) => readLine(l, level, false).draft.tokens.some((x) => x.word)) && <button type="button" className="gwb-doc-tts" onClick={() => speak(paras.map((p) => p.map((l) => { const rd = readLine(l, level, false); const t = lineText(l, rd, true); return t ? withConnector(l, t) : ''; }).filter(Boolean).join(' ')).filter(Boolean).join(' '))} aria-label="Read my writing out loud">🔈</button>}
           <div className="gwb-doc-page">
             {(() => {
               const out = paras.map((p, pi) => {
@@ -1747,7 +1742,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                     {test.review.quiz && (() => { const qz = test.review!.quiz!; const got = quiz[cLine.id]; return <div className="gwb-quiz">
                       <strong>🧠 Quick question: {qz.q}</strong>
                       <div className="gwb-quiz-choices">{qz.choices.map((c) => <button key={c} type="button" className={`gus-btn${got?.pick === c ? (c === qz.answer ? ' right' : ' wrong') : ''}`} onClick={() => {
-                        if (c === qz.answer) { gusSound.ding(); say(`Yes! ${qz.why}${got?.paid ? '' : ' One gear for you.'}`, 'Right!'); if (!got?.paid) earn(1); setQuiz((q) => ({ ...q, [cLine.id]: { pick: c, paid: true } })); }
+                        if (c === qz.answer) { gusSound.ding(); say(`Yes! ${qz.why}`, 'Right!'); if (!got?.paid) earn(1); setQuiz((q) => ({ ...q, [cLine.id]: { pick: c, paid: true } })); }
                         else { gusSound.ahem(); say(`Not quite. Read your sentence again and look for it. ${qz.q}`, 'Look again'); setQuiz((q) => ({ ...q, [cLine.id]: { pick: c, paid: !!got?.paid } })); }
                       }}>{c}</button>)}</div>
                     </div>; })()}
@@ -1887,8 +1882,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         </div>
       )}
 
-      {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} gear${g === 1 ? '' : 's'} for first-try sorting!`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
-      {mini === 'trans' && <TransitionTrack calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} gear${g === 1 ? '' : 's'} for first-try couplings!`, 'Transition Track'); } }} say={say} speak={speak} />}
+      {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great sorting.`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
+      {mini === 'trans' && <TransitionTrack calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great couplings.`, 'Transition Track'); } }} say={say} speak={speak} />}
       {connectorFor && (() => { const l = lines.find((x) => x.id === connectorFor); if (!l) return null; return (
         <div className="gus-journal-backdrop" onClick={() => setConnectorFor(null)}>
           <div className="gus-journal gwb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Pick a time word">

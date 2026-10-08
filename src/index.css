@@ -5659,3 +5659,9 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .crumbs.dark .crumb { color: #ffe9a8; }
 .crumbs.dark .crumb.here { color: #fff; }
 .crumbs-bar { display: flex; align-items: center; padding: 0 12px; background: rgba(20, 24, 36, 0.78); border-radius: 0 0 12px 12px; overflow-x: auto; }
+
+.gwb-doc { position: relative; }
+.gwb-doc-tts { position: absolute; top: 6px; right: 6px; z-index: 2; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.15); background: #fff; font-size: 1.1rem; cursor: pointer; }
+.gwb-doc .gwb-doc-page { padding-right: 56px; }
+
+.gwb-tv-save { position: absolute; left: 50%; top: calc(100% + 4px); transform: translateX(-50%); min-height: 44px; padding: 0 14px; border-radius: 22px; border: 2px solid #fff; background: #2f5d50; color: #fff; font-weight: 800; white-space: nowrap; cursor: pointer; z-index: 3; }
