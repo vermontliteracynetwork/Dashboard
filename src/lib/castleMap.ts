@@ -117,16 +117,19 @@ function seeded(seed: number) {
 // (seeded), so the map looks the same every game. Anchored at the base
 // (trunk / bottom edge), sorted top-to-bottom so nearer things overlap
 // farther ones.
-export function buildDecor(slots: Pt[]): Decor[] {
-  const rnd = seeded(11);
-  const items: Decor[] = [];
-  // Checks the base point AND (for anything tall) the middle of its
-  // canopy, so a tree planted below a build plot can't grow up over it.
-  const clear = (x: number, y: number, pathGap: number, height = 0) =>
-    distanceToPath(x, y) > pathGap &&
+// Checks the base point AND (for anything tall) the middle of its canopy, so a tree planted below
+// a build plot can't grow up over it; away from the road, the plots, the castle and the pond.
+export function isClearSpot(slots: Pt[], x: number, y: number, pathGap: number, height = 0): boolean {
+  return distanceToPath(x, y) > pathGap &&
     slots.every((s) => Math.hypot(s.x - x, s.y - y) > 11 && Math.hypot(s.x - x, s.y - (y - height / 2)) > height / 2 + 9) &&
     !(x > CASTLE_GATE.x - 16 && y > CASTLE_GATE.y - 30 && y < CASTLE_GATE.y + 10) &&
     Math.hypot((x - POND.x) / (POND.rx + 4), (y - POND.y) / (POND.ry + 4)) > 1;
+}
+
+export function buildDecor(slots: Pt[]): Decor[] {
+  const rnd = seeded(11);
+  const items: Decor[] = [];
+  const clear = (x: number, y: number, pathGap: number, height = 0) => isClearSpot(slots, x, y, pathGap, height);
 
   const tree = (x: number, y: number) => {
     const jx = x + (rnd() - 0.5) * 5;

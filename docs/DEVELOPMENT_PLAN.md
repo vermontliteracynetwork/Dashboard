@@ -770,6 +770,9 @@ This is the one place to see every gameplay feature that is not built yet, pulle
   - **The Wisp builder** flies in and casts over the spot whenever a tower is built or upgraded, and the tower pops into place.
   - **Four townspeople** stand by the castle gate and cheer when a wave is cleared.
   - Same questions, gems, pay, waves and rules as before. Reduced motion stops the sprite animations.
+- **Two more packs the same day (her words, verbatim):** "these can aslo be added to castle defense" (CraftPix Free Fantasy Guard Magic Towers Pack, CraftPix Free Poison Swamp Game Tileset and Environment Pack). SHIPPED the same day:
+  - **4 more towers** (smooth drawn art, levels 1 to 3 of the pack's 4; resized copies in `public/games/castle-defense/craftpix/magic-towers/`): Brick Watchtower (always hits the toughest attacker near it), Wooden Lookout (cheap: 2 gems), Weakness Tower (attackers it hits glow purple and take 1.5 times damage from every tower for a while), Blessing Tower (the towers on either side reload 30% faster). That makes 14 towers.
+  - **"Where?" on the menu:** 🌼 Sunny meadow (the original) or 🐸 Poison swamp: swamp ground, a bubbling poison pool with lily leaves, a mossy green road, swamp sticks, shrubs, tree towers, rafflesia, rocks and boulders in place of the meadow's trees, and a danger sign, broken boat, lantern, skeleton, house and flag where they fit (`CastleGround`'s `map` prop; props in `public/games/castle-defense/craftpix/swamp/`, resized). Same road, plots and rules.
 - **Saved but not used yet:** the field and village tilesets (a tile-built map is the next step), the construction and collapse sheets, the archer units and arrows, the extra enemy animations (attack, special, death), the Foozle weapon animations and projectiles.
 
 ### Castle Defense art upgrade: CraftPix and Foozle tower defense packs. SAVED 2026-10-08, PARTLY USED (direct teacher instructions, three batches)

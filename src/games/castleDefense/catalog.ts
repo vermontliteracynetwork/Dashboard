@@ -12,13 +12,16 @@ export interface Sheet {
   row: number; frames: number; bbox: [number, number, number, number]; ms?: number;
 }
 
-export type TowerId = 'stone' | 'wood' | 'pink' | 'archer' | 'crossbow' | 'crystal' | 'orb' | 'bolt' | 'zap' | 'gemmine';
+export type TowerId = 'stone' | 'wood' | 'pink' | 'archer' | 'crossbow' | 'crystal' | 'orb' | 'bolt' | 'zap' | 'gemmine' | 'watchtower' | 'lookout' | 'weakness' | 'blessing';
 export interface TowerDef {
   id: TowerId; label: string; blurb: string; cost: number[]; dps: number[];
   cooldownMs: number; sprite: (tier: 1 | 2 | 3) => string; isNew?: boolean;
-  cleave?: number; cleaveMult?: number; splashAll?: boolean; slowTicks?: number; reach?: 1 | 2; gemsPerWave?: [number, number, number];
+  cleave?: number; cleaveMult?: number; splashAll?: boolean; slowTicks?: number; reach?: 1 | 2; gemsPerWave?: number[];
+  // Fantasy Guard pack (smooth drawn art, not pixel art).
+  smooth?: boolean; toughestFirst?: boolean; weakTicks?: number; blessNeighbors?: boolean;
 }
 const built = (name: string) => (tier: 1 | 2 | 3) => `${CD}/built/${name}-${tier}.png`;
+const magic = (name: string) => (tier: 1 | 2 | 3) => `${CD}/craftpix/magic-towers/${name}-${tier}.png`;
 export const TOWERS: Record<TowerId, TowerDef> = {
   stone: { id: 'stone', label: 'Stone Tower', blurb: 'Hits one attacker hard.', cost: [3, 3, 4], dps: [3, 5, 8], cooldownMs: 1000, sprite: (t) => `/castle-defense/tower-stone-${t}.png` },
   wood: { id: 'wood', label: 'Banner Tower', blurb: 'Also hits a second attacker nearby.', cost: [4, 4, 5], dps: [2, 4, 6], cooldownMs: 1000, cleave: 1, cleaveMult: 0.5, sprite: (t) => `/castle-defense/tower-wood-${t}.png` },
@@ -29,6 +32,10 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   orb: { id: 'orb', label: 'Frost Orb Tower', blurb: 'Slows attackers for a long time.', cost: [4, 4, 5], dps: [1, 2, 3], cooldownMs: 1000, slowTicks: 7, sprite: built('foozle-05'), isNew: true },
   bolt: { id: 'bolt', label: 'Bolt Tower', blurb: 'Giant hits, but slow to reload.', cost: [4, 5, 6], dps: [7, 11, 16], cooldownMs: 2000, sprite: built('foozle-06'), isNew: true },
   zap: { id: 'zap', label: 'Spark Lamp', blurb: 'Zaps one attacker, then jumps to 2 more.', cost: [5, 5, 6], dps: [2, 3, 5], cooldownMs: 1000, cleave: 2, cleaveMult: 0.5, sprite: built('foozle-07'), isNew: true },
+  watchtower: { id: 'watchtower', label: 'Brick Watchtower', blurb: 'Sharp eyes: always hits the toughest attacker near it.', cost: [4, 4, 5], dps: [3, 5, 8], cooldownMs: 1000, toughestFirst: true, smooth: true, sprite: magic('brick'), isNew: true },
+  lookout: { id: 'lookout', label: 'Wooden Lookout', blurb: 'Cheap to build: only 2 gems.', cost: [2, 3, 4], dps: [2, 3, 5], cooldownMs: 1000, smooth: true, sprite: magic('wooden'), isNew: true },
+  weakness: { id: 'weakness', label: 'Weakness Tower', blurb: 'Makes attackers weak, so every tower hits them harder.', cost: [4, 4, 5], dps: [1, 2, 3], cooldownMs: 1000, weakTicks: 7, smooth: true, sprite: magic('weakness'), isNew: true },
+  blessing: { id: 'blessing', label: 'Blessing Tower', blurb: 'Helps the towers next to it shoot faster.', cost: [5, 5, 6], dps: [1, 1, 2], cooldownMs: 1000, blessNeighbors: true, smooth: true, sprite: magic('blessing'), isNew: true },
   gemmine: { id: 'gemmine', label: 'Gem Mine', blurb: 'Digs up bonus gems after every wave. Pokes attackers too.', cost: [5, 5, 6], dps: [1, 1, 2], cooldownMs: 1000, gemsPerWave: [1, 2, 3], sprite: built('foozle-08'), isNew: true },
 };
 export const TOWER_IDS = Object.keys(TOWERS) as TowerId[];
@@ -96,3 +103,10 @@ export const WISP_CAST: Sheet = { src: `${CD}/foozle/builder/wisp/spritesheet/wi
 export const citizen = (n: number, cheering: boolean): Sheet => ({
   src: `${CD}/craftpix/citizens/${n}/s_${cheering ? 'special' : 'idle'}.png`, imgW: cheering ? 288 : 192, imgH: 48, cellW: 48, cellH: 48, row: 0, frames: cheering ? 6 : 4, bbox: [12, 0, 36, 33], ms: cheering ? 110 : 160,
 });
+
+// Where the battle happens (teacher 2026-10-08, the Poison Swamp pack): the meadow, or the swamp.
+export type MapId = 'meadow' | 'swamp';
+export const MAPS: { id: MapId; label: string; icon: string }[] = [
+  { id: 'meadow', label: 'Sunny meadow', icon: '🌼' },
+  { id: 'swamp', label: 'Poison swamp', icon: '🐸' },
+];

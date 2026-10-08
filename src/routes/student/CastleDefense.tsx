@@ -19,7 +19,7 @@ import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
 import { drawQuestion } from '../../lib/questionPick';
-import { ATTACKER_THEMES, ENEMIES, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_IDS, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
+import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_IDS, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
 import SheetSprite from '../../games/castleDefense/SheetSprite';
 
 // Castle Defense — a Town Square building (role 'castle' in
@@ -162,6 +162,10 @@ type TowerType = TowerId;
 const TOWER_META = TOWERS;
 const TOWER_SPRITE = (type: TowerType, tier: 1 | 2 | 3) => TOWERS[type].sprite(tier);
 const THEME_KEY = 'castle.attackers';
+const MAP_KEY = 'castle.map';
+const readMap = (): MapId => { try { return localStorage.getItem(MAP_KEY) === 'swamp' ? 'swamp' : 'meadow'; } catch { return 'meadow'; } };
+const WEAK_DAMAGE = 1.5; // Weakness Tower: weak attackers take this much from every hit
+const BLESS_COOLDOWN = 0.7; // Blessing Tower: towers next to it reload this much faster
 const readTheme = (): ThemeId => { try { const t = localStorage.getItem(THEME_KEY) as ThemeId | null; return t && ATTACKER_THEMES.some((x) => x.id === t) ? t : 'classic'; } catch { return 'classic'; } };
 // Castle townspeople, near the gate (map units).
 const CITIZEN_SPOTS = [{ x: 131, y: 88 }, { x: 139, y: 91 }, { x: 150, y: 90 }, { x: 157, y: 84 }];
@@ -208,6 +212,7 @@ interface SimEnemy {
   // slowTicksRemaining counts down once applied; 0 = not currently slowed.
   slowDebtMs: number;
   slowTicksRemaining: number;
+  weakTicksRemaining?: number; // Weakness Tower: every hit lands harder while this lasts
 }
 
 // A single tower-shot's visible flight from the tower's top to whatever it
@@ -266,6 +271,7 @@ export default function CastleDefense() {
   const [phase, setPhase] = useState<Phase>('menu');
   // Which attackers come (teacher 2026-10-08: more options). Chosen on the menu, remembered here.
   const [theme, setTheme] = useState<ThemeId>(readTheme);
+  const [mapId, setMapId] = useState<MapId>(readMap);
   const [waves, setWaves] = useState<string[][]>(() => buildWaves(readTheme()));
   // The Wisp builds every new tower or upgrade: slot index -> build time.
   const [building, setBuilding] = useState<Record<number, number>>({});
@@ -474,26 +480,27 @@ export default function CastleDefense() {
       const travelElapsed = Math.max(0, elapsed - e.spawnAt - slowDebtMs);
       const progress = Math.min(100, (travelElapsed / TRAVEL_MS) * 100);
       if (progress >= 100) return { ...e, slowDebtMs, slowTicksRemaining, progress: 100, status: 'leaked' as const, justHit: false };
-      return { ...e, slowDebtMs, slowTicksRemaining, progress, status: 'active' as const, justHit: false };
+      return { ...e, slowDebtMs, slowTicksRemaining, weakTicksRemaining: Math.max(0, (e.weakTicksRemaining ?? 0) - 1), progress, status: 'active' as const, justHit: false };
     });
 
     const hit = (idx: number, dmg: number) => {
       const target = arr[idx];
-      const newHp = target.hp - dmg;
+      const newHp = target.hp - ((target.weakTicksRemaining ?? 0) > 0 ? Math.ceil(dmg * WEAK_DAMAGE) : dmg);
       arr[idx] = newHp <= 0 ? { ...target, hp: 0, status: 'dead', justHit: true } : { ...target, hp: newHp, justHit: true };
     };
 
     slots.forEach((slot, i) => {
       if (!slot) return;
       const def = TOWER_META[slot.type];
-      if (now - (towerCooldownRef.current[i] ?? 0) < (def.cooldownMs ?? TOWER_FIRE_COOLDOWN_MS)) return;
+      const blessed = [slots[i - 1], slots[i + 1]].some((n) => n && TOWER_META[n.type].blessNeighbors);
+      if (now - (towerCooldownRef.current[i] ?? 0) < (def.cooldownMs ?? TOWER_FIRE_COOLDOWN_MS) * (blessed ? BLESS_COOLDOWN : 1)) return;
       const zoneStart = i * ZONE_WIDTH;
       const zoneEnd = Math.min(100.01, zoneStart + ZONE_WIDTH * (def.reach ?? 1));
       // Every active enemy this tower guards, furthest-along first (real TD "who do I hit" targeting).
       const inZone = arr
         .map((e, idx) => ({ e, idx }))
         .filter(({ e }) => e.status === 'active' && e.progress >= zoneStart && e.progress < zoneEnd)
-        .sort((a, b) => b.e.progress - a.e.progress);
+        .sort((a, b) => (def.toughestFirst ? b.e.hp - a.e.hp || b.e.progress - a.e.progress : b.e.progress - a.e.progress));
       if (inZone.length === 0) return;
 
       const dps = def.dps[slot.tier - 1];
@@ -506,6 +513,9 @@ export default function CastleDefense() {
       });
       if (def.slowTicks && arr[primary.idx].status !== 'dead') {
         arr[primary.idx] = { ...arr[primary.idx], slowTicksRemaining: def.slowTicks };
+      }
+      if (def.weakTicks && arr[primary.idx].status !== 'dead') {
+        arr[primary.idx] = { ...arr[primary.idx], weakTicksRemaining: def.weakTicks };
       }
 
       towerCooldownRef.current[i] = now;
@@ -616,6 +626,17 @@ export default function CastleDefense() {
               {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
               <p className="bakery-blurb">5 waves. Answer to earn gems. Build towers to defend the castle!</p>
               <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {student?.castleDefenseQuestionsAnswered ?? 0} lifetime questions answered</span>
+              <div className="cd-theme-pick" role="radiogroup" aria-label="Where is the battle?">
+                <span className="cd-theme-title">Where?</span>
+                <div className="cd-theme-row">
+                  {MAPS.map((m) => (
+                    <button key={m.id} type="button" role="radio" aria-checked={mapId === m.id} className={`cd-theme-chip${mapId === m.id ? ' on' : ''}`}
+                      onClick={() => { setMapId(m.id); try { localStorage.setItem(MAP_KEY, m.id); } catch { /* fine */ } }}>
+                      <span aria-hidden>{m.icon}</span> {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="cd-theme-pick" role="radiogroup" aria-label="Who attacks the castle?">
                 <span className="cd-theme-title">Who attacks?</span>
                 <div className="cd-theme-row">
@@ -661,8 +682,8 @@ export default function CastleDefense() {
       {showBoard && (
         <div className="castle-game">
           <div className="castle-frame">
-            <div className="castle-battlefield">
-              <CastleGround slots={SLOT_POSITIONS} />
+            <div className={`castle-battlefield${mapId === 'swamp' ? ' swamp' : ''}`}>
+              <CastleGround slots={SLOT_POSITIONS} map={mapId} />
 
               <div className="castle-hud castle-hud-left">
                 <span className="castle-hud-stat" title="Gems to build towers">
@@ -729,7 +750,7 @@ export default function CastleDefense() {
                       <>
                         <img
                           key={`${slot.type}-${slot.tier}`}
-                          className={`castle-tower-img${building[i] ? ' cd-built' : ''}`}
+                          className={`castle-tower-img${building[i] ? ' cd-built' : ''}${TOWER_META[slot.type].smooth ? ' cd-smooth' : ''}`}
                           src={TOWER_SPRITE(slot.type, slot.tier)}
                           alt=""
                           style={{ height: TOWER_HEIGHT_BY_TIER[slot.tier - 1] }}
@@ -751,7 +772,7 @@ export default function CastleDefense() {
                 return (
                   <div
                     key={e.key}
-                    className={`castle-enemy${ENEMIES[e.type].flying ? ' flying' : ''}${pt.dx < 0 ? ' facing-left' : ''}${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}`}
+                    className={`castle-enemy${ENEMIES[e.type].flying ? ' flying' : ''}${pt.dx < 0 ? ' facing-left' : ''}${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}${(e.weakTicksRemaining ?? 0) > 0 ? ' weak' : ''}`}
                     style={{ ...toPct(pt), zIndex: 10 + Math.round(pt.y), transitionDuration: `${TICK_MS}ms` }}
                   >
                     {e.status === 'active' && (
@@ -856,7 +877,7 @@ export default function CastleDefense() {
                     disabled={gems < TOWER_META[current.type].cost[current.tier]}
                     onClick={() => upgradeTower(pickerSlot)}
                   >
-                    <img src={TOWER_SPRITE(current.type, (current.tier + 1) as 1 | 2 | 3)} alt="" />
+                    <img src={TOWER_SPRITE(current.type, (current.tier + 1) as 1 | 2 | 3)} alt="" className={TOWER_META[current.type].smooth ? 'cd-smooth' : undefined} />
                     <span>
                       <span className="castle-tower-picker-label" style={{ display: 'block' }}>Upgrade to Tier {current.tier + 1}</span>
                       <span className="castle-tower-picker-cost">💎 {TOWER_META[current.type].cost[current.tier]}</span>
@@ -878,7 +899,7 @@ export default function CastleDefense() {
                     disabled={gems < TOWER_META[type].cost[0]}
                     onClick={() => placeTower(pickerSlot, type)}
                   >
-                    <img src={TOWER_SPRITE(type, 1)} alt="" />
+                    <img src={TOWER_SPRITE(type, 1)} alt="" className={TOWER_META[type].smooth ? 'cd-smooth' : undefined} />
                     <span>
                       <span className="castle-tower-picker-label" style={{ display: 'block' }}>{TOWER_META[type].label}{TOWER_META[type].isNew && <span className="cd-new-tag">NEW</span>}</span>
                       <span className="castle-tower-picker-blurb" style={{ display: 'block' }}>{TOWER_META[type].blurb}</span>

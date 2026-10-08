@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { MAP_W, MAP_H, PATH_D, POND, buildDecor, decorHeight, type Pt } from '../lib/castleMap';
+import { MAP_W, MAP_H, PATH_D, POND, buildDecor, decorHeight, isClearSpot, type Pt } from '../lib/castleMap';
 
 const DECOR_SRC = {
   tree: '/castle-defense/prop-tree.png',
@@ -10,8 +10,62 @@ const DECOR_SRC = {
 // The static battlefield: pond, winding sand road, forest ring. Memoized
 // with a stable `slots` reference so the 150ms combat tick never re-renders
 // these ~150 shapes.
-export const CastleGround = memo(function CastleGround({ slots }: { slots: Pt[] }) {
+// The Poison Swamp (teacher upload 2026-10-08, CraftPix): the same road and plots, swamp ground,
+// a poison pool and swamp props in place of the meadow's trees, bushes and rocks.
+const SW = '/games/castle-defense/craftpix/swamp';
+const SWAMP_PROPS: Record<'tree' | 'bush' | 'rock', [string, number][]> = {
+  tree: [['sticks-1', 180 / 151], ['sticks-2', 180 / 171], ['shrub-swamp-1', 105 / 180], ['sticks-3', 146 / 130], ['shrub-swamp-2', 119 / 180], ['tree-tower-short', 164 / 180], ['sticks-4', 134 / 128], ['bushes-1', 157 / 180], ['sticks-5', 136 / 106], ['tree-tower-tall', 180 / 162]],
+  bush: [['bushes-2', 109 / 131], ['shrub-swamp-3', 100 / 126], ['rafflesia', 148 / 169], ['bushes-3', 89 / 111], ['water-plant-1', 136 / 94]],
+  rock: [['rock-1', 63 / 76], ['rock-2', 69 / 92], ['boulder-2', 129 / 180], ['rock-3', 64 / 74], ['rock-4', 41 / 66], ['boulder-3', 139 / 180]],
+};
+const SWAMP_SPECIALS: { src: string; aspect: number; x: number; y: number; w: number }[] = [
+  { src: 'danger-sign', aspect: 120 / 118, x: 10, y: 36, w: 9 },
+  { src: 'broken-boat', aspect: 180 / 133, x: 66, y: 32, w: 8 },
+  { src: 'lantern', aspect: 163 / 113, x: 118, y: 80, w: 6 },
+  { src: 'animal-skeleton', aspect: 127 / 180, x: 100, y: 92, w: 11 },
+  { src: 'house', aspect: 180 / 136, x: 150, y: 30, w: 12 },
+  { src: 'flag', aspect: 134 / 106, x: 88, y: 46, w: 6 },
+];
+
+export const CastleGround = memo(function CastleGround({ slots, map = 'meadow' }: { slots: Pt[]; map?: 'meadow' | 'swamp' }) {
   const decor = useMemo(() => buildDecor(slots), [slots]);
+  const specials = useMemo(() => SWAMP_SPECIALS.filter((d) => isClearSpot(slots, d.x, d.y, 8, d.w * d.aspect)), [slots]);
+  if (map === 'swamp') return (
+    <svg className="castle-ground-svg swamp" viewBox={`0 0 ${MAP_W} ${MAP_H}`} aria-hidden="true">
+      <defs>
+        <pattern id="castle-swamp-ground" width="24" height="24" patternUnits="userSpaceOnUse">
+          <image href={`${SW}/ground/dark.png`} width="24" height="24" />
+        </pattern>
+        <radialGradient id="castle-swamp-pool" cx="42%" cy="38%" r="70%">
+          <stop offset="0%" stopColor="#e4ff6a" />
+          <stop offset="60%" stopColor="#8fd12c" />
+          <stop offset="100%" stopColor="#3f7a12" />
+        </radialGradient>
+      </defs>
+      <rect width={MAP_W} height={MAP_H} fill="url(#castle-swamp-ground)" />
+      <ellipse cx={POND.x} cy={POND.y + 0.6} rx={POND.rx + 1.6} ry={POND.ry + 1.3} fill="#2f5a1c" />
+      <ellipse cx={POND.x} cy={POND.y} rx={POND.rx} ry={POND.ry} fill="url(#castle-swamp-pool)" stroke="#2a4f14" strokeWidth="0.6" />
+      <circle cx={POND.x - 3} cy={POND.y - 1} r="0.9" fill="#f4ffb0" opacity="0.8" className="castle-swamp-bubble" />
+      <circle cx={POND.x + 2.5} cy={POND.y + 1.5} r="0.6" fill="#f4ffb0" opacity="0.8" className="castle-swamp-bubble b2" />
+      <image href={`${SW}/props/leaf-on-the-water-1.png`} x={POND.x + 2} y={POND.y - 3.5} width="5" height="4" />
+      <image href={`${SW}/props/leaf-on-the-water-3.png`} x={POND.x - 7} y={POND.y + 0.5} width="4.4" height="3.6" />
+
+      <path d={PATH_D} className="castle-road castle-road-rim" />
+      <path d={PATH_D} className="castle-road castle-road-edge" />
+      <path d={PATH_D} className="castle-road castle-road-base" />
+      <path d={PATH_D} className="castle-road castle-road-light" />
+      <path d={PATH_D} className="castle-road castle-road-pebbles" />
+
+      {[...decor.map((d, i) => {
+        const list = SWAMP_PROPS[d.kind];
+        const [name, aspect] = list[i % list.length];
+        const w = d.kind === 'tree' ? d.w * 0.9 : d.kind === 'rock' ? d.w * 1.3 : d.w;
+        return { key: `d${i}`, src: `${SW}/props/${name}.png`, x: d.x, y: d.y, w, h: w * aspect };
+      }), ...specials.map((d, i) => ({ key: `s${i}`, src: `${SW}/props/${d.src}.png`, x: d.x, y: d.y, w: d.w, h: d.w * d.aspect }))]
+        .sort((a, b) => a.y - b.y)
+        .map((d) => <image key={d.key} href={d.src} x={d.x - d.w / 2} y={d.y - d.h} width={d.w} height={d.h} className="castle-decor swamp" />)}
+    </svg>
+  );
   return (
     <svg className="castle-ground-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} aria-hidden="true">
       <defs>
