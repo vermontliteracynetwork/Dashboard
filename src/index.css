@@ -5962,3 +5962,8 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .hb-buy { background: #fff; border-radius: 18px; padding: 18px; width: 100%; max-width: 320px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; font-family: system-ui, sans-serif; }
 .hb-buy img { width: 110px; height: 110px; object-fit: contain; }
 @media (max-width: 700px) { .hb-tools { top: auto; bottom: 230px; transform: none; } .hb-tool { width: 58px; min-height: 52px; } .hb-camera { top: auto; bottom: 230px; transform: none; } }
+
+/* Castle Defense: remove a placed tower (two taps, full gem refund) */
+.cd-remove-btn { display: block; width: 100%; min-height: 48px; margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 2px solid #c94b4b; background: #fff; color: #a33636; font-weight: 700; font-size: 1rem; cursor: pointer; touch-action: manipulation; }
+.cd-remove-btn.armed { background: #c94b4b; color: #fff; }
+.cd-remove-btn:focus-visible { outline: 3px solid #2b6cb0; outline-offset: 2px; }

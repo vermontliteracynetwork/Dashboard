@@ -714,6 +714,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - A teacher inbox report for each session.
 
 **Castle Defense:**
+- **Remove a placed tower — SHIPPED 2026-10-08. Her words (verbatim): "queue: in tower defense game, allow delete towers after they've been placed".** During the build phase, tapping a built tower shows "🗑️ Remove this tower" under the upgrade button; a second tap ("Tap again to remove it and get 💎 N back") removes it and returns every gem spent on it (build plus upgrades). Claudia's call: a full refund so moving a tower is never a penalty, and two taps so it never happens by accident. Not yet: the Wisp's collapse animation when a tower is removed (the art is saved).
 - Art upgrade: towers, attackers, portal, Wisp and townspeople SHIPPED 2026-10-08 (see "Castle Defense: new art added to the old"). Still to do: a map built from the field and village tiles, death and attack animations, animated tower weapons. Packs: (field and village tiles, 7 CraftPix enemies and 8 Foozle bugs including flyers, the archer tower plus 6 Foozle towers with 3 weapon levels each, the Wisp builder with build and collapse animations, a 3-stage enemy portal, 4 citizens), saved in `public/games/castle-defense/craftpix/`, `foozle/` and `portal/`. She confirmed all licenses are good to go. QUEUED 2026-10-08, see "Castle Defense art upgrade".
 
 **Space Bowling:**

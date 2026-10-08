@@ -50,9 +50,10 @@ import { useRoundSettings } from '../../lib/gameRounds';
 //    convert to real currency once at completion").
 //  - Build phase has no clock: tap a slot to place a tier-1 tower (3
 //    types, flavor difference only, all viable), tap an already-built slot
-//    to upgrade it (tier 2, then 3). Towers are never removed or replaced,
-//    only upgraded — "upgrade-or-place defenders" per the standing dev-plan
-//    note, never both on the same slot.
+//    to upgrade it (tier 2, then 3) or remove it. Removing gives back every
+//    gem spent on that tower (teacher 2026-10-08: "allow delete towers after
+//    they've been placed"; Claudia: a full refund so trying a new spot is
+//    never a penalty), and takes two taps so it never happens by accident.
 //  - Advance phase, REBUILT as a real tick-based simulation (2026-09-30,
 //    direct teacher feedback: "nowhere near the quality of gameplay
 //    needed... why is it so poor quality?" — Claudia's follow-up review
@@ -288,6 +289,8 @@ export default function CastleDefense() {
   const [wave, setWave] = useState(1);
   const [slots, setSlots] = useState<SlotState[]>(() => Array(TOWER_SLOTS).fill(null));
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
+  const [removeArmed, setRemoveArmed] = useState(false);
+  useEffect(() => { setRemoveArmed(false); }, [pickerSlot]);
   const [gems, setGems] = useState(0);
   const [gateCorrectCount, setGateCorrectCount] = useState(0);
   const [challengeQuestion, setChallengeQuestion] = useState<MCQuestion | null>(null);
@@ -410,6 +413,17 @@ export default function CastleDefense() {
     setGems((g) => g - cost);
     setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { type: current.type, tier: nextTier } : s)));
     wispBuild(slotIndex);
+    setPickerSlot(null);
+  };
+
+  const spentOn = (t: NonNullable<SlotState>) => TOWER_META[t.type].cost.slice(0, t.tier).reduce((n, c) => n + c, 0);
+  const removeTower = (slotIndex: number) => {
+    const current = slots[slotIndex];
+    if (!current || phase !== 'build') return;
+    setGems((g) => g + spentOn(current));
+    setSlots((prev) => prev.map((s, i) => (i === slotIndex ? null : s)));
+    setBuilding((b) => { const n = { ...b }; delete n[slotIndex]; return n; });
+    playSfx('match');
     setPickerSlot(null);
   };
 
@@ -749,7 +763,7 @@ export default function CastleDefense() {
                     style={{ ...toPct(SLOT_POSITIONS[i]), zIndex: 10 + Math.round(SLOT_POSITIONS[i].y) }}
                     onClick={() => setPickerSlot(i)}
                     disabled={phase !== 'build'}
-                    aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade.` : 'Empty build spot. Tap to build a tower.'}
+                    aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade or remove.` : 'Empty build spot. Tap to build a tower.'}
                   >
                     <span className="castle-plot" aria-hidden="true" />
                     {building[i] && <span className="cd-wisp" aria-hidden><SheetSprite sheet={WISP_CAST} /></span>}
@@ -893,6 +907,12 @@ export default function CastleDefense() {
                 ) : (
                   <p className="bakery-modal-note">Fully upgraded! This tower is as strong as it gets.</p>
                 )}
+                <button
+                  className={`cd-remove-btn${removeArmed ? ' armed' : ''}`}
+                  onClick={() => (removeArmed ? removeTower(pickerSlot) : setRemoveArmed(true))}
+                >
+                  {removeArmed ? `Tap again to remove it and get 💎 ${spentOn(current)} back` : '🗑️ Remove this tower'}
+                </button>
               </>
             ) : (
               <>

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-cd-remove',
+    date: '2026-10-08',
+    icon: '🏰',
+    title: 'Castle Defense: move your towers',
+    body: 'Changed your mind about a tower? Tap it while you build and pick Remove. You get all your gems back, so you can build it somewhere better.',
+  },
+  {
     id: '2026-10-08-home-build',
     date: '2026-10-08',
     icon: '🏠',
