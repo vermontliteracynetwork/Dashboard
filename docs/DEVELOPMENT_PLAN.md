@@ -699,7 +699,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - A teacher inbox report for each session.
 
 **Castle Defense:**
-- Art upgrade with her CraftPix tower defense packs (field tiles, 4 animated enemies, the archer tower with upgrade steps and archers, 4 citizens), saved in `public/games/castle-defense/craftpix/`. QUEUED 2026-10-08, see "Castle Defense art upgrade".
+- Art upgrade with her CraftPix and Foozle tower defense packs (field and village tiles, 7 CraftPix enemies and 8 Foozle bugs including flyers, the archer tower plus 2 Foozle towers with 3 weapon levels each, 4 citizens), saved in `public/games/castle-defense/craftpix/` and `foozle/`. QUEUED 2026-10-08, see "Castle Defense art upgrade".
 
 **Space Bowling:**
 - Use the saved assets not in the game yet: the venue and bowling lane models, the Kenney Sports pack, and her Bowling GUI pack (once she confirms she has the rights to it).
@@ -753,7 +753,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
-### Castle Defense art upgrade: CraftPix tower defense packs. QUEUED 2026-10-08 (direct teacher instruction)
+### Castle Defense art upgrade: CraftPix and Foozle tower defense packs. QUEUED 2026-10-08 (direct teacher instructions, two batches)
 
 - **Her words (verbatim):** "QUEUE: add to tower defense game" (with four CraftPix uploads: Free Fields Tileset, Free Field Enemies, Free Archer Towers, Free Pixel Citizens, all "pixel art for tower defense").
 - **Saved, not used yet:** `public/games/castle-defense/craftpix/` (1.4 MB, PNGs and each pack's license; the PSD sources, coupons and Mac extras were left out):
@@ -761,8 +761,13 @@ This is the one place to see every gameplay feature that is not built yet, pulle
   - `enemies/1` to `4`: four field enemies, each with walk, a second walk, special and two death sprite strips, facing down (D), side (S) and up (U). Strips are 48px tall, 6 frames of 48px.
   - `towers/`: an archer tower with 7 upgrade steps and 7 idle frames (280 x 130 sheets), 3 archer units, and arrows.
   - `citizens/1` to `4`: four townspeople with idle, walk and special strips in the same three facings.
-- **License:** CraftPix free license (https://craftpix.net/file-licenses/): free for personal and commercial projects; do not resell or share the raw files on their own. Fine inside the game.
-- **Plan when built (Claudia's notes, to confirm with her):** swap Castle Defense's map for a field built from the tiles (the path from the tiles, decor along it), the attackers for the four animated enemies (walk along the path in the right facing, special when they reach the castle, death when stopped), and the towers for the archer tower with its upgrade steps as the tower levels, with archers shooting arrows. The citizens walk around inside the castle walls and cheer after a wave. Same rules, questions and pay as today; iPad first (the sprites scale up crisply as pixel art), calm mode and reduced motion keep the animation gentle. Also listed in the Gameplay roadmap, section 2.
+- **Second batch (her words, verbatim, same day):** "QUEUE: add to tower defense game" (with five more uploads: Foozle Spire Tower Pack 1, Foozle Spire Enemy Pack 1 Flying, Foozle Spire Enemy Pack 2 Ground, CraftPix Free Enemy Pixel Pack for Top Down Defense, CraftPix Free Village Pixel Tileset for Top Down Defense). Saved, not used yet (2.7 MB more, PNGs and licenses only; Aseprite, PSD and GIF sources left out):
+  - `craftpix/enemies-2/1` to `3`: three more enemies with run (or fly), attack, special and death strips in three facings; enemy 3 flies and has two projectiles.
+  - `craftpix/village-tileset/`: two sets of village tiles (66 and 65), objects (shadows, stones, decor, boxes, grass, tents, houses) and animated doors and double doors.
+  - `foozle/towers/`: two tower bases, each with weapons at levels 1 to 3, projectiles and impact effects (spritesheets).
+  - `foozle/flying-enemies/`: Flying Locust, Voidbutterfly, Clampbeetle, Firewasp. `foozle/ground-enemies/`: Leafbug, Scorpion, Firebug, Magma Crab (spritesheets, each pack's Readme).
+- **Licenses:** CraftPix free license (https://craftpix.net/file-licenses/): free for personal and commercial projects; do not resell or share the raw files on their own. Foozle packs: CC0 (public domain, no attribution needed; credit "Foozle, art by Baldur" is a kind extra on the Teacher home credits). Fine inside the game.
+- **Plan when built (Claudia's notes, to confirm with her):** swap Castle Defense's map for a field built from the tiles (the path from the tiles, decor along it), the attackers for the four animated enemies (walk along the path in the right facing, special when they reach the castle, death when stopped), and the towers for the archer tower with its upgrade steps as the tower levels, with archers shooting arrows. The citizens walk around inside the castle walls and cheer after a wave. With the second batch: a village map option (the village tiles, houses and tents, doors that open), flying enemies (Foozle flyers and CraftPix enemy 3) that only some towers can hit, ground bugs as early easy waves, and the two Foozle towers (each with 3 weapon levels) as new tower types next to the archer tower, so a student picks and upgrades towers. Same rules, questions and pay as today; iPad first (the sprites scale up crisply as pixel art), calm mode and reduced motion keep the animation gentle. Also listed in the Gameplay roadmap, section 2.
 
 ### Alchemy as a native game with student-set question breaks; Gus knock knock joke example; Gus Phase 2 begins with the Run-on Fixer; one SQL file to run. SHIPPED 2026-10-08 (direct teacher instructions)
 
