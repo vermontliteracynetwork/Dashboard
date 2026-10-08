@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: '2026-10-08',
     icon: '🏰',
     title: 'Castle Defense: move your towers',
-    body: 'Changed your mind about a tower? Tap it while you build and pick Remove. You get all your gems back, so you can build it somewhere better.',
+    body: 'Changed your mind about a tower? Tap it while you build and pick Remove. You get all your gems back, so you can build it somewhere better. Watch it crumble to dust while the Wisp floats over it!',
   },
   {
     id: '2026-10-08-home-build',

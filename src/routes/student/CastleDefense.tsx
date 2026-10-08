@@ -19,7 +19,7 @@ import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
 import { drawQuestion } from '../../lib/questionPick';
-import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_IDS, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
+import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
 import SheetSprite from '../../games/castleDefense/SheetSprite';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
@@ -54,6 +54,7 @@ import { useRoundSettings } from '../../lib/gameRounds';
 //    gem spent on that tower (teacher 2026-10-08: "allow delete towers after
 //    they've been placed"; Claudia: a full refund so trying a new spot is
 //    never a penalty), and takes two taps so it never happens by accident.
+//    The Wisp hovers over it while it crumbles (the Foozle collapse animation).
 //  - Advance phase, REBUILT as a real tick-based simulation (2026-09-30,
 //    direct teacher feedback: "nowhere near the quality of gameplay
 //    needed... why is it so poor quality?" — Claudia's follow-up review
@@ -291,6 +292,8 @@ export default function CastleDefense() {
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [removeArmed, setRemoveArmed] = useState(false);
   useEffect(() => { setRemoveArmed(false); }, [pickerSlot]);
+  // A removed tower crumbles while the Wisp hovers over it: slot index -> the tower that was there.
+  const [collapsing, setCollapsing] = useState<Record<number, { type: TowerType; tier: 1 | 2 | 3; at: number }>>({});
   const [gems, setGems] = useState(0);
   const [gateCorrectCount, setGateCorrectCount] = useState(0);
   const [challengeQuestion, setChallengeQuestion] = useState<MCQuestion | null>(null);
@@ -400,6 +403,7 @@ export default function CastleDefense() {
     if (gems < cost) return;
     setGems((g) => g - cost);
     setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { type, tier: 1 } : s)));
+    setCollapsing((c) => { if (!c[slotIndex]) return c; const n = { ...c }; delete n[slotIndex]; return n; });
     wispBuild(slotIndex);
     setPickerSlot(null);
   };
@@ -423,7 +427,10 @@ export default function CastleDefense() {
     setGems((g) => g + spentOn(current));
     setSlots((prev) => prev.map((s, i) => (i === slotIndex ? null : s)));
     setBuilding((b) => { const n = { ...b }; delete n[slotIndex]; return n; });
-    playSfx('match');
+    const at = Date.now();
+    setCollapsing((c) => ({ ...c, [slotIndex]: { type: current.type, tier: current.tier, at } }));
+    window.setTimeout(() => setCollapsing((c) => { if (c[slotIndex]?.at !== at) return c; const n = { ...c }; delete n[slotIndex]; return n; }), 1250);
+    playSfx('pop');
     setPickerSlot(null);
   };
 
@@ -767,6 +774,18 @@ export default function CastleDefense() {
                   >
                     <span className="castle-plot" aria-hidden="true" />
                     {building[i] && <span className="cd-wisp" aria-hidden><SheetSprite sheet={WISP_CAST} /></span>}
+                    {!slot && collapsing[i] && (
+                      <>
+                        <img
+                          className={`castle-tower-img cd-collapsing${TOWER_META[collapsing[i].type].smooth ? ' cd-smooth' : ''}`}
+                          src={TOWER_SPRITE(collapsing[i].type, collapsing[i].tier)}
+                          alt=""
+                          style={{ height: TOWER_HEIGHT_BY_TIER[collapsing[i].tier - 1] }}
+                        />
+                        <span className="cd-collapse" aria-hidden><SheetSprite sheet={TOWER_COLLAPSE} once /></span>
+                        <span className="cd-wisp" aria-hidden><SheetSprite sheet={WISP_CAST} /></span>
+                      </>
+                    )}
                     {slot ? (
                       <>
                         <img
@@ -781,7 +800,7 @@ export default function CastleDefense() {
                         </span>
                         {canAct && <span className="castle-upgrade-badge" aria-hidden="true">▲</span>}
                       </>
-                    ) : (
+                    ) : !collapsing[i] && (
                       <span className="castle-slot-plus" aria-hidden="true">+</span>
                     )}
                   </button>

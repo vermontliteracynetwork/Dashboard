@@ -102,6 +102,8 @@ export function buildWaves(theme: ThemeId, count = 5, rng: () => number = Math.r
 const portal = (name: string, frames: number): Sheet => ({ src: `${CD}/portal/48x48-side-scroller-td-overgrown-${name}.png`, imgW: frames * 48, imgH: 48, cellW: 48, cellH: 48, row: 0, frames, bbox: [0, 0, 48, 48], ms: 140 });
 export const PORTAL_STAGES: Sheet[] = [portal('portal', 4), portal('torn-portal', 4), portal('electric-torn-portal', 4)];
 export const portalStage = (wave: number, total = 5) => (wave / total <= 0.4 ? 0 : wave / total <= 0.8 ? 1 : 2);
+// The Wisp's collapse when a student removes a tower (13 frames of the tower crumbling into dust).
+export const TOWER_COLLAPSE: Sheet = { src: `${CD}/foozle/builder/building-animations/pngs/tower---collapse.png`, imgW: 3328, imgH: 192, cellW: 256, cellH: 192, row: 0, frames: 13, bbox: [2, 25, 254, 156], ms: 90 };
 export const WISP_CAST: Sheet = { src: `${CD}/foozle/builder/wisp/spritesheet/wisp---animations.png`, imgW: 576, imgH: 384, cellW: 64, cellH: 64, row: 3, frames: 9, bbox: [12, 10, 52, 58], ms: 90 };
 export const citizen = (n: number, cheering: boolean): Sheet => ({
   src: `${CD}/craftpix/citizens/${n}/s_${cheering ? 'special' : 'idle'}.png`, imgW: cheering ? 288 : 192, imgH: 48, cellW: 48, cellH: 48, row: 0, frames: cheering ? 6 : 4, bbox: [12, 0, 36, 33], ms: cheering ? 110 : 160,
