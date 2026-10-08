@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-gus-joins-figurative',
+    date: '2026-10-08',
+    icon: '🎭',
+    title: 'Join more words, and try figurative language',
+    body: 'Joining words like and now join two things too: Mom hugs Xander and Yoga. Open Examples in the parts menu to find Figurative language: a simile (The girl runs like a rocket) and a metaphor (The baby is a star).',
+  },
+  {
     id: '2026-10-08-gus-paragraph-lever',
     date: '2026-10-08',
     icon: '🔗',
@@ -69,7 +76,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: '2026-10-08',
     icon: '🛍️',
     title: 'A new Marketplace',
-    body: 'Shop Style animals, patterns and clothes. Buy power-ups for Shape Dash and Space Bowling, real-life prizes, and every piece of home furniture. Writing and Whiteboard are together now. Tap your balance to open your Bank.',
+    body: 'Shop Style animals, patterns and clothes. Buy power-ups for Shape Dash and Space Bowling, and every piece of home furniture. Writing and Whiteboard are together now. Tap your balance to open your Bank.',
   },
   {
     id: '2026-10-08-style-everywhere',

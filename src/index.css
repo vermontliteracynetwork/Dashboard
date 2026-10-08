@@ -5724,3 +5724,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-save-typed { flex: none; min-height: 44px !important; font-size: 0.95rem !important; }
 .gwb-wordmenu .gwb-surprise { flex: none; min-height: 44px; }
 .gwb-wordmenu-foot { flex: none; }
+
+.gwb-ex-sub { display: flex; flex-direction: column; gap: 6px; padding-left: 6px; border-left: 3px solid rgba(243,207,107,0.45); }
+.gwb-ex-subtitle { font: 800 0.72rem 'Lexend', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: #f3cf6b; padding-top: 4px; }
+.gwb-ex-note { font: 600 0.75rem 'Lexend', sans-serif; color: #cfd6e6; }

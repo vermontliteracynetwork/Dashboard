@@ -119,7 +119,7 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
   if (sorter) {
     const rd = readOf(line, items, level); const a = analyze(rd.draft.tokens);
     let moved = false;
-    for (const np of a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.pp]).filter((x) => !!x)) {
+    for (const np of a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.obj2, cl.pp]).filter((x) => !!x)) {
       const its = np.adjs.map((i) => items.find((x) => x.id === rd.tokenIds[i])!).filter((x) => x?.word);
       const sorted = [...its.map((x) => x.word!)].sort((x, y) => adjRank(x) - adjRank(y));
       its.forEach((x, k) => { if (x.word !== sorted[k]) { x.word = sorted[k]; moved = true; } });
@@ -131,7 +131,7 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
   if (sniff) {
     const rd = readOf(line, items, level); const a = analyze(rd.draft.tokens);
     const fixes: string[] = [];
-    for (const np of a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.pp]).filter((x) => !!x)) {
+    for (const np of a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.obj2, cl.pp]).filter((x) => !!x)) {
       if (np.art === undefined) continue;
       const it = items.find((x) => x.id === rd.tokenIds[np.art!]);
       const art = it?.word?.toLowerCase();

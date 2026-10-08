@@ -78,9 +78,10 @@ export function autoForms(draft: Draft): Token[] {
 // order, a/an by sound, and "a" never with a plural or "no a" noun.
 export function autoFixWords(tokens: Token[], a: Analysis): Token[] {
   const out = tokens.map((t) => ({ ...t }));
-  const nps = a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.pp]).filter((x) => !!x);
+  const nps = a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.obj2, cl.pp]).filter((x) => !!x);
   for (const np of nps) {
-    if (np.adjs.length > 1) {
+    // Joined describing words (big and happy) keep the order the student chose.
+    if (np.adjs.length > 1 && np.adjs[1] - np.adjs[0] === 1) {
       const words = np.adjs.map((i) => out[i].word);
       const sorted = [...words].sort((x, y) => (x && y ? adjRank(x) - adjRank(y) : 0));
       np.adjs.forEach((i, k) => { out[i].word = sorted[k]; });

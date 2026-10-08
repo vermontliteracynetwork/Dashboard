@@ -124,14 +124,14 @@ export function validateSentence(draft: Draft): Validation {
     }
     // Describing words in order: feeling, size, age, look, color.
     if (level !== 'full') {
-      const nps = a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.pp]).filter((x) => !!x);
+      const nps = a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.obj2, cl.pp]).filter((x) => !!x);
       for (const np of nps) {
         const ranks = np.adjs.filter((i) => tokens[i].word).map((i) => adjRank(tokens[i].word!));
-        if (ranks.some((r, k) => k > 0 && r < ranks[k - 1])) add('ADJ_ORDER', np.adjs);
+        if (np.adjs.length > 1 && np.adjs[1] - np.adjs[0] === 1 && ranks.some((r, k) => k > 0 && r < ranks[k - 1])) add('ADJ_ORDER', np.adjs);
       }
     }
     if (level === 'challenge') {
-      const nps = a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.pp]).filter((x) => !!x);
+      const nps = a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.obj2, cl.pp]).filter((x) => !!x);
       for (const np of nps) {
         if (np.art === undefined || !words[np.art].word) continue;
         const art = lw(np.art);

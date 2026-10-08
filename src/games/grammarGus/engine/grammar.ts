@@ -71,7 +71,8 @@ function build(extended: boolean) {
   const opt = (f: Frag): Frag => alt(f, empty());
 
   // A name (Mia, Vermont) needs no article (Proper Name Stamp, 2026-10-07).
-  const adjs = (r: string) => opt(seq(term('J', `${r}.adj`, isAdj), opt(term('J', `${r}.adj`, isAdj))));
+  // Two describing words, or two joined by and / or: "the big and happy dog" (teacher 2026-10-08).
+  const adjs = (r: string) => opt(seq(term('J', `${r}.adj`, isAdj), opt(alt(term('J', `${r}.adj`, isAdj), seq(term('C', `${r}.adjconj`, (w) => w === 'and' || w === 'or'), term('J', `${r}.adj`, isAdj))))));
   const np = (r: string) => alt(
     seq(term('A', `${r}.art`, isArt), adjs(r), term('N', `${r}.noun`, isNoun)),
     term('N', `${r}.noun`, isName),
@@ -90,13 +91,16 @@ function build(extended: boolean) {
   const pp = (c: string) => seq(term('P', `${c}.prep`, isPrep), opt(seq(term('C', `${c}.prepconj`, inPool(CONJ_POOLS.prep)), term('P', `${c}.prep2`, isPrep))), (extended ? alt(np(`${c}.pp`), term('R', `${c}.pp.pron`, isObjPron)) : np(`${c}.pp`)));
   const mods = (c: string) => seq(opt(seq(term('D', `${c}.adv`, isAdv), opt(seq(term('C', `${c}.advconj`, inPool(CONJ_POOLS.adverb)), term('D', `${c}.adv2`, isAdv))))), opt(pp(c)));
   // Object pronouns too (Subject and Object Turnstile): the cat saw him.
-  const obj = (c: string) => alt(np(`${c}.obj`), term('R', `${c}.obj.pron`, (w) => isReflexive(w) || isObjPron(w)));
+  // Two things joined: "hugs Xander and Yoga", "chases the cat and the bird" (teacher 2026-10-08).
+  const obj = (c: string) => alt(seq(np(`${c}.obj`), opt(seq(term('C', `${c}.objconj`, inPool(CONJ_POOLS.subject)), alt(np(`${c}.obj2`), term('R', `${c}.obj2.pron`, isObjPron))))), term('R', `${c}.obj.pron`, (w) => isReflexive(w) || isObjPron(w)));
   const pred = (c: string) => alt(
     seq(term('V', `${c}.verb`, verbTakes('IB')), opt(seq(term('C', `${c}.verbconj`, inPool(CONJ_POOLS.verb)), term('V', `${c}.verb2`, verbTakes('IB')))), mods(c)),
     // How and where words can come after the object too: "chased the ball quickly under the bed".
     extended ? seq(term('V', `${c}.verb`, verbTakes('TB')), obj(c), mods(c)) : seq(term('V', `${c}.verb`, verbTakes('TB')), obj(c)),
     // A linking verb and what the who is like: "is strong", "was cold and wet" (Equals Sign Machine).
     ...(extended ? [seq(term('V', `${c}.verb`, verbTakes('L')), term('J', `${c}.comp`, isAdj), opt(seq(term('C', `${c}.compconj`, inPool(CONJ_POOLS.adverb)), term('J', `${c}.comp`, isAdj))))] : []),
+    // A metaphor: the who IS something else ("The baby is a star.", teacher 2026-10-08 figurative language).
+    ...(extended ? [seq(term('V', `${c}.verb`, verbTakes('L')), np(`${c}.obj`))] : []),
     seq(term('V', `${c}.verb`, verbTakes('IB')), term('C', `${c}.verbconj`, inPool(CONJ_POOLS.verb)), term('V', `${c}.verb2`, verbTakes('TB')), obj(c)),
   );
   const clause = (c: string) => seq(subject(c), pred(c));

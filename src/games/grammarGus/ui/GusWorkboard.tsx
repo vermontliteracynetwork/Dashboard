@@ -37,7 +37,7 @@ import PixelCinema from './PixelCinema';
 import { gusSound, setGusLevel, setGusMuted } from './sound';
 import ImmersiveReader from '../reading/ImmersiveReader';
 import { bankFor, registerArticleWords, starterItems, useLibrary, type GusArticle } from '../reading/library';
-import { EXAMPLE_SENTENCES, exampleItems } from '../data/examples';
+import { ALL_EXAMPLES, EXAMPLE_GROUPS, exampleItems } from '../data/examples';
 import { boardsNow, saveBoards, shareOwner, useBoards, useSharedBoards } from '../boards';
 import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
 import MachinePart from './board/MachinePart';
@@ -333,7 +333,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [folds, setFolds] = useState<string[]>(() => { try { const f = localStorage.getItem('gus-folds2'); if (f) return JSON.parse(f) as string[]; } catch { /* fine */ } return ['time', 'shout', 'paragraph', 'contraption', 'gadget']; });
   useEffect(() => { try { localStorage.setItem('gus-folds2', JSON.stringify(folds)); } catch { /* fine */ } }, [folds]);
   const favKey = `gus-favs-${host ? 'teacher' : signedIn ?? 'guest'}`;
-  const [exFolded, setExFolded] = useState(false);
+  const [exFolded, setExFolded] = useState(true); // folded until opened (teacher 2026-10-08)
   const [favs, setFavs] = useState<Kind[]>(() => { try { const f = localStorage.getItem(favKey); if (f) return JSON.parse(f) as Kind[]; } catch { /* fine */ } return ['cap']; });
   useEffect(() => { try { localStorage.setItem(favKey, JSON.stringify(favs)); } catch { /* fine */ } }, [favs, favKey]);
   const toggleFav = (k: Kind) => { setFavs((f) => (f.includes(k) ? f.filter((x) => x !== k) : [...f, k])); gusSound.ding(); };
@@ -589,7 +589,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     gesture.current = { kind: 'new', pid: e.pointerId, k: 'blank', sx: e.clientX, sy: e.clientY, active: false, ex };
   };
   const addExample = (exId: string, at?: { x: number; y: number }) => {
-    const ex = EXAMPLE_SENTENCES.find((x) => x.id === exId); if (!ex) return;
+    const ex = ALL_EXAMPLES.find((x) => x.id === exId); if (!ex) return;
     remember();
     const sp = at ?? freeSpot();
     const id = uid();
@@ -1922,13 +1922,20 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               {favs.filter((k) => KINDS.some((x) => x.kind === k)).map((k) => drawerRow(k, true))}
             </div>}
             <div className="gwb-drawer-group gwb-examples">
-              {drawerOpen && <button type="button" className="gwb-drawer-title" onClick={() => setExFolded((f) => !f)} aria-expanded={!exFolded}><span>📝 Example sentences</span><span aria-hidden>{exFolded ? '▸' : '▾'}</span></button>}
-              {(!exFolded || !drawerOpen) && (drawerOpen ? EXAMPLE_SENTENCES : EXAMPLE_SENTENCES.slice(0, 1)).map((ex) => (
-                <div key={ex.id} className="gwb-drawer-row">
-                  <button type="button" className="gwb-drawer-item gwb-ex-item" onPointerDown={(e) => onExampleDown(e, ex.id)} onClick={(e) => { if (e.detail === 0) addExample(ex.id); }} aria-label={`Example sentence: ${ex.text} Drag it onto the board or tap it.`}>
-                    <span className="gwb-ex-pic" aria-hidden>📝</span>
-                    {drawerOpen && <span className="gwb-drawer-text">{ex.text}</span>}
-                  </button>
+              {drawerOpen && <button type="button" className="gwb-drawer-title" onClick={() => setExFolded((f) => !f)} aria-expanded={!exFolded}><span>📝 Examples</span><span aria-hidden>{exFolded ? '▸' : '▾'}</span></button>}
+              {!drawerOpen && <div className="gwb-drawer-row"><button type="button" className="gwb-drawer-item gwb-ex-item" onClick={() => { setDrawerOpen(true); setExFolded(false); }} aria-label="Open the examples"><span className="gwb-ex-pic" aria-hidden>📝</span></button></div>}
+              {drawerOpen && !exFolded && EXAMPLE_GROUPS.map((g) => (
+                <div key={g.id} className="gwb-ex-sub">
+                  <div className="gwb-ex-subtitle">{g.title}</div>
+                  {g.note && <small className="gwb-ex-note">{g.note}</small>}
+                  {g.items.map((ex) => (
+                    <div key={ex.id} className="gwb-drawer-row">
+                      <button type="button" className="gwb-drawer-item gwb-ex-item" onPointerDown={(e) => onExampleDown(e, ex.id)} onClick={(e) => { if (e.detail === 0) addExample(ex.id); }} aria-label={`${g.title}: ${ex.text} Drag it onto the board or tap it.`}>
+                        <span className="gwb-ex-pic" aria-hidden>{g.id === 'figurative' ? '🎭' : '📝'}</span>
+                        <span className="gwb-drawer-text">{ex.text}</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -1938,7 +1945,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       </main>
 
       {drag?.kind === 'new' && drag.ex && (
-        <div className="gwb-new-ghost gwb-ex-ghost" style={{ left: drag.sx, top: drag.sy }} aria-hidden>📝 {EXAMPLE_SENTENCES.find((x) => x.id === drag.ex)?.text}</div>
+        <div className="gwb-new-ghost gwb-ex-ghost" style={{ left: drag.sx, top: drag.sy }} aria-hidden>📝 {ALL_EXAMPLES.find((x) => x.id === drag.ex)?.text}</div>
       )}
       {drag?.kind === 'new' && !drag.ex && (
         <div className="gwb-new-ghost" style={{ left: drag.sx, top: drag.sy }} aria-hidden><MachinePart kind={drag.k} word={drag.k === 'clock' ? 'present' : null} empty={needsWord(drag.k)} scale={0.7} /></div>

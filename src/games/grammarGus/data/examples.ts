@@ -21,6 +21,19 @@ export const EXAMPLE_SENTENCES: ExampleSentence[] = [
   { id: 'boy-door', text: 'The happy boy walks to the door.', words: [['A', 'the'], ['J', 'happy'], ['N', 'boy'], ['V', 'walk'], ['P', 'to'], ['A', 'the'], ['N', 'door']] },
 ];
 
+// Examples in folders (teacher 2026-10-08: "examples should e collapsed on default. when expanded,
+// subcategories should be "example sentences", figurative language (add a simile and metaphor
+// example only to start) we will ad more categories like joke frame works and such later").
+export const FIGURATIVE: ExampleSentence[] = [
+  { id: 'simile-rocket', text: 'The girl runs like a rocket.', words: [['A', 'the'], ['N', 'girl'], ['V', 'run'], ['P', 'like'], ['A', 'a'], ['N', 'rocket']] },
+  { id: 'metaphor-star', text: 'The baby is a star.', words: [['A', 'the'], ['N', 'baby'], ['V', 'be'], ['A', 'a'], ['N', 'star']] },
+];
+export const EXAMPLE_GROUPS: { id: string; title: string; note?: string; items: ExampleSentence[] }[] = [
+  { id: 'sentences', title: 'Example sentences', items: EXAMPLE_SENTENCES },
+  { id: 'figurative', title: 'Figurative language', note: 'A simile compares with like. A metaphor says one thing IS another.', items: FIGURATIVE },
+];
+export const ALL_EXAMPLES: ExampleSentence[] = EXAMPLE_GROUPS.flatMap((g) => g.items);
+
 export function exampleItems(ex: ExampleSentence, uid: () => string): BoardItem[] {
   // Every example is in the present with one who, so its action word ends in -s.
   const words: BoardItem[] = ex.words.map(([kind, word]) => ({ id: uid(), kind, word, ...(kind === 'V' ? { form: 'third' as const } : {}) }));

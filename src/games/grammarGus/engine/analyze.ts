@@ -12,7 +12,7 @@ export interface ClauseInfo {
   open?: number;
   subj: NP[]; subjConj?: number; subjPron?: number;
   verbs: number[]; verbConj?: number;
-  obj?: NP; objPron?: number; subjMid?: boolean; comps?: number[]; compConj?: number; ppPron?: number;
+  obj?: NP; objPron?: number; obj2?: NP; objConj?: number; obj2Pron?: number; subjMid?: boolean; comps?: number[]; compConj?: number; ppPron?: number;
   advs: number[]; advConj?: number;
   preps: number[]; prepConj?: number; pp?: NP;
 }
@@ -31,6 +31,7 @@ export function analyze(tokens: Token[], p: Parse = parse(tokens)): Analysis {
     if (key === 'subjm') { cl.subjMid = true; if (!cl.subj[1]) cl.subj[1] = emptyNP(); return cl.subj[1]; }
     if (key === 'subj2') { const k = cl.subjMid ? 2 : 1; if (!cl.subj[k]) cl.subj[k] = emptyNP(); return cl.subj[k]; }
     if (key === 'obj') { if (!cl.obj) cl.obj = emptyNP(); return cl.obj; }
+    if (key === 'obj2') { if (!cl.obj2) cl.obj2 = emptyNP(); return cl.obj2; }
     if (!cl.pp) cl.pp = emptyNP(); return cl.pp;
   };
   p.roles.forEach((role, i) => {
@@ -49,12 +50,15 @@ export function analyze(tokens: Token[], p: Parse = parse(tokens)): Analysis {
     else if (a === 'subj' && b === 'pron') cl.subjPron = i;
     else if (a === 'subj' && b === 'conj') cl.subjConj = i;
     else if (a === 'obj' && b === 'pron') cl.objPron = i;
+    else if (a === 'objconj') cl.objConj = i;
+    else if (a === 'obj2' && b === 'pron') cl.obj2Pron = i;
     else if (a === 'pp' && b === 'pron') cl.ppPron = i;
     else if (a === 'comp') (cl.comps ??= []).push(i);
     else if (a === 'compconj') cl.compConj = i;
     else {
       const np = npFor(cl, a);
       if (b === 'art') np.art = i; else if (b === 'adj') np.adjs.push(i); else if (b === 'noun') np.noun = i; else if (b === 'poss') np.poss = i;
+      // b === 'adjconj': the and between two describing words needs nothing stored.
     }
   });
   out.clauses.push(clauses[1]);

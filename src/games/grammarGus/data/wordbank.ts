@@ -197,7 +197,8 @@ export const ADVERBS: { word: string; pack: Pack }[] = [
   ...'gracefully sneakily'.split(' ').map((word) => ({ word, pack: 'ocean' as Pack })),
 ];
 
-export const PREPOSITIONS: string[] = 'above across along around below behind down from in into on over past through to under underneath up upon within at'.split(' ');
+// "like" makes a simile: runs like a rocket (teacher 2026-10-08, figurative language).
+export const PREPOSITIONS: string[] = 'above across along around below behind down from in into on over past through to under underneath up upon within at like'.split(' ');
 export const SUBJECT_PRONOUNS = ['I', 'you', 'he', 'she', 'it', 'we', 'they'] as const;
 export const REFLEXIVE_PRONOUNS = ['itself', 'himself', 'herself', 'themselves', 'myself', 'yourself', 'ourselves'] as const;
 export const ARTICLES = ['a', 'an', 'the'] as const;

@@ -13,6 +13,8 @@ import type { MarketplaceItem } from '../types';
 
 const SEEDS_OWNER = 'market-seeds';
 const PRIZES_SEED = 'irl-prizes-2026-10-08';
+// Teacher 2026-10-08, the same day: "remove all IRL prizes from marketplace. keep category but remove all that you added".
+const PRIZES_REMOVED = 'irl-prizes-removed-2026-10-08';
 const HOME_SEED = 'home-items-2026-10-08';
 
 type Seed = Omit<MarketplaceItem, 'createdAt'>;
@@ -57,7 +59,12 @@ export async function seedMarketplaceExtras(): Promise<void> {
   const have = new Set(s.marketplaceItems.map((it) => it.id));
   const add: Seed[] = [];
   const nowDone = [...done];
-  if (!done.includes(PRIZES_SEED)) { add.push(...IRL_PRIZES); nowDone.push(PRIZES_SEED); }
+  // The starter real-life prizes are no longer added, and the ones already added are taken away once.
+  if (!done.includes(PRIZES_SEED)) nowDone.push(PRIZES_SEED);
+  if (!done.includes(PRIZES_REMOVED)) {
+    for (const id of IRL_PRIZES.map((p) => p.id)) if (have.has(id)) s.deleteMarketplaceItem(id);
+    nowDone.push(PRIZES_REMOVED);
+  }
   if (!done.includes(HOME_SEED)) {
     try {
       const res = await fetch('/world/asset-manifest.json');
