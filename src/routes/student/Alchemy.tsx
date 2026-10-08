@@ -75,7 +75,17 @@ export default function Alchemy() {
       '__any__' as NativeGameId,
     );
   }, [student, rotations, progress]);
+  // An assignment's questions-per-round setting wins and locks the slider (teacher 2026-10-08).
+  const qCount = active ? Math.min(10, Math.max(1, active.task.gameQuestionsPerRound ?? count)) : count;
   const [sinceQ, setSinceQ] = useState(0);
+  // Save and come back later (teacher 2026-10-08: "give a button to save and return to progress for
+  // alchemy"). Saved to the class server per student (style_looks row alchemy:<id>, no new SQL).
+  // Leaving without saving still starts fresh next time.
+  const saveOwner = student ? `alchemy:${student.id}` : '';
+  const saved = useStore((s) => s.styleLooks.find((r) => r.ownerId === saveOwner)?.look as { disc?: string[]; tiles?: { id: string; fx: number; fy: number }[]; at?: string } | undefined);
+  const mergeStyleRow = useStore((s) => s.mergeStyleRow);
+  const [resume, setResume] = useState(true);
+  const [savedSig, setSavedSig] = useState<string | null>(null);
   const [question, setQuestion] = useState<MCQuestion | null>(null);
   const [qLeft, setQLeft] = useState(0);
   const [earned, setEarned] = useState(0);
@@ -98,7 +108,7 @@ export default function Alchemy() {
     const n = sinceQ + 1;
     if (n < every) { setSinceQ(n); return; }
     setSinceQ(0);
-    window.setTimeout(() => { setQLeft(count); setQuestion(pickQ()); }, 900);
+    window.setTimeout(() => { setQLeft(qCount); setQuestion(pickQ()); }, 900);
   };
   const answeredRight = () => {
     if (!question) return;
@@ -210,7 +220,31 @@ export default function Alchemy() {
   // Leaving clears everything, so ask first (teacher 2026-10-08: "make sure there is a confirmation
   // menu that appears before they leave to confirm delete"). Back, the breadcrumbs and closing the tab all ask.
   const [leaving, setLeaving] = useState<(() => void) | null>(null);
-  const played = disc.length > START.length || tiles.length > 0 || earned > 0;
+  const sigNow = JSON.stringify([disc, tiles.map((t) => t.id)]);
+  const played = (disc.length > START.length || tiles.length > 0) && sigNow !== savedSig;
+  const saveGame = () => {
+    if (!saveOwner) return;
+    const r = boardRect();
+    const data = { disc, tiles: tiles.map((t) => ({ id: t.id, fx: (t.x - r.left) / Math.max(1, r.width), fy: (t.y - r.top) / Math.max(1, r.height) })), at: new Date().toISOString() };
+    mergeStyleRow(saveOwner, data);
+    setSavedSig(sigNow);
+    sound([660, 880], 0.08);
+    say(`💾 Saved! ${disc.length} discoveries. Next time, tap Continue my saved game.`);
+  };
+  const loadSave = () => {
+    if (!saved?.disc?.length) return;
+    const okDisc = saved.disc.filter((id) => ELS[id]);
+    setDisc(okDisc); setFresh([]);
+    const r = boardRect();
+    const ts = (saved.tiles ?? []).filter((t) => ELS[t.id]).map((t) => ({ uid: nextUid.current++, id: t.id, ...clamp(r.left + t.fx * r.width, r.top + t.fy * r.height) }));
+    setTiles(ts);
+    setSavedSig(JSON.stringify([okDisc, ts.map((t) => t.id)]));
+  };
+  const startMode = (m: 'play' | 'explore') => {
+    if (resume && saved?.disc?.length && savedSig === null) loadSave();
+    if (m === 'play') setSinceQ(0);
+    setMode(m);
+  };
   useEffect(() => {
     if (!played) { setLeaveGuard(null); return; }
     setLeaveGuard((go) => { setLeaving(() => go); return true; });
@@ -233,6 +267,7 @@ export default function Alchemy() {
               </button>
             )}
             {mode === 'explore' && <button type="button" className="alc-btn" onClick={() => setMode('ask')}>🧭 Exploring</button>}
+            <button type="button" className="alc-btn" onClick={saveGame} aria-label="Save my progress">{!played && savedSig ? '✅ Saved' : '💾 Save'}</button>
             <button type="button" className="alc-btn" onClick={hint}>💡 Hint</button>
             <button type="button" className="alc-btn" onClick={() => setTiles([])}>🧹 Clear board</button>
             <button type="button" className="alc-btn" onClick={() => { setSoundOn((s) => { try { localStorage.setItem('alchemy.sound', s ? '0' : '1'); } catch { /* fine */ } return !s; }); }} aria-label={soundOn ? 'Sound on. Tap to mute' : 'Sound off. Tap to turn on'}>{soundOn ? '🔊' : '🔇'}</button>
@@ -269,13 +304,19 @@ export default function Alchemy() {
         <div className="overlay-backdrop">
           <div className="overlay-panel chrome-frame stack alc-setup" style={{ padding: 20, maxWidth: 520, width: '100%', gap: 14 }} role="dialog" aria-label="How do you want to play Alchemy?">
             <strong style={{ fontSize: '1.3rem', textAlign: 'center' }}>⚗️ How do you want to play?</strong>
+            {saved?.disc?.length && savedSig === null ? (
+              <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }} role="radiogroup" aria-label="Saved game">
+                <button type="button" role="radio" aria-checked={resume} className={`btn${resume ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setResume(true)}>📂 Continue my saved game ({saved.disc.length} found)</button>
+                <button type="button" role="radio" aria-checked={!resume} className={`btn${!resume ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setResume(false)}>✨ Start fresh</button>
+              </div>
+            ) : null}
             <label className="alc-slider">
               <span>Combinations between question breaks: <b>{every}</b></span>
               <input type="range" min={1} max={10} step={1} value={every} onChange={(e) => { const n = Number(e.target.value); setEvery(n); saveNum('alchemy.every', n); }} aria-label="Combinations between question breaks" />
             </label>
             <label className="alc-slider">
-              <span>Questions each break: <b>{count}</b></span>
-              <input type="range" min={1} max={10} step={1} value={count} onChange={(e) => { const n = Number(e.target.value); setCount(n); saveNum('alchemy.count', n); }} aria-label="Questions each break" />
+              <span>Questions each break: <b>{qCount}</b>{active ? ' 🔒 set by your teacher' : ''}</span>
+              <input type="range" min={1} max={10} step={1} value={qCount} disabled={!!active} onChange={(e) => { const n = Number(e.target.value); setCount(n); saveNum('alchemy.count', n); }} aria-label="Questions each break" />
             </label>
             {active ? (
               <p style={{ margin: 0, textAlign: 'center' }}>📋 Your questions come from your assignment.</p>
@@ -284,8 +325,8 @@ export default function Alchemy() {
             )}
             <p style={{ margin: 0, textAlign: 'center', fontWeight: 700 }}>💵 {formatMoney(PER_RIGHT_CENTS)} for every right answer</p>
             <div className="row-wrap" style={{ gap: 10, justifyContent: 'center' }}>
-              <button type="button" className="btn btn-primary btn-lg" style={{ minHeight: 52 }} onClick={() => { setSinceQ(0); setMode('play'); }}>▶ Play with questions</button>
-              {!fromGames && <button type="button" className="btn btn-lg" style={{ minHeight: 52 }} onClick={() => setMode('explore')}>🧭 Just explore</button>}
+              <button type="button" className="btn btn-primary btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('play')}>▶ Play with questions</button>
+              {!fromGames && <button type="button" className="btn btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('explore')}>🧭 Just explore</button>}
             </div>
           </div>
         </div>
@@ -293,12 +334,12 @@ export default function Alchemy() {
       {question && !leaving && (
         <QuestionScreen
           key={question.id + qLeft}
-          whoLabel={`⚗️ Alchemy question${count > 1 ? ` (${count - qLeft + 1} of ${count})` : ''}`}
+          whoLabel={`⚗️ Alchemy question${qCount > 1 ? ` (${qCount - qLeft + 1} of ${qCount})` : ''}`}
           prompt={question.prompt}
           choices={question.choices}
           correctIndex={question.correctIndex}
-          done={count - qLeft}
-          total={count}
+          done={qCount - qLeft}
+          total={qCount}
           imageUrl={question.imageUrl}
           imageAlt={question.imageAlt}
           onCorrectAnswer={answeredRight}
@@ -311,9 +352,10 @@ export default function Alchemy() {
         <div className="overlay-backdrop" onClick={() => setLeaving(null)}>
           <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 400, textAlign: 'center' }} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label="Leave Alchemy">
             <strong>Leave Alchemy?</strong>
-            <p style={{ margin: 0 }}>{disc.length > START.length ? `Leaving deletes your board and your ${disc.length - START.length} new discoveries.` : 'Leaving clears your board.'}{earned > 0 ? ` Your ${formatMoney(earned)} for right answers is yours to keep.` : ''} Next time you start again with fire, water, earth and air.</p>
+            <p style={{ margin: 0 }}>{savedSig ? 'You have changes you did not save. Leaving deletes them.' : disc.length > START.length ? `Leaving deletes your board and your ${disc.length - START.length} new discoveries.` : 'Leaving clears your board.'}{earned > 0 ? ` Your ${formatMoney(earned)} for right answers is yours to keep.` : ''} Tap Save and leave to keep it all for next time.</p>
             <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
               <button type="button" className="btn" style={{ minHeight: 44 }} onClick={() => setLeaving(null)} autoFocus>Stay and keep playing</button>
+              <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => { saveGame(); const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>💾 Save and leave</button>
               <button type="button" className="btn btn-danger" style={{ minHeight: 44 }} onClick={() => { const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>Leave and delete</button>
             </div>
           </div>

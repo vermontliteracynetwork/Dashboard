@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-game-sliders-alchemy-save',
+    date: '2026-10-08',
+    icon: '🎚️',
+    title: 'Choose your rounds and questions',
+    body: 'Before you play Bakery Match, Castle Defense, Space Bowling, Shape Dash or Slime Chess, slide to pick how many rounds and how many questions each time. If it is for an assignment, your teacher picks. In Alchemy you can now tap Save and continue your game next time.',
+  },
+  {
     id: '2026-10-08-castle-catalog',
     date: '2026-10-08',
     icon: '🏰',

@@ -753,6 +753,21 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Rounds and questions-per-round settings in every native game (locked for assignments); Alchemy save and continue. SHIPPED 2026-10-08 (direct teacher instructions)
+
+- **Her words (verbatim):** "in all native game, give kids the setting for rounds (if possible, obviously that cannot work for chess) and number of questions per rounds (this can be changed as a master, not changable setting if the acttivities have been explicitly assigned to the students, but if the kids are just playing, they can choose it)" (with a screenshot of Space Bowling's Rounds and Questions before each turn sliders); "give a button to save and return to progress for alchemy."
+- **One shared piece** (`src/lib/gameRounds.ts` `useRoundSettings`, `src/components/RoundSettings.tsx`, pink sliders like Space Bowling's, 44px tall): the student's choice is remembered per game on that iPad. When the game is being played for an open gameplay assignment, the assignment's numbers are used and the sliders lock with "🔒 Your teacher set these for your assignment."
+- **Per game:**
+  - Space Bowling: Rounds 5 to 20 (default 10), Questions before each turn 1 to 10 (default 3), now locked for assignments.
+  - Bakery Match: Rounds 1 to 10 (default 3), Questions after each round 1 to 10 (default 3), on the menu card.
+  - Castle Defense: Waves 3 to 10 (default 5; waves past 5 add one more strong attacker each, and the portal stages spread across however many waves), Questions before each wave 1 to 10 (default 3).
+  - Shape Dash: Questions in each question break 1 to 10 (default 1); a crash still asks one. No rounds (it is an endless runner).
+  - Slime Chess: Questions before each turn 1 to 10 (default 1). No rounds, as she said.
+  - Alchemy: its own sliders stay (combinations between breaks, questions each break); an assignment's questions per round locks the second one.
+  - Quiz Mode and the Gas Pump have no rounds and are unchanged.
+- **The master setting:** in the plan builder, an activity set to "Inside one specific native game" or "Student picks the game" now has "Game settings for this assignment (students cannot change them): Rounds, Questions per round" (blank = the game's own default). Saved on the task (`gameRounds`, `gameQuestionsPerRound`), no new SQL.
+- **Alchemy save and continue:** a 💾 Save button on the board saves the discoveries and the tiles on the board to the class server (the `alchemy:<studentId>` style_looks row, no new SQL). Next visit, the opening pop-up offers 📂 Continue my saved game (with the count) or ✨ Start fresh. The leave check now has 💾 Save and leave, and only appears when there are unsaved changes. Leaving without saving still starts fresh, as she asked earlier.
+
 ### Castle Defense: new art added to the old, a bigger catalog of towers and attackers. SHIPPED 2026-10-08 (direct teacher instruction)
 
 - **Her words (verbatim):** "lets use the new castle defense art with the old, expanding the catelog of options for the game".

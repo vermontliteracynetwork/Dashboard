@@ -26,6 +26,9 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { spendBoosts } from '../../lib/gamePowerups';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 import { drawQuestion } from '../../lib/questionPick';
+import RoundSettings from '../../components/RoundSettings';
+import { useRoundSettings } from '../../lib/gameRounds';
+const SB_RANGES = { rounds: { min: 5, max: 20, def: 10 }, per: { min: 1, max: 10, def: 3 } };
 
 const Scene = lazyFresh(() => import('../../games/spaceBowling/Scene'));
 const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
@@ -112,8 +115,8 @@ export default function SpaceBowling() {
   const [rival, setRival] = useState<NpcProfile | null>(null);
   const [names, setNames] = useState<string[]>(() => [student?.name ?? 'Player 1', 'Player 2', 'Player 3', 'Player 4']);
   const [planets, setPlanets] = useState<number[]>([0, 3, 6, 8]);
-  const [rounds, setRounds] = useState(10);
-  const [qPerTurn, setQPerTurn] = useState(3);
+  const roundSet = useRoundSettings('spaceBowling', SB_RANGES, activeGameplayTask?.task);
+  const { rounds, perRound: qPerTurn } = roundSet;
   const [music, setMusic] = useState<Level>(() => loadLevel('sb-music', 'medium'));
   const [effects, setEffects] = useState<Level>(() => loadLevel('sb-sfx', 'high'));
   const [showSettings, setShowSettings] = useState(false);
@@ -483,14 +486,7 @@ export default function SpaceBowling() {
                   </div>
                 ))}
               </div>
-              <label className="sb-slider">
-                <span>Rounds: <strong>{rounds}</strong></span>
-                <input type="range" min={5} max={20} value={rounds} onChange={(e) => setRounds(Number(e.target.value))} />
-              </label>
-              <label className="sb-slider">
-                <span>Questions before each turn: <strong>{qPerTurn}</strong></span>
-                <input type="range" min={1} max={10} value={qPerTurn} onChange={(e) => setQPerTurn(Number(e.target.value))} />
-              </label>
+              <RoundSettings ranges={SB_RANGES} perLabel="Questions before each turn" rounds={rounds} perRound={qPerTurn} onRounds={roundSet.setRounds} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
               {!activeGameplayTask && usableSets.length > 0 && (
                 <div className="sb-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>
               )}

@@ -71,6 +71,22 @@ function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: 
           />
         </label>
       )}
+      {(mode === 'specificGame' || mode === 'anyGame') && (
+        <div className="row-wrap" style={{ gap: 8, marginLeft: 24, fontSize: '0.8rem', alignItems: 'center' }}>
+          <span>🎮 Game settings for this assignment (students cannot change them):</span>
+          <label className="row" style={{ gap: 4 }}>
+            Rounds
+            <input type="number" min={1} max={20} style={{ width: 70 }} placeholder="game's own" value={task.gameRounds ?? ''}
+              onChange={(e) => onChange({ gameRounds: e.target.value ? Math.min(20, Math.max(1, Number(e.target.value))) : undefined })} />
+          </label>
+          <label className="row" style={{ gap: 4 }}>
+            Questions per round
+            <input type="number" min={1} max={10} style={{ width: 70 }} placeholder="game's own" value={task.gameQuestionsPerRound ?? ''}
+              onChange={(e) => onChange({ gameQuestionsPerRound: e.target.value ? Math.min(10, Math.max(1, Number(e.target.value))) : undefined })} />
+          </label>
+          <span style={{ opacity: 0.7 }}>Chess has no rounds; Shape Dash and Alchemy use questions per round only.</span>
+        </div>
+      )}
       {(mode === 'specificGame' || mode === 'anyGame') && (task.targetQuestionCount ?? pool.length) > pool.length && (
         <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: 0 }}>
           🔀 That's more than the set has — questions will repeat until the target is reached.

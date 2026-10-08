@@ -594,6 +594,10 @@ export interface Task {
   completionMode?: CompletionMode;
   nativeGameId?: NativeGameId; // 'specificGame' only — which game the set must be completed inside
   targetQuestionCount?: number; // 'specificGame' | 'anyGame' only; unset = the whole set once, no repeats
+  // Master game settings for this assignment (teacher 2026-10-08): rounds and questions per round
+  // in the native game, locked for the student. Unset = the game's own default.
+  gameRounds?: number;
+  gameQuestionsPerRound?: number;
 }
 
 // Literacy Workspace — open-exploration sandbox (direct teacher

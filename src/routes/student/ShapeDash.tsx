@@ -19,6 +19,9 @@ import {
 } from '../../games/shapeDash/engine';
 import { pauseMusic, setSound, sfx, startMusic, stopMusic } from '../../games/shapeDash/audio';
 import { drawQuestion } from '../../lib/questionPick';
+import RoundSettings from '../../components/RoundSettings';
+import { useRoundSettings } from '../../lib/gameRounds';
+const SD_RANGES = { per: { min: 1, max: 10, def: 1 } };
 
 const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
 
@@ -107,6 +110,9 @@ export default function ShapeDash() {
   const [hud, setHud] = useState({ hearts: 3, stars: 0, level: 1, progress: 0, shield: false, warn: false });
   const [question, setQuestion] = useState<MCQuestion | null>(null);
   const [qReason, setQReason] = useState<'timer' | 'crash'>('timer');
+  // Questions in each timed break: the student's choice, or the assignment's (locked). A crash still asks one.
+  const roundSet = useRoundSettings('shapeDash', SD_RANGES, activeGameplayTask?.task);
+  const [qLeft, setQLeft] = useState(1);
   const [cheer, setCheer] = useState<string | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [summary, setSummary] = useState({ blocks: 0, stars: 0, level: 1, right: 0 });
@@ -156,13 +162,14 @@ export default function ShapeDash() {
   };
 
   const askQuestion = (reason: 'timer' | 'crash') => {
-    setQReason(reason); setQuestion(pickQuestion()); toPhase('question'); pauseMusic(true);
+    setQReason(reason); setQLeft(reason === 'timer' ? roundSet.perRound : 1); setQuestion(pickQuestion()); toPhase('question'); pauseMusic(true);
   };
   const answered = () => {
     const g = game.current;
     correctRef.current += 1; sessionRight.current += 1;
     if (studentId) mergeStyleRow(statsOwner(studentId), { correct: (stats.correct ?? 0) + 1 });
     if (student && activeGameplayTask && question) submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, question.id, true);
+    if (qLeft > 1) { setQLeft(qLeft - 1); setQuestion(pickQuestion(question?.id)); return; }
     setQuestion(null);
     g.nextQ = g.playTime + QUESTION_EVERY;
     if (qReason === 'crash') {
@@ -267,6 +274,7 @@ export default function ShapeDash() {
                 <span>Start at level</span>
                 {Array.from({ length: Math.min(maxLevel, 12) }, (_, i) => i + 1).map((n) => <button key={n} type="button" className={`sd-btn sd-lvl${startLevel === n ? ' on' : ''}`} onClick={() => setStartLevel(n)} aria-pressed={startLevel === n}>{n}</button>)}
               </div>
+              <RoundSettings ranges={SD_RANGES} perLabel="Questions in each question break" rounds={0} perRound={roundSet.perRound} onRounds={() => {}} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
               <div className="sd-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>
               <div className="sd-seg">
                 <button type="button" className={`sd-btn${music ? ' on' : ''}`} onClick={() => setMusic((m) => !m)} aria-pressed={music}>🎵 Music {music ? 'on' : 'off'}</button>
@@ -330,8 +338,8 @@ export default function ShapeDash() {
           prompt={question.prompt}
           choices={question.choices}
           correctIndex={question.correctIndex}
-          done={0}
-          total={1}
+          done={qReason === 'timer' ? roundSet.perRound - qLeft : 0}
+          total={qReason === 'timer' ? roundSet.perRound : 1}
           imageUrl={question.imageUrl}
           imageAlt={question.imageAlt}
           onCorrectAnswer={answered}

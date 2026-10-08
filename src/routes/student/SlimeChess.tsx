@@ -20,6 +20,9 @@ import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { drawQuestion } from '../../lib/questionPick';
+import RoundSettings from '../../components/RoundSettings';
+import { useRoundSettings } from '../../lib/gameRounds';
+const SC_RANGES = { per: { min: 1, max: 10, def: 1 } };
 
 // Slime Chess — a native game reached through a Town Square object with
 // the 'chess' role (teacher places the uploaded Chess Set model in Build
@@ -135,6 +138,9 @@ export default function SlimeChess() {
       'chess',
     );
   }, [student, rotations, progress]);
+  // Questions before each turn: the student's choice, or the assignment's (locked). No rounds in chess.
+  const roundSet = useRoundSettings('chess', SC_RANGES, activeGameplayTask?.task);
+  const [qDone, setQDone] = useState(0);
   const usableQuestionSets = useMemo<QuestionSet[]>(
     () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
     [questionSets],
@@ -275,6 +281,8 @@ export default function SlimeChess() {
     if (student && activeGameplayTask && challengeQuestion) {
       submitGameplayAnswer(student.id, activeGameplayTask.subject, activeGameplayTask.task, challengeQuestion.id, true);
     }
+    if (qDone + 1 < roundSet.perRound && challengeQuestion) { setQDone(qDone + 1); setChallengeQuestion(pickQuestion(challengeQuestion.id)); return; }
+    setQDone(0);
     setChallengeQuestion(null);
   };
 
@@ -603,12 +611,11 @@ export default function SlimeChess() {
             </div>
           )}
 
-          {!activeGameplayTask && usableQuestionSets.length > 0 && (
-            <div className="sc-menu-section">
-              <h2>Questions before each turn</h2>
-              <QuestionSourcePicker questionSets={usableQuestionSets} value={questionMode} onChange={setQuestionMode} />
-            </div>
-          )}
+          <div className="sc-menu-section">
+            <h2>Questions before each turn</h2>
+            <RoundSettings ranges={SC_RANGES} perLabel="Questions before each turn" rounds={0} perRound={roundSet.perRound} onRounds={() => {}} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
+            {!activeGameplayTask && usableQuestionSets.length > 0 && <QuestionSourcePicker questionSets={usableQuestionSets} value={questionMode} onChange={setQuestionMode} />}
+          </div>
 
           <ChessLeaderboard games={myGames} theme={theme} human={human} />
 
@@ -796,7 +803,7 @@ export default function SlimeChess() {
           <div className={`sc-modal sc-turn-card ${turnCard}`}>
             <img className="sc-turn-card-king" src={pieceSrc(theme, turnCard, 'k')} alt="" />
             <h2>It's {names[turnCard]}'s turn!</h2>
-            <p>{names[turnCard]}, answer a question, then make your move.</p>
+            <p>{names[turnCard]}, answer {roundSet.perRound === 1 ? "a question" : `${roundSet.perRound} questions`}, then make your move.</p>
           </div>
         </div>
       )}
@@ -809,12 +816,12 @@ export default function SlimeChess() {
           prompt={challengeQuestion.prompt}
           choices={challengeQuestion.choices}
           correctIndex={challengeQuestion.correctIndex}
-          done={0}
-          total={1}
+          done={qDone}
+          total={roundSet.perRound}
           imageUrl={challengeQuestion.imageUrl}
           imageAlt={challengeQuestion.imageAlt}
           onCorrectAnswer={answeredCorrectly}
-          onExit={() => { saveIfUnfinished(); setChallengeQuestion(null); back.go(); }}
+          onExit={() => { saveIfUnfinished(); setQDone(0); setChallengeQuestion(null); back.go(); }}
           onSkip={() => setChallengeQuestion(pickQuestion(challengeQuestion.id))}
           ttsSettings={student?.ttsSettings}
         />

@@ -17,6 +17,8 @@ import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { TILE_ART } from '../../lib/bakeryTiles';
 import { drawQuestion } from '../../lib/questionPick';
+import RoundSettings from '../../components/RoundSettings';
+import { useRoundSettings } from '../../lib/gameRounds';
 import {
   createGrid,
   swapTiles,
@@ -99,9 +101,8 @@ import {
 //    viewable only from this student's own main menu.
 const ROWS = 6;
 const COLS = 6;
-const TOTAL_ROUNDS = 3;
+const BK_RANGES = { rounds: { min: 1, max: 10, def: 3 }, per: { min: 1, max: 10, def: 3 } };
 const MOVES_PER_ROUND = 3;
-const QUESTIONS_PER_GATE = 3;
 const DRAG_THRESHOLD_PX = 18;
 // Direct teacher instruction: cash prizes are the default now for
 // in-game activities like this one. $0.50 per correctly-answered
@@ -186,6 +187,10 @@ export default function BakeryMatch3() {
       'bakery',
     );
   }, [student, rotations, progress]);
+  // Rounds and questions per round: the student's choice, or the assignment's (locked).
+  const roundSet = useRoundSettings('bakery', BK_RANGES, activeGameplayTask?.task);
+  const totalRounds = roundSet.rounds;
+  const questionsPerGate = roundSet.perRound;
 
   const usableQuestionSets = useMemo<QuestionSet[]>(
     () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
@@ -423,14 +428,14 @@ export default function BakeryMatch3() {
       setSessionEarningsCents((c) => c + rewardPerQuestionCents());
     }
     const next = gateCorrectCount + 1;
-    if (next < QUESTIONS_PER_GATE) {
+    if (next < questionsPerGate) {
       setGateCorrectCount(next);
       setChallengeQuestion(pickQuestion(questionMode, challengeQuestion?.id));
       return;
     }
     setGateCorrectCount(0);
     setChallengeQuestion(null);
-    if (round >= TOTAL_ROUNDS) {
+    if (round >= totalRounds) {
       if (student) {
         recordBakeryGameResult(student.id, xpRef.current);
         if (buddy) recordGameMemory(student.id, buddy.id, 'Bakery Match', 'together');
@@ -513,10 +518,11 @@ export default function BakeryMatch3() {
             <div className="bakery-menu-card">
               <h1 className="bakery-title">🥐 Bakery Match</h1>
               {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
-              <p className="bakery-blurb">3 rounds. Match treats. Answer to advance. Spin for a prize at the end!</p>
+              <p className="bakery-blurb">Match treats. Answer to advance. Spin for a prize at the end!</p>
               <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
                 <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {questionsAnswered}/100 questions answered</span>
               </div>
+              <RoundSettings ranges={BK_RANGES} perLabel="Questions after each round" rounds={totalRounds} perRound={questionsPerGate} onRounds={roundSet.setRounds} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
               <button className="bakery-play-btn" onClick={startGame}>
                 <Icon name="play" size={22} fallback="▶️" /> Play New Game
               </button>
@@ -536,7 +542,7 @@ export default function BakeryMatch3() {
               <Icon name="close" size={16} fallback="✕" />
             </button>
             <div className="bakery-round-block">
-              <span className="bakery-round-label">Round {round} of {TOTAL_ROUNDS}</span>
+              <span className="bakery-round-label">Round {round} of {totalRounds}</span>
               <div className="bakery-move-pips">
                 {Array.from({ length: MOVES_PER_ROUND }).map((_, i) => (
                   <span key={i} className={`bakery-pip${i < movesThisRound ? ' filled' : ''}`} />
@@ -632,7 +638,7 @@ export default function BakeryMatch3() {
           <div className="bakery-modal-card bakery-confirm-card" onClick={(e) => e.stopPropagation()}>
             <span className="bakery-confirm-icon" aria-hidden="true">⚠️</span>
             <h2 className="bakery-modal-title">Leave this game?</h2>
-            <p className="bakery-modal-note">Your progress in this game is lost until you finish all 3 rounds.</p>
+            <p className="bakery-modal-note">Your progress in this game is lost until you finish all {totalRounds} rounds.</p>
             <button className="bakery-play-btn" onClick={() => setShowExitConfirm(false)}>Keep Baking</button>
             <button className="bakery-text-link" onClick={abandonGame}>Leave to Main Menu</button>
           </div>
@@ -695,7 +701,7 @@ export default function BakeryMatch3() {
           choices={challengeQuestion.choices}
           correctIndex={challengeQuestion.correctIndex}
           done={gateCorrectCount}
-          total={QUESTIONS_PER_GATE}
+          total={questionsPerGate}
           imageUrl={challengeQuestion.imageUrl}
           imageAlt={challengeQuestion.imageAlt}
           onCorrectAnswer={handleChallengeCorrect}

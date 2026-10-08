@@ -86,9 +86,12 @@ const WAVE_TIERS: (1 | 2 | 3 | 4)[][] = [
   [2, 3, 3, 4, 4],
   [2, 2, 3, 4, 4, 1],
 ];
-export function buildWaves(theme: ThemeId, rng: () => number = Math.random): string[][] {
+// More than 5 waves (the student's Rounds slider): each extra wave is the last one plus one more
+// strong attacker, so it keeps getting a little harder.
+export function buildWaves(theme: ThemeId, count = 5, rng: () => number = Math.random): string[][] {
   const pool = Object.values(ENEMIES).filter((e) => theme === 'mix' || e.theme === theme);
-  return WAVE_TIERS.map((tiers) => tiers.map((t) => {
+  const tiersList = Array.from({ length: count }, (_, i) => (i < WAVE_TIERS.length ? WAVE_TIERS[i] : [...WAVE_TIERS[WAVE_TIERS.length - 1], ...Array.from({ length: i - WAVE_TIERS.length + 1 }, (_, k) => (k % 2 ? 3 : 4) as 3 | 4)]));
+  return tiersList.map((tiers) => tiers.map((t) => {
     const opts = pool.filter((e) => e.tier === t);
     return opts[Math.floor(rng() * opts.length)].id;
   }));
@@ -98,7 +101,7 @@ export function buildWaves(theme: ThemeId, rng: () => number = Math.random): str
 // get harder. The Wisp builds every tower; the townspeople cheer when a wave is cleared.
 const portal = (name: string, frames: number): Sheet => ({ src: `${CD}/portal/48x48-side-scroller-td-overgrown-${name}.png`, imgW: frames * 48, imgH: 48, cellW: 48, cellH: 48, row: 0, frames, bbox: [0, 0, 48, 48], ms: 140 });
 export const PORTAL_STAGES: Sheet[] = [portal('portal', 4), portal('torn-portal', 4), portal('electric-torn-portal', 4)];
-export const portalStage = (wave: number) => (wave <= 2 ? 0 : wave <= 4 ? 1 : 2);
+export const portalStage = (wave: number, total = 5) => (wave / total <= 0.4 ? 0 : wave / total <= 0.8 ? 1 : 2);
 export const WISP_CAST: Sheet = { src: `${CD}/foozle/builder/wisp/spritesheet/wisp---animations.png`, imgW: 576, imgH: 384, cellW: 64, cellH: 64, row: 3, frames: 9, bbox: [12, 10, 52, 58], ms: 90 };
 export const citizen = (n: number, cheering: boolean): Sheet => ({
   src: `${CD}/craftpix/citizens/${n}/s_${cheering ? 'special' : 'idle'}.png`, imgW: cheering ? 288 : 192, imgH: 48, cellW: 48, cellH: 48, row: 0, frames: cheering ? 6 : 4, bbox: [12, 0, 36, 33], ms: cheering ? 110 : 160,

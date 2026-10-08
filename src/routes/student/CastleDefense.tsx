@@ -21,6 +21,8 @@ import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct 
 import { drawQuestion } from '../../lib/questionPick';
 import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_IDS, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
 import SheetSprite from '../../games/castleDefense/SheetSprite';
+import RoundSettings from '../../components/RoundSettings';
+import { useRoundSettings } from '../../lib/gameRounds';
 
 // Castle Defense — a Town Square building (role 'castle' in
 // townLayout.ts), teacher places the 3D "Low Poly Castle" model (CC-BY-4.0,
@@ -112,8 +114,7 @@ import SheetSprite from '../../games/castleDefense/SheetSprite';
 //    supabase/schema.sql migration (castle_defense_questions_answered/
 //    castle_defense_milestone_tier/castle_defense_milestone_count) run
 //    on the live database before it syncs across devices/refreshes.
-const TOTAL_WAVES = 5;
-const QUESTIONS_PER_GATE = 3;
+const CD_RANGES = { rounds: { min: 3, max: 10, def: 5 }, per: { min: 1, max: 10, def: 3 } };
 const GEMS_PER_CORRECT = 2;
 // $1 per right answer, same as every native game (teacher direction
 // 2026-10-04, src/lib/gameEarnings.ts). Was 50 cents.
@@ -263,6 +264,11 @@ export default function CastleDefense() {
     );
   }, [student, rotations, progress]);
 
+  // Waves and questions per gate: the student's choice, or the assignment's (locked).
+  const roundSet = useRoundSettings('castleDefense', CD_RANGES, activeGameplayTask?.task);
+  const TOTAL_WAVES = roundSet.rounds;
+  const QUESTIONS_PER_GATE = roundSet.perRound;
+
   const usableQuestionSets = useMemo<QuestionSet[]>(
     () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
     [questionSets],
@@ -272,7 +278,7 @@ export default function CastleDefense() {
   // Which attackers come (teacher 2026-10-08: more options). Chosen on the menu, remembered here.
   const [theme, setTheme] = useState<ThemeId>(readTheme);
   const [mapId, setMapId] = useState<MapId>(readMap);
-  const [waves, setWaves] = useState<string[][]>(() => buildWaves(readTheme()));
+  const [waves, setWaves] = useState<string[][]>(() => buildWaves(readTheme(), 5));
   // The Wisp builds every new tower or upgrade: slot index -> build time.
   const [building, setBuilding] = useState<Record<number, number>>({});
   const [showSourcePanel, setShowSourcePanel] = useState(false);
@@ -352,7 +358,7 @@ export default function CastleDefense() {
     setWaveResult(null);
     setWaveCleared(false);
     setPerfectWaves(Array(TOTAL_WAVES).fill(false));
-    setWaves(buildWaves(theme));
+    setWaves(buildWaves(theme, TOTAL_WAVES));
     setBuilding({});
     setChallengeQuestion(pickQuestion(questionMode));
     setPhase('challenge');
@@ -624,7 +630,8 @@ export default function CastleDefense() {
             <div className="bakery-menu-card">
               <h1 className="bakery-title">🏰 Castle Defense</h1>
               {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
-              <p className="bakery-blurb">5 waves. Answer to earn gems. Build towers to defend the castle!</p>
+              <p className="bakery-blurb">Answer to earn gems. Build towers to defend the castle!</p>
+              <RoundSettings ranges={CD_RANGES} roundsLabel="Waves" perLabel="Questions before each wave" rounds={TOTAL_WAVES} perRound={QUESTIONS_PER_GATE} onRounds={roundSet.setRounds} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
               <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {student?.castleDefenseQuestionsAnswered ?? 0} lifetime questions answered</span>
               <div className="cd-theme-pick" role="radiogroup" aria-label="Where is the battle?">
                 <span className="cd-theme-title">Where?</span>
@@ -811,7 +818,7 @@ export default function CastleDefense() {
 
               {/* The overgrown portal the attackers pour out of: calm, torn, then electric. */}
               <div className="cd-portal" style={toPct(pointAlongPath(3))} aria-hidden>
-                <SheetSprite sheet={PORTAL_STAGES[portalStage(wave)]} />
+                <SheetSprite sheet={PORTAL_STAGES[portalStage(wave, TOTAL_WAVES)]} />
               </div>
               {CITIZEN_SPOTS.map((spot, k) => (
                 <div key={k} className={`cd-citizen${k % 2 ? ' flip' : ''}`} style={{ ...toPct(spot), zIndex: 10 + Math.round(spot.y) }} aria-hidden>
