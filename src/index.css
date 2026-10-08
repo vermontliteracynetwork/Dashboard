@@ -5665,3 +5665,13 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-doc .gwb-doc-page { padding-right: 56px; }
 
 .gwb-tv-save { position: absolute; left: 50%; top: calc(100% + 4px); transform: translateX(-50%); min-height: 44px; padding: 0 14px; border-radius: 22px; border: 2px solid #fff; background: #2f5d50; color: #fff; font-weight: 800; white-space: nowrap; cursor: pointer; z-index: 3; }
+
+/* The Proper Noun machine's floating crown (teacher 2026-10-08) */
+.gwb-crown { animation: gwb-crown-float 2.4s ease-in-out infinite; transform-box: fill-box; }
+@keyframes gwb-crown-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .gwb-crown { animation: none; } }
+.gus-calm .gwb-crown { animation: none; }
+
+/* Copy a whole machine (teacher 2026-10-08) */
+.gwb-copy-line { position: absolute; width: 44px; height: 44px; padding: 0; border-radius: 12px; border: 3px solid var(--gus-ink); background: #f3cf6b; color: var(--gus-ink); font-size: 1.15rem; font-weight: 900; cursor: pointer; z-index: 2; }
+.gwb-layer .gwb-copy-line { width: max(44px, calc(44px / var(--z, 1))); height: max(44px, calc(44px / var(--z, 1))); }

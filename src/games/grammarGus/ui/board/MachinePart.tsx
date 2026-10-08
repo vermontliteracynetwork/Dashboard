@@ -433,6 +433,22 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
     <rect x={6} y={10} width={w - 12} height={120} rx={14} fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth={4} strokeDasharray="10 7" />
     <text x={w / 2} y={74} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={40} fill="#fff">+</text>
   </>);
+  // The Proper Noun machine (teacher 2026-10-08): the Noun Boiler with a floating golden crown.
+  if (kind === 'proper') {
+    const size = BODY.N;
+    const top = PIPE_Y - size * 0.58;
+    const cx = w / 2;
+    return svg(<>
+      <Pipes w={w} />
+      <Stand w={w} top={top + size * 0.8} />
+      <PartSvg pos="N" word={word} ghost={empty} box={{ x: (w - size) / 2, y: top, w: size, h: size }} />
+      <g className="gwb-crown"><path d={`M${cx - 15} ${8} L${cx - 18} ${-9} L${cx - 8} ${-1} L${cx} ${-13} L${cx + 8} ${-1} L${cx + 18} ${-9} L${cx + 15} ${8} Z`} fill="#f5c331" stroke={INK} strokeWidth={2.4} strokeLinejoin="round" />
+        <rect x={cx - 15} y={3} width={30} height={5} fill="#e0a020" stroke={INK} strokeWidth={1.6} />
+        <circle cx={cx} cy={-13} r={2.6} fill="#e8483b" stroke={INK} strokeWidth={1.2} /><circle cx={cx - 18} cy={-9} r={2.2} fill="#5bc0eb" stroke={INK} strokeWidth={1.2} /><circle cx={cx + 18} cy={-9} r={2.2} fill="#5bc0eb" stroke={INK} strokeWidth={1.2} /></g>
+      <Gear x={13} y={PIPE_Y + 26} r={7} /><Gear x={w - 13} y={PIPE_Y + 26} r={7} rev />
+      <Plate w={w} text={word ?? '?'} blank={empty} color={base} />
+    </>);
+  }
   if (isWordKind(kind)) {
     const size = BODY[kind];
     const top = PIPE_Y - size * 0.58;

@@ -23,10 +23,13 @@ export const ADJ_FX: Record<string, AdjFx> = {
   smelly: 'stink', fluffy: 'puff', furry: 'puff', soft: 'puff', spiky: 'spikes', dirty: 'mud', muddy: 'mud',
   old: 'cane', ancient: 'cane', young: 'new', new: 'new', curious: 'question', surprised: 'exclaim', cheerful: 'notes', silly: 'notes', happy: 'notes',
   fast: 'speed', slow: 'snail', loud: 'sound', quiet: 'shh', hard: 'shine', hungry: 'growl', shy: 'blush',
+  ferocious: 'steam', courageous: 'flex', furious: 'steam', exhausted: 'zzz', famished: 'growl', goofy: 'notes', zany: 'notes', cranky: 'steam', jolly: 'notes',
+  timid: 'sweat', bonkers: 'exclaim', mischievous: 'question', magnificent: 'sparkle', peculiar: 'question', mysterious: 'question', radiant: 'glow', luminous: 'glow',
+  drenched: 'dripBlue', gooey: 'dripGreen', squishy: 'puff', stinky: 'stink', grimy: 'mud', fuzzy: 'puff', elegant: 'sparkle',
 };
 
 // Words that change the drawing itself (size and color), or are drawn by the rigs.
-const DRAWN_BY_RIG = new Set(['big', 'small', 'tiny', 'chubby', 'plump', 'huge', 'giant', 'little', 'tall', 'short', 'red', 'blue', 'green', 'yellow', 'white', 'black', 'pink', 'purple', 'orange', 'brown', 'gray', 'striped', 'spotted', 'gold', 'silver', 'bald', 'round']);
+const DRAWN_BY_RIG = new Set(['big', 'small', 'tiny', 'chubby', 'plump', 'huge', 'giant', 'little', 'tall', 'short', 'enormous', 'gigantic', 'colossal', 'minuscule', 'petite', 'red', 'blue', 'green', 'yellow', 'white', 'black', 'pink', 'purple', 'orange', 'brown', 'gray', 'striped', 'spotted', 'gold', 'silver', 'bald', 'round']);
 
 export const hasAdjPicture = (a: string) => DRAWN_BY_RIG.has(a) || !!ADJ_FX[a];
 

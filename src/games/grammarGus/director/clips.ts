@@ -35,7 +35,7 @@ export function clipFor(clip: string, rig: Rig): { do: string; sprout: boolean; 
 }
 
 // Adverbs: speed and effects (plan 6.4).
-export const ADVERB_SPEED: Record<string, number> = { quickly: 1.8, swiftly: 2, slowly: 0.4, wildly: 1.3, gently: 0.8, softly: 0.8, lightly: 0.9, tenderly: 0.8, quietly: 0.85, silently: 0.85, sneakily: 0.75, gracefully: 0.9, weirdly: 1.1, happily: 1.2, sadly: 0.6, carefully: 0.6, angrily: 1.3, calmly: 0.7, sleepily: 0.5, eagerly: 1.5, nervously: 1.1, playfully: 1.2 };
+export const ADVERB_SPEED: Record<string, number> = { quickly: 1.8, swiftly: 2, slowly: 0.4, wildly: 1.3, gently: 0.8, softly: 0.8, lightly: 0.9, tenderly: 0.8, quietly: 0.85, silently: 0.85, sneakily: 0.75, gracefully: 0.9, weirdly: 1.1, happily: 1.2, sadly: 0.6, carefully: 0.6, angrily: 1.3, calmly: 0.7, sleepily: 0.5, eagerly: 1.5, nervously: 1.1, playfully: 1.2, ferociously: 1.3, gleefully: 1.2, clumsily: 0.9, frantically: 1.8, majestically: 0.8, mysteriously: 0.8, lazily: 0.5, sluggishly: 0.4 };
 export const ADVERB_FX: Record<string, string[]> = {
   quickly: ['speedLines', 'dust'], swiftly: ['speedLines', 'dust'], slowly: ['effort', 'snail'],
   loudly: ['sound'], quietly: ['shh'], softly: ['feather'], gently: ['feather'], lightly: ['feather'],
@@ -44,6 +44,8 @@ export const ADVERB_FX: Record<string, string[]> = {
   weirdly: ['zigzag'], silently: ['shh'], sneakily: ['shh'], gracefully: ['feather'],
   happily: ['stars'], sadly: ['tear'], carefully: ['effort'], bravely: ['stars'], angrily: ['steam'], calmly: ['feather'],
   sleepily: ['zzz'], eagerly: ['speedLines'], nervously: ['sweat'], kindly: ['hearts'], politely: ['halo'], playfully: ['zigzag'],
+  ferociously: ['zigzag'], triumphantly: ['stars'], mysteriously: ['shh'], gleefully: ['stars'], clumsily: ['zigzag'], frantically: ['speedLines', 'zigzag'],
+  majestically: ['halo'], boldly: ['stars'], grumpily: ['steam'], lazily: ['zzz'], sluggishly: ['snail'],
 };
 
 // Prepositions: the path relative to the ground (plan 6.6). Teacher

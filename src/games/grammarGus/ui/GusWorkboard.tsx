@@ -28,7 +28,7 @@ import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
 import { nounByWord, verbByBase, adjByWord, adverbSet, VERBS } from '../data/wordbank';
-import { SUBORD } from '../engine/grammar';
+import { DETERMINERS, SUBORD } from '../engine/grammar';
 import { CHEERS, GATE_LINES, GREETINGS, RUBRIC_LINES, lineFor } from '../data/gusLines';
 import { explainFinish, explainViolation } from '../data/explain';
 import { useGusSettings, levelFor } from '../settings';
@@ -1071,9 +1071,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const menuLine = menu ? lines.find((l) => l.id === menu.lineId) : undefined;
   const menuItem = menuLine?.items.find((i) => i.id === menu?.itemId);
   const pool = (pos: Pos): string[] => {
-    if (pos === 'A') return level === 'challenge' ? ['a', 'an', 'the'] : ['a', 'the'];
+    if (pos === 'A') return ['a', 'an', 'the', ...DETERMINERS];
     // Joining words, "because" and its friends included (teacher 2026-10-08).
-    if (pos === 'C') return [...new Set(['and', 'but', 'or', 'so', 'yet', ...SUBORD])];
+    if (pos === 'C') return [...new Set(['for', 'and', 'nor', 'but', 'or', 'yet', 'so', ...SUBORD])]; // FANBOYS first
     if (pos === 'R') return [...POOLS.R, 'me', 'him', 'her', 'us', 'them']; // object pronouns too (Turnstile)
     const extra = pos === 'N' || pos === 'V' || pos === 'J' || pos === 'D' || pos === 'I' ? customFor(pos) : [];
     // Read and Respond: the words a good answer needs come first.
@@ -1159,6 +1159,23 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     addCustomWord({ pos: dict.pos, word: r.word, plural: r.plural });
     say(`"${r.word}" is in the dictionary${r.plural ? ' (more than one)' : ''}. Added to your parts!`, 'Dictionary');
     chooseWord(dict.pos === 'I' ? r.word.charAt(0).toUpperCase() + r.word.slice(1) : r.word);
+  };
+  // Copy buttons (teacher 2026-10-08: "make sure everything can be clicked with a douplication button easily").
+  const cloneItem = (it: BoardItem): BoardItem => ({ ...it, id: uid(), locked: false, ...(it.top ? { top: cloneItem(it.top) } : {}), ...(it.bottom ? { bottom: cloneItem(it.bottom) } : {}) });
+  const copyItem = (lineId: string, itemId: string) => {
+    const l = linesRef.current.find((x) => x.id === lineId); const it = l?.items.find((i) => i.id === itemId); if (!l || !it) return;
+    const twin = cloneItem(it);
+    editLine(lineId, (x) => { const k = x.items.findIndex((i) => i.id === itemId); return { ...x, items: [...x.items.slice(0, k + 1), twin, ...x.items.slice(k + 1)] }; });
+    setMenu(null); bounce(twin.id); gusSound.snap(); say(`A copy of the ${kindInfo(it.kind).name}${it.word ? ` "${it.word}"` : ''}, right next to it. Drag it wherever you like.`, '⧉ Copied');
+  };
+  const copyLine = (lineId: string) => {
+    const l = linesRef.current.find((x) => x.id === lineId); if (!l) return;
+    remember();
+    const sp = freeSpot();
+    const id = uid();
+    setLines((ls) => [...ls, { id, x: snap(sp.x), y: snap(sp.y), items: l.items.map(cloneItem), connector: l.connector }]);
+    setSelLine(id); bounce(id); gusSound.snap(); say('A copy of the whole machine, just below. Change any word you like.', '⧉ Copied');
+    requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
   };
   const removeItem = (lineId: string, itemId: string) => { editLine(lineId, (l) => ({ ...l, items: l.items.filter((i) => i.id !== itemId) })); setMenu(null); gusSound.puff(); say('Taken off. Changed your mind? Tap Undo.', 'Removed'); };
   const menuPos = (() => {
@@ -1530,6 +1547,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                     </div>
                   )}
                   <button type="button" className="gwb-grip" style={{ left: line.x - 14, top: line.y + 40, height: ITEM_H - 80 }} onPointerDown={(e) => onGripDown(e, line)} aria-label="Move this whole machine">⠿</button>
+                  <button type="button" className="gwb-copy-line" style={{ left: line.x - 14, top: line.y + ITEM_H - 36 }} onPointerDown={(e) => e.stopPropagation()} onClick={() => copyLine(line.id)} aria-label="Copy this whole machine">⧉</button>
                   {(() => { const para = paras.find((p) => p.some((l) => l.id === line.id)); return para && para.length > 1 ? <span className="gwb-para-num" style={{ left: line.x - 14, top: line.y + 12 }} aria-label={`Sentence ${para.indexOf(line) + 1} of the paragraph`}>{para.indexOf(line) + 1}</span> : null; })()}
                   {slots.map((s) => {
                     if (s.ghost === 'lever') return (
@@ -1877,6 +1895,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
           )}
           <div className="gwb-wordmenu-foot">
             {needsWord(menuItem.kind) && menuItem.word && <button type="button" className={`gus-btn${menuItem.locked ? ' on' : ''}`} onClick={() => { setItem(menuLine.id, menuItem.id, { locked: !menuItem.locked }); gusSound.clack(); }}>{menuItem.locked ? '🔒 Locked' : '🔓 Lock this word'}</button>}
+            <button type="button" className="gus-btn" onClick={() => copyItem(menuLine.id, menuItem.id)}>⧉ Copy</button>
             <button type="button" className="gus-btn" onClick={() => removeItem(menuLine.id, menuItem.id)}>♻️ Take it off</button>
           </div>
         </div>

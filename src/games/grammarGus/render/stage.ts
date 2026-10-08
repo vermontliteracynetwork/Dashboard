@@ -3,6 +3,8 @@ import { C, SEPIA_OF, SEPIA_DARKER } from './palette';
 import { drawText, drawTextCentered, textWidth } from './font';
 import { spriteFor, drawProp, OBJECT_DRAWINGS } from './rigs';
 import { drawAdjFx, hasAdjPicture } from './adjFx';
+// New creatures (2026-10-08) share the people and animal bodies, so their names show above them.
+const NAME_TAGGED = new Set(['teacher', 'friend', 'king', 'queen', 'chef', 'farmer', 'pirate', 'nurse', 'lion', 'monkey', 'penguin', 'elephant', 'giraffe', 'fox', 'bee', 'butterfly', 'unicorn', 'dragon', 'monster', 'ninja', 'wizard', 'knight', 'goblin', 'sloth', 'llama', 'narwhal', 'hamster', 'boat', 'train', 'truck']);
 import type { Beat, Scene, SceneScript } from '../director/director';
 import type { CastMember } from '../director/cast';
 import { nounByWord } from '../data/wordbank';
@@ -408,9 +410,10 @@ function drawScene(fb: FB, script: SceneScript, scene: Scene, t: number, opts: R
     if (a.s.poof && !opts.calm) { fb.ellipse(a.s.x - 4, GROUND - 10, 4, 3, C.white); drawStar(fb, a.s.x + 2, top - 6, C.yellow); }
     if (a.s.word) drawTextCentered(fb, a.s.word, a.s.x, Math.max(14, top - 11), C.yellow);
     else if (a.s.tags.length) drawTextCentered(fb, a.s.tags[0], a.s.x, Math.max(14, top - 11), C.white);
-    else if (nounByWord.get(a.m.noun)?.proper) drawTextCentered(fb, a.m.noun.charAt(0).toUpperCase() + a.m.noun.slice(1), a.s.x, Math.max(14, top - 11), C.yellow); // a name: Mia, Vermont
+    else if (nounByWord.get(a.m.noun)?.proper) drawTextCentered(fb, a.m.noun.split(' ').map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(' '), a.s.x, Math.max(14, top - 11), C.yellow); // a name: Mia, Vermont
     else if (nounByWord.get(a.m.noun)?.pack === 'custom') drawTextCentered(fb, a.m.noun, a.s.x, Math.max(14, top - 11), C.white); // a dictionary word: its name shows
     else if (look.adjs?.some((x) => !hasAdjPicture(x))) drawTextCentered(fb, look.adjs.find((x) => !hasAdjPicture(x))!, a.s.x, Math.max(14, top - 11), C.white); // a describing word with no picture yet
+    else if (NAME_TAGGED.has(a.m.noun)) drawTextCentered(fb, a.m.noun, a.s.x, Math.max(14, top - 11), C.white); // a new creature drawn with the shared body: its name shows
     else if (a.m.rig === 'object' && !OBJECT_DRAWINGS.has(nounByWord.get(a.m.noun)?.singular ?? a.m.noun)) drawTextCentered(fb, a.m.noun, a.s.x, Math.max(14, top - 11), C.white); // a thing with no drawing yet: its name shows
   };
   for (const a of states) if (a.s.behind) drawActor(a);

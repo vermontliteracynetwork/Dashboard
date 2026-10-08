@@ -74,6 +74,17 @@ export const NOUNS: NounEntry[] = [
   n('tree', 2, 'thing', 'object', '🌳', { size: 'big' }), n('flower', 2, 'thing', 'object', '🌼', { size: 'small' }), n('drum', 2, 'thing', 'object', '🥁'),
   n('sun', 2, 'thing', 'object', '☀️', { size: 'big' }), n('star', 2, 'thing', 'object', '⭐'), n('house', 2, 'thing', 'object', '🏠', { size: 'big' }),
   n('boat', 2, 'thing', 'vehicle', '⛵', { size: 'big' }), n('train', 2, 'thing', 'vehicle', '🚂', { size: 'big' }), n('truck', 2, 'thing', 'vehicle', '🚚', { size: 'big' }),
+  // Silly words and big middle school words (teacher 2026-10-08: "funny vocab words, longer good
+  // words for middle school, silly goofy funny words, too ... like besieged ... splatter and slime").
+  n('slime', 2, 'thing', 'object', '🟢', { noA: true }), n('goo', 2, 'thing', 'object', '🫧', { noA: true }), n('pickle', 2, 'thing', 'object', '🥒', { food: true, size: 'small' }),
+  n('noodle', 2, 'thing', 'object', '🍜', { food: true, size: 'small' }), n('marshmallow', 2, 'thing', 'object', '☁️', { food: true, size: 'small' }), n('taco', 2, 'thing', 'object', '🌮', { food: true }),
+  n('donut', 2, 'thing', 'object', '🍩', { food: true, size: 'small' }), n('potato', 2, 'thing', 'object', '🥔', { food: true, size: 'small' }), n('sock', 2, 'thing', 'object', '🧦', { size: 'small' }),
+  n('toaster', 2, 'thing', 'object', '🍞'), n('unicorn', 2, 'animal', 'quadruped', '🦄'), n('dragon', 2, 'animal', 'quadruped', '🐉', { size: 'big' }),
+  n('monster', 2, 'animal', 'biped', '👹'), n('ninja', 2, 'human', 'biped', '🥷'), n('wizard', 2, 'human', 'biped', '🧙'), n('knight', 2, 'human', 'biped', '🛡️'),
+  n('goblin', 2, 'animal', 'biped', '👺'), n('sloth', 2, 'animal', 'quadruped', '🦥'), n('llama', 2, 'animal', 'quadruped', '🦙'),
+  n('narwhal', 2, 'animal', 'critter', '🐋'), n('hamster', 2, 'animal', 'critter', '🐹', { size: 'small' }),
+  // Places (teacher 2026-10-08: "nouns have lots of places (school, town, beach)"), each a Pixel TV scene piece.
+  ...Object.entries({ school: '🏫', town: '🏘️', beach: '🏖️', park: '🏞️', store: '🏪', library: '📚', zoo: '🦓', farm: '🚜', forest: '🌲', garden: '🌷', playground: '🛝', castle: '🏰', city: '🏙️', pool: '🏊', lake: '🛶', mountain: '⛰️', hospital: '🏥', bakery: '🥐', museum: '🏛️', river: '🏞️' }).map(([w, e]) => n(w, 2, 'thing', 'prop', e)),
   // Words her 33 example sentences use (pack "example", tier 3).
   ...([
     n('fish', 3, 'animal', 'critter', '🐟', { size: 'small' }), n('dolphin', 3, 'animal', 'critter', '🐬'),
@@ -124,6 +135,15 @@ export const VERBS: VerbEntry[] = [
   v('sweep', 'sweeps', 'swept', 'B', 'clean'), v('paint', 'paints', 'painted', 'B', 'clean'), v('build', 'builds', 'built', 'B', 'mix'),
   v('munch', 'munches', 'munched', 'B', 'eat'), v('gobble', 'gobbles', 'gobbled', 'T', 'eat'), v('sip', 'sips', 'sipped', 'B', 'drink'),
   v('slurp', 'slurps', 'slurped', 'B', 'drink'), v('drive', 'drives', 'drove', 'B', 'run'), v('visit', 'visits', 'visited', 'T', 'walk'),
+  // Silly and big middle school action words (teacher 2026-10-08).
+  v('besiege', 'besieges', 'besieged', 'T', 'pounce', 'core', false), v('conquer', 'conquers', 'conquered', 'T', 'pounce', 'core', false), v('demolish', 'demolishes', 'demolished', 'T', 'break', 'core', false),
+  v('devour', 'devours', 'devoured', 'T', 'eat'), v('guzzle', 'guzzles', 'guzzled', 'B', 'drink'), v('plummet', 'plummets', 'plummeted', 'I', 'fall'),
+  v('saunter', 'saunters', 'sauntered', 'I', 'walk'), v('scurry', 'scurries', 'scurried', 'I', 'run'), v('stumble', 'stumbles', 'stumbled', 'I', 'fall'),
+  v('splatter', 'splatters', 'splattered', 'I', 'break'), v('wobble', 'wobbles', 'wobbled', 'I', 'spin'), v('squish', 'squishes', 'squished', 'T', 'hug'),
+  v('bonk', 'bonks', 'bonked', 'T', 'kick', 'core', false), v('gallop', 'gallops', 'galloped', 'I', 'run'), v('slither', 'slithers', 'slithered', 'I', 'slide'),
+  v('lurk', 'lurks', 'lurked', 'I', 'hide'), v('tiptoe', 'tiptoes', 'tiptoed', 'I', 'walk'), v('waddle', 'waddles', 'waddled', 'I', 'walk'),
+  v('boogie', 'boogies', 'boogied', 'I', 'spin'), v('cartwheel', 'cartwheels', 'cartwheeled', 'I', 'spin'), v('zigzag', 'zigzags', 'zigzagged', 'I', 'run'),
+  v('sprint', 'sprints', 'sprinted', 'I', 'run'), v('soar', 'soars', 'soared', 'I', 'fly'), v('glide', 'glides', 'glided', 'I', 'slide'),
   // Verbs her example sentences use.
   v('crawl', 'crawls', 'crawled', 'I', 'walk', 'example'), v('fly', 'flies', 'flew', 'I', 'fly', 'example'),
   v('swim', 'swims', 'swam', 'I', 'swim', 'example'), v('bounce', 'bounces', 'bounced', 'I', 'jump', 'example'),
@@ -161,6 +181,9 @@ export const ADJECTIVES: AdjEntry[] = [
   ...adj('age', 'core', 'ancient'),
   ...adj('look', 'core', 'fluffy furry spiky wet dirty muddy smelly sticky strong fast slow hot cold soft loud quiet bright round'),
   ...adj('color', 'core', 'gold silver'),
+  ...adj('feeling', 'core', 'ferocious courageous furious exhausted famished goofy zany cranky jolly timid bonkers mischievous magnificent'),
+  ...adj('size', 'core', 'enormous gigantic colossal minuscule petite'),
+  ...adj('look', 'core', 'peculiar mysterious radiant luminous drenched gooey squishy wobbly stinky grimy fuzzy elegant'),
   ...adj('feeling', 'space', 'cosmic'), ...adj('look', 'space', 'shiny glowing'),
   ...adj('look', 'ocean', 'slimy sparkly soggy'),
 ];
@@ -168,7 +191,7 @@ export const ADJECTIVES: AdjEntry[] = [
 export const ADVERBS: { word: string; pack: Pack }[] = [
   ...'gently innocently lightly loudly messily quickly quietly slowly softly swiftly tenderly warmly wildly zealously'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'proudly safely'.split(' ').map((word) => ({ word, pack: 'example' as Pack })),
-  ...'happily sadly carefully bravely angrily calmly sleepily eagerly nervously kindly politely playfully'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
+  ...'happily sadly carefully bravely angrily calmly sleepily eagerly nervously kindly politely playfully ferociously triumphantly mysteriously gleefully clumsily frantically majestically boldly grumpily lazily sluggishly'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'weirdly silently'.split(' ').map((word) => ({ word, pack: 'space' as Pack })),
   ...'gracefully sneakily'.split(' ').map((word) => ({ word, pack: 'ocean' as Pack })),
 ];
@@ -179,7 +202,8 @@ export const REFLEXIVE_PRONOUNS = ['itself', 'himself', 'herself', 'themselves',
 export const ARTICLES = ['a', 'an', 'the'] as const;
 // "nor" is left out of v1 (needs inverted word order, plan section 12).
 export const CONJUNCTIONS = ['and', 'but', 'for', 'or'] as const;
-export const INTERJECTIONS = ['Eek', 'Golly', 'Wow', 'Whew', 'Yuck', 'Phew'] as const;
+// Sound words too (teacher 2026-10-08: "interjections should have onemonepias like \"Hey!\" \"Boom!\"").
+export const INTERJECTIONS = ['Eek', 'Golly', 'Wow', 'Whew', 'Yuck', 'Phew', 'Hey', 'Boom', 'Pow', 'Bam', 'Bang', 'Crash', 'Zap', 'Whoosh', 'Splat', 'Wham', 'Oops', 'Yay', 'Hooray', 'Ouch', 'Yikes', 'Achoo', 'Brr', 'Ahoy', 'Hmm'] as const;
 
 // Conjunction pools by position (plan section 12, configurable).
 export const CONJ_POOLS = {

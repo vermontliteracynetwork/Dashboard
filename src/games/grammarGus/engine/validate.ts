@@ -135,6 +135,7 @@ export function validateSentence(draft: Draft): Validation {
       for (const np of nps) {
         if (np.art === undefined || !words[np.art].word) continue;
         const art = lw(np.art);
+        if (art !== 'a' && art !== 'an' && art !== 'the') continue; // this, my, some...
         const noun = np.noun !== undefined ? nounByWord.get(lw(np.noun)) : undefined;
         if (art !== 'the' && np.adjs.some((i) => isSuperlative(words[i].word))) add('SUPERLATIVE_THE', [np.art]);
         else if (art !== 'the' && (noun?.plural || noun?.noA)) add('A_WITH_PLURAL', [np.art]);
@@ -159,7 +160,7 @@ export function validateSentence(draft: Draft): Validation {
       const extraCommas = draft.marks.commas.filter((i) => !okCommas.has(i) && i < tokens.length - 1);
       if (extraCommas.length) add('EXTRA_COMMA', extraCommas);
       const okCaps = new Set(requiredCapitals(tokens, a, true));
-      tokens.forEach((t, i) => { const w = (t.word ?? '').toLowerCase().replace(/'s?$/, ''); if (t.pos === 'N' && nounByWord.get(w)?.proper) okCaps.add(i); });
+      tokens.forEach((t, i) => { const w = (t.word ?? '').toLowerCase().replace(/'s?$/, ''); if (t.pos === 'N' && (nounByWord.get(w)?.proper || nounByWord.get((t.word ?? '').replace(/'s?$/, ''))?.proper)) okCaps.add(i); });
       const extraCaps = draft.marks.capitals.filter((i) => !okCaps.has(i));
       if (extraCaps.length) add('EXTRA_CAPITAL', extraCaps);
     }

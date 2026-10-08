@@ -85,7 +85,7 @@ export function autoFixWords(tokens: Token[], a: Analysis): Token[] {
       const sorted = [...words].sort((x, y) => (x && y ? adjRank(x) - adjRank(y) : 0));
       np.adjs.forEach((i, k) => { out[i].word = sorted[k]; });
     }
-    if (np.art !== undefined && out[np.art].word && out[np.art].word!.toLowerCase() !== 'the') {
+    if (np.art !== undefined && out[np.art].word && ['a', 'an'].includes(out[np.art].word!.toLowerCase())) {
       const noun = np.noun !== undefined ? nounByWord.get((out[np.noun].word ?? '').toLowerCase()) : undefined;
       // "the" with more than one, and with the most of all (the tallest cat).
       if (noun?.plural || noun?.noA || np.adjs.some((i) => isSuperlative(out[i].word))) out[np.art].word = 'the';
@@ -143,7 +143,7 @@ export function compose(draft: Draft, plain = false): Composed {
     }
     if (t.pos === 'R' && text === 'I') text = full || capitals.has(i) ? 'I' : 'i';
     if (t.pos === 'I') text = text.toLowerCase();
-    if (t.pos === 'N' && nounByWord.get(text.replace(/'s?$/, ''))?.proper) text = cap(text); // names always get a capital letter
+    if (t.pos === 'N' && nounByWord.get(text.replace(/'s?$/, ''))?.proper) text = text.split(' ').map(cap).join(' '); // names always get a capital letter (Miss Kayden)
     if (capitals.has(i)) text = cap(text);
     if (t.pos === 'I' && marks.shoutMark) text += '!';
     if (commas.has(i)) text += ',';

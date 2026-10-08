@@ -1,7 +1,7 @@
 import type { Pos } from '../../engine/types';
 import { SYMBOLS } from '../../data/symbols';
 import { TIME_WORDS } from '../../data/timeWords';
-import { NAMES, WEIRD_PLURAL_NOUNS } from '../../data/extraNouns';
+import { NAMES, PROPER_NOUN_WORDS, WEIRD_PLURAL_NOUNS } from '../../data/extraNouns';
 import { VERBS } from '../../data/wordbank';
 import { regularPast } from '../../engine/dictionary';
 import { SUBORD } from '../../engine/grammar';
@@ -30,10 +30,12 @@ export type ContraptionKind = 'spring' | 'pulley' | 'ramp' | 'conveyor' | 'fan' 
   // Claudia's round 4 game ideas
   | 'crate' | 'megaphone' | 'toaster' | 'cannon' | 'slots'
   // Claudia's writing scaffold plan, Phase 1
-  | 'gate' | 'flip' | 'equals' | 'command' | 'hypo' | 'rig';
+  | 'gate' | 'flip' | 'equals' | 'command' | 'hypo' | 'rig'
+  // The crowned Proper Noun machine (teacher 2026-10-08)
+  | 'proper';
 export type Kind = Pos | FinishKind | ContraptionKind | 'blank';
 export const isWordKind = (k: Kind): k is Pos => k.length === 1;
-export const CONTRAPTIONS: ContraptionKind[] = ['horn', 'spring', 'fan', 'ramp', 'conveyor', 'bucket', 'pulley', 'bell', 'dominoes', 'duplicator', 'trapdoor', 'mood', 'tunnel', 'slingshot', 'dial', 'switch', 'funnel', 'bridge', 'gears', 'sniffer', 'sorter', 'teleporter', 'detector', 'flag', 'stamp', 'crusher', 'pastpress', 'listtrain', 'turnstile', 'crane', 'taggun', 'inflator', 'seesaw', 'bubble', 'crate', 'megaphone', 'toaster', 'cannon', 'slots', 'gate', 'flip', 'equals', 'command', 'hypo', 'rig'];
+export const CONTRAPTIONS: ContraptionKind[] = ['horn', 'spring', 'fan', 'ramp', 'conveyor', 'bucket', 'pulley', 'bell', 'dominoes', 'duplicator', 'trapdoor', 'mood', 'tunnel', 'slingshot', 'dial', 'switch', 'funnel', 'bridge', 'gears', 'sniffer', 'sorter', 'teleporter', 'detector', 'flag', 'stamp', 'crusher', 'pastpress', 'listtrain', 'turnstile', 'crane', 'taggun', 'inflator', 'seesaw', 'bubble', 'crate', 'megaphone', 'toaster', 'cannon', 'slots', 'gate', 'flip', 'equals', 'command', 'hypo', 'rig', 'proper'];
 export const isContraption = (k: Kind): k is ContraptionKind => (CONTRAPTIONS as string[]).includes(k);
 export type MarkRole = 'cap' | 'stop' | 'bang' | 'ask' | 'comma' | 'plural' | 'poss' | 'size';
 // pos: the fun part holds a word of that part of speech. mark: it acts
@@ -66,6 +68,7 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   sorter: { tool: true, pop: 'CLACK!', does: 'Sorts describing words into order', grammar: 'adjective order' },
   teleporter: { tool: true, pop: 'ZAP!', does: 'Zaps a repeated noun into he, she, it or they', grammar: 'pronouns' },
   detector: { tool: true, pop: 'ROAD OPEN!', does: 'Checks every where word has a landing', grammar: 'complete prepositional phrase' },
+  proper: { pos: 'N', words: PROPER_NOUN_WORDS, pop: 'TA-DA!', does: 'A name for one special person, pet or place', grammar: 'proper noun: always a capital letter' },
   stamp: { pos: 'N', words: NAMES, pop: 'STAMP! CLANG!', does: 'Stamps a name with a capital letter', grammar: 'proper nouns' },
   crusher: { pos: 'N', words: WEIRD_PLURAL_NOUNS, pop: 'CRUNCH!', does: 'Crushes a noun into its weird plural', grammar: 'irregular plural nouns' },
   pastpress: { pos: 'V', words: VERBS.filter((v) => v.past !== regularPast(v.base) && !v.base.includes(' ')).map((v) => v.base), pop: 'STAMP!', does: 'Stamps out the true past form', grammar: 'irregular past verbs' },
@@ -127,6 +130,7 @@ export const KINDS: KindInfo[] = [
   W('A', 'Article', 'Valve Cone', 'who'),
   W('J', 'Adjective', 'Paint Tank', 'who'),
   W('N', 'Noun', 'Noun Boiler', 'who'),
+  { kind: 'proper', name: 'Proper Noun', machine: 'Crowned Noun Boiler', hint: 'A name for one special person, pet or place, like Mom, Xander or Yoga. A name always starts with a capital letter', color: SYMBOLS.N.color, job: 'who' },
   W('R', 'Pronoun', 'Swap Valve', 'who'),
   W('V', 'Verb', 'Flywheel Engine', 'did'),
   W('D', 'Adverb', 'How Gauge', 'did'),
@@ -190,7 +194,7 @@ export const PART_H = 172;
 // How big each symbol body is, Montessori style: the noun and verb are the
 // biggest, the article is the smallest.
 export const BODY: Record<Pos, number> = { N: 112, V: 104, R: 96, P: 96, C: 100, J: 86, I: 84, D: 76, A: 64 };
-const FUN_W: Partial<Record<ContraptionKind, number>> = { conveyor: 150, dominoes: 150, horn: 150, duplicator: 124, tunnel: 140, switch: 130, listtrain: 150, turnstile: 124, crane: 130, bubble: 124, seesaw: 130, slots: 124, toaster: 116, cannon: 130, gate: 130, flip: 116, equals: 124, command: 140, hypo: 130, rig: 150, pastpress: 124, crusher: 124, stamp: 116, bridge: 150, gears: 124, sniffer: 124, sorter: 140, mood: 120, teleporter: 116 };
+const FUN_W: Partial<Record<ContraptionKind, number>> = { proper: 146, conveyor: 150, dominoes: 150, horn: 150, duplicator: 124, tunnel: 140, switch: 130, listtrain: 150, turnstile: 124, crane: 130, bubble: 124, seesaw: 130, slots: 124, toaster: 116, cannon: 130, gate: 130, flip: 116, equals: 124, command: 140, hypo: 130, rig: 150, pastpress: 124, crusher: 124, stamp: 116, bridge: 150, gears: 124, sniffer: 124, sorter: 140, mood: 120, teleporter: 116 };
 export const textW = (word: string | null) => (word ? word.length * 10.5 : 10);
 export function partWidth(kind: Kind, word: string | null): number {
   if (kind === 'tv') return 214;

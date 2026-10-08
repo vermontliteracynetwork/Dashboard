@@ -485,6 +485,15 @@ function object(m: CastMember, look: Look, pose: Pose): Sprite {
     case 'sun': { const [b] = col([C.yellow, C.gold]); for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + (f % 2) * 0.2; p.line(X(Math.cos(a) * 6), Y(-8 + Math.sin(a) * 6), X(Math.cos(a) * 9), Y(-8 + Math.sin(a) * 9), C.orange); } p.ellipse(0, Y(-8), X(5), Y(5), b); break; }
     case 'star': { const [b] = col([C.yellow, C.gold]); p.tri(X(-6), Y(-8), X(6), Y(-8), 0, Y(-1), b); p.tri(X(-6), Y(-4.5), X(6), Y(-4.5), 0, Y(-12), b); if (f % 2) p.dot(X(1), Y(-7), C.white); break; }
     case 'house': { const [b] = col([C.tan, C.brown]); p.rect(X(-8), Y(-11), X(8), 0, b); p.tri(X(-10), Y(-11), X(10), Y(-11), 0, Y(-19), C.red); p.rect(X(-2), Y(-6), X(2), 0, C.brown); p.rect(X(4), Y(-9), X(7), Y(-6), C.skyLight); break; }
+    case 'slime': case 'goo': { const [b] = col([C.green, C.grassDark]); p.ellipse(0, Y(-4), X(7), Y(4.5), b); for (const k of [-4, 0, 4]) p.rect(X(k - 0.6), Y(-1), X(k + 0.6), Y(1 + ((f + k + 8) % 3)), b); p.dot(X(-2), Y(-6), C.white); p.dot(X(2), Y(-6), C.white); break; }
+    case 'pickle': { const [b] = col([C.green, C.grassDark]); p.ellipse(0, Y(-3), X(7), Y(3), b); for (const k of [-4, -1, 2, 5]) p.dot(X(k), Y(-4), C.grassDark); break; }
+    case 'noodle': { const [b] = col([C.yellow, C.gold]); p.rect(X(-6), Y(-5), X(6), 0, C.white); for (let k = -5; k <= 5; k += 2) p.line(X(k), Y(-5), X(k + (f % 2)), Y(-11), b); break; }
+    case 'marshmallow': { col([C.white, C.lightGray]); p.rect(X(-4), Y(-8), X(4), 0, C.white); p.rect(X(-4), Y(-8), X(4), Y(-7), C.lightGray); break; }
+    case 'taco': { const [b] = col([C.yellow, C.gold]); p.ellipse(0, Y(-5), X(7), Y(5), b); p.rect(X(-6), Y(-5), X(6), 0, C.sky); p.line(X(-5), Y(-6), X(5), Y(-6), C.green, 1.5); p.dot(X(-2), Y(-7), C.red); p.dot(X(2), Y(-7), C.red); break; }
+    case 'donut': { const [b] = col([C.pink, C.curtainLight]); p.ellipse(0, Y(-4.5), X(6), Y(4.5), C.tan); p.ellipse(0, Y(-5), X(5), Y(3.5), b); p.ellipse(0, Y(-5), X(1.6), Y(1.2), C.sky); for (const [dx, c] of [[-3, C.yellow], [2, C.blue], [3, C.white]] as const) p.dot(X(dx), Y(-6), c); break; }
+    case 'potato': { const [b] = col([C.tan, C.brown]); p.ellipse(0, Y(-4), X(6), Y(4), b); p.dot(X(-2), Y(-5), C.brown); p.dot(X(2), Y(-3), C.brown); break; }
+    case 'sock': { const [b] = col([C.red, C.curtainDark]); p.rect(X(-2), Y(-12), X(2), Y(-3), b); p.ellipse(X(1.5), Y(-2.5), X(3.5), Y(2.5), b); p.rect(X(-2), Y(-12), X(2), Y(-10), C.white); break; }
+    case 'toaster': { const [b] = col([C.lightGray, C.gray]); p.rect(X(-6), Y(-8), X(6), 0, b); p.rect(X(-4), Y(-11 - (f % 2)), X(-1), Y(-8), C.tan); p.rect(X(1), Y(-11 - ((f + 1) % 2)), X(4), Y(-8), C.tan); p.rect(X(6), Y(-5), X(7.5), Y(-4), C.darkGray); break; }
     default: return blob(m, look);
   }
   return p.finish();
@@ -504,6 +513,35 @@ function weather(m: CastMember, look: Look, pose: Pose): Sprite {
 }
 
 // Scenery words as cast members ("the door fell"): small pictures.
+
+// Places (teacher 2026-10-08): each one a small scene piece, named on screen too.
+const bldg = (p: Painter, s: number, wall: number, roof: number, w = 11, h = 16) => {
+  p.rect(-w * s, -h * s, w * s, 0, wall); p.tri(-(w + 2) * s, -h * s, (w + 2) * s, -h * s, 0, -(h + 7) * s, roof);
+  p.rect(-2 * s, -6 * s, 2 * s, 0, C.brown); p.rect(-8 * s, -12 * s, -5 * s, -9 * s, C.skyLight); p.rect(5 * s, -12 * s, 8 * s, -9 * s, C.skyLight);
+};
+export const PLACE_ART: Record<string, (p: Painter, s: number) => void> = {
+  school: (p, s) => { bldg(p, s, C.red, C.darkGray); p.rect(-0.5, -30 * s, 0.5, -23 * s, C.darkGray); p.rect(0.5, -30 * s, 4 * s, -27 * s, C.blue); },
+  town: (p, s) => { p.rect(-12 * s, -10 * s, -4 * s, 0, C.tan); p.tri(-13 * s, -10 * s, -3 * s, -10 * s, -8 * s, -15 * s, C.red); p.rect(-3 * s, -14 * s, 4 * s, 0, C.lightGray); p.rect(5 * s, -9 * s, 12 * s, 0, C.pink); p.tri(4 * s, -9 * s, 13 * s, -9 * s, 8.5 * s, -13 * s, C.brown); },
+  beach: (p, s) => { p.rect(-13 * s, -3 * s, 13 * s, 0, C.yellow); p.rect(-13 * s, -5 * s, 2 * s, -3 * s, C.blue); p.line(6 * s, -3 * s, 6 * s, -16 * s, C.brown); p.tri(1 * s, -15 * s, 11 * s, -15 * s, 6 * s, -19 * s, C.red); },
+  park: (p, s) => { p.rect(-13 * s, -2 * s, 13 * s, 0, C.grass); p.rect(-9 * s, -9 * s, -7 * s, -2 * s, C.brown); p.ellipse(-8 * s, -13 * s, 5 * s, 5 * s, C.green); p.rect(2 * s, -6 * s, 11 * s, -5 * s, C.brown); p.rect(3 * s, -5 * s, 4 * s, -2 * s, C.brown); p.rect(9 * s, -5 * s, 10 * s, -2 * s, C.brown); },
+  store: (p, s) => { p.rect(-11 * s, -16 * s, 11 * s, 0, C.lightGray); for (let k = -11; k < 11; k += 4) p.rect(k * s, -19 * s, (k + 2) * s, -15 * s, C.red); p.rect(-2 * s, -7 * s, 2 * s, 0, C.brown); p.rect(-9 * s, -12 * s, -4 * s, -8 * s, C.skyLight); },
+  library: (p, s) => { bldg(p, s, C.tan, C.teal); p.rect(-3 * s, -14 * s, 3 * s, -10 * s, C.red); p.rect(-0.3, -14 * s, 0.3, -10 * s, C.white); },
+  zoo: (p, s) => { for (let k = -12; k <= 12; k += 3) p.rect(k * s, -10 * s, (k + 1) * s, 0, C.brown); p.rect(-12 * s, -8 * s, 12 * s, -7 * s, C.brown); p.ellipse(4 * s, -16 * s, 3 * s, 2.5 * s, C.yellow); p.dot(5 * s, -17 * s, C.outline); },
+  farm: (p, s) => { bldg(p, s, C.red, C.darkGray, 10, 13); p.rect(-4 * s, -7 * s, 4 * s, 0, C.white); p.line(-4 * s, -7 * s, 4 * s, 0, C.red); },
+  forest: (p, s) => { for (const k of [-8, 0, 8]) { p.rect((k - 1) * s, -6 * s, (k + 1) * s, 0, C.brown); p.tri((k - 5) * s, -6 * s, (k + 5) * s, -6 * s, k * s, -20 * s, C.grassDark); } },
+  garden: (p, s) => { p.rect(-12 * s, -2 * s, 12 * s, 0, C.brown); for (const [k, c] of [[-8, C.red], [-3, C.yellow], [2, C.pink], [7, C.purple]] as const) { p.line(k * s, -2 * s, k * s, -8 * s, C.green); p.ellipse(k * s, -9 * s, 1.5 * s, 1.5 * s, c); } },
+  playground: (p, s) => { p.line(-8 * s, 0, -8 * s, -14 * s, C.red, 2); p.line(-4 * s, 0, -4 * s, -14 * s, C.red, 2); p.rect(-8 * s, -15 * s, -4 * s, -14 * s, C.red); p.line(-4 * s, -14 * s, 10 * s, 0, C.yellow, 2); },
+  castle: (p, s) => { p.rect(-12 * s, -16 * s, 12 * s, 0, C.lightGray); for (let k = -12; k < 12; k += 5) p.rect(k * s, -19 * s, (k + 2.5) * s, -16 * s, C.lightGray); p.ellipse(0, -5 * s, 3 * s, 5 * s, C.brown); p.rect(-3 * s, -5 * s, 3 * s, 0, C.brown); },
+  city: (p, s) => { p.rect(-12 * s, -18 * s, -5 * s, 0, C.gray); p.rect(-4 * s, -25 * s, 3 * s, 0, C.darkGray); p.rect(4 * s, -14 * s, 12 * s, 0, C.blue); for (const [x, y] of [[-10, -15], [-7, -11], [-2, -21], [1, -16], [6, -11], [9, -7]]) p.dot(x * s, y * s, C.yellow); },
+  pool: (p, s) => { p.rect(-13 * s, -4 * s, 13 * s, 0, C.lightGray); p.rect(-11 * s, -3 * s, 11 * s, 0, C.skyLight); p.line(-7 * s, -2 * s, -3 * s, -2 * s, C.white); p.line(3 * s, -1 * s, 7 * s, -1 * s, C.white); },
+  lake: (p, s) => { p.ellipse(0, -2 * s, 13 * s, 3 * s, C.blue); p.line(-6 * s, -2 * s, -2 * s, -2 * s, C.skyLight); p.rect(-12 * s, -7 * s, -11 * s, -2 * s, C.green); },
+  mountain: (p, s) => { p.tri(-14 * s, 0, 14 * s, 0, 0, -24 * s, C.gray); p.tri(-4 * s, -17 * s, 4 * s, -17 * s, 0, -24 * s, C.white); },
+  hospital: (p, s) => { p.rect(-11 * s, -18 * s, 11 * s, 0, C.white); p.rect(-1.5 * s, -16 * s, 1.5 * s, -9 * s, C.red); p.rect(-4.5 * s, -14 * s, 4.5 * s, -11 * s, C.red); p.rect(-2 * s, -6 * s, 2 * s, 0, C.skyLight); },
+  bakery: (p, s) => { bldg(p, s, C.pink, C.brown); p.ellipse(0, -14 * s, 3 * s, 1.5 * s, C.tan); },
+  museum: (p, s) => { p.tri(-13 * s, -16 * s, 13 * s, -16 * s, 0, -22 * s, C.lightGray); p.rect(-12 * s, -16 * s, 12 * s, -15 * s, C.lightGray); for (let k = -10; k <= 10; k += 5) p.rect(k * s, -15 * s, (k + 2) * s, -1 * s, C.white); p.rect(-12 * s, -1 * s, 12 * s, 0, C.lightGray); },
+  river: (p, s) => { p.rect(-14 * s, -3 * s, 14 * s, 0, C.blue); for (const k of [-10, -2, 6]) p.line(k * s, -2 * s, (k + 3) * s, -2 * s, C.skyLight); },
+};
+
 function propSprite(m: CastMember, look: Look): Sprite {
   const s = look.scale;
   const p = new Painter(Math.ceil(26 * s), Math.ceil(34 * s));
@@ -512,6 +550,7 @@ function propSprite(m: CastMember, look: Look): Sprite {
   else if (n === 'window') { p.rect(-8 * s, -30 * s, 8 * s, -16 * s, C.skyLight); p.rect(-0.5, -30 * s, 0.5, -16 * s, C.outline); p.rect(-8 * s, -23 * s, 8 * s, -23 * s, C.outline); }
   else if (n === 'table') { p.rect(-11 * s, -13 * s, 11 * s, -11 * s, colorsFor(m, look, [C.brown, C.sepia3])[0]); p.rect(-10 * s, -10 * s, -9 * s, 0, C.sepia3); p.rect(9 * s, -10 * s, 10 * s, 0, C.sepia3); }
   else if (n === 'kitchen') { p.rect(-10 * s, -16 * s, 10 * s, 0, C.white); p.rect(-8 * s, -11 * s, 8 * s, -2 * s, C.lightGray); p.ellipse(-5 * s, -17 * s, 3 * s, 1, C.darkGray); p.ellipse(5 * s, -17 * s, 3 * s, 1, C.darkGray); }
+  else if (PLACE_ART[n]) PLACE_ART[n](p, s);
   else { p.rect(-12 * s, -2 * s, 12 * s, 0, colorsFor(m, look, [C.sepia2, C.sepia3])[0]); }
   return p.finish();
 }
@@ -519,7 +558,8 @@ function propSprite(m: CastMember, look: Look): Sprite {
 const cache = new Map<string, Sprite>();
 // Things with their own picture; any other thing shows its name on the Pixel TV.
 export const OBJECT_DRAWINGS = new Set(['ball', 'kite', 'apple', 'book', 'crayon', 'dime', 'rose', 'shoe', 'straw', 'swing', 'balloon', 'popsicle', 'rock', 'planet', 'moon', 'comet', 'shell',
-  'cake', 'cookie', 'pizza', 'banana', 'carrot', 'sandwich', 'milk', 'juice', 'water', 'cup', 'hat', 'box', 'tree', 'flower', 'drum', 'sun', 'star', 'house']);
+  'cake', 'cookie', 'pizza', 'banana', 'carrot', 'sandwich', 'milk', 'juice', 'water', 'cup', 'hat', 'box', 'tree', 'flower', 'drum', 'sun', 'star', 'house',
+  'slime', 'goo', 'pickle', 'noodle', 'marshmallow', 'taco', 'donut', 'potato', 'sock', 'toaster']);
 export function spriteFor(m: CastMember, look: Look, pose: Pose): Sprite {
   const sing = nounByWord.get(m.noun)?.singular; // a Duplicator plural looks like its singular
   if (sing) m = { ...m, noun: sing };
@@ -551,7 +591,7 @@ export function drawProp(fb: FB, member: CastMember | undefined, look: Look | un
     fb.rect(x - 9, ground - 20, 6, 2, C.darkGray); fb.rect(x + 3, ground - 20, 6, 2, C.darkGray); fb.set(x + 9, ground - 15, C.red);
     return;
   }
-  if (member && look) { fb.blit(spriteFor(member, look, { frame: 0, squash: 0 }), x, ground); return; }
+  if (member && look) { fb.blit(spriteFor(member, look, { frame: 0, squash: 0 }), x, ground); if (PLACE_ART[noun]) { const w = textWidth(noun); drawText(fb, noun, Math.round(x - w / 2), ground - 34, C.white); } return; }
   fb.rect(x - 8, ground - 14, 16, 14, C.outline); fb.rect(x - 7, ground - 13, 14, 12, C.tan);
   const w = textWidth(noun);
   drawText(fb, noun, Math.round(x - w / 2), ground - 24, C.white);

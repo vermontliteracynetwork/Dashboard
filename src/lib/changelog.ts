@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-gus-crown-copy',
+    date: '2026-10-08',
+    icon: '👑',
+    title: 'A crowned Proper Noun machine, and silly words',
+    body: 'The new Proper Noun machine wears a golden crown and holds names like Mom, Dad, Miss Kayden, Xander, Geoff and Yoga. Tap Copy to make a twin of any part or a whole machine. Try silly words like slime, splatter, goblin and bonkers, big words like besiege and magnificent, places like the beach and the castle, and sound words like Boom and Whoosh!',
+  },
+  {
     id: '2026-10-08-gus-pixel-words',
     date: '2026-10-08',
     icon: '📺',

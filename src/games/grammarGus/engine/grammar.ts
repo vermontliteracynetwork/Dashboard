@@ -1,5 +1,5 @@
 import type { Pos, Token } from './types';
-import '../data/extraNouns'; // names and weird-plural nouns join the dictionary
+import { FAMILY_CASE } from '../data/extraNouns'; // names and weird-plural nouns join the dictionary
 import '../data/timeWords'; // time words and "then" are how words
 import {
   adjByWord, adverbSet, CONJ_POOLS, interjectionSet, nounByWord, prepSet, reflexiveSet, subjectPronounSet, verbByBase,
@@ -35,7 +35,9 @@ class Builder {
 }
 interface Frag { s: number; e: number }
 
-const isArt: Test = (w) => w === 'a' || w === 'an' || w === 'the';
+// Articles and other pointing words (teacher 2026-10-08: "articles need to have a/an/the amoung others").
+export const DETERMINERS = ['this', 'that', 'my', 'your', 'his', 'our', 'their', 'some', 'every'];
+const isArt: Test = (w) => w === 'a' || w === 'an' || w === 'the' || DETERMINERS.includes(w);
 const isAdj: Test = (w) => adjByWord.has(w);
 const isNoun: Test = (w) => nounByWord.has(w) && !nounByWord.get(w)!.proper;
 const isName: Test = (w) => !!nounByWord.get(w)?.proper;
@@ -47,7 +49,7 @@ const isPoss: Test = (w) => { const b = possBase(w); return !!b && nounByWord.ha
 // (Claudia's audit: "so" joins two whole ideas like and/but, with a comma.)
 export const SUBORD = ['because', 'when', 'after', 'before', 'while', 'if'];
 // Joining words for two whole ideas: they take a comma before them.
-export const COORD = ['and', 'but', 'or', 'so', 'yet', 'for'];
+export const COORD = ['and', 'but', 'or', 'so', 'yet', 'for', 'nor']; // all of FANBOYS (teacher 2026-10-08)
 export const OBJECT_PRONOUNS = ['me', 'him', 'her', 'us', 'them', 'you', 'it'];
 const isObjPron: Test = (w) => OBJECT_PRONOUNS.includes(w);
 const isSubjPron: Test = (w) => subjectPronounSet.has(w);
@@ -116,7 +118,7 @@ const NFA_FULL = build(true);
 const NFA_CLASSIC = build(false);
 
 // Word tiles are lower case except I and the shout words.
-export const normWord = (w: string) => (w === 'I' || w === 'i' ? 'I' : interjectionSet.has(w) ? w : w.toLowerCase());
+export const normWord = (w: string) => (w === 'I' || w === 'i' ? 'I' : interjectionSet.has(w) || FAMILY_CASE.has(w) ? w : w.toLowerCase());
 
 export interface Parse {
   viable: boolean; // can more parts be added to make a whole sentence?

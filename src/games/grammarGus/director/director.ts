@@ -37,7 +37,7 @@ export const STAMP_SECONDS = 0.6;
 export const SCENE_BUDGET = 7.6;
 const ENTER = 0.6; const SETTLE = 0.5; const SHOUT = 0.8;
 
-const SIZE_SCALE: Record<string, number> = { tiny: 0.6, small: 0.75, big: 1.5, great: 1.35, chubby: 1, plump: 1, huge: 1.7, giant: 1.85, little: 0.7, tall: 1.35, short: 0.8 };
+const SIZE_SCALE: Record<string, number> = { tiny: 0.6, small: 0.75, big: 1.5, great: 1.35, chubby: 1, plump: 1, huge: 1.7, giant: 1.85, little: 0.7, tall: 1.35, short: 0.8, enormous: 1.75, gigantic: 1.85, colossal: 1.95, minuscule: 0.55, petite: 0.75 };
 
 export function lookFor(m: CastMember): Look {
   const look: Look = { scale: 1, wide: false, extras: [] };

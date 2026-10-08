@@ -135,7 +135,7 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
       if (np.art === undefined) continue;
       const it = items.find((x) => x.id === rd.tokenIds[np.art!]);
       const art = it?.word?.toLowerCase();
-      if (!it || !art || art === 'the') continue;
+      if (!it || !art || (art !== 'a' && art !== 'an')) continue;
       const noun = np.noun !== undefined ? nounByWord.get((rd.draft.tokens[np.noun].word ?? '').toLowerCase()) : undefined;
       const next = rd.draft.tokens[np.art + 1]?.word;
       const want = noun?.plural || noun?.noA ? 'the' : next ? articleFor(next) : art;
