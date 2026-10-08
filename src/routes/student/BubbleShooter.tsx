@@ -14,7 +14,7 @@ import { formatMoney } from '../../lib/money';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 import type { MCQuestion, QuestionSet } from '../../types';
 import {
-  DANGER_ROW, H, MAX_ROWS, MYSTERY, R, RAINBOW, SHOOTER, W, addMystery, center, clampAngle, colorsLeft, explodeAt, filled, laser, lowestRow, makeBoard, place, pushRow, rescue, rowLen, shotXp, shuffleColors, traceShot,
+  DANGER_ROW, H, MAX_ROWS, MYSTERY, R, RAINBOW, SHOOTER, W, addMystery, colorOf, isStar, starsIn, center, clampAngle, colorsLeft, explodeAt, filled, laser, lowestRow, makeBoard, place, pushRow, rescue, rowLen, shotXp, shuffleColors, traceShot,
   type ShotResult,
 } from '../../games/bubbleShooter/engine';
 import { sfx as SFX, startMusic, stopMusic } from '../../games/bubbleShooter/audio';
@@ -36,7 +36,12 @@ import PlinkoBonus, { POWER_INFO, type PowerId, type Prize } from '../../games/b
 // bouncy music that speeds up near the danger line, confetti when a board clears, nothing that
 // takes points away.
 
-const BS_RANGES = { rounds: { min: 1, max: 10, def: 3 }, per: { min: 1, max: 10, def: 2 } };
+// Teacher 2026-10-08: "students should be asked a default 5 questions between rounds (each round should
+// take the student about 1-2 minues). they can change to have more than 5 questions but not any less".
+const BS_RANGES = { rounds: { min: 1, max: 10, def: 3 }, per: { min: 5, max: 15, def: 5 } };
+// Teacher 2026-10-08: "rounds should last ... until the full board is cleared (on average 1-2 minutes)",
+// then "round time edit: 3 min max per round". A slow, gentle timer ring sits in the right column.
+const ROUND_SECONDS = 180;
 const PUSH_EVERY = 7; // shots without a pop before a new row slides in
 const SPEED = 40; // world units a second
 const BIG_POP = 8; // bubbles in one shot that earn a bonus power-up
@@ -46,13 +51,13 @@ const statsOwner = (id: string) => `bs:${id}`;
 
 // Glossy bubbles like her reference, each with a shape too, so color is never the only clue.
 const PALETTE = [
-  { base: '#e83ad8', dark: '#8e0f86', light: '#ffc2f8', sym: '★' },
-  { base: '#f7d81d', dark: '#a37f00', light: '#fff7b8', sym: '●' },
-  { base: '#ec2a33', dark: '#8a0c12', light: '#ffb0b3', sym: '▲' },
-  { base: '#34c63e', dark: '#127119', light: '#c4f7c7', sym: '■' },
-  { base: '#f7a6e3', dark: '#b8549b', light: '#ffe6f8', sym: '♥' },
-  { base: '#40a8f6', dark: '#11589a', light: '#cfe9ff', sym: '◆' },
-  { base: '#e2e6ef', dark: '#7d8496', light: '#ffffff', sym: '✚' },
+  { base: '#e83ad8', dark: '#8e0f86', light: '#ffc2f8' },
+  { base: '#f7d81d', dark: '#a37f00', light: '#fff7b8' },
+  { base: '#ec2a33', dark: '#8a0c12', light: '#ffb0b3' },
+  { base: '#34c63e', dark: '#127119', light: '#c4f7c7' },
+  { base: '#f7a6e3', dark: '#b8549b', light: '#ffe6f8' },
+  { base: '#40a8f6', dark: '#11589a', light: '#cfe9ff' },
+  { base: '#e2e6ef', dark: '#7d8496', light: '#ffffff' },
 ];
 const RAINBOW_COLORS = ['#ff4d4d', '#ffb02e', '#f7e01d', '#3ccf4e', '#40a8f6', '#a05cf5'];
 
@@ -64,8 +69,10 @@ type FloatText = { x: number; y: number; text: string; life: number; color: stri
 
 // One pre-drawn glossy bubble per color and size, so a full board draws fast on an iPad.
 const spriteCache = new Map<string, HTMLCanvasElement>();
-function bubbleSprite(color: number, px: number, symbols: boolean): HTMLCanvasElement {
-  const key = `${color}-${px}-${symbols}`;
+// No shapes on the bubbles (teacher 2026-10-08: "remove shapes from bubbles. thats confusing. the only
+// shape should be star (noting power up earned)"): a gold star marks a bubble that earns a power-up.
+function bubbleSprite(color: number, px: number): HTMLCanvasElement {
+  const key = `${color}-${px}`;
   const hit = spriteCache.get(key); if (hit) return hit;
   const cv = document.createElement('canvas'); cv.width = cv.height = px;
   const c = cv.getContext('2d')!;
@@ -75,7 +82,7 @@ function bubbleSprite(color: number, px: number, symbols: boolean): HTMLCanvasEl
     if (g) { [...RAINBOW_COLORS, RAINBOW_COLORS[0]].forEach((col, i, a) => g.addColorStop(i / (a.length - 1), col)); c.fillStyle = g; } else c.fillStyle = '#f7a6e3';
     c.beginPath(); c.arc(r, r, r * 0.96, 0, Math.PI * 2); c.fill();
   } else {
-    const p = color === MYSTERY ? { light: '#d7d9e0', base: '#8d91a0', dark: '#3d4150' } : PALETTE[color % PALETTE.length];
+    const p = color === MYSTERY ? { light: '#d7d9e0', base: '#8d91a0', dark: '#3d4150' } : PALETTE[colorOf(color) % PALETTE.length];
     const g = c.createRadialGradient(r * 0.72, r * 0.62, r * 0.1, r, r, r);
     g.addColorStop(0, p.light); g.addColorStop(0.45, p.base); g.addColorStop(1, p.dark);
     c.fillStyle = g; c.beginPath(); c.arc(r, r, r * 0.96, 0, Math.PI * 2); c.fill();
@@ -85,7 +92,11 @@ function bubbleSprite(color: number, px: number, symbols: boolean): HTMLCanvasEl
   c.textAlign = 'center'; c.textBaseline = 'middle';
   if (color === MYSTERY) { c.fillStyle = '#fff'; c.font = `900 ${Math.round(px * 0.5)}px system-ui, sans-serif`; c.fillText('?', r, r * 1.08); }
   else if (color === RAINBOW) { c.fillStyle = '#fff'; c.font = `bold ${Math.round(px * 0.42)}px system-ui, sans-serif`; c.fillText('★', r, r * 1.08); }
-  else if (symbols) { c.fillStyle = 'rgba(255,255,255,0.8)'; c.font = `bold ${Math.round(px * 0.36)}px system-ui, sans-serif`; c.fillText(PALETTE[color % PALETTE.length].sym, r, r * 1.12); }
+  else if (isStar(color)) {
+    c.save(); c.translate(r, r * 1.04); c.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5; const rr = i % 2 ? r * 0.27 : r * 0.62; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    c.closePath(); c.fillStyle = '#ffd84d'; c.fill(); c.lineWidth = Math.max(1, px * 0.05); c.strokeStyle = '#8a5a00'; c.stroke(); c.restore();
+  }
   spriteCache.set(key, cv);
   return cv;
 }
@@ -126,8 +137,7 @@ export default function BubbleShooter() {
   const readFlag = (k: string) => { try { return localStorage.getItem(k) !== '0'; } catch { return true; } };
   const [sound, setSound] = useState(() => readFlag('bs-sound'));
   const [music, setMusic] = useState(() => readFlag('bs-music'));
-  const [symbols, setSymbols] = useState(() => readFlag('bs-symbols'));
-  useEffect(() => { try { localStorage.setItem('bs-sound', sound ? '1' : '0'); localStorage.setItem('bs-music', music ? '1' : '0'); localStorage.setItem('bs-symbols', symbols ? '1' : '0'); } catch { /* fine */ } }, [sound, music, symbols]);
+  useEffect(() => { try { localStorage.setItem('bs-sound', sound ? '1' : '0'); localStorage.setItem('bs-music', music ? '1' : '0'); } catch { /* fine */ } }, [sound, music]);
   const soundRef = useRef(sound); soundRef.current = sound;
   const play = (fn: () => void) => { if (soundRef.current) fn(); };
 
@@ -137,13 +147,16 @@ export default function BubbleShooter() {
     flying: null as null | { path: { x: number; y: number }[]; seg: number; t: number; color: number; kind: Shot; cell: [number, number] | null },
     beam: null as null | { pts: { x: number; y: number }[]; life: number },
     bits: [] as Bit[], rings: [] as Ring[], texts: [] as FloatText[], shotsSince: 0, xp: 0, combo: 0, shake: 0, aiming: false,
+    timeLeft: ROUND_SECONDS, ended: false, usedPower: false, startCount: 1,
   });
   const [phase, setPhase] = useState<Phase>('launch');
   const phaseRef = useRef<Phase>('launch'); phaseRef.current = phase;
   const [round, setRound] = useState(1);
   const [inv, setInv] = useState<Record<PowerId, number>>({ bomb: 0, rbomb: 0, laser: 0, shuffle: 0, mystery: 0 });
   const invRef = useRef(inv); invRef.current = inv;
-  const [hud, setHud] = useState({ xp: 0, shotsLeft: PUSH_EVERY, combo: 0, loaded: 'ball' as Shot });
+  const [hud, setHud] = useState({ xp: 0, shotsLeft: PUSH_EVERY, combo: 0, loaded: 'ball' as Shot, time: ROUND_SECONDS, usedPower: false, cleared: 0 });
+  const [showSettings, setShowSettings] = useState(false);
+  const [timeUp, setTimeUp] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastT = useRef(0);
   const say = (m: string) => { setToast(m); window.clearTimeout(toastT.current); toastT.current = window.setTimeout(() => setToast(null), 2400); };
@@ -151,7 +164,7 @@ export default function BubbleShooter() {
   const [qDone, setQDone] = useState(0);
   const [reveal, setReveal] = useState<PowerId | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const syncHud = () => setHud({ xp: g.current.xp, shotsLeft: PUSH_EVERY - g.current.shotsSince, combo: g.current.combo, loaded: g.current.loaded });
+  const syncHud = () => setHud({ xp: g.current.xp, shotsLeft: PUSH_EVERY - g.current.shotsSince, combo: g.current.combo, loaded: g.current.loaded, time: Math.ceil(g.current.timeLeft), usedPower: g.current.usedPower, cleared: Math.max(0, Math.min(1, 1 - filled(g.current.board) / Math.max(1, g.current.startCount))) });
   const gain = (p: PowerId, n = 1) => setInv((v) => ({ ...v, [p]: v[p] + n }));
 
   // Right answers pay like every native game, when the game ends or they leave.
@@ -176,7 +189,8 @@ export default function BubbleShooter() {
   const newBoard = (n: number) => {
     const { board, colors } = makeBoard(n, Math.random);
     const gg = g.current;
-    Object.assign(gg, { board, palette: Array.from({ length: colors }, (_, i) => i), flying: null, beam: null, shotsSince: 0, bits: [], rings: [], texts: [], combo: 0, loaded: 'ball' });
+    Object.assign(gg, { board, palette: Array.from({ length: colors }, (_, i) => i), flying: null, beam: null, shotsSince: 0, bits: [], rings: [], texts: [], combo: 0, loaded: 'ball', timeLeft: ROUND_SECONDS, ended: false, usedPower: false, startCount: filled(board) });
+    setTimeUp(false);
     gg.cur = pickColor(); gg.next = pickColor();
     syncHud();
   };
@@ -202,7 +216,7 @@ export default function BubbleShooter() {
   };
   const finishGame = () => {
     if (studentId) {
-      recordBestGame(studentId, 'bubbleShooter', g.current.xp, `${round} board${round === 1 ? '' : 's'}`);
+      recordBestGame(studentId, 'bubbleShooter', g.current.xp, `${round} round${round === 1 ? '' : 's'}`);
       mergeStyleRow(statsOwner(studentId), { xp: lifetimeXp + g.current.xp });
     }
     pay.current();
@@ -215,8 +229,9 @@ export default function BubbleShooter() {
   };
 
   // --- effects ---
-  const burst = (x: number, y: number, n: number, color: number | string, kind: Bit['kind'] = 'spark', speed = 12) => {
+  const burst = (x: number, y: number, n: number, color0: number | string, kind: Bit['kind'] = 'spark', speed = 12) => {
     if (calm) return;
+    const color = typeof color0 === 'number' && color0 !== MYSTERY && color0 !== RAINBOW ? colorOf(color0) : color0;
     for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = speed * (0.4 + Math.random()); g.current.bits.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.7, max: 0.7, color, size: kind === 'spark' ? 0.18 : 0.3, kind }); }
   };
   const floatText = (x: number, y: number, text: string, color = '#fff') => g.current.texts.push({ x, y, text, life: 1.2, color });
@@ -234,7 +249,10 @@ export default function BubbleShooter() {
     gg.xp += xp;
     floatText(x, y - 1.2, `+${xp} XP${mult > 1 ? `  Combo x${mult}!` : ''}`, mult > 1 ? '#7ef0c8' : '#fff');
     play(() => SFX.pop(total, gg.combo));
-    if (total >= BIG_POP) { const p = POWERS[Math.floor(Math.random() * POWERS.length)]; gain(p); say(`WOW, ${total} bubbles! You earned a ${POWER_INFO[p].icon} ${POWER_INFO[p].name}!`); play(SFX.powerup); }
+    const stars = starsIn(res);
+    for (let i = 0; i < stars; i++) { const p = POWERS[Math.floor(Math.random() * POWERS.length)]; gain(p); floatText(x, y - 2.4 - i, `⭐ ${POWER_INFO[p].icon} ${POWER_INFO[p].name}!`, '#ffd84d'); }
+    if (stars) { play(SFX.powerup); say(`⭐ Star bubble! You earned ${stars === 1 ? 'a power-up' : `${stars} power-ups`}.`); }
+    else if (total >= BIG_POP) { const p = POWERS[Math.floor(Math.random() * POWERS.length)]; gain(p); say(`WOW, ${total} bubbles! You earned a ${POWER_INFO[p].icon} ${POWER_INFO[p].name}!`); play(SFX.powerup); }
     else if (res.boomed.length) say(`💥 Mystery blast! ${res.boomed.length} bubbles for 3 times the XP!`);
     else if (res.dropped.length >= 3) say(`Whoosh! ${res.dropped.length} bubbles fell!`);
     gg.shotsSince = 0;
@@ -244,8 +262,9 @@ export default function BubbleShooter() {
   // --- shooting ---
   const shoot = () => {
     const gg = g.current;
-    if (phaseRef.current !== 'play' || gg.flying || gg.beam || filled(gg.board) === 0) return;
+    if (phaseRef.current !== 'play' || gg.flying || gg.beam || gg.ended || filled(gg.board) === 0) return;
     const kind = gg.loaded;
+    gg.usedPower = false; // a new turn starts with this shot
     if (kind === 'laser') {
       const res = laser(gg.board, gg.angle);
       gg.beam = { pts: res.beam, life: 0.45 };
@@ -293,9 +312,10 @@ export default function BubbleShooter() {
     }
     if (!colorsLeft(gg.board).includes(gg.cur)) gg.cur = pickColor();
     if (!colorsLeft(gg.board).includes(gg.next)) gg.next = pickColor();
-    if (filled(gg.board) === 0) {
+    if (filled(gg.board) === 0 && !gg.ended) {
+      gg.ended = true;
       gg.xp += 100; play(SFX.win);
-      floatText(W / 2, H / 2, '+100 BOARD CLEAR!', '#f7d81d');
+      floatText(W / 2, H / 2, '+100 ROUND CLEAR!', '#f7d81d');
       if (!calm) for (let i = 0; i < 80; i++) gg.bits.push({ x: Math.random() * W, y: -1 - Math.random() * 4, vx: (Math.random() - 0.5) * 4, vy: 4 + Math.random() * 6, life: 2.2, max: 2.2, color: RAINBOW_COLORS[i % RAINBOW_COLORS.length], size: 0.35, kind: 'confetti' });
       window.setTimeout(() => setPhase('boardDone'), calm ? 300 : 1400);
     }
@@ -304,18 +324,20 @@ export default function BubbleShooter() {
   const swap = () => { const gg = g.current; if (gg.flying || gg.loaded !== 'ball') return; [gg.cur, gg.next] = [gg.next, gg.cur]; play(SFX.stick); syncHud(); };
   const usePower = (p: PowerId) => {
     const gg = g.current;
-    if (invRef.current[p] <= 0 || gg.flying || phaseRef.current !== 'play') return;
+    if (invRef.current[p] <= 0 || gg.flying || phaseRef.current !== 'play' || gg.ended) return;
+    // One power-up at the start of each turn (teacher 2026-10-08).
+    if (gg.usedPower) { say('One power-up each turn. Take your shot first!'); return; }
     if (p === 'bomb' || p === 'rbomb' || p === 'laser') {
       if (gg.loaded === p) return;
       if (gg.loaded !== 'ball') gain(gg.loaded as PowerId); // put the other one back
-      gg.loaded = p; setInv((v) => ({ ...v, [p]: v[p] - 1 })); play(SFX.powerup);
+      gg.loaded = p; gg.usedPower = true; setInv((v) => ({ ...v, [p]: v[p] - 1 })); play(SFX.powerup);
       say(`${POWER_INFO[p].icon} ${POWER_INFO[p].name} loaded! Aim and let go.`);
     } else if (p === 'shuffle') {
-      gg.board = shuffleColors(gg.board, gg.palette, Math.random); setInv((v) => ({ ...v, shuffle: v.shuffle - 1 })); play(SFX.shuffle);
+      gg.board = shuffleColors(gg.board, gg.palette, Math.random); gg.usedPower = true; setInv((v) => ({ ...v, shuffle: v.shuffle - 1 })); play(SFX.shuffle);
       for (let r = 0; r < MAX_ROWS; r++) for (let c = 0; c < rowLen(gg.board, r); c++) if (gg.board.rows[r][c] !== null && Math.random() < 0.3) { const q = center(gg.board, r, c); burst(q.x, q.y, 2, '#ffffff', 'spark', 5); }
       say('🔀 Shuffled! Every bubble has a new color.');
     } else {
-      gg.board = addMystery(gg.board, 3, Math.random); setInv((v) => ({ ...v, mystery: v.mystery - 1 })); play(SFX.mystery);
+      gg.board = addMystery(gg.board, 3, Math.random); gg.usedPower = true; setInv((v) => ({ ...v, mystery: v.mystery - 1 })); play(SFX.mystery);
       say('❓ 3 mystery bubbles appeared! Pop bubbles next to one for a 3 times XP blast.');
     }
     syncHud();
@@ -359,6 +381,12 @@ export default function BubbleShooter() {
       raf = requestAnimationFrame(loop);
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       const gg = g.current;
+      if (phaseRef.current === 'play' && !gg.ended) {
+        const before = Math.ceil(gg.timeLeft);
+        gg.timeLeft = Math.max(0, gg.timeLeft - dt);
+        if (Math.ceil(gg.timeLeft) !== before) syncHud();
+        if (gg.timeLeft <= 0 && !gg.flying) { gg.ended = true; setTimeUp(true); play(SFX.win); floatText(W / 2, H / 2, "⏰ TIME! Great popping!", '#f7d81d'); window.setTimeout(() => setPhase('boardDone'), calm ? 300 : 1200); }
+      }
       if (gg.flying) {
         let move = SPEED * (gg.flying.kind === 'ball' ? 1 : 0.8) * dt;
         const f = gg.flying;
@@ -401,7 +429,7 @@ export default function BubbleShooter() {
       ctx.strokeStyle = 'rgba(255,120,160,0.55)'; ctx.lineWidth = 0.08; ctx.setLineDash([0.4, 0.35]);
       ctx.beginPath(); ctx.moveTo(0.2, dy); ctx.lineTo(W - 0.2, dy); ctx.stroke(); ctx.setLineDash([]);
       const px = Math.max(8, Math.round(2 * R * s * dpr));
-      const putBubble = (k: number, x: number, y: number, scale = 1) => { const spr = bubbleSprite(k, px, symbols); const d = 2 * R * scale; ctx.drawImage(spr, x - d / 2, y - d / 2, d, d); };
+      const putBubble = (k: number, x: number, y: number, scale = 1) => { const spr = bubbleSprite(k, px); const d = 2 * R * scale; ctx.drawImage(spr, x - d / 2, y - d / 2, d, d); };
       for (let r = 0; r < MAX_ROWS; r++) for (let c = 0; c < rowLen(gg.board, r); c++) {
         const k = gg.board.rows[r][c]; if (k === null) continue; const p = center(gg.board, r, c);
         putBubble(k, p.x, p.y, k === MYSTERY && !calm ? 1 + Math.sin(t * 4 + c) * 0.04 : 1);
@@ -447,7 +475,7 @@ export default function BubbleShooter() {
       for (const b of gg.bits) {
         ctx.globalAlpha = Math.min(1, (b.life / b.max) * 2);
         if (b.kind === 'bubble' && typeof b.color === 'number') putBubble(b.color, b.x, b.y, b.size);
-        else { ctx.fillStyle = typeof b.color === 'number' ? PALETTE[b.color % PALETTE.length]?.base ?? '#fff' : b.color; if (b.kind === 'confetti') ctx.fillRect(b.x, b.y, b.size, b.size * 0.6); else { ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill(); } }
+        else { ctx.fillStyle = typeof b.color === 'number' ? PALETTE[colorOf(b.color) % PALETTE.length]?.base ?? '#fff' : b.color; if (b.kind === 'confetti') ctx.fillRect(b.x, b.y, b.size, b.size * 0.6); else { ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill(); } }
       }
       ctx.globalAlpha = 1;
       // floating XP text
@@ -461,7 +489,7 @@ export default function BubbleShooter() {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [onBoard, symbols]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onBoard]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const perRight = getEconomy().perCorrectCents;
 
@@ -473,15 +501,14 @@ export default function BubbleShooter() {
           <div className="bs-menu-card">
             <h1 className="bs-title"><span>BUBBLE</span><span>SHOOTER</span></h1>
             <div className="bs-menu-bubbles" aria-hidden>{[0, 1, 2, 3, 4, 5].map((k) => <span key={k} style={{ background: `radial-gradient(circle at 35% 30%, ${PALETTE[k].light}, ${PALETTE[k].base} 45%, ${PALETTE[k].dark})` }} />)}</div>
-            <p className="bs-note">Drag to aim, let go to shoot. Match 3 or more to pop them! Every right answer gives you a surprise power-up and {formatMoney(perRight)}.</p>
+            <p className="bs-note">Drag to aim, let go to shoot. Match 3 or more to pop them! Every right answer gives you a surprise power-up and {formatMoney(perRight)}. Pop a ⭐ star bubble to earn another one! Each round ends when the board is clear, or after 3 minutes.</p>
             <div className="bs-power-key">{POWERS.map((p) => <span key={p}><b>{POWER_INFO[p].icon} {POWER_INFO[p].name}</b> {POWER_INFO[p].how}</span>)}</div>
             {lifetimeXp > 0 && <p className="bs-note">⭐ Your total XP: <b>{lifetimeXp}</b></p>}
-            <RoundSettings ranges={BS_RANGES} roundsLabel="Boards" perLabel="Questions before each board" rounds={roundSet.rounds} perRound={roundSet.perRound} onRounds={roundSet.setRounds} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
+            <RoundSettings ranges={BS_RANGES} roundsLabel="Rounds" perLabel="Questions before each round (5 or more)" rounds={roundSet.rounds} perRound={roundSet.perRound} onRounds={roundSet.setRounds} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
             {!activeGameplayTask && usableSets.length > 0 && <div className="bs-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>}
             <div className="bs-row">
               <button type="button" className={`bs-chip${sound ? ' on' : ''}`} onClick={() => setSound((v) => !v)} aria-pressed={sound}>{sound ? '🔊 Sounds on' : '🔇 Sounds off'}</button>
               <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? '🎵 Music on' : '🎵 Music off'}</button>
-              <button type="button" className={`bs-chip${symbols ? ' on' : ''}`} onClick={() => setSymbols((v) => !v)} aria-pressed={symbols}>{symbols ? '★ Shapes on bubbles' : '○ No shapes'}</button>
             </div>
             <button type="button" className="bs-play" onClick={startGame}>▶ Play</button>
             {bestGames.length > 0 && (
@@ -496,17 +523,12 @@ export default function BubbleShooter() {
 
       {onBoard && (
         <div className="bs-game">
-          <div className="bs-hud">
-            <button type="button" className="bs-icon-btn" onClick={() => setConfirmLeave(true)} aria-label="Leave the game"><img src={`${UI}/btn-close.png`} alt="" /></button>
-            <span className="bs-pill">Board {round} of {roundSet.rounds}</span>
-            <span className="bs-pill">⭐ {hud.xp} XP</span>
-            {hud.combo > 1 && <span className="bs-pill bs-combo">🔥 Combo x{Math.min(5, hud.combo)}</span>}
-            <button type="button" className="bs-icon-btn" onClick={() => setSound((v) => !v)} aria-label={sound ? 'Turn sounds off' : 'Turn sounds on'}><img src={`${UI}/btn-sound.png`} alt="" style={{ opacity: sound ? 1 : 0.45 }} /></button>
-            <button type="button" className={`bs-pill bs-music${music ? '' : ' off'}`} onClick={() => setMusic((v) => !v)} aria-label={music ? 'Turn music off' : 'Turn music on'}>🎵</button>
-          </div>
-          <div className="bs-powers" role="toolbar" aria-label="Power-ups">
+          {/* Three columns (teacher 2026-10-08): power-ups on the left, the board in the middle, and
+              the round, a slow gentle timer, progress and settings on the right. */}
+          <div className="bs-powers" role="toolbar" aria-label="Power-ups. One each turn.">
+            <span className="bs-powers-title">{hud.usedPower ? 'Shoot!' : '1 each turn'}</span>
             {POWERS.map((p) => (
-              <button key={p} type="button" className={`bs-power${hud.loaded === p ? ' loaded' : ''}`} disabled={inv[p] <= 0 && hud.loaded !== p} onClick={() => usePower(p)}
+              <button key={p} type="button" className={`bs-power${hud.loaded === p ? ' loaded' : ''}`} disabled={(inv[p] <= 0 || hud.usedPower) && hud.loaded !== p} onClick={() => usePower(p)}
                 aria-label={`${POWER_INFO[p].name}: ${inv[p]} left. ${POWER_INFO[p].how}`}>
                 <span className="bs-power-icon" aria-hidden>{POWER_INFO[p].icon}</span>
                 <span className="bs-power-name">{POWER_INFO[p].name}</span>
@@ -514,6 +536,7 @@ export default function BubbleShooter() {
               </button>
             ))}
           </div>
+          <div className="bs-center">
           <div className="bs-board" ref={wrapRef}>
             <canvas ref={cvRef} className="bs-canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { g.current.aiming = false; }}
               role="img" aria-label="Bubble board. Drag to aim, let go to shoot." />
@@ -522,6 +545,38 @@ export default function BubbleShooter() {
           <div className="bs-bottom">
             <span className="bs-hint">{hud.loaded !== 'ball' ? `${POWER_INFO[hud.loaded as PowerId].icon} ${POWER_INFO[hud.loaded as PowerId].name} loaded: aim and let go!` : hud.shotsLeft <= 2 ? `⚠️ A new row in ${hud.shotsLeft} shot${hud.shotsLeft === 1 ? '' : 's'}` : 'Drag to aim, let go to shoot'}</span>
             <button type="button" className="bs-swap" onClick={swap} disabled={hud.loaded !== 'ball'} aria-label="Swap your bubble with the next one">⇄ Swap</button>
+          </div>
+          </div>
+          <aside className="bs-side" aria-label="Round info">
+            <button type="button" className="bs-icon-btn" onClick={() => setConfirmLeave(true)} aria-label="Leave the game"><img src={`${UI}/btn-close.png`} alt="" /></button>
+            <span className="bs-side-label">Round<br /><b>{round} of {roundSet.rounds}</b></span>
+            <span className="bs-timer" role="img" aria-label={`About ${Math.ceil(hud.time / 60)} minute${Math.ceil(hud.time / 60) === 1 ? '' : 's'} left in this round`}>
+              <svg viewBox="0 0 36 36" aria-hidden>
+                <circle cx="18" cy="18" r="15" className="bs-timer-track" />
+                <circle cx="18" cy="18" r="15" className={`bs-timer-fill${hud.time <= 30 ? ' late' : ''}`} style={{ strokeDashoffset: `${94.25 * (1 - hud.time / ROUND_SECONDS)}` }} />
+              </svg>
+            </span>
+            <span className="bs-side-label">⭐<br /><b>{hud.xp}</b> XP</span>
+            {hud.combo > 1 && <span className="bs-combo-badge">🔥 x{Math.min(5, hud.combo)}</span>}
+            <span className="bs-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(hud.cleared * 100)} aria-label="How much of the board is cleared">
+              <span style={{ height: `${hud.cleared * 100}%` }} />
+            </span>
+            <span className="bs-side-small">{Math.round(hud.cleared * 100)}% clear</span>
+            <button type="button" className="bs-icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings"><img src={`${UI}/icon-gear.png`} alt="" /></button>
+          </aside>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="bs-modal-back" onClick={() => setShowSettings(false)}>
+          <div className="bs-modal" role="dialog" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
+            <h2>⚙️ Settings</h2>
+            <div className="bs-row">
+              <button type="button" className={`bs-chip${sound ? ' on' : ''}`} onClick={() => setSound((v) => !v)} aria-pressed={sound}>{sound ? '🔊 Sounds on' : '🔇 Sounds off'}</button>
+              <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? '🎵 Music on' : '🎵 Music off'}</button>
+            </div>
+            <p className="bs-note">Power-ups: one at the start of each turn. Pop ⭐ bubbles and answer questions to earn more.</p>
+            <button type="button" className="bs-play" onClick={() => setShowSettings(false)} autoFocus>Back to the game</button>
           </div>
         </div>
       )}
@@ -540,7 +595,7 @@ export default function BubbleShooter() {
       {phase === 'boardDone' && (
         <div className="bs-modal-back">
           <div className="bs-modal">
-            <h2>🎉 Board {round} cleared!</h2>
+            <h2>{timeUp ? `⏰ Round ${round} is over!` : `🎉 Round ${round} cleared!`}</h2>
             <p>⭐ {g.current.xp} XP. Time for your Plinko bonus drop!</p>
             <button type="button" className="bs-play" onClick={() => setPhase('plinko')} autoFocus>🎯 Plinko bonus</button>
           </div>
@@ -553,7 +608,7 @@ export default function BubbleShooter() {
         <div className="bs-modal-back">
           <div className="bs-modal">
             <h2>Amazing popping!</h2>
-            <p>You cleared {round} board{round === 1 ? '' : 's'} and earned ⭐ {g.current.xp} XP.</p>
+            <p>You played {round} round{round === 1 ? '' : 's'} and earned ⭐ {g.current.xp} XP.</p>
             <p>Your total XP: ⭐ {lifetimeXp}</p>
             {sessionRight.current > 0 && <p>✅ {sessionRight.current} right answer{sessionRight.current === 1 ? '' : 's'}: {formatMoney(sessionRight.current * perRight)} for your bank!</p>}
             <div className="bs-row">
@@ -567,7 +622,7 @@ export default function BubbleShooter() {
       {phase === 'question' && question && !confirmLeave && (
         <QuestionScreen
           key={question.id + qDone}
-          whoLabel={`🫧 Question ${qDone + 1} of ${roundSet.perRound} before board ${round}: each right answer is a surprise power-up!`}
+          whoLabel={`🫧 Question ${qDone + 1} of ${roundSet.perRound} before round ${round}: each right answer is a surprise power-up!`}
           prompt={question.prompt}
           choices={question.choices}
           correctIndex={question.correctIndex}

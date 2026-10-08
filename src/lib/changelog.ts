@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-bubble-rounds',
+    date: '2026-10-08',
+    icon: '⭐',
+    title: 'Bubble Shooter: star bubbles and a new layout',
+    body: 'Pop a gold star bubble to earn a power-up. Your power-ups wait on the left, one each turn. A small timer and your progress are on the right. Each round ends when you clear the board or after 3 minutes.',
+  },
+  {
     id: '2026-10-08-bubble-powerups',
     date: '2026-10-08',
     icon: '💣',

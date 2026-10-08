@@ -5854,7 +5854,8 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .bs-icon-btn { width: 52px; height: 52px; padding: 0; border: none; background: none; cursor: pointer; touch-action: manipulation; flex-shrink: 0; }
 .bs-icon-btn img { width: 100%; height: 100%; object-fit: contain; }
 .bs-back { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 12px; z-index: 5; }
-.bs-game { position: absolute; inset: 0; display: flex; flex-direction: column; padding: max(8px, env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom)); gap: 8px; }
+.bs-game { position: absolute; inset: 0; display: grid; grid-template-columns: 92px minmax(0, 1fr) 104px; padding: max(8px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom)); gap: 10px; }
+.bs-center { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
 .bs-hud { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .bs-pill { min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 999px; background: rgba(10, 6, 40, 0.6); border: 2px solid rgba(255, 255, 255, 0.25); font-weight: 900; font-size: 1.05rem; color: #fff; font-family: inherit; }
 .bs-rainbow { cursor: pointer; background: linear-gradient(90deg, #ff4d4d, #ffb02e, #f7e01d, #3ccf4e, #40a8f6, #a05cf5); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); touch-action: manipulation; }
@@ -5876,7 +5877,21 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 @keyframes bsComboPulse { from { transform: scale(1); } to { transform: scale(1.08); } }
 .bs-music.off { opacity: 0.45; }
 .bs-music { cursor: pointer; }
-.bs-powers { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.bs-powers { display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center; overflow-y: auto; padding: 8px 0; }
+.bs-powers-title { font-size: 0.75rem; font-weight: 800; opacity: 0.85; text-align: center; }
+.bs-side { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px; padding: 4px 0; overflow-y: auto; }
+.bs-side-label { text-align: center; font-size: 0.8rem; line-height: 1.2; background: rgba(10, 6, 40, 0.55); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 6px 8px; width: 100%; }
+.bs-side-label b { font-size: 1.05rem; }
+.bs-side-small { font-size: 0.72rem; font-weight: 800; opacity: 0.85; }
+.bs-timer { width: 46px; height: 46px; opacity: 0.85; }
+.bs-timer svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.bs-timer-track { fill: none; stroke: rgba(255, 255, 255, 0.15); stroke-width: 4; }
+.bs-timer-fill { fill: none; stroke: #9fd8ff; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 94.25; transition: stroke-dashoffset 1s linear, stroke 2s ease; }
+.bs-timer-fill.late { stroke: #ffd38a; }
+.bs-combo-badge { font-weight: 900; background: linear-gradient(#ff8a3c, #e8451f); border-radius: 999px; padding: 4px 10px; animation: bsComboPulse 0.6s ease-in-out infinite alternate; }
+.bs-progress { position: relative; width: 18px; flex: 1; min-height: 80px; max-height: 260px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); border: 2px solid rgba(255, 255, 255, 0.3); overflow: hidden; }
+.bs-progress span { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(#7ef0c8, #34c63e); transition: height 0.4s ease; }
+@media (max-width: 640px) { .bs-game { grid-template-columns: 70px minmax(0, 1fr) 76px; gap: 6px; } .bs-power-name { display: none; } }
 .bs-power { position: relative; min-width: 64px; min-height: 60px; padding: 4px 8px; border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.35); background: rgba(10, 6, 40, 0.55); color: #fff; font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; }
 .bs-power:disabled { opacity: 0.35; cursor: default; }
 .bs-power.loaded { border-color: #f7d81d; box-shadow: 0 0 0 3px rgba(247, 216, 29, 0.45); }
@@ -5898,4 +5913,4 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .bs-slot { min-height: 46px; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 10px; background: rgba(255, 255, 255, 0.12); font-weight: 900; font-size: 0.78rem; }
 .bs-slot.won { background: #f7d81d; color: #2a1d7a; animation: bsComboPulse 0.4s ease-in-out infinite alternate; }
 .bs-plinko-prize { font-size: 1.2rem; font-weight: 900; }
-@media (prefers-reduced-motion: reduce) { .bs-combo, .bs-slot.won, .bs-reveal-card.flip { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .bs-combo, .bs-combo-badge, .bs-slot.won, .bs-reveal-card.flip { animation: none; } .bs-timer-fill { transition: none; } }

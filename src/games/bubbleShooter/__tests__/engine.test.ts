@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COLS, MYSTERY, RAINBOW, addMystery, center, emptyBoard, explodeAt, laser, makeBoard, place, pushRow, rescue, shotXp, shuffleColors, traceShot, filled, lowestRow, rowLen } from '../engine';
+import { COLS, MYSTERY, RAINBOW, STAR, starsIn, addMystery, center, emptyBoard, explodeAt, laser, makeBoard, place, pushRow, rescue, shotXp, shuffleColors, traceShot, filled, lowestRow, rowLen } from '../engine';
 
 describe('Bubble Shooter rules', () => {
   it('three of a kind pop', () => {
@@ -76,7 +76,7 @@ describe('Bubble Shooter rules', () => {
   it('a laser straight up pops a whole column of bubbles', () => {
     const { board } = makeBoard(6, () => 0.42);
     const r = laser(board, -Math.PI / 2);
-    expect(r.popped.length).toBeGreaterThanOrEqual(5);
+    expect(r.popped.length).toBeGreaterThanOrEqual(3);
   });
   it('shuffle keeps every bubble and mystery adds gray ones', () => {
     const { board } = makeBoard(2, () => 0.3);
@@ -84,5 +84,17 @@ describe('Bubble Shooter rules', () => {
     expect(filled(shuffleColors(board, [0, 1], Math.random))).toBe(n);
     const m = addMystery(board, 3, () => 0.5);
     expect(m.rows.flat().filter((k) => k === MYSTERY).length).toBe(3);
+  });
+
+  it('a star bubble matches its own color and counts as a power-up when popped', () => {
+    const b = emptyBoard();
+    b.rows[0][0] = 3 + STAR; b.rows[0][1] = 3;
+    const r = place(b, 0, 2, 3);
+    expect(r.popped.length).toBe(3);
+    expect(starsIn(r)).toBe(1);
+  });
+  it('every board has star bubbles', () => {
+    const { board } = makeBoard(1, Math.random);
+    expect(board.rows.flat().some((k) => k !== null && k >= STAR)).toBe(true);
   });
 });

@@ -16,6 +16,11 @@ export const RAINBOW = 99;
 // A mystery bubble (gray, "?"): never part of a color match. When a pop or blast touches it, it
 // explodes, and everything its blast removes is worth 3 times the XP.
 export const MYSTERY = 98;
+// A star bubble (teacher 2026-10-08: "the only shape should be star (noting power up earned)"):
+// stored as its color + STAR. It matches its own color; popping it earns a power-up.
+export const STAR = 200;
+export const colorOf = (k: number) => (k >= STAR ? k - STAR : k);
+export const isStar = (k: number) => k >= STAR;
 
 export type Cell = number | null;
 export interface Board { rows: Cell[][]; parity: number }
@@ -38,21 +43,26 @@ export function emptyBoard(): Board {
   return b;
 }
 
-// A board for round n: more rows and more colors as the rounds go on, with little clusters so
-// pops come often (a friendly start).
+// A board for round n: a little bigger and more colorful as the rounds go on, with little clusters
+// so pops come often (a friendly start). Sized so a round takes about 1 to 2 minutes (her ask), with
+// a few star bubbles that earn a power-up when popped.
 export function makeBoard(round: number, rng: Rng): { board: Board; colors: number } {
-  const colors = Math.min(7, 3 + round);
-  const rowsFilled = Math.min(9, 4 + round);
+  const colors = Math.min(6, 2 + round);
+  const rowsFilled = Math.min(6, 3 + round);
   const b = emptyBoard();
   for (let r = 0; r < rowsFilled; r++) for (let c = 0; c < rowLen(b, r); c++) {
     const near = neighbors(b, r, c).map(([nr, nc]) => get(b, nr, nc)).filter((x): x is number => x !== null);
-    b.rows[r][c] = near.length && rng() < 0.55 ? near[Math.floor(rng() * near.length)] : Math.floor(rng() * colors);
+    b.rows[r][c] = near.length && rng() < 0.55 ? colorOf(near[Math.floor(rng() * near.length)]) : Math.floor(rng() * colors);
+  }
+  for (let n = 0; n < 3; n++) {
+    const r = Math.floor(rng() * rowsFilled), c = Math.floor(rng() * rowLen(b, r));
+    const k = b.rows[r][c]; if (k !== null && !isStar(k)) b.rows[r][c] = k + STAR;
   }
   return { board: b, colors };
 }
 
 export const filled = (b: Board) => b.rows.reduce((n, row) => n + row.filter((x) => x !== null).length, 0);
-export const colorsLeft = (b: Board) => [...new Set(b.rows.flat().filter((x): x is number => x !== null && x !== RAINBOW && x !== MYSTERY))];
+export const colorsLeft = (b: Board) => [...new Set(b.rows.flat().filter((x): x is number => x !== null && x !== RAINBOW && x !== MYSTERY).map(colorOf))];
 export const lowestRow = (b: Board) => { for (let r = MAX_ROWS - 1; r >= 0; r--) if (b.rows[r].some((x) => x !== null)) return r; return -1; };
 
 // Pushes a new row in at the top (after too many shots with no pop).
@@ -169,15 +179,15 @@ export function place(b0: Board, r: number, c: number, color: number): ShotResul
     let bestCol = -1, bestSize = 0;
     for (const [nr, nc] of neighbors(b, r, c)) {
       const k = get(b, nr, nc); if (k === null || k === RAINBOW || k === MYSTERY) continue;
-      const size = group(b, nr, nc, k).length;
-      if (size > bestSize) { bestSize = size; bestCol = k; }
+      const size = group(b, nr, nc, colorOf(k)).length;
+      if (size > bestSize) { bestSize = size; bestCol = colorOf(k); }
     }
     col = bestCol >= 0 ? bestCol : 0;
   }
   b.rows[r][c] = col;
   const g = group(b, r, c, col);
   if (g.length >= 3 || (color === RAINBOW && g.length >= 2)) {
-    for (const [gr, gc] of g) { out.popped.push([gr, gc, col]); b.rows[gr][gc] = null; }
+    for (const [gr, gc] of g) { out.popped.push([gr, gc, b.rows[gr][gc] ?? col]); b.rows[gr][gc] = null; }
     triggerMysteries(b, out.popped.slice(), out);
     dropFloaters(b, out);
   }
@@ -225,7 +235,7 @@ export function shuffleColors(b0: Board, colors: number[], rng: Rng): Board {
   const b = copy(b0);
   for (let r = 0; r < MAX_ROWS; r++) for (let c = 0; c < rowLen(b, r); c++) {
     const k = get(b, r, c);
-    if (k !== null && k !== MYSTERY && k !== RAINBOW) b.rows[r][c] = colors[Math.floor(rng() * colors.length)];
+    if (k !== null && k !== MYSTERY && k !== RAINBOW) b.rows[r][c] = colors[Math.floor(rng() * colors.length)] + (isStar(k) ? STAR : 0);
   }
   return b;
 }
@@ -247,7 +257,8 @@ function group(b: Board, r: number, c: number, col: number): [number, number][] 
   const out: [number, number][] = [[r, c]];
   for (let i = 0; i < out.length; i++) {
     for (const [nr, nc] of neighbors(b, out[i][0], out[i][1])) {
-      if (seen.has(`${nr},${nc}`) || get(b, nr, nc) !== col) continue;
+      const k = get(b, nr, nc);
+      if (seen.has(`${nr},${nc}`) || k === null || k === MYSTERY || k === RAINBOW || colorOf(k) !== col) continue;
       seen.add(`${nr},${nc}`); out.push([nr, nc]);
     }
   }
@@ -266,3 +277,7 @@ export function rescue(b0: Board): { board: Board; removed: [number, number, num
 
 // The aim: never flatter than 9 degrees above the side walls.
 export const clampAngle = (a: number) => Math.max(-Math.PI + 0.16, Math.min(-0.16, a));
+
+// Star bubbles in a shot's result: each one earns a power-up.
+export const starsIn = (res: { popped: [number, number, number][]; boomed: [number, number, number][]; dropped: [number, number, number][] }) =>
+  [...res.popped, ...res.boomed, ...res.dropped].filter(([, , k]) => isStar(k)).length;
