@@ -4,6 +4,8 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
+import { StyleAvatar, STYLE_IN_WORLD_SCALE } from '../../style/StyleAvatar';
+import { useStyleSettings } from '../../style/catalog';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { ROLE_VIEWS, withDefaultRoles } from './townLayout';
@@ -376,7 +378,13 @@ function useIslandKeys() {
   }, []);
   return keys;
 }
+// The student's Seamstress character here too (teacher 2026-10-08),
+// scaled to this island's smaller player size (1 instead of 2.6).
 function IslandPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
+  const { released } = useStyleSettings();
+  return released ? <StyleAvatar isMoving={isMoving} scale={(STYLE_IN_WORLD_SCALE * ISLAND_CHARACTER_SCALE) / 2.6} /> : <OldIslandPlayerModel isMoving={isMoving} />;
+}
+function OldIslandPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
   const { scene, animations } = useGLTF('/world/models/characters/player.glb');
   const cloned = useMemo(() => cloneSkinned(scene), [scene]);
   const group = useRef<THREE.Group>(null);

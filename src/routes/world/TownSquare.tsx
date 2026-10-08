@@ -18,6 +18,7 @@ import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
 import { characterDefById } from '../../lib/characterCatalog';
 import { StyleCharacter } from '../../style/StyleCharacter';
+import { StyleAvatar, STYLE_IN_WORLD_SCALE } from '../../style/StyleAvatar';
 import { useNpcProfiles, renameIn, DEFAULT_NPC_LOOKS } from '../../style/npcs';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
@@ -736,21 +737,6 @@ function useKeys() {
 // Style (docs/STYLE.md): once the teacher turns Style on for students, the
 // student walks around as their Style animal (one shared body, so every
 // outfit fits), at the same height as the old player model.
-const STYLE_IN_WORLD_SCALE = 0.62;
-function StyleAvatar({ isMoving }: { isMoving: React.RefObject<boolean> }) {
-  const currentStudentId = useStore((s) => s.currentStudentId);
-  const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === currentStudentId));
-  const look = useMemo<StyleLook>(() => {
-    const l = row?.look as StyleLook | undefined;
-    return l && l.species && l.body && l.outfit ? l : defaultLook('dog');
-  }, [row]);
-  const [move, setMove] = useState<StyleMove>('idle');
-  useFrame(() => {
-    const next: StyleMove = isMoving.current ? 'walk' : 'idle';
-    if (next !== move) setMove(next);
-  });
-  return <StyleCharacter look={look} move={move} scale={STYLE_IN_WORLD_SCALE} />;
-}
 
 function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
   const { released: styleReleased } = useStyleSettings();

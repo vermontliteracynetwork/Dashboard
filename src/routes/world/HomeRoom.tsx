@@ -4,6 +4,8 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
+import { StyleAvatar } from '../../style/StyleAvatar';
+import { useStyleSettings } from '../../style/catalog';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
@@ -221,7 +223,13 @@ function useRoomKeys() {
   return keys;
 }
 
+// The student's Seamstress character, same as in Town Square (teacher
+// 2026-10-08: the new character design everywhere, "in their home" too).
 function RoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
+  const { released } = useStyleSettings();
+  return released ? <StyleAvatar isMoving={isMoving} /> : <OldRoomPlayerModel isMoving={isMoving} />;
+}
+function OldRoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
   const { scene, animations } = useGLTF('/world/models/characters/player.glb');
   const cloned = useMemo(() => cloneSkinned(scene), [scene]);
   const group = useRef<THREE.Group>(null);

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-style-everywhere',
+    date: '2026-10-08',
+    icon: '🧵',
+    title: 'Your character comes home with you',
+    body: 'The animal you dress up at the Seamstress now walks around your Home Room and Creative Island too, wearing your whole look. Change your outfit once and it shows up everywhere you go.',
+  },
+  {
     id: '2026-10-07-gus-tidy-workboard',
     date: '2026-10-07',
     icon: '⭐',

@@ -75,9 +75,13 @@ A computer desk placed in the square is the task entry point (a retro browser-st
 
 #### A2. Home Room (Private Room)
 
+- **2026-10-08: the student's Style character is the player here** (direct teacher instruction: "make sure new character design applies everywhere, for students (in their home)"). Same shared `StyleAvatar` as Town Square; the old player model only returns if Style is switched off for students.
+
 Each student's own private room, picked from a catalog of real-scaled house exteriors visible on their shared "home" building in Town Square. Opens in a read-only View mode by default with a real Build Mode toggle for decorating. Walls are drawn Sims-4-style (click, drag, release) into multi-room floor plans; doors and windows snap to walls. Students paint their own walls and floors, and place furniture/yard decor from the same catalog Build Mode uses (see A4), scoped privately to their own room only. The Pet Care panel (see A5) lives here: feed/pet/play/rename/set-companion/sell, with feelings-word tags and a save-confirmation flash so an action always visibly registers.
 
 #### A3. Creative Island
+
+- **2026-10-08: the student's Style character is the player here** (direct teacher instruction: "make sure new character design applies everywhere, for students (in their home)"). Same shared `StyleAvatar` as Town Square; the old player model only returns if Style is switched off for students.
 
 A Minecraft-style free-build space with the full teacher-parity object catalog, reachable by boat from Town Square's dock or directly from Home Room. Locked by default; a teacher unlocks it per student (`islandBuildUnlocked`, see A40's Student Manager). Same real collision, View mode, and custom-role support as the rest of the world. Exists specifically so building/arranging (constructionist play, the thing Minecraft Education does well) has a home that isn't scoped to the confines of one student's own room.
 
@@ -594,6 +598,108 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 ---
 
 ## PART B — Open Backlog, by Feature Front
+
+### Gameplay roadmap: everything still to build (master list, 2026-10-08)
+
+**Her words (2026-10-08, verbatim):** "give me the most comprehensive dev plan with an update on features yet to be built for game play"
+
+This is the one place to see every gameplay feature that is not built yet, pulled together from every section of this plan, STYLE.md, PETS_V2_OVERVIEW.md and the Grammar Gus docs. Each item says where its full detail lives. Delivered to her as `docs/GAMEPLAY_ROADMAP.pdf`. Keep this list current: when something ships, strike it here and fold it into Part A.
+
+#### 1. Where gameplay stands today (shipped)
+
+- **The world:** Town Square (walking, driving cars, boats, trains, planes and the drone, gas pumps, Map view, Neighbors and Townspeople with the conversation scene, Bawk's work reminders), Home Room, Creative Island, Build Mode.
+- **Native games (question sets fuel every one, $1 per right answer, Daily Streak, personal bests, leave-game confirmation):** Bakery Match with the Treat Wheel, Castle Defense, Slime Chess, Space Bowling, Shape Dash, the Platformer, the Gas Pump quiz.
+- **Grammar Gus:** the Workboard sandbox (every part its own machine, Phase 1 writing machines complete, guess and check, teacher live share), Read and Respond with the immersive reader and the Library app, Orders, Blueprints, the Garage, the Journal.
+- **Rewards and daily loops:** Daily Spin, Daily Streak with chests and Streak Freezes, Marketplace, Mailbox, Arcade (Scratch games), Cinema, music.
+- **Style:** the Seamstress (students dress their animal), Space Alien costume earned in Space Bowling, Neighbors dressed in Style. **As of 2026-10-08 the student's Style character is the player everywhere: Town Square, their Home Room and Creative Island.**
+
+#### 2. Ready to build now (no decision needed, only her "go" on order)
+
+**Grammar Gus, Claudia's Phase 2 writing machines (in this order):**
+1. Run-on detection and the fix mini-game.
+2. Appositive Clamp.
+3. Fusion Reactor (sentence combining).
+4. Revision Workshop (ARMS: add, remove, move, substitute).
+5. CER Lab Report (claim, evidence, reasoning).
+6. Label and Unit Maker.
+7. Gus's Paint Shop: a gear sink for paint, decals and factory floors, never hints.
+
+**Grammar Gus, smaller open pieces:**
+- Pixel TV: "with" showing both characters walking together.
+- Audit leftovers: hard words moved to an off-by-default pack, sub-folds for the 40 fun parts, tiny labels inside the drawings, Undo for the Spare Parts Bin, reflexive pronoun agreement, interjection commas, pronouns after where words, a "because" idea at the front of the sentence, board sync to the teacher's account.
+- Claudia's round ideas: Mixed-up Delivery (rebuild a scrambled sentence from a conveyor), Noun Boiler Pairs (singular and plural, "a" and "some"), Punctuation Inspector (fix a wrong punctuation stamp, the TV shows the tone), Paragraph Pipes Join Clamp ghost.
+- Word packs: a teacher word tool (add a student's special-interest word with its forms and a picture) and more packs (Dinosaurs, Food, Superheroes, Trains and Cars).
+- Garage extras: lever styles, sound sets, celebration styles, stickers on the cabinet, Gus costumes, part variants, 6 saved machine Blueprints.
+- Orders: a teacher editor for her own orders, and a sticker book page.
+- Blueprints still to come: "Why Did the...?", Silly Recipe, Show and Tell, Letter to a Friend (needs her name list), the Pun Pack.
+- Teacher report: PDF export, IEP goal lines on a progress graph, teacher notes, Gus's Checkup (an optional baseline).
+- Describe Sorter conveyor animation; "Do it for me after 2 taps"; hiding item groups.
+
+**Read and Respond:**
+- Save a gallery picture to the student's inventory and hang it as resizable wall decor in the Home Room (needs a picture item type in the inventory and the Home Room).
+- A premium narrator voice (needs a paid text to speech key she adds in Vercel; today it is the device's best British male voice).
+
+**Shape Dash:**
+- Teacher sliders for how often questions come and how many come at once (fixed at 30 seconds and 1 question today).
+- A teacher inbox report for each session.
+
+**Space Bowling:**
+- Use the saved assets not in the game yet: the venue and bowling lane models, the Kenney Sports pack, and her Bowling GUI pack (once she confirms she has the rights to it).
+
+#### 3. Designed and waiting on her "go"
+
+- **Gus's Daily Challenge** (her full spec is in "Grammar Gus: Daily Challenge and daily streak"): a pop-up on the first Workboard visit each day, mail to every student, Gus walking around the Town Square (tap him, the chat asks if they want the challenge), a streak calendar ("Day 1 of the daily challenges"), and $25 a day, promoted as the most valuable streak in the game. The content (Read and Respond) already shipped as an activity.
+- **Tappy Plane** (one-tap flying game, Kenney art saved in `public/games/tappy-plane/`): gentle mode where bumping a rock bounces the plane back, wider gaps to start, question breaks between flights, stars and medals as rewards, a Town Square home such as an airfield.
+- **Pets v2** (cats and dogs, grammar inside training; full plan in `docs/PETS_V2_OVERVIEW.pdf`): Phase 1 foundation (final breed list, body choice, new stat card), Phase 2 adoption agency, Phase 3 Training Yard with the Command Builder (the sentence is the command), Phase 4 tool-based care, Phase 5 tricks, Pet Show Ring and Trainer License, Phase 6 collars and coats, Phase 7 pet parade and pets cheering in native games. Pets are paused and refunded until then.
+- **The Seamstress game** with Webkinz-style clothing recipes (STYLE.md): a Clothing Machine where 3 owned items make a new one, a Recipe Book to collect, a simple student designer, questions between steps.
+- **Style, next steps** (STYLE.md): Style items for sale and to earn in the Marketplace (price, dates, earn rules), the Style Studio for her (blank templates, a print-on-demand style designer, an effects shelf, the free Describe-it builder), more Comfort Gear including the wheelchair set, and, only with her go-ahead because it is permanent, deleting the old avatars, portraits and Cake Character.
+- **Weekly Planning and Neighbor quests, Phases 2 to 5** (designed in "Weekly Planning + NPC Quest-Discovery Redesign"): a weekend-safe streak, which Neighbor delivers each assignment, a daily "Today's Activities" mix students discover by talking to Neighbors, the to-do discovery loop, and the Catch-Up Lock. Also the Chart and Graph activity type (needs her yes for a 5th activity type).
+
+#### 4. Decisions she owes (each one unblocks building)
+
+- **Grammar Gus:** shout sentences end with ! or a period; a comma between two describing words ("the pretty, young girl") or not; should 3-star sentences pay Class Cash or count toward the Daily Streak; approve the slot-machine look for the Surprise Hopper (reels and a SPIN button, never coins or bets); approve the Cartoon Industrial and pixel cinema art look; "they" for one person, yes or no.
+- **Daily Challenge:** do weekends break the streak (suggestion: no).
+- **Streaks:** should streak interest (1% a day) and the Passport streak move to the new Daily Streak; a lower streak goal than 20 for some students.
+- **Pets v2:** the 15 questions in PETS_V2_OVERVIEW section 6. The three that unblock Phase 1: which of the 12 dogs and cats stay, which body (current models, Style characters, or a new four-legged body), and old pets back at relaunch or a fresh start.
+- **Assets:** what the Kenney Construct samples are for (platformer, space shooter, brick breaker, dice and cards, RPG), the Games app icon slide that did not come through, and the rights to the Bowling GUI art.
+- **Space Bowling costume:** none owed; the Space Alien unlock is live.
+
+#### 5. Idea bank (her ideas, recorded, not designed yet)
+
+**Building games** (the standing pattern: a building or object role opens a native game fueled by question sets, with real rewards):
+- Farm Grow (plant and tend crops through growth stages), Fishing Dock (timed casts, a fish collection book), Mine Cart Run (answers switch the track), Dungeon Rooms (each door locked by a question), Post Office Sort, Pet Show Ring, Lighthouse Signal, Library Quest (hidden books fill the Finds Book), Construction Site (answers supply blocks for the town's next building), Gem Mine, Rescue Shelter (questions build a stray's trust before adoption), Kitchen Cook-Off (answers pick ingredients in order), Train Station Dispatch.
+
+**Genres her students already love:** Endless Runner, Idle or Clicker Tycoon, Time-Management (restaurant), Memory Match, Word Search, Whack-a-Mole, Crossy Road Hopper, Plinko Drop, Bubble Shooter. (Tower Defense shipped as Castle Defense.)
+
+**From the Kenney Construct art she uploaded:** a space shooter and a brick breaker that stop for questions, a dice or card game, a small RPG.
+
+**World and social:**
+- Town Square live, with both students seeing each other.
+- Marketplace sales and daily sales flyers.
+- Expandable map: more named lots beyond Town Square and a student map showing every area.
+- Playground mini games (the image gallery and silly quizzes shipped).
+- Pet accessories, pets cheering in native games, seasonal featured pets, quest-earned pets.
+- Dress for the Day (choose clothing for the weather or an event).
+
+**Grammar Gus, Phase 3 and beyond:** the Showcase Wall (teacher-approved, no counts or rankings), relative clauses, progressive and perfect tenses, modals, titles, dialogue paragraphs, opinion-writing machines, seasonal Paint Shop floors, the Compare and Contrast Balance.
+
+#### 6. Claudia's suggested build order
+
+1. **Gus Phase 2, starting with the run-on fix.** It is the next writing skill in her plan and needs no decision.
+2. **Gus's Daily Challenge,** once she says go. The content is built; this adds the daily habit and the $25 reward.
+3. **Gallery pictures to wall decor.** Small, visible, and it ties reading to the Home Room.
+4. **Shape Dash sliders and the inbox report.** Small, and gives her control over a game students already play.
+5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
+6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
+
+### Style character everywhere a student walks (Town Square, Home Room, Creative Island). SHIPPED 2026-10-08 (direct teacher instruction)
+
+- **Her words (2026-10-08, verbatim):** "make sure new character design applies everywhere, for students (in their home)"
+- **What changed:** the student's own Style character (the Seamstress look: animal, clothes, colors, costume) is now the player in their **Home Room** and on **Creative Island**, not only in Town Square. It walks and stands with the same Style animations, at a size matched to each place. One shared player (`src/style/StyleAvatar.tsx`) now serves all three places, so a look saved at the Seamstress shows up everywhere at once.
+- **Fallback:** if she ever turns Style off for students with the Students switch, all three places go back to the old 3D player, as before.
+- **Still waiting on her go-ahead (unchanged):** permanently deleting the old avatars, portraits and the Cake Character. They are no longer the player anywhere while Style is on.
+- **Not checked on an iPad yet:** the character's size inside the smaller Home Room rooms and on the Island.
+
 
 ### Tappy Plane (one-tap flying game). SAVED FOR A FUTURE NATIVE GAME (direct teacher instruction 2026-10-04)
 
@@ -2307,7 +2413,7 @@ Full spec: [`STYLE.md`](./STYLE.md) (Claudia's design pass). Standing instructio
 **In progress / shipped:** teacher-only **Style room SHIPPED 2026-10-04** at Teacher nav → 👗 Style: the 4 species with shared animations (stand, walk, run, jump, wave, cheer, dance, talking mouth, blinking), 27 one-size items including the **holey Swiss Cheese Hat**, 10 patterns on clothes and fur, drag color wheel, sound effects, Save my look (new `style_looks` table, SQL in schema.sql, plus on-device backup). **Next:** student version + release switch, Marketplace publishing, Style Studio (POD designer, effects shelf, auto-save drafts, Describe-it builder), Seamstress game later.
 **Edits shipped 2026-10-04 (her 8-point feedback + hat note, details in STYLE.md 5B):** rounder smoother bean-shaped bodies with the head joined to the body (clothes follow the same round shape), longer capybara nose, characters start with no clothes, wings/cape moved behind the back, bell-shaped skirt and dress, a new **Item workshop** (view and edit every item on its own, rename it, change its default colors/patterns, preview on each animal or all four at once), animation buttons split into **Move** and **Emotes**, and hats (beanie especially) no longer cover the eyes.
 **Restyle shipped 2026-10-04 ("match more this style", with an uploaded cartoon capybara and a Snoopy model as references; details and licenses in STYLE.md 5B):** pear-shaped chubby bodies, head melting into the body, short legs with long cartoon feet, soft fuzzy fur, a capybara rebuilt from her reference, a softer cartoon dog. Reference files were looked at only; the Snoopy model is a trademarked character with a non-commercial license and is never shipped.
-**Fit pass + release switch shipped 2026-10-04 (STYLE.md 5B):** every item checked on all four animals from front/side/back and fixed (hats per head, top ears and tail tucked under covering items, taller beanie, glasses at eye level, bigger wings, smooth pants seat, rolled hems, patterns tiled to size). New "Students: OFF/ON" release switch in the teacher Style header, **left OFF**; when ON, students get Style in the pie menu, their own Style room, and walk Town Square as their Style animal. Still to do at release: Home Room/Island player models, deleting the old portraits/avatars/Cake Character (permanent, so it waits for her go-ahead at release time).
+**Fit pass + release switch shipped 2026-10-04 (STYLE.md 5B):** every item checked on all four animals from front/side/back and fixed (hats per head, top ears and tail tucked under covering items, taller beanie, glasses at eye level, bigger wings, smooth pants seat, rolled hems, patterns tiled to size). New "Students: OFF/ON" release switch in the teacher Style header, **left OFF**; when ON, students get Style in the pie menu, their own Style room, and walk Town Square as their Style animal. Home Room/Island player models SHIPPED 2026-10-08 (see "Style character everywhere a student walks"). Still to do at release: deleting the old portraits/avatars/Cake Character (permanent, so it waits for her go-ahead at release time).
 **Sculpted organic bodies shipped 2026-10-04 (her words: "they need to have more natural curve, more life, more body and movement. they look incredibly geometric right now", using her uploaded models as the shape reference; details in STYLE.md 5B):** all four animals rebuilt as one continuous sculpted surface (soft forms melted together like clay: cheeks into muzzles, necks into round bellies, thighs into big feet), soft color fades for tummy/muzzle/paws, livelier movement (foot roll, hip sway, squash and stretch, breathing, weight shifts, spring-bouncing dog ears, natural blinks, eased emotes), clothes sculpted from the same body so they wrap the curves, and every hat/glasses/gear/back item re-seated on the new heads. Still teacher-only (release switch OFF).
 **Fit fixes + Costumes shipped 2026-10-04 (STYLE.md 5B):** frog spots removed; every hat refit to each animal's real head shape (her priority: "the hats are specifically wrong and need to be fixed... make sure they fit"); the crown rebuilt as one connected band with set-in gems; glasses fitted in front of each animal's own eyes; cape draped over the back; sleeves and backpack refit. **New Costumes category**: a full-body costume replaces the animal and all its clothes and moves with the shared animations (walk, run, jump, wave, cheer, dance, blink, talk). First costume: **Space Alien** (her uploaded model), usable by the teacher now; students earn it by answering **500 questions right in Space Bowling** (locked until that game exists and counts it).
 **Fit edits shipped 2026-10-04 (her 5-point list with screenshots, STYLE.md 5B):** cheese hat higher on dog/cat/capybara, dog's arms rest further out, top hat higher on cat/capybara, the frog's ball cap/beanie/top hat/bucket hat worn high and tipped back so the front brim shows right above its eyes, butterfly wings moved back and sweeping backward so both show from the front with no back showing between them.
