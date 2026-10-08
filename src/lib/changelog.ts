@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-alchemy-myths',
+    date: '2026-10-08',
+    icon: '🦄',
+    title: 'Alchemy myths and magic',
+    body: 'You asked, so here they are: phoenix, pegasus, griffin, centaur, minotaur, Medusa, hydra, cyclops, golem, leprechaun, the Loch Ness Monster, Atlantis and more. 137 things to discover!',
+  },
+  {
     id: '2026-10-08-alchemy-fantasy',
     date: '2026-10-08',
     icon: '🐉',

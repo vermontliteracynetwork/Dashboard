@@ -10,6 +10,8 @@ import { ELEMENTS, RECIPES, START } from '../../games/alchemy/data';
 
 type El = { id: string; e: string; n: string };
 const ELS: Record<string, El> = Object.fromEntries(ELEMENTS.map(([id, e, n]) => [id, { id, e, n }]));
+// Two-picture elements (🔥🐦 Phoenix) draw a little smaller so they fit the tile.
+const TWO = /\p{Extended_Pictographic}.*\p{Extended_Pictographic}/u;
 const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 const R: Record<string, string> = Object.fromEntries(RECIPES.map(([a, b, r]) => [key(a, b), r]));
 type Tile = { uid: number; id: string; x: number; y: number; fx?: 'pop' | 'shake' };
@@ -167,7 +169,7 @@ export default function Alchemy() {
             onDoubleClick={() => { const p = clamp(t.x + 40, t.y + 40); addTile(t.id, p.x, p.y, 'pop'); }}
             onAnimationEnd={() => setTiles((ts) => ts.map((x) => (x.uid === t.uid ? { ...x, fx: undefined } : x)))}
             role="img" aria-label={ELS[t.id].n}>
-            <div className="alc-in"><div className="alc-em">{ELS[t.id].e}</div><div className="alc-nm">{ELS[t.id].n}</div></div>
+            <div className="alc-in"><div className={`alc-em${TWO.test(ELS[t.id].e) ? ' two' : ''}`}>{ELS[t.id].e}</div><div className="alc-nm">{ELS[t.id].n}</div></div>
           </div>
         ))}
       </div>

@@ -692,6 +692,12 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Alchemy: mythology and magic the students asked for. SHIPPED 2026-10-08 (direct teacher instruction)
+
+- **Her words (verbatim):** "fantas, magic and mythological alchemy stuff was recomned by the studnets and should be added".
+- **26 more (now 137 elements, 133 recipes; every one reachable from the start, no recipe repeated, checked):** bird + fire = Phoenix; horse + bird = Pegasus; bird + monster = Griffin; human + horse = Centaur; monster + cow = Minotaur; lizard + ocean = Sea Serpent; human + sea serpent = Medusa; dragon + dragon = Hydra; monster + telescope = Cyclops; stone + life = Golem; elf + rainbow = Leprechaun; elf + garden = Gnome; human + mountain = Dwarf; human + sky = Angel; wolf + night = Werewolf; dinosaur + river = Loch Ness Monster; dragon + egg = Dragon Egg; sand + stone = Pyramid; pyramid + animal = Sphinx; potion + fire = Cauldron; book + magic = Spellbook; hammer + lightning = Thunder Hammer; metal + ocean = Trident; trident + crown = Sea King; castle + ocean = Atlantis; sword + stone = Sword in the Stone.
+- Two-picture elements (🔥🐦 Phoenix, 🐎🪶 Pegasus...) draw a little smaller to fit their tile, and long names wrap.
+
 ### Alchemy: a fresh start every visit, and a fantasy chain (a dragon now takes a dinosaur and fire). SHIPPED 2026-10-08 (direct teacher instructions)
 
 - **Her words (verbatim):** "if you leave alchemy, it should clear the board and start from the beginning. make more combinations of things to get into fantasy elements. like somehow after lots of combinations, thye should be ale to combine a dinosaur and fire to get a dragon or something"; "we need a life element if there isnt one already".

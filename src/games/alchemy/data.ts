@@ -29,6 +29,14 @@ export const ELEMENTS: [string, string, string][] = [
   ["princess","👸","Princess"],["knight","🛡️","Knight"],["map","🗺️","Map"],["treasure","💰","Treasure"],["crystalball","🔮","Crystal Ball"],
   ["wand","🪄","Wand"],["broom","🧹","Broom"],["witch","🧙‍♀️","Witch"],["lovepotion","💘","Love Potion"],["monster","👹","Monster"],
   ["kraken","🦑","Kraken"],["yeti","🦍","Yeti"],["pirate","🏴‍☠️","Pirate"],["legend","📜","Legend"],["troll","🧌","Troll"]
+  ,
+  // Mythology and magic (teacher 2026-10-08: "fantas, magic and mythological alchemy stuff was recomned by the studnets").
+  ["phoenix","🔥🐦","Phoenix"],["pegasus","🐎🪶","Pegasus"],["griffin","🦅🦁","Griffin"],["centaur","🧑🐎","Centaur"],["minotaur","🐂💪","Minotaur"],
+  ["serpent","🐍🌊","Sea Serpent"],["medusa","🐍👩","Medusa"],["hydra","🐲","Hydra"],["cyclops","👁️","Cyclops"],["golem","🗿","Golem"],
+  ["leprechaun","🍀","Leprechaun"],["gnome","🍄","Gnome"],["dwarf","⛏️","Dwarf"],["angel","😇","Angel"],["werewolf","🐺🌕","Werewolf"],
+  ["nessie","🦕","Loch Ness Monster"],["dragonegg","🥚🔥","Dragon Egg"],["pyramid","🔺","Pyramid"],["sphinx","🦁🔺","Sphinx"],
+  ["cauldron","🫕","Cauldron"],["spellbook","📖","Spellbook"],["thunderhammer","🔨⚡","Thunder Hammer"],["trident","🔱","Trident"],
+  ["seaking","🔱👑","Sea King"],["atlantis","🏛️🌊","Atlantis"],["swordstone","🗡️🪨","Sword in the Stone"]
 ];
 export const START = ["fire","water","earth","air"];
 export const RECIPES: [string, string, string][] = [
@@ -59,4 +67,12 @@ export const RECIPES: [string, string, string][] = [
   ["gold","map","treasure"],["glass","magic","crystalball"],["wood","magic","wand"],["wood","wheat","broom"],["wizard","broom","witch"],
   ["potion","love","lovepotion"],["animal","ghost","monster"],["monster","ocean","kraken"],["monster","snow","yeti"],["ship","sword","pirate"],
   ["dragon","knight","legend"],["stone","human","troll"]
+  ,
+  // Mythology and magic.
+  ["bird","fire","phoenix"],["horse","bird","pegasus"],["bird","monster","griffin"],["human","horse","centaur"],["monster","cow","minotaur"],
+  ["lizard","ocean","serpent"],["human","serpent","medusa"],["dragon","dragon","hydra"],["monster","telescope","cyclops"],["stone","life","golem"],
+  ["elf","rainbow","leprechaun"],["elf","garden","gnome"],["human","mountain","dwarf"],["human","sky","angel"],["wolf","night","werewolf"],
+  ["dinosaur","river","nessie"],["dragon","egg","dragonegg"],["sand","stone","pyramid"],["pyramid","animal","sphinx"],
+  ["potion","fire","cauldron"],["book","magic","spellbook"],["hammer","lightning","thunderhammer"],["metal","ocean","trident"],
+  ["trident","crown","seaking"],["castle","ocean","atlantis"],["sword","stone","swordstone"]
 ];

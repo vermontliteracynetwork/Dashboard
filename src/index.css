@@ -5764,3 +5764,6 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
   .alc-app { flex-direction: column; }
   .alc-shelf { width: auto; height: 32%; min-height: 180px; border-left: 0; border-top: 1px solid var(--alc-line); }
 }
+
+.alc-em.two { font-size: 30px; line-height: 1.45; letter-spacing: -2px; }
+.alc-nm { white-space: normal; line-height: 1.15; max-width: 92px; }
