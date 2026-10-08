@@ -3088,6 +3088,44 @@ body.teacher-mode .content-well { border-radius: 10px; }
   .castle-upgrade-badge { animation: none; }
 }
 
+/* Castle Defense catalog art (teacher 2026-10-08): sheet sprites, the portal, the Wisp and townspeople. */
+.cd-sheet { position: relative; display: block; overflow: hidden; image-rendering: pixelated; }
+.cd-sheet-cell { position: absolute; display: block; background-repeat: no-repeat; background-position-x: 0%; image-rendering: pixelated; animation-name: cdFrames; animation-iteration-count: infinite; }
+@keyframes cdFrames { from { background-position-x: 0%; } to { background-position-x: var(--fx-end); } }
+.cd-enemy-sheet { margin-left: 50%; transform: translateX(-50%); }
+.castle-enemy.hit .cd-enemy-sheet { animation: castleHitFlash 0.2s ease-out; }
+.castle-enemy.flying .castle-enemy-flip { transform: translateY(-38%); }
+.castle-enemy.flying.facing-left .castle-enemy-flip { transform: translateY(-38%) scaleX(-1); }
+.castle-enemy.flying::after { bottom: -14%; opacity: 0.6; }
+.castle-enemy.flying.slowed .castle-enemy-flip { filter: drop-shadow(0 0 4px #7cc3f0) drop-shadow(0 0 2px #7cc3f0); }
+.cd-portal { position: absolute; width: 9%; min-width: 48px; transform: translate(-30%, -78%); z-index: 9; pointer-events: none; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.25)); }
+.cd-citizen { position: absolute; width: 3.2%; min-width: 20px; transform: translate(-50%, -100%); pointer-events: none; }
+.cd-citizen.flip .cd-sheet { transform: scaleX(-1); }
+.cd-wisp { position: absolute; left: 50%; top: -18%; width: 52%; transform: translateX(-50%); z-index: 3; pointer-events: none; animation: cdWispIn 1.1s ease-out forwards; }
+@keyframes cdWispIn { 0% { opacity: 0; transform: translate(-50%, -30%); } 15%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -40%); } }
+.castle-tower-img.cd-built { animation: cdBuilt 1.1s ease-out; }
+@keyframes cdBuilt { 0%, 45% { opacity: 0; transform: translateX(-50%) scale(0.4); filter: brightness(3); } 75% { opacity: 1; transform: translateX(-50%) scale(1.08); filter: brightness(1.6); } 100% { opacity: 1; transform: translateX(-50%) scale(1); filter: none; } }
+.cd-theme-pick { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cd-theme-title { font-weight: 800; font-size: 0.9rem; }
+.cd-theme-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.cd-theme-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 2px solid #3d5a2f; background: #fffaf0; color: #2a3f20; font: inherit; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+.cd-theme-chip.on { background: #3d5a2f; color: #fff; }
+.cd-tower-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; max-height: min(60vh, 520px); overflow-y: auto; width: 100%; }
+.cd-tower-list .castle-tower-picker-btn { margin: 0; }
+.cd-tower-list .castle-tower-picker-btn img { width: 44px; height: 60px; object-fit: contain; }
+.cd-new-tag { margin-left: 6px; font-size: 0.62rem; font-weight: 800; background: #f0b429; color: #3a2a00; border-radius: 6px; padding: 1px 5px; vertical-align: middle; }
+.castle-projectile-archer { background: radial-gradient(circle, #fffbe6, #a0703a 70%); box-shadow: 0 0 5px rgba(160, 112, 58, 0.9); width: 7px; height: 7px; }
+.castle-projectile-crossbow { background: radial-gradient(circle, #e6f7ff, #4a8ab8 70%); box-shadow: 0 0 6px rgba(74, 138, 184, 0.9); }
+.castle-projectile-crystal { background: radial-gradient(circle, #e8fffe, #3ccfd0 70%); box-shadow: 0 0 8px rgba(60, 207, 208, 0.95); }
+.castle-projectile-orb { background: radial-gradient(circle, #ffffff, #8fd3ff 70%); box-shadow: 0 0 10px rgba(143, 211, 255, 1); }
+.castle-projectile-bolt { background: radial-gradient(circle, #fff3d6, #c0392b 70%); box-shadow: 0 0 8px rgba(192, 57, 43, 0.9); width: 14px; height: 14px; }
+.castle-projectile-zap { background: radial-gradient(circle, #ffffff, #7af0ff 60%); box-shadow: 0 0 10px #7af0ff, 0 0 4px #ffffff; }
+.castle-projectile-gemmine { background: radial-gradient(circle, #fff8d6, #f0a020 70%); box-shadow: 0 0 6px rgba(240, 160, 32, 0.9); }
+@media (prefers-reduced-motion: reduce) {
+  .cd-sheet-cell { animation: none; }
+  .cd-wisp, .castle-tower-img.cd-built { animation: none; }
+}
+
 /* Tower picker modal */
 .castle-tower-picker-btn {
   width: 100%;

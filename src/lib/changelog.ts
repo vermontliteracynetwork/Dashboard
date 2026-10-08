@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-castle-catalog',
+    date: '2026-10-08',
+    icon: '🏰',
+    title: 'Castle Defense has 7 new towers',
+    body: 'Build an Archer Tower, Crossbow, Crystal, Frost Orb, Bolt, Spark Lamp or a Gem Mine that digs up bonus gems. Pick who attacks: castle raiders, field monsters, a bug swarm or a surprise mix. They come out of a magic portal, a little Wisp builds your towers, and the townspeople cheer when you win a wave.',
+  },
+  {
     id: '2026-10-08-alchemy-game',
     date: '2026-10-08',
     icon: '⚗️',

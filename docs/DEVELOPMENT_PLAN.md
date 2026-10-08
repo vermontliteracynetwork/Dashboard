@@ -699,7 +699,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - A teacher inbox report for each session.
 
 **Castle Defense:**
-- Art upgrade with her CraftPix and Foozle tower defense packs (field and village tiles, 7 CraftPix enemies and 8 Foozle bugs including flyers, the archer tower plus 6 Foozle towers with 3 weapon levels each, the Wisp builder with build and collapse animations, a 3-stage enemy portal, 4 citizens), saved in `public/games/castle-defense/craftpix/`, `foozle/` and `portal/`. She confirmed all licenses are good to go. QUEUED 2026-10-08, see "Castle Defense art upgrade".
+- Art upgrade: towers, attackers, portal, Wisp and townspeople SHIPPED 2026-10-08 (see "Castle Defense: new art added to the old"). Still to do: a map built from the field and village tiles, death and attack animations, animated tower weapons. Packs: (field and village tiles, 7 CraftPix enemies and 8 Foozle bugs including flyers, the archer tower plus 6 Foozle towers with 3 weapon levels each, the Wisp builder with build and collapse animations, a 3-stage enemy portal, 4 citizens), saved in `public/games/castle-defense/craftpix/`, `foozle/` and `portal/`. She confirmed all licenses are good to go. QUEUED 2026-10-08, see "Castle Defense art upgrade".
 
 **Space Bowling:**
 - Use the saved assets not in the game yet: the venue and bowling lane models, the Kenney Sports pack, and her Bowling GUI pack (once she confirms she has the rights to it).
@@ -753,7 +753,26 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
-### Castle Defense art upgrade: CraftPix and Foozle tower defense packs. QUEUED 2026-10-08 (direct teacher instructions, three batches)
+### Castle Defense: new art added to the old, a bigger catalog of towers and attackers. SHIPPED 2026-10-08 (direct teacher instruction)
+
+- **Her words (verbatim):** "lets use the new castle defense art with the old, expanding the catelog of options for the game".
+- **Catalog** (`src/games/castleDefense/catalog.ts`, sprite strips drawn by `SheetSprite.tsx`): the original Stone, Banner and Mystic towers and the four castle raiders all stay. New, from her packs:
+  - **7 new towers** (each with 3 levels; pictures composed from the packs into `public/games/castle-defense/built/`, marked NEW in the Build a Tower list):
+    - Archer Tower (CraftPix): fast arrows, two shots a second.
+    - Crossbow Tower: also guards the next part of the road.
+    - Crystal Tower: hits every attacker near it at once.
+    - Frost Orb Tower: slows attackers for a long time.
+    - Bolt Tower: giant hits, slow to reload.
+    - Spark Lamp: zaps one attacker, then jumps to 2 more.
+    - Gem Mine: digs up 1, 2 or 3 bonus gems after every wave, and pokes attackers too.
+  - **"Who attacks?" on the menu** (remembered on that iPad): 🗡️ Castle raiders (the original four), 🐺 Field monsters (Slime, Sneaky Rat, Buzz Bee, Club Goblin, Shadow Wolf, Spear Rider, Rock Rider), 🐞 Bug swarm (Leafbug, Flying Locust, Firebug, Firewasp, Scorpion, Clampbeetle, Magma Crab, Void Butterfly) or 🎲 Surprise mix. New attackers are animated (walk, run or fly strips); flyers float above the road with their shadow below. Every theme keeps the classic waves' toughness: each wave slot is a tier (1 to 4) with the classic health (3, 5, 4, 6), filled with one of that theme's attackers, so the game is exactly as hard as before.
+  - **The overgrown portal** stands where the road begins and grows from calm (waves 1 and 2) to torn (3 and 4) to electric (wave 5).
+  - **The Wisp builder** flies in and casts over the spot whenever a tower is built or upgraded, and the tower pops into place.
+  - **Four townspeople** stand by the castle gate and cheer when a wave is cleared.
+  - Same questions, gems, pay, waves and rules as before. Reduced motion stops the sprite animations.
+- **Saved but not used yet:** the field and village tilesets (a tile-built map is the next step), the construction and collapse sheets, the archer units and arrows, the extra enemy animations (attack, special, death), the Foozle weapon animations and projectiles.
+
+### Castle Defense art upgrade: CraftPix and Foozle tower defense packs. SAVED 2026-10-08, PARTLY USED (direct teacher instructions, three batches)
 
 - **Her words (verbatim):** "QUEUE: add to tower defense game" (with four CraftPix uploads: Free Fields Tileset, Free Field Enemies, Free Archer Towers, Free Pixel Citizens, all "pixel art for tower defense").
 - **Saved, not used yet:** `public/games/castle-defense/craftpix/` (1.4 MB, PNGs and each pack's license; the PSD sources, coupons and Mac extras were left out):

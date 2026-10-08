@@ -19,6 +19,8 @@ import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
 import { drawQuestion } from '../../lib/questionPick';
+import { ATTACKER_THEMES, ENEMIES, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_IDS, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
+import SheetSprite from '../../games/castleDefense/SheetSprite';
 
 // Castle Defense — a Town Square building (role 'castle' in
 // townLayout.ts), teacher places the 3D "Low Poly Castle" model (CC-BY-4.0,
@@ -124,8 +126,6 @@ const TRAVEL_MS = 7000; // time a single enemy takes to cross the whole road onc
 const TOWER_FIRE_COOLDOWN_MS = 1000; // every tower fires at most once per second; its tier's dps is literally its damage-per-hit at this fixed rate
 const PROJECTILE_TRAVEL_MS = 220;
 const RESULT_BANNER_MS = 2200;
-const WOOD_CLEAVE_MULTIPLIER = 0.5; // Banner Tower's secondary hit, as a fraction of its primary dps
-const PINK_SLOW_TICKS = 3; // how many ticks Mystic Tower's slow lasts on its target
 const PINK_SLOW_FACTOR = 0.5; // the target's travel speed while slowed (1 = normal)
 const PERFECT_WAVE_BONUS_GEMS = 2; // awarded only when every enemy in a wave was stopped (0 leaks)
 
@@ -155,49 +155,21 @@ function advanceMilestone(startTier: number, startCount: number, correctAnswers:
 }
 
 type Phase = 'menu' | 'build' | 'advance' | 'challenge';
-type TowerType = 'stone' | 'wood' | 'pink';
-type EnemyType = 'goblin' | 'knight' | 'rogue' | 'wizard';
+// Towers and attackers live in the catalog (src/games/castleDefense/catalog.ts): the original
+// Stone, Banner and Mystic towers and the four raiders, plus her CraftPix and Foozle art
+// (teacher 2026-10-08). Every tower's ability is data there and runs in tick() below.
+type TowerType = TowerId;
+const TOWER_META = TOWERS;
+const TOWER_SPRITE = (type: TowerType, tier: 1 | 2 | 3) => TOWERS[type].sprite(tier);
+const THEME_KEY = 'castle.attackers';
+const readTheme = (): ThemeId => { try { const t = localStorage.getItem(THEME_KEY) as ThemeId | null; return t && ATTACKER_THEMES.some((x) => x.id === t) ? t : 'classic'; } catch { return 'classic'; } };
+// Castle townspeople, near the gate (map units).
+const CITIZEN_SPOTS = [{ x: 131, y: 88 }, { x: 139, y: 91 }, { x: 150, y: 90 }, { x: 157, y: 84 }];
 
-// Each type now does something the others don't (tick()'s firing loop),
-// not just a different cost/dps curve — see the header comment. Stone is
-// the reliable single-target baseline. Wood also cleaves a second enemy in
-// its zone for WOOD_CLEAVE_MULTIPLIER of its dps, real value against a
-// cluster but not against a lone target. Pink hits for less but applies a
-// slow (PINK_SLOW_TICKS/PINK_SLOW_FACTOR) to its target — crowd control,
-// not raw damage, genuinely useful for buying the other towers more hits
-// rather than just being "the weaker one."
-const TOWER_META: Record<TowerType, { label: string; cost: number[]; dps: number[] }> = {
-  stone: { label: 'Stone Tower', cost: [3, 3, 4], dps: [3, 5, 8] },
-  wood: { label: 'Banner Tower', cost: [4, 4, 5], dps: [2, 4, 6] },
-  pink: { label: 'Mystic Tower', cost: [4, 4, 5], dps: [2, 3, 5] },
-};
-const TOWER_SPRITE = (type: TowerType, tier: 1 | 2 | 3) => `/castle-defense/tower-${type}-${tier}.png`;
-// Shown on the "Build a Tower" picker so the type difference is a real,
-// visible choice, not something only the tick-loop code knows about.
-const TOWER_ABILITY_BLURB: Record<TowerType, string> = {
-  stone: 'Hits one attacker hard.',
-  wood: 'Also hits a second attacker nearby.',
-  pink: 'Slows down the attacker it hits.',
-};
-
-const ENEMY_META: Record<EnemyType, { label: string; hp: number; sprite: string }> = {
-  goblin: { label: 'Goblin', hp: 3, sprite: '/castle-defense/enemy-goblin.png' },
-  knight: { label: 'Knight', hp: 5, sprite: '/castle-defense/enemy-knight.png' },
-  rogue: { label: 'Rogue', hp: 4, sprite: '/castle-defense/enemy-rogue.png' },
-  wizard: { label: 'Wizard', hp: 6, sprite: '/castle-defense/enemy-wizard.png' },
-};
-// Escalating composition across the 5 waves, using all 4 enemy types by
-// the final wave — wave 1 is deliberately the gentlest possible start.
-// Retuned 2026-10-01 (Claudia's review): total HP per wave was 9/16/17/19/24
-// — wave 3 barely escalated past wave 2 (+1 HP) right when towers should
-// start feeling tested. Now 9/16/21/25/29, a real curve every wave.
-const WAVE_COMPOSITION: EnemyType[][] = [
-  ['goblin', 'goblin', 'goblin'],
-  ['goblin', 'goblin', 'knight', 'knight'],
-  ['goblin', 'knight', 'knight', 'rogue', 'rogue'],
-  ['knight', 'rogue', 'rogue', 'wizard', 'wizard'],
-  ['knight', 'knight', 'rogue', 'wizard', 'wizard', 'goblin'],
-];
+function EnemyArt({ def }: { def: EnemyDef }) {
+  if (def.img) return <img src={def.img} alt={def.label} />;
+  return <SheetSprite sheet={def.sheet!} className="cd-enemy-sheet" style={{ width: `${(def.size ?? 1) * 100}%` }} />;
+}
 const TOWER_SLOTS = 5;
 
 type SlotState = { type: TowerType; tier: 1 | 2 | 3 } | null;
@@ -221,7 +193,7 @@ const HUD_ICON = (name: string) => `/pixel-ui/pixel-ui-free/icons/${name}.png`;
 // 'leaked' = reached the castle (cosmetic soft hit, never a fail state).
 interface SimEnemy {
   key: string;
-  type: EnemyType;
+  type: string; // an ENEMIES id
   hp: number;
   maxHp: number;
   progress: number; // 0-100, position along the road
@@ -292,6 +264,11 @@ export default function CastleDefense() {
   );
 
   const [phase, setPhase] = useState<Phase>('menu');
+  // Which attackers come (teacher 2026-10-08: more options). Chosen on the menu, remembered here.
+  const [theme, setTheme] = useState<ThemeId>(readTheme);
+  const [waves, setWaves] = useState<string[][]>(() => buildWaves(readTheme()));
+  // The Wisp builds every new tower or upgrade: slot index -> build time.
+  const [building, setBuilding] = useState<Record<number, number>>({});
   const [showSourcePanel, setShowSourcePanel] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
@@ -369,6 +346,8 @@ export default function CastleDefense() {
     setWaveResult(null);
     setWaveCleared(false);
     setPerfectWaves(Array(TOTAL_WAVES).fill(false));
+    setWaves(buildWaves(theme));
+    setBuilding({});
     setChallengeQuestion(pickQuestion(questionMode));
     setPhase('challenge');
   };
@@ -395,11 +374,18 @@ export default function CastleDefense() {
     setPhase('build');
   };
 
+  const wispBuild = (slotIndex: number) => {
+    const at = Date.now();
+    setBuilding((b) => ({ ...b, [slotIndex]: at }));
+    playSfx('match');
+    window.setTimeout(() => setBuilding((b) => { if (b[slotIndex] !== at) return b; const n = { ...b }; delete n[slotIndex]; return n; }), 1100);
+  };
   const placeTower = (slotIndex: number, type: TowerType) => {
     const cost = TOWER_META[type].cost[0];
     if (gems < cost) return;
     setGems((g) => g - cost);
     setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { type, tier: 1 } : s)));
+    wispBuild(slotIndex);
     setPickerSlot(null);
   };
 
@@ -411,6 +397,7 @@ export default function CastleDefense() {
     if (gems < cost) return;
     setGems((g) => g - cost);
     setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { type: current.type, tier: nextTier } : s)));
+    wispBuild(slotIndex);
     setPickerSlot(null);
   };
 
@@ -423,18 +410,22 @@ export default function CastleDefense() {
       simIntervalRef.current = null;
     }
     const leaks = finalEnemies.filter((e) => e.status === 'leaked').length;
+    // Gem Mines dig up their bonus at the end of every wave.
+    const mined = slots.reduce((n, sl) => n + (sl && TOWER_META[sl.type].gemsPerWave ? TOWER_META[sl.type].gemsPerWave![sl.tier - 1] : 0), 0);
+    if (mined > 0) setGems((g) => g + mined);
+    const minedNote = mined > 0 ? ` ⛏️ Your Gem Mines dug up ${mined} gem${mined === 1 ? '' : 's'}!` : '';
     if (leaks === 0) {
       // Perfect Wave — the first reward this game gives for skillful play
       // specifically (every other reward pays out on any clear, leaks or
       // not). Small, real, and reuses the existing badge art via a gold
       // CSS filter rather than needing new assets.
-      setWaveResult('✨ Perfect Wave! Every attacker stopped — bonus gems!');
+      setWaveResult(`✨ Perfect Wave! Every attacker stopped, bonus gems!${minedNote}`);
       setWaveCleared(true);
       setGems((g) => g + PERFECT_WAVE_BONUS_GEMS);
       setPerfectWaves((p) => p.map((v, i) => (i === wave - 1 ? true : v)));
       playSfx('combo');
     } else {
-      setWaveResult(`🌿 ${leaks} attacker${leaks > 1 ? 's' : ''} slipped past — your walls held strong, no harm done.`);
+      setWaveResult(`🌿 ${leaks} attacker${leaks > 1 ? 's' : ''} slipped past. Your walls held strong, no harm done.${minedNote}`);
       setCastleShake(true);
       window.setTimeout(() => setCastleShake(false), 500);
       // Direct fix (Claudia's review): this used to play 'match', the same
@@ -494,30 +485,27 @@ export default function CastleDefense() {
 
     slots.forEach((slot, i) => {
       if (!slot) return;
-      if (now - (towerCooldownRef.current[i] ?? 0) < TOWER_FIRE_COOLDOWN_MS) return;
+      const def = TOWER_META[slot.type];
+      if (now - (towerCooldownRef.current[i] ?? 0) < (def.cooldownMs ?? TOWER_FIRE_COOLDOWN_MS)) return;
       const zoneStart = i * ZONE_WIDTH;
-      const zoneEnd = zoneStart + ZONE_WIDTH;
-      // Every active enemy in this zone, furthest-along first — Wood's
-      // cleave and Pink's slow both need to know who's second, not just
-      // who's first (real TD "who do I hit" targeting, generalized).
+      const zoneEnd = Math.min(100.01, zoneStart + ZONE_WIDTH * (def.reach ?? 1));
+      // Every active enemy this tower guards, furthest-along first (real TD "who do I hit" targeting).
       const inZone = arr
         .map((e, idx) => ({ e, idx }))
         .filter(({ e }) => e.status === 'active' && e.progress >= zoneStart && e.progress < zoneEnd)
         .sort((a, b) => b.e.progress - a.e.progress);
       if (inZone.length === 0) return;
 
-      const dps = TOWER_META[slot.type].dps[slot.tier - 1];
+      const dps = def.dps[slot.tier - 1];
       const primary = inZone[0];
-      hit(primary.idx, dps);
-      newProjectiles.push({ id: `${i}-${now}-0`, slot: i, targetProgress: primary.e.progress, towerType: slot.type });
-
-      if (slot.type === 'wood' && inZone.length > 1) {
-        const secondary = inZone[1];
-        hit(secondary.idx, Math.round(dps * WOOD_CLEAVE_MULTIPLIER));
-        newProjectiles.push({ id: `${i}-${now}-1`, slot: i, targetProgress: secondary.e.progress, towerType: slot.type });
-      }
-      if (slot.type === 'pink' && arr[primary.idx].status !== 'dead') {
-        arr[primary.idx] = { ...arr[primary.idx], slowTicksRemaining: PINK_SLOW_TICKS };
+      const targets = def.splashAll ? inZone : inZone.slice(0, 1 + (def.cleave ?? 0));
+      targets.forEach((t, k) => {
+        const dmg = def.splashAll || k === 0 ? dps : Math.max(1, Math.round(dps * (def.cleaveMult ?? 0.5)));
+        hit(t.idx, dmg);
+        newProjectiles.push({ id: `${i}-${now}-${k}`, slot: i, targetProgress: t.e.progress, towerType: slot.type });
+      });
+      if (def.slowTicks && arr[primary.idx].status !== 'dead') {
+        arr[primary.idx] = { ...arr[primary.idx], slowTicksRemaining: def.slowTicks };
       }
 
       towerCooldownRef.current[i] = now;
@@ -541,12 +529,12 @@ export default function CastleDefense() {
   };
 
   const sendWave = () => {
-    const composition = WAVE_COMPOSITION[Math.min(wave - 1, WAVE_COMPOSITION.length - 1)];
+    const composition = waves[Math.min(wave - 1, waves.length - 1)];
     const initial: SimEnemy[] = composition.map((type, i) => ({
       key: `${type}-${i}`,
       type,
-      hp: ENEMY_META[type].hp,
-      maxHp: ENEMY_META[type].hp,
+      hp: TIER_HP[ENEMIES[type].tier],
+      maxHp: TIER_HP[ENEMIES[type].tier],
       progress: 0,
       spawnAt: i * SPAWN_STAGGER_MS,
       status: 'pending',
@@ -628,6 +616,17 @@ export default function CastleDefense() {
               {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
               <p className="bakery-blurb">5 waves. Answer to earn gems. Build towers to defend the castle!</p>
               <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {student?.castleDefenseQuestionsAnswered ?? 0} lifetime questions answered</span>
+              <div className="cd-theme-pick" role="radiogroup" aria-label="Who attacks the castle?">
+                <span className="cd-theme-title">Who attacks?</span>
+                <div className="cd-theme-row">
+                  {ATTACKER_THEMES.map((t) => (
+                    <button key={t.id} type="button" role="radio" aria-checked={theme === t.id} className={`cd-theme-chip${theme === t.id ? ' on' : ''}`}
+                      onClick={() => { setTheme(t.id); try { localStorage.setItem(THEME_KEY, t.id); } catch { /* fine */ } }}>
+                      <span aria-hidden>{t.icon}</span> {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button className="bakery-play-btn" onClick={startGame}>
                 <Icon name="play" size={22} fallback="▶️" /> Play New Game
               </button>
@@ -725,10 +724,12 @@ export default function CastleDefense() {
                     aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade.` : 'Empty build spot. Tap to build a tower.'}
                   >
                     <span className="castle-plot" aria-hidden="true" />
+                    {building[i] && <span className="cd-wisp" aria-hidden><SheetSprite sheet={WISP_CAST} /></span>}
                     {slot ? (
                       <>
                         <img
-                          className="castle-tower-img"
+                          key={`${slot.type}-${slot.tier}`}
+                          className={`castle-tower-img${building[i] ? ' cd-built' : ''}`}
                           src={TOWER_SPRITE(slot.type, slot.tier)}
                           alt=""
                           style={{ height: TOWER_HEIGHT_BY_TIER[slot.tier - 1] }}
@@ -750,7 +751,7 @@ export default function CastleDefense() {
                 return (
                   <div
                     key={e.key}
-                    className={`castle-enemy${pt.dx < 0 ? ' facing-left' : ''}${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}`}
+                    className={`castle-enemy${ENEMIES[e.type].flying ? ' flying' : ''}${pt.dx < 0 ? ' facing-left' : ''}${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}`}
                     style={{ ...toPct(pt), zIndex: 10 + Math.round(pt.y), transitionDuration: `${TICK_MS}ms` }}
                   >
                     {e.status === 'active' && (
@@ -759,7 +760,7 @@ export default function CastleDefense() {
                       </div>
                     )}
                     <span className="castle-enemy-flip">
-                      <img src={ENEMY_META[e.type].sprite} alt={ENEMY_META[e.type].label} />
+                      <EnemyArt def={ENEMIES[e.type]} />
                     </span>
                   </div>
                 );
@@ -787,6 +788,16 @@ export default function CastleDefense() {
                 );
               })}
 
+              {/* The overgrown portal the attackers pour out of: calm, torn, then electric. */}
+              <div className="cd-portal" style={toPct(pointAlongPath(3))} aria-hidden>
+                <SheetSprite sheet={PORTAL_STAGES[portalStage(wave)]} />
+              </div>
+              {CITIZEN_SPOTS.map((spot, k) => (
+                <div key={k} className={`cd-citizen${k % 2 ? ' flip' : ''}`} style={{ ...toPct(spot), zIndex: 10 + Math.round(spot.y) }} aria-hidden>
+                  <SheetSprite sheet={citizen(k + 1, waveCleared)} />
+                </div>
+              ))}
+
               <div className={`castle-keep${castleShake ? ' shake' : ''}`} style={toPct(CASTLE_GATE)}>
                 <CastleKeepArt />
               </div>
@@ -811,10 +822,10 @@ export default function CastleDefense() {
                 <div className="castle-preview">
                   <span className="castle-preview-label">{phase === 'build' ? 'Next wave' : 'Attackers left'}</span>
                   {(phase === 'build'
-                    ? WAVE_COMPOSITION[Math.min(wave - 1, WAVE_COMPOSITION.length - 1)]
+                    ? waves[Math.min(wave - 1, waves.length - 1)]
                     : enemiesView.filter((e) => e.status === 'active' || e.status === 'pending').map((e) => e.type)
                   ).map((type, i) => (
-                    <img key={i} src={ENEMY_META[type].sprite} alt={ENEMY_META[type].label} className="castle-preview-enemy" />
+                    <img key={i} src={ENEMIES[type].preview} alt={ENEMIES[type].label} className="castle-preview-enemy" />
                   ))}
                 </div>
               </div>
@@ -838,7 +849,7 @@ export default function CastleDefense() {
             {current ? (
               <>
                 <h2 className="bakery-modal-title">{TOWER_META[current.type].label}</h2>
-                <p className="bakery-modal-note">Tier {current.tier} of 3</p>
+                <p className="bakery-modal-note">Tier {current.tier} of 3. {TOWER_META[current.type].blurb}</p>
                 {current.tier < 3 ? (
                   <button
                     className="castle-tower-picker-btn"
@@ -858,8 +869,9 @@ export default function CastleDefense() {
             ) : (
               <>
                 <h2 className="bakery-modal-title">Build a Tower</h2>
-                <p className="bakery-modal-note">💎 {gems} gems available</p>
-                {(Object.keys(TOWER_META) as TowerType[]).map((type) => (
+                <p className="bakery-modal-note">💎 {gems} gems available. The Wisp builds it for you!</p>
+                <div className="cd-tower-list">
+                {TOWER_IDS.map((type) => (
                   <button
                     key={type}
                     className="castle-tower-picker-btn"
@@ -868,12 +880,13 @@ export default function CastleDefense() {
                   >
                     <img src={TOWER_SPRITE(type, 1)} alt="" />
                     <span>
-                      <span className="castle-tower-picker-label" style={{ display: 'block' }}>{TOWER_META[type].label}</span>
-                      <span className="castle-tower-picker-blurb" style={{ display: 'block' }}>{TOWER_ABILITY_BLURB[type]}</span>
+                      <span className="castle-tower-picker-label" style={{ display: 'block' }}>{TOWER_META[type].label}{TOWER_META[type].isNew && <span className="cd-new-tag">NEW</span>}</span>
+                      <span className="castle-tower-picker-blurb" style={{ display: 'block' }}>{TOWER_META[type].blurb}</span>
                       <span className="castle-tower-picker-cost">💎 {TOWER_META[type].cost[0]}</span>
                     </span>
                   </button>
                 ))}
+                </div>
               </>
             )}
             <button className="bakery-text-link" onClick={() => setPickerSlot(null)}>Close</button>
