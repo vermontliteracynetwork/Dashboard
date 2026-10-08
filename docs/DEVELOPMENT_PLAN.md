@@ -692,6 +692,13 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Login screen (and the Computer and Students list) show each student's own Style character. SHIPPED 2026-10-08 (direct teacher instruction, with a screenshot of "Who's working today?")
+
+- **Her words (verbatim):** "testing alchemy now. fix the main screen so they are the actual characters designed by the students".
+- New `StylePortrait` (`src/style/StylePortrait.tsx`): draws a student's saved Seamstress look once in 3D, keeps it as a picture (at most 3 drawn at a time, then cached), so a screen of many students never holds many 3D views open. A student with no saved look yet still shows their old avatar.
+- Used on: **Who's working today?** (the login screen), the student's own picture on the Computer and the subject dashboards (`AvatarWithEmote`, also the teacher's Live View and Student Bank), and the teacher **Students** list. Tapping your own picture on the Computer now opens the Seamstress instead of the old 2D avatar picker.
+- **Still old (part of Claudia's queued "full transfer" note, waiting on her go-ahead to delete the old characters):** the 2D avatar picker in Add a Student and Edit, chat, the Review Inbox, reports and score history.
+
 ### Alchemy app on the student computer. SHIPPED v1 2026-10-08. Pixel TV shows both joined things. SHIPPED 2026-10-08 (direct teacher instructions)
 
 - **Her words (verbatim):** "lets get the alchemy game going. make an app in the computer"; "make the pixel tv show both joined things in one screen. at the very end. other screens per sentence can be added but arent required".

@@ -236,7 +236,7 @@ export default function StudentHome() {
 
       <div className="chrome-frame space-between" style={{ padding: '14px 20px' }}>
         <div className="row">
-          <AvatarWithEmote student={student} size={70} onChangeAvatar={() => setShowAvatarPicker(true)} />
+          <AvatarWithEmote student={student} size={70} onChangeAvatar={() => navigate('/student/style')} />
           <div>
             <h2 style={{ margin: 0 }}>Hi, {student.name}! 👋</h2>
             {!student.streakHidden && (

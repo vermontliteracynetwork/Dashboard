@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import SelZoneCheckIn from '../../components/SelZoneCheckIn';
 
 export default function StudentLogin() {
@@ -48,7 +48,7 @@ export default function StudentLogin() {
                 aria-label={st.name}
                 title={st.name}
               >
-                <span><AvatarGlyph value={st.avatar} size={56} /></span>
+                <span><StylePortrait studentId={st.id} size={72} fallback={st.avatar} /></span>
                 <span style={{ fontSize: '1rem', fontFamily: "'Baloo 2', sans-serif" }}>{st.name}</span>
               </button>
             ))}

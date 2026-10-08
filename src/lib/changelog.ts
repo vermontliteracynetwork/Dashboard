@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-style-portraits',
+    date: '2026-10-08',
+    icon: '🧵',
+    title: 'Your character everywhere',
+    body: 'The animal you dressed up at the Seamstress is now your picture when you log in and on your Computer. Tap your picture to change your outfit.',
+  },
+  {
     id: '2026-10-08-alchemy',
     date: '2026-10-08',
     icon: '⚗️',

@@ -5,6 +5,7 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { AVATAR_CATALOG } from '../../store/badges';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import { makeId } from '../../lib/id';
 import { todayISO } from '../../lib/dates';
 import { ALL_TOOL_KEYS, TOOL_LABELS } from '../../types';
@@ -297,7 +298,7 @@ export default function StudentManager() {
           <div key={st.id} className="chrome-frame stack" style={{ padding: 18 }}>
             <div className="space-between">
               <div className="row">
-                <span className="avatar-sm" style={{ width: 56, height: 56 }}><AvatarGlyph value={st.avatar} /></span>
+                <span className="avatar-sm" style={{ width: 56, height: 56 }}><StylePortrait studentId={st.id} size={52} fallback={st.avatar} /></span>
                 <strong>{st.name}</strong>
               </div>
               <div className="row-wrap">

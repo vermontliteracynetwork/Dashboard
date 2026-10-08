@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
-import { AvatarGlyph } from './AvatarGlyph';
+import { StylePortrait } from '../style/StylePortrait';
 import { emoteById, EMOTE_CATALOG } from '../lib/emoteCatalog';
 import type { Student } from '../types';
 
@@ -37,14 +37,14 @@ export default function AvatarWithEmote({ student, size = 70, readOnly = false, 
           className="avatar-btn"
           style={{ width: size, height: size }}
           onClick={onChangeAvatar}
-          aria-label="Change your avatar"
-          title="Tap to change your avatar"
+          aria-label="Dress up your character at the Seamstress"
+          title="Tap to dress up your character"
         >
-          <AvatarGlyph value={student.avatar} />
+          <StylePortrait studentId={student.id} size={Math.round(size * 0.92)} fallback={student.avatar} />
         </button>
       ) : (
         <div className="avatar-btn" style={{ width: size, height: size, cursor: 'default' }}>
-          <AvatarGlyph value={student.avatar} />
+          <StylePortrait studentId={student.id} size={Math.round(size * 0.92)} fallback={student.avatar} />
         </div>
       )}
 
