@@ -87,6 +87,32 @@ const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProb
   { id: 'tv', label: 'Pixel TV on the end', hint: 'Plug a Pixel TV on the very end.', codes: ['NEED_TV'], finish: true },
 ];
 type Tested = { sig: string; rows: { id: string; label: string; hint: string; state: 'pass' | 'fix' | 'auto' }[]; review: Review | null };
+// Tap a checklist item for exactly how to do it (teacher 2026-10-08: "click on each item to get a
+// note of explanation of how to do each step explicilty").
+const HOW_TO: Record<string, string> = {
+  words: 'Every word machine needs a word. Find a machine with a ? on its plate. Tap it, then tap a word in the list, or type a word and tap Save.',
+  order: 'Put the parts in order. The Start Lever goes first, then the Clock, then your word machines. Punctuation and the Pixel TV go at the very end. Drag a part to move it.',
+  cap: 'Find the Capital Letter Press in the parts menu. Drag it under the FIRST word machine of your sentence until it snaps on.',
+  end: 'Find the Period or the Exclamation Point in the parts menu. Drag it onto the end of the sentence, after the last word machine.',
+  commas: 'Your sentence needs a pause. Drag a Comma from the parts menu and snap it under the word right before the pause.',
+  tv: 'Find the Pixel TV in the parts menu. Drag it onto the very end of the machine, after the punctuation.',
+  who: 'Add a Noun, Proper Noun or Pronoun machine before the action word, and pick who or what the sentence is about.',
+  did: 'Add a Verb machine after the who, and pick an action word.',
+  whole: 'A whole idea needs a WHO and an action. Check that you have a Noun or Pronoun machine AND a Verb machine.',
+  object: 'This action word needs a thing after it. Add a Noun machine after the verb (kick the ball). Or the action cannot have a thing: take the noun after it off.',
+  agree: 'Say it out loud. One who: the dog runs. More than one: the dogs run. Tap the Verb machine and pick the form that matches.',
+  case: 'Before the action word use I, he, she, we or they. After it use me, him, her, us or them. Tap the Pronoun machine to swap it.',
+  time: 'Look at the Clock. Past: walked. Present: walks. Future: will walk. Tap the Verb machine to pick the matching form, or spin the Clock.',
+  aan: 'Use an before a vowel sound (an apple), a before other sounds (a cat), and the for more than one (the cats).',
+  order2: 'Put describing words in this order: feeling, size, age, then color (the happy big old red dog). Drag them to swap places.',
+  how: 'A how word tells about an action. Add a Verb machine for it to describe.',
+  where: 'A where word needs a place after it. Add a Noun machine after it: on the table, to the beach.',
+  join: 'A joining word needs a matching part on both sides: the cat AND the dog.',
+  halves: 'Each side of the joining word needs its own who and action: The dog ran, AND the cat hid.',
+  shout: 'Snap an Exclamation Point right after the shout word: Wow!',
+  extracomma: 'Take off the comma that is not needed: tap the comma and choose Take it off.',
+  extracap: 'Take the Capital Letter Press off any word that is not the first word or a name.',
+};
 // Blueprint names, including the science-writing jobs (Claudia's Phase 1).
 const SCIENCE_JOBS: Record<string, { icon: string; name: string; teaches: string }> = {
   procedure: { icon: '🧪', name: 'Procedure Conveyor', teaches: 'Command steps in order: First, Next, Then, Finally' },
@@ -250,6 +276,29 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [lastRun, setLastRun] = useState<{ lineId: string; run: Run } | null>(null);
   // Gus's Checklist: docked open by default, with a minimize button
   // (teacher 2026-10-07). It checks items off when the lever is pulled.
+  // iPad layout (teacher 2026-10-08: "allow them to drag and resize all components, collapsing
+  // everything, rezising, so they can get the most out of their main whiteboard space"). Panel
+  // sizes and what is folded away are remembered on this iPad.
+  type Layout = { sideW: number; docH: number | null; drawerW: number; sideHidden: boolean; docHidden: boolean };
+  const [panes, setPanes] = useState<Layout>(() => { const d: Layout = { sideW: 290, docH: null, drawerW: 236, sideHidden: false, docHidden: false }; try { return { ...d, ...JSON.parse(localStorage.getItem('gus-layout') ?? '{}') }; } catch { return d; } });
+  useEffect(() => { try { localStorage.setItem('gus-layout', JSON.stringify(panes)); } catch { /* fine */ } }, [panes]);
+  const bigBoard = panes.sideHidden && panes.docHidden && !drawerOpen;
+  const toggleBigBoard = () => { if (bigBoard) { setPanes((l) => ({ ...l, sideHidden: false, docHidden: false })); setDrawerOpen(true); } else { setPanes((l) => ({ ...l, sideHidden: true, docHidden: true })); setDrawerOpen(false); } gusSound.whoosh(); requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current())); };
+  const startResize = (e: React.PointerEvent, what: 'side' | 'doc' | 'drawer') => {
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, sy = e.clientY;
+    const docEl = (e.currentTarget as HTMLElement).parentElement?.querySelector('.gwb-doc') as HTMLElement | null;
+    const start = what === 'side' ? panes.sideW : what === 'drawer' ? panes.drawerW : (panes.docH ?? docEl?.getBoundingClientRect().height ?? 140);
+    const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      setPanes((l) => what === 'side' ? { ...l, sideW: clamp(start - dx, 220, Math.min(560, window.innerWidth * 0.5)) }
+        : what === 'drawer' ? { ...l, drawerW: clamp(start + dx, 180, 400) }
+        : { ...l, docH: clamp(start - dy, 70, window.innerHeight * 0.6) });
+    };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); requestAnimationFrame(() => fitRef.current()); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  };
   const [clipMin, setClipMin] = useState(() => { try { return localStorage.getItem('gus-check-min') === '1'; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem('gus-check-min', clipMin ? '1' : '0'); } catch { /* fine */ } }, [clipMin]);
   const [tests, setTests] = useState<Record<string, Tested>>({});
@@ -724,6 +773,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     gusSound.steam(); if (!calm) gusSound.puff();
     const rng = makeRng(Date.now());
     if (n === 1) { setHintOffer(null); say(`${notes ? `${notes} ` : ''}${pick(rng, FIRST_MISS)}`, 'Hmm...'); }
+    // Pulled again and again and it still will not run: Gus says exactly what to fix (teacher 2026-10-08).
+    else if (n >= 3 && hint.explain) { setHintOffer(lineId); say(`Here is exactly what to fix. ${hint.explain} That is why the machine will not run yet.`, '🔎 What to fix'); }
     else { setHintOffer(lineId); say(`${notes ? `${notes} ` : ''}${pick(rng, STILL_STUCK)}`, 'Need a hint?'); }
   };
   const hintsShown = useRef<Record<string, number>>({});
@@ -777,8 +828,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const sentence: ChecklistState = buildChecklist(readLine(line, level, false).draft);
     const record = (review: Review | null) => {
       const rows: Tested['rows'] = [
-        ...MACHINE_ROWS.map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: (m.finish && !finishOn ? 'auto' : m.codes.some((c) => codes.has(c)) ? 'fix' : 'pass') as 'pass' | 'fix' | 'auto' })),
-        ...sentence.items.filter((it) => it.id !== 'capital' && it.id !== 'end' && it.id !== 'comma').map((it) => ({ id: it.id, label: it.label, hint: it.hint, state: (it.status === 'done' ? 'pass' : it.status === 'auto' ? 'auto' : 'fix') as 'pass' | 'fix' | 'auto' })),
+        // Only what the machine needs to run (teacher 2026-10-08).
+        ...MACHINE_ROWS.filter((m) => !(m.finish && !finishOn) && (m.id !== 'commas' || codes.has('NEED_COMMA'))).map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: (m.codes.some((c) => codes.has(c)) ? 'fix' : 'pass') as 'pass' | 'fix' | 'auto' })),
+        ...sentence.items.filter((it) => it.id !== 'capital' && it.id !== 'end' && it.id !== 'comma' && it.required && it.status !== 'auto').map((it) => ({ id: it.id, label: it.label, hint: it.hint, state: (it.status === 'done' ? 'pass' : it.status === 'auto' ? 'auto' : 'fix') as 'pass' | 'fix' | 'auto' })),
       ];
       setTests((t) => ({ ...t, [line.id]: { sig: sigOf(line), rows, review } }));
       setQuiz((q) => { const n = { ...q }; delete n[line.id]; return n; });
@@ -1479,7 +1531,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         </div>
       </header>
 
-      <main className="gwb-main">
+      <main className={`gwb-main${panes.sideHidden ? ' side-hidden' : ''}${panes.docHidden ? ' doc-hidden' : ''}`} style={{ ['--gwb-side-w' as string]: `${panes.sideW}px`, ['--gwb-drawer-w' as string]: `${panes.drawerW}px` }}>
+        {drawerOpen && <div className="gwb-resize-x drawer" onPointerDown={(e) => startResize(e, 'drawer')} role="separator" aria-orientation="vertical" aria-label="Drag to make the parts menu wider or narrower" />}
         <div className="gwb-boardcol">
         {(() => {
           const ql = focusLine?.job?.kind === 'read' ? focusLine : lines.find((l) => l.job?.kind === 'read' && !l.job.done);
@@ -1698,13 +1751,18 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             <button type="button" className="gus-btn gwb-zoom-pct" onClick={() => setView((v) => ({ ...v, z: 1 }))} aria-label="Reset zoom">{Math.round(view.z * 100)}%</button>
             <button type="button" className="gus-btn" onClick={() => zoomBtn(0.2)} aria-label="Zoom in">+ In</button>
             <button type="button" className="gus-btn" onClick={fitAll} aria-label="Fit everything">⤢ Fit</button>
+            <button type="button" className={`gus-btn${bigBoard ? ' on' : ''}`} onClick={toggleBigBoard} aria-pressed={bigBoard} aria-label={bigBoard ? 'Bring every panel back' : 'Big board: fold every panel away'}>{bigBoard ? '⊟ Panels' : '⛶ Big board'}</button>
           </div>
         </div>
         {/* The word processor (teacher 2026-10-07: "in the bottom have a word
             processor view instead of a floating text box"): every machine's
             sentence as a page of writing, paragraphs kept together. Tap a
             sentence to jump to its machine. */}
-        <section className="gwb-doc" aria-label="My writing">
+        {panes.docHidden
+          ? <button type="button" className="gwb-doc-tab" onClick={() => setPanes((l) => ({ ...l, docHidden: false }))} aria-label="Show My writing">📝 My writing ▴</button>
+          : <div className="gwb-resize-y" onPointerDown={(e) => startResize(e, 'doc')} role="separator" aria-orientation="horizontal" aria-label="Drag to make My writing taller or shorter" />}
+        {!panes.docHidden && <section className="gwb-doc" aria-label="My writing" style={panes.docH ? { height: panes.docH, maxHeight: 'none' } : undefined}>
+          <button type="button" className="gwb-doc-hide" onClick={() => setPanes((l) => ({ ...l, docHidden: true }))} aria-label="Fold My writing away">▾</button>
           {/* Teacher 2026-10-08: no header, just the writing and a small read-aloud button. */}
           {lines.some((l) => readLine(l, level, false).draft.tokens.some((x) => x.word)) && <button type="button" className="gwb-doc-tts" onClick={() => speak(paras.map((p) => p.map((l) => { const rd = readLine(l, level, false); const t = lineText(l, rd, true); return t ? withConnector(l, t) : ''; }).filter(Boolean).join(' ')).filter(Boolean).join(' '))} aria-label="Read my writing out loud">🔈</button>}
           <div className="gwb-doc-page">
@@ -1718,10 +1776,14 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               return out.length ? out : <p className="gwb-doc-empty">Your sentences show up here as you build them.</p>;
             })()}
           </div>
-        </section>
+        </section>}
         </div>
 
-        <div className={`gwb-side${clipMin ? ' check-min' : ''}`}>
+        {panes.sideHidden
+          ? <button type="button" className="gwb-side-tab" onClick={() => { setPanes((l) => ({ ...l, sideHidden: false })); requestAnimationFrame(() => fitRef.current()); }} aria-label="Show Gus and the checklist">◀<span>Gus and Checklist</span></button>
+          : <div className="gwb-resize-x side" onPointerDown={(e) => startResize(e, 'side')} role="separator" aria-orientation="vertical" aria-label="Drag to make Gus and the checklist wider or narrower" />}
+        {!panes.sideHidden && <div className={`gwb-side${clipMin ? ' check-min' : ''}`}>
+        <button type="button" className="gwb-side-hide" onClick={() => { setPanes((l) => ({ ...l, sideHidden: true })); requestAnimationFrame(() => fitRef.current()); }} aria-label="Fold Gus and the checklist away">Hide ▶</button>
         {gusPanel}
         {(() => {
           const cLine = focusLine;
@@ -1745,9 +1807,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 {!cLine ? <p className="gwb-check-note">Tap a machine to see its checklist.</p> : <>
                   <p className="gwb-check-note">{!test ? 'Pull the Start Lever to test your sentence. Gus checks off every item that is right.' : fresh ? (hinted[cLine.id] || passed === test.rows.length ? `Tested! ${passed} of ${test.rows.length} are right.` : `Tested! ${passed} checked off. Keep tinkering and test again.`) : 'You changed the machine. Pull the Start Lever to test it again.'}</p>
                   <div className="gwb-check-rows">
-                    {(test?.rows ?? MACHINE_ROWS.map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: 'todo' as const }))).map((r, k) => {
+                    {(test?.rows ?? MACHINE_ROWS.filter((m) => m.id !== 'commas' && (!m.finish || requireFinish || !!cLine.job)).map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: 'todo' as const }))).map((r, k) => {
                       const st = test && fresh ? (r.state === 'fix' && !hinted[cLine.id] ? 'todo' : r.state) : 'todo';
-                      return <button key={`${r.id}-${test && fresh ? test.sig.length : 0}`} type="button" className={`gwb-check-row ${st}`} style={{ animationDelay: `${k * 0.08}s` }} onClick={() => say(st === 'pass' ? `${r.label}: right! Splendid.` : st === 'auto' ? `${r.label}: the machine does this one for you.` : test && fresh && !hinted[cLine.id] ? 'Not checked off yet. Keep tinkering and test it again!' : r.hint, 'Checklist')}>
+                      return <button key={`${r.id}-${test && fresh ? test.sig.length : 0}`} type="button" className={`gwb-check-row ${st}`} style={{ animationDelay: `${k * 0.08}s` }} onClick={() => say(`${st === 'pass' ? 'Done! ' : ''}${HOW_TO[r.id === 'order' && !MACHINE_ROWS.some((m) => m.id === r.id && m.label === r.label) ? 'order2' : r.id] ?? r.hint}`, `📋 ${r.label}`)}>
                         <span aria-hidden>{st === 'pass' ? '✅' : st === 'fix' ? '🔧' : st === 'auto' ? '⚙️' : '⬜'}</span><span>{r.label}</span>
                       </button>;
                     })}
@@ -1770,7 +1832,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             </aside>
           );
         })()}
-        </div>
+        </div>}
         <aside className={`gwb-drawer${drawerOpen ? ' open' : ''}`} aria-label="Parts menu">
           <button type="button" className="gwb-drawer-toggle" onClick={() => setDrawerOpen((o) => !o)} aria-expanded={drawerOpen} aria-label={drawerOpen ? 'Close the parts menu' : 'Open the parts menu'}>
             {drawerOpen ? '◀ Parts' : '▶'}

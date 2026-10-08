@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-gus-big-board',
+    date: '2026-10-08',
+    icon: '⛶',
+    title: 'Make your Workboard as big as you like',
+    body: 'Drag the handles to make panels bigger or smaller, fold Gus and My writing away, or tap Big board for the whole screen. Tap any checklist item and Gus tells you exactly how to do it.',
+  },
+  {
     id: '2026-10-08-gus-crown-copy',
     date: '2026-10-08',
     icon: '👑',
