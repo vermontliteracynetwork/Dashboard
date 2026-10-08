@@ -763,7 +763,26 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - **Look and feel:** glossy bubbles drawn in code in her reference's colors (purple, yellow, red, green, pink, blue, white), each with a small shape (★ ● ▲ ■ ♥ ◆ ✚) so color is never the only clue (a menu toggle turns shapes off); twinkling stars; pop bursts and falling bubbles; soft pop, shoot and row sounds (sound toggle); round glossy buttons from her Bubble Buttons pack (home, close, sound). Reduced motion turns off the bursts and twinkle. Leave asks first; a personal best list (no comparisons).
 - **Her "Free version" pack was not used:** its READ ME says "The free version of this pack may not be used in commercial products." Saved nothing from it.
 - **Not checked on a real iPad yet:** aiming feel and board size in both orientations.
-- **Next, the students' idea (her words, verbatim, 2026-10-08):** "the students want to combine elements of baamboozle plink-oh (souynd effects, fun power ups, animations, music) to this buble shooter game. prompt me with questions to expand their thinking". IDEA, NOT DESIGNED YET: Claudia sent her a set of questions to take back to the students (Baamboozle-style surprise power-ups, a Plinko drop for falling bubbles, music and sound, animations, and how questions fit). Their answers shape a Bubble Shooter v2 entry here.
+- **The students' idea (her words, verbatim, 2026-10-08):** "the students want to combine elements of baamboozle plink-oh (souynd effects, fun power ups, animations, music) to this buble shooter game. prompt me with questions to expand their thinking". Claudia sent 15 questions; her answers, the same day (verbatim): "power ups: A bomb bubble that is launched and explodes within the bubbles (trailing a unit) and exploding a rainbow bomb that shoots rainbow sparkles and explodes bubbles within a close distance of the bomb. a laser. a random shuffle for all colors. add a power up that would add a mystery gray bubble that explodes as 3x xp (keep track of xp). this should be a one player game. claudia can anser and predict my answers for the rest". SHIPPED as v2 the same day (see below).
+
+### Bubble Shooter v2: the students' power-ups, XP, combos, music and a Plinko bonus. SHIPPED 2026-10-08 (direct teacher instruction, the students' ideas)
+
+- **Her five power-ups** (`engine.ts` `explodeAt`, `laser`, `shuffleColors`, `addMystery`, mystery chains in `place`; 12 tests):
+  - 💣 **Bomb:** shot like a bubble with a fizzing fuse and a trail of sparks; it blows up every bubble within about one bubble of where it lands, with a blast ring and a boom.
+  - 🌈 **Rainbow Bomb:** a rainbow ball with a rainbow sparkle trail; a bigger blast (about two bubbles out) that shoots rainbow sparkles everywhere.
+  - ⚡ **Laser:** fires straight along the aim (bouncing off the walls, the aim dots show the path) and zaps every bubble it passes through.
+  - 🔀 **Shuffle:** every bubble on the board gets a new random color.
+  - ❓ **Mystery:** 3 bubbles turn into gray "?" mystery bubbles (they wobble). Popping next to one, or hitting it with a bomb or laser, makes it explode; everything its blast removes is worth 3 times the XP ("3x!"), and a blast that catches another mystery bubble chains.
+- **XP is tracked:** 10 XP a pop, 20 a fall, 30 (3x) for mystery blasts, +100 for clearing a board, multiplied by the combo (popping on shots in a row: x2, x3, up to x5, with a 🔥 Combo badge and rising pop notes). Floating "+XP" text on every pop. The game's XP goes on the personal best list, and a lifetime XP total is saved per student (the `bs:<studentId>` style_looks row, no new SQL) and shown on the menu.
+- **One player** (her answer). Neighbors can still cheer from "Play a game"; nobody plays against them.
+- **Claudia's predicted answers for the rest (change any of these):**
+  - **Earning power-ups:** every right answer before a board reveals a surprise power-up on a flipping card (Baamboozle style). Popping 8 or more bubbles in one shot also earns one. Nothing ever takes points or power-ups away.
+  - **Plinko:** after every cleared board, a Plinko bonus drop: tap one of 7 arrows to choose where to drop (a little aim, mostly luck), the ball bounces down 7 rows of pegs with a tick on every peg, and lands in a slot: 50 XP, 💣, 150 XP, 🌈 Rainbow Bomb, 150 XP, ⚡, 50 XP. No slot is bad.
+  - **Music and sound:** a bouncy built-in loop that speeds up a little as bubbles near the danger line (🎵 toggle, separate from 🔊 sounds); each power-up has its own sound (boom, sparkly rainbow boom, laser zap, shuffle trill, mystery chime); combo pops climb in pitch; a fanfare when a board clears.
+  - **Animations:** blast rings, sparks, rainbow sparkles, falling bubbles, confetti and "+100 BOARD CLEAR!" when a board clears, screen shake on bombs and new rows, a pulsing combo badge.
+  - Calm mode and reduced motion turn off the music, sparks, confetti and shakes.
+- **Not checked on a real iPad yet:** the power-up bar size, aiming the laser, and the Plinko drop timing.
+
 
 ### Rounds and questions-per-round settings in every native game (locked for assignments); Alchemy save and continue. SHIPPED 2026-10-08 (direct teacher instructions)
 

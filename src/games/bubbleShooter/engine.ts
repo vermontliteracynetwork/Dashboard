@@ -13,6 +13,9 @@ export const MAX_ROWS = 14;
 export const SHOOTER = { x: W / 2, y: (MAX_ROWS + 1.6) * ROW_H };
 export const H = SHOOTER.y + 2.6;
 export const RAINBOW = 99;
+// A mystery bubble (gray, "?"): never part of a color match. When a pop or blast touches it, it
+// explodes, and everything its blast removes is worth 3 times the XP.
+export const MYSTERY = 98;
 
 export type Cell = number | null;
 export interface Board { rows: Cell[][]; parity: number }
@@ -49,7 +52,7 @@ export function makeBoard(round: number, rng: Rng): { board: Board; colors: numb
 }
 
 export const filled = (b: Board) => b.rows.reduce((n, row) => n + row.filter((x) => x !== null).length, 0);
-export const colorsLeft = (b: Board) => [...new Set(b.rows.flat().filter((x): x is number => x !== null && x !== RAINBOW))];
+export const colorsLeft = (b: Board) => [...new Set(b.rows.flat().filter((x): x is number => x !== null && x !== RAINBOW && x !== MYSTERY))];
 export const lowestRow = (b: Board) => { for (let r = MAX_ROWS - 1; r >= 0; r--) if (b.rows[r].some((x) => x !== null)) return r; return -1; };
 
 // Pushes a new row in at the top (after too many shots with no pop).
@@ -108,15 +111,64 @@ export function snap(b: Board, x: number, y: number): [number, number] | null {
   return best;
 }
 
+type Hit = [number, number, number];
+export interface ShotResult { board: Board; popped: Hit[]; boomed: Hit[]; dropped: Hit[]; blasts: { x: number; y: number; r: number; mystery: boolean }[] }
+const copy = (b0: Board): Board => ({ rows: b0.rows.map((row) => row.slice()), parity: b0.parity });
+export const MYSTERY_RADIUS = 2.3;
+
+// Blasts at points, removing every bubble whose center is inside; a mystery bubble caught in a blast
+// sets off its own blast (a chain). Cells already removed are skipped.
+function runBlasts(b: Board, starts: { x: number; y: number; r: number; mystery: boolean }[], out: ShotResult) {
+  const queue = [...starts];
+  while (queue.length) {
+    const bl = queue.shift()!;
+    out.blasts.push(bl);
+    for (let r = 0; r < MAX_ROWS; r++) for (let c = 0; c < rowLen(b, r); c++) {
+      const k = get(b, r, c); if (k === null) continue;
+      const p = center(b, r, c);
+      if ((p.x - bl.x) ** 2 + (p.y - bl.y) ** 2 > bl.r * bl.r) continue;
+      b.rows[r][c] = null;
+      (bl.mystery || k === MYSTERY ? out.boomed : out.popped).push([r, c, k]);
+      if (k === MYSTERY) queue.push({ x: p.x, y: p.y, r: MYSTERY_RADIUS, mystery: true });
+    }
+  }
+}
+// Mystery bubbles touching a popped group explode.
+function triggerMysteries(b: Board, cells: Hit[], out: ShotResult) {
+  const starts: { x: number; y: number; r: number; mystery: boolean }[] = [];
+  for (const [r, c] of cells) for (const [nr, nc] of neighbors(b, r, c)) {
+    if (get(b, nr, nc) !== MYSTERY) continue;
+    const p = center(b, nr, nc);
+    b.rows[nr][nc] = null; out.boomed.push([nr, nc, MYSTERY]);
+    starts.push({ x: p.x, y: p.y, r: MYSTERY_RADIUS, mystery: true });
+  }
+  if (starts.length) runBlasts(b, starts, out);
+}
+function dropFloaters(b: Board, out: ShotResult) {
+  const anchored = new Set<string>();
+  const stack: [number, number][] = [];
+  for (let cc = 0; cc < rowLen(b, 0); cc++) if (get(b, 0, cc) !== null) { anchored.add(`0,${cc}`); stack.push([0, cc]); }
+  while (stack.length) {
+    const [sr, sc] = stack.pop()!;
+    for (const [nr, nc] of neighbors(b, sr, sc)) if (get(b, nr, nc) !== null && !anchored.has(`${nr},${nc}`)) { anchored.add(`${nr},${nc}`); stack.push([nr, nc]); }
+  }
+  for (let rr = 0; rr < MAX_ROWS; rr++) for (let cc = 0; cc < rowLen(b, rr); cc++) {
+    const k = get(b, rr, cc);
+    if (k !== null && !anchored.has(`${rr},${cc}`)) { out.dropped.push([rr, cc, k]); b.rows[rr][cc] = null; }
+  }
+}
+
 // Puts a bubble in a cell, pops a group of 3 or more of the same color (a rainbow bubble takes the
-// color of the biggest group it touches), then drops everything no longer hanging from the top.
-export function place(b0: Board, r: number, c: number, color: number): { board: Board; popped: [number, number, number][]; dropped: [number, number, number][] } {
-  const b: Board = { rows: b0.rows.map((row) => row.slice()), parity: b0.parity };
+// color of the biggest group it touches), sets off any mystery bubbles the pop touches, then drops
+// everything no longer hanging from the top.
+export function place(b0: Board, r: number, c: number, color: number): ShotResult {
+  const b = copy(b0);
+  const out: ShotResult = { board: b, popped: [], boomed: [], dropped: [], blasts: [] };
   let col = color;
   if (color === RAINBOW) {
     let bestCol = -1, bestSize = 0;
     for (const [nr, nc] of neighbors(b, r, c)) {
-      const k = get(b, nr, nc); if (k === null || k === RAINBOW) continue;
+      const k = get(b, nr, nc); if (k === null || k === RAINBOW || k === MYSTERY) continue;
       const size = group(b, nr, nc, k).length;
       if (size > bestSize) { bestSize = size; bestCol = k; }
     }
@@ -124,24 +176,71 @@ export function place(b0: Board, r: number, c: number, color: number): { board: 
   }
   b.rows[r][c] = col;
   const g = group(b, r, c, col);
-  const popped: [number, number, number][] = [];
-  const dropped: [number, number, number][] = [];
   if (g.length >= 3 || (color === RAINBOW && g.length >= 2)) {
-    for (const [gr, gc] of g) { popped.push([gr, gc, col]); b.rows[gr][gc] = null; }
-    const anchored = new Set<string>();
-    const stack: [number, number][] = [];
-    for (let cc = 0; cc < rowLen(b, 0); cc++) if (get(b, 0, cc) !== null) { anchored.add(`0,${cc}`); stack.push([0, cc]); }
-    while (stack.length) {
-      const [sr, sc] = stack.pop()!;
-      for (const [nr, nc] of neighbors(b, sr, sc)) if (get(b, nr, nc) !== null && !anchored.has(`${nr},${nc}`)) { anchored.add(`${nr},${nc}`); stack.push([nr, nc]); }
-    }
-    for (let rr = 0; rr < MAX_ROWS; rr++) for (let cc = 0; cc < rowLen(b, rr); cc++) {
-      const k = get(b, rr, cc);
-      if (k !== null && !anchored.has(`${rr},${cc}`)) { dropped.push([rr, cc, k]); b.rows[rr][cc] = null; }
+    for (const [gr, gc] of g) { out.popped.push([gr, gc, col]); b.rows[gr][gc] = null; }
+    triggerMysteries(b, out.popped.slice(), out);
+    dropFloaters(b, out);
+  }
+  return out;
+}
+
+// A bomb (radius 2.3) or rainbow bomb (radius 3.6) lands at a point and blows up what is near it.
+export function explodeAt(b0: Board, x: number, y: number, radius: number): ShotResult {
+  const b = copy(b0);
+  const out: ShotResult = { board: b, popped: [], boomed: [], dropped: [], blasts: [] };
+  runBlasts(b, [{ x, y, r: radius, mystery: false }], out);
+  dropFloaters(b, out);
+  return out;
+}
+
+// A laser fires straight along the aim (bouncing off the side walls) to the ceiling and pops every
+// bubble it passes through.
+export function laser(b0: Board, angle: number): ShotResult & { beam: { x: number; y: number }[] } {
+  const b = copy(b0);
+  const out: ShotResult = { board: b, popped: [], boomed: [], dropped: [], blasts: [] };
+  let x = SHOOTER.x, y = SHOOTER.y, dx = Math.cos(angle), dy = Math.sin(angle);
+  const beam = [{ x, y }];
+  const hits: Hit[] = [];
+  for (let i = 0; i < 6000 && y > -R; i++) {
+    x += dx * 0.1; y += dy * 0.1;
+    if (x < R) { x = 2 * R - x; dx = -dx; beam.push({ x: R, y }); }
+    if (x > W - R) { x = 2 * (W - R) - x; dx = -dx; beam.push({ x: W - R, y }); }
+    const rGuess = Math.round((y - R) / ROW_H);
+    for (let r = Math.max(0, rGuess - 1); r <= Math.min(MAX_ROWS - 1, rGuess + 1); r++) for (let c = 0; c < rowLen(b, r); c++) {
+      const k = get(b, r, c); if (k === null) continue;
+      const p = center(b, r, c);
+      if ((p.x - x) ** 2 + (p.y - y) ** 2 < (R * 0.95) ** 2) { b.rows[r][c] = null; hits.push([r, c, k]); }
     }
   }
-  return { board: b, popped, dropped };
+  beam.push({ x, y: Math.max(0, y) });
+  for (const h of hits) (h[2] === MYSTERY ? out.boomed : out.popped).push(h);
+  const myst = hits.filter((h) => h[2] === MYSTERY).map(([r, c]) => { const p = center(b, r, c); return { x: p.x, y: p.y, r: MYSTERY_RADIUS, mystery: true }; });
+  if (myst.length) runBlasts(b, myst, out);
+  dropFloaters(b, out);
+  return { ...out, beam };
 }
+
+// Shuffle: every colored bubble gets a new random color from the colors in play.
+export function shuffleColors(b0: Board, colors: number[], rng: Rng): Board {
+  const b = copy(b0);
+  for (let r = 0; r < MAX_ROWS; r++) for (let c = 0; c < rowLen(b, r); c++) {
+    const k = get(b, r, c);
+    if (k !== null && k !== MYSTERY && k !== RAINBOW) b.rows[r][c] = colors[Math.floor(rng() * colors.length)];
+  }
+  return b;
+}
+
+// Mystery power-up: turns some colored bubbles into mystery bubbles.
+export function addMystery(b0: Board, n: number, rng: Rng): Board {
+  const b = copy(b0);
+  const cells: [number, number][] = [];
+  for (let r = 0; r < MAX_ROWS; r++) for (let c = 0; c < rowLen(b, r); c++) { const k = get(b, r, c); if (k !== null && k !== MYSTERY) cells.push([r, c]); }
+  for (let i = 0; i < n && cells.length; i++) { const [r, c] = cells.splice(Math.floor(rng() * cells.length), 1)[0]; b.rows[r][c] = MYSTERY; }
+  return b;
+}
+
+// XP for a shot: 10 a pop, 20 a fall, and 3 times (30) for everything a mystery blast removes.
+export const shotXp = (res: Pick<ShotResult, 'popped' | 'boomed' | 'dropped'>) => res.popped.length * 10 + res.dropped.length * 20 + res.boomed.length * 30;
 
 function group(b: Board, r: number, c: number, col: number): [number, number][] {
   const seen = new Set<string>([`${r},${c}`]);

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-bubble-powerups',
+    date: '2026-10-08',
+    icon: '💣',
+    title: 'Bubble Shooter power-ups (your ideas!)',
+    body: 'You asked, and here they are: the Bomb, the Rainbow Bomb, the Laser, Shuffle, and Mystery bubbles that blow up for 3 times the XP. Every right answer gives you a surprise power-up. Pop on shots in a row for a combo, and drop a Plinko ball after every board for bonus prizes. Your XP is saved!',
+  },
+  {
     id: '2026-10-08-bubble-shooter',
     date: '2026-10-08',
     icon: '🫧',

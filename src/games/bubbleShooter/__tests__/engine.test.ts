@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COLS, RAINBOW, emptyBoard, makeBoard, place, pushRow, rescue, traceShot, filled, lowestRow, rowLen } from '../engine';
+import { COLS, MYSTERY, RAINBOW, addMystery, center, emptyBoard, explodeAt, laser, makeBoard, place, pushRow, rescue, shotXp, shuffleColors, traceShot, filled, lowestRow, rowLen } from '../engine';
 
 describe('Bubble Shooter rules', () => {
   it('three of a kind pop', () => {
@@ -55,5 +55,34 @@ describe('Bubble Shooter rules', () => {
     const low = lowestRow(board);
     const r = rescue(board);
     expect(lowestRow(r.board)).toBe(low - 2);
+  });
+
+  it('a mystery bubble next to a pop explodes, and its blast is worth 3 times the XP', () => {
+    const b = emptyBoard();
+    b.rows[0][0] = 1; b.rows[0][1] = 1; b.rows[0][3] = MYSTERY; b.rows[0][4] = 2;
+    const r = place(b, 0, 2, 1);
+    expect(r.popped.length).toBe(3);
+    expect(r.boomed.map((h) => h[2])).toContain(MYSTERY);
+    expect(r.boomed.length).toBeGreaterThanOrEqual(2);
+    expect(shotXp(r)).toBe(3 * 10 + r.boomed.length * 30 + r.dropped.length * 20);
+  });
+  it('a bomb clears a small circle, a rainbow bomb a bigger one', () => {
+    const { board } = makeBoard(6, () => 0.42);
+    const p = center(board, 3, 5);
+    const small = explodeAt(board, p.x, p.y, 2.3), big = explodeAt(board, p.x, p.y, 3.6);
+    expect(small.popped.length + small.boomed.length).toBeGreaterThan(3);
+    expect(big.popped.length + big.boomed.length).toBeGreaterThan(small.popped.length + small.boomed.length);
+  });
+  it('a laser straight up pops a whole column of bubbles', () => {
+    const { board } = makeBoard(6, () => 0.42);
+    const r = laser(board, -Math.PI / 2);
+    expect(r.popped.length).toBeGreaterThanOrEqual(5);
+  });
+  it('shuffle keeps every bubble and mystery adds gray ones', () => {
+    const { board } = makeBoard(2, () => 0.3);
+    const n = filled(board);
+    expect(filled(shuffleColors(board, [0, 1], Math.random))).toBe(n);
+    const m = addMystery(board, 3, () => 0.5);
+    expect(m.rows.flat().filter((k) => k === MYSTERY).length).toBe(3);
   });
 });
