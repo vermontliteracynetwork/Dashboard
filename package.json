@@ -20,6 +20,7 @@
     "@react-three/fiber": "^9.7.0",
     "@supabase/supabase-js": "^2.112.4",
     "chess.js": "^1.4.0",
+    "fflate": "^0.8.3",
     "jsdom": "^30.0.1",
     "linkedom": "^0.18.13",
     "nanoid": "^6.0.1",

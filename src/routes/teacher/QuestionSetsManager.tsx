@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { Subject } from '../../types';
+import QuestionSetImport from './QuestionSetImport';
 
 // Every saved question/drill set in one place, independent of which
 // activity (or activities) inserted a copy of it. Each set is a card
@@ -51,6 +52,7 @@ export default function QuestionSetsManager() {
           <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
             The real content behind every quiz and drill activity. Click a set to open, edit, duplicate, or delete it.
           </p>
+          <QuestionSetImport />
           <input
             className="input"
             placeholder="Search by name or tag…"

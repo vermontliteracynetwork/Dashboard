@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alchemy</title>
+<style>
+  :root{--bg:#f6f4ee;--ink:#2b2b33;--muted:#8b8a93;--panel:#ffffff;--line:#e2dfd4;--accent:#6b5bd6;--hot:#ffe9a8}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+  #app{display:flex;height:100%}
+  #board{flex:1;position:relative;min-width:0;min-height:0;background-image:radial-gradient(#d6d2c2 1px,transparent 1.2px);background-size:26px 26px}
+  #hud{position:absolute;top:12px;left:14px;right:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:2;pointer-events:none}
+  #hud>*{pointer-events:auto}
+  #count{font-weight:700;font-size:15px;background:var(--panel);border:1px solid var(--line);padding:7px 12px;border-radius:999px}
+  .btn{font:inherit;font-size:14px;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:7px 12px;border-radius:999px;cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+  .btn:active{transform:scale(.97)}
+  #hint-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c2bfb0;font-size:20px;pointer-events:none;text-align:center;padding:0 24px}
+  aside{width:270px;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;z-index:10;min-height:0}
+  #search{margin:10px;padding:9px 12px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;outline:none;user-select:text;-webkit-user-select:text}
+  #search:focus{border-color:var(--accent)}
+  #items{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 12px;overflow:auto;align-content:flex-start;flex:1;min-height:0}
+  .chip{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fbfaf6;cursor:grab;touch-action:none;font-size:14px;position:relative}
+  .chip:hover{border-color:var(--accent);background:#fff}
+  .chip .e{font-size:20px;line-height:1}
+  .chip.new::after{content:"NEW";position:absolute;top:-7px;right:-4px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:6px}
+  #layer{position:fixed;inset:0;z-index:30;pointer-events:none}
+  .tile{position:fixed;width:84px;transform:translate(-50%,-50%);cursor:grab;touch-action:none;pointer-events:auto;text-align:center}
+  .tile .in{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:14px;border:1px solid transparent;transition:background .12s,border-color .12s,transform .12s}
+  .tile .em{font-size:40px;line-height:1.1}
+  .tile .nm{font-size:12px;font-weight:600;color:#55535f;white-space:nowrap}
+  .tile.hot .in{background:var(--hot);border-color:#f0c85a;transform:scale(1.08)}
+  .tile.drag{cursor:grabbing;z-index:5}
+  .tile.drag .in{transform:scale(1.1);filter:drop-shadow(0 8px 10px rgba(0,0,0,.18))}
+  .tile.pop .in{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+  .tile.shake .in{animation:shake .35s}
+  @keyframes pop{0%{transform:scale(.2);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  #toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:3;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (max-width:700px){
+    #app{flex-direction:column}
+    aside{width:100%;height:38%;border-left:0;border-top:1px solid var(--line)}
+    .tile .em{font-size:34px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="board">
+    <div id="hud">
+      <div id="count">0 / 0</div>
+      <button class="btn" id="hint">💡 Hint</button>
+      <button class="btn" id="clear">🧹 Clear board</button>
+      <button class="btn" id="sound">🔊</button>
+      <button class="btn" id="reset">♻️ Reset</button>
+    </div>
+    <div id="hint-empty">Drag an element onto another to combine them</div>
+    <div id="toast"></div>
+  </div>
+  <aside>
+    <input id="search" type="search" placeholder="Search elements..." autocomplete="off">
+    <div id="items"></div>
+  </aside>
+</div>
+<div id="layer"></div>
+
+<script>
+// DATA START
+const ELEMENTS = [
+  ["fire","🔥","Fire"],["water","💧","Water"],["earth","🌍","Earth"],["air","💨","Air"],
+  ["steam","♨️","Steam"],["mud","🟫","Mud"],["lava","🌋","Lava"],["cloud","☁️","Cloud"],["smoke","🌫️","Smoke"],
+  ["stone","🪨","Stone"],["sand","🏖️","Sand"],["glass","🪟","Glass"],["rain","🌧️","Rain"],["lightning","⚡","Lightning"],
+  ["storm","⛈️","Storm"],["sky","🌤️","Sky"],["sun","☀️","Sun"],["moon","🌙","Moon"],["star","⭐","Star"],["rainbow","🌈","Rainbow"],
+  ["plant","🌱","Plant"],["tree","🌳","Tree"],["flower","🌸","Flower"],["fruit","🍎","Apple"],["wood","🪵","Wood"],
+  ["forest","🌲","Forest"],["wheat","🌾","Wheat"],["bread","🍞","Bread"],["campfire","🏕️","Campfire"],
+  ["metal","🔩","Metal"],["hammer","🔨","Hammer"],["axe","🪓","Axe"],["sword","🗡️","Sword"],
+  ["gold","🪙","Gold"],["diamond","💎","Diamond"],["ring","💍","Ring"],["crown","👑","Crown"],
+  ["life","🧬","Life"],["animal","🐾","Animal"],["bug","🐛","Bug"],["fish","🐟","Fish"],["bird","🐦","Bird"],
+  ["lizard","🦎","Lizard"],["frog","🐸","Frog"],["egg","🥚","Egg"],["chicken","🐔","Chicken"],
+  ["cow","🐄","Cow"],["horse","🐎","Horse"],["wolf","🐺","Wolf"],["dragon","🐉","Dragon"],
+  ["human","🧑","Human"],["love","❤️","Love"],["baby","👶","Baby"],["family","👪","Family"],
+  ["house","🏠","House"],["castle","🏰","Castle"],["farmer","🧑‍🌾","Farmer"],["garden","🌷","Garden"],
+  ["milk","🥛","Milk"],["cheese","🧀","Cheese"],["pizza","🍕","Pizza"],
+  ["boat","⛵","Boat"],["ship","🚢","Ship"],["fishing","🎣","Fishing Rod"],["rocket","🚀","Rocket"],
+  ["paper","📄","Paper"],["book","📚","Book"],["lightbulb","💡","Lightbulb"],["telescope","🔭","Telescope"],["potion","🧪","Potion"],
+  ["mountain","⛰️","Mountain"],["river","🏞️","River"],["ocean","🌊","Ocean"],["island","🏝️","Island"],
+  ["ice","🧊","Ice"],["snow","❄️","Snow"],["snowman","⛄","Snowman"],["desert","🏜️","Desert"],["cactus","🌵","Cactus"],
+  ["magic","✨","Magic"],["wizard","🧙","Wizard"],["fairy","🧚","Fairy"],["unicorn","🦄","Unicorn"],["ghost","👻","Ghost"],["music","🎵","Music"]
+];
+const START = ["fire","water","earth","air"];
+const RECIPES = [
+  ["fire","water","steam"],["earth","water","mud"],["fire","earth","lava"],["air","water","cloud"],["air","fire","smoke"],
+  ["lava","water","stone"],["stone","air","sand"],["sand","fire","glass"],
+  ["cloud","water","rain"],["cloud","fire","lightning"],["rain","lightning","storm"],
+  ["cloud","air","sky"],["fire","sky","sun"],["sky","stone","moon"],["sky","lightning","star"],["rain","sun","rainbow"],
+  ["earth","rain","plant"],["plant","plant","tree"],["plant","sun","flower"],["tree","flower","fruit"],["tree","stone","wood"],
+  ["tree","tree","forest"],["plant","mud","wheat"],["wheat","fire","bread"],["wood","fire","campfire"],
+  ["lava","stone","metal"],["metal","wood","hammer"],["metal","tree","axe"],["metal","fire","sword"],
+  ["metal","sun","gold"],["stone","star","diamond"],["gold","diamond","ring"],["gold","human","crown"],
+  ["mud","lightning","life"],["life","earth","animal"],["life","plant","bug"],["life","water","fish"],["life","air","bird"],
+  ["life","sand","lizard"],["fish","mud","frog"],["bird","bird","egg"],["egg","earth","chicken"],
+  ["animal","plant","cow"],["animal","wheat","horse"],["animal","moon","wolf"],["lizard","fire","dragon"],
+  ["animal","fire","human"],["human","human","love"],["love","human","baby"],["baby","human","family"],
+  ["human","wood","house"],["house","stone","castle"],["human","wheat","farmer"],["flower","human","garden"],
+  ["cow","human","milk"],["milk","air","cheese"],["bread","cheese","pizza"],
+  ["wood","water","boat"],["boat","metal","ship"],["wood","fish","fishing"],["ship","star","rocket"],
+  ["wood","rain","paper"],["paper","paper","book"],["glass","lightning","lightbulb"],["glass","star","telescope"],["glass","water","potion"],
+  ["earth","earth","mountain"],["water","mountain","river"],["water","water","ocean"],["sand","water","island"],
+  ["water","moon","ice"],["ice","cloud","snow"],["snow","human","snowman"],["sand","sun","desert"],["desert","plant","cactus"],
+  ["star","life","magic"],["human","magic","wizard"],["magic","flower","fairy"],["horse","magic","unicorn"],["human","smoke","ghost"],["human","bird","music"]
+];
+// DATA END
+
+(() => {
+  const SAVE_KEY = "alchemy.v1";
+  const ELS = {}; ELEMENTS.forEach(([id,e,n]) => ELS[id] = {id,e,n});
+  const key = (a,b) => a < b ? a+"|"+b : b+"|"+a;
+  const R = {}; RECIPES.forEach(([a,b,r]) => R[key(a,b)] = r);
+
+  const $ = s => document.querySelector(s);
+  const board = $("#board"), layer = $("#layer"), items = $("#items"), aside = $("aside");
+  const toastEl = $("#toast"), countEl = $("#count"), search = $("#search"), empty = $("#hint-empty");
+
+  let disc = [], fresh = new Set(), soundOn = true;
+
+  function load(){
+    try{
+      const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+      if(s){ disc = (s.d||[]).filter(id => ELS[id]); soundOn = s.s !== 0; }
+    }catch(e){}
+    START.forEach(id => { if(!disc.includes(id)) disc.push(id); });
+  }
+  function save(){
+    try{ localStorage.setItem(SAVE_KEY, JSON.stringify({d:disc, s:soundOn?1:0})); }catch(e){}
+  }
+
+  // ---------- sound ----------
+  let actx = null;
+  function beep(freqs, dur){
+    if(!soundOn) return;
+    try{
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = actx.currentTime;
+      freqs.forEach((f,i) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0 + i*dur);
+        g.gain.exponentialRampToValueAtTime(0.18, t0 + i*dur + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + i*dur + dur);
+        o.connect(g); g.connect(actx.destination);
+        o.start(t0 + i*dur); o.stop(t0 + i*dur + dur + 0.02);
+      });
+    }catch(e){}
+  }
+
+  // ---------- toast ----------
+  let toastT;
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("show"), 2200);
+  }
+
+  // ---------- sidebar ----------
+  function renderItems(){
+    const q = search.value.trim().toLowerCase();
+    items.innerHTML = "";
+    disc.forEach(id => {
+      const el = ELS[id];
+      if(q && !el.n.toLowerCase().includes(q)) return;
+      const c = document.createElement("div");
+      c.className = "chip" + (fresh.has(id) ? " new" : "");
+      c.dataset.id = id;
+      c.innerHTML = '<span class="e">'+el.e+'</span><span>'+el.n+'</span>';
+      c.addEventListener("pointerdown", ev => {
+        if(ev.button > 0) return;
+        ev.preventDefault();
+        fresh.delete(id); c.classList.remove("new");
+        const t = mkTile(id, ev.clientX, ev.clientY);
+        startDrag(t, ev, true);
+      });
+      items.appendChild(c);
+    });
+    countEl.textContent = disc.length + " / " + ELEMENTS.length;
+  }
+  search.addEventListener("input", renderItems);
+
+  // ---------- tiles ----------
+  function mkTile(id, x, y, cls){
+    const el = ELS[id];
+    const t = document.createElement("div");
+    t.className = "tile" + (cls ? " "+cls : "");
+    t.dataset.id = id;
+    t.innerHTML = '<div class="in"><div class="em">'+el.e+'</div><div class="nm">'+el.n+'</div></div>';
+    setPos(t, x, y);
+    layer.appendChild(t);
+    t.addEventListener("pointerdown", ev => {
+      if(ev.button > 0) return;
+      ev.preventDefault();
+      startDrag(t, ev, false);
+    });
+    t.addEventListener("dblclick", () => {
+      const c = mkTile(id, t._x + 36, t._y + 36, "pop");
+      clampTile(c);
+    });
+    updateEmpty();
+    return t;
+  }
+  function setPos(t, x, y){ t._x = x; t._y = y; t.style.left = x+"px"; t.style.top = y+"px"; }
+  function tiles(){ return Array.from(layer.children); }
+  function updateEmpty(){ empty.style.display = layer.children.length ? "none" : "flex"; }
+  function playRect(){ return board.getBoundingClientRect(); }
+  function clampTile(t){
+    const r = playRect();
+    const x = Math.min(Math.max(t._x, r.left + 46), r.right - 46);
+    const y = Math.min(Math.max(t._y, r.top + 62), r.bottom - 46);
+    setPos(t, x, y);
+  }
+  function nearest(t){
+    let best = null, bd = 62;
+    tiles().forEach(o => {
+      if(o === t) return;
+      const d = Math.hypot(o._x - t._x, o._y - t._y);
+      if(d < bd){ bd = d; best = o; }
+    });
+    return best;
+  }
+
+  // ---------- dragging ----------
+  let drag = null, hotEl = null;
+  function startDrag(t, ev, fromSide){
+    drag = {t, fromSide, moved:false, sx:ev.clientX, sy:ev.clientY, dx:t._x - ev.clientX, dy:t._y - ev.clientY};
+    if(fromSide){ drag.dx = 0; drag.dy = 0; }
+    t.classList.add("drag");
+    layer.appendChild(t);
+  }
+  window.addEventListener("pointermove", ev => {
+    if(!drag) return;
+    const t = drag.t;
+    if(!drag.moved && Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy) > 5) drag.moved = true;
+    if(drag.moved || !drag.fromSide) setPos(t, ev.clientX + drag.dx, ev.clientY + drag.dy);
+    const n = nearest(t);
+    if(n !== hotEl){ if(hotEl) hotEl.classList.remove("hot"); hotEl = n; if(n) n.classList.add("hot"); }
+  });
+  function endDrag(ev, cancelled){
+    if(!drag) return;
+    const {t, fromSide, moved} = drag; drag = null;
+    t.classList.remove("drag");
+    if(hotEl){ hotEl.classList.remove("hot"); hotEl = null; }
+    const sr = aside.getBoundingClientRect();
+    const overSide = ev.clientX >= sr.left && ev.clientX <= sr.right && ev.clientY >= sr.top && ev.clientY <= sr.bottom;
+    if(cancelled || overSide){ t.remove(); updateEmpty(); return; }
+    if(fromSide && !moved){
+      const r = playRect();
+      setPos(t, r.left + 80 + Math.random()*Math.max(40, r.width - 160), r.top + 90 + Math.random()*Math.max(40, r.height - 180));
+      t.classList.add("pop");
+      return;
+    }
+    clampTile(t);
+    const o = nearest(t);
+    if(o) combine(t, o);
+  }
+  window.addEventListener("pointerup", ev => endDrag(ev, false));
+  window.addEventListener("pointercancel", ev => endDrag(ev, true));
+
+  // ---------- combining ----------
+  function combine(a, b){
+    const r = R[key(a.dataset.id, b.dataset.id)];
+    if(r){
+      const mx = (a._x + b._x)/2, my = (a._y + b._y)/2;
+      a.remove(); b.remove();
+      const nt = mkTile(r, mx, my, "pop"); clampTile(nt);
+      discover(r);
+    }else{
+      [a,b].forEach(t => { t.classList.remove("shake"); void t.offsetWidth; t.classList.add("shake"); });
+      let vx = b._x - a._x, vy = b._y - a._y;
+      const len = Math.hypot(vx, vy) || 1;
+      if(len < 1){ vx = 1; vy = 0; }
+      const push = 44;
+      [[a,-1],[b,1]].forEach(([t,s]) => {
+        t.style.transition = "left .25s ease, top .25s ease";
+        setPos(t, t._x + s*push*vx/len, t._y + s*push*vy/len); clampTile(t);
+        setTimeout(() => { t.style.transition = ""; }, 300);
+      });
+      beep([180], 0.12);
+    }
+  }
+  function discover(id){
+    if(disc.includes(id)){ beep([520], 0.1); return; }
+    disc.push(id); fresh.add(id); save(); renderItems();
+    items.scrollTop = items.scrollHeight;
+    beep([523, 659, 784], 0.1);
+    toast("New discovery: " + ELS[id].e + " " + ELS[id].n + "!");
+    if(disc.length === ELEMENTS.length){
+      setTimeout(() => toast("🎉 You discovered everything!"), 2400);
+    }
+  }
+
+  // ---------- buttons ----------
+  $("#clear").addEventListener("click", () => { tiles().forEach(t => t.remove()); updateEmpty(); });
+  $("#hint").addEventListener("click", () => {
+    const opts = RECIPES.filter(([a,b,r]) => !disc.includes(r) && disc.includes(a) && disc.includes(b));
+    if(!opts.length){ toast("No hints right now. Keep experimenting!"); return; }
+    const [a,b] = opts[Math.floor(Math.random()*opts.length)];
+    toast("Try: " + ELS[a].e + " " + ELS[a].n + "  +  " + ELS[b].e + " " + ELS[b].n);
+  });
+  function soundBtn(){ $("#sound").textContent = soundOn ? "🔊" : "🔇"; }
+  $("#sound").addEventListener("click", () => { soundOn = !soundOn; soundBtn(); save(); });
+  $("#reset").addEventListener("click", () => {
+    if(!confirm("Reset all progress and start over?")) return;
+    disc = START.slice(); fresh.clear(); save();
+    tiles().forEach(t => t.remove()); updateEmpty(); renderItems();
+  });
+  window.addEventListener("resize", () => tiles().forEach(clampTile));
+
+  load(); soundBtn(); renderItems(); updateEmpty();
+})();
+</script>
+</body>
+</html>

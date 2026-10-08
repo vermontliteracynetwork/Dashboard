@@ -692,6 +692,20 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Question Sets: download and upload CSV files, a zip of pictures in order, and a full preview before saving. SHIPPED 2026-10-08 (direct teacher instruction, with a screenshot of Academics, Question Sets)
+
+- **Her words (verbatim):** "allow me in this view to download csv file and uplaod a csv. when i upload a csv, give me option to upload a zip file of images. take the file and assume that the order the images are saved are the corresponsiding quesions in order. apply one image to each question. allow me to preview all questions with images (editing as needed) before i save the question set"
+- In Academics, Question Sets (open the section): a **⬆️⬇️ CSV files** box (`QuestionSetImport.tsx`) with **⬇️ Download the template**, **Download a set as CSV** (pick any quiz set; same columns as the template), and **⬆️ Upload a CSV**.
+- After a CSV is read, **🖼️ Upload a zip of pictures (optional)**: picture 1 goes on question 1, picture 2 on question 2, and so on, in file name order with numbers sorted the way people count (2.png before 10.png). Gus warns when the counts do not match.
+- **Preview:** every question shows with its picture in the full question editor (change the text, answers, correct answer, swap or remove a picture, add or delete questions), plus the set's name and subject. Pictures stay on her computer until **💾 Save question set**, then upload; nothing saves while a question is half-filled.
+- `fflate` (the zip reader, already in the app through the 3D library) is now a listed dependency.
+
+### Alchemy (combine elements to discover new ones). QUEUED, build after the current fixes (direct teacher instruction 2026-10-08)
+
+- **Her words (verbatim):** "add this alchemy game to dev plan queue. it should be built after these fixes are made" (with an uploaded prototype, saved as `docs/games/alchemy-prototype.html`).
+- **The prototype:** a Little Alchemy style sandbox. Start with fire, water, earth and air; drag two elements together on a dotted board to discover a new one (89 elements, 84 recipes: steam, mud, lava, life, dragon, wizard, rocket, pizza...); a searchable sidebar of what you have found with NEW badges, a found counter, double-tap to copy a tile, sounds, saved progress.
+- **Claudia's notes for when it is built (to confirm with her):** make it a native game (question sets fuel it: for example a question unlocks each new recipe hint or each combine), iPad first (big tiles, the sidebar folds), a Town Square home (a lab or the Seamstress's neighbor), $1 per right answer like every native game, a personal discovery book (no comparisons), and the Pixel TV / Grammar Gus tie-in idea: discovered elements become new Gus nouns.
+
 ### Grammar Gus: iPad layout you can fold and resize, Big board, and a checklist that explains every step. SHIPPED 2026-10-08 (direct teacher instructions)
 
 - **Her words (verbatim):** "in ipad optomization for grammar gus, allow them to drag and resize all components, collapsing everything, rezising, so they can get the most out of their main whiteboard space as needed"; "the navigation for grammar gus needs to be optomized for ipads, right now things are sized weird so they cant see all words, cant navigate buttons"; "in gus's checklist, students should be able to click on each item to get a note of explanation of how to do each step explicilty. make sure the checklist is only things explicitly needed to make the sentence run as the machine. if they are continuously clicking and its not running, gus needs to tell them exactly what to fix after a few attempts".
