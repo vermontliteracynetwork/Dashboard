@@ -13,9 +13,10 @@ import { formatMoney } from './money';
 // Teacher-editable in Economy Settings (default $1).
 import { getEconomy } from './economy';
 
-export function payForAnswers(studentId: string, correct: number, game: string, icon: string) {
+// perCents: a game with its own rate (Alchemy pays $0.50 a right answer, teacher 2026-10-08).
+export function payForAnswers(studentId: string, correct: number, game: string, icon: string, perCents?: number) {
   if (!studentId || correct <= 0) return;
-  const cents = correct * getEconomy().perCorrectCents;
+  const cents = correct * (perCents ?? getEconomy().perCorrectCents);
   const st = useStore.getState();
   st.recordTransaction(studentId, cents, `${icon} ${game}: ${correct} right answer${correct === 1 ? '' : 's'}`, icon, 'game-answers');
   useStore.setState((s) => ({

@@ -766,6 +766,9 @@ create table if not exists marketplace_items (
   voice_hints jsonb
 );
 
+-- Home items keep their 3D model (2026-10-08).
+alter table marketplace_items add column if not exists model_path text;
+
 -- A single settings row for class-wide teacher preferences that don't
 -- belong to any one student — currently just the whole-assignment
 -- completion reward (given the moment a student finishes both subjects

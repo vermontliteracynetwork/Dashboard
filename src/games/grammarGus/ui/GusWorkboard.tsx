@@ -19,7 +19,7 @@ import { reviewStory, storyCast, storyScript, type SealedSentence } from '../eng
 import { POOLS, packWords } from '../engine/machine';
 import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
-import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
+import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, makeRunOnJob, runOnSplit, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
 import { compareOrder } from '../engine/orders';
 import { frameworkById } from '../data/frameworks';
 import { flipIdeas } from '../engine/boardRemix';
@@ -596,7 +596,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     setLines((ls) => [...ls.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank')), { id, x: snap(sp.x), y: snap(sp.y), items: exampleItems(ex, uid) }]);
     setSelLine(id); bounce(id); gusSound.snap();
     if (!at) requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
-    say(`"${ex.text}" Tap any word machine to swap its word for your own, then pull the Start Lever.`, '📝 Example sentence');
+    if (ex.setup) say(`${ex.setup} The machine says the punchline: "${ex.text}" Pull the Start Lever to hear it. Tap a word to make your own joke.`, '😂 Knock knock joke');
+    else say(`"${ex.text}" Tap any word machine to swap its word for your own, then pull the Start Lever.`, '📝 Example sentence');
   };
   const onBoardDown = (e: React.PointerEvent) => {
     if (e.button > 0 || dragging()) return;
@@ -905,8 +906,12 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       const named = targets.map((i) => rd.draft.tokens[i]?.word).filter(Boolean) as string[];
       // Sardines (teacher 2026-10-08: a clear fix): name the two words and say exactly what to do.
       const nj = v.code === 'NO_JOIN' ? [rd.draft.tokens[Math.max(0, (v.insertAt ?? targets[0] + 1) - 1)]?.word, rd.draft.tokens[v.insertAt ?? targets[0] + 1]?.word].filter(Boolean) as string[] : [];
-      const fixText = v.code === 'NO_JOIN' && nj.length === 2 ? `"${nj[0]}" and "${nj[1]}" are squished side by side with nothing joining them. Fix it: drag a Join Clamp (and, but, or) from the parts menu and snap it between "${nj[0]}" and "${nj[1]}". Or, if you only meant one of them, tap the other one and choose Take it off.` : gl.fix;
-      missed(line.id, { text: `${gl.joke} ${fixText}`, ghosts: [], commaOn: v.code === 'NO_COMMA' ? ids : [], pulse: v.code === 'NO_COMMA' ? [] : ids, glow: GATE_GLOW[v.code as Violation], explain: explainViolation(v.code as Violation, nj.length === 2 ? nj : named) }, gadgetNotes);
+      // A run-on (Phase 2): two whole ideas glued together. Name both ideas and the fix.
+      const ro = v.code === 'NO_JOIN' ? runOnSplit(rd.draft.tokens) : null;
+      const words = rd.draft.tokens.map((t) => t.word);
+      const fixText = ro !== null ? `This is a run-on: two whole sentences are glued together, "${words.slice(0, ro).join(' ')}" and "${words.slice(ro).join(' ')}". Fix it: drag a Logic Gate (and, but, so) from the parts menu and snap it between "${words[ro - 1]}" and "${words[ro]}". The comma comes with it. Or split them into two machines, each with its own capital letter and punctuation.`
+        : v.code === 'NO_JOIN' && nj.length === 2 ? `"${nj[0]}" and "${nj[1]}" are squished side by side with nothing joining them. Fix it: drag a Join Clamp (and, but, or) from the parts menu and snap it between "${nj[0]}" and "${nj[1]}". Or, if you only meant one of them, tap the other one and choose Take it off.` : gl.fix;
+      missed(line.id, { text: `${ro !== null ? 'Whoa, a traffic jam on the conveyor!' : gl.joke} ${fixText}`, ghosts: [], commaOn: v.code === 'NO_COMMA' ? ids : [], pulse: v.code === 'NO_COMMA' ? [] : ids, glow: GATE_GLOW[v.code as Violation], explain: ro !== null ? fixText : explainViolation(v.code as Violation, nj.length === 2 ? nj : named) }, gadgetNotes);
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars: 0 } : l)));
       logAttempt(rd.draft, r.composed.text, 0, r.validation.violations.filter((x) => x.blocking).map((x) => x.code));
       running.current = false;
@@ -959,7 +964,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
           earn(finishedJob.kind === 'blueprint' ? 12 : 8, finishedJob.kind === 'read' ? { kind: 'read', text: `${finishedJob.question ?? ''} ${r.composed.text}`.trim(), stars } : undefined);
           if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
         } else earn(2);
-        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : finishedJob.kind === 'read' ? `You answered the question! "${r.composed.text}" It is saved in your Journal.` : finishedJob.kind === 'spark' ? `The dud sparks to life! It had no ${finishedJob.flaw === 'who' ? 'who' : 'action'}, and you added it.` : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
+        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : finishedJob.kind === 'read' ? `You answered the question! "${r.composed.text}" It is saved in your Journal.` : finishedJob.kind === 'spark' ? (finishedJob.flaw === 'runon' ? 'The jam is cleared! Two whole ideas, joined the right way.' : `The dud sparks to life! It had no ${finishedJob.flaw === 'who' ? 'who' : 'action'}, and you added it.`) : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
         timers.current.push(window.setTimeout(() => say(`${groupDone ? 'Job done! ' : ''}${msg}${groupDone ? ` Have a sticker: ${sticker}` : ''}`, '3 stars'), 2600));
       }
       if (r.script) {
@@ -1106,7 +1111,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     if (kind === 'blueprint' && blueprint) {
       for (const b of (SCIENCE_JOBS[blueprint] ? makeScienceJob(blueprint as 'procedure' | 'hypothesis', uid) : makeBlueprint(blueprint, uid))) { add.push({ id: uid(), x: 60, y, items: b.items, job: b.job, ...(b.connector ? { connector: b.connector } : {}) }); y = snap(y + ITEM_H + ATT_H + 150); }
     } else {
-      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : kind === 'spark' ? makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
+      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : kind === 'spark' ? (blueprint === 'runon' ? makeRunOnJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly })) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
       add.push({ id: uid(), x: 60, y, items, job });
     }
     if (!add.length) return;
@@ -1115,13 +1120,15 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     // Bring the new machine into view (its badge at the top), keeping the zoom.
     const top = add[0].y - 70; setView((v) => ({ ...v, x: 30 - 20 * v.z, y: 20 - top * v.z }));
     gusSound.horn();
-    const fw = blueprint ? bpInfo(blueprint) : undefined;
-    say(kind === 'delivery'
+    const fw = blueprint && kind === 'blueprint' ? bpInfo(blueprint) : undefined;
+    say(kind === 'spark' && blueprint === 'runon'
+      ? 'A run-on! Two whole sentences got glued together and jammed my conveyor. Find where the second idea starts and snap a Logic Gate (and, but, so) between them, then pull the lever.'
+      : kind === 'delivery'
       ? 'A delivery! These word machines arrived all mixed up. Drag them into the right order, add a capital letter, punctuation and a TV, then pull the lever.'
       : kind === 'inspector' ? `Inspector, I need you. ${FLAW_HINTS[add[0].job!.flaw as Flaw]} Find it, fix it, then pull the lever.`
       : kind === 'order' ? 'An order! Build any sentence that makes the scene on my order card. Set the Clock to the right time.'
       : kind === 'spark' ? 'Spark Check! This sentence is a dud: a sentence needs a who and an action. Find what is missing and add it.'
-      : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : kind === 'spark' ? 'Spark Check' : 'Blueprint');
+      : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : kind === 'spark' ? (blueprint === 'runon' ? 'Run-on Fixer' : 'Spark Check') : 'Blueprint');
   };
   const startRespond = (a: GusArticle) => {
     setReading(null); setJobsOpen(false);
@@ -1518,6 +1525,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 <button type="button" role="menuitem" onClick={() => startJob('delivery')}>🧩 Put the words in order<small>The word machines came mixed up. Line them up so the sentence makes sense.</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Fix the mistake<small>One capital letter or punctuation mark is wrong. Find it and fix it.</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('spark')}>⚡ Fix the broken sentence<small>It is missing a who or an action. Add the missing part.</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('spark', 'runon')}>🚧 Fix the run-on<small>Two whole sentences are glued together. Join them with and, but or so.</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('order')}>📜 Build from a recipe card<small>The card lists who, what they did and when. Build a sentence with them.</small></button>
                 <button type="button" className={`gwb-menu-more${jobsMore ? ' on' : ''}`} onClick={() => setJobsMore((m) => !m)} aria-expanded={jobsMore}>{jobsMore ? '▾ Fewer jobs' : '▸ More jobs: games, science and paragraphs'}</button>
                 {jobsMore && <>
@@ -1672,7 +1680,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                       {line.job.done ? `✅ ${line.job.kind === 'blueprint' ? `${line.job.label} built!` : 'Job done!'}`
                         : line.job.kind === 'delivery' ? '🧩 Put the words in order, then pull the lever.'
                         : line.job.kind === 'inspector' ? `🔍 Fix the mistake: ${FLAW_HINTS[line.job.flaw as Flaw]}`
-                        : line.job.kind === 'spark' ? '⚡ Fix the broken sentence: is it missing a WHO or an ACTION?'
+                        : line.job.kind === 'spark' ? (line.job.flaw === 'runon' ? '🚧 Fix the run-on: join the two whole ideas with a Logic Gate (and, but, so).' : '⚡ Fix the broken sentence: is it missing a WHO or an ACTION?')
                         : line.job.kind === 'read' ? `📖 ${line.job.done ? 'Answered! ' : ''}${line.job.question ?? ''}`
                         : line.job.kind === 'order' && line.job.card ? <span className="gwb-recipe">📜 Recipe card: <b>Who</b> {line.job.card.who.emoji} {line.job.card.who.words} <b>Did</b> {line.job.card.did}{line.job.card.obj ? <> <b>What</b> {line.job.card.obj.emoji} {line.job.card.obj.words}</> : null}{line.job.card.where ? <> <b>Where</b> {line.job.card.where.prep} {line.job.card.where.emoji} {line.job.card.where.words}</> : null}{line.job.card.how ? <> <b>How</b> {line.job.card.how}</> : null} <b>When</b> {line.job.card.time}</span>
                         : `${bpInfo(line.job.blueprint)?.icon ?? '📐'} ${bpInfo(line.job.blueprint)?.name ?? 'Blueprint'} ${line.job.part} of ${line.job.of}: ${line.job.label}${line.job.text ? `  "${line.job.text}"` : ''}`}
@@ -1930,9 +1938,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   {g.note && <small className="gwb-ex-note">{g.note}</small>}
                   {g.items.map((ex) => (
                     <div key={ex.id} className="gwb-drawer-row">
-                      <button type="button" className="gwb-drawer-item gwb-ex-item" onPointerDown={(e) => onExampleDown(e, ex.id)} onClick={(e) => { if (e.detail === 0) addExample(ex.id); }} aria-label={`${g.title}: ${ex.text} Drag it onto the board or tap it.`}>
-                        <span className="gwb-ex-pic" aria-hidden>{g.id === 'figurative' ? '🎭' : '📝'}</span>
-                        <span className="gwb-drawer-text">{ex.text}</span>
+                      <button type="button" className="gwb-drawer-item gwb-ex-item" onPointerDown={(e) => onExampleDown(e, ex.id)} onClick={(e) => { if (e.detail === 0) addExample(ex.id); }} aria-label={`${g.title}: ${ex.setup ? `${ex.setup} ` : ''}${ex.text} Drag it onto the board or tap it.`}>
+                        <span className="gwb-ex-pic" aria-hidden>{g.id === 'figurative' ? '🎭' : g.id === 'jokes' ? '😂' : '📝'}</span>
+                        <span className="gwb-drawer-text">{ex.setup ? <><small style={{ display: 'block', opacity: 0.75 }}>{ex.setup}</small>{ex.text}</> : ex.text}</span>
                       </button>
                     </div>
                   ))}

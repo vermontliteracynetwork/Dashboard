@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-alchemy-game',
+    date: '2026-10-08',
+    icon: '⚗️',
+    title: 'Alchemy is a game now',
+    body: 'Find Alchemy in the game window. You choose how many combinations come between question breaks and how many questions each time, from 1 to 10. Every right answer earns $0.50. From your Computer you can also just explore with no questions.',
+  },
+  {
+    id: '2026-10-08-gus-runon-knock',
+    date: '2026-10-08',
+    icon: '🚧',
+    title: 'Gus: fix the run-on, and a knock knock joke',
+    body: 'In Jobs, try Fix the run-on: two whole sentences got glued together, so join them with and, but or so to clear the jam. In Examples, open the new Jokes folder for a knock knock joke, then make it your own.',
+  },
+  {
     id: '2026-10-08-zoom-pictures',
     date: '2026-10-08',
     icon: '🔍',

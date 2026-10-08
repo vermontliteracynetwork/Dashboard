@@ -28,16 +28,16 @@
 
 **Quick list (updated 2026-10-08, Claudia's plan check). Details for each are below or in the linked entry.**
 
-**SQL to run in the Supabase SQL Editor:**
+**SQL to run in the Supabase SQL Editor:** all of it is in one copy-paste file, [`supabase/RUN_THIS_IN_SQL_EDITOR.sql`](https://github.com/vermontliteracynetwork/Dashboard/blob/main/supabase/RUN_THIS_IN_SQL_EDITOR.sql) (safe to run more than once). It covers:
 1. `activity_library` student title and description (the two lines just below). Then tell the next session so they go back in the save payload.
 2. `alter table marketplace_items add column if not exists model_path text;` Until it runs, a Home item she makes herself loses its 3D model when the app reloads (the seeded ones are fine, their model is read from the id). Then map `model_path` in `src/lib/sync.ts`.
 3. `chess_games` (Slime Chess personal leaderboard) and `style_looks` (saved Style looks, Gus boards, power-ups and more), both below.
 
 **Answers she owes (each one unblocks a build):**
-- **Gus Daily Challenge and the $25 streak:** her "go", and do weekends break the streak (suggestion: no).
-- **Alchemy next steps, yes or no each:** questions from question sets, $1 per right answer, a discovery book page, a Town Square home, new discoveries becoming Gus nouns.
-- **Joke frameworks for Gus Examples:** which ones (for example knock-knock, "Why did the...?").
-- **Gus Phase 2 machines:** only a "go" (suggested start: the run-on fix).
+- **Gus Daily Challenge and the $25 streak:** ON HOLD. Her words 2026-10-08: "no Gus Daily Challenge and the $25 streak yet". Not to be built until she says so.
+- **Alchemy, still open:** a discovery book page, a Town Square home, new discoveries becoming Gus nouns. (Questions and pay were answered and shipped 2026-10-08.)
+- **Gus Examples:** knock knock shipped first (2026-10-08); which joke frameworks come next.
+- **Gus Phase 2 machines:** she said go (2026-10-08). Run-on Fixer shipped; next is the Appositive Clamp.
 - Everything else she owes is in the Gameplay roadmap, "4. Decisions she owes".
 
 **Needs a live check (only she can do these, on a real iPad and a second device):**
@@ -417,7 +417,7 @@ This subsection is a standing, synthesized overview of everything above — kept
 
 #### A24. Native Games & the Native Game Standard
 
-Governed by `NATIVE_GAME_STANDARD.md`. Native games shipped as of 2026-10-08: the Platformer (A15), Bakery Match (A43), the Gas Pump (A44), Castle Defense (A45), Slime Chess (A47), Space Bowling (A50), Shape Dash (A51) and Quiz Mode, each with its own breakdown at its own entry (Alchemy, A49, is a sandbox app not yet fueled by questions), plus a planned pipeline for uploading third-party HTML5 games from sites like itch.io. A native game exists specifically to make retrieval practice (being asked to recall an answer, not just review content, one of the most robust findings in learning science) tolerable and motivating for a student who would disengage from a plain quiz: the game is the wrapper, the question set underneath is the actual point, and gameplay always serves the question set, never the reverse. Hard rules that apply regardless of which game: a question break, once started, has zero time pressure (no countdown, no answer time limit, full access to every accessibility tool); replay is unlimited (no play-count cap, no daily limit); leaving mid-game always shows a confirm dialog first, and confirming forfeits that session's progress and reward (but never erases mastery already logged before leaving); every completed session generates a full report to the teacher's inbox in addition to the normal mastery record. A teacher configures how often a question break becomes eligible and how many questions appear per break.
+Governed by `NATIVE_GAME_STANDARD.md`. Native games shipped as of 2026-10-08: the Platformer (A15), Bakery Match (A43), the Gas Pump (A44), Castle Defense (A45), Slime Chess (A47), Space Bowling (A50), Shape Dash (A51) and Quiz Mode, each with its own breakdown at its own entry (Alchemy, A49, is a sandbox app not yet fueled by questions), (Alchemy, A49, also runs as a question-fueled native game since 2026-10-08) plus a planned pipeline for uploading third-party HTML5 games from sites like itch.io. A native game exists specifically to make retrieval practice (being asked to recall an answer, not just review content, one of the most robust findings in learning science) tolerable and motivating for a student who would disengage from a plain quiz: the game is the wrapper, the question set underneath is the actual point, and gameplay always serves the question set, never the reverse. Hard rules that apply regardless of which game: a question break, once started, has zero time pressure (no countdown, no answer time limit, full access to every accessibility tool); replay is unlimited (no play-count cap, no daily limit); leaving mid-game always shows a confirm dialog first, and confirming forfeits that session's progress and reward (but never erases mastery already logged before leaving); every completed session generates a full report to the teacher's inbox in addition to the normal mastery record. A teacher configures how often a question break becomes eligible and how many questions appear per break.
 
 #### A25. Playground / Free Play
 
@@ -624,7 +624,7 @@ A STEAM-style Workboard where every word is its own machine (`src/games/grammarG
 
 #### A49. Alchemy (computer app) — SHIPPED 2026-10-08
 
-A Little Alchemy style sandbox (`/student/alchemy`, data in `src/games/alchemy/data.ts`): start with fire, water, earth and air and combine elements to discover 137 things through 133 recipes, including a fantasy chain (dinosaur + fire = dragon) and the mythology the students asked for. Big touch tiles, hints, sound, NEW badges. Every visit starts fresh, and leaving asks first once something has been found. Next steps wait on her yes (see "Waiting on the teacher").
+A Little Alchemy style sandbox (`/student/alchemy`, data in `src/games/alchemy/data.ts`): start with fire, water, earth and air and combine elements to discover 137 things through 133 recipes, including a fantasy chain (dinosaur + fire = dragon) and the mythology the students asked for. Big touch tiles, hints, sound, NEW badges. Every visit starts fresh, and leaving asks first once something has been found. **Also a native game (2026-10-08):** a cabinet in the game window; the student sets combinations between question breaks (1 to 10) and questions each break (1 to 10); $0.50 per right answer; from the Computer there is also Just explore.
 
 #### A50. Space Bowling (native game) — SHIPPED 2026-10-04
 
@@ -670,7 +670,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 #### 2. Ready to build now (no decision needed, only her "go" on order)
 
 **Grammar Gus, Claudia's Phase 2 writing machines (in this order):**
-1. Run-on detection and the fix mini-game.
+1. ~~Run-on detection and the fix mini-game.~~ SHIPPED 2026-10-08 as the Run-on Fixer job.
 2. Appositive Clamp.
 3. Fusion Reactor (sentence combining).
 4. Revision Workshop (ARMS: add, remove, move, substitute).
@@ -686,7 +686,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - Garage extras: lever styles, sound sets, celebration styles, stickers on the cabinet, Gus costumes, part variants, 6 saved machine Blueprints.
 - Orders: a teacher editor for her own orders, and a sticker book page.
 - Blueprints still to come: "Why Did the...?", Silly Recipe, Show and Tell, Letter to a Friend (needs her name list), the Pun Pack.
-- Examples folder, more categories (her words 2026-10-08: "we will ad more categories like joke frame works and such later"): joke frameworks first, once she says which ones.
+- Examples folder, more categories (her words 2026-10-08: "we will ad more categories like joke frame works and such later"): a 😂 Jokes folder with a knock knock SHIPPED 2026-10-08; more joke frameworks once she says which.
 - Teacher report: PDF export, IEP goal lines on a progress graph, teacher notes, Gus's Checkup (an optional baseline).
 - Describe Sorter conveyor animation; "Do it for me after 2 taps"; hiding item groups.
 
@@ -703,20 +703,20 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 #### 3. Designed and waiting on her "go"
 
-- **Gus's Daily Challenge** (her full spec is in "Grammar Gus: Daily Challenge and daily streak"): a pop-up on the first Workboard visit each day, mail to every student, Gus walking around the Town Square (tap him, the chat asks if they want the challenge), a streak calendar ("Day 1 of the daily challenges"), and $25 a day, promoted as the most valuable streak in the game. The content (Read and Respond) already shipped as an activity.
+- **Gus's Daily Challenge** (ON HOLD, her words 2026-10-08: "no Gus Daily Challenge and the $25 streak yet") (her full spec is in "Grammar Gus: Daily Challenge and daily streak"): a pop-up on the first Workboard visit each day, mail to every student, Gus walking around the Town Square (tap him, the chat asks if they want the challenge), a streak calendar ("Day 1 of the daily challenges"), and $25 a day, promoted as the most valuable streak in the game. The content (Read and Respond) already shipped as an activity.
 - **Tappy Plane** (one-tap flying game, Kenney art saved in `public/games/tappy-plane/`): gentle mode where bumping a rock bounces the plane back, wider gaps to start, question breaks between flights, stars and medals as rewards, a Town Square home such as an airfield.
 - **Pets v2** (cats and dogs, grammar inside training; full plan in `docs/PETS_V2_OVERVIEW.pdf`): Phase 1 foundation (final breed list, body choice, new stat card), Phase 2 adoption agency, Phase 3 Training Yard with the Command Builder (the sentence is the command), Phase 4 tool-based care, Phase 5 tricks, Pet Show Ring and Trainer License, Phase 6 collars and coats, Phase 7 pet parade and pets cheering in native games. Pets are paused and refunded until then.
 - **The Seamstress game** with Webkinz-style clothing recipes (STYLE.md): a Clothing Machine where 3 owned items make a new one, a Recipe Book to collect, a simple student designer, questions between steps.
 - **Style, next steps** (STYLE.md): Style items for sale and to earn in the Marketplace (price, dates, earn rules), the Style Studio for her (blank templates, a print-on-demand style designer, an effects shelf, the free Describe-it builder), and more Comfort Gear including the wheelchair set. (Deleting the old avatars, portraits and Cake Character: DONE 2026-10-08, see "Old characters removed everywhere".)
-- **Alchemy next steps** (see "Alchemy app on the student computer"): questions from question sets, $1 per right answer, a discovery book page, a Town Square home, new discoveries becoming Gus nouns. Waiting on her yes for each.
+- **Alchemy next steps** (see "Alchemy app on the student computer"): a discovery book page, a Town Square home, new discoveries becoming Gus nouns. (Question breaks and $0.50 per right answer SHIPPED 2026-10-08.)
 - **Weekly Planning and Neighbor quests, Phases 2 to 5** (designed in "Weekly Planning + NPC Quest-Discovery Redesign"): a weekend-safe streak, which Neighbor delivers each assignment, a daily "Today's Activities" mix students discover by talking to Neighbors, the to-do discovery loop, and the Catch-Up Lock. Also the Chart and Graph activity type (needs her yes for a 5th activity type).
 
 #### 4. Decisions she owes (each one unblocks building)
 
 - **Grammar Gus:** shout sentences end with ! or a period; a comma between two describing words ("the pretty, young girl") or not; should 3-star sentences pay Class Cash or count toward the Daily Streak; approve the slot-machine look for the Surprise Hopper (reels and a SPIN button, never coins or bets); approve the Cartoon Industrial and pixel cinema art look; "they" for one person, yes or no.
-- **Daily Challenge:** do weekends break the streak (suggestion: no).
-- **Alchemy:** yes or no on each next step (section 3).
-- **Gus Examples:** which joke frameworks to add first.
+- **Daily Challenge:** on hold; when she restarts it, do weekends break the streak (suggestion: no).
+- **Alchemy:** yes or no on the discovery book, a Town Square home, and Gus nouns.
+- **Gus Examples:** which joke frameworks come after knock knock.
 - **Streaks:** should streak interest (1% a day) and the Passport streak move to the new Daily Streak; a lower streak goal than 20 for some students.
 - **Pets v2:** the 15 questions in PETS_V2_OVERVIEW section 6. The three that unblock Phase 1: which of the 12 dogs and cats stay, which body (current models, Style characters, or a new four-legged body), and old pets back at relaunch or a fresh start.
 - **Assets:** what the Kenney Construct samples are for (platformer, space shooter, brick breaker, dice and cards, RPG), the Games app icon slide that did not come through, and the rights to the Bowling GUI art.
@@ -743,12 +743,27 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 #### 6. Claudia's suggested build order
 
-1. **Gus Phase 2, starting with the run-on fix.** It is the next writing skill in her plan and needs no decision.
-2. **Gus's Daily Challenge,** once she says go. The content is built; this adds the daily habit and the $25 reward.
+1. **Gus Phase 2, next the Appositive Clamp** (the Run-on Fixer shipped 2026-10-08). She said go.
+2. **Gus's Daily Challenge:** ON HOLD at her word (2026-10-08).
 3. **Gallery pictures to wall decor.** Small, visible, and it ties reading to the Home Room.
 4. **Shape Dash sliders and the inbox report.** Small, and gives her control over a game students already play.
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
+
+### Alchemy as a native game with student-set question breaks; Gus knock knock joke example; Gus Phase 2 begins with the Run-on Fixer; one SQL file to run. SHIPPED 2026-10-08 (direct teacher instructions)
+
+- **Her words (verbatim):** "no Gus Daily Challenge and the $25 streak yet. 2) alchemy can be selected from main native game window. controls should be set by student: moves between question sets (1 move slider up to 10 moves/combinations/plays) and number of questions each time 1-10). this should pop up if the alchemy game is selected from the coputer though a button should be there of "just explore" or soemthing 3) default $.50 per correct answer. 3) joke framwork should start with a simple knock knowck 4) go for gus stuff 5) give me github link for sql"; and, while it was being built, "what is in dev plan for future native games" and "claudia, while thats working. tell me what native games havent been added but have been noted as ideas" (answered in chat from the Gameplay roadmap, sections 3 and 5).
+- **Daily Challenge:** on hold at her word; nothing built.
+- **Alchemy in the game window:** a new ⚗️ Alchemy arcade cabinet (cover `public/games/covers/alchemy.svg`) in the Games dashboard, the Daily Streak game grid, pick-any-game assignments and a Neighbor's "Play a game". Opening Alchemy (from the game window or the Computer) first asks "How do you want to play?":
+  - **Combinations between question breaks:** a 1 to 10 slider (every combination try counts, a new discovery or not).
+  - **Questions each break:** a 1 to 10 slider.
+  - Question source: 🎲 random (starred focus sets 5x as often) or one set (starred sets only, when any are starred). An open pick-any-game assignment supplies the questions instead.
+  - **$0.50 per right answer** (Alchemy's own rate, paid when the student leaves, through the usual bank row and falling coins; `payForAnswers` now takes a per-game rate).
+  - **▶ Play with questions**, and, from the Computer only, **🧭 Just explore** (no questions). The game window always plays with questions.
+  - Settings are remembered on that iPad. In play, a HUD chip shows "❓ in N · 💵 earned" and reopens the settings; the leave check says the money is kept.
+- **Knock knock joke** (Gus parts menu, 📝 Examples, new 😂 Jokes folder): "Knock knock. Who's there? Cow. Cow who?" then the machine says the punchline, "The silly cow dances happily." (tested to run with 3 stars). The card shows the setup lines; Gus reads them when it lands. Tap a word to make your own joke.
+- **Gus Phase 2, first machine: the Run-on Fixer** (Jobs menu, 🚧 Fix the run-on). Gus glues two whole sentences into one machine ("The dog runs the cat jumps."). Running it jams the conveyor and Gus names both ideas and the exact spot: "snap a Logic Gate (and, but, so) between ... The comma comes with it. Or split them into two machines." Joining them earns 3 stars, a ⚡ sticker and "The jam is cleared!". The same run-on message now appears any time a student glues two whole sentences together, not only in the job (`runOnSplit` in `engine/jobs.ts`; tested over 24 random jobs). **Next in Phase 2:** the Appositive Clamp, then the Fusion Reactor, Revision Workshop, CER Lab Report, Label and Unit Maker, and Gus's Paint Shop.
+- **SQL:** one copy-paste file, [`supabase/RUN_THIS_IN_SQL_EDITOR.sql`](https://github.com/vermontliteracynetwork/Dashboard/blob/main/supabase/RUN_THIS_IN_SQL_EDITOR.sql): the `activity_library` student fields, `marketplace_items.model_path`, the `chess_games` and `style_looks` tables and their access rules. `schema.sql` now also lists `model_path`. After she runs it, the next session adds the student fields back to the activity save and maps `model_path` in `src/lib/sync.ts`.
 
 ### Old characters removed everywhere; full characters in every picture; Alchemy asks before leaving. SHIPPED 2026-10-08 (direct teacher instructions)
 

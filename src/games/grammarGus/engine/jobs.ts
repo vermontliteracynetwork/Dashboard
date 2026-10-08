@@ -17,7 +17,7 @@ import type { BoardItem } from './board';
 
 export type JobKind = 'delivery' | 'inspector' | 'order' | 'blueprint' | 'spark';
 export type Flaw = 'missing-end' | 'end-middle' | 'missing-cap' | 'cap-late';
-export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw | 'who' | 'did'; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }
+export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw | 'who' | 'did' | 'runon'; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }
 export const FLAW_HINTS: Record<Flaw, string> = {
   'missing-end': 'This sentence has no punctuation at the end.',
   'end-middle': 'Some punctuation is in the wrong place.',
@@ -130,4 +130,42 @@ export function makeSparkJob(rng: Rng, uid: () => string, o: { gentleOnly?: bool
     items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: order.filled.draft.tense }, ...words, { id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }],
     job: { id: uid(), kind: 'spark', text: order.text, flaw: missing },
   };
+}
+
+// Run-ons (Claudia's Phase 2, first machine; teacher 2026-10-08 "go for gus stuff"): two whole
+// sentences glued together with nothing joining them. runOnSplit finds where the second idea
+// starts (its who right before its last action word), or null when it is not a run-on.
+export function runOnSplit(tokens: { pos: Pos }[]): number | null {
+  let v = -1;
+  for (let i = tokens.length - 1; i >= 0; i--) if (tokens[i].pos === 'V') { v = i; break; }
+  if (v < 2) return null;
+  let i = v - 1;
+  if (tokens[i].pos !== 'N' && tokens[i].pos !== 'R') return null;
+  i--;
+  while (i >= 0 && tokens[i].pos === 'J') i--;
+  if (i >= 0 && tokens[i].pos === 'A') i--;
+  const start = i + 1;
+  if (start === 0 || !tokens.slice(0, start).some((t) => t.pos === 'V')) return null;
+  if (tokens[start - 1].pos === 'C' || tokens[start - 1].pos === 'P') return null;
+  return start;
+}
+
+// The Run-on Fixer job: Gus glues two complete sentences into one machine. The student snaps a
+// Logic Gate (and, but, so) between the two ideas, and the comma comes with it.
+export function makeRunOnJob(rng: Rng, uid: () => string, o: { gentleOnly?: boolean } = {}): { items: BoardItem[]; job: BoardJob } {
+  for (let tries = 0; ; tries++) {
+    const a = makeOrder(rng, o);
+    const tense = a.filled.draft.tense;
+    let b = makeOrder(rng, o);
+    for (let k = 0; k < 40 && b.filled.draft.tense !== tense; k++) b = makeOrder(rng, o);
+    const ta = a.filled.draft.tokens, tb = b.filled.draft.tokens;
+    if (tries < 200 && (b.filled.draft.tense !== tense || ta.length + tb.length > 9 || ta.length > 5 || tb.length > 5 || ta.some((t) => t.pos === 'C') || tb.some((t) => t.pos === 'C'))) continue;
+    const words: BoardItem[] = [...ta, ...tb].map((t) => ({ id: uid(), kind: t.pos, word: t.word, ...(t.form ? { form: t.form } : {}) }));
+    if (runOnSplit([...ta, ...tb]) !== ta.length && tries < 200) continue;
+    words[0] = { ...words[0], bottom: { id: uid(), kind: 'cap', word: null } };
+    return {
+      items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: tense }, ...words, { id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }],
+      job: { id: uid(), kind: 'spark', text: `${a.text} ${b.text}`, flaw: 'runon' },
+    };
+  }
 }

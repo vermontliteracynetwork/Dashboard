@@ -8,7 +8,8 @@ import type { Pos } from '../engine/types';
 // letter on the first word, punctuation and a Pixel TV. Every word machine
 // stays unlocked, so a student taps any word and swaps it for their own.
 
-export interface ExampleSentence { id: string; text: string; words: [Pos, string][] }
+// setup: lines said before the machine (a joke's knock knock), shown with it but not built.
+export interface ExampleSentence { id: string; text: string; words: [Pos, string][]; setup?: string }
 
 export const EXAMPLE_SENTENCES: ExampleSentence[] = [
   { id: 'dog-ball', text: 'The dog chases the ball.', words: [['A', 'the'], ['N', 'dog'], ['V', 'chase'], ['A', 'the'], ['N', 'ball']] },
@@ -28,9 +29,15 @@ export const FIGURATIVE: ExampleSentence[] = [
   { id: 'simile-rocket', text: 'The girl runs like a rocket.', words: [['A', 'the'], ['N', 'girl'], ['V', 'run'], ['P', 'like'], ['A', 'a'], ['N', 'rocket']] },
   { id: 'metaphor-star', text: 'The baby is a star.', words: [['A', 'the'], ['N', 'baby'], ['V', 'be'], ['A', 'a'], ['N', 'star']] },
 ];
+// Jokes (teacher 2026-10-08: "joke framwork should start with a simple knock knowck"). The
+// machine is the punchline; the knock knock lines are said first.
+export const JOKES: ExampleSentence[] = [
+  { id: 'kk-cow', setup: "Knock knock. Who's there? Cow. Cow who?", text: 'The silly cow dances happily.', words: [['A', 'the'], ['J', 'silly'], ['N', 'cow'], ['V', 'dance'], ['D', 'happily']] },
+];
 export const EXAMPLE_GROUPS: { id: string; title: string; note?: string; items: ExampleSentence[] }[] = [
   { id: 'sentences', title: 'Example sentences', items: EXAMPLE_SENTENCES },
   { id: 'figurative', title: 'Figurative language', note: 'A simile compares with like. A metaphor says one thing IS another.', items: FIGURATIVE },
+  { id: 'jokes', title: 'Jokes', note: 'A knock knock joke: the setup lines first, then the machine says the punchline.', items: JOKES },
 ];
 export const ALL_EXAMPLES: ExampleSentence[] = EXAMPLE_GROUPS.flatMap((g) => g.items);
 

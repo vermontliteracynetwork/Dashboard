@@ -81,3 +81,32 @@ describe("Claudia's Phase 1 batch C", () => {
     for (const t of TRANS_ITEMS) expect(TRANS_KINDS[t.kind]).toBeTruthy();
   });
 });
+
+describe("Claudia's Phase 2: run-ons", () => {
+  it('a Run-on Fixer machine jams with no join, and runs once a Logic Gate joins the two ideas', async () => {
+    const { makeRunOnJob, runOnSplit } = await import('../engine/jobs');
+    for (let s = 1; s < 25; s++) {
+      let k = 0;
+      const j = makeRunOnJob(makeRng(s), () => `r${k++}`);
+      expect(j.job.flaw).toBe('runon');
+      const rd = readLine({ id: 'x', x: 0, y: 0, items: j.items }, 'full', false);
+      const v = runSentence(rd.draft).validation;
+      expect(v.ok).toBe(false);
+      const split = runOnSplit(rd.draft.tokens);
+      expect(split).not.toBeNull();
+      const words = j.items.filter((i) => i.kind.length === 1);
+      const at = j.items.indexOf(words[split!]);
+      const fixed = [...j.items.slice(0, at), { id: `gate${s}`, kind: 'gate' as const, word: 'and' }, ...j.items.slice(at)];
+      const rd2 = readLine({ id: 'y', x: 0, y: 0, items: fixed }, 'full', false);
+      expect(runSentence(rd2.draft).validation.ok).toBe(true);
+    }
+  });
+  it('runOnSplit finds the second idea and ignores a single sentence', async () => {
+    const { runOnSplit } = await import('../engine/jobs');
+    const t = (p: string) => p.split(' ').map((pos) => ({ pos: pos as 'N' }));
+    expect(runOnSplit(t('A N V A N V'))).toBe(3);
+    expect(runOnSplit(t('A N V A N A J N V'))).toBe(5);
+    expect(runOnSplit(t('A N V A N'))).toBeNull();
+    expect(runOnSplit(t('A N V C A N V'))).toBeNull();
+  });
+});
