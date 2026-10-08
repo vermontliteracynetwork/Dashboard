@@ -31,7 +31,7 @@ export function explainViolation(code: Violation, words: string[]): string {
     case 'EXTRA_COMMA': return `The comma after ${q(a)} does not belong there. Take it off.`;
     case 'PRONOUN_NO_REFERENT': return `${q(a)} points to someone, but Gus does not know who yet. Name them first in an earlier sentence.`;
     case 'PRONOUN_CASE': return `${q(a)} is the wrong form here. Use he, she, I or they before the action word, and him, her, me or them after it.`;
-    case 'NO_JOIN': return `${q(a)} and ${q(b)} are two ideas side by side with nothing joining them. Add a joining word like and, but or because between them.`;
+    case 'NO_JOIN': return `${q(a)} and ${q(b)} are squished side by side with nothing joining them. Drag a Join Clamp (and, but, or) from the parts menu and snap it between them, or take one of them off.`;
     case 'EXTRA_OBJECT': return `${q(a)} cannot take a thing after it. Take away the noun after it, or add a where word ("runs to the park").`;
     case 'SUPERLATIVE_THE': return `${q(a)} is an -est word, so it needs "the" before it ("the tallest").`;
     default: return 'The word machines are in an order Gus cannot read. Try the who first, then the action word, then the rest.';

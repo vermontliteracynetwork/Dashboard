@@ -38,6 +38,7 @@ import { gusSound, setGusLevel, setGusMuted } from './sound';
 import ImmersiveReader from '../reading/ImmersiveReader';
 import { bankFor, registerArticleWords, starterItems, useLibrary, type GusArticle } from '../reading/library';
 import { EXAMPLE_SENTENCES, exampleItems } from '../data/examples';
+import { boardsNow, saveBoards, shareOwner, useBoards, useSharedBoards } from '../boards';
 import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
 import MachinePart from './board/MachinePart';
 import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, type Kind, type Job } from './board/parts';
@@ -398,7 +399,13 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   useEffect(() => { setGusMuted(muted); speechOff = muted; }, [muted]);
 
   // Autosave: the board comes back next time (per student, on this iPad).
-  const saveKey = `gus-board2-${host ? 'teacher' : studentId ?? 'guest'}`;
+  // A saved teacher board opened from Academics (teacher 2026-10-08): ?board=<id>, and &live=1 to share it live.
+  const boardParams = new URLSearchParams(location.search);
+  const boardId = host ? boardParams.get('board') : null;
+  const autoLive = host && boardParams.get('live') === '1';
+  const savedBoards = useBoards();
+  const boardRow = boardId ? savedBoards.find((b) => b.id === boardId) : undefined;
+  const saveKey = `gus-board2-${host ? (boardId ? `teacher-${boardId}` : 'teacher') : studentId ?? 'guest'}`;
   const restored = useRef(false);
   const fitRef = useRef(() => {});
   useEffect(() => {
@@ -410,8 +417,22 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   useEffect(() => {
     if (liveRef.current?.role === 'guest') return; // the class machine is not saved over a student's own board
     const t = window.setTimeout(() => { try { localStorage.setItem(saveKey, JSON.stringify({ lines, view, spare })); } catch { /* fine */ } }, 400);
-    return () => window.clearTimeout(t);
-  }, [lines, view, spare, saveKey]);
+    // A saved board also saves to the class server, so Academics can share it.
+    const t2 = boardId && boardLoaded.current ? window.setTimeout(() => {
+      const real = lines.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank'));
+      const all = boardsNow(); const cur = all.find((b) => b.id === boardId);
+      if (cur && JSON.stringify(cur.lines) !== JSON.stringify(real)) saveBoards(all.map((b) => (b.id === boardId ? { ...b, lines: real, updatedAt: new Date().toISOString() } : b)));
+    }, 1500) : 0;
+    return () => { window.clearTimeout(t); if (t2) window.clearTimeout(t2); };
+  }, [lines, view, spare, saveKey, boardId]);
+  // A board opened in a fresh tab comes from the class server when this computer has no copy.
+  const boardLoaded = useRef(false);
+  useEffect(() => {
+    if (!boardId || boardLoaded.current || !boardRow) return;
+    boardLoaded.current = true;
+    const here = linesRef.current.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank'));
+    if (!here.length && boardRow.lines.length) { setLines(boardRow.lines); requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current())); }
+  }, [boardId, boardRow]);
 
   // ---- geometry -------------------------------------------------------------
   const toBoard = (cx: number, cy: number) => {
@@ -869,7 +890,10 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       const ids = targets.map((i) => rd.tokenIds[i]).filter(Boolean);
       const gl = lineFor(GATE_LINES[v.code as Violation] ?? GATE_LINES.BAD_SHAPE!, seed);
       const named = targets.map((i) => rd.draft.tokens[i]?.word).filter(Boolean) as string[];
-      missed(line.id, { text: `${gl.joke} ${gl.fix}`, ghosts: [], commaOn: v.code === 'NO_COMMA' ? ids : [], pulse: v.code === 'NO_COMMA' ? [] : ids, glow: GATE_GLOW[v.code as Violation], explain: explainViolation(v.code as Violation, named) }, gadgetNotes);
+      // Sardines (teacher 2026-10-08: a clear fix): name the two words and say exactly what to do.
+      const nj = v.code === 'NO_JOIN' ? [rd.draft.tokens[Math.max(0, (v.insertAt ?? targets[0] + 1) - 1)]?.word, rd.draft.tokens[v.insertAt ?? targets[0] + 1]?.word].filter(Boolean) as string[] : [];
+      const fixText = v.code === 'NO_JOIN' && nj.length === 2 ? `"${nj[0]}" and "${nj[1]}" are squished side by side with nothing joining them. Fix it: drag a Join Clamp (and, but, or) from the parts menu and snap it between "${nj[0]}" and "${nj[1]}". Or, if you only meant one of them, tap the other one and choose Take it off.` : gl.fix;
+      missed(line.id, { text: `${gl.joke} ${fixText}`, ghosts: [], commaOn: v.code === 'NO_COMMA' ? ids : [], pulse: v.code === 'NO_COMMA' ? [] : ids, glow: GATE_GLOW[v.code as Violation], explain: explainViolation(v.code as Violation, nj.length === 2 ? nj : named) }, gadgetNotes);
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars: 0 } : l)));
       logAttempt(rd.draft, r.composed.text, 0, r.validation.violations.filter((x) => x.blocking).map((x) => x.code));
       running.current = false;
@@ -1288,6 +1312,29 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     setLive({ code, role: 'host', locked: true, students: 0 }); setLiveOpen(true); gusSound.ding();
     say(`Your class code is ${code}. Students tap Join on their Workboard and type it in. They start locked, so they can watch. Unlock to build together.`, 'Live share');
   };
+  // Boards the teacher sent as a copy (Academics): they join this student's own board.
+  const shared = useSharedBoards(host ? null : studentId);
+  const dropShared = (id: string) => { if (studentId) mergeStyleRow(shareOwner(studentId), { boards: shared.filter((b) => b.id !== id) }); };
+  const openShared = (id: string) => {
+    const b = shared.find((x) => x.id === id); if (!b) return;
+    remember();
+    const keep = linesRef.current.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank'));
+    const top = keep.length ? snap(Math.max(...keep.map(lineBottom)) + ATT_H + 40) : 80;
+    const minY = Math.min(...b.lines.map((l) => l.y));
+    const fresh = (it: BoardItem): BoardItem => ({ ...it, id: uid(), ...(it.top ? { top: fresh(it.top) } : {}), ...(it.bottom ? { bottom: fresh(it.bottom) } : {}) });
+    setLines([...keep, ...b.lines.map((l) => ({ ...l, id: uid(), y: l.y - minY + top, stars: null, items: l.items.map(fresh) }))]);
+    dropShared(id); gusSound.horn();
+    say(`Here is "${b.name}" from your teacher. It is your own copy: build, change and run it however you like.`, '📬 From your teacher');
+    requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
+  };
+  const autoLived = useRef(false);
+  useEffect(() => {
+    if (!autoLive || autoLived.current) return;
+    autoLived.current = true;
+    const t = window.setTimeout(() => startShare(), 900);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLive]);
   const toggleLock = () => {
     const l = liveRef.current; if (!l || l.role !== 'host') return;
     const locked = !l.locked; setLive({ ...l, locked }); hostSend(linesRef.current, locked); gusSound.clank();
@@ -1534,6 +1581,13 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       <main className={`gwb-main${panes.sideHidden ? ' side-hidden' : ''}${panes.docHidden ? ' doc-hidden' : ''}`} style={{ ['--gwb-side-w' as string]: `${panes.sideW}px`, ['--gwb-drawer-w' as string]: `${panes.drawerW}px` }}>
         {drawerOpen && <div className="gwb-resize-x drawer" onPointerDown={(e) => startResize(e, 'drawer')} role="separator" aria-orientation="vertical" aria-label="Drag to make the parts menu wider or narrower" />}
         <div className="gwb-boardcol">
+        {!host && shared.length > 0 && (
+          <div className="gwb-qbar" role="note">
+            <strong>📬 Your teacher sent you a board: {shared[0].name}</strong>
+            <button type="button" className="gus-btn gus-btn-primary" onClick={() => openShared(shared[0].id)}>Open it</button>
+            <button type="button" className="gus-btn" onClick={() => dropShared(shared[0].id)}>Not now</button>
+          </div>
+        )}
         {(() => {
           const ql = focusLine?.job?.kind === 'read' ? focusLine : lines.find((l) => l.job?.kind === 'read' && !l.job.done);
           if (!ql?.job) return null;

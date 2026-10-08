@@ -42,7 +42,7 @@ export const GATE_LINES: Partial<Record<Violation, Line[]>> = {
     { joke: 'One cannot simply run a ball. I checked.', fix: 'Pick an action that can take a thing, or take the thing away.' },
   ],
   NO_JOIN: [
-    { joke: 'Two words crammed together like sardines! Unacceptable.', fix: 'Put a joining word like and between them.' },
+    { joke: 'Two words crammed together like sardines! Unacceptable.', fix: 'Two words of the same kind are side by side with nothing joining them. Drag a Join Clamp (and, but, or) from the parts menu and snap it between the two glowing machines, or tap one of them and choose Take it off.' },
   ],
   CONJ_UNBALANCED: [
     { joke: 'And... and WHAT? You cannot leave Gus hanging like that.', fix: 'Add something after the joining word.' },

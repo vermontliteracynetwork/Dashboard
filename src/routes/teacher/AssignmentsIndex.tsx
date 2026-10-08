@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { ActivityLibraryBrowse, activityToTaskSnapshot, CreateActivityForm } from './ActivityLibrary';
 import QuestionSetsManager from './QuestionSetsManager';
+import GusBoardsPanel from './GusBoardsPanel';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { StudentPlanTabs } from './LessonPlanBuilder';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
@@ -793,6 +794,7 @@ export default function AssignmentsIndex() {
 
         <QuestionSetsManager />
         <ActivitiesPanel />
+        <GusBoardsPanel />
       </div>
 
       {detailGroup && (

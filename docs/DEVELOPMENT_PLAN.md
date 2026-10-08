@@ -692,6 +692,15 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Academics: Grammar Gus boards (open in a new tab, share live, or send each student a copy). Gus's "sardines" message names the fix. SHIPPED 2026-10-08 (direct teacher instructions)
+
+- **Her words (verbatim):** "in accademics tab, as teacher, allow me to add a new section beneth actiities that adds a grammar gus whiteboard where i can click, launch in a new tab, create a grammar board to join/share to me students for live edits or share as a copy so they can do it independently"; "for gus, make sure "packed in like sardines" warning gives a clear fix on how to solve the issue".
+- **⚙️ Grammar Gus boards** sits under Activities in Academics (`GusBoardsPanel.tsx`). **➕ New board** opens her Workboard in a new tab. Each saved board has **🚀 Open in a new tab**, **📡 Share live** (opens it in a new tab and starts live share right away, showing the 4-number code; students tap Join on their Workboard), **📤 Send a copy** (pick students or Everyone), **✏️ Rename** and **🗑️ Delete**.
+- Boards save to the class server as she builds (the `gus-boards` style_looks row, no new SQL), so a board opened on another computer comes back too.
+- **A copy for a student:** waits at the top of their Workboard ("📬 Your teacher sent you a board: ... Open it / Not now"). Open it adds the machines under their own, as their own copy to build and run by themselves (`gusshare:<studentId>` rows).
+- **Sardines:** "Two words crammed together like sardines!" now names both words and the exact fix: "'run' and 'jump' are squished side by side with nothing joining them. Fix it: drag a Join Clamp (and, but, or) from the parts menu and snap it between 'run' and 'jump'. Or, if you only meant one of them, tap the other one and choose Take it off." The third-hint and repeated-run explanations name both words too.
+- **Not checked live yet:** Share live from Academics in a second tab with a student device joining.
+
 ### Question Sets: download and upload CSV files, a zip of pictures in order, and a full preview before saving. SHIPPED 2026-10-08 (direct teacher instruction, with a screenshot of Academics, Question Sets)
 
 - **Her words (verbatim):** "allow me in this view to download csv file and uplaod a csv. when i upload a csv, give me option to upload a zip file of images. take the file and assume that the order the images are saved are the corresponsiding quesions in order. apply one image to each question. allow me to preview all questions with images (editing as needed) before i save the question set"
@@ -743,7 +752,6 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 - "in ipad optomization for grammar gus, allow them to drag and resize all components, collapsing everything, rezising, so they can get the most out of their main whiteboard space as needed" (with "the navigation for grammar gus needs to be optomized for ipads, right now things are sized weird so they cant see all words, cant navigate buttons"). Next, top priority.
 - "in gus's checklist, students should be able to click on each item to get a note of explanation of how to do each step explicilty. make sure the checklist is only things explicitly needed to make the sentence run as the machine. if they are continuously clicking and its not running, gus needs to tell them exactly what to fix after a few attempts" (the third-hint explanation above covers the last part; the checklist notes are next).
-- "in accademics tab, as teacher, allow me to add a new section beneth actiities that adds a grammar gus whiteboard where i can click, launch in a new tab, create a grammar board to join/share to me students for live edits or share as a copy so they can do it independently".
 - Question Sets (with a screenshot of the Academics Question Sets section): "allow me in this view to download csv file and uplaod a csv. when i upload a csv, give me option to upload a zip file of images. take the file and assume that the order the images are saved are the corresponsiding quesions in order. apply one image to each question. allow me to preview all questions with images (editing as needed) before i save the question set".
 
 ### Marketplace edits, game power-ups, real-life prizes, every home item, bank link. SHIPPED 2026-10-08 (direct teacher instruction)

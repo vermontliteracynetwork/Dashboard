@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-gus-shared-boards',
+    date: '2026-10-08',
+    icon: '📬',
+    title: 'Boards from your teacher',
+    body: 'Your teacher can send you a Grammar Gus board to build on your own. Look for it at the top of your Workboard and tap Open it. When two words get squished together, Gus now tells you exactly which words and how to fix it.',
+  },
+  {
     id: '2026-10-08-gus-big-board',
     date: '2026-10-08',
     icon: '⛶',
