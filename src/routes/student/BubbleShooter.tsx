@@ -18,7 +18,7 @@ import {
   type ShotResult,
 } from '../../games/bubbleShooter/engine';
 import { sfx as SFX, startMusic, stopMusic } from '../../games/bubbleShooter/audio';
-import PlinkoBonus, { POWER_INFO, type PowerId, type Prize } from '../../games/bubbleShooter/PlinkoBonus';
+import PlinkoBonus, { POWER_INFO, zonesForRound, type PowerId } from '../../games/bubbleShooter/PlinkoBonus';
 
 // Bubble Shooter (teacher 2026-10-08: "lets make a bubble shooter native game", with two classic
 // bubble shooter screenshots and her Bubble Buttons pack). Drag to aim (the dotted line shows the
@@ -222,8 +222,9 @@ export default function BubbleShooter() {
     pay.current();
     setPhase('over');
   };
-  const collectPlinko = (p: Prize) => {
-    if ('xp' in p) { g.current.xp += p.xp; } else gain(p.power);
+  // Plinko XP is only XP: it counts toward the personal leaderboard, never toward cash (her rule).
+  const collectPlinko = (xp: number) => {
+    g.current.xp += xp;
     syncHud();
     if (round < roundSet.rounds) { const n = round + 1; setRound(n); newBoard(n); askQuestions(); } else finishGame();
   };
@@ -602,7 +603,7 @@ export default function BubbleShooter() {
         </div>
       )}
 
-      {phase === 'plinko' && <PlinkoBonus calm={calm} sound={sound} onDone={collectPlinko} />}
+      {phase === 'plinko' && <PlinkoBonus zones={zonesForRound(round)} calm={calm} sound={sound} onDone={collectPlinko} />}
 
       {phase === 'over' && (
         <div className="bs-modal-back">

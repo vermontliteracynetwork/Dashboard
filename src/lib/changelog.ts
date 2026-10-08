@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-plinko-zones',
+    date: '2026-10-08',
+    icon: '🎯',
+    title: 'Plinko drop zones with silly sounds',
+    body: 'After every Bubble Shooter round, drop 3 balls into numbered zones. Zone 1 is worth 10 XP and zone 10 is worth 100 XP. You get one more zone every round! Listen for the bark, the meow, the doorbell and more when your ball lands.',
+  },
+  {
     id: '2026-10-08-bubble-rounds',
     date: '2026-10-08',
     icon: '⭐',

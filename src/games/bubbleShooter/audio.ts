@@ -65,3 +65,27 @@ export function startMusic(tempo: () => number) {
   tick();
 }
 export function stopMusic() { window.clearTimeout(timer); timer = 0; }
+
+// Plinko drop zones each have a fast, silly sound (teacher 2026-10-08: "1=bark 2=chime 3= meow 4= ding
+// dong doorbell etc."). Zones 5 to 10 were Claudia's picks in the same spirit.
+function glide(type: OscillatorType, from: number, to: number, dur: number, vol = 0.14, vib = 0) {
+  const a = ac(); if (!a) return;
+  const t0 = a.currentTime;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(from, t0); o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  if (vib) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = vib; lg.gain.value = from * 0.06; l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur); }
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+export const ZONE_SOUNDS: { name: string; play: () => void }[] = [
+  { name: 'Bark', play: () => { noise(0.08, 0.3, 900); glide('square', 420, 180, 0.12, 0.09); window.setTimeout(() => { noise(0.07, 0.25, 900); glide('square', 400, 170, 0.1, 0.08); }, 150); } },
+  { name: 'Chime', play: () => tone([1319, 1568, 2093], 0.09, 'triangle', 0.12) },
+  { name: 'Meow', play: () => { glide('sawtooth', 520, 820, 0.18, 0.06, 7); window.setTimeout(() => glide('sawtooth', 820, 430, 0.22, 0.06, 7), 170); } },
+  { name: 'Doorbell', play: () => { tone([659], 0.35, 'sine', 0.16); window.setTimeout(() => tone([523], 0.45, 'sine', 0.16), 330); } },
+  { name: 'Boing', play: () => glide('sine', 150, 700, 0.35, 0.16, 18) },
+  { name: 'Quack', play: () => { glide('sawtooth', 620, 380, 0.12, 0.08); window.setTimeout(() => glide('sawtooth', 600, 360, 0.12, 0.08), 150); } },
+  { name: 'Slide whistle', play: () => glide('sine', 400, 1600, 0.45, 0.12) },
+  { name: 'Honk', play: () => { tone([311, 294], 0.14, 'square', 0.08); } },
+  { name: 'Pop', play: () => { noise(0.04, 0.4, 3000); tone([1800], 0.04, 'sine', 0.12); } },
+  { name: 'Ta-da', play: () => tone([523, 659, 784, 1047], 0.08, 'triangle', 0.14) },
+];

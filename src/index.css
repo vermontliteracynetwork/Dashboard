@@ -5902,15 +5902,17 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .bs-reveal-card { width: 120px; height: 120px; border-radius: 26px; background: linear-gradient(135deg, #ff4fc8, #7c5cff); display: flex; align-items: center; justify-content: center; font-size: 64px; box-shadow: 0 10px 0 rgba(0, 0, 0, 0.25); }
 .bs-reveal-card.flip { animation: bsFlip 0.7s cubic-bezier(.2,1.4,.4,1); }
 @keyframes bsFlip { 0% { transform: rotateY(90deg) scale(0.6); } 100% { transform: rotateY(0) scale(1); } }
-.bs-plinko-card { max-width: 520px; }
-.bs-plinko-drops { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; gap: 4px; }
+.bs-plinko-card { max-width: 620px; }
+.bs-plinko-drops { display: grid; width: 100%; gap: 4px; }
 .bs-plinko-drop { min-height: 44px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.12); color: #f7d81d; font-size: 1.2rem; font-weight: 900; cursor: pointer; touch-action: manipulation; }
 .bs-plinko-drop:disabled { opacity: 0.4; }
-.bs-plinko-board { position: relative; width: 100%; aspect-ratio: 7 / 8; background: linear-gradient(#24196a, #160f45); border-radius: 16px; overflow: hidden; }
+.bs-plinko-board { position: relative; width: 100%; max-height: 52vh; background: linear-gradient(#24196a, #160f45); border-radius: 16px; overflow: hidden; }
 .bs-peg { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffffff, #b9a8ff); box-shadow: 0 0 6px rgba(185, 168, 255, 0.8); }
 .bs-plinko-ball { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffb0b3, #ec2a33 45%, #8a0c12); box-shadow: 0 0 10px rgba(236, 42, 51, 0.8); }
-.bs-plinko-slots { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; padding: 4px; }
-.bs-slot { min-height: 46px; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 10px; background: rgba(255, 255, 255, 0.12); font-weight: 900; font-size: 0.78rem; }
+.bs-plinko-slots { position: absolute; left: 0; right: 0; bottom: 0; display: grid; gap: 3px; padding: 4px; }
+.bs-slot { min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 10px; background: rgba(255, 255, 255, 0.12); font-weight: 900; font-size: 0.78rem; line-height: 1.1; }
+.bs-slot b { font-size: 1.1rem; }
+.bs-slot small { font-size: 0.62rem; opacity: 0.9; }
 .bs-slot.won { background: #f7d81d; color: #2a1d7a; animation: bsComboPulse 0.4s ease-in-out infinite alternate; }
 .bs-plinko-prize { font-size: 1.2rem; font-weight: 900; }
 @media (prefers-reduced-motion: reduce) { .bs-combo, .bs-combo-badge, .bs-slot.won, .bs-reveal-card.flip { animation: none; } .bs-timer-fill { transition: none; } }
