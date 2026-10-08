@@ -646,6 +646,21 @@ The first login of the day shows a Daily Streak card ("complete 20 questions tod
 
 One shared trail (`src/lib/navTrail.ts`): Back always returns to the screen the student came from (not always Town Square), every computer page's address bar is a tappable breadcrumb with the Computer first, and a screen can ask before the student leaves (`setLeaveGuard`, used by Alchemy).
 
+#### A55. Home Build Mode for students: catalog, walls, bigger yard, camera arrows — SHIPPED 2026-10-08
+
+**Her words (2026-10-08, verbatim):** "in houses, the marketplace menu and personal catelog inventory need to be improved for student build mode. need navigational arrows, claudia impove ui ux for build mode students in their houses. make the yard bigger by default. allow the walls to drop fully and at half walk (sims 4 camera controls)"
+
+What shipped (all in `src/routes/world/HomeRoom.tsx`, styles `.hb-*` in `src/index.css`):
+- **Bigger yard:** the yard is now 12 by 12 (was 5 by 5), with a larger grass field around it.
+- **Sims-style walls:** a Walls control (Up / Cutaway / Half / Down) shows in every indoor room, in View mode and Build Mode. Cutaway (the default) drops only the walls between the camera and the room, and they follow as the camera turns; Half lowers every wall to half height; Down drops them to a low edge so the whole floor is visible. Walls slide smoothly between heights. The choice is remembered on that iPad.
+- **One catalog, two tabs:** 📦 My Items (what the student owns, plus the free starters) and 🛍️ Shop (the Marketplace Home items they can buy). Room filter chips (All, Living room, Bedroom, Kitchen, Bathroom, Yard and so on), a search box, and the cash balance sit above the row. Big ◀ ▶ arrows scroll the row a page at a time and grey out at the ends. A Hide button folds the catalog down to give more room.
+- **Buy right in Build Mode:** tapping a Shop item opens a small card with its picture and price: "Buy and place it" buys it, switches to My Items and arms it for placing; if the student is short, it says exactly how much more they need.
+- **Tool rail and camera pad:** Hammer, Top View, Room and Clear (two taps to confirm) moved to a left rail; a right-side camera pad turns the view (⟲ ⟳) and zooms (＋ －) for students on iPad without a trackpad. All buttons are 44px or bigger.
+
+Claudia's UX calls: Cutaway as the default (it is what Sims players expect and keeps furniture visible while turning); the Shop lives inside Build Mode so a student never has to leave their house to buy one couch; the short-on-cash card names the amount instead of a disabled button (same rule as the Marketplace).
+
+In progress / not checked yet: not tried on a real iPad in both orientations; the wall cutaway is decided per wall from the camera direction, so very narrow rooms may drop two walls at once at corner angles.
+
 ---
 
 ## PART B — Open Backlog, by Feature Front

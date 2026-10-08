@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-home-build',
+    date: '2026-10-08',
+    icon: '🏠',
+    title: 'A better Build Mode at home',
+    body: 'Your yard is much bigger now. Use the Walls buttons to put walls up, cut them away, drop them halfway or all the way down, just like in The Sims. The catalog has My Items and Shop tabs, room filters, a search box and big arrows. You can buy a new item and place it without leaving your house. Use the turn and zoom buttons to look around.',
+  },
+  {
     id: '2026-10-08-plinko-zones',
     date: '2026-10-08',
     icon: '🎯',

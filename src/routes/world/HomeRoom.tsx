@@ -71,7 +71,8 @@ const HOME_ROOM_SIZES: Record<HomeRoomKind, { w: number; d: number }> = {
   small: { w: 6, d: 6 },
   xsmall: { w: 4, d: 4 },
   closet: { w: 1, d: 2 },
-  yard: { w: 5, d: 5 },
+  // Teacher 2026-10-08: "make the yard bigger by default".
+  yard: { w: 12, d: 12 },
 };
 const HOME_ROOM_SIZE_LABELS: Record<HomeRoomKind, string> = {
   large: 'Large (10×10)',
@@ -79,7 +80,7 @@ const HOME_ROOM_SIZE_LABELS: Record<HomeRoomKind, string> = {
   small: 'Small (6×6)',
   xsmall: 'X-Small (4×4)',
   closet: 'Closet (1×2)',
-  yard: 'Yard (5×5)',
+  yard: 'Yard (12×12)',
 };
 const ADDABLE_ROOM_KINDS: HomeRoomKind[] = ['large', 'medium', 'small', 'xsmall', 'closet'];
 const ROOM_NAME_SUGGESTIONS = ['Bedroom', 'Kitchen', 'Bathroom', 'Living Room', 'Game Room', 'Office', 'Closet', 'Playroom', 'Dining Room'];
@@ -116,7 +117,56 @@ interface PlaceableItem {
   target: ScaleTarget;
   priceCents?: number; // undefined = free (interior starter catalog); set = a real yard purchase, charged on placement
   locked?: boolean; // marketplace 'furniture' items the student hasn't bought yet — shown, not hidden, per the Pet Shelter's own precedent, but can't be armed
+  tags?: string[]; // room tags (bedroom, kitchen...) for the catalog filter
+  shopPriceCents?: number; // a home item's Marketplace price, bought right from the catalog
 }
+
+// Walls like The Sims 4 (teacher 2026-10-08: "allow the walls to drop fully and at half walk (sims 4
+// camera controls)"): Walls Up, Cutaway (the walls between you and the room drop so you can see in),
+// Half, and Down.
+type WallMode = 'up' | 'cutaway' | 'half' | 'down';
+const WALL_MODES: { id: WallMode; icon: string; label: string }[] = [
+  { id: 'up', icon: '🧱', label: 'Up' },
+  { id: 'cutaway', icon: '🪟', label: 'Cutaway' },
+  { id: 'half', icon: '▤', label: 'Half' },
+  { id: 'down', icon: '▁', label: 'Down' },
+];
+const WALL_LOW = 0.18;
+const WALL_HALF = 1.2;
+function RoomWalls({ roomW, roomD, color, mode }: { roomW: number; roomD: number; color: string; mode: WallMode }) {
+  const halfW = roomW / 2, halfD = roomD / 2;
+  const walls = [
+    { x: 0, z: -halfD, sx: roomW, sz: 0.2, nx: 0, nz: -1 },
+    { x: 0, z: halfD, sx: roomW, sz: 0.2, nx: 0, nz: 1 },
+    { x: -halfW, z: 0, sx: 0.2, sz: roomD, nx: -1, nz: 0 },
+    { x: halfW, z: 0, sx: 0.2, sz: roomD, nx: 1, nz: 0 },
+  ];
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const { camera } = useThree();
+  useFrame((_, dt) => {
+    walls.forEach((w, i) => {
+      const m = refs.current[i]; if (!m) return;
+      let h = mode === 'up' ? WALL_HEIGHT : mode === 'half' ? WALL_HALF : mode === 'down' ? WALL_LOW : WALL_HEIGHT;
+      // Cutaway: a wall whose outside faces the camera is in the way, so it drops.
+      if (mode === 'cutaway' && (camera.position.x - w.x) * w.nx + (camera.position.z - w.z) * w.nz > 0) h = WALL_LOW;
+      const cur = m.scale.y;
+      const next = cur + (h - cur) * Math.min(1, dt * 10);
+      m.scale.y = next; m.position.y = next / 2;
+    });
+  });
+  return (
+    <>
+      {walls.map((w, i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }} position={[w.x, WALL_HEIGHT / 2, w.z]} scale={[1, WALL_HEIGHT, 1]}>
+          <boxGeometry args={[w.sx, 1, w.sz]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+const CATALOG_ROOMS = ['bedroom', 'living', 'kitchen', 'bathroom', 'dining', 'office'];
+const ROOM_FILTER_LABEL: Record<string, string> = { all: 'All', bedroom: '🛏️ Bedroom', living: '🛋️ Living', kitchen: '🍳 Kitchen', bathroom: '🛁 Bathroom', dining: '🍽️ Dining', office: '💻 Office', other: '✨ Other' };
 // Real, already-licensed models this project already ships under
 // public/world/models/interior/ (the same Quaternius house-furniture pack
 // WorldEditor's own 'interior' category uses) — picked as the single most
@@ -706,6 +756,19 @@ export default function HomeRoom() {
   const ensuredYardRef = useRef(false);
 
   const [petPanelOpen, setPetPanelOpen] = useState(false);
+  // Build Mode catalog (teacher 2026-10-08: "the marketplace menu and personal catelog inventory need to
+  // be improved for student build mode. need navigational arrows"): My Items and Shop tabs, room
+  // filters, a search box, and one scrolling row with big left and right arrows.
+  const [catTab, setCatTab] = useState<'mine' | 'shop'>('mine');
+  const [catFilter, setCatFilter] = useState('all');
+  const [catSearch, setCatSearch] = useState('');
+  const [catOpen, setCatOpen] = useState(true);
+  const [buyItem, setBuyItem] = useState<PlaceableItem | null>(null);
+  const catRowRef = useRef<HTMLDivElement>(null);
+  const [catEdges, setCatEdges] = useState({ left: false, right: false });
+  const [wallMode, setWallModeState] = useState<WallMode>(() => { try { const v = localStorage.getItem('home.walls') as WallMode | null; return v && WALL_MODES.some((m) => m.id === v) ? v : 'cutaway'; } catch { return 'cutaway'; } });
+  const setWallMode = (m: WallMode) => { setWallModeState(m); try { localStorage.setItem('home.walls', m); } catch { /* fine */ } };
+  const buyMarketplaceItem = useStore((s) => s.buyMarketplaceItem);
 
   // Declared up here (not down by topView's own definition below) so these
   // two hook calls always run before either of this component's early
@@ -792,6 +855,8 @@ export default function HomeRoom() {
       thumbnail: it.icon.startsWith('/') || it.icon.startsWith('http') ? it.icon : undefined,
       target: { kind: 'footprint', value: 1.5 },
       locked: !student?.ownedHomeItemIds.includes(it.id),
+      tags: it.tags,
+      shopPriceCents: it.price,
     }));
   // Interior-only for v1 (yard is its own, outdoor-themed catalog).
   const activeCatalog: PlaceableItem[] = [...(isYard ? YARD_ITEMS : STARTER_ITEMS), ...(isYard ? [] : marketplaceFurniture)];
@@ -1036,6 +1101,42 @@ export default function HomeRoom() {
     setIsTopView(true);
   };
 
+  // Camera arrows for iPad (no right-drag on a touch screen): spin around the room and zoom.
+  const spinCamera = (deg: number) => {
+    const c = controlsRef.current; if (!c) return;
+    const off = c.object.position.clone().sub(c.target);
+    off.applyAxisAngle(new THREE.Vector3(0, 1, 0), (deg * Math.PI) / 180);
+    c.object.position.copy(c.target).add(off); c.update();
+  };
+  const zoomCamera = (f: number) => {
+    const c = controlsRef.current; if (!c) return;
+    const off = c.object.position.clone().sub(c.target);
+    const len = THREE.MathUtils.clamp(off.length() * f, 4, 30);
+    off.setLength(len); c.object.position.copy(c.target).add(off); c.update();
+  };
+  const scrollCatalog = (dir: number) => {
+    const el = catRowRef.current; if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: 'smooth' });
+  };
+  const onCatScroll = () => {
+    const el = catRowRef.current; if (!el) return;
+    setCatEdges({ left: el.scrollLeft <= 4, right: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
+  };
+  const roomOf = (it: PlaceableItem) => it.tags?.find((t) => CATALOG_ROOMS.includes(t)) ?? 'other';
+  const mineList = activeCatalog.filter((it) => !it.locked);
+  const shopList = activeCatalog.filter((it) => it.locked);
+  const tabList = catTab === 'mine' ? mineList : shopList;
+  const filters = ['all', ...CATALOG_ROOMS.filter((r) => tabList.some((it) => roomOf(it) === r)), ...(tabList.some((it) => roomOf(it) === 'other') ? ['other'] : [])];
+  const shownCatalog = tabList.filter((it) => (catFilter === 'all' || roomOf(it) === catFilter) && (!catSearch.trim() || it.label.toLowerCase().includes(catSearch.trim().toLowerCase())));
+  const confirmBuy = () => {
+    if (!buyItem) return;
+    const ok = buyMarketplaceItem(student.id, buyItem.id);
+    if (!ok) { setPlacementError("You don't have enough Class Cash for that yet."); setBuyItem(null); return; }
+    flashSaved();
+    setCatTab('mine'); setCatFilter('all'); setArmedId(buyItem.id); setSelectedId(null); setHammerMode(false);
+    setBuyItem(null);
+  };
+
   const rotateSelected = (deg: number) => {
     if (!selected) return;
     updateWorldObject(selected.id, { rotationY: selected.rotationY + (deg * Math.PI) / 180 });
@@ -1227,7 +1328,7 @@ export default function HomeRoom() {
                 bigger than the 5x5 placeable grid so the exterior model
                 (outside that grid) still visibly sits "on grass." */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={handleFloorClick} onPointerMove={handleFloorPointerMove}>
-              <planeGeometry args={[24, 24]} />
+              <planeGeometry args={[48, 48]} />
               <meshStandardMaterial color={YARD_GRASS_COLOR} />
             </mesh>
             {mode === 'build' && <gridHelper args={[roomW, roomW, '#2f6b2a', '#2f6b2a']} position={[0, 0.02, 0]} />}
@@ -1278,18 +1379,8 @@ export default function HomeRoom() {
             </mesh>
             {mode === 'build' && <gridHelper args={[Math.max(roomW, roomD), Math.max(roomW, roomD), '#8a9a8e', '#8a9a8e']} position={[0, 0.02, 0]} />}
 
-            {/* 4 walls, no roof (direct instruction) */}
-            {[
-              { pos: [0, WALL_HEIGHT / 2, -halfD] as [number, number, number], size: [roomW, WALL_HEIGHT, 0.2] as [number, number, number] },
-              { pos: [0, WALL_HEIGHT / 2, halfD] as [number, number, number], size: [roomW, WALL_HEIGHT, 0.2] as [number, number, number] },
-              { pos: [-halfW, WALL_HEIGHT / 2, 0] as [number, number, number], size: [0.2, WALL_HEIGHT, roomD] as [number, number, number] },
-              { pos: [halfW, WALL_HEIGHT / 2, 0] as [number, number, number], size: [0.2, WALL_HEIGHT, roomD] as [number, number, number] },
-            ].map((wall, i) => (
-              <mesh key={i} position={wall.pos}>
-                <boxGeometry args={wall.size} />
-                <meshStandardMaterial color={activeRoom.wallColor || DEFAULT_WALL_COLOR} />
-              </mesh>
-            ))}
+            {/* 4 walls, no roof (direct instruction); up, cutaway, half or down like The Sims 4 */}
+            <RoomWalls roomW={roomW} roomD={roomD} color={activeRoom.wallColor || DEFAULT_WALL_COLOR} mode={wallMode} />
             {/* Pets review (2026-10-06): "pets live at home", but they
                 only ever showed up in the yard. Now they hang out inside
                 every room too, toward the front so they're easy to tap. */}
@@ -1340,135 +1431,93 @@ export default function HomeRoom() {
 
       {mode === 'build' && (
         <>
-          {/* Catalog — same visual language as the teacher's own Build Mode
-              catalog (tinted tile per category, armed = accent border), so
-              the two build modes read as the same tool. Interior starter
-              set or yard purchases, depending on the active room — only
-              what this student already has access to, never the teacher's
-              full asset library. */}
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60, background: 'rgba(255,255,255,0.95)', borderTop: '3px solid var(--ink, #1f4238)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'system-ui, sans-serif' }}>
-              <strong style={{ fontSize: 12 }}>{isYard ? '🌳' : '📦'} Catalog ({activeCatalog.length})</strong>
-              <button
-                className="btn btn-sm"
-                style={{ minHeight: 30, fontSize: 11, padding: '2px 10px' }}
-                onClick={() => navigate('/student/marketplace')}
-                title="Earn or buy more in the Marketplace"
-              >
-                🛍️ Marketplace
-              </button>
+          {/* Catalog: My Items (free and owned) and Shop (buy right here), room filters, search,
+              and one scrolling row with big arrows. Collapses to see more of the room. */}
+          <div className="hb-catalog" data-open={catOpen}>
+            <div className="hb-cat-head">
+              <div className="hb-tabs" role="tablist" aria-label="Catalog">
+                <button type="button" role="tab" aria-selected={catTab === 'mine'} className={catTab === 'mine' ? 'on' : ''} onClick={() => { setCatTab('mine'); setCatFilter('all'); }}>📦 My Items <b>{mineList.length}</b></button>
+                <button type="button" role="tab" aria-selected={catTab === 'shop'} className={catTab === 'shop' ? 'on' : ''} onClick={() => { setCatTab('shop'); setCatFilter('all'); }}>🛍️ Shop <b>{shopList.length}</b></button>
+              </div>
+              {catOpen && <input className="hb-search" type="search" placeholder="Search..." value={catSearch} onChange={(e) => setCatSearch(e.target.value)} aria-label="Search the catalog" />}
+              <span className="hb-cash">💵 {formatMoney(student.coins)}</span>
+              <button type="button" className="hb-collapse" onClick={() => setCatOpen((v) => !v)} aria-expanded={catOpen}>{catOpen ? '▾ Hide' : '▴ Catalog'}</button>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {activeCatalog.map((item) => {
-              const affordable = !item.priceCents || student.coins >= item.priceCents;
-              const disabled = !scalesReady || !affordable;
-              const armed = armedId === item.id;
-              return (
-                <button
-                  key={item.id}
-                  disabled={disabled && !item.locked}
-                  onClick={
-                    item.locked
-                      ? () => navigate('/student/marketplace')
-                      : () => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setHammerMode(false); }
-                  }
-                  title={item.locked ? `Buy ${item.label} in the Marketplace` : undefined}
-                  style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                    padding: '6px 8px', borderRadius: 12, cursor: disabled && !item.locked ? 'default' : 'pointer', fontFamily: 'system-ui, sans-serif',
-                    position: 'relative',
-                    border: armed ? '3px solid #e2775c' : '2px solid var(--content-border, #ccc)',
-                    background: armed ? '#fff3ea' : isYard ? '#e8f5e0' : '#fbeee3',
-                    opacity: disabled && !item.locked ? 0.4 : item.locked ? 0.75 : 1,
-                  }}
-                >
-                  {/* Locked furniture is shown, not hidden — same "every
-                      item visible, whether or not a student can afford it
-                      yet" precedent the Pet Shelter catalog already uses —
-                      so there's something to discover and want, not a
-                      silent gap. */}
-                  {item.locked && (
-                    <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 13 }}>🔒</span>
-                  )}
-                  {item.thumbnail ? (
-                    <img src={item.thumbnail} alt="" style={{ width: 40, height: 40, objectFit: 'contain', pointerEvents: 'none' }} />
-                  ) : (
-                    <span style={{ fontSize: 28 }}>{item.icon}</span>
-                  )}
-                  <span style={{ fontSize: 11, fontWeight: 700 }}>{item.label}</span>
-                  {item.priceCents !== undefined && <span style={{ fontSize: 10, opacity: 0.7 }}>{formatMoney(item.priceCents)}</span>}
-                  {item.locked && <span style={{ fontSize: 9, opacity: 0.75 }}>Buy in Marketplace</span>}
-                </button>
-              );
-            })}
-            {!scalesReady && (
-              <span style={{ display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#666', fontFamily: 'system-ui, sans-serif' }}>
-                Getting furniture ready…
-              </span>
+            {catOpen && (
+              <>
+                {filters.length > 2 && (
+                  <div className="hb-filters" role="group" aria-label="Filter by room">
+                    {filters.map((f) => <button key={f} type="button" className={catFilter === f ? 'on' : ''} onClick={() => setCatFilter(f)}>{ROOM_FILTER_LABEL[f] ?? f}</button>)}
+                  </div>
+                )}
+                <div className="hb-row-wrap">
+                  <button type="button" className="hb-arrow" onClick={() => scrollCatalog(-1)} disabled={catEdges.left} aria-label="Scroll left">◀</button>
+                  <div className="hb-row" ref={catRowRef} onScroll={onCatScroll}>
+                    {shownCatalog.length === 0 && (
+                      <span className="hb-empty">{catTab === 'shop' ? (isYard ? 'Home items go inside your rooms. Switch to a room to shop for them.' : 'You own everything here!') : 'Nothing here yet. Try the Shop tab!'}</span>
+                    )}
+                    {shownCatalog.map((item) => {
+                      const affordable = !item.priceCents || student.coins >= item.priceCents;
+                      const disabled = !item.locked && (!scalesReady || !affordable);
+                      const armed = armedId === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          disabled={disabled}
+                          className={`hb-card${armed ? ' armed' : ''}${item.locked ? ' shop' : ''}`}
+                          onClick={item.locked ? () => setBuyItem(item) : () => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setHammerMode(false); }}
+                          aria-label={item.locked ? `Buy ${item.label} for ${formatMoney(item.shopPriceCents ?? 0)}` : `Place ${item.label}`}
+                        >
+                          {item.thumbnail ? <img src={item.thumbnail} alt="" /> : <span className="hb-card-emoji">{item.icon}</span>}
+                          <span className="hb-card-name">{item.label}</span>
+                          {item.locked && <span className="hb-price">{formatMoney(item.shopPriceCents ?? 0)}</span>}
+                          {!item.locked && item.priceCents !== undefined && <span className="hb-price">{formatMoney(item.priceCents)} each</span>}
+                        </button>
+                      );
+                    })}
+                    {!scalesReady && catTab === 'mine' && <span className="hb-empty">Getting furniture ready…</span>}
+                  </div>
+                  <button type="button" className="hb-arrow" onClick={() => scrollCatalog(1)} disabled={catEdges.right} aria-label="Scroll right">▶</button>
+                </div>
+              </>
             )}
-            <span style={{ width: 2, alignSelf: 'stretch', background: '#ddd' }} />
-            <button
-              onClick={toggleHammerMode}
-              title="Hammer: tap anything to delete it instantly, no confirmation"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
-                border: hammerMode ? '3px solid #dc2626' : '2px solid var(--content-border, #ccc)',
-                background: hammerMode ? '#fde8e8' : '#fff',
-              }}
-            >
-              <span style={{ fontSize: 22 }}>🔨</span>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>Hammer</span>
-            </button>
-            {roomObjects.length > 0 && (
-              <button
-                onClick={() => {
-                  if (!clearRoomArmed) { setClearRoomArmed(true); return; }
-                  roomObjects.forEach((o) => deleteWorldObject(o.id));
-                  setSelectedId(null);
-                  setClearRoomArmed(false);
-                }}
-                onBlur={() => setClearRoomArmed(false)}
-                title="Delete everything placed in this room"
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                  padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
-                  border: clearRoomArmed ? '3px solid #c0392b' : '2px solid var(--content-border, #ccc)',
-                  background: clearRoomArmed ? '#fde8e8' : '#fff',
-                }}
-              >
-                <span style={{ fontSize: 22 }}>🗑️</span>
-                <span style={{ fontSize: 11, fontWeight: 700 }}>{clearRoomArmed ? 'Sure? Tap again' : 'Clear Room'}</span>
-              </button>
-            )}
-            <button
-              onClick={topView}
-              title="Top view: see your room from above — tap again to go back"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
-                border: isTopView ? '3px solid #3e7c6b' : '2px solid var(--content-border, #ccc)',
-                background: isTopView ? '#e6f2ee' : '#fff',
-              }}
-            >
-              <span style={{ fontSize: 22 }}>{isTopView ? '🔽' : '🔼'}</span>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>{isTopView ? 'Regular' : 'Top View'}</span>
-            </button>
-            <button
-              onClick={() => setRoomPanelOpen((v) => !v)}
-              title="Rename this room, or paint its walls and floor"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 64, minHeight: 64,
-                padding: '6px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
-                border: roomPanelOpen ? '3px solid #8b5cf6' : '2px solid var(--content-border, #ccc)',
-                background: roomPanelOpen ? '#f1eafe' : '#fff',
-              }}
-            >
-              <span style={{ fontSize: 22 }}>🎨</span>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>Room</span>
-            </button>
-            </div>
           </div>
+
+          {/* Tools on the left */}
+          <div className="hb-tools" role="toolbar" aria-label="Build tools">
+            <button type="button" className={`hb-tool${hammerMode ? ' on danger' : ''}`} onClick={toggleHammerMode} title="Hammer: tap anything to delete it">🔨<span>Hammer</span></button>
+            <button type="button" className={`hb-tool${isTopView ? ' on' : ''}`} onClick={topView} title="Top view">{isTopView ? '🔽' : '🔼'}<span>{isTopView ? 'Regular' : 'Top View'}</span></button>
+            <button type="button" className={`hb-tool${roomPanelOpen ? ' on' : ''}`} onClick={() => setRoomPanelOpen((v) => !v)} title="Name, paint and floor">🎨<span>Room</span></button>
+            {roomObjects.length > 0 && (
+              <button type="button" className={`hb-tool${clearRoomArmed ? ' on danger' : ''}`} onBlur={() => setClearRoomArmed(false)}
+                onClick={() => { if (!clearRoomArmed) { setClearRoomArmed(true); return; } roomObjects.forEach((o) => deleteWorldObject(o.id)); setSelectedId(null); setClearRoomArmed(false); }}>
+                🗑️<span>{clearRoomArmed ? 'Sure?' : 'Clear'}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Camera arrows on the right */}
+          <div className="hb-camera" role="group" aria-label="Camera">
+            <button type="button" onClick={() => spinCamera(45)} aria-label="Turn the camera left">⟲</button>
+            <button type="button" onClick={() => spinCamera(-45)} aria-label="Turn the camera right">⟳</button>
+            <button type="button" onClick={() => zoomCamera(0.8)} aria-label="Zoom in">＋</button>
+            <button type="button" onClick={() => zoomCamera(1.25)} aria-label="Zoom out">－</button>
+          </div>
+
+          {buyItem && (
+            <div className="hb-buy-back" onClick={() => setBuyItem(null)}>
+              <div className="hb-buy" role="dialog" aria-label={`Buy ${buyItem.label}`} onClick={(e) => e.stopPropagation()}>
+                {buyItem.thumbnail ? <img src={buyItem.thumbnail} alt="" /> : <span className="hb-card-emoji">{buyItem.icon}</span>}
+                <strong>{buyItem.label}</strong>
+                <span>{formatMoney(buyItem.shopPriceCents ?? 0)} · you have {formatMoney(student.coins)}</span>
+                {student.coins >= (buyItem.shopPriceCents ?? 0)
+                  ? <button type="button" className="btn btn-primary" style={{ minHeight: 48 }} onClick={confirmBuy} autoFocus>🛍️ Buy and place it</button>
+                  : <span style={{ fontWeight: 700, color: '#c0392b' }}>You need {formatMoney((buyItem.shopPriceCents ?? 0) - student.coins)} more. Answer questions in games to earn it!</span>}
+                <button type="button" className="btn" style={{ minHeight: 44 }} onClick={() => setBuyItem(null)}>Not now</button>
+              </div>
+            </div>
+          )}
 
           {hammerMode && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', border: '2px solid #dc2626', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center', color: '#dc2626' }}>
@@ -1510,7 +1559,7 @@ export default function HomeRoom() {
               interior room, its own wall/floor paint + a delete button; for
               the Yard, the house-exterior picker instead. */}
           {roomPanelOpen && (
-            <div style={{ position: 'fixed', top: 70, left: 16, zIndex: 60, background: 'rgba(255,255,255,0.95)', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif', maxWidth: 200 }}>
+            <div style={{ position: 'fixed', top: 70, left: 96, zIndex: 61, background: 'rgba(255,255,255,0.97)', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif', maxWidth: 220 }}>
               <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>📛 Name</div>
               <input
                 list="home-room-name-suggestions"
@@ -1582,8 +1631,19 @@ export default function HomeRoom() {
         </>
       )}
 
+      {!isYard && (
+        <div className={`hb-walls${mode === 'build' ? ' build' : ''}`} role="radiogroup" aria-label="Walls">
+          <span>Walls</span>
+          {WALL_MODES.map((m) => (
+            <button key={m.id} type="button" role="radio" aria-checked={wallMode === m.id} className={wallMode === m.id ? 'on' : ''} onClick={() => setWallMode(m.id)} title={`Walls ${m.label}`}>
+              <b aria-hidden>{m.icon}</b>{m.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {showSaved && (
-        <div style={{ position: 'fixed', bottom: mode === 'build' ? 76 : 16, right: 16, zIndex: 65, background: '#22c55e', color: '#fff', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'system-ui, sans-serif', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', pointerEvents: 'none' }}>
+        <div style={{ position: 'fixed', bottom: mode === 'build' ? (catOpen ? 236 : 76) : 16, right: 16, zIndex: 65, background: '#22c55e', color: '#fff', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'system-ui, sans-serif', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', pointerEvents: 'none' }}>
           ✓ Saved
         </div>
       )}

@@ -5916,3 +5916,49 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .bs-slot.won { background: #f7d81d; color: #2a1d7a; animation: bsComboPulse 0.4s ease-in-out infinite alternate; }
 .bs-plinko-prize { font-size: 1.2rem; font-weight: 900; }
 @media (prefers-reduced-motion: reduce) { .bs-combo, .bs-combo-badge, .bs-slot.won, .bs-reveal-card.flip { animation: none; } .bs-timer-fill { transition: none; } }
+
+/* Student home Build Mode (teacher 2026-10-08): catalog with tabs, filters and arrows; tools on the
+   left, camera arrows on the right, Sims-style wall modes. iPad first: 44px or bigger targets. */
+.hb-catalog { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: rgba(255, 255, 255, 0.97); border-top: 3px solid #1f4238; padding: 8px 10px max(8px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; font-family: system-ui, sans-serif; }
+.hb-cat-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hb-tabs { display: flex; gap: 4px; background: #eef2ef; border-radius: 999px; padding: 3px; }
+.hb-tabs button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: none; background: transparent; font: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer; color: #1f4238; }
+.hb-tabs button.on { background: #3e7c6b; color: #fff; }
+.hb-tabs b { margin-left: 4px; opacity: 0.8; font-size: 0.8rem; }
+.hb-search { flex: 1; min-width: 120px; max-width: 260px; min-height: 40px; border-radius: 999px; border: 2px solid #c9d6cf; padding: 0 14px; font: inherit; }
+.hb-cash { font-weight: 800; color: #1f4238; margin-left: auto; }
+.hb-collapse { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 2px solid #c9d6cf; background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.hb-filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.hb-filters button { flex-shrink: 0; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 2px solid #c9d6cf; background: #fff; font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.hb-filters button.on { background: #1f4238; border-color: #1f4238; color: #fff; }
+.hb-row-wrap { display: flex; align-items: stretch; gap: 6px; }
+.hb-arrow { flex-shrink: 0; width: 48px; border-radius: 14px; border: 2px solid #1f4238; background: #fff; font-size: 1.2rem; font-weight: 900; color: #1f4238; cursor: pointer; touch-action: manipulation; }
+.hb-arrow:disabled { opacity: 0.3; cursor: default; }
+.hb-row { flex: 1; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px; }
+.hb-row::-webkit-scrollbar { display: none; }
+.hb-card { position: relative; flex-shrink: 0; scroll-snap-align: start; width: 96px; min-height: 104px; padding: 6px; border-radius: 14px; border: 2px solid #d8e2dc; background: #fbeee3; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font: inherit; touch-action: manipulation; }
+.hb-card img { width: 58px; height: 58px; object-fit: contain; pointer-events: none; }
+.hb-card-emoji { font-size: 34px; line-height: 58px; }
+.hb-card-name { font-size: 0.72rem; font-weight: 700; line-height: 1.15; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hb-card.armed { border: 3px solid #e2775c; background: #fff3ea; }
+.hb-card.shop { background: #eef4ff; }
+.hb-card:disabled { opacity: 0.4; cursor: default; }
+.hb-price { font-size: 0.7rem; font-weight: 800; color: #3e7c6b; }
+.hb-empty { align-self: center; font-weight: 700; color: #667; padding: 0 10px; }
+.hb-tools { position: fixed; left: 12px; top: 50%; transform: translateY(-60%); z-index: 60; display: flex; flex-direction: column; gap: 8px; }
+.hb-tool { width: 70px; min-height: 62px; border-radius: 14px; border: 2px solid #d8e2dc; background: #fff; font-size: 1.4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); touch-action: manipulation; }
+.hb-tool span { font-size: 0.68rem; font-weight: 800; font-family: system-ui, sans-serif; }
+.hb-tool.on { border: 3px solid #3e7c6b; background: #e6f2ee; }
+.hb-tool.on.danger { border-color: #dc2626; background: #fde8e8; }
+.hb-camera { position: fixed; right: 12px; top: 50%; transform: translateY(-60%); z-index: 60; display: grid; grid-template-columns: 52px 52px; gap: 6px; }
+.hb-camera button { width: 52px; height: 52px; border-radius: 14px; border: 2px solid #d8e2dc; background: #fff; font-size: 1.4rem; font-weight: 900; cursor: pointer; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); touch-action: manipulation; }
+.hb-walls { position: fixed; left: 12px; bottom: 56px; z-index: 60; display: flex; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.95); border-radius: 14px; padding: 4px 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); font-family: system-ui, sans-serif; }
+.hb-walls.build { bottom: auto; top: 70px; left: auto; right: 12px; }
+.hb-walls > span { font-size: 0.75rem; font-weight: 800; padding: 0 4px; }
+.hb-walls button { min-width: 52px; min-height: 44px; border-radius: 10px; border: 2px solid transparent; background: #f2f5f3; font: inherit; font-size: 0.7rem; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; }
+.hb-walls button b { font-size: 0.95rem; }
+.hb-walls button.on { border-color: #3e7c6b; background: #e6f2ee; }
+.hb-buy-back { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.35); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.hb-buy { background: #fff; border-radius: 18px; padding: 18px; width: 100%; max-width: 320px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; font-family: system-ui, sans-serif; }
+.hb-buy img { width: 110px; height: 110px; object-fit: contain; }
+@media (max-width: 700px) { .hb-tools { top: auto; bottom: 230px; transform: none; } .hb-tool { width: 58px; min-height: 52px; } .hb-camera { top: auto; bottom: 230px; transform: none; } }
