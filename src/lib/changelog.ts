@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-alchemy-fantasy',
+    date: '2026-10-08',
+    icon: '🐉',
+    title: 'Alchemy has dragons now',
+    body: 'Keep combining and you can find time, dinosaurs, knights, mermaids, genies and more. Put a dinosaur and fire together to make a dragon! Every time you open Alchemy you start fresh with fire, water, earth and air.',
+  },
+  {
     id: '2026-10-08-style-portraits',
     date: '2026-10-08',
     icon: '🧵',

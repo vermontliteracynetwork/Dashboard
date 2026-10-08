@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useStore } from '../../store/store';
 import WebpageFrame from '../../components/WebpageFrame';
 import { ELEMENTS, RECIPES, START } from '../../games/alchemy/data';
 
 // Alchemy, an app on the student's computer (teacher 2026-10-08: "lets get the alchemy game
 // going. make an app in the computer"), built from her prototype. Drag one element onto another
-// to discover something new. Discoveries are saved for each student (the `alchemy:<id>` row in
-// style_looks, plus this iPad). iPad first: big tiles, touch drag, the element shelf moves under
-// the board in portrait.
+// to discover something new. Every visit starts fresh (teacher 2026-10-08: "if you leave alchemy,
+// it should clear the board and start from the beginning"). iPad first: big tiles, touch drag, the
+// element shelf moves under the board in portrait.
 
 type El = { id: string; e: string; n: string };
 const ELS: Record<string, El> = Object.fromEntries(ELEMENTS.map(([id, e, n]) => [id, { id, e, n }]));
 const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 const R: Record<string, string> = Object.fromEntries(RECIPES.map(([a, b, r]) => [key(a, b), r]));
 type Tile = { uid: number; id: string; x: number; y: number; fx?: 'pop' | 'shake' };
-const owner = (sid: string) => `alchemy:${sid}`;
 
 let actx: AudioContext | null = null;
 function beep(freqs: number[], dur: number) {
@@ -34,14 +32,7 @@ function beep(freqs: number[], dur: number) {
 }
 
 export default function Alchemy() {
-  const studentId = useStore((s) => s.currentStudentId);
-  const row = useStore((s) => (studentId ? s.styleLooks.find((r) => r.ownerId === owner(studentId)) : undefined));
-  const mergeStyleRow = useStore((s) => s.mergeStyleRow);
-  const localKey = `alchemy.v1.${studentId ?? 'guest'}`;
-  const [disc, setDisc] = useState<string[]>(() => {
-    const saved = ((row?.look as { d?: string[] } | undefined)?.d) ?? (() => { try { return (JSON.parse(localStorage.getItem(localKey) ?? 'null') as { d?: string[] } | null)?.d ?? []; } catch { return []; } })();
-    return [...new Set([...START, ...saved.filter((id) => ELS[id])])];
-  });
+  const [disc, setDisc] = useState<string[]>(() => [...START]);
   const [soundOn, setSoundOn] = useState(() => { try { return localStorage.getItem('alchemy.sound') !== '0'; } catch { return true; } });
   const [fresh, setFresh] = useState<string[]>([]);
   const [tiles, setTiles] = useState<Tile[]>([]);
@@ -58,15 +49,6 @@ export default function Alchemy() {
   const sound = (f: number[], d: number) => { if (soundOn) beep(f, d); };
   const say = (m: string) => { setToast(m); window.clearTimeout(toastT.current); toastT.current = window.setTimeout(() => setToast(null), 2400); };
 
-  // A save from another device arrives: merge it in.
-  useEffect(() => {
-    const d = (row?.look as { d?: string[] } | undefined)?.d;
-    if (d?.length) setDisc((cur) => { const all = [...new Set([...cur, ...d.filter((id) => ELS[id])])]; return all.length === cur.length ? cur : all; });
-  }, [row]);
-  const save = (d: string[]) => {
-    try { localStorage.setItem(localKey, JSON.stringify({ d })); } catch { /* fine */ }
-    if (studentId) mergeStyleRow(owner(studentId), { d });
-  };
 
   const boardRect = () => boardRef.current?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight);
   const clamp = (x: number, y: number) => { const r = boardRect(); return { x: Math.min(Math.max(x, r.left + 46), r.right - 46), y: Math.min(Math.max(y, r.top + 70), r.bottom - 46) }; };
@@ -79,7 +61,7 @@ export default function Alchemy() {
 
   const discover = (id: string) => {
     if (disc.includes(id)) { sound([520], 0.1); return; }
-    const d = [...disc, id]; setDisc(d); save(d); setFresh((f) => [...f, id]);
+    const d = [...disc, id]; setDisc(d); setFresh((f) => [...f, id]);
     sound([523, 659, 784], 0.1);
     say(`New discovery: ${ELS[id].e} ${ELS[id].n}!`);
     if (d.length === ELEMENTS.length) window.setTimeout(() => say('🎉 You discovered everything!'), 2600);
@@ -193,10 +175,10 @@ export default function Alchemy() {
         <div className="overlay-backdrop" onClick={() => setConfirmReset(false)}>
           <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 380, textAlign: 'center' }} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label="Start over">
             <strong>Start over?</strong>
-            <p style={{ margin: 0 }}>This forgets everything you discovered except fire, water, earth and air.</p>
+            <p style={{ margin: 0 }}>This clears the board and goes back to fire, water, earth and air.</p>
             <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
               <button type="button" className="btn" style={{ minHeight: 44 }} onClick={() => setConfirmReset(false)}>Keep my discoveries</button>
-              <button type="button" className="btn btn-danger" style={{ minHeight: 44 }} onClick={() => { const d = [...START]; setDisc(d); save(d); setFresh([]); setTiles([]); setConfirmReset(false); }}>Start over</button>
+              <button type="button" className="btn btn-danger" style={{ minHeight: 44 }} onClick={() => { setDisc([...START]); setFresh([]); setTiles([]); setConfirmReset(false); }}>Start over</button>
             </div>
           </div>
         </div>

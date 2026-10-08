@@ -21,6 +21,14 @@ export const ELEMENTS: [string, string, string][] = [
   ["mountain","⛰️","Mountain"],["river","🏞️","River"],["ocean","🌊","Ocean"],["island","🏝️","Island"],
   ["ice","🧊","Ice"],["snow","❄️","Snow"],["snowman","⛄","Snowman"],["desert","🏜️","Desert"],["cactus","🌵","Cactus"],
   ["magic","✨","Magic"],["wizard","🧙","Wizard"],["fairy","🧚","Fairy"],["unicorn","🦄","Unicorn"],["ghost","👻","Ghost"],["music","🎵","Music"]
+  ,
+  // Fantasy chain (teacher 2026-10-08: "make more combinations of things to get into fantasy elements. like somehow
+  // after lots of combinations, thye should be ale to combine a dinosaur and fire to get a dragon").
+  ["hourglass","⏳","Hourglass"],["time","🕰️","Time"],["dinosaur","🦖","Dinosaur"],["fossil","🦴","Fossil"],["night","🌌","Night"],
+  ["mermaid","🧜","Mermaid"],["elf","🧝","Elf"],["lamp","🪔","Lamp"],["genie","🧞","Genie"],["vampire","🧛","Vampire"],["zombie","🧟","Zombie"],
+  ["princess","👸","Princess"],["knight","🛡️","Knight"],["map","🗺️","Map"],["treasure","💰","Treasure"],["crystalball","🔮","Crystal Ball"],
+  ["wand","🪄","Wand"],["broom","🧹","Broom"],["witch","🧙‍♀️","Witch"],["lovepotion","💘","Love Potion"],["monster","👹","Monster"],
+  ["kraken","🦑","Kraken"],["yeti","🦍","Yeti"],["pirate","🏴‍☠️","Pirate"],["legend","📜","Legend"],["troll","🧌","Troll"]
 ];
 export const START = ["fire","water","earth","air"];
 export const RECIPES: [string, string, string][] = [
@@ -34,7 +42,7 @@ export const RECIPES: [string, string, string][] = [
   ["metal","sun","gold"],["stone","star","diamond"],["gold","diamond","ring"],["gold","human","crown"],
   ["mud","lightning","life"],["life","earth","animal"],["life","plant","bug"],["life","water","fish"],["life","air","bird"],
   ["life","sand","lizard"],["fish","mud","frog"],["bird","bird","egg"],["egg","earth","chicken"],
-  ["animal","plant","cow"],["animal","wheat","horse"],["animal","moon","wolf"],["lizard","fire","dragon"],
+  ["animal","plant","cow"],["animal","wheat","horse"],["animal","moon","wolf"],
   ["animal","fire","human"],["human","human","love"],["love","human","baby"],["baby","human","family"],
   ["human","wood","house"],["house","stone","castle"],["human","wheat","farmer"],["flower","human","garden"],
   ["cow","human","milk"],["milk","air","cheese"],["bread","cheese","pizza"],
@@ -43,4 +51,12 @@ export const RECIPES: [string, string, string][] = [
   ["earth","earth","mountain"],["water","mountain","river"],["water","water","ocean"],["sand","water","island"],
   ["water","moon","ice"],["ice","cloud","snow"],["snow","human","snowman"],["sand","sun","desert"],["desert","plant","cactus"],
   ["star","life","magic"],["human","magic","wizard"],["magic","flower","fairy"],["horse","magic","unicorn"],["human","smoke","ghost"],["human","bird","music"]
+  ,
+  // Fantasy chain: a dragon now takes a dinosaur, which takes time, which takes magic.
+  ["sand","glass","hourglass"],["hourglass","magic","time"],["lizard","time","dinosaur"],["dinosaur","fire","dragon"],["dinosaur","stone","fossil"],
+  ["moon","star","night"],["human","ocean","mermaid"],["human","forest","elf"],["glass","fire","lamp"],["lamp","magic","genie"],
+  ["human","night","vampire"],["ghost","mud","zombie"],["crown","castle","princess"],["human","sword","knight"],["paper","earth","map"],
+  ["gold","map","treasure"],["glass","magic","crystalball"],["wood","magic","wand"],["wood","wheat","broom"],["wizard","broom","witch"],
+  ["potion","love","lovepotion"],["animal","ghost","monster"],["monster","ocean","kraken"],["monster","snow","yeti"],["ship","sword","pirate"],
+  ["dragon","knight","legend"],["stone","human","troll"]
 ];
