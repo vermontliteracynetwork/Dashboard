@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-bubble-shooter',
+    date: '2026-10-08',
+    icon: '🫧',
+    title: 'New game: Bubble Shooter',
+    body: 'Drag to aim, let go to shoot, and match 3 bubbles of a color to pop them. Bubbles left hanging fall down for bonus points. Every right answer earns a rainbow bubble that matches any color. Find it in the game window!',
+  },
+  {
     id: '2026-10-08-game-sliders-alchemy-save',
     date: '2026-10-08',
     icon: '🎚️',

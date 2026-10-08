@@ -182,6 +182,8 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   library: '/student/library',
   // Shape Dash (teacher 2026-10-07): any object can open it.
   'shape-dash': '/student/shape-dash',
+  // Bubble Shooter (teacher 2026-10-08): any object can open it.
+  'bubble-shooter': '/student/bubble-shooter',
   chess: '/student/chess',
   // Never actually read — a 'gas-pump' role opens the in-world gas refuel
   // prompt directly (TownSquare.tsx's openRoleObject special-cases it,

@@ -5830,3 +5830,43 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .round-slider input[type="range"] { width: 100%; height: 44px; accent-color: #ff4fc8; touch-action: manipulation; }
 .round-settings.locked .round-slider input[type="range"] { opacity: 0.55; }
 .round-lock { margin: 0; font-size: 0.85rem; font-weight: 700; }
+
+/* Bubble Shooter (teacher 2026-10-08): night-purple like her reference, iPad first. */
+.bs-shell { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 0%, #4b37b8 0%, #2a1d7a 45%, #160f45 100%); color: #fff; font-family: 'Baloo 2', 'Fredoka', system-ui, sans-serif; overflow: auto; }
+.bs-menu { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 72px 16px 24px; }
+.bs-menu-card { width: 100%; max-width: 560px; background: rgba(20, 12, 70, 0.72); border: 3px solid rgba(255, 255, 255, 0.18); border-radius: 26px; padding: 22px; display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
+.bs-title { margin: 0; display: flex; flex-direction: column; line-height: 0.95; font-size: clamp(2.2rem, 7vw, 3.4rem); font-weight: 900; letter-spacing: 1px; }
+.bs-title span:first-child { color: #ffffff; -webkit-text-stroke: 2px #1e5fbf; text-shadow: 0 4px 0 #1e5fbf; }
+.bs-title span:last-child { color: #f7d81d; -webkit-text-stroke: 2px #c0392b; text-shadow: 0 4px 0 #a33a10; }
+.bs-menu-bubbles { display: flex; gap: 8px; }
+.bs-menu-bubbles span { width: 34px; height: 34px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.45); }
+.bs-note { margin: 0; font-size: 0.98rem; line-height: 1.35; opacity: 0.95; }
+.bs-source { width: 100%; }
+.bs-source select { color: #222; }
+.bs-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.bs-chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.1); color: #fff; font: inherit; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.bs-chip.on { background: #ff4fc8; border-color: #ff4fc8; }
+.bs-play { min-height: 56px; padding: 0 34px; border-radius: 999px; border: none; background: linear-gradient(#3ee07a, #19a64a); color: #fff; font: inherit; font-size: 1.3rem; font-weight: 900; box-shadow: 0 5px 0 #0e6e30; cursor: pointer; touch-action: manipulation; }
+.bs-play:active { transform: translateY(3px); box-shadow: 0 2px 0 #0e6e30; }
+.bs-best { width: 100%; text-align: left; background: rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 10px 14px; }
+.bs-best ol { margin: 6px 0 0; padding-left: 20px; }
+.bs-best li { display: flex; justify-content: space-between; gap: 10px; }
+.bs-icon-btn { width: 52px; height: 52px; padding: 0; border: none; background: none; cursor: pointer; touch-action: manipulation; flex-shrink: 0; }
+.bs-icon-btn img { width: 100%; height: 100%; object-fit: contain; }
+.bs-back { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 12px; z-index: 5; }
+.bs-game { position: absolute; inset: 0; display: flex; flex-direction: column; padding: max(8px, env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom)); gap: 8px; }
+.bs-hud { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.bs-pill { min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 999px; background: rgba(10, 6, 40, 0.6); border: 2px solid rgba(255, 255, 255, 0.25); font-weight: 900; font-size: 1.05rem; color: #fff; font-family: inherit; }
+.bs-rainbow { cursor: pointer; background: linear-gradient(90deg, #ff4d4d, #ffb02e, #f7e01d, #3ccf4e, #40a8f6, #a05cf5); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); touch-action: manipulation; }
+.bs-rainbow:disabled { opacity: 0.45; cursor: default; }
+.bs-board { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.bs-canvas { display: block; border-radius: 18px; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18), 0 14px 30px rgba(0, 0, 0, 0.4); touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.bs-toast { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); max-width: 92%; background: rgba(10, 6, 40, 0.88); border: 2px solid #f7d81d; border-radius: 14px; padding: 8px 14px; font-weight: 800; text-align: center; pointer-events: none; }
+.bs-bottom { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.bs-hint { font-weight: 800; opacity: 0.9; }
+.bs-swap { min-height: 48px; padding: 0 20px; border-radius: 999px; border: 2px solid rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.12); color: #fff; font: inherit; font-weight: 900; font-size: 1.05rem; cursor: pointer; touch-action: manipulation; }
+.bs-modal-back { position: fixed; inset: 0; z-index: 50; background: rgba(8, 4, 30, 0.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.bs-modal { width: 100%; max-width: 440px; max-height: calc(100dvh - 32px); overflow: auto; background: #2f2290; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 22px; padding: 22px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.bs-modal h2 { margin: 0; }
+.bs-modal p { margin: 0; }
+.bs-menu-card .round-settings { color: #fff; }

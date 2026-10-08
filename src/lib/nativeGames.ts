@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter';
   title: string;
   route: string;
   cover: string;
@@ -22,6 +22,7 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'spaceBowling', title: 'Space Bowling', route: '/student/space-bowling', cover: '/games/covers/space-bowling.jpg', blurb: 'Bowl planets at alien-cat pins!', versus: true, cabinet: { marquee: '#1b2a6b', panel: '#24306e', trim: '#ffd23e', icon: '🪐' } },
   { id: 'chess', title: 'Slime Chess', route: '/student/chess', cover: '/games/covers/slime-chess.jpg', blurb: 'Real chess, extra squishy.', versus: true, cabinet: { marquee: '#2f8f3a', panel: '#3fae4b', trim: '#c7f26a', icon: '♟️' } },
   { id: 'bakery', title: 'Bakery Match', route: '/student/bakery', cover: '/games/covers/bakery-match.jpg', blurb: 'Match yummy treats in 3 rounds.', versus: false, cabinet: { marquee: '#e86a9c', panel: '#f6d6c2', trim: '#ffffff', icon: '🧁' } },
+  { id: 'bubbleShooter', title: 'Bubble Shooter', route: '/student/bubble-shooter', cover: '/games/covers/bubble-shooter.svg', blurb: 'Aim, shoot, pop 3 of a color!', versus: false, cabinet: { marquee: '#3a2a8f', panel: '#5b45c4', trim: '#f7d81d', icon: '🫧' } },
   { id: 'shapeDash', title: 'Shape Dash', route: '/student/shape-dash', cover: '/games/covers/shape-dash.jpg', blurb: 'Tap to jump! Dash past the spikes.', versus: false, cabinet: { marquee: '#4d8de8', panel: '#8fb5f0', trim: '#f6c13d', icon: '🟦' } },
   // Teacher 2026-10-08: "alchemy can be selected from main native game window". Opened from here it
   // always plays with question breaks; from the Computer it also offers Just explore.

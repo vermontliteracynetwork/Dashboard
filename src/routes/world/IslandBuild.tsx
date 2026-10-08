@@ -343,6 +343,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'grammar-machine', label: `Grammar Machine (Grammar Gus) → ${ROLE_VIEWS['grammar-machine']}` },
   { value: 'library', label: `Library (articles to read) → ${ROLE_VIEWS.library}` },
   { value: 'shape-dash', label: `Shape Dash (tap-to-jump game) → ${ROLE_VIEWS['shape-dash']}` },
+  { value: 'bubble-shooter', label: `Bubble Shooter (pop the bubbles game) → ${ROLE_VIEWS['bubble-shooter']}` },
   { value: 'cinema', label: `Cinema (watch videos) → ${ROLE_VIEWS.cinema}` },
   { value: 'arcade', label: `Arcade (play Scratch games) → ${ROLE_VIEWS.arcade}` },
   { value: 'farmers-market', label: `Farmer's Market (trade with other students) → ${ROLE_VIEWS['farmers-market']}` },

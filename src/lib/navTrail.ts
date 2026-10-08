@@ -30,6 +30,7 @@ const LABELS: Record<string, string> = {
   '/student/literacy': '📖 Literacy',
   '/student/style': '👗 Seamstress',
   '/student/shape-dash': '🟦 Shape Dash',
+  '/student/bubble-shooter': '🫧 Bubble Shooter',
   '/student/space-bowling': '🎳 Space Bowling',
   '/student/bakery': '🧁 Bakery Match',
   '/student/grammar': '✏️ Grammar',

@@ -36,6 +36,7 @@ export default function GamesHub() {
   const bowling = useBestGames(student?.id, 'spaceBowling');
   const castle = useBestGames(student?.id, 'castleDefense');
   const dash = useBestGames(student?.id, 'shapeDash');
+  const bubbles = useBestGames(student?.id, 'bubbleShooter');
   const chessGames = useStore((s) => s.chessGames);
   const chessBest = Math.max(0, ...chessGames.filter((g) => g.studentId === student?.id).map((g) => g.xp));
   const bakeryBest = Math.max(0, ...(student?.bakeryLeaderboard ?? []).map((e) => e.xp));
@@ -45,6 +46,7 @@ export default function GamesHub() {
     ...(bakeryBest > 0 ? { bakery: `${bakeryBest} XP` } : {}),
     ...(castle[0] ? { castleDefense: `${castle[0].score} right` } : {}),
     ...(dash[0] ? { shapeDash: `${dash[0].score} blocks` } : {}),
+    ...(bubbles[0] ? { bubbleShooter: `⭐ ${bubbles[0].score}` } : {}),
   };
   const done = anyGame ? gameplayProgress(progress[student!.id]?.[anyGame.subject]?.quizState?.[anyGame.task.id]) : 0;
 

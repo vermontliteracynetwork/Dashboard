@@ -730,7 +730,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 **Building games** (the standing pattern: a building or object role opens a native game fueled by question sets, with real rewards):
 - Farm Grow (plant and tend crops through growth stages), Fishing Dock (timed casts, a fish collection book), Mine Cart Run (answers switch the track), Dungeon Rooms (each door locked by a question), Post Office Sort, Pet Show Ring, Lighthouse Signal, Library Quest (hidden books fill the Finds Book), Construction Site (answers supply blocks for the town's next building), Gem Mine, Rescue Shelter (questions build a stray's trust before adoption), Kitchen Cook-Off (answers pick ingredients in order), Train Station Dispatch.
 
-**Genres her students already love:** Endless Runner, Idle or Clicker Tycoon, Time-Management (restaurant), Memory Match, Word Search, Whack-a-Mole, Crossy Road Hopper, Plinko Drop, Bubble Shooter. (Tower Defense shipped as Castle Defense.)
+**Genres her students already love:** Endless Runner, Idle or Clicker Tycoon, Time-Management (restaurant), Memory Match, Word Search, Whack-a-Mole, Crossy Road Hopper, Plinko Drop. (Bubble Shooter SHIPPED 2026-10-08.) (Tower Defense shipped as Castle Defense.)
 
 **From the Kenney Construct art she uploaded:** a space shooter and a brick breaker that stop for questions, a dice or card game, a small RPG.
 
@@ -752,6 +752,18 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 4. **Shape Dash sliders and the inbox report.** Small, and gives her control over a game students already play.
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
+
+### Bubble Shooter, a new native game. SHIPPED v1 2026-10-08 (direct teacher instruction)
+
+- **Her words (verbatim):** "lets make a bubble shooter native game" (with her Bubble Buttons pack and the "Free version" UI pack, and two classic bubble shooter screenshots: a night-purple board, glossy bubbles in 6 colors, a dotted aim line, a launcher circle at the bottom with the next bubble beside it).
+- **Where:** `/student/bubble-shooter` (`src/routes/student/BubbleShooter.tsx`; rules in `src/games/bubbleShooter/engine.ts`, 8 tests). A cabinet in the game window (cover `public/games/covers/bubble-shooter.svg`), the Daily Streak game grid, pick-a-game assignments (`NativeGameId` `bubbleShooter`, also in the plan builder's game list) and a Neighbor's "Play a game". New Build Mode role "Bubble Shooter" (Town Square and the Island) so any object can open it.
+- **Play:** an 11-wide hex board. Drag anywhere on the board to aim: the dotted line shows the path, including bounces off the side walls. Let go to shoot. Match 3 or more of a color to pop them (10 points each); everything left hanging falls (20 each). Tap ⇄ Swap to trade the bubble for the next one. After 7 shots in a row with no pop, a new row slides in from the top (a warning shows 2 shots ahead). Clearing a board gives +100.
+- **Never a loss:** if bubbles reach the dashed danger line, the bottom two rows puff away ("Close call!") and play goes on.
+- **Questions:** her sliders: Boards 1 to 10 (default 3) and Questions before each board 1 to 10 (default 2), locked for assignments. Every right answer earns a 🌈 rainbow bubble (it matches any color, and pops even a pair) and pays the usual amount per right answer when the game ends or they leave. Question source picker (starred sets 5x, starred-only when any are starred) and open assignments, like every native game.
+- **Look and feel:** glossy bubbles drawn in code in her reference's colors (purple, yellow, red, green, pink, blue, white), each with a small shape (★ ● ▲ ■ ♥ ◆ ✚) so color is never the only clue (a menu toggle turns shapes off); twinkling stars; pop bursts and falling bubbles; soft pop, shoot and row sounds (sound toggle); round glossy buttons from her Bubble Buttons pack (home, close, sound). Reduced motion turns off the bursts and twinkle. Leave asks first; a personal best list (no comparisons).
+- **Her "Free version" pack was not used:** its READ ME says "The free version of this pack may not be used in commercial products." Saved nothing from it.
+- **Not checked on a real iPad yet:** aiming feel and board size in both orientations.
+- **Next, the students' idea (her words, verbatim, 2026-10-08):** "the students want to combine elements of baamboozle plink-oh (souynd effects, fun power ups, animations, music) to this buble shooter game. prompt me with questions to expand their thinking". IDEA, NOT DESIGNED YET: Claudia sent her a set of questions to take back to the students (Baamboozle-style surprise power-ups, a Plinko drop for falling bubbles, music and sound, animations, and how questions fit). Their answers shape a Bubble Shooter v2 entry here.
 
 ### Rounds and questions-per-round settings in every native game (locked for assignments); Alchemy save and continue. SHIPPED 2026-10-08 (direct teacher instructions)
 
