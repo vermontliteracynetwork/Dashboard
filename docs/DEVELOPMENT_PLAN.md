@@ -692,6 +692,14 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Grammar Gus: one Start Lever runs the whole paragraph, pop-ups never cut off, Yoga is a medium black dog, "then" in the how words. SHIPPED 2026-10-08 (direct teacher instructions)
+
+- **Her words (verbatim):** "in gus, make sure if paragraph links are used, when the intiail start lever is selected, the whole paragrpah (all combined sentences) should run with no additional start levers needed (they can be there, however, and it will still run("; "make sure all pop up windoes are fully viewable on all devices; no letters/words/buttons cut off that cant be seen" (with a screenshot of the Proper Noun word menu cut off at the bottom); "make sure "Yoga" the proper noun, is always shown as a medium size, black dog"; "add "then" to adverbs".
+- **Paragraphs:** pulling the first machine's Start Lever runs every linked sentence in order, then plays the whole paragraph on the big TV. The other machines need no lever of their own (one there still works), and Gus no longer asks for a lever on a linked sentence below the first. A sentence that does not run stops the chain where it is, with the usual help.
+- **Pop-ups:** the word menu only opens under or over a word when all of it fits; otherwise it opens as a sheet in the middle of the screen, so the word list and the Lock, Copy and Take it off buttons always show. Its description wraps under the name instead of squeezing it, and Save shows the word with its capitals ("Yoga"). App-wide, pop-up panels (`.overlay-panel`, Gus's pop-ups, menus and sheets) now fit the screen height and width with their own scrolling and wrap long words.
+- **Yoga:** always drawn as a medium-size black dog on the Pixel TV, whatever describing words are added (tested).
+- **then:** now in the How words list (Gus already accepted it).
+
 ### Academics: Grammar Gus boards (open in a new tab, share live, or send each student a copy). Gus's "sardines" message names the fix. SHIPPED 2026-10-08 (direct teacher instructions)
 
 - **Her words (verbatim):** "in accademics tab, as teacher, allow me to add a new section beneth actiities that adds a grammar gus whiteboard where i can click, launch in a new tab, create a grammar board to join/share to me students for live edits or share as a copy so they can do it independently"; "for gus, make sure "packed in like sardines" warning gives a clear fix on how to solve the issue".

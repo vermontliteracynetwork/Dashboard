@@ -23,6 +23,6 @@ const fam = (word: string, kind: NounEntry['kind'], rig: NounEntry['rig'], emoji
 export const FAMILY_CASE = new Set(['Mom', 'Dad']);
 [fam('Mom', 'human', 'biped', '👩'), fam('Dad', 'human', 'biped', '👨'), fam('gma', 'human', 'biped', '👵'), fam('gpa', 'human', 'biped', '👴'),
   fam('miss kayden', 'human', 'biped', '🧑‍🏫'), fam('xander', 'human', 'biped', '🧑'), fam('geoff', 'human', 'biped', '🧑'),
-  fam('yoga', 'animal', 'quadruped', '🐕‍🦺', { singular: 'dog' })].forEach((e) => nounByWord.set(e.word, e));
+  fam('yoga', 'animal', 'quadruped', '🐕‍🦺', { singular: 'dog', size: 'normal', color: 'black' })].forEach((e) => nounByWord.set(e.word, e));
 export const PROPER_NOUN_WORDS = ['Mom', 'Dad', 'Gma', 'Gpa', 'Miss Kayden', 'Xander', 'Geoff', 'Yoga', ...NAMES];
 export const WEIRD_PLURAL_NOUNS = ['child', 'mouse', 'man', 'woman', 'goose', 'foot', 'tooth', 'person', 'ox'];

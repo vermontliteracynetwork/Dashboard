@@ -5710,3 +5710,17 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
   .gwb-resize-x.drawer { display: none; }
 }
 @media (max-width: 700px) { .gwb-top h1 { font-size: 1.1rem; } }
+
+/* Pop-ups always fit the screen (teacher 2026-10-08: "make sure all pop up windoes are fully
+   viewable on all devices; no letters/words/buttons cut off that cant be seen") */
+.overlay-backdrop { overflow-y: auto; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+.overlay-panel { max-height: calc(100dvh - 24px); max-width: min(520px, calc(100vw - 24px)); overflow-y: auto; -webkit-overflow-scrolling: touch; overflow-wrap: anywhere; }
+.gus-journal { max-height: calc(100dvh - 32px); max-width: calc(100vw - 24px); overflow-wrap: anywhere; }
+.gwb-top-menu, .gwb-sheet { max-height: calc(100dvh - 90px); max-width: calc(100vw - 24px); overflow-y: auto; }
+.gwb-wordmenu { max-width: calc(100vw - 16px); }
+.gwb-wordmenu-head { flex-wrap: wrap; }
+.gwb-wordmenu-head span { order: 9; flex: 1 1 100%; font-size: 0.82rem; }
+.gwb-wordmenu .gwb-type { flex: none; min-height: 52px; }
+.gwb-save-typed { flex: none; min-height: 44px !important; font-size: 0.95rem !important; }
+.gwb-wordmenu .gwb-surprise { flex: none; min-height: 44px; }
+.gwb-wordmenu-foot { flex: none; }

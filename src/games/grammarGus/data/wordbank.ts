@@ -18,6 +18,7 @@ export interface NounEntry {
   proper?: boolean; // a name: Mia, Vermont (always a capital letter, no article)
   singular?: string; // a Duplicator plural ("cats") drawn with its singular's picture
   food?: boolean; drink?: boolean; size?: 'small' | 'normal' | 'big';
+  color?: string; // always drawn this color on the Pixel TV (Yoga, the class's black lab)
 }
 
 const n = (word: string, tier: 1 | 2 | 3, kind: NounKind, rig: Rig, emoji: string, extra: Partial<NounEntry> = {}): NounEntry =>
@@ -191,7 +192,7 @@ export const ADJECTIVES: AdjEntry[] = [
 export const ADVERBS: { word: string; pack: Pack }[] = [
   ...'gently innocently lightly loudly messily quickly quietly slowly softly swiftly tenderly warmly wildly zealously'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'proudly safely'.split(' ').map((word) => ({ word, pack: 'example' as Pack })),
-  ...'happily sadly carefully bravely angrily calmly sleepily eagerly nervously kindly politely playfully ferociously triumphantly mysteriously gleefully clumsily frantically majestically boldly grumpily lazily sluggishly'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
+  ...'then happily sadly carefully bravely angrily calmly sleepily eagerly nervously kindly politely playfully ferociously triumphantly mysteriously gleefully clumsily frantically majestically boldly grumpily lazily sluggishly'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'weirdly silently'.split(' ').map((word) => ({ word, pack: 'space' as Pack })),
   ...'gracefully sneakily'.split(' ').map((word) => ({ word, pack: 'ocean' as Pack })),
 ];

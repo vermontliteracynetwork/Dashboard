@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-gus-paragraph-lever',
+    date: '2026-10-08',
+    icon: '🔗',
+    title: 'One lever runs your whole paragraph',
+    body: 'Link your machines with Paragraph Links, then pull the first Start Lever: every sentence runs in order and your paragraph plays on the big TV. Word menus always fit on your screen now, and Yoga is always a black dog.',
+  },
+  {
     id: '2026-10-08-gus-shared-boards',
     date: '2026-10-08',
     icon: '📬',

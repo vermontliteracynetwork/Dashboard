@@ -786,6 +786,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   // A miss: the machine coughs. First try, Gus only says hmm; from the
   // second try on he offers a hint (teacher 2026-10-07).
   const missed = (lineId: string, hint: Hint, notes: string) => {
+    chain.current = null; chainHead.current = null;
     pendingHint.current[lineId] = hint;
     const n = (tries.current[lineId] ?? 0) + 1; tries.current[lineId] = n;
     setGhosts((g) => ({ ...g, [lineId]: [] })); setCommaGhost((c) => ({ ...c, [lineId]: [] })); setHinted((h) => ({ ...h, [lineId]: false }));
@@ -816,6 +817,17 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     // Third hint: Gus says exactly what is wrong and why it will not run.
     if (asked >= 3 && h.explain) { say(`Here is exactly what is wrong. ${h.explain} That is why the machine will not run yet.`, '🔎 What is wrong'); return; }
     say(`Hint: ${h.text}${showGhost ? ' The see-through ghost shows where it goes. Drag the real part on from the parts menu.' : ''}`, '💡 Hint');
+  };
+  // A linked paragraph runs from its first Start Lever (teacher 2026-10-08: "when the intiail start
+  // lever is selected, the whole paragrpah (all combined sentences) should run with no additional
+  // start levers needed"). Each sentence runs in turn, then the paragraph plays on the big TV.
+  const chain = useRef<string[] | null>(null);
+  const chainHead = useRef<string | null>(null);
+  const pullLever = (line: BoardLine) => {
+    const para = paragraphOf(line.id);
+    if (para.length > 1 && para[0].id === line.id) { chain.current = para.slice(1).map((l) => l.id); chainHead.current = line.id; }
+    else { chain.current = null; chainHead.current = null; }
+    run(line);
   };
   const run = (line0: BoardLine) => {
     if (running.current || (liveRef.current?.role === 'guest' && liveRef.current.locked)) return;
@@ -863,6 +875,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       if (p.code === 'NO_WORDS' || p.code === 'EMPTY_PART') {
         setPulse(rd.problems.map((x) => x.itemId).filter(Boolean) as string[]);
         const l = FINISH_LINES[p.code];
+        chain.current = null; chainHead.current = null;
         say(`${l.joke} ${l.fix}`, 'Not built yet');
         return;
       }
@@ -924,6 +937,12 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     timers.current.push(window.setTimeout(() => {
       setFiring(null); running.current = false;
       const stars = r.rubric!.stars;
+      // Paragraph chain: on to the next sentence, then the whole paragraph plays.
+      if (chain.current && stars === 3) {
+        const nextId = chain.current[0];
+        if (nextId) { chain.current = chain.current.slice(1); timers.current.push(window.setTimeout(() => { const nl = linesRef.current.find((x) => x.id === nextId); if (nl) run(nl); else chain.current = null; }, 1300)); }
+        else { const head = chainHead.current; chain.current = null; chainHead.current = null; if (head) timers.current.push(window.setTimeout(() => playParagraph(head), 2400)); }
+      } else if (chain.current) { chain.current = null; chainHead.current = null; }
       // An Order is done only when the scene matches; a hint names one difference.
       const orderMiss = line.job?.kind === 'order' && line.job.key ? compareOrder(line.job.key, r) : [];
       const jobDone = (line.job?.kind === 'read' ? stars >= 1 : stars === 3) && !!line.job && !line.job.done && !orderMiss.length;
@@ -1264,9 +1283,13 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const below = window.innerHeight - 104 - top;
     const lineTop = r.top + view.y + menuLine.y * view.z;
     const left = Math.max(8, Math.min(window.innerWidth - w - 8, sx));
-    if (below >= 240) return { left, top, w, maxH: Math.min(460, below) };
-    if (lineTop - 14 >= 240) { const maxH = Math.min(460, lineTop - 14); return { left, top: lineTop - maxH - 6, w, maxH }; }
-    return { left, top: Math.max(8, window.innerHeight - 104 - 460), w, maxH: 460 };
+    // Teacher 2026-10-08: nothing in a pop-up may be cut off. Only open under or over the word
+    // when the whole menu fits; otherwise it is a sheet in the middle of the screen.
+    const need = 420;
+    if (below >= need) return { left, top, w, maxH: Math.min(560, below) };
+    if (lineTop - 14 >= need) { const maxH = Math.min(560, lineTop - 14); return { left, top: lineTop - maxH - 6, w, maxH }; }
+    const maxH = Math.min(600, window.innerHeight - 16);
+    return { left: Math.max(8, (window.innerWidth - w) / 2), top: Math.max(8, (window.innerHeight - maxH) / 2), w, maxH };
   })();
 
   // ---- the parts menu (left side) --------------------------------------------
@@ -1403,7 +1426,9 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     if (!items.some((i) => needsWord(i.kind) && i.word)) return null;
     const empty = items.find((i) => needsWord(i.kind) && !i.word && i.kind !== 'crate');
     if (empty) return { text: `Pick a word for the ${kindInfo(empty.kind).name}`, itemId: empty.id };
-    if (!items.some((i) => i.kind === 'lever')) return { text: 'Add a Start Lever', kind: 'lever' };
+    const fPara = paragraphs(lines).find((p) => p.some((l) => l.id === focusLine.id)) ?? [];
+    const leverAbove = fPara.length > 1 && fPara[0].id !== focusLine.id && fPara[0].items.some((i) => i.kind === 'lever');
+    if (!items.some((i) => i.kind === 'lever') && !leverAbove) return { text: 'Add a Start Lever', kind: 'lever' };
     if ((requireFinish || focusLine.job) && level !== 'challenge' && hinted[focusLine.id]) {
       const codes = readLine(focusLine, level, true).problems.map((p) => p.code);
       if (codes.includes('NEED_CAP')) return { text: 'Add a capital letter at the front', kind: 'cap' };
@@ -1675,14 +1700,14 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                         role="button" tabIndex={0} aria-label={`${kindInfo(item.kind).name}${item.word ? `: ${item.word}` : ''}. Tap to change, drag to move.`}
                         onKeyDown={(e) => {
                           if (e.target !== e.currentTarget) return;
-                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (item.kind === 'lever') run(line); else { kbdOpen.current = true; openMenuFor(line.id, item.id); } }
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (item.kind === 'lever') pullLever(line); else { kbdOpen.current = true; openMenuFor(line.id, item.id); } }
                           if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); const to = idx + (e.key === 'ArrowLeft' ? -1 : 1); if (to >= 0 && to < line.items.length) { editLine(line.id, (l) => { const it2 = [...l.items]; [it2[idx], it2[to]] = [it2[to], it2[idx]]; return { ...l, items: it2 }; }); gusSound.snap(); focusAfter.current = item.id; say(`${kindInfo(item.kind).name} moved ${e.key === 'ArrowLeft' ? 'left' : 'right'}.`, 'Moved'); } }
                           if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeItem(line.id, item.id); say(`${kindInfo(item.kind).name} taken off. Tap Undo to bring it back.`, 'Removed'); }
                         }}>
                         <MachinePart kind={item.kind} word={plateWord(item)} empty={!item.word && needsWord(item.kind)} status={statusOf(item)} />
                         {isFiring && firing!.idx >= idx && !calm && <span className="gwb-pipe-steam" aria-hidden><i /><i /><i /></span>}
                         {item.kind === 'lever' && <>
-                          <button type="button" className={`gwb-lever${isFiring ? ' pulled' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => run(line)} aria-label="Pull the Start Lever to run this machine">
+                          <button type="button" className={`gwb-lever${isFiring ? ' pulled' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => pullLever(line)} aria-label="Pull the Start Lever to run this machine">
                             <span className="gwb-lever-arm" />
                           </button>
                           <span className="gwb-gauge" role="img" aria-label={`Pressure ${Math.round(pressure * 100)} percent`}><span style={{ transform: `rotate(${-70 + 140 * pressure}deg)` }} /></span>
@@ -1971,7 +1996,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               )}
               <input className="gwb-type" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Type a word, or tap one below" autoCapitalize="off" autoCorrect="off" spellCheck={false} inputMode="text"
                 autoFocus={kbdOpen.current} onKeyDown={(e) => { if (e.key === 'Escape') { setMenu(null); return; } if (e.key !== 'Enter') return; saveTyped(); }} aria-label={`Type a ${mname}`} />
-              {q && <button type="button" className="gus-mini gwb-save-typed" onClick={saveTyped}>✓ Save "{q}"</button>}
+              {q && <button type="button" className="gus-mini gwb-save-typed" onClick={saveTyped}>✓ Save "{list.find((w) => w.toLowerCase() === q) ?? query.trim()}"</button>}
               {q && !exact && other && <div className="gwb-didyou">🔁 "{q}" is {/^[aeiou]/i.test(kindInfo(other.pos).name) ? 'an' : 'a'} {kindInfo(other.pos).name.toLowerCase()}. Save it and this machine turns into a {kindInfo(other.pos).machine}.</div>}
               <button type="button" className="gus-mini gwb-surprise" onClick={() => { const w = all[Math.floor(Math.random() * all.length)]; if (w) { gusSound.boing(); chooseWord(w); } }}>🎲 Surprise me</button>
               {dr === 'checking' && <div className="gwb-didyou">📖 Checking Gus's dictionary for "{q}"...</div>}

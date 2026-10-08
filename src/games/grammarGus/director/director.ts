@@ -51,6 +51,10 @@ export function lookFor(m: CastMember): Look {
     else if (kind === 'feeling') look.mood = a;
     else look.extras.push(a);
   }
+  // A pet with its own look stays that way (teacher 2026-10-08: "Yoga ... is always shown as a medium size, black dog").
+  const own = nounByWord.get(m.noun);
+  if (own?.color) look.color = own.color;
+  if (own?.color && own.size === 'normal') { look.scale = 1; look.wide = false; }
   return look;
 }
 

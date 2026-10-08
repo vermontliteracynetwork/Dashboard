@@ -41,3 +41,12 @@ describe('class names in the Proper Noun machine', () => {
     expect(runSentence(rd.draft).rubric?.stars).toBe(3);
   });
 });
+
+describe('Yoga on the Pixel TV', () => {
+  it('is always a medium black dog', async () => {
+    const { lookFor } = await import('../director/director');
+    const look = lookFor({ id: 'c1', noun: 'yoga', adjectives: ['tiny', 'yellow'], plural: false, count: 1, kind: 'animal', rig: 'quadruped', introducedIn: 's1', label: 'Yoga' } as never);
+    expect(look.color).toBe('black');
+    expect(look.scale).toBe(1);
+  });
+});
