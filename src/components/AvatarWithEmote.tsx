@@ -40,11 +40,11 @@ export default function AvatarWithEmote({ student, size = 70, readOnly = false, 
           aria-label="Dress up your character at the Seamstress"
           title="Tap to dress up your character"
         >
-          <StylePortrait studentId={student.id} size={Math.round(size * 0.92)} fallback={student.avatar} />
+          <StylePortrait studentId={student.id} size={Math.round(size * 0.92)} />
         </button>
       ) : (
         <div className="avatar-btn" style={{ width: size, height: size, cursor: 'default' }}>
-          <StylePortrait studentId={student.id} size={Math.round(size * 0.92)} fallback={student.avatar} />
+          <StylePortrait studentId={student.id} size={Math.round(size * 0.92)} />
         </div>
       )}
 

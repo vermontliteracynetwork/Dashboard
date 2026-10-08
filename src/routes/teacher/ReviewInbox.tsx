@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 
 type InboxItem =
@@ -62,7 +62,6 @@ export default function ReviewInbox() {
   const resolveSelCheckIn = useStore((s) => s.resolveSelCheckIn);
 
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
-  const avatarFor = (id: string) => students.find((s) => s.id === id)?.avatar ?? '❓';
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
   const items: InboxItem[] = [
@@ -129,7 +128,7 @@ export default function ReviewInbox() {
           <div className="inbox-list">
             {items.map((item) => (
               <div key={`${item.kind}-${item.id}`} className={`inbox-row ${item.done ? 'inbox-row-done' : ''}`}>
-                <span className="inbox-avatar"><AvatarGlyph value={avatarFor(item.studentId)} /></span>
+                <span className="inbox-avatar"><StylePortrait studentId={item.studentId} size={40} /></span>
                 {item.kind === 'offscreen' && item.photoUrl && (
                   <button
                     className="inbox-photo-thumb"

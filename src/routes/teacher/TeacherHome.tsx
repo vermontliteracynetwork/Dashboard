@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import ChatPanel from '../../components/ChatPanel';
 import type { StudentStatus } from '../../types';
 
@@ -49,7 +49,7 @@ export default function TeacherHome() {
             return (
               <div key={st.id} className="chrome-frame space-between" style={{ padding: 18 }}>
                 <div className="row">
-                  <span className="avatar-sm" style={{ width: 60, height: 60 }}><AvatarGlyph value={st.avatar} /></span>
+                  <span className="avatar-sm" style={{ width: 60, height: 60 }}><StylePortrait studentId={st.id} size={56} /></span>
                   <div>
                     <div className="row">
                       <strong>{st.name}</strong>

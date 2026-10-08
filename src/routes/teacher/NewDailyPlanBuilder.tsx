@@ -5,7 +5,7 @@ import { todayISO, formatDateLong } from '../../lib/dates';
 import { enforceFinalCheckLast } from '../../lib/taskOrder';
 import { gameplayQuestionPool } from '../../lib/gameplayAssignment';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import type { Assignment, CompletionMode, NativeGameId, Subject, Task, TaskRewardType } from '../../types';
 import { NATIVE_GAME_LABELS } from '../../types';
 
@@ -518,7 +518,7 @@ export default function NewDailyPlanBuilder({
                 {students.map((st) => (
                   <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700 }}>
                     <input type="checkbox" checked={selectedIds.includes(st.id)} onChange={() => toggleStudent(st.id)} />
-                    <AvatarGlyph value={st.avatar} size={18} /> {st.name}
+                    <StylePortrait studentId={st.id} size={24} /> {st.name}
                   </label>
                 ))}
               </div>

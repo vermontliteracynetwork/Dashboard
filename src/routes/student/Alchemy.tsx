@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WebpageFrame from '../../components/WebpageFrame';
 import { ELEMENTS, RECIPES, START } from '../../games/alchemy/data';
+import { setLeaveGuard } from '../../lib/navTrail';
 
 // Alchemy, an app on the student's computer (teacher 2026-10-08: "lets get the alchemy game
 // going. make an app in the computer"), built from her prototype. Drag one element onto another
@@ -132,6 +133,17 @@ export default function Alchemy() {
     const [a, b] = opts[Math.floor(Math.random() * opts.length)];
     say(`Try: ${ELS[a].e} ${ELS[a].n} + ${ELS[b].e} ${ELS[b].n}`);
   };
+  // Leaving clears everything, so ask first (teacher 2026-10-08: "make sure there is a confirmation
+  // menu that appears before they leave to confirm delete"). Back, the breadcrumbs and closing the tab all ask.
+  const [leaving, setLeaving] = useState<(() => void) | null>(null);
+  const played = disc.length > START.length || tiles.length > 0;
+  useEffect(() => {
+    if (!played) { setLeaveGuard(null); return; }
+    setLeaveGuard((go) => { setLeaving(() => go); return true; });
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => { setLeaveGuard(null); window.removeEventListener('beforeunload', warn); };
+  }, [played]);
   const shelf = useMemo(() => disc.filter((id) => !q.trim() || ELS[id].n.toLowerCase().includes(q.trim().toLowerCase())), [disc, q]);
 
   return (
@@ -173,6 +185,18 @@ export default function Alchemy() {
           </div>
         ))}
       </div>
+      {leaving && (
+        <div className="overlay-backdrop" onClick={() => setLeaving(null)}>
+          <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 400, textAlign: 'center' }} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label="Leave Alchemy">
+            <strong>Leave Alchemy?</strong>
+            <p style={{ margin: 0 }}>{disc.length > START.length ? `Leaving deletes your board and your ${disc.length - START.length} new discoveries.` : 'Leaving clears your board.'} Next time you start again with fire, water, earth and air.</p>
+            <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
+              <button type="button" className="btn" style={{ minHeight: 44 }} onClick={() => setLeaving(null)} autoFocus>Stay and keep playing</button>
+              <button type="button" className="btn btn-danger" style={{ minHeight: 44 }} onClick={() => { const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>Leave and delete</button>
+            </div>
+          </div>
+        </div>
+      )}
       {confirmReset && (
         <div className="overlay-backdrop" onClick={() => setConfirmReset(false)}>
           <div className="overlay-panel chrome-frame stack" style={{ padding: 20, maxWidth: 380, textAlign: 'center' }} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label="Start over">

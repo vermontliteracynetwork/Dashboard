@@ -1,11 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
-import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { StyleAvatar, STYLE_IN_WORLD_SCALE } from '../../style/StyleAvatar';
-import { useStyleSettings } from '../../style/catalog';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { ROLE_VIEWS, withDefaultRoles } from './townLayout';
@@ -361,8 +359,6 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
 // only (no touch D-pad, no camera free-look, no NPCs/collision — this is
 // a deliberately smaller slice than Town Square's own Player, matching
 // the same "lighter tool surface" scoping this whole file already uses).
-// Reuses the exact same player.glb model and idle/walk clip names Town
-// Square's own PlayerModel uses.
 const ISLAND_CHARACTER_SCALE = 1;
 function useIslandKeys() {
   const keys = useRef<Record<string, boolean>>({});
@@ -381,31 +377,7 @@ function useIslandKeys() {
 // The student's Seamstress character here too (teacher 2026-10-08),
 // scaled to this island's smaller player size (1 instead of 2.6).
 function IslandPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
-  const { released } = useStyleSettings();
-  return released ? <StyleAvatar isMoving={isMoving} scale={(STYLE_IN_WORLD_SCALE * ISLAND_CHARACTER_SCALE) / 2.6} /> : <OldIslandPlayerModel isMoving={isMoving} />;
-}
-function OldIslandPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
-  const { scene, animations } = useGLTF('/world/models/characters/player.glb');
-  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
-  const group = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, group);
-  const current = useRef<'idle' | 'walk'>('idle');
-  useEffect(() => {
-    actions['idle']?.reset().play();
-    return () => { actions['idle']?.stop(); };
-  }, [actions]);
-  useFrame(() => {
-    const next = isMoving.current ? 'walk' : 'idle';
-    if (next === current.current) return;
-    actions[current.current]?.fadeOut(0.15);
-    actions[next]?.reset().fadeIn(0.15).play();
-    current.current = next;
-  });
-  return (
-    <group ref={group}>
-      <primitive object={cloned} scale={ISLAND_CHARACTER_SCALE} />
-    </group>
-  );
+  return <StyleAvatar isMoving={isMoving} scale={(STYLE_IN_WORLD_SCALE * ISLAND_CHARACTER_SCALE) / 2.6} />;
 }
 const ISLAND_MOVE_SPEED = 5;
 // Claudia's completeness review: View mode had zero collision against

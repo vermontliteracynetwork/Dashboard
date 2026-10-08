@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import type { SelCheckIn } from '../../types';
@@ -20,7 +20,6 @@ export default function SelCheckInLog() {
   const [printing, setPrinting] = useState<SelCheckIn[] | null>(null);
 
   const nameFor = (id: string) => students.find((st) => st.id === id)?.name ?? 'Unknown';
-  const avatarFor = (id: string) => students.find((st) => st.id === id)?.avatar ?? '❓';
   const neighborNameFor = (id?: string) => QUEST1_NEIGHBORS.find((n) => n.id === id)?.name ?? '—';
 
   const rows = useMemo(
@@ -98,7 +97,7 @@ export default function SelCheckInLog() {
             {rows.map((c) => (
               <div key={c.id} className="score-row">
                 <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleSelect(c.id)} style={{ width: 20, height: 20 }} />
-                <span className="score-avatar"><AvatarGlyph value={avatarFor(c.studentId)} /></span>
+                <span className="score-avatar"><StylePortrait studentId={c.studentId} size={40} /></span>
                 <div className="score-body">
                   <div className="score-title">
                     {nameFor(c.studentId)}: {SEL_ZONE_FACE[c.zone]} {SEL_ZONE_LABELS[c.zone]} — {c.emotion}

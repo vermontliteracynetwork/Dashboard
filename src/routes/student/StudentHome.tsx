@@ -6,8 +6,6 @@ import Onboarding from '../../components/Onboarding';
 import HelpOverlay from '../../components/HelpOverlay';
 import StepGuide from '../../components/StepGuide';
 import { todayISO } from '../../lib/dates';
-import { AVATAR_CATALOG } from '../../store/badges';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
 import AvatarWithEmote from '../../components/AvatarWithEmote';
 import DailySpinWheel from '../../components/DailySpinWheel';
 import ToolsPanel from '../../components/ToolsPanel';
@@ -57,11 +55,9 @@ export default function StudentHome() {
   const applyTodaysScheduleIfNeeded = useStore((s) => s.applyTodaysScheduleIfNeeded);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatNow, setShowWhatNow] = useState(false);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const updateStudent = useStore((s) => s.updateStudent);
   const transactions = useStore((s) => s.transactions);
   const cinemaVideos = useStore((s) => s.cinemaVideos);
   const chatMessages = useStore((s) => s.chatMessages);
@@ -194,42 +190,6 @@ export default function StudentHome() {
         </div>
       )}
 
-      {showAvatarPicker && (
-        <div className="overlay-backdrop" onClick={() => setShowAvatarPicker(false)}>
-          <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h2 style={{ margin: 0 }}>Pick your avatar!</h2>
-              <div className="row-wrap" style={{ justifyContent: 'center' }}>
-                {AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id)).map((a) => (
-                  <button
-                    key={a.id}
-                    className="avatar-btn stack"
-                    style={{
-                      width: 76,
-                      height: 82,
-                      flexDirection: 'column',
-                      gap: 2,
-                      outline: a.id === student.avatar ? '4px solid var(--purple)' : 'none',
-                    }}
-                    aria-label={a.name}
-                    onClick={() => {
-                      updateStudent(student.id, { avatar: a.id });
-                      setShowAvatarPicker(false);
-                    }}
-                  >
-                    <AvatarGlyph value={a.id} size={44} />
-                    <span style={{ fontSize: '0.64rem', fontWeight: 700, lineHeight: 1.1 }}>{a.name}</span>
-                  </button>
-                ))}
-              </div>
-              <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: 0 }}>
-                Want more characters? Visit the 🛍️ Marketplace!
-              </p>
-              <button className="btn btn-sm" onClick={() => setShowAvatarPicker(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showSpinWheel && <DailySpinWheel studentId={student.id} onClose={() => setShowSpinWheel(false)} />}
       {showChat && <ChatPanel studentId={student.id} role="student" onClose={() => setShowChat(false)} />}

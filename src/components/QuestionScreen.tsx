@@ -3,6 +3,7 @@ import { recordStreakCorrect } from '../lib/streak';
 import type { TTSSettings } from '../types';
 import { speak } from './ReadAloud';
 import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
+import ZoomableImage from './ZoomableImage';
 
 // Shared "question screen" UI — direct teacher instruction: a single visual
 // design (approved through several mockup rounds) for every question-set-
@@ -341,7 +342,7 @@ export default function QuestionScreen({
                 justifyContent: 'center',
               }}
             >
-              <img src={imageUrl} alt={imageAlt ?? ''} style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 12, objectFit: 'contain' }} />
+              <ZoomableImage src={imageUrl} alt={imageAlt} maxHeight={150} />
             </div>
           )}
 

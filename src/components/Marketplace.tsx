@@ -25,7 +25,7 @@ const OLD_TABS: Record<string, Tab> = { characters: 'style', whiteboard: 'writin
 
 interface CartEntry {
   key: string; // `${source}-${id}`, unique per cart
-  source: 'avatar' | 'emote' | 'item' | 'style' | 'boost';
+  source: 'emote' | 'item' | 'style' | 'boost';
   styleKind?: 'species' | 'item' | 'pattern';
   id: string;
   name: string;
@@ -302,8 +302,7 @@ export default function Marketplace() {
     const s = useStore.getState();
     const lines: ReceiptLine[] = cart.map((entry) => {
       let ok = false;
-      if (entry.source === 'avatar') ok = s.buyAvatar(studentId, entry.id, entry.needsWants);
-      else if (entry.source === 'emote') ok = s.buyEmote(studentId, entry.id, entry.needsWants);
+      if (entry.source === 'emote') ok = s.buyEmote(studentId, entry.id, entry.needsWants);
       else if (entry.source === 'style') ok = s.buyStyle(studentId, entry.styleKind ?? 'item', entry.id, entry.price, entry.name);
       else if (entry.source === 'boost') ok = buyBoost(studentId, entry.id as BoostId, entry.needsWants);
       else ok = s.buyMarketplaceItem(studentId, entry.id, entry.needsWants);

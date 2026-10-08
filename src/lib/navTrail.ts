@@ -68,6 +68,13 @@ export function useTrail(): TrailStep[] {
   return useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => trail);
 }
 
+// A screen can ask before the student leaves it (teacher 2026-10-08, Alchemy: "make sure there is a
+// confirmation menu that appears before they leave to confirm delete"). The guard gets the move to
+// make and returns true when it is asking first; Back and the breadcrumbs go through it.
+let leaveGuard: ((go: () => void) => boolean) | null = null;
+export function setLeaveGuard(g: ((go: () => void) => boolean) | null) { leaveGuard = g; }
+export function guardLeave(go: () => void) { if (leaveGuard?.(go)) return; go(); }
+
 // Where Back goes from this screen: the screen before it, or the Computer.
 export function useBack(): { label: string; go: () => void; path: string } {
   const navigate = useNavigate();

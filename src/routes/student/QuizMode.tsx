@@ -8,6 +8,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { streakGoal, useStreak } from '../../lib/streak';
 import { todayISO } from '../../lib/dates';
 import type { MCQuestion, NativeGameId } from '../../types';
+import { drawQuestion } from '../../lib/questionPick';
 
 // Quiz Mode (Daily Streak spec 2026-10-04: "in the main native games window,
 // there should also be a quiz mode where they are just prompted with the
@@ -31,11 +32,9 @@ export default function QuizMode() {
       '__any__' as NativeGameId,
     );
   }, [student, rotations, progress]);
-  const pool = useMemo(() => questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc')), [questionSets]);
   const pick = (avoid?: string): MCQuestion => {
     if (active) { const g = pickGameplayQuestion(active.task, avoid); if (g) return g; }
-    const choices = pool.length > 1 && avoid ? pool.filter((q) => q.id !== avoid) : pool;
-    return choices.length ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
+    return drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   };
   const [q, setQ] = useState<MCQuestion>(() => pick());
   const right = useRef(0);

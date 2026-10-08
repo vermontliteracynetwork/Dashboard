@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
-import { AvatarGlyph } from './AvatarGlyph';
+import { StylePortrait } from '../style/StylePortrait';
 import { QUEST1_NEIGHBOR_COUNT } from '../lib/worldQuest1';
 
 // The Welcome Center's 2D view — Scout's whole role is "shows you
@@ -34,7 +34,7 @@ export default function Passport() {
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%', gap: 20 }}>
         <div className="stack" style={{ alignItems: 'center', gap: 8 }}>
           <div style={{ width: 96, height: 96 }}>
-            <AvatarGlyph value={student.avatar} />
+            <StylePortrait studentId={student.id} size={96} />
           </div>
           <h3 style={{ margin: 0 }}>{student.name}</h3>
         </div>

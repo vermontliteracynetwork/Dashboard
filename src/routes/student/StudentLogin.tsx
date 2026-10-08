@@ -48,7 +48,7 @@ export default function StudentLogin() {
                 aria-label={st.name}
                 title={st.name}
               >
-                <span><StylePortrait studentId={st.id} size={72} fallback={st.avatar} /></span>
+                <span><StylePortrait studentId={st.id} size={72} /></span>
                 <span style={{ fontSize: '1rem', fontFamily: "'Baloo 2', sans-serif" }}>{st.name}</span>
               </button>
             ))}

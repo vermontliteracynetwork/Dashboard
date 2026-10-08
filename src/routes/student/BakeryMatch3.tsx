@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import CheeringBuddy from '../../components/CheeringBuddy';
 import { getEconomy } from '../../lib/economy';
 const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
@@ -14,9 +14,9 @@ import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import BakeryTreatWheel from '../../components/BakeryTreatWheel';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
-import { characterDefById } from '../../lib/characterCatalog';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { TILE_ART } from '../../lib/bakeryTiles';
+import { drawQuestion } from '../../lib/questionPick';
 import {
   createGrid,
   swapTiles,
@@ -166,8 +166,6 @@ export default function BakeryMatch3() {
   const recordBakeryGameResult = useStore((s) => s.recordBakeryGameResult);
   const recordTransaction = useStore((s) => s.recordTransaction);
   const updateStudent = useStore((s) => s.updateStudent);
-  const equipCharacter = useStore((s) => s.equipCharacter);
-  const lastCharacterUnlock = useStore((s) => s.lastCharacterUnlock);
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const submitGameplayAnswer = useStore((s) => s.submitGameplayAnswer);
@@ -238,21 +236,12 @@ export default function BakeryMatch3() {
     return { tier, count, target: tier * 100 };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [student?.bakeryMilestoneTier, student?.bakeryMilestoneCount, sessionEarningsCents]);
-  const seenUnlockIdRef = useRef<string | null>(null);
-  const [showUnlockCelebration, setShowUnlockCelebration] = useState(false);
 
   // Drag-to-swap gesture tracking (pointer events — one code path covers
   // mouse, touch and pen). suppressClickRef stops the tap-tap click
   // handler from also firing right after a drag resolves a swap.
   const dragRef = useRef<{ pos: Pos; x: number; y: number; fired: boolean } | null>(null);
   const suppressClickRef = useRef(false);
-
-  useEffect(() => {
-    if (lastCharacterUnlock && lastCharacterUnlock.studentId === student?.id && lastCharacterUnlock.id !== seenUnlockIdRef.current) {
-      seenUnlockIdRef.current = lastCharacterUnlock.id;
-      setShowUnlockCelebration(true);
-    }
-  }, [lastCharacterUnlock, student?.id]);
 
   const pickQuestion = (mode: QuestionSourceMode, avoidId?: string): MCQuestion => {
     // An active gameplay-mode assignment (specific-game or any-game)
@@ -262,11 +251,10 @@ export default function BakeryMatch3() {
       const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
       if (gameplayPick) return gameplayPick;
     }
-    const pool =
-      mode.mode === 'set'
-        ? (questionSets.find((qs) => qs.id === mode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? [])
-        : questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc'));
-    return pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : generateAutoQuestion();
+    if (mode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
+    const pool = (questionSets.find((qs) => qs.id === mode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
+    return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
 
   const startGame = () => {
@@ -500,9 +488,6 @@ export default function BakeryMatch3() {
   };
 
   const questionsAnswered = student?.bakeryQuestionsAnswered ?? 0;
-  const cakeUnlocked = (student?.unlockedCharacterIds ?? []).includes('cake');
-  const cakeEquipped = student?.equippedCharacterId === 'cake';
-  const cakeDef = characterDefById('cake');
   const leaderboard = student?.bakeryLeaderboard ?? [];
   const decorativeTiles = Object.values(TILE_ART);
   const showBoard = phase === 'playing' || phase === 'challenge';
@@ -531,15 +516,6 @@ export default function BakeryMatch3() {
               <p className="bakery-blurb">3 rounds. Match treats. Answer to advance. Spin for a prize at the end!</p>
               <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
                 <span className="tag-pill" style={{ fontSize: '0.78rem' }}>🏆 {questionsAnswered}/100 questions answered</span>
-                {cakeUnlocked && (
-                  <button
-                    className="btn btn-sm"
-                    style={{ minHeight: 36, ...(cakeEquipped ? { background: 'var(--success)', color: '#fff' } : {}) }}
-                    onClick={() => student && equipCharacter(student.id, cakeEquipped ? null : 'cake')}
-                  >
-                    🎂 {cakeEquipped ? 'Cake Character equipped' : 'Equip Cake Character'}
-                  </button>
-                )}
               </div>
               <button className="bakery-play-btn" onClick={startGame}>
                 <Icon name="play" size={22} fallback="▶️" /> Play New Game
@@ -707,27 +683,6 @@ export default function BakeryMatch3() {
 
       {showTreatWheel && student && <BakeryTreatWheel studentId={student.id} onClose={() => setShowTreatWheel(false)} />}
 
-      {showUnlockCelebration && cakeDef && (
-        <div className="overlay-backdrop">
-          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
-            <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <span style={{ fontSize: '3rem' }}>🎂</span>
-              <h2 style={{ margin: 0 }}>You unlocked the Cake Character!</h2>
-              <p style={{ margin: 0, opacity: 0.8 }}>100 questions answered in Bakery Match! You can walk around Town Square as a cake now.</p>
-              <div className="row-wrap" style={{ gap: 8 }}>
-                <button
-                  className="btn btn-primary btn-lg"
-                  style={{ minHeight: 44 }}
-                  onClick={() => { if (student) equipCharacter(student.id, 'cake'); setShowUnlockCelebration(false); }}
-                >
-                  🎂 Equip now
-                </button>
-                <button className="btn btn-lg" style={{ minHeight: 44 }} onClick={() => setShowUnlockCelebration(false)}>Maybe later</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {phase === 'challenge' && challengeQuestion && (
         // Shared question-screen UI (components/QuestionScreen.tsx) — same

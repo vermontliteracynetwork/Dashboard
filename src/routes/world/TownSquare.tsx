@@ -16,7 +16,6 @@ import { QUEST1_NEIGHBORS, pickDialogueVariant, pickJokeVariant, SCOUT_CHECKIN_V
 import { TOWNSPEOPLE, type Townsperson } from '../../lib/worldTownspeople';
 import { resolveNpcVoiceProfile } from '../../lib/npcVoices';
 import { formatMoney } from '../../lib/money';
-import { characterDefById } from '../../lib/characterCatalog';
 import { StyleCharacter } from '../../style/StyleCharacter';
 import { StyleAvatar, STYLE_IN_WORLD_SCALE } from '../../style/StyleAvatar';
 import { useNpcProfiles, renameIn, DEFAULT_NPC_LOOKS } from '../../style/npcs';
@@ -58,6 +57,7 @@ import { taskDisplayTitle } from '../../lib/taskOrder';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { VehicleSoundController, type VehicleSoundKind } from '../../lib/vehicleAudio';
+import { drawQuestion } from '../../lib/questionPick';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -738,103 +738,11 @@ function useKeys() {
 // student walks around as their Style animal (one shared body, so every
 // outfit fits), at the same height as the old player model.
 
+// Teacher 2026-10-08: "remove the old characters everywhere". The student always walks as
+// their own Seamstress character now; the old player model and Cake Character skin are gone.
 function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
-  const { released: styleReleased } = useStyleSettings();
-  const currentStudentId = useStore((s) => s.currentStudentId);
-  const students = useStore((s) => s.students);
-  const equippedCharacterId = students.find((st) => st.id === currentStudentId)?.equippedCharacterId;
-  const characterDef = equippedCharacterId ? characterDefById(equippedCharacterId) : undefined;
-
-  const { scene, animations } = useGLTF('/world/models/characters/player.glb');
-  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
-  const group = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, group);
-  const current = useRef<'idle' | 'walk'>('idle');
-
-  useEffect(() => {
-    if (!actions['idle']) console.warn('[TownSquare] player: no "idle" animation clip found');
-    actions['idle']?.reset().play();
-    return () => { actions['idle']?.stop(); };
-  }, [actions]);
-
-  useFrame(() => {
-    const next = isMoving.current ? 'walk' : 'idle';
-    if (next === current.current) return;
-    actions[current.current]?.fadeOut(0.15);
-    actions[next]?.reset().fadeIn(0.15).play();
-    current.current = next;
-  });
-
-  if (styleReleased) return <StyleAvatar isMoving={isMoving} />;
-  return (
-    <group ref={group}>
-      {characterDef ? (
-        <CharacterSkinOverlay base={cloned} skinPath={characterDef.modelPath} />
-      ) : (
-        <primitive object={cloned} scale={CHARACTER_SCALE} />
-      )}
-    </group>
-  );
+  return <StyleAvatar isMoving={isMoving} />;
 }
-
-// A character-catalog "skin" (e.g. the Cake Character, unlocked via Bakery
-// Match's 100-question tracker) reuses the default player model's own
-// skeleton and idle/walk animation clips rather than shipping its own rig
-// — direct teacher instruction: "ensure it uses the human player assets
-// for movement and animations. it cant just have its arms out." The
-// uploaded skin models are unrigged static meshes with zero baked-in
-// animations of their own (checked directly: 0 skins, 0 animation
-// clips), so true per-limb retargeting isn't possible without a 3D
-// authoring tool this sandbox doesn't have. Instead: the player's own
-// clones bones stay in the scene (driven by the exact same idle/walk
-// actions as the default body), the two default body meshes are hidden,
-// and the skin's mesh is rigidly parented onto the 'torso' bone — 'torso'
-// specifically because it's the one bone both the idle clip (a subtle
-// rotation sway) and the walk clip (root-driven bob, inherited from its
-// parent, plus its own rotation) actually animate, so the skin visibly
-// moves and sways with the animation instead of sitting frozen in a bind
-// pose. This is an honest "rigid mascot" look (no separate limb
-// articulation, since the source mesh has no limbs to articulate), not a
-// broken T-pose.
-function CharacterSkinOverlay({ base, skinPath }: { base: THREE.Object3D; skinPath: string }) {
-  const { scene: skinScene } = useGLTF(skinPath);
-  const mountedRef = useRef(false);
-
-  useEffect(() => {
-    if (mountedRef.current) return;
-    const torso = base.getObjectByName('torso');
-    if (!torso) {
-      console.warn('[TownSquare] character skin: no "torso" bone found on player skeleton, skin not mounted');
-      return;
-    }
-    base.traverse((obj) => {
-      if (obj.name === 'body-mesh' || obj.name === 'head-mesh') obj.visible = false;
-    });
-    const skinMesh = cloneSkinned(skinScene);
-    const box = new THREE.Box3().setFromObject(skinMesh);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const naturalHeight = Math.max(size.y, 0.0001);
-    const targetHeight = 0.55; // roughly the default body's own torso+head span at CHARACTER_SCALE, eyeballed from its joint translations
-    const scale = targetHeight / naturalHeight;
-    skinMesh.scale.setScalar(scale);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-    skinMesh.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
-    torso.add(skinMesh);
-    mountedRef.current = true;
-    return () => {
-      torso.remove(skinMesh);
-      base.traverse((obj) => {
-        if (obj.name === 'body-mesh' || obj.name === 'head-mesh') obj.visible = true;
-      });
-      mountedRef.current = false;
-    };
-  }, [base, skinScene]);
-
-  return <primitive object={base} scale={CHARACTER_SCALE} />;
-}
-
 
 // The student's trained "walk beside you" pet (see StudentPet.following in
 // types.ts) — smooth-follows a step behind the Player. glTF exporters name
@@ -3561,10 +3469,6 @@ export default function TownSquare() {
   // not increase gas" — no partial credit for a miss, unlike the
   // percentage version this replaces.
   const questionSets = useStore((s) => s.questionSets);
-  const gasQuestionPool = useMemo(
-    () => questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc')),
-    [questionSets],
-  );
   const [gasQuizQuestion, setGasQuizQuestion] = useState<MCQuestion | null>(null);
   // Direct teacher instruction: "while answering questions to get more
   // gas, the gas in the tank should be paused, and not decrease any
@@ -3679,7 +3583,7 @@ export default function TownSquare() {
       const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
       if (gameplayPick) return gameplayPick;
     }
-    if (gasQuestionPool.length > 0) return gasQuestionPool[Math.floor(Math.random() * gasQuestionPool.length)];
+    const drawn = drawQuestion(questionSets); if (drawn) return drawn;
     return generateAutoQuestion();
   };
   const openGasQuiz = () => {

@@ -1,4 +1,3 @@
-import { AVATAR_CATALOG } from '../store/badges';
 import { EMOTE_CATALOG } from './emoteCatalog';
 import { formatMoney } from './money';
 import { marketplaceItemDisplayName } from './marketplaceDisplay';
@@ -85,7 +84,6 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
   interface Candidate { kind: SpinItemKind; itemId: string; label: string; imageUrl?: string }
   const availableToday = marketplaceItems.filter((it) => it.price > 0 && isAvailableOn(it, dateISO));
   const candidates: Candidate[] = [
-    ...AVATAR_CATALOG.map((a) => ({ kind: 'avatar' as const, itemId: a.id, label: a.name })),
     ...EMOTE_CATALOG.map((e) => ({ kind: 'emote' as const, itemId: e.id, label: e.name, imageUrl: e.src })),
     ...availableToday
       .filter((it) => it.kind === 'font' || it.kind === 'color' || it.kind === 'voice' || it.kind === 'prize')

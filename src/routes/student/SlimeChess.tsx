@@ -19,6 +19,7 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
+import { drawQuestion } from '../../lib/questionPick';
 
 // Slime Chess — a native game reached through a Town Square object with
 // the 'chess' role (teacher places the uploaded Chess Set model in Build
@@ -150,9 +151,8 @@ export default function SlimeChess() {
       const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
       if (gameplayPick) return gameplayPick;
     }
-    const pool = questionMode.mode === 'set'
-      ? (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? [])
-      : questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc'));
+    if (questionMode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
+    const pool = (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };

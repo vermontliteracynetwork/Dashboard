@@ -4,7 +4,6 @@ import { todayISO as todayIsoForStreak } from '../../lib/dates';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { AVATAR_CATALOG } from '../../store/badges';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { StylePortrait } from '../../style/StylePortrait';
 import { makeId } from '../../lib/id';
 import { todayISO } from '../../lib/dates';
@@ -223,7 +222,6 @@ function TestResetEditor({ student }: { student: Student }) {
 function AddStudentForm() {
   const addStudent = useStore((s) => s.addStudent);
   const [name, setName] = useState('');
-  const [avatar, setAvatar] = useState(AVATAR_CATALOG[0].id);
 
   return (
     <div className="chrome-frame stack" style={{ padding: 18 }}>
@@ -234,33 +232,15 @@ function AddStudentForm() {
           className="btn btn-primary"
           disabled={!name.trim()}
           onClick={() => {
-            addStudent(name.trim(), avatar);
+            // The old avatar field keeps a default; students design their character at the Seamstress.
+            addStudent(name.trim(), AVATAR_CATALOG[0].id);
             setName('');
           }}
         >
           Add Student
         </button>
       </div>
-      <div className="row-wrap">
-        {AVATAR_CATALOG.map((a) => (
-          <button
-            key={a.id}
-            className="avatar-sm stack"
-            style={{
-              width: 62,
-              height: 68,
-              flexDirection: 'column',
-              gap: 2,
-              outline: a.id === avatar ? '3px solid var(--purple)' : 'none',
-            }}
-            aria-label={a.name}
-            onClick={() => setAvatar(a.id)}
-          >
-            <AvatarGlyph value={a.id} size={36} />
-            <span style={{ fontSize: '0.58rem', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{a.name}</span>
-          </button>
-        ))}
-      </div>
+      <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.75 }}>Each student designs their own character at the 👗 Seamstress.</p>
     </div>
   );
 }
@@ -298,7 +278,7 @@ export default function StudentManager() {
           <div key={st.id} className="chrome-frame stack" style={{ padding: 18 }}>
             <div className="space-between">
               <div className="row">
-                <span className="avatar-sm" style={{ width: 56, height: 56 }}><StylePortrait studentId={st.id} size={52} fallback={st.avatar} /></span>
+                <span className="avatar-sm" style={{ width: 56, height: 56 }}><StylePortrait studentId={st.id} size={52} /></span>
                 <strong>{st.name}</strong>
               </div>
               <div className="row-wrap">
@@ -328,29 +308,6 @@ export default function StudentManager() {
                   <div>
                     <label>Name</label>
                     <input value={st.name} onChange={(e) => updateStudent(st.id, { name: e.target.value })} />
-                  </div>
-                  <div>
-                    <label>Avatar</label>
-                    <div className="row-wrap">
-                      {AVATAR_CATALOG.map((a) => (
-                        <button
-                          key={a.id}
-                          className="avatar-sm stack"
-                          style={{
-                            width: 56,
-                            height: 62,
-                            flexDirection: 'column',
-                            gap: 2,
-                            outline: a.id === st.avatar ? '3px solid var(--purple)' : 'none',
-                          }}
-                          aria-label={a.name}
-                          onClick={() => updateStudent(st.id, { avatar: a.id })}
-                        >
-                          <AvatarGlyph value={a.id} size={32} />
-                          <span style={{ fontSize: '0.56rem', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{a.name}</span>
-                        </button>
-                      ))}
-                    </div>
                   </div>
                   <div>
                     <label>Streak</label>

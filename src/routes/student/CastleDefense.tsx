@@ -18,6 +18,7 @@ import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplay
 import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
+import { drawQuestion } from '../../lib/questionPick';
 
 // Castle Defense — a Town Square building (role 'castle' in
 // townLayout.ts), teacher places the 3D "Low Poly Castle" model (CC-BY-4.0,
@@ -349,11 +350,10 @@ export default function CastleDefense() {
       const gameplayPick = pickGameplayQuestion(activeGameplayTask.task, avoidId);
       if (gameplayPick) return gameplayPick;
     }
-    const pool =
-      mode.mode === 'set'
-        ? (questionSets.find((qs) => qs.id === mode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? [])
-        : questionSets.filter((qs) => qs.kind === 'quiz').flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc'));
-    return pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : generateAutoQuestion();
+    if (mode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
+    const pool = (questionSets.find((qs) => qs.id === mode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
+    return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
 
   const startGame = () => {

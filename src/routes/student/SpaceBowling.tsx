@@ -25,6 +25,7 @@ import { pickRival, recordGameMemory } from '../../lib/gameRivals';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { spendBoosts } from '../../lib/gamePowerups';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
+import { drawQuestion } from '../../lib/questionPick';
 
 const Scene = lazyFresh(() => import('../../games/spaceBowling/Scene'));
 const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
@@ -97,9 +98,8 @@ export default function SpaceBowling() {
       const g = pickGameplayQuestion(activeGameplayTask.task, avoidId);
       if (g) return g;
     }
-    const pool = questionMode.mode === 'set'
-      ? (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? [])
-      : usableSets.flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc'));
+    if (questionMode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
+    const pool = (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };

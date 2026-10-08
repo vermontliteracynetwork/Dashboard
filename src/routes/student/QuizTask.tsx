@@ -6,6 +6,7 @@ import SubjectProgressBar from '../../components/SubjectProgressBar';
 import QuizThemePicker from '../../components/QuizThemePicker';
 import SpeakAnswer from '../../components/SpeakAnswer';
 import type { Student, Subject, Task, MatchingQuestion } from '../../types';
+import ZoomableImage from '../../components/ZoomableImage';
 
 interface Props {
   student: Student;
@@ -245,7 +246,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
             </button>
           )}
           {activeQ.imageUrl && (
-            <img src={activeQ.imageUrl} alt={activeQ.imageAlt ?? ''} style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
+            <ZoomableImage src={activeQ.imageUrl} alt={activeQ.imageAlt} maxHeight={150} radius={10} />
           )}
 
           {/* Claudia's quiz-mode audit: white text on --success/--orange

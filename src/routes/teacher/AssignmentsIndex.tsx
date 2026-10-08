@@ -6,7 +6,7 @@ import QuestionSetsManager from './QuestionSetsManager';
 import GusBoardsPanel from './GusBoardsPanel';
 import NewDailyPlanBuilder from './NewDailyPlanBuilder';
 import { StudentPlanTabs } from './LessonPlanBuilder';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import type { EditingPlan } from './NewDailyPlanBuilder';
 import { formatDateLong, todayISO } from '../../lib/dates';
 import { sortForDisplay } from '../../lib/taskOrder';
@@ -167,7 +167,7 @@ function AssignmentCard({
         </div>
         <div className="assignment-card-students">
           {studentList.map((st) => (
-            <span key={st.id} title={st.name}><AvatarGlyph value={st.avatar} size={22} /></span>
+            <span key={st.id} title={st.name}><StylePortrait studentId={st.id} size={28} /></span>
           ))}
           <span className="assignment-card-count">
             {studentList.length} student{studentList.length === 1 ? '' : 's'}
@@ -237,7 +237,7 @@ function DeletedAssignmentCard({ group, onRestore, onDeleteForever }: { group: A
         </div>
         <div className="assignment-card-students">
           {studentList.map((st) => (
-            <span key={st.id} title={st.name}><AvatarGlyph value={st.avatar} size={22} /></span>
+            <span key={st.id} title={st.name}><StylePortrait studentId={st.id} size={28} /></span>
           ))}
           <span className="assignment-card-count">
             {studentList.length} student{studentList.length === 1 ? '' : 's'}
@@ -325,7 +325,7 @@ function AssignmentDetailModal({
           <strong>Assigned to</strong>
           <div className="row-wrap">
             {studentList.map((st) => (
-              <span key={st.id} className="tag-pill"><AvatarGlyph value={st.avatar} size={18} /> {st.name}</span>
+              <span key={st.id} className="tag-pill"><StylePortrait studentId={st.id} size={24} /> {st.name}</span>
             ))}
           </div>
 
@@ -748,7 +748,7 @@ export default function AssignmentsIndex() {
                     className={`btn btn-sm ${selectedStudentId === st.id ? 'btn-primary' : ''}`}
                     onClick={() => setSelectedStudentId(st.id)}
                   >
-                    <AvatarGlyph value={st.avatar} size={18} /> {st.name}
+                    <StylePortrait studentId={st.id} size={24} /> {st.name}
                   </button>
                 ))}
               </div>

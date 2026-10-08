@@ -5,7 +5,6 @@ import { OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { StyleAvatar } from '../../style/StyleAvatar';
-import { useStyleSettings } from '../../style/catalog';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
@@ -206,7 +205,6 @@ function FloorMaterial({ path }: { path: string }) {
 
 // --- View mode: the student's own walkable character, same model/
 // animation approach as Town Square's Player, sized down for a small room.
-const CHARACTER_SCALE = 2.6;
 const ROOM_MOVE_SPEED = 3.0;
 const ROOM_CAMERA_HEIGHT = 2.3;
 const ROOM_CAMERA_DISTANCE = 3.4;
@@ -226,34 +224,7 @@ function useRoomKeys() {
 // The student's Seamstress character, same as in Town Square (teacher
 // 2026-10-08: the new character design everywhere, "in their home" too).
 function RoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
-  const { released } = useStyleSettings();
-  return released ? <StyleAvatar isMoving={isMoving} /> : <OldRoomPlayerModel isMoving={isMoving} />;
-}
-function OldRoomPlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
-  const { scene, animations } = useGLTF('/world/models/characters/player.glb');
-  const cloned = useMemo(() => cloneSkinned(scene), [scene]);
-  const group = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, group);
-  const current = useRef<'idle' | 'walk'>('idle');
-
-  useEffect(() => {
-    actions['idle']?.reset().play();
-    return () => { actions['idle']?.stop(); };
-  }, [actions]);
-
-  useFrame(() => {
-    const next = isMoving.current ? 'walk' : 'idle';
-    if (next === current.current) return;
-    actions[current.current]?.fadeOut(0.15);
-    actions[next]?.reset().fadeIn(0.15).play();
-    current.current = next;
-  });
-
-  return (
-    <group ref={group}>
-      <primitive object={cloned} scale={CHARACTER_SCALE} />
-    </group>
-  );
+  return <StyleAvatar isMoving={isMoving} />;
 }
 
 // Furniture collision in view mode, ported from Town Square's own

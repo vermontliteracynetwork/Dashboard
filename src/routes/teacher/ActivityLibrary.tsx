@@ -4,7 +4,7 @@ import QuizEditor, { validateQuizQuestions, sanitizeQuizQuestions } from './Quiz
 import DrillEditor from './DrillEditor';
 import ImageUploadField from '../../components/ImageUploadField';
 import TagsEditor from '../../components/TagsEditor';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 import { makeId } from '../../lib/id';
 import { DEFAULT_TASK_REWARD_CENTS } from '../../lib/money';
 import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
@@ -1021,7 +1021,7 @@ export function ActivityLibraryBrowse({
                               {students.map((st) => (
                                 <label key={st.id} className="row" style={{ gap: 4, fontWeight: 700, fontSize: '0.85rem' }}>
                                   <input type="checkbox" checked={addToIds.includes(st.id)} onChange={() => toggleAddTarget(st.id)} />
-                                  <AvatarGlyph value={st.avatar} size={18} /> {st.name}
+                                  <StylePortrait studentId={st.id} size={24} /> {st.name}
                                 </label>
                               ))}
                             </div>

@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
-import { AVATAR_CATALOG } from '../store/badges';
-import { AvatarGlyph } from './AvatarGlyph';
 import { EMOTE_CATALOG } from '../lib/emoteCatalog';
 import { ALL_JOKES } from '../lib/worldJokes';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
@@ -28,7 +26,6 @@ function PetPortrait({ src, size }: { src: string; size: number }) {
 // shows what the student already owns, with no way to reach the shop from
 // it, styled as a game-style hotbar strip rather than a full-page screen.
 export default function InventoryHotbar({ student, onClose }: { student: Student; onClose: () => void }) {
-  const updateStudent = useStore((s) => s.updateStudent);
   const equipEmote = useStore((s) => s.equipEmote);
   const allPets = useStore((s) => s.pets);
   const [tab, setTab] = useState<'stuff' | 'jokes' | 'friends' | 'pets'>('stuff');
@@ -41,7 +38,6 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
   const [petPageIndex, setPetPageIndex] = useState(0);
 
   const myPets = allPets.filter((p) => p.studentId === student.id);
-  const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
   const heardJokes = student.worldJokesHeardIds.map((id) => ({ id, entry: ALL_JOKES[id] })).filter((j) => j.entry);
   // Direct teacher instruction: a Friends section listing every Neighbor and
@@ -117,23 +113,6 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
           </div>
         ) : tab === 'stuff' ? (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
-            {ownedAvatars.map((a) => {
-              const equipped = student.avatar === a.id;
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => updateStudent(student.id, { avatar: a.id })}
-                  title={a.name}
-                  style={{
-                    flex: '0 0 auto', width: 64, height: 64, borderRadius: 12, cursor: 'pointer',
-                    border: equipped ? '3px solid var(--purple, #7c5cff)' : '2px solid var(--ink, #1f4238)',
-                    background: '#fff', padding: 4,
-                  }}
-                >
-                  <AvatarGlyph value={a.id} />
-                </button>
-              );
-            })}
             {ownedEmotes.map((e) => {
               const equipped = student.equippedEmoteId === e.id;
               return (
@@ -151,7 +130,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
                 </button>
               );
             })}
-            {ownedAvatars.length === 0 && ownedEmotes.length === 0 && (
+            {ownedEmotes.length === 0 && (
               <p style={{ opacity: 0.7, fontSize: '0.85rem', margin: '10px 4px' }}>Nothing here yet.</p>
             )}
           </div>

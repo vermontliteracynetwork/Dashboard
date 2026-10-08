@@ -3050,9 +3050,34 @@ export const useStore = create<AppState>()(
       },
 
       updateQuestionSet: (id, patch) => {
+        const before = get().questionSets.find((qs) => qs.id === id);
         set((s) => ({ questionSets: s.questionSets.map((qs) => (qs.id === id ? { ...qs, ...patch } : qs)) }));
         const updated = get().questionSets.find((qs) => qs.id === id);
         if (updated) pushQuestionSet(updated);
+        // Saved edits show up everywhere the set is used (teacher 2026-10-08: "make sure i can save
+        // question sets after editing the questions in question sets, and it should be reflected
+        // everywhere"). Games read the set live; assigned activities and plan templates hold a copy,
+        // recognized by sharing the set's question ids, so those copies get the new questions too.
+        if (!before || !updated || !patch.questions || before.kind !== 'quiz') return;
+        const ids = new Set(before.questions.map((q) => q.id));
+        const fromSet = (t: Task) => t.type === 'quiz' && !!t.quiz?.questions.some((q) => ids.has(q.id));
+        const refresh = (t: Task): Task => (fromSet(t) ? { ...t, quiz: { ...t.quiz!, questions: updated.questions } } : t);
+        const s0 = get();
+        const changedRot: [string, Subject][] = [];
+        const rotations = { ...s0.rotations };
+        for (const [sid, bySubject] of Object.entries(s0.rotations)) {
+          for (const subj of Object.keys(bySubject) as Subject[]) {
+            if (bySubject[subj]?.some(fromSet)) {
+              rotations[sid] = { ...rotations[sid], [subj]: bySubject[subj].map(refresh) };
+              changedRot.push([sid, subj]);
+            }
+          }
+        }
+        const changedTpl = s0.planTemplates.filter((t) => t.activities.some(fromSet)).map((t) => t.id);
+        if (!changedRot.length && !changedTpl.length) return;
+        set((s) => ({ rotations, planTemplates: s.planTemplates.map((t) => (changedTpl.includes(t.id) ? { ...t, activities: t.activities.map(refresh) } : t)) }));
+        changedRot.forEach(([sid, subj]) => pushRotation(sid, subj, get().rotations[sid][subj]));
+        get().planTemplates.filter((t) => changedTpl.includes(t.id)).forEach((t) => pushTemplate(t));
       },
 
       deleteQuestionSet: (id) => {

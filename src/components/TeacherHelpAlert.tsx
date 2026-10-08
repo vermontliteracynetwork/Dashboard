@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
-import { AvatarGlyph } from './AvatarGlyph';
+import { StylePortrait } from '../style/StylePortrait';
 import ChatPanel from './ChatPanel';
 
 // Mounted once at the app root (only does anything while role === 'teacher')
@@ -31,7 +31,7 @@ export default function TeacherHelpAlert() {
               return (
                 <>
                   <div className="row" style={{ gap: 10 }}>
-                    {student && <AvatarGlyph value={student.avatar} size={40} />}
+                    {student && <StylePortrait studentId={student.id} size={46} />}
                     <h2 style={{ margin: 0 }}>{student?.name ?? 'A student'} needs help!</h2>
                   </div>
                   {openPings.length > 1 && (

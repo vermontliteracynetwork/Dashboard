@@ -35,7 +35,27 @@ export default function QuestionSetDetail() {
   // anything, it's just a visible confirmation to match the Set name
   // panel's own pattern, since a teacher asked for one here too.
   const [justSavedExtras, setJustSavedExtras] = useState(false);
+  // The questions are edited as a draft too, then saved with one tap (teacher 2026-10-08: "make sure
+  // i can save question sets after editing the questions"). Saving every keystroke raced with the
+  // database echoing older saves back, which could undo an edit.
+  const [qDraft, setQDraft] = useState(set?.questions ?? []);
+  const [cDraft, setCDraft] = useState(set?.cards ?? []);
+  const [itemsDirty, setItemsDirty] = useState(false);
+  const [justSavedItems, setJustSavedItems] = useState(false);
   useEffect(() => {
+    if (!itemsDirty) { setQDraft(set?.questions ?? []); setCDraft(set?.cards ?? []); }
+  }, [set?.questions, set?.cards]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!itemsDirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [itemsDirty]);
+  useEffect(() => {
+    setQDraft(set?.questions ?? []);
+    setCDraft(set?.cards ?? []);
+    setItemsDirty(false);
+    setJustSavedItems(false);
     setNameDraft(set?.name ?? '');
     setDescriptionDraft(set?.description ?? '');
     setJustSaved(false);
@@ -207,16 +227,44 @@ export default function QuestionSetDetail() {
           {set.kind === 'quiz' ? (
             <QuizEditor
               subject={set.subject}
-              questions={set.questions}
-              onChange={(questions) => updateQuestionSet(set.id, { questions })}
+              questions={qDraft}
+              onChange={(questions) => { setQDraft(questions); setItemsDirty(true); setJustSavedItems(false); }}
             />
           ) : (
             <DrillEditor
               subject={set.subject}
-              cards={set.cards}
-              onChange={(cards) => updateQuestionSet(set.id, { cards })}
+              cards={cDraft}
+              onChange={(cards) => { setCDraft(cards); setItemsDirty(true); setJustSavedItems(false); }}
             />
           )}
+        </div>
+        <div
+          className="chrome-frame row-wrap"
+          style={{ position: 'sticky', bottom: 8, zIndex: 5, padding: '10px 14px', gap: 10, alignItems: 'center', justifyContent: 'space-between', background: itemsDirty ? '#FFF6D6' : undefined }}
+          role="status"
+        >
+          <span style={{ fontWeight: 700 }}>
+            {itemsDirty ? `✏️ Changes not saved yet` : justSavedItems ? '✅ Saved. Games, quizzes and assigned activities from this set now use these questions.' : '✅ All changes saved'}
+          </span>
+          <div className="row" style={{ gap: 8 }}>
+            {itemsDirty && (
+              <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { setQDraft(set.questions); setCDraft(set.cards); setItemsDirty(false); }}>
+                Undo changes
+              </button>
+            )}
+            <button
+              className="btn btn-primary"
+              style={{ minHeight: 44 }}
+              disabled={!itemsDirty}
+              onClick={() => {
+                updateQuestionSet(set.id, set.kind === 'quiz' ? { questions: qDraft } : { cards: cDraft });
+                setItemsDirty(false);
+                setJustSavedItems(true);
+              }}
+            >
+              💾 Save {set.kind === 'quiz' ? 'questions' : 'cards'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

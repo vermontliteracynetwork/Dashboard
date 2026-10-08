@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import type { Subject } from '../../types';
-import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { StylePortrait } from '../../style/StylePortrait';
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.round(ms / 1000);
@@ -28,7 +28,6 @@ export default function ScoreHistory() {
   const [subjectFilter, setSubjectFilter] = useState<'all' | Subject>('all');
 
   const nameFor = (id: string) => students.find((st) => st.id === id)?.name ?? 'Unknown';
-  const avatarFor = (id: string) => students.find((st) => st.id === id)?.avatar ?? '❓';
 
   const rows = useMemo(
     () =>
@@ -70,7 +69,7 @@ export default function ScoreHistory() {
               const pct = a.totalCount > 0 ? Math.round((a.correctCount / a.totalCount) * 100) : 0;
               return (
                 <div key={a.id} className="score-row">
-                  <span className="score-avatar"><AvatarGlyph value={avatarFor(a.studentId)} /></span>
+                  <span className="score-avatar"><StylePortrait studentId={a.studentId} size={40} /></span>
                   <div className="score-body">
                     <div className="score-title">{nameFor(a.studentId)}: {a.taskTitle}</div>
                     <div className="score-meta">

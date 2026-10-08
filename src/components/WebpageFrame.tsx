@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useBack } from '../lib/navTrail';
+import { guardLeave, useBack } from '../lib/navTrail';
 import Breadcrumbs from './Breadcrumbs';
 
 // The one "browser chrome" header every screen a student reaches from the
@@ -61,7 +61,7 @@ export default function WebpageFrame({
       <button
         className="btn btn-sm"
         style={{ fontFamily: 'system-ui, sans-serif', background: '#3e7c6b', color: '#fff' }}
-        onClick={() => (onBack ? onBack() : !backTo && cameFromMarket ? navigate(effectiveBackTo, { state: state?.back ?? null }) : backTo ? navigate(backTo) : back.go())}
+        onClick={() => (onBack ? onBack() : guardLeave(() => (!backTo && cameFromMarket ? navigate(effectiveBackTo, { state: state?.back ?? null }) : backTo ? navigate(backTo) : back.go())))}
       >
         {effectiveBackLabel}
       </button>

@@ -4,7 +4,6 @@ import TeacherNav from '../../components/TeacherNav';
 import ImageUploadField from '../../components/ImageUploadField';
 import { STANDARD_PRICE_CENTS, specialtyPrice, ALL_EARN_METHODS, EARN_METHOD_LABELS, earnMethodsFor } from '../../lib/marketplaceSeed';
 import { EMOTE_CATALOG, emotePriceFor } from '../../lib/emoteCatalog';
-import { BLOCKY_AVATARS as AVATAR_CATALOG, avatarPriceFor } from '../../lib/avatarCatalog';
 import { formatMoney } from '../../lib/money';
 import type { EarnMethod, MarketplaceItem, MarketplaceItemKind } from '../../types';
 
@@ -152,52 +151,6 @@ function EmotePricesSettings() {
               </div>
               {overridden && (
                 <button className="btn btn-sm" style={{ fontSize: '0.6rem', padding: '2px 6px', minHeight: 0 }} onClick={() => setEmotePriceOverride(e.id, null)}>
-                  Reset
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// Characters used to have zero teacher-editable price anywhere — direct
-// teacher report: "full ability to edit all prices... for everything
-// marketplace related." Same override-map pattern as EmotePricesSettings
-// above, just for the avatar catalog.
-function CharacterPricesSettings() {
-  const avatarPriceOverrides = useStore((s) => s.avatarPriceOverrides);
-  const setAvatarPriceOverride = useStore((s) => s.setAvatarPriceOverride);
-
-  return (
-    <div className="chrome-frame stack" style={{ padding: 16 }}>
-      <h3 style={{ marginTop: 0 }}>🧑 Character Prices</h3>
-      <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        Characters use bundled art, not the catalog below, but you can still reprice them here.
-      </p>
-      <div className="row-wrap">
-        {AVATAR_CATALOG.map((a) => {
-          const price = avatarPriceFor(avatarPriceOverrides, a.id);
-          const overridden = avatarPriceOverrides[a.id] !== undefined;
-          return (
-            <div key={a.id} className="stack" style={{ alignItems: 'center', gap: 2, width: 84 }}>
-              <img src={a.src} alt="" style={{ width: 40, height: 40 }} />
-              <span style={{ fontSize: '0.62rem', fontWeight: 700, textAlign: 'center' }}>{a.name}</span>
-              <div className="row" style={{ gap: 2 }}>
-                <span style={{ fontSize: '0.75rem' }}>$</span>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.25}
-                  value={(price / 100).toFixed(2)}
-                  onChange={(ev) => setAvatarPriceOverride(a.id, Math.round(Math.max(0, parseFloat(ev.target.value) || 0) * 100))}
-                  style={{ width: 56 }}
-                />
-              </div>
-              {overridden && (
-                <button className="btn btn-sm" style={{ fontSize: '0.6rem', padding: '2px 6px', minHeight: 0 }} onClick={() => setAvatarPriceOverride(a.id, null)}>
                   Reset
                 </button>
               )}
@@ -455,7 +408,6 @@ export default function MarketplaceManager() {
         </p>
 
         <AssignmentRewardSettings />
-        <CharacterPricesSettings />
         <EmotePricesSettings />
 
         <div className="chrome-frame stack" style={{ padding: 16 }}>

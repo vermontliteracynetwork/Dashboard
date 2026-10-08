@@ -1,4 +1,5 @@
 import type { QuestionSet } from '../types';
+import { pickableSets } from '../lib/questionPick';
 
 // Direct teacher instruction: "for question sets and in-game play,
 // students have a few options 1) they can select a dice icon and have a
@@ -18,6 +19,8 @@ export default function QuestionSourcePicker({
   value: QuestionSourceMode;
   onChange: (mode: QuestionSourceMode) => void;
 }) {
+  // While any set is starred as a focus, a student can only pick one of those (teacher 2026-10-08).
+  const shown = pickableSets(questionSets);
   return (
     <div className="row-wrap" style={{ gap: 12, alignItems: 'center', justifyContent: 'center' }}>
       <button
@@ -28,7 +31,7 @@ export default function QuestionSourcePicker({
       >
         🎲 Random, from all my question sets
       </button>
-      {questionSets.length > 0 && (
+      {shown.length > 0 && (
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>📋 Or just one:</span>
           <select
@@ -37,7 +40,7 @@ export default function QuestionSourcePicker({
             style={{ minHeight: 44, borderRadius: 8, padding: '4px 8px', fontSize: '0.9rem' }}
           >
             <option value="" disabled>Choose a question set…</option>
-            {questionSets.map((qs) => (
+            {shown.map((qs) => (
               <option key={qs.id} value={qs.id}>{qs.name}</option>
             ))}
           </select>

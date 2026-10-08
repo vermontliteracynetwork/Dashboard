@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-zoom-pictures',
+    date: '2026-10-08',
+    icon: '🔍',
+    title: 'Make question pictures bigger',
+    body: 'Question pictures are smaller now so you can see the whole question. Want a closer look? Double-tap the picture, or tap the magnifier, to see it big. Tap again to close it.',
+  },
+  {
+    id: '2026-10-08-your-character-everywhere',
+    date: '2026-10-08',
+    icon: '🐾',
+    title: 'Your character is everywhere',
+    body: 'The old characters are gone. The character you design at the Seamstress is you everywhere now: the login screen, your Computer, Town Square, your home and Creative Island, from the tips of your ears to your toes. Alchemy also asks before you leave, so you never lose your discoveries by accident.',
+  },
+  {
     id: '2026-10-08-alchemy-myths',
     date: '2026-10-08',
     icon: '🦄',

@@ -18,6 +18,7 @@ import {
   type Level, type Runner,
 } from '../../games/shapeDash/engine';
 import { pauseMusic, setSound, sfx, startMusic, stopMusic } from '../../games/shapeDash/audio';
+import { drawQuestion } from '../../lib/questionPick';
 
 const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
 
@@ -80,11 +81,10 @@ export default function ShapeDash() {
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
   const pickQuestion = (avoidId?: string): MCQuestion => {
     if (activeGameplayTask) { const g = pickGameplayQuestion(activeGameplayTask.task, avoidId); if (g) return g; }
-    const pool = questionMode.mode === 'set'
-      ? (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? [])
-      : usableSets.flatMap((qs) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc'));
+    if (questionMode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
+    const pool = (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
-    return choices.length ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
+    return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
 
   // --- launch choices ---
