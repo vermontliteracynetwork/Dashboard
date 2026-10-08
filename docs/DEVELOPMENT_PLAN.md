@@ -24,7 +24,30 @@
 
 **How to use this doc with Claudia:** Part A is what already exists (build on it or revise it explicitly, don't re-propose it). Part B is the open backlog, organized by feature front, each pointing at its own doc where one exists — the best place to start a gameplay-design conversation. Part C is the teacher's own raw notes on the pets system and platformer, preserved close to verbatim. Part D is the standing design/safety/accessibility rules every new feature gets checked against.
 
-## ⚠️ ACTION NEEDED FROM THE TEACHER — a database migration hasn't been run
+## ⚠️ WAITING ON THE TEACHER: SQL to run, answers owed, live checks
+
+**Quick list (updated 2026-10-08, Claudia's plan check). Details for each are below or in the linked entry.**
+
+**SQL to run in the Supabase SQL Editor:**
+1. `activity_library` student title and description (the two lines just below). Then tell the next session so they go back in the save payload.
+2. `alter table marketplace_items add column if not exists model_path text;` Until it runs, a Home item she makes herself loses its 3D model when the app reloads (the seeded ones are fine, their model is read from the id). Then map `model_path` in `src/lib/sync.ts`.
+3. `chess_games` (Slime Chess personal leaderboard) and `style_looks` (saved Style looks, Gus boards, power-ups and more), both below.
+
+**Answers she owes (each one unblocks a build):**
+- **Gus Daily Challenge and the $25 streak:** her "go", and do weekends break the streak (suggestion: no).
+- **Alchemy next steps, yes or no each:** questions from question sets, $1 per right answer, a discovery book page, a Town Square home, new discoveries becoming Gus nouns.
+- **Joke frameworks for Gus Examples:** which ones (for example knock-knock, "Why did the...?").
+- **Gus Phase 2 machines:** only a "go" (suggested start: the run-on fix).
+- Everything else she owes is in the Gameplay roadmap, "4. Decisions she owes".
+
+**Needs a live check (only she can do these, on a real iPad and a second device):**
+- Grammar Gus resize handles and folded tabs, in both orientations.
+- Share live from Academics, Grammar Gus boards, with a student device joining.
+- The Style character's size in the smaller Home Room rooms and on Creative Island.
+- Full-body Style portraits on the login screen (ears, hats and tails all showing).
+- Double-tap to enlarge a question picture.
+
+### The SQL details
 
 **2026-10-01, production outage, hotfixed in code but not fully resolved:** saving any activity/question set started failing ("Could not find the 'student_description' column of 'activity_library' in the schema cache") because `supabase/schema.sql` already has `student_title`/`student_description` columns defined for the `activity_library` table (`alter table activity_library add column if not exists ...`), but that migration was never actually run against the live Supabase database — this sandbox has no Supabase credentials/CLI, so a schema.sql edit is local-only and never auto-applies to production. The code was hotfixed to stop sending those two fields so saving works again right now, but that means **a student's own title/description typed into an activity is silently not being saved** until this is fixed for real.
 
@@ -147,13 +170,13 @@ Certain punchlines are tagged as jokes: the first time a student reaches one, it
 
 **Mailbox** (Post Office building): shows the themed item each Neighbor "sends" the first time a student meets them, so the Post Office isn't a walkable-but-inert building. **Passport** (Welcome Center building): a Town-Hall-style summary of the student's own identity, streak, Neighbors met, jokes collected, and earned badges, an Animal-Crossing-style equivalent to Scout's "shows you around" role.
 
-#### A11. Avatars & Emotes
+#### A11. Characters (Style) & Emotes
 
-A student has two separate appearances. Their **portrait** is a 2D picture from the Kenney Blocky set (18 characters in `avatarCatalog.ts`, one free starter, the rest $20 to $25 in Class Cash, kept in `ownedAvatarIds`) shown at login, on cards, and on the Passport. Their **in-world character** is a 3D model in Town Square: the default `player.glb` (a Kenney Mini Character with a 7-bone skeleton: root, torso, head, two arms, two legs, and 32 built-in animation clips, of which only idle and walk are played today), or the **Cake Character** skin, a static mascot mesh attached to the torso bone, unlocked by answering 100 Bakery Match questions correctly (`unlockedCharacterIds` and `equippedCharacterId`) and shown in Town Square only. Both are planned to be replaced by **Style** (Part B, [`STYLE.md`](./STYLE.md)). Students also pick from a catalog of emote images that pop up over their head (Happy, Love It, Great Job, LOL, Sad, Frustrated, Idea, and more). Six of the emotes are free starters, including all four that name a genuinely hard feeling (Sad, Frustrated, Heartbroken, Grr): a deliberate design choice so a student having a hard day doesn't have to pay for the word for it while every positive feeling is free. A backpack **Inventory Hotbar** (opened from the pie menu's "My Stuff") shows everything a student owns without the full shop attached: characters, emotes, the Joke Book, Friends list, and pets.
+**Updated 2026-10-08.** Every student is one character everywhere: the animal they design at the Seamstress (Style, A52). It is their picture on the login screen, the Computer, the teacher's pages and the Passport (`StylePortrait`, a full-body snapshot), and their player in Town Square, the Home Room and Creative Island (`StyleAvatar`). A student with no saved look shows the default Style dog. **Removed 2026-10-08 at her "go ahead":** the old 2D Kenney Blocky portraits and their pickers and prices, the old 3D `player.glb` player, and the Bakery Match Cake Character (the database fields stay, unused). Students also pick from a catalog of emote images that pop up over their head (Happy, Love It, Great Job, LOL, Sad, Frustrated, Idea, and more). Six of the emotes are free starters, including all four that name a genuinely hard feeling (Sad, Frustrated, Heartbroken, Grr): a deliberate design choice so a student having a hard day doesn't have to pay for the word for it while every positive feeling is free. A backpack **Inventory Hotbar** (opened from the pie menu's "My Stuff") shows everything a student owns without the full shop attached: emotes, the Joke Book, Friends list, and pets.
 
 #### A12. Marketplace
 
-The unified cosmetic/power-up shop, reached by walking up to the Store. Tabs: Characters (avatars), Emotes, Writing (fonts and text/highlight colors for Notes), Whiteboard (marker colors), Voices (read-aloud voice skins), Prizes (teacher-defined real-world or in-game rewards, redeemed by showing the screen to the teacher), Power-Ups (Skip Passes, which let a student cross one non-required task off their list without doing it), Pets (a redirect to the Pet Shelter, A5), My Stuff, and Receipts (a full purchase history). Every purchase goes into a real shopping cart first, with a running total and balance check, before a final Confirm Purchase; a receipt screen afterward shows what was bought and the new balance. A student who can't afford something sees exactly how much more they need, never just a disabled button. See A31 for the optional "Count It Out" checkout mode and A32 for the cart's needs-vs-wants reflection prompt.
+The unified cosmetic/power-up shop, reached by walking up to the Store or from the Computer. **Tabs (as of 2026-10-08):** 🧵 Style (Seamstress animals, patterns and clothes, the same purchase as at the Seamstress; replaced the old Characters tab), Emotes, ✍️ Writing and Whiteboard (one tab: fonts, text and highlight colors, marker colors), Voices (read-aloud voice skins), ⚡ Power-ups (Skip Passes, Streak Freezes, and in-game power-ups used at the start of the next game: Shape Dash Extra Heart and Starting Shield, Space Bowling Strike Shuttle and UFO), 🎁 Real-Life Prizes (her own teacher-defined prizes, redeemed by showing the screen; the starter prizes were removed at her request), 🛋️ Home (all 128 interior models except the 5 free starters, $5 to $20, placed at home in Build Mode), Pets (a redirect to the Pet Shelter, A5), My Stuff, and Receipts. Tapping the balance opens the Bank, and its Back returns to the same tab. Every purchase goes into a real shopping cart first, with a running total and balance check, before a final Confirm Purchase; a receipt screen afterward shows what was bought and the new balance. A student who can't afford something sees exactly how much more they need, never just a disabled button. See A31 for the optional "Count It Out" checkout mode and A32 for the cart's needs-vs-wants reflection prompt.
 
 #### A13. Daily Spin Wheel
 
@@ -197,7 +220,7 @@ Every content shape a teacher can assign, each its own screen:
 
 #### A18. Question Sets, Content Library & CSV Import
 
-A searchable, filterable library of reusable Question Sets (quiz or drill kind), each with a cover image and tags, browsable as a card grid. A full editor lets a teacher build a set by hand, or upload a CSV in a fixed template format that both inserts straight into the activity being edited and saves as a new named set in the library in one step, so nothing has to be entered twice.
+A searchable, filterable library of reusable Question Sets (quiz or drill kind), each with tags, browsable as a card grid. A full editor lets a teacher build a set by hand, or upload a CSV in a fixed template format that both inserts straight into the activity being edited and saves as a new named set in the library in one step, so nothing has to be entered twice. **Added 2026-10-08:** in Academics, Question Sets, download the CSV template or any set as CSV, upload a CSV with an optional zip of pictures (applied to the questions in file name order), and preview and edit everything before saving. A set's page edits its questions as a draft with a sticky 💾 Save bar; saving also updates every assigned activity and plan template made from that set. Question pictures show small and enlarge with a double-tap (`ZoomableImage`). A ⭐ starred (focus) set comes up 5 times as often as any other set in every game's random questions, split evenly between starred sets, and while any set is starred, students can only pick starred sets in a game's "just one" menu (`src/lib/questionPick.ts`).
 
 #### A19. Common Core Standards Picker
 
@@ -209,7 +232,7 @@ Two related systems, both teacher-authored:
 
 **Literacy Focus Sets**: a per-student weekly window of phonics patterns, morphemes, and spelling practice words, shown as a quick reference while the student works on Literacy.
 
-**Focuses**: a class-wide curriculum spotlight across four independent lanes (Math, Literacy, Social-Emotional, Personal Finance), one active focus per lane at a time. A Focus is deliberately never shown to a student as "your weak spot" or "you need to work on this"; it surfaces as a quiet "This week in our classroom" banner on relevant screens (Piggy Bank, Marketplace, subject dashboards), and its word list occasionally (about 1 in 3 conversations, never every single time) drops naturally into NPC small talk instead of an explicit on-screen callout. This framing is a direct, explicit design guardrail against surveillance/deficit framing for a population where an on-screen "target" can land very differently than intended.
+**Focuses**: a class-wide curriculum spotlight across four independent lanes (Math, Literacy, Social-Emotional, Personal Finance), one active focus per lane at a time. A Focus is deliberately never shown to a student as "your weak spot" or "you need to work on this"; it surfaces as a quiet "This week in our classroom" banner on relevant screens (Piggy Bank, Marketplace, subject dashboards), and its word list occasionally (about 1 in 3 conversations, never every single time) drops naturally into NPC small talk instead of an explicit on-screen callout. This framing is a direct, explicit design guardrail against surveillance/deficit framing for a population where an on-screen "target" can land very differently than intended. **Today a ⭐ starred Question Set is the focus for its subject** (Focuses are retired from live authoring); see A18 for how starred sets drive game questions.
 
 #### A21. Activity Library, Plan Templates & Weekly Schedule
 
@@ -394,7 +417,7 @@ This subsection is a standing, synthesized overview of everything above — kept
 
 #### A24. Native Games & the Native Game Standard
 
-Governed by `NATIVE_GAME_STANDARD.md`. Three native games are shipped today — the Platformer (A15), Bakery Match (A43), and the Gas Pump (A44), each with its own Logic/UX/Academic-integration breakdown at its own entry — plus a planned pipeline for uploading third-party HTML5 games from sites like itch.io. A native game exists specifically to make retrieval practice (being asked to recall an answer, not just review content, one of the most robust findings in learning science) tolerable and motivating for a student who would disengage from a plain quiz: the game is the wrapper, the question set underneath is the actual point, and gameplay always serves the question set, never the reverse. Hard rules that apply regardless of which game: a question break, once started, has zero time pressure (no countdown, no answer time limit, full access to every accessibility tool); replay is unlimited (no play-count cap, no daily limit); leaving mid-game always shows a confirm dialog first, and confirming forfeits that session's progress and reward (but never erases mastery already logged before leaving); every completed session generates a full report to the teacher's inbox in addition to the normal mastery record. A teacher configures how often a question break becomes eligible and how many questions appear per break.
+Governed by `NATIVE_GAME_STANDARD.md`. Native games shipped as of 2026-10-08: the Platformer (A15), Bakery Match (A43), the Gas Pump (A44), Castle Defense (A45), Slime Chess (A47), Space Bowling (A50), Shape Dash (A51) and Quiz Mode, each with its own breakdown at its own entry (Alchemy, A49, is a sandbox app not yet fueled by questions), plus a planned pipeline for uploading third-party HTML5 games from sites like itch.io. A native game exists specifically to make retrieval practice (being asked to recall an answer, not just review content, one of the most robust findings in learning science) tolerable and motivating for a student who would disengage from a plain quiz: the game is the wrapper, the question set underneath is the actual point, and gameplay always serves the question set, never the reverse. Hard rules that apply regardless of which game: a question break, once started, has zero time pressure (no countdown, no answer time limit, full access to every accessibility tool); replay is unlimited (no play-count cap, no daily limit); leaving mid-game always shows a confirm dialog first, and confirming forfeits that session's progress and reward (but never erases mastery already logged before leaving); every completed session generates a full report to the teacher's inbox in addition to the normal mastery record. A teacher configures how often a question break becomes eligible and how many questions appear per break.
 
 #### A25. Playground / Free Play
 
@@ -526,7 +549,7 @@ A Candy Crush-style match-3 game (`BakeryMatch3.tsx`) reached by walking into th
 
 - **Logic:** a game is `TOTAL_ROUNDS` = 3 rounds; a round is `MOVES_PER_ROUND` = 3 successful moves (a swap that produces a real match — a non-matching swap shakes/reverts and doesn't count). After each round's last move, a question gate opens: `QUESTIONS_PER_GATE` = 3 correct answers required to continue, a wrong pick never resets the count (same "wrong costs nothing, try again" rule the Gas Pump lockout uses, see A44). After round 3's gate passes, the game ends: the Bakery Treat Wheel spins once, total match XP for the session is appended to the student's own private leaderboard (`student.bakeryLeaderboard`), and they land back on the main menu. Question source (random vs. a specific teacher Question Set, via the shared `QuestionSourcePicker`) is chosen once on the main menu and locked for the whole game — no mid-round reselection.
 - **User Experience:** warm cream-to-caramel palette, pill-shaped "Play New Game"/"View My Leaderboard" buttons, round/move pips instead of a raw match counter, an XP pill, a quiet gear icon as the only pre-game route to the question-source picker, and a ✕-with-confirm exit instead of an unwarned mid-game leave. Drag-threshold-gated swipe input (`DRAG_THRESHOLD_PX`). The private leaderboard is never shown to any other student, per the standing no-cross-student-comparison rule.
-- **Academic integration:** every correct question-gate answer pays `REWARD_PER_QUESTION_CENTS` = $0.50 immediately (real Piggy Bank transaction + the app-wide coin-drop animation), separate from and additive to the XP/match-score system. Finishing the whole game (all 3 gates passed) also grants a Daily Spin Bonus Spin, same `bonusSpinAvailable` flag every other "finished everything" reward uses. Two persistent counters track real academic engagement here, deliberately kept separate so neither can drift the other: `bakeryQuestionsAnswered` (lifetime, every submitted answer right or wrong — a participation tracker, unlocks the Cake Character skin at 100) and `bakeryMilestoneTier`/`bakeryMilestoneCount` (an escalating cash goal — reach `tier * 100` correct answers across sessions to earn $(tier × 100), then the goal grows by 100 and resets; a shared `advanceMilestone` function drives both the live header display and the real settlement math so they can never disagree). Nothing is banked until a game actually completes — no live mid-game payout.
+- **Academic integration:** every correct question-gate answer pays `REWARD_PER_QUESTION_CENTS` = $0.50 immediately (real Piggy Bank transaction + the app-wide coin-drop animation), separate from and additive to the XP/match-score system. Finishing the whole game (all 3 gates passed) also grants a Daily Spin Bonus Spin, same `bonusSpinAvailable` flag every other "finished everything" reward uses. Two persistent counters track real academic engagement here, deliberately kept separate so neither can drift the other: `bakeryQuestionsAnswered` (lifetime, every submitted answer right or wrong, a participation tracker; it used to unlock the Cake Character skin at 100, removed 2026-10-08 with the other old characters) and `bakeryMilestoneTier`/`bakeryMilestoneCount` (an escalating cash goal — reach `tier * 100` correct answers across sessions to earn $(tier × 100), then the goal grows by 100 and resets; a shared `advanceMilestone` function drives both the live header display and the real settlement math so they can never disagree). Nothing is banked until a game actually completes — no live mid-game payout.
 
 #### A44. Gas Pump (native question-set-fueled game, Town Square)
 
@@ -595,6 +618,34 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 - **Verified:** typecheck and build pass; the coach's explanations, hints and AI speed were tested headlessly against real positions; the menu and a few moves vs the computer were checked once in a browser (landscape and portrait).
 - **Open, not built (flagged for the teacher):** no question gate or Piggy Bank reward is attached yet (chess is played for its own sake; tying a reward to finishing a game is a quick follow-up if she wants it), and no saved game history/leaderboard.
 
+#### A48. Grammar Gus (grammar sandbox on the Computer)
+
+A STEAM-style Workboard where every word is its own machine (`src/games/grammarGus/`): drag word, punctuation and joining parts onto the board, pull the Start Lever, and the Pixel TV acts out the sentence. Phase 1 writing machines are complete (fade ladder, Logic Gate, Flip Switch, Equals Sign, Expansion Rig, Procedure Conveyor, Hypothesis Engine, Spark Check, Homophone Sorter, Transition Track). Also: guess and check with Gus's hints (the third hint names the exact fix), an Inspector's Clipboard checklist that explains each step, the Clock tense, paragraphs run by one lever, the crowned Proper Noun machine, examples (sentences and figurative language), Copy buttons, a foldable and resizable iPad layout with Big board, Read and Respond with the immersive reader and the Library app, Orders, Blueprints, the Garage and the Journal (save a sentence with its video). Teacher side: live share by a 4-number code and Academics' Grammar Gus boards (open in a new tab, share live, send a copy). No coins. Full history in Part B's Grammar Gus entries; next is Phase 2 (roadmap section 2).
+
+#### A49. Alchemy (computer app) — SHIPPED 2026-10-08
+
+A Little Alchemy style sandbox (`/student/alchemy`, data in `src/games/alchemy/data.ts`): start with fire, water, earth and air and combine elements to discover 137 things through 133 recipes, including a fantasy chain (dinosaur + fire = dragon) and the mythology the students asked for. Big touch tiles, hints, sound, NEW badges. Every visit starts fresh, and leaving asks first once something has been found. Next steps wait on her yes (see "Waiting on the teacher").
+
+#### A50. Space Bowling (native game) — SHIPPED 2026-10-04
+
+A 3D bowling game (`/student/space-bowling`): planet bowling balls, alien-cat pins that meow, 2 to 4 players with Neighbors as opponents, questions at the start of each human turn, $1 per right answer, power-ups, her Bowling GUI banners (STRIKE, DOUBLE, TURKEY, GUTTER), and the Space Alien costume to earn. Details in Part B, "Space Bowling".
+
+#### A51. Shape Dash (native game) — SHIPPED 2026-10-07
+
+A Geometry Dash style auto-runner (`/student/shape-dash`): tap to jump spikes and gaps, 3 hearts with flag checkpoints, a practice mode, levels that speed up, a custom shape and face, a question every 30 seconds and after a crash, $1 per right answer. Details in Part B, "Shape Dash".
+
+#### A52. Style and the Seamstress — student characters
+
+Students design one animal (dog, cat, frog, capybara and more) at the Seamstress: body colors, patterns, clothes and costumes on one shared one-size wardrobe, saved in the `style_looks` table. The teacher has a Style room and item workshop, and Neighbors are dressed in Style too. Since 2026-10-08 it is the student's only character everywhere (see A11). Design rules live in `STYLE.md`; next steps are in the roadmap.
+
+#### A53. Daily Streak — SHIPPED 2026-10-04
+
+The first login of the day shows a Daily Streak card ("complete 20 questions today"), then a grid of native games. A draggable 🔥 0 to 20 meter follows the student; every correct answer anywhere counts. Saving the streak opens tap-to-open treasure chests with growing money caps, and Streak Freezes ($20, one free, a 5% Daily Spin wedge) protect a day. Details in Part B, "Daily Streak".
+
+#### A54. Back button and breadcrumbs — SHIPPED 2026-10-08
+
+One shared trail (`src/lib/navTrail.ts`): Back always returns to the screen the student came from (not always Town Square), every computer page's address bar is a tappable breadcrumb with the Computer first, and a screen can ask before the student leaves (`setLeaveGuard`, used by Alchemy).
+
 ---
 
 ## PART B — Open Backlog, by Feature Front
@@ -602,6 +653,8 @@ Direct teacher request with five uploads (a Quaternius round table, "Chess Set" 
 ### Gameplay roadmap: everything still to build (master list, 2026-10-08)
 
 **Her words (2026-10-08, verbatim):** "give me the most comprehensive dev plan with an update on features yet to be built for game play"
+
+**Plan check 2026-10-08 (Claudia):** Part A now covers Grammar Gus, Alchemy, Space Bowling, Shape Dash, Style, the Daily Streak and the back trail (A48 to A54); stale notes about the old characters were corrected; the done "Queued from her messages" list is marked shipped; the Alchemy queue entry was merged into the app entry; "Waiting on the teacher" at the top now lists SQL, answers owed and live checks in one place.
 
 This is the one place to see every gameplay feature that is not built yet, pulled together from every section of this plan, STYLE.md, PETS_V2_OVERVIEW.md and the Grammar Gus docs. Each item says where its full detail lives. Delivered to her as `docs/GAMEPLAY_ROADMAP.pdf`. Keep this list current: when something ships, strike it here and fold it into Part A.
 
@@ -611,7 +664,8 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - **Native games (question sets fuel every one, $1 per right answer, Daily Streak, personal bests, leave-game confirmation):** Bakery Match with the Treat Wheel, Castle Defense, Slime Chess, Space Bowling, Shape Dash, the Platformer, the Gas Pump quiz.
 - **Grammar Gus:** the Workboard sandbox (every part its own machine, Phase 1 writing machines complete, guess and check, teacher live share), Read and Respond with the immersive reader and the Library app, Orders, Blueprints, the Garage, the Journal.
 - **Rewards and daily loops:** Daily Spin, Daily Streak with chests and Streak Freezes, Marketplace, Mailbox, Arcade (Scratch games), Cinema, music.
-- **Style:** the Seamstress (students dress their animal), Space Alien costume earned in Space Bowling, Neighbors dressed in Style. **As of 2026-10-08 the student's Style character is the player everywhere: Town Square, their Home Room and Creative Island.**
+- **Style:** the Seamstress (students dress their animal), Space Alien costume earned in Space Bowling, Neighbors dressed in Style. **As of 2026-10-08 the student's Style character is the player everywhere (Town Square, their Home Room and Creative Island) and their picture everywhere; the old characters are removed.**
+- **Alchemy** (computer app, 137 elements), the back button and breadcrumb trail, starred focus sets 5x as often in games, and zoomable question pictures (all 2026-10-08).
 
 #### 2. Ready to build now (no decision needed, only her "go" on order)
 
@@ -625,13 +679,14 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 7. Gus's Paint Shop: a gear sink for paint, decals and factory floors, never hints.
 
 **Grammar Gus, smaller open pieces:**
-- Pixel TV: "with" showing both characters walking together.
+- Pixel TV: "with" showing both characters walking together. (Two joined things, "Xander and Yoga", already show together since 2026-10-08.)
 - Audit leftovers: hard words moved to an off-by-default pack, sub-folds for the 40 fun parts, tiny labels inside the drawings, Undo for the Spare Parts Bin, reflexive pronoun agreement, interjection commas, pronouns after where words, a "because" idea at the front of the sentence, board sync to the teacher's account.
 - Claudia's round ideas: Mixed-up Delivery (rebuild a scrambled sentence from a conveyor), Noun Boiler Pairs (singular and plural, "a" and "some"), Punctuation Inspector (fix a wrong punctuation stamp, the TV shows the tone), Paragraph Pipes Join Clamp ghost.
 - Word packs: a teacher word tool (add a student's special-interest word with its forms and a picture) and more packs (Dinosaurs, Food, Superheroes, Trains and Cars).
 - Garage extras: lever styles, sound sets, celebration styles, stickers on the cabinet, Gus costumes, part variants, 6 saved machine Blueprints.
 - Orders: a teacher editor for her own orders, and a sticker book page.
 - Blueprints still to come: "Why Did the...?", Silly Recipe, Show and Tell, Letter to a Friend (needs her name list), the Pun Pack.
+- Examples folder, more categories (her words 2026-10-08: "we will ad more categories like joke frame works and such later"): joke frameworks first, once she says which ones.
 - Teacher report: PDF export, IEP goal lines on a progress graph, teacher notes, Gus's Checkup (an optional baseline).
 - Describe Sorter conveyor animation; "Do it for me after 2 taps"; hiding item groups.
 
@@ -652,13 +707,16 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - **Tappy Plane** (one-tap flying game, Kenney art saved in `public/games/tappy-plane/`): gentle mode where bumping a rock bounces the plane back, wider gaps to start, question breaks between flights, stars and medals as rewards, a Town Square home such as an airfield.
 - **Pets v2** (cats and dogs, grammar inside training; full plan in `docs/PETS_V2_OVERVIEW.pdf`): Phase 1 foundation (final breed list, body choice, new stat card), Phase 2 adoption agency, Phase 3 Training Yard with the Command Builder (the sentence is the command), Phase 4 tool-based care, Phase 5 tricks, Pet Show Ring and Trainer License, Phase 6 collars and coats, Phase 7 pet parade and pets cheering in native games. Pets are paused and refunded until then.
 - **The Seamstress game** with Webkinz-style clothing recipes (STYLE.md): a Clothing Machine where 3 owned items make a new one, a Recipe Book to collect, a simple student designer, questions between steps.
-- **Style, next steps** (STYLE.md): Style items for sale and to earn in the Marketplace (price, dates, earn rules), the Style Studio for her (blank templates, a print-on-demand style designer, an effects shelf, the free Describe-it builder), more Comfort Gear including the wheelchair set, and, only with her go-ahead because it is permanent, deleting the old avatars, portraits and Cake Character.
+- **Style, next steps** (STYLE.md): Style items for sale and to earn in the Marketplace (price, dates, earn rules), the Style Studio for her (blank templates, a print-on-demand style designer, an effects shelf, the free Describe-it builder), and more Comfort Gear including the wheelchair set. (Deleting the old avatars, portraits and Cake Character: DONE 2026-10-08, see "Old characters removed everywhere".)
+- **Alchemy next steps** (see "Alchemy app on the student computer"): questions from question sets, $1 per right answer, a discovery book page, a Town Square home, new discoveries becoming Gus nouns. Waiting on her yes for each.
 - **Weekly Planning and Neighbor quests, Phases 2 to 5** (designed in "Weekly Planning + NPC Quest-Discovery Redesign"): a weekend-safe streak, which Neighbor delivers each assignment, a daily "Today's Activities" mix students discover by talking to Neighbors, the to-do discovery loop, and the Catch-Up Lock. Also the Chart and Graph activity type (needs her yes for a 5th activity type).
 
 #### 4. Decisions she owes (each one unblocks building)
 
 - **Grammar Gus:** shout sentences end with ! or a period; a comma between two describing words ("the pretty, young girl") or not; should 3-star sentences pay Class Cash or count toward the Daily Streak; approve the slot-machine look for the Surprise Hopper (reels and a SPIN button, never coins or bets); approve the Cartoon Industrial and pixel cinema art look; "they" for one person, yes or no.
 - **Daily Challenge:** do weekends break the streak (suggestion: no).
+- **Alchemy:** yes or no on each next step (section 3).
+- **Gus Examples:** which joke frameworks to add first.
 - **Streaks:** should streak interest (1% a day) and the Passport streak move to the new Daily Streak; a lower streak goal than 20 for some students.
 - **Pets v2:** the 15 questions in PETS_V2_OVERVIEW section 6. The three that unblock Phase 1: which of the 12 dogs and cats stay, which body (current models, Style characters, or a new four-legged body), and old pets back at relaunch or a fresh start.
 - **Assets:** what the Kenney Construct samples are for (platformer, space shooter, brick breaker, dice and cards, RPG), the Games app icon slide that did not come through, and the rights to the Bowling GUI art.
@@ -732,7 +790,8 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 - **Her words (verbatim):** "lets get the alchemy game going. make an app in the computer"; "make the pixel tv show both joined things in one screen. at the very end. other screens per sentence can be added but arent required".
 - **⚗️ Alchemy** is a new app on the computer (route `/student/alchemy`, `src/routes/student/Alchemy.tsx`, data in `src/games/alchemy/data.ts` from her prototype: 89 elements, 84 recipes). Start with fire, water, earth and air; drag one element onto another (or tap an element to drop it on the board) to discover new ones (steam, mud, lava, life, dragon, wizard, rocket, pizza...). Big touch tiles that glow when they will combine, pop on a discovery, and wobble apart when they do not; discovery chime; a found counter; NEW badges; 💡 Hint; 🧹 Clear board; sound on and off; ♻️ Start over (asks first). Double-tap a tile to copy it. In portrait the element shelf sits under the board. Discoveries started out saved per student; the same day she asked for a fresh start every visit (see the entry above). The breadcrumb and Back return to the Computer.
-- **Next for Alchemy (Claudia's notes, to confirm with her):** questions from question sets (for example a right answer earns a hint or unlocks a recipe), $1 per right answer like the native games, a discovery book page, a Town Square home, and new discoveries becoming Grammar Gus nouns.
+- **Where it started (her words, verbatim):** "add this alchemy game to dev plan queue. it should be built after these fixes are made" (with an uploaded prototype, saved as `docs/games/alchemy-prototype.html`). The queued entry for it was folded into this one on 2026-10-08.
+- **Next for Alchemy (Claudia's notes, waiting on her yes for each):** questions from question sets (for example a right answer earns a hint or unlocks a recipe), $1 per right answer like the native games, a personal discovery book page (no comparisons), a Town Square home (a lab, or next to the Seamstress), and new discoveries becoming Grammar Gus nouns. Also in the Gameplay roadmap, section 3.
 - **Pixel TV, joined things:** "Mom hugs Xander and Yoga" now puts Xander and Yoga both on the stage, so the last frame shows both together (the action goes to the first). Eating or drinking checks both things ("eats the pizza and the cake" is fine; "the pizza and the rock" is silly). Tested.
 
 ### Grammar Gus: joining words combine words and phrases, Examples folder with Figurative language (simile, metaphor). Marketplace: the added real-life prizes removed. SHIPPED 2026-10-08 (direct teacher instructions)
@@ -767,12 +826,6 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - **Preview:** every question shows with its picture in the full question editor (change the text, answers, correct answer, swap or remove a picture, add or delete questions), plus the set's name and subject. Pictures stay on her computer until **💾 Save question set**, then upload; nothing saves while a question is half-filled.
 - `fflate` (the zip reader, already in the app through the 3D library) is now a listed dependency.
 
-### Alchemy (combine elements to discover new ones). QUEUED, then SHIPPED v1 the same day as a computer app (see the entry above) (direct teacher instruction 2026-10-08)
-
-- **Her words (verbatim):** "add this alchemy game to dev plan queue. it should be built after these fixes are made" (with an uploaded prototype, saved as `docs/games/alchemy-prototype.html`).
-- **The prototype:** a Little Alchemy style sandbox. Start with fire, water, earth and air; drag two elements together on a dotted board to discover a new one (89 elements, 84 recipes: steam, mud, lava, life, dragon, wizard, rocket, pizza...); a searchable sidebar of what you have found with NEW badges, a found counter, double-tap to copy a tile, sounds, saved progress.
-- **Claudia's notes for when it is built (to confirm with her):** make it a native game (question sets fuel it: for example a question unlocks each new recipe hint or each combine), iPad first (big tiles, the sidebar folds), a Town Square home (a lab or the Seamstress's neighbor), $1 per right answer like every native game, a personal discovery book (no comparisons), and the Pixel TV / Grammar Gus tie-in idea: discovered elements become new Gus nouns.
-
 ### Grammar Gus: iPad layout you can fold and resize, Big board, and a checklist that explains every step. SHIPPED 2026-10-08 (direct teacher instructions)
 
 - **Her words (verbatim):** "in ipad optomization for grammar gus, allow them to drag and resize all components, collapsing everything, rezising, so they can get the most out of their main whiteboard space as needed"; "the navigation for grammar gus needs to be optomized for ipads, right now things are sized weird so they cant see all words, cant navigate buttons"; "in gus's checklist, students should be able to click on each item to get a note of explanation of how to do each step explicilty. make sure the checklist is only things explicitly needed to make the sentence run as the machine. if they are continuously clicking and its not running, gus needs to tell them exactly what to fix after a few attempts".
@@ -806,11 +859,11 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - **Describing words on the Pixel TV:** every describing word now changes the video (`render/adjFx.ts`): sparkles, a glow, drips for slimy and wet, zzz for sleepy, hearts for kind, steam for angry, sweat for scared, a tear for sad, shivers for cold, heat for hot, stink lines, fluffy puffs, spikes, mud, a cane for old, ? for curious, ! for surprised, music notes for happy, speed lines, grr for hungry, and more. Size words (huge, giant, little, tall, short) resize and gold and silver repaint. A word with no picture yet is written above the character, so nothing is ever invisible. New how words show too (sadly: a tear, angrily: steam, sleepily: zzz, nervously: sweat).
 - **Bigger word lists (all on the Pixel TV):** 44 new naming words (baby, teacher, king, queen, chef, pirate, bear, lion, monkey, duck, penguin, elephant, giraffe, fox, bee, butterfly, cake, cookie, pizza, banana, carrot, sandwich, milk, juice, water, cup, hat, box, tree, flower, drum, sun, star, house, boat, train, truck...), each thing with its own new pixel drawing; 27 new action words (dance, hop, skip, race, march, roll, twirl, tumble, sneak, laugh, yell, whisper, read, throw, push, wash, sweep, paint, build, munch, gobble, sip, slurp, drive, visit...), each on a real clip; 39 new describing words; 12 new how words. All 317 Gus tests pass (director snapshots updated for the new describing-word list).
 
-### Queued from her messages this session (2026-10-08, verbatim, not built yet)
+### Queued from her messages this session (2026-10-08). ALL SHIPPED the same day
 
-- "in ipad optomization for grammar gus, allow them to drag and resize all components, collapsing everything, rezising, so they can get the most out of their main whiteboard space as needed" (with "the navigation for grammar gus needs to be optomized for ipads, right now things are sized weird so they cant see all words, cant navigate buttons"). Next, top priority.
-- "in gus's checklist, students should be able to click on each item to get a note of explanation of how to do each step explicilty. make sure the checklist is only things explicitly needed to make the sentence run as the machine. if they are continuously clicking and its not running, gus needs to tell them exactly what to fix after a few attempts" (the third-hint explanation above covers the last part; the checklist notes are next).
-- Question Sets (with a screenshot of the Academics Question Sets section): "allow me in this view to download csv file and uplaod a csv. when i upload a csv, give me option to upload a zip file of images. take the file and assume that the order the images are saved are the corresponsiding quesions in order. apply one image to each question. allow me to preview all questions with images (editing as needed) before i save the question set".
+- Grammar Gus iPad resize and fold: SHIPPED, see "Grammar Gus: iPad layout you can fold and resize".
+- Gus checklist explanations and the exact fix after repeated runs: SHIPPED, same entry.
+- Question Sets CSV in and out, zip of pictures, preview before saving: SHIPPED, see "Question Sets: download and upload CSV files".
 
 ### Marketplace edits, game power-ups, real-life prizes, every home item, bank link. SHIPPED 2026-10-08 (direct teacher instruction)
 
@@ -837,9 +890,9 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 - **Her words (2026-10-08, verbatim):** "make sure new character design applies everywhere, for students (in their home)"
 - **What changed:** the student's own Style character (the Seamstress look: animal, clothes, colors, costume) is now the player in their **Home Room** and on **Creative Island**, not only in Town Square. It walks and stands with the same Style animations, at a size matched to each place. One shared player (`src/style/StyleAvatar.tsx`) now serves all three places, so a look saved at the Seamstress shows up everywhere at once.
-- **Fallback:** if she ever turns Style off for students with the Students switch, all three places go back to the old 3D player, as before.
-- **Still waiting on her go-ahead (unchanged):** permanently deleting the old avatars, portraits and the Cake Character. They are no longer the player anywhere while Style is on.
-- **Not checked on an iPad yet:** the character's size inside the smaller Home Room rooms and on the Island.
+- **Fallback (until 2026-10-08):** turning Style off for students used to bring back the old 3D player. Since the old characters were removed, the Style character is the player in all three places either way.
+- **Old characters:** DONE 2026-10-08, see "Old characters removed everywhere".
+- **Not checked on an iPad yet:** the character's size inside the smaller Home Room rooms and on the Island (also in "Waiting on the teacher", live checks).
 
 
 ### Tappy Plane (one-tap flying game). SAVED FOR A FUTURE NATIVE GAME (direct teacher instruction 2026-10-04)
@@ -1172,7 +1225,7 @@ Shipped, live share:
 - A "because" idea at the front of the sentence.
 - Board sync to the teacher's account.
 
-### Grammar Gus: backlog, Claudia's scaffolded writing machines (from her 2026-10-07 plan). QUEUED
+### Grammar Gus: Claudia's scaffolded writing machines (from her 2026-10-07 plan). PHASE 1 SHIPPED, PHASE 2 BACKLOG
 
 These come from `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md`, Part 3. Every one has sound, motion, a TV payoff, the Full / Guided / Challenge fade, and an iPad check.
 
@@ -1205,7 +1258,7 @@ These come from `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md`, Part 3. Every
 **Status (2026-10-07, teacher: "Keep building this out Claudia"):**
 - Phase 1 batches A and B shipped (see the entry above): the fade ladder, Logic Gate, Flip Switch, Equals Sign Machine, Expansion Rig, Procedure Conveyor and Hypothesis Engine.
 - Batch C shipped: Spark Check, Homophone Sorter and Transition Track. **Phase 1 is complete.**
-- Phase 2 is next.
+- Phase 2 is next (as of 2026-10-08 still not started; it needs only her "go", see the Gameplay roadmap, section 2).
 
 ### Grammar Gus: finishing the plan, round 10 (Orders, Blueprints and Remix move onto the Workboard). SHIPPED 2026-10-07
 
