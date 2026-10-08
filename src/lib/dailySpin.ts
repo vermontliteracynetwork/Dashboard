@@ -93,6 +93,8 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
       // wheels entirely ("purchase only"). Real filter for the first time
       // — this pool used to draw from every eligible item with no check.
       .filter((it) => itemEarnsVia(it, 'daily-spin'))
+      // Real-life prizes (lunch with the teacher...) are bought, never spun for.
+      .filter((it) => !it.id.startsWith('prize-irl-'))
       .map((it) => ({
         kind: it.kind as SpinItemKind,
         itemId: it.id,

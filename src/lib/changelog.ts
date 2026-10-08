@@ -16,6 +16,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-08-gus-examples-typing',
+    date: '2026-10-08',
+    icon: '📝',
+    title: 'Example sentences and typing in Gus',
+    body: 'Drag an example sentence out of the parts menu for a whole working machine, then tap any word to swap it. Type your own words and they save. Type a word into the wrong machine and the machine changes into the right kind!',
+  },
+  {
+    id: '2026-10-08-back-trail',
+    date: '2026-10-08',
+    icon: '🧭',
+    title: 'Back always takes you back',
+    body: 'Back now goes to the screen you came from, like the Game Dashboard or your Computer. The bar at the top shows your path, and you can tap any step. The Computer is always one tap away.',
+  },
+  {
+    id: '2026-10-08-market-update',
+    date: '2026-10-08',
+    icon: '🛍️',
+    title: 'A new Marketplace',
+    body: 'Shop Style animals, patterns and clothes. Buy power-ups for Shape Dash and Space Bowling, real-life prizes, and every piece of home furniture. Writing and Whiteboard are together now. Tap your balance to open your Bank.',
+  },
+  {
     id: '2026-10-08-style-everywhere',
     date: '2026-10-08',
     icon: '🧵',

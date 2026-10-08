@@ -1,7 +1,8 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { useStore } from '../../store/store';
+import { useBack } from '../../lib/navTrail';
 import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import ReadAloud from '../../components/ReadAloud';
@@ -22,6 +23,7 @@ import type { RollShot } from '../../games/spaceBowling/Scene';
 import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
 import { pickRival, recordGameMemory } from '../../lib/gameRivals';
 import { payForAnswers } from '../../lib/gameEarnings';
+import { spendBoosts } from '../../lib/gamePowerups';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 
 const Scene = lazyFresh(() => import('../../games/spaceBowling/Scene'));
@@ -58,13 +60,12 @@ const statsOwner = (id: string) => `sb:${id}`;
 const loadLevel = (k: string, d: Level): Level => { try { const v = localStorage.getItem(k) as Level | null; return v && LEVELS.includes(v) ? v : d; } catch { return d; } };
 
 export default function SpaceBowling() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
   // Opened from a Neighbor's "Play a game" (Town Square): play with them.
   const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
-  const backTo = cameFromTown ? '/world/town' : '/student/home';
-  const backLabel = cameFromTown ? 'Town Square' : 'Computer';
+  // Back follows the shared trail: the Game Dashboard, the Computer or Town Square, wherever they came from.
+  const back = useBack();
+  const backLabel = back.label.replace(/^\S+\s/, '');
 
   const studentId = useStore((s) => s.currentStudentId);
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
@@ -158,9 +159,12 @@ export default function SpaceBowling() {
   const startGame = () => {
     const r = playerCount === 1 ? ((rivalId && npcProfiles[rivalId]) || pickRival(npcProfiles)) : null;
     setRival(r);
+    // Power-ups bought in the Marketplace wait in Player 1's (the logged-in student's) power-up bar.
+    const used = spendBoosts(studentId, ['sb-shuttle', 'sb-ufo']);
+    const mine: PowerUp[] = [...(used['sb-shuttle'] ? ['shuttle' as const] : []), ...(used['sb-ufo'] ? ['ufo' as const] : [])];
     const ps: Player[] = playerCount === 1
-      ? [{ name: names[0] || 'You', planet: planets[0], cpu: false, score: 0, powerups: [], strikes: 0 }, { name: r?.name ?? 'Your Neighbor', planet: (planets[0] + 5) % PLANETS.length, cpu: true, score: 0, powerups: [], strikes: 0 }]
-      : Array.from({ length: playerCount }, (_, i) => ({ name: names[i] || `Player ${i + 1}`, planet: planets[i], cpu: false, score: 0, powerups: [], strikes: 0 }));
+      ? [{ name: names[0] || 'You', planet: planets[0], cpu: false, score: 0, powerups: mine, strikes: 0 }, { name: r?.name ?? 'Your Neighbor', planet: (planets[0] + 5) % PLANETS.length, cpu: true, score: 0, powerups: [], strikes: 0 }]
+      : Array.from({ length: playerCount }, (_, i) => ({ name: names[i] || `Player ${i + 1}`, planet: planets[i], cpu: false, score: 0, powerups: i === 0 ? mine : [], strikes: 0 }));
     setPlayers(ps);
     setMeteorFor(ps.map(() => false));
     setTurn(0);
@@ -414,7 +418,7 @@ export default function SpaceBowling() {
     return { species: 'dog', body: structuredClone(speciesById('dog').defaultBody), outfit: item ? { costume: { itemId: item.id, zones: item.zones.map((z) => z.paint) } } : {} };
   }, []);
 
-  const leave = () => { if (inGame) setConfirmLeave(true); else navigate(backTo); };
+  const leave = () => { if (inGame) setConfirmLeave(true); else back.go(); };
   const humans = players.filter((p) => !p.cpu);
   const winner = phase === 'gameover' ? [...players].sort((a, b) => b.score - a.score)[0] : null;
   const tie = phase === 'gameover' && players.length > 1 && players.filter((p) => p.score === winner?.score).length > 1;
@@ -664,7 +668,7 @@ export default function SpaceBowling() {
             <p>This game won't be finished. Your right answers still count toward the Space Alien costume.</p>
             <div className="sb-row">
               <button className="sb-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button>
-              <button className="sb-btn big" onClick={() => { setConfirmLeave(false); setQuestion(null); stopMusic(); payOutRef.current(); navigate(backTo); }}>Leave</button>
+              <button className="sb-btn big" onClick={() => { setConfirmLeave(false); setQuestion(null); stopMusic(); payOutRef.current(); back.go(); }}>Leave</button>
             </div>
           </div>
         </div>

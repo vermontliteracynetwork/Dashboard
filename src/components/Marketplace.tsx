@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import { freezePriceCents, buyFreeze, freezesOf, useStreak } from '../lib/streak';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
-import { AVATAR_CATALOG } from '../store/badges';
-import { AvatarGlyph } from './AvatarGlyph';
-import { avatarPriceFor } from '../lib/avatarCatalog';
+import { SPECIES } from '../style/species';
+import { PATTERNS, patternSwatch } from '../style/patterns';
+import { useStyleCatalog } from '../style/catalog';
+import { FREE_PATTERNS, PATTERN_PRICE, SPECIES_PRICE, asInventory, inventoryOwner, itemLock } from '../style/shop';
+import { GAME_BOOSTS, buyBoost, useBoostCounts, type BoostId } from '../lib/gamePowerups';
 import { EMOTE_CATALOG, emotePriceFor } from '../lib/emoteCatalog';
 import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
@@ -15,11 +17,16 @@ import type { PetDef } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 import { Icon } from './Icon';
 
-type Tab = 'characters' | 'emotes' | 'writing' | 'whiteboard' | 'voices' | 'prizes' | 'powerups' | 'furniture' | 'pets' | 'mystuff' | 'receipts';
+// Teacher, 2026-10-08: the old Characters tab is replaced by Style (the
+// Seamstress animals, patterns and clothes), Writing and Whiteboard are one
+// tab, and in-game power-ups, real-life prizes and every home item are in.
+type Tab = 'style' | 'emotes' | 'writing' | 'voices' | 'prizes' | 'powerups' | 'furniture' | 'pets' | 'mystuff' | 'receipts';
+const OLD_TABS: Record<string, Tab> = { characters: 'style', whiteboard: 'writing' };
 
 interface CartEntry {
   key: string; // `${source}-${id}`, unique per cart
-  source: 'avatar' | 'emote' | 'item';
+  source: 'avatar' | 'emote' | 'item' | 'style' | 'boost';
+  styleKind?: 'species' | 'item' | 'pattern';
   id: string;
   name: string;
   icon: string; // emoji, or an image URL
@@ -183,7 +190,9 @@ export default function Marketplace() {
   // (navigate('/student/marketplace', { state: { tab: 'mystuff' } })
   // instead of always opening on the shop.
   const location = useLocation();
-  const initialTab = (location.state as { tab?: Tab } | null)?.tab ?? 'characters';
+  const askedTab = (location.state as { tab?: string } | null)?.tab;
+  const initialTab: Tab = (askedTab && (OLD_TABS[askedTab] ?? (askedTab as Tab))) || 'style';
+  const cameFrom = (location.state as { from?: string } | null)?.from;
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const transactions = useStore((s) => s.transactions);
@@ -192,8 +201,9 @@ export default function Marketplace() {
   const equipEmote = useStore((s) => s.equipEmote);
   const marketplaceItems = useStore((s) => s.marketplaceItems);
   const emotePriceOverrides = useStore((s) => s.emotePriceOverrides);
-  const avatarPriceOverrides = useStore((s) => s.avatarPriceOverrides);
-  const updateStudent = useStore((s) => s.updateStudent);
+  const { items: styleItems } = useStyleCatalog();
+  const styleInvRow = useStore((s) => (s.currentStudentId ? s.styleLooks.find((r) => r.ownerId === inventoryOwner(s.currentStudentId!)) : undefined));
+  const boostCounts = useBoostCounts(currentStudentId);
   const pets = useStore((s) => s.pets);
   const [tab, setTab] = useState<Tab>(initialTab);
   // Direct teacher request: "marketplace needs to evolve... have a
@@ -239,7 +249,9 @@ export default function Marketplace() {
   if (!student) return null;
   const studentId = student.id;
 
-  const ownedAvatars = AVATAR_CATALOG.filter((a) => student.ownedAvatarIds.includes(a.id));
+  const inv = asInventory(styleInvRow?.look);
+  const unlockedIds = student.unlockedCharacterIds ?? [];
+  const goSeamstress = () => navigate('/student/style', { state: { from: cameFrom } });
   const ownedEmotes = EMOTE_CATALOG.filter((e) => student.ownedEmoteIds.includes(e.id));
   const ownedPets = pets.filter((p) => p.studentId === studentId);
   // Sends the student straight to whichever subject's to-do list still has
@@ -292,6 +304,8 @@ export default function Marketplace() {
       let ok = false;
       if (entry.source === 'avatar') ok = s.buyAvatar(studentId, entry.id, entry.needsWants);
       else if (entry.source === 'emote') ok = s.buyEmote(studentId, entry.id, entry.needsWants);
+      else if (entry.source === 'style') ok = s.buyStyle(studentId, entry.styleKind ?? 'item', entry.id, entry.price, entry.name);
+      else if (entry.source === 'boost') ok = buyBoost(studentId, entry.id as BoostId, entry.needsWants);
       else ok = s.buyMarketplaceItem(studentId, entry.id, entry.needsWants);
       return { ...entry, ok };
     });
@@ -332,7 +346,9 @@ export default function Marketplace() {
 
   const renderBuyableItem = (item: MarketplaceItem, opts?: { iconSize?: number }) => {
     const ownedField = ownedFieldFor(item.kind);
-    const owned = ownedField ? (student[ownedField] as string[]).includes(item.id) : false;
+    const boughtBefore = ownedField ? (student[ownedField] as string[]).includes(item.id) : false;
+    // Real-life prizes can be bought again and again.
+    const owned = boughtBefore && item.kind !== 'prize';
     const affordable = student.coins >= item.price;
     const isImg = item.icon.startsWith('/') || item.icon.startsWith('http');
     const cartKey = `item-${item.id}`;
@@ -349,6 +365,7 @@ export default function Marketplace() {
             {item.tags.map((t) => <span key={t} className="tag-pill" style={{ fontSize: '0.55rem', padding: '1px 6px' }}>{t}</span>)}
           </div>
         )}
+        {boughtBefore && item.kind === 'prize' && <span className="tag-pill" style={{ fontSize: '0.6rem' }}>✓ Bought before</span>}
         {owned ? (
           <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}><Icon name="check" size={12} fallback="✓" /> Unlocked</span>
         ) : (
@@ -497,9 +514,16 @@ export default function Marketplace() {
           <div className="shop-header">
             <span className="shop-ribbon"><Icon name="shop" size={18} fallback="🛍️" /> MARKETPLACE</span>
             <div className="row" style={{ gap: 8 }}>
-              <span className="shop-balance-chip" title="Your Piggy Bank balance. Spend it here!">
-                <Icon name="coins" size={18} fallback="🐷" /> {formatMoney(student.coins)}
-              </span>
+              {/* Teacher, 2026-10-08: tap the balance to open the bank; its Back button returns here. */}
+              <button
+                type="button"
+                className="shop-balance-chip"
+                style={{ minHeight: 44, cursor: 'pointer', font: 'inherit', fontWeight: 800 }}
+                aria-label={`Your bank balance is ${formatMoney(student.coins)}. Open your bank`}
+                onClick={() => navigate('/student/piggy-bank', { state: { from: 'marketplace', back: { from: cameFrom, tab } } })}
+              >
+                <Icon name="coins" size={18} fallback="🐷" /> {formatMoney(student.coins)} <span style={{ fontSize: '0.75em', opacity: 0.8 }}>🏦 Bank</span>
+              </button>
               <button className="btn btn-sm" style={{ minHeight: 44, position: 'relative' }} onClick={() => setShowCart(true)} aria-label={`Cart, ${cart.length} items`}>
                 🛒 Cart
                 {cart.length > 0 && (
@@ -534,34 +558,27 @@ export default function Marketplace() {
               exactly as it was underneath it. */}
           <div className="shop-layout">
             <nav className="shop-sidebar" aria-label="Shop categories">
-              <button className={`shop-sidebar-btn ${tab === 'characters' ? 'active' : ''}`} onClick={() => setTab('characters')}>
-                🧑 Characters
+              <button className={`shop-sidebar-btn ${tab === 'style' ? 'active' : ''}`} onClick={() => setTab('style')}>
+                🧵 Style
               </button>
               <button className={`shop-sidebar-btn ${tab === 'emotes' ? 'active' : ''}`} onClick={() => setTab('emotes')}>
                 😊 Emotes
               </button>
               <button className={`shop-sidebar-btn ${tab === 'writing' ? 'active' : ''}`} onClick={() => setTab('writing')}>
-                ✍️ Writing
-              </button>
-              <button className={`shop-sidebar-btn ${tab === 'whiteboard' ? 'active' : ''}`} onClick={() => setTab('whiteboard')}>
-                🖊️ Whiteboard
+                ✍️ Writing and Whiteboard
               </button>
               <button className={`shop-sidebar-btn ${tab === 'voices' ? 'active' : ''}`} onClick={() => setTab('voices')}>
                 <Icon name="sound" size={16} fallback="🔊" /> Voices
               </button>
-              {prizeItems.length > 0 && (
-                <button className={`shop-sidebar-btn ${tab === 'prizes' ? 'active' : ''}`} onClick={() => setTab('prizes')}>
-                  <Icon name="gift" size={16} fallback="🎁" /> Prizes
-                </button>
-              )}
               <button className={`shop-sidebar-btn ${tab === 'powerups' ? 'active' : ''}`} onClick={() => setTab('powerups')}>
                 🎫 Power-Ups
               </button>
-              {furnitureItems.length > 0 && (
-                <button className={`shop-sidebar-btn ${tab === 'furniture' ? 'active' : ''}`} onClick={() => setTab('furniture')}>
-                  <Icon name="home" size={16} fallback="🛋️" /> Home
-                </button>
-              )}
+              <button className={`shop-sidebar-btn ${tab === 'prizes' ? 'active' : ''}`} onClick={() => setTab('prizes')}>
+                <Icon name="gift" size={16} fallback="🎁" /> Real-Life Prizes
+              </button>
+              <button className={`shop-sidebar-btn ${tab === 'furniture' ? 'active' : ''}`} onClick={() => setTab('furniture')}>
+                <Icon name="home" size={16} fallback="🛋️" /> Home
+              </button>
               {!PETS_PAUSED && (
                 <button className={`shop-sidebar-btn ${tab === 'pets' ? 'active' : ''}`} onClick={() => setTab('pets')}>
                   🐾 Pets
@@ -576,7 +593,7 @@ export default function Marketplace() {
             </nav>
             <div className="shop-main">
 
-          {(tab === 'characters' || tab === 'emotes' || tab === 'powerups') && (
+          {(tab === 'style' || tab === 'emotes' || tab === 'powerups') && (
             <input
               className="input"
               value={search}
@@ -588,33 +605,74 @@ export default function Marketplace() {
           )}
 
           <div className="shop-shelf">
-            {tab === 'characters' && (
-              <div className="shop-product-grid">
-                {AVATAR_CATALOG.filter((a) => matchesSearch(a.name)).map((a) => {
-                  const owned = student.ownedAvatarIds.includes(a.id);
-                  const equipped = student.avatar === a.id;
-                  const price = avatarPriceFor(avatarPriceOverrides, a.id);
-                  const affordable = student.coins >= price;
-                  return (
-                    <div key={a.id} className="shop-product-card">
-                      <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
-                        <AvatarGlyph value={a.id} />
-                      </div>
-                      <strong style={{ fontSize: '0.75rem' }}>{a.name}</strong>
-                      {equipped ? (
-                        <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--success)', color: '#fff' }}>
-                          <Icon name="check" size={12} fallback="✓" /> Wearing
-                        </span>
-                      ) : owned ? (
-                        <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => updateStudent(studentId, { avatar: a.id })}>
-                          Wear
-                        </button>
-                      ) : (
-                        cartButtonFor({ key: `avatar-${a.id}`, source: 'avatar', id: a.id, name: a.name, icon: a.src, price }, affordable)
-                      )}
-                    </div>
-                  );
-                })}
+            {tab === 'style' && (
+              <div className="stack" style={{ gap: 16 }}>
+                <div className="content-well row-wrap space-between" style={{ alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '0.85rem' }}>👗 Buy animals, patterns and clothes here, then dress up at the Seamstress. 🌈 Every color is free on the color wheel.</span>
+                  <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={goSeamstress}>Go to the Seamstress →</button>
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>🐾 Animals</strong>
+                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
+                    {SPECIES.filter((sp) => matchesSearch(sp.name)).map((sp) => {
+                      const owned = inv.species.includes(sp.id);
+                      const firstFree = inv.species.length === 0;
+                      return (
+                        <div key={sp.id} className="shop-product-card">
+                          <div className="shop-item-icon-frame"><span style={{ fontSize: '2rem' }}>{sp.emoji}</span></div>
+                          <strong style={{ fontSize: '0.75rem' }}>{sp.name}</strong>
+                          {owned ? (
+                            <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}><Icon name="check" size={12} fallback="✓" /> Yours</span>
+                          ) : firstFree ? (
+                            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={goSeamstress}>Your first animal is free</button>
+                          ) : (
+                            cartButtonFor({ key: `style-species-${sp.id}`, source: 'style', styleKind: 'species', id: sp.id, name: sp.name, icon: sp.emoji, price: SPECIES_PRICE }, student.coins >= SPECIES_PRICE)
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>🎨 Patterns</strong>
+                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
+                    {PATTERNS.filter((pt) => matchesSearch(pt.label)).map((pt) => {
+                      const owned = FREE_PATTERNS.includes(pt.id) || inv.patterns.includes(pt.id);
+                      return (
+                        <div key={pt.id} className="shop-product-card">
+                          <div className="shop-item-icon-frame"><img src={patternSwatch({ pattern: pt.id, colors: ['#7c5cd6', '#ffd447'] })} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} /></div>
+                          <strong style={{ fontSize: '0.75rem' }}>{pt.label}</strong>
+                          {owned ? (
+                            <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}><Icon name="check" size={12} fallback="✓" /> {FREE_PATTERNS.includes(pt.id) ? 'Free' : 'Yours'}</span>
+                          ) : (
+                            cartButtonFor({ key: `style-pattern-${pt.id}`, source: 'style', styleKind: 'pattern', id: pt.id, name: `${pt.label} pattern`, icon: '🎨', price: PATTERN_PRICE }, student.coins >= PATTERN_PRICE)
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.85rem' }}>👕 Clothes and add-ons</strong>
+                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
+                    {styleItems.filter((it) => matchesSearch(it.name)).map((it) => {
+                      const lock = itemLock(it, inv, unlockedIds);
+                      return (
+                        <div key={it.id} className="shop-product-card">
+                          <div className="shop-item-icon-frame"><span style={{ fontSize: '2rem' }}>{it.emoji}</span></div>
+                          <strong style={{ fontSize: '0.75rem' }}>{it.name}</strong>
+                          {!lock ? (
+                            <span className="tag-pill" style={{ fontSize: '0.62rem', background: 'var(--success)', color: '#fff' }}><Icon name="check" size={12} fallback="✓" /> Yours</span>
+                          ) : lock.kind === 'earn' ? (
+                            <span className="tag-pill" style={{ fontSize: '0.6rem' }}>🏆 Earn it: {lock.label}</span>
+                          ) : (
+                            cartButtonFor({ key: `style-item-${it.id}`, source: 'style', styleKind: 'item', id: it.id, name: it.name, icon: it.emoji, price: lock.price }, student.coins >= lock.price)
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -671,12 +729,8 @@ export default function Marketplace() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {tab === 'whiteboard' && (
               <div>
-                <strong style={{ fontSize: '0.85rem' }}>✏️ Marker Colors</strong>
+                <strong style={{ fontSize: '0.85rem' }}>✏️ Whiteboard Marker Colors</strong>
                 <div className="shop-product-grid" style={{ marginTop: 8 }}>
                   {markerColorItems.length === 0 ? (
                     <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No marker colors yet. Ask your teacher to add some!</p>
@@ -684,6 +738,7 @@ export default function Marketplace() {
                     markerColorItems.map((c) => renderBuyableItem(c, { iconSize: 44 }))
                   )}
                 </div>
+              </div>
               </div>
             )}
 
@@ -700,6 +755,7 @@ export default function Marketplace() {
               <div>
                 <ItemFilterBar items={prizeItems} category={prizeFilter.category} onCategory={prizeFilter.setCategory} tag={prizeFilter.tag} onTag={prizeFilter.setTag} query={prizeFilter.query} onQuery={prizeFilter.setQuery} />
                 <div className="shop-product-grid">
+                  {prizeFilter.filtered.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>No prizes yet. Ask your teacher to add some!</p>}
                   {prizeFilter.filtered.map((p) => renderBuyableItem(p))}
                 </div>
                 <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
@@ -723,6 +779,18 @@ export default function Marketplace() {
                     Buy for {formatMoney(freezePriceCents())}
                   </button>
                 </div>
+                {GAME_BOOSTS.filter((b) => matchesSearch(b.name, [b.game])).map((b) => (
+                  <div key={b.id} className="shop-product-card">
+                    <div className="shop-item-icon-frame" style={{ width: 72, height: 72 }}>
+                      <span style={{ fontSize: '2rem' }}>{b.icon}</span>
+                    </div>
+                    <strong style={{ fontSize: '0.8rem' }}>{b.name}</strong>
+                    <span className="tag-pill" style={{ fontSize: '0.6rem' }}>🎮 {b.game}</span>
+                    <p style={{ fontSize: '0.66rem', opacity: 0.75, margin: 0 }}>{b.text}</p>
+                    <div className="tag-pill" style={{ fontSize: '0.68rem' }}>You have: {boostCounts[b.id] ?? 0}</div>
+                    {cartButtonFor({ key: `boost-${b.id}-${cart.filter((c) => c.id === b.id).length}`, source: 'boost', id: b.id, name: b.name, icon: b.icon, price: b.price }, student.coins >= b.price)}
+                  </div>
+                ))}
                 {powerupItems.filter((p) => matchesSearch(p.name, p.tags, p.category)).map((p) => {
                   const affordable = student.coins >= p.price;
                   const owned = false; // power-ups always stay buyable (stacking), never "owned"
@@ -752,6 +820,7 @@ export default function Marketplace() {
                 <div className="shop-product-grid">
                   {furnitureFilter.filtered.map((f) => renderBuyableItem(f))}
                 </div>
+                {furnitureItems.length === 0 && <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>Home items are on their way!</p>}
                 <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
                   <Icon name="home" size={14} fallback="🏠" /> Bought a home item? Find it in Build Mode at your house, ready to place.
                 </p>
@@ -814,29 +883,30 @@ export default function Marketplace() {
                     </p>
                   </div>
                 )}
-                <div>
-                  <strong style={{ fontSize: '0.85rem' }}>🧑 Your Characters</strong>
-                  <div className="shop-product-grid" style={{ marginTop: 8 }}>
-                    {ownedAvatars.map((a) => {
-                      const equipped = student.avatar === a.id;
-                      return (
-                        <div key={a.id} className="shop-product-card">
-                          <div className="shop-item-icon-frame" style={{ outline: equipped ? '3px solid var(--purple)' : 'none' }}>
-                            <AvatarGlyph value={a.id} />
-                          </div>
-                          <strong style={{ fontSize: '0.75rem' }}>{a.name}</strong>
-                          {equipped ? (
-                            <span className="tag-pill" style={{ fontSize: '0.68rem', background: 'var(--success)', color: '#fff' }}><Icon name="check" size={12} fallback="✓" /> Wearing</span>
-                          ) : (
-                            <button className="btn btn-sm btn-primary" style={{ minHeight: 44, minWidth: 44 }} onClick={() => updateStudent(studentId, { avatar: a.id })}>
-                              Wear
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+                <div className="content-well row-wrap space-between" style={{ alignItems: 'center', gap: 10 }}>
+                  <div className="stack" style={{ gap: 2 }}>
+                    <strong style={{ fontSize: '0.85rem' }}>🧵 Your Style things</strong>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                      {inv.species.length} animal{inv.species.length === 1 ? '' : 's'} · {inv.patterns.length + FREE_PATTERNS.length} patterns · {inv.items.length} bought clothes and add-ons
+                    </span>
                   </div>
+                  <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={goSeamstress}>Dress up →</button>
                 </div>
+                {GAME_BOOSTS.some((b) => (boostCounts[b.id] ?? 0) > 0) && (
+                  <div>
+                    <strong style={{ fontSize: '0.85rem' }}>🎒 Your Power-Ups</strong>
+                    <p style={{ fontSize: '0.72rem', opacity: 0.7, margin: '4px 0 0' }}>Each one is used at the start of your next game.</p>
+                    <div className="shop-product-grid" style={{ marginTop: 8 }}>
+                      {GAME_BOOSTS.filter((b) => (boostCounts[b.id] ?? 0) > 0).map((b) => (
+                        <div key={b.id} className="shop-product-card">
+                          <div className="shop-item-icon-frame"><span style={{ fontSize: '1.8rem' }}>{b.icon}</span></div>
+                          <strong style={{ fontSize: '0.75rem' }}>{b.name} x{boostCounts[b.id]}</strong>
+                          <span className="tag-pill" style={{ fontSize: '0.6rem' }}>🎮 {b.game}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <strong style={{ fontSize: '0.85rem' }}>😊 Your Emotes</strong>
                   <div className="shop-product-grid" style={{ marginTop: 8 }}>

@@ -5642,3 +5642,20 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-boardcol > .gwb-board { order: 1; }
 .gwb-boardcol > .gwb-toolbar { order: 2; }
 .gwb-boardcol > .gwb-doc { order: 3; }
+
+/* Grammar Gus example sentences in the parts menu (teacher 2026-10-08) */
+.gwb-ex-item { background: #2f5d50; }
+.gwb-ex-item .gwb-drawer-text { font-size: 0.85rem; line-height: 1.25; font-weight: 700; }
+.gwb-ex-pic { display: inline-flex; align-items: center; justify-content: center; width: 40px; min-width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.14); font-size: 1.3rem; }
+.gwb-ex-ghost { background: #2f5d50; color: #fff; padding: 10px 14px; border-radius: 14px; border: 3px solid #fff; font-weight: 800; font-size: 1rem; white-space: nowrap; }
+
+/* Breadcrumb trail (teacher 2026-10-08): every step is a real 44px button on iPad */
+.crumbs { display: inline-flex; align-items: center; gap: 2px; flex-wrap: nowrap; font-family: system-ui, sans-serif; font-size: 0.85rem; }
+.crumb-wrap { display: inline-flex; align-items: center; gap: 2px; }
+.crumb { min-height: 44px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #24584b; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.crumb:active { background: rgba(0,0,0,0.08); }
+.crumb.here { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; color: #3a362b; cursor: default; }
+.crumb-sep { opacity: 0.5; font-weight: 800; }
+.crumbs.dark .crumb { color: #ffe9a8; }
+.crumbs.dark .crumb.here { color: #fff; }
+.crumbs-bar { display: flex; align-items: center; padding: 0 12px; background: rgba(20, 24, 36, 0.78); border-radius: 0 0 12px 12px; overflow-x: auto; }

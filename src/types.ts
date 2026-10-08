@@ -892,6 +892,7 @@ export type TransactionKind =
   | 'purchase-color'
   | 'purchase-voice'
   | 'purchase-prize'
+  | 'purchase-powerup'
   | 'teacher-adjustment'
   | 'assignment-complete'
   | 'purchase-pet'

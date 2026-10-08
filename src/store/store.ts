@@ -873,6 +873,9 @@ export const useStore = create<AppState>()(
             topUp.forEach((it) => pushMarketplaceItem(it));
           }
 
+          // Real-life prizes and every home item (teacher, 2026-10-08), added once.
+          void import('../lib/marketplaceExtras').then((m) => m.seedMarketplaceExtras()).catch(() => {});
+
           // One-time price normalization to the teacher's stated pricing
           // standard (fonts/colors $2, voices $4, power-ups $15, +25% for
           // specialty/seasonal/fun items). Only touches an item still at
@@ -1206,8 +1209,9 @@ export const useStore = create<AppState>()(
         const ownedField = (
           { font: 'ownedFontIds', color: 'ownedColorIds', voice: 'ownedVoiceIds', prize: 'ownedPrizeIds', furniture: 'ownedHomeItemIds' } as const
         )[item.kind];
-        if (student[ownedField].includes(itemId)) return false;
-        get().updateStudent(studentId, { [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
+        // A prize is a real-life treat, so it can be bought again and again.
+        if (student[ownedField].includes(itemId) && item.kind !== 'prize') return false;
+        if (!student[ownedField].includes(itemId)) get().updateStudent(studentId, { [ownedField]: [...student[ownedField], itemId] } as Partial<Student>);
         const kindLabel = { font: 'New font', color: 'New color', voice: 'New voice', prize: 'Prize', furniture: 'New home item' }[item.kind];
         const txKind = { font: 'purchase-font', color: 'purchase-color', voice: 'purchase-voice', prize: 'purchase-prize', furniture: 'purchase-furniture' }[item.kind] as TransactionKind;
         get().recordTransaction(studentId, -item.price, `${kindLabel}: ${item.name}`, item.icon, txKind, false, needsWants);

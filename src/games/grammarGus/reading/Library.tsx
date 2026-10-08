@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useBack } from '../../../lib/navTrail';
 import ImmersiveReader from './ImmersiveReader';
 import { useLibrary, type GusArticle } from './library';
 
@@ -10,12 +11,13 @@ import { useLibrary, type GusArticle } from './library';
 // a button to answer its question in Gus's Workboard.
 export default function Library() {
   const navigate = useNavigate();
+  const back = useBack();
   const articles = useLibrary();
   const [open, setOpen] = useState<GusArticle | null>(null);
   return (
     <div className="lib">
       <header className="lib-top">
-        <button type="button" className="rdr-btn" onClick={() => navigate(-1)}>⬅ Back</button>
+        <button type="button" className="rdr-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>
         <h1>📚 Library</h1>
         <button type="button" className="rdr-btn" onClick={() => navigate('/student/grammar-gus')}>🧪 Gus's Workboard</button>
       </header>

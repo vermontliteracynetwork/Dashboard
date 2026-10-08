@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import { useBack } from '../../lib/navTrail';
 import QuestionScreen from '../../components/QuestionScreen';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
@@ -16,10 +16,7 @@ import type { MCQuestion, NativeGameId } from '../../types';
 // teacher's question sets. Right answers count toward the streak (like
 // everywhere) and pay $1 each when they leave, same as every native game.
 export default function QuizMode() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from === 'town' ? 'town' : 'home';
-  const backTo = from === 'town' ? '/world/town' : '/student/games';
+  const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const questionSets = useStore((s) => s.questionSets);
   const rotations = useStore((s) => s.rotations);
@@ -64,7 +61,7 @@ export default function QuizMode() {
         if (active) submitGameplayAnswer(student.id, active.subject, active.task, q.id, true);
         setQ(pick(q.id));
       }}
-      onExit={() => { pay.current(); navigate(backTo, { state: { from } }); }}
+      onExit={() => { pay.current(); back.go(); }}
       onSkip={() => setQ(pick(q.id))}
       ttsSettings={student.ttsSettings}
       whoLabel="Quiz Mode"

@@ -1,4 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useBack } from '../lib/navTrail';
+import Breadcrumbs from './Breadcrumbs';
 
 // The one "browser chrome" header every screen a student reaches from the
 // Computer shares — direct teacher instruction: "still having a website
@@ -38,9 +40,14 @@ export default function WebpageFrame({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
-  const effectiveBackTo = backTo ?? (cameFromTown ? '/world/town' : '/student/home');
-  const effectiveBackLabel = backLabel ?? (onBack ? '✕ Close' : cameFromTown ? '🌳 Back to Town Square' : '⬅️ Back to Computer');
+  const state = location.state as { from?: string; back?: { from?: string; tab?: string } } | null;
+  // The Bank opened from the Marketplace balance (teacher, 2026-10-08) goes
+  // back to the same Marketplace tab, still remembering where that came from.
+  const cameFromMarket = state?.from === 'marketplace';
+  // Back follows the shared trail (src/lib/navTrail.ts): the screen they came from, or the Computer.
+  const back = useBack();
+  const effectiveBackTo = backTo ?? (cameFromMarket ? '/student/marketplace' : back.path);
+  const effectiveBackLabel = backLabel ?? (onBack ? '✕ Close' : `⬅️ Back to ${(cameFromMarket ? '🛍️ Marketplace' : back.label).replace(/^\S+\s/, '')}`);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(#e9e5d8, #cfc9b7)', border: '2px solid #8a8574', borderRadius: '8px 8px 0 0', padding: '6px 10px', fontFamily: '"Courier New", monospace', fontSize: 13, color: '#3a362b' }}>
       <span style={{ display: 'flex', gap: 4 }}>
@@ -48,13 +55,13 @@ export default function WebpageFrame({
         <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#e8c94a', display: 'inline-block' }} />
         <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#5fa86b', display: 'inline-block' }} />
       </span>
-      <div style={{ flex: 1, background: '#fff', border: '1px solid #8a8574', borderRadius: 4, padding: '3px 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        🔒 www.yoglandia.town/{url}
+      <div title={`www.yoglandia.town/${url}`} style={{ flex: 1, minWidth: 0, background: '#fff', border: '1px solid #8a8574', borderRadius: 4, padding: '0 6px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        {onBack ? <span style={{ lineHeight: '30px' }}>🔒 www.yoglandia.town/{url}</span> : <Breadcrumbs />}
       </div>
       <button
         className="btn btn-sm"
         style={{ fontFamily: 'system-ui, sans-serif', background: '#3e7c6b', color: '#fff' }}
-        onClick={() => (onBack ? onBack() : navigate(effectiveBackTo))}
+        onClick={() => (onBack ? onBack() : !backTo && cameFromMarket ? navigate(effectiveBackTo, { state: state?.back ?? null }) : backTo ? navigate(backTo) : back.go())}
       >
         {effectiveBackLabel}
       </button>

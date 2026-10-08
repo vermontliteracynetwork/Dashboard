@@ -1,8 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { lazyFresh } from '../../lib/freshBuild';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Chess, type Color, type Move, type PieceSymbol, type Square } from 'chess.js';
 import { useStore } from '../../store/store';
+import { useBack } from '../../lib/navTrail';
 import ReadAloud from '../../components/ReadAloud';
 import {
   PIECE_NAME, PIECE_RULE, PIECE_VALUE, describeMove, explainIllegal, other, pickComputerMove, riskyTargets, suggestMove,
@@ -95,13 +96,12 @@ const FRIEND_MOVE_SETTLE_MS = 3000;
 const TURN_CARD_MS = 2200;
 
 export default function SlimeChess() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
   // Opened from a Neighbor's "Play a game" (Town Square): play with them.
   const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
-  const backTo = cameFromTown ? '/world/town' : '/student/home';
-  const backLabel = cameFromTown ? 'Town Square' : 'Computer';
+  // Back follows the shared trail: the Game Dashboard, the Computer or Town Square, wherever they came from.
+  const back = useBack();
+  const backLabel = back.label.replace(/^\S+\s/, '');
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const student = students.find((s) => s.id === currentStudentId);
@@ -547,7 +547,7 @@ export default function SlimeChess() {
     return (
       <div className={`slime-chess${calm ? ' sc-calm' : ''}`}>
         <Bubbles />
-        <button className="sc-back" onClick={() => navigate(backTo)}>← {backLabel}</button>
+        <button className="sc-back" onClick={() => back.go()}>← {backLabel}</button>
         <div className="sc-menu">
           <h1 className="sc-title">Slime Chess</h1>
           <p className="sc-sub">Real chess, extra squishy. {student ? `Ready, ${student.name}?` : ''}</p>
@@ -696,7 +696,7 @@ export default function SlimeChess() {
                 </div>
               )}
             </div>
-            <button className="sc-corner-btn" onClick={() => (inProgress ? setConfirmLeave('leave') : navigate(backTo))} aria-label={backLabel} title={backLabel}>
+            <button className="sc-corner-btn" onClick={() => (inProgress ? setConfirmLeave('leave') : back.go())} aria-label={backLabel} title={backLabel}>
               <img src="/chess/btn-home.png" alt="" />
             </button>
             <button
@@ -781,7 +781,7 @@ export default function SlimeChess() {
                 onClick={() => {
                   const which = confirmLeave;
                   setConfirmLeave(null);
-                  if (which === 'leave') { saveIfUnfinished(); if (aiTimer.current) window.clearTimeout(aiTimer.current); navigate(backTo); } else goToMenu();
+                  if (which === 'leave') { saveIfUnfinished(); if (aiTimer.current) window.clearTimeout(aiTimer.current); back.go(); } else goToMenu();
                 }}
               >
                 {confirmLeave === 'leave' ? 'Leave game' : 'New game'}
@@ -814,7 +814,7 @@ export default function SlimeChess() {
           imageUrl={challengeQuestion.imageUrl}
           imageAlt={challengeQuestion.imageAlt}
           onCorrectAnswer={answeredCorrectly}
-          onExit={() => { saveIfUnfinished(); setChallengeQuestion(null); navigate(backTo); }}
+          onExit={() => { saveIfUnfinished(); setChallengeQuestion(null); back.go(); }}
           onSkip={() => setChallengeQuestion(pickQuestion(challengeQuestion.id))}
           ttsSettings={student?.ttsSettings}
         />

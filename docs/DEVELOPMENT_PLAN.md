@@ -692,6 +692,36 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 5. **Pets v2 Phase 1,** as soon as she answers the three Phase 1 questions. Pets are the highest-dopamine part of the platform and are paused today.
 6. **Tappy Plane.** Art is saved and the game is small; a quick new native game.
 
+### Marketplace edits, game power-ups, real-life prizes, every home item, bank link. SHIPPED 2026-10-08 (direct teacher instruction)
+
+- **Her words (verbatim):** "marketplace edits: characters need to be removed and replaced with the new patters/colors/pets add ons. those should be replaced. 2) writing and whiteboard tools should become one category 3) in game power ups and IRL prizes need to be added 4) add all home items like furniture in their own category 5) in marketplace students should be ale to click their total balance to access their bank. a back button should return them to the marketplace screen"
+- **1. Characters tab replaced by 🧵 Style:** the Seamstress animals ($50, the first one free at the Seamstress), patterns ($5, the free ones marked Free), and every clothes and add-on item at its Seamstress price (earn-only items like the Space Alien show "Earn it"). Buying here is the same purchase as at the Seamstress (`buyStyle`). A "Go to the Seamstress" button to dress up; a note that every color is free on the color wheel. My Stuff shows the student's Style things instead of the old 2D characters. **Did it differently:** "pets add ons" do not exist yet (pets are paused for the v2 overhaul and no pet accessory models exist), so there is no pet add-on shelf; it joins Pets v2 Phase 6.
+- **2. ✍️ Writing and Whiteboard** is one tab (fonts, text colors, highlight colors, whiteboard marker colors).
+- **3. Power-ups:** new in-game power-ups bought with Class Cash and used at the start of the next game (`src/lib/gamePowerups.ts`, kept in the `boosts:<studentId>` style_looks row, no new SQL): Shape Dash Extra Heart ($5, 4 hearts) and Starting Shield ($5), Space Bowling Strike Shuttle ($8) and UFO ($4), plus the Streak Freeze and Skip Pass. **Real-life prizes:** a 🎁 Real-Life Prizes tab, seeded once with 9 starter prizes she can edit or delete in the Marketplace Manager (sticker $5, prize box $10, pick the class music $8, 10 minutes of drawing $10, 15 minutes of a game with a friend $15, sit anywhere $15, teacher helper $15, special snack $20, lunch with the teacher $30). Prizes can be bought again and again, never come from the spin wheels.
+- **4. 🛋️ Home:** every one of the 128 interior pack models except the 5 free starters is now a Home item ($5 small, $10 medium, $20 big furniture), with its picture, ready to place in Build Mode at home once bought. Seeded once (`src/lib/marketplaceExtras.ts`, remembered in the `market-seeds` row). Found while building: the `marketplace_items` table has no `model_path` column, so a home item's model never survived a reload; seeded home items now carry their model in their id (`home-<model>`). Teacher-made home items still lose their model on reload until this SQL is run: `alter table marketplace_items add column if not exists model_path text;` (then map it in sync.ts).
+- **5.** Tapping the balance opens the Bank; its Back button returns to the same Marketplace tab.
+
+### Back button and breadcrumb trail on every student screen. SHIPPED 2026-10-08 (direct teacher instruction)
+
+- **Her words (verbatim):** "back button, breadcrumbing trails dont exist and run well it is difficult for the students to navigate easily from in game tabs and buttons (like games) they want to be returned to the main computer menu screen, not always town square"
+- One shared trail (`src/lib/navTrail.ts`, mounted in App): every screen a student opens is remembered in order, Back returns to the screen they actually came from (Game Dashboard, Computer, Marketplace, Town Square...), and the Computer is always the first breadcrumb. The fake address bar on every computer webpage is now a tappable breadcrumb trail (🖥️ Computer › 🛍️ Marketplace › 🏦 Bank), 44px steps. Games (Shape Dash, Space Bowling, Bakery Match, Castle Defense, Slime Chess, Quiz Mode), the Game Dashboard (with its own breadcrumb bar), the Arcade, the Seamstress, Gus's Workboard and the Library all use it. "🏠 Home" buttons that meant the Computer now say "🖥️ Computer".
+
+### Grammar Gus: example sentences in the parts menu, and typing that saves. SHIPPED 2026-10-08 (direct teacher instructions)
+
+- **Her words (verbatim):** "grammar gus needs to have example sentence that can be drag and drop from the bar and the sentennce words can be replaced" and "make sure students can type words into the fields and they save (providing they are correct in the category, for example the word "becuase" could be typed into the conjunction machine part, but if it was typed into the article, the machine should turn to a conjunction part and the word should save. the bottom student writing should show their sentence as weitten"
+- **📝 Example sentences** at the top of the parts menu (8 of them, `data/examples.ts`, each tested to read exactly as labeled and earn 3 stars). Drag one onto the board or tap it for a whole working machine; every word stays unlocked, so tapping a word swaps it.
+- **Typing:** a ✓ Save button beside the box, Enter, or simply closing the menu saves a typed word. If the word belongs to another kind of word machine (because in an Article), the machine turns into that kind and keeps the word ("Switcheroo"). Words Gus only finds in the online dictionary convert the same way. "because", "when", "if", "after", "before" and "while" are now in the Conjunction list.
+- **My writing** shows each sentence exactly as built: only the capital letters and punctuation the student snapped on.
+
+### In progress / queued from her messages this session (2026-10-08, verbatim, not built yet)
+
+- "the navigation for grammar gus needs to be optomized for ipads, right now things are sized weird so they cant see all words, cant navigate buttons" (next).
+- "in grammar gus, the adjuectives and all meaningful word parts need to adapt the pixel screen videos. example the adjective. if sentences are saved and a pixel screen is used, they can save the sentence and video" (next).
+- "coins in grammar gus need to be removed, they dont equart to anything" (next).
+- "in accademics tab, as teacher, allow me to add a new section beneth actiities that adds a grammar gus whiteboard where i can click, launch in a new tab, create a grammar board to join/share to me students for live edits or share as a copy so they can do it independently" (next).
+- "in grammar gus, the detaul word lists need to be exapanded for increased vocab and more options (ensure they will display on the pixel tv)" (next).
+
+
 ### Style character everywhere a student walks (Town Square, Home Room, Creative Island). SHIPPED 2026-10-08 (direct teacher instruction)
 
 - **Her words (2026-10-08, verbatim):** "make sure new character design applies everywhere, for students (in their home)"

@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import { useBack } from '../../lib/navTrail';
+import Breadcrumbs from '../../components/Breadcrumbs';
 import { GameCardGrid } from '../../components/GameDashboard';
 import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from '../../lib/nativeGames';
 import { findActiveGameplayTask, gameplayProgress, gameplayTarget } from '../../lib/gameplayAssignment';
@@ -16,7 +18,7 @@ export default function GamesHub() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from === 'town' ? 'town' : 'home';
-  const backTo = from === 'town' ? '/world/town' : '/student/home';
+  const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
@@ -49,10 +51,11 @@ export default function GamesHub() {
   return (
     <div className="games-hub">
       <header className="games-hub-top">
-        <button type="button" className="btn btn-lg" onClick={() => navigate(backTo)}>← {from === 'town' ? 'Town Square' : 'Computer'}</button>
+        <button type="button" className="btn btn-lg" onClick={back.go}>← {back.label.replace(/^\S+\s/, '')}</button>
         <h1>🎮 Game Dashboard</h1>
         <span />
       </header>
+      <div className="crumbs-bar"><Breadcrumbs dark /></div>
       {anyGame && (
         <p className="games-hub-task">
           📝 <strong>{anyGame.task.studentTitle || anyGame.task.title}</strong>: pick any game and answer questions to finish it. {Math.min(done, gameplayTarget(anyGame.task))} of {gameplayTarget(anyGame.task)} done.

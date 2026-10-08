@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import { useBack } from '../../lib/navTrail';
 import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
@@ -9,6 +10,7 @@ import { lazyFresh } from '../../lib/freshBuild';
 import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
 import { pickRival, recordGameMemory } from '../../lib/gameRivals';
 import { payForAnswers } from '../../lib/gameEarnings';
+import { spendBoosts, useBoostCounts } from '../../lib/gamePowerups';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 import type { MCQuestion, QuestionSet } from '../../types';
 import {
@@ -48,12 +50,12 @@ const bodySrc = (l: Look) => `${ART}${l.color}_body_${l.body}.png`;
 const faceSrc = (l: Look) => `${ART}face_${l.face}.png`;
 
 export default function ShapeDash() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
   const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
-  const backTo = cameFromTown ? '/world/town' : '/student/home';
+  // Back follows the shared trail: the Game Dashboard, the Computer or Town Square, wherever they came from.
+  const back = useBack();
   const studentId = useStore((s) => s.currentStudentId);
+  const boosts = useBoostCounts(studentId);
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const questionSets = useStore((s) => s.questionSets);
   const rotations = useStore((s) => s.rotations);
@@ -130,7 +132,15 @@ export default function ShapeDash() {
   const beginLevel = (n: number, keepRun: boolean) => {
     const g = game.current;
     g.lv = makeLevel(n); g.r = newRunner(); g.particles = []; g.jump = false;
-    if (!keepRun) { g.hearts = 3; g.stars = 0; g.blocks = 0; g.playTime = 0; g.nextQ = QUESTION_EVERY; sessionRight.current = 0; }
+    if (!keepRun) {
+      g.hearts = 3; g.stars = 0; g.blocks = 0; g.playTime = 0; g.nextQ = QUESTION_EVERY; sessionRight.current = 0;
+      // Power-ups bought in the Marketplace are used up at the start of a run (not in Practice).
+      if (!practice) {
+        const used = spendBoosts(studentId, ['sd-heart', 'sd-shield']);
+        if (used['sd-heart']) g.hearts = 4;
+        if (used['sd-shield']) g.r.invulnerable = 999;
+      }
+    }
     syncHud(); toPhase('ready'); startMusic(n); pauseMusic(true);
   };
   const go = () => { toPhase('play'); pauseMusic(false); say('start'); };
@@ -223,7 +233,7 @@ export default function ShapeDash() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inRun = phase !== 'launch' && phase !== 'over';
-  const leave = () => { if (inRun) setConfirmLeave(true); else { stopMusic(); navigate(backTo); } };
+  const leave = () => { if (inRun) setConfirmLeave(true); else { stopMusic(); back.go(); } };
 
   return (
     <div className={`sd${calm ? ' calm' : ''}`}>
@@ -246,6 +256,9 @@ export default function ShapeDash() {
               <h2>How to play</h2>
               <p>Your shape runs by itself. <strong>Tap anywhere to jump</strong> over spikes and gaps. Hold to keep jumping. Flags save your spot.</p>
               <p>❓ A question pops up every 30 seconds, and after a crash. A right answer after a crash gives you a 🛡️ shield!</p>
+              {!practice && ((boosts['sd-heart'] ?? 0) > 0 || (boosts['sd-shield'] ?? 0) > 0) && (
+                <p className="sd-boosts">🎒 Your power-ups for this run: {(boosts['sd-heart'] ?? 0) > 0 && '❤️ Extra Heart '}{(boosts['sd-shield'] ?? 0) > 0 && '🛡️ Starting Shield'}</p>
+              )}
               <div className="sd-seg" role="group" aria-label="Mode">
                 <button type="button" className={`sd-btn${!practice ? ' on' : ''}`} onClick={() => setPractice(false)} aria-pressed={!practice}>❤️❤️❤️ 3 hearts</button>
                 <button type="button" className={`sd-btn${practice ? ' on' : ''}`} onClick={() => setPractice(true)} aria-pressed={practice}>🧸 Practice</button>
@@ -303,7 +316,7 @@ export default function ShapeDash() {
               <div className="sd-row">
                 <button type="button" className="sd-btn sd-go" onClick={() => beginLevel(summary.level, false)}>🔁 Try level {summary.level} again</button>
                 <button type="button" className="sd-btn" onClick={() => setPhase('launch')}>🎨 Change my shape</button>
-                <button type="button" className="sd-btn" onClick={() => navigate(backTo)}>🏠 Leave</button>
+                <button type="button" className="sd-btn" onClick={() => back.go()}>🏠 Leave</button>
               </div>
             </div>
           )}
@@ -335,7 +348,7 @@ export default function ShapeDash() {
             <p>This run won't be finished. Your right answers still count and still pay.</p>
             <div className="sd-row">
               <button type="button" className="sd-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button>
-              <button type="button" className="sd-btn sd-go" onClick={() => { setConfirmLeave(false); setQuestion(null); finishRun('leave'); stopMusic(); navigate(backTo); }}>Leave</button>
+              <button type="button" className="sd-btn sd-go" onClick={() => { setConfirmLeave(false); setQuestion(null); finishRun('leave'); stopMusic(); back.go(); }}>Leave</button>
             </div>
           </div>
         </div>

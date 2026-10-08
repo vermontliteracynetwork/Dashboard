@@ -169,7 +169,7 @@ function PetShelterInner() {
             <span className="shop-balance-chip" title="Your Piggy Bank balance"><Icon name="coins" size={16} fallback="🐷" /> {formatMoney(student.coins)}</span>
             <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/pet-journal')}>📖 Journal</button>
             <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}><Icon name="home" size={14} fallback="🏠" /> Home</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🖥️ Computer</button>
           </div>
         </div>
 

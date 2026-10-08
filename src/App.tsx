@@ -64,6 +64,7 @@ const StyleRoom = lazyFresh(() => import('./routes/teacher/StyleRoom'));
 const StudentStyle = lazyFresh(() => import('./routes/student/StudentStyle'));
 import CoinDropOverlay from './components/CoinDropOverlay';
 import SyncTroubleAlert from './components/SyncTroubleAlert';
+import { TrailTracker } from './lib/navTrail';
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated);
@@ -132,6 +133,7 @@ export default function App() {
             (not inside TownSquare, which used to own it and die on
             navigation) so it survives every route change. */}
         <GlobalMusicPlayer />
+        <TrailTracker />
         <Routes>
           <Route path="/" element={<RoleSelect />} />
           <Route

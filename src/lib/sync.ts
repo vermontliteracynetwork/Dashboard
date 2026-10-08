@@ -434,6 +434,9 @@ const rowToMarketplaceItem = (r: Row): MarketplaceItem => ({
   voicePitch: r.voice_pitch ?? undefined,
   voiceRate: r.voice_rate ?? undefined,
   voiceHints: r.voice_hints ?? undefined,
+  // No model_path column yet: Home items seeded from the interior pack
+  // (src/lib/marketplaceExtras.ts) carry their model in their id.
+  modelPath: r.model_path ?? (r.kind === 'furniture' && String(r.id).startsWith('home-') ? `/world/models/interior/${String(r.id).slice(5)}.glb` : undefined),
 });
 const marketplaceItemToRow = (it: MarketplaceItem): Row => ({
   id: it.id,

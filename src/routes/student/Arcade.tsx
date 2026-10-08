@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import { useBack } from '../../lib/navTrail';
 import { scratchThumbnailUrl, scratchEmbedUrl } from '../../lib/scratch';
 import WebpageFrame from '../../components/WebpageFrame';
 
@@ -22,9 +22,7 @@ export default function Arcade() {
   // Direct teacher instruction: leaving a game always asks first. Holds
   // what to do if the student says yes.
   const [confirmLeave, setConfirmLeave] = useState<(() => void) | null>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const cameFromTownBack = (location.state as { from?: string } | null)?.from === 'town' ? '/world/town' : '/student/home';
+  const back = useBack();
   const rowRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -74,7 +72,7 @@ export default function Arcade() {
     <div className="laptop-frame">
       <div className="laptop-screen">
     <div className="container stack">
-      <WebpageFrame url="arcade" onBack={playingId ? () => setConfirmLeave(() => () => navigate(cameFromTownBack)) : undefined} />
+      <WebpageFrame url="arcade" onBack={playingId ? () => setConfirmLeave(() => () => back.go()) : undefined} />
       <div className="stack" style={{ minHeight: 460, background: 'linear-gradient(160deg, #2b1055, #7597de)', borderRadius: 14, padding: 20, boxSizing: 'border-box' }}>
       {playing && (
         <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={() => setConfirmLeave(() => () => setPlayingId(null))}>

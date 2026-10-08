@@ -6,6 +6,7 @@ import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import { useBack } from '../../lib/navTrail';
 import type { MCQuestion, QuestionSet } from '../../types';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { formatMoney } from '../../lib/money';
@@ -150,13 +151,13 @@ function playSfx(name: 'match' | 'combo' | 'fail' | 'pop') {
 export default function BakeryMatch3() {
   const navigate = useNavigate();
   const location = useLocation();
-  const cameFromTown = (location.state as { from?: string } | null)?.from === 'town';
   // Opened from a Neighbor's "Play a game" (Town Square): play with them.
   const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
   const npcProfiles = useNpcProfiles();
   const buddy = rivalId ? npcProfiles[rivalId] ?? null : null;
-  const backTo = cameFromTown ? '/world/town' : '/student/home';
-  const backLabel = cameFromTown ? 'Town Square' : 'Computer';
+  // Back follows the shared trail: the Game Dashboard, the Computer or Town Square, wherever they came from.
+  const back = useBack();
+  const backLabel = back.label.replace(/^\S+\s/, '');
 
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -510,7 +511,7 @@ export default function BakeryMatch3() {
     <div className="bakery-shell">
       {phase === 'menu' && (
         <>
-          <button className="bakery-back-btn" onClick={() => navigate(backTo)}>
+          <button className="bakery-back-btn" onClick={() => back.go()}>
             <Icon name="arrowLeft" size={16} fallback="⬅️" /> {backLabel}
           </button>
           <button className="bakery-gear-btn" onClick={() => setShowSourcePanel(true)} aria-label="Question settings">

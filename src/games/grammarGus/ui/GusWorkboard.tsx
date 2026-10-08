@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useBack } from '../../../lib/navTrail';
 import { useStore } from '../../../store/store';
 import { useLockBodyScroll } from '../../../lib/useLockBodyScroll';
 import type { Pos, Tense, VerbForm, Draft, Violation } from '../engine/types';
@@ -26,7 +27,8 @@ import { HomophoneSorter, TransitionTrack } from './MiniGames';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
-import { nounByWord, verbByBase } from '../data/wordbank';
+import { nounByWord, verbByBase, adjByWord, adverbSet, VERBS } from '../data/wordbank';
+import { SUBORD } from '../engine/grammar';
 import { CHEERS, GATE_LINES, GREETINGS, RUBRIC_LINES, lineFor } from '../data/gusLines';
 import { useGusSettings, levelFor } from '../settings';
 import GusGuide from './GusGuide';
@@ -34,6 +36,7 @@ import PixelCinema from './PixelCinema';
 import { gusSound, setGusLevel, setGusMuted } from './sound';
 import ImmersiveReader from '../reading/ImmersiveReader';
 import { bankFor, registerArticleWords, starterItems, useLibrary, type GusArticle } from '../reading/library';
+import { EXAMPLE_SENTENCES, exampleItems } from '../data/examples';
 import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
 import MachinePart from './board/MachinePart';
 import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, type Kind, type Job } from './board/parts';
@@ -205,12 +208,12 @@ function placeInto(items: BoardItem[], index: number, item: BoardItem): BoardIte
 type Gesture =
   | { kind: 'item'; pid: number; lineId: string; itemId: string; sx: number; sy: number; grabX: number; grabY: number; active: boolean; attach?: { parentId: string; slot: AttachSlot } }
   | { kind: 'line'; pid: number; lineId: string; sx: number; sy: number; grabX: number; grabY: number; active: boolean }
-  | { kind: 'new'; pid: number; k: Kind; sx: number; sy: number; active: boolean }
+  | { kind: 'new'; pid: number; k: Kind; sx: number; sy: number; active: boolean; ex?: string }
   | { kind: 'pan'; pid: number; sx: number; sy: number; vx: number; vy: number; moved: boolean }
   | { kind: 'pinch'; d0: number; z0: number; mx: number; my: number; vx: number; vy: number };
 type DragView =
   | { kind: 'item'; item: BoardItem; x: number; y: number; target: Target | null; overDrawer: boolean }
-  | { kind: 'new'; k: Kind; sx: number; sy: number; target: Target | null }
+  | { kind: 'new'; k: Kind; sx: number; sy: number; target: Target | null; ex?: string }
   | { kind: 'line'; lineId: string; target: string | null };
 type Dict = { q: string; pos: DictPos; result: TypedCheck | 'checking' } | null;
 
@@ -219,6 +222,7 @@ type Dict = { q: string; pos: DictPos; result: TypedCheck | 'checking' } | null;
 export default function GusWorkboard({ host = false }: { host?: boolean } = {}) {
   useLockBodyScroll();
   const navigate = useNavigate();
+  const back = useBack();
   const location = useLocation();
   const signedIn = useStore((s) => s.currentStudentId);
   const studentId = host ? null : signedIn;
@@ -279,6 +283,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [folds, setFolds] = useState<string[]>(() => { try { const f = localStorage.getItem('gus-folds2'); if (f) return JSON.parse(f) as string[]; } catch { /* fine */ } return ['time', 'shout', 'paragraph', 'contraption', 'gadget']; });
   useEffect(() => { try { localStorage.setItem('gus-folds2', JSON.stringify(folds)); } catch { /* fine */ } }, [folds]);
   const favKey = `gus-favs-${host ? 'teacher' : signedIn ?? 'guest'}`;
+  const [exFolded, setExFolded] = useState(false);
   const [favs, setFavs] = useState<Kind[]>(() => { try { const f = localStorage.getItem(favKey); if (f) return JSON.parse(f) as Kind[]; } catch { /* fine */ } return ['cap']; });
   useEffect(() => { try { localStorage.setItem(favKey, JSON.stringify(favs)); } catch { /* fine */ } }, [favs, favKey]);
   const toggleFav = (k: Kind) => { setFavs((f) => (f.includes(k) ? f.filter((x) => x !== k) : [...f, k])); gusSound.ding(); };
@@ -507,6 +512,22 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     if (e.button > 0 || dragging()) return;
     gesture.current = { kind: 'new', pid: e.pointerId, k, sx: e.clientX, sy: e.clientY, active: false };
   };
+  // Example sentences (teacher 2026-10-08): drag one out of the parts menu
+  // for a whole working machine, then tap any word to swap it.
+  const onExampleDown = (e: React.PointerEvent, ex: string) => {
+    if (e.button > 0 || dragging()) return;
+    gesture.current = { kind: 'new', pid: e.pointerId, k: 'blank', sx: e.clientX, sy: e.clientY, active: false, ex };
+  };
+  const addExample = (exId: string, at?: { x: number; y: number }) => {
+    const ex = EXAMPLE_SENTENCES.find((x) => x.id === exId); if (!ex) return;
+    remember();
+    const sp = at ?? freeSpot();
+    const id = uid();
+    setLines((ls) => [...ls.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank')), { id, x: snap(sp.x), y: snap(sp.y), items: exampleItems(ex, uid) }]);
+    setSelLine(id); bounce(id); gusSound.snap();
+    if (!at) requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
+    say(`"${ex.text}" Tap any word machine to swap its word for your own, then pull the Start Lever.`, '📝 Example sentence');
+  };
   const onBoardDown = (e: React.PointerEvent) => {
     if (e.button > 0 || dragging()) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -575,7 +596,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         setDrag({ kind: 'line', lineId: g.lineId, target: join?.id ?? null });
       } else if (g.kind === 'new') {
         const b = overBoard(e.clientX, e.clientY) ? toBoard(e.clientX, e.clientY) : null;
-        setDrag({ kind: 'new', k: g.k, sx: e.clientX, sy: e.clientY, target: b ? findTarget(b.x - 30, b.y - ITEM_H / 2, g.k) : null });
+        setDrag({ kind: 'new', k: g.k, ex: g.ex, sx: e.clientX, sy: e.clientY, target: b && !g.ex ? findTarget(b.x - 30, b.y - ITEM_H / 2, g.k) : null });
       }
     };
     const up = (e: PointerEvent) => {
@@ -605,7 +626,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
           else if (it?.kind === 'lever' || it?.kind === 'clock') { /* their own buttons do the work */ }
           else openMenuFor(g.lineId, g.itemId);
         }
-        if (g.kind === 'new') addKind(g.k);
+        if (g.kind === 'new') { if (g.ex) addExample(g.ex); else addKind(g.k); }
         return;
       }
       const d = drag;
@@ -632,6 +653,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       } else if (g.kind === 'new') {
         if (!overBoard(e.clientX, e.clientY)) return;
         const b = toBoard(e.clientX, e.clientY);
+        if (g.ex) { addExample(g.ex, { x: b.x - 30, y: b.y - ITEM_H / 2 }); return; }
         addKind(g.k, { x: b.x - 30, y: b.y - ITEM_H / 2, target: d?.kind === 'new' ? d.target : null });
       }
     };
@@ -1044,7 +1066,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const menuItem = menuLine?.items.find((i) => i.id === menu?.itemId);
   const pool = (pos: Pos): string[] => {
     if (pos === 'A') return level === 'challenge' ? ['a', 'an', 'the'] : ['a', 'the'];
-    if (pos === 'C') return ['and', 'but', 'or', 'so', 'yet'];
+    // Joining words, "because" and its friends included (teacher 2026-10-08).
+    if (pos === 'C') return [...new Set(['and', 'but', 'or', 'so', 'yet', ...SUBORD])];
     if (pos === 'R') return [...POOLS.R, 'me', 'him', 'her', 'us', 'them']; // object pronouns too (Turnstile)
     const extra = pos === 'N' || pos === 'V' || pos === 'J' || pos === 'D' || pos === 'I' ? customFor(pos) : [];
     // Read and Respond: the words a good answer needs come first.
@@ -1066,9 +1089,50 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, menuItem?.id, menuItem?.kind]);
+  // Typing (teacher 2026-10-08: "make sure students can type words into the
+  // fields and they save ... if it was typed into the article, the machine
+  // should turn to a conjunction part and the word should save"). Which word
+  // machine a typed word belongs in: this one first, then any other.
+  const WORD_KINDS: Pos[] = ['A', 'R', 'P', 'C', 'N', 'V', 'J', 'D', 'I'];
+  const kindForWord = (w: string, here: Pos): { pos: Pos; word: string } | null => {
+    const c = cleanWord(w); if (!c) return null;
+    const inPool = (pos: Pos) => pool(pos).find((x) => x.toLowerCase() === c);
+    const known = (pos: Pos): string | undefined => {
+      const p = inPool(pos); if (p) return p;
+      if (pos === 'N' && nounByWord.has(c)) return c;
+      if (pos === 'V') { if (verbByBase.has(c)) return c; const v = VERBS.find((x) => x.third === c || x.past === c); if (v) return v.base; }
+      if (pos === 'J' && adjByWord.has(c)) return c;
+      if (pos === 'D' && adverbSet.has(c)) return c;
+      return undefined;
+    };
+    for (const pos of [here, ...WORD_KINDS.filter((k) => k !== here)]) { const word = known(pos); if (word) return { pos, word }; }
+    return null;
+  };
+  // Saves a typed word: into this machine, or this machine becomes the right kind.
+  const commitTyped = (lineId: string, itemId: string, q: string): boolean => {
+    const l = linesRef.current.find((x) => x.id === lineId); const it = l?.items.find((i) => i.id === itemId);
+    const here = it ? wordPosOf(it.kind) : null;
+    if (!it || !here || isContraption(it.kind)) return false;
+    const hit = kindForWord(q, here as Pos); if (!hit) return false;
+    if (hit.pos === here) { setItem(lineId, itemId, { word: hit.word }); gusSound.snap(); return true; }
+    setItem(lineId, itemId, { kind: hit.pos, word: hit.word });
+    gusSound.whoosh(); bounce(itemId);
+    say(`"${hit.word}" is ${/^[aeiou]/i.test(kindInfo(hit.pos).name) ? 'an' : 'a'} ${kindInfo(hit.pos).name.toLowerCase()}, so this machine turned into a ${kindInfo(hit.pos).machine}. Saved!`, 'Switcheroo');
+    return true;
+  };
+  // A word typed and left in the box still saves when the menu closes.
+  const typedRef = useRef<{ lineId: string; itemId: string; q: string } | null>(null);
+  useEffect(() => {
+    const t = typedRef.current;
+    if (t && t.q.trim() && (!menu || menu.itemId !== t.itemId)) commitTyped(t.lineId, t.itemId, t.q);
+    typedRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menu?.itemId]);
+  useEffect(() => { if (menu) typedRef.current = { lineId: menu.lineId, itemId: menu.itemId, q: query }; }, [query, menu]);
   const setItem = (lineId: string, itemId: string, patch: Partial<BoardItem>) => editLine(lineId, (l) => ({ ...l, items: l.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)) }));
   const chooseWord = (w: string) => {
     if (!menu || !menuItem) return;
+    typedRef.current = null;
     setItem(menu.lineId, menu.itemId, { word: w });
     gusSound.snap(); setMenu(null); setPulse([]);
     if (readAloud) speak(w);
@@ -1279,7 +1343,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   return (
     <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}${guestLocked ? ' gwb-locked' : ''}`}>
       <header className="gus-top gwb-top">
-        <button type="button" className="gus-btn" onClick={() => navigate(-1)}>⬅ Back</button>
+        <button type="button" className="gus-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>
         <h1>Gus's Workboard</h1>
         <div className="gus-top-right">
           <span className="gus-gears" title="Cheese gears"><img src="/games/ui-kit/gold-coin.png" alt="Gears" /> {(saved.gears ?? 0) + (studentId ? 0 : sessionGears)}</span>
@@ -1633,7 +1697,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
           <div className="gwb-doc-page">
             {(() => {
               const out = paras.map((p, pi) => {
-                const sents = p.map((l) => { const rd = readLine(l, level, false); const t = lineText(l, rd, requireFinish || !!l.job); return t ? { l, t: withConnector(l, t) } : null; }).filter(Boolean) as { l: BoardLine; t: string }[];
+                const sents = p.map((l) => { const rd = readLine(l, level, false); const t = lineText(l, rd, true); // as written: only the marks they snapped on (teacher 2026-10-08)
+ return t ? { l, t: withConnector(l, t) } : null; }).filter(Boolean) as { l: BoardLine; t: string }[];
                 if (!sents.length) return null;
                 return <p key={pi}>{sents.map(({ l, t }, k) => <span key={l.id}>{k > 0 ? ' ' : ''}<button type="button" className={`gwb-doc-sent${l.id === focusLine?.id ? ' on' : ''}${l.stars === 3 ? ' done' : ''}`} onClick={() => { setSelLine(l.id); setView((v) => ({ ...v, x: 40 - (l.x - 20) * v.z, y: 60 - (l.y - 60) * v.z })); }}>{t}</button></span>)}</p>;
               }).filter(Boolean);
@@ -1702,12 +1767,26 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               {drawerOpen && <div className="gwb-drawer-title fav"><span>⭐ Favorites</span></div>}
               {favs.filter((k) => KINDS.some((x) => x.kind === k)).map((k) => drawerRow(k, true))}
             </div>}
+            <div className="gwb-drawer-group gwb-examples">
+              {drawerOpen && <button type="button" className="gwb-drawer-title" onClick={() => setExFolded((f) => !f)} aria-expanded={!exFolded}><span>📝 Example sentences</span><span aria-hidden>{exFolded ? '▸' : '▾'}</span></button>}
+              {(!exFolded || !drawerOpen) && (drawerOpen ? EXAMPLE_SENTENCES : EXAMPLE_SENTENCES.slice(0, 1)).map((ex) => (
+                <div key={ex.id} className="gwb-drawer-row">
+                  <button type="button" className="gwb-drawer-item gwb-ex-item" onPointerDown={(e) => onExampleDown(e, ex.id)} onClick={(e) => { if (e.detail === 0) addExample(ex.id); }} aria-label={`Example sentence: ${ex.text} Drag it onto the board or tap it.`}>
+                    <span className="gwb-ex-pic" aria-hidden>📝</span>
+                    {drawerOpen && <span className="gwb-drawer-text">{ex.text}</span>}
+                  </button>
+                </div>
+              ))}
+            </div>
             {JOB_ORDER.filter((job) => (job !== 'contraption' && job !== 'gadget') || funOn).map((job) => drawerGroup(job, KINDS.filter((k) => k.job === job).map((k) => k.kind)))}
           </div>
         </aside>
       </main>
 
-      {drag?.kind === 'new' && (
+      {drag?.kind === 'new' && drag.ex && (
+        <div className="gwb-new-ghost gwb-ex-ghost" style={{ left: drag.sx, top: drag.sy }} aria-hidden>📝 {EXAMPLE_SENTENCES.find((x) => x.id === drag.ex)?.text}</div>
+      )}
+      {drag?.kind === 'new' && !drag.ex && (
         <div className="gwb-new-ghost" style={{ left: drag.sx, top: drag.sy }} aria-hidden><MachinePart kind={drag.k} word={drag.k === 'clock' ? 'present' : null} empty={needsWord(drag.k)} scale={0.7} /></div>
       )}
 
@@ -1731,6 +1810,21 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             const dr = dict && dict.q === q && !exact ? dict.result : null;
             const dictOk = !!dr && dr !== 'checking' && (dr.kind === 'ok' || dr.kind === 'base');
             const checking = dr === 'checking';
+            const other = !own && q ? kindForWord(q, mp) : null;
+            const otherKind = other && other.pos !== mp ? other : null;
+            void otherKind;
+            // Enter or ✓ Save: this machine's word, the dictionary's word, or switch the machine to the right kind.
+            const saveTyped = () => {
+              if (exact) { chooseWord(list.find((w) => w.toLowerCase() === q)!); return; }
+              if (dictOk) { useDictWord(); return; }
+              if (commitTyped(menuLine.id, menuItem.id, q)) { typedRef.current = null; setMenu(null); setPulse([]); if (readAloud) speak(q); return; }
+              if (dr && dr !== 'checking' && dr.kind === 'otherPos') {
+                const pos = dr.pos.find((x) => (['N', 'V', 'J', 'D', 'I'] as string[]).includes(x)) as DictPos | undefined;
+                if (pos) { addCustomWord({ pos, word: q }); setItem(menuLine.id, menuItem.id, { kind: pos as Pos, word: q }); typedRef.current = null; setMenu(null); gusSound.whoosh(); say(`"${q}" is ${/^[aeiou]/i.test(kindInfo(pos as Pos).name) ? 'an' : 'a'} ${kindInfo(pos as Pos).name.toLowerCase()}, so this machine turned into a ${kindInfo(pos as Pos).machine}. Saved!`, 'Switcheroo'); return; }
+              }
+              if (!checking && list[0] && q.length < 2) chooseWord(list[0]);
+              else if (!checking) say(`Gus does not know "${q}" yet. Check the spelling, or pick a word below.`, 'Hmm');
+            };
             // Word reel (teacher's reference, 2026-10-07: a slot-machine sentence
             // builder): spin the word up or down without closing the menu.
             const ri = menuItem.word ? all.findIndex((w) => w.toLowerCase() === menuItem.word!.toLowerCase()) : -1;
@@ -1747,13 +1841,15 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 </div>
               )}
               <input className="gwb-type" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Type a word, or tap one below" autoCapitalize="off" autoCorrect="off" spellCheck={false} inputMode="text"
-                autoFocus={kbdOpen.current} onKeyDown={(e) => { if (e.key === 'Escape') { setMenu(null); return; } if (e.key !== 'Enter') return; if (exact) chooseWord(list.find((w) => w.toLowerCase() === q)!); else if (dictOk) useDictWord(); else if (!checking && list[0] && q.length < 2) chooseWord(list[0]); }} aria-label={`Type a ${mname}`} />
+                autoFocus={kbdOpen.current} onKeyDown={(e) => { if (e.key === 'Escape') { setMenu(null); return; } if (e.key !== 'Enter') return; saveTyped(); }} aria-label={`Type a ${mname}`} />
+              {q && <button type="button" className="gus-mini gwb-save-typed" onClick={saveTyped}>✓ Save "{q}"</button>}
+              {q && !exact && other && <div className="gwb-didyou">🔁 "{q}" is {/^[aeiou]/i.test(kindInfo(other.pos).name) ? 'an' : 'a'} {kindInfo(other.pos).name.toLowerCase()}. Save it and this machine turns into a {kindInfo(other.pos).machine}.</div>}
               <button type="button" className="gus-mini gwb-surprise" onClick={() => { const w = all[Math.floor(Math.random() * all.length)]; if (w) { gusSound.boing(); chooseWord(w); } }}>🎲 Surprise me</button>
               {dr === 'checking' && <div className="gwb-didyou">📖 Checking Gus's dictionary for "{q}"...</div>}
               {dr && dr !== 'checking' && (dr.kind === 'ok'
                 ? <div className="gwb-didyou">📖 "{q}" is a real {mname}{dr.plural ? ' (more than one)' : ''}! <button type="button" className="gwb-didyou-btn" onClick={useDictWord}>Use "{q}"</button></div>
                 : dr.kind === 'base' ? <div className="gwb-didyou">📖 "{q}" comes from the action word "{dr.base}". The Clock sets the time. <button type="button" className="gwb-didyou-btn" onClick={useDictWord}>Use "{dr.base}"</button></div>
-                : dr.kind === 'otherPos' ? <div className="gwb-didyou">📖 "{q}" is in the dictionary as {dr.pos.map((p) => kindInfo(p).name.toLowerCase()).join(' or ')}, not {mname}. Try that machine instead.</div>
+                : dr.kind === 'otherPos' ? <div className="gwb-didyou">📖 "{q}" is in the dictionary as {dr.pos.map((p) => kindInfo(p).name.toLowerCase()).join(' or ')}, not {mname}. Tap ✓ Save and this machine turns into the right kind.</div>
                 : dr.kind === 'offline' ? <div className="gwb-didyou">Gus's dictionary is out of reach at the moment. Pick a word below.</div>
                 : dr.kind === 'blocked' ? <div className="gwb-didyou">Gus does not use that word. Pick another one.</div>
                 : null)}
