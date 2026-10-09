@@ -31,7 +31,7 @@
 How it works: every new request, idea or "queue:" message goes on this list the same turn it arrives. Work goes top to bottom, each item ships on its own (dev plan, What's New if students notice it, push to main), then it moves to **Done** with its date. An item that needs her answer moves to "Waiting on the teacher" below instead of blocking the line. Full detail for each item lives in its own entry (Gameplay roadmap, section 2).
 
 **Up next (top first):**
-1. Grammar Gus smaller pieces (IN PROGRESS): Pixel TV "with", word packs and the teacher word tool, Garage extras, Orders editor, teacher report PDF export, and the "Why Did the...?" blueprint (needs why-questions, the Question Crane only makes yes or no questions). (Show and Tell and Silly Recipe blueprints and Noun Boiler Pairs SHIPPED 2026-10-09; Mixed-up Delivery and Punctuation Inspector were already live as the "Put the words in order" and "Fix the mistake" jobs.)
+1. Grammar Gus smaller pieces (IN PROGRESS): Pixel TV "with", word packs and the teacher word tool, Garage extras, Orders editor, Gus's Checkup, and the "Why Did the...?" blueprint (needs why-questions, the Question Crane only makes yes or no questions). (Show and Tell and Silly Recipe blueprints and Noun Boiler Pairs SHIPPED 2026-10-09; Mixed-up Delivery and Punctuation Inspector were already live as the "Put the words in order" and "Fix the mistake" jobs.)
 2. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
 3. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
 4. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
@@ -40,6 +40,7 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Grammar Gus teacher report: 📄 PDF, IEP goal lines on a progress graph, and teacher notes.
 - 2026-10-09: Grammar Gus, two new Blueprints: 🎒 Show and Tell and 🍲 Silly Recipe.
 - 2026-10-09: Grammar Gus, ♨️ Noun Boiler Pairs (one or more than one).
 - 2026-10-09: Grammar Gus Phase 2, 🎨 Gus's Paint Shop (Phase 2 is now complete).
@@ -752,7 +753,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - Orders: a teacher editor for her own orders, and a sticker book page.
 - Blueprints still to come: "Why Did the...?" (needs why-questions; the Question Crane makes only yes or no questions), Letter to a Friend (needs her name list), the Pun Pack (needs her to say what she means by it). **SHIPPED 2026-10-09 (Build Queue):** 🎒 **Show and Tell** (3 linked machines: "I have a fuzzy hamster. It runs quickly. It sleeps in a box." with I and it filled in, so it practices I and it) and 🍲 **Silly Recipe** (4 command steps with First, Next, Then and Finally, using the Command Conveyor: "First, mix the purple sock. Next, add the pickle to the bowl. Then, stir the soup slowly. Finally, eat the giant cake."), both in 🧰 Jobs, More jobs, Build a whole paragraph.
 - Examples folder, more categories (her words 2026-10-08: "we will ad more categories like joke frame works and such later"): a 😂 Jokes folder with a knock knock SHIPPED 2026-10-08; more joke frameworks once she says which.
-- Teacher report: PDF export, IEP goal lines on a progress graph, teacher notes, Gus's Checkup (an optional baseline).
+- Teacher report: ~~PDF export, IEP goal lines on a progress graph, teacher notes~~ SHIPPED 2026-10-09 (Build Queue): in Games, the Grammar Gus report, each student now has **📄 PDF** (a clean printable page that opens with "Save as PDF or print": this week's stats, a progress graph of words per 3-star sentence by week with the IEP goal as a dashed red line, most common fixes, help levels, recent 3-star sentences and her notes) and **📝 Notes and goals** (an IEP goal for words per sentence and for % at 3 stars, which say "met" when reached, plus free notes; saved as the `gusnote:<studentId>` row). Still open: Gus's Checkup (an optional baseline).
 - Describe Sorter conveyor animation; "Do it for me after 2 taps"; hiding item groups.
 
 **Read and Respond:**
