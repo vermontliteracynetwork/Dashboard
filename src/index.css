@@ -6288,3 +6288,6 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .castle-battlefield.village { background: #93a84e; }
 .castle-battlefield.village .castle-slot:not(.filled) .castle-plot, .castle-battlefield.village .castle-plot { background: url('/games/castle-defense/craftpix/village-tileset/2-objects/placefortower2.png') center / contain no-repeat; border: none; box-shadow: none; image-rendering: pixelated; height: 40%; bottom: 2%; border-radius: 0; }
 .cd-map-anim { position: absolute; transform: translate(-50%, -100%); pointer-events: none; image-rendering: pixelated; }
+.lab-photo { margin: 0; align-self: center; text-align: center; }
+.lab-photo img { max-width: 200px; max-height: 160px; border-radius: 12px; border: 2px solid var(--ink); object-fit: cover; }
+.lab-photo figcaption { font-size: 0.7rem; opacity: 0.7; }

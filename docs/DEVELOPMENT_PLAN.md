@@ -33,11 +33,11 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 **Up next (top first):**
 1. Grammar Gus smaller pieces (IN PROGRESS): Pixel TV "with", word packs and the teacher word tool, Garage extras, Orders editor, Gus's Checkup, and the "Why Did the...?" blueprint (needs why-questions, the Question Crane only makes yes or no questions). (Show and Tell and Silly Recipe blueprints and Noun Boiler Pairs SHIPPED 2026-10-09; Mixed-up Delivery and Punctuation Inspector were already live as the "Put the words in order" and "Fix the mistake" jobs.)
 2. Castle Defense: the Frost Orb weapon (its sheet does not line up with the tower picture). (Crystal Tower weapon, village map, flags and campfires SHIPPED 2026-10-09.)
-3. Science Lab next steps (her links): element cards with real photos, more recipes. (Atom Builder, the burner and element uses SHIPPED 2026-10-09.)
 
 **Not in the line (waiting on her):** Space Bowling's venue and bowling lane models and the Kenney Sports pack (they were never saved into the project, so they need to be uploaded again; her Bowling GUI pack still waits on her rights answer). Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Science Lab: real element photos on the cards and 4 more recipes (36 in all).
 - 2026-10-09: Castle Defense, the Crystal Tower's weapon animates too (5 towers now).
 - 2026-10-09: Castle Defense, a fourth map (🏘️ Market village) and animated flags and campfires on the field and village maps.
 - 2026-10-09: Science Lab: ⚛️ Atom Builder, the 🔥 burner (5 heat recipes) and "Used for" on 55 element cards.
@@ -715,7 +715,8 @@ What shipped (`/student/science-lab`, 🔬 Science Lab on the computer desktop; 
 - **⚛️ Atom Builder** (her PhET "Build an Atom" link): a 🧪 Bench / ⚛️ Atom Builder switch at the top. Big ＋ and － for protons (red), neutrons (grey) and electrons (blue, filling shells of 2, 8 and 8 that slowly turn). The card says which element it is and why (the number of protons), the charge (neutral atom or ion, and why), the mass number, and for hydrogen to calcium whether the nucleus is stable, using the real stable isotopes ("Carbon-12 is real and lasts"). Every element built is learned and lights up on the periodic table board.
 - **🔥 Burner:** a Heat button under every beaker (a flickering flame plays). 5 heat recipes: boiling water (steam), getting salt back from salt water (evaporation), caramel from sugar, blue crystals from blue copper water, and glowing iron sulfide. They are in the Journal with a 🔥 (32 recipes in all).
 - **Element uses:** "Used for:" on 55 element cards (Ne: glowing red signs, Am: smoke detectors, W: drill tips), and hydrogen to calcium say how to build them in the Atom Builder.
-Still open from her links: element cards with real photos (interactive periodic table sandbox), more recipes, and a question-fueled mode later if she wants it. Not checked on an iPad yet.
+- **Element photos and more recipes (SHIPPED 2026-10-09):** every element card now shows a real photo from that element's Wikipedia page (fetched when the card opens, remembered on the iPad, nothing shows when offline), and 4 more recipes: lemon turns cabbage juice pink, soap and water make bubbles (a physical change, no new chemical), magnesium fizzes in vinegar (hydrogen), and aluminum pushes copper out of blue copper water (36 recipes in all with the burner ones).
+Still open: a question-fueled mode later if she wants it. Not checked on an iPad yet.
 
 ---
 

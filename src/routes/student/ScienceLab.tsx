@@ -3,6 +3,7 @@ import WebpageFrame from '../../components/WebpageFrame';
 import { useStore } from '../../store/store';
 import { BEAKER_MAX, HEAT_RECIPES, RECIPES, STARTER, SUB, blend, heatUp, pour, type LabEffect, type Recipe, type Substance } from '../../games/scienceLab/lab';
 import AtomBuilder, { atomInfo } from '../../games/scienceLab/AtomBuilder';
+import ElementPhoto from '../../games/scienceLab/ElementPhoto';
 import { ELEMENT_USES, FAMILIES, PERIODIC, type PtElement } from '../../games/scienceLab/elements';
 const ALL_RECIPES = [...RECIPES, ...HEAT_RECIPES];
 
@@ -425,6 +426,7 @@ export default function ScienceLab() {
               {sub && on && <p>{sub.fact}</p>}
               {sub && on && <p className="lab-unlock">✅ {shelf.includes(sub.id) ? 'On your shelf. Tap its bottle to pour it.' : 'Learned in the lab.'}</p>}
               {sub && !on && <p className="lab-small">🔒 {unlockHint(element.sym) ?? 'Keep mixing to unlock it.'}</p>}
+              <ElementPhoto key={element.name} name={element.name} />
               {ELEMENT_USES[element.sym] && <p><strong>Used for:</strong> {ELEMENT_USES[element.sym]}</p>}
               {element.n <= 20 && <p className="lab-small">⚛️ Build it in the Atom Builder with {element.n} proton{element.n === 1 ? '' : 's'}.</p>}
               {!sub && <p className="lab-small">There is no bottle of it in the lab yet.</p>}

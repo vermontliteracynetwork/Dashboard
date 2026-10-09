@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-lab-photos',
+    date: '2026-10-09',
+    icon: '📸',
+    title: 'Science Lab: real element photos',
+    body: 'Tap any element on the periodic table to see a real photo of it and what people use it for. There are 4 new recipes to discover too!',
+  },
+  {
     id: '2026-10-09-cd-village',
     date: '2026-10-09',
     icon: '🏘️',
