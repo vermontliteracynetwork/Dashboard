@@ -6017,3 +6017,17 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .castle-ground-svg.field .castle-road-edge { stroke: #8a4b2c; stroke-width: 11.2; }
 .castle-decor.field { image-rendering: pixelated; }
 .castle-battlefield.field .castle-slot:not(.filled) .castle-plot, .castle-battlefield.field .castle-plot { background: url('/games/castle-defense/craftpix/tileset/2-objects/placefortower1.png') center / contain no-repeat; border: none; box-shadow: none; image-rendering: pixelated; height: 40%; bottom: 2%; border-radius: 0; }
+
+/* Grammar Gus: Fusion Reactor (Phase 2 sentence combining) */
+.gwb-reactor { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 52px 14px 14px; border-radius: 18px; border: 3px solid var(--gus-ink); background: radial-gradient(circle at 50% 120%, #b8f0ff 0%, #e9eef3 55%); margin: 8px 0; }
+.gwb-reactor.hot { animation: gwb-reactor-glow 1.2s ease-in-out infinite; }
+@keyframes gwb-reactor-glow { 0%, 100% { box-shadow: 0 0 0 rgba(80, 200, 255, 0); } 50% { box-shadow: 0 0 22px rgba(80, 200, 255, 0.85); } }
+.gwb-reactor .gwb-hear { position: absolute; top: 10px; right: 10px; }
+.gwb-fuse-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.gwb-fuse-word { min-height: 44px; min-width: 44px; padding: 6px 12px; border-radius: 10px; border: 2px solid var(--gus-ink); background: #fff; font: 700 1.1rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; transition: transform 0.25s ease, opacity 0.25s ease; }
+.gwb-fuse-word.glow { border-color: #e0a030; box-shadow: 0 0 0 3px #f3cf6b; animation: gwb-tab-pulse 1.2s ease-in-out infinite; }
+.gwb-fuse-word.crushed { transform: scaleY(0.25); opacity: 0.3; text-decoration: line-through; cursor: default; }
+.gwb-fuse-word.wrong { background: #fde8e4; animation: gwb-shake 0.35s ease-in-out 2; }
+.gwb-fuse-out .gwb-chute { min-height: 64px; }
+.gwb-fuse-out .gwb-chute strong { font-size: 1.05rem; }
+@media (prefers-reduced-motion: reduce) { .gwb-reactor.hot, .gwb-fuse-word.glow { animation: none; } .gwb-fuse-word { transition: none; } }

@@ -57,3 +57,31 @@ export const TRANS_ITEMS: TransItem[] = [
   { a: 'Gather your tools.', b: 'start building the frame.', kind: 'time' },
   { a: 'Insects have six legs.', b: 'an ant has six legs.', kind: 'example' },
 ];
+
+// Fusion Reactor (Claudia's Phase 2 writing machines, Build Queue 2026-10-09): 2 or 3 short
+// sentences go in, the repeated words get crushed, and one smooth sentence rolls out. [Brackets]
+// mark the repeated words to crush. kind: what the fusion teaches.
+export type FusionKind = 'describe' | 'who' | 'did' | 'what';
+export const FUSION_KINDS: Record<FusionKind, { icon: string; name: string; tip: string }> = {
+  describe: { icon: '🎨', name: 'Describing word moves in', tip: 'A describing word from "is" sentences moves right in front of its noun.' },
+  who: { icon: '👥', name: 'Two whos, one action', tip: 'Two whos doing the same action share it: and joins them, and the action word changes to match more than one.' },
+  did: { icon: '⚙️', name: 'One who, two actions', tip: 'One who doing two actions keeps the who once: and joins the actions.' },
+  what: { icon: '📦', name: 'One action, two things', tip: 'The same action on two things: and joins the things.' },
+};
+export interface FusionItem { kind: FusionKind; sentences: string[]; result: string; wrong: string[] }
+export const FUSION_ITEMS: FusionItem[] = [
+  { kind: 'describe', sentences: ['The dog barks.', '[The] [dog] [is] fluffy.'], result: 'The fluffy dog barks.', wrong: ['The dog fluffy barks.', 'The dog is fluffy barks.'] },
+  { kind: 'describe', sentences: ['The robot zooms.', '[The] [robot] [is] tiny.'], result: 'The tiny robot zooms.', wrong: ['The robot tiny zooms.', 'The robot zooms tiny is.'] },
+  { kind: 'describe', sentences: ['The cat sleeps on the mat.', '[The] [cat] [is] orange.'], result: 'The orange cat sleeps on the mat.', wrong: ['The cat sleeps on the orange mat.', 'The cat orange sleeps on the mat.'] },
+  { kind: 'describe', sentences: ['A dragon eats the pizza.', '[The] [pizza] [is] giant.'], result: 'A dragon eats the giant pizza.', wrong: ['A giant dragon eats the pizza.', 'A dragon eats the pizza giant.'] },
+  { kind: 'describe', sentences: ['The frog jumps.', '[The] [frog] [is] green.', '[The] [frog] [jumps] over the log.'], result: 'The green frog jumps over the log.', wrong: ['The frog jumps over the green log.', 'The green frog jumps. The frog jumps over the log.'] },
+  { kind: 'who', sentences: ['The cat naps.', 'The dog [naps].'], result: 'The cat and the dog nap.', wrong: ['The cat and the dog naps.', 'The cat naps the dog naps.'] },
+  { kind: 'who', sentences: ['Mia dances.', 'Leo [dances].'], result: 'Mia and Leo dance.', wrong: ['Mia and Leo dances.', 'Mia dances and Leo.'] },
+  { kind: 'who', sentences: ['The robot sings.', 'The goat [sings].', 'The chef [sings].'], result: 'The robot, the goat and the chef sing.', wrong: ['The robot the goat the chef sings.', 'The robot, the goat and the chef sings.'] },
+  { kind: 'did', sentences: ['Gus jumps.', '[Gus] spins.'], result: 'Gus jumps and spins.', wrong: ['Gus jumps and Gus.', 'Gus jumps spins.'] },
+  { kind: 'did', sentences: ['The puppy runs.', '[The] [puppy] barks.'], result: 'The puppy runs and barks.', wrong: ['The puppy runs and the barks.', 'The puppy and barks runs.'] },
+  { kind: 'did', sentences: ['The chef cooks.', '[The] [chef] tastes.', '[The] [chef] dances.'], result: 'The chef cooks, tastes and dances.', wrong: ['The chef cooks tastes dances.', 'The chef cooks and the chef tastes and dances.'] },
+  { kind: 'what', sentences: ['Mia eats pizza.', '[Mia] [eats] tacos.'], result: 'Mia eats pizza and tacos.', wrong: ['Mia eats pizza and Mia tacos.', 'Mia and tacos eats pizza.'] },
+  { kind: 'what', sentences: ['The goat chews a sock.', '[The] [goat] [chews] a shoe.'], result: 'The goat chews a sock and a shoe.', wrong: ['The goat chews a sock and chews.', 'The goat and a shoe chews a sock.'] },
+  { kind: 'what', sentences: ['Leo kicks the ball.', '[Leo] [kicks] the can.'], result: 'Leo kicks the ball and the can.', wrong: ['Leo kicks the ball and Leo the can.', 'Leo and the can kicks the ball.'] },
+];

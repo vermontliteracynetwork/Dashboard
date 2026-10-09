@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { HOMO_CLUES, HOMO_ITEMS, TRANS_ITEMS, TRANS_KINDS, type TransKind } from '../data/miniGames';
+import { FUSION_ITEMS, FUSION_KINDS, HOMO_CLUES, HOMO_ITEMS, TRANS_ITEMS, TRANS_KINDS, type TransKind } from '../data/miniGames';
+import type { HelpLevel } from '../engine/types';
 import { gusSound } from './sound';
 
 // Mini machines (Claudia's Phase 1 scaffold plan, teacher 2026-10-07 "Keep
@@ -116,6 +117,83 @@ export function TransitionTrack({ calm, onClose, onEarn, say, speak }: Props) {
               <strong>{TRANS_KINDS[kind].icon} {word(kind)}</strong><span className="gwb-chute-clue">{TRANS_KINDS[kind].name}</span>
             </button>)}
           </div>
+        </>}
+        <button type="button" className="gus-btn" onClick={finish}>✕ Close</button>
+      </div>
+    </div>
+  );
+}
+
+// Fusion Reactor (Claudia's Phase 2 writing machines, Build Queue 2026-10-09): short sentences go in,
+// repeated words get crushed, one smooth sentence rolls out. The fade ladder: Full, the repeats are
+// crushed for them; Guided, the repeats glow and they tap to crush; Challenge, no glow, they find
+// the repeats. Then they pick the sentence the reactor made. A gear for each first-try fusion.
+export function FusionReactor({ calm, onClose, onEarn, say, speak, level }: Props & { level: HelpLevel }) {
+  const items = useMemo(() => shuffle(FUSION_ITEMS).slice(0, ROUNDS), []);
+  const [k, setK] = useState(0);
+  const [missed, setMissed] = useState(false);
+  const [firsts, setFirsts] = useState(0);
+  const [crushed, setCrushed] = useState<string[]>([]);
+  const [pickd, setPickd] = useState<{ s: string; ok: boolean } | null>(null);
+  const [bad, setBad] = useState<string | null>(null);
+  const it = items[k];
+  const done = k >= items.length;
+  // Word tiles: [sentence][word], with the ones to crush marked.
+  const tiles = useMemo(() => (it ? it.sentences.map((s, si) => s.split(' ').map((w, wi) => ({ id: `${si}-${wi}`, text: w.replace(/[[\]]/g, ''), crush: /^\[.*\]/.test(w) }))) : []), [it]);
+  const need = tiles.flat().filter((t) => t.crush).map((t) => t.id);
+  const allCrushed = level === 'full' || need.every((id) => crushed.includes(id));
+  const options = useMemo(() => (it ? shuffle([it.result, ...it.wrong]) : []), [it]);
+  const tap = (t: { id: string; text: string; crush: boolean }) => {
+    if (level === 'full' || allCrushed || crushed.includes(t.id)) return;
+    if (t.crush) { setCrushed((c) => [...c, t.id]); gusSound.crunch(); return; }
+    gusSound.ahem(); setMissed(true); setBad(t.id); window.setTimeout(() => setBad(null), 600);
+    say(`"${t.text.replace(/[.!?]$/, '')}" is new information, so it stays. Crush only the words that repeat.`, 'Keep it');
+  };
+  const choose = (s: string) => {
+    if (pickd?.ok) return;
+    const ok = s === it.result;
+    setPickd({ s, ok });
+    if (ok) {
+      gusSound.tada();
+      say(`Fused! "${it.result}" ${FUSION_KINDS[it.kind].tip}`, 'Fusion!');
+      if (!missed) setFirsts((f) => f + 1);
+      window.setTimeout(() => { setK((x) => x + 1); setMissed(false); setPickd(null); setCrushed([]); }, calm ? 900 : 1800);
+    } else {
+      gusSound.bonk(); setMissed(true);
+      say('The reactor sputters. Read it out loud: does it sound smooth and say everything?', 'Sputter');
+      window.setTimeout(() => setPickd(null), 700);
+    }
+  };
+  const finish = () => { onEarn(firsts); onClose(); };
+  return (
+    <div className="gus-journal-backdrop" onClick={finish}>
+      <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Fusion Reactor">
+        <h2>⚛️ Fusion Reactor</h2>
+        {done ? <>
+          <p className="gwb-mini-big">Reactor cooled! {firsts} of {items.length} fusions on the first try.</p>
+          <p>Writers combine short sentences so the words do not repeat. One smooth sentence says it all.</p>
+          <button type="button" className="gus-btn gus-btn-primary" onClick={finish}>Done</button>
+        </> : <>
+          <p className="gwb-mini-progress">Fusion {k + 1} of {items.length} · {FUSION_KINDS[it.kind].icon} {FUSION_KINDS[it.kind].name}</p>
+          <div className={`gwb-reactor${allCrushed && !calm ? ' hot' : ''}`}>
+            {tiles.map((row, si) => (
+              <div key={si} className="gwb-fuse-row">
+                {row.map((t) => {
+                  const gone = t.crush && (level === 'full' || crushed.includes(t.id));
+                  return <button key={t.id} type="button" className={`gwb-fuse-word${gone ? ' crushed' : ''}${t.crush && level === 'guided' && !gone ? ' glow' : ''}${bad === t.id ? ' wrong' : ''}`} onClick={() => tap(t)} disabled={gone} aria-label={gone ? `${t.text}, crushed` : t.text}>{t.text}</button>;
+                })}
+              </div>
+            ))}
+            <button type="button" className="gwb-hear" onClick={() => speak(it.sentences.map((s) => s.replace(/[[\]]/g, '')).join(' '))} aria-label="Hear the sentences">🔈</button>
+          </div>
+          {!allCrushed
+            ? <p className="gwb-mini-progress">{level === 'guided' ? 'Tap the glowing words that repeat to crush them.' : 'Find the words that repeat and tap them to crush them.'} ({need.filter((id) => crushed.includes(id)).length} of {need.length})</p>
+            : <>
+              <p className="gwb-mini-progress">Which sentence rolled out of the reactor?</p>
+              <div className="gwb-chutes gwb-fuse-out">
+                {options.map((s) => <button key={s} type="button" className={`gwb-chute${pickd?.s === s ? (pickd.ok ? ' right' : ' wrong') : ''}`} onClick={() => choose(s)}><strong>{s}</strong></button>)}
+              </div>
+            </>}
         </>}
         <button type="button" className="gus-btn" onClick={finish}>✕ Close</button>
       </div>

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-fusion',
+    date: '2026-10-09',
+    icon: '⚛️',
+    title: 'Grammar Gus: the Fusion Reactor',
+    body: 'Feed short sentences into the reactor, crush the words that repeat, and one smooth sentence rolls out. Find it in Jobs, under Mini games.',
+  },
+  {
     id: '2026-10-09-cd-field',
     date: '2026-10-09',
     icon: '⛺',
