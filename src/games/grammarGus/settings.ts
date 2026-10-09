@@ -1,5 +1,6 @@
 import { useStore } from '../../store/store';
 import type { HelpLevel } from './engine/types';
+import type { SceneKey } from './engine/orders';
 
 // Grammar Gus teacher settings (plan 3.6, 3.9, 3.18.7, 6.3), saved as the
 // `gus-settings` style_looks row (no new SQL). Defaults are the plan's.
@@ -15,7 +16,9 @@ export interface GusSettings {
   finishParts: 'required' | 'auto';
   contraptions: 'collapsed' | 'open' | 'off';
   // Teacher word tool (Build Queue 2026-10-09): a student's special-interest words, with their forms and a picture.
-  teacherWords?: TeacherWord[]; // Workboard Fun parts (Rube Goldberg) in the parts menu // Workboard: students plug in the Capital Letter Press, punctuation and Pixel TV themselves
+  teacherWords?: TeacherWord[];
+  // Her own recipe cards (Build Queue 2026-10-09).
+  teacherOrders?: { id: string; text: string; key: SceneKey }[]; // Workboard Fun parts (Rube Goldberg) in the parts menu // Workboard: students plug in the Capital Letter Press, punctuation and Pixel TV themselves
 }
 export interface TeacherWord { pos: 'N' | 'V' | 'J' | 'D'; word: string; emoji?: string; plural?: string; past?: string }
 export const GUS_SETTINGS_OWNER = 'gus-settings';

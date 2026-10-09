@@ -14,7 +14,45 @@ import { gusSound } from './sound';
 
 const GUS = '/games/grammar-gus/grammar-gus.glb';
 
-function GusModel({ talkKey, calm }: { talkKey: string; calm: boolean }) {
+// Gus's hats from the Paint Shop (Garage extras, 2026-10-09), drawn from simple shapes so they hop,
+// nod and breathe with him. The model is fitted 2 units tall, so the top of his head is near y 2.
+function GusHatShape({ hat }: { hat: string }) {
+  if (hat === 'party') return (
+    <group position={[0, 2.02, 0]} rotation={[0, 0, 0.12]}>
+      <mesh position={[0, 0.22, 0]}><coneGeometry args={[0.17, 0.44, 24]} /><meshStandardMaterial color="#e0459b" /></mesh>
+      <mesh position={[0, 0.46, 0]}><sphereGeometry args={[0.06, 16, 12]} /><meshStandardMaterial color="#f3cf6b" /></mesh>
+    </group>
+  );
+  if (hat === 'hardhat') return (
+    <group position={[0, 1.94, 0]}>
+      <mesh position={[0, 0.06, 0]}><sphereGeometry args={[0.26, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#f3c623" /></mesh>
+      <mesh position={[0, 0.06, 0]}><cylinderGeometry args={[0.33, 0.33, 0.03, 28]} /><meshStandardMaterial color="#e0b21a" /></mesh>
+    </group>
+  );
+  if (hat === 'chef') return (
+    <group position={[0, 1.98, 0]}>
+      <mesh position={[0, 0.1, 0]}><cylinderGeometry args={[0.2, 0.2, 0.2, 24]} /><meshStandardMaterial color="#ffffff" /></mesh>
+      <mesh position={[0, 0.27, 0]}><sphereGeometry args={[0.26, 20, 14]} /><meshStandardMaterial color="#ffffff" /></mesh>
+    </group>
+  );
+  if (hat === 'crown') return (
+    <group position={[0, 2.0, 0]}>
+      <mesh position={[0, 0.07, 0]}><cylinderGeometry args={[0.2, 0.2, 0.14, 24, 1, true]} /><meshStandardMaterial color="#f3cf6b" metalness={0.6} roughness={0.3} side={THREE.DoubleSide} /></mesh>
+      {[0, 1, 2, 3, 4].map((i) => <mesh key={i} position={[Math.sin((i / 5) * Math.PI * 2) * 0.2, 0.19, Math.cos((i / 5) * Math.PI * 2) * 0.2]}><coneGeometry args={[0.045, 0.1, 8]} /><meshStandardMaterial color="#f3cf6b" metalness={0.6} roughness={0.3} /></mesh>)}
+      <mesh position={[0, 0.08, 0.2]}><sphereGeometry args={[0.035, 12, 10]} /><meshStandardMaterial color="#e8483b" /></mesh>
+    </group>
+  );
+  if (hat === 'wizard') return (
+    <group position={[0, 1.98, 0]} rotation={[0, 0, -0.18]}>
+      <mesh position={[0, 0.02, 0]}><cylinderGeometry args={[0.34, 0.34, 0.03, 28]} /><meshStandardMaterial color="#4b3a9e" /></mesh>
+      <mesh position={[0, 0.3, 0]}><coneGeometry args={[0.2, 0.58, 24]} /><meshStandardMaterial color="#5b48c2" /></mesh>
+      <mesh position={[0.05, 0.28, 0.17]}><sphereGeometry args={[0.035, 10, 8]} /><meshStandardMaterial color="#f3cf6b" emissive="#f3cf6b" emissiveIntensity={0.4} /></mesh>
+    </group>
+  );
+  return null;
+}
+
+function GusModel({ talkKey, calm, hat = 'none' }: { talkKey: string; calm: boolean; hat?: string }) {
   const { scene } = useGLTF(GUS);
   const group = useRef<THREE.Group>(null);
   const started = useRef(0);
@@ -52,11 +90,12 @@ function GusModel({ talkKey, calm }: { talkKey: string; calm: boolean }) {
   return (
     <group ref={group}>
       <group position={[fit.x, fit.y, fit.z]} scale={fit.s}><primitive object={scene} /></group>
+      <GusHatShape hat={hat} />
     </group>
   );
 }
 
-export default function GusGuide({ message, talkKey, children, mood, stars, calm = false, docked = false }: {
+export default function GusGuide({ message, talkKey, children, mood, stars, calm = false, docked = false, hat }: {
   message: string;
   talkKey: string; // changes whenever Gus says something new
   children?: React.ReactNode; // buttons for this moment
@@ -64,6 +103,7 @@ export default function GusGuide({ message, talkKey, children, mood, stars, calm
   stars?: number; // 1 to 3: Gus's star review, shown as gold stars
   calm?: boolean;
   docked?: boolean; // in the Workboard's right column, above the checklist (teacher 2026-10-07)
+  hat?: string; // a Paint Shop hat (Garage extras)
 }) {
   useEffect(() => { gusSound.ahem(); }, [talkKey]);
   // Docked into the page layout (not floating over it) so on an iPad it
@@ -74,7 +114,7 @@ export default function GusGuide({ message, talkKey, children, mood, stars, calm
         <Canvas camera={{ position: [0, 1.15, 4.6], fov: 32 }} dpr={[1, 2]} onCreated={({ camera }) => camera.lookAt(0, 1, 0)}>
           <ambientLight intensity={1} />
           <directionalLight position={[2, 3, 3]} intensity={1.4} />
-          <Suspense fallback={null}><GusModel talkKey={talkKey} calm={calm} /></Suspense>
+          <Suspense fallback={null}><GusModel talkKey={talkKey} calm={calm} hat={hat} /></Suspense>
         </Canvas>
       </div>
       <div className="gus-guide-bar" role="status" aria-live="polite">

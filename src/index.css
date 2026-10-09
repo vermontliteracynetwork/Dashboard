@@ -6291,3 +6291,12 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .lab-photo { margin: 0; align-self: center; text-align: center; }
 .lab-photo img { max-width: 200px; max-height: 160px; border-radius: 12px; border: 2px solid var(--ink); object-fit: cover; }
 .lab-photo figcaption { font-size: 0.7rem; opacity: 0.7; }
+/* Grammar Gus Garage extras (2026-10-09): lever knobs, emoji celebrations, Paint Shop tiles */
+.gwb-lever-arm::before { background: var(--gwb-knob, #e8483b); }
+.gwb-lever-emoji { position: absolute; left: 50%; top: -17px; width: 26px; margin-left: -13px; text-align: center; font-size: 20px; line-height: 26px; pointer-events: none; }
+.gwb-paint-knob { display: grid; place-items: center; width: 44px; height: 44px; margin: 6px 0; border-radius: 50%; border: 3px solid var(--gus-ink); font-size: 28px; }
+.gwb-paint-big { display: grid; place-items: center; height: 56px; font-size: 40px; line-height: 1; }
+.gwb-confetti.emoji b { position: absolute; top: 0; font-size: 22px; line-height: 1; animation: gwb-fall 1.6s ease-in forwards; }
+.gwb-confetti.rise b { animation-name: gwb-rise; }
+@keyframes gwb-rise { 0% { transform: translateY(10px) scale(0.6); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(-200px) scale(1.15); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .gwb-confetti { display: none; } }

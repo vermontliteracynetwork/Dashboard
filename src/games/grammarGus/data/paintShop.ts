@@ -25,3 +25,45 @@ export const PIPE_PAINTS: PipePaint[] = [
 ];
 export const floorById = (id?: string) => FLOORS.find((f) => f.id === id) ?? FLOORS[0];
 export const pipeById = (id?: string) => PIPE_PAINTS.find((p) => p.id === id) ?? PIPE_PAINTS[0];
+
+// Garage extras (plan 19, Build Queue 2026-10-09): lever knobs, celebration styles, sound sets and
+// Gus's hats, in the Paint Shop on the same sticker ladder. Like the floors and pipes, none of them
+// change what the machines accept, and calm mode still turns the celebration off.
+export interface LeverStyle { id: string; name: string; stickers: number; knob: string; emoji?: string }
+export interface Celebration { id: string; name: string; icon: string; stickers: number; pieces: string[]; rise?: boolean; sound: 'tada' | 'whee' | 'popper' | 'splosh' | 'ding' }
+export interface SoundSet { id: string; name: string; icon: string; stickers: number; note: string }
+export interface GusHat { id: string; name: string; icon: string; stickers: number }
+
+export const LEVERS: LeverStyle[] = [
+  { id: 'classic', name: 'Red ball', stickers: 0, knob: '#e8483b' },
+  { id: 'gold', name: 'Gold knob', stickers: 2, knob: '#f3cf6b' },
+  { id: 'star', name: 'Star knob', stickers: 4, knob: 'transparent', emoji: '⭐' },
+  { id: 'gear', name: 'Gear knob', stickers: 8, knob: 'transparent', emoji: '⚙️' },
+  { id: 'rocket', name: 'Rocket knob', stickers: 14, knob: 'transparent', emoji: '🚀' },
+  { id: 'donut', name: 'Donut knob', stickers: 20, knob: 'transparent', emoji: '🍩' },
+];
+export const CELEBRATIONS: Celebration[] = [
+  { id: 'confetti', name: 'Confetti', icon: '🎊', stickers: 0, pieces: [], sound: 'tada' },
+  { id: 'stars', name: 'Star shower', icon: '⭐', stickers: 3, pieces: ['⭐', '🌟', '✨'], sound: 'ding' },
+  { id: 'bubbles', name: 'Bubbles', icon: '🫧', stickers: 7, pieces: ['🫧', '🫧', '💧'], rise: true, sound: 'splosh' },
+  { id: 'balloons', name: 'Balloons', icon: '🎈', stickers: 12, pieces: ['🎈', '🎈', '🎉'], rise: true, sound: 'whee' },
+  { id: 'fireworks', name: 'Fireworks', icon: '🎆', stickers: 18, pieces: ['🎆', '🎇', '💥'], rise: true, sound: 'popper' },
+];
+export const SOUND_SETS: SoundSet[] = [
+  { id: 'classic', name: 'Steam works', icon: '🔧', stickers: 0, note: 'Gus’s usual clanks and puffs' },
+  { id: 'robot', name: 'Robot', icon: '🤖', stickers: 4, note: 'Beepy and buzzy' },
+  { id: 'cartoon', name: 'Cartoon', icon: '🎈', stickers: 9, note: 'High and bouncy' },
+  { id: 'giant', name: 'Giant factory', icon: '🏗️', stickers: 15, note: 'Low and rumbly' },
+];
+export const HATS: GusHat[] = [
+  { id: 'none', name: 'No hat', icon: '🙂', stickers: 0 },
+  { id: 'party', name: 'Party hat', icon: '🥳', stickers: 1 },
+  { id: 'hardhat', name: 'Hard hat', icon: '👷', stickers: 5 },
+  { id: 'chef', name: 'Chef hat', icon: '👨‍🍳', stickers: 10 },
+  { id: 'crown', name: 'Crown', icon: '👑', stickers: 16 },
+  { id: 'wizard', name: 'Wizard hat', icon: '🧙', stickers: 25 },
+];
+export const leverById = (id?: string) => LEVERS.find((l) => l.id === id) ?? LEVERS[0];
+export const celebrationById = (id?: string) => CELEBRATIONS.find((c) => c.id === id) ?? CELEBRATIONS[0];
+export const soundSetById = (id?: string) => SOUND_SETS.find((s) => s.id === id) ?? SOUND_SETS[0];
+export const hatById = (id?: string) => HATS.find((h) => h.id === id) ?? HATS[0];

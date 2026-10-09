@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compareOrder, makeOrder, orderCard, sceneKey } from '../engine/orders';
+import { compareOrder, makeOrder, orderCard, orderFromPick, sceneKey } from '../engine/orders';
 import { runSentence } from '../engine/pipeline';
 import { makeRng } from '../engine/rng';
 import { d } from './helpers';
@@ -30,5 +30,16 @@ describe("Gus's Orders", { timeout: 60000 }, () => {
     expect(compareOrder(order, run('A J N V P A N', 'A big dog jumped under the van.'))[0]).toContain('over the van');
     expect(compareOrder(order, run('A J N V P A N', 'A big dog jumps over the van.'))[0]).toContain('Past');
     expect(compareOrder(order, run('A J N V P A N', 'A big cat jumped over the van.'))[0]).toContain('big dog');
+  });
+  it("the teacher's recipe card picks build a real order, and bad picks explain why", () => {
+    const go = (tokens: { pos: any; word: string }[], tense: any) => runSentence({ tokens, tense, level: 'full' });
+    const ok = orderFromPick({ whoAdj: 'big', who: 'dog', verb: 'jump', prep: 'over', ground: 'van', tense: 'past' }, go);
+    expect('key' in ok).toBe(true);
+    if ('key' in ok) {
+      expect(ok.text.toLowerCase()).toContain('dog');
+      expect(compareOrder(ok.key, run('A J N V P A N', 'A big dog jumped over the van.'))).toEqual([]);
+    }
+    const bad = orderFromPick({ who: 'dog', verb: 'kick', tense: 'past' }, go);
+    expect('error' in bad).toBe(true);
   });
 });

@@ -4,7 +4,9 @@ import { useStore } from '../../../store/store';
 import { GUS_SETTINGS_OWNER, useGusSettings, type GusSettings, type TeacherWord } from '../settings';
 import { cleanWord, isBlocked } from '../engine/dictionary';
 import type { HelpLevel } from '../engine/types';
-import { WORD_PACKS } from '../data/wordbank';
+import { ADJECTIVES, ADVERBS, NOUNS, PREPOSITIONS, VERBS, WORD_PACKS } from '../data/wordbank';
+import { orderCard, orderFromPick, type OrderPick } from '../engine/orders';
+import { runSentence } from '../engine/pipeline';
 
 // Teacher settings for Grammar Gus's Contraption (Game tab). Plain teacher
 // styling. Every change saves right away and reaches students live.
@@ -30,6 +32,19 @@ export default function GusSettingsPanel() {
     const clean: TeacherWord = { pos: tw.pos, word: w, ...(tw.emoji?.trim() ? { emoji: tw.emoji.trim() } : {}), ...(tw.pos === 'N' && tw.plural?.trim() ? { plural: cleanWord(tw.plural) } : {}), ...(tw.pos === 'V' && tw.past?.trim() ? { past: cleanWord(tw.past) } : {}) };
     save({ teacherWords: [...words, clean] });
     setTw({ pos: tw.pos, word: '' });
+  };
+  // Her own recipe cards (Orders): pick the parts, Gus checks the scene can be made.
+  const [op, setOp] = useState<OrderPick>({ who: '', verb: '', tense: 'present' });
+  const [opErr, setOpErr] = useState<string | null>(null);
+  const orders = settings.teacherOrders ?? [];
+  const addOrder = () => {
+    const clean = (x?: string) => (x?.trim() ? x.trim().toLowerCase() : undefined);
+    const pickNow: OrderPick = { who: clean(op.who) ?? '', whoAdj: clean(op.whoAdj), verb: clean(op.verb) ?? '', obj: clean(op.obj), prep: clean(op.prep), ground: clean(op.ground), how: clean(op.how), tense: op.tense };
+    if (!pickNow.who || !pickNow.verb) { setOpErr('Pick a who and an action.'); return; }
+    const res = orderFromPick(pickNow, (tokens, tense) => runSentence({ tokens, tense, level: 'full' }));
+    if ('error' in res) { setOpErr(res.error); return; }
+    save({ teacherOrders: [...orders, { id: Math.random().toString(36).slice(2, 9), text: res.text, key: res.key }] });
+    setOpErr(null); setOp({ who: '', verb: '', tense: op.tense });
   };
   const pill = (on: boolean, label: string, onClick: () => void) => (
     <button key={label} type="button" className={`btn btn-sm${on ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={onClick} aria-pressed={on}>{label}</button>
@@ -132,6 +147,32 @@ export default function GusSettingsPanel() {
               <button type="button" className="btn btn-sm" style={{ minHeight: 32, padding: '0 8px' }} onClick={() => save({ teacherWords: words.filter((_, k) => k !== i) })} aria-label={`Remove ${x.word}`}>✕</button>
             </span>
           ))}</div>}
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          <strong>My recipe cards (Orders)</strong>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Make your own order: students see the pictures and words on a card, never the sentence, and build any sentence that makes the same scene. They find them in Jobs, "Build from a recipe card".</span>
+          <datalist id="gus-nouns">{NOUNS.filter((x) => !x.proper && !x.plural).map((x) => <option key={x.word} value={x.word} />)}</datalist>
+          <datalist id="gus-verbs">{VERBS.map((x) => <option key={x.base} value={x.base} />)}</datalist>
+          <datalist id="gus-adjs">{ADJECTIVES.map((x) => <option key={x.word} value={x.word} />)}</datalist>
+          <datalist id="gus-advs">{ADVERBS.map((x) => <option key={x.word} value={x.word} />)}</datalist>
+          <datalist id="gus-preps">{PREPOSITIONS.map((x) => <option key={x} value={x} />)}</datalist>
+          <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
+            {([['whoAdj', 'describing (optional)', 'gus-adjs'], ['who', 'who (noun)', 'gus-nouns'], ['verb', 'did (action)', 'gus-verbs'], ['obj', 'what (optional)', 'gus-nouns'], ['how', 'how (optional)', 'gus-advs'], ['prep', 'where word (optional)', 'gus-preps'], ['ground', 'where: the... (optional)', 'gus-nouns']] as const).map(([k, ph, list]) => (
+              <input key={k} list={list} value={op[k] ?? ''} onChange={(e) => setOp({ ...op, [k]: e.target.value })} placeholder={ph} style={{ minHeight: 44, width: 150 }} aria-label={ph} />
+            ))}
+            <select value={op.tense} onChange={(e) => setOp({ ...op, tense: e.target.value as OrderPick['tense'] })} style={{ minHeight: 44 }} aria-label="When">
+              <option value="past">Past</option><option value="present">Present</option><option value="future">Future</option>
+            </select>
+            <button type="button" className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={addOrder}>➕ Add card</button>
+          </div>
+          {opErr && <span style={{ color: '#c0392b', fontWeight: 700 }}>{opErr}</span>}
+          {orders.length > 0 && <div className="stack" style={{ gap: 4 }}>{orders.map((o, i) => { const c = orderCard(o.key); return (
+            <div key={o.id} className="row-wrap" style={{ gap: 8, alignItems: 'center', fontSize: '0.9rem' }}>
+              <span>📜 <b>Who</b> {c.who.emoji} {c.who.words} <b>Did</b> {c.did}{c.obj ? <> <b>What</b> {c.obj.emoji} {c.obj.words}</> : null}{c.where ? <> <b>Where</b> {c.where.prep} {c.where.emoji} {c.where.words}</> : null}{c.how ? <> <b>How</b> {c.how}</> : null} <b>When</b> {c.time}</span>
+              <span style={{ opacity: 0.6 }}>(example: {o.text})</span>
+              <button type="button" className="btn btn-sm" style={{ minHeight: 36 }} onClick={() => save({ teacherOrders: orders.filter((_, k) => k !== i) })} aria-label="Remove this card">✕</button>
+            </div>
+          ); })}</div>}
         </div>
         <div className="stack" style={{ gap: 6 }}>
           <strong>Machine rumble</strong>

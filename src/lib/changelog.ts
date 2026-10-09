@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-garage',
+    date: '2026-10-09',
+    icon: '🎩',
+    title: "Grammar Gus: hats, lever knobs and party styles",
+    body: "Gus's Paint Shop has more to unlock with your job stickers: a hat for Gus (party hat, hard hat, chef hat, crown, wizard hat), new Start Lever knobs, star, bubble, balloon or firework celebrations for 3 stars, and new machine sounds (Robot, Cartoon, Giant factory). Open Menu, then Gus's Paint Shop.",
+  },
+  {
+    id: '2026-10-09-gus-teacher-orders',
+    date: '2026-10-09',
+    icon: '📋',
+    title: 'Grammar Gus: Orders from your teacher',
+    body: 'Your teacher can write her own order cards now. Tap Jobs, then Order: her cards come first, then Gus sends his own.',
+  },
+  {
     id: '2026-10-09-gus-checkup',
     date: '2026-10-09',
     icon: '🩺',

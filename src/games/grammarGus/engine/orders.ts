@@ -89,3 +89,22 @@ export function orderCard(k: SceneKey): OrderCard {
 }
 
 export const STICKERS = ['🏅', '⚙️', '🎩', '🧪', '🔩', '🚂', '🎺', '🧀', '🌟', '🪄', '🦉', '🐢'];
+
+// The teacher's own recipe cards (Build Queue 2026-10-09: "Orders: a teacher editor for her own
+// orders"). She picks the who, the action, and any what, where, how and time; the machine checks the
+// scene can really be made and turns it into a card. Returns the reason when it cannot.
+export interface OrderPick { who: string; whoAdj?: string; verb: string; obj?: string; prep?: string; ground?: string; how?: string; tense: Tense }
+export function orderFromPick(p: OrderPick, run: (tokens: { pos: Pos; word: string }[], tense: Tense) => Run): { key: SceneKey; text: string } | { error: string } {
+  const t: { pos: Pos; word: string }[] = [{ pos: 'A', word: 'the' }];
+  if (p.whoAdj) t.push({ pos: 'J', word: p.whoAdj });
+  t.push({ pos: 'N', word: p.who }, { pos: 'V', word: p.verb });
+  if (p.obj) t.push({ pos: 'A', word: 'the' }, { pos: 'N', word: p.obj });
+  if (p.how) t.push({ pos: 'D', word: p.how });
+  if (p.prep && p.ground) t.push({ pos: 'P', word: p.prep }, { pos: 'A', word: 'the' }, { pos: 'N', word: p.ground });
+  const r = run(t, p.tense);
+  if (!r.frame) {
+    const v = r.validation.violations.find((x) => x.blocking)?.code;
+    return { error: v === 'NO_OBJECT' ? 'That action needs a WHAT (kick the ball).' : v === 'EXTRA_OBJECT' ? 'That action cannot have a WHAT. Take it off.' : 'Gus cannot make that scene. Try different words.' };
+  }
+  return { key: sceneKey(r.frame), text: r.composed.text };
+}

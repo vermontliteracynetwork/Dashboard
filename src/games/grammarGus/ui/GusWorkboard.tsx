@@ -19,7 +19,7 @@ import { reviewStory, storyCast, storyScript, type SealedSentence } from '../eng
 import { POOLS, packWords } from '../engine/machine';
 import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, registerTeacherWord, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
-import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, makeRunOnJob, makeAppositiveJob, runOnSplit, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
+import { FLAW_HINTS, makeJob, makeOrderJob, makeTeacherOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, makeRunOnJob, makeAppositiveJob, runOnSplit, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
 import { compareOrder } from '../engine/orders';
 import { frameworkById } from '../data/frameworks';
 import { flipIdeas } from '../engine/boardRemix';
@@ -27,7 +27,7 @@ import { FusionReactor, HomophoneSorter, NounBoilerPairs, RevisionWorkshop, Tran
 import CerLab from './CerLab';
 import LabelMaker from './LabelMaker';
 import Checkup, { type CheckupResult } from './Checkup';
-import { FLOORS, PIPE_PAINTS, floorById, pipeById } from '../data/paintShop';
+import { CELEBRATIONS, FLOORS, HATS, LEVERS, PIPE_PAINTS, SOUND_SETS, celebrationById, floorById, hatById, leverById, pipeById, soundSetById } from '../data/paintShop';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
@@ -38,7 +38,7 @@ import { explainFinish, explainViolation } from '../data/explain';
 import { useGusSettings, levelFor } from '../settings';
 import GusGuide from './GusGuide';
 import PixelCinema from './PixelCinema';
-import { gusSound, setGusLevel, setGusMuted } from './sound';
+import { gusSound, setGusLevel, setGusMuted, setGusSoundSet } from './sound';
 import ImmersiveReader from '../reading/ImmersiveReader';
 import { bankFor, registerArticleWords, starterItems, useLibrary, type GusArticle } from '../reading/library';
 import { ALL_EXAMPLES, EXAMPLE_GROUPS, exampleItems } from '../data/examples';
@@ -81,7 +81,8 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const gusOwner = (id: string) => `gus:${id}`;
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: { floor?: string; pipe?: string } }
+interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: Paint }
+type Paint = { floor?: string; pipe?: string; lever?: string; party?: string; sounds?: string; hat?: string }
 // The machine rows of Gus's Checklist: the Workboard's own jobs.
 const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
   { id: 'words', label: 'Every machine has its word', hint: 'Tap a machine with a ? and pick its word.', codes: ['EMPTY_PART', 'NO_WORDS'] },
@@ -355,6 +356,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const bounce = (id: string) => { setSnapped(id); timers.current.push(window.setTimeout(() => setSnapped((x) => (x === id ? null : x)), 480)); };
   const [jobsOpen, setJobsOpen] = useState(false);
   const [paintOpen, setPaintOpen] = useState(false);
+  const orderTurn = useRef(0);
   const [jobsMore, setJobsMore] = useState(false);
   // Spare Parts Bin (teacher's reference chart: "Put extra words here").
   const [spare, setSpare] = useState<BoardItem[]>([]);
@@ -407,6 +409,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
   useEffect(() => { setGusMuted(muted); speechOff = muted; }, [muted]);
+  useEffect(() => { setGusSoundSet(saved.paint?.sounds); return () => setGusSoundSet(); }, [saved.paint?.sounds]);
 
   // Autosave: the board comes back next time (per student, on this iPad).
   // A saved teacher board opened from Academics (teacher 2026-10-08): ?board=<id>, and &live=1 to share it live.
@@ -983,7 +986,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         rewardPending.current = !paidSigs.current.has(sigOf(line));
         paidSigs.current.add(sigOf(line));
         setPlaying({ lineId: line.id, script: r.script, key: Date.now() });
-        if (stars === 3) { gusSound.tada(); if (!calm) { setParty(line.id); timers.current.push(window.setTimeout(() => setParty((p) => (p === line.id ? null : p)), 1800)); } }
+        if (stars === 3) { gusSound[celebrationById(saved.paint?.party).sound](); if (!calm) { setParty(line.id); timers.current.push(window.setTimeout(() => setParty((p) => (p === line.id ? null : p)), 1800)); } }
         // Chain-reaction combos: a bonus the first time each one is found.
         const combos = stars === 3 ? combosOn(line.items, rd.draft.marks?.endMark ?? null, rd.draft.tokens) : [];
         if (combos.length) {
@@ -1123,7 +1126,10 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     if (kind === 'blueprint' && blueprint) {
       for (const b of (SCIENCE_JOBS[blueprint] ? makeScienceJob(blueprint as 'procedure' | 'hypothesis' | 'recipe', uid) : makeBlueprint(blueprint, uid))) { add.push({ id: uid(), x: 60, y, items: b.items, job: b.job, ...(b.connector ? { connector: b.connector } : {}) }); y = snap(y + ITEM_H + ATT_H + 150); }
     } else {
-      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : kind === 'spark' ? (blueprint === 'appos' ? makeAppositiveJob(rng, uid, { gentleOnly: settings.gentleOnly }) : blueprint === 'runon' ? makeRunOnJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly })) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
+      // Her own recipe cards come up first, in turn, before Gus's random ones.
+      const mine = settings.teacherOrders ?? [];
+      const nextMine = mine.length ? mine[orderTurn.current++ % mine.length] : null;
+      const { items, job } = kind === 'order' ? (nextMine ? makeTeacherOrderJob(nextMine.key, nextMine.text, uid) : makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly })) : kind === 'spark' ? (blueprint === 'appos' ? makeAppositiveJob(rng, uid, { gentleOnly: settings.gentleOnly }) : blueprint === 'runon' ? makeRunOnJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly })) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
       add.push({ id: uid(), x: 60, y, items, job });
     }
     if (!add.length) return;
@@ -1496,7 +1502,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   // Gus and his speech bubble live in the right column, above the checklist
   // (teacher 2026-10-07), so nothing floats over the machines.
   const gusPanel = (
-      <GusGuide docked message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
+      <GusGuide docked hat={hatById(saved.paint?.hat).id} message={gus.message} talkKey={gus.key} mood={gus.mood} stars={/^[123] star/.test(gus.mood) ? Number(gus.mood[0]) : undefined} calm={calm}>
         {hintOffer && lines.some((l) => l.id === hintOffer) ? <>
           <button type="button" className="gus-btn gus-btn-primary gwb-hint-btn" onClick={() => showHint(hintOffer)}>💡 Yes, a hint</button>
           <button type="button" className="gus-btn" onClick={() => { setHintOffer(null); say('Okay, inventor! Keep tinkering. Pull the Start Lever when you are ready.', 'You got this'); }}>🔧 I'll keep trying</button>
@@ -1610,7 +1616,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 <div className="gwb-sheet-sec">
                   <span className="gwb-sheet-label">My things</span>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 My Journal<small>Sentences and stories you saved</small></button>
-                  <button type="button" className="gwb-sheet-item" onClick={() => { setPaintOpen(true); setTopMenu(false); }}>🎨 Gus's Paint Shop<small>New floors and pipe paint, unlocked with stickers</small></button>
+                  <button type="button" className="gwb-sheet-item" onClick={() => { setPaintOpen(true); setTopMenu(false); }}>🎨 Gus's Paint Shop<small>Floors, pipes, lever knobs, celebrations, sounds and hats, unlocked with stickers</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/library')}>📚 Library<small>Articles to read and answer</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine<small>Gus's first sentence machine</small></button>
                   {live?.role !== 'guest' && <button type="button" className="gwb-sheet-item" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear the board<small>Start over with a blank word space</small></button>}
@@ -1697,7 +1703,10 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
               return (
                 <div key={line.id} className={`gwb-line${selLine === line.id ? ' selected' : ''}${isFiring ? ' running' : ''}${snapped === line.id ? ' snapped' : ''}${drag?.kind === 'line' && drag.target === line.id ? ' join-target' : ''}`}>
                   {comboShow?.lineId === line.id && <span key={comboShow.key} className="gwb-combo" style={{ left: line.x + GRIP_W, top: line.y - 8 - (hasTop(line) ? ATT_H : 0) - (line.job ? 52 : 0) }} role="status">💥 COMBO! {comboShow.names.join(' + ')}</span>}
-                  {party === line.id && <span className="gwb-confetti" style={{ left: line.x + GRIP_W, top: line.y - 10, width: lineRight(line, g) - line.x - GRIP_W }} aria-hidden>{Array.from({ length: 14 }, (_, k) => <i key={k} style={{ left: `${(k * 7.3) % 100}%`, animationDelay: `${(k % 5) * 0.09}s` }} />)}</span>}
+                  {party === line.id && (() => {
+                    const cel = celebrationById(saved.paint?.party);
+                    return <span className={`gwb-confetti${cel.pieces.length ? ' emoji' : ''}${cel.rise ? ' rise' : ''}`} style={{ left: line.x + GRIP_W, top: cel.rise ? line.y + ITEM_H : line.y - 10, width: lineRight(line, g) - line.x - GRIP_W }} aria-hidden>{Array.from({ length: 14 }, (_, k) => cel.pieces.length ? <b key={k} style={{ left: `${(k * 7.3) % 100}%`, animationDelay: `${(k % 5) * 0.09}s` }}>{cel.pieces[k % cel.pieces.length]}</b> : <i key={k} style={{ left: `${(k * 7.3) % 100}%`, animationDelay: `${(k % 5) * 0.09}s` }} />)}</span>;
+                  })()}
                   {line.job && (
                     <div className={`gwb-job${line.job.done ? ' done' : ''}`} style={{ left: line.x + GRIP_W, top: line.y - 8 - (hasTop(line) ? ATT_H : 0) }}>
                       {line.job.done ? `✅ ${line.job.kind === 'blueprint' ? `${line.job.label} built!` : 'Job done!'}`
@@ -1738,8 +1747,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                         <MachinePart kind={item.kind} word={plateWord(item)} empty={!item.word && needsWord(item.kind)} status={statusOf(item)} />
                         {isFiring && firing!.idx >= idx && !calm && <span className="gwb-pipe-steam" aria-hidden><i /><i /><i /></span>}
                         {item.kind === 'lever' && <>
-                          <button type="button" className={`gwb-lever${isFiring ? ' pulled' : ''}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => pullLever(line)} aria-label="Pull the Start Lever to run this machine">
-                            <span className="gwb-lever-arm" />
+                          <button type="button" className={`gwb-lever${isFiring ? ' pulled' : ''}`} style={{ ['--gwb-knob' as string]: leverById(saved.paint?.lever).knob }} onPointerDown={(e) => e.stopPropagation()} onClick={() => pullLever(line)} aria-label="Pull the Start Lever to run this machine">
+                            <span className="gwb-lever-arm">{leverById(saved.paint?.lever).emoji && <span className="gwb-lever-emoji" aria-hidden>{leverById(saved.paint?.lever).emoji}</span>}</span>
                           </button>
                           <span className="gwb-gauge" role="img" aria-label={`Pressure ${Math.round(pressure * 100)} percent`}><span style={{ transform: `rotate(${-70 + 140 * pressure}deg)` }} /></span>
                           {line.stars === 3 && <span className="gwb-stars" aria-label="3 stars">⭐⭐⭐</span>}
@@ -2100,7 +2109,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great sorting.`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
       {paintOpen && (() => {
         const have = (saved.stickers ?? []).length;
-        const pick = (patch: { floor?: string; pipe?: string }) => { if (!studentId) return; mergeStyleRow(gusOwner(studentId), { paint: { ...(saved.paint ?? {}), ...patch } }); gusSound.splosh(); };
+        const pick = (patch: Paint) => { if (!studentId) return; mergeStyleRow(gusOwner(studentId), { paint: { ...(saved.paint ?? {}), ...patch } }); gusSound.splosh(); };
         return (
           <div className="gus-journal-backdrop" onClick={() => setPaintOpen(false)}>
             <div className="gus-journal gwb-mini gwb-paint" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Paint Shop">
@@ -2118,6 +2127,34 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 const open = have >= p.stickers, on = pipeById(saved.paint?.pipe).id === p.id;
                 return <button key={p.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => pick({ pipe: p.id })} aria-pressed={on}>
                   <span className="gwb-paint-swatch pipe" style={{ background: `linear-gradient(${p.light} 0 30%, ${p.color} 30%)` }} aria-hidden /><strong>{p.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${p.stickers} stickers`}</small>
+                </button>;
+              })}</div>
+              <h3>Start Lever knob</h3>
+              <div className="gwb-paint-grid">{LEVERS.map((l) => {
+                const open = have >= l.stickers, on = leverById(saved.paint?.lever).id === l.id;
+                return <button key={l.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => { pick({ lever: l.id }); gusSound.clank(); }} aria-pressed={on}>
+                  <span className="gwb-paint-knob" style={{ background: l.knob }} aria-hidden>{l.emoji}</span><strong>{l.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${l.stickers} stickers`}</small>
+                </button>;
+              })}</div>
+              <h3>3-star celebration</h3>
+              <div className="gwb-paint-grid">{CELEBRATIONS.map((c) => {
+                const open = have >= c.stickers, on = celebrationById(saved.paint?.party).id === c.id;
+                return <button key={c.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => { pick({ party: c.id }); window.setTimeout(() => gusSound[c.sound](), 250); }} aria-pressed={on}>
+                  <span className="gwb-paint-big" aria-hidden>{c.icon}</span><strong>{c.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${c.stickers} stickers`}</small>
+                </button>;
+              })}</div>
+              <h3>Machine sounds</h3>
+              <div className="gwb-paint-grid">{SOUND_SETS.map((k) => {
+                const open = have >= k.stickers, on = soundSetById(saved.paint?.sounds).id === k.id;
+                return <button key={k.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => { pick({ sounds: k.id }); setGusSoundSet(k.id); window.setTimeout(() => { gusSound.snap(); gusSound.ding(); }, 250); }} aria-pressed={on}>
+                  <span className="gwb-paint-big" aria-hidden>{k.icon}</span><strong>{k.name}</strong><small>{on ? '✅ On' : open ? k.note : `🔒 ${k.stickers} stickers`}</small>
+                </button>;
+              })}</div>
+              <h3>Gus's hat</h3>
+              <div className="gwb-paint-grid">{HATS.map((h) => {
+                const open = have >= h.stickers, on = hatById(saved.paint?.hat).id === h.id;
+                return <button key={h.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => { pick({ hat: h.id }); say(h.id === 'none' ? 'Hat off. Breezy.' : `A ${h.name.toLowerCase()}! How do I look?`, 'Paint Shop'); }} aria-pressed={on}>
+                  <span className="gwb-paint-big" aria-hidden>{h.icon}</span><strong>{h.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${h.stickers} stickers`}</small>
                 </button>;
               })}</div>
               <button type="button" className="gus-btn gus-btn-primary" onClick={() => setPaintOpen(false)}>Done</button>

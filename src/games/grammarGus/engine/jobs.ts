@@ -61,6 +61,14 @@ export function makeOrderJob(rng: Rng, uid: () => string, o: { gentleOnly?: bool
   };
 }
 
+// A recipe card the teacher wrote herself (Gus settings, `teacherOrders`).
+export function makeTeacherOrderJob(key: SceneKey, text: string, uid: () => string): { items: BoardItem[]; job: BoardJob } {
+  return {
+    items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: 'present' }, { id: uid(), kind: 'blank', word: null }, { id: uid(), kind: 'tv', word: null }],
+    job: { id: uid(), kind: 'order', text, key, card: orderCard(key), label: 'teacher' },
+  };
+}
+
 // Blueprints on the Workboard: a paragraph plan delivered as linked
 // machines, one per sentence, each with its empty word machines in a
 // working order, its label (Beginning, Middle, End) and any fixed lines.
