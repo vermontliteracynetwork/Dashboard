@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-sorter',
+    date: '2026-10-09',
+    icon: '🎨',
+    title: 'Grammar Gus: a new Describe Sorter',
+    body: 'The Describe Sorter is a real conveyor now, with five lanes: feeling, size, age, look and color. Its lamp blinks red when your describing words are out of order. Pull the lever and watch the belt sort them.',
+  },
+  {
     id: '2026-10-09-gus-subfolds',
     date: '2026-10-09',
     icon: '🗂️',

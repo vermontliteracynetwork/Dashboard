@@ -115,6 +115,7 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
     } else events.push({ itemId: tel.id, pop: 'zzz...', fixed: false, note: prev ? undefined : 'The Pronoun Teleporter waits for a noun that repeats from the sentence before. Hook two sentences with a Paragraph Link.' });
   }
   // Describe Sorter: describing words in order (feeling, size, age, look, color).
+  // (describingOutOfOrder below lights the sorter's red lamp before the lever is pulled.)
   const sorter = at('sorter');
   if (sorter) {
     const rd = readOf(line, items, level); const a = analyze(rd.draft.tokens);
@@ -195,4 +196,14 @@ export function applyGadgets(line: BoardLine, level: HelpLevel, prev?: BoardLine
     }
   }
   return { items, events, changed: JSON.stringify(items) !== JSON.stringify(line.items), flags };
+}
+
+// True when some describing words on a line are out of order (feeling, size, age, look, color):
+// the Describe Sorter's lamp turns red until the machine runs and sorts them.
+export function describingOutOfOrder(tokens: { pos: string; word: string | null }[]): boolean {
+  const a = analyze(tokens as Parameters<typeof analyze>[0]);
+  return a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.obj2, cl.pp]).filter((x) => !!x).some((np) => {
+    const r = np!.adjs.map((i) => tokens[i]?.word).filter((w): w is string => !!w).map(adjRank);
+    return r.some((x, k) => k > 0 && x < r[k - 1]);
+  });
 }

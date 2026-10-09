@@ -256,12 +256,24 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <text x={c - 14} y={84} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={16} fill="#fff">a/an</text>
       <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} /><rect x={c - 18} y={106} width={8} height={14} fill="#6b7383" /><rect x={c - 4} y={106} width={8} height={14} fill="#6b7383" />
     </g>;
-    case 'sorter': return <g>
-      <path d={`M10 24 L${w - 10} 70`} stroke={color} strokeWidth={10} strokeLinecap="round" />
-      {['feel', 'size', 'look', 'color'].map((lb, i) => { const x = 18 + i * ((w - 36) / 4); return <g key={lb}><rect x={x} y={84} width={(w - 36) / 4 - 4} height={36} rx={4} fill={['#f3cf6b', '#8fd18f', '#9ec7f0', '#e8483b'][i]} stroke={INK} strokeWidth={2} /><text x={x + ((w - 36) / 4 - 4) / 2} y={106} textAnchor="middle" fontSize={8.5} fontWeight={800} fontFamily="Lexend, sans-serif" fill={INK}>{lb}</text></g>; })}
-      <g className="gwb-roll"><circle cx={30} cy={26} r={7} fill="#c8ced8" stroke={INK} strokeWidth={2} /></g>
-      <rect x={10} y={120} width={w - 20} height={6} fill="#6b7383" />
-    </g>;
+    // The Describe Sorter (plan 3.13): a little conveyor with five lanes, feeling, size, age, look
+    // and color. The belt runs and the word boxes ride into their lanes when the machine runs; the
+    // lamp is red while the describing words on this machine are out of order (status 'messy').
+    case 'sorter': {
+      const lanes = ['❤️', '📏', '📅', '🎭', '🎨'];
+      const lw = (w - 28) / 5;
+      return <g>
+        <Pipes w={w} />
+        <rect x={8} y={8} width={w - 16} height={52} rx={10} fill={color} stroke={INK} strokeWidth={3} />
+        {lanes.map((ic, i) => <g key={ic}><rect x={14 + i * lw} y={18} width={lw - 3} height={34} rx={4} fill="#fff" opacity={0.85} stroke={INK} strokeWidth={1.6} /><text x={14 + i * lw + (lw - 3) / 2} y={41} textAnchor="middle" fontSize={14}>{ic}</text></g>)}
+        <circle cx={w - 16} cy={6} r={6} fill={status === 'messy' ? '#e8483b' : '#3fbf5a'} stroke={INK} strokeWidth={2} className={status === 'messy' ? 'gwb-blink' : undefined} />
+        <rect x={12} y={92} width={w - 24} height={16} rx={8} fill="#3c455e" stroke={INK} strokeWidth={2.4} />
+        <line x1={20} y1={100} x2={w - 20} y2={100} stroke="#9aa3b5" strokeWidth={3} strokeDasharray="6 6" className="gwb-belt" />
+        <circle cx={20} cy={100} r={5} fill="#c8ced8" stroke={INK} strokeWidth={1.6} /><circle cx={w - 20} cy={100} r={5} fill="#c8ced8" stroke={INK} strokeWidth={1.6} />
+        {['#f3cf6b', '#8fd18f', '#e8483b'].map((cc, i) => <rect key={cc} x={26 + i * 18} y={80} width={12} height={12} rx={2} fill={cc} stroke={INK} strokeWidth={1.6} className="gwb-belt-box" style={{ animationDelay: `${i * 0.12}s` }} />)}
+        <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} /><rect x={c - 18} y={108} width={8} height={12} fill="#6b7383" /><rect x={c + 10} y={108} width={8} height={12} fill="#6b7383" />
+      </g>;
+    }
     case 'teleporter': return <g>
       <Pipes w={w} />
       {[0, 1, 2].map((i) => <ellipse key={i} className="gwb-ring-glow" cx={c} cy={104 - i * 26} rx={36 - i * 4} ry={7} fill="none" stroke={color} strokeWidth={3} style={{ animationDelay: `${i * 0.2}s` }} />)}

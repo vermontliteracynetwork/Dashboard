@@ -12,7 +12,7 @@ import { shortAnswers } from '../engine/question';
 import { verbText } from '../engine/conjugate';
 import { predictWords } from '../engine/phonetic';
 import { bubbleSpan, readLine, readingOrder, paragraphs, tenseOf, deadEnds, lineText, FINISH_LINES, type BoardItem, type BoardLine, type FinishProblem } from '../engine/board';
-import { applyGadgets, retimeItems } from '../engine/gadgets';
+import { applyGadgets, describingOutOfOrder, retimeItems } from '../engine/gadgets';
 import { COMBOS, combosOn } from '../engine/combos';
 import { ADVERB_SPEED } from '../director/clips';
 import { reviewStory, storyCast, storyScript, type SealedSentence } from '../engine/story';
@@ -1767,7 +1767,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 return it.word;
               };
               const ends = line.items.some((i) => i.kind === 'detector') ? deadEnds(line) : [];
-              const statusOf = (it: BoardItem): string | undefined => it.kind === 'bridge' ? (rd.problems.some((p) => p.code === 'BRIDGE_UP' && p.itemId === it.id) ? 'up' : 'down') : it.kind === 'detector' ? (ends.length ? 'closed' : 'open') : it.kind === 'dial' ? String(speedOf(line)) : it.kind === 'rig' ? rigLamps(line, rd) : it.kind === 'clamp' ? `${it.tabs ?? 0}|${level === 'full' ? 'auto' : level === 'guided' ? 'glow' : 'plain'}` : undefined;
+              const statusOf = (it: BoardItem): string | undefined => it.kind === 'bridge' ? (rd.problems.some((p) => p.code === 'BRIDGE_UP' && p.itemId === it.id) ? 'up' : 'down') : it.kind === 'detector' ? (ends.length ? 'closed' : 'open') : it.kind === 'dial' ? String(speedOf(line)) : it.kind === 'rig' ? rigLamps(line, rd) : it.kind === 'clamp' ? `${it.tabs ?? 0}|${level === 'full' ? 'auto' : level === 'guided' ? 'glow' : 'plain'}` : it.kind === 'sorter' ? (describingOutOfOrder(rd.draft.tokens) ? 'messy' : 'ok') : undefined;
               // Guess and check: with finishing parts on, the plate shows only what was snapped on.
               const text = lineText(line, rd, requireFinish || !!line.job);
               const cl = buildChecklist(rd.draft);

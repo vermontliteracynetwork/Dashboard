@@ -17,3 +17,11 @@ describe('reflexive pronouns match the WHO', () => {
     expect(codes('A N V R', 'The cat ate myself.')).toContain('REFLEXIVE_MATCH');
   });
 });
+
+import { describingOutOfOrder } from '../engine/gadgets';
+describe('the Describe Sorter lamp', () => {
+  it('is red for "the white small cat" and green for "the small white cat"', () => {
+    expect(describingOutOfOrder(d('A J J N V', 'The white small cat ran.').tokens)).toBe(true);
+    expect(describingOutOfOrder(d('A J J N V', 'The small white cat ran.').tokens)).toBe(false);
+  });
+});

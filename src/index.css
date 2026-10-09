@@ -6337,3 +6337,12 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-drawer-subgroup { display: flex; flex-direction: column; gap: 4px; padding-left: 6px; border-left: 2px dashed rgba(255,255,255,0.18); }
 .gwb-drawer-sub { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 44px; padding: 0 10px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.14); background: #2b3348; color: #e8edf6; font: 700 0.74rem 'Lexend', sans-serif; text-align: left; cursor: pointer; }
 .gwb-drawer-sub.next { border-color: #f3cf6b; box-shadow: 0 0 0 3px #f3cf6b; }
+/* Describe Sorter conveyor (2026-10-09) */
+.gwb-item.firing .gwb-belt { animation: gwb-belt-run 0.4s linear infinite; }
+@keyframes gwb-belt-run { to { stroke-dashoffset: -12; } }
+.gwb-item.firing .gwb-belt-box { animation: gwb-belt-ride 0.9s ease-in-out forwards; }
+@keyframes gwb-belt-ride { 50% { transform: translate(30px, 0); } 100% { transform: translate(40px, -62px); opacity: 0; } }
+.gwb-blink { animation: gwb-blink 1s steps(2) infinite; }
+@keyframes gwb-blink { 50% { opacity: 0.35; } }
+.gwb.calm .gwb-belt, .gwb.calm .gwb-belt-box, .gwb.calm .gwb-blink { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .gwb-belt, .gwb-belt-box, .gwb-blink { animation: none !important; } }
