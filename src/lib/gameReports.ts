@@ -29,7 +29,8 @@ export function recordGameReport(studentId: string, r: Omit<GameReport, 'id' | '
 const starts = new Map<string, number>();
 export const noteGameStart = (game: string) => { starts.set(game, Date.now()); };
 export function reportPayout(studentId: string, game: string, icon: string, right: number, earnedCents: number, detail = '') {
-  if (!studentId || game === 'Gas Pump') return; // the gas pump is one question at a time, not a session
+  // The gas pump is one question at a time, not a session; Shape Dash sends its own fuller report.
+  if (!studentId || game === 'Gas Pump' || game === 'Shape Dash') return;
   const t = starts.get(game);
   recordGameReport(studentId, { game, icon, minutes: t ? Math.max(1, Math.round((Date.now() - t) / 60000)) : 1, right, skipped: 0, earnedCents, detail, ended: 'finished' });
   starts.set(game, Date.now());
