@@ -1,6 +1,6 @@
 import type { Draft, HelpLevel, Token, Violation, ViolationHit } from './types';
-import { parse } from './grammar';
-import { analyze, type Analysis } from './analyze';
+import { normWord, parse } from './grammar';
+import { analyze, subjectIsPlural, type Analysis } from './analyze';
 import { adjRank, autoFixWords, expectedForms, isSuperlative, requiredCapitals, requiredCommas } from './compose';
 import { articleFor, tenseOfForm } from './conjugate';
 import { nounByWord, verbByBase } from '../data/wordbank';
@@ -80,6 +80,10 @@ function structural(tokens: Token[], a: Analysis): ViolationHit[] {
   return [...hits.values()];
 }
 
+// Which -self words fit which WHO. A noun WHO takes himself, herself or itself (one) or themselves (more than one).
+const REFLEXIVE_OF: Record<string, string[]> = { I: ['myself'], you: ['yourself', 'yourselves'], he: ['himself'], she: ['herself'], it: ['itself'], we: ['ourselves'], they: ['themselves'] };
+const REFLEXIVE_FOR_PLURAL: Record<string, 'third' | 'plural' | 'other'> = { himself: 'third', herself: 'third', itself: 'third', themselves: 'plural', myself: 'other', yourself: 'other', ourselves: 'other', yourselves: 'other' };
+
 // Pronoun case: he / him, she / her, I / me, we / us, they / them. The
 // pronouns whose case, once swapped, lets the sentence fit.
 export const SUBJ_OF: Record<string, string> = { me: 'I', him: 'he', her: 'she', us: 'we', them: 'they' };
@@ -122,6 +126,16 @@ export function validateSentence(draft: Draft): Validation {
         else if (got !== want && (got === 'base' || got === 'third')) add('AGREEMENT', [i]);
       });
     }
+    // A -self word matches its WHO (audit leftover, L.2.1c / L.3.1): he ... himself, they ... themselves.
+    tokens.forEach((t, i) => {
+      const w = (t.word ?? '').toLowerCase();
+      if (t.pos !== 'R' || !REFLEXIVE_FOR_PLURAL[w]) return;
+      const c = Number((a.parse.roles[i] ?? '').match(/^c(\d)/)?.[1] ?? 1);
+      const cl = a.clauses.find((x) => x.c === c); if (!cl) return;
+      const ok = cl.subjPron !== undefined ? REFLEXIVE_OF[normWord(tokens[cl.subjPron].word ?? '')] : undefined;
+      const fits = ok ? ok.includes(w) : (cl.subj.length ? REFLEXIVE_FOR_PLURAL[w] === (subjectIsPlural(tokens, cl) ? 'plural' : 'third') : true);
+      if (!fits) add('REFLEXIVE_MATCH', [i]);
+    });
     // Describing words in order: feeling, size, age, look, color.
     if (level !== 'full') {
       const nps = a.clauses.flatMap((cl) => [...cl.subj, cl.obj, cl.obj2, cl.pp]).filter((x) => !!x);

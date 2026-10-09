@@ -369,6 +369,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [jobsMore, setJobsMore] = useState(false);
   // Spare Parts Bin (teacher's reference chart: "Put extra words here").
   const [spare, setSpare] = useState<BoardItem[]>([]);
+  const spareRef = useRef<BoardItem[]>([]);
+  spareRef.current = spare;
   const [binOpen, setBinOpen] = useState(false);
   // Read each word out loud when it is picked (a Menu switch).
   const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('gus-read') === '1'; } catch { return false; } });
@@ -378,7 +380,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const menuByKbd = useRef<string | null>(null);
   const [spaced, setSpaced] = useState(() => { try { return localStorage.getItem('gus-spaced') === '1'; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem('gus-spaced', spaced ? '1' : '0'); } catch { /* fine */ } }, [spaced]);
-  const history = useRef<BoardLine[][]>([]);
+  // Undo snapshots hold the Spare Parts Bin too, so undoing a drop into the bin takes the part back out.
+  const history = useRef<{ lines: BoardLine[]; spare: BoardItem[] }[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const running = useRef(false); // set at once, so a double tap never runs twice (Claudia bug 2)
   const rewardPending = useRef(false); // gears once per run, never for replays (Claudia bug 3)
@@ -492,11 +495,11 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     return b ? { lineId: b.lineId, index: b.index } : null;
   };
   // Any change to a line clears its stars and TV until it runs again.
-  const remember = () => { history.current = [...history.current.slice(-29), linesRef.current]; setCanUndo(true); };
+  const remember = () => { history.current = [...history.current.slice(-29), { lines: linesRef.current, spare: spareRef.current }]; setCanUndo(true); };
   const undo = () => {
     const prev = history.current.pop();
     if (!prev) return;
-    setLines(prev); setCanUndo(history.current.length > 0); setMenu(null); setPlaying(null); gusSound.swish();
+    setLines(prev.lines); setSpare(prev.spare); setCanUndo(history.current.length > 0); setMenu(null); setPlaying(null); gusSound.swish();
     say('Undone. Back the way it was.', 'Undo');
   };
   const editLine = (lineId: string, f: (l: BoardLine) => BoardLine | null, silent = false) => {

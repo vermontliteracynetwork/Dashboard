@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-self-undo',
+    date: '2026-10-09',
+    icon: '🪞',
+    title: 'Grammar Gus: -self words and a better Undo',
+    body: 'Gus now checks that a -self word matches the WHO: he and himself, she and herself, they and themselves. And Undo works on the Spare Parts Bin too: drop a part in by mistake, tap Undo, and it comes right back.',
+  },
+  {
     id: '2026-10-09-cd-frost',
     date: '2026-10-09',
     icon: '❄️',

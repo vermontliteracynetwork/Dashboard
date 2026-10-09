@@ -30,6 +30,7 @@ export function explainViolation(code: Violation, words: string[]): string {
     case 'NO_COMMA': return `A comma is needed after ${q(a)}. It marks the pause between the two parts of the sentence.`;
     case 'EXTRA_COMMA': return `The comma after ${q(a)} does not belong there. Take it off.`;
     case 'PRONOUN_NO_REFERENT': return `${q(a)} points to someone, but Gus does not know who yet. Name them first in an earlier sentence.`;
+    case 'REFLEXIVE_MATCH': return `${q(a)} does not match the WHO. Match them: I and myself, he and himself, she and herself, it and itself, we and ourselves, they and themselves.`;
     case 'PRONOUN_CASE': return `${q(a)} is the wrong form here. Use he, she, I or they before the action word, and him, her, me or them after it.`;
     case 'NO_JOIN': return `${q(a)} and ${q(b)} are squished side by side with nothing joining them. Drag a Join Clamp (and, but, or) from the parts menu and snap it between them, or take one of them off.`;
     case 'EXTRA_OBJECT': return `${q(a)} cannot take a thing after it. Take away the noun after it, or add a where word ("runs to the park").`;

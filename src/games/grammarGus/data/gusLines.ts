@@ -23,6 +23,9 @@ export const GATE_LINES: Partial<Record<Violation, Line[]>> = {
   SUPERLATIVE_THE: [
     { joke: '"A tallest cat"? There can only be ONE tallest!', fix: 'Words ending in -est (the most of all) take "the": the tallest cat.' },
   ],
+  REFLEXIVE_MATCH: [
+    { joke: 'He looked at... HERself? Who is in that mirror?!', fix: 'A -self word matches its WHO: he and himself, she and herself, they and themselves.' },
+  ],
   PRONOUN_CASE: [
     { joke: '"Him jumped"? My turnstile just spun in a circle and bonked itself.', fix: 'A doer pronoun goes first: I, he, she, we, they. After the action: me, him, her, us, them.' },
     { joke: 'Right pronoun, wrong door. Very confusing for the pronoun.', fix: 'Swap it: he or him, she or her, I or me. A Subject and Object Turnstile can do it for you.' },

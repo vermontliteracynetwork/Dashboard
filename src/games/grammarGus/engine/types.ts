@@ -35,7 +35,9 @@ export type Violation =
   // Workboard round 6 (2026-10-07): he / him, I / me in the wrong place.
   | 'PRONOUN_CASE'
   // Claudia's audit (2026-10-07): extra commas and capital letters, and "the" with -est words.
-  | 'EXTRA_COMMA' | 'EXTRA_CAPITAL' | 'SUPERLATIVE_THE';
+  | 'EXTRA_COMMA' | 'EXTRA_CAPITAL' | 'SUPERLATIVE_THE'
+  // Audit leftover (2026-10-09): a -self word that matches its WHO (he ... himself).
+  | 'REFLEXIVE_MATCH';
 
 export interface ViolationHit { code: Violation; targets: number[]; insertAt?: number; blocking: boolean }
 
