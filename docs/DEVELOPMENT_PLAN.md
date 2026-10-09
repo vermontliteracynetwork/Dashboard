@@ -31,18 +31,18 @@
 How it works: every new request, idea or "queue:" message goes on this list the same turn it arrives. Work goes top to bottom, each item ships on its own (dev plan, What's New if students notice it, push to main), then it moves to **Done** with its date. An item that needs her answer moves to "Waiting on the teacher" below instead of blocking the line. Full detail for each item lives in its own entry (Gameplay roadmap, section 2).
 
 **Up next (top first):**
-1. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
-2. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
-3. Grammar Gus Phase 2: Label and Unit Maker.
-4. Grammar Gus Phase 2: Gus's Paint Shop.
-5. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
-6. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
-8. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
-7. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
+1. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
+2. Grammar Gus Phase 2: Label and Unit Maker.
+3. Grammar Gus Phase 2: Gus's Paint Shop.
+4. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
+5. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
+7. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
+6. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Grammar Gus Phase 2, the 🛠️ Revision Workshop (Add, Remove, Move, Swap).
 - 2026-10-09: Grammar Gus Phase 2, the ⚛️ Fusion Reactor (sentence combining mini game).
 - 2026-10-09: Castle Defense, a third map: ⛺ Stone road field, built from her CraftPix field tiles.
 - 2026-10-09: Prizes are Minecoin redeeming only. Her words (verbatim): "remove all current real world prizes. they are not applicable to me. only add minecraft coin redeeming to start == Prizes Minecoin redeeming $50 USD = $500 in game = 8800 minecoins $20 USD = $200 in game = 3500 minecoins $10 USD = $100 in game = 1720 minecoins $6 USD = $60 in game = 1020 minecoins $2 USD = $20 in game = 320 minecoins" (with a zip, "10 in game dollar equals 1 USD", of five Minecraft store cards).
@@ -67,7 +67,7 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 - **Gus Daily Challenge and the $25 streak:** ON HOLD. Her words 2026-10-08: "no Gus Daily Challenge and the $25 streak yet". Not to be built until she says so.
 - **Alchemy, still open:** a discovery book page, a Town Square home, new discoveries becoming Gus nouns. (Questions and pay were answered and shipped 2026-10-08.)
 - **Gus Examples:** knock knock shipped first (2026-10-08); which joke frameworks come next.
-- **Gus Phase 2 machines:** she said go (2026-10-08). Run-on Fixer, Appositive Clamp and Fusion Reactor shipped; next is the Revision Workshop.
+- **Gus Phase 2 machines:** she said go (2026-10-08). Run-on Fixer, Appositive Clamp, Fusion Reactor and Revision Workshop shipped; next is the CER Lab Report.
 - Everything else she owes is in the Gameplay roadmap, "4. Decisions she owes".
 
 **Needs a live check (only she can do these, on a real iPad and a second device):**
@@ -718,7 +718,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 1. ~~Run-on detection and the fix mini-game.~~ SHIPPED 2026-10-08 as the Run-on Fixer job.
 2. ~~Appositive Clamp.~~ SHIPPED 2026-10-09 (see the Phase 2 entry).
 3. ~~Fusion Reactor (sentence combining).~~ SHIPPED 2026-10-09 (see the Phase 2 entry).
-4. Revision Workshop (ARMS: add, remove, move, substitute).
+4. ~~Revision Workshop (ARMS: add, remove, move, substitute).~~ SHIPPED 2026-10-09 (see the Phase 2 entry).
 5. CER Lab Report (claim, evidence, reasoning).
 6. Label and Unit Maker.
 7. Gus's Paint Shop: a gear sink for paint, decals and factory floors, never hints.
@@ -795,7 +795,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 #### 6. Claudia's suggested build order
 
-1. **Gus Phase 2, next the Revision Workshop** (the Run-on Fixer shipped 2026-10-08, the Appositive Clamp and Fusion Reactor 2026-10-09). She said go.
+1. **Gus Phase 2, next the CER Lab Report** (the Run-on Fixer shipped 2026-10-08; the Appositive Clamp, Fusion Reactor and Revision Workshop 2026-10-09). She said go.
 2. **Gus's Daily Challenge:** ON HOLD at her word (2026-10-08).
 3. **Gallery pictures to wall decor.** Small, visible, and it ties reading to the Home Room.
 4. **Shape Dash sliders and the inbox report.** Small, and gives her control over a game students already play.
@@ -920,7 +920,8 @@ This is the one place to see every gameplay feature that is not built yet, pulle
   - **▶ Play with questions**, and, from the Computer only, **🧭 Just explore** (no questions). The game window always plays with questions.
   - Settings are remembered on that iPad. In play, a HUD chip shows "❓ in N · 💵 earned" and reopens the settings; the leave check says the money is kept.
 - **Knock knock joke** (Gus parts menu, 📝 Examples, new 😂 Jokes folder): "Knock knock. Who's there? Cow. Cow who?" then the machine says the punchline, "The silly cow dances happily." (tested to run with 3 stars). The card shows the setup lines; Gus reads them when it lands. Tap a word to make your own joke.
-- **Gus Phase 2, first machine: the Run-on Fixer** (Jobs menu, 🚧 Fix the run-on). Gus glues two whole sentences into one machine ("The dog runs the cat jumps."). Running it jams the conveyor and Gus names both ideas and the exact spot: "snap a Logic Gate (and, but, so) between ... The comma comes with it. Or split them into two machines." Joining them earns 3 stars, a ⚡ sticker and "The jam is cleared!". The same run-on message now appears any time a student glues two whole sentences together, not only in the job (`runOnSplit` in `engine/jobs.ts`; tested over 24 random jobs). **Next in Phase 2:** the Revision Workshop, CER Lab Report, Label and Unit Maker, and Gus's Paint Shop.
+- **Gus Phase 2, first machine: the Run-on Fixer** (Jobs menu, 🚧 Fix the run-on). Gus glues two whole sentences into one machine ("The dog runs the cat jumps."). Running it jams the conveyor and Gus names both ideas and the exact spot: "snap a Logic Gate (and, but, so) between ... The comma comes with it. Or split them into two machines." Joining them earns 3 stars, a ⚡ sticker and "The jam is cleared!". The same run-on message now appears any time a student glues two whole sentences together, not only in the job (`runOnSplit` in `engine/jobs.ts`; tested over 24 random jobs). **Next in Phase 2:** the CER Lab Report, Label and Unit Maker, and Gus's Paint Shop.
+- **Gus Phase 2, fourth machine: the Revision Workshop (ARMS). SHIPPED 2026-10-09 (Build Queue).** 🧰 Jobs, More jobs, Mini games, **🛠️ Revision Workshop**: 6 repairs a round from 13 (`REVISION_ITEMS`), at least one for every tool. A rough three-sentence paragraph comes in with one weak spot, and four big tool buttons: 🔧 **Add** (pick the detail that tells where, when or how: "The cat sat on the warm windowsill."), ✂️ **Remove** (a repeated sentence, a doubled word, or a sentence that does not belong), 🏗️ **Move** (a "Finally" sentence that came first goes to the end), 🔄 **Swap** (a dull word for a precise one: good to delicious, went to sprinted). Claudia's fade ladder: **Full**, the right tool is picked and the spot glows; **Guided**, the spot glows and the student picks the tool; **Challenge**, the student picks the tool and taps the spot. After each repair Gus says why it is better and reads the new paragraph aloud (the "TV replay"), and the paragraph flashes green. A gear for each first-try repair; mistakes are private. Not yet: revising the student's own Workboard paragraphs with the same four tools (needs the machines to hold whole paragraphs). Tests in `__tests__/fusion.test.ts`.
 - **Gus Phase 2, third machine: the Fusion Reactor. SHIPPED 2026-10-09 (Build Queue).** 🧰 Jobs, More jobs, Mini games, **⚛️ Fusion Reactor**: 6 fusions a round from 14 (`FUSION_ITEMS` in `data/miniGames.ts`). Two or three short sentences go in as word tiles ("The dog barks." "The dog is fluffy."); the repeated words get crushed; then the student picks the sentence that rolled out ("The fluffy dog barks.") from three (the wrong ones keep a repeat, put a word in the wrong place, or forget to change the action word). Four kinds, each with Gus's one-line rule when it fuses: 🎨 a describing word moves in, 👥 two whos share one action (and the action changes: "The cat and the dog nap."), ⚙️ one who with two actions, 📦 one action on two things. Claudia's fade ladder: **Full**, the repeats crush by themselves; **Guided**, the repeats glow and the student taps them; **Challenge**, no glow. Tapping a word that is new information gets "it stays", privately. A gear for each first-try fusion; the reactor glows once it is ready; crunch and ta-da sounds; calm and reduced motion keep it still. Not used: two describing words with a comma between them ("the small, fast robot"), since that comma rule is still her open decision. Tests: `__tests__/fusion.test.ts`.
 - **Gus Phase 2, second machine: the Appositive Clamp. SHIPPED 2026-10-09 (Build Queue).** A new part, 🗜️ Appositive Clamp, sits in the parts menu with the WHO parts (so it shows even with fun parts off). Snap it right after a noun; tap it to pick a fact (16 kid facts: my best friend, a giant robot, the class pet, a sneaky ninja, a total goofball...) or type your own. The plate, the read-aloud and the writing page clamp the fact in between commas: "Gus, a giant robot, jumps." At the end of a sentence only the first comma: "We like Gus, a giant robot." Help levels, as Claudia planned: **Full**, the comma tabs snap on by themselves; **Guided**, the empty comma tabs glow on the clamp; **Challenge**, no glow, and the machine runs only once both tabs are snapped on (tap the clamp: "Comma before the fact" / "Comma after the fact"). New checklist row "Comma tabs around the clamped fact" with a tap-for-how-to note; a clamp after anything but a noun gets "It only grips a noun." Job: 🧰 Jobs, **🗜️ Clamp in a fact** delivers a finished sentence with an empty clamp gripping the who; 3 stars with a fact clamped in earns the 🗜️ sticker. Sound: a clang. The writing page (as written) shows only the comma tabs the student snapped on. Not done: the Pixel TV does not show the fact (it plays the main sentence); a Speech Bubble stretched over only some words drops the fact from the quote. Tests: `__tests__/appositive.test.ts` (6).
 - **SQL:** one copy-paste file, [`supabase/RUN_THIS_IN_SQL_EDITOR.sql`](https://github.com/vermontliteracynetwork/Dashboard/blob/main/supabase/RUN_THIS_IN_SQL_EDITOR.sql): the `activity_library` student fields, `marketplace_items.model_path`, the `chess_games` and `style_looks` tables and their access rules. `schema.sql` now also lists `model_path`. After she runs it, the next session adds the student fields back to the activity save and maps `model_path` in `src/lib/sync.ts`.

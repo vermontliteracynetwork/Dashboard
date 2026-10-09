@@ -23,7 +23,7 @@ import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeS
 import { compareOrder } from '../engine/orders';
 import { frameworkById } from '../data/frameworks';
 import { flipIdeas } from '../engine/boardRemix';
-import { FusionReactor, HomophoneSorter, TransitionTrack } from './MiniGames';
+import { FusionReactor, HomophoneSorter, RevisionWorkshop, TransitionTrack } from './MiniGames';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
@@ -1160,7 +1160,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     return () => window.clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Machine remixes are gone (teacher 2026-10-07: "dont allow machine remixes").
-  const [mini, setMini] = useState<'homo' | 'trans' | 'fusion' | null>(null);
+  const [mini, setMini] = useState<'homo' | 'trans' | 'fusion' | 'revise' | null>(null);
   const doFlip = (line: BoardLine) => {
     const res = flipIdeas(line.items, uid);
     if (typeof res === 'string') { gusSound.ahem(); say(res, 'Flip Switch'); return; }
@@ -1540,6 +1540,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('homo'); }}>🎯 Homophone Sorter<small>their, there, they're and more</small></button>
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('trans'); }}>🚂 Transition Track<small>Couple sentences with the right transition</small></button>
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('fusion'); }}>⚛️ Fusion Reactor<small>Crush the repeats: short sentences fuse into one</small></button>
+                  <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('revise'); }}>🛠️ Revision Workshop<small>Add, Remove, Move and Swap to fix a rough paragraph</small></button>
                   <div className="gwb-menu-sub">🔬 Science writing</div>
                   {Object.entries(SCIENCE_JOBS).map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
                   <div className="gwb-menu-sub">📐 Build a whole paragraph</div>
@@ -2083,6 +2084,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       )}
 
       {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great sorting.`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
+      {mini === 'revise' && <RevisionWorkshop level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} repairs on the first try! That is real revising.`, 'Revision Workshop'); } }} say={say} speak={speak} />}
       {mini === 'fusion' && <FusionReactor level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} fused on the first try! Smooth writing.`, 'Fusion Reactor'); } }} say={say} speak={speak} />}
       {mini === 'trans' && <TransitionTrack calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great couplings.`, 'Transition Track'); } }} say={say} speak={speak} />}
       {connectorFor && (() => { const l = lines.find((x) => x.id === connectorFor); if (!l) return null; return (

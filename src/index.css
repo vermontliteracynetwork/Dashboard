@@ -6031,3 +6031,19 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-fuse-out .gwb-chute { min-height: 64px; }
 .gwb-fuse-out .gwb-chute strong { font-size: 1.05rem; }
 @media (prefers-reduced-motion: reduce) { .gwb-reactor.hot, .gwb-fuse-word.glow { animation: none; } .gwb-fuse-word { transition: none; } }
+
+/* Grammar Gus: Revision Workshop (Phase 2, ARMS) */
+.gwb-revise { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 52px 14px 14px; border-radius: 18px; border: 3px solid var(--gus-ink); background: #fffdf6; margin: 8px 0; }
+.gwb-revise.fixed { animation: gwb-revise-done 0.9s ease-out; }
+@keyframes gwb-revise-done { 0% { box-shadow: 0 0 0 rgba(63, 191, 90, 0); } 40% { box-shadow: 0 0 24px rgba(63, 191, 90, 0.9); } 100% { box-shadow: 0 0 0 rgba(63, 191, 90, 0); } }
+.gwb-revise .gwb-hear { position: absolute; top: 10px; right: 10px; }
+.gwb-rev-sentence { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; border-radius: 12px; }
+.gwb-rev-sentence.glow { background: #fff3c4; box-shadow: 0 0 0 3px #f3cf6b; }
+.gwb-arms { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 8px 0; }
+.gwb-arm { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 88px; padding: 8px; border-radius: 14px; border: 3px solid var(--gus-ink); background: linear-gradient(#e9eef3, #c8ced8); font: 700 0.8rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; box-shadow: 0 4px 0 var(--gus-ink); }
+.gwb-arm > span { font-size: 1.6rem; }
+.gwb-arm strong { font-size: 1rem; }
+.gwb-arm small { font-weight: 600; opacity: 0.8; text-align: center; }
+.gwb-arm.on { background: #c9f0d4; }
+.gwb-arm:disabled { opacity: 0.45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .gwb-revise.fixed { animation: none; } }

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-revise',
+    date: '2026-10-09',
+    icon: '🛠️',
+    title: 'Grammar Gus: the Revision Workshop',
+    body: 'Fix rough paragraphs with four tools: Add a detail, Remove a repeat, Move a sentence, or Swap a dull word for a better one. Find it in Jobs, under Mini games.',
+  },
+  {
     id: '2026-10-09-gus-fusion',
     date: '2026-10-09',
     icon: '⚛️',

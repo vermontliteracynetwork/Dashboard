@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FUSION_ITEMS, FUSION_KINDS, HOMO_CLUES, HOMO_ITEMS, TRANS_ITEMS, TRANS_KINDS, type TransKind } from '../data/miniGames';
+import { ARMS_TOOLS, FUSION_ITEMS, FUSION_KINDS, HOMO_CLUES, REVISION_ITEMS, type ArmsTool, type RevisionItem, HOMO_ITEMS, TRANS_ITEMS, TRANS_KINDS, type TransKind } from '../data/miniGames';
 import type { HelpLevel } from '../engine/types';
 import { gusSound } from './sound';
 
@@ -194,6 +194,113 @@ export function FusionReactor({ calm, onClose, onEarn, say, speak, level }: Prop
                 {options.map((s) => <button key={s} type="button" className={`gwb-chute${pickd?.s === s ? (pickd.ok ? ' right' : ' wrong') : ''}`} onClick={() => choose(s)}><strong>{s}</strong></button>)}
               </div>
             </>}
+        </>}
+        <button type="button" className="gus-btn" onClick={finish}>✕ Close</button>
+      </div>
+    </div>
+  );
+}
+
+// Revision Workshop (Claudia's Phase 2, ARMS: Add, Remove, Move, Substitute; Build Queue 2026-10-09).
+// A rough paragraph comes in with one weak spot. The fade ladder: Full, the tool is picked and the
+// spot glows; Guided, the spot glows and the student picks the tool; Challenge, they pick the tool
+// and find the spot. Then the repair (pick the precise word or the detail, or it just snips or
+// moves), and the paragraph is read back. A gear for each first-try repair.
+const revise = (it: RevisionItem, choice?: string): string[] => {
+  const ss = [...it.sentences];
+  if (it.tool === 'remove') { if (it.w === undefined) ss.splice(it.s, 1); else ss[it.s] = ss[it.s].split(' ').filter((_, i) => i !== it.w).join(' '); }
+  if (it.tool === 'swap' && choice) ss[it.s] = ss[it.s].split(' ').map((w, i) => (i === it.w ? w.replace(/^[a-z]+/i, choice) : w)).join(' ');
+  if (it.tool === 'add' && choice) ss[it.s] = ss[it.s].replace(/([.!?])$/, ` ${choice}$1`);
+  if (it.tool === 'move' && it.to !== undefined) { const [m] = ss.splice(it.s, 1); ss.splice(it.to, 0, m); }
+  return ss;
+};
+export function RevisionWorkshop({ calm, onClose, onEarn, say, speak, level }: Props & { level: HelpLevel }) {
+  const items = useMemo(() => {
+    // Every tool shows up: one of each, then two more.
+    const by = (t: ArmsTool) => shuffle(REVISION_ITEMS.filter((x) => x.tool === t));
+    const firstOf = (['add', 'remove', 'move', 'swap'] as ArmsTool[]).map((t) => by(t)[0]);
+    const rest = shuffle(REVISION_ITEMS.filter((x) => !firstOf.includes(x))).slice(0, 2);
+    return shuffle([...firstOf, ...rest]);
+  }, []);
+  const [k, setK] = useState(0);
+  const [missed, setMissed] = useState(false);
+  const [firsts, setFirsts] = useState(0);
+  const [tool, setTool] = useState<ArmsTool | null>(null);
+  const [spot, setSpot] = useState(false);
+  const [fixed, setFixed] = useState<string[] | null>(null);
+  const [wrongPick, setWrongPick] = useState<string | null>(null);
+  const it = items[k];
+  const done = k >= items.length;
+  const toolNow = level === 'full' ? it?.tool ?? null : tool;
+  const spotNow = spot || (level !== 'challenge' && toolNow === it?.tool);
+  const glow = level !== 'challenge';
+  const options = useMemo(() => (it?.options ? shuffle(it.options) : []), [it]);
+  const oops = (msg: string) => { gusSound.ahem(); setMissed(true); say(msg, 'Look again'); };
+  const complete = (choice?: string) => {
+    const next = revise(it, choice);
+    setFixed(next);
+    (it.tool === 'remove' ? gusSound.crunch : it.tool === 'move' ? gusSound.creak : it.tool === 'swap' ? gusSound.swish : gusSound.clank)();
+    say(`Repaired! ${it.why} Listen to the new paragraph.`, `${ARMS_TOOLS[it.tool].icon} ${ARMS_TOOLS[it.tool].name}`);
+    speak(next.join(' '));
+    if (!missed) setFirsts((f) => f + 1);
+  };
+  const pickTool = (t: ArmsTool) => {
+    if (fixed || level === 'full') return;
+    if (t !== it.tool) { setTool(null); oops(`The ${ARMS_TOOLS[t].name} tool is not the one this paragraph needs. ${level === 'guided' ? 'Look at the glowing spot.' : 'Read it out loud. What sounds rough?'}`); return; }
+    setTool(t); gusSound.snap();
+    // Move and remove a whole sentence finish right away once the spot is found.
+    if (level !== 'challenge' && (t === 'move' || (t === 'remove' && it.w === undefined) || (t === 'remove' && it.w !== undefined))) complete();
+  };
+  const tapWord = (si: number, wi: number) => {
+    if (fixed || !toolNow || spotNow) return;
+    const hit = si === it.s && (it.w === undefined || it.tool === 'add' || it.tool === 'move' || wi === it.w);
+    if (!hit) { oops('That part is fine. Find the spot that sounds rough.'); return; }
+    setSpot(true); gusSound.snap();
+    if (it.tool === 'move' || it.tool === 'remove') complete();
+  };
+  const choose = (o: string) => {
+    if (fixed) return;
+    if (o !== it.options![0]) { setWrongPick(o); window.setTimeout(() => setWrongPick(null), 600); oops(it.tool === 'add' ? `That does not tell ${it.ask}. Try another one.` : 'That word does not fit this sentence. Read it with each word.'); return; }
+    complete(o);
+  };
+  const nextJob = () => { setK((x) => x + 1); setTool(null); setSpot(false); setFixed(null); setMissed(false); if (k + 1 >= items.length) gusSound.tada(); };
+  const finish = () => { onEarn(firsts); onClose(); };
+  const showing = fixed ?? it?.sentences ?? [];
+  return (
+    <div className="gus-journal-backdrop" onClick={finish}>
+      <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Revision Workshop">
+        <h2>🛠️ Revision Workshop</h2>
+        {done ? <>
+          <p className="gwb-mini-big">Workshop closed! {firsts} of {items.length} repairs on the first try.</p>
+          <p>Writers revise with four tools: Add a detail, Remove a repeat, Move a sentence, Swap a dull word.</p>
+          <button type="button" className="gus-btn gus-btn-primary" onClick={finish}>Done</button>
+        </> : <>
+          <p className="gwb-mini-progress">Repair {k + 1} of {items.length}{it.tool === 'add' && toolNow === 'add' ? ` · add ${(it.ask ?? '').toUpperCase()}` : ''}</p>
+          <div className={`gwb-revise${fixed && !calm ? ' fixed' : ''}`}>
+            {showing.map((sen, si) => (
+              <div key={`${k}-${si}-${sen}`} className={`gwb-rev-sentence${!fixed && glow && (level === 'guided' || toolNow === it.tool) && si === it.s && (it.w === undefined || it.tool === 'add' || it.tool === 'move') ? ' glow' : ''}`}>
+                {sen.split(' ').map((w, wi) => (
+                  <button key={wi} type="button" className={`gwb-fuse-word${!fixed && glow && (level === 'guided' || toolNow === it.tool) && si === it.s && wi === it.w && it.w !== undefined && it.tool !== 'add' ? ' glow' : ''}`} onClick={() => tapWord(si, wi)} disabled={!!fixed}>{w}</button>
+                ))}
+              </div>
+            ))}
+            <button type="button" className="gwb-hear" onClick={() => speak(showing.join(' '))} aria-label="Hear the paragraph">🔈</button>
+          </div>
+          {!fixed && <div className="gwb-arms" role="group" aria-label="Revision tools">
+            {(Object.keys(ARMS_TOOLS) as ArmsTool[]).map((t) => (
+              <button key={t} type="button" className={`gwb-arm${toolNow === t ? ' on' : ''}`} onClick={() => pickTool(t)} disabled={level === 'full' && t !== it.tool} aria-pressed={toolNow === t}>
+                <span aria-hidden>{ARMS_TOOLS[t].icon}</span><strong>{ARMS_TOOLS[t].name}</strong><small>{ARMS_TOOLS[t].does}</small>
+              </button>
+            ))}
+          </div>}
+          {!fixed && !toolNow && <p className="gwb-mini-progress">{level === 'guided' ? 'Read the glowing part, then pick the tool that fixes it.' : 'Read it out loud. Which tool does this paragraph need?'}</p>}
+          {!fixed && toolNow && !spotNow && <p className="gwb-mini-progress">Tap the part of the paragraph that needs the {ARMS_TOOLS[toolNow].name} tool.</p>}
+          {!fixed && toolNow === it.tool && spotNow && options.length > 0 && (it.tool === 'swap' || it.tool === 'add') && <>
+            <p className="gwb-mini-progress">{it.tool === 'swap' ? 'Pick the precise word.' : `Pick the detail that tells ${it.ask}.`}</p>
+            <div className="gwb-chutes gwb-fuse-out">{options.map((o) => <button key={o} type="button" className={`gwb-chute${wrongPick === o ? ' wrong' : ''}`} onClick={() => choose(o)}><strong>{o}</strong></button>)}</div>
+          </>}
+          {!fixed && level === 'full' && (it.tool === 'move' || it.tool === 'remove') && <button type="button" className="gus-btn gus-btn-primary" onClick={() => complete()}>{ARMS_TOOLS[it.tool].icon} {it.tool === 'move' ? 'Move the glowing sentence' : 'Snip the glowing part'}</button>}
+          {fixed && <button type="button" className="gus-btn gus-btn-primary" onClick={nextJob}>Next repair ▶</button>}
         </>}
         <button type="button" className="gus-btn" onClick={finish}>✕ Close</button>
       </div>

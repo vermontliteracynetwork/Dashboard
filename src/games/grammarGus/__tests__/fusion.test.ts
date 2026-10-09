@@ -23,3 +23,17 @@ describe('Fusion Reactor', () => {
     }
   });
 });
+
+import { REVISION_ITEMS } from '../data/miniGames';
+describe('Revision Workshop', () => {
+  it('every repair points at a real spot and has one right option', () => {
+    for (const it of REVISION_ITEMS) {
+      expect(it.sentences[it.s]).toBeTruthy();
+      if (it.w !== undefined) expect(it.sentences[it.s].split(' ')[it.w]).toBeTruthy();
+      if (it.tool === 'swap' || it.tool === 'add') expect(it.options?.length).toBe(3);
+      if (it.tool === 'add') expect(it.ask).toBeTruthy();
+      if (it.tool === 'move') expect(it.to).not.toBe(it.s);
+      expect([...it.sentences, it.why, ...(it.options ?? [])].join(' ')).not.toMatch(/—/);
+    }
+  });
+});
