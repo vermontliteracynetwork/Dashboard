@@ -15,6 +15,8 @@ export interface GusSettings {
   packs: string[]; // interest word packs in the Parts Bin (plan 17.5)
   finishParts: 'required' | 'auto';
   contraptions: 'collapsed' | 'open' | 'off';
+  // "Do it for me" after 2 hints (plan 3.x teacher settings, 25); missing = allowed.
+  doItForMe?: boolean;
   // Teacher word tool (Build Queue 2026-10-09): a student's special-interest words, with their forms and a picture.
   teacherWords?: TeacherWord[];
   // Her own recipe cards (Build Queue 2026-10-09).

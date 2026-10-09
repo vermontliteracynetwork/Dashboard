@@ -79,7 +79,7 @@ export default function GusReportPanel() {
       <p style={{ margin: 0, opacity: 0.8 }}>Every time a student pulls START, the machine notes how it went. Fixes are the grammar rules the machine or Gus's star review flagged.</p>
       {students.length === 0 && <p style={{ margin: 0, opacity: 0.7 }}>No students yet.</p>}
       {students.map((st) => {
-        const look = (rows.find((r) => r.ownerId === `gus:${st.id}`)?.look ?? {}) as { attempts?: Attempt[]; blueprints?: BlueprintDone[]; checkups?: CheckupResult[] };
+        const look = (rows.find((r) => r.ownerId === `gus:${st.id}`)?.look ?? {}) as { attempts?: Attempt[]; blueprints?: BlueprintDone[]; checkups?: CheckupResult[]; doneForMe?: number };
         const checks = look.checkups ?? [];
         const firstCheck = checks[0], lastCheck = checks[checks.length - 1];
         const attempts = look.attempts ?? [];
@@ -119,6 +119,7 @@ export default function GusReportPanel() {
                 <Stat label="Words per 3-star sentence" value={r.avgWords === null ? '–' : String(r.avgWords)} />
                 <Stat label="Pulls right after the Hopper" value={pct(r.hopperRate)} />
                 <Stat label="Blueprints finished" value={String(r.blueprints)} />
+                <Stat label="🪄 Do it for me used" value={String(look.doneForMe ?? 0)} />
               </div>
             )}
             {notesFor === st.id && (

@@ -81,7 +81,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const gusOwner = (id: string) => `gus:${id}`;
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: Paint; machines?: (SavedMachine | null)[]; cabinet?: string[] }
+interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: Paint; machines?: (SavedMachine | null)[]; cabinet?: string[]; doneForMe?: number }
 // The Sticker Book's pages: one per job kind (sticker emoji from finishing that job).
 const STICKER_PAGES: { st: string; name: string }[] = [
   { st: '📜', name: 'Orders filled' }, { st: '📦', name: 'Deliveries in order' }, { st: '🔍', name: 'Mistakes inspected' }, { st: '⚡', name: 'Sparks fixed' },
@@ -828,6 +828,36 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     else { setHintOffer(lineId); say(`${notes ? `${notes} ` : ''}${pick(rng, STILL_STUCK)}`, 'Need a hint?'); }
   };
   const hintsShown = useRef<Record<string, number>>({});
+  // 🪄 Do it for me (plan 25: it lowers frustration and counts as an independence signal, never a
+  // failure): after 2 hints on a machine, Gus plugs in the finishing parts and commas the hint shows.
+  const GHOST_KIND: Partial<Record<FinishProblem, Kind>> = { NEED_CAP: 'cap', NEED_END: 'stop', NEED_TV: 'tv' };
+  const canDoForMe = (lineId?: string) => {
+    if (!lineId || settings.doItForMe === false || (hintsShown.current[lineId] ?? 0) < 2 || !hinted[lineId]) return false;
+    const h = pendingHint.current[lineId];
+    return !!h && (h.ghosts.some((g) => GHOST_KIND[g]) || h.commaOn.length > 0);
+  };
+  const doItForMe = (lineId: string) => {
+    const h = pendingHint.current[lineId]; const l0 = linesRef.current.find((x) => x.id === lineId); if (!h || !l0) return;
+    remember();
+    const kinds = h.ghosts.map((g) => GHOST_KIND[g]).filter((k): k is Kind => !!k);
+    editLine(lineId, (l) => {
+      let items = l.items;
+      for (const k of kinds) {
+        if (items.some((i) => i.kind === k || i.top?.kind === k || i.bottom?.kind === k)) continue;
+        const part: BoardItem = { id: uid(), kind: k, word: null };
+        const first = items.find((i) => needsWord(i.kind));
+        if (k === 'cap' && first && !first.bottom) items = items.map((i) => (i.id === first.id ? { ...i, bottom: part } : i));
+        else items = placeInto(items, smartIndex({ ...l, items }, k), part);
+      }
+      for (const id of h.commaOn) items = items.map((i) => (i.id === id && !i.bottom ? { ...i, bottom: { id: uid(), kind: 'comma', word: null } } : i));
+      return { ...l, items };
+    }, true);
+    kinds.forEach((k) => clearGhost(lineId, k)); setCommaGhost((c) => ({ ...c, [lineId]: [] }));
+    hintsShown.current[lineId] = 0; setHinted((x) => ({ ...x, [lineId]: false }));
+    if (studentId) mergeStyleRow(gusOwner(studentId), { doneForMe: (gusRowNow().doneForMe ?? 0) + 1 });
+    bounce(lineId); gusSound.heave();
+    say(`Done! I plugged in ${[...kinds.map((k) => kindInfo(k).name), ...(h.commaOn.length ? ['the comma'] : [])].join(' and ')}. Look at where it went, then pull the Start Lever.`, '🪄 Done for you');
+  };
   const showHint = (lineId: string) => {
     const h = pendingHint.current[lineId]; if (!h) return;
     setHintOffer(null); setHinted((x) => ({ ...x, [lineId]: true })); setSelLine(lineId);
@@ -1569,7 +1599,10 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         {hintOffer && lines.some((l) => l.id === hintOffer) ? <>
           <button type="button" className="gus-btn gus-btn-primary gwb-hint-btn" onClick={() => showHint(hintOffer)}>💡 Yes, a hint</button>
           <button type="button" className="gus-btn" onClick={() => { setHintOffer(null); say('Okay, inventor! Keep tinkering. Pull the Start Lever when you are ready.', 'You got this'); }}>🔧 I'll keep trying</button>
-        </> : nextStep && <button type="button" className="gus-btn gwb-next-btn" onClick={doNext}>👉 Next: {nextStep.text}</button>}
+        </> : <>
+          {nextStep && <button type="button" className="gus-btn gwb-next-btn" onClick={doNext}>👉 Next: {nextStep.text}</button>}
+          {focusLine && canDoForMe(focusLine.id) && <button type="button" className="gus-btn" onClick={() => doItForMe(focusLine.id)}>🪄 Do it for me</button>}
+        </>}
       </GusGuide>
   );
   // ---- render ---------------------------------------------------------------

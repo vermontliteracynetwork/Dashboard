@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-do-it',
+    date: '2026-10-09',
+    icon: '🪄',
+    title: 'Grammar Gus: Do it for me',
+    body: 'Stuck after two hints? Tap 🪄 Do it for me under Gus and he plugs in the missing capital letter, punctuation, comma or TV. Look at where it went, then pull the lever.',
+  },
+  {
     id: '2026-10-09-gus-sorter',
     date: '2026-10-09',
     icon: '🎨',

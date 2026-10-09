@@ -107,6 +107,14 @@ export default function GusSettingsPanel() {
           </div>
         </div>
         <div className="stack" style={{ gap: 6 }}>
+          <strong>🪄 Do it for me (after 2 hints)</strong>
+          <div className="row-wrap" style={{ gap: 6 }}>
+            {pill(settings.doItForMe !== false, 'Allowed', () => save({ doItForMe: true }))}
+            {pill(settings.doItForMe === false, 'Off', () => save({ doItForMe: false }))}
+          </div>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>After two hints on the same machine, Gus can plug in the missing capital letter, punctuation, comma or TV. Each use shows in the report.</span>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
           <strong>Workboard finishing parts</strong>
           <div className="row-wrap" style={{ gap: 6 }}>
             {pill(settings.finishParts === 'required', 'Students add them', () => save({ finishParts: 'required' }))}
