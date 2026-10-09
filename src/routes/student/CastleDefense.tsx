@@ -16,7 +16,7 @@ import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import ExplosionBurst from '../../components/ExplosionBurst';
-import { CastleGround, CastleKeepArt } from '../../components/CastleMapArt';
+import { CastleGround, CastleKeepArt, MapAnimations } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
 import { drawQuestion } from '../../lib/questionPick';
 import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, TOWER_POOF, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
@@ -167,7 +167,7 @@ const TOWER_META = TOWERS;
 const TOWER_SPRITE = (type: TowerType, tier: 1 | 2 | 3) => TOWERS[type].sprite(tier);
 const THEME_KEY = 'castle.attackers';
 const MAP_KEY = 'castle.map';
-const readMap = (): MapId => { try { const m = localStorage.getItem(MAP_KEY); return m === 'swamp' || m === 'field' ? m : 'meadow'; } catch { return 'meadow'; } };
+const readMap = (): MapId => { try { const m = localStorage.getItem(MAP_KEY); return m === 'swamp' || m === 'field' || m === 'village' ? m : 'meadow'; } catch { return 'meadow'; } };
 const WEAK_DAMAGE = 1.5; // Weakness Tower: weak attackers take this much from every hit
 const BLESS_COOLDOWN = 0.7; // Blessing Tower: towers next to it reload this much faster
 const readTheme = (): ThemeId => { try { const t = localStorage.getItem(THEME_KEY) as ThemeId | null; return t && ATTACKER_THEMES.some((x) => x.id === t) ? t : 'classic'; } catch { return 'classic'; } };
@@ -717,6 +717,7 @@ export default function CastleDefense() {
           <div className="castle-frame">
             <div className={`castle-battlefield${mapId !== 'meadow' ? ` ${mapId}` : ''}`}>
               <CastleGround slots={SLOT_POSITIONS} map={mapId} />
+              <MapAnimations slots={SLOT_POSITIONS} map={mapId} />
 
               <div className="castle-hud castle-hud-left">
                 <span className="castle-hud-stat" title="Gems to build towers">

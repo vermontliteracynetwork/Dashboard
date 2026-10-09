@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-cd-village',
+    date: '2026-10-09',
+    icon: '🏘️',
+    title: 'Castle Defense: the Market Village',
+    body: 'A new map to defend: a village with houses, market stalls and a well. Flags wave and campfires crackle on the village and field maps.',
+  },
+  {
     id: '2026-10-09-lab-atoms',
     date: '2026-10-09',
     icon: '⚛️',
