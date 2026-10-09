@@ -123,6 +123,7 @@ const HOW_TO: Record<string, string> = {
 const SCIENCE_JOBS: Record<string, { icon: string; name: string; teaches: string }> = {
   procedure: { icon: '🧪', name: 'Procedure Conveyor', teaches: 'Command steps in order: First, Next, Then, Finally' },
   hypothesis: { icon: '🔬', name: 'Hypothesis Engine', teaches: 'If... then... and an observation of what happened' },
+  recipe: { icon: '🍲', name: 'Silly Recipe', teaches: 'Command steps in a silly kitchen: First, Next, Then, Finally' },
 };
 const bpInfo = (id?: string) => SCIENCE_JOBS[id ?? ''] ?? frameworkById.get(id ?? '');
 // Expansion Rig lamps: who, what, when, where, why, how.
@@ -1117,7 +1118,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     let y = ls.length ? snap(Math.max(...ls.map(lineBottom)) + ATT_H + 20) : 80;
     const add: BoardLine[] = [];
     if (kind === 'blueprint' && blueprint) {
-      for (const b of (SCIENCE_JOBS[blueprint] ? makeScienceJob(blueprint as 'procedure' | 'hypothesis', uid) : makeBlueprint(blueprint, uid))) { add.push({ id: uid(), x: 60, y, items: b.items, job: b.job, ...(b.connector ? { connector: b.connector } : {}) }); y = snap(y + ITEM_H + ATT_H + 150); }
+      for (const b of (SCIENCE_JOBS[blueprint] ? makeScienceJob(blueprint as 'procedure' | 'hypothesis' | 'recipe', uid) : makeBlueprint(blueprint, uid))) { add.push({ id: uid(), x: 60, y, items: b.items, job: b.job, ...(b.connector ? { connector: b.connector } : {}) }); y = snap(y + ITEM_H + ATT_H + 150); }
     } else {
       const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : kind === 'spark' ? (blueprint === 'appos' ? makeAppositiveJob(rng, uid, { gentleOnly: settings.gentleOnly }) : blueprint === 'runon' ? makeRunOnJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly })) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
       add.push({ id: uid(), x: 60, y, items, job });
@@ -1547,11 +1548,12 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('revise'); }}>🛠️ Revision Workshop<small>Add, Remove, Move and Swap to fix a rough paragraph</small></button>
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('pairs'); }}>♨️ Noun Boiler Pairs<small>One or more than one: a, an, some, and the right action word</small></button>
                   <div className="gwb-menu-sub">🔬 Science writing</div>
-                  {Object.entries(SCIENCE_JOBS).map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
+                  {Object.entries(SCIENCE_JOBS).filter(([id]) => id !== 'recipe').map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('cer'); }}>🔬 CER Lab Report<small>Claim, Evidence and Reasoning: explain an experiment like a scientist</small></button>
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('labels'); }}>🏷️ Label and Unit Maker<small>Label a diagram, measure with a number and a unit, and find the word parts</small></button>
                   <div className="gwb-menu-sub">📐 Build a whole paragraph</div>
                   {WORKBOARD_BLUEPRINTS.map((id) => { const fw = frameworkById.get(id)!; return <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{fw.icon} {fw.name}<small>{fw.teaches}</small></button>; })}
+                  <button type="button" role="menuitem" onClick={() => startJob('blueprint', 'recipe')}>{SCIENCE_JOBS.recipe.icon} {SCIENCE_JOBS.recipe.name}<small>{SCIENCE_JOBS.recipe.teaches}</small></button>
                 </>}
               </div>
             )}

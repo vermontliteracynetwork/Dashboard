@@ -86,5 +86,16 @@ export const FRAMEWORKS: Framework[] = [
     ],
     links: ['characterConnects', 'sameTime'],
   },
+  {
+    // Build Queue 2026-10-09 (one of the plan's later blueprints): I statements about a favorite thing.
+    id: 'show-and-tell', name: 'Show and Tell', icon: '🎒', teaches: 'Telling about one thing, with I and it', video: 'perLine', tense: 'present',
+    example: 'I have a fuzzy hamster. It runs quickly. It sleeps in a box.',
+    lines: [
+      { id: 'l1', kind: 'build', label: 'What I brought', shapes: [S('R V A J N')], locks: { 'who.pron': 'I' }, expandable: true },
+      { id: 'l2', kind: 'build', label: 'What it does', shapes: [S('R V D')], locks: { 'who.pron': 'it' }, expandable: true },
+      { id: 'l3', kind: 'build', label: 'Where it goes', shapes: [S('R V P A N')], locks: { 'who.pron': 'it' }, expandable: true },
+    ],
+    links: ['sameTime'],
+  },
 ];
 export const frameworkById = new Map(FRAMEWORKS.map((f) => [f.id, f]));

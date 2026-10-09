@@ -64,7 +64,7 @@ export function makeOrderJob(rng: Rng, uid: () => string, o: { gentleOnly?: bool
 // Blueprints on the Workboard: a paragraph plan delivered as linked
 // machines, one per sentence, each with its empty word machines in a
 // working order, its label (Beginning, Middle, End) and any fixed lines.
-export const WORKBOARD_BLUEPRINTS = ['silly-story', 'news', 'day-in-the-life', 'rescue', 'knock-knock'];
+export const WORKBOARD_BLUEPRINTS = ['silly-story', 'news', 'day-in-the-life', 'rescue', 'knock-knock', 'show-and-tell'];
 export function makeBlueprint(id: string, uid: () => string): { items: BoardItem[]; job: BoardJob; connector?: string }[] {
   const fw = frameworkById.get(id);
   if (!fw) return [];
@@ -91,21 +91,26 @@ export function makeBlueprint(id: string, uid: () => string): { items: BoardItem
 // Science writing jobs (Claudia's Phase 1 scaffold plan, 2026-10-07).
 // Procedure Conveyor: numbered command steps (First, Next, Then, Finally).
 // Hypothesis Engine: "If ..., then ... will ..." and a past observation.
-export type ScienceJob = 'procedure' | 'hypothesis';
+export type ScienceJob = 'procedure' | 'hypothesis' | 'recipe';
 export function makeScienceJob(kind: ScienceJob, uid: () => string): { items: BoardItem[]; job: BoardJob; connector?: string }[] {
   const group = uid();
   const cap = (): BoardItem => ({ id: uid(), kind: 'cap', word: null });
   const tail = (last: boolean): BoardItem[] => [{ id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }, ...(last ? [] : [{ id: uid(), kind: 'link' as const, word: null }])];
   const w = (kind: Pos, word: string | null = null): BoardItem => ({ id: uid(), kind, word });
-  if (kind === 'procedure') {
-    const steps: { lead: string; shape: Pos[] }[] = [
+  if (kind === 'procedure' || kind === 'recipe') {
+    // The Silly Recipe (Build Queue 2026-10-09) is a procedure in a silly kitchen: command steps with
+    // a where phrase and a how word ("Then, stir the pickle slowly.").
+    const steps: { lead: string; shape: Pos[] }[] = kind === 'recipe' ? [
+      { lead: 'First', shape: ['V', 'A', 'J', 'N'] }, { lead: 'Next', shape: ['V', 'A', 'N', 'P', 'A', 'N'] },
+      { lead: 'Then', shape: ['V', 'A', 'N', 'D'] }, { lead: 'Finally', shape: ['V', 'A', 'J', 'N'] },
+    ] : [
       { lead: 'First', shape: ['V', 'A', 'N'] }, { lead: 'Next', shape: ['V', 'A', 'J', 'N'] },
       { lead: 'Then', shape: ['V', 'A', 'N', 'D'] }, { lead: 'Finally', shape: ['V', 'A', 'N'] },
     ];
     return steps.map((st, k) => {
       const words = st.shape.map((p) => w(p));
       words[0] = { ...words[0], bottom: cap() };
-      return { items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'command', word: null }, ...words, ...tail(k === steps.length - 1)], job: { id: uid(), kind: 'blueprint', text: '', group, label: `Step ${k + 1}`, part: k + 1, of: steps.length, blueprint: 'procedure' }, connector: st.lead };
+      return { items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'command', word: null }, ...words, ...tail(k === steps.length - 1)], job: { id: uid(), kind: 'blueprint', text: '', group, label: `Step ${k + 1}`, part: k + 1, of: steps.length, blueprint: kind }, connector: st.lead };
     });
   }
   const hypo: BoardItem[] = [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: 'future' }, { id: uid(), kind: 'hypo', word: 'if', bottom: cap() }, w('A'), w('N'), { ...w('V'), bottom: { id: uid(), kind: 'comma', word: null } }, w('D', 'then'), w('A'), w('N'), w('V'), ...tail(false)];

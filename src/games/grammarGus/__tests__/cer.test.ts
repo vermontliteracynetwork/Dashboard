@@ -28,3 +28,20 @@ describe('Label and Unit Maker', () => {
     }
   });
 });
+
+import { makeBlueprint, makeScienceJob } from '../engine/jobs';
+describe('new Blueprints (2026-10-09)', () => {
+  let n = 0; const uid = () => `b${n++}`;
+  it('Show and Tell builds 3 linked machines with I and it filled in', () => {
+    const lines = makeBlueprint('show-and-tell', uid);
+    expect(lines.length).toBe(3);
+    expect(lines[0].items.some((i) => i.kind === 'R' && i.word === 'I')).toBe(true);
+    expect(lines[1].items.some((i) => i.kind === 'R' && i.word === 'it')).toBe(true);
+  });
+  it('the Silly Recipe is 4 command steps with time order words', () => {
+    const steps = makeScienceJob('recipe', uid);
+    expect(steps.map((s) => s.connector)).toEqual(['First', 'Next', 'Then', 'Finally']);
+    steps.forEach((s) => expect(s.items.some((i) => i.kind === 'command')).toBe(true));
+    expect(steps[0].job.blueprint).toBe('recipe');
+  });
+});

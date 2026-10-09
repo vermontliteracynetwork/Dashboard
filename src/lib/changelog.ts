@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-blueprints',
+    date: '2026-10-09',
+    icon: '🍲',
+    title: 'Grammar Gus: two new Blueprints',
+    body: 'Build a Show and Tell about your favorite thing, or write a Silly Recipe with First, Next, Then and Finally. Find them in Jobs, under Build a whole paragraph.',
+  },
+  {
     id: '2026-10-09-gus-pairs',
     date: '2026-10-09',
     icon: '♨️',
