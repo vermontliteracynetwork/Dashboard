@@ -173,9 +173,11 @@ const readTheme = (): ThemeId => { try { const t = localStorage.getItem(THEME_KE
 // Castle townspeople, near the gate (map units).
 const CITIZEN_SPOTS = [{ x: 131, y: 88 }, { x: 139, y: 91 }, { x: 150, y: 90 }, { x: 157, y: 84 }];
 
-function EnemyArt({ def }: { def: EnemyDef }) {
+// Stopped attackers play their death strip once; one that reaches the castle plays its attack.
+function EnemyArt({ def, status }: { def: EnemyDef; status?: string }) {
   if (def.img) return <img src={def.img} alt={def.label} />;
-  return <SheetSprite sheet={def.sheet!} className="cd-enemy-sheet" style={{ width: `${(def.size ?? 1) * 100}%` }} />;
+  const once = status === 'dead' ? def.death : status === 'leaked' ? def.attack : undefined;
+  return <SheetSprite key={once ? status : 'walk'} sheet={once ?? def.sheet!} once={!!once} className="cd-enemy-sheet" style={{ width: `${(def.size ?? 1) * 100}%` }} />;
 }
 const TOWER_SLOTS = 5;
 
@@ -789,13 +791,19 @@ export default function CastleDefense() {
                     )}
                     {slot ? (
                       <>
-                        <img
-                          key={`${slot.type}-${slot.tier}`}
-                          className={`castle-tower-img${building[i] ? ' cd-built' : ''}${TOWER_META[slot.type].smooth ? ' cd-smooth' : ''}`}
-                          src={TOWER_SPRITE(slot.type, slot.tier)}
-                          alt=""
-                          style={{ height: TOWER_HEIGHT_BY_TIER[slot.tier - 1] }}
-                        />
+                        {phase === 'advance' && TOWER_META[slot.type].fire ? (() => {
+                          // During a wave, towers with Foozle weapons animate (crossbow draws, bolt cranks...).
+                          const f = TOWER_META[slot.type].fire!(slot.tier);
+                          return <span className="castle-tower-img cd-fire" aria-hidden style={{ height: TOWER_HEIGHT_BY_TIER[slot.tier - 1], aspectRatio: `64 / ${f.h}`, backgroundImage: `url("${f.src}")`, backgroundSize: `${f.frames * 100}% 100%`, ['--fx-end' as string]: `${(f.frames / (f.frames - 1)) * 100}%`, animationDuration: `${f.frames * 110}ms`, animationTimingFunction: `steps(${f.frames})` }} />;
+                        })() : (
+                          <img
+                            key={`${slot.type}-${slot.tier}`}
+                            className={`castle-tower-img${building[i] ? ' cd-built' : ''}${TOWER_META[slot.type].smooth ? ' cd-smooth' : ''}`}
+                            src={TOWER_SPRITE(slot.type, slot.tier)}
+                            alt=""
+                            style={{ height: TOWER_HEIGHT_BY_TIER[slot.tier - 1] }}
+                          />
+                        )}
                         <span className="castle-tier-stars" aria-hidden="true">
                           {Array.from({ length: slot.tier }).map((_, s) => <img key={s} src={HUD_ICON('star')} alt="" />)}
                         </span>
@@ -813,7 +821,7 @@ export default function CastleDefense() {
                 return (
                   <div
                     key={e.key}
-                    className={`castle-enemy${ENEMIES[e.type].flying ? ' flying' : ''}${pt.dx < 0 ? ' facing-left' : ''}${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}${(e.weakTicksRemaining ?? 0) > 0 ? ' weak' : ''}`}
+                    className={`castle-enemy${ENEMIES[e.type].death ? ' has-death' : ''}${ENEMIES[e.type].flying ? ' flying' : ''}${pt.dx < 0 ? ' facing-left' : ''}${e.status === 'dead' ? ' dead' : ''}${e.status === 'leaked' ? ' leaked' : ''}${e.justHit ? ' hit' : ''}${e.slowTicksRemaining > 0 ? ' slowed' : ''}${(e.weakTicksRemaining ?? 0) > 0 ? ' weak' : ''}`}
                     style={{ ...toPct(pt), zIndex: 10 + Math.round(pt.y), transitionDuration: `${TICK_MS}ms` }}
                   >
                     {e.status === 'active' && (
@@ -822,7 +830,7 @@ export default function CastleDefense() {
                       </div>
                     )}
                     <span className="castle-enemy-flip">
-                      <EnemyArt def={ENEMIES[e.type]} />
+                      <EnemyArt def={ENEMIES[e.type]} status={e.status} />
                     </span>
                   </div>
                 );
@@ -831,7 +839,7 @@ export default function CastleDefense() {
               {/* A real explosion sprite burst on every kill (teacher asset
                   upload). Keyed once per dead enemy and self-terminating, so
                   it never restarts on the frequent tick re-renders. */}
-              {enemiesView.filter((e) => e.status === 'dead').map((e) => {
+              {enemiesView.filter((e) => e.status === 'dead' && !ENEMIES[e.type].death).map((e) => {
                 const pt = pointAlongPath(e.progress);
                 return <ExplosionBurst key={`boom-${e.key}`} x={(pt.x / MAP_W) * 100} y={(pt.y / MAP_H) * 100} />;
               })}

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-cd-anims',
+    date: '2026-10-09',
+    icon: '🏹',
+    title: 'Castle Defense comes alive',
+    body: 'Attackers now fall over when your towers stop them, and attack the castle if they reach it. During a wave the Crossbow, Bolt, Spark Lamp and Gem Mine towers move as they fire!',
+  },
+  {
     id: '2026-10-09-hang-pictures',
     date: '2026-10-09',
     icon: '🖼️',

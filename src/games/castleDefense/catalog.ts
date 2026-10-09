@@ -19,24 +19,32 @@ export interface TowerDef {
   cleave?: number; cleaveMult?: number; splashAll?: boolean; slowTicks?: number; reach?: 1 | 2; gemsPerWave?: number[];
   // Fantasy Guard pack (smooth drawn art, not pixel art).
   smooth?: boolean; toughestFirst?: boolean; weakTicks?: number; blessNeighbors?: boolean;
+  // An animated firing strip per tier (the Foozle weapon frames over the tower), played during a wave.
+  fire?: (tier: 1 | 2 | 3) => { src: string; frames: number; h: number };
 }
 const built = (name: string) => (tier: 1 | 2 | 3) => `${CD}/built/${name}-${tier}.png`;
+// Firing strips built from the Foozle packs (base + each weapon frame, 64 px wide per frame).
+const FIRE: Record<string, { frames: number[]; h: number[] }> = {
+  'foozle-01': { frames: [6, 6, 6], h: [119, 127, 135] }, 'foozle-06': { frames: [6, 6, 6], h: [112, 129, 137] },
+  'foozle-07': { frames: [6, 7, 9], h: [104, 119, 127] }, 'foozle-08': { frames: [10, 10, 10], h: [118, 132, 146] },
+};
+const fire = (name: string) => (tier: 1 | 2 | 3) => ({ src: `${CD}/built/${name}-${tier}-fire.png`, frames: FIRE[name].frames[tier - 1], h: FIRE[name].h[tier - 1] });
 const magic = (name: string) => (tier: 1 | 2 | 3) => `${CD}/craftpix/magic-towers/${name}-${tier}.png`;
 export const TOWERS: Record<TowerId, TowerDef> = {
   stone: { id: 'stone', label: 'Stone Tower', blurb: 'Hits one attacker hard.', cost: [3, 3, 4], dps: [3, 5, 8], cooldownMs: 1000, sprite: (t) => `/castle-defense/tower-stone-${t}.png` },
   wood: { id: 'wood', label: 'Banner Tower', blurb: 'Also hits a second attacker nearby.', cost: [4, 4, 5], dps: [2, 4, 6], cooldownMs: 1000, cleave: 1, cleaveMult: 0.5, sprite: (t) => `/castle-defense/tower-wood-${t}.png` },
   pink: { id: 'pink', label: 'Mystic Tower', blurb: 'Slows down the attacker it hits.', cost: [4, 4, 5], dps: [2, 3, 5], cooldownMs: 1000, slowTicks: 3, sprite: (t) => `/castle-defense/tower-pink-${t}.png` },
   archer: { id: 'archer', label: 'Archer Tower', blurb: 'Fast arrows: shoots two times a second.', cost: [5, 5, 6], dps: [2, 3, 5], cooldownMs: 500, sprite: built('archer'), isNew: true },
-  crossbow: { id: 'crossbow', label: 'Crossbow Tower', blurb: 'Long reach: also guards the next part of the road.', cost: [4, 4, 5], dps: [3, 4, 7], cooldownMs: 1000, reach: 2, sprite: built('foozle-01'), isNew: true },
+  crossbow: { id: 'crossbow', label: 'Crossbow Tower', blurb: 'Long reach: also guards the next part of the road.', cost: [4, 4, 5], dps: [3, 4, 7], cooldownMs: 1000, reach: 2, sprite: built('foozle-01'), fire: fire('foozle-01'), isNew: true },
   crystal: { id: 'crystal', label: 'Crystal Tower', blurb: 'Hits every attacker near it at once.', cost: [5, 5, 6], dps: [1, 2, 4], cooldownMs: 1000, splashAll: true, sprite: built('foozle-02'), isNew: true },
   orb: { id: 'orb', label: 'Frost Orb Tower', blurb: 'Slows attackers for a long time.', cost: [4, 4, 5], dps: [1, 2, 3], cooldownMs: 1000, slowTicks: 7, sprite: built('foozle-05'), isNew: true },
-  bolt: { id: 'bolt', label: 'Bolt Tower', blurb: 'Giant hits, but slow to reload.', cost: [4, 5, 6], dps: [7, 11, 16], cooldownMs: 2000, sprite: built('foozle-06'), isNew: true },
-  zap: { id: 'zap', label: 'Spark Lamp', blurb: 'Zaps one attacker, then jumps to 2 more.', cost: [5, 5, 6], dps: [2, 3, 5], cooldownMs: 1000, cleave: 2, cleaveMult: 0.5, sprite: built('foozle-07'), isNew: true },
+  bolt: { id: 'bolt', label: 'Bolt Tower', blurb: 'Giant hits, but slow to reload.', cost: [4, 5, 6], dps: [7, 11, 16], cooldownMs: 2000, sprite: built('foozle-06'), fire: fire('foozle-06'), isNew: true },
+  zap: { id: 'zap', label: 'Spark Lamp', blurb: 'Zaps one attacker, then jumps to 2 more.', cost: [5, 5, 6], dps: [2, 3, 5], cooldownMs: 1000, cleave: 2, cleaveMult: 0.5, sprite: built('foozle-07'), fire: fire('foozle-07'), isNew: true },
   watchtower: { id: 'watchtower', label: 'Brick Watchtower', blurb: 'Sharp eyes: always hits the toughest attacker near it.', cost: [4, 4, 5], dps: [3, 5, 8], cooldownMs: 1000, toughestFirst: true, smooth: true, sprite: magic('brick'), isNew: true },
   lookout: { id: 'lookout', label: 'Wooden Lookout', blurb: 'Cheap to build: only 2 gems.', cost: [2, 3, 4], dps: [2, 3, 5], cooldownMs: 1000, smooth: true, sprite: magic('wooden'), isNew: true },
   weakness: { id: 'weakness', label: 'Weakness Tower', blurb: 'Makes attackers weak, so every tower hits them harder.', cost: [4, 4, 5], dps: [1, 2, 3], cooldownMs: 1000, weakTicks: 7, smooth: true, sprite: magic('weakness'), isNew: true },
   blessing: { id: 'blessing', label: 'Blessing Tower', blurb: 'Helps the towers next to it shoot faster.', cost: [5, 5, 6], dps: [1, 1, 2], cooldownMs: 1000, blessNeighbors: true, smooth: true, sprite: magic('blessing'), isNew: true },
-  gemmine: { id: 'gemmine', label: 'Gem Mine', blurb: 'Digs up bonus gems after every wave. Pokes attackers too.', cost: [5, 5, 6], dps: [1, 1, 2], cooldownMs: 1000, gemsPerWave: [1, 2, 3], sprite: built('foozle-08'), isNew: true },
+  gemmine: { id: 'gemmine', label: 'Gem Mine', blurb: 'Digs up bonus gems after every wave. Pokes attackers too.', cost: [5, 5, 6], dps: [1, 1, 2], cooldownMs: 1000, gemsPerWave: [1, 2, 3], sprite: built('foozle-08'), fire: fire('foozle-08'), isNew: true },
 };
 export const TOWER_IDS = Object.keys(TOWERS) as TowerId[];
 
@@ -48,13 +56,18 @@ export const ATTACKER_THEMES: { id: ThemeId; label: string; icon: string }[] = [
   { id: 'mix', label: 'Surprise mix', icon: '🎲' },
 ];
 
-export interface EnemyDef { id: string; label: string; tier: 1 | 2 | 3 | 4; theme: Exclude<ThemeId, 'mix'>; flying?: boolean; img?: string; sheet?: Sheet; size?: number; preview: string }
+// death: plays once when the attacker is stopped. attack: plays once when it reaches the castle.
+export interface EnemyDef { id: string; label: string; tier: 1 | 2 | 3 | 4; theme: Exclude<ThemeId, 'mix'>; flying?: boolean; img?: string; sheet?: Sheet; death?: Sheet; attack?: Sheet; size?: number; preview: string }
 // Health by tier, the same as the original raiders (goblin 3, knight 5, rogue 4, wizard 6), so
 // every theme is exactly as hard as the classic game.
 export const TIER_HP: Record<1 | 2 | 3 | 4, number> = { 1: 3, 2: 5, 3: 4, 4: 6 };
 const cp = (path: string, cell: number, bbox: Sheet['bbox']): Sheet => ({ src: `${CD}/craftpix/${path}`, imgW: cell * 6, imgH: cell, cellW: cell, cellH: cell, row: 0, frames: 6, bbox });
 const fz = (path: string, imgW: number, imgH: number, cellW: number, cellH: number, frames: number, bbox: Sheet['bbox']): Sheet => ({ src: `${CD}/foozle/${path}`, imgW, imgH, cellW, cellH, row: 2, frames, bbox });
 const pv = (id: string) => `${CD}/built/enemy-${id}.png`;
+// The same CraftPix attacker's other strips (death, attack or special), same cell and crop.
+const cpAlt = (walk: Sheet, file: string): Sheet => ({ ...walk, src: walk.src.replace(/s_(walk|run|fly)\.png$/, file), ms: 110 });
+// Foozle sheets: rows 0-2 move, 3-5 attack, 6-8 death (down, up, side). The side rows are used.
+const fzRow = (walk: Sheet, row: number, frames: number): Sheet => ({ ...walk, row, frames, ms: 90 });
 export const ENEMIES: Record<string, EnemyDef> = {
   goblin: { id: 'goblin', label: 'Goblin', tier: 1, theme: 'classic', img: '/castle-defense/enemy-goblin.png', preview: '/castle-defense/enemy-goblin.png' },
   knight: { id: 'knight', label: 'Knight', tier: 2, theme: 'classic', img: '/castle-defense/enemy-knight.png', preview: '/castle-defense/enemy-knight.png' },
@@ -76,6 +89,24 @@ export const ENEMIES: Record<string, EnemyDef> = {
   magmacrab: { id: 'magmacrab', label: 'Magma Crab', tier: 4, theme: 'bugs', sheet: fz('ground-enemies/ground/spritesheets/magma-crab.png', 640, 576, 64, 64, 8, [2, 14, 52, 51]), size: 1.2, preview: pv('magmacrab') },
   voidbutterfly: { id: 'voidbutterfly', label: 'Void Butterfly', tier: 4, theme: 'bugs', flying: true, sheet: fz('flying-enemies/flying/spritesheets/voidbutterfly.png', 832, 576, 64, 64, 6, [6, 4, 44, 60]), size: 1.1, preview: pv('voidbutterfly') },
 };
+
+// Death and castle-attack animations (Build Queue 2026-10-09, the saved packs' own strips).
+const CP_EXTRA: Record<string, { death: string; attack?: string }> = {
+  slime: { death: 's_death.png', attack: 's_special.png' }, clubgoblin: { death: 's_death.png', attack: 's_attack.png' },
+  wolf: { death: 's_death.png', attack: 's_attack.png' }, bee: { death: 's_death.png' },
+  rat: { death: 's_death.png', attack: 's_attack.png' }, rider: { death: 's_death.png', attack: 's_attack.png' }, rockrider: { death: 's_death.png', attack: 's_attack.png' },
+};
+const FZ_FRAMES: Record<string, { death: number; attack: number }> = {
+  leafbug: { death: 7, attack: 8 }, locust: { death: 14, attack: 8 }, firebug: { death: 11, attack: 8 }, firewasp: { death: 12, attack: 8 },
+  scorpion: { death: 8, attack: 8 }, clampbeetle: { death: 13, attack: 8 }, magmacrab: { death: 10, attack: 8 }, voidbutterfly: { death: 12, attack: 4 },
+};
+for (const e of Object.values(ENEMIES)) {
+  if (!e.sheet) continue;
+  const cpx = CP_EXTRA[e.id];
+  if (cpx) { e.death = cpAlt(e.sheet, cpx.death); if (cpx.attack) e.attack = cpAlt(e.sheet, cpx.attack); }
+  const fzx = FZ_FRAMES[e.id];
+  if (fzx) { e.death = fzRow(e.sheet, 8, fzx.death); e.attack = fzRow(e.sheet, 5, fzx.attack); }
+}
 
 // The classic waves as tiers (goblin 1, knight 2, rogue 3, wizard 4). Each theme fills every
 // tier with one of its own attackers, chosen once when the game starts.
