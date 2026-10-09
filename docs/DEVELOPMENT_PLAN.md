@@ -34,11 +34,12 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 1. Grammar Gus smaller pieces (IN PROGRESS): Pixel TV "with", word packs and the teacher word tool, Garage extras, Orders editor, Gus's Checkup, and the "Why Did the...?" blueprint (needs why-questions, the Question Crane only makes yes or no questions). (Show and Tell and Silly Recipe blueprints and Noun Boiler Pairs SHIPPED 2026-10-09; Mixed-up Delivery and Punctuation Inspector were already live as the "Put the words in order" and "Fix the mistake" jobs.)
 2. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
 3. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
-4. Science Lab next steps (her links): an atom builder, element cards with photos and uses, a burner for heat, more recipes.
+4. Science Lab next steps (her links): element cards with real photos, more recipes. (Atom Builder, the burner and element uses SHIPPED 2026-10-09.)
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Science Lab: ⚛️ Atom Builder, the 🔥 burner (5 heat recipes) and "Used for" on 55 element cards.
 - 2026-10-09: Teacher Inbox reports for every native game session (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy and Quiz Mode, plus Shape Dash).
 - 2026-10-09: Grammar Gus teacher report: 📄 PDF, IEP goal lines on a progress graph, and teacher notes.
 - 2026-10-09: Grammar Gus, two new Blueprints: 🎒 Show and Tell and 🍲 Silly Recipe.
@@ -709,7 +710,11 @@ What shipped (`/student/science-lab`, 🔬 Science Lab on the computer desktop; 
 - **Discovery card and journal:** each reaction shows a card with the name, the equation, a one-line fact and any new bottles. The journal lists every discovered recipe (ingredients, equation, fact) and a "Not discovered yet" slot for each one left (27 total).
 - **Sandbox only** (her word, "to start"): no questions, no money, no timer. Sounds made in the browser (glug, fizz, boom, pop, chime, sparkle) with a mute button. Calm and reduced motion turn off the shake and flashes.
 
-In progress / ideas from her links, not built yet: an atom builder (protons, neutrons and electrons, like PhET Build an Atom), element cards with real photos and uses (like the interactive periodic table sandbox), more recipes and a heat tool (a burner), and a question-fueled mode later if she wants it. Not checked on an iPad yet.
+**Next steps SHIPPED 2026-10-09 (Build Queue):**
+- **⚛️ Atom Builder** (her PhET "Build an Atom" link): a 🧪 Bench / ⚛️ Atom Builder switch at the top. Big ＋ and － for protons (red), neutrons (grey) and electrons (blue, filling shells of 2, 8 and 8 that slowly turn). The card says which element it is and why (the number of protons), the charge (neutral atom or ion, and why), the mass number, and for hydrogen to calcium whether the nucleus is stable, using the real stable isotopes ("Carbon-12 is real and lasts"). Every element built is learned and lights up on the periodic table board.
+- **🔥 Burner:** a Heat button under every beaker (a flickering flame plays). 5 heat recipes: boiling water (steam), getting salt back from salt water (evaporation), caramel from sugar, blue crystals from blue copper water, and glowing iron sulfide. They are in the Journal with a 🔥 (32 recipes in all).
+- **Element uses:** "Used for:" on 55 element cards (Ne: glowing red signs, Am: smoke detectors, W: drill tips), and hydrogen to calcium say how to build them in the Atom Builder.
+Still open from her links: element cards with real photos (interactive periodic table sandbox), more recipes, and a question-fueled mode later if she wants it. Not checked on an iPad yet.
 
 ---
 

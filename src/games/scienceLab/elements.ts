@@ -53,3 +53,21 @@ export const PERIODIC: PtElement[] = NAMES.split(',').map((s, i) => {
   return { n: i + 1, sym, name, row, col, family: familyOf(i + 1, col) };
 });
 export const elementBySym = new Map(PERIODIC.map((e) => [e.sym, e]));
+
+// What each element is used for (the element cards on the board, Build Queue 2026-10-09).
+export const ELEMENT_USES: Record<string, string> = {
+  H: 'Fuel for rockets and the sun. It is in water.', He: 'Floating balloons and blimps.', Li: 'Phone, tablet and car batteries.', Be: 'Light, strong parts for space telescopes.',
+  B: 'Tough glass for baking dishes.', C: 'Pencil lead, diamonds and every living thing.', N: 'Most of the air. Plant food on farms.', O: 'The air we breathe and fire.',
+  F: 'Toothpaste that protects teeth.', Ne: 'Glowing red signs.', Na: 'Table salt and street lights.', Mg: 'Fireworks and light bike frames.',
+  Al: 'Soda cans, foil and airplanes.', Si: 'Computer chips and sand.', P: 'Match heads and plant food.', S: 'Matches and making rubber tires strong.',
+  Cl: 'Keeping pool water clean.', Ar: 'The gas inside light bulbs.', K: 'Bananas, and plant food.', Ca: 'Bones, teeth, chalk and seashells.',
+  Ti: 'Strong, light bike parts and airplanes.', Cr: 'Shiny car parts.', Mn: 'Making steel strong.', Fe: 'Steel, nails, bridges and your blood.',
+  Co: 'Deep blue paint and glass.', Ni: 'Coins and magnets.', Cu: 'Electric wires and pennies.', Zn: 'Coating steel so it does not rust.',
+  Ga: 'A metal that melts in your hand. Used in LED lights.', Ge: 'Lenses for night vision cameras.', As: 'Very poisonous. Used in some computer chips.', Se: 'Solar cells and copy machines.',
+  Br: 'A red-brown liquid. Fire safety chemicals.', Kr: 'Bright flash lamps for cameras.', Rb: 'Super accurate atomic clocks.', Sr: 'Red fireworks.',
+  Ag: 'Jewelry, mirrors and the best electric wires.', Sn: 'Tin cans (a thin coat inside).', I: 'Cleaning cuts, and it is in salt to keep you healthy.', Xe: 'Bright car headlights.',
+  Cs: 'Atomic clocks that keep world time.', Ba: 'Green fireworks.', Nd: 'Super strong magnets in earbuds.', W: 'Light bulb wires and drill tips.',
+  Pt: 'Car parts that clean exhaust, and jewelry.', Au: 'Gold jewelry, coins and phone parts.', Hg: 'A liquid metal. Old thermometers.', Pb: 'Heavy and poisonous. Shields from X-rays.',
+  Rn: 'A radioactive gas that can build up in basements.', Ra: 'Glowing paint long ago, before people knew it was dangerous.', U: 'Fuel for nuclear power plants.', Pu: 'Power for space probes far from the sun.',
+  Am: 'Inside smoke detectors.', Es: 'Named after Albert Einstein.', Og: 'The heaviest element ever made. It lasts less than a second.',
+};

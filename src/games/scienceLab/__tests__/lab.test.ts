@@ -40,3 +40,19 @@ describe('Science Lab', () => {
     expect(text).not.toMatch(/—/);
   });
 });
+
+import { heatUp, HEAT_RECIPES } from '../lab';
+import { atomInfo } from '../AtomBuilder';
+describe('burner and Atom Builder', () => {
+  it('heating salt water leaves salt crystals; heating oil does nothing', () => {
+    expect(heatUp(['saltwater']).contents).toEqual(['saltcrystals']);
+    expect(heatUp(['oil']).reaction).toBeNull();
+    HEAT_RECIPES.forEach((r) => expect(r.needs).toContain('heat'));
+  });
+  it('protons decide the element, electrons the charge', () => {
+    expect(atomInfo(6, 6, 6)).toMatchObject({ charge: 0, mass: 12, stable: true });
+    expect(atomInfo(6, 6, 6).el?.name).toBe('Carbon');
+    expect(atomInfo(11, 12, 10).charge).toBe(1);
+    expect(atomInfo(6, 2, 6).stable).toBe(false);
+  });
+});

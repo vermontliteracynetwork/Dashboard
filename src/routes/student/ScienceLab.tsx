@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WebpageFrame from '../../components/WebpageFrame';
 import { useStore } from '../../store/store';
-import { BEAKER_MAX, RECIPES, STARTER, SUB, blend, pour, type LabEffect, type Recipe, type Substance } from '../../games/scienceLab/lab';
-import { FAMILIES, PERIODIC, type PtElement } from '../../games/scienceLab/elements';
+import { BEAKER_MAX, HEAT_RECIPES, RECIPES, STARTER, SUB, blend, heatUp, pour, type LabEffect, type Recipe, type Substance } from '../../games/scienceLab/lab';
+import AtomBuilder, { atomInfo } from '../../games/scienceLab/AtomBuilder';
+import { ELEMENT_USES, FAMILIES, PERIODIC, type PtElement } from '../../games/scienceLab/elements';
+const ALL_RECIPES = [...RECIPES, ...HEAT_RECIPES];
 
 // Science Lab, an app on the student's computer (teacher 2026-10-09: "lets build a science lab.
 // science lab should be an app in the computer not a native game"). Her list:
@@ -139,9 +141,9 @@ export default function ScienceLab() {
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const row = useStore((s) => (student ? s.styleLooks.find((r) => r.ownerId === owner(student.id)) : undefined));
-  const saved = (row?.look ?? {}) as { unlocked?: string[]; found?: string[] };
+  const saved = (row?.look ?? {}) as { unlocked?: string[]; found?: string[]; built?: string[] };
   const unlocked = useMemo(() => [...new Set([...STARTER, ...(saved.unlocked ?? [])])].filter((id) => SUB.has(id)), [saved.unlocked]);
-  const found = useMemo(() => (saved.found ?? []).filter((id) => RECIPES.some((r) => r.id === id)), [saved.found]);
+  const found = useMemo(() => (saved.found ?? []).filter((id) => ALL_RECIPES.some((r) => r.id === id)), [saved.found]);
   // Signed-out (teacher preview) progress lives on the page only.
   const [localSave, setLocalSave] = useState<{ unlocked: string[]; found: string[] }>({ unlocked: [], found: [] });
   const shelf = student ? unlocked : [...new Set([...STARTER, ...localSave.unlocked])];
@@ -233,7 +235,39 @@ export default function ScienceLab() {
   const scrollShelf = (d: number) => shelfRef.current?.scrollBy({ left: d * shelfRef.current.clientWidth * 0.8, behavior: calm ? 'auto' : 'smooth' });
   // The first bottle for each element wins (copper sulfate is the shelf bottle for copper).
   const labElements = useMemo(() => new Map([...SUB.values()].filter((s) => s.element).reverse().map((s) => [s.element!, s])), []);
-  const learned = useMemo(() => new Set(shelf.map((id) => SUB.get(id)?.element).filter(Boolean) as string[]), [shelf]);
+  // Learned: elements on the shelf, plus every element built in the Atom Builder.
+  const [localBuilt, setLocalBuilt] = useState<string[]>([]);
+  const builtSyms = student ? saved.built ?? [] : localBuilt;
+  const learned = useMemo(() => new Set([...shelf.map((id) => SUB.get(id)?.element).filter(Boolean) as string[], ...builtSyms]), [shelf, builtSyms]);
+  const [view, setView] = useState<'bench' | 'atom'>('bench');
+  const [atom, setAtom] = useState({ p: 1, n: 0, e: 1 });
+  const changeAtom = (p: number, n: number, e: number) => {
+    setAtom({ p, n, e });
+    if (sound) (p !== atom.p ? SFX.pop : SFX.glug)();
+    const el = atomInfo(p, n, e).el;
+    if (el && !builtSyms.includes(el.sym)) {
+      const next = [...builtSyms, el.sym];
+      if (student) mergeStyleRow(owner(student.id), { built: next }); else setLocalBuilt(next);
+      if (!learned.has(el.sym)) { say(`New element learned: ${el.name}! It lights up on the periodic table.`); if (sound) later(SFX.chime, 200); }
+    }
+  };
+  const [heating, setHeating] = useState<number | null>(null);
+  const heat = (b: number) => {
+    if (pouring || heating !== null || !beakers[b].length) return;
+    setHeating(b); if (sound) SFX.hiss();
+    later(() => {
+      setHeating(null);
+      const res = heatUp(beakers[b]);
+      if (!res.reaction) { say('It gets warm, but nothing new happens. Try heating water, salt water, sugar or blue copper water.'); return; }
+      const r = res.reaction;
+      setBeakers((bs) => bs.map((x, i) => (i === b ? res.contents : x)));
+      setFx((f) => f.map((x, i) => (i === b ? { effect: r.effect, color: r.color, key: Date.now() } : x)));
+      if (sound) effectSound(r.effect);
+      const key = Date.now();
+      later(() => setFx((f) => f.map((x, i) => (i === b && x && x.key <= key + 50 ? null : x))), 2200);
+      later(() => record(r), 600);
+    }, calm ? 300 : 1300);
+  };
   const unlockHint = (sym: string) => {
     const sub = labElements.get(sym);
     if (!sub) return null;
@@ -266,7 +300,11 @@ export default function ScienceLab() {
           <button type="button" role="radio" aria-checked={!magic} className={!magic ? 'on' : ''} onClick={() => setMode('science')}>🔬 Science</button>
           <button type="button" role="radio" aria-checked={magic} className={magic ? 'on' : ''} onClick={() => setMode('magic')}>🔮 Magic</button>
         </div>
-        <button type="button" className="lab-btn" onClick={() => setJournal(true)}>{magic ? '📜 Spellbook' : '📓 Science Journal'} <b>{discoveredCount}/{RECIPES.length}</b></button>
+        <div className="lab-mode lab-view" role="radiogroup" aria-label="Lab area">
+          <button type="button" role="radio" aria-checked={view === 'bench'} className={view === 'bench' ? 'on' : ''} onClick={() => setView('bench')}>🧪 Bench</button>
+          <button type="button" role="radio" aria-checked={view === 'atom'} className={view === 'atom' ? 'on' : ''} onClick={() => setView('atom')}>⚛️ Atom Builder</button>
+        </div>
+        <button type="button" className="lab-btn" onClick={() => setJournal(true)}>{magic ? '📜 Spellbook' : '📓 Science Journal'} <b>{discoveredCount}/{ALL_RECIPES.length}</b></button>
         <button type="button" className="lab-btn" onClick={() => setSound((v) => { try { localStorage.setItem('lab.sound', v ? '0' : '1'); } catch { /* fine */ } return !v; })} aria-label={sound ? 'Sound on. Tap to mute' : 'Sound off. Tap to turn on'}>{sound ? '🔊' : '🔇'}</button>
       </div>
 
@@ -278,6 +316,7 @@ export default function ScienceLab() {
           </div>
         </div>
 
+        {view === 'atom' ? <AtomBuilder p={atom.p} n={atom.n} e={atom.e} onChange={changeAtom} magic={magic} /> : <>
         <div className="lab-shelf-wrap">
           <button type="button" className="lab-arrow" onClick={() => scrollShelf(-1)} aria-label="Scroll the shelf left">◀</button>
           <div className="lab-shelf" ref={shelfRef}>
@@ -306,17 +345,20 @@ export default function ScienceLab() {
                     </span>
                   )}
                   <Beaker contents={c} fx={f} magic={magic} selected={sel === i} />
+                  {heating === i && <span className="lab-burner" aria-hidden><i /><i /><i /></span>}
                   {f && <Effect fx={f} calm={calm} />}
                 </button>
                 <div className="lab-contents">{c.length ? c.map((x, k) => <span key={k} className="lab-chip">{SUB.get(x)?.formula}</span>) : <span className="lab-chip empty">{magic ? 'empty cauldron' : 'empty'}</span>}</div>
                 <div className="lab-station-btns">
                   <button type="button" className={`lab-btn small${pourFrom === i ? ' on' : ''}`} disabled={!c.length} onClick={() => { setSel(i); setPourFrom((p) => (p === i ? null : i)); }}>🫗 {pourFrom === i ? 'Pick where' : 'Pour into...'}</button>
+                  <button type="button" className={`lab-btn small${heating === i ? ' on' : ''}`} disabled={!c.length || heating !== null} onClick={() => heat(i)}>🔥 Heat</button>
                   <button type="button" className="lab-btn small" disabled={!c.length} onClick={() => empty(i)}>🚰 Empty</button>
                 </div>
               </div>
             );
           })}
         </div>
+        </>}
         <p className="lab-hint" role="status">{note ?? (pourFrom !== null ? `Tap the ${magic ? 'cauldron' : 'beaker'} to pour into.` : `Picked: ${magic ? 'cauldron' : 'beaker'} ${sel + 1}. Tap a bottle on the shelf to pour it in.`)}</p>
       </div>
 
@@ -339,18 +381,19 @@ export default function ScienceLab() {
         <div className="lab-modal-back" onClick={() => setJournal(false)}>
           <div className="lab-card lab-journal" role="dialog" aria-label={magic ? 'Spellbook' : 'Science Journal'} onClick={(e) => e.stopPropagation()}>
             <h2>{magic ? '📜 Spellbook' : '📓 Science Journal'}</h2>
-            <p className="lab-small">{discoveredCount} of {RECIPES.length} recipes discovered.</p>
+            <p className="lab-small">{discoveredCount} of {ALL_RECIPES.length} recipes discovered. 🔥 marks the ones that need the burner.</p>
             <div className="lab-journal-list">
-              {RECIPES.map((r) => {
+              {ALL_RECIPES.map((r) => {
                 const got = foundIds.includes(r.id);
+                const hot = r.needs.includes('heat');
                 return got ? (
                   <div key={r.id} className="lab-entry">
-                    <strong>{magic ? r.magic.name : r.name}</strong>
-                    <span className="lab-recipe">{r.needs.map((n) => SUB.get(n)?.name).join(' + ')}</span>
+                    <strong>{hot ? '🔥 ' : ''}{magic ? r.magic.name : r.name}</strong>
+                    <span className="lab-recipe">{r.needs.map((n) => (n === 'heat' ? 'heat' : SUB.get(n)?.name)).join(' + ')}</span>
                     <span className="lab-eq">{r.equation}</span>
                     <span>{r.fact}</span>
                   </div>
-                ) : <div key={r.id} className="lab-entry locked"><strong>❓ Not discovered yet</strong><span>{r.needs.length} ingredients</span></div>;
+                ) : <div key={r.id} className="lab-entry locked"><strong>{hot ? '🔥 ' : ''}❓ Not discovered yet</strong><span>{hot ? `${r.needs.length - 1} ingredient${r.needs.length === 2 ? '' : 's'} and the burner` : `${r.needs.length} ingredients`}</span></div>;
               })}
             </div>
             <button type="button" className="lab-btn primary" onClick={() => setJournal(false)}>Close</button>
@@ -382,7 +425,9 @@ export default function ScienceLab() {
               {sub && on && <p>{sub.fact}</p>}
               {sub && on && <p className="lab-unlock">✅ {shelf.includes(sub.id) ? 'On your shelf. Tap its bottle to pour it.' : 'Learned in the lab.'}</p>}
               {sub && !on && <p className="lab-small">🔒 {unlockHint(element.sym) ?? 'Keep mixing to unlock it.'}</p>}
-              {!sub && <p className="lab-small">This element is not in the lab yet.</p>}
+              {ELEMENT_USES[element.sym] && <p><strong>Used for:</strong> {ELEMENT_USES[element.sym]}</p>}
+              {element.n <= 20 && <p className="lab-small">⚛️ Build it in the Atom Builder with {element.n} proton{element.n === 1 ? '' : 's'}.</p>}
+              {!sub && <p className="lab-small">There is no bottle of it in the lab yet.</p>}
               <button type="button" className="lab-btn primary" onClick={() => setElement(null)}>Close</button>
             </div>
           </div>

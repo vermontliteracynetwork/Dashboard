@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-lab-atoms',
+    date: '2026-10-09',
+    icon: '⚛️',
+    title: 'Science Lab: build atoms and heat things up',
+    body: 'Switch to the Atom Builder and add protons, neutrons and electrons to make any element from hydrogen to calcium. On the bench, try the new burner: boil water, make caramel, and get salt back out of salt water!',
+  },
+  {
     id: '2026-10-09-gus-blueprints',
     date: '2026-10-09',
     icon: '🍲',

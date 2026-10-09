@@ -6262,3 +6262,25 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-pairs-emoji.bob { animation: lab-float 2s ease-in-out infinite; display: inline-block; }
 .gwb-pairs-boilers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
 .gwb-arm.wrong { background: #fde8e4; animation: gwb-shake 0.35s ease-in-out 2; }
+/* Science Lab: burner and Atom Builder (2026-10-09) */
+.lab-view button { min-width: 110px; }
+.lab-burner { position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); display: flex; gap: 3px; z-index: 1; }
+.lab-burner i { width: 12px; height: 22px; border-radius: 50% 50% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff6a8, #ff9a1a 55%, #e8483b); animation: lab-flame 0.3s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.lab-burner i:nth-child(2) { height: 28px; animation-delay: 0.1s; }
+@keyframes lab-flame { from { transform: scaleY(0.85) rotate(-4deg); } to { transform: scaleY(1.1) rotate(4deg); } }
+.atom { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr); gap: 16px; padding: 14px; border-radius: 16px; border: 3px solid var(--ink); background: var(--panel); align-items: start; }
+.atom-svg { width: 100%; max-width: 420px; justify-self: center; }
+.atom-spin { transform-origin: 100px 100px; animation: atom-spin 14s linear infinite; }
+@keyframes atom-spin { to { transform: rotate(360deg); } }
+.atom-side { display: flex; flex-direction: column; gap: 10px; }
+.atom-row { display: grid; grid-template-columns: 18px 1fr 52px 44px 52px; align-items: center; gap: 8px; }
+.atom-dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--ink); }
+.atom-pm { min-height: 52px; font-size: 1.4rem; padding: 0; }
+.atom-count { text-align: center; font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.atom-card { padding: 12px; border-radius: 14px; border: 2.5px solid var(--ink); background: var(--paper); display: flex; flex-direction: column; gap: 6px; }
+.atom-card p { margin: 0; line-height: 1.4; }
+.atom-el { align-self: flex-start; width: 92px; height: 92px; border-radius: 12px; border: 3px solid var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.atom-el b { font-size: 2rem; line-height: 1; } .atom-el small, .atom-el span { font-weight: 700; font-size: 0.75rem; }
+@media (max-width: 760px) { .atom { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .atom-spin, .lab-burner i { animation: none; } }
+.lab.calm .atom-spin { animation: none; }

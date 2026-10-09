@@ -61,6 +61,9 @@ export const SUBSTANCES: Substance[] = [
   { id: 'oilwater', name: 'Oil on water', formula: 'layers', color: '#ffd54a', state: 'liquid', fact: 'Oil and water do not mix.' },
   { id: 'molteniron', name: 'Melted iron', formula: 'Fe (melted)', color: '#ff7a1a', state: 'liquid', fact: 'Thermite gets hot enough to melt iron.' },
   { id: 'limewater', name: 'Calcium water', formula: 'Ca(OH)₂', color: '#f0f7ff', state: 'liquid', fact: 'Calcium makes the water a base.' },
+  { id: 'caramel', name: 'Caramel', formula: 'melted sugar', color: '#b5651d', state: 'liquid', fact: 'Heat breaks sugar apart into brown, sweet caramel.' },
+  { id: 'saltcrystals', name: 'Salt crystals', formula: 'NaCl', color: '#ffffff', state: 'powder', fact: 'The water left as steam and the salt stayed behind.' },
+  { id: 'bluecrystals', name: 'Blue crystals', formula: 'CuSO₄', color: '#2f6fd0', state: 'powder', fact: 'Blue crystals grow as the water leaves.' },
   { id: 'lithwater', name: 'Lithium water', formula: 'LiOH', color: '#ffe3e3', state: 'liquid', fact: 'Lithium fizzes gently and gives off hydrogen.' },
 ];
 export const SUB = new Map(SUBSTANCES.map((s) => [s.id, s]));
@@ -156,7 +159,33 @@ export const RECIPES: Recipe[] = [
     name: 'Thermite!', equation: '2Al + Fe₂O₃ → Al₂O₃ + 2Fe', fact: 'Aluminum steals the oxygen from rust so fast it gets hot enough to melt iron. Welders use it on train tracks.',
     magic: { name: 'Phoenix Fire', line: 'Sparks fly like a phoenix being born!' } },
 ];
-export const RECIPE = new Map(RECIPES.map((r) => [r.id, r]));
+// The 🔥 burner (Build Queue 2026-10-09): heating a beaker. 'heat' is not a bottle, it only starts these.
+export const HEAT_RECIPES: Recipe[] = [
+  { id: 'boil', needs: ['water', 'heat'], makes: [], effect: 'smoke', color: '#e3f2fd', unlocks: [],
+    name: 'Boiling water', equation: 'H₂O (liquid) + heat → H₂O (gas, steam)', fact: 'At 100 °C water boils and turns into steam, a gas. It is still water, just spread out.',
+    magic: { name: 'Cloud Maker', line: 'The water floats away as a puffy cloud!' } },
+  { id: 'evaporate', needs: ['saltwater', 'heat'], makes: ['saltcrystals'], effect: 'dissolve', color: '#ffffff', unlocks: [],
+    name: 'Getting the salt back', equation: 'salt water + heat → steam + salt crystals', fact: 'Heat turns the water to steam and leaves the salt behind. That is how sea salt is made.',
+    magic: { name: 'Mermaid Treasure', line: 'The water vanishes and leaves sparkling crystals!' } },
+  { id: 'caramel', needs: ['sugar', 'heat'], makes: ['caramel'], effect: 'color', color: '#b5651d', unlocks: [],
+    name: 'Making caramel', equation: 'sugar + heat → caramel + water', fact: 'Heat breaks sugar apart and makes new brown, sweet chemicals. You cannot turn caramel back into sugar.',
+    magic: { name: 'Golden Syrup', line: 'The sugar melts into a golden river!' } },
+  { id: 'crystals', needs: ['bluewater', 'heat'], makes: ['bluecrystals'], effect: 'dissolve', color: '#2f6fd0', unlocks: [],
+    name: 'Growing blue crystals', equation: 'blue copper water + heat → steam + CuSO₄ crystals', fact: 'As the water leaves, the copper sulfate comes back as blue crystals.',
+    magic: { name: 'Sapphire Garden', line: 'Blue gems grow in the cauldron!' } },
+  { id: 'meltice', needs: ['fes', 'heat'], makes: ['fes'], effect: 'glow', color: '#ff9a3c', unlocks: [],
+    name: 'Glowing hot', equation: 'FeS + heat → glowing FeS', fact: 'Very hot solids glow orange, like the coils in a toaster.',
+    magic: { name: 'Ember Heart', line: 'The stone glows like a dragon heart.' } },
+];
+export const RECIPE = new Map([...RECIPES, ...HEAT_RECIPES].map((r) => [r.id, r]));
+// Heat a beaker on the burner: the first heat recipe whose ingredients are inside.
+export function heatUp(contents: string[]): MixResult {
+  const r = HEAT_RECIPES.find((x) => x.needs.filter((n) => n !== 'heat').every((n) => contents.includes(n))) ?? null;
+  if (!r) return { contents, reaction: null };
+  const left = [...contents];
+  r.needs.filter((n) => n !== 'heat').forEach((n) => left.splice(left.indexOf(n), 1));
+  return { contents: [...left, ...r.makes], reaction: r };
+}
 export const BEAKER_MAX = 5;
 
 export interface MixResult { contents: string[]; reaction: Recipe | null; full?: boolean; noble?: boolean }
