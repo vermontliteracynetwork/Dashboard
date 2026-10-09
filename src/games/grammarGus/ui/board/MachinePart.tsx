@@ -25,10 +25,11 @@ function Nut({ x, y, r = 5 }: { x: number; y: number; r?: number }) {
 // the neighbor's flange when parts snap together.
 function Pipes({ w }: { w: number }) {
   return <g>
-    <rect x={0} y={PIPE_Y - 7} width={w} height={14} fill="#c98a4b" stroke={INK} strokeWidth={2.2} />
-    <rect x={0} y={PIPE_Y - 7} width={w} height={4} fill="#e7b07a" />
-    <rect x={2} y={PIPE_Y - 12} width={7} height={24} rx={1.5} fill="#e7b07a" stroke={INK} strokeWidth={2} />
-    <rect x={w - 9} y={PIPE_Y - 12} width={7} height={24} rx={1.5} fill="#e7b07a" stroke={INK} strokeWidth={2} />
+    {/* Pipe paint from Gus's Paint Shop (CSS variables on the Workboard); copper by default. */}
+    <rect x={0} y={PIPE_Y - 7} width={w} height={14} style={{ fill: 'var(--gwb-pipe, #c98a4b)' }} stroke={INK} strokeWidth={2.2} />
+    <rect x={0} y={PIPE_Y - 7} width={w} height={4} style={{ fill: 'var(--gwb-pipe-light, #e7b07a)' }} />
+    <rect x={2} y={PIPE_Y - 12} width={7} height={24} rx={1.5} style={{ fill: 'var(--gwb-pipe-light, #e7b07a)' }} stroke={INK} strokeWidth={2} />
+    <rect x={w - 9} y={PIPE_Y - 12} width={7} height={24} rx={1.5} style={{ fill: 'var(--gwb-pipe-light, #e7b07a)' }} stroke={INK} strokeWidth={2} />
     <Nut x={5.5} y={PIPE_Y - 8} r={3} /><Nut x={5.5} y={PIPE_Y + 8} r={3} /><Nut x={w - 5.5} y={PIPE_Y - 8} r={3} /><Nut x={w - 5.5} y={PIPE_Y + 8} r={3} />
   </g>;
 }

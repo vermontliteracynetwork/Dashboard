@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-paint',
+    date: '2026-10-09',
+    icon: '🎨',
+    title: "Grammar Gus: the Paint Shop",
+    body: 'Give your Workboard a new floor, like a space station or a candy factory, and paint your pipes gold or neon pink. Finish jobs to earn stickers, and stickers unlock new looks. Find it in the Menu.',
+  },
+  {
     id: '2026-10-09-gus-labels',
     date: '2026-10-09',
     icon: '🏷️',

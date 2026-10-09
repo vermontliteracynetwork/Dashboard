@@ -26,6 +26,7 @@ import { flipIdeas } from '../engine/boardRemix';
 import { FusionReactor, HomophoneSorter, RevisionWorkshop, TransitionTrack } from './MiniGames';
 import CerLab from './CerLab';
 import LabelMaker from './LabelMaker';
+import { FLOORS, PIPE_PAINTS, floorById, pipeById } from '../data/paintShop';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
@@ -79,7 +80,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const gusOwner = (id: string) => `gus:${id}`;
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[] }
+interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: { floor?: string; pipe?: string } }
 // The machine rows of Gus's Checklist: the Workboard's own jobs.
 const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
   { id: 'words', label: 'Every machine has its word', hint: 'Tap a machine with a ? and pick its word.', codes: ['EMPTY_PART', 'NO_WORDS'] },
@@ -351,6 +352,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [comboShow, setComboShow] = useState<{ lineId: string; names: string[]; key: number } | null>(null); // confetti over a 3-star machine
   const bounce = (id: string) => { setSnapped(id); timers.current.push(window.setTimeout(() => setSnapped((x) => (x === id ? null : x)), 480)); };
   const [jobsOpen, setJobsOpen] = useState(false);
+  const [paintOpen, setPaintOpen] = useState(false);
   const [jobsMore, setJobsMore] = useState(false);
   // Spare Parts Bin (teacher's reference chart: "Put extra words here").
   const [spare, setSpare] = useState<BoardItem[]>([]);
@@ -1503,7 +1505,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const order = readingOrder(lines);
   const paras = paragraphs(lines);
   return (
-    <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}${guestLocked ? ' gwb-locked' : ''}`}>
+    <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}${guestLocked ? ' gwb-locked' : ''}`} style={{ ['--gwb-pipe' as string]: pipeById(saved.paint?.pipe).color, ['--gwb-pipe-light' as string]: pipeById(saved.paint?.pipe).light }}>
       <header className="gus-top gwb-top">
         <button type="button" className="gus-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>
         <h1>Gus's Workboard</h1>
@@ -1601,6 +1603,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 <div className="gwb-sheet-sec">
                   <span className="gwb-sheet-label">My things</span>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 My Journal<small>Sentences and stories you saved</small></button>
+                  <button type="button" className="gwb-sheet-item" onClick={() => { setPaintOpen(true); setTopMenu(false); }}>🎨 Gus's Paint Shop<small>New floors and pipe paint, unlocked with stickers</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/library')}>📚 Library<small>Articles to read and answer</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine<small>Gus's first sentence machine</small></button>
                   {live?.role !== 'guest' && <button type="button" className="gwb-sheet-item" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear the board<small>Start over with a blank word space</small></button>}
@@ -1645,7 +1648,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             {art && <button type="button" className="gus-btn" onClick={() => setReading(art)}>📖 Read it again</button>}
           </div>;
         })()}
-        <section ref={boardRef} className="gwb-board" onPointerDown={onBoardDown} aria-label="Workboard">
+        <section ref={boardRef} className="gwb-board" style={floorById(saved.paint?.floor).bg} onPointerDown={onBoardDown} aria-label="Workboard">
           <div className="gwb-layer" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, ['--z' as string]: view.z }}>
             {/* Paragraph chains: a Paragraph Link hangs a chain down to the next machine. */}
             {order.map((line, i) => {
@@ -2088,6 +2091,33 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       )}
 
       {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great sorting.`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
+      {paintOpen && (() => {
+        const have = (saved.stickers ?? []).length;
+        const pick = (patch: { floor?: string; pipe?: string }) => { if (!studentId) return; mergeStyleRow(gusOwner(studentId), { paint: { ...(saved.paint ?? {}), ...patch } }); gusSound.splosh(); };
+        return (
+          <div className="gus-journal-backdrop" onClick={() => setPaintOpen(false)}>
+            <div className="gus-journal gwb-mini gwb-paint" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Paint Shop">
+              <h2>🎨 Gus's Paint Shop</h2>
+              <p>You have <strong>{have}</strong> sticker{have === 1 ? '' : 's'} from finished jobs. More stickers unlock more looks. It is just for fun: your machines work the same in every look.</p>
+              <h3>Floors</h3>
+              <div className="gwb-paint-grid">{FLOORS.map((f) => {
+                const open = have >= f.stickers, on = floorById(saved.paint?.floor).id === f.id;
+                return <button key={f.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => pick({ floor: f.id })} aria-pressed={on}>
+                  <span className="gwb-paint-swatch" style={f.bg} aria-hidden /><strong>{f.icon} {f.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${f.stickers} stickers`}</small>
+                </button>;
+              })}</div>
+              <h3>Pipe paint</h3>
+              <div className="gwb-paint-grid">{PIPE_PAINTS.map((p) => {
+                const open = have >= p.stickers, on = pipeById(saved.paint?.pipe).id === p.id;
+                return <button key={p.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => pick({ pipe: p.id })} aria-pressed={on}>
+                  <span className="gwb-paint-swatch pipe" style={{ background: `linear-gradient(${p.light} 0 30%, ${p.color} 30%)` }} aria-hidden /><strong>{p.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${p.stickers} stickers`}</small>
+                </button>;
+              })}</div>
+              <button type="button" className="gus-btn gus-btn-primary" onClick={() => setPaintOpen(false)}>Done</button>
+            </div>
+          </div>
+        );
+      })()}
       {mini === 'labels' && <LabelMaker level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} diagram${g === 1 ? '' : 's'} with no wrong picks! Sharp eyes.`, 'Label and Unit Maker'); } }} say={say} speak={speak} />}
       {mini === 'cer' && <CerLab level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g, reports) => { if (g) earn(g); reports.forEach((t) => earn(0, { kind: 'cer', text: t, stars: 3 })); if (reports.length) say(`${reports.length} lab report${reports.length === 1 ? '' : 's'} saved in your Journal.${g ? ` ${g} with no wrong picks!` : ''}`, 'CER Lab Report'); }} say={say} speak={speak} />}
       {mini === 'revise' && <RevisionWorkshop level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} repairs on the first try! That is real revising.`, 'Revision Workshop'); } }} say={say} speak={speak} />}

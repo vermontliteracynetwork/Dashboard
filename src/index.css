@@ -6246,3 +6246,13 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-wordpart b { font-size: 1.3rem; }
 .gwb-wordpart small { color: var(--gus-ink); font-weight: 700; }
 .gwb-label-party { position: absolute; right: 18px; top: 14px; font-size: 2rem; animation: gwb-tab-pulse 1s ease-in-out 3; }
+
+/* Grammar Gus: Paint Shop (Phase 2) */
+.gwb-paint { max-width: min(720px, 96vw); }
+.gwb-paint h3 { margin: 10px 0 4px; }
+.gwb-paint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.gwb-paint-item { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 120px; padding: 8px; border-radius: 14px; border: 3px solid var(--gus-ink); background: #fff; font: 700 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); cursor: pointer; }
+.gwb-paint-item.on { background: #c9f0d4; box-shadow: 0 0 0 3px #3fbf5a; }
+.gwb-paint-item:disabled { opacity: 0.55; cursor: default; }
+.gwb-paint-swatch { width: 100%; height: 56px; border-radius: 10px; border: 2px solid var(--gus-ink); }
+.gwb-paint-swatch.pipe { height: 26px; margin: 15px 0; }
