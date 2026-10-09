@@ -25,7 +25,7 @@ export interface TowerDef {
 const built = (name: string) => (tier: 1 | 2 | 3) => `${CD}/built/${name}-${tier}.png`;
 // Firing strips built from the Foozle packs (base + each weapon frame, 64 px wide per frame).
 const FIRE: Record<string, { frames: number[]; h: number[] }> = {
-  'foozle-01': { frames: [6, 6, 6], h: [119, 127, 135] }, 'foozle-06': { frames: [6, 6, 6], h: [112, 129, 137] },
+  'foozle-01': { frames: [6, 6, 6], h: [119, 127, 135] }, 'foozle-02': { frames: [8, 8, 10], h: [151, 176, 191] }, 'foozle-06': { frames: [6, 6, 6], h: [112, 129, 137] },
   'foozle-07': { frames: [6, 7, 9], h: [104, 119, 127] }, 'foozle-08': { frames: [10, 10, 10], h: [118, 132, 146] },
 };
 const fire = (name: string) => (tier: 1 | 2 | 3) => ({ src: `${CD}/built/${name}-${tier}-fire.png`, frames: FIRE[name].frames[tier - 1], h: FIRE[name].h[tier - 1] });
@@ -36,7 +36,7 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   pink: { id: 'pink', label: 'Mystic Tower', blurb: 'Slows down the attacker it hits.', cost: [4, 4, 5], dps: [2, 3, 5], cooldownMs: 1000, slowTicks: 3, sprite: (t) => `/castle-defense/tower-pink-${t}.png` },
   archer: { id: 'archer', label: 'Archer Tower', blurb: 'Fast arrows: shoots two times a second.', cost: [5, 5, 6], dps: [2, 3, 5], cooldownMs: 500, sprite: built('archer'), isNew: true },
   crossbow: { id: 'crossbow', label: 'Crossbow Tower', blurb: 'Long reach: also guards the next part of the road.', cost: [4, 4, 5], dps: [3, 4, 7], cooldownMs: 1000, reach: 2, sprite: built('foozle-01'), fire: fire('foozle-01'), isNew: true },
-  crystal: { id: 'crystal', label: 'Crystal Tower', blurb: 'Hits every attacker near it at once.', cost: [5, 5, 6], dps: [1, 2, 4], cooldownMs: 1000, splashAll: true, sprite: built('foozle-02'), isNew: true },
+  crystal: { id: 'crystal', label: 'Crystal Tower', blurb: 'Hits every attacker near it at once.', cost: [5, 5, 6], dps: [1, 2, 4], cooldownMs: 1000, splashAll: true, sprite: built('foozle-02'), fire: fire('foozle-02'), isNew: true },
   orb: { id: 'orb', label: 'Frost Orb Tower', blurb: 'Slows attackers for a long time.', cost: [4, 4, 5], dps: [1, 2, 3], cooldownMs: 1000, slowTicks: 7, sprite: built('foozle-05'), isNew: true },
   bolt: { id: 'bolt', label: 'Bolt Tower', blurb: 'Giant hits, but slow to reload.', cost: [4, 5, 6], dps: [7, 11, 16], cooldownMs: 2000, sprite: built('foozle-06'), fire: fire('foozle-06'), isNew: true },
   zap: { id: 'zap', label: 'Spark Lamp', blurb: 'Zaps one attacker, then jumps to 2 more.', cost: [5, 5, 6], dps: [2, 3, 5], cooldownMs: 1000, cleave: 2, cleaveMult: 0.5, sprite: built('foozle-07'), fire: fire('foozle-07'), isNew: true },
