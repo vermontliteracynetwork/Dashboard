@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-sd-every',
+    date: '2026-10-09',
+    icon: '🟦',
+    title: 'Shape Dash: pick how long you run',
+    body: 'Before you play, slide to choose how many seconds you run between question breaks, from 15 to 120.',
+  },
+  {
     id: '2026-10-09-cd-poof',
     date: '2026-10-09',
     icon: '✨',

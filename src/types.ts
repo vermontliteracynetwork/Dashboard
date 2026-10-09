@@ -599,6 +599,8 @@ export interface Task {
   // in the native game, locked for the student. Unset = the game's own default.
   gameRounds?: number;
   gameQuestionsPerRound?: number;
+  // Shape Dash: seconds of running between question breaks (teacher master setting, 2026-10-09).
+  gameQuestionEverySeconds?: number;
 }
 
 // Literacy Workspace — open-exploration sandbox (direct teacher

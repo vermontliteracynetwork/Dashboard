@@ -31,21 +31,22 @@
 How it works: every new request, idea or "queue:" message goes on this list the same turn it arrives. Work goes top to bottom, each item ships on its own (dev plan, What's New if students notice it, push to main), then it moves to **Done** with its date. An item that needs her answer moves to "Waiting on the teacher" below instead of blocking the line. Full detail for each item lives in its own entry (Gameplay roadmap, section 2).
 
 **Up next (top first):**
-1. Shape Dash: teacher sliders for how often questions come and how many come at once, plus a teacher inbox report for each session.
-2. Grammar Gus Phase 2: the Appositive Clamp.
-3. Read and Respond: save a gallery picture and hang it as resizable wall decor in the Home Room.
-4. Castle Defense art, still to use: a map built from the field and village tiles, attacker death and attack animations, animated tower weapons.
-5. Grammar Gus Phase 2: Fusion Reactor (sentence combining).
-6. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
-7. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
-8. Grammar Gus Phase 2: Label and Unit Maker.
-9. Grammar Gus Phase 2: Gus's Paint Shop.
-10. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
-11. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
+1. Grammar Gus Phase 2: the Appositive Clamp.
+2. Read and Respond: save a gallery picture and hang it as resizable wall decor in the Home Room.
+3. Castle Defense art, still to use: a map built from the field and village tiles, attacker death and attack animations, animated tower weapons.
+4. Grammar Gus Phase 2: Fusion Reactor (sentence combining).
+5. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
+6. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
+7. Grammar Gus Phase 2: Label and Unit Maker.
+8. Grammar Gus Phase 2: Gus's Paint Shop.
+9. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
+10. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
+11. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Shape Dash, a "seconds between question breaks" slider (15 to 120, default 30; the teacher's number locks it for assignments) and a teacher Inbox report after every run.
 - 2026-10-09: Castle Defense, the Wisp's build poof on the build tiles (her words: "add the wisp build animation to castle defense map tiles").
 - 2026-10-08: Castle Defense, remove a placed tower, with the Wisp collapse animation.
 - 2026-10-08: Home Build Mode for students (catalog tabs and arrows, Sims-style walls, 12 by 12 yard, camera pad).
@@ -736,8 +737,8 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - A premium narrator voice (needs a paid text to speech key she adds in Vercel; today it is the device's best British male voice).
 
 **Shape Dash:**
-- Teacher sliders for how often questions come and how many come at once (fixed at 30 seconds and 1 question today).
-- A teacher inbox report for each session.
+- ~~Teacher sliders for how often questions come and how many come at once.~~ SHIPPED 2026-10-09 (Build Queue): a "Seconds of running between question breaks" slider on the launch screen (15 to 120 in steps of 5, default 30, remembered on the iPad) next to the existing "Questions in each question break" slider. For an assignment, the plan builder's new "Shape Dash: seconds between question breaks" box sets it and the slider locks.
+- ~~A teacher inbox report for each session.~~ SHIPPED 2026-10-09: when a run ends (finished or left), the teacher's Inbox gets "🟦 Name played Shape Dash for N min": right answers, how many times they tried a different question, money earned, the level, blocks, stars, the question settings and the assignment if any. "Got it" marks it read. Saved as the `reports:<studentId>` style_looks row (no new SQL, newest 40 kept; `src/lib/gameReports.ts`). The other native games are next on the Build Queue.
 
 **Castle Defense:**
 - **Remove a placed tower — SHIPPED 2026-10-08. Her words (verbatim): "queue: in tower defense game, allow delete towers after they've been placed".** During the build phase, tapping a built tower shows "🗑️ Remove this tower" under the upgrade button; a second tap ("Tap again to remove it and get 💎 N back") removes it and returns every gem spent on it (build plus upgrades). Claudia's call: a full refund so moving a tower is never a penalty, and two taps so it never happens by accident. **Collapse animation SHIPPED 2026-10-08, her words (verbatim): "add the wisp collapse animation when a tower is removed":** the removed tower shakes, sinks and fades while the Foozle 13-frame collapse dust plays over it and the Wisp hovers above, about 1 second; a new tower can be built on the spot right away. Reduced motion skips the dust and just fades the tower.

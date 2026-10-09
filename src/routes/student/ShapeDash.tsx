@@ -12,6 +12,8 @@ import { pickRival, recordGameMemory } from '../../lib/gameRivals';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { spendBoosts, useBoostCounts } from '../../lib/gamePowerups';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
+import { recordGameReport } from '../../lib/gameReports';
+import { getEconomy } from '../../lib/economy';
 import type { MCQuestion, QuestionSet } from '../../types';
 import {
   GROUND_Y, PLAYER_X, U, VIEW_H, VIEW_W, blocksRun, makeLevel, newRunner, progressOf, respawn, safeForBreak, step,
@@ -22,6 +24,10 @@ import { drawQuestion } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
 const SD_RANGES = { per: { min: 1, max: 10, def: 1 } };
+// How many seconds of running between question breaks (Build Queue 2026-10-09). The student picks
+// on the launch screen; an assignment's own number (plan builder) locks it.
+const EVERY_RANGE = { min: 15, max: 120, def: 30, step: 5 };
+const clampEvery = (n: number) => Math.min(EVERY_RANGE.max, Math.max(EVERY_RANGE.min, Math.round(n / EVERY_RANGE.step) * EVERY_RANGE.step));
 
 const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
 
@@ -39,7 +45,6 @@ const ART = '/games/shape-dash/PNG/Double/';
 const COLORS = ['blue', 'green', 'pink', 'purple', 'red', 'yellow'] as const;
 const BODIES = ['square', 'squircle', 'circle', 'rhombus'] as const;
 const FACES = 'abcdefghijkl'.split('');
-const QUESTION_EVERY = 30; // seconds of running (her rule)
 const statsOwner = (id: string) => `sd:${id}`;
 type Look = { color: (typeof COLORS)[number]; body: (typeof BODIES)[number]; face: string };
 type Phase = 'launch' | 'ready' | 'play' | 'question' | 'levelDone' | 'over';
@@ -112,6 +117,10 @@ export default function ShapeDash() {
   const [qReason, setQReason] = useState<'timer' | 'crash'>('timer');
   // Questions in each timed break: the student's choice, or the assignment's (locked). A crash still asks one.
   const roundSet = useRoundSettings('shapeDash', SD_RANGES, activeGameplayTask?.task);
+  const [kidEvery, setKidEvery] = useState(() => { try { const n = Number(localStorage.getItem('game.shapeDash.every')); return n ? clampEvery(n) : EVERY_RANGE.def; } catch { return EVERY_RANGE.def; } });
+  const assignedEvery = activeGameplayTask?.task.gameQuestionEverySeconds;
+  const QUESTION_EVERY = activeGameplayTask ? clampEvery(assignedEvery ?? EVERY_RANGE.def) : kidEvery;
+  const setEvery = (n: number) => { if (activeGameplayTask) return; const v = clampEvery(n); setKidEvery(v); try { localStorage.setItem('game.shapeDash.every', String(v)); } catch { /* fine */ } };
   const [qLeft, setQLeft] = useState(1);
   const [cheer, setCheer] = useState<string | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -127,6 +136,8 @@ export default function ShapeDash() {
   // $1 per right answer, paid when the run ends or they leave (src/lib/gameEarnings.ts).
   const correctRef = useRef(0);
   const sessionRight = useRef(0);
+  const sessionSkipped = useRef(0);
+  const sessionStart = useRef(0);
   const payOutRef = useRef(() => {});
   payOutRef.current = () => { if (studentId && correctRef.current > 0) payForAnswers(studentId, correctRef.current, 'Shape Dash', '🟦'); correctRef.current = 0; };
   useEffect(() => () => payOutRef.current(), []);
@@ -140,6 +151,7 @@ export default function ShapeDash() {
     g.lv = makeLevel(n); g.r = newRunner(); g.particles = []; g.jump = false;
     if (!keepRun) {
       g.hearts = 3; g.stars = 0; g.blocks = 0; g.playTime = 0; g.nextQ = QUESTION_EVERY; sessionRight.current = 0;
+      sessionSkipped.current = 0; sessionStart.current = Date.now();
       // Power-ups bought in the Marketplace are used up at the start of a run (not in Practice).
       if (!practice) {
         const used = spendBoosts(studentId, ['sd-heart', 'sd-shield']);
@@ -157,6 +169,16 @@ export default function ShapeDash() {
     const blocks = g.blocks + (phaseRef.current === 'levelDone' ? 0 : blocksRun(g.r));
     if (studentId && blocks > 0) recordBestGame(studentId, 'shapeDash', blocks, `Level ${g.lv.n} · ${g.stars} stars`);
     if (studentId && rival) recordGameMemory(studentId, rival.id, 'Shape Dash', 'together');
+    // The teacher's Inbox report for this run (only once a run actually started).
+    if (studentId && sessionStart.current) {
+      recordGameReport(studentId, {
+        game: 'Shape Dash', icon: '🟦', minutes: Math.max(1, Math.round((Date.now() - sessionStart.current) / 60000)),
+        right: sessionRight.current, skipped: sessionSkipped.current, earnedCents: sessionRight.current * getEconomy().perCorrectCents,
+        detail: `Reached level ${g.lv.n}, ${blocks} blocks, ${g.stars} stars${practice ? ', Practice mode' : ''}. Questions every ${QUESTION_EVERY} seconds, ${roundSet.perRound} per break.`,
+        ended: why === 'over' ? 'finished' : 'left', assignment: activeGameplayTask?.task.title,
+      });
+      sessionStart.current = 0;
+    }
     payOutRef.current();
     if (why === 'over') { setSummary({ blocks, stars: g.stars, level: g.lv.n, right: sessionRight.current }); toPhase('over'); stopMusic(); }
   };
@@ -274,6 +296,10 @@ export default function ShapeDash() {
                 <span>Start at level</span>
                 {Array.from({ length: Math.min(maxLevel, 12) }, (_, i) => i + 1).map((n) => <button key={n} type="button" className={`sd-btn sd-lvl${startLevel === n ? ' on' : ''}`} onClick={() => setStartLevel(n)} aria-pressed={startLevel === n}>{n}</button>)}
               </div>
+              <label className="round-slider sd-every">
+                <span>Seconds of running between question breaks: <strong>{QUESTION_EVERY}</strong></span>
+                <input type="range" min={EVERY_RANGE.min} max={EVERY_RANGE.max} step={EVERY_RANGE.step} value={QUESTION_EVERY} disabled={!!activeGameplayTask} onChange={(e) => setEvery(Number(e.target.value))} aria-label="Seconds of running between question breaks" />
+              </label>
               <RoundSettings ranges={SD_RANGES} perLabel="Questions in each question break" rounds={0} perRound={roundSet.perRound} onRounds={() => {}} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
               <div className="sd-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>
               <div className="sd-seg">
@@ -344,7 +370,7 @@ export default function ShapeDash() {
           imageAlt={question.imageAlt}
           onCorrectAnswer={answered}
           onExit={() => setConfirmLeave(true)}
-          onSkip={() => setQuestion(pickQuestion(question.id))}
+          onSkip={() => { sessionSkipped.current += 1; setQuestion(pickQuestion(question.id)); }}
           ttsSettings={student?.ttsSettings}
         />
       )}

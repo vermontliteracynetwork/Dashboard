@@ -3,6 +3,8 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { StylePortrait } from '../../style/StylePortrait';
 import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
+import { resolveGameReport, useAllGameReports, type GameReport } from '../../lib/gameReports';
+import { formatMoney } from '../../lib/money';
 
 type InboxItem =
   | { kind: 'help'; id: string; studentId: string; timestamp: string; done: boolean }
@@ -37,6 +39,7 @@ type InboxItem =
       customLabel?: string;
       text: string;
     }
+  | { kind: 'gameReport'; id: string; studentId: string; timestamp: string; done: boolean; report: GameReport }
   | {
       kind: 'quizStruggle';
       id: string;
@@ -60,6 +63,7 @@ export default function ReviewInbox() {
   const resolveFeedback = useStore((s) => s.resolveFeedback);
   const resolveQuizStruggle = useStore((s) => s.resolveQuizStruggle);
   const resolveSelCheckIn = useStore((s) => s.resolveSelCheckIn);
+  const gameReports = useAllGameReports();
 
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
@@ -97,6 +101,7 @@ export default function ReviewInbox() {
       taskTitle: q.taskTitle,
       questionPrompt: q.questionPrompt,
     })),
+    ...gameReports.map((r): InboxItem => ({ kind: 'gameReport', id: r.id, studentId: r.studentId, timestamp: r.at, done: !!r.resolved, report: r })),
     // Zones of Regulation check-in (docs/ZONES_OF_REGULATION_CHECKIN.md §5):
     // only Blue/Yellow land here — Red reuses the help-ping full-screen
     // alert above instead (recordSelCheckIn/completeSelRecheck in store.ts),
@@ -149,6 +154,15 @@ export default function ReviewInbox() {
                       </>
                     ) : item.kind === 'offscreen' ? (
                       <>{nameFor(item.studentId)} marked "{item.taskTitle}" done ({item.subject}){item.photoUrl ? ' · 📸 photo attached' : ''}</>
+                    ) : item.kind === 'gameReport' ? (
+                      <>
+                        {item.report.icon} {nameFor(item.studentId)} played {item.report.game} for {item.report.minutes} min{item.report.ended === 'left' ? ' (left early)' : ''}
+                        {item.report.assignment ? ` · assignment: ${item.report.assignment}` : ''}
+                        <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
+                          ✅ {item.report.right} right answer{item.report.right === 1 ? '' : 's'} · 🔁 {item.report.skipped} tried a different question · 💰 {formatMoney(item.report.earnedCents)}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.75 }}>{item.report.detail}</div>
+                      </>
                     ) : item.kind === 'feedback' ? (
                       <>
                         {nameFor(item.studentId)} sent feedback — {CATEGORY_LABEL[item.category] ?? item.category}
@@ -175,6 +189,7 @@ export default function ReviewInbox() {
                       : item.kind === 'offscreen' ? verifyOffscreen(item.id)
                       : item.kind === 'quizStruggle' ? resolveQuizStruggle(item.id)
                       : item.kind === 'selNote' ? resolveSelCheckIn(item.id)
+                      : item.kind === 'gameReport' ? resolveGameReport(item.studentId, item.id)
                       : resolveFeedback(item.id)
                     }
                   >

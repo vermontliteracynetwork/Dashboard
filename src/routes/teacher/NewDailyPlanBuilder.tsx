@@ -84,6 +84,11 @@ function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: 
             <input type="number" min={1} max={10} style={{ width: 70 }} placeholder="game's own" value={task.gameQuestionsPerRound ?? ''}
               onChange={(e) => onChange({ gameQuestionsPerRound: e.target.value ? Math.min(10, Math.max(1, Number(e.target.value))) : undefined })} />
           </label>
+          <label className="row" style={{ gap: 4 }}>
+            Shape Dash: seconds between question breaks
+            <input type="number" min={15} max={120} step={5} style={{ width: 70 }} placeholder="30" value={task.gameQuestionEverySeconds ?? ''}
+              onChange={(e) => onChange({ gameQuestionEverySeconds: e.target.value ? Math.min(120, Math.max(15, Number(e.target.value))) : undefined })} />
+          </label>
           <span style={{ opacity: 0.7 }}>Chess has no rounds; Shape Dash and Alchemy use questions per round only.</span>
         </div>
       )}
