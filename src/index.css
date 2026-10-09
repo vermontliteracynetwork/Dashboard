@@ -6228,3 +6228,21 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-cer-report .gwb-hear { position: absolute; right: 8px; top: 8px; }
 @media (max-width: 760px) { .gwb-cer-line { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .gwb-cer-line.running .gwb-cer-ico, .gwb-cer-model { animation: none; } }
+
+/* Grammar Gus: Label and Unit Maker (Phase 2) */
+.gwb-labels { max-width: min(720px, 96vw); position: relative; }
+.gwb-label-stage { position: relative; width: min(420px, 100%); margin: 6px auto; aspect-ratio: 100 / 104; border-radius: 16px; border: 3px solid var(--gus-ink); background: #fffdf6; }
+.gwb-label-svg { width: 100%; height: 100%; }
+.gwb-label-spot { position: absolute; transform: translate(-50%, -50%); min-width: 44px; min-height: 44px; padding: 4px 10px; border-radius: 22px; border: 3px solid var(--gus-ink); background: #fff; color: var(--gus-ink); font: 800 0.95rem 'Lexend', sans-serif; cursor: pointer; box-shadow: 0 3px 0 var(--gus-ink); white-space: nowrap; }
+.gwb-label-spot.on { background: #fff3c4; box-shadow: 0 0 0 4px #f3cf6b; }
+.gwb-label-spot.done { background: #c9f0d4; cursor: default; }
+.gwb-label-bank { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
+.gwb-label-sentence { text-align: center; font: 800 1.1rem 'Lexend', sans-serif; margin: 6px 0; }
+.gwb-label-sentence.done { color: #2e7d5b; }
+.gwb-wordparts { position: relative; padding: 10px 48px 10px 12px; border-radius: 14px; border: 3px solid var(--gus-ink); background: #fff; margin: 6px 0; }
+.gwb-wordparts .gwb-hear { position: absolute; right: 8px; top: 8px; }
+.gwb-wordparts-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.gwb-wordpart { display: flex; flex-direction: column; align-items: center; padding: 6px 12px; border-radius: 12px; border: 3px solid; background: #fff; }
+.gwb-wordpart b { font-size: 1.3rem; }
+.gwb-wordpart small { color: var(--gus-ink); font-weight: 700; }
+.gwb-label-party { position: absolute; right: 18px; top: 14px; font-size: 2rem; animation: gwb-tab-pulse 1s ease-in-out 3; }

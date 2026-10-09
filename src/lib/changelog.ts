@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-labels',
+    date: '2026-10-09',
+    icon: '🏷️',
+    title: 'Grammar Gus: label science diagrams',
+    body: 'Label a plant, a volcano, the water cycle and more. Then measure it with the right number and unit. A wrong unit sparks! Find it in Jobs, under Science writing.',
+  },
+  {
     id: '2026-10-09-gus-cer',
     date: '2026-10-09',
     icon: '🔬',

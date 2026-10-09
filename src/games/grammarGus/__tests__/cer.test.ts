@@ -14,3 +14,17 @@ describe('CER Lab Report', () => {
     }
   });
 });
+
+import { LABEL_DIAGRAMS } from '../data/labels';
+describe('Label and Unit Maker', () => {
+  it('every diagram has unique labels, distractors that are not its labels, and one right measurement', () => {
+    for (const d of LABEL_DIAGRAMS) {
+      const words = d.spots.map((s) => s.word);
+      expect(new Set(words).size).toBe(words.length);
+      d.extras.forEach((x) => expect(words).not.toContain(x));
+      expect([...d.measure.wrong, ...d.measure.wrongNumbers]).not.toContain(d.measure.answer);
+      expect(d.measure.sentence).toContain('___');
+      expect(JSON.stringify(d)).not.toMatch(/—/);
+    }
+  });
+});
