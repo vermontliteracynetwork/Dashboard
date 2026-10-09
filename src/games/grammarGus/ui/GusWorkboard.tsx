@@ -433,12 +433,17 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const savedBoards = useBoards();
   const boardRow = boardId ? savedBoards.find((b) => b.id === boardId) : undefined;
   const saveKey = `gus-board2-${host ? (boardId ? `teacher-${boardId}` : 'teacher') : studentId ?? 'guest'}`;
+  const ownBoardRow = !host && !boardId && studentId ? `gusboard:${studentId}` : null;
   const restored = useRef(false);
   const fitRef = useRef(() => {});
   useEffect(() => {
     if (restored.current) return; restored.current = true;
     let hadView = false;
-    try { const a = JSON.parse(localStorage.getItem(saveKey) ?? 'null'); if (a?.lines?.length) { setLines(a.lines); if (a.view) { setView(a.view); hadView = true; } } if (Array.isArray(a?.spare)) setSpare(a.spare); } catch { /* start fresh */ }
+    let local = false;
+    try { const a = JSON.parse(localStorage.getItem(saveKey) ?? 'null'); if (a?.lines?.length) { local = true; setLines(a.lines); if (a.view) { setView(a.view); hadView = true; } } if (Array.isArray(a?.spare)) setSpare(a.spare); } catch { /* start fresh */ }
+    // A student's own board also lives on their account (audit leftover, 2026-10-09): a new iPad,
+    // or a cleared one, picks it back up from the \`gusboard:<id>\` row.
+    if (!local && ownBoardRow) { const b = (useStore.getState().styleLooks.find((r) => r.ownerId === ownBoardRow)?.look ?? {}) as { lines?: BoardLine[]; spare?: BoardItem[] }; if (b.lines?.length) { setLines(b.lines); if (Array.isArray(b.spare)) setSpare(b.spare); } }
     if (!hadView) requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
   }, [saveKey]);
   useEffect(() => {
@@ -450,8 +455,23 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       const all = boardsNow(); const cur = all.find((b) => b.id === boardId);
       if (cur && JSON.stringify(cur.lines) !== JSON.stringify(real)) saveBoards(all.map((b) => (b.id === boardId ? { ...b, lines: real, updatedAt: new Date().toISOString() } : b)));
     }, 1500) : 0;
-    return () => { window.clearTimeout(t); if (t2) window.clearTimeout(t2); };
+    // The student's own board, to their account, a few seconds after they stop building.
+    const t3 = ownBoardRow && restored.current ? window.setTimeout(() => {
+      const real = lines.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank'));
+      const cur = (useStore.getState().styleLooks.find((r) => r.ownerId === ownBoardRow)?.look ?? {}) as { lines?: BoardLine[]; spare?: BoardItem[] };
+      if (JSON.stringify(cur.lines ?? []) !== JSON.stringify(real) || JSON.stringify(cur.spare ?? []) !== JSON.stringify(spare)) mergeStyleRow(ownBoardRow, { lines: real, spare, at: new Date().toISOString() });
+    }, 4000) : 0;
+    return () => { window.clearTimeout(t); if (t2) window.clearTimeout(t2); if (t3) window.clearTimeout(t3); };
   }, [lines, view, spare, saveKey, boardId]);
+  // The account copy can arrive after the Workboard opens (a fresh iPad): use it if the board is still empty.
+  const ownCloud = useStore((st) => (ownBoardRow ? st.styleLooks.find((r) => r.ownerId === ownBoardRow)?.look : undefined)) as { lines?: BoardLine[]; spare?: BoardItem[] } | undefined;
+  const cloudTried = useRef(false);
+  useEffect(() => {
+    if (cloudTried.current || !ownCloud?.lines?.length) return;
+    cloudTried.current = true;
+    const here = linesRef.current.filter((l) => !(l.items.length === 1 && l.items[0].kind === 'blank'));
+    if (!here.length) { setLines(ownCloud.lines); if (Array.isArray(ownCloud.spare)) setSpare(ownCloud.spare); requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current())); }
+  }, [ownCloud]);
   // A board opened in a fresh tab comes from the class server when this computer has no copy.
   const boardLoaded = useRef(false);
   useEffect(() => {
