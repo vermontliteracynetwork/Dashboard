@@ -353,8 +353,8 @@ export default function Marketplace() {
     const cartKey = `item-${item.id}`;
     return (
       <div key={item.id} className="shop-product-card">
-        <div className="shop-item-icon-frame" style={item.kind === 'color' ? { width: opts?.iconSize ?? 44, height: opts?.iconSize ?? 44, borderRadius: '50%', background: item.colorHex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : item.colorHex } : item.kind === 'font' ? { width: '100%', fontFamily: item.cssFontFamily, fontSize: '1.6rem' } : {}}>
-          {item.kind !== 'color' && item.kind !== 'font' && (isImg ? <img src={item.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '1.8rem' }}>{item.icon}</span>)}
+        <div className="shop-item-icon-frame" style={item.kind === 'prize' && isImg ? { width: 110, height: 142, background: '#2a2a2a' } : item.kind === 'color' ? { width: opts?.iconSize ?? 44, height: opts?.iconSize ?? 44, borderRadius: '50%', background: item.colorHex === 'rainbow' ? 'conic-gradient(red, orange, yellow, green, blue, purple, red)' : item.colorHex } : item.kind === 'font' ? { width: '100%', fontFamily: item.cssFontFamily, fontSize: '1.6rem' } : {}}>
+          {item.kind !== 'color' && item.kind !== 'font' && (isImg ? <img src={item.icon} alt="" style={{ width: '100%', height: '100%', objectFit: item.kind === 'prize' ? 'contain' : 'cover' }} /> : <span style={{ fontSize: '1.8rem' }}>{item.icon}</span>)}
           {item.kind === 'font' && 'Aa'}
         </div>
         <strong style={{ fontSize: '0.72rem' }}>{item.name}</strong>
@@ -573,7 +573,7 @@ export default function Marketplace() {
                 🎫 Power-Ups
               </button>
               <button className={`shop-sidebar-btn ${tab === 'prizes' ? 'active' : ''}`} onClick={() => setTab('prizes')}>
-                <Icon name="gift" size={16} fallback="🎁" /> Real-Life Prizes
+                <Icon name="gift" size={16} fallback="🎁" /> Prizes
               </button>
               <button className={`shop-sidebar-btn ${tab === 'furniture' ? 'active' : ''}`} onClick={() => setTab('furniture')}>
                 <Icon name="home" size={16} fallback="🛋️" /> Home
@@ -758,7 +758,7 @@ export default function Marketplace() {
                   {prizeFilter.filtered.map((p) => renderBuyableItem(p))}
                 </div>
                 <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '10px 0 0' }}>
-                  💡 Bought a prize? Show this screen to your teacher. They'll help you get it!
+                  💡 Bought a prize? Show this screen to your teacher. They'll help you get it! $10 in the game is $1 in real money.
                 </p>
               </div>
             )}

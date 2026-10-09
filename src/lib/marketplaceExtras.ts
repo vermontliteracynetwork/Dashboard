@@ -16,6 +16,17 @@ const PRIZES_SEED = 'irl-prizes-2026-10-08';
 // Teacher 2026-10-08, the same day: "remove all IRL prizes from marketplace. keep category but remove all that you added".
 const PRIZES_REMOVED = 'irl-prizes-removed-2026-10-08';
 const HOME_SEED = 'home-items-2026-10-08';
+// Teacher 2026-10-09: "remove all current real world prizes. they are not applicable to me. only add
+// minecraft coin redeeming to start". Every prize already in the shop (hers too) is removed once, then
+// the five Minecoin redeeming prizes go in. Her rate: $10 in game = $1 USD.
+const ALL_PRIZES_REMOVED = 'all-prizes-removed-2026-10-09';
+const MINECOIN_SEED = 'minecoin-prizes-2026-10-09';
+const minecoin = (coins: number, usd: number): Seed => ({
+  id: `prize-minecoin-${coins}`, kind: 'prize', name: `${coins.toLocaleString('en-US')} Minecoins`, icon: `/marketplace/minecoins/${coins}.png`,
+  price: usd * 10 * 100, category: 'Minecoin redeeming', tags: ['Minecraft'],
+  description: `A $${usd} USD Minecraft Minecoin code (${coins.toLocaleString('en-US')} Minecoins). Show your teacher to redeem it.`,
+});
+export const MINECOIN_PRIZES: Seed[] = [minecoin(320, 2), minecoin(1020, 6), minecoin(1720, 10), minecoin(3500, 20), minecoin(8800, 50)];
 
 type Seed = Omit<MarketplaceItem, 'createdAt'>;
 const prize = (id: string, name: string, icon: string, dollars: number, description: string): Seed =>
@@ -64,6 +75,14 @@ export async function seedMarketplaceExtras(): Promise<void> {
   if (!done.includes(PRIZES_REMOVED)) {
     for (const id of IRL_PRIZES.map((p) => p.id)) if (have.has(id)) s.deleteMarketplaceItem(id);
     nowDone.push(PRIZES_REMOVED);
+  }
+  if (!done.includes(ALL_PRIZES_REMOVED)) {
+    for (const it of s.marketplaceItems) if (it.kind === 'prize' && !it.id.startsWith('prize-minecoin-')) s.deleteMarketplaceItem(it.id);
+    nowDone.push(ALL_PRIZES_REMOVED);
+  }
+  if (!done.includes(MINECOIN_SEED)) {
+    add.push(...MINECOIN_PRIZES);
+    nowDone.push(MINECOIN_SEED);
   }
   if (!done.includes(HOME_SEED)) {
     try {

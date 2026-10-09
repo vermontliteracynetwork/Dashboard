@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-minecoins',
+    date: '2026-10-09',
+    icon: '🪙',
+    title: 'Save up for Minecoins!',
+    body: 'The Prizes tab in the Marketplace now has Minecraft Minecoins. 320 Minecoins cost $20 in the game, and the biggest pack, 8,800 Minecoins, costs $500. Buy one and show your teacher to redeem it.',
+  },
+  {
     id: '2026-10-09-cd-anims',
     date: '2026-10-09',
     icon: '🏹',
