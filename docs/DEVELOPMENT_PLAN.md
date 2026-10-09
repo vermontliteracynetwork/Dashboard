@@ -36,9 +36,9 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 3. Grammar Gus Phase 2: Gus's Paint Shop.
 4. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
 5. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
-8. Science Lab next steps (her links): an atom builder, element cards with photos and uses, a burner for heat, more recipes.
-7. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
 6. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
+7. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
+8. Science Lab next steps (her links): an atom builder, element cards with photos and uses, a burner for heat, more recipes.
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
