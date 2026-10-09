@@ -12,7 +12,7 @@ export default function SheetSprite({ sheet, className = '', style, once = false
     '--fx-end': `${(sheet.frames / Math.max(1, cols - 1)) * 100}%`,
     animationDuration: `${sheet.frames * (sheet.ms ?? 100)}ms`,
     animationTimingFunction: `steps(${sheet.frames})`,
-    ...(once ? { animationIterationCount: 1, animationFillMode: 'forwards' } : {}),
+    ...(once ? { animationIterationCount: 1, animationFillMode: 'both' } : {}),
   } as CSSProperties;
   return (
     <span className={`cd-sheet ${className}`} style={{ aspectRatio: `${bw} / ${bh}`, ...style }} aria-hidden>

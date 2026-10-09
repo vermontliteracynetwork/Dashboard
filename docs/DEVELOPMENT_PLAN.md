@@ -24,6 +24,32 @@
 
 **How to use this doc with Claudia:** Part A is what already exists (build on it or revise it explicitly, don't re-propose it). Part B is the open backlog, organized by feature front, each pointing at its own doc where one exists — the best place to start a gameplay-design conversation. Part C is the teacher's own raw notes on the pets system and platformer, preserved close to verbatim. Part D is the standing design/safety/accessibility rules every new feature gets checked against.
 
+## 🧱 BUILD QUEUE: what gets built next, in order
+
+**Her standing rule (2026-10-09, verbatim):** "claudia, continue with all queued items, always add items to a queue list and work through them until completed".
+
+How it works: every new request, idea or "queue:" message goes on this list the same turn it arrives. Work goes top to bottom, each item ships on its own (dev plan, What's New if students notice it, push to main), then it moves to **Done** with its date. An item that needs her answer moves to "Waiting on the teacher" below instead of blocking the line. Full detail for each item lives in its own entry (Gameplay roadmap, section 2).
+
+**Up next (top first):**
+1. Shape Dash: teacher sliders for how often questions come and how many come at once, plus a teacher inbox report for each session.
+2. Grammar Gus Phase 2: the Appositive Clamp.
+3. Read and Respond: save a gallery picture and hang it as resizable wall decor in the Home Room.
+4. Castle Defense art, still to use: a map built from the field and village tiles, attacker death and attack animations, animated tower weapons.
+5. Grammar Gus Phase 2: Fusion Reactor (sentence combining).
+6. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
+7. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
+8. Grammar Gus Phase 2: Label and Unit Maker.
+9. Grammar Gus Phase 2: Gus's Paint Shop.
+10. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
+11. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
+
+**Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
+
+**Done:**
+- 2026-10-09: Castle Defense, the Wisp's build poof on the build tiles (her words: "add the wisp build animation to castle defense map tiles").
+- 2026-10-08: Castle Defense, remove a placed tower, with the Wisp collapse animation.
+- 2026-10-08: Home Build Mode for students (catalog tabs and arrows, Sims-style walls, 12 by 12 yard, camera pad).
+
 ## ⚠️ WAITING ON THE TEACHER: SQL to run, answers owed, live checks
 
 **Quick list (updated 2026-10-08, Claudia's plan check). Details for each are below or in the linked entry.**
@@ -715,6 +741,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 **Castle Defense:**
 - **Remove a placed tower — SHIPPED 2026-10-08. Her words (verbatim): "queue: in tower defense game, allow delete towers after they've been placed".** During the build phase, tapping a built tower shows "🗑️ Remove this tower" under the upgrade button; a second tap ("Tap again to remove it and get 💎 N back") removes it and returns every gem spent on it (build plus upgrades). Claudia's call: a full refund so moving a tower is never a penalty, and two taps so it never happens by accident. **Collapse animation SHIPPED 2026-10-08, her words (verbatim): "add the wisp collapse animation when a tower is removed":** the removed tower shakes, sinks and fades while the Foozle 13-frame collapse dust plays over it and the Wisp hovers above, about 1 second; a new tower can be built on the spot right away. Reduced motion skips the dust and just fades the tower.
+- **Wisp build animation on the map tiles — SHIPPED 2026-10-09. Her words (verbatim): "add the wisp build animation to castle defense map tiles".** Building or upgrading a tower now bursts a white dust poof over the build tile (the Foozle construction sheet's poof row, 5 frames) right as the tower appears, while the Wisp casts above it. Reduced motion skips the poof.
 - Art upgrade: towers, attackers, portal, Wisp and townspeople SHIPPED 2026-10-08 (see "Castle Defense: new art added to the old"). Still to do: a map built from the field and village tiles, death and attack animations, animated tower weapons. Packs: (field and village tiles, 7 CraftPix enemies and 8 Foozle bugs including flyers, the archer tower plus 6 Foozle towers with 3 weapon levels each, the Wisp builder with build and collapse animations, a 3-stage enemy portal, 4 citizens), saved in `public/games/castle-defense/craftpix/`, `foozle/` and `portal/`. She confirmed all licenses are good to go. QUEUED 2026-10-08, see "Castle Defense art upgrade".
 
 **Space Bowling:**

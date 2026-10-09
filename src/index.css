@@ -5984,3 +5984,9 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .castle-tower-img.cd-collapsing { animation: cdCollapseCalm 0.6s ease-out forwards; }
 }
+
+/* Castle Defense: the Wisp's build poof bursts over the tile as the new tower appears */
+.cd-poof { position: absolute; left: 50%; bottom: 4%; width: 120%; transform: translateX(-50%); z-index: 4; pointer-events: none; opacity: 0; animation: cdPoofShow 1.1s linear forwards; }
+.cd-poof .cd-sheet-cell { animation-delay: 0.4s; }
+@keyframes cdPoofShow { 0%, 35% { opacity: 0; } 36%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cd-poof { display: none; } }

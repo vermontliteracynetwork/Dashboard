@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-cd-poof',
+    date: '2026-10-09',
+    icon: '✨',
+    title: 'Castle Defense: the Wisp builds with a poof',
+    body: 'When you build or upgrade a tower, a puff of magic dust bursts over the spot and the new tower appears inside it.',
+  },
+  {
     id: '2026-10-08-cd-remove',
     date: '2026-10-08',
     icon: '🏰',

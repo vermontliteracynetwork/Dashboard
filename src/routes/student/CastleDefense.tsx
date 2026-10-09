@@ -19,7 +19,7 @@ import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
 import { drawQuestion } from '../../lib/questionPick';
-import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
+import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, TOWER_POOF, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
 import SheetSprite from '../../games/castleDefense/SheetSprite';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
@@ -774,6 +774,7 @@ export default function CastleDefense() {
                   >
                     <span className="castle-plot" aria-hidden="true" />
                     {building[i] && <span className="cd-wisp" aria-hidden><SheetSprite sheet={WISP_CAST} /></span>}
+                    {building[i] && <span key={building[i]} className="cd-poof" aria-hidden><SheetSprite sheet={TOWER_POOF} once /></span>}
                     {!slot && collapsing[i] && (
                       <>
                         <img

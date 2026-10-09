@@ -22,6 +22,9 @@ Production: https://independent-work-dashboard.vercel.app (receiving pushes agai
 - **Every idea she says** — the moment she raises a new idea, a change request, a half-formed thought, or feedback (praise or otherwise) about any future development, it goes into the dev plan that same turn, via Claudia's Intake Protocol if it needs shaping, or directly if it's already concrete. Never hold an idea in conversation only, waiting for "later" — if it's not in the dev plan, it doesn't exist for planning purposes.
 This is not a separate pass to remember to do — treat "did the dev plan update ship in this push" as part of "is this change done," the same way `tsc`/`build` verification already is.
 
+## Build Queue: always add, always work through it
+Direct teacher rule (2026-10-09): "claudia, continue with all queued items, always add items to a queue list and work through them until completed". The list is `docs/DEVELOPMENT_PLAN.md` → "🧱 BUILD QUEUE". Every new request, idea or "queue:" message goes on it the same turn. Work top to bottom, ship each item on its own (dev plan + What's New + push to main), move it to Done with the date, then start the next without waiting to be asked. Items that need her answer move to "Waiting on the teacher" instead of blocking the line.
+
 ## Keep the student-facing What's New book current
 `src/lib/changelog.ts`'s `CHANGELOG_ENTRIES` is the "what's new" page-turning book shown to students, and it must stay comprehensive: whenever a change ships that a student would actually notice or use (not a Build Mode tooling fix, not a backend/teacher-only change), add a plain-language entry as part of that same change, same habit as the dev plan above. Newest first, today's date, short id, no em dashes (see Copy below). A behind-the-scenes policy change (like pausing a system) isn't "what's new" to celebrate and doesn't belong here.
 
