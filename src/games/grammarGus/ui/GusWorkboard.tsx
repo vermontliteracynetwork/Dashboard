@@ -81,7 +81,10 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const gusOwner = (id: string) => `gus:${id}`;
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: Paint }
+interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: Paint; machines?: (SavedMachine | null)[] }
+// Saved machine Blueprints (Garage extras, plan 19): 6 slots for a student's own machines.
+interface SavedMachine { items: BoardItem[]; connector?: string; text: string; at: string }
+const MACHINE_SLOTS = 6;
 type Paint = { floor?: string; pipe?: string; lever?: string; party?: string; sounds?: string; hat?: string }
 // The machine rows of Gus's Checklist: the Workboard's own jobs.
 const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
@@ -356,6 +359,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const bounce = (id: string) => { setSnapped(id); timers.current.push(window.setTimeout(() => setSnapped((x) => (x === id ? null : x)), 480)); };
   const [jobsOpen, setJobsOpen] = useState(false);
   const [paintOpen, setPaintOpen] = useState(false);
+  const [machinesOpen, setMachinesOpen] = useState(false);
   const orderTurn = useRef(0);
   const [jobsMore, setJobsMore] = useState(false);
   // Spare Parts Bin (teacher's reference chart: "Put extra words here").
@@ -1299,6 +1303,29 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     setSelLine(id); bounce(id); gusSound.snap(); say('A copy of the whole machine, just below. Change any word you like.', '⧉ Copied');
     requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
   };
+  // 💾 My saved machines: keep a machine in a slot, then put a fresh copy back on the board later.
+  const machineText = (l: BoardLine) => { try { return lineText(l, readLine(l, 'full', false), true) || '...'; } catch { return '...'; } };
+  const saveMachine = (slot: number) => {
+    const l = linesRef.current.find((x) => x.id === selLine);
+    if (!studentId || !l || !l.items.some((i) => i.word)) { say('Tap a machine with words on it first, then save it here.', '💾 Saved machines'); return; }
+    const list = [...(gusRowNow().machines ?? [])]; while (list.length < MACHINE_SLOTS) list.push(null);
+    list[slot] = { items: l.items.map((i) => ({ ...i, locked: false })), connector: l.connector, text: machineText(l), at: new Date().toISOString() };
+    mergeStyleRow(gusOwner(studentId), { machines: list.slice(0, MACHINE_SLOTS) });
+    gusSound.copy(); say(`Saved in slot ${slot + 1}. Put it back on the board any time.`, '💾 Saved machines');
+  };
+  const loadMachine = (m: SavedMachine) => {
+    remember();
+    const sp = freeSpot(); const id = uid();
+    setLines((ls) => [...ls.filter((x) => !(x.items.length === 1 && x.items[0].kind === 'blank')), { id, x: snap(sp.x), y: snap(sp.y), items: m.items.map(cloneItem), connector: m.connector }]);
+    setSelLine(id); bounce(id); gusSound.heave(); setMachinesOpen(false);
+    say('Your saved machine rolled out of the garage. Pull the Start Lever, or change a word first.', '💾 Saved machines');
+    requestAnimationFrame(() => requestAnimationFrame(() => fitRef.current()));
+  };
+  const clearMachine = (slot: number) => {
+    if (!studentId) return;
+    const list = [...(gusRowNow().machines ?? [])]; while (list.length < MACHINE_SLOTS) list.push(null);
+    list[slot] = null; mergeStyleRow(gusOwner(studentId), { machines: list.slice(0, MACHINE_SLOTS) }); gusSound.puff();
+  };
   const removeItem = (lineId: string, itemId: string) => { editLine(lineId, (l) => ({ ...l, items: l.items.filter((i) => i.id !== itemId) })); setMenu(null); gusSound.puff(); say('Taken off. Changed your mind? Tap Undo.', 'Removed'); };
   const menuPos = (() => {
     if (!menu || !menuLine || !boardRef.current) return null;
@@ -1616,6 +1643,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 <div className="gwb-sheet-sec">
                   <span className="gwb-sheet-label">My things</span>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 My Journal<small>Sentences and stories you saved</small></button>
+                  <button type="button" className="gwb-sheet-item" onClick={() => { setMachinesOpen(true); setTopMenu(false); }}>💾 My saved machines<small>Keep 6 of your machines and build them again later</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setPaintOpen(true); setTopMenu(false); }}>🎨 Gus's Paint Shop<small>Floors, pipes, lever knobs, celebrations, sounds and hats, unlocked with stickers</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/library')}>📚 Library<small>Articles to read and answer</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine<small>Gus's first sentence machine</small></button>
@@ -2107,6 +2135,29 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       )}
 
       {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great sorting.`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
+      {machinesOpen && (() => {
+        const list = saved.machines ?? [];
+        const sel = lines.find((l) => l.id === selLine && l.items.some((i) => i.word));
+        return (
+          <div className="gus-journal-backdrop" onClick={() => setMachinesOpen(false)}>
+            <div className="gus-journal gwb-mini gwb-paint" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="My saved machines">
+              <h2>💾 My saved machines</h2>
+              <p>{!studentId ? 'Saved machines are for signed-in students.' : sel ? <>Save the machine you tapped: <strong>"{machineText(sel)}"</strong></> : 'Tap a machine on the board first to save it here. Tap a saved one to build it again.'}</p>
+              <div className="gwb-paint-grid">{Array.from({ length: MACHINE_SLOTS }, (_, k) => {
+                const m = list[k];
+                return <div key={k} className={`gwb-slot${m ? ' full' : ''}`}>
+                  <strong>Slot {k + 1}</strong>
+                  <span className="gwb-slot-text">{m ? `"${m.text}"` : 'Empty'}</span>
+                  {m && <button type="button" className="gus-btn gus-btn-primary" onClick={() => loadMachine(m)}>🏗️ Build it</button>}
+                  {sel && studentId && <button type="button" className="gus-btn" onClick={() => saveMachine(k)}>{m ? '💾 Save over' : '💾 Save here'}</button>}
+                  {m && <button type="button" className="gus-btn" onClick={() => clearMachine(k)} aria-label={`Empty slot ${k + 1}`}>✕ Empty</button>}
+                </div>;
+              })}</div>
+              <button type="button" className="gus-btn gus-btn-primary" onClick={() => setMachinesOpen(false)}>Done</button>
+            </div>
+          </div>
+        );
+      })()}
       {paintOpen && (() => {
         const have = (saved.stickers ?? []).length;
         const pick = (patch: Paint) => { if (!studentId) return; mergeStyleRow(gusOwner(studentId), { paint: { ...(saved.paint ?? {}), ...patch } }); gusSound.splosh(); };

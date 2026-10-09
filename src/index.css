@@ -6300,3 +6300,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-confetti.rise b { animation-name: gwb-rise; }
 @keyframes gwb-rise { 0% { transform: translateY(10px) scale(0.6); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(-200px) scale(1.15); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .gwb-confetti { display: none; } }
+.gwb-slot { display: flex; flex-direction: column; gap: 6px; min-height: 120px; padding: 8px; border-radius: 14px; border: 3px dashed var(--gus-ink); background: #f4f6fa; font: 700 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); }
+.gwb-slot.full { border-style: solid; background: #fff; }
+.gwb-slot-text { flex: 1; font-weight: 500; overflow-wrap: anywhere; }
+.gwb-slot .gus-btn { min-height: 44px; }

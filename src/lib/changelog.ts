@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-saved-machines',
+    date: '2026-10-09',
+    icon: '💾',
+    title: 'Grammar Gus: save your machines',
+    body: 'Made a machine you love? Tap it, then Menu, My saved machines, and save it in one of 6 slots. Tap Build it any time to put a fresh copy back on the board.',
+  },
+  {
     id: '2026-10-09-gus-garage',
     date: '2026-10-09',
     icon: '🎩',
