@@ -113,3 +113,25 @@ export const REVISION_ITEMS: RevisionItem[] = [
   { tool: 'add', sentences: ['The goat ate a sock.', 'Mia laughed.', 'The goat burped.'], s: 0, ask: 'how', options: ['very loudly', 'in the barn', 'at noon'], why: '"Very loudly" tells how the goat ate.' },
   { tool: 'add', sentences: ['We went to the beach.', 'We built a sandcastle.', 'The waves knocked it down.'], s: 0, ask: 'when', options: ['in the morning', 'with a bucket', 'carefully'], why: '"In the morning" tells when we went.' },
 ];
+
+// Noun Boiler Pairs (Claudia's open queue, Build Queue 2026-10-09): a twin boiler with a "one / more
+// than one" switch. Match the picture: one thing or more than one, then a, an or some, the noun's
+// form (with the weird plurals) and the action word that agrees.
+export interface PairNoun { one: string; many: string; emoji: string; verb: [string, string]; an?: boolean }
+export const PAIR_NOUNS: PairNoun[] = [
+  { one: 'dog', many: 'dogs', emoji: '🐶', verb: ['barks', 'bark'] },
+  { one: 'cat', many: 'cats', emoji: '🐱', verb: ['naps', 'nap'] },
+  { one: 'apple', many: 'apples', emoji: '🍎', verb: ['rolls', 'roll'], an: true },
+  { one: 'egg', many: 'eggs', emoji: '🥚', verb: ['wobbles', 'wobble'], an: true },
+  { one: 'owl', many: 'owls', emoji: '🦉', verb: ['hoots', 'hoot'], an: true },
+  { one: 'elephant', many: 'elephants', emoji: '🐘', verb: ['stomps', 'stomp'], an: true },
+  { one: 'robot', many: 'robots', emoji: '🤖', verb: ['beeps', 'beep'] },
+  { one: 'mouse', many: 'mice', emoji: '🐭', verb: ['squeaks', 'squeak'] },
+  { one: 'goose', many: 'geese', emoji: '🪿', verb: ['honks', 'honk'] },
+  { one: 'tooth', many: 'teeth', emoji: '🦷', verb: ['wiggles', 'wiggle'] },
+  { one: 'child', many: 'children', emoji: '🧒', verb: ['giggles', 'giggle'] },
+  { one: 'fox', many: 'foxes', emoji: '🦊', verb: ['sneaks', 'sneak'] },
+  { one: 'bus', many: 'buses', emoji: '🚌', verb: ['zooms', 'zoom'] },
+  { one: 'sheep', many: 'sheep', emoji: '🐑', verb: ['sleeps', 'sleep'] },
+  { one: 'fish', many: 'fish', emoji: '🐟', verb: ['swims', 'swim'] },
+];

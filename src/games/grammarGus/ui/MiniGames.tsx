@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ARMS_TOOLS, FUSION_ITEMS, FUSION_KINDS, HOMO_CLUES, REVISION_ITEMS, type ArmsTool, type RevisionItem, HOMO_ITEMS, TRANS_ITEMS, TRANS_KINDS, type TransKind } from '../data/miniGames';
+import { ARMS_TOOLS, PAIR_NOUNS, FUSION_ITEMS, FUSION_KINDS, HOMO_CLUES, REVISION_ITEMS, type ArmsTool, type RevisionItem, HOMO_ITEMS, TRANS_ITEMS, TRANS_KINDS, type TransKind } from '../data/miniGames';
 import type { HelpLevel } from '../engine/types';
 import { gusSound } from './sound';
 
@@ -301,6 +301,86 @@ export function RevisionWorkshop({ calm, onClose, onEarn, say, speak, level }: P
           </>}
           {!fixed && level === 'full' && (it.tool === 'move' || it.tool === 'remove') && <button type="button" className="gus-btn gus-btn-primary" onClick={() => complete()}>{ARMS_TOOLS[it.tool].icon} {it.tool === 'move' ? 'Move the glowing sentence' : 'Snip the glowing part'}</button>}
           {fixed && <button type="button" className="gus-btn gus-btn-primary" onClick={nextJob}>Next repair ▶</button>}
+        </>}
+        <button type="button" className="gus-btn" onClick={finish}>✕ Close</button>
+      </div>
+    </div>
+  );
+}
+
+// Noun Boiler Pairs (Claudia's open queue, Build Queue 2026-10-09). The picture shows one thing or
+// more than one. Flip the twin boiler's switch to match, then build the sentence: a, an or some, the
+// noun's form, and the action word that agrees ("An owl hoots." "Some geese honk."). Fade ladder:
+// Full, the noun form is filled in for them; Guided, they pick each part; Challenge, the noun choices
+// include a wrong plural ("gooses") to catch.
+export function NounBoilerPairs({ calm, onClose, onEarn, say, speak, level }: Props & { level: HelpLevel }) {
+  const items = useMemo(() => shuffle(PAIR_NOUNS).slice(0, ROUNDS).map((n) => ({ n, many: Math.random() < 0.5 })), []);
+  const [k, setK] = useState(0);
+  const [sw, setSw] = useState<'one' | 'many' | null>(null);
+  const [art, setArt] = useState<string | null>(null);
+  const [noun, setNoun] = useState<string | null>(null);
+  const [verb, setVerb] = useState<string | null>(null);
+  const [bad, setBad] = useState<string | null>(null);
+  const [missed, setMissed] = useState(false);
+  const [firsts, setFirsts] = useState(0);
+  const done = k >= items.length;
+  const it = items[k];
+  const right = it && { art: it.many ? 'some' : it.n.an ? 'an' : 'a', noun: it.many ? it.n.many : it.n.one, verb: it.many ? it.n.verb[1] : it.n.verb[0] };
+  const nounNow = level === 'full' && sw ? right!.noun : noun;
+  const nounOpts = useMemo(() => {
+    if (!it) return [];
+    const wrong = it.n.many === `${it.n.one}s` ? `${it.n.one}es` : `${it.n.one}s`; // doges, foxs, mouses, sheeps
+    return shuffle([it.n.one, it.n.many, ...(level === 'challenge' ? [wrong] : [])].filter((x, i, a) => a.indexOf(x) === i));
+  }, [it, level]);
+  const oops = (key: string, m: string) => { setBad(key); window.setTimeout(() => setBad(null), 600); gusSound.bonk(); setMissed(true); say(m, 'Look again'); };
+  const flip = (v: 'one' | 'many') => {
+    if (sw) return;
+    if ((v === 'many') !== it.many) { oops(v, 'Count the picture again. One, or more than one?'); return; }
+    setSw(v); gusSound.steam();
+  };
+  const pickArt = (a: string) => {
+    if (art || !sw) return;
+    if (a !== right!.art) { oops(a, a === 'some' ? 'Some is for more than one.' : it.many ? 'For more than one, use some.' : 'Say it out loud: an goes before a vowel sound, a before other sounds.'); return; }
+    setArt(a); gusSound.splosh();
+  };
+  const pickNoun = (w: string) => {
+    if (nounNow || !art) return;
+    if (w !== right!.noun) { oops(w, w !== it.n.one && w !== it.n.many ? `${w}? That is not a real word. Some nouns have a weird plural.` : it.many ? 'The picture shows more than one.' : 'The picture shows just one.'); return; }
+    setNoun(w); gusSound.copy();
+  };
+  const pickVerb = (v: string) => {
+    if (verb || !nounNow) return;
+    if (v !== right!.verb) { oops(v, it.many ? 'More than one who: the action word has no s (they run).' : 'One who: the action word gets an s (it runs).'); return; }
+    setVerb(v); gusSound.tada();
+    const sentence = `${right!.art[0].toUpperCase()}${right!.art.slice(1)} ${right!.noun} ${v}.`;
+    speak(sentence); say(`"${sentence}" The boilers match!`, 'Matched');
+    if (!missed) setFirsts((f) => f + 1);
+  };
+  const next = () => { setK((x) => x + 1); setSw(null); setArt(null); setNoun(null); setVerb(null); setMissed(false); };
+  const finish = () => { onEarn(firsts); onClose(); };
+  const chip = (key: string, label: string, onClick: () => void, picked: boolean) => <button key={key} type="button" className={`gwb-fuse-word${picked ? ' glow' : ''}${bad === key ? ' wrong' : ''}`} onClick={onClick}>{label}</button>;
+  return (
+    <div className="gus-journal-backdrop" onClick={finish}>
+      <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Noun Boiler Pairs">
+        <h2>♨️ Noun Boiler Pairs</h2>
+        {done ? <>
+          <p className="gwb-mini-big">{firsts} of {items.length} matched on the first try!</p>
+          <p>One thing: a or an, and the action word gets an s. More than one: some, the plural noun, and no s on the action word.</p>
+          <button type="button" className="gus-btn gus-btn-primary" onClick={finish}>Done</button>
+        </> : <>
+          <p className="gwb-mini-progress">Pair {k + 1} of {items.length}</p>
+          <div className="gwb-mini-card gwb-pairs-pic" aria-label={it.many ? `More than one ${it.n.one}` : `One ${it.n.one}`}>
+            <span className={`gwb-pairs-emoji${calm ? '' : ' bob'}`}>{it.many ? `${it.n.emoji}${it.n.emoji}${it.n.emoji}` : it.n.emoji}</span>
+          </div>
+          <div className="gwb-pairs-boilers" role="group" aria-label="One or more than one">
+            <button type="button" className={`gwb-arm${sw === 'one' ? ' on' : ''}${bad === 'one' ? ' wrong' : ''}`} onClick={() => flip('one')}><span aria-hidden>♨️</span><strong>One</strong></button>
+            <button type="button" className={`gwb-arm${sw === 'many' ? ' on' : ''}${bad === 'many' ? ' wrong' : ''}`} onClick={() => flip('many')}><span aria-hidden>♨️♨️</span><strong>More than one</strong></button>
+          </div>
+          <p className="gwb-label-sentence">{art ? `${art[0].toUpperCase()}${art.slice(1)}` : '___'} {nounNow ?? '___'} {verb ?? '___'}.</p>
+          {sw && !art && <div className="gwb-label-bank">{['a', 'an', 'some'].map((a) => chip(a, a, () => pickArt(a), false))}</div>}
+          {art && !nounNow && <div className="gwb-label-bank">{nounOpts.map((w) => chip(w, w, () => pickNoun(w), false))}</div>}
+          {nounNow && !verb && <div className="gwb-label-bank">{it.n.verb.map((v) => chip(v, v, () => pickVerb(v), false))}</div>}
+          {verb && <button type="button" className="gus-btn gus-btn-primary" onClick={next}>{k + 1 < items.length ? 'Next pair ▶' : 'Finish ▶'}</button>}
         </>}
         <button type="button" className="gus-btn" onClick={finish}>✕ Close</button>
       </div>

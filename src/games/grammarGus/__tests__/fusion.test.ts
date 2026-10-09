@@ -37,3 +37,14 @@ describe('Revision Workshop', () => {
     }
   });
 });
+
+import { PAIR_NOUNS } from '../data/miniGames';
+describe('Noun Boiler Pairs', () => {
+  it('every noun has its plural, two verb forms and the right a or an', () => {
+    for (const n of PAIR_NOUNS) {
+      expect(n.verb[0]).toMatch(/s$/);
+      expect(n.verb[1]).not.toMatch(/s$/);
+      expect(!!n.an).toBe(/^[aeiou]/.test(n.one));
+    }
+  });
+});

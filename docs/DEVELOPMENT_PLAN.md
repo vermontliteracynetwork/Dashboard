@@ -31,7 +31,7 @@
 How it works: every new request, idea or "queue:" message goes on this list the same turn it arrives. Work goes top to bottom, each item ships on its own (dev plan, What's New if students notice it, push to main), then it moves to **Done** with its date. An item that needs her answer moves to "Waiting on the teacher" below instead of blocking the line. Full detail for each item lives in its own entry (Gameplay roadmap, section 2).
 
 **Up next (top first):**
-1. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
+1. Grammar Gus smaller pieces (IN PROGRESS): Pixel TV "with", word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export. (Noun Boiler Pairs SHIPPED 2026-10-09; Mixed-up Delivery and Punctuation Inspector were already live as the "Put the words in order" and "Fix the mistake" jobs.)
 2. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
 3. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
 4. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
@@ -40,6 +40,7 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Grammar Gus, ♨️ Noun Boiler Pairs (one or more than one).
 - 2026-10-09: Grammar Gus Phase 2, 🎨 Gus's Paint Shop (Phase 2 is now complete).
 - 2026-10-09: Grammar Gus Phase 2, the 🏷️ Label and Unit Maker.
 - 2026-10-09: Grammar Gus Phase 2, the 🔬 CER Lab Report (Claim Cannon, Evidence Conveyor, Reasoning Bridge).
@@ -743,7 +744,8 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 **Grammar Gus, smaller open pieces:**
 - Pixel TV: "with" showing both characters walking together. (Two joined things, "Xander and Yoga", already show together since 2026-10-08.)
 - Audit leftovers: hard words moved to an off-by-default pack, sub-folds for the 40 fun parts, tiny labels inside the drawings, Undo for the Spare Parts Bin, reflexive pronoun agreement, interjection commas, pronouns after where words, a "because" idea at the front of the sentence, board sync to the teacher's account.
-- Claudia's round ideas: Mixed-up Delivery (rebuild a scrambled sentence from a conveyor), Noun Boiler Pairs (singular and plural, "a" and "some"), Punctuation Inspector (fix a wrong punctuation stamp, the TV shows the tone), Paragraph Pipes Join Clamp ghost.
+- Claudia's round ideas: ~~Mixed-up Delivery~~ (live as the 🧩 "Put the words in order" job), ~~Punctuation Inspector~~ (live as the 🔍 "Fix the mistake" job), Paragraph Pipes Join Clamp ghost.
+- **♨️ Noun Boiler Pairs — SHIPPED 2026-10-09 (Build Queue).** 🧰 Jobs, More jobs, Mini games: 6 pairs a round from 15 nouns (`PAIR_NOUNS`, including mouse/mice, goose/geese, tooth/teeth, child/children, sheep and fish). The picture shows one thing or three; the student flips the twin boiler's switch (♨️ One or ♨️♨️ More than one), then builds the sentence: a, an or some, the noun's form, and the action word that agrees ("An owl hoots." "Some geese honk."). Fade ladder: **Full**, the noun form fills in; **Guided**, they pick each part; **Challenge**, a made-up plural (gooses, doges, sheeps) joins the choices. Private hints for each slip (an before a vowel sound; some for more than one; no s on the action word for more than one). A gear for each first-try pair.
 - Word packs: a teacher word tool (add a student's special-interest word with its forms and a picture) and more packs (Dinosaurs, Food, Superheroes, Trains and Cars).
 - Garage extras: lever styles, sound sets, celebration styles, stickers on the cabinet, Gus costumes, part variants, 6 saved machine Blueprints.
 - Orders: a teacher editor for her own orders, and a sticker book page.

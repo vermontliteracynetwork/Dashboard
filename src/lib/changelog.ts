@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-pairs',
+    date: '2026-10-09',
+    icon: '♨️',
+    title: 'Grammar Gus: Noun Boiler Pairs',
+    body: 'One goose or more than one? Flip the boiler switch, then build the sentence: An owl hoots. Some geese honk. Find it in Jobs, under Mini games.',
+  },
+  {
     id: '2026-10-09-gus-paint',
     date: '2026-10-09',
     icon: '🎨',
