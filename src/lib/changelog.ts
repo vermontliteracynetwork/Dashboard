@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-checkup',
+    date: '2026-10-09',
+    icon: '🩺',
+    title: "Grammar Gus: Gus's Checkup",
+    body: 'Ten quick questions so Gus and your teacher know what you already know. No hints, no score on the screen: just try your best. Find it in Jobs, under Mini games.',
+  },
+  {
     id: '2026-10-09-gus-with',
     date: '2026-10-09',
     icon: '🐾',

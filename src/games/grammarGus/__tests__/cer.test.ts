@@ -73,3 +73,12 @@ describe('Pixel TV "with" (2026-10-09)', () => {
     expect(scene!.props.length).toBe(0);
   });
 });
+
+import { CHECKUP } from '../data/checkup';
+describe("Gus's Checkup", () => {
+  it('ten skills, one right answer each, no em dashes', () => {
+    expect(CHECKUP.length).toBe(10);
+    expect(new Set(CHECKUP.map((c) => c.skill)).size).toBe(10);
+    for (const c of CHECKUP) { expect(c.wrong).not.toContain(c.right); expect(JSON.stringify(c)).not.toMatch(/—/); }
+  });
+});

@@ -26,6 +26,7 @@ import { flipIdeas } from '../engine/boardRemix';
 import { FusionReactor, HomophoneSorter, NounBoilerPairs, RevisionWorkshop, TransitionTrack } from './MiniGames';
 import CerLab from './CerLab';
 import LabelMaker from './LabelMaker';
+import Checkup, { type CheckupResult } from './Checkup';
 import { FLOORS, PIPE_PAINTS, floorById, pipeById } from '../data/paintShop';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
@@ -80,7 +81,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const gusOwner = (id: string) => `gus:${id}`;
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: { floor?: string; pipe?: string } }
+interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: { floor?: string; pipe?: string } }
 // The machine rows of Gus's Checklist: the Workboard's own jobs.
 const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
   { id: 'words', label: 'Every machine has its word', hint: 'Tap a machine with a ? and pick its word.', codes: ['EMPTY_PART', 'NO_WORDS'] },
@@ -1167,7 +1168,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     return () => window.clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Machine remixes are gone (teacher 2026-10-07: "dont allow machine remixes").
-  const [mini, setMini] = useState<'homo' | 'trans' | 'fusion' | 'revise' | 'cer' | 'labels' | 'pairs' | null>(null);
+  const [mini, setMini] = useState<'homo' | 'trans' | 'fusion' | 'revise' | 'cer' | 'labels' | 'pairs' | 'checkup' | null>(null);
   const doFlip = (line: BoardLine) => {
     const res = flipIdeas(line.items, uid);
     if (typeof res === 'string') { gusSound.ahem(); say(res, 'Flip Switch'); return; }
@@ -1548,6 +1549,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('trans'); }}>🚂 Transition Track<small>Couple sentences with the right transition</small></button>
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('fusion'); }}>⚛️ Fusion Reactor<small>Crush the repeats: short sentences fuse into one</small></button>
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('revise'); }}>🛠️ Revision Workshop<small>Add, Remove, Move and Swap to fix a rough paragraph</small></button>
+                  <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('checkup'); }}>🩺 Gus's Checkup<small>10 quick questions so your teacher knows what you already know</small></button>
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('pairs'); }}>♨️ Noun Boiler Pairs<small>One or more than one: a, an, some, and the right action word</small></button>
                   <div className="gwb-menu-sub">🔬 Science writing</div>
                   {Object.entries(SCIENCE_JOBS).filter(([id]) => id !== 'recipe').map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
@@ -2125,6 +2127,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       })()}
       {mini === 'labels' && <LabelMaker level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} diagram${g === 1 ? '' : 's'} with no wrong picks! Sharp eyes.`, 'Label and Unit Maker'); } }} say={say} speak={speak} />}
       {mini === 'cer' && <CerLab level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g, reports) => { if (g) earn(g); reports.forEach((t) => earn(0, { kind: 'cer', text: t, stars: 3 })); if (reports.length) say(`${reports.length} lab report${reports.length === 1 ? '' : 's'} saved in your Journal.${g ? ` ${g} with no wrong picks!` : ''}`, 'CER Lab Report'); }} say={say} speak={speak} />}
+      {mini === 'checkup' && <Checkup onClose={() => setMini(null)} speak={speak} onDone={(r) => { if (studentId) mergeStyleRow(gusOwner(studentId), { checkups: [...(gusRowNow().checkups ?? []), r].slice(-12) }); }} />}
       {mini === 'pairs' && <NounBoilerPairs level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} matched on the first try!`, 'Noun Boiler Pairs'); } }} say={say} speak={speak} />}
       {mini === 'revise' && <RevisionWorkshop level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} repairs on the first try! That is real revising.`, 'Revision Workshop'); } }} say={say} speak={speak} />}
       {mini === 'fusion' && <FusionReactor level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} fused on the first try! Smooth writing.`, 'Fusion Reactor'); } }} say={say} speak={speak} />}

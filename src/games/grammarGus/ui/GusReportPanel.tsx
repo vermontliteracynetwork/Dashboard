@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../../store/store';
 import { attemptsCsv, summarize, type Attempt, type BlueprintDone, type Report } from '../engine/report';
 import { useGusSettings, levelFor } from '../settings';
+import type { CheckupResult } from './Checkup';
 
 // Teacher report for Grammar Gus's Contraption (plan 3.18.8, 25.10). One
 // card per student, read from that student's own Gus row. Teacher only;
@@ -29,7 +30,7 @@ function trendSvg(r: Report, goal?: number): string {
     ${pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.avg)}" r="4" fill="#2f6fd0"/><text x="${x(i)}" y="${H - 10}" font-size="10" text-anchor="middle" fill="#555">${esc(p.week)}</text>`).join('')}
   </svg>`;
 }
-function printReport(name: string, level: string, r: Report, note: GusNote) {
+function printReport(name: string, level: string, r: Report, note: GusNote, checks: CheckupResult[] = []) {
   const w = window.open('', '_blank');
   if (!w) return;
   const rate = r.threeStarRate === null ? null : Math.round(r.threeStarRate * 100);
@@ -51,6 +52,7 @@ function printReport(name: string, level: string, r: Report, note: GusNote) {
   <h2>Most common fixes (30 days)</h2><p>${r.topCodes.length ? r.topCodes.map((c) => `${esc(c.name)} (${c.count})`).join(', ') : 'None yet.'}</p>
   <h2>By help level (30 days)</h2><p>${Object.entries(r.levels).map(([l, v]) => `${LEVEL_NAMES[l as keyof typeof LEVEL_NAMES]}: ${v!.three} of ${v!.tries} at 3 stars`).join('; ') || 'None yet.'}</p>
   <h2>Recent 3-star sentences</h2>${r.recent.length ? `<ul>${r.recent.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p>None yet.</p>'}
+  <h2>Gus's Checkup</h2>${checks.length ? `<p>${checks.map((c) => `${new Date(c.at).toLocaleDateString()}: ${c.right} of ${c.of}`).join(' · ')}</p><ul>${Object.entries(checks[checks.length - 1].skills).map(([s, ok]) => `<li>${ok ? '✅' : '⬜'} ${esc(s)}</li>`).join('')}</ul>` : '<p>Not taken yet. Students find it in Jobs, Mini games.</p>'}
   <h2>Teacher notes</h2><div class="notes">${note.notes ? esc(note.notes) : 'No notes.'}</div>
   </body></html>`);
   w.document.close();
@@ -77,7 +79,9 @@ export default function GusReportPanel() {
       <p style={{ margin: 0, opacity: 0.8 }}>Every time a student pulls START, the machine notes how it went. Fixes are the grammar rules the machine or Gus's star review flagged.</p>
       {students.length === 0 && <p style={{ margin: 0, opacity: 0.7 }}>No students yet.</p>}
       {students.map((st) => {
-        const look = (rows.find((r) => r.ownerId === `gus:${st.id}`)?.look ?? {}) as { attempts?: Attempt[]; blueprints?: BlueprintDone[] };
+        const look = (rows.find((r) => r.ownerId === `gus:${st.id}`)?.look ?? {}) as { attempts?: Attempt[]; blueprints?: BlueprintDone[]; checkups?: CheckupResult[] };
+        const checks = look.checkups ?? [];
+        const firstCheck = checks[0], lastCheck = checks[checks.length - 1];
         const attempts = look.attempts ?? [];
         const r = summarize(attempts, look.blueprints ?? []);
         const maxStars = Math.max(1, ...r.stars);
@@ -92,7 +96,7 @@ export default function GusReportPanel() {
               <span style={{ opacity: 0.75 }}>{r.lastAt ? `Last played ${new Date(r.lastAt).toLocaleDateString()}` : 'Not played yet'}</span>
               <span style={{ flex: 1 }} />
               {attempts.length > 0 && <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => download(st.name, attempts)}>⬇ CSV</button>}
-              <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => printReport(st.name, LEVEL_NAMES[levelFor(settings, st.id)], r, note)}>📄 PDF</button>
+              <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => printReport(st.name, LEVEL_NAMES[levelFor(settings, st.id)], r, note, checks)}>📄 PDF</button>
               <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setNotesFor(notesFor === st.id ? null : st.id)} aria-expanded={notesFor === st.id}>📝 Notes and goals</button>
               {attempts.length > 0 && <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setOpen(isOpen ? null : st.id)} aria-expanded={isOpen}>{isOpen ? 'Less' : 'More'}</button>}
             </div>
@@ -132,6 +136,12 @@ export default function GusReportPanel() {
             )}
             {(note.goalWords || note.goalRate) && attempts.length > 0 && (
               <div style={{ fontSize: '0.9rem' }}><strong>IEP goals:</strong> {note.goalWords ? `${note.goalWords} words per sentence (now ${r.avgWords ?? '–'})` : ''}{note.goalWords && note.goalRate ? '; ' : ''}{note.goalRate ? `${note.goalRate}% at 3 stars (now ${pct(r.threeStarRate)})` : ''}</div>
+            )}
+            {lastCheck && (
+              <div style={{ fontSize: '0.9rem' }}>
+                <strong>🩺 Gus's Checkup:</strong> {lastCheck.right} of {lastCheck.of} on {new Date(lastCheck.at).toLocaleDateString()}{checks.length > 1 ? ` (first: ${firstCheck.right} of ${firstCheck.of} on ${new Date(firstCheck.at).toLocaleDateString()})` : ''}.
+                {' '}Still learning: {Object.entries(lastCheck.skills).filter(([, ok]) => !ok).map(([s]) => s).join(', ') || 'nothing, all right!'}
+              </div>
             )}
             {r.topCodes.length > 0 && (
               <div style={{ fontSize: '0.9rem' }}><strong>Most common fixes (30 days):</strong> {r.topCodes.map((c) => `${c.name} (${c.count})`).join(', ')}</div>
