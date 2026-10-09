@@ -6,11 +6,12 @@
 
 export type Rig = 'biped' | 'quadruped' | 'critter' | 'bird' | 'serpent' | 'vehicle' | 'object' | 'weather' | 'prop';
 export type NounKind = 'human' | 'animal' | 'thing';
-export type Pack = 'core' | 'example' | 'color' | 'action' | 'space' | 'ocean' | 'custom';
+export type Pack = 'core' | 'example' | 'color' | 'action' | 'space' | 'ocean' | 'dinos' | 'food' | 'heroes' | 'wheels' | 'custom';
 // Interest word packs (plan 17.5). The teacher turns them on or off; they
 // follow the same data model and agreement rules as every other word.
-export const WORD_PACKS: { id: Pack; name: string; icon: string }[] = [{ id: 'space', name: 'Space', icon: '🚀' }, { id: 'ocean', name: 'Ocean', icon: '🌊' }];
-export const isPackWord = (p: Pack) => p === 'space' || p === 'ocean';
+// More packs (Build Queue 2026-10-09): Dinosaurs, Food, Superheroes, Trains and Cars.
+export const WORD_PACKS: { id: Pack; name: string; icon: string }[] = [{ id: 'space', name: 'Space', icon: '🚀' }, { id: 'ocean', name: 'Ocean', icon: '🌊' }, { id: 'dinos', name: 'Dinosaurs', icon: '🦖' }, { id: 'food', name: 'Food', icon: '🍔' }, { id: 'heroes', name: 'Superheroes', icon: '🦸' }, { id: 'wheels', name: 'Trains and Cars', icon: '🚂' }];
+export const isPackWord = (p: Pack) => p === 'space' || p === 'ocean' || p === 'dinos' || p === 'food' || p === 'heroes' || p === 'wheels';
 
 export interface NounEntry {
   word: string; tier: 1 | 2 | 3; kind: NounKind; rig: Rig; emoji: string; pack: Pack;
@@ -107,6 +108,29 @@ export const NOUNS: NounEntry[] = [
     n('crab', 3, 'animal', 'critter', '🦀', { size: 'small' }), n('jellyfish', 3, 'animal', 'critter', '🪼', { size: 'small' }),
     n('submarine', 3, 'thing', 'vehicle', '🚢', { size: 'big' }), n('shell', 3, 'thing', 'object', '🐚', { size: 'small' }),
   ].map((e) => ({ ...e, pack: 'ocean' as Pack }))),
+  // Dinosaurs pack.
+  ...([
+    n('dinosaur', 3, 'animal', 'quadruped', '🦕', { size: 'big' }), n('raptor', 3, 'animal', 'biped', '🦖'), n('triceratops', 3, 'animal', 'quadruped', '🦕', { size: 'big' }),
+    n('stegosaurus', 3, 'animal', 'quadruped', '🦕', { size: 'big' }), n('pterodactyl', 3, 'animal', 'bird', '🦅', { size: 'big' }), n('fossil', 3, 'thing', 'object', '🦴', { size: 'small' }),
+    n('volcano', 3, 'thing', 'object', '🌋', { size: 'big' }),
+  ].map((e) => ({ ...e, pack: 'dinos' as Pack }))),
+  // Food pack.
+  ...([
+    n('burger', 3, 'thing', 'object', '🍔', { food: true }), n('pancake', 3, 'thing', 'object', '🥞', { food: true }), n('waffle', 3, 'thing', 'object', '🧇', { food: true }),
+    n('cupcake', 3, 'thing', 'object', '🧁', { food: true, size: 'small' }), n('burrito', 3, 'thing', 'object', '🌯', { food: true }), n('pretzel', 3, 'thing', 'object', '🥨', { food: true, size: 'small' }),
+    n('muffin', 3, 'thing', 'object', '🧁', { food: true, size: 'small' }), n('meatball', 3, 'thing', 'object', '🍝', { food: true, size: 'small' }),
+  ].map((e) => ({ ...e, pack: 'food' as Pack }))),
+  // Superheroes pack.
+  ...([
+    n('superhero', 3, 'human', 'biped', '🦸'), n('villain', 3, 'human', 'biped', '🦹'), n('sidekick', 3, 'human', 'biped', '🧑'),
+    n('cape', 3, 'thing', 'object', '🧣'), n('mask', 3, 'thing', 'object', '🎭', { size: 'small' }), n('shield', 3, 'thing', 'object', '🛡️'),
+  ].map((e) => ({ ...e, pack: 'heroes' as Pack }))),
+  // Trains and Cars pack.
+  ...([
+    n('tractor', 3, 'thing', 'vehicle', '🚜'), n('locomotive', 3, 'thing', 'vehicle', '🚂', { size: 'big' }),
+    n('racecar', 3, 'thing', 'vehicle', '🏎️'), n('firetruck', 3, 'thing', 'vehicle', '🚒', { size: 'big' }), n('ambulance', 3, 'thing', 'vehicle', '🚑', { size: 'big' }),
+    n('taxi', 3, 'thing', 'vehicle', '🚕'), n('bulldozer', 3, 'thing', 'vehicle', '🚜', { size: 'big' }), n('motorcycle', 3, 'thing', 'vehicle', '🏍️'), n('scooter', 3, 'thing', 'vehicle', '🛴', { size: 'small' }),
+  ].map((e) => ({ ...e, pack: 'wheels' as Pack }))),
 ];
 
 export interface VerbEntry {

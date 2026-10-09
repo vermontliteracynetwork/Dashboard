@@ -17,7 +17,7 @@ import { COMBOS, combosOn } from '../engine/combos';
 import { ADVERB_SPEED } from '../director/clips';
 import { reviewStory, storyCast, storyScript, type SealedSentence } from '../engine/story';
 import { POOLS, packWords } from '../engine/machine';
-import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, type DictPos, type TypedCheck } from '../engine/dictionary';
+import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, registerTeacherWord, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
 import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, makeRunOnJob, makeAppositiveJob, runOnSplit, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
 import { compareOrder } from '../engine/orders';
@@ -361,6 +361,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   // Read each word out loud when it is picked (a Menu switch).
   const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('gus-read') === '1'; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem('gus-read', readAloud ? '1' : '0'); } catch { /* fine */ } }, [readAloud]);
+  // The teacher's own words join the lexicon (with their pictures and forms) as soon as she adds them.
+  useEffect(() => { (settings.teacherWords ?? []).forEach(registerTeacherWord); }, [settings.teacherWords]);
   const menuByKbd = useRef<string | null>(null);
   const [spaced, setSpaced] = useState(() => { try { return localStorage.getItem('gus-spaced') === '1'; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem('gus-spaced', spaced ? '1' : '0'); } catch { /* fine */ } }, [spaced]);
@@ -1188,7 +1190,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     // Joining words, "because" and its friends included (teacher 2026-10-08).
     if (pos === 'C') return [...new Set(['for', 'and', 'nor', 'but', 'or', 'yet', 'so', ...SUBORD])]; // FANBOYS first
     if (pos === 'R') return [...POOLS.R, 'me', 'him', 'her', 'us', 'them']; // object pronouns too (Turnstile)
-    const extra = pos === 'N' || pos === 'V' || pos === 'J' || pos === 'D' || pos === 'I' ? customFor(pos) : [];
+    const extra = pos === 'N' || pos === 'V' || pos === 'J' || pos === 'D' || pos === 'I' ? [...(settings.teacherWords ?? []).filter((t) => t.pos === pos).map((t) => t.word), ...customFor(pos)] : [];
     // Read and Respond: the words a good answer needs come first.
     const artId = menuLine?.job?.kind === 'read' ? menuLine.job.article : focusLine?.job?.kind === 'read' ? focusLine.job.article : undefined;
     const first = bankFor(library.find((a) => a.id === artId), pos);

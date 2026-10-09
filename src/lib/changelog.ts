@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-packs',
+    date: '2026-10-09',
+    icon: '🦖',
+    title: 'Grammar Gus: new word packs',
+    body: 'Build sentences with dinosaurs, food, superheroes, trains and cars! "The giant raptor ate a waffle." Look for the new words in the word lists.',
+  },
+  {
     id: '2026-10-09-lab-photos',
     date: '2026-10-09',
     icon: '📸',

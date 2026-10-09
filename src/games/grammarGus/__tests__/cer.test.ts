@@ -45,3 +45,19 @@ describe('new Blueprints (2026-10-09)', () => {
     expect(steps[0].job.blueprint).toBe('recipe');
   });
 });
+
+import { NOUNS, WORD_PACKS, isPackWord, nounByWord } from '../data/wordbank';
+import { registerTeacherWord } from '../engine/dictionary';
+describe('word packs and teacher words (2026-10-09)', () => {
+  it('every pack has words and every pack word is unique', () => {
+    for (const p of WORD_PACKS) expect(NOUNS.filter((n) => n.pack === p.id).length, p.id).toBeGreaterThan(4);
+    expect(isPackWord('dinos')).toBe(true);
+    const words = NOUNS.map((n) => n.word);
+    expect(new Set(words).size).toBe(words.length);
+  });
+  it('a teacher word joins with its picture and its plural', () => {
+    registerTeacherWord({ pos: 'N', word: 'axolotl', emoji: '🦎', plural: 'axolotls' });
+    expect(nounByWord.get('axolotl')?.emoji).toBe('🦎');
+    expect(nounByWord.get('axolotls')?.plural).toBe(true);
+  });
+});

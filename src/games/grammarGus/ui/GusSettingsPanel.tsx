@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../../store/store';
-import { GUS_SETTINGS_OWNER, useGusSettings, type GusSettings } from '../settings';
+import { GUS_SETTINGS_OWNER, useGusSettings, type GusSettings, type TeacherWord } from '../settings';
+import { cleanWord, isBlocked } from '../engine/dictionary';
 import type { HelpLevel } from '../engine/types';
 import { WORD_PACKS } from '../data/wordbank';
 
@@ -18,6 +20,17 @@ export default function GusSettingsPanel() {
   const students = useStore((s) => s.students);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const save = (patch: Partial<GusSettings>) => mergeStyleRow(GUS_SETTINGS_OWNER, { ...settings, ...patch } as unknown as Record<string, unknown>);
+  // Teacher word tool (Build Queue 2026-10-09): add a student's special-interest word with its
+  // forms and a picture. It joins every student's word lists right away.
+  const [tw, setTw] = useState<TeacherWord>({ pos: 'N', word: '' });
+  const words = settings.teacherWords ?? [];
+  const addWord = () => {
+    const w = cleanWord(tw.word);
+    if (!w || isBlocked(w) || words.some((x) => x.pos === tw.pos && x.word === w)) return;
+    const clean: TeacherWord = { pos: tw.pos, word: w, ...(tw.emoji?.trim() ? { emoji: tw.emoji.trim() } : {}), ...(tw.pos === 'N' && tw.plural?.trim() ? { plural: cleanWord(tw.plural) } : {}), ...(tw.pos === 'V' && tw.past?.trim() ? { past: cleanWord(tw.past) } : {}) };
+    save({ teacherWords: [...words, clean] });
+    setTw({ pos: tw.pos, word: '' });
+  };
   const pill = (on: boolean, label: string, onClick: () => void) => (
     <button key={label} type="button" className={`btn btn-sm${on ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={onClick} aria-pressed={on}>{label}</button>
   );
@@ -99,6 +112,26 @@ export default function GusSettingsPanel() {
             {WORD_PACKS.map((wp) => pill(settings.packs.includes(wp.id), `${wp.icon} ${wp.name}`, () => save({ packs: settings.packs.includes(wp.id) ? settings.packs.filter((x) => x !== wp.id) : [...settings.packs, wp.id] })))}
           </div>
           <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Extra naming, action, describing and how words in the Parts Bin.</span>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          <strong>My words for students</strong>
+          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Add a student's favorite words (a pet's name, a game, a hobby). They show up in everyone's word lists.</span>
+          <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
+            <select value={tw.pos} onChange={(e) => setTw({ ...tw, pos: e.target.value as TeacherWord['pos'] })} style={{ minHeight: 44 }} aria-label="Kind of word">
+              <option value="N">Noun (naming word)</option><option value="V">Verb (action word)</option><option value="J">Adjective (describing word)</option><option value="D">Adverb (how word)</option>
+            </select>
+            <input value={tw.word} onChange={(e) => setTw({ ...tw, word: e.target.value })} placeholder="the word" style={{ minHeight: 44, width: 140 }} aria-label="The word" />
+            {tw.pos === 'N' && <input value={tw.plural ?? ''} onChange={(e) => setTw({ ...tw, plural: e.target.value })} placeholder="more than one (optional)" style={{ minHeight: 44, width: 170 }} aria-label="More than one" />}
+            {tw.pos === 'V' && <input value={tw.past ?? ''} onChange={(e) => setTw({ ...tw, past: e.target.value })} placeholder="past form (optional)" style={{ minHeight: 44, width: 150 }} aria-label="Past form" />}
+            <input value={tw.emoji ?? ''} onChange={(e) => setTw({ ...tw, emoji: e.target.value })} placeholder="picture: an emoji" style={{ minHeight: 44, width: 130 }} aria-label="Picture emoji" />
+            <button type="button" className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={addWord} disabled={!tw.word.trim()}>➕ Add word</button>
+          </div>
+          {words.length > 0 && <div className="row-wrap" style={{ gap: 6 }}>{words.map((x, i) => (
+            <span key={`${x.pos}-${x.word}`} className="tag-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {x.emoji ?? ''} {x.word}{x.plural ? ` / ${x.plural}` : ''}{x.past ? ` / ${x.past}` : ''} <small>({{ N: 'noun', V: 'verb', J: 'adjective', D: 'adverb' }[x.pos]})</small>
+              <button type="button" className="btn btn-sm" style={{ minHeight: 32, padding: '0 8px' }} onClick={() => save({ teacherWords: words.filter((_, k) => k !== i) })} aria-label={`Remove ${x.word}`}>✕</button>
+            </span>
+          ))}</div>}
         </div>
         <div className="stack" style={{ gap: 6 }}>
           <strong>Machine rumble</strong>

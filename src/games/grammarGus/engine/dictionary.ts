@@ -187,4 +187,15 @@ export function addCustomWord(cw: CustomWord): void {
   try { const list = customWords(); if (!list.some((x) => x.pos === cw.pos && x.word === cleanWord(cw.word))) localStorage.setItem(STORE, JSON.stringify([...list, { ...cw, word: cleanWord(cw.word) }].slice(-300))); } catch { /* fine */ }
 }
 export function loadCustomWords(): void { for (const cw of customWords()) registerWord(cw); }
+// The teacher's own words (Gus settings, Build Queue 2026-10-09), with a picture and any irregular forms.
+export function registerTeacherWord(t: { pos: DictPos; word: string; emoji?: string; plural?: string; past?: string }): void {
+  const w = cleanWord(t.word);
+  registerWord({ pos: t.pos, word: w });
+  if (t.pos === 'N') {
+    const e = nounByWord.get(w);
+    if (e && t.emoji) e.emoji = t.emoji;
+    if (e && t.plural && !nounByWord.has(t.plural)) nounByWord.set(t.plural, { ...e, word: t.plural, plural: true, noA: true, singular: w });
+  }
+  if (t.pos === 'V' && t.past) { const v = verbByBase.get(w); if (v) v.past = t.past; }
+}
 export const customFor = (pos: DictPos) => customWords().filter((c) => c.pos === pos).map((c) => (pos === 'I' ? c.word.charAt(0).toUpperCase() + c.word.slice(1) : c.word));
