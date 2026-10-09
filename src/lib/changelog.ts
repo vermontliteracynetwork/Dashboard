@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-big-words',
+    date: '2026-10-09',
+    icon: '🎓',
+    title: 'Grammar Gus: a Big words pack',
+    body: 'A few tricky words (zealously, tenderly, upon, within) moved into a Big words pack. Your teacher can turn it on when you are ready for them.',
+  },
+  {
     id: '2026-10-09-gus-do-it',
     date: '2026-10-09',
     icon: '🪄',

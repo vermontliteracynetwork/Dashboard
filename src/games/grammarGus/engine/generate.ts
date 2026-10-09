@@ -7,7 +7,7 @@ import { pick, type Rng } from './rng';
 import { exampleTokens } from './fromText';
 import { adjRank } from './compose';
 import {
-  ADJECTIVES, ADVERBS, CONJ_POOLS, INTERJECTIONS, NOUNS, PREPOSITIONS, SUBJECT_PRONOUNS, VERBS, nounByWord,
+  ADJECTIVES, ADVERBS, CONJ_POOLS, CORE_PREPOSITIONS, INTERJECTIONS, NOUNS, SUBJECT_PRONOUNS, VERBS, nounByWord,
 } from '../data/wordbank';
 
 // The Surprise Hopper / spin generator (plan 15.3 and 16). Pattern first,
@@ -27,7 +27,7 @@ function rolesFor(pattern: Pattern): string[] {
 }
 
 const ADJ_POOL = ADJECTIVES.filter((a) => a.pack !== 'example').map((a) => a.word);
-const ADV_POOL = ADVERBS.map((a) => a.word);
+const ADV_POOL = ADVERBS.filter((a) => a.pack !== 'big').map((a) => a.word); // 🎓 Big words only from the Parts Bin
 
 export function candidatesFor(reels: Reel[], i: number, roles: string[], s: SpinSettings): string[] {
   const role = roles[i];
@@ -46,7 +46,7 @@ export function candidatesFor(reels: Reel[], i: number, roles: string[], s: Spin
     }
     case 'J': return ADJ_POOL;
     case 'D': return ADV_POOL;
-    case 'P': return PREPOSITIONS;
+    case 'P': return CORE_PREPOSITIONS;
     case 'I': return [...INTERJECTIONS];
     case 'R': return [...SUBJECT_PRONOUNS];
     case 'C': {

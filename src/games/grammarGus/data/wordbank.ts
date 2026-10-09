@@ -6,12 +6,12 @@
 
 export type Rig = 'biped' | 'quadruped' | 'critter' | 'bird' | 'serpent' | 'vehicle' | 'object' | 'weather' | 'prop';
 export type NounKind = 'human' | 'animal' | 'thing';
-export type Pack = 'core' | 'example' | 'color' | 'action' | 'space' | 'ocean' | 'dinos' | 'food' | 'heroes' | 'wheels' | 'custom';
+export type Pack = 'core' | 'example' | 'color' | 'action' | 'space' | 'ocean' | 'dinos' | 'food' | 'heroes' | 'wheels' | 'big' | 'custom';
 // Interest word packs (plan 17.5). The teacher turns them on or off; they
 // follow the same data model and agreement rules as every other word.
 // More packs (Build Queue 2026-10-09): Dinosaurs, Food, Superheroes, Trains and Cars.
-export const WORD_PACKS: { id: Pack; name: string; icon: string }[] = [{ id: 'space', name: 'Space', icon: '🚀' }, { id: 'ocean', name: 'Ocean', icon: '🌊' }, { id: 'dinos', name: 'Dinosaurs', icon: '🦖' }, { id: 'food', name: 'Food', icon: '🍔' }, { id: 'heroes', name: 'Superheroes', icon: '🦸' }, { id: 'wheels', name: 'Trains and Cars', icon: '🚂' }];
-export const isPackWord = (p: Pack) => p === 'space' || p === 'ocean' || p === 'dinos' || p === 'food' || p === 'heroes' || p === 'wheels';
+export const WORD_PACKS: { id: Pack; name: string; icon: string }[] = [{ id: 'space', name: 'Space', icon: '🚀' }, { id: 'ocean', name: 'Ocean', icon: '🌊' }, { id: 'dinos', name: 'Dinosaurs', icon: '🦖' }, { id: 'food', name: 'Food', icon: '🍔' }, { id: 'heroes', name: 'Superheroes', icon: '🦸' }, { id: 'wheels', name: 'Trains and Cars', icon: '🚂' }, { id: 'big', name: 'Big words', icon: '🎓' }];
+export const isPackWord = (p: Pack) => p === 'space' || p === 'ocean' || p === 'dinos' || p === 'food' || p === 'heroes' || p === 'wheels' || p === 'big';
 
 export interface NounEntry {
   word: string; tier: 1 | 2 | 3; kind: NounKind; rig: Rig; emoji: string; pack: Pack;
@@ -214,7 +214,9 @@ export const ADJECTIVES: AdjEntry[] = [
 ];
 
 export const ADVERBS: { word: string; pack: Pack }[] = [
-  ...'gently innocently lightly loudly messily quickly quietly slowly softly swiftly tenderly warmly wildly zealously'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
+  ...'gently innocently lightly loudly messily quickly quietly slowly softly swiftly warmly wildly'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
+  // Hard words from the everyday lists (Claudia's audit: "zealously, upon"), now in the off-by-default 🎓 Big words pack.
+  ...'tenderly zealously'.split(' ').map((word) => ({ word, pack: 'big' as Pack })),
   ...'proudly safely'.split(' ').map((word) => ({ word, pack: 'example' as Pack })),
   ...'then happily sadly carefully bravely angrily calmly sleepily eagerly nervously kindly politely playfully ferociously triumphantly mysteriously gleefully clumsily frantically majestically boldly grumpily lazily sluggishly'.split(' ').map((word) => ({ word, pack: 'core' as Pack })),
   ...'weirdly silently'.split(' ').map((word) => ({ word, pack: 'space' as Pack })),
@@ -223,6 +225,9 @@ export const ADVERBS: { word: string; pack: Pack }[] = [
 
 // "like" makes a simile: runs like a rocket (teacher 2026-10-08, figurative language).
 export const PREPOSITIONS: string[] = 'above across along around below behind down from in into on over past through to under underneath up upon within at like'.split(' ');
+// The 🎓 Big words pack's where words: still understood everywhere, only offered when the pack is on.
+export const BIG_PREPOSITIONS = ['upon', 'within'];
+export const CORE_PREPOSITIONS = PREPOSITIONS.filter((p) => !BIG_PREPOSITIONS.includes(p));
 export const SUBJECT_PRONOUNS = ['I', 'you', 'he', 'she', 'it', 'we', 'they'] as const;
 export const REFLEXIVE_PRONOUNS = ['itself', 'himself', 'herself', 'themselves', 'myself', 'yourself', 'ourselves'] as const;
 export const ARTICLES = ['a', 'an', 'the'] as const;
