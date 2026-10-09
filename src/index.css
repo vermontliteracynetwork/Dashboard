@@ -6324,3 +6324,12 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 @keyframes gwb-boing { to { transform: scaleY(0.88); } }
 .gwb.calm .gwb-wheel, .gwb.calm .gwb-flame, .gwb.calm .gwb-spring { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .gwb-wheel, .gwb-flame, .gwb-spring { animation: none !important; } }
+/* Castle Defense Frost Orb during a wave (2026-10-09) */
+.castle-tower-img.cd-frost { animation: cdFrostGlow 1.4s ease-in-out infinite; }
+@keyframes cdFrostGlow { 0%, 100% { filter: drop-shadow(0 0 2px #9fe3ff); } 50% { filter: drop-shadow(0 0 10px #6fd0ff) brightness(1.12); } }
+.cd-frost-flakes { position: absolute; left: 50%; top: 18%; width: 0; height: 0; pointer-events: none; z-index: 3; }
+.cd-frost-flakes i { position: absolute; font-style: normal; font-size: 12px; color: #dff6ff; text-shadow: 0 0 4px #6fd0ff; opacity: 0; animation: cdFlake 2.1s ease-out infinite; }
+.cd-frost-flakes i:nth-child(2) { animation-delay: 0.7s; --dx: -16px; }
+.cd-frost-flakes i:nth-child(3) { animation-delay: 1.4s; --dx: 14px; }
+@keyframes cdFlake { 0% { transform: translate(0, 0) scale(0.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--dx, 6px), 34px) rotate(160deg) scale(1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .castle-tower-img.cd-frost { animation: none; filter: drop-shadow(0 0 6px #6fd0ff); } .cd-frost-flakes { display: none; } }

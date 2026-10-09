@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-cd-frost',
+    date: '2026-10-09',
+    icon: '❄️',
+    title: 'Castle Defense: the Frost Orb sparkles',
+    body: 'During a wave, the Frost Orb Tower glows icy blue and snowflakes drift off it.',
+  },
+  {
     id: '2026-10-09-gus-legs',
     date: '2026-10-09',
     icon: '🛞',

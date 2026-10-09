@@ -802,12 +802,15 @@ export default function CastleDefense() {
                         })() : (
                           <img
                             key={`${slot.type}-${slot.tier}`}
-                            className={`castle-tower-img${building[i] ? ' cd-built' : ''}${TOWER_META[slot.type].smooth ? ' cd-smooth' : ''}`}
+                            className={`castle-tower-img${building[i] ? ' cd-built' : ''}${TOWER_META[slot.type].smooth ? ' cd-smooth' : ''}${phase === 'advance' && slot.type === 'orb' ? ' cd-frost' : ''}`}
                             src={TOWER_SPRITE(slot.type, slot.tier)}
                             alt=""
                             style={{ height: TOWER_HEIGHT_BY_TIER[slot.tier - 1] }}
                           />
                         )}
+                        {/* The Frost Orb's Foozle weapon sheet does not line up with its tower picture, so during a
+                            wave its orb glows icy blue and snowflakes drift off it instead (Build Queue 2026-10-09). */}
+                        {phase === 'advance' && slot.type === 'orb' && <span className="cd-frost-flakes" aria-hidden><i>❄</i><i>❄</i><i>❄</i></span>}
                         <span className="castle-tier-stars" aria-hidden="true">
                           {Array.from({ length: slot.tier }).map((_, s) => <img key={s} src={HUD_ICON('star')} alt="" />)}
                         </span>
