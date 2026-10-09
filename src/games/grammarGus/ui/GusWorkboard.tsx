@@ -27,7 +27,7 @@ import { FusionReactor, HomophoneSorter, NounBoilerPairs, RevisionWorkshop, Tran
 import CerLab from './CerLab';
 import LabelMaker from './LabelMaker';
 import Checkup, { type CheckupResult } from './Checkup';
-import { CELEBRATIONS, FLOORS, HATS, LEVERS, PIPE_PAINTS, SOUND_SETS, celebrationById, floorById, hatById, leverById, pipeById, soundSetById } from '../data/paintShop';
+import { CELEBRATIONS, FLOORS, HATS, LEGS, LEVERS, PIPE_PAINTS, SOUND_SETS, celebrationById, floorById, hatById, legsById, leverById, pipeById, soundSetById } from '../data/paintShop';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
@@ -44,7 +44,7 @@ import { bankFor, registerArticleWords, starterItems, useLibrary, type GusArticl
 import { ALL_EXAMPLES, EXAMPLE_GROUPS, exampleItems } from '../data/examples';
 import { boardsNow, saveBoards, shareOwner, useBoards, useSharedBoards } from '../boards';
 import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
-import MachinePart from './board/MachinePart';
+import MachinePart, { LegsContext } from './board/MachinePart';
 import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, APPOSITIVES, type Kind, type Job } from './board/parts';
 import type { SceneScript } from '../director/director';
 
@@ -90,7 +90,7 @@ const STICKER_PAGES: { st: string; name: string }[] = [
 // Saved machine Blueprints (Garage extras, plan 19): 6 slots for a student's own machines.
 interface SavedMachine { items: BoardItem[]; connector?: string; text: string; at: string }
 const MACHINE_SLOTS = 6;
-type Paint = { floor?: string; pipe?: string; lever?: string; party?: string; sounds?: string; hat?: string }
+type Paint = { floor?: string; pipe?: string; legs?: string; lever?: string; party?: string; sounds?: string; hat?: string }
 // The machine rows of Gus's Checklist: the Workboard's own jobs.
 const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
   { id: 'words', label: 'Every machine has its word', hint: 'Tap a machine with a ? and pick its word.', codes: ['EMPTY_PART', 'NO_WORDS'] },
@@ -1547,6 +1547,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const order = readingOrder(lines);
   const paras = paragraphs(lines);
   return (
+    <LegsContext.Provider value={legsById(saved.paint?.legs).id}>
     <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}${guestLocked ? ' gwb-locked' : ''}`} style={{ ['--gwb-pipe' as string]: pipeById(saved.paint?.pipe).color, ['--gwb-pipe-light' as string]: pipeById(saved.paint?.pipe).light }}>
       <header className="gus-top gwb-top">
         <button type="button" className="gus-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>
@@ -1661,7 +1662,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   <span className="gwb-sheet-label">My things</span>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 My Journal<small>Sentences and stories you saved</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setMachinesOpen(true); setTopMenu(false); }}>💾 My saved machines<small>Keep 6 of your machines and build them again later</small></button>
-                  <button type="button" className="gwb-sheet-item" onClick={() => { setPaintOpen(true); setTopMenu(false); }}>🎨 Gus's Paint Shop<small>Floors, pipes, lever knobs, celebrations, sounds and hats, unlocked with stickers</small></button>
+                  <button type="button" className="gwb-sheet-item" onClick={() => { setPaintOpen(true); setTopMenu(false); }}>🎨 Gus's Paint Shop<small>Floors, pipes, machine legs, lever knobs, celebrations, sounds and hats, unlocked with stickers</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/library')}>📚 Library<small>Articles to read and answer</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine<small>Gus's first sentence machine</small></button>
                   {live?.role !== 'guest' && <button type="button" className="gwb-sheet-item" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear the board<small>Start over with a blank word space</small></button>}
@@ -2198,6 +2199,13 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   <span className="gwb-paint-swatch pipe" style={{ background: `linear-gradient(${p.light} 0 30%, ${p.color} 30%)` }} aria-hidden /><strong>{p.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${p.stickers} stickers`}</small>
                 </button>;
               })}</div>
+              <h3>Machine legs</h3>
+              <div className="gwb-paint-grid">{LEGS.map((l) => {
+                const open = have >= l.stickers, on = legsById(saved.paint?.legs).id === l.id;
+                return <button key={l.id} type="button" className={`gwb-paint-item${on ? ' on' : ''}`} disabled={!open || !studentId} onClick={() => { pick({ legs: l.id }); gusSound.boing(); }} aria-pressed={on}>
+                  <span className="gwb-paint-legs" aria-hidden><LegsContext.Provider value={l.id}><MachinePart kind="N" word="cat" scale={0.42} /></LegsContext.Provider></span><strong>{l.icon} {l.name}</strong><small>{on ? '✅ On' : open ? 'Tap to use' : `🔒 ${l.stickers} stickers`}</small>
+                </button>;
+              })}</div>
               <h3>Start Lever knob</h3>
               <div className="gwb-paint-grid">{LEVERS.map((l) => {
                 const open = have >= l.stickers, on = leverById(saved.paint?.lever).id === l.id;
@@ -2294,5 +2302,6 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
 
       {reading && <ImmersiveReader article={reading} calm={calm} onClose={() => setReading(null)} onAnswer={() => startRespond(reading)} />}
     </div>
+    </LegsContext.Provider>
   );
 }

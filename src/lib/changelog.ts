@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-legs',
+    date: '2026-10-09',
+    icon: '🛞',
+    title: 'Grammar Gus: machine legs',
+    body: "Your word machines can stand on wheels, springs, duck feet or rocket fins. They roll, bounce or blast when the machine runs. Unlock them with stickers in Gus's Paint Shop.",
+  },
+  {
     id: '2026-10-09-gus-sticker-book',
     date: '2026-10-09',
     icon: '📒',

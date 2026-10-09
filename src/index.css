@@ -6313,3 +6313,14 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-book-st { font-size: 1.6rem; text-align: center; }
 .gwb-cabinet { position: absolute; top: 2px; right: 3px; display: flex; flex-direction: column; gap: 0; pointer-events: none; }
 .gwb-cabinet i { font-style: normal; font-size: 12px; line-height: 15px; transform: rotate(-8deg); }
+/* Machine legs (Garage part variants, 2026-10-09) */
+.gwb-paint-legs { display: grid; place-items: center; height: 72px; overflow: hidden; }
+.gwb-wheel { transform-box: view-box; }
+.gwb-line.running .gwb-wheel { animation: gwb-spin 0.6s linear infinite; }
+.gwb-flame { opacity: 0; }
+.gwb-line.running .gwb-flame { opacity: 1; animation: gwb-flicker 0.15s steps(2) infinite; }
+@keyframes gwb-flicker { 50% { opacity: 0.55; } }
+.gwb-line.running .gwb-spring { animation: gwb-boing 0.35s ease-in-out infinite alternate; transform-box: view-box; transform-origin: 50% 100%; }
+@keyframes gwb-boing { to { transform: scaleY(0.88); } }
+.gwb.calm .gwb-wheel, .gwb.calm .gwb-flame, .gwb.calm .gwb-spring { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .gwb-wheel, .gwb-flame, .gwb-spring { animation: none !important; } }

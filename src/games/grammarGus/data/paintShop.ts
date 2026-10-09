@@ -67,3 +67,14 @@ export const leverById = (id?: string) => LEVERS.find((l) => l.id === id) ?? LEV
 export const celebrationById = (id?: string) => CELEBRATIONS.find((c) => c.id === id) ?? CELEBRATIONS[0];
 export const soundSetById = (id?: string) => SOUND_SETS.find((s) => s.id === id) ?? SOUND_SETS[0];
 export const hatById = (id?: string) => HATS.find((h) => h.id === id) ?? HATS[0];
+
+// Machine legs (Garage part variants, plan 8.7): what every word machine stands on.
+export interface Legs { id: string; name: string; icon: string; stickers: number }
+export const LEGS: Legs[] = [
+  { id: 'stand', name: 'Steel stand', icon: '🔩', stickers: 0 },
+  { id: 'wheels', name: 'Wheels', icon: '🛞', stickers: 3 },
+  { id: 'springs', name: 'Springs', icon: '🌀', stickers: 6 },
+  { id: 'feet', name: 'Duck feet', icon: '🦆', stickers: 10 },
+  { id: 'rocket', name: 'Rocket fins', icon: '🚀', stickers: 15 },
+];
+export const legsById = (id?: string) => LEGS.find((l) => l.id === id) ?? LEGS[0];

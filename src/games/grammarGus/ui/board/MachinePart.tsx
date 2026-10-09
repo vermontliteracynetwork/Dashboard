@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import type { Kind } from './parts';
 import { kindInfo, PART_H, partWidth, isWordKind, wordPosOf, BODY } from './parts';
 import PartSvg from '../PartSvg';
@@ -54,7 +55,37 @@ function Gear({ x, y, r = 10, color = '#c8ced8', rev = false }: { x: number; y: 
   const teeth = Array.from({ length: 8 }, (_, i) => { const a = (Math.PI / 4) * i; return <rect key={i} x={x - 2.5} y={y - r - 4} width={5} height={6} rx={1} fill={color} stroke={INK} strokeWidth={1.4} transform={`rotate(${(a * 180) / Math.PI} ${x} ${y})`} />; });
   return <g className={`gwb-gear${rev ? ' rev' : ''}`} style={{ transformOrigin: `${x}px ${y}px` }}>{teeth}<circle cx={x} cy={y} r={r} fill={color} stroke={INK} strokeWidth={2} /><circle cx={x} cy={y} r={r * 0.35} fill="#7d8796" stroke={INK} strokeWidth={1.4} /></g>;
 }
+// Machine legs from Gus's Paint Shop (Garage part variants, plan 8.7, 2026-10-09): a small config,
+// not a new drawing, so a word machine keeps its grammar shape and color in every style.
+export const LegsContext = createContext<string>('stand');
 function Stand({ w, top }: { w: number; top: number }) {
+  const legs = useContext(LegsContext);
+  const c = w / 2;
+  if (legs === 'wheels') return <g>
+    <rect x={c - 5} y={top} width={10} height={Math.max(0, 114 - top)} fill="#6b7383" stroke={INK} strokeWidth={2} />
+    <rect x={c - 24} y={110} width={48} height={7} rx={3} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    <g className="gwb-wheel" style={{ transformOrigin: `${c - 15}px 123px` }}><circle cx={c - 15} cy={123} r={7} fill="#3c455e" stroke={INK} strokeWidth={2} /><line x1={c - 21} y1={123} x2={c - 9} y2={123} stroke="#c8ced8" strokeWidth={2} /></g>
+    <g className="gwb-wheel" style={{ transformOrigin: `${c + 15}px 123px` }}><circle cx={c + 15} cy={123} r={7} fill="#3c455e" stroke={INK} strokeWidth={2} /><line x1={c + 9} y1={123} x2={c + 21} y2={123} stroke="#c8ced8" strokeWidth={2} /></g>
+  </g>;
+  if (legs === 'springs') {
+    const h = Math.max(8, 120 - top), n = 6;
+    const pts = Array.from({ length: n + 1 }, (_, i) => `${c + (i === 0 || i === n ? 0 : i % 2 ? -9 : 9)},${top + (h * i) / n}`).join(' ');
+    return <g className="gwb-spring">
+      <polyline points={pts} fill="none" stroke="#6b7383" strokeWidth={4} strokeLinejoin="round" /><polyline points={pts} fill="none" stroke="#c8ced8" strokeWidth={1.5} strokeLinejoin="round" />
+      <rect x={c - 22} y={121} width={44} height={6} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+    </g>;
+  }
+  if (legs === 'feet') return <g>
+    <rect x={c - 13} y={top} width={7} height={Math.max(0, 118 - top)} fill="#6b7383" stroke={INK} strokeWidth={2} />
+    <rect x={c + 6} y={top} width={7} height={Math.max(0, 118 - top)} fill="#6b7383" stroke={INK} strokeWidth={2} />
+    <ellipse cx={c - 14} cy={123} rx={11} ry={6} fill="#f39c3d" stroke={INK} strokeWidth={2} /><ellipse cx={c + 14} cy={123} rx={11} ry={6} fill="#f39c3d" stroke={INK} strokeWidth={2} />
+  </g>;
+  if (legs === 'rocket') return <g>
+    <rect x={c - 6} y={top} width={12} height={Math.max(0, 116 - top)} fill="#d8dde6" stroke={INK} strokeWidth={2} />
+    <path d={`M${c - 6} ${100} L${c - 20} ${124} L${c - 6} ${118} Z`} fill="#e8483b" stroke={INK} strokeWidth={2} strokeLinejoin="round" />
+    <path d={`M${c + 6} ${100} L${c + 20} ${124} L${c + 6} ${118} Z`} fill="#e8483b" stroke={INK} strokeWidth={2} strokeLinejoin="round" />
+    <path d={`M${c - 5} 116 L${c + 5} 116 L${c} 128 Z`} className="gwb-flame" fill="#f3cf6b" stroke="#f39c3d" strokeWidth={1.5} />
+  </g>;
   return <g>
     <rect x={w / 2 - 5} y={top} width={10} height={Math.max(0, 124 - top)} fill="#6b7383" stroke={INK} strokeWidth={2} />
     <rect x={w / 2 - 22} y={122} width={44} height={6} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
