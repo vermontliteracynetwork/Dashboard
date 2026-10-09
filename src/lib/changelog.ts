@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-science-lab',
+    date: '2026-10-09',
+    icon: '🔬',
+    title: 'The Science Lab is open!',
+    body: 'Open the Science Lab on your computer. Pour bottles into beakers and mix them. Some fizz, some change color, and some go BOOM, just like real chemistry. Every discovery goes in your Science Journal and unlocks new bottles. Flip the switch to Magic mode for a purple potion lab!',
+  },
+  {
     id: '2026-10-09-gus-revise',
     date: '2026-10-09',
     icon: '🛠️',

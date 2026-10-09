@@ -36,12 +36,14 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 3. Grammar Gus Phase 2: Gus's Paint Shop.
 4. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
 5. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
+8b. Science Lab next steps (her links): an atom builder, element cards with photos and uses, a burner for heat, more recipes.
 7. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
 6. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: 🔬 Science Lab, a new computer app (see Part A, A56).
 - 2026-10-09: Grammar Gus Phase 2, the 🛠️ Revision Workshop (Add, Remove, Move, Swap).
 - 2026-10-09: Grammar Gus Phase 2, the ⚛️ Fusion Reactor (sentence combining mini game).
 - 2026-10-09: Castle Defense, a third map: ⛺ Stone road field, built from her CraftPix field tiles.
@@ -690,6 +692,21 @@ What shipped (all in `src/routes/world/HomeRoom.tsx`, styles `.hb-*` in `src/ind
 Claudia's UX calls: Cutaway as the default (it is what Sims players expect and keeps furniture visible while turning); the Shop lives inside Build Mode so a student never has to leave their house to buy one couch; the short-on-cash card names the amount instead of a disabled button (same rule as the Marketplace).
 
 In progress / not checked yet: not tried on a real iPad in both orientations; the wall cutaway is decided per wall from the camera direction, so very narrow rooms may drop two walls at once at corner angles.
+
+#### A56. Science Lab (computer app) — SHIPPED 2026-10-09
+
+**Her words (2026-10-09, verbatim):** "https://phet.colorado.edu/en/simulations/build-an-atom https://interactiveperiodictable.net/sandbox https://zperiod.app/ https://virtualkidslab.basf.com/ * Pouring and mixing into glass beakers (animations) * Two modes (one strictly chemistry/science and one fantasy/magic mode) a very distinct toggle with two different themes (fantasy dark purple, and fantasy swirly design / clean white line scenes science liab * Sandbox mode only to start. * Things explode with animations if they would chemically * Largely inspired by the sandbox element of pouring and mixing * It should be laid out like a 2d lab, a period table board in the background can be clicked, elements should be unlocked or learned over time, science journal should have recipes added) === lets build a science lab. science lab should be an app in the computer not a native game. lets build this out claudia"
+
+What shipped (`/student/science-lab`, 🔬 Science Lab on the computer desktop; `src/routes/student/ScienceLab.tsx`, data and rules in `src/games/scienceLab/`, 6 tests):
+- **A 2D lab, top to bottom:** the periodic table board on the wall, a bottle shelf (◀ ▶ arrows, swipe), and a bench with 3 glass beakers. Tap a beaker to pick it, tap a bottle to pour: the bottle tilts over the beaker, a stream pours in, and the liquid rises in its color. "🫗 Pour into..." pours one beaker into another; "🚰 Empty" empties it. A beaker holds 5 pours.
+- **Real chemistry, real reactions (27 recipes):** fizzing volcano (baking soda + vinegar), lemon fizz, chalk fizz, salt and sugar dissolving, oil and water layers, sodium + water BOOM, potassium + water KA-BOOM (lilac), lithium and calcium fizzing, making table salt (flash), hydrogen + oxygen = water (POP), burning carbon (smoke), burning magnesium (white flash), red cabbage indicator (pink for acid, green for base), iron rusting (needs iron, oxygen and water), blue copper water, iron swapping with copper, silver nitrate cloud (a precipitate), the iodine starch test, oxygen bubbles and elephant toothpaste foam (peroxide, yeast and soap), ammonia, hydrogen + chlorine BOOM, iron + sulfur glow, and thermite. Things explode only when the real reaction would. Helium does nothing ("a noble gas"). Mixes that do not react just blend colors and say "No reaction".
+- **Two modes, a big 🔬 Science / 🔮 Magic toggle:** Science is a clean white lab drawn in blue lines on grid paper, with a 📓 Science Journal. Magic is a dark purple room with swirling glows, sparkle sounds, glowing beakers ("cauldrons"), a 📜 Spellbook, and a magic name and line for every reaction ("Thunder Pebble", "Purple Dragon Sneeze"). The real names, formulas and equations show in both.
+- **Learned over time:** the shelf starts with 12 bottles (water, vinegar, baking soda, salt, sugar, oil, lemon juice, hydrogen, oxygen, carbon, sodium, chlorine). Every discovery unlocks new bottles (red cabbage juice, chalk, silver nitrate, starch, soap, potassium, magnesium, helium, nitrogen, peroxide, calcium, lithium, yeast, iron, copper sulfate, aluminum, sulfur, iodine): 30 bottles in all. Saved per student (`lab:<studentId>` style_looks row, no new SQL).
+- **The periodic table board:** all 118 elements in the real layout, colored by family. Elements the student has learned light up. Tap the board to open it big with a color key; tap any element for its card: number, family, a fact if it is in the lab, and how to unlock it if it is locked.
+- **Discovery card and journal:** each reaction shows a card with the name, the equation, a one-line fact and any new bottles. The journal lists every discovered recipe (ingredients, equation, fact) and a "Not discovered yet" slot for each one left (27 total).
+- **Sandbox only** (her word, "to start"): no questions, no money, no timer. Sounds made in the browser (glug, fizz, boom, pop, chime, sparkle) with a mute button. Calm and reduced motion turn off the shake and flashes.
+
+In progress / ideas from her links, not built yet: an atom builder (protons, neutrons and electrons, like PhET Build an Atom), element cards with real photos and uses (like the interactive periodic table sandbox), more recipes and a heat tool (a burner), and a question-fueled mode later if she wants it. Not checked on an iPad yet.
 
 ---
 

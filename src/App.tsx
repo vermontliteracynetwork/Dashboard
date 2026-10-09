@@ -61,6 +61,7 @@ const GusLibrary = lazyFresh(() => import('./games/grammarGus/reading/Library'))
 const ShapeDash = lazyFresh(() => import('./routes/student/ShapeDash'));
 const BubbleShooter = lazyFresh(() => import('./routes/student/BubbleShooter'));
 const Alchemy = lazyFresh(() => import('./routes/student/Alchemy'));
+const ScienceLab = lazyFresh(() => import('./routes/student/ScienceLab'));
 const WorldEditor = lazyFresh(() => import('./routes/teacher/WorldEditor'));
 const StyleRoom = lazyFresh(() => import('./routes/teacher/StyleRoom'));
 const StudentStyle = lazyFresh(() => import('./routes/student/StudentStyle'));
@@ -175,6 +176,7 @@ export default function App() {
           <Route path="/student/grammar-gus" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the machine…</p></div>}><GusWorkboard /></Suspense>} />
           <Route path="/student/bubble-shooter" element={<Suspense fallback={<div className="app-shell center-screen"><p>Blowing bubbles…</p></div>}><BubbleShooter /></Suspense>} />
           <Route path="/student/shape-dash" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the dash…</p></div>}><ShapeDash /></Suspense>} />
+          <Route path="/student/science-lab" element={<Suspense fallback={<div className="app-shell center-screen"><p>Setting up the lab…</p></div>}><ScienceLab /></Suspense>} />
           <Route path="/student/alchemy" element={<Suspense fallback={<div className="app-shell center-screen"><p>Mixing the elements…</p></div>}><Alchemy /></Suspense>} />
           <Route path="/student/library" element={<Suspense fallback={<div className="app-shell center-screen"><p>Opening the Library…</p></div>}><GusLibrary /></Suspense>} />
           <Route path="/student/grammar-gus/classic" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the machine…</p></div>}><GrammarGusMachine /></Suspense>} />

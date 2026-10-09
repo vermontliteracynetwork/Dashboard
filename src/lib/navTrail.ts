@@ -26,6 +26,7 @@ const LABELS: Record<string, string> = {
   '/student/grammar-gus': '⚙️ Grammar Gus',
   '/student/library': '📚 Library',
   '/student/alchemy': '⚗️ Alchemy',
+  '/student/science-lab': '🔬 Science Lab',
   '/student/math': '➗ Math',
   '/student/literacy': '📖 Literacy',
   '/student/style': '👗 Seamstress',

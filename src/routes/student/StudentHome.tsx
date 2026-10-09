@@ -402,6 +402,15 @@ export default function StudentHome() {
           <span className="widget-icon">⚗️</span>
           <span className="widget-label">Alchemy</span>
         </button>
+        {/* Science Lab (teacher 2026-10-09: "science lab should be an app in the computer not a native game"). */}
+        <button
+          className="widget-card widget-icon-card widget-grammar-gus"
+          onClick={() => navigate('/student/science-lab')}
+          aria-label="Science Lab"
+        >
+          <span className="widget-icon">🔬</span>
+          <span className="widget-label">Science Lab</span>
+        </button>
         {/* Direct teacher instruction: the What's New book must always be
             reachable from the computer, not just the one-time popup in
             Town Square. */}
