@@ -6190,3 +6190,41 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
   .lab-mode button { min-width: 100px; }
 }
 @media (max-width: 560px) { .lab-bench { grid-template-columns: 1fr 1fr; } }
+
+/* Grammar Gus: CER Lab Report (Phase 2) */
+.gwb-cer { max-width: min(860px, 96vw); }
+.gwb-cer-q { position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 10px 48px 10px 12px; border-radius: 14px; border: 3px solid var(--gus-ink); background: #fff; }
+.gwb-cer-q > span { font-size: 2rem; }
+.gwb-cer-q strong { display: block; font-size: 1.1rem; }
+.gwb-cer-q small { display: block; opacity: 0.8; }
+.gwb-cer-q .gwb-hear { position: absolute; right: 8px; top: 8px; }
+.gwb-cer-data { margin: 8px auto; border-collapse: collapse; background: #fffdf2; border: 3px solid var(--gus-ink); border-radius: 10px; overflow: hidden; font-weight: 700; }
+.gwb-cer-data caption { font-weight: 800; padding: 4px; }
+.gwb-cer-data th, .gwb-cer-data td { padding: 6px 14px; border-bottom: 1px solid rgba(31,47,77,0.15); text-align: left; }
+.gwb-cer-data tr.on { background: #c9f0d4; }
+.gwb-cer-line { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.gwb-cer-machine { position: relative; padding: 10px; border-radius: 16px; border: 3px solid var(--gus-ink); background: linear-gradient(#e9eef3, #d3dae4); opacity: 0.65; display: flex; flex-direction: column; gap: 6px; }
+.gwb-cer-machine.active { opacity: 1; box-shadow: 0 0 0 4px #f3cf6b; }
+.gwb-cer-machine.done { opacity: 1; background: linear-gradient(#e8fbe9, #c9f0d4); }
+.gwb-cer-machine h3 { margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+.gwb-cer-ico { font-size: 1.5rem; display: inline-block; }
+.gwb-cer-starter { margin: 0; font-weight: 800; font-size: 0.85rem; }
+.gwb-cer-said { margin: 0; font-weight: 700; }
+.gwb-cer-wait { margin: 0; opacity: 0.7; font-size: 0.85rem; }
+.gwb-cer-opts { display: flex; flex-direction: column; gap: 6px; }
+.gwb-cer-opts .gwb-chute { min-height: 48px; font-size: 0.85rem; text-align: left; align-items: flex-start; }
+.gwb-cer-opts.units { flex-direction: row; flex-wrap: wrap; }
+.gwb-cer-model { box-shadow: 0 0 0 3px #f3cf6b, 0 4px 0 var(--gus-ink); animation: gwb-tab-pulse 1.2s ease-in-out infinite; }
+.gwb-cer-run { display: block; margin: 6px auto; min-height: 52px; font-size: 1.1rem; }
+.gwb-cer-line.running .cannon { animation: gwb-cer-recoil 0.4s ease-out 2; }
+.gwb-cer-line.running .belt { animation: gwb-cer-slide 0.5s linear 3; }
+.gwb-cer-line.running .bridge { animation: gwb-cer-drop 0.8s ease-out 1 0.8s both; }
+@keyframes gwb-cer-recoil { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-8px) rotate(-10deg); } }
+@keyframes gwb-cer-slide { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+@keyframes gwb-cer-drop { 0% { transform: rotate(-40deg); } 70% { transform: rotate(8deg); } 100% { transform: rotate(0); } }
+.gwb-cer-line.ran .gwb-cer-machine { box-shadow: 0 0 18px rgba(63,191,90,0.7); }
+.gwb-cer-report { position: relative; padding: 12px 48px 12px 12px; border-radius: 14px; border: 3px solid var(--gus-ink); background: #fff; }
+.gwb-cer-report p { margin: 4px 0 0; font-size: 1.05rem; line-height: 1.5; }
+.gwb-cer-report .gwb-hear { position: absolute; right: 8px; top: 8px; }
+@media (max-width: 760px) { .gwb-cer-line { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .gwb-cer-line.running .gwb-cer-ico, .gwb-cer-model { animation: none; } }

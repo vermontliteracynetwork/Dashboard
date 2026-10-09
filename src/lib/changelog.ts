@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-cer',
+    date: '2026-10-09',
+    icon: '🔬',
+    title: 'Grammar Gus: write a lab report',
+    body: 'Explain an experiment like a real scientist. Fire a claim from the Claim Cannon, load the data onto the Evidence Conveyor, and lower the Reasoning Bridge. Find it in Jobs, under Science writing.',
+  },
+  {
     id: '2026-10-09-science-lab',
     date: '2026-10-09',
     icon: '🔬',

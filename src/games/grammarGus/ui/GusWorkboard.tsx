@@ -24,6 +24,7 @@ import { compareOrder } from '../engine/orders';
 import { frameworkById } from '../data/frameworks';
 import { flipIdeas } from '../engine/boardRemix';
 import { FusionReactor, HomophoneSorter, RevisionWorkshop, TransitionTrack } from './MiniGames';
+import CerLab from './CerLab';
 import { TRANS_KINDS, type TransKind } from '../data/miniGames';
 import { hashString, makeRng, pick } from '../engine/rng';
 import { SYMBOLS } from '../data/symbols';
@@ -1160,7 +1161,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     return () => window.clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Machine remixes are gone (teacher 2026-10-07: "dont allow machine remixes").
-  const [mini, setMini] = useState<'homo' | 'trans' | 'fusion' | 'revise' | null>(null);
+  const [mini, setMini] = useState<'homo' | 'trans' | 'fusion' | 'revise' | 'cer' | null>(null);
   const doFlip = (line: BoardLine) => {
     const res = flipIdeas(line.items, uid);
     if (typeof res === 'string') { gusSound.ahem(); say(res, 'Flip Switch'); return; }
@@ -1543,6 +1544,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                   <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('revise'); }}>🛠️ Revision Workshop<small>Add, Remove, Move and Swap to fix a rough paragraph</small></button>
                   <div className="gwb-menu-sub">🔬 Science writing</div>
                   {Object.entries(SCIENCE_JOBS).map(([id, j]) => <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{j.icon} {j.name}<small>{j.teaches}</small></button>)}
+                  <button type="button" role="menuitem" onClick={() => { setJobsOpen(false); setMini('cer'); }}>🔬 CER Lab Report<small>Claim, Evidence and Reasoning: explain an experiment like a scientist</small></button>
                   <div className="gwb-menu-sub">📐 Build a whole paragraph</div>
                   {WORKBOARD_BLUEPRINTS.map((id) => { const fw = frameworkById.get(id)!; return <button key={id} type="button" role="menuitem" onClick={() => startJob('blueprint', id)}>{fw.icon} {fw.name}<small>{fw.teaches}</small></button>; })}
                 </>}
@@ -2084,6 +2086,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       )}
 
       {mini === 'homo' && <HomophoneSorter calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great sorting.`, 'Homophone Sorter'); } }} say={say} speak={speak} />}
+      {mini === 'cer' && <CerLab level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g, reports) => { if (g) earn(g); reports.forEach((t) => earn(0, { kind: 'cer', text: t, stars: 3 })); if (reports.length) say(`${reports.length} lab report${reports.length === 1 ? '' : 's'} saved in your Journal.${g ? ` ${g} with no wrong picks!` : ''}`, 'CER Lab Report'); }} say={say} speak={speak} />}
       {mini === 'revise' && <RevisionWorkshop level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} repairs on the first try! That is real revising.`, 'Revision Workshop'); } }} say={say} speak={speak} />}
       {mini === 'fusion' && <FusionReactor level={level} calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} fused on the first try! Smooth writing.`, 'Fusion Reactor'); } }} say={say} speak={speak} />}
       {mini === 'trans' && <TransitionTrack calm={calm} onClose={() => setMini(null)} onEarn={(g) => { if (g) { earn(g); say(`${g} right on the first try! Great couplings.`, 'Transition Track'); } }} say={say} speak={speak} />}
@@ -2134,7 +2137,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
           <div className="gus-journal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Silly Journal">
             <h2>📓 Gus's Silly Journal</h2>
             {(saved.journal ?? []).length === 0 ? <p>Nothing saved yet. Run a machine to 3 stars, then tap Save under it.</p> : (
-              <ul>{saved.journal!.map((j, i) => <li key={i}>{j.drafts?.length ? <button type="button" className="gus-btn gus-journal-play" onClick={() => replayEntry(j)}>▶ Play</button> : null} {j.text}</li>)}</ul>
+              <ul>{saved.journal!.map((j, i) => <li key={i}>{j.drafts?.length ? <button type="button" className="gus-btn gus-journal-play" onClick={() => replayEntry(j)}>▶ Play</button> : null} {j.kind === 'cer' && <strong>🔬 Lab report: </strong>}{j.text}</li>)}</ul>
             )}
             <button type="button" className="gus-btn" onClick={() => setJournalOpen(false)}>✕ Close</button>
           </div>
