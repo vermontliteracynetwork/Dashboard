@@ -61,3 +61,15 @@ describe('word packs and teacher words (2026-10-09)', () => {
     expect(nounByWord.get('axolotls')?.plural).toBe(true);
   });
 });
+
+import { runSentence } from '../engine/pipeline';
+describe('Pixel TV "with" (2026-10-09)', () => {
+  it('a living thing after "with" walks along in the same beat', () => {
+    const r = runSentence({ tokens: [{ pos: 'A', word: 'the' }, { pos: 'N', word: 'dog' }, { pos: 'V', word: 'walk' }, { pos: 'P', word: 'with' }, { pos: 'A', word: 'the' }, { pos: 'N', word: 'cat' }], tense: 'past', level: 'full' });
+    const scene = r.script?.scenes[0];
+    expect(scene).toBeTruthy();
+    const act = scene!.beats.find((b) => b.do === 'walk' || b.do === 'run');
+    expect(act?.who.length).toBe(2);
+    expect(scene!.props.length).toBe(0);
+  });
+});

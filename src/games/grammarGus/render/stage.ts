@@ -45,7 +45,9 @@ function actorAt(scene: Scene, id: string, t: number, props: PropSpot[], m: Cast
     if (t < b.t) break;
     const p = clamp01((t - b.t) / b.dur);
     const active = p < 1;
-    if (b.who.includes(id)) moveBy(s, b, p, active, t, props);
+    // Several movers in one beat (two whos, or "with" a buddy) walk side by side, not on top of each other.
+    const k = b.who.indexOf(id);
+    if (k >= 0) moveBy(s, k > 0 && b.x0 !== undefined && b.x1 !== undefined ? { ...b, x0: b.x0 - k * 14, x1: b.x1 - k * 14 } : b, p, active, t, props);
     else if (b.target === id) reactTo(s, b, p, active, st.x, t, m);
   }
   return s;

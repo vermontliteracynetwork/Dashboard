@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-with',
+    date: '2026-10-09',
+    icon: '🐾',
+    title: 'Grammar Gus: walk WITH a friend',
+    body: 'Build "The dog walked with the cat." and watch the Pixel TV: now they walk together, side by side!',
+  },
+  {
     id: '2026-10-09-gus-packs',
     date: '2026-10-09',
     icon: '🦖',

@@ -59,6 +59,15 @@ export function lookFor(m: CastMember): Look {
 }
 
 const STAGE_LEFT = 28; const STAGE_CENTER = 90; const STAGE_RIGHT = 132;
+// "with" a living thing (Build Queue 2026-10-09, the Pixel TV "with"): "The dog walked with the cat."
+// The cat is not a place to walk to; it walks along, so both do the action side by side.
+const ALIVE = new Set(['biped', 'quadruped', 'critter', 'bird', 'serpent']);
+const withBuddy = (place: Event['places'][number] | undefined, res: Resolution, castById: Map<string, CastMember>): string | undefined => {
+  if (!place || place.prep !== 'with') return undefined;
+  const id = res.refs[place.ground.id]?.[0];
+  const m = id ? castById.get(id) : undefined;
+  return m && ALIVE.has(m.rig) ? id : undefined;
+};
 
 function eventBeats(ev: Event, res: Resolution, castById: Map<string, CastMember>, start: Scene['start'], props: Scene['props']): Beat[] {
   const beats: Beat[] = [];
@@ -72,7 +81,8 @@ function eventBeats(ev: Event, res: Resolution, castById: Map<string, CastMember
     const fx = cur.adverbs.flatMap((a) => ADVERB_FX[a] ?? []);
     const tags = cur.adverbs.filter((a) => !(ADVERB_FX[a]?.length));
     const obj = cur.object ? res.refs[cur.object.id]?.[0] : undefined;
-    const place = cur.places[0];
+    const buddy = withBuddy(cur.places[0], res, castById);
+    const place = buddy ? cur.places[1] : cur.places[0];
     const ground = place ? res.refs[place.ground.id]?.[0] : undefined;
     const path = place ? pathFor(place.prep) : 'none';
     const target = obj ?? ground;
@@ -94,12 +104,14 @@ function eventBeats(ev: Event, res: Resolution, castById: Map<string, CastMember
     // Any action with a where word happens literally at that place: sat on
     // the table ends on the table, slept under the tree ends under it.
     if (groundX !== undefined && path !== 'none' && !['run', 'walk', 'chase', 'swim', 'fly', 'slide', 'jump'].includes(base) && !(APPROACH_CLIPS.has(base) && obj)) x1 = pathEnd(path, groundX, x0, STAGE_RIGHT);
+    const who = buddy && !subj.includes(buddy) ? [...subj, buddy] : subj;
     beats.push({
-      t: 0, dur: (CLIP_BASE_SECONDS[clip.do] ?? 1.6) / speed, do: clip.do, who: subj, target,
+      t: 0, dur: (CLIP_BASE_SECONDS[clip.do] ?? 1.6) / speed, do: clip.do, who, target,
       path, speed, fx, tags, sprout: clip.sprout, x0, x1,
       ...(clip.fallback ? { word: `${cur.verb}!` } : {}),
     });
     if (start[subj[0]]) start[subj[0]] = { ...start[subj[0]], x: x1 };
+    if (buddy && start[buddy]) start[buddy] = { ...start[buddy], x: x1 - 14 };
     if (cur.join && cur.join.word === 'or') beats[beats.length - 1].fx.push('or');
   }
   return beats;
@@ -124,8 +136,12 @@ export function direct(frame: SemanticFrame, res: Resolution, rubric: RubricResu
   for (const id of subjects) if (!start[id]) { start[id] = { x: leftX, facing: 1 }; leftX += 16; }
   for (const ev of frame.events) {
     for (let cur: Event | undefined = ev; cur; cur = cur.join?.next) {
+      // A living thing after "with" stands beside the who and goes along with it.
+      const buddy = withBuddy(cur.places[0], res, castById);
+      if (buddy && !start[buddy]) { start[buddy] = { x: leftX, facing: 1 }; leftX += 16; }
       for (const pl of cur.places) {
         const id = res.refs[pl.ground.id]?.[0];
+        if (id && id === buddy) continue;
         if (id && !start[id] && !props.some((p) => p.castId === id)) props.push({ castId: id, x: STAGE_CENTER });
       }
       // Every joined thing stands on the stage, so the last frame shows them together.
