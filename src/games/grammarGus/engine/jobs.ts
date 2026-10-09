@@ -17,7 +17,7 @@ import type { BoardItem } from './board';
 
 export type JobKind = 'delivery' | 'inspector' | 'order' | 'blueprint' | 'spark';
 export type Flaw = 'missing-end' | 'end-middle' | 'missing-cap' | 'cap-late';
-export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw | 'who' | 'did' | 'runon'; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }
+export interface BoardJob { id: string; kind: JobKind; text: string; flaw?: Flaw | 'who' | 'did' | 'runon' | 'appos'; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }
 export const FLAW_HINTS: Record<Flaw, string> = {
   'missing-end': 'This sentence has no punctuation at the end.',
   'end-middle': 'Some punctuation is in the wrong place.',
@@ -166,6 +166,28 @@ export function makeRunOnJob(rng: Rng, uid: () => string, o: { gentleOnly?: bool
     return {
       items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: tense }, ...words, { id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }],
       job: { id: uid(), kind: 'spark', text: `${a.text} ${b.text}`, flaw: 'runon' },
+    };
+  }
+}
+
+// The Appositive Clamp job (Claudia's Phase 2, second machine; Build Queue 2026-10-09): Gus delivers
+// a finished sentence with an empty Appositive Clamp gripping its who. The student picks a fact
+// about the who (or types one) and, at Guided and Challenge, snaps on both comma tabs.
+export function makeAppositiveJob(rng: Rng, uid: () => string, o: { gentleOnly?: boolean } = {}): { items: BoardItem[]; job: BoardJob; noun: string } {
+  for (let tries = 0; ; tries++) {
+    const order = makeOrder(rng, o);
+    const tokens = order.filled.draft.tokens;
+    const v = tokens.findIndex((t) => t.pos === 'V');
+    const n = tokens.findIndex((t, i) => t.pos === 'N' && i < v);
+    if ((n < 0 || v < 0) && tries < 200) continue;
+    const words: BoardItem[] = tokens.map((t) => ({ id: uid(), kind: t.pos, word: t.word, ...(t.form ? { form: t.form } : {}) }));
+    words[0] = { ...words[0], bottom: { id: uid(), kind: 'cap', word: null } };
+    const at = n < 0 ? 0 : n;
+    words.splice(at + 1, 0, { id: uid(), kind: 'clamp', word: null });
+    return {
+      items: [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: order.filled.draft.tense }, ...words, { id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }],
+      job: { id: uid(), kind: 'spark', text: order.text, flaw: 'appos' },
+      noun: tokens[at]?.word ?? 'the who',
     };
   }
 }

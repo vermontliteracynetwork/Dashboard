@@ -19,18 +19,20 @@ import { canCompare, compareOf, pluralNounOf, possessiveOf } from './dictionary'
 
 // top / bottom: a part snapped on above or below a word machine.
 // span: the Speech Bubble's cloud stretches from one word machine to another (teacher 2026-10-07).
-export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm; top?: BoardItem; bottom?: BoardItem; locked?: boolean; span?: { from: string; to: string } }
+// tabs: the Appositive Clamp's comma tabs (1 = the comma before the fact, 2 = the comma after it).
+export interface BoardItem { id: string; kind: Kind; word: string | null; form?: VerbForm; top?: BoardItem; bottom?: BoardItem; locked?: boolean; span?: { from: string; to: string }; tabs?: number }
 // Every part on a line, snapped-on parts included.
 export const allParts = (items: BoardItem[]): BoardItem[] => items.flatMap((i) => [i, ...(i.top ? [i.top] : []), ...(i.bottom ? [i.bottom] : [])]);
 export interface BoardLine { id: string; x: number; y: number; items: BoardItem[]; tense?: Tense; stars?: number | null; silly?: number; job?: { id?: string; kind: 'delivery' | 'inspector' | 'order' | 'blueprint' | 'spark' | 'read'; article?: string; question?: string; text: string; flaw?: string; done?: boolean; key?: SceneKey; card?: OrderCard; group?: string; label?: string; part?: number; of?: number; blueprint?: string }; connector?: string }
 
-export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA' | 'NO_SIZES' | 'NEED_COMMA';
+export type FinishProblem = 'NEED_CAP' | 'NEED_END' | 'NEED_TV' | 'END_NOT_LAST' | 'TV_NOT_LAST' | 'EMPTY_PART' | 'NO_WORDS' | 'COMMA_PLACE' | 'COPY_NO_NOUN' | 'BRIDGE_UP' | 'DEAD_END' | 'NOT_FRONT' | 'WRONG_HOST' | 'NEED_ASK' | 'NEED_CRANE' | 'CRANE_ONE_IDEA' | 'NO_SIZES' | 'NEED_COMMA' | 'CLAMP_HOST' | 'CLAMP_COMMA';
 // The Time Tunnel's time word sets the time; otherwise the Clock does.
 export const tenseOf = (line: BoardLine): Tense => {
   const tw = line.items.find((i) => i.kind === 'tunnel' && i.word)?.word;
   return (tw && TIME_TENSE.get(tw.toLowerCase())) || ((line.items.find((i) => i.kind === 'clock')?.word as Tense | undefined) ?? 'present');
 };
-export interface LineRead { draft: Draft; tokenIds: string[]; problems: { code: FinishProblem; itemId?: string }[]; hasTV: boolean; question: boolean }
+// appositives: each Appositive Clamp's fact and the token (its noun) it sits after.
+export interface LineRead { draft: Draft; tokenIds: string[]; problems: { code: FinishProblem; itemId?: string }[]; hasTV: boolean; question: boolean; appositives: { tok: number; phrase: string; itemId: string; tabs: number }[] }
 // The mark an item makes (the Mood Meter Valve's depends on its setting).
 export const itemMark = (it: BoardItem) => (it.kind === 'mood' ? (it.word === 'big' ? 'bang' : 'stop') : markOf(it.kind));
 // Front parts (Confetti Trapdoor, Time Tunnel, Opener Slingshot) only
@@ -48,8 +50,21 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
   let pendingCap = false; let capAfterShout = false; let mainStarted = false; let question = false;
   let pendingCopy: string | null = null;
   const commaAt: { tok: number; id: string }[] = [];
+  const appositives: LineRead['appositives'] = [];
   items.forEach((it, i) => {
     const pos = wordPosOf(it.kind); const mark = itemMark(it);
+    // The Appositive Clamp (Claudia's Phase 2): it grips the noun right before it and clamps a fact
+    // about it between two commas. At Full help the comma tabs snap on by themselves; at Guided and
+    // Challenge the student snaps them (only the first one when the noun ends the sentence).
+    if (it.kind === 'clamp') {
+      const prev = items[i - 1];
+      if (!prev || wordPosOf(prev.kind) !== 'N' || !tokens.length) { problems.push({ code: 'CLAMP_HOST', itemId: it.id }); return; }
+      if (!it.word) { problems.push({ code: 'EMPTY_PART', itemId: it.id }); return; }
+      appositives.push({ tok: tokens.length - 1, phrase: it.word, itemId: it.id, tabs: level === 'full' ? 3 : it.tabs ?? 0 });
+      const need = i > lastWord ? 1 : 3;
+      if (level !== 'full' && ((it.tabs ?? 0) & need) !== need) problems.push({ code: 'CLAMP_COMMA', itemId: it.id });
+      return;
+    }
     // The Command Conveyor: a command's who is a hidden "you" (Pour the water.).
     if (it.kind === 'command') { if (mainStarted) problems.push({ code: 'NOT_FRONT', itemId: it.id }); else { tokens.push({ pos: 'R', word: 'you', hidden: true }); tokenIds.push(it.id); } return; }
     if (pos) {
@@ -120,12 +135,13 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
     // machine only runs once every comma it needs is snapped on.
     if (tokens.every((t) => t.word)) {
       const a = analyze(tokens);
-      if (a.parse.viable) for (const k of requiredCommas(a, tokens)) if (!marks.commas.includes(k) && k < tokens.length - 1) problems.push({ code: 'NEED_COMMA', itemId: tokenIds[k] });
+      // A clamp's own comma after the fact covers a pause needed right after its noun.
+      if (a.parse.viable) for (const k of requiredCommas(a, tokens)) if (!marks.commas.includes(k) && k < tokens.length - 1 && !appositives.some((p) => p.tok === k)) problems.push({ code: 'NEED_COMMA', itemId: tokenIds[k] });
     }
   }
   const draft: Draft = { tokens, tense: tenseOf(line), level, marks };
   if (crane && question && tokens.every((t) => t.word) && !questionOf(draft)) problems.push({ code: 'CRANE_ONE_IDEA', itemId: crane.id });
-  return { draft, tokenIds, problems, hasTV, question };
+  return { draft, tokenIds, problems, hasTV, question, appositives };
 }
 
 // The sentence as it reads on the plate, the TV caption and the Journal:
@@ -134,7 +150,7 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
 export function lineText(line: BoardLine, rd: LineRead, plain = false): string {
   if (!rd.draft.tokens.some((t) => t.word)) return '';
   const crane = line.items.some((i) => i.kind === 'crane');
-  let text = (rd.question && crane ? questionOf(rd.draft) : null) ?? compose(rd.draft, plain).text;
+  let text = (rd.question && crane ? questionOf(rd.draft) : null) ?? withAppositives(rd, plain);
   if (rd.question && !crane) text = text.replace(/[.!]$/, '?');
   const bubble = line.items.find((i) => i.kind === 'bubble');
   if (bubble?.word && /[.!?]$/.test(text)) {
@@ -157,6 +173,23 @@ export function lineText(line: BoardLine, rd: LineRead, plain = false): string {
     }
   }
   return text;
+}
+// The sentence with each Appositive Clamp's fact clamped in after its noun, between commas:
+// "Gus, a giant robot, fixed the lab." At the end: "We met Gus, a giant robot."
+export function withAppositives(rd: LineRead, plain = false): string {
+  const c = compose(rd.draft, plain);
+  if (!rd.appositives?.length) return c.text;
+  const parts = c.words.map((w) => w.text);
+  for (const ap of rd.appositives) {
+    const k = c.words.findIndex((w) => w.index === ap.tok);
+    if (k < 0) continue;
+    const end = parts[k].match(/[.!?]$/)?.[0] ?? '';
+    const base = parts[k].replace(/[.!?]$/, '').replace(/,$/, '');
+    // As written (plain): only the comma tabs the student snapped on.
+    const before = !plain || ap.tabs & 1 ? ',' : '', after = !plain || ap.tabs & 2 ? ',' : '';
+    parts[k] = k === parts.length - 1 ? `${base}${before} ${ap.phrase}${end}` : `${base}${before} ${ap.phrase}${after}`;
+  }
+  return parts.join(' ');
 }
 // The word machines inside the Speech Bubble's cloud, in order (all of them until it is stretched).
 export function bubbleSpan(line: BoardLine, bubble: BoardItem): string[] {
@@ -199,6 +232,8 @@ export const FINISH_LINES: Record<FinishProblem, { joke: string; fix: string }> 
   NO_SIZES: { joke: 'That describing word does not come in sizes. Stripier? Stripiest? Nope!', fix: 'Snap the Size-Up Inflator under a describing word like tall, big or happy.' },
   NOT_FRONT: { joke: 'That part only launches from the very front of the sentence. In the middle it just wobbles.', fix: 'Snap it at the front, right after the capital letter part.' },
   DEAD_END: { joke: 'ROAD CLOSED! A where word with nowhere to land.', fix: 'Put a noun after the where word: on the mat, under the bed.' },
+  CLAMP_HOST: { joke: 'The clamp is squeezing... nothing it can hold. It only grips a noun.', fix: 'Put the Appositive Clamp right after a noun, like Gus or the dog.' },
+  CLAMP_COMMA: { joke: 'The fact is wobbling loose! A clamp holds it with two comma tabs.', fix: 'Tap the clamp and snap on its comma tabs: one before the fact and one after it. When the noun ends the sentence, only the first one.' },
   COPY_NO_NOUN: { joke: 'The Duplicator is copying... nothing. Very tidy, very useless.', fix: 'Put a noun machine after the Duplicator so it can make more than one.' },
 };
 

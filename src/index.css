@@ -5058,6 +5058,9 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-item { position: absolute; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .gwb-item:focus-visible { outline: 4px solid #f3cf6b; border-radius: 12px; }
 .gwb-item.empty .gwb-svg { animation: gwb-glow 1.6s ease-in-out infinite; }
+.gwb-tab-glow rect { stroke: #f3cf6b; stroke-width: 3.5; animation: gwb-tab-pulse 1.2s ease-in-out infinite; }
+@keyframes gwb-tab-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gwb-tab-glow rect { animation: none; } }
 @keyframes gwb-glow { 0%, 100% { filter: drop-shadow(0 0 0 rgba(243,207,107,0)); } 50% { filter: drop-shadow(0 0 8px rgba(243,207,107,0.95)); } }
 .gwb-item.open .gwb-svg { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #fff); }
 .gwb-svg { display: block; overflow: visible; }

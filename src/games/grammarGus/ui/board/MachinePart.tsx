@@ -382,6 +382,28 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
         {[['why', -26, '#f3cf6b'], ['but', 0, '#e8483b'], ['so', 26, '#3fbf5a']].map(([t, dx, col]) => <g key={t as string}><circle cx={c + (dx as number)} cy={92} r={8} fill={pipe === col ? (col as string) : '#3c455e'} stroke={INK} strokeWidth={2} /><text x={c + (dx as number)} y={110} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={9} fill={INK}>{t as string}</text></g>)}
       </g>;
     }
+    case 'clamp': {
+      // status: "<tabs>|<auto|glow|plain>". Tab 1 is the comma before the fact, tab 2 the one after.
+      const [t, mode] = (status ?? '0|plain').split('|');
+      const tabs = Number(t) || 0;
+      const fact = (word ?? '?').length > 20 ? `${(word ?? '').slice(0, 19)}…` : (word ?? '?');
+      const tab = (x: number, bit: number) => {
+        const on = mode === 'auto' || (tabs & bit) === bit;
+        return <g key={bit} className={!on && mode === 'glow' ? 'gwb-tab-glow' : undefined}>
+          <rect x={x - 11} y={44} width={22} height={34} rx={5} fill={on ? '#fff8e6' : 'none'} stroke={on ? INK : '#8f98a8'} strokeWidth={on ? 2.2 : 2} strokeDasharray={on ? undefined : '4 3'} />
+          {on && <text x={x} y={72} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={30} fill={INK}>,</text>}
+        </g>;
+      };
+      return <g>
+        <Pipes w={w} />
+        <path d={`M24 18 H${w - 24} V100 H24 V86 H${w - 38} V32 H24Z`} fill={color} stroke={INK} strokeWidth={2.6} strokeLinejoin="round" />
+        <g className="gwb-swing" style={{ transformOrigin: `${c}px 18px` }}><rect x={c - 3} y={2} width={6} height={22} fill="#8f98a8" stroke={INK} strokeWidth={1.6} /><rect x={c - 16} y={0} width={32} height={6} rx={3} fill={light} stroke={INK} strokeWidth={1.6} /></g>
+        <rect x={34} y={44} width={w - 76} height={34} rx={6} fill="#fff" stroke={INK} strokeWidth={2} />
+        <text x={34 + (w - 76) / 2} y={66} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={11} fill={INK}>{fact}</text>
+        {tab(14, 1)}{tab(w - 14, 2)}
+        <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
+      </g>;
+    }
     case 'flip': return <g>
       <Pipes w={w} />
       <rect x={c - 30} y={30} width={60} height={60} rx={10} fill={color} stroke={INK} strokeWidth={3} />

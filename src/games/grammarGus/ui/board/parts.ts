@@ -18,6 +18,9 @@ import { SUBORD } from '../../engine/grammar';
 // graders", and "a sandbox ... with hidden grammar concepts"). The Spring
 // Mat bounces in a describing word, the Big Horn blasts an exclamation
 // point, the Duplicator copies the next noun into more than one, and so on.
+// Facts the Appositive Clamp can hold (Claudia's Phase 2 writing machines, 2026-10-09): a noun
+// phrase that renames the noun right before it. "Gus, a giant robot, fixed the lab."
+export const APPOSITIVES = ['my best friend', 'a giant robot', 'the class pet', 'a famous chef', 'our science teacher', 'a sneaky ninja', 'the town mayor', 'the fastest runner', 'a pizza lover', 'my next door neighbor', 'a brave explorer', 'the team captain', 'a sleepy dragon', 'a world champion', 'the new kid', 'a total goofball'];
 export type FinishKind = 'cap' | 'stop' | 'bang' | 'ask' | 'comma' | 'tv' | 'lever' | 'clock' | 'link';
 export type ContraptionKind = 'spring' | 'pulley' | 'ramp' | 'conveyor' | 'fan' | 'bell' | 'dominoes' | 'bucket' | 'horn' | 'duplicator'
   // Claudia's parts catalog, NOW tier (teacher: "build now", 2026-10-07)
@@ -32,10 +35,12 @@ export type ContraptionKind = 'spring' | 'pulley' | 'ramp' | 'conveyor' | 'fan' 
   // Claudia's writing scaffold plan, Phase 1
   | 'gate' | 'flip' | 'equals' | 'command' | 'hypo' | 'rig'
   // The crowned Proper Noun machine (teacher 2026-10-08)
-  | 'proper';
+  | 'proper'
+  // Claudia's writing scaffold plan, Phase 2
+  | 'clamp';
 export type Kind = Pos | FinishKind | ContraptionKind | 'blank';
 export const isWordKind = (k: Kind): k is Pos => k.length === 1;
-export const CONTRAPTIONS: ContraptionKind[] = ['horn', 'spring', 'fan', 'ramp', 'conveyor', 'bucket', 'pulley', 'bell', 'dominoes', 'duplicator', 'trapdoor', 'mood', 'tunnel', 'slingshot', 'dial', 'switch', 'funnel', 'bridge', 'gears', 'sniffer', 'sorter', 'teleporter', 'detector', 'flag', 'stamp', 'crusher', 'pastpress', 'listtrain', 'turnstile', 'crane', 'taggun', 'inflator', 'seesaw', 'bubble', 'crate', 'megaphone', 'toaster', 'cannon', 'slots', 'gate', 'flip', 'equals', 'command', 'hypo', 'rig', 'proper'];
+export const CONTRAPTIONS: ContraptionKind[] = ['horn', 'spring', 'fan', 'ramp', 'conveyor', 'bucket', 'pulley', 'bell', 'dominoes', 'duplicator', 'trapdoor', 'mood', 'tunnel', 'slingshot', 'dial', 'switch', 'funnel', 'bridge', 'gears', 'sniffer', 'sorter', 'teleporter', 'detector', 'flag', 'stamp', 'crusher', 'pastpress', 'listtrain', 'turnstile', 'crane', 'taggun', 'inflator', 'seesaw', 'bubble', 'crate', 'megaphone', 'toaster', 'cannon', 'slots', 'gate', 'flip', 'equals', 'command', 'hypo', 'rig', 'proper', 'clamp'];
 export const isContraption = (k: Kind): k is ContraptionKind => (CONTRAPTIONS as string[]).includes(k);
 export type MarkRole = 'cap' | 'stop' | 'bang' | 'ask' | 'comma' | 'plural' | 'poss' | 'size';
 // pos: the fun part holds a word of that part of speech. mark: it acts
@@ -90,6 +95,7 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   command: { tool: true, pop: 'GO GO GO!', does: 'Turns the machine into a command: pour the water!', grammar: 'commands (the hidden "you")' },
   hypo: { pos: 'C', words: ['if'], preset: 'if', pop: 'IF... THEN!', does: 'Hypothesis Engine: if this happens, then that will happen', grammar: 'if and then, for a hypothesis' },
   rig: { tool: true, pop: 'LAMPS ON!', does: 'Expansion Rig: lights up who, what, when, where, why and how', grammar: 'expanding a sentence' },
+  clamp: { tool: true, preset: 'my best friend', words: APPOSITIVES, pop: 'CLAMP! CLAMP!', does: 'Appositive Clamp: clamps a fact about a noun right after it, between two commas', grammar: 'appositives and their commas' },
   flag: { tool: true, pop: 'FINISH!', does: 'Waves when the sentence starts and ends right', grammar: 'capital letter and end punctuation' },
 };
 // Parts that snap on above or below a word machine (teacher 2026-10-07:
@@ -186,6 +192,8 @@ export const KINDS: KindInfo[] = [
   X('command', 'Command Conveyor', '#d35400'),
   X('hypo', 'Hypothesis Engine', '#5b8def'),
   X('rig', 'Expansion Rig', '#c9902f'),
+  // Shown with the WHO parts (it grips a noun), even when fun parts are turned off.
+  { ...X('clamp', 'Appositive Clamp', '#4f7cac'), job: 'who' },
 ];
 export const kindInfo = (k: Kind): KindInfo => KINDS.find((x) => x.kind === k) ?? { kind: 'blank', name: 'Blank word space', machine: 'Empty space', hint: 'Drag a machine part onto it', color: '#ffffff', job: 'power' };
 export const JOB_TITLES: Record<Job, string> = { power: 'START and TV', time: 'TIME', paragraph: 'PARAGRAPH', shout: 'INTERJECTION', who: 'WHO parts', did: 'DID parts', where: 'WHERE parts', join: 'JOIN parts', finish: 'CAPITAL LETTER and PUNCTUATION', contraption: 'FUN PARTS', gadget: 'HELPER GADGETS' };
@@ -194,7 +202,7 @@ export const PART_H = 172;
 // How big each symbol body is, Montessori style: the noun and verb are the
 // biggest, the article is the smallest.
 export const BODY: Record<Pos, number> = { N: 112, V: 104, R: 96, P: 96, C: 100, J: 86, I: 84, D: 76, A: 64 };
-const FUN_W: Partial<Record<ContraptionKind, number>> = { proper: 146, conveyor: 150, dominoes: 150, horn: 150, duplicator: 124, tunnel: 140, switch: 130, listtrain: 150, turnstile: 124, crane: 130, bubble: 124, seesaw: 130, slots: 124, toaster: 116, cannon: 130, gate: 130, flip: 116, equals: 124, command: 140, hypo: 130, rig: 150, pastpress: 124, crusher: 124, stamp: 116, bridge: 150, gears: 124, sniffer: 124, sorter: 140, mood: 120, teleporter: 116 };
+const FUN_W: Partial<Record<ContraptionKind, number>> = { proper: 146, conveyor: 150, dominoes: 150, horn: 150, duplicator: 124, tunnel: 140, switch: 130, listtrain: 150, turnstile: 124, crane: 130, bubble: 124, seesaw: 130, slots: 124, toaster: 116, cannon: 130, gate: 130, flip: 116, equals: 124, command: 140, hypo: 130, rig: 150, clamp: 150, pastpress: 124, crusher: 124, stamp: 116, bridge: 150, gears: 124, sniffer: 124, sorter: 140, mood: 120, teleporter: 116 };
 export const textW = (word: string | null) => (word ? word.length * 10.5 : 10);
 export function partWidth(kind: Kind, word: string | null): number {
   if (kind === 'tv') return 214;

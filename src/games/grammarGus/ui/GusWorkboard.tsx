@@ -19,7 +19,7 @@ import { reviewStory, storyCast, storyScript, type SealedSentence } from '../eng
 import { POOLS, packWords } from '../engine/machine';
 import { addCustomWord, checkTyped, cleanWord, customFor, loadCustomWords, pluralNounOf, regularPast, type DictPos, type TypedCheck } from '../engine/dictionary';
 import { MAX_ATTEMPTS, type Attempt } from '../engine/report';
-import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, makeRunOnJob, runOnSplit, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
+import { FLAW_HINTS, makeJob, makeOrderJob, makeBlueprint, makeScienceJob, makeSparkJob, makeRunOnJob, makeAppositiveJob, runOnSplit, WORKBOARD_BLUEPRINTS, type Flaw, type JobKind } from '../engine/jobs';
 import { compareOrder } from '../engine/orders';
 import { frameworkById } from '../data/frameworks';
 import { flipIdeas } from '../engine/boardRemix';
@@ -41,7 +41,7 @@ import { ALL_EXAMPLES, EXAMPLE_GROUPS, exampleItems } from '../data/examples';
 import { boardsNow, saveBoards, shareOwner, useBoards, useSharedBoards } from '../boards';
 import { liveAvailable, newLiveCode, openLiveRoom, validCode, type LiveRoom, type LiveState } from '../live';
 import MachinePart from './board/MachinePart';
-import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, type Kind, type Job } from './board/parts';
+import { KINDS, JOB_TITLES, PART_H, kindInfo, partWidth, isWordKind, isContraption, needsWord, wordPosOf, markOf, isEndMark, isFront, isTool, attachSlotOf, type AttachSlot, FUN_ROLE, APPOSITIVES, type Kind, type Job } from './board/parts';
 import type { SceneScript } from '../director/director';
 
 // Gus's Workboard (teacher 2026-10-07). Her words, in order:
@@ -81,9 +81,10 @@ interface GusRow { gears?: number; journal?: JournalEntry[]; attempts?: Attempt[
 // The machine rows of Gus's Checklist: the Workboard's own jobs.
 const MACHINE_ROWS: { id: string; label: string; hint: string; codes: FinishProblem[]; finish?: boolean }[] = [
   { id: 'words', label: 'Every machine has its word', hint: 'Tap a machine with a ? and pick its word.', codes: ['EMPTY_PART', 'NO_WORDS'] },
-  { id: 'order', label: 'Parts snapped in the right order', hint: 'Front parts at the front, punctuation at the end, a comma right after a word.', codes: ['NOT_FRONT', 'BRIDGE_UP', 'COMMA_PLACE', 'COPY_NO_NOUN', 'DEAD_END', 'TV_NOT_LAST', 'END_NOT_LAST'] },
+  { id: 'order', label: 'Parts snapped in the right order', hint: 'Front parts at the front, punctuation at the end, a comma right after a word.', codes: ['NOT_FRONT', 'BRIDGE_UP', 'COMMA_PLACE', 'COPY_NO_NOUN', 'DEAD_END', 'TV_NOT_LAST', 'END_NOT_LAST', 'CLAMP_HOST'] },
   { id: 'cap', label: 'Capital letter under the first word', hint: 'Snap a Capital Letter Press under the first word.', codes: ['NEED_CAP'], finish: true },
   { id: 'end', label: 'Punctuation at the end', hint: 'Snap a period or exclamation point on the end, or on top of the last word.', codes: ['NEED_END'], finish: true },
+  { id: 'clamp', label: 'Comma tabs around the clamped fact', hint: 'Tap the Appositive Clamp and snap on its comma tabs.', codes: ['CLAMP_COMMA'], finish: true },
   { id: 'commas', label: 'Commas where the machine pauses', hint: 'Some sentences need a pause. Snap a comma under the word right before the pause.', codes: ['NEED_COMMA'], finish: true },
   { id: 'tv', label: 'Pixel TV on the end', hint: 'Plug a Pixel TV on the very end.', codes: ['NEED_TV'], finish: true },
 ];
@@ -96,6 +97,7 @@ const HOW_TO: Record<string, string> = {
   cap: 'Find the Capital Letter Press in the parts menu. Drag it under the FIRST word machine of your sentence until it snaps on.',
   end: 'Find the Period or the Exclamation Point in the parts menu. Drag it onto the end of the sentence, after the last word machine.',
   commas: 'Your sentence needs a pause. Drag a Comma from the parts menu and snap it under the word right before the pause.',
+  clamp: 'Tap the Appositive Clamp. Snap on the comma tab before the fact and the comma tab after it: Gus, a giant robot, fixed it. If the noun is the last word, only the first tab: We met Gus, a giant robot.',
   tv: 'Find the Pixel TV in the parts menu. Drag it onto the very end of the machine, after the punctuation.',
   who: 'Add a Noun, Proper Noun or Pronoun machine before the action word, and pick who or what the sentence is about.',
   did: 'Add a Verb machine after the who, and pick an action word.',
@@ -153,7 +155,7 @@ const MAGNET = 140;
 const FUN_SOUND: Partial<Record<Kind, () => void>> = { horn: gusSound.honk, spring: gusSound.boing, fan: gusSound.whoosh, ramp: gusSound.whee, conveyor: gusSound.clank, bucket: gusSound.splosh, pulley: gusSound.heave, bell: gusSound.ding, dominoes: gusSound.clack, duplicator: gusSound.copy,
   trapdoor: gusSound.popper, mood: gusSound.steam, tunnel: gusSound.warp, slingshot: gusSound.twang, dial: gusSound.tick, switch: gusSound.clank, funnel: gusSound.glug, bridge: gusSound.creak,
   gears: gusSound.whir, sniffer: gusSound.achoo, sorter: gusSound.clack, teleporter: gusSound.zap, detector: gusSound.ding, flag: gusSound.gun,
-  gate: gusSound.clank, flip: gusSound.whoosh, equals: gusSound.ding, command: gusSound.choo, hypo: gusSound.glug, rig: gusSound.tick,
+  gate: gusSound.clank, flip: gusSound.whoosh, equals: gusSound.ding, command: gusSound.choo, hypo: gusSound.glug, rig: gusSound.tick, clamp: gusSound.clang,
   stamp: gusSound.clang, crusher: gusSound.crunch, pastpress: gusSound.clang, listtrain: gusSound.choo, turnstile: gusSound.bonk,
   crane: gusSound.creak, taggun: gusSound.zap, inflator: gusSound.boing, seesaw: gusSound.clank, bubble: gusSound.glug,
   crate: gusSound.popper, megaphone: gusSound.honk, toaster: gusSound.ding, cannon: gusSound.gun, slots: gusSound.tick };
@@ -863,7 +865,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const record = (review: Review | null) => {
       const rows: Tested['rows'] = [
         // Only what the machine needs to run (teacher 2026-10-08).
-        ...MACHINE_ROWS.filter((m) => !(m.finish && !finishOn) && (m.id !== 'commas' || codes.has('NEED_COMMA'))).map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: (m.codes.some((c) => codes.has(c)) ? 'fix' : 'pass') as 'pass' | 'fix' | 'auto' })),
+        ...MACHINE_ROWS.filter((m) => !(m.finish && !finishOn) && (m.id !== 'commas' || codes.has('NEED_COMMA')) && (m.id !== 'clamp' || codes.has('CLAMP_COMMA'))).map((m) => ({ id: m.id, label: m.label, hint: m.hint, state: (m.codes.some((c) => codes.has(c)) ? 'fix' : 'pass') as 'pass' | 'fix' | 'auto' })),
         ...sentence.items.filter((it) => it.id !== 'capital' && it.id !== 'end' && it.id !== 'comma' && it.required && it.status !== 'auto').map((it) => ({ id: it.id, label: it.label, hint: it.hint, state: (it.status === 'done' ? 'pass' : it.status === 'auto' ? 'auto' : 'fix') as 'pass' | 'fix' | 'auto' })),
       ];
       setTests((t) => ({ ...t, [line.id]: { sig: sigOf(line), rows, review } }));
@@ -950,21 +952,23 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
       } else if (chain.current) { chain.current = null; chainHead.current = null; }
       // An Order is done only when the scene matches; a hint names one difference.
       const orderMiss = line.job?.kind === 'order' && line.job.key ? compareOrder(line.job.key, r) : [];
-      const jobDone = (line.job?.kind === 'read' ? stars >= 1 : stars === 3) && !!line.job && !line.job.done && !orderMiss.length;
+      const clampMiss = line.job?.flaw === 'appos' && !line.items.some((i) => i.kind === 'clamp' && i.word);
+      const jobDone = (line.job?.kind === 'read' ? stars >= 1 : stars === 3) && !!line.job && !line.job.done && !orderMiss.length && !clampMiss;
+      if (clampMiss && stars === 3) timers.current.push(window.setTimeout(() => say('Lovely sentence! Now put the Appositive Clamp back right after the who and clamp in a fact.', 'Appositive Clamp'), 2600));
       setLines((ls) => ls.map((l) => (l.id === line.id ? { ...l, stars, silly: r.rubric!.silly, ...(jobDone ? { job: { ...l.job!, done: true } } : {}) } : l)));
       if (orderMiss.length && stars === 3) timers.current.push(window.setTimeout(() => say(`Lovely sentence, but not quite my order. ${orderMiss[0]}`, 'Order'), 2600));
       const jobKey = line.job ? (line.job.id ?? line.id) : '';
       const finishedJob = jobDone && !paidJobs.current.has(jobKey) ? line.job! : null;
       if (finishedJob) paidJobs.current.add(jobKey);
       if (finishedJob) {
-        const sticker = finishedJob.kind === 'delivery' ? '📦' : finishedJob.kind === 'inspector' ? '🔍' : finishedJob.kind === 'order' ? '📜' : finishedJob.kind === 'spark' ? '⚡' : finishedJob.kind === 'read' ? '📖' : '📐';
+        const sticker = finishedJob.kind === 'delivery' ? '📦' : finishedJob.kind === 'inspector' ? '🔍' : finishedJob.kind === 'order' ? '📜' : finishedJob.kind === 'spark' ? (finishedJob.flaw === 'appos' ? '🗜️' : '⚡') : finishedJob.kind === 'read' ? '📖' : '📐';
         const group = finishedJob.group;
         const groupDone = finishedJob.kind !== 'blueprint' || linesRef.current.filter((l) => l.job?.group === group).every((l) => l.id === line.id || l.job?.done);
         if (groupDone) {
           earn(finishedJob.kind === 'blueprint' ? 12 : 8, finishedJob.kind === 'read' ? { kind: 'read', text: `${finishedJob.question ?? ''} ${r.composed.text}`.trim(), stars } : undefined);
           if (studentId) mergeStyleRow(gusOwner(studentId), { stickers: [...(gusRowNow().stickers ?? []), sticker].slice(-200) });
         } else earn(2);
-        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : finishedJob.kind === 'read' ? `You answered the question! "${r.composed.text}" It is saved in your Journal.` : finishedJob.kind === 'spark' ? (finishedJob.flaw === 'runon' ? 'The jam is cleared! Two whole ideas, joined the right way.' : `The dud sparks to life! It had no ${finishedJob.flaw === 'who' ? 'who' : 'action'}, and you added it.`) : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
+        const msg = finishedJob.kind === 'delivery' ? 'Every machine in the right order.' : finishedJob.kind === 'inspector' ? 'Inspected and fixed.' : finishedJob.kind === 'order' ? 'Exactly the scene I ordered!' : finishedJob.kind === 'read' ? `You answered the question! "${r.composed.text}" It is saved in your Journal.` : finishedJob.kind === 'spark' ? (finishedJob.flaw === 'appos' ? 'Clamped tight! A fact about the who, held between its commas.' : finishedJob.flaw === 'runon' ? 'The jam is cleared! Two whole ideas, joined the right way.' : `The dud sparks to life! It had no ${finishedJob.flaw === 'who' ? 'who' : 'action'}, and you added it.`) : groupDone ? `The whole ${bpInfo(finishedJob.blueprint)?.name ?? 'blueprint'} is built! Tap ▶ Play on the Paragraph Link to watch it.` : `Part ${finishedJob.part} of ${finishedJob.of} built. On to the next machine!`;
         timers.current.push(window.setTimeout(() => say(`${groupDone ? 'Job done! ' : ''}${msg}${groupDone ? ` Have a sticker: ${sticker}` : ''}`, '3 stars'), 2600));
       }
       if (r.script) {
@@ -1111,7 +1115,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     if (kind === 'blueprint' && blueprint) {
       for (const b of (SCIENCE_JOBS[blueprint] ? makeScienceJob(blueprint as 'procedure' | 'hypothesis', uid) : makeBlueprint(blueprint, uid))) { add.push({ id: uid(), x: 60, y, items: b.items, job: b.job, ...(b.connector ? { connector: b.connector } : {}) }); y = snap(y + ITEM_H + ATT_H + 150); }
     } else {
-      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : kind === 'spark' ? (blueprint === 'runon' ? makeRunOnJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly })) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
+      const { items, job } = kind === 'order' ? makeOrderJob(rng, uid, { gentleOnly: settings.gentleOnly }) : kind === 'spark' ? (blueprint === 'appos' ? makeAppositiveJob(rng, uid, { gentleOnly: settings.gentleOnly }) : blueprint === 'runon' ? makeRunOnJob(rng, uid, { gentleOnly: settings.gentleOnly }) : makeSparkJob(rng, uid, { gentleOnly: settings.gentleOnly })) : makeJob(kind as 'delivery' | 'inspector', rng, uid, { gentleOnly: settings.gentleOnly });
       add.push({ id: uid(), x: 60, y, items, job });
     }
     if (!add.length) return;
@@ -1121,14 +1125,16 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     const top = add[0].y - 70; setView((v) => ({ ...v, x: 30 - 20 * v.z, y: 20 - top * v.z }));
     gusSound.horn();
     const fw = blueprint && kind === 'blueprint' ? bpInfo(blueprint) : undefined;
-    say(kind === 'spark' && blueprint === 'runon'
+    say(kind === 'spark' && blueprint === 'appos'
+      ? `A fact delivery! My Appositive Clamp is gripping the who. Tap the clamp and pick a fact about it, or type your own.${level === 'full' ? ' The comma tabs snap on by themselves.' : ' Then snap on its comma tabs: one before the fact and one after it.'} Pull the lever to test it.`
+      : kind === 'spark' && blueprint === 'runon'
       ? 'A run-on! Two whole sentences got glued together and jammed my conveyor. Find where the second idea starts and snap a Logic Gate (and, but, so) between them, then pull the lever.'
       : kind === 'delivery'
       ? 'A delivery! These word machines arrived all mixed up. Drag them into the right order, add a capital letter, punctuation and a TV, then pull the lever.'
       : kind === 'inspector' ? `Inspector, I need you. ${FLAW_HINTS[add[0].job!.flaw as Flaw]} Find it, fix it, then pull the lever.`
       : kind === 'order' ? 'An order! Build any sentence that makes the scene on my order card. Set the Clock to the right time.'
       : kind === 'spark' ? 'Spark Check! This sentence is a dud: a sentence needs a who and an action. Find what is missing and add it.'
-      : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : kind === 'spark' ? (blueprint === 'runon' ? 'Run-on Fixer' : 'Spark Check') : 'Blueprint');
+      : `A blueprint: ${fw?.name}. ${add.length} machines, linked into a paragraph. Fill each one's words, then pull every lever. It teaches ${fw?.teaches.toLowerCase()}.`, kind === 'delivery' ? 'Delivery' : kind === 'inspector' ? 'Inspector' : kind === 'order' ? 'Order' : kind === 'spark' ? (blueprint === 'appos' ? 'Appositive Clamp' : blueprint === 'runon' ? 'Run-on Fixer' : 'Spark Check') : 'Blueprint');
   };
   const startRespond = (a: GusArticle) => {
     setReading(null); setJobsOpen(false);
@@ -1526,6 +1532,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 <button type="button" role="menuitem" onClick={() => startJob('inspector')}>🔍 Fix the mistake<small>One capital letter or punctuation mark is wrong. Find it and fix it.</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('spark')}>⚡ Fix the broken sentence<small>It is missing a who or an action. Add the missing part.</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('spark', 'runon')}>🚧 Fix the run-on<small>Two whole sentences are glued together. Join them with and, but or so.</small></button>
+                <button type="button" role="menuitem" onClick={() => startJob('spark', 'appos')}>🗜️ Clamp in a fact<small>Add a fact about the who between two commas: Gus, a giant robot, fixed it.</small></button>
                 <button type="button" role="menuitem" onClick={() => startJob('order')}>📜 Build from a recipe card<small>The card lists who, what they did and when. Build a sentence with them.</small></button>
                 <button type="button" className={`gwb-menu-more${jobsMore ? ' on' : ''}`} onClick={() => setJobsMore((m) => !m)} aria-expanded={jobsMore}>{jobsMore ? '▾ Fewer jobs' : '▸ More jobs: games, science and paragraphs'}</button>
                 {jobsMore && <>
@@ -1661,7 +1668,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 return it.word;
               };
               const ends = line.items.some((i) => i.kind === 'detector') ? deadEnds(line) : [];
-              const statusOf = (it: BoardItem): string | undefined => it.kind === 'bridge' ? (rd.problems.some((p) => p.code === 'BRIDGE_UP' && p.itemId === it.id) ? 'up' : 'down') : it.kind === 'detector' ? (ends.length ? 'closed' : 'open') : it.kind === 'dial' ? String(speedOf(line)) : it.kind === 'rig' ? rigLamps(line, rd) : undefined;
+              const statusOf = (it: BoardItem): string | undefined => it.kind === 'bridge' ? (rd.problems.some((p) => p.code === 'BRIDGE_UP' && p.itemId === it.id) ? 'up' : 'down') : it.kind === 'detector' ? (ends.length ? 'closed' : 'open') : it.kind === 'dial' ? String(speedOf(line)) : it.kind === 'rig' ? rigLamps(line, rd) : it.kind === 'clamp' ? `${it.tabs ?? 0}|${level === 'full' ? 'auto' : level === 'guided' ? 'glow' : 'plain'}` : undefined;
               // Guess and check: with finishing parts on, the plate shows only what was snapped on.
               const text = lineText(line, rd, requireFinish || !!line.job);
               const cl = buildChecklist(rd.draft);
@@ -1680,7 +1687,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                       {line.job.done ? `✅ ${line.job.kind === 'blueprint' ? `${line.job.label} built!` : 'Job done!'}`
                         : line.job.kind === 'delivery' ? '🧩 Put the words in order, then pull the lever.'
                         : line.job.kind === 'inspector' ? `🔍 Fix the mistake: ${FLAW_HINTS[line.job.flaw as Flaw]}`
-                        : line.job.kind === 'spark' ? (line.job.flaw === 'runon' ? '🚧 Fix the run-on: join the two whole ideas with a Logic Gate (and, but, so).' : '⚡ Fix the broken sentence: is it missing a WHO or an ACTION?')
+                        : line.job.kind === 'spark' ? (line.job.flaw === 'appos' ? '🗜️ Clamp in a fact: tap the Appositive Clamp, pick a fact about the who, and give it its comma tabs.' : line.job.flaw === 'runon' ? '🚧 Fix the run-on: join the two whole ideas with a Logic Gate (and, but, so).' : '⚡ Fix the broken sentence: is it missing a WHO or an ACTION?')
                         : line.job.kind === 'read' ? `📖 ${line.job.done ? 'Answered! ' : ''}${line.job.question ?? ''}`
                         : line.job.kind === 'order' && line.job.card ? <span className="gwb-recipe">📜 Recipe card: <b>Who</b> {line.job.card.who.emoji} {line.job.card.who.words} <b>Did</b> {line.job.card.did}{line.job.card.obj ? <> <b>What</b> {line.job.card.obj.emoji} {line.job.card.obj.words}</> : null}{line.job.card.where ? <> <b>Where</b> {line.job.card.where.prep} {line.job.card.where.emoji} {line.job.card.where.words}</> : null}{line.job.card.how ? <> <b>How</b> {line.job.card.how}</> : null} <b>When</b> {line.job.card.time}</span>
                         : `${bpInfo(line.job.blueprint)?.icon ?? '📐'} ${bpInfo(line.job.blueprint)?.name ?? 'Blueprint'} ${line.job.part} of ${line.job.of}: ${line.job.label}${line.job.text ? `  "${line.job.text}"` : ''}`}
@@ -2039,6 +2046,23 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
           })() : (
             <div className="gwb-finish-menu">
               {menuItem.kind === 'rig' && (() => { const lit = rigLamps(menuLine, readLine(menuLine, level, false)); return <div className="gwb-rig-menu">{RIG_Q.map((q, i) => <div key={q} className={`gwb-rig-row${lit[i] === '1' ? ' on' : ''}`}><span>{lit[i] === '1' ? '💡' : '⚫'} {q[0].toUpperCase() + q.slice(1)}?</span>{lit[i] !== '1' && <button type="button" className="gus-mini" onClick={() => { const k = RIG_PART[q]; setGlowKind(funOn || !isContraption(k) ? k : (({ tunnel: 'D', ramp: 'P', gate: 'C', fan: 'D' } as Record<string, Kind>)[k] ?? k)); setDrawerOpen(true); setFolds((f) => f.filter((j) => j !== kindInfo(k).job && j !== 'contraption')); setMenu(null); say(`To tell ${q}, add the glowing part.`, 'Expansion Rig'); }}>👉 Show me</button>}</div>)}</div>; })()}
+              {menuItem.kind === 'clamp' && (() => {
+                const tabs = menuItem.tabs ?? 0;
+                const toggle = (bit: number) => { setItem(menuLine.id, menuItem.id, { tabs: tabs ^ bit }); (tabs & bit ? gusSound.puff : gusSound.clang)(); };
+                return <div className="gwb-clamp-menu">
+                  <p className="gwb-fun-does">Pick a fact about the noun right before the clamp, or type your own.</p>
+                  <div className="gwb-mood-btns">{FUN_ROLE.clamp.words!.map((f) => <button key={f} type="button" className={`gus-btn${menuItem.word === f ? ' on' : ''}`} onClick={() => { setItem(menuLine.id, menuItem.id, { word: f }); gusSound.clang(); if (readAloud) speak(f); }}>🗜️ {f}</button>)}</div>
+                  <input className="gwb-type" defaultValue={APPOSITIVES.includes(menuItem.word ?? '') ? '' : menuItem.word ?? ''} placeholder="Type your own fact: a very tall giraffe" maxLength={30} autoCapitalize="off" spellCheck={false}
+                    onKeyDown={(e) => { if (e.key !== 'Enter') return; const v = e.currentTarget.value.trim().replace(/[,.!?]/g, ''); if (v) { setItem(menuLine.id, menuItem.id, { word: v }); gusSound.clang(); } }}
+                    onBlur={(e) => { const v = e.currentTarget.value.trim().replace(/[,.!?]/g, ''); if (v && v !== menuItem.word) setItem(menuLine.id, menuItem.id, { word: v }); }} aria-label="Type your own fact" />
+                  {level === 'full'
+                    ? <p className="gwb-fun-does">At Full help the comma tabs snap on by themselves.</p>
+                    : <div className="gwb-mood-btns" role="group" aria-label="Comma tabs">
+                        <button type="button" className={`gus-btn${tabs & 1 ? ' on' : ''}`} aria-pressed={!!(tabs & 1)} onClick={() => toggle(1)}>{tabs & 1 ? '✅' : '⬜'} Comma before the fact</button>
+                        <button type="button" className={`gus-btn${tabs & 2 ? ' on' : ''}`} aria-pressed={!!(tabs & 2)} onClick={() => toggle(2)}>{tabs & 2 ? '✅' : '⬜'} Comma after the fact</button>
+                      </div>}
+                </div>;
+              })()}
               {menuItem.kind === 'bubble' && <div className="gwb-mood-btns">{FUN_ROLE.bubble.words!.map((sp) => <button key={sp} type="button" className={`gus-btn${menuItem.word === sp ? ' on' : ''}`} onClick={() => { setItem(menuLine.id, menuItem.id, { word: sp }); gusSound.glug(); }}>🗨️ {sp}</button>)}</div>}
               {menuItem.kind === 'mood' && <div className="gwb-mood-btns">{(['calm', 'big'] as const).map((m) => <button key={m} type="button" className={`gus-btn${(menuItem.word ?? 'calm') === m ? ' on' : ''}`} onClick={() => { setItem(menuLine.id, menuItem.id, { word: m }); gusSound.steam(); }}>{m === 'calm' ? '😌 Calm: period' : '😲 BIG feeling: exclamation point'}</button>)}</div>}
               {isContraption(menuItem.kind) && <p className="gwb-fun-does">{FUN_ROLE[menuItem.kind].does}. <button type="button" className="gus-mini" onClick={() => FUN_SOUND[menuItem.kind]?.()}>🔊 Play its sound</button></p>}

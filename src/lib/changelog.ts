@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-clamp',
+    date: '2026-10-09',
+    icon: '🗜️',
+    title: 'Grammar Gus: the Appositive Clamp',
+    body: 'Clamp a fact about a noun right into your sentence: Gus, a giant robot, fixed the lab. Snap the clamp after a noun, pick a fact or type your own, and give it its two comma tabs. Try the new Clamp in a fact job!',
+  },
+  {
     id: '2026-10-09-sd-every',
     date: '2026-10-09',
     icon: '🟦',
