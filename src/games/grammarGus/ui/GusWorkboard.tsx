@@ -262,7 +262,7 @@ type Dict = { q: string; pos: DictPos; result: TypedCheck | 'checking' } | null;
 
 // host: the teacher's own Workboard (Game tab), which can share a live
 // class machine by a 4-number code.
-export default function GusWorkboard({ host = false }: { host?: boolean } = {}) {
+export default function GusWorkboard({ host = false, board }: { host?: boolean; board?: string } = {}) {
   useLockBodyScroll();
   const navigate = useNavigate();
   const back = useBack();
@@ -428,10 +428,12 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   // Autosave: the board comes back next time (per student, on this iPad).
   // A saved teacher board opened from Academics (teacher 2026-10-08): ?board=<id>, and &live=1 to share it live.
   const boardParams = new URLSearchParams(location.search);
-  const boardId = host ? boardParams.get('board') : null;
+  const boardId = host ? (board ?? boardParams.get('board')) : null;
+  const boardOnly = host && !!board; // its own page: no way back into the app
   const autoLive = host && boardParams.get('live') === '1';
   const savedBoards = useBoards();
   const boardRow = boardId ? savedBoards.find((b) => b.id === boardId) : undefined;
+  useEffect(() => { if (!boardOnly) return; const was = document.title; document.title = boardRow?.name ?? 'Grammar board'; return () => { document.title = was; }; }, [boardOnly, boardRow?.name]);
   const saveKey = `gus-board2-${host ? (boardId ? `teacher-${boardId}` : 'teacher') : studentId ?? 'guest'}`;
   const ownBoardRow = !host && !boardId && studentId ? `gusboard:${studentId}` : null;
   const restored = useRef(false);
@@ -1634,8 +1636,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     <LegsContext.Provider value={legsById(saved.paint?.legs).id}>
     <div className={`gus-page gwb${calm ? ' calm' : ''}${spaced ? ' gwb-spaced' : ''}${guestLocked ? ' gwb-locked' : ''}`} style={{ ['--gwb-pipe' as string]: pipeById(saved.paint?.pipe).color, ['--gwb-pipe-light' as string]: pipeById(saved.paint?.pipe).light }}>
       <header className="gus-top gwb-top">
-        <button type="button" className="gus-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>
-        <h1>Gus's Workboard</h1>
+        {!boardOnly && <button type="button" className="gus-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>}
+        <h1>{boardOnly ? boardRow?.name ?? 'Grammar board' : "Gus's Workboard"}</h1>
         <div className="gus-top-right">
           {/* Gear coins removed (teacher 2026-10-08: "coins in grammar gus need to be removed, they dont equart to anything"). */}
           {((saved.stickers ?? []).length > 0 || foundCombos.length > 0) && (
@@ -1744,11 +1746,14 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                 <div className="gwb-sheet-head"><strong>☰ Menu</strong><button type="button" className="gus-btn" onClick={() => setTopMenu(false)}>✕ Close</button></div>
                 <div className="gwb-sheet-sec">
                   <span className="gwb-sheet-label">My things</span>
+                  {/* Student things (and links into student views) never show on a teacher's Workboard. */}
+                  {!host && <>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setJournalOpen(true); setTopMenu(false); }}>📓 My Journal<small>Sentences and stories you saved</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setMachinesOpen(true); setTopMenu(false); }}>💾 My saved machines<small>Keep 6 of your machines and build them again later</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => { setPaintOpen(true); setTopMenu(false); }}>🎨 Gus's Paint Shop<small>Floors, pipes, machine legs, lever knobs, celebrations, sounds and hats, unlocked with stickers</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/library')}>📚 Library<small>Articles to read and answer</small></button>
                   <button type="button" className="gwb-sheet-item" onClick={() => navigate('/student/grammar-gus/classic')}>🏭 Classic machine<small>Gus's first sentence machine</small></button>
+                  </>}
                   {live?.role !== 'guest' && <button type="button" className="gwb-sheet-item" onClick={() => { setConfirmClear(true); setTopMenu(false); }}>🧹 Clear the board<small>Start over with a blank word space</small></button>}
                 </div>
                 <div className="gwb-sheet-sec">

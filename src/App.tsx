@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useStore } from './store/store';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import SetupNeeded from './routes/SetupNeeded';
@@ -123,6 +123,7 @@ export default function App() {
   return (
     <HashRouter>
       <div className="app-shell">
+        <NotOnBoard>
         <TeacherHelpAlert />
         <StudentChatAlert />
         <SelRecheckPrompt />
@@ -131,6 +132,7 @@ export default function App() {
         <StreakLayer />
         <PetTrainedToast />
         <SyncTroubleAlert />
+        </NotOnBoard>
         {/* Direct teacher instruction: music keeps playing across every
             route, including while doing an assignment — mounted once here
             (not inside TownSquare, which used to own it and die on
@@ -220,7 +222,10 @@ export default function App() {
             <Route path="/teacher/bank/:studentId" element={<TeacherStudentBank />} />
             <Route path="/teacher/scores" element={<ScoreHistory />} />
             <Route path="/teacher/sel-checkins" element={<SelCheckInLog />} />
-            <Route path="/teacher/grammar-gus" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the machine…</p></div>}><GusWorkboard host /></Suspense>} />
+            <Route path="/teacher/grammar-gus" element={<TeacherGusRoute />} />
+            {/* A teacher's Grammar Gus board on its own page (teacher 2026-10-09): no back button,
+                no way into student views, nothing else on the page. */}
+            <Route path="/gus-board/:boardId" element={<GusBoardPage />} />
             <Route
               path="/teacher/style"
               element={
@@ -242,4 +247,23 @@ export default function App() {
       </div>
     </HashRouter>
   );
+}
+
+// Grammar Gus boards live at /gus-board/<id> (teacher 2026-10-09: "when i open a grammar gus board,
+// i should be on a url that is just that. no back button to a computer and no way to navigate into
+// student views"). Old /teacher/grammar-gus?board= links forward there.
+const GUS_FALLBACK = <div className="app-shell center-screen"><p>Warming up the machine…</p></div>;
+function GusBoardPage() {
+  const { boardId } = useParams();
+  return <Suspense fallback={GUS_FALLBACK}><GusWorkboard key={boardId} host board={boardId} /></Suspense>;
+}
+function TeacherGusRoute() {
+  const q = new URLSearchParams(useLocation().search);
+  const board = q.get('board');
+  if (board) return <Navigate to={`/gus-board/${board}${q.get('live') === '1' ? '?live=1' : ''}`} replace />;
+  return <Suspense fallback={GUS_FALLBACK}><GusWorkboard host /></Suspense>;
+}
+// Pop-ups for students (chat, check-ins, streaks...) never show over a teacher's board page.
+function NotOnBoard({ children }: { children: React.ReactNode }) {
+  return useLocation().pathname.startsWith('/gus-board/') ? null : <>{children}</>;
 }

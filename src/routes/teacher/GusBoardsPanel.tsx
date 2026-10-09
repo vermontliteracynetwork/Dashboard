@@ -6,7 +6,7 @@ import { boardsNow, saveBoards, sendBoardCopy, useBoards, type GusBoard } from '
 // a board in a new tab, share it live by its 4-number code, or send each
 // student their own copy to work on by themselves.
 
-const openBoard = (id: string, live = false) => window.open(`${window.location.pathname}#/teacher/grammar-gus?board=${id}${live ? '&live=1' : ''}`, '_blank', 'noopener');
+const openBoard = (id: string, live = false) => window.open(`${window.location.pathname}#/gus-board/${id}${live ? '?live=1' : ''}`, '_blank', 'noopener');
 
 export default function GusBoardsPanel() {
   const boards = useBoards();
