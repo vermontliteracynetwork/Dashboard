@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-sticker-book',
+    date: '2026-10-09',
+    icon: '📒',
+    title: 'Grammar Gus: the Sticker Book',
+    body: 'Tap 🏅 at the top of the Workboard to open your Sticker Book: a page for each kind of job, with how many you have finished. Tap a sticker to stick it on your Start Levers (up to 3).',
+  },
+  {
     id: '2026-10-09-gus-saved-machines',
     date: '2026-10-09',
     icon: '💾',

@@ -6304,3 +6304,12 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gwb-slot.full { border-style: solid; background: #fff; }
 .gwb-slot-text { flex: 1; font-weight: 500; overflow-wrap: anywhere; }
 .gwb-slot .gus-btn { min-height: 44px; }
+/* Sticker book and stickers on the lever cabinet (2026-10-09) */
+.gwb-book { display: grid; grid-template-columns: 1fr; gap: 6px; max-height: 46vh; overflow-y: auto; }
+.gwb-book-page { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 8px; min-height: 48px; padding: 4px 10px; border-radius: 12px; border: 2px solid var(--gus-ink); background: #fff; font: 600 0.85rem 'Lexend', sans-serif; color: var(--gus-ink); text-align: left; cursor: pointer; }
+.gwb-book-page small { grid-column: 2 / 4; font-weight: 700; color: #2e9e6a; }
+.gwb-book-page.on { background: #c9f0d4; }
+.gwb-book-page:disabled { opacity: 0.5; cursor: default; }
+.gwb-book-st { font-size: 1.6rem; text-align: center; }
+.gwb-cabinet { position: absolute; top: 2px; right: 3px; display: flex; flex-direction: column; gap: 0; pointer-events: none; }
+.gwb-cabinet i { font-style: normal; font-size: 12px; line-height: 15px; transform: rotate(-8deg); }

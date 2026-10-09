@@ -81,7 +81,12 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const gusOwner = (id: string) => `gus:${id}`;
 const TIME_ORDER: Tense[] = ['past', 'present', 'future'];
 interface JournalEntry { kind?: string; text: string; stars: number; at: string; drafts?: Draft[]; storyStars?: number }
-interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: Paint; machines?: (SavedMachine | null)[] }
+interface GusRow { checkups?: CheckupResult[]; gears?: number; journal?: JournalEntry[]; attempts?: Attempt[]; stickers?: string[]; combos?: string[]; paint?: Paint; machines?: (SavedMachine | null)[]; cabinet?: string[] }
+// The Sticker Book's pages: one per job kind (sticker emoji from finishing that job).
+const STICKER_PAGES: { st: string; name: string }[] = [
+  { st: '📜', name: 'Orders filled' }, { st: '📦', name: 'Deliveries in order' }, { st: '🔍', name: 'Mistakes inspected' }, { st: '⚡', name: 'Sparks fixed' },
+  { st: '🗜️', name: 'Facts clamped' }, { st: '📖', name: 'Questions answered' }, { st: '📐', name: 'Blueprints built' },
+];
 // Saved machine Blueprints (Garage extras, plan 19): 6 slots for a student's own machines.
 interface SavedMachine { items: BoardItem[]; connector?: string; text: string; at: string }
 const MACHINE_SLOTS = 6;
@@ -1552,10 +1557,22 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
             <div className="gwb-menu-wrap">
               <button type="button" className={`gus-btn${shelfOpen ? ' on' : ''}`} onClick={() => { setShelfOpen((o) => !o); setTopMenu(false); setJobsOpen(false); }} aria-expanded={shelfOpen} aria-label={`Sticker shelf: ${(saved.stickers ?? []).length} stickers, ${foundCombos.length} combos`}>🏅 {(saved.stickers ?? []).length + foundCombos.length}</button>
               {shelfOpen && (
-                <div className="gwb-top-menu gwb-shelf" role="dialog" aria-label="Sticker shelf">
-                  <strong>Sticker shelf</strong>
-                  <div className="gwb-shelf-grid">{(saved.stickers ?? []).map((st, i) => <span key={i} aria-hidden>{st}</span>)}</div>
-                  <small>Earned from Gus's Jobs and Orders.</small>
+                <div className="gwb-top-menu gwb-shelf" role="dialog" aria-label="Sticker book">
+                  <strong>📒 Sticker book</strong>
+                  <small>Earned from Gus's Jobs and Orders. Tap a sticker to stick it on your Start Levers (up to 3). Tap it again to peel it off.</small>
+                  <div className="gwb-book">{STICKER_PAGES.map((pg) => {
+                    const n = (saved.stickers ?? []).filter((x) => x === pg.st).length;
+                    const on = (saved.cabinet ?? []).includes(pg.st);
+                    return <button key={pg.st} type="button" className={`gwb-book-page${on ? ' on' : ''}`} disabled={!n || !studentId} aria-pressed={on} onClick={() => {
+                      if (!studentId) return;
+                      const cur = gusRowNow().cabinet ?? [];
+                      const next = cur.includes(pg.st) ? cur.filter((x) => x !== pg.st) : [...cur, pg.st].slice(-3);
+                      mergeStyleRow(gusOwner(studentId), { cabinet: next }); if (next.length > cur.length) gusSound.snap(); else gusSound.puff();
+                    }}>
+                      <span className="gwb-book-st" aria-hidden>{n ? pg.st : '❔'}</span><span>{pg.name}</span><strong>{n}</strong>{on && <small>On my levers</small>}
+                    </button>;
+                  })}</div>
+                  {(() => { const other = (saved.stickers ?? []).filter((x) => !STICKER_PAGES.some((pg) => pg.st === x)); return other.length ? <div className="gwb-shelf-grid" aria-label="More stickers">{other.map((st, i) => <span key={i} aria-hidden>{st}</span>)}</div> : null; })()}
                   <strong>Combos found: {foundCombos.length} of {COMBOS.length}</strong>
                   <ul className="gwb-combo-list">{COMBOS.map((c) => <li key={c.id} className={foundCombos.includes(c.id) ? 'found' : ''}>{foundCombos.includes(c.id) ? `💥 ${c.name}` : '❓ ???'}</li>)}</ul>
                 </div>
@@ -1776,6 +1793,7 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
                         {isFiring && firing!.idx >= idx && !calm && <span className="gwb-pipe-steam" aria-hidden><i /><i /><i /></span>}
                         {item.kind === 'lever' && <>
                           <button type="button" className={`gwb-lever${isFiring ? ' pulled' : ''}`} style={{ ['--gwb-knob' as string]: leverById(saved.paint?.lever).knob }} onPointerDown={(e) => e.stopPropagation()} onClick={() => pullLever(line)} aria-label="Pull the Start Lever to run this machine">
+                            {(saved.cabinet ?? []).length > 0 && <span className="gwb-cabinet" aria-hidden>{(saved.cabinet ?? []).map((st) => <i key={st}>{st}</i>)}</span>}
                             <span className="gwb-lever-arm">{leverById(saved.paint?.lever).emoji && <span className="gwb-lever-emoji" aria-hidden>{leverById(saved.paint?.lever).emoji}</span>}</span>
                           </button>
                           <span className="gwb-gauge" role="img" aria-label={`Pressure ${Math.round(pressure * 100)} percent`}><span style={{ transform: `rotate(${-70 + 140 * pressure}deg)` }} /></span>
