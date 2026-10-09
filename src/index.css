@@ -6333,3 +6333,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .cd-frost-flakes i:nth-child(3) { animation-delay: 1.4s; --dx: 14px; }
 @keyframes cdFlake { 0% { transform: translate(0, 0) scale(0.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--dx, 6px), 34px) rotate(160deg) scale(1); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .castle-tower-img.cd-frost { animation: none; filter: drop-shadow(0 0 6px #6fd0ff); } .cd-frost-flakes { display: none; } }
+/* Sub-folds in the fun parts (2026-10-09) */
+.gwb-drawer-subgroup { display: flex; flex-direction: column; gap: 4px; padding-left: 6px; border-left: 2px dashed rgba(255,255,255,0.18); }
+.gwb-drawer-sub { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 44px; padding: 0 10px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.14); background: #2b3348; color: #e8edf6; font: 700 0.74rem 'Lexend', sans-serif; text-align: left; cursor: pointer; }
+.gwb-drawer-sub.next { border-color: #f3cf6b; box-shadow: 0 0 0 3px #f3cf6b; }

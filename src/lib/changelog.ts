@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-gus-subfolds',
+    date: '2026-10-09',
+    icon: '🗂️',
+    title: 'Grammar Gus: fun parts in folders',
+    body: 'The fun parts and gadgets in the parts menu now sit in small folders (Punctuation and capitals, Describing and how, Checkers and more), so they are quicker to find. When Gus points at a part, its folder opens by itself.',
+  },
+  {
     id: '2026-10-09-gus-self-undo',
     date: '2026-10-09',
     icon: '🪞',

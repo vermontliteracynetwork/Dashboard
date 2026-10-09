@@ -353,6 +353,8 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
   const [favs, setFavs] = useState<Kind[]>(() => { try { const f = localStorage.getItem(favKey); if (f) return JSON.parse(f) as Kind[]; } catch { /* fine */ } return ['cap']; });
   useEffect(() => { try { localStorage.setItem(favKey, JSON.stringify(favs)); } catch { /* fine */ } }, [favs, favKey]);
   const toggleFav = (k: Kind) => { setFavs((f) => (f.includes(k) ? f.filter((x) => x !== k) : [...f, k])); gusSound.ding(); };
+  const [subOpen, setSubOpen] = useState<string[]>(() => { try { const f = localStorage.getItem('gus-subopen'); if (f) return JSON.parse(f) as string[]; } catch { /* fine */ } return []; });
+  useEffect(() => { try { localStorage.setItem('gus-subopen', JSON.stringify(subOpen)); } catch { /* fine */ } }, [subOpen]);
   const toggleFold = (job: string) => { setFolds((f) => (f.includes(job) ? f.filter((x) => x !== job) : [...f, job])); gusSound.part(2); };
   const [snapped, setSnapped] = useState<string | null>(null); // a part or machine that just snapped in (bounces)
   const [party, setParty] = useState<string | null>(null);
@@ -1521,6 +1523,19 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
     );
   };
   const funOn = settings.contraptions !== 'off';
+  // Sub-folds inside the fun parts and gadgets (audit leftover, 2026-10-09): 40+ parts in one list
+  // was a long scroll, so they sit in small folds by grammar job. A fold holding the part Gus is
+  // pointing at opens by itself.
+  const subOf = (k: Kind): string => {
+    if (!isContraption(k)) return '';
+    const r = FUN_ROLE[k];
+    if (r.tool) return ['gears', 'sniffer', 'sorter', 'detector', 'turnstile', 'flag'].includes(k) ? '🔍 Checkers' : '🛠️ Changers';
+    if (r.front) return '🚪 Sentence starters';
+    if (r.mark) return '✏️ Punctuation and capitals';
+    if (r.pos === 'J' || r.pos === 'D') return '🎨 Describing and how';
+    if (r.pos === 'P' || r.pos === 'C' || r.pos === 'A') return '🔗 Where, joining, a and the';
+    return '🧑 Who and action';
+  };
   const drawerGroup = (job: Job, kinds: Kind[]) => {
     const folded = drawerOpen && folds.includes(job) && !((job === 'contraption' || job === 'gadget') && settings.contraptions === 'open');
     const glow = folded && ((!!nextStep?.kind && kinds.includes(nextStep.kind)) || (!!glowKind && kinds.includes(glowKind)));
@@ -1529,7 +1544,20 @@ export default function GusWorkboard({ host = false }: { host?: boolean } = {}) 
         {drawerOpen && <button type="button" className={`gwb-drawer-title${glow ? ' next' : ''}`} onClick={() => toggleFold(job)} aria-expanded={!folded}>
           <span>{job === 'contraption' ? '⚙️ ' : job === 'gadget' ? '🔧 ' : ''}{JOB_TITLES[job]}</span><span aria-hidden>{folded ? '▸' : '▾'}</span>
         </button>}
-        {!folded && kinds.map((k) => drawerRow(k))}
+        {!folded && (!drawerOpen || (job !== 'contraption' && job !== 'gadget') ? kinds.map((k) => drawerRow(k)) : (() => {
+          const subs = [...new Set(kinds.map(subOf))];
+          return subs.map((sub) => {
+            const ks = kinds.filter((k) => subOf(k) === sub);
+            const pointed = (!!nextStep?.kind && ks.includes(nextStep.kind)) || (!!glowKind && ks.includes(glowKind));
+            const open = subOpen.includes(sub) || pointed;
+            return <div key={sub} className="gwb-drawer-subgroup">
+              <button type="button" className={`gwb-drawer-sub${pointed && !subOpen.includes(sub) ? ' next' : ''}`} onClick={() => { setSubOpen((o) => (o.includes(sub) ? o.filter((x) => x !== sub) : [...o, sub])); gusSound.part(1); }} aria-expanded={open}>
+                <span>{sub}</span><span aria-hidden>{ks.length} {open ? '▾' : '▸'}</span>
+              </button>
+              {open && ks.map((k) => drawerRow(k))}
+            </div>;
+          });
+        })())}
       </div>
     );
   };
