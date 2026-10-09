@@ -28,6 +28,7 @@ import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard
 import { drawQuestion } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
+import { noteGameStart } from '../../lib/gameReports';
 const SB_RANGES = { rounds: { min: 5, max: 20, def: 10 }, per: { min: 1, max: 10, def: 3 } };
 
 const Scene = lazyFresh(() => import('../../games/spaceBowling/Scene'));
@@ -64,6 +65,7 @@ const statsOwner = (id: string) => `sb:${id}`;
 const loadLevel = (k: string, d: Level): Level => { try { const v = localStorage.getItem(k) as Level | null; return v && LEVELS.includes(v) ? v : d; } catch { return d; } };
 
 export default function SpaceBowling() {
+  useEffect(() => { noteGameStart('Space Bowling'); }, []); // Inbox report timing
   const location = useLocation();
   // Opened from a Neighbor's "Play a game" (Town Square): play with them.
   const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;

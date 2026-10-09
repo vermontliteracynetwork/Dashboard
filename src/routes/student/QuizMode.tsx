@@ -9,6 +9,7 @@ import { streakGoal, useStreak } from '../../lib/streak';
 import { todayISO } from '../../lib/dates';
 import type { MCQuestion, NativeGameId } from '../../types';
 import { drawQuestion } from '../../lib/questionPick';
+import { noteGameStart } from '../../lib/gameReports';
 
 // Quiz Mode (Daily Streak spec 2026-10-04: "in the main native games window,
 // there should also be a quiz mode where they are just prompted with the
@@ -17,6 +18,7 @@ import { drawQuestion } from '../../lib/questionPick';
 // teacher's question sets. Right answers count toward the streak (like
 // everywhere) and pay $1 each when they leave, same as every native game.
 export default function QuizMode() {
+  useEffect(() => { noteGameStart('Quiz Mode'); }, []); // Inbox report timing
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const questionSets = useStore((s) => s.questionSets);

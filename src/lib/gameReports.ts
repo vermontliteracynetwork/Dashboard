@@ -25,6 +25,16 @@ export function recordGameReport(studentId: string, r: Omit<GameReport, 'id' | '
   useStore.getState().mergeStyleRow(owner(studentId), { items: [item, ...itemsFor(studentId)].slice(0, KEEP) });
 }
 
+// How long a session ran: a game notes when it opens, and the report reads it when it pays out.
+const starts = new Map<string, number>();
+export const noteGameStart = (game: string) => { starts.set(game, Date.now()); };
+export function reportPayout(studentId: string, game: string, icon: string, right: number, earnedCents: number, detail = '') {
+  if (!studentId || game === 'Gas Pump') return; // the gas pump is one question at a time, not a session
+  const t = starts.get(game);
+  recordGameReport(studentId, { game, icon, minutes: t ? Math.max(1, Math.round((Date.now() - t) / 60000)) : 1, right, skipped: 0, earnedCents, detail, ended: 'finished' });
+  starts.set(game, Date.now());
+}
+
 export function resolveGameReport(studentId: string, id: string) {
   useStore.getState().mergeStyleRow(owner(studentId), { items: itemsFor(studentId).map((i) => (i.id === id ? { ...i, resolved: true } : i)) });
 }

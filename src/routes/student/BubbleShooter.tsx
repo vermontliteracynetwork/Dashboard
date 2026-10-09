@@ -19,6 +19,7 @@ import {
 } from '../../games/bubbleShooter/engine';
 import { sfx as SFX, startMusic, stopMusic } from '../../games/bubbleShooter/audio';
 import PlinkoBonus, { POWER_INFO, zonesForRound, type PowerId } from '../../games/bubbleShooter/PlinkoBonus';
+import { noteGameStart } from '../../lib/gameReports';
 
 // Bubble Shooter (teacher 2026-10-08: "lets make a bubble shooter native game", with two classic
 // bubble shooter screenshots and her Bubble Buttons pack). Drag to aim (the dotted line shows the
@@ -102,6 +103,7 @@ function bubbleSprite(color: number, px: number): HTMLCanvasElement {
 }
 
 export default function BubbleShooter() {
+  useEffect(() => { noteGameStart('Bubble Shooter'); }, []); // Inbox report timing
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const studentId = student?.id ?? null;

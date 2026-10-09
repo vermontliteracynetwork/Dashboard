@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CheeringBuddy from '../../components/CheeringBuddy';
 import { getEconomy } from '../../lib/economy';
 const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
@@ -19,6 +19,7 @@ import { TILE_ART } from '../../lib/bakeryTiles';
 import { drawQuestion } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
+import { noteGameStart, reportPayout } from '../../lib/gameReports';
 import {
   createGrid,
   swapTiles,
@@ -150,6 +151,7 @@ function playSfx(name: 'match' | 'combo' | 'fail' | 'pop') {
 }
 
 export default function BakeryMatch3() {
+  useEffect(() => { noteGameStart('Bakery Match'); }, []); // Inbox report timing
   const navigate = useNavigate();
   const location = useLocation();
   // Opened from a Neighbor's "Play a game" (Town Square): play with them.
@@ -468,6 +470,7 @@ export default function BakeryMatch3() {
           // register row AND the app-wide falling-coins animation
           // (CoinDropOverlay) for free, no extra UI to build.
           recordTransaction(student.id, totalEarnedCents, '🥐 Bakery Match: game earnings', '🥐', 'bakery-match');
+          reportPayout(student.id, 'Bakery Match', '🥐', sessionQuestionsRef.current, totalEarnedCents, 'Finished the game.');
           setSessionEarningsCents(totalEarnedCents);
         }
       }

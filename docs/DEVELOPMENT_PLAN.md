@@ -33,13 +33,13 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 **Up next (top first):**
 1. Grammar Gus smaller pieces (IN PROGRESS): Pixel TV "with", word packs and the teacher word tool, Garage extras, Orders editor, Gus's Checkup, and the "Why Did the...?" blueprint (needs why-questions, the Question Crane only makes yes or no questions). (Show and Tell and Silly Recipe blueprints and Noun Boiler Pairs SHIPPED 2026-10-09; Mixed-up Delivery and Punctuation Inspector were already live as the "Put the words in order" and "Fix the mistake" jobs.)
 2. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
-3. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
-4. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
-5. Science Lab next steps (her links): an atom builder, element cards with photos and uses, a burner for heat, more recipes.
+3. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
+4. Science Lab next steps (her links): an atom builder, element cards with photos and uses, a burner for heat, more recipes.
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Teacher Inbox reports for every native game session (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy and Quiz Mode, plus Shape Dash).
 - 2026-10-09: Grammar Gus teacher report: 📄 PDF, IEP goal lines on a progress graph, and teacher notes.
 - 2026-10-09: Grammar Gus, two new Blueprints: 🎒 Show and Tell and 🍲 Silly Recipe.
 - 2026-10-09: Grammar Gus, ♨️ Noun Boiler Pairs (one or more than one).
@@ -762,7 +762,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 
 **Shape Dash:**
 - ~~Teacher sliders for how often questions come and how many come at once.~~ SHIPPED 2026-10-09 (Build Queue): a "Seconds of running between question breaks" slider on the launch screen (15 to 120 in steps of 5, default 30, remembered on the iPad) next to the existing "Questions in each question break" slider. For an assignment, the plan builder's new "Shape Dash: seconds between question breaks" box sets it and the slider locks.
-- ~~A teacher inbox report for each session.~~ SHIPPED 2026-10-09: when a run ends (finished or left), the teacher's Inbox gets "🟦 Name played Shape Dash for N min": right answers, how many times they tried a different question, money earned, the level, blocks, stars, the question settings and the assignment if any. "Got it" marks it read. Saved as the `reports:<studentId>` style_looks row (no new SQL, newest 40 kept; `src/lib/gameReports.ts`). The other native games are next on the Build Queue.
+- ~~A teacher inbox report for each session.~~ SHIPPED 2026-10-09: when a run ends (finished or left), the teacher's Inbox gets "🟦 Name played Shape Dash for N min": right answers, how many times they tried a different question, money earned, the level, blocks, stars, the question settings and the assignment if any. "Got it" marks it read. Saved as the `reports:<studentId>` style_looks row (no new SQL, newest 40 kept; `src/lib/gameReports.ts`). **Every other native game too — SHIPPED 2026-10-09 (Build Queue):** Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy and Quiz Mode now send the same Inbox report whenever a session pays out (game, minutes, right answers, money earned). It hooks into the shared payout (`payForAnswers` in `src/lib/gameEarnings.ts`, and Bakery Match's and Castle Defense's end-of-game settlement); each game notes its start time when it opens (`noteGameStart`). The Gas Pump is left out (it is one question at a time, not a session), and the Platformer reports through its own assignment record. A session with no right answers sends no report.
 
 **Castle Defense:**
 - **Remove a placed tower — SHIPPED 2026-10-08. Her words (verbatim): "queue: in tower defense game, allow delete towers after they've been placed".** During the build phase, tapping a built tower shows "🗑️ Remove this tower" under the upgrade button; a second tap ("Tap again to remove it and get 💎 N back") removes it and returns every gem spent on it (build plus upgrades). Claudia's call: a full refund so moving a tower is never a penalty, and two taps so it never happens by accident. **Collapse animation SHIPPED 2026-10-08, her words (verbatim): "add the wisp collapse animation when a tower is removed":** the removed tower shakes, sinks and fades while the Foozle 13-frame collapse dust plays over it and the Wisp hovers above, about 1 second; a new tower can be built on the spot right away. Reduced motion skips the dust and just fades the tower.

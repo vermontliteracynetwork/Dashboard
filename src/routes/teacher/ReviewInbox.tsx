@@ -159,7 +159,7 @@ export default function ReviewInbox() {
                         {item.report.icon} {nameFor(item.studentId)} played {item.report.game} for {item.report.minutes} min{item.report.ended === 'left' ? ' (left early)' : ''}
                         {item.report.assignment ? ` · assignment: ${item.report.assignment}` : ''}
                         <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
-                          ✅ {item.report.right} right answer{item.report.right === 1 ? '' : 's'} · 🔁 {item.report.skipped} tried a different question · 💰 {formatMoney(item.report.earnedCents)}
+                          ✅ {item.report.right} right answer{item.report.right === 1 ? '' : 's'}{item.report.skipped ? ` · 🔁 ${item.report.skipped} tried a different question` : ''} · 💰 {formatMoney(item.report.earnedCents)}
                         </div>
                         <div style={{ fontSize: '0.8rem', opacity: 0.75 }}>{item.report.detail}</div>
                       </>

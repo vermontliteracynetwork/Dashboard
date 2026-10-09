@@ -12,6 +12,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { drawQuestion } from '../../lib/questionPick';
 import { formatMoney } from '../../lib/money';
 import type { MCQuestion, NativeGameId } from '../../types';
+import { noteGameStart } from '../../lib/gameReports';
 
 // Alchemy, an app on the student's computer (teacher 2026-10-08: "lets get the alchemy game
 // going. make an app in the computer"), built from her prototype. Drag one element onto another
@@ -54,6 +55,7 @@ function beep(freqs: number[], dur: number) {
 }
 
 export default function Alchemy() {
+  useEffect(() => { noteGameStart('Alchemy'); }, []); // Inbox report timing
   const location = useLocation();
   const back = useBack();
   const fromGames = new URLSearchParams(location.search).get('mode') === 'game';

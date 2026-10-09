@@ -23,6 +23,7 @@ import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOW
 import SheetSprite from '../../games/castleDefense/SheetSprite';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
+import { noteGameStart, reportPayout } from '../../lib/gameReports';
 
 // Castle Defense — a Town Square building (role 'castle' in
 // townLayout.ts), teacher places the 3D "Low Poly Castle" model (CC-BY-4.0,
@@ -238,6 +239,7 @@ function playSfx(name: 'match' | 'combo' | 'fail' | 'pop') {
 }
 
 export default function CastleDefense() {
+  useEffect(() => { noteGameStart('Castle Defense'); }, []); // Inbox report timing
   const navigate = useNavigate();
   const location = useLocation();
   // Opened from a Neighbor's "Play a game" (Town Square): play with them.
@@ -614,6 +616,7 @@ export default function CastleDefense() {
       const totalEarnedCents = sessionQuestionsRef.current * rewardPerQuestionCents() + milestoneCents;
       if (totalEarnedCents > 0) {
         recordTransaction(student.id, totalEarnedCents, '🏰 Castle Defense: game earnings', '💰', 'castle-defense');
+        reportPayout(student.id, 'Castle Defense', '🏰', sessionQuestionsRef.current, totalEarnedCents, 'Defended the castle to the end.');
         setSessionEarningsCents(totalEarnedCents);
       }
     }

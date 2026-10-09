@@ -22,6 +22,7 @@ import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplay
 import { drawQuestion } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
+import { noteGameStart } from '../../lib/gameReports';
 const SC_RANGES = { per: { min: 1, max: 10, def: 1 } };
 
 // Slime Chess — a native game reached through a Town Square object with
@@ -100,6 +101,7 @@ const FRIEND_MOVE_SETTLE_MS = 3000;
 const TURN_CARD_MS = 2200;
 
 export default function SlimeChess() {
+  useEffect(() => { noteGameStart('Slime Chess'); }, []); // Inbox report timing
   const location = useLocation();
   // Opened from a Neighbor's "Play a game" (Town Square): play with them.
   const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
