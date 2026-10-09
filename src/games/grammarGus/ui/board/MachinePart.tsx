@@ -189,8 +189,8 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <path d={`M14 124 L14 62 Q${c} 0 ${w - 14} 62 L${w - 14} 124Z`} fill={color} stroke={INK} strokeWidth={3} />
       <path d={`M30 124 L30 70 Q${c} 22 ${w - 30} 70 L${w - 30} 124Z`} fill="#1d1430" stroke={INK} strokeWidth={2} />
       <g className="gwb-spin" style={{ transformOrigin: `${c}px 82px` }}>{[0, 120, 240].map((a, i) => <path key={a} d={`M${c} 82 q 14 -22 28 0`} fill="none" stroke={['#8c6a3c', '#f3cf6b', '#3b7be8'][i]} strokeWidth={4} transform={`rotate(${a} ${c} 82)`} />)}</g>
-      <text x={c - 30} y={56} textAnchor="middle" fontSize={9} fontWeight={800} fill="#fff" fontFamily="Lexend, sans-serif">past</text>
-      <text x={c + 30} y={56} textAnchor="middle" fontSize={9} fontWeight={800} fill="#fff" fontFamily="Lexend, sans-serif">future</text>
+      <text x={c - 30} y={56} textAnchor="middle" fontSize={11} fontWeight={800} fill="#fff" fontFamily="Lexend, sans-serif">past</text>
+      <text x={c + 30} y={56} textAnchor="middle" fontSize={11} fontWeight={800} fill="#fff" fontFamily="Lexend, sans-serif">future</text>
     </g>;
     case 'slingshot': return <g>
       <path d={`M${c} 124 L${c} 80 L${c - 26} 30 M${c} 80 L${c + 26} 30`} fill="none" stroke="#8b5a2b" strokeWidth={9} strokeLinecap="round" />
@@ -333,8 +333,8 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <Pipes w={w} />
       <rect x={c - 6} y={30} width={12} height={94} fill="#6b7383" stroke={INK} strokeWidth={2} />
       <g className="gwb-spin" style={{ transformOrigin: `${c}px 52px` }}>{[0, 120, 240].map((a) => <rect key={a} x={c - 3} y={18} width={6} height={34} rx={3} fill={color} stroke={INK} strokeWidth={1.8} transform={`rotate(${a} ${c} 52)`} />)}<circle cx={c} cy={52} r={7} fill={light} stroke={INK} strokeWidth={2} /></g>
-      <rect x={c - 52} y={88} width={36} height={18} rx={4} fill="#3fbf5a" stroke={INK} strokeWidth={2} /><text x={c - 34} y={101} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill="#fff">he</text>
-      <rect x={c + 16} y={88} width={36} height={18} rx={4} fill="#5b8def" stroke={INK} strokeWidth={2} /><text x={c + 34} y={101} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill="#fff">him</text>
+      <rect x={c - 52} y={88} width={36} height={18} rx={4} fill="#3fbf5a" stroke={INK} strokeWidth={2} /><text x={c - 34} y={101} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={12} fill="#fff">he</text>
+      <rect x={c + 16} y={88} width={36} height={18} rx={4} fill="#5b8def" stroke={INK} strokeWidth={2} /><text x={c + 34} y={101} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={12} fill="#fff">him</text>
       <rect x={c - 30} y={120} width={60} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
     case 'crane': return <g>
@@ -369,7 +369,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <Pipes w={w} />
       <path d={`M${c - 14} 122 L${c} 92 L${c + 14} 122Z`} fill="#8f98a8" stroke={INK} strokeWidth={2.4} />
       <g className="gwb-tilt" style={{ transformOrigin: `${c}px 92px` }}><rect x={10} y={86} width={w - 20} height={8} rx={3} fill={color} stroke={INK} strokeWidth={2.4} transform={`rotate(-10 ${c} 92)`} />
-        <rect x={16} y={60} width={26} height={26} rx={4} fill="#f3cf6b" stroke={INK} strokeWidth={2} transform={`rotate(-10 ${c} 92)`} /><text x={29} y={78} textAnchor="middle" fontSize={10} fontWeight={900} fontFamily="Lexend, sans-serif" transform={`rotate(-10 ${c} 92)`}>why</text></g>
+        <rect x={16} y={60} width={26} height={26} rx={4} fill="#f3cf6b" stroke={INK} strokeWidth={2} transform={`rotate(-10 ${c} 92)`} /><text x={29} y={78} textAnchor="middle" fontSize={11} fontWeight={900} fontFamily="Lexend, sans-serif" transform={`rotate(-10 ${c} 92)`}>why</text></g>
     </g>;
     case 'bubble': return <g>
       <Pipes w={w} />
@@ -397,7 +397,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       <rect x={c - 36} y={46} width={72} height={58} rx={14} fill={color} stroke={INK} strokeWidth={3} />
       <rect x={c - 24} y={42} width={18} height={8} rx={2} fill="#3c455e" /><rect x={c + 6} y={42} width={18} height={8} rx={2} fill="#3c455e" />
       <g className="gwb-toast"><rect x={c - 23} y={22} width={16} height={24} rx={4} fill="#e0b070" stroke={INK} strokeWidth={2} /><rect x={c + 7} y={22} width={16} height={24} rx={4} fill="#c8894a" stroke={INK} strokeWidth={2} /></g>
-      <text x={c} y={84} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={8.5} fill={INK}>past·present·future</text>
+      <text x={c} y={84} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} textLength={Math.min(w - 20, 100)} lengthAdjust="spacingAndGlyphs" fill={INK}>past, present, future</text>
       <rect x={c + 36} y={64} width={8} height={14} rx={2} fill="#e8483b" stroke={INK} strokeWidth={1.6} />
       <rect x={c - 24} y={120} width={48} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
@@ -423,7 +423,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
         <Pipes w={w} />
         <rect x={c - 40} y={20} width={80} height={56} rx={8} fill={color} stroke={INK} strokeWidth={3} />
         <g className="gwb-swing" style={{ transformOrigin: `${c}px 48px` }}><rect x={c - 4} y={24} width={8} height={48} rx={3} fill="#fff" stroke={INK} strokeWidth={2} transform={`rotate(${wd === 'because' ? -35 : wd === 'so' ? 35 : 0} ${c} 48)`} /></g>
-        {[['why', -26, '#f3cf6b'], ['but', 0, '#e8483b'], ['so', 26, '#3fbf5a']].map(([t, dx, col]) => <g key={t as string}><circle cx={c + (dx as number)} cy={92} r={8} fill={pipe === col ? (col as string) : '#3c455e'} stroke={INK} strokeWidth={2} /><text x={c + (dx as number)} y={110} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={9} fill={INK}>{t as string}</text></g>)}
+        {[['why', -26, '#f3cf6b'], ['but', 0, '#e8483b'], ['so', 26, '#3fbf5a']].map(([t, dx, col]) => <g key={t as string}><circle cx={c + (dx as number)} cy={92} r={8} fill={pipe === col ? (col as string) : '#3c455e'} stroke={INK} strokeWidth={2} /><text x={c + (dx as number)} y={110} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={11} fill={INK}>{t as string}</text></g>)}
       </g>;
     }
     case 'clamp': {
@@ -467,7 +467,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       {Array.from({ length: Math.floor((w - 24) / 22) }, (_, i) => <g key={i} className="gwb-spin" style={{ transformOrigin: `${20 + i * 22}px 95px` }}><circle cx={20 + i * 22} cy={95} r={7} fill="#c8ced8" stroke={INK} strokeWidth={1.6} /></g>)}
       <rect x={c - 34} y={22} width={68} height={50} rx={8} fill={color} stroke={INK} strokeWidth={3} />
       <text x={c} y={45} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={13} fill="#fff">DO IT!</text>
-      <text x={c} y={63} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={700} fontSize={9.5} fill="#fff">(you)</text>
+      <text x={c} y={63} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={700} fontSize={11} fill="#fff">(you)</text>
       <rect x={20} y={106} width={8} height={18} fill="#6b7383" /><rect x={w - 28} y={106} width={8} height={18} fill="#6b7383" />
     </g>;
     case 'hypo': return <g>
@@ -482,7 +482,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
       return <g>
         <Pipes w={w} />
         <rect x={8} y={14} width={w - 16} height={96} rx={10} fill={color} stroke={INK} strokeWidth={3} />
-        {['who', 'what', 'when', 'where', 'why', 'how'].map((q, i) => { const x = 22 + (i % 3) * ((w - 44) / 2); const y = 38 + Math.floor(i / 3) * 40; const on = lit[i] === '1'; return <g key={q}><circle cx={x} cy={y} r={10} fill={on ? '#f3cf6b' : '#3c455e'} stroke={INK} strokeWidth={2} /><text x={x} y={y + 22} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={10} fill="#fff">{q}</text></g>; })}
+        {['who', 'what', 'when', 'where', 'why', 'how'].map((q, i) => { const x = 22 + (i % 3) * ((w - 44) / 2); const y = 38 + Math.floor(i / 3) * 40; const on = lit[i] === '1'; return <g key={q}><circle cx={x} cy={y} r={10} fill={on ? '#f3cf6b' : '#3c455e'} stroke={INK} strokeWidth={2} /><text x={x} y={y + 22} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={800} fontSize={11} fill="#fff">{q}</text></g>; })}
       </g>;
     }
     default: return null;
@@ -544,7 +544,7 @@ export default function MachinePart({ kind, word, empty = false, scale = 1, stat
     <rect x={18} y={22} width={w - 42} height={70} rx={10} fill="#2c3348" stroke={INK} strokeWidth={2.4} />
     <line x1={(w - 6) / 2} y1={74} x2={(w - 6) / 2 - 12} y2={40} stroke="#c8ced8" strokeWidth={6} strokeLinecap="round" />
     <circle cx={(w - 6) / 2 - 12} cy={38} r={9} fill="#e8483b" stroke={INK} strokeWidth={2} />
-    <text x={(w - 6) / 2} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={10} fill="#fff">START</text>
+    <text x={(w - 6) / 2} y={88} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill="#fff">START</text>
   </>);
   if (kind === 'clock') {
     // Past: the hands are wound back; present: straight up; future: wound forward.
