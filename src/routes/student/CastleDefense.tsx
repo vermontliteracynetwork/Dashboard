@@ -166,7 +166,7 @@ const TOWER_META = TOWERS;
 const TOWER_SPRITE = (type: TowerType, tier: 1 | 2 | 3) => TOWERS[type].sprite(tier);
 const THEME_KEY = 'castle.attackers';
 const MAP_KEY = 'castle.map';
-const readMap = (): MapId => { try { return localStorage.getItem(MAP_KEY) === 'swamp' ? 'swamp' : 'meadow'; } catch { return 'meadow'; } };
+const readMap = (): MapId => { try { const m = localStorage.getItem(MAP_KEY); return m === 'swamp' || m === 'field' ? m : 'meadow'; } catch { return 'meadow'; } };
 const WEAK_DAMAGE = 1.5; // Weakness Tower: weak attackers take this much from every hit
 const BLESS_COOLDOWN = 0.7; // Blessing Tower: towers next to it reload this much faster
 const readTheme = (): ThemeId => { try { const t = localStorage.getItem(THEME_KEY) as ThemeId | null; return t && ATTACKER_THEMES.some((x) => x.id === t) ? t : 'classic'; } catch { return 'classic'; } };
@@ -712,7 +712,7 @@ export default function CastleDefense() {
       {showBoard && (
         <div className="castle-game">
           <div className="castle-frame">
-            <div className={`castle-battlefield${mapId === 'swamp' ? ' swamp' : ''}`}>
+            <div className={`castle-battlefield${mapId !== 'meadow' ? ` ${mapId}` : ''}`}>
               <CastleGround slots={SLOT_POSITIONS} map={mapId} />
 
               <div className="castle-hud castle-hud-left">

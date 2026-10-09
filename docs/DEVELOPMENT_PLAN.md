@@ -31,19 +31,20 @@
 How it works: every new request, idea or "queue:" message goes on this list the same turn it arrives. Work goes top to bottom, each item ships on its own (dev plan, What's New if students notice it, push to main), then it moves to **Done** with its date. An item that needs her answer moves to "Waiting on the teacher" below instead of blocking the line. Full detail for each item lives in its own entry (Gameplay roadmap, section 2).
 
 **Up next (top first):**
-1. Castle Defense art, still to use: a map built from the field and village tiles (death and attack animations and animated weapons SHIPPED 2026-10-09).
-2. Grammar Gus Phase 2: Fusion Reactor (sentence combining).
-3. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
-4. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
-5. Grammar Gus Phase 2: Label and Unit Maker.
-6. Grammar Gus Phase 2: Gus's Paint Shop.
-7. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
-8. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
-9. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
+1. Grammar Gus Phase 2: Fusion Reactor (sentence combining).
+2. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
+3. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
+4. Grammar Gus Phase 2: Label and Unit Maker.
+5. Grammar Gus Phase 2: Gus's Paint Shop.
+6. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
+7. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
+9. Castle Defense: a village map from the village tileset, the animated flag and campfire, and the Crystal and Frost Orb weapons.
+8. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Castle Defense, a third map: ⛺ Stone road field, built from her CraftPix field tiles.
 - 2026-10-09: Prizes are Minecoin redeeming only. Her words (verbatim): "remove all current real world prizes. they are not applicable to me. only add minecraft coin redeeming to start == Prizes Minecoin redeeming $50 USD = $500 in game = 8800 minecoins $20 USD = $200 in game = 3500 minecoins $10 USD = $100 in game = 1720 minecoins $6 USD = $60 in game = 1020 minecoins $2 USD = $20 in game = 320 minecoins" (with a zip, "10 in game dollar equals 1 USD", of five Minecraft store cards).
 - 2026-10-09: Castle Defense attacker death and castle-attack animations, and animated weapons on 4 towers.
 - 2026-10-09: Read and Respond pictures hang at home: 🖼️ Hang it at home in the gallery, then My Items, 🖼️ Pictures in home Build Mode.
@@ -747,7 +748,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - **Wisp build animation on the map tiles — SHIPPED 2026-10-09. Her words (verbatim): "add the wisp build animation to castle defense map tiles".** Building or upgrading a tower now bursts a white dust poof over the build tile (the Foozle construction sheet's poof row, 5 frames) right as the tower appears, while the Wisp casts above it. Reduced motion skips the poof.
 - **Attacker death and castle-attack animations — SHIPPED 2026-10-09 (Build Queue).** Every animated attacker now plays its own death strip once when a tower stops it (CraftPix s_death, the Foozle bugs' death row), then fades; one that reaches the castle plays its attack (CraftPix s_attack, the slime's special, the Foozle attack row). The old explosion burst stays for the classic raiders, which have no death art.
 - **Animated tower weapons — SHIPPED 2026-10-09 (Build Queue).** During a wave the Crossbow, Bolt, Spark Lamp and Gem Mine towers animate with their Foozle weapon frames (each tier's own frames, rebuilt pixel-exact over the tower: `built/foozle-NN-T-fire.png`). Not yet: the Crystal and Frost Orb weapons (their sheets do not line up with the tower art), and projectile/impact sprites.
-- Art upgrade: towers, attackers, portal, Wisp and townspeople SHIPPED 2026-10-08 (see "Castle Defense: new art added to the old"). Still to do: a map built from the field and village tiles. Packs: (field and village tiles, 7 CraftPix enemies and 8 Foozle bugs including flyers, the archer tower plus 6 Foozle towers with 3 weapon levels each, the Wisp builder with build and collapse animations, a 3-stage enemy portal, 4 citizens), saved in `public/games/castle-defense/craftpix/`, `foozle/` and `portal/`. She confirmed all licenses are good to go. QUEUED 2026-10-08, see "Castle Defense art upgrade".
+- Art upgrade: towers, attackers, portal, Wisp and townspeople SHIPPED 2026-10-08 (see "Castle Defense: new art added to the old"). **Stone road field map — SHIPPED 2026-10-09 (Build Queue):** a third map choice (⛺) built from her CraftPix field tileset: grass and cobblestone tiles for the ground and the road, the pack's tree, stump, bushes and stones in the forest ring, a camp with tents, a fire ring, logs and boxes, lamps, a signpost and fences, flowers and grass tufts, and the pack's own tower plots. Still to do: a village map from the village tileset, and the animated flag and campfire. Packs: (field and village tiles, 7 CraftPix enemies and 8 Foozle bugs including flyers, the archer tower plus 6 Foozle towers with 3 weapon levels each, the Wisp builder with build and collapse animations, a 3-stage enemy portal, 4 citizens), saved in `public/games/castle-defense/craftpix/`, `foozle/` and `portal/`. She confirmed all licenses are good to go. QUEUED 2026-10-08, see "Castle Defense art upgrade".
 
 **Space Bowling:**
 - Use the saved assets not in the game yet: the venue and bowling lane models, the Kenney Sports pack, and her Bowling GUI pack (once she confirms she has the rights to it).

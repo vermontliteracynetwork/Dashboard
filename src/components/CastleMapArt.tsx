@@ -27,9 +27,68 @@ const SWAMP_SPECIALS: { src: string; aspect: number; x: number; y: number; w: nu
   { src: 'flag', aspect: 134 / 106, x: 88, y: 46, w: 6 },
 ];
 
-export const CastleGround = memo(function CastleGround({ slots, map = 'meadow' }: { slots: Pt[]; map?: 'meadow' | 'swamp' }) {
+// The Stone Road Field (Build Queue 2026-10-09): her CraftPix field tileset. Grass and cobblestone
+// tiles, the pack's tree, bushes and stones in place of the meadow's, a camp, lamps, a signpost,
+// fences, logs and boxes, and little flowers and grass tufts. Everything is drawn at one pixel size
+// (FK map units per art pixel) so it all looks like one pixel-art world.
+const FT = '/games/castle-defense/craftpix/tileset';
+const FK = 0.22;
+type Px = [string, number, number];
+const FIELD_PROPS: Record<'tree' | 'bush' | 'rock', Px[]> = {
+  tree: [['7-decor/tree1', 66, 77], ['7-decor/tree1', 66, 77], ['7-decor/tree1', 66, 77], ['7-decor/tree2', 29, 26]],
+  bush: [['9-bush/1', 26, 23], ['9-bush/2', 37, 26], ['9-bush/3', 33, 22], ['9-bush/4', 39, 25], ['9-bush/5', 41, 25], ['9-bush/6', 40, 26]],
+  rock: [['4-stone/10', 27, 21], ['4-stone/11', 35, 30], ['4-stone/12', 29, 22], ['4-stone/13', 19, 14], ['4-stone/14', 22, 16], ['4-stone/7', 37, 27], ['4-stone/9', 19, 16]],
+};
+const FIELD_SPECIALS: { src: string; px: [number, number]; x: number; y: number }[] = [
+  { src: '8-camp/1', px: [57, 36], x: 14, y: 38 }, { src: '8-camp/2', px: [36, 51], x: 24, y: 40 }, { src: '8-camp/5', px: [22, 14], x: 19, y: 46 },
+  { src: '7-decor/log1', px: [34, 21], x: 30, y: 50 }, { src: '7-decor/box1', px: [17, 16], x: 9, y: 46 }, { src: '7-decor/box2', px: [18, 18], x: 11, y: 49 },
+  { src: '7-decor/lamp1', px: [20, 35], x: 120, y: 78 }, { src: '7-decor/lamp2', px: [11, 35], x: 98, y: 44 }, { src: '3-pointer/1', px: [20, 36], x: 74, y: 70 },
+  { src: '2-fence/3', px: [26, 16], x: 140, y: 60 }, { src: '2-fence/4', px: [24, 18], x: 146, y: 62 }, { src: '2-fence/2', px: [25, 19], x: 66, y: 38 },
+  { src: '8-camp/3', px: [53, 34], x: 108, y: 18 }, { src: '7-decor/log2', px: [33, 32], x: 96, y: 22 }, { src: '7-decor/box3', px: [19, 18], x: 118, y: 22 },
+];
+const FIELD_TUFTS = ['5-grass/1', '5-grass/2', '5-grass/3', '5-grass/4', '6-flower/1', '6-flower/2', '6-flower/5', '6-flower/6', '6-flower/9', '1-shadow/3', '1-shadow/4'];
+function seededRnd(seed: number) { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+
+export const CastleGround = memo(function CastleGround({ slots, map = 'meadow' }: { slots: Pt[]; map?: 'meadow' | 'swamp' | 'field' }) {
   const decor = useMemo(() => buildDecor(slots), [slots]);
   const specials = useMemo(() => SWAMP_SPECIALS.filter((d) => isClearSpot(slots, d.x, d.y, 8, d.w * d.aspect)), [slots]);
+  const field = useMemo(() => {
+    if (map !== 'field') return [];
+    const out: { key: string; src: string; x: number; y: number; w: number; h: number }[] = [];
+    decor.forEach((d, i) => {
+      const list = FIELD_PROPS[d.kind];
+      const [src, pw, ph] = list[i % list.length];
+      const k = d.kind === 'tree' && pw > 40 ? (d.w / pw) : FK;
+      out.push({ key: `d${i}`, src, x: d.x, y: d.y, w: pw * k, h: ph * k });
+    });
+    FIELD_SPECIALS.forEach((s, i) => { const w = s.px[0] * FK, h = s.px[1] * FK; if (isClearSpot(slots, s.x, s.y, 8, h)) out.push({ key: `s${i}`, src: s.src, x: s.x, y: s.y, w, h }); });
+    const rnd = seededRnd(29);
+    for (let n = 0; n < 160 && out.filter((o) => o.key.startsWith('t')).length < 46; n++) {
+      const x = 4 + rnd() * (MAP_W - 8), y = 6 + rnd() * (MAP_H - 10);
+      if (!isClearSpot(slots, x, y, 7.5)) continue;
+      const src = FIELD_TUFTS[Math.floor(rnd() * FIELD_TUFTS.length)];
+      const big = src.startsWith('1-shadow');
+      out.push({ key: `t${n}`, src, x, y, w: big ? 7 : 1.8, h: big ? 5.5 : 1.8 });
+    }
+    return out.sort((a, b) => a.y - b.y);
+  }, [map, decor, slots]);
+  if (map === 'field') return (
+    <svg className="castle-ground-svg field" viewBox={`0 0 ${MAP_W} ${MAP_H}`} aria-hidden="true">
+      <defs>
+        <pattern id="castle-field-grass" width="7" height="7" patternUnits="userSpaceOnUse"><image href={`${FT}/1-tiles/fieldstile_38.png`} width="7" height="7" /></pattern>
+        <pattern id="castle-field-cobble" width="7" height="7" patternUnits="userSpaceOnUse"><image href={`${FT}/1-tiles/fieldstile_01.png`} width="7" height="7" /></pattern>
+        <radialGradient id="castle-field-water" cx="42%" cy="38%" r="70%"><stop offset="0%" stopColor="#8fd3f4" /><stop offset="100%" stopColor="#2f7fbf" /></radialGradient>
+      </defs>
+      <rect width={MAP_W} height={MAP_H} fill="url(#castle-field-grass)" />
+      <ellipse cx={POND.x} cy={POND.y + 0.6} rx={POND.rx + 1.6} ry={POND.ry + 1.3} fill="#7a5a3a" />
+      <ellipse cx={POND.x} cy={POND.y} rx={POND.rx} ry={POND.ry} fill="url(#castle-field-water)" stroke="#5a3e24" strokeWidth="0.6" />
+      <ellipse cx={POND.x - 3} cy={POND.y - 2} rx={2.6} ry={0.7} fill="#ffffff" opacity="0.55" />
+      <path d={PATH_D} className="castle-road castle-road-rim" />
+      <path d={PATH_D} className="castle-road castle-road-edge" />
+      <path d={PATH_D} className="castle-road" stroke="url(#castle-field-cobble)" strokeWidth={9.6} />
+      {field.map((d) => <image key={d.key} href={`${FT}/2-objects/${d.src}.png`} x={d.x - d.w / 2} y={d.y - d.h} width={d.w} height={d.h} className="castle-decor field" />)}
+    </svg>
+  );
   if (map === 'swamp') return (
     <svg className="castle-ground-svg swamp" viewBox={`0 0 ${MAP_W} ${MAP_H}`} aria-hidden="true">
       <defs>

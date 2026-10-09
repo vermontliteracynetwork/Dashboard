@@ -144,8 +144,10 @@ export const citizen = (n: number, cheering: boolean): Sheet => ({
 });
 
 // Where the battle happens (teacher 2026-10-08, the Poison Swamp pack): the meadow, or the swamp.
-export type MapId = 'meadow' | 'swamp';
+// The Stone Road Field (Build Queue 2026-10-09) is built from her CraftPix field tiles and objects.
+export type MapId = 'meadow' | 'swamp' | 'field';
 export const MAPS: { id: MapId; label: string; icon: string }[] = [
   { id: 'meadow', label: 'Sunny meadow', icon: '🌼' },
   { id: 'swamp', label: 'Poison swamp', icon: '🐸' },
+  { id: 'field', label: 'Stone road field', icon: '⛺' },
 ];

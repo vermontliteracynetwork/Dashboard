@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-cd-field',
+    date: '2026-10-09',
+    icon: '⛺',
+    title: 'Castle Defense: a new map',
+    body: 'Pick the Stone road field before you play: a cobblestone road through the grass, with a camp, tents, lamps and fences.',
+  },
+  {
     id: '2026-10-09-minecoins',
     date: '2026-10-09',
     icon: '🪙',

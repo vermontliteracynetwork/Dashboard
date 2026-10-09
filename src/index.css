@@ -6010,3 +6010,10 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 /* Castle Defense: animated tower weapons during a wave (Foozle weapon frames over each tower). */
 .castle-tower-img.cd-fire { display: block; background-repeat: no-repeat; background-position-x: 0%; image-rendering: pixelated; animation-name: cdFrames; animation-iteration-count: infinite; }
 @media (prefers-reduced-motion: reduce) { .castle-tower-img.cd-fire { animation: none; } }
+
+/* Castle Defense: the Stone Road Field map (her CraftPix field tileset). */
+.castle-battlefield.field { background: #93a84e; }
+.castle-ground-svg.field .castle-road-rim { stroke: rgba(70, 45, 20, 0.45); stroke-width: 13; }
+.castle-ground-svg.field .castle-road-edge { stroke: #8a4b2c; stroke-width: 11.2; }
+.castle-decor.field { image-rendering: pixelated; }
+.castle-battlefield.field .castle-slot:not(.filled) .castle-plot, .castle-battlefield.field .castle-plot { background: url('/games/castle-defense/craftpix/tileset/2-objects/placefortower1.png') center / contain no-repeat; border: none; box-shadow: none; image-rendering: pixelated; height: 40%; bottom: 2%; border-radius: 0; }
