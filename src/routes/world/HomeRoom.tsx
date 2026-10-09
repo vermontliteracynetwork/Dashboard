@@ -8,6 +8,7 @@ import { StyleAvatar } from '../../style/StyleAvatar';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
+import { PICTURE_PREFIX, isPicturePath, usePictures, removePicture } from '../../lib/myPictures';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, trickUnlocked, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
@@ -165,8 +166,42 @@ function RoomWalls({ roomW, roomD, color, mode }: { roomW: number; roomD: number
     </>
   );
 }
+// A picture from a Read and Respond gallery hung on a wall (Build Queue 2026-10-09). A normal placed
+// object whose modelPath is `picture:<url>`: position is the spot on the wall (y = how high), the
+// scale is its size (＋ and －), and it faces into the room. It hides when its wall is down.
+const PICTURE_W = 1.1;
+function WallPicture({ obj, wallMode, opacity = 1, onClick, onPointerDown }: { obj: WorldObject; wallMode: WallMode; opacity?: number; onClick?: () => void; onPointerDown?: () => void }) {
+  const src = obj.modelPath.slice(PICTURE_PREFIX.length);
+  const [tex, setTex] = useState<THREE.Texture | null>(null);
+  const [aspect, setAspect] = useState(4 / 3);
+  useEffect(() => {
+    let alive = true;
+    const loader = new THREE.TextureLoader(); loader.setCrossOrigin('anonymous');
+    loader.load(src, (t) => { if (!alive) return; t.colorSpace = THREE.SRGBColorSpace; const img = t.image as HTMLImageElement | undefined; if (img?.width && img.height) setAspect(img.width / img.height); setTex(t); }, undefined, () => { /* placeholder stays */ });
+    return () => { alive = false; };
+  }, [src]);
+  const group = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+  const nx = Math.sin(obj.rotationY), nz = Math.cos(obj.rotationY); // faces into the room
+  useFrame(() => {
+    const g = group.current; if (!g) return;
+    const behind = (camera.position.x - obj.position[0]) * nx + (camera.position.z - obj.position[2]) * nz < 0;
+    g.visible = wallMode === 'up' || (wallMode === 'cutaway' && !behind);
+  });
+  const w = PICTURE_W * obj.scale, h = w / THREE.MathUtils.clamp(aspect, 0.5, 2.2);
+  const hit = (fn?: () => void) => (fn ? (e: ThreeEvent<MouseEvent | PointerEvent>) => { e.stopPropagation(); fn(); } : undefined);
+  return (
+    <group ref={group} position={obj.position} rotation={[0, obj.rotationY, 0]} onClick={hit(onClick)} onPointerDown={hit(onPointerDown)}>
+      <mesh position={[0, 0, 0.02]}><boxGeometry args={[w + 0.12, h + 0.12, 0.04]} /><meshStandardMaterial color="#6b4a2b" transparent={opacity < 1} opacity={opacity} /></mesh>
+      <mesh position={[0, 0, 0.045]}>
+        <planeGeometry args={[w, h]} />
+        {tex ? <meshBasicMaterial map={tex} toneMapped={false} transparent={opacity < 1} opacity={opacity} /> : <meshBasicMaterial color="#e8e2d4" />}
+      </mesh>
+    </group>
+  );
+}
 const CATALOG_ROOMS = ['bedroom', 'living', 'kitchen', 'bathroom', 'dining', 'office'];
-const ROOM_FILTER_LABEL: Record<string, string> = { all: 'All', bedroom: '🛏️ Bedroom', living: '🛋️ Living', kitchen: '🍳 Kitchen', bathroom: '🛁 Bathroom', dining: '🍽️ Dining', office: '💻 Office', other: '✨ Other' };
+const ROOM_FILTER_LABEL: Record<string, string> = { all: 'All', bedroom: '🛏️ Bedroom', living: '🛋️ Living', kitchen: '🍳 Kitchen', bathroom: '🛁 Bathroom', dining: '🍽️ Dining', office: '💻 Office', other: '✨ Other', pictures: '🖼️ Pictures' };
 // Real, already-licensed models this project already ships under
 // public/world/models/interior/ (the same Quaternius house-furniture pack
 // WorldEditor's own 'interior' category uses) — picked as the single most
@@ -766,6 +801,9 @@ export default function HomeRoom() {
   const [buyItem, setBuyItem] = useState<PlaceableItem | null>(null);
   const catRowRef = useRef<HTMLDivElement>(null);
   const [catEdges, setCatEdges] = useState({ left: false, right: false });
+  const myPictures = usePictures(currentStudentId);
+  const [armedPicId, setArmedPicId] = useState<string | null>(null);
+  const armedPic = myPictures.find((p) => p.id === armedPicId) ?? null;
   const [wallMode, setWallModeState] = useState<WallMode>(() => { try { const v = localStorage.getItem('home.walls') as WallMode | null; return v && WALL_MODES.some((m) => m.id === v) ? v : 'cutaway'; } catch { return 'cutaway'; } });
   const setWallMode = (m: WallMode) => { setWallModeState(m); try { localStorage.setItem('home.walls', m); } catch { /* fine */ } };
   const buyMarketplaceItem = useStore((s) => s.buyMarketplaceItem);
@@ -879,7 +917,7 @@ export default function HomeRoom() {
     // same "never silently non-solid" rule TownSquare.tsx and
     // IslandBuild.tsx's own placed-object collision already follow.
     const allItems = [...CATALOG_ITEMS, ...marketplaceFurniture];
-    const base = roomObjects.map((o) => {
+    const base = roomObjects.filter((o) => !isPicturePath(o.modelPath)).map((o) => {
       const item = allItems.find((it) => it.modelPath === o.modelPath);
       const radius = item ? ROOM_OBJECT_COLLISION_RADIUS(item.target) : THREE.MathUtils.clamp(o.scale * 0.4, 0.3, 1.2);
       return { x: o.position[0], z: o.position[2], radius };
@@ -1050,6 +1088,22 @@ export default function HomeRoom() {
     flashSaved();
   };
 
+  // Hang a saved picture: it has to go on a wall, facing into the room, at eye height.
+  const wallSpot = (x: number, z: number) => {
+    const snapWall = nearestWall(x, z, boundaryWalls, WALL_SNAP_DISTANCE * 2);
+    if (!snapWall) return null;
+    const onX = Math.abs(Math.abs(snapWall.x) - halfW) < 0.05;
+    const nx = onX ? -Math.sign(snapWall.x) : 0, nz = onX ? 0 : -Math.sign(snapWall.z);
+    return { x: snapWall.x + nx * 0.12, z: snapWall.z + nz * 0.12, rotationY: Math.atan2(nx, nz) };
+  };
+  const placePicture = (x: number, z: number) => {
+    if (!armedPic) return;
+    const spot = wallSpot(x, z);
+    if (!spot) { setPlacementError('Pictures hang on a wall. Tap near the edge of the room.'); return; }
+    addWorldObject({ modelPath: `${PICTURE_PREFIX}${armedPic.src}`, label: armedPic.caption ? `Picture: ${armedPic.caption.slice(0, 40)}` : 'Picture', position: [spot.x, 1.7, spot.z], rotationY: spot.rotationY, scale: 1, studentId: student.id, roomId: activeRoom.id });
+    setArmedPicId(null);
+    flashSaved();
+  };
   const handleFloorClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (mode === 'view') {
@@ -1058,6 +1112,8 @@ export default function HomeRoom() {
     }
     if (armedItem) {
       placeAt(e.point.x, e.point.z);
+    } else if (armedPic) {
+      placePicture(e.point.x, e.point.z);
     } else if (draggingId) {
       setDraggingId(null);
     } else {
@@ -1067,6 +1123,13 @@ export default function HomeRoom() {
   const handleFloorPointerMove = (e: ThreeEvent<PointerEvent>) => {
     if (mode !== 'build' || !draggingId) return;
     e.stopPropagation();
+    const dragged = roomObjects.find((o) => o.id === draggingId);
+    if (dragged && isPicturePath(dragged.modelPath)) {
+      // A picture slides along the walls and keeps its height.
+      const spot = wallSpot(e.point.x, e.point.z);
+      if (spot) updateWorldObject(draggingId, { position: [spot.x, dragged.position[1], spot.z], rotationY: spot.rotationY });
+      return;
+    }
     updateWorldObject(draggingId, { position: [snapAxis(e.point.x, halfW), 0, snapAxis(e.point.z, halfD)] });
   };
   const toggleHammerMode = () => {
@@ -1126,7 +1189,8 @@ export default function HomeRoom() {
   const mineList = activeCatalog.filter((it) => !it.locked);
   const shopList = activeCatalog.filter((it) => it.locked);
   const tabList = catTab === 'mine' ? mineList : shopList;
-  const filters = ['all', ...CATALOG_ROOMS.filter((r) => tabList.some((it) => roomOf(it) === r)), ...(tabList.some((it) => roomOf(it) === 'other') ? ['other'] : [])];
+  const filters = ['all', ...CATALOG_ROOMS.filter((r) => tabList.some((it) => roomOf(it) === r)), ...(tabList.some((it) => roomOf(it) === 'other') ? ['other'] : []), ...(catTab === 'mine' && !isYard && myPictures.length ? ['pictures'] : [])];
+  const showPictures = catTab === 'mine' && catFilter === 'pictures' && !isYard;
   const shownCatalog = tabList.filter((it) => (catFilter === 'all' || roomOf(it) === catFilter) && (!catSearch.trim() || it.label.toLowerCase().includes(catSearch.trim().toLowerCase())));
   const confirmBuy = () => {
     if (!buyItem) return;
@@ -1404,7 +1468,17 @@ export default function HomeRoom() {
           </>
         )}
 
-        {roomObjects.map((obj) => (
+        {roomObjects.filter((o) => isPicturePath(o.modelPath)).map((obj) => (
+          <WallPicture
+            key={obj.id}
+            obj={obj}
+            wallMode={isYard ? 'up' : wallMode}
+            opacity={draggingId === obj.id ? 0.6 : 1}
+            onClick={mode === 'build' && !armedItem && !armedPic ? () => { if (hammerMode) { deleteWorldObject(obj.id); flashSaved(); return; } setSelectedId(obj.id); } : undefined}
+            onPointerDown={mode === 'build' && !armedItem && !armedPic && !hammerMode ? () => { setSelectedId(obj.id); setDraggingId(obj.id); } : undefined}
+          />
+        ))}
+        {roomObjects.filter((o) => !isPicturePath(o.modelPath)).map((obj) => (
           <WorldObjectRenderer
             key={obj.id}
             obj={obj}
@@ -1415,8 +1489,8 @@ export default function HomeRoom() {
             // view mode these must be left undefined entirely, not just a
             // no-op callback, or clicking near a piece of furniture would
             // silently swallow the walk-there tap.
-            onClick={mode === 'build' && !armedItem ? () => { if (hammerMode) { deleteWorldObject(obj.id); flashSaved(); return; } setSelectedId(obj.id); } : undefined}
-            onPointerDown={mode === 'build' && !armedItem && !hammerMode ? () => { setSelectedId(obj.id); setDraggingId(obj.id); } : undefined}
+            onClick={mode === 'build' && !armedItem && !armedPic ? () => { if (hammerMode) { deleteWorldObject(obj.id); flashSaved(); return; } setSelectedId(obj.id); } : undefined}
+            onPointerDown={mode === 'build' && !armedItem && !armedPic && !hammerMode ? () => { setSelectedId(obj.id); setDraggingId(obj.id); } : undefined}
           />
         ))}
       </Canvas>
@@ -1453,10 +1527,20 @@ export default function HomeRoom() {
                 <div className="hb-row-wrap">
                   <button type="button" className="hb-arrow" onClick={() => scrollCatalog(-1)} disabled={catEdges.left} aria-label="Scroll left">◀</button>
                   <div className="hb-row" ref={catRowRef} onScroll={onCatScroll}>
-                    {shownCatalog.length === 0 && (
+                    {showPictures && myPictures.map((p) => (
+                      <div key={p.id} className={`hb-card hb-pic${armedPicId === p.id ? ' armed' : ''}`}>
+                        <button type="button" className="hb-pic-pick" onClick={() => { setArmedPicId((cur) => (cur === p.id ? null : p.id)); setArmedId(null); setSelectedId(null); setHammerMode(false); }} aria-label={`Hang the picture${p.caption ? `: ${p.caption}` : ''}`}>
+                          <img src={p.src} alt="" referrerPolicy="no-referrer" />
+                          <span className="hb-card-name">{p.caption || 'Picture'}</span>
+                        </button>
+                        <button type="button" className="hb-pic-x" onClick={() => { removePicture(student.id, p.id); if (armedPicId === p.id) setArmedPicId(null); }} aria-label="Take this picture out of My Items">✕</button>
+                      </div>
+                    ))}
+                    {showPictures && !myPictures.length && <span className="hb-empty">No pictures yet. Save one from a Read and Respond gallery with 🖼️ Hang it at home.</span>}
+                    {!showPictures && shownCatalog.length === 0 && (
                       <span className="hb-empty">{catTab === 'shop' ? (isYard ? 'Home items go inside your rooms. Switch to a room to shop for them.' : 'You own everything here!') : 'Nothing here yet. Try the Shop tab!'}</span>
                     )}
-                    {shownCatalog.map((item) => {
+                    {!showPictures && shownCatalog.map((item) => {
                       const affordable = !item.priceCents || student.coins >= item.priceCents;
                       const disabled = !item.locked && (!scalesReady || !affordable);
                       const armed = armedId === item.id;
@@ -1466,7 +1550,7 @@ export default function HomeRoom() {
                           type="button"
                           disabled={disabled}
                           className={`hb-card${armed ? ' armed' : ''}${item.locked ? ' shop' : ''}`}
-                          onClick={item.locked ? () => setBuyItem(item) : () => { setArmedId((cur) => (cur === item.id ? null : item.id)); setSelectedId(null); setHammerMode(false); }}
+                          onClick={item.locked ? () => setBuyItem(item) : () => { setArmedId((cur) => (cur === item.id ? null : item.id)); setArmedPicId(null); setSelectedId(null); setHammerMode(false); }}
                           aria-label={item.locked ? `Buy ${item.label} for ${formatMoney(item.shopPriceCents ?? 0)}` : `Place ${item.label}`}
                         >
                           {item.thumbnail ? <img src={item.thumbnail} alt="" /> : <span className="hb-card-emoji">{item.icon}</span>}
@@ -1532,6 +1616,13 @@ export default function HomeRoom() {
             </div>
           )}
 
+          {armedPic && (
+            <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
+              🖼️ Tap near a wall to hang your picture.
+              <button className="btn btn-sm" style={{ minHeight: 36, marginLeft: 8 }} onClick={() => setArmedPicId(null)}>Cancel</button>
+            </div>
+          )}
+
           {placementError && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff3ea', border: '2px solid #dc2626', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center', color: '#dc2626', maxWidth: 300 }}>
               ⚠ {placementError}
@@ -1540,8 +1631,13 @@ export default function HomeRoom() {
 
           {selected && !armedItem && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate left" onClick={() => rotateSelected(-15)}>↺</button>
-              <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate right" onClick={() => rotateSelected(15)}>↻</button>
+              {isPicturePath(selected.modelPath) ? <>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Hang it higher" aria-label="Hang it higher" onClick={() => { updateWorldObject(selected.id, { position: [selected.position[0], Math.min(WALL_HEIGHT - 0.4, selected.position[1] + 0.15), selected.position[2]] }); flashSaved(); }}>⬆</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Hang it lower" aria-label="Hang it lower" onClick={() => { updateWorldObject(selected.id, { position: [selected.position[0], Math.max(0.6, selected.position[1] - 0.15), selected.position[2]] }); flashSaved(); }}>⬇</button>
+              </> : <>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate left" onClick={() => rotateSelected(-15)}>↺</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate right" onClick={() => rotateSelected(15)}>↻</button>
+              </>}
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Smaller" onClick={() => resizeSelected(1 / 1.15)}>－</button>
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Bigger" onClick={() => resizeSelected(1.15)}>＋</button>
               <button

@@ -31,20 +31,20 @@
 How it works: every new request, idea or "queue:" message goes on this list the same turn it arrives. Work goes top to bottom, each item ships on its own (dev plan, What's New if students notice it, push to main), then it moves to **Done** with its date. An item that needs her answer moves to "Waiting on the teacher" below instead of blocking the line. Full detail for each item lives in its own entry (Gameplay roadmap, section 2).
 
 **Up next (top first):**
-1. Read and Respond: save a gallery picture and hang it as resizable wall decor in the Home Room.
-2. Castle Defense art, still to use: a map built from the field and village tiles, attacker death and attack animations, animated tower weapons.
-3. Grammar Gus Phase 2: Fusion Reactor (sentence combining).
-4. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
-5. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
-6. Grammar Gus Phase 2: Label and Unit Maker.
-7. Grammar Gus Phase 2: Gus's Paint Shop.
-8. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
-9. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
-10. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
+1. Castle Defense art, still to use: a map built from the field and village tiles, attacker death and attack animations, animated tower weapons.
+2. Grammar Gus Phase 2: Fusion Reactor (sentence combining).
+3. Grammar Gus Phase 2: Revision Workshop (add, remove, move, substitute).
+4. Grammar Gus Phase 2: CER Lab Report (claim, evidence, reasoning).
+5. Grammar Gus Phase 2: Label and Unit Maker.
+6. Grammar Gus Phase 2: Gus's Paint Shop.
+7. Grammar Gus smaller pieces: Pixel TV "with", Mixed-up Delivery, Noun Boiler Pairs, Punctuation Inspector, word packs and the teacher word tool, Garage extras, Orders editor, the remaining Blueprints, teacher report PDF export.
+8. Space Bowling: the saved venue and bowling lane models and the Kenney Sports pack (her Bowling GUI pack waits on her rights answer).
+9. Teacher Inbox game reports for the other native games (Bakery Match, Castle Defense, Slime Chess, Space Bowling, Bubble Shooter, Alchemy, the Platformer), using the same `recordGameReport` Shape Dash uses.
 
 **Not in the line (waiting on her):** Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
 
 **Done:**
+- 2026-10-09: Read and Respond pictures hang at home: 🖼️ Hang it at home in the gallery, then My Items, 🖼️ Pictures in home Build Mode.
 - 2026-10-09: Grammar Gus Phase 2, the Appositive Clamp (a new part with the WHO parts, and the 🗜️ Clamp in a fact job).
 - 2026-10-09: Shape Dash, a "seconds between question breaks" slider (15 to 120, default 30; the teacher's number locks it for assignments) and a teacher Inbox report after every run.
 - 2026-10-09: Castle Defense, the Wisp's build poof on the build tiles (her words: "add the wisp build animation to castle defense map tiles").
@@ -733,7 +733,7 @@ This is the one place to see every gameplay feature that is not built yet, pulle
 - Describe Sorter conveyor animation; "Do it for me after 2 taps"; hiding item groups.
 
 **Read and Respond:**
-- Save a gallery picture to the student's inventory and hang it as resizable wall decor in the Home Room (needs a picture item type in the inventory and the Home Room).
+- ~~Save a gallery picture to the student's inventory and hang it as resizable wall decor in the Home Room.~~ SHIPPED 2026-10-09 (Build Queue). In the reader's picture gallery a new **🖼️ Hang it at home** button saves the picture (a note says where to find it; the button turns into "Saved for my home"). At home, in Build Mode, **My Items** gets a **🖼️ Pictures** filter (inside rooms only) with each saved picture as a card (✕ takes it out). Tap a card, then tap near a wall: the picture hangs in a wooden frame at eye height, facing into the room, in its real shape. Tap a hung picture for ⬆ higher, ⬇ lower, ＋ bigger, － smaller and Remove; drag it to slide it along the walls. The Hammer removes it too. It hides with its wall in Cutaway, Half and Down, like Sims wall decor. Saved as the `pictures:<studentId>` style_looks row; a hung picture is a normal home object with `modelPath` `picture:<url>` (no new SQL). Not checked yet: a picture whose website blocks sharing shows a plain cream frame instead of the image.
 - A premium narrator voice (needs a paid text to speech key she adds in Vercel; today it is the device's best British male voice).
 
 **Shape Dash:**

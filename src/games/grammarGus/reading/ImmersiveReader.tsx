@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import '@fontsource/opendyslexic/400.css';
 import '@fontsource/opendyslexic/700.css';
 import { loadContent, type GusArticle, type ReadBlock, type ReadImage } from './library';
+import { useStore } from '../../../store/store';
+import { savePicture, usePictures } from '../../../lib/myPictures';
 
 // The immersive reader for Gus's Read and Respond (teacher 2026-10-07):
 // - "Male british voice - an actually good narration voice so the kids
@@ -286,6 +288,12 @@ function Gallery({ articleId, images, at, setAt, onClose, sfx }: { articleId: st
   const key = `gus-ann-${articleId}-${im.src}`;
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   useEffect(() => { try { setStrokes(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { setStrokes([]); } setZoom(false); }, [key]);
+  // Hang it at home: saved to the student's pictures, placed on a wall in Build Mode (My Items, Pictures).
+  const studentId = useStore((s) => (s.role === 'student' ? s.currentStudentId : null));
+  const mine = usePictures(studentId);
+  const hung = mine.some((p) => p.src === im.src);
+  const [hangNote, setHangNote] = useState(false);
+  const hang = () => { if (!studentId || hung) return; savePicture(studentId, { src: im.src, caption: im.caption, from: articleId }); setHangNote(true); window.setTimeout(() => setHangNote(false), 4000); if (sfx) SFX.tap(); };
   const save = (s: Stroke[]) => { setStrokes(s); try { localStorage.setItem(key, JSON.stringify(s)); } catch { /* fine */ } };
   const svgRef = useRef<SVGSVGElement>(null);
   const live = useRef<Stroke | null>(null);
@@ -309,8 +317,10 @@ function Gallery({ articleId, images, at, setAt, onClose, sfx }: { articleId: st
           <button type="button" className={`rdr-btn${zoom ? ' on' : ''}`} onClick={() => { setZoom((z) => !z); setDraw(false); }} aria-pressed={zoom}>🔍 {zoom ? 'Smaller' : 'Bigger'}</button>
           <button type="button" className={`rdr-btn${draw ? ' on' : ''}`} onClick={() => { setDraw((d) => !d); setZoom(false); }} aria-pressed={draw}>✏️ Draw</button>
           <button type="button" className="rdr-btn" onClick={download}>⬇️ Save to my iPad</button>
+          {studentId && <button type="button" className={`rdr-btn${hung ? ' on' : ''}`} onClick={hang} disabled={hung} aria-pressed={hung}>{hung ? '🖼️ Saved for my home' : '🖼️ Hang it at home'}</button>}
         </div>
       </div>
+      {hangNote && <div className="rdr-hang-note" role="status">🖼️ Saved! At home, open Build Mode, then My Items, then 🖼️ Pictures, and tap a wall to hang it.</div>}
       {draw && <div className="rdr-inks" role="group" aria-label="Pen colors">
         {INKS.map((c) => <button key={c} type="button" className={`rdr-ink${ink === c ? ' on' : ''}`} style={{ background: c }} onClick={() => setInk(c)} aria-label={`Pen color ${c}`} aria-pressed={ink === c} />)}
         <button type="button" className="rdr-btn" onClick={() => save(strokes.slice(0, -1))} disabled={!strokes.length}>↩ Undo</button>

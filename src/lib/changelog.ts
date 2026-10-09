@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-09-hang-pictures',
+    date: '2026-10-09',
+    icon: '🖼️',
+    title: 'Hang pictures from your reading at home',
+    body: 'In a Read and Respond picture gallery, tap Hang it at home. Then at home in Build Mode, open My Items, tap Pictures, and tap a wall to hang it. Make it bigger, smaller, higher or lower!',
+  },
+  {
     id: '2026-10-09-gus-clamp',
     date: '2026-10-09',
     icon: '🗜️',
