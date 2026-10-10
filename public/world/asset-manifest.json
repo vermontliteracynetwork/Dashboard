@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T20:15:48.753Z",
+  "generatedAt": "2026-10-10T20:22:48.477Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3062,13 +3062,253 @@
       "category": "market"
     },
     {
+      "path": "/world/models/nature/blocky-bush-01.glb",
+      "label": "Blocky Bush 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-bush-02.glb",
+      "label": "Blocky Bush 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-bush-03.glb",
+      "label": "Blocky Bush 03",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-bush-04.glb",
+      "label": "Blocky Bush 04",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flower-krokus-01.glb",
+      "label": "Blocky Flower Krokus 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flower-krokus-02.glb",
+      "label": "Blocky Flower Krokus 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flower-krokus-03.glb",
+      "label": "Blocky Flower Krokus 03",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowerblue-01.glb",
+      "label": "Blocky Flowerblue 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowercalla.glb",
+      "label": "Blocky Flowercalla",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowererantis-01.glb",
+      "label": "Blocky Flowererantis 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowers-01.glb",
+      "label": "Blocky Flowers 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowers-02.glb",
+      "label": "Blocky Flowers 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowers-04.glb",
+      "label": "Blocky Flowers 04",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowers-05.glb",
+      "label": "Blocky Flowers 05",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowertulipan-01.glb",
+      "label": "Blocky Flowertulipan 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowertulipan-02.glb",
+      "label": "Blocky Flowertulipan 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowertulipan-03.glb",
+      "label": "Blocky Flowertulipan 03",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowertulipan-04.glb",
+      "label": "Blocky Flowertulipan 04",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowertulipan-05.glb",
+      "label": "Blocky Flowertulipan 05",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-flowervalmue-01.glb",
+      "label": "Blocky Flowervalmue 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-mushroom-01.glb",
+      "label": "Blocky Mushroom 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-mushroom-02.glb",
+      "label": "Blocky Mushroom 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-pinecone-01.glb",
+      "label": "Blocky Pinecone 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-stone-01.glb",
+      "label": "Blocky Stone 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-stone-02.glb",
+      "label": "Blocky Stone 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-stone-03.glb",
+      "label": "Blocky Stone 03",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-stone-04.glb",
+      "label": "Blocky Stone 04",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-threeleaf-01.glb",
+      "label": "Blocky Threeleaf 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-tree-01.glb",
+      "label": "Blocky Tree 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-tree-02.glb",
+      "label": "Blocky Tree 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-tree-03.glb",
+      "label": "Blocky Tree 03",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-tree-04.glb",
+      "label": "Blocky Tree 04",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-tree-05.glb",
+      "label": "Blocky Tree 05",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weed-01.glb",
+      "label": "Blocky Weed 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weed-02.glb",
+      "label": "Blocky Weed 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weed-03.glb",
+      "label": "Blocky Weed 03",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weedplant-01.glb",
+      "label": "Blocky Weedplant 01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weedplant-02.glb",
+      "label": "Blocky Weedplant 02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weedplant-03.glb",
+      "label": "Blocky Weedplant 03",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weedplant-04.glb",
+      "label": "Blocky Weedplant 04",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/blocky-weedplant-05.glb",
+      "label": "Blocky Weedplant 05",
+      "category": "nature"
+    },
+    {
       "path": "/world/models/nature/cactus.glb",
       "label": "Cactus",
       "category": "nature"
     },
     {
+      "path": "/world/models/nature/fern-plant.glb",
+      "label": "Fern Plant",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/fern.glb",
+      "label": "Fern",
+      "category": "nature"
+    },
+    {
       "path": "/world/models/nature/half-snowy-pine.glb",
       "label": "Half Snowy Pine",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/hedge-arch.glb",
+      "label": "Hedge Arch",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/hedge-long-round.glb",
+      "label": "Hedge Long Round",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/hedge-long.glb",
+      "label": "Hedge Long",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/hedge-small-round.glb",
+      "label": "Hedge Small Round",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/hedge-small.glb",
+      "label": "Hedge Small",
       "category": "nature"
     },
     {
@@ -3477,6 +3717,31 @@
       "category": "nature"
     },
     {
+      "path": "/world/models/nature/strange-tree-baby.glb",
+      "label": "Strange Tree Baby",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/strange-tree-bush-foliage.glb",
+      "label": "Strange Tree Bush Foliage",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/strange-tree-young.glb",
+      "label": "Strange Tree Young",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/strange-tree.glb",
+      "label": "Strange Tree",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/strange-vegetation.glb",
+      "label": "Strange Vegetation",
+      "category": "nature"
+    },
+    {
       "path": "/world/models/nature/thistle.glb",
       "label": "Thistle",
       "category": "nature"
@@ -3499,6 +3764,36 @@
     {
       "path": "/world/models/nature/tiny-weed-4.glb",
       "label": "Tiny Weed 4",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/tropical-plant-big.glb",
+      "label": "Tropical Plant Big",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/tropical-plant.glb",
+      "label": "Tropical Plant",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/vegetation-bush01.glb",
+      "label": "Vegetation Bush01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/vegetation-bush02.glb",
+      "label": "Vegetation Bush02",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/vegetation-foliage01.glb",
+      "label": "Vegetation Foliage01",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/vegetation-foliage02.glb",
+      "label": "Vegetation Foliage02",
       "category": "nature"
     },
     {

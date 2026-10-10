@@ -488,6 +488,12 @@ const FLAT_OBJECT_TARGET_WIDTH = 2.5;
 // Her uploaded plant packs (Yughues hand-painted plants, tiny weeds, rocks; 2026-10-10) mix
 // ankle-high grass with big pines, so they are sized by name.
 function natureTarget(label: string): number {
+  if (/blocky (stone|mushroom|pinecone)/i.test(label)) return CHARACTER_HEIGHT * 0.35;
+  if (/blocky tree/i.test(label)) return CHARACTER_HEIGHT * 2.5;
+  if (/hedge/i.test(label)) return CHARACTER_HEIGHT * 1.1;
+  if (/^strange tree( young)?$/i.test(label)) return CHARACTER_HEIGHT * 3;
+  if (/tropical plant big/i.test(label)) return CHARACTER_HEIGHT * 1.5;
+  if (/tropical|fern|strange|vegetation/i.test(label)) return CHARACTER_HEIGHT * 0.9;
   if (/pine big|huge tree|shaped tree/i.test(label)) return CHARACTER_HEIGHT * 5;
   if (/cactus|vine/i.test(label)) return CHARACTER_HEIGHT * 1.6;
   if (/pumpkin/i.test(label)) return CHARACTER_HEIGHT * 0.6;
