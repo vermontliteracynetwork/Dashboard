@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
+import { Html, OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { StyleAvatar } from '../../style/StyleAvatar';
@@ -10,6 +10,8 @@ import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { nearestWall } from '../../lib/wallGeometry';
 import { PICTURE_PREFIX, isPicturePath, usePictures, removePicture } from '../../lib/myPictures';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
+import { MAILBOX_MODEL } from './HomeLots';
+import { MAILBOX_LOCAL, setLotLocked, useLockedLots } from './homeLots';
 import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, trickUnlocked, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import PetTrainingSession from '../../components/PetTrainingSession';
@@ -732,6 +734,48 @@ function writeLocalBackup(studentId: string, objects: WorldObject[]) {
   }
 }
 
+// Home lots (teacher 2026-10-10: "homes will now need to have an acessable door to move students
+// fluidly between home and yard and yard to community places. throuhg a click of th emailbox, or
+// a door in their house, they can lock their lot to all other players"). Inside, a door on the
+// front wall leads out to the yard; in the yard, the mailbox at the front corner and a gate at
+// the front edge that walks straight into town (to the student's own lot when the teacher has
+// added the Neighborhood).
+function HouseDoor({ z, onOpen }: { z: number; onOpen?: () => void }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <group position={[0, 0, z]}
+      onClick={onOpen ? (e) => { e.stopPropagation(); onOpen(); } : undefined}
+      onPointerOver={onOpen ? (e) => { e.stopPropagation(); setHover(true); } : undefined}
+      onPointerOut={() => setHover(false)}>
+      <mesh position={[0, 1.08, 0]}><boxGeometry args={[1.35, 2.2, 0.12]} /><meshStandardMaterial color="#5b3a1e" /></mesh>
+      <mesh position={[0, 1.02, -0.05]}><boxGeometry args={[1.1, 2.04, 0.08]} /><meshStandardMaterial color={hover ? '#b7793d' : '#9a6331'} /></mesh>
+      <mesh position={[0.4, 1.0, -0.12]}><sphereGeometry args={[0.07, 12, 12]} /><meshStandardMaterial color="#f5c542" metalness={0.6} roughness={0.3} /></mesh>
+      <Html position={[0, 2.5, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
+        <div style={{ background: '#fff', border: '2px solid #1f4238', borderRadius: 999, padding: '2px 10px', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>🚪 Door</div>
+      </Html>
+    </group>
+  );
+}
+function YardGate({ z, onWalk }: { z: number; onWalk?: () => void }) {
+  const [hover, setHover] = useState(false);
+  const wood = hover ? '#c08a4f' : '#a0703c';
+  return (
+    <group position={[0, 0, z]}
+      onClick={onWalk ? (e) => { e.stopPropagation(); onWalk(); } : undefined}
+      onPointerOver={onWalk ? (e) => { e.stopPropagation(); setHover(true); } : undefined}
+      onPointerOut={() => setHover(false)}>
+      <mesh position={[-1.3, 0.9, 0]}><boxGeometry args={[0.22, 1.8, 0.22]} /><meshStandardMaterial color={wood} /></mesh>
+      <mesh position={[1.3, 0.9, 0]}><boxGeometry args={[0.22, 1.8, 0.22]} /><meshStandardMaterial color={wood} /></mesh>
+      <mesh position={[0, 1.85, 0]}><boxGeometry args={[3.0, 0.3, 0.24]} /><meshStandardMaterial color={wood} /></mesh>
+      {/* a wide invisible target so the gate is easy to tap on an iPad */}
+      <mesh position={[0, 0.9, 0]}><boxGeometry args={[2.6, 1.8, 0.6]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} /></mesh>
+      <Html position={[0, 2.45, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
+        <div style={{ background: '#fff', border: '2px solid #1f4238', borderRadius: 999, padding: '2px 10px', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>🏘️ To town</div>
+      </Html>
+    </group>
+  );
+}
+
 export default function HomeRoom() {
   useLockBodyScroll();
   const navigate = useNavigate();
@@ -758,6 +802,10 @@ export default function HomeRoom() {
   // Direct follow-up instruction: opens in a walkable view of the room,
   // never straight into Build Mode.
   const [mode, setMode] = useState<'view' | 'build'>('view');
+  // The mailbox or door card (lock my lot, mail, yard, town).
+  const [homeCard, setHomeCard] = useState<'mailbox' | 'door' | null>(null);
+  const lockedLots = useLockedLots();
+  const goToTown = () => navigate('/world/town', { state: { fromHome: true } });
   const [scales, setScales] = useState<Record<string, number>>({});
   const [armedId, setArmedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -1243,7 +1291,7 @@ export default function HomeRoom() {
         <button
           className="btn btn-sm"
           style={{ minHeight: 44, background: '#fff', fontWeight: 800 }}
-          onClick={() => navigate('/world/town')}
+          onClick={goToTown}
         >
           ← Town
         </button>
@@ -1292,6 +1340,23 @@ export default function HomeRoom() {
           </button>
         )}
       </div>
+      {homeCard && (() => {
+        const isLocked = lockedLots.has(student.id);
+        const btn: React.CSSProperties = { minHeight: 44, padding: '8px 14px', borderRadius: 12, border: '2px solid #1f4238', background: '#fff', fontWeight: 800, fontFamily: 'system-ui, sans-serif', cursor: 'pointer' };
+        return (
+          <div role="dialog" aria-label={homeCard === 'mailbox' ? 'My mailbox' : 'My door'} style={{ position: 'fixed', bottom: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 70, background: '#fff', border: '3px solid #1f4238', borderRadius: 16, padding: 14, boxShadow: '0 6px 18px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', color: '#1f4238', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', maxWidth: 'calc(100vw - 32px)' }}>
+            <strong>{homeCard === 'mailbox' ? '📬 My mailbox' : '🚪 My door'}</strong>
+            <span style={{ fontSize: 13 }}>{isLocked ? '🔒 Your lot is locked. Only you can come in.' : '🔓 Your lot is open. Others can walk into your yard.'}</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {homeCard === 'mailbox' && <button type="button" style={btn} onClick={() => { setHomeCard(null); navigate('/student/mailbox'); }}>📬 Open my mail</button>}
+              {homeCard === 'door' && yardRoom && <button type="button" style={btn} onClick={() => { setHomeCard(null); switchRoom(yardRoom.id); }}>🌳 Go out to the yard</button>}
+              <button type="button" style={btn} onClick={() => { setHomeCard(null); goToTown(); }}>🏘️ Walk to town</button>
+              <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(student.id, !isLocked)}>{isLocked ? '🔓 Open my lot' : '🔒 Lock my lot'}</button>
+            </div>
+            <button type="button" style={btn} onClick={() => setHomeCard(null)}>Close</button>
+          </div>
+        );
+      })()}
       {addRoomOpen && (
         <div style={{ position: 'fixed', top: 58, left: '50%', transform: 'translateX(-50%)', zIndex: 61, background: '#fff', borderRadius: 12, padding: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 300, justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
           {ADDABLE_ROOM_KINDS.map((k) => (
@@ -1379,6 +1444,7 @@ export default function HomeRoom() {
             <WalkTargetMarker walkTarget={walkTarget} />
           </>
         )}
+        {!isYard && activeRoom && <HouseDoor z={halfD - 0.08} onOpen={mode === 'view' ? () => setHomeCard('door') : undefined} />}
 
         <Suspense fallback={null}>
           {allCatalogItems.map((item) => (
@@ -1410,6 +1476,14 @@ export default function HomeRoom() {
               }}
               onClick={mode === 'view' ? () => { const back = interiorRooms[0]; if (back) switchRoom(back.id); } : undefined}
             />
+            <Suspense fallback={null}>
+              <WorldObjectRenderer
+                obj={{ id: '__mailbox__', modelPath: MAILBOX_MODEL, label: 'Mailbox', position: [MAILBOX_LOCAL[0], 0, MAILBOX_LOCAL[1]], rotationY: 0, scale: 0.003, createdAt: '' }}
+                normalize={false}
+                onClick={mode === 'view' ? () => setHomeCard('mailbox') : undefined}
+              />
+            </Suspense>
+            <YardGate z={halfD + 0.9} onWalk={mode === 'view' ? goToTown : undefined} />
             <Suspense fallback={null}>
               {myPets.map((pet, i) => {
                 const def = petDefById(pet.petDefId);

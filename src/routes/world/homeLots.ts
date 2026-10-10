@@ -15,7 +15,7 @@ import type { GroundBounds, Student } from '../../types';
 // the same in both places.
 
 export const HOMES_OWNER = 'town-homes';
-export interface HomesRow { side: 'north' | 'south'; x1: number; z1: number; x2: number; z2: number }
+export interface HomesRow { side: 'north' | 'south'; x1: number; z1: number; x2: number; z2: number; regionId?: string }
 
 // A lot, in its own space: the yard is centered on (0,0) and spans +-6; the house sits behind it
 // at z = -9 (as in HomeRoom: halfD 6 + clearance 3), the front edge is z = +7.
@@ -36,6 +36,7 @@ export function useHomes(): HomesRow | null {
   return look && (look.side === 'north' || look.side === 'south') && typeof look.x1 === 'number' ? (look as HomesRow) : null;
 }
 export function saveHomes(row: HomesRow) { useStore.getState().mergeStyleRow(HOMES_OWNER, { ...row }); }
+export function removeHomes() { useStore.getState().mergeStyleRow(HOMES_OWNER, { side: 'none' }); }
 
 export const lotsPerRow = (h: HomesRow) => Math.max(1, Math.floor((Math.abs(h.x2 - h.x1) - 2) / LOT_W));
 export const lotRows = (h: HomesRow) => Math.max(0, Math.floor((Math.abs(h.z2 - h.z1) - STREET) / ROW_PITCH));
@@ -111,4 +112,10 @@ export function isHomeBlocked(x: number, z: number): boolean {
     if (l.student.id !== homeBlock.me && homeBlock.locked.has(l.student.id) && insideLot(l, x, z)) return true;
   }
   return false;
+}
+
+// How many rows (and how deep) a neighborhood this wide needs for this many students.
+export function rowsNeeded(width: number, students: number): number {
+  const per = Math.max(1, Math.floor((width - 2) / LOT_W));
+  return Math.max(1, Math.ceil(students / per));
 }

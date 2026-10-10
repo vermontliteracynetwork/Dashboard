@@ -9,6 +9,8 @@ import { WorldObjectRenderer, useModelSize, safeScale, townSizeFactor } from '..
 import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule, measureModel } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
 import { REGION_NAME_SUGGESTIONS, REGION_SIZES, regionRect, saveRegions, useRegions, type Region, type Side } from '../world/regions';
+import { ROW_PITCH, depthForRows, homesRect, layoutLots, lotCapacity, removeHomes, rowsNeeded, saveHomes, useHomes, useLockedLots } from '../world/homeLots';
+import { HomeLots } from '../world/HomeLots';
 import { TerrainMesh, WaterSurface, WaterAmbience, BrushRing, useTerrainSync } from '../world/TerrainMesh';
 import { useTerrainVersion, TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
 import { WallMesh } from '../../components/WallMesh';
@@ -2095,6 +2097,8 @@ export default function WorldEditor() {
   const [newRegionSize, setNewRegionSize] = useState(REGION_SIZES[1].depth);
   const [newRegionSide, setNewRegionSide] = useState<Side>('north');
   const [regionMsg, setRegionMsg] = useState('');
+  const [homesSide, setHomesSide] = useState<'north' | 'south'>('south');
+  const [homesMsg, setHomesMsg] = useState('');
   const [brushSize, setBrushSize] = useState(3);
   const [brushStrength, setBrushStrength] = useState(0.5);
   const [terrainCursor, setTerrainCursor] = useState<{ x: number; z: number } | null>(null);
@@ -2921,6 +2925,41 @@ export default function WorldEditor() {
     setRegionMsg(depth < newRegionSize ? `Added "${name}" (${depth} units deep: that is as far as the world can grow ${newRegionSide}).` : `Added "${name}" on the ${newRegionSide} side.`);
     setNewRegionName(''); flashSaved();
   };
+  // ---- home lots (the Neighborhood) ----
+  const homes = useHomes();
+  const students = useStore((s) => s.students);
+  const lockedLots = useLockedLots();
+  const homeLots = useMemo(() => (homes ? layoutLots(homes, students) : []), [homes, students]);
+  const addNeighborhood = () => {
+    const width = groundBounds.west + groundBounds.east;
+    const depth = depthForRows(rowsNeeded(width, students.length)) + 1;
+    const have = groundBounds[homesSide];
+    if (have + depth > GROUND_BOUNDS_MAX) { setHomesMsg(`Not enough room ${homesSide} for every lot. Try the other side, or make the town wider (east and west) first.`); return; }
+    const rect = homesRect(groundBounds, homesSide, depth);
+    expandGroundBounds(homesSide, depth);
+    const regionId = `rg_${Date.now().toString(36)}`;
+    saveRegions({ ...regions, list: [...regions.list, { id: regionId, name: 'Neighborhood', side: homesSide, x1: rect.x1, z1: rect.z1, x2: rect.x2, z2: rect.z2 }] });
+    saveHomes({ ...rect, regionId });
+    setHomesMsg(`Added the Neighborhood on the ${homesSide} side with a lot for every student.`);
+    flashSaved();
+  };
+  const addHomesRow = () => {
+    if (!homes) return;
+    if (groundBounds[homes.side] + ROW_PITCH > GROUND_BOUNDS_MAX) { setHomesMsg(`The world cannot grow any farther ${homes.side}.`); return; }
+    expandGroundBounds(homes.side, ROW_PITCH);
+    const next = homes.side === 'south' ? { ...homes, z2: homes.z2 + ROW_PITCH } : { ...homes, z1: homes.z1 - ROW_PITCH };
+    saveHomes(next);
+    if (homes.regionId) saveRegions({ ...regions, list: regions.list.map((r) => (r.id === homes.regionId ? { ...r, z1: next.z1, z2: next.z2 } : r)) });
+    setHomesMsg('Added a row of lots.');
+    flashSaved();
+  };
+  const removeNeighborhood = () => {
+    if (!homes) return;
+    removeHomes();
+    if (homes.regionId) saveRegions({ ...regions, list: regions.list.filter((r) => r.id !== homes.regionId) });
+    setHomesMsg('Removed the Neighborhood (the land stays).');
+    flashSaved();
+  };
   const renameRegion = (id: string, name: string) => saveRegions({ ...regions, list: regions.list.map((r) => (r.id === id ? { ...r, name } : r)) });
   const removeRegion = (id: string) => saveRegions({ ...regions, list: regions.list.filter((r) => r.id !== id) });
   useEffect(() => { if (regionsOpen) { setTerrainTool(null); setPaintMode(null); setArmedAsset(null); setHammerMode(false); setWallMode(false); } }, [regionsOpen]);
@@ -3478,6 +3517,27 @@ export default function WorldEditor() {
             <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={addRegion}>➕ Add region</button>
             {regionMsg && <span role="status" style={{ fontSize: '0.75rem' }}>{regionMsg}</span>}
           </div>
+          <div className="stack" style={{ gap: 8, padding: 10, borderRadius: 12, border: '2px dashed var(--content-border)' }}>
+            <strong style={{ fontSize: '0.8rem' }}>🏡 Home lots (Neighborhood)</strong>
+            <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>Every student gets a lot in the open world: their yard (with what they placed in it at home), their house and a mailbox. Students tap their mailbox to lock or open their lot.</span>
+            {homes ? (
+              <>
+                <span style={{ fontSize: '0.75rem' }}>{lotCapacity(homes)} lots for {students.length} student{students.length === 1 ? '' : 's'}, on the {homes.side} side.</span>
+                {lotCapacity(homes) < students.length && <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309' }}>{students.length - lotCapacity(homes)} student{students.length - lotCapacity(homes) === 1 ? ' needs' : 's need'} a lot. Add a row.</span>}
+                <button className="btn" style={{ minHeight: 44 }} onClick={addHomesRow}>➕ Add a row of lots</button>
+                <button className="btn" style={{ minHeight: 44 }} onClick={removeNeighborhood}>✕ Remove the Neighborhood</button>
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>Side of the town</span>
+                <div className="row-wrap" style={{ gap: 4 }}>
+                  {([['north', '⬆ North'], ['south', '⬇ South']] as ['north' | 'south', string][]).map(([sd, lb]) => <button key={sd} className={`btn btn-sm ${homesSide === sd ? 'btn-primary' : ''}`} aria-pressed={homesSide === sd} style={{ minHeight: 44, flex: 1 }} onClick={() => setHomesSide(sd)}>{lb}</button>)}
+                </div>
+                <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={addNeighborhood}>🏡 Add the Neighborhood</button>
+              </>
+            )}
+            {homesMsg && <span role="status" style={{ fontSize: '0.75rem' }}>{homesMsg}</span>}
+          </div>
         </div>
         )}
         {terrainTool && (
@@ -3933,6 +3993,7 @@ export default function WorldEditor() {
             </Suspense>
             <WaterSurface />
             {regions.list.map((r, k) => <RegionOutline key={r.id} r={r} color={REGION_COLORS[k % REGION_COLORS.length]} />)}
+            {homeLots.length > 0 && <HomeLots lots={homeLots} locked={lockedLots} />}
             <WaterAmbience off={waterSoundOff} listener={() => controlsRef.current?.target ?? null} />
             <TerrainBrushDriver stroke={strokeRef} tool={terrainTool} size={brushSize} strength={brushStrength} invert={shiftHeld} />
             {terrainTool && <BrushRing at={terrainCursor} radius={brushSize} color={shiftHeld && (terrainTool === 'raise' || terrainTool === 'lower') ? '#f97316' : '#ffffff'} />}

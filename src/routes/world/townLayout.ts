@@ -73,7 +73,9 @@ export const GROUND_BOUNDS_MIN = 12;
 // camera height) has been tested past a lot this size. Flagged for a live
 // teacher look if she ever pushes a wall near this cap: JUDGMENT CALL, not
 // a hard technical limit.
-export const GROUND_BOUNDS_MAX = 70;
+// Raised from 70 to 150 (2026-10-10) so regions and the students' home lots (Neighborhood) have
+// room to join the world; the terrain grid stays at most 160 cells across at any size.
+export const GROUND_BOUNDS_MAX = 150;
 
 export function clampGroundBoundsValue(v: number): number {
   return Math.min(GROUND_BOUNDS_MAX, Math.max(GROUND_BOUNDS_MIN, v));

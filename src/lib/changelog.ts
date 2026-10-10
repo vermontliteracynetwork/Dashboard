@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-10-home-lots',
+    date: '2026-10-10',
+    icon: '🏡',
+    title: 'Your home is in the world',
+    body: 'When your teacher adds the Neighborhood, your house, your yard and your own mailbox show up next to Town Square. Tap your mailbox or your front door to lock your lot or open it for friends. Walk out your gate to go to town.',
+  },
+  {
     id: '2026-10-10-swimming',
     date: '2026-10-10',
     icon: '🏊',
