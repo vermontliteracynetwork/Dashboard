@@ -5,6 +5,7 @@ import { OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { StyleAvatar, STYLE_IN_WORLD_SCALE } from '../../style/StyleAvatar';
 import { useStore } from '../../store/store';
+import { useHiddenCatalog } from '../../lib/catalogHidden';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
 import { ROLE_VIEWS, withDefaultRoles } from './townLayout';
 import InternalBrowser from '../../components/InternalBrowser';
@@ -500,7 +501,9 @@ export default function IslandBuild() {
     [islandObjects]
   );
 
-  const [manifest, setManifest] = useState<AssetManifestEntry[]>([]);
+  const [manifestAll, setManifest] = useState<AssetManifestEntry[]>([]);
+  const hiddenCatalog = useHiddenCatalog();
+  const manifest = useMemo(() => manifestAll.filter((a) => !hiddenCatalog.has(a.path)), [manifestAll, hiddenCatalog]);
   const [manifestError, setManifestError] = useState(false);
   useEffect(() => {
     fetch('/world/asset-manifest.json')

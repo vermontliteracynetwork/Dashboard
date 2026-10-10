@@ -8,11 +8,13 @@ import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer, useModelSize, safeScale, townSizeFactor } from '../world/WorldObjectRenderer';
 import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule, measureModel } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
-import { REGION_NAME_SUGGESTIONS, REGION_SIZES, regionRect, saveRegions, useRegions, type Region, type Side } from '../world/regions';
+import { REGION_NAME_SUGGESTIONS, REGION_SIZES, regionRect, saveRegions, useRegions, type Side } from '../world/regions';
 import { ROW_PITCH, depthForRows, homesRect, layoutLots, lotCapacity, removeHomes, rowsNeeded, saveHomes, useHomes, useLockedLots } from '../world/homeLots';
 import { HomeLots } from '../world/HomeLots';
+import { RegionBorders, regionColor } from '../world/RegionBorders';
+import { hideCatalogItem, restoreCatalogItem, useHiddenCatalog } from '../../lib/catalogHidden';
 import { TerrainMesh, WaterSurface, WaterAmbience, BrushRing, useTerrainSync } from '../world/TerrainMesh';
-import { useTerrainVersion, TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
+import { TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
@@ -1049,34 +1051,21 @@ function GroundCellOutline({ x, z, color, size = GRID_SIZE }: { x: number; z: nu
   );
 }
 
-// Region outlines and names on the ground, so she can see where each region is while building.
-const REGION_COLORS = ['#f97316', '#0ea5e9', '#a855f7', '#e11d48', '#14b8a6', '#eab308'];
-function RegionOutline({ r, color }: { r: Region; color: string }) {
-  const v = useTerrainVersion();
-  const line = useMemo(() => {
-    const pts: number[] = [];
-    const x1 = Math.min(r.x1, r.x2), x2 = Math.max(r.x1, r.x2), z1 = Math.min(r.z1, r.z2), z2 = Math.max(r.z1, r.z2);
-    const edge = (ax: number, az: number, bx: number, bz: number) => {
-      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az)));
-      for (let k = 0; k < n; k++) { const x = ax + ((bx - ax) * k) / n, z = az + ((bz - az) * k) / n; pts.push(x, heightAt(x, z) + 0.08, z); }
-    };
-    edge(x1, z1, x2, z1); edge(x2, z1, x2, z2); edge(x2, z2, x1, z2); edge(x1, z2, x1, z1);
-    pts.push(pts[0], pts[1], pts[2]);
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color, dashSize: 0.8, gapSize: 0.4 }));
-    l.computeLineDistances(); l.raycast = () => {};
-    return l;
-  }, [r.x1, r.x2, r.z1, r.z2, color, v]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => { line.geometry.dispose(); (line.material as THREE.Material).dispose(); }, [line]);
-  const cx = (r.x1 + r.x2) / 2, cz = (r.z1 + r.z2) / 2;
-  return (
-    <>
-      <primitive object={line} />
-      <Html position={[cx, heightAt(cx, cz) + 0.3, cz]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
-        <div style={{ background: '#fff', border: `2px solid ${color}`, borderRadius: 999, padding: '2px 10px', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap' }}>📍 {r.name}</div>
-      </Html>
-    </>
-  );
+// Region borders and names on the ground: see RegionBorders.tsx.
+
+// Flying the camera to a region (teacher 2026-10-10: "allow me to fluidly view and build between
+// regions"): the view glides over to the region, keeping its angle and zoom.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CameraFlight({ controlsRef, goal }: { controlsRef: React.RefObject<any>; goal: React.RefObject<THREE.Vector3 | null> }) {
+  useFrame((_, dt) => {
+    const c = controlsRef.current, g = goal.current;
+    if (!c || !g) return;
+    const d = new THREE.Vector3().subVectors(g, c.target);
+    if (d.length() < 0.05) { goal.current = null; return; }
+    d.multiplyScalar(1 - Math.pow(0.002, Math.min(dt, 0.05)));
+    c.target.add(d); c.object.position.add(d); c.update();
+  });
+  return null;
 }
 
 // Terrain sculpting (teacher 2026-10-10). While the brush is held, it works a little every frame
@@ -2044,7 +2033,25 @@ export default function WorldEditor() {
   const restoreWorldEditorState = useStore((s) => s.restoreWorldEditorState);
   const retrySyncNow = useStore((s) => s.retrySyncNow);
 
-  const [manifest, setManifest] = useState<AssetManifestEntry[]>([]);
+  const [manifestAll, setManifest] = useState<AssetManifestEntry[]>([]);
+  // Items she removed from the catalog never show (see lib/catalogHidden.ts).
+  const hiddenCatalog = useHiddenCatalog();
+  const manifest = useMemo(() => manifestAll.filter((a) => !hiddenCatalog.has(a.path)), [manifestAll, hiddenCatalog]);
+  const [removeAsk, setRemoveAsk] = useState<AssetManifestEntry | null>(null);
+  const [showRemoved, setShowRemoved] = useState(false);
+  // Press and hold on an iPad does what a right-click does.
+  const holdTimer = useRef<number | null>(null);
+  const holdFired = useRef(false);
+  const catalogHold = (a: AssetManifestEntry) => ({
+    onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); setRemoveAsk(a); },
+    onPointerDown: (e: React.PointerEvent) => {
+      holdFired.current = false;
+      if (e.pointerType === 'mouse') return;
+      holdTimer.current = window.setTimeout(() => { holdFired.current = true; setRemoveAsk(a); }, 600);
+    },
+    onPointerUp: () => { if (holdTimer.current) window.clearTimeout(holdTimer.current); holdTimer.current = null; },
+    onPointerLeave: () => { if (holdTimer.current) window.clearTimeout(holdTimer.current); holdTimer.current = null; },
+  });
   const [manifestError, setManifestError] = useState(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
@@ -2262,6 +2269,8 @@ export default function WorldEditor() {
   // View returns to exactly wherever the camera was before, a real
   // toggle rather than a one-way jump.
   const TOP_VIEW_HEIGHT = 46;
+  const flightGoal = useRef<THREE.Vector3 | null>(null);
+  const flyTo = (x: number, z: number) => { flightGoal.current = new THREE.Vector3(x, heightAt(x, z), z); };
   const [isTopView, setIsTopView] = useState(false);
   const preTopViewCamera = useRef<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const topView = () => {
@@ -2281,8 +2290,12 @@ export default function WorldEditor() {
       position: [controls.object.position.x, controls.object.position.y, controls.object.position.z],
       target: [controls.target.x, controls.target.y, controls.target.z],
     };
-    controls.object.position.set(0, TOP_VIEW_HEIGHT, 0.01);
-    controls.target.set(0, 0, 0);
+    // High enough to see the whole world, regions included, centered on it.
+    const gb = useStore.getState().groundBounds;
+    const cx = (gb.east - gb.west) / 2, cz = (gb.south - gb.north) / 2;
+    const h = Math.max(TOP_VIEW_HEIGHT, Math.max(gb.east + gb.west, gb.north + gb.south) * 1.05);
+    controls.object.position.set(cx, h, cz + 0.01);
+    controls.target.set(cx, 0, cz);
     controls.update();
     setIsTopView(true);
   };
@@ -3427,8 +3440,9 @@ export default function WorldEditor() {
                   return (
                     <button
                       key={a.path}
-                      onClick={() => armAsset(armed ? null : a)}
-                      title={a.label}
+                      {...catalogHold(a)}
+                      onClick={() => { if (holdFired.current) { holdFired.current = false; return; } armAsset(armed ? null : a); }}
+                      title={`${a.label} (right-click or press and hold to remove it from the catalog)`}
                       style={{
                         minHeight: 44, minWidth: 44, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6,
                         border: armed ? `2px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)',
@@ -3450,8 +3464,9 @@ export default function WorldEditor() {
               return (
                 <button
                   key={a.path}
-                  onClick={() => armAsset(armed ? null : a)}
-                  title={a.label}
+                  {...catalogHold(a)}
+                  onClick={() => { if (holdFired.current) { holdFired.current = false; return; } armAsset(armed ? null : a); }}
+                  title={`${a.label} (right-click or press and hold to remove it from the catalog)`}
                   style={{
                     position: 'relative', display: 'flex', flexDirection: 'column', height: 96, padding: 0,
                     border: armed ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)',
@@ -3471,6 +3486,41 @@ export default function WorldEditor() {
             })}
             {filtered.length === 0 && !manifestError && <p style={{ fontSize: '0.78rem', opacity: 0.6, gridColumn: '1 / -1' }}>No assets match.</p>}
           </div>
+          {hiddenCatalog.size > 0 && (
+            <div className="stack" style={{ gap: 6 }}>
+              <button className="btn btn-sm" style={{ minHeight: 44 }} aria-expanded={showRemoved} onClick={() => setShowRemoved((v) => !v)}>🗑️ Removed items ({hiddenCatalog.size}) {showRemoved ? '▲' : '▼'}</button>
+              {showRemoved && [...hiddenCatalog].map((path) => {
+                const a = manifestAll.find((m) => m.path === path);
+                return (
+                  <div key={path} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                    {a && <AssetThumb modelPath={a.path} category={a.category} size={30} iconSize={16} />}
+                    <span style={{ flex: 1, fontSize: '0.75rem', fontWeight: 700 }}>{a?.label ?? path.split('/').pop()}</span>
+                    <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { restoreCatalogItem(path); flashSaved(); }}>↩ Bring back</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {removeAsk && (
+            <div role="dialog" aria-label="Remove from the catalog" style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setRemoveAsk(null)}>
+              <div className="stack" style={{ gap: 10, background: '#fff', borderRadius: 16, padding: 18, maxWidth: 360, width: '100%', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', fontFamily: 'system-ui, sans-serif' }} onClick={(e) => e.stopPropagation()}>
+                <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+                  <AssetThumb modelPath={removeAsk.path} category={removeAsk.category} size={48} iconSize={24} />
+                  <strong>Remove "{removeAsk.label}" from the catalog?</strong>
+                </div>
+                <span style={{ fontSize: '0.8rem' }}>It disappears from every catalog, for everyone. Anything already placed stays where it is. You can bring it back from 🗑️ Removed items at the bottom of the catalog.</span>
+                <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                  <button className="btn" style={{ minHeight: 44 }} onClick={() => setRemoveAsk(null)}>Cancel</button>
+                  <button className="btn btn-primary" style={{ minHeight: 44, background: '#dc2626', borderColor: '#dc2626' }} onClick={() => {
+                    hideCatalogItem(removeAsk.path);
+                    setRecentAssets((r) => r.filter((x) => x.path !== removeAsk.path));
+                    if (armedAsset?.path === removeAsk.path) armAsset(null);
+                    setRemoveAsk(null); flashSaved();
+                  }}>🗑️ Remove</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         )}
 
@@ -3492,7 +3542,7 @@ export default function WorldEditor() {
               <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Your regions</span>
               {regions.list.map((r, k) => (
                 <div key={r.id} className="row" style={{ gap: 6, alignItems: 'center' }}>
-                  <span aria-hidden style={{ width: 12, height: 12, borderRadius: 999, background: REGION_COLORS[k % REGION_COLORS.length], flexShrink: 0 }} />
+                  <span aria-hidden style={{ width: 12, height: 12, borderRadius: 999, background: regionColor(k), flexShrink: 0 }} />
                   <input aria-label={`Name of region ${k + 1}`} className="input" style={{ minHeight: 44, flex: 1 }} defaultValue={r.name} key={r.name} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== r.name) { renameRegion(r.id, v); flashSaved(); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
                   <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Remove this region's name (the land and everything on it stays)" aria-label={`Remove the name ${r.name}`} onClick={() => removeRegion(r.id)}>✕</button>
                 </div>
@@ -3902,6 +3952,14 @@ export default function WorldEditor() {
               ⚠ {wallPlacementError}
             </div>
           )}
+          {regions.list.length > 0 && (
+            <div role="group" aria-label="Fly to a region" style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100% - 24px)', fontFamily: 'system-ui, sans-serif' }}>
+              <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} title="Fly to the main town" onClick={() => flyTo(0, 0)}>🧭 {regions.base}</button>
+              {regions.list.map((r, k) => (
+                <button key={r.id} className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800, border: `3px solid ${regionColor(k)}` }} title={`Fly to ${r.name}`} onClick={() => flyTo((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2)}>📍 {r.name}</button>
+              ))}
+            </div>
+          )}
           {showSaved && (
             <div style={{ position: 'absolute', bottom: 70, right: 16, zIndex: 6, background: BUILD_ACCENT, color: '#fff', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'system-ui, sans-serif', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', pointerEvents: 'none' }}>
               ✓ Saved
@@ -3967,7 +4025,7 @@ export default function WorldEditor() {
               makeDefault
               maxPolarAngle={Math.PI / 2.1}
               minDistance={6}
-              maxDistance={42}
+              maxDistance={Math.max(42, lotExt * 2.4)}
               mouseButtons={{ MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE }}
             />
             <CameraPanner controlsRef={controlsRef} />
@@ -3992,7 +4050,8 @@ export default function WorldEditor() {
               />
             </Suspense>
             <WaterSurface />
-            {regions.list.map((r, k) => <RegionOutline key={r.id} r={r} color={REGION_COLORS[k % REGION_COLORS.length]} />)}
+            <RegionBorders list={regions.list} width={isTopView ? 0.9 : 0.35} />
+            <CameraFlight controlsRef={controlsRef} goal={flightGoal} />
             {homeLots.length > 0 && <HomeLots lots={homeLots} locked={lockedLots} />}
             <WaterAmbience off={waterSoundOff} listener={() => controlsRef.current?.target ?? null} />
             <TerrainBrushDriver stroke={strokeRef} tool={terrainTool} size={brushSize} strength={brushStrength} invert={shiftHeld} />

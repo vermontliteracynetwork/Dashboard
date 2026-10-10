@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useHiddenCatalog } from '../../lib/catalogHidden';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import ImageUploadField from '../../components/ImageUploadField';
@@ -344,7 +345,9 @@ export default function MarketplaceManager() {
   // same manifest WorldEditor.tsx's own catalog reads, filtered to
   // 'interior' so a teacher picks from real, already-licensed furniture
   // rather than typing a raw asset path by hand.
-  const [interiorAssets, setInteriorAssets] = useState<{ path: string; label: string }[]>([]);
+  const [interiorAssetsAll, setInteriorAssets] = useState<{ path: string; label: string }[]>([]);
+  const hiddenCatalog = useHiddenCatalog();
+  const interiorAssets = useMemo(() => interiorAssetsAll.filter((a) => !hiddenCatalog.has(a.path)), [interiorAssetsAll, hiddenCatalog]);
   const [modelPath, setModelPath] = useState('');
   useEffect(() => {
     fetch('/world/asset-manifest.json')

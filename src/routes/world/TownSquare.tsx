@@ -44,6 +44,7 @@ import { WorldObjectRenderer, useModelSize, isFlatModelSize, safeScale } from '.
 import { TownSizeContext, useTownSizeRule } from './townSize';
 import { TerrainMesh, WaterSurface, WaterAmbience, useTerrainSync } from './TerrainMesh';
 import { regionAt, useRegions } from './regions';
+import { RegionBorders } from './RegionBorders';
 import { homeBlock, isHomeBlocked, layoutLots, lotArrival, setLotLocked, useHomes, useLockedLots, type Lot } from './homeLots';
 import { HomeLots } from './HomeLots';
 import { getTerrain, heightAt, isTerrainWater, useTerrainVersion, waterLevel } from './terrain';
@@ -4978,6 +4979,8 @@ export default function TownSquare() {
             onBuildingClick={handleApproachBuilding}
           />
           {mapView && <CoordinateGrid />}
+          {/* Each region's own color border and name on the map (teacher 2026-10-10). */}
+          {mapView && <RegionBorders list={regions.list} width={1.4} />}
           <WalkTargetMarker walkTarget={walkTarget} />
           {homeLots.length > 0 && (
             <HomeLots

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-10-region-borders',
+    date: '2026-10-10',
+    icon: '🗺️',
+    title: 'Colorful areas on the map',
+    body: 'Open the map in Town Square to see every area your teacher made, each one outlined in its own color with its name in the middle.',
+  },
+  {
     id: '2026-10-10-home-lots',
     date: '2026-10-10',
     icon: '🏡',
