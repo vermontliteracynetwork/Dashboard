@@ -45,6 +45,7 @@ import { TownSizeContext, useTownSizeRule } from './townSize';
 import { TerrainMesh, WaterSurface, WaterAmbience, useTerrainSync } from './TerrainMesh';
 import { regionAt, useRegions } from './regions';
 import { RegionBorders } from './RegionBorders';
+import { GroundPaths } from './GroundPaths';
 import { homeBlock, isHomeBlocked, layoutLots, lotArrival, setLotLocked, useHomes, useLockedLots, type Lot } from './homeLots';
 import { HomeLots } from './HomeLots';
 import { getTerrain, heightAt, isTerrainWater, useTerrainVersion, waterLevel } from './terrain';
@@ -2570,6 +2571,9 @@ function Park({
           </Suspense>
           <Suspense fallback={null}>
             <WaterSurface />
+          </Suspense>
+          <Suspense fallback={null}>
+            <GroundPaths />
           </Suspense>
         </>
       ) : (

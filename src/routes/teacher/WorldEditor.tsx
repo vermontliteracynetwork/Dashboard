@@ -13,6 +13,8 @@ import { ROW_PITCH, depthForRows, homesRect, layoutLots, lotCapacity, removeHome
 import { HomeLots } from '../world/HomeLots';
 import { RegionBorders, regionColor } from '../world/RegionBorders';
 import { hideCatalogItem, restoreCatalogItem, useHiddenCatalog } from '../../lib/catalogHidden';
+import { GroundPaths, savePaths, usePaths } from '../world/GroundPaths';
+import { REMAKE_OWNER, buildNewTown, restoreOldTown, type RemakeRow } from '../world/townRemake';
 import { TerrainMesh, WaterSurface, WaterAmbience, BrushRing, useTerrainSync } from '../world/TerrainMesh';
 import { TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, isTerrainWater, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
 import { WallMesh } from '../../components/WallMesh';
@@ -3058,6 +3060,23 @@ export default function WorldEditor() {
     setHomesMsg('Removed the Neighborhood (the land stays).');
     flashSaved();
   };
+  // ---- the new Town Square and Enchanted Forest (see townRemake.ts) ----
+  // Only ever runs when she taps the button and confirms; the old town is saved first.
+  const remake = useStore((s) => s.styleLooks.find((r) => r.ownerId === REMAKE_OWNER)?.look) as RemakeRow | undefined;
+  const [remakeProgress, setRemakeProgress] = useState<number | null>(null);
+  const [remakeAsk, setRemakeAsk] = useState(false);
+  const [restoreArmed, setRestoreArmed] = useState(false);
+  const remakeStarted = useRef(false);
+  const startRemake = () => {
+    if (remakeStarted.current) return;
+    remakeStarted.current = true;
+    setRemakeAsk(false);
+    setRemakeProgress(0);
+    buildNewTown((f) => setRemakeProgress(f))
+      .catch(() => {})
+      .finally(() => { setRemakeProgress(null); remakeStarted.current = false; flashSaved(); });
+  };
+  const groundPaths = usePaths();
   const renameRegion = (id: string, name: string) => saveRegions({ ...regions, list: regions.list.map((r) => (r.id === id ? { ...r, name } : r)) });
   const removeRegion = (id: string) => saveRegions({ ...regions, list: regions.list.filter((r) => r.id !== id) });
   useEffect(() => { if (regionsOpen) { setTerrainTool(null); setPaintMode(null); setArmedAsset(null); setHammerMode(false); setWallMode(false); } }, [regionsOpen]);
@@ -3684,6 +3703,23 @@ export default function WorldEditor() {
             )}
             {homesMsg && <span role="status" style={{ fontSize: '0.75rem' }}>{homesMsg}</span>}
           </div>
+          <div className="stack" style={{ gap: 6, padding: 10, borderRadius: 12, border: '2px dashed var(--content-border)' }}>
+            <strong style={{ fontSize: '0.8rem' }}>🖼️ Town design</strong>
+            {remake?.state === 'built'
+              ? <button className="btn" style={{ minHeight: 44, background: restoreArmed ? '#fee2e2' : undefined }} onClick={() => { if (!restoreArmed) { setRestoreArmed(true); return; } setRestoreArmed(false); restoreOldTown(); flashSaved(); }}>{restoreArmed ? 'Tap again to bring back the old town' : '↩ Bring back the old town'}</button>
+              : <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(true)}>🏗️ Build the new Town Square and Forest</button>}
+          </div>
+          {groundPaths.length > 0 && (
+            <div className="stack" style={{ gap: 6, padding: 10, borderRadius: 12, border: '2px dashed var(--content-border)' }}>
+              <strong style={{ fontSize: '0.8rem' }}>🧱 Streets, paths and ground areas</strong>
+              {groundPaths.map((gp) => (
+                <div key={gp.id} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                  <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 700 }}>{gp.name}</span>
+                  <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label={`Remove ${gp.name}`} title={`Remove ${gp.name}`} onClick={() => { savePaths(groundPaths.filter((x) => x.id !== gp.id)); flashSaved(); }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         )}
         {plantSetId && (
@@ -4071,6 +4107,49 @@ export default function WorldEditor() {
               ⚠ {wallPlacementError}
             </div>
           )}
+          {remakeProgress !== null && (
+            <div role="status" style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(15,40,30,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+              <div className="stack" style={{ gap: 10, background: '#fff', borderRadius: 16, padding: 20, maxWidth: 380, width: '100%', fontFamily: 'system-ui, sans-serif', textAlign: 'center' }}>
+                <strong>🏗️ Building the new Town Square and the Enchanted Forest</strong>
+                <div style={{ height: 14, borderRadius: 999, background: '#e5e7eb', overflow: 'hidden' }}><div style={{ width: `${Math.round(remakeProgress * 100)}%`, height: '100%', background: BUILD_ACCENT, transition: 'width 0.3s' }} /></div>
+                <span style={{ fontSize: '0.8rem' }}>{Math.round(remakeProgress * 100)}%. The old town was saved first, so it can come back.</span>
+              </div>
+            </div>
+          )}
+          {remakeAsk && remakeProgress === null && (
+            <div role="dialog" aria-label="Build the new town" style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setRemakeAsk(false)}>
+              <div className="stack" style={{ gap: 10, background: '#fff', borderRadius: 16, padding: 20, maxWidth: 420, width: '100%', fontFamily: 'system-ui, sans-serif' }} onClick={(e) => e.stopPropagation()}>
+                <strong>🏗️ Replace the town with the mockups?</strong>
+                <span style={{ fontSize: '0.82rem' }}>This removes everything in the current Town Square (objects, painted ground, regions, hills and water) and builds the 50 x 50 Town Square with the 30 x 30 Enchanted Forest off the west street. Every place students can go keeps a building. It goes live for students right away.</span>
+                <span style={{ fontSize: '0.82rem' }}>The whole old town is saved first: "↩ Bring back the old town" puts it back exactly.</span>
+                <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                  <button className="btn" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(false)}>Cancel</button>
+                  <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={startRemake}>🏗️ Build it</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {remakeProgress === null && !remakeAsk && !remake?.bannerClosed && (
+            <div role="status" style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 7, background: '#fff', border: `3px solid ${BUILD_ACCENT}`, borderRadius: 14, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100% - 24px)', fontFamily: 'system-ui, sans-serif', fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+              {!remake?.state ? (
+                <>
+                  <span>🖼️ The Town Square and Enchanted Forest mockups are ready to build.</span>
+                  <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(true)}>🏗️ Build the new town</button>
+                </>
+              ) : remake.state === 'built' ? (
+                <>
+                  <span>✨ The new Town Square and the Enchanted Forest (west street) are built and live for students.</span>
+                  <button className="btn btn-sm" style={{ minHeight: 44, background: restoreArmed ? '#fee2e2' : undefined }} onClick={() => { if (!restoreArmed) { setRestoreArmed(true); return; } setRestoreArmed(false); restoreOldTown(); flashSaved(); }}>{restoreArmed ? 'Tap again to bring back the old town' : '↩ Bring back the old town'}</button>
+                </>
+              ) : (
+                <>
+                  <span>↩ The old town is back.</span>
+                  <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(true)}>🏗️ Build the new town again</button>
+                </>
+              )}
+              {<button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label="Close" onClick={() => { setRestoreArmed(false); useStore.getState().mergeStyleRow(REMAKE_OWNER, { bannerClosed: true }); }}>✕</button>}
+            </div>
+          )}
           {regions.list.length > 0 && (
             <div role="group" aria-label="Fly to a region" style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100% - 24px)', fontFamily: 'system-ui, sans-serif' }}>
               <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} title="Fly to the main town" onClick={() => flyTo(0, 0)}>🧭 {regions.base}</button>
@@ -4170,6 +4249,7 @@ export default function WorldEditor() {
             </Suspense>
             <WaterSurface />
             <RegionBorders list={regions.list} width={isTopView ? 0.9 : 0.35} />
+            <Suspense fallback={null}><GroundPaths /></Suspense>
             <CameraFlight controlsRef={controlsRef} goal={flightGoal} />
             {homeLots.length > 0 && <HomeLots lots={homeLots} locked={lockedLots} />}
             <WaterAmbience off={waterSoundOff} listener={() => controlsRef.current?.target ?? null} />

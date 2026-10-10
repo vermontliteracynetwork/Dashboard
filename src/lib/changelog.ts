@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-10-new-town',
+    date: '2026-10-10',
+    icon: '🏘️',
+    title: 'A brand new Town Square',
+    body: 'Town Square has a new look: a paved square with a statue, brick streets, a market, a park, a pond with a boat you can row, and the Enchanted Forest at the end of the west street, with a tree library and a mushroom ring.',
+  },
+  {
     id: '2026-10-10-region-borders',
     date: '2026-10-10',
     icon: '🗺️',
