@@ -581,9 +581,10 @@ function blockObstacles(x: number, z: number): [number, number] {
 // by an amount the player's own input already implied, so it can't glitch.
 // Lakes, rivers and oceans dug in Build Mode (terrain.ts) are not walkable or drivable: a step
 // into water slides along the shore instead, the same bump-and-slide feel as every obstacle.
-function blockObstaclesSlide(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
+// `swimmer`: the student on foot can walk into water (see SWIM_DEPTH); cars and townspeople can't.
+function blockObstaclesSlide(curX: number, curZ: number, targetX: number, targetZ: number, swimmer = false): [number, number] {
   // Also: houses on the home lots are solid, and a locked home lot keeps other students out.
-  const blocked = (px: number, pz: number) => isTerrainWater(px, pz) || isHomeBlocked(px, pz);
+  const blocked = (px: number, pz: number) => (!swimmer && isTerrainWater(px, pz)) || isHomeBlocked(px, pz);
   const [x, z] = blockObstaclesSlideLand(curX, curZ, targetX, targetZ);
   if (!blocked(x, z) || blocked(curX, curZ)) return [x, z];
   if (!blocked(x, curZ)) return [x, curZ];
@@ -756,8 +757,48 @@ function useKeys() {
 
 // Teacher 2026-10-08: "remove the old characters everywhere". The student always walks as
 // their own Seamstress character now; the old player model and Cake Character skin are gone.
-function PlayerModel({ isMoving }: { isMoving: React.RefObject<boolean> }) {
-  return <StyleAvatar isMoving={isMoving} />;
+function PlayerModel({ isMoving, swimming }: { isMoving: React.RefObject<boolean>; swimming: React.RefObject<boolean> }) {
+  return <StyleAvatar isMoving={isMoving} swimming={swimming} />;
+}
+
+// Swimming (teacher 2026-10-10: "give my players a swimming animation if their bodies are more
+// than 50 sumberged in water"). A student walks right into a lake, river or ocean: in shallow
+// water they wade, and once the water is deeper than half their height they swim (front crawl
+// while moving, treading water while still), floating with the water line across their body.
+// The player is about 1 unit tall, so half is 0.5.
+const SWIM_DEPTH = 0.5;
+const SWIM_SPEED = 0.6; // a little slower than walking
+const SWIM_FLOAT_STROKE = 0.22; // how far below the surface the player's feet sit while stroking (body lying flat)
+const SWIM_FLOAT_TREAD = 0.62; // ...and while treading water upright (head and shoulders out)
+
+// Little rings spreading out on the water around a swimmer.
+function SwimRipples({ swimming }: { swimming: React.RefObject<boolean> }) {
+  const group = useRef<THREE.Group>(null);
+  const rings = useRef<(THREE.Mesh | null)[]>([]);
+  useFrame(({ clock }) => {
+    const g = group.current;
+    if (!g) return;
+    g.visible = !!swimming.current;
+    if (!g.visible) return;
+    const parentY = g.parent?.position.y ?? 0;
+    g.position.y = waterLevel() + 0.02 - parentY;
+    rings.current.forEach((m, k) => {
+      if (!m) return;
+      const q = (clock.elapsedTime * 0.7 + k / 3) % 1;
+      m.scale.setScalar(0.35 + q * 1.1);
+      (m.material as THREE.MeshBasicMaterial).opacity = 0.55 * (1 - q);
+    });
+  });
+  return (
+    <group ref={group} visible={false}>
+      {[0, 1, 2].map((k) => (
+        <mesh key={k} ref={(m) => { rings.current[k] = m; }} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null} renderOrder={3}>
+          <ringGeometry args={[0.5, 0.58, 40]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.5} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
 }
 
 // The student's trained "walk beside you" pet (see StudentPet.following in
@@ -1615,6 +1656,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
   const pos = useRef(new THREE.Vector3(SPAWN_POSITION.x, 0, SPAWN_POSITION.z));
   const facing = useRef(0);
   const isMoving = useRef(false);
+  const swimming = useRef(false);
   const moveSpeed = BASE_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
   const carSpeed = useRef(0);
   const boatSpeed = useRef(0);
@@ -1922,7 +1964,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         cameraPitch.current = 0;
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
-        const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * moveSpeed * dt, pos.current.z + dz * moveSpeed * dt);
+        const sp = moveSpeed * (swimming.current ? SWIM_SPEED : 1);
+        const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * sp * dt, pos.current.z + dz * sp * dt, true);
         const cx = clampGroundX(bx);
         const cz = clampGroundZ(bz);
         // The ground-boundary clamp above runs after building collision, so
@@ -1949,7 +1992,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           cameraPitch.current = 0;
           const ndx = tx / dist;
           const ndz = tz / dist;
-          const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + ndx * moveSpeed * dt, pos.current.z + ndz * moveSpeed * dt);
+          const sp = moveSpeed * (swimming.current ? SWIM_SPEED : 1);
+          const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + ndx * sp * dt, pos.current.z + ndz * sp * dt, true);
           const cx = clampGroundX(bx);
           const cz = clampGroundZ(bz);
           [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
@@ -2010,9 +2054,16 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     // single onMove call to here, after every branch and after this
     // clamp, means nothing downstream ever sees an out-of-bounds value.
     if (moved) onMove(pos.current);
-    // Stand on the shaped ground; a boat rides the water surface.
-    const groundY = vehicleKind === 'boat' && isTerrainWater(pos.current.x, pos.current.z) ? waterLevel() - 0.03 : heightAt(pos.current.x, pos.current.z);
-    groupRef.current.position.set(pos.current.x, groundY, pos.current.z);
+    // Stand on the shaped ground; a boat rides the water surface; a swimmer floats in it.
+    swimming.current = !driving && !!getTerrain() && waterLevel() - heightAt(pos.current.x, pos.current.z) > SWIM_DEPTH;
+    const groundY = swimming.current
+      ? waterLevel() - (isMoving.current ? SWIM_FLOAT_STROKE : SWIM_FLOAT_TREAD)
+      : vehicleKind === 'boat' && isTerrainWater(pos.current.x, pos.current.z) ? waterLevel() - 0.03 : heightAt(pos.current.x, pos.current.z);
+    // Ease up and down (stepping into deep water, starting and stopping a stroke); a jump
+    // (teleport, a big drop) snaps.
+    const prevY = groupRef.current.position.y;
+    const y = Math.abs(groundY - prevY) > 1.5 ? groundY : prevY + (groundY - prevY) * Math.min(1, dt * 10);
+    groupRef.current.position.set(pos.current.x, y, pos.current.z);
     groupRef.current.rotation.y = facing.current;
     if (facingRef) facingRef.current = facing.current;
 
@@ -2069,8 +2120,9 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       const camHeight = airborne ? CAMERA_HEIGHT + planeAltitude.current : groundCamHeight;
       const lookY = airborne ? 0.5 : 1 + cameraPitch.current;
       // Follow the ground's height so hills and valleys never swallow the view.
-      const camGround = heightAt(pos.current.x, pos.current.z);
-      camera.position.lerp(new THREE.Vector3(camX, camHeight + Math.max(camGround, heightAt(camX, camZ)), camZ), 1 - Math.pow(0.001, dt));
+      // Over water, the water's surface counts as the ground (never look up from the lake bed).
+      const camGround = Math.max(heightAt(pos.current.x, pos.current.z), waterLevel());
+      camera.position.lerp(new THREE.Vector3(camX, camHeight + Math.max(camGround, heightAt(camX, camZ), waterLevel()), camZ), 1 - Math.pow(0.001, dt));
       camera.lookAt(pos.current.x, lookY + camGround, pos.current.z);
     }
   });
@@ -2079,9 +2131,10 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     <group ref={groupRef}>
       {!hideAvatar && (
         <Suspense fallback={<mesh position={[0, 0.55, 0]}><capsuleGeometry args={[0.35, 0.7, 4, 8]} /><meshStandardMaterial color="#e2775c" /></mesh>}>
-          <PlayerModel isMoving={isMoving} />
+          <PlayerModel isMoving={isMoving} swimming={swimming} />
         </Suspense>
       )}
+      {!hideAvatar && <SwimRipples swimming={swimming} />}
       {!hideAvatar && onSelfClick && !mapView && (
         <mesh
           position={[0, 0.7, 0]}

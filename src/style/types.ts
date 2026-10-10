@@ -47,7 +47,8 @@ export interface StyleLook {
   outfit: Partial<Record<WardrobeSlot, EquippedItem>>;
 }
 
-export type StyleMove = 'idle' | 'walk' | 'run';
+// swim: stroking along in deep water; tread: floating in place in deep water.
+export type StyleMove = 'idle' | 'walk' | 'run' | 'swim' | 'tread';
 export type StyleOneShot = 'jump' | 'wave' | 'cheer' | 'dance';
 
 // Teacher edits to catalog items (item workshop): a new name and/or new

@@ -452,7 +452,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
             <div className="style-anim">
               <div className={`style-anim-group${lk('move')}`}>
                 <span className="style-anim-label">Move</span>
-                {(['idle', 'walk', 'run'] as StyleMove[]).map((m) => (
+                {(['idle', 'walk', 'run', 'swim', 'tread'] as StyleMove[]).map((m) => (
                   <button key={m} type="button" className={`style-chip${move === m ? ' on' : ''}`} onClick={() => { setMove(m); styleSound.tap(); }}>
                     {m === 'idle' ? '🧍 Stand' : m === 'walk' ? '🚶 Walk' : '🏃 Run'}
                   </button>

@@ -246,7 +246,7 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
   const shot = useRef<{ name: StyleOneShot; start: number } | null>(null);
   const clockNow = useRef(0);
   // Smoothed pose values (everything eases toward its target).
-  const s = useRef({ lift: 0, bob: 0, roll: 0, yaw: 0, lean: 0, aL: 0, aR: 0, oL: 0.1, oR: 0.1, lL: 0, lR: 0, hX: 0, hY: 0, hZ: 0, sq: 1, ear: 0, earV: 0, prevBob: 0, nextBlink: 2, footL: 0, footR: 0, blinkS: 1, mouthS: 0.22 });
+  const s = useRef({ lift: 0, bob: 0, roll: 0, yaw: 0, lean: 0, aL: 0, aR: 0, oL: 0.1, oR: 0.1, lL: 0, lR: 0, hX: 0, hY: 0, hZ: 0, sq: 1, pitch: 0, ear: 0, earV: 0, prevBob: 0, nextBlink: 2, footL: 0, footR: 0, blinkS: 1, mouthS: 0.22 });
 
   useImperativeHandle(handle, () => ({
     play: (name) => { shot.current = { name, start: clockNow.current }; },
@@ -262,9 +262,32 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     // Targets for this frame.
     const armOut = costumeItem?.costume ? 0.1 : species.armOut;
     let lift = 0, bob = 0, roll = 0, yaw = 0, lean = 0, aL = 0, aR = 0, oL = armOut, oR = armOut, lL = 0, lR = 0;
-    let hX = 0, hY = 0, hZ = 0, sq = 1, footL = 0, footR = 0, tailSpeed = 2.5, tailAmp = 0.3;
+    let hX = 0, hY = 0, hZ = 0, sq = 1, footL = 0, footR = 0, tailSpeed = 2.5, tailAmp = 0.3, pitch = 0;
 
-    if (move === 'walk' || move === 'run') {
+    if (move === 'swim') {
+      // Front crawl: the body tips forward to lie along the water, arms take turns reaching
+      // ahead and pulling back, legs flutter kick, the body rolls with each stroke and the head
+      // tips up to look where it is going.
+      const ph = t * 5 * calm;
+      const sw = Math.sin(ph);
+      pitch = 1.2;
+      aL = -1.6 - sw * 1.15; aR = -1.6 + sw * 1.15;
+      oL = oR = Math.max(armOut, 0.28);
+      lL = Math.sin(ph * 2) * 0.35; lR = -lL;
+      roll = sw * 0.12; bob = Math.sin(ph * 2) * 0.012;
+      hX = -1.0; hZ = -roll * 0.5;
+      tailSpeed = 10; tailAmp = 0.4;
+    } else if (move === 'tread') {
+      // Treading water: upright, arms sweeping out to the sides, legs pedaling, a gentle bob.
+      const ph = t * 3 * calm;
+      pitch = 0.12;
+      aL = aR = -0.35 + Math.sin(ph) * 0.25;
+      oL = oR = 0.95 + Math.sin(ph) * 0.35;
+      lL = Math.sin(ph * 1.1) * 0.4; lR = -lL;
+      bob = Math.sin(t * 2.2) * 0.03 * calm;
+      hY = Math.sin(t * 0.43) * 0.3 * calm; hX = -0.1;
+      tailSpeed = 5;
+    } else if (move === 'walk' || move === 'run') {
       const run = move === 'run';
       const f = run ? 12 : 7.5;
       const ph = t * f;
@@ -326,6 +349,7 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     p.lL = ease(p.lL, lL, 16, dt); p.lR = ease(p.lR, lR, 16, dt);
     p.hX = ease(p.hX, hX, 5, dt); p.hY = ease(p.hY, hY, 4, dt); p.hZ = ease(p.hZ, hZ, 5, dt);
     p.sq = ease(p.sq, sq, 22, dt);
+    p.pitch = ease(p.pitch, pitch, 6, dt);
 
     // Floppy ears: a spring driven by the body's vertical motion and sway.
     const vy = (p.bob + p.lift - p.prevBob) / Math.max(dt, 1e-3);
@@ -334,7 +358,13 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
     p.earV += earForce * dt; p.ear += p.earV * dt;
     p.ear = Math.max(-0.6, Math.min(0.6, p.ear));
 
-    if (root.current) { root.current.position.y = p.lift + p.bob; root.current.rotation.z = p.roll; root.current.rotation.y = p.yaw * 0.4; }
+    if (root.current) {
+      // Tipping forward (swimming) turns around the hips, not the feet, so the body stays in place.
+      root.current.position.y = p.lift + p.bob + HIP_Y * (1 - Math.cos(p.pitch));
+      root.current.position.z = -HIP_Y * Math.sin(p.pitch);
+      root.current.rotation.x = p.pitch;
+      root.current.rotation.z = p.roll; root.current.rotation.y = p.yaw * 0.4;
+    }
     if (torso.current) torso.current.rotation.x = p.lean;
     if (squash.current) { squash.current.scale.set(1 / Math.sqrt(p.sq), p.sq, 1 / Math.sqrt(p.sq)); }
     if (head.current) {

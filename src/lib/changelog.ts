@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-10-swimming',
+    date: '2026-10-10',
+    icon: '🏊',
+    title: 'Town Square: swimming',
+    body: 'Walk right into a lake, river or ocean. In shallow water you wade, and in deep water you swim! Keep moving to swim, or stop to float and tread water.',
+  },
+  {
     id: '2026-10-10-regions',
     date: '2026-10-10',
     icon: '🗺️',

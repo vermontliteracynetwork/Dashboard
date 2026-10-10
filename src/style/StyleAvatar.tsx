@@ -13,7 +13,8 @@ import type { StyleLook, StyleMove } from './types';
 // 0.62 matches the old player model at its 2.6 scale; pass a smaller
 // scale where the world is built smaller.
 export const STYLE_IN_WORLD_SCALE = 0.62;
-export function StyleAvatar({ isMoving, scale = STYLE_IN_WORLD_SCALE }: { isMoving: React.RefObject<boolean>; scale?: number }) {
+// `swimming`: set while the student is in water deeper than half their height (Town Square).
+export function StyleAvatar({ isMoving, swimming, scale = STYLE_IN_WORLD_SCALE }: { isMoving: React.RefObject<boolean>; swimming?: React.RefObject<boolean>; scale?: number }) {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === currentStudentId));
   const look = useMemo<StyleLook>(() => {
@@ -22,7 +23,7 @@ export function StyleAvatar({ isMoving, scale = STYLE_IN_WORLD_SCALE }: { isMovi
   }, [row]);
   const [move, setMove] = useState<StyleMove>('idle');
   useFrame(() => {
-    const next: StyleMove = isMoving.current ? 'walk' : 'idle';
+    const next: StyleMove = swimming?.current ? (isMoving.current ? 'swim' : 'tread') : isMoving.current ? 'walk' : 'idle';
     if (next !== move) setMove(next);
   });
   return <StyleCharacter look={look} move={move} scale={scale} />;
