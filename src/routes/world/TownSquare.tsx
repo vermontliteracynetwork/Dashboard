@@ -43,6 +43,7 @@ import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer, useModelSize, isFlatModelSize, safeScale } from './WorldObjectRenderer';
 import { TownSizeContext, useTownSizeRule } from './townSize';
 import { TerrainMesh, WaterSurface, WaterAmbience, useTerrainSync } from './TerrainMesh';
+import { regionAt, useRegions } from './regions';
 import { getTerrain, heightAt, isTerrainWater, useTerrainVersion, waterLevel } from './terrain';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
@@ -3189,6 +3190,9 @@ export default function TownSquare() {
   const [playerPos, setPlayerPos] = useState(() => new THREE.Vector3(0, 0, 6));
   // The sculpted ground, water and their sound (terrain.ts, 2026-10-10).
   useTerrainSync();
+  // Regions (2026-10-10): the top-left name follows the region the student is standing in.
+  const regions = useRegions();
+  const regionName = regionAt(regions, playerPos.x, playerPos.z);
   const playerPosRef = useRef(playerPos);
   playerPosRef.current = playerPos;
   const [waterSoundOff] = useState(() => { try { return localStorage.getItem('water-sound-off') === '1'; } catch { return false; } });
@@ -4239,8 +4243,8 @@ export default function TownSquare() {
       onContextMenu={(e) => e.preventDefault()}
     >
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', gap: 8 }}>
-        <span style={{ background: 'white', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 700, color: '#1f4238', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-          🌳 Yoglandia Town Square
+        <span key={regionName} className="region-chip" role="status" aria-live="polite" style={{ background: 'white', padding: '8px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 700, color: '#1f4238', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+          {regionName === regions.base ? '🌳' : '📍'} {regionName}
         </span>
       </div>
 

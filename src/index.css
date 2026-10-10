@@ -6346,3 +6346,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 @keyframes gwb-blink { 50% { opacity: 0.35; } }
 .gwb.calm .gwb-belt, .gwb.calm .gwb-belt-box, .gwb.calm .gwb-blink { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .gwb-belt, .gwb-belt-box, .gwb-blink { animation: none !important; } }
+/* Region name chip in Town Square: a soft slide-in when a student walks into a new region (2026-10-10) */
+.region-chip { display: inline-block; animation: regionIn 0.5s ease-out; }
+@keyframes regionIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .region-chip { animation: none; } }

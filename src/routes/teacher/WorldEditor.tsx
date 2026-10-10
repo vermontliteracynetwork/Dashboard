@@ -8,8 +8,9 @@ import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer, useModelSize, safeScale, townSizeFactor } from '../world/WorldObjectRenderer';
 import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule, measureModel } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
+import { REGION_NAME_SUGGESTIONS, REGION_SIZES, regionRect, saveRegions, useRegions, type Region, type Side } from '../world/regions';
 import { TerrainMesh, WaterSurface, WaterAmbience, BrushRing, useTerrainSync } from '../world/TerrainMesh';
-import { TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
+import { useTerrainVersion, TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
@@ -1031,6 +1032,36 @@ function GroundCellOutline({ x, z, color, size = GRID_SIZE }: { x: number; z: nu
   );
 }
 
+// Region outlines and names on the ground, so she can see where each region is while building.
+const REGION_COLORS = ['#f97316', '#0ea5e9', '#a855f7', '#e11d48', '#14b8a6', '#eab308'];
+function RegionOutline({ r, color }: { r: Region; color: string }) {
+  const v = useTerrainVersion();
+  const line = useMemo(() => {
+    const pts: number[] = [];
+    const x1 = Math.min(r.x1, r.x2), x2 = Math.max(r.x1, r.x2), z1 = Math.min(r.z1, r.z2), z2 = Math.max(r.z1, r.z2);
+    const edge = (ax: number, az: number, bx: number, bz: number) => {
+      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az)));
+      for (let k = 0; k < n; k++) { const x = ax + ((bx - ax) * k) / n, z = az + ((bz - az) * k) / n; pts.push(x, heightAt(x, z) + 0.08, z); }
+    };
+    edge(x1, z1, x2, z1); edge(x2, z1, x2, z2); edge(x2, z2, x1, z2); edge(x1, z2, x1, z1);
+    pts.push(pts[0], pts[1], pts[2]);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color, dashSize: 0.8, gapSize: 0.4 }));
+    l.computeLineDistances(); l.raycast = () => {};
+    return l;
+  }, [r.x1, r.x2, r.z1, r.z2, color, v]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { line.geometry.dispose(); (line.material as THREE.Material).dispose(); }, [line]);
+  const cx = (r.x1 + r.x2) / 2, cz = (r.z1 + r.z2) / 2;
+  return (
+    <>
+      <primitive object={line} />
+      <Html position={[cx, heightAt(cx, cz) + 0.3, cz]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
+        <div style={{ background: '#fff', border: `2px solid ${color}`, borderRadius: 999, padding: '2px 10px', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap' }}>📍 {r.name}</div>
+      </Html>
+    </>
+  );
+}
+
 // Terrain sculpting (teacher 2026-10-10). While the brush is held, it works a little every frame
 // at the pointer, so a stroke is smooth whatever the frame rate. Shift flips Raise and Lower.
 interface TerrainStroke { active: boolean; x: number; z: number; target: number }
@@ -2043,6 +2074,12 @@ export default function WorldEditor() {
   const [moveStep, setMoveStep] = useState<number | 'grid'>('grid');
   // Terrain tools (teacher 2026-10-10).
   const [terrainTool, setTerrainTool] = useState<TerrainTool | null>(null);
+  // Regions (teacher 2026-10-10): the panel and the Add region form.
+  const [regionsOpen, setRegionsOpen] = useState(false);
+  const [newRegionName, setNewRegionName] = useState('');
+  const [newRegionSize, setNewRegionSize] = useState(REGION_SIZES[1].depth);
+  const [newRegionSide, setNewRegionSide] = useState<Side>('north');
+  const [regionMsg, setRegionMsg] = useState('');
   const [brushSize, setBrushSize] = useState(3);
   const [brushStrength, setBrushStrength] = useState(0.5);
   const [terrainCursor, setTerrainCursor] = useState<{ x: number; z: number } | null>(null);
@@ -2855,6 +2892,24 @@ export default function WorldEditor() {
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [terrainTool]);
+  // ---- regions ----
+  const regions = useRegions();
+  const addRegion = () => {
+    const name = newRegionName.trim();
+    if (!name) { setRegionMsg('Give the region a name first.'); return; }
+    const have = groundBounds[newRegionSide];
+    const depth = Math.min(GROUND_BOUNDS_MAX, have + newRegionSize) - have;
+    if (depth < 4) { setRegionMsg(`The world cannot grow any farther ${newRegionSide}. Try another side.`); return; }
+    const rect = regionRect(groundBounds, newRegionSide, depth);
+    expandGroundBounds(newRegionSide, depth);
+    saveRegions({ ...regions, list: [...regions.list, { id: `rg_${Date.now().toString(36)}`, name, side: newRegionSide, ...rect }] });
+    setRegionMsg(depth < newRegionSize ? `Added "${name}" (${depth} units deep: that is as far as the world can grow ${newRegionSide}).` : `Added "${name}" on the ${newRegionSide} side.`);
+    setNewRegionName(''); flashSaved();
+  };
+  const renameRegion = (id: string, name: string) => saveRegions({ ...regions, list: regions.list.map((r) => (r.id === id ? { ...r, name } : r)) });
+  const removeRegion = (id: string) => saveRegions({ ...regions, list: regions.list.filter((r) => r.id !== id) });
+  useEffect(() => { if (regionsOpen) { setTerrainTool(null); setPaintMode(null); setArmedAsset(null); setHammerMode(false); setWallMode(false); } }, [regionsOpen]);
+  useEffect(() => { if (terrainTool || paintMode || armedAsset || hammerMode || wallMode) setRegionsOpen(false); }, [terrainTool, paintMode, armedAsset, hammerMode, wallMode]);
   const setSelectedPosition = (x: number, y: number, z: number) => {
     if (!selected) return;
     updateSelected({ position: [clampToGroundX(round3(x)), round3(THREE.MathUtils.clamp(y, heightMin, HEIGHT_MAX)), clampToGroundZ(round3(z))] });
@@ -3358,6 +3413,46 @@ export default function WorldEditor() {
             established). Brush/Bucket picks how clicking an asset in the
             3D view behaves; Ground and Sky don't need a click target
             (there's only one of each) so they're direct buttons here. */}
+        {regionsOpen && (
+        <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 14, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
+          <strong style={{ fontSize: '0.85rem' }}>🗺️ Regions</strong>
+          <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>Like adding a room at home: pick a size, a side and a name. The new land joins the open world, and students see the region's name at the top left as they walk into it.</span>
+          <div className="stack" style={{ gap: 4 }}>
+            <label htmlFor="region-base" style={{ fontSize: '0.75rem', fontWeight: 700 }}>The main town's name</label>
+            <input id="region-base" className="input" style={{ minHeight: 44 }} defaultValue={regions.base} key={regions.base} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== regions.base) { saveRegions({ ...regions, base: v }); flashSaved(); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+          </div>
+          {regions.list.length > 0 && (
+            <div className="stack" style={{ gap: 6 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Your regions</span>
+              {regions.list.map((r, k) => (
+                <div key={r.id} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                  <span aria-hidden style={{ width: 12, height: 12, borderRadius: 999, background: REGION_COLORS[k % REGION_COLORS.length], flexShrink: 0 }} />
+                  <input aria-label={`Name of region ${k + 1}`} className="input" style={{ minHeight: 44, flex: 1 }} defaultValue={r.name} key={r.name} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== r.name) { renameRegion(r.id, v); flashSaved(); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+                  <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Remove this region's name (the land and everything on it stays)" aria-label={`Remove the name ${r.name}`} onClick={() => removeRegion(r.id)}>✕</button>
+                </div>
+              ))}
+              <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>✕ removes only the name; the land and everything on it stays part of the main town.</span>
+            </div>
+          )}
+          <div className="stack" style={{ gap: 8, padding: 10, borderRadius: 12, border: '2px dashed var(--content-border)' }}>
+            <strong style={{ fontSize: '0.8rem' }}>➕ Add a region</strong>
+            <input aria-label="New region name" className="input" style={{ minHeight: 44 }} placeholder="Name, like Beach" value={newRegionName} onChange={(e) => setNewRegionName(e.target.value)} />
+            <div className="row-wrap" style={{ gap: 4 }}>
+              {REGION_NAME_SUGGESTIONS.map((n) => <button key={n} className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setNewRegionName(n)}>{n}</button>)}
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>Size</span>
+            <div className="row-wrap" style={{ gap: 4 }}>
+              {REGION_SIZES.map((z) => <button key={z.label} className={`btn btn-sm ${newRegionSize === z.depth ? 'btn-primary' : ''}`} aria-pressed={newRegionSize === z.depth} style={{ minHeight: 44, flex: 1 }} onClick={() => setNewRegionSize(z.depth)}>{z.label} ({z.depth})</button>)}
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>Side of the town (north is the top in the top view, T)</span>
+            <div className="row-wrap" style={{ gap: 4 }}>
+              {([['north', '⬆ North'], ['south', '⬇ South'], ['east', '➡ East'], ['west', '⬅ West']] as [Side, string][]).map(([sd, lb]) => <button key={sd} className={`btn btn-sm ${newRegionSide === sd ? 'btn-primary' : ''}`} aria-pressed={newRegionSide === sd} style={{ minHeight: 44, flex: '1 1 45%' }} onClick={() => setNewRegionSide(sd)}>{lb}</button>)}
+            </div>
+            <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={addRegion}>➕ Add region</button>
+            {regionMsg && <span role="status" style={{ fontSize: '0.75rem' }}>{regionMsg}</span>}
+          </div>
+        </div>
+        )}
         {terrainTool && (
         <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 14, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>⛰️ Terrain</strong>
@@ -3809,6 +3904,7 @@ export default function WorldEditor() {
               />
             </Suspense>
             <WaterSurface />
+            {regions.list.map((r, k) => <RegionOutline key={r.id} r={r} color={REGION_COLORS[k % REGION_COLORS.length]} />)}
             <WaterAmbience off={waterSoundOff} listener={() => controlsRef.current?.target ?? null} />
             <TerrainBrushDriver stroke={strokeRef} tool={terrainTool} size={brushSize} strength={brushStrength} invert={shiftHeld} />
             {terrainTool && <BrushRing at={terrainCursor} radius={brushSize} color={shiftHeld && (terrainTool === 'raise' || terrainTool === 'lower') ? '#f97316' : '#ffffff'} />}
@@ -4213,6 +4309,15 @@ export default function WorldEditor() {
               aria-pressed={!!terrainTool}
             >
               ⛰️ Terrain
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{ ...TOOLBAR_BTN, background: regionsOpen ? BUILD_ACCENT : undefined, color: regionsOpen ? '#fff' : undefined, borderColor: regionsOpen ? BUILD_ACCENT : undefined }}
+              onClick={() => setRegionsOpen((o) => !o)}
+              title="Regions: add named areas to the open world"
+              aria-pressed={regionsOpen}
+            >
+              🗺️ Regions
             </button>
             <button
               className="btn btn-sm"
