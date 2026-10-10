@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T20:12:28.445Z",
+  "generatedAt": "2026-10-10T20:15:48.753Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3062,6 +3062,21 @@
       "category": "market"
     },
     {
+      "path": "/world/models/nature/cactus.glb",
+      "label": "Cactus",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/half-snowy-pine.glb",
+      "label": "Half Snowy Pine",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/huge-tree.glb",
+      "label": "Huge Tree",
+      "category": "nature"
+    },
+    {
       "path": "/world/models/nature/painted-bush-011.glb",
       "label": "Painted Bush 011",
       "category": "nature"
@@ -3397,8 +3412,68 @@
       "category": "nature"
     },
     {
+      "path": "/world/models/nature/pine-tree.glb",
+      "label": "Pine Tree",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/pumpkin-plant.glb",
+      "label": "Pumpkin Plant",
+      "category": "nature"
+    },
+    {
       "path": "/world/models/nature/rock-cluster.glb",
       "label": "Rock Cluster",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-branched.glb",
+      "label": "Shaped Tree Branched",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-columnar.glb",
+      "label": "Shaped Tree Columnar",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-conical.glb",
+      "label": "Shaped Tree Conical",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-open.glb",
+      "label": "Shaped Tree Open",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-oval.glb",
+      "label": "Shaped Tree Oval",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-pyramidal.glb",
+      "label": "Shaped Tree Pyramidal",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-round.glb",
+      "label": "Shaped Tree Round",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-spreading.glb",
+      "label": "Shaped Tree Spreading",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/shaped-tree-vase.glb",
+      "label": "Shaped Tree Vase",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/snowy-pine.glb",
+      "label": "Snowy Pine",
       "category": "nature"
     },
     {
@@ -3424,6 +3499,11 @@
     {
       "path": "/world/models/nature/tiny-weed-4.glb",
       "label": "Tiny Weed 4",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/vine.glb",
+      "label": "Vine",
       "category": "nature"
     },
     {
@@ -7305,6 +7385,441 @@
       "path": "/world/models/water/waterpack.glb",
       "label": "Waterpack",
       "category": "water"
+    },
+    {
+      "path": "/world/models/winter/banner-holder-v2.glb",
+      "label": "Banner Holder V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/banner-holder.glb",
+      "label": "Banner Holder",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/castle-w.glb",
+      "label": "Castle W",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/flag-pole.glb",
+      "label": "Flag Pole",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/flag.glb",
+      "label": "Flag",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/shovel.glb",
+      "label": "Shovel",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-corner-short.glb",
+      "label": "Snow Corner Short",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-corner-v2.glb",
+      "label": "Snow Corner V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-corner-v3.glb",
+      "label": "Snow Corner V3",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-corner.glb",
+      "label": "Snow Corner",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-end-v2.glb",
+      "label": "Snow End V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-end.glb",
+      "label": "Snow End",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-line-v2.glb",
+      "label": "Snow Line V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-line.glb",
+      "label": "Snow Line",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-pile-v2.glb",
+      "label": "Snow Pile V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/snow-pile.glb",
+      "label": "Snow Pile",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/tower-w.glb",
+      "label": "Tower W",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/tower-window-w.glb",
+      "label": "Tower Window W",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-banner.glb",
+      "label": "Winter Banner",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-barrel.glb",
+      "label": "Winter Barrel",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-brazier-v2.glb",
+      "label": "Winter Brazier V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-brazier.glb",
+      "label": "Winter Brazier",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-bridge-section.glb",
+      "label": "Winter Bridge Section",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-bridge-wide-section.glb",
+      "label": "Winter Bridge Wide Section",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cannon-ball-v2.glb",
+      "label": "Winter Cannon Ball V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cannon-ball.glb",
+      "label": "Winter Cannon Ball",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle-door-l.glb",
+      "label": "Winter Castle Door L",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle-door-r.glb",
+      "label": "Winter Castle Door R",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle-door-v2-l.glb",
+      "label": "Winter Castle Door V2 L",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle-door-v2-r.glb",
+      "label": "Winter Castle Door V2 R",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle-v2.glb",
+      "label": "Winter Castle V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle-window-v2.glb",
+      "label": "Winter Castle Window V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle-window.glb",
+      "label": "Winter Castle Window",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-castle.glb",
+      "label": "Winter Castle",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-catapult-arm-v2.glb",
+      "label": "Winter Catapult Arm V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-catapult-arm.glb",
+      "label": "Winter Catapult Arm",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-catapult-base.glb",
+      "label": "Winter Catapult Base",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-catapult-ski.glb",
+      "label": "Winter Catapult Ski",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-catapult-wheel-v2.glb",
+      "label": "Winter Catapult Wheel V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-catapult-wheel.glb",
+      "label": "Winter Catapult Wheel",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-chest-bottom-v2.glb",
+      "label": "Winter Chest Bottom V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-chest-bottom-v3.glb",
+      "label": "Winter Chest Bottom V3",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-chest-bottom.glb",
+      "label": "Winter Chest Bottom",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-chest-top-v2.glb",
+      "label": "Winter Chest Top V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-chest-top-v3.glb",
+      "label": "Winter Chest Top V3",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-chest-top.glb",
+      "label": "Winter Chest Top",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-coin.glb",
+      "label": "Winter Coin",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-crate.glb",
+      "label": "Winter Crate",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cube-large-v2.glb",
+      "label": "Winter Cube Large V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cube-large.glb",
+      "label": "Winter Cube Large",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cube-medium-v2.glb",
+      "label": "Winter Cube Medium V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cube-medium.glb",
+      "label": "Winter Cube Medium",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cube-small-v2.glb",
+      "label": "Winter Cube Small V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-cube-small.glb",
+      "label": "Winter Cube Small",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-grass01.glb",
+      "label": "Winter Grass01",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-grass02.glb",
+      "label": "Winter Grass02",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-grass03.glb",
+      "label": "Winter Grass03",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-grass04.glb",
+      "label": "Winter Grass04",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ground-dirt-snow-v2.glb",
+      "label": "Winter Ground Dirt Snow V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ground-dirt-snow.glb",
+      "label": "Winter Ground Dirt Snow",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ground-dirt.glb",
+      "label": "Winter Ground Dirt",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ground-ice.glb",
+      "label": "Winter Ground Ice",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ground-rock-snow-v2.glb",
+      "label": "Winter Ground Rock Snow V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ground-rock-snow.glb",
+      "label": "Winter Ground Rock Snow",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ground-rock.glb",
+      "label": "Winter Ground Rock",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ice-tree-pine-short.glb",
+      "label": "Winter Ice Tree Pine Short",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ice-tree-pine-tall.glb",
+      "label": "Winter Ice Tree Pine Tall",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ladder-extra.glb",
+      "label": "Winter Ladder Extra",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-ladder.glb",
+      "label": "Winter Ladder",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tower-v2.glb",
+      "label": "Winter Tower V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tower.glb",
+      "label": "Winter Tower",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apple-tall-g-v2.glb",
+      "label": "Winter Tree Apple Tall G V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apple-tall-g.glb",
+      "label": "Winter Tree Apple Tall G",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apple-tall-v2.glb",
+      "label": "Winter Tree Apple Tall V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apple-tall.glb",
+      "label": "Winter Tree Apple Tall",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apples-short-g-v2.glb",
+      "label": "Winter Tree Apples Short G V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apples-short-g.glb",
+      "label": "Winter Tree Apples Short G",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apples-short-v2.glb",
+      "label": "Winter Tree Apples Short V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-apples-short.glb",
+      "label": "Winter Tree Apples Short",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-dshort-g.glb",
+      "label": "Winter Tree Dshort G",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-dshort-v2.glb",
+      "label": "Winter Tree Dshort V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-dshort.glb",
+      "label": "Winter Tree Dshort",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-dtall-g.glb",
+      "label": "Winter Tree Dtall G",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-dtall-v2.glb",
+      "label": "Winter Tree Dtall V2",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-dtall.glb",
+      "label": "Winter Tree Dtall",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-pine-short.glb",
+      "label": "Winter Tree Pine Short",
+      "category": "winter"
+    },
+    {
+      "path": "/world/models/winter/winter-tree-pine-tall.glb",
+      "label": "Winter Tree Pine Tall",
+      "category": "winter"
     }
   ]
 }

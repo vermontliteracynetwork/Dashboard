@@ -306,6 +306,7 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   halloween: CHARACTER_HEIGHT * 1.3,
   holiday: CHARACTER_HEIGHT * 1.3,
   fantasy: CHARACTER_HEIGHT * 3,
+  winter: CHARACTER_HEIGHT * 2, // her Winter Arena pack (2026-10-10): castle pieces, trees, crates
   japan: CHARACTER_HEIGHT * 2.5,
   pirate: CHARACTER_HEIGHT * 1.5,
   scifi: CHARACTER_HEIGHT * 2,
@@ -487,7 +488,9 @@ const FLAT_OBJECT_TARGET_WIDTH = 2.5;
 // Her uploaded plant packs (Yughues hand-painted plants, tiny weeds, rocks; 2026-10-10) mix
 // ankle-high grass with big pines, so they are sized by name.
 function natureTarget(label: string): number {
-  if (/pine big/i.test(label)) return CHARACTER_HEIGHT * 5;
+  if (/pine big|huge tree|shaped tree/i.test(label)) return CHARACTER_HEIGHT * 5;
+  if (/cactus|vine/i.test(label)) return CHARACTER_HEIGHT * 1.6;
+  if (/pumpkin/i.test(label)) return CHARACTER_HEIGHT * 0.6;
   if (/pine/i.test(label)) return CHARACTER_HEIGHT * 2.5;
   if (/rock/i.test(label)) return CHARACTER_HEIGHT * 1.1;
   if (/grass|clover/i.test(label)) return CHARACTER_HEIGHT * 0.35;
@@ -644,7 +647,7 @@ const CATEGORY_TO_GROUP: Record<string, string> = {
   // direct instruction. Everything else structural stays under Buildings.
   buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', transportation: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
   interior: 'Furniture',
-  fantasy: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
+  fantasy: 'Seasonal & Themed', winter: 'Seasonal & Themed', halloween: 'Seasonal & Themed', holiday: 'Seasonal & Themed', japan: 'Seasonal & Themed', pirate: 'Seasonal & Themed', scifi: 'Seasonal & Themed', platformer: 'Seasonal & Themed',
   characters: 'Characters',
   props: 'Props & Tools', prototype: 'Props & Tools', toolsbits: 'Props & Tools', misc: 'Props & Tools',
 };
@@ -718,7 +721,7 @@ function mainCategoryFor(a: { category: string; label: string }): { main: string
 const CATEGORY_ICON: Record<string, string> = {
   aquarium: '🐠', camping: '⛺', creatures: '🐾', fall: '🍂', farm: '🚜', food: '🍎', forest: '🌲', nature: '🌿', pets: '🐶', water: '💧', resources: '🪵',
   buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', transportation: '🛣️', structures: '🏗️', 'commercial-buildings': '🏬',
-  fantasy: '🏰', halloween: '🎃', holiday: '🎄', japan: '⛩️', pirate: '🏴‍☠️', scifi: '🚀', platformer: '🎮',
+  fantasy: '🏰', winter: '❄️', halloween: '🎃', holiday: '🎄', japan: '⛩️', pirate: '🏴‍☠️', scifi: '🚀', platformer: '🎮',
   characters: '🧑',
   props: '🔧', prototype: '🧊', toolsbits: '🛠️', misc: '📦',
 };
