@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-10-terrain',
+    date: '2026-10-10',
+    icon: '🌊',
+    title: 'Town Square: hills, lakes and living animals',
+    body: 'Town Square can have hills, rivers, lakes and oceans now, with moving water you can hear when you walk close. Animals wander, fish swim, and boats can float on the water.',
+  },
+  {
     id: '2026-10-09-gus-big-words',
     date: '2026-10-09',
     icon: '🎓',

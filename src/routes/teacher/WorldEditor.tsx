@@ -1,13 +1,15 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GroundPatchMesh from '../world/GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Html, useTexture } from '@react-three/drei';
+import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { WorldObjectRenderer, useModelSize, safeScale, townSizeFactor } from '../world/WorldObjectRenderer';
 import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule, measureModel } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
+import { TerrainMesh, WaterSurface, WaterAmbience, BrushRing, useTerrainSync } from '../world/TerrainMesh';
+import { TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
@@ -284,6 +286,7 @@ const CATEGORY_SCALE_TARGET: Record<string, number> = {
   market: CHARACTER_HEIGHT * 3, // stalls — smaller than a full building
   interior: CHARACTER_HEIGHT * 1, // furniture, not building-scale
   forest: CHARACTER_HEIGHT * 5.5, // trees: 3-8x
+  nature: CHARACTER_HEIGHT * 0.45, // her hand-painted plants, weeds and rocks (2026-10-10); see NATURE_TARGET
   farm: CHARACTER_HEIGHT * 3,
   camping: CHARACTER_HEIGHT * 1.5,
   // Claudia's asset-sizing audit: 'food' (36 items) had no entry at all,
@@ -480,7 +483,17 @@ function classifySizeForLabel(label: string, category?: string): SizeClass | nul
 // must never pre-empt it or the original bug reproduces under a new name.
 const FLAT_OBJECT_FOOTPRINT_RATIO = 6;
 const FLAT_OBJECT_TARGET_WIDTH = 2.5;
+// Her uploaded plant packs (Yughues hand-painted plants, tiny weeds, rocks; 2026-10-10) mix
+// ankle-high grass with big pines, so they are sized by name.
+function natureTarget(label: string): number {
+  if (/pine big/i.test(label)) return CHARACTER_HEIGHT * 5;
+  if (/pine/i.test(label)) return CHARACTER_HEIGHT * 2.5;
+  if (/rock/i.test(label)) return CHARACTER_HEIGHT * 1.1;
+  if (/grass|clover/i.test(label)) return CHARACTER_HEIGHT * 0.35;
+  return CHARACTER_HEIGHT * 0.5; // flowers, weeds, thistles
+}
 function computeAutoScale(size: THREE.Vector3, category: string, label: string): number {
+  if (category === 'nature' && size.y > 0 && isFinite(size.y)) return THREE.MathUtils.clamp(natureTarget(label) / size.y, SCALE_MIN, SCALE_MAX);
   const footprint = Math.max(size.x, size.z);
   if (size.y > 0 && isFinite(size.y) && footprint / size.y > FLAT_OBJECT_FOOTPRINT_RATIO) {
     return footprint > 0 ? THREE.MathUtils.clamp(FLAT_OBJECT_TARGET_WIDTH / footprint, SCALE_MIN, SCALE_MAX) : 1;
@@ -625,7 +638,7 @@ function defaultCollidesForCategory(_category: string): boolean {
   return true;
 }
 const CATEGORY_TO_GROUP: Record<string, string> = {
-  aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
+  aquarium: 'Nature & Animals', camping: 'Nature & Animals', creatures: 'Nature & Animals', fall: 'Nature & Animals', farm: 'Nature & Animals', food: 'Nature & Animals', forest: 'Nature & Animals', nature: 'Nature & Animals', pets: 'Nature & Animals', water: 'Nature & Animals', resources: 'Nature & Animals',
   // 'interior' moved out to its own 'Furniture' main category (below) —
   // direct instruction. Everything else structural stays under Buildings.
   buildings: 'Buildings', city: 'Buildings', market: 'Buildings', restaurant: 'Buildings', transportation: 'Buildings', structures: 'Buildings', suburb: 'Buildings', 'quaternius-buildings': 'Buildings', 'commercial-buildings': 'Buildings',
@@ -702,7 +715,7 @@ function mainCategoryFor(a: { category: string; label: string }): { main: string
 // family (so filtering by group still scans as one hue), but each raw
 // category gets its own distinct icon on top of that.
 const CATEGORY_ICON: Record<string, string> = {
-  aquarium: '🐠', camping: '⛺', creatures: '🐾', fall: '🍂', farm: '🚜', food: '🍎', forest: '🌲', pets: '🐶', water: '💧', resources: '🪵',
+  aquarium: '🐠', camping: '⛺', creatures: '🐾', fall: '🍂', farm: '🚜', food: '🍎', forest: '🌲', nature: '🌿', pets: '🐶', water: '💧', resources: '🪵',
   buildings: '🏢', city: '🏙️', interior: '🛋️', market: '🏪', restaurant: '🍽️', transportation: '🛣️', structures: '🏗️', 'commercial-buildings': '🏬',
   fantasy: '🏰', halloween: '🎃', holiday: '🎄', japan: '⛩️', pirate: '🏴‍☠️', scifi: '🚀', platformer: '🎮',
   characters: '🧑',
@@ -788,7 +801,33 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
   { label: 'Wood', path: '/world/textures/wood.png' },
   { label: 'Arcade Carpet', path: '/world/textures/arcade-carpet.png' },
   { label: 'Water', path: '/world/textures/water.png' },
+  // Her uploads, 2026-10-10: the wood pack (boardwalks, docks, decks) and the rock pack.
+  ...[1, 2, 3, 4, 5].map((k) => ({ label: `Wood ${k}`, path: `/world/textures/wood/wood-${k}.jpg` })),
+  { label: 'Cliff Rock', path: '/world/textures/terrain/rock-cliff.jpg' },
+  { label: 'Boulders', path: '/world/textures/terrain/rock-boulders.jpg' },
 ];
+// Her 100 hand-painted textures (pdtextures upload, 2026-10-10), behind a "More" fold so the
+// main picker stays short. Each has a small thumbnail so the grid loads fast.
+const MORE_GROUND_TEXTURES = Array.from({ length: 100 }, (_, i) => {
+  const n = String(i + 1).padStart(3, '0');
+  return { label: `Painted ${i + 1}`, path: `/world/textures/painted/painted-${n}.jpg`, thumb: `/world/textures/painted/thumb-${n}.jpg` };
+});
+function MoreTextures({ active, onPick }: { active: string | null; onPick: (path: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="stack" style={{ gap: 6 }}>
+      <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? '▾' : '▸'} 🎨 100 more painted textures</button>
+      {open && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+          {MORE_GROUND_TEXTURES.map((g) => (
+            <button key={g.path} title={g.label} aria-label={g.label} aria-pressed={active === g.path} onClick={() => onPick(g.path)}
+              style={{ minHeight: 44, padding: 2, borderRadius: 8, border: active === g.path ? `3px solid ${BUILD_ACCENT}` : '2px solid var(--content-border)', background: `url(${g.thumb}) center / cover`, cursor: 'pointer' }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 // A 6th attempt at a real equirect sky texture (opt-in, teacher-picked
 // from her own uploaded images) shipped and then broke live in
 // production — direct teacher report with a screenshot: large jagged
@@ -806,17 +845,6 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
 // Same tiling approach as TownSquare's own GroundMaterial (which this
 // mirrors) so a texture picked here looks the same once it's real —
 // ~4 world units per tile against the visible ground diameter.
-function GroundTextureMaterial({ path }: { path: string }) {
-  const tex = useTexture(path);
-  const maxExtent = useStore((s) => groundBoundsMaxExtent(s.groundBounds));
-  useMemo(() => {
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    const tileRepeat = (maxExtent * 2) / 4;
-    tex.repeat.set(tileRepeat, tileRepeat);
-    tex.colorSpace = THREE.SRGBColorSpace;
-  }, [tex, maxExtent]);
-  return <meshStandardMaterial map={tex} />;
-}
 
 // A single painted ground patch (#97's grass/water mixed-region system) —
 // a small textured circle lifted just above the base ground plane, the
@@ -973,7 +1001,7 @@ function TrackpadRotate({ controlsRef }: { controlsRef: React.RefObject<{ target
 function HeightMarker({ x, y, z }: { x: number; y: number; z: number }) {
   if (Math.abs(y) < 0.001) return null;
   return (
-    <group>
+    <group position={[0, heightAt(x, z), 0]}>
       <mesh position={[x, y / 2, z]} raycast={() => null}>
         <cylinderGeometry args={[0.04, 0.04, Math.abs(y), 8]} />
         <meshBasicMaterial color={BUILD_ACCENT} transparent opacity={0.8} />
@@ -1002,6 +1030,26 @@ function GroundCellOutline({ x, z, color, size = GRID_SIZE }: { x: number; z: nu
     </lineSegments>
   );
 }
+
+// Terrain sculpting (teacher 2026-10-10). While the brush is held, it works a little every frame
+// at the pointer, so a stroke is smooth whatever the frame rate. Shift flips Raise and Lower.
+interface TerrainStroke { active: boolean; x: number; z: number; target: number }
+function TerrainBrushDriver({ stroke, tool, size, strength, invert }: { stroke: React.MutableRefObject<TerrainStroke>; tool: TerrainTool | null; size: number; strength: number; invert: boolean }) {
+  useFrame((_, dt) => {
+    const st = stroke.current; const t = getTerrain();
+    if (!st.active || !tool || !t) return;
+    const use: TerrainTool = invert && tool === 'raise' ? 'lower' : invert && tool === 'lower' ? 'raise' : tool;
+    if (applyBrush(t, use, st.x, st.z, size, strength, Math.min(dt, 0.05), st.target)) terrainChanged();
+  });
+  return null;
+}
+const TERRAIN_TOOLS: { id: TerrainTool; icon: string; name: string; tip: string }[] = [
+  { id: 'raise', icon: '⛰️', name: 'Raise', tip: 'Hold to build up hills. Shift lowers instead.' },
+  { id: 'lower', icon: '🕳️', name: 'Lower', tip: 'Hold to dig down. Shift raises instead.' },
+  { id: 'smooth', icon: '〰️', name: 'Smooth', tip: 'Softens bumps and sharp edges.' },
+  { id: 'flatten', icon: '▬', name: 'Flatten', tip: 'Levels the ground to the height where you started the stroke.' },
+  { id: 'water', icon: '💧', name: 'Water', tip: 'Digs below the sea level so it fills with water: drag a line for a river, circle for a lake, along an edge for an ocean.' },
+];
 
 // Drag-to-move on a flat plane at the object's own height (teacher 2026-10-10: "the dragging/
 // placement ... are buggy at best"). The old drag followed the ground mesh under the pointer, so
@@ -1993,6 +2041,17 @@ export default function WorldEditor() {
   // Precise transform state (teacher 2026-10-10). How tall the selected object and the ghost are
   // drawn, so sinking below the ground always leaves a sliver showing.
   const [moveStep, setMoveStep] = useState<number | 'grid'>('grid');
+  // Terrain tools (teacher 2026-10-10).
+  const [terrainTool, setTerrainTool] = useState<TerrainTool | null>(null);
+  const [brushSize, setBrushSize] = useState(3);
+  const [brushStrength, setBrushStrength] = useState(0.5);
+  const [terrainCursor, setTerrainCursor] = useState<{ x: number; z: number } | null>(null);
+  const [terrainUndoCount, setTerrainUndoCount] = useState(0);
+  const [confirmFlatAll, setConfirmFlatAll] = useState(false);
+  const [waterSoundOff, setWaterSoundOff] = useState(() => { try { return localStorage.getItem('water-sound-off') === '1'; } catch { return false; } });
+  const strokeRef = useRef<TerrainStroke>({ active: false, x: 0, z: 0, target: 0 });
+  const terrainUndo = useRef<Float32Array[]>([]);
+  const [seaLevel, setSeaLevel] = useState(() => getTerrain()?.water ?? -0.35);
   const [sizeStep, setSizeStep] = useState(10);
   const [selDrawnHeight, setSelDrawnHeight] = useState(0);
   const [ghostDrawnHeight, setGhostDrawnHeight] = useState(0);
@@ -2747,6 +2806,55 @@ export default function WorldEditor() {
   nudgeScreenRef.current = nudgeScreen;
   arrowsMoveSelection.current = !!selection || multiSelectIds.length >= 2;
   const heightMin = selDrawnHeight > 0 ? -round3(Math.max(0, selDrawnHeight - SINK_KEEP)) : 0;
+  // ---- terrain ----
+  const lotExt = groundBoundsMaxExtent(groundBounds);
+  useTerrainSync(strokeRef.current.active);
+  // Build Mode always has a ground to sculpt: the saved one, kept as big as the lot, or a flat
+  // one until the first stroke saves it.
+  useEffect(() => {
+    const t = getTerrain();
+    if (!t) { setTerrain(makeTerrain(lotExt)); return; }
+    if (Math.abs(t.ext - lotExt) > t.cell) setTerrain(regrid(t, lotExt));
+  });
+  const saveTerrain = () => { const t = getTerrain(); if (t) useStore.getState().mergeStyleRow(TERRAIN_OWNER, encodeTerrain(t) as unknown as Record<string, unknown>); };
+  const startStroke = (x: number, z: number) => {
+    const t = getTerrain(); if (!t || !terrainTool) return;
+    terrainUndo.current = [...terrainUndo.current.slice(-19), t.h.slice()];
+    setTerrainUndoCount(terrainUndo.current.length);
+    strokeRef.current = { active: true, x, z, target: heightAt(x, z) };
+  };
+  useEffect(() => {
+    const end = () => { if (!strokeRef.current.active) return; strokeRef.current.active = false; saveTerrain(); };
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => { window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const undoTerrain = () => {
+    const t = getTerrain(); const prev = terrainUndo.current.pop();
+    if (!t || !prev || prev.length !== t.h.length) return;
+    t.h.set(prev); terrainChanged(); saveTerrain(); setTerrainUndoCount(terrainUndo.current.length);
+  };
+  const flattenAll = () => {
+    const t = getTerrain(); if (!t) return;
+    terrainUndo.current = [...terrainUndo.current.slice(-19), t.h.slice()];
+    t.h.fill(0); terrainChanged(); saveTerrain(); setTerrainUndoCount(terrainUndo.current.length); setConfirmFlatAll(false);
+  };
+  const setSea = (v: number) => { const t = getTerrain(); setSeaLevel(v); if (t) { t.water = v; terrainChanged(); } };
+  useEffect(() => { const t = getTerrain(); if (t && !strokeRef.current.active) setSeaLevel(t.water); });
+  useEffect(() => { if (armedAsset || paintMode || hammerMode || wallMode) setTerrainTool(null); }, [armedAsset, paintMode, hammerMode, wallMode]);
+  useEffect(() => { if (!terrainTool) setTerrainCursor(null); }, [terrainTool]);
+  useEffect(() => {
+    if (!terrainTool) return;
+    const key = (e: KeyboardEvent) => {
+      const tg = e.target as HTMLElement | null;
+      if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return;
+      if (e.key === '[') setBrushSize((v) => Math.max(0.5, v - 0.5));
+      else if (e.key === ']') setBrushSize((v) => Math.min(12, v + 0.5));
+      else if (e.key === 'Escape') setTerrainTool(null);
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [terrainTool]);
   const setSelectedPosition = (x: number, y: number, z: number) => {
     if (!selected) return;
     updateSelected({ position: [clampToGroundX(round3(x)), round3(THREE.MathUtils.clamp(y, heightMin, HEIGHT_MAX)), clampToGroundZ(round3(z))] });
@@ -2786,6 +2894,11 @@ export default function WorldEditor() {
   const expandWestHold = useHoldRepeat(() => expandGroundBounds('west', GROUND_BOUNDS_STEP));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (terrainTool) {
+      setTerrainCursor({ x: e.point.x, z: e.point.z });
+      if (strokeRef.current.active) { strokeRef.current.x = e.point.x; strokeRef.current.z = e.point.z; }
+      return;
+    }
     const freePlacement = optionHeld || (!!dragObjectId && moveModeActive);
     const x = clampToGroundX(snapValue(e.point.x, snapEnabled && !freePlacement, gridStep));
     const z = clampToGroundZ(snapValue(e.point.z, snapEnabled && !freePlacement, gridStep));
@@ -2859,6 +2972,12 @@ export default function WorldEditor() {
   }, [dragObjectId, dragPos, dragGroupOrigin]);
 
   const handleGroundPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (terrainTool) {
+      if (e.nativeEvent.button > 0) return; // right/middle drag still turns and pans the camera
+      e.stopPropagation();
+      startStroke(e.point.x, e.point.z);
+      return;
+    }
     if (paintMode === 'groundPatch') {
       e.stopPropagation();
       isPaintingRef.current = true;
@@ -2911,6 +3030,7 @@ export default function WorldEditor() {
 
   const handleGroundClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    if (terrainTool) return; // sculpting happens on press and hold
     if (wallMode) return; // the wall itself is placed by the pointerdown/up drag above, not a click
     if (paintMode === 'groundPatch') return; // already painted on pointer-down above
     if (armedAsset) {
@@ -3238,6 +3358,44 @@ export default function WorldEditor() {
             established). Brush/Bucket picks how clicking an asset in the
             3D view behaves; Ground and Sky don't need a click target
             (there's only one of each) so they're direct buttons here. */}
+        {terrainTool && (
+        <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 14, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
+          <strong style={{ fontSize: '0.85rem' }}>⛰️ Terrain</strong>
+          <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>Press and hold on the ground, then drag. Right-drag still turns the camera.</span>
+          <div className="row-wrap" style={{ gap: 4 }} role="group" aria-label="Terrain tool">
+            {TERRAIN_TOOLS.map((tt) => (
+              <button key={tt.id} className="btn btn-sm" title={tt.tip} aria-pressed={terrainTool === tt.id}
+                style={{ minHeight: 44, flex: '1 1 30%', background: terrainTool === tt.id ? BUILD_ACCENT : undefined, color: terrainTool === tt.id ? '#fff' : undefined, borderColor: terrainTool === tt.id ? BUILD_ACCENT : undefined }}
+                onClick={() => setTerrainTool(tt.id)}>{tt.icon} {tt.name}</button>
+            ))}
+          </div>
+          <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>{TERRAIN_TOOLS.find((tt) => tt.id === terrainTool)?.tip}</span>
+          <div className="stack" style={{ gap: 4 }}>
+            <label htmlFor="terrain-size" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Brush size: {brushSize.toFixed(1)} units ( [ and ] keys )</label>
+            <input id="terrain-size" type="range" min={0.5} max={12} step={0.5} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} style={{ width: '100%', minHeight: 44 }} />
+          </div>
+          <div className="stack" style={{ gap: 4 }}>
+            <label htmlFor="terrain-strength" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Strength: {Math.round(brushStrength * 100)}%</label>
+            <input id="terrain-strength" type="range" min={0.05} max={1} step={0.05} value={brushStrength} onChange={(e) => setBrushStrength(Number(e.target.value))} style={{ width: '100%', minHeight: 44 }} />
+          </div>
+          <div className="stack" style={{ gap: 4 }}>
+            <label htmlFor="terrain-sea" style={{ fontSize: '0.75rem', fontWeight: 700 }}>🌊 Sea level: {seaLevel.toFixed(2)}</label>
+            <input id="terrain-sea" type="range" min={-3} max={1} step={0.05} value={seaLevel} onChange={(e) => setSea(Number(e.target.value))} onPointerUp={saveTerrain} onKeyUp={saveTerrain} style={{ width: '100%', minHeight: 44 }} />
+            <span style={{ fontSize: '0.68rem', opacity: 0.7 }}>Ground below this line fills with water. Raise it to flood low ground, lower it to drain.</span>
+          </div>
+          <div className="row-wrap" style={{ gap: 6 }}>
+            <button className="btn btn-sm" style={{ minHeight: 44, flex: 1 }} disabled={!terrainUndoCount} onClick={undoTerrain}>↶ Undo stroke</button>
+            {confirmFlatAll
+              ? <><button className="btn btn-sm btn-danger" style={{ minHeight: 44, flex: 1 }} onClick={flattenAll}>Flatten all</button><button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setConfirmFlatAll(false)}>Cancel</button></>
+              : <button className="btn btn-sm" style={{ minHeight: 44, flex: 1 }} onClick={() => setConfirmFlatAll(true)}>🧹 Flatten everything</button>}
+          </div>
+          <label className="row" style={{ gap: 8, alignItems: 'center', margin: 0, minHeight: 44 }}>
+            <input type="checkbox" checked={!waterSoundOff} onChange={(e) => { const off = !e.target.checked; setWaterSoundOff(off); try { localStorage.setItem('water-sound-off', off ? '1' : '0'); } catch { /* fine */ } }} />
+            <span style={{ fontSize: '0.8rem' }}>🔊 Quiet water sounds near water</span>
+          </label>
+          <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>Objects stand on the ground wherever it goes. Fish placed in water swim, boats float, and animals come alive in Live mode.</span>
+        </div>
+        )}
         {paintMode && (
         <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 14, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>🎨 Paint</strong>
@@ -3317,6 +3475,7 @@ export default function WorldEditor() {
                       );
                     })}
                   </div>
+                  <MoreTextures active={groundPatchTexture} onPick={setGroundPatchTexture} />
                 </div>
               )}
               <div className="stack" style={{ gap: 6 }}>
@@ -3454,6 +3613,7 @@ export default function WorldEditor() {
                 );
               })}
             </div>
+            <MoreTextures active={groundTexture} onPick={(path) => { setGroundTexture(path); flashSaved(); }} />
           </div>
 
           <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setPaintMode(null)}>Done painting</button>
@@ -3635,32 +3795,23 @@ export default function WorldEditor() {
             </Suspense>
             <TrackpadRotate controlsRef={controlsRef} />
 
-            <mesh
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0, 0]}
-              onClick={(e) => handleGroundClick(e)}
-              onPointerMove={handleGroundPointerMove}
-              onPointerDown={handleGroundPointerDown}
-            >
-              {/* Sized off the largest of the 4 walls (see groundBoundsMaxExtent),
-                  not a true asymmetric rectangle — a wall a teacher hasn't
-                  expanded yet just gets a little extra green backdrop past
-                  its actual walkable edge, which is harmless (nothing can be
-                  placed or walked there; the real per-edge limit is
-                  clampToGroundX/Z above). A true asymmetric plane would need
-                  an off-center position plus verifying this mesh's rotation
-                  sign for local-Y-to-world-Z, not worth the risk on a pure
-                  visual backdrop in a sandbox that can't render this live. */}
-              <planeGeometry args={[groundBoundsMaxExtent(groundBounds) * 2, groundBoundsMaxExtent(groundBounds) * 2]} />
-              {groundTexture ? (
-                <Suspense fallback={<meshStandardMaterial color="#8fc97a" />}>
-                  <GroundTextureMaterial path={groundTexture} />
-                </Suspense>
-              ) : (
-                <meshStandardMaterial color="#8fc97a" />
-              )}
-            </mesh>
-            <gridHelper args={[groundBoundsMaxExtent(groundBounds) * 2, groundBoundsMaxExtent(groundBounds) * 2, '#5a8f48', '#5a8f48']} position={[0, 0.02, 0]} />
+            {/* The shaped ground (terrain, 2026-10-10): sculpted with the ⛰️ Terrain tools, the
+                build grid drawn right on its slopes, and water wherever it dips below the sea level. */}
+            <Suspense fallback={null}>
+              <TerrainMesh
+                textureUrl={groundTexture}
+                grid
+                gridSize={GRID_SIZE}
+                onClick={(e) => handleGroundClick(e)}
+                onPointerMove={handleGroundPointerMove}
+                onPointerDown={handleGroundPointerDown}
+                onPointerOut={() => setTerrainCursor(null)}
+              />
+            </Suspense>
+            <WaterSurface />
+            <WaterAmbience off={waterSoundOff} listener={() => controlsRef.current?.target ?? null} />
+            <TerrainBrushDriver stroke={strokeRef} tool={terrainTool} size={brushSize} strength={brushStrength} invert={shiftHeld} />
+            {terrainTool && <BrushRing at={terrainCursor} radius={brushSize} color={shiftHeld && (terrainTool === 'raise' || terrainTool === 'lower') ? '#f97316' : '#ffffff'} />}
             <Suspense fallback={null}>
               {groundPatches.map((p) => <GroundPatchMesh key={p.id} patch={p} />)}
             </Suspense>
@@ -3680,6 +3831,8 @@ export default function WorldEditor() {
                     createdAt: '',
                     tintColor: placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : undefined,
                   }}
+                  onTerrain
+                  floats={isBoatModel(armedAsset.path)}
                   opacity={0.55}
                 />
                 {/* Minecraft's own placement clarity: a highlighted target
@@ -3714,8 +3867,9 @@ export default function WorldEditor() {
                 <group key={item.id}>
                   <WorldObjectRenderer
                     obj={renderObj}
+                    onTerrain
                     highlight={isSelected ? BUILD_ACCENT : isHovered ? HOVER_GLOW : undefined}
-                    inert={!!armedAsset || !!dragObjectId}
+                    inert={!!armedAsset || !!dragObjectId || !!terrainTool}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -3793,10 +3947,12 @@ export default function WorldEditor() {
                 <group key={obj.id}>
                   <WorldObjectRenderer
                     obj={liveObj}
+                    onTerrain
+                    floats={isBoatModel(obj.modelPath)}
                     highlight={isSelected ? BUILD_ACCENT : isHovered ? HOVER_GLOW : undefined}
                     townBounds={isDragging || isGroupDragMember ? undefined : groundBounds}
                     onOutOfTown={reportDrawnOut}
-                    inert={!!armedAsset || !!dragObjectId}
+                    inert={!!armedAsset || !!dragObjectId || !!terrainTool}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
@@ -3860,7 +4016,7 @@ export default function WorldEditor() {
                           if (m) origins[id] = [m.position[0], m.position[2]];
                         });
                         setDragGroupOrigin(origins);
-                        dragInfoRef.current = grabOffset(e, obj.position[0], obj.position[1] ?? 0, obj.position[2]);
+                        dragInfoRef.current = grabOffset(e, obj.position[0], (obj.position[1] ?? 0) + heightAt(obj.position[0], obj.position[2]), obj.position[2]);
                         setDragObjectId(obj.id);
                         setDragPos({ x: obj.position[0], z: obj.position[2] });
                         return;
@@ -3883,7 +4039,7 @@ export default function WorldEditor() {
                       if (isSelected || optionHeld) {
                         e.stopPropagation();
                         if (!isSelected) { setSelection({ kind: 'placed', id: obj.id }); setMultiSelectIds([]); }
-                        dragInfoRef.current = grabOffset(e, obj.position[0], obj.position[1] ?? 0, obj.position[2]);
+                        dragInfoRef.current = grabOffset(e, obj.position[0], (obj.position[1] ?? 0) + heightAt(obj.position[0], obj.position[2]), obj.position[2]);
                         setDragObjectId(obj.id);
                         setDragPos({ x: obj.position[0], z: obj.position[2] });
                       }
@@ -3908,7 +4064,7 @@ export default function WorldEditor() {
               if (wall.pendingDelete) return null; // same hammer-visibility fix as worldObjects above
               const isSelected = selection?.kind === 'wall' && selection.id === wall.id;
               const isHovered = hovered?.kind === 'wall' && hovered.id === wall.id && !isSelected;
-              const interactive = !wallMode && !armedAsset;
+              const interactive = !wallMode && !armedAsset && !terrainTool;
               return (
                 <WallMesh
                   key={wall.id}
@@ -4049,6 +4205,15 @@ export default function WorldEditor() {
                 ◧ Half-tile: {halfTileEnabled ? 'ON' : 'OFF'}
               </button>
             )}
+            <button
+              className="btn btn-sm"
+              style={{ ...TOOLBAR_BTN, background: terrainTool ? BUILD_ACCENT : undefined, color: terrainTool ? '#fff' : undefined, borderColor: terrainTool ? BUILD_ACCENT : undefined }}
+              onClick={() => { if (terrainTool) { setTerrainTool(null); return; } setArmedAsset(null); setPaintMode(null); setHammerMode(false); setWallMode(false); setWallStart(null); setSelection(null); setMultiSelectIds([]); setTerrainTool('raise'); }}
+              title="Terrain: raise hills, dig rivers, lakes and oceans, smooth and flatten"
+              aria-pressed={!!terrainTool}
+            >
+              ⛰️ Terrain
+            </button>
             <button
               className="btn btn-sm"
               style={{ ...TOOLBAR_BTN, background: hammerMode ? HAMMER_COLOR : undefined, color: hammerMode ? '#fff' : undefined, borderColor: hammerMode ? HAMMER_COLOR : undefined }}

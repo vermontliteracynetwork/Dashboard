@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-07T00:28:58.641Z",
+  "generatedAt": "2026-10-10T20:06:14.120Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3040,6 +3040,371 @@
       "path": "/world/models/market/stall.glb",
       "label": "Stall",
       "category": "market"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-011.glb",
+      "label": "Painted Bush 011",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-012.glb",
+      "label": "Painted Bush 012",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-013.glb",
+      "label": "Painted Bush 013",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-014.glb",
+      "label": "Painted Bush 014",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-021.glb",
+      "label": "Painted Bush 021",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-022.glb",
+      "label": "Painted Bush 022",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-023.glb",
+      "label": "Painted Bush 023",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-024.glb",
+      "label": "Painted Bush 024",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-031.glb",
+      "label": "Painted Bush 031",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-032.glb",
+      "label": "Painted Bush 032",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-033.glb",
+      "label": "Painted Bush 033",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-034.glb",
+      "label": "Painted Bush 034",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-040.glb",
+      "label": "Painted Bush 040",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-bush-041.glb",
+      "label": "Painted Bush 041",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-clovers.glb",
+      "label": "Painted Clovers",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-flower-1.glb",
+      "label": "Painted Flower 1",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-flower-2.glb",
+      "label": "Painted Flower 2",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-flower-3.glb",
+      "label": "Painted Flower 3",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-flower-4.glb",
+      "label": "Painted Flower 4",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-grass-001.glb",
+      "label": "Painted Grass 001",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-grass-002.glb",
+      "label": "Painted Grass 002",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-grass-003.glb",
+      "label": "Painted Grass 003",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-grass-004.glb",
+      "label": "Painted Grass 004",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-1.glb",
+      "label": "Painted Pine 1",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-2.glb",
+      "label": "Painted Pine 2",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-3.glb",
+      "label": "Painted Pine 3",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-4.glb",
+      "label": "Painted Pine 4",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-big-1.glb",
+      "label": "Painted Pine Big 1",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-big-2.glb",
+      "label": "Painted Pine Big 2",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-big-3.glb",
+      "label": "Painted Pine Big 3",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-pine-big-4.glb",
+      "label": "Painted Pine Big 4",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-011.glb",
+      "label": "Painted Weed 011",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-012.glb",
+      "label": "Painted Weed 012",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-013.glb",
+      "label": "Painted Weed 013",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-014.glb",
+      "label": "Painted Weed 014",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-021.glb",
+      "label": "Painted Weed 021",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-022.glb",
+      "label": "Painted Weed 022",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-023.glb",
+      "label": "Painted Weed 023",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-024.glb",
+      "label": "Painted Weed 024",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-031.glb",
+      "label": "Painted Weed 031",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-032.glb",
+      "label": "Painted Weed 032",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-033.glb",
+      "label": "Painted Weed 033",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-034.glb",
+      "label": "Painted Weed 034",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-041.glb",
+      "label": "Painted Weed 041",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-042.glb",
+      "label": "Painted Weed 042",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-043.glb",
+      "label": "Painted Weed 043",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-044.glb",
+      "label": "Painted Weed 044",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-051.glb",
+      "label": "Painted Weed 051",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-052.glb",
+      "label": "Painted Weed 052",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-053.glb",
+      "label": "Painted Weed 053",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-054.glb",
+      "label": "Painted Weed 054",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-061.glb",
+      "label": "Painted Weed 061",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-062.glb",
+      "label": "Painted Weed 062",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-063.glb",
+      "label": "Painted Weed 063",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-064.glb",
+      "label": "Painted Weed 064",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-071.glb",
+      "label": "Painted Weed 071",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-072.glb",
+      "label": "Painted Weed 072",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-073.glb",
+      "label": "Painted Weed 073",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-074.glb",
+      "label": "Painted Weed 074",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-081.glb",
+      "label": "Painted Weed 081",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-082.glb",
+      "label": "Painted Weed 082",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-083.glb",
+      "label": "Painted Weed 083",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-084.glb",
+      "label": "Painted Weed 084",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-1.glb",
+      "label": "Painted Weed 1",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-2.glb",
+      "label": "Painted Weed 2",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-3.glb",
+      "label": "Painted Weed 3",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/painted-weed-4.glb",
+      "label": "Painted Weed 4",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/rock-cluster.glb",
+      "label": "Rock Cluster",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/thistle.glb",
+      "label": "Thistle",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/tiny-weed-1.glb",
+      "label": "Tiny Weed 1",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/tiny-weed-2.glb",
+      "label": "Tiny Weed 2",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/tiny-weed-3.glb",
+      "label": "Tiny Weed 3",
+      "category": "nature"
+    },
+    {
+      "path": "/world/models/nature/tiny-weed-4.glb",
+      "label": "Tiny Weed 4",
+      "category": "nature"
     },
     {
       "path": "/world/models/pets/animal-beagle.glb",

@@ -1,7 +1,8 @@
 import { useMemo, forwardRef, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
-import type { ThreeEvent } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
+import { heightAt, isTerrainWater, terrainVersion, waterLevel } from './terrain';
 import { acceleratedRaycast, computeBoundsTree } from 'three-mesh-bvh';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { GroundBounds, WorldObject } from '../../types';
@@ -217,6 +218,100 @@ function useHighlight(root: THREE.Object3D, color?: string) {
   }, [root, color]);
 }
 
+// Where an object stands on the shaped ground (terrain.ts). A floating thing (a boat) sits on
+// the water when it is over a lake, river or ocean.
+function groundUnder(x: number, z: number, floats: boolean): number {
+  if (floats && isTerrainWater(x, z)) return waterLevel() - 0.03;
+  return heightAt(x, z);
+}
+
+// Animals come alive in Live mode (teacher 2026-10-10: "all animals placed in build mode as a
+// teacher should be animated when in live mode", "animated fish if placed"). Models that carry
+// their own animation play it (fish swim, pets and farm animals idle and walk); a land animal
+// with a walk animation strolls around its spot and stops for idle breaks, never into water; a
+// fish swims slow loops, at mid-depth when it was put in a lake; an animal with no animation of
+// its own breathes, sways and looks around. Build Mode keeps them still so placing stays exact.
+const ANIMAL_NAME = /(^animal|(chicken|hen|rooster|cow|duck|pig|sheep|goat|horse|bird|birb|cat|dog|bunny|rabbit|frog|fox|deer|bear|owl|penguin|parrot|fish|shark|turtle|crab|monkey|panda|tiger|lion|pigeon|yeti|dino|dragon|bee))/i;
+const NOT_ANIMAL = /(coop|house|tank|rod|lure|bait|bath|box|bowl|feed|statue|sign|toy|bed|food|barn|kennel|cage|plush)/i;
+const BAD_CLIP = /(death|attack|hit|out_of_water|static|punch|weapon|bite|no$|yes$)/i;
+const pickClip = (clips: THREE.AnimationClip[], re: RegExp) => clips.find((c) => re.test(c.name) && !BAD_CLIP.test(c.name));
+function AnimalLife({ root, clips, label, path, home, rotationY, scale, tall, children }: {
+  root: THREE.Object3D; clips: THREE.AnimationClip[]; label: string; path: string;
+  home: [number, number, number]; rotationY: number; scale: number; tall: number; children: React.ReactNode;
+}) {
+  const life = useRef<THREE.Group>(null);
+  const fish = useMemo(() => clips.some((c) => /swim/i.test(c.name)) || (/aquarium/.test(path) && /fish|shark|tang|koi|betta|tuna|puffer|snapper|grouper|goby|gramma|idol|tetra|turbot|humphead|horn|blob/i.test(label)), [clips, path, label]);
+  const mixer = useMemo(() => (clips.length ? new THREE.AnimationMixer(root) : null), [root, clips]);
+  const acts = useMemo(() => {
+    if (!mixer) return null;
+    const swim = pickClip(clips, /swimming_normal|swim/i);
+    const idle = pickClip(clips, /(^|\|)idle$/i) ?? pickClip(clips, /idle|eat|fly/i);
+    const walk = pickClip(clips, /(^|\|)walk$/i) ?? pickClip(clips, /walk/i);
+    const any = clips.find((c) => !BAD_CLIP.test(c.name)) ?? clips[0];
+    const a = (c?: THREE.AnimationClip) => (c ? mixer.clipAction(c) : null);
+    return { idle: a(fish ? swim ?? idle ?? any : idle ?? any), walk: fish ? null : a(walk) };
+  }, [mixer, clips, fish]);
+  useEffect(() => {
+    if (!acts) return;
+    acts.idle?.reset().play();
+    return () => { mixer?.stopAllAction(); };
+  }, [acts, mixer]);
+  const reduced = useMemo(() => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, []);
+  const st = useRef({ x: home[0], z: home[2], tx: home[0], tz: home[2], wait: 1 + Math.random() * 3, t: Math.random() * 10, facing: rotationY, walking: false });
+  useFrame((_, dtRaw) => {
+    const dt = Math.min(dtRaw, 0.1);
+    mixer?.update(dt);
+    const g = life.current; if (!g) return;
+    const s = st.current;
+    s.t += dt;
+    const baseY = home[1] + heightAt(home[0], home[2]);
+    let wx = home[0], wz = home[2], wy = baseY, face = rotationY;
+    if (fish) {
+      // Slow loops around its spot; at mid-depth when it lives in a lake.
+      const r = reduced ? 0 : 0.9;
+      const a = s.t * 0.35;
+      wx = home[0] + Math.cos(a) * r; wz = home[2] + Math.sin(a) * r;
+      const ground = heightAt(wx, wz);
+      // In a lake: fully under the surface (its top a little below the water), never in the mud.
+      wy = isTerrainWater(home[0], home[2]) ? Math.max(ground + 0.05, waterLevel() - tall - 0.08) + home[1] : baseY;
+      wy += Math.sin(s.t * 1.3) * 0.05;
+      face = r ? Math.atan2(-Math.sin(a), Math.cos(a)) : rotationY + Math.sin(s.t * 0.6) * 0.3;
+    } else if (acts?.walk && !reduced) {
+      // Stroll, pause, stroll: always within 1.8 units of its spot and never into water.
+      if (s.walking) {
+        const dx = s.tx - s.x, dz = s.tz - s.z, d = Math.hypot(dx, dz);
+        if (d < 0.05) {
+          s.walking = false; s.wait = 2 + Math.random() * 4;
+          acts.walk.fadeOut(0.3); acts.idle?.reset().fadeIn(0.3).play();
+        } else {
+          const step = Math.min(d, 0.55 * dt);
+          s.x += (dx / d) * step; s.z += (dz / d) * step;
+          s.facing = Math.atan2(dx, dz);
+        }
+      } else if ((s.wait -= dt) <= 0) {
+        for (let k = 0; k < 6; k++) {
+          const a = Math.random() * Math.PI * 2, r = 0.6 + Math.random() * 1.2;
+          const tx = home[0] + Math.cos(a) * r, tz = home[2] + Math.sin(a) * r;
+          if (!isTerrainWater(tx, tz)) { s.tx = tx; s.tz = tz; s.walking = true; break; }
+        }
+        if (s.walking) { acts.idle?.fadeOut(0.3); acts.walk.reset().fadeIn(0.3).play(); } else s.wait = 2;
+      }
+      wx = s.x; wz = s.z; wy = home[1] + heightAt(s.x, s.z); face = s.facing;
+    } else if (!mixer) {
+      // No animation of its own: breathe, sway and glance around.
+      face = rotationY + (reduced ? 0 : Math.sin(s.t * 0.45) * 0.25 + Math.max(0, Math.sin(s.t * 0.17)) * 0.4);
+      g.scale.set(1, 1 + Math.sin(s.t * 2.2) * 0.025, 1);
+      wy = baseY + (reduced ? 0 : Math.max(0, Math.sin(s.t * 3.1)) * Math.max(0, Math.sin(s.t * 0.23) - 0.85) * 0.6);
+    }
+    // World offset from the object's spot, turned into the parent's turned and scaled space.
+    const ox = wx - home[0], oz = wz - home[2];
+    const c = Math.cos(-rotationY), sn = Math.sin(-rotationY);
+    g.position.set((ox * c + oz * sn) / scale, (wy - baseY) / scale, (-ox * sn + oz * c) / scale);
+    g.rotation.y = face - rotationY;
+  });
+  return <group ref={life}>{children}</group>;
+}
+
 // A minimum comfortable hit-target size (world units) for the invisible
 // click/hover proxy below — Claudia's focus-group audit: without this, a
 // thin fence post or a "Tiny" (0.25×) prop has only its raw, easy-to-miss
@@ -236,6 +331,12 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   opacity?: number;
   // Build Mode: a glow color on the model's own surfaces (selected or hovered).
   highlight?: string;
+  // Stands on the shaped ground (Town Square and its Build Mode); the stored height is above it.
+  onTerrain?: boolean;
+  // Sits on the water over a lake, river or ocean (boats).
+  floats?: boolean;
+  // Live mode: animals animate, wander and swim (Build Mode keeps them still).
+  live?: boolean;
   // Build Mode: while a catalog item is armed for placing, existing objects
   // stop catching taps so the ghost can slide over (and be dropped on top
   // of) them, e.g. a chess set onto a table.
@@ -245,7 +346,7 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   // goes past them (see drawnOutOfTown), and onOutOfTown reports it.
   townBounds?: GroundBounds;
   onOutOfTown?: (id: string, out: boolean) => void;
-}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown, highlight }, ref) {
+}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown, highlight, onTerrain, floats, live }, ref) {
   const ctx = useTownSizeContext();
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity, (normalize ?? ctx) && !obj.studentId);
   const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
@@ -257,6 +358,16 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   // sized to the minimum and no bigger, so it never covers a neighbor.
   const tiny = Math.max(size.x, size.y, size.z) * scale < MIN_HIT_SIZE;
   const [px, py, pz] = obj.position;
+  const { animations: clips } = useGLTF(obj.modelPath);
+  const isAnimal = !!live && !floats && (clips.length > 0 || (ANIMAL_NAME.test(obj.label) && !NOT_ANIMAL.test(obj.label)));
+  // Follow the ground when it is reshaped (checked each frame, updated only when it changed).
+  const ground = onTerrain ? groundUnder(px, pz, !!floats) : 0;
+  const seenVersion = useRef(terrainVersion());
+  useFrame(() => {
+    if (!onTerrain || !inner.current || seenVersion.current === terrainVersion()) return;
+    seenVersion.current = terrainVersion();
+    inner.current.position.y = (py ?? 0) + groundUnder(px, pz, !!floats);
+  });
   useEffect(() => {
     if (!townBounds) return;
     const g = inner.current;
@@ -280,7 +391,7 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   return (
     <group
       ref={setRef}
-      position={obj.position}
+      position={[px, (py ?? 0) + ground, pz]}
       rotation={[0, obj.rotationY, 0]}
       scale={scale}
       onClick={interactive && onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
@@ -289,7 +400,9 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
       onPointerOut={interactive && onPointerOut ? () => onPointerOut() : undefined}
       onPointerDown={interactive && onPointerDown ? (e) => { e.stopPropagation(); onPointerDown(e); } : undefined}
     >
-      <primitive object={recentered} />
+      {isAnimal
+        ? <AnimalLife root={recentered} clips={clips} label={obj.label} path={obj.modelPath} home={[px, py ?? 0, pz]} rotationY={obj.rotationY} scale={scale} tall={size.y * scale}><primitive object={recentered} /></AnimalLife>
+        : <primitive object={recentered} />}
       {interactive && tiny && (
         <mesh position={[0, MIN_HIT_SIZE / scale / 2, 0]}>
           <boxGeometry args={[MIN_HIT_SIZE / scale, MIN_HIT_SIZE / scale, MIN_HIT_SIZE / scale]} />

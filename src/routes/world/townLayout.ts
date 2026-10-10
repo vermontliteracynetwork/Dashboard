@@ -1,3 +1,4 @@
+import { isTerrainWater } from './terrain';
 // Pure Town Square layout data — no React/Three.js imports on purpose.
 // TownSquare.tsx is lazy-loaded (the heavy R3F/Three.js code has no
 // business in the main app bundle for a student who never opens the
@@ -331,7 +332,9 @@ export const WATER_TEXTURE_PATH = '/world/textures/water.png';
 // paint-bucket erase/hit-test already uses (see paintGroundAt there),
 // reused here so boat driving/placement and the paint tool never disagree
 // about what water is.
+// Water is a painted water patch or ground dug below the sea level (terrain.ts).
 export function isWaterAt(x: number, z: number, groundPatches: GroundPatch[]): boolean {
+  if (isTerrainWater(x, z)) return true;
   return groundPatches.some((p) => {
     if (p.texturePath !== WATER_TEXTURE_PATH) return false;
     const dx = p.x - x;

@@ -1,6 +1,6 @@
 import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import GroundPatchMesh from './GroundPatchMesh';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
@@ -42,6 +42,8 @@ import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer, useModelSize, isFlatModelSize, safeScale } from './WorldObjectRenderer';
 import { TownSizeContext, useTownSizeRule } from './townSize';
+import { TerrainMesh, WaterSurface, WaterAmbience, useTerrainSync } from './TerrainMesh';
+import { getTerrain, heightAt, isTerrainWater, useTerrainVersion, waterLevel } from './terrain';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
@@ -574,7 +576,16 @@ function blockObstacles(x: number, z: number): [number, number] {
 // this frame. Same "move the player slightly over or stop all movement"
 // shape as a platformer's own wall-slide, and only ever changes position
 // by an amount the player's own input already implied, so it can't glitch.
+// Lakes, rivers and oceans dug in Build Mode (terrain.ts) are not walkable or drivable: a step
+// into water slides along the shore instead, the same bump-and-slide feel as every obstacle.
 function blockObstaclesSlide(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
+  const [x, z] = blockObstaclesSlideLand(curX, curZ, targetX, targetZ);
+  if (!isTerrainWater(x, z) || isTerrainWater(curX, curZ)) return [x, z];
+  if (!isTerrainWater(x, curZ)) return [x, curZ];
+  if (!isTerrainWater(curX, z)) return [curX, z];
+  return [curX, curZ];
+}
+function blockObstaclesSlideLand(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
   const insideObstacle = (x: number, z: number) => STATIC_OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
   // Direct teacher report: "students can go through them a little bit and
   // get stuck." Root cause: the old version only ever checked whether the
@@ -916,9 +927,9 @@ function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef,
     if (floating) {
       elapsed.current += dt;
       const y = PET_HOVER_HEIGHT + Math.sin(elapsed.current * PET_HOVER_BOB_SPEED) * PET_HOVER_BOB_AMPLITUDE;
-      groupRef.current.position.set(pos.current.x, y, pos.current.z);
+      groupRef.current.position.set(pos.current.x, y + heightAt(pos.current.x, pos.current.z), pos.current.z);
     } else {
-      groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+      groupRef.current.position.set(pos.current.x, heightAt(pos.current.x, pos.current.z), pos.current.z);
     }
   });
   return (
@@ -1091,7 +1102,7 @@ function WanderingNPC({
       const k = Math.min(1, (clock.elapsedTime - h.start) / HOP_SECONDS);
       pos.current.x = h.fromX + (h.toX - h.fromX) * k;
       pos.current.z = h.fromZ + (h.toZ - h.fromZ) * k;
-      groupRef.current.position.set(pos.current.x, Math.sin(Math.PI * k) * 0.9, pos.current.z);
+      groupRef.current.position.set(pos.current.x, Math.sin(Math.PI * k) * 0.9 + heightAt(pos.current.x, pos.current.z), pos.current.z);
       groupRef.current.rotation.y = facing.current;
       if (k >= 1) { hop.current = null; pauseUntil.current = clock.elapsedTime + 0.8; }
       return;
@@ -1168,7 +1179,7 @@ function WanderingNPC({
     [pos.current.x, pos.current.z] = blockBuildings(pos.current.x, pos.current.z);
     pos.current.x = clampGroundX(pos.current.x);
     pos.current.z = clampGroundZ(pos.current.z);
-    groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+    groupRef.current.position.set(pos.current.x, heightAt(pos.current.x, pos.current.z), pos.current.z);
     groupRef.current.rotation.y = facing.current;
   });
 
@@ -1380,7 +1391,7 @@ function WalkTargetMarker({ walkTarget }: { walkTarget: React.RefObject<{ x: num
     const t = walkTarget.current;
     ref.current.visible = !!t;
     if (t) {
-      ref.current.position.set(t.x, 0.03, t.z);
+      ref.current.position.set(t.x, heightAt(t.x, t.z) + 0.03, t.z);
       const pulse = 1 + Math.sin(clock.elapsedTime * 6) * 0.1;
       ref.current.scale.setScalar(pulse);
     }
@@ -1404,7 +1415,7 @@ function HoverPreviewMarker({ hoverTarget }: { hoverTarget: React.RefObject<{ x:
     if (!ref.current) return;
     const t = hoverTarget.current;
     ref.current.visible = !!t;
-    if (t) ref.current.position.set(t.x, 0.025, t.z);
+    if (t) ref.current.position.set(t.x, heightAt(t.x, t.z) + 0.025, t.z);
   });
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
@@ -1994,7 +2005,9 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     // single onMove call to here, after every branch and after this
     // clamp, means nothing downstream ever sees an out-of-bounds value.
     if (moved) onMove(pos.current);
-    groupRef.current.position.set(pos.current.x, 0, pos.current.z);
+    // Stand on the shaped ground; a boat rides the water surface.
+    const groundY = vehicleKind === 'boat' && isTerrainWater(pos.current.x, pos.current.z) ? waterLevel() - 0.03 : heightAt(pos.current.x, pos.current.z);
+    groupRef.current.position.set(pos.current.x, groundY, pos.current.z);
     groupRef.current.rotation.y = facing.current;
     if (facingRef) facingRef.current = facing.current;
 
@@ -2050,8 +2063,10 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       const groundCamHeight = OVER_SHOULDER_HEIGHT + (CAMERA_HEIGHT - OVER_SHOULDER_HEIGHT) * (zoom - ZOOM_MIN) / (1 - ZOOM_MIN);
       const camHeight = airborne ? CAMERA_HEIGHT + planeAltitude.current : groundCamHeight;
       const lookY = airborne ? 0.5 : 1 + cameraPitch.current;
-      camera.position.lerp(new THREE.Vector3(camX, camHeight, camZ), 1 - Math.pow(0.001, dt));
-      camera.lookAt(pos.current.x, lookY, pos.current.z);
+      // Follow the ground's height so hills and valleys never swallow the view.
+      const camGround = heightAt(pos.current.x, pos.current.z);
+      camera.position.lerp(new THREE.Vector3(camX, camHeight + Math.max(camGround, heightAt(camX, camZ)), camZ), 1 - Math.pow(0.001, dt));
+      camera.lookAt(pos.current.x, lookY + camGround, pos.current.z);
     }
   });
 
@@ -2300,7 +2315,7 @@ function visualGroundRadiusFor(maxExtent: number): number {
   return Math.max(GROUND_VISUAL_RADIUS, maxExtent * 4);
 }
 
-function GroundMaterial() {
+function GroundMaterial({ worldUV = false }: { worldUV?: boolean }) {
   // Build Mode's paint bucket (WorldEditor.tsx) can swap this for one of a
   // curated set of real texture files — falls back to the original grass
   // the moment a teacher clears it back to null.
@@ -2311,7 +2326,9 @@ function GroundMaterial() {
   // Tuned against a real render: ~4 world units per tile reads as a
   // believable grass scale next to a ~1.7-unit-tall character.
   const tileRepeat = (visualGroundRadiusFor(maxExtent) * 2) / 4;
-  tex.repeat.set(tileRepeat, tileRepeat);
+  // worldUV: the ring around the shaped ground (its UVs are world units), one tile per 4 units
+  // and turned to line up with the terrain's own tiles.
+  if (worldUV) tex.repeat.set(0.25, -0.25); else tex.repeat.set(tileRepeat, tileRepeat);
   tex.colorSpace = THREE.SRGBColorSpace;
   return <meshStandardMaterial map={tex} />;
 }
@@ -2459,30 +2476,55 @@ function Park({
 }) {
   const groundPatches = useStore((s) => s.groundPatches);
   const maxExtent = useStore((s) => groundBoundsMaxExtent(s.groundBounds));
+  const groundTexture = useStore((s) => s.groundTexture);
+  // Shaped ground (terrain.ts, 2026-10-10): once a teacher sculpts, the lot is the terrain mesh
+  // and the far grass becomes a ring around it, so dug lakes are not covered by the flat ground.
+  useTerrainVersion();
+  const terrain = getTerrain();
+  const groundEvents = {
+    onClick: (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onGroundTap(e.point.x, e.point.z); },
+    onDoubleClick: (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onGroundDoubleTap?.(e.point.x, e.point.z); },
+    onPointerMove: (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); onGroundHover({ x: e.point.x, z: e.point.z }); },
+    onPointerOut: () => onGroundHover(null),
+  };
+  const ringR = visualGroundRadiusFor(maxExtent);
+  const ringGeom = useMemo(() => {
+    if (!terrain) return null;
+    const shape = new THREE.Shape(); shape.absarc(0, 0, ringR, 0, Math.PI * 2, false);
+    const e = terrain.ext; const hole = new THREE.Path();
+    hole.moveTo(-e, -e); hole.lineTo(e, -e); hole.lineTo(e, e); hole.lineTo(-e, e); hole.lineTo(-e, -e);
+    shape.holes.push(hole);
+    return new THREE.ShapeGeometry(shape, 48);
+  }, [terrain?.ext, ringR, !!terrain]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => ringGeom?.dispose(), [ringGeom]);
   return (
     <group>
+      {terrain && ringGeom ? (
+        <>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow geometry={ringGeom} {...groundEvents}>
+            <Suspense fallback={<meshStandardMaterial color="#7fb069" />}>
+              <GroundMaterial worldUV />
+            </Suspense>
+          </mesh>
+          <Suspense fallback={null}>
+            <TerrainMesh textureUrl={groundTexture ?? '/world/textures/grass.png'} {...groundEvents} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <WaterSurface />
+          </Suspense>
+        </>
+      ) : (
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         receiveShadow
-        onClick={(e) => {
-          e.stopPropagation();
-          onGroundTap(e.point.x, e.point.z);
-        }}
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          onGroundDoubleTap?.(e.point.x, e.point.z);
-        }}
-        onPointerMove={(e) => {
-          e.stopPropagation();
-          onGroundHover({ x: e.point.x, z: e.point.z });
-        }}
-        onPointerOut={() => onGroundHover(null)}
+        {...groundEvents}
       >
         <circleGeometry args={[visualGroundRadiusFor(maxExtent), 48]} />
         <Suspense fallback={<meshStandardMaterial color="#7fb069" />}>
           <GroundMaterial />
         </Suspense>
       </mesh>
+      )}
       <Suspense fallback={null}>
         {groundPatches.map((p) => <GroundPatchMesh key={p.id} patch={p} />)}
       </Suspense>
@@ -3145,6 +3187,11 @@ export default function TownSquare() {
   const totalTasksLeft = subjectsToday.reduce((sum, s) => sum + s.remaining, 0);
 
   const [playerPos, setPlayerPos] = useState(() => new THREE.Vector3(0, 0, 6));
+  // The sculpted ground, water and their sound (terrain.ts, 2026-10-10).
+  useTerrainSync();
+  const playerPosRef = useRef(playerPos);
+  playerPosRef.current = playerPos;
+  const [waterSoundOff] = useState(() => { try { return localStorage.getItem('water-sound-off') === '1'; } catch { return false; } });
   const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);
   // Direct teacher instruction (2026-10-01): talking to a Neighbor you've
   // already met opens a two-choice menu first: a joke, or talking about
@@ -4760,6 +4807,7 @@ export default function TownSquare() {
       )}
 
       <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50, far: 2500 }}>
+        <WaterAmbience off={waterSoundOff} listener={() => playerPosRef.current} />
         <TownSizeContext.Provider value={townSizeRule}>
         {/* Direct teacher report, live screenshot: dark jagged shapes on
             the horizon in Town Square. Root cause — this fog was only
@@ -5005,6 +5053,9 @@ export default function TownSquare() {
             <group key={obj.id}>
               <WorldObjectRenderer
                 obj={liveObj}
+                onTerrain
+                floats={isBoat}
+                live={!isVehicle}
                 townBounds={isDriving ? undefined : groundBounds}
                 onClick={
                   // A car/boat model always drives, even if it was also
