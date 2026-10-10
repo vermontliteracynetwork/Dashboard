@@ -806,6 +806,9 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
   ...[1, 2, 3, 4, 5].map((k) => ({ label: `Wood ${k}`, path: `/world/textures/wood/wood-${k}.jpg` })),
   { label: 'Cliff Rock', path: '/world/textures/terrain/rock-cliff.jpg' },
   { label: 'Boulders', path: '/world/textures/terrain/rock-boulders.jpg' },
+  // From her Unknown Horizons mines pack (2026-10-10).
+  { label: 'Mountain Rock', path: '/world/textures/terrain/mountain-rock.jpg' },
+  { label: 'Meadow', path: '/world/textures/terrain/meadow.jpg' },
 ];
 // Her 100 hand-painted textures (pdtextures upload, 2026-10-10), behind a "More" fold so the
 // main picker stays short. Each has a small thumbnail so the grid loads fast.

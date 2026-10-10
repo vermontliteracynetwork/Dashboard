@@ -56,6 +56,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/buildings/apartment-building.glb,Apartment Building,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/bakery.glb,Bakery,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/bank.glb,Bank,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/blue-townhouse.glb,Blue Townhouse,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/building-extra.glb,Building Extra,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/cabin-shed.glb,Cabin Shed,buildings,Buildings & Places,smallStructure,keyword,5.235,solid (blocks movement),yes,2000,20.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/castle/castle.gltf,Castle,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
@@ -66,6 +67,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/buildings/house-2.glb,House 2,buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/house-quaternius.glb,House Quaternius,buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/house.glb,House,buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/log-cabin.glb,Log Cabin,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/office-building-2.glb,Office Building 2,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/office-building-3.glb,Office Building 3,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/office-building.glb,Office Building,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
@@ -73,6 +75,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/buildings/seamstress-shop.glb,Seamstress Shop,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/store.glb,Store,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/windmill-cottage.glb,Windmill Cottage,buildings,Buildings & Places,smallStructure,keyword,5.235,solid (blocks movement),yes,2000,20.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/wood-house.glb,Wood House,buildings,Buildings & Places,largeStructure,keyword,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/camping/Archery_Target.glb,Archery Target,camping,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,no,yes,no,static click-to-collect
 /world/models/camping/Backpack_A.glb,Backpack A,camping,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,no,yes,no,static click-to-collect
 /world/models/camping/Bear_Canister.glb,Bear Canister,camping,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,no,yes,no,static click-to-collect
@@ -269,6 +272,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/food/Food_TamagoNigiri.gltf,Food Tamago Nigiri,food,Nature & Animals,tiny,category-fallback,0.262,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/food/Food_Udon.gltf,Food Udon,food,Nature & Animals,tiny,category-fallback,0.262,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/food/Food_Wasabi.gltf,Food Wasabi,food,Nature & Animals,tiny,category-fallback,0.262,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
+/world/models/food/fish-soup-pot.glb,Fish Soup Pot,food,Nature & Animals,smallObject,keyword,0.436,walkable (walk-through),yes,150,1.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/food/pizza-corner.glb,Pizza Corner,food,Nature & Animals,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/food/pizza-slice.glb,Pizza Slice,food,Nature & Animals,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
 /world/models/food/pizza-whole.glb,Pizza Whole,food,Nature & Animals,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,"static click-to-collect, same pattern as joke-card pickup"
@@ -943,6 +947,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/props/dumpster.glb,Dumpster,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/flower.glb,Flower,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/large_rock.glb,Large Rock,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/props/mailbox.glb,Mailbox,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/medium_rock.glb,Medium Rock,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/mountain_map.glb,Mountain Map,props,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/props/mushroom.glb,Mushroom,props,Props & Tools,tiny,keyword,0.218,solid (blocks movement),yes,50,0.50,paid,no,yes,no,static click-to-collect

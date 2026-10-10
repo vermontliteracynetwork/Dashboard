@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T20:06:14.120Z",
+  "generatedAt": "2026-10-10T20:12:28.445Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -287,6 +287,11 @@
       "category": "buildings"
     },
     {
+      "path": "/world/models/buildings/blue-townhouse.glb",
+      "label": "Blue Townhouse",
+      "category": "buildings"
+    },
+    {
       "path": "/world/models/buildings/building-extra.glb",
       "label": "Building Extra",
       "category": "buildings"
@@ -337,6 +342,11 @@
       "category": "buildings"
     },
     {
+      "path": "/world/models/buildings/log-cabin.glb",
+      "label": "Log Cabin",
+      "category": "buildings"
+    },
+    {
       "path": "/world/models/buildings/office-building-2.glb",
       "label": "Office Building 2",
       "category": "buildings"
@@ -369,6 +379,11 @@
     {
       "path": "/world/models/buildings/windmill-cottage.glb",
       "label": "Windmill Cottage",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/wood-house.glb",
+      "label": "Wood House",
       "category": "buildings"
     },
     {
@@ -1349,6 +1364,11 @@
     {
       "path": "/world/models/food/Food_Wasabi.gltf",
       "label": "Food Wasabi",
+      "category": "food"
+    },
+    {
+      "path": "/world/models/food/fish-soup-pot.glb",
+      "label": "Fish Soup Pot",
       "category": "food"
     },
     {
@@ -4719,6 +4739,11 @@
     {
       "path": "/world/models/props/large_rock.glb",
       "label": "Large Rock",
+      "category": "props"
+    },
+    {
+      "path": "/world/models/props/mailbox.glb",
+      "label": "Mailbox",
       "category": "props"
     },
     {
