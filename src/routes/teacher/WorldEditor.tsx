@@ -86,6 +86,21 @@ const SCALE_MAX = 20;
 const HEIGHT_STEP = 0.25;
 const HEIGHT_FINE_STEP = 0.05;
 const HEIGHT_MAX = 20;
+// Below the ground (teacher 2026-10-10: "place objects beneath the ground ... so some of it shows,
+// but not all"). An object can sink until only a sliver is left above the grass, never all the
+// way, so it can always still be tapped and brought back up.
+const SINK_KEEP = 0.05;
+// Precise moves (teacher 2026-10-10: "i dont have enough accuracy"): the arrows, keys and number
+// fields move by this step. Grid follows the snap setting; the rest are exact distances.
+const MOVE_STEPS: { label: string; value: number | 'grid' }[] = [
+  { label: 'Grid', value: 'grid' }, { label: '0.25', value: 0.25 }, { label: '0.1', value: 0.1 }, { label: '0.01', value: 0.01 },
+];
+const SIZE_STEPS = [10, 5, 1]; // percent per tap on the resize − / +
+const round3 = (v: number) => Math.round(v * 1000) / 1000 + 0;
+// Hover glow on the model itself (selection glows in BUILD_ACCENT).
+const HOVER_GLOW = '#facc15';
+// Shared with CameraPanner: while something is selected the arrow keys move it instead of the camera.
+const arrowsMoveSelection = { current: false };
 
 // Claudia's completeness review of the new 'custom' role: a bare domain
 // typed with no scheme (e.g. "example.com") gets passed straight to
@@ -478,7 +493,13 @@ function computeAutoScale(size: THREE.Vector3, category: string, label: string):
 // Press-and-hold auto-repeat for the fine resize/rotate nudge buttons —
 // 400ms initial delay, then repeats every 150ms, so a teacher can hold
 // instead of tapping many times (per Claudia's touch-target guidance).
-function useHoldRepeat(fn: () => void) {
+// Teacher report 2026-10-10 ("the move arrows are buggy at best"): a held button kept calling the
+// function from the moment it was pressed, which still saw the object's OLD position, so holding
+// an arrow moved one step and then stuck. The latest function is read from a ref on every tick.
+function useHoldRepeat(fnNow: () => void) {
+  const fnRef = useRef(fnNow);
+  fnRef.current = fnNow;
+  const fn = () => fnRef.current();
   const timeoutRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
   const stop = () => {
@@ -502,7 +523,11 @@ function useHoldRepeat(fn: () => void) {
 // every single tap fired both the immediate 15° tick AND the 90° click —
 // landing on 105°, never a clean 90°. This hook owns both behaviors so only
 // one of them ever fires per press.
-function useTapOrHold(onTap: () => void, onRepeatTick: () => void) {
+function useTapOrHold(onTapNow: () => void, onRepeatTickNow: () => void) {
+  const tapRef = useRef(onTapNow); tapRef.current = onTapNow;
+  const tickRef = useRef(onRepeatTickNow); tickRef.current = onRepeatTickNow;
+  const onTap = () => tapRef.current();
+  const onRepeatTick = () => tickRef.current();
   const timeoutRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
   const heldRef = useRef(false);
@@ -820,8 +845,9 @@ function CameraPanner({ controlsRef }: { controlsRef: React.RefObject<{ target: 
     const controls = controlsRef.current;
     if (!controls) return;
     const k = keys.current;
-    const forward = (k['w'] || k['arrowup'] ? 1 : 0) - (k['s'] || k['arrowdown'] ? 1 : 0);
-    const strafe = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0);
+    const arrows = !arrowsMoveSelection.current;
+    const forward = (k['w'] || (arrows && k['arrowup']) ? 1 : 0) - (k['s'] || (arrows && k['arrowdown']) ? 1 : 0);
+    const strafe = (k['d'] || (arrows && k['arrowright']) ? 1 : 0) - (k['a'] || (arrows && k['arrowleft']) ? 1 : 0);
     if (!forward && !strafe) return;
     const speed = 14 * delta;
     const dir = new THREE.Vector3();
@@ -945,11 +971,11 @@ function TrackpadRotate({ controlsRef }: { controlsRef: React.RefObject<{ target
 // the ground up to the object, a ring on the ground, and the height
 // number, so a 9/0 press is visible even from far away.
 function HeightMarker({ x, y, z }: { x: number; y: number; z: number }) {
-  if (y < 0.001) return null;
+  if (Math.abs(y) < 0.001) return null;
   return (
     <group>
       <mesh position={[x, y / 2, z]} raycast={() => null}>
-        <cylinderGeometry args={[0.04, 0.04, y, 8]} />
+        <cylinderGeometry args={[0.04, 0.04, Math.abs(y), 8]} />
         <meshBasicMaterial color={BUILD_ACCENT} transparent opacity={0.8} />
       </mesh>
       <mesh position={[x, 0.04, z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
@@ -957,26 +983,12 @@ function HeightMarker({ x, y, z }: { x: number; y: number; z: number }) {
         <meshBasicMaterial color={BUILD_ACCENT} transparent opacity={0.85} />
       </mesh>
       <Html position={[x, 0.05, z]} center zIndexRange={[50, 0]} style={{ pointerEvents: 'none' }}>
-        <div style={{ background: '#fff', border: `2px solid ${BUILD_ACCENT}`, borderRadius: 999, padding: '1px 8px', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap', transform: 'translateY(16px)' }}>↕ {y.toFixed(2)}</div>
+        <div style={{ background: '#fff', border: `2px solid ${BUILD_ACCENT}`, borderRadius: 999, padding: '1px 8px', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap', transform: 'translateY(16px)' }}>{y < 0 ? '⬇ below ground ' : '↕ '}{y.toFixed(2)}</div>
       </Html>
     </group>
   );
 }
 
-function FootprintOutline({ modelPath, x, y = 0, z, rotationY = 0, scale, color, opacity = 1, lineWidth = 2 }: {
-  modelPath: string; x: number; y?: number; z: number; rotationY?: number; scale: number; color: string; opacity?: number; lineWidth?: number;
-}) {
-  const size = useModelSize(modelPath);
-  const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(size.x, size.y, size.z)), [size]);
-  return (
-    <group position={[x, y, z]} rotation={[0, rotationY, 0]}>
-      <lineSegments position={[0, (size.y * scale) / 2, 0]} scale={scale}>
-        <primitive object={edges} attach="geometry" />
-        <lineBasicMaterial color={color} transparent opacity={opacity} linewidth={lineWidth} />
-      </lineSegments>
-    </group>
-  );
-}
 
 // The flat highlighted ground cell under the ghost — Minecraft's actual
 // target-reticle equivalent, visible the instant an asset is armed even
@@ -988,6 +1000,86 @@ function GroundCellOutline({ x, z, color, size = GRID_SIZE }: { x: number; z: nu
       <primitive object={edges} attach="geometry" />
       <lineBasicMaterial color={color} linewidth={2} />
     </lineSegments>
+  );
+}
+
+// Drag-to-move on a flat plane at the object's own height (teacher 2026-10-10: "the dragging/
+// placement ... are buggy at best"). The old drag followed the ground mesh under the pointer, so
+// the object's middle jumped to the pointer, and it stopped following whenever the pointer passed
+// over a wall or another object. Like Blender, Unity and the Sims, the pointer ray now meets an
+// invisible plane through the object, the grab point stays under the finger, nothing in the scene
+// can interrupt it, it only starts after a real 5px drag (a tap never nudges anything), and Esc
+// cancels and puts the object back.
+interface DragInfo { sx: number; sy: number; planeY: number; offX: number; offZ: number; moved: boolean }
+function PlaneDragger({ active, info, onMove, onCancel }: { active: boolean; info: React.MutableRefObject<DragInfo | null>; onMove: (x: number, z: number) => void; onCancel: () => void }) {
+  const { camera, gl } = useThree();
+  const moveRef = useRef(onMove); moveRef.current = onMove;
+  const cancelRef = useRef(onCancel); cancelRef.current = onCancel;
+  useEffect(() => {
+    if (!active) return;
+    const caster = new THREE.Raycaster(); const ndc = new THREE.Vector2(); const hit = new THREE.Vector3();
+    const move = (e: PointerEvent) => {
+      const d = info.current; if (!d) return;
+      if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 5) return;
+      d.moved = true;
+      const r = gl.domElement.getBoundingClientRect();
+      ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      caster.setFromCamera(ndc, camera);
+      if (!caster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -d.planeY), hit)) return;
+      moveRef.current(hit.x + d.offX, hit.z + d.offZ);
+    };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') cancelRef.current(); };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('keydown', key);
+    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key); };
+  }, [active, camera, gl, info]);
+  return null;
+}
+// Where a pointer-down ray meets the drag plane, as an offset from the object's own spot.
+function grabOffset(e: ThreeEvent<PointerEvent>, x: number, y: number, z: number): DragInfo {
+  const hit = e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), new THREE.Vector3());
+  return { sx: e.nativeEvent.clientX, sy: e.nativeEvent.clientY, planeY: y, offX: hit ? x - hit.x : 0, offZ: hit ? z - hit.z : 0, moved: false };
+}
+// Reports how tall a model is drawn (world units), so sinking it below the ground can stop with
+// a sliver still showing.
+function ModelHeightProbe({ path, scale, onHeight }: { path: string; scale: number; onHeight: (h: number) => void }) {
+  const size = useModelSize(path);
+  const h = size.y * safeScale(size, scale);
+  useEffect(() => { onHeight(h); }, [h, onHeight]);
+  return null;
+}
+// A typed number with − / + steppers (hold to repeat). Commits on Enter or leaving the box;
+// arrow up/down in the box steps too, like a design program's number field.
+function NumberField({ id, label, value, step, onCommit, min, max, title }: { id: string; label: string; value: number; step: number; onCommit: (v: number) => void; min?: number; max?: number; title?: string }) {
+  const fmt = (v: number) => String(round3(v));
+  const [text, setText] = useState(fmt(value));
+  const focused = useRef(false);
+  useEffect(() => { if (!focused.current) setText(fmt(value)); }, [value]);
+  const clampV = (v: number) => round3(THREE.MathUtils.clamp(v, min ?? -Infinity, max ?? Infinity));
+  const send = (v: number) => onCommit(clampV(v));
+  const down = useHoldRepeat(() => send(value - step));
+  const up = useHoldRepeat(() => send(value + step));
+  const commit = () => { const n = Number(text); if (text.trim() !== '' && isFinite(n)) send(n); else setText(fmt(value)); };
+  return (
+    <div className="row" style={{ gap: 4, alignItems: 'center' }} title={title}>
+      <label htmlFor={id} style={{ width: 58, fontSize: '0.72rem', fontWeight: 700 }}>{label}</label>
+      <button className="btn btn-sm" style={{ minHeight: 44, width: 44, padding: 0 }} aria-label={`${label} down by ${step}`} {...down}>−</button>
+      <input
+        id={id}
+        className="input"
+        inputMode="decimal"
+        style={{ width: 72, fontSize: '0.82rem', padding: '4px 6px', textAlign: 'center', minHeight: 44 }}
+        value={text}
+        onFocus={(e) => { focused.current = true; e.currentTarget.select(); }}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => { focused.current = false; commit(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); const n = clampV((Number(text) || value) + (e.key === 'ArrowUp' ? step : -step)); setText(fmt(n)); onCommit(n); }
+        }}
+      />
+      <button className="btn btn-sm" style={{ minHeight: 44, width: 44, padding: 0 }} aria-label={`${label} up by ${step}`} {...up}>+</button>
+    </div>
   );
 }
 
@@ -1237,7 +1329,17 @@ function SelectedObjectToolbar({
   selected, allowNameRole, rotateCwFine, rotateCcwFine, onDragRotate, setScale, growHold, shrinkHold,
   nudgeNorthHold, nudgeSouthHold, nudgeEastHold, nudgeWestHold,
   onUpdate, onDelete, onDuplicate, deselect, onMoveModeChange,
+  moveStep, setMoveStep, stepValue, heightMin, onSetPosition, sizeStep, setSizeStep,
 }: {
+  // Precise transform (teacher 2026-10-10): the chosen step, the lowest the object can sink, and
+  // a position setter that keeps it inside the lot.
+  moveStep: number | 'grid';
+  setMoveStep: (v: number | 'grid') => void;
+  stepValue: number;
+  heightMin: number;
+  onSetPosition: (x: number, y: number, z: number) => void;
+  sizeStep: number;
+  setSizeStep: (v: number) => void;
   selected: WorldObject;
   allowNameRole: boolean;
   rotateCwFine: ReturnType<typeof useHoldRepeat>;
@@ -1366,17 +1468,29 @@ function SelectedObjectToolbar({
 
           {openPopover === 'move' && (
             <div className="stack" style={{ gap: 4, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, alignItems: 'center' }}>
-              <p style={{ margin: 0, fontSize: '0.68rem', opacity: 0.7, textAlign: 'center', maxWidth: 170 }}>Drag the object itself, or tap/hold an arrow below.</p>
+              <p style={{ margin: 0, fontSize: '0.68rem', opacity: 0.7, textAlign: 'center', maxWidth: 230 }}>Drag the object itself, or use the arrows (they follow the camera: ↑ is always away from you). Arrow keys work too; hold Shift for tiny steps.</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 44px)', gridTemplateRows: 'repeat(3, 44px)', gap: 4 }}>
                 <span />
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move away from camera" {...nudgeNorthHold}>↑</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move away from the camera" {...nudgeNorthHold}>↑</button>
                 <span />
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move left" {...nudgeWestHold}>←</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move left on screen" {...nudgeWestHold}>←</button>
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>✥</span>
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move right" {...nudgeEastHold}>→</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move right on screen" {...nudgeEastHold}>→</button>
                 <span />
-                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward camera" {...nudgeSouthHold}>↓</button>
+                <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, padding: 0, fontSize: '1.1rem' }} title="Move toward the camera" {...nudgeSouthHold}>↓</button>
                 <span />
+              </div>
+              <div className="row-wrap" style={{ gap: 4, justifyContent: 'center' }} role="group" aria-label="Step size">
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, alignSelf: 'center' }}>Step</span>
+                {MOVE_STEPS.map((m) => (
+                  <button key={m.label} className={`btn btn-sm ${moveStep === m.value ? 'btn-primary' : ''}`} style={{ minHeight: 44, minWidth: 44 }} aria-pressed={moveStep === m.value} onClick={() => setMoveStep(m.value)}>{m.label}</button>
+                ))}
+              </div>
+              <div className="stack" style={{ gap: 4 }}>
+                <NumberField id="build-pos-x" label="Left/right" title="X position (east is bigger)" value={selected.position[0]} step={stepValue} onCommit={(v) => onSetPosition(v, selected.position[1] ?? 0, selected.position[2])} />
+                <NumberField id="build-pos-z" label="Front/back" title="Z position (south is bigger)" value={selected.position[2]} step={stepValue} onCommit={(v) => onSetPosition(selected.position[0], selected.position[1] ?? 0, v)} />
+                <NumberField id="build-pos-y" label="Height" title="Height off the ground. Below 0 sinks it into the ground; it always keeps a sliver showing." value={selected.position[1] ?? 0} step={moveStep === 'grid' ? HEIGHT_STEP : stepValue} min={heightMin} max={HEIGHT_MAX} onCommit={(v) => onSetPosition(selected.position[0], v, selected.position[2])} />
+                <NumberField id="build-rot" label="Turn °" title="Rotation in degrees" value={round3((((selected.rotationY * 180) / Math.PI) % 360 + 360) % 360)} step={moveStep === 'grid' ? 15 : moveStep === 0.25 ? 5 : 1} onCommit={(deg) => onUpdate({ rotationY: (deg * Math.PI) / 180 })} />
               </div>
             </div>
           )}
@@ -1390,7 +1504,7 @@ function SelectedObjectToolbar({
             // specific model came from, per the teacher's direct spec.
             const currentUnits = scaleToUnits(selected.scale, size.y);
             return (
-              <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 220 }}>
+              <div className="stack" style={{ gap: 6, background: '#fff', border: '3px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 10, width: 250 }}>
                 <div className="row-wrap" style={{ gap: 4, justifyContent: 'center' }}>
                   {SCALE_PRESETS.map((p) => (
                     <button
@@ -1401,6 +1515,12 @@ function SelectedObjectToolbar({
                     >
                       {Math.abs(currentUnits - p.value) < 0.02 ? '✓ ' : ''}{p.label}
                     </button>
+                  ))}
+                </div>
+                <div className="row-wrap" style={{ gap: 4, justifyContent: 'center' }} role="group" aria-label="Size step">
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, alignSelf: 'center' }}>− / + step</span>
+                  {SIZE_STEPS.map((p) => (
+                    <button key={p} className={`btn btn-sm ${sizeStep === p ? 'btn-primary' : ''}`} style={{ minHeight: 44, minWidth: 44 }} aria-pressed={sizeStep === p} onClick={() => setSizeStep(p)}>{p}%</button>
                   ))}
                 </div>
                 <div className="row" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
@@ -1421,6 +1541,11 @@ function SelectedObjectToolbar({
                   currentUnits={currentUnits}
                   onCommit={(units) => setScale(unitsToScale(units, size.y))}
                 />
+                {size.y > 0 && (
+                  <p style={{ margin: 0, fontSize: '0.68rem', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                    Wide {(currentUnits * size.x / size.y).toFixed(2)} · Deep {(currentUnits * size.z / size.y).toFixed(2)} · Tall {currentUnits.toFixed(2)}
+                  </p>
+                )}
                 <p style={{ margin: 0, fontSize: '0.62rem', opacity: 0.65, textAlign: 'center' }}>1.0 = same height as a player</p>
               </div>
             );
@@ -1865,6 +1990,13 @@ export default function WorldEditor() {
   // Height off the ground for the armed ghost (9 lowers, 0 raises), so an
   // item can be dropped straight onto a table/shelf/counter.
   const [ghostHeight, setGhostHeight] = useState(0);
+  // Precise transform state (teacher 2026-10-10). How tall the selected object and the ghost are
+  // drawn, so sinking below the ground always leaves a sliver showing.
+  const [moveStep, setMoveStep] = useState<number | 'grid'>('grid');
+  const [sizeStep, setSizeStep] = useState(10);
+  const [selDrawnHeight, setSelDrawnHeight] = useState(0);
+  const [ghostDrawnHeight, setGhostDrawnHeight] = useState(0);
+  const dragInfoRef = useRef<DragInfo | null>(null);
   const armAsset = (a: AssetManifestEntry | null) => {
     setHammerMode(false);
     setPaintMode(null);
@@ -2230,6 +2362,13 @@ export default function WorldEditor() {
       if (e.key === '[') { nudgeScaleByRef.current(-1); ghostNudgeScaleByRef.current(-1); return; }
       if (e.key === ']') { nudgeScaleByRef.current(1); ghostNudgeScaleByRef.current(1); return; }
       if (e.key.toLowerCase() === 't') { topViewRef.current(); return; }
+      if (arrowsMoveSelection.current && e.key.startsWith('Arrow')) {
+        e.preventDefault();
+        const f = e.key === 'ArrowUp' ? 1 : e.key === 'ArrowDown' ? -1 : 0;
+        const r = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        nudgeScreenRef.current(f, r, e.shiftKey);
+        return;
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Shift') setShiftHeld(false);
@@ -2502,9 +2641,7 @@ export default function WorldEditor() {
   const moveGroupBy = (dx: number, dz: number) => {
     if (groupMembers.length < 2) return;
     groupMembers.forEach((o) => {
-      const nx = clampToGroundX(snapValue(o.position[0] + dx, snapEnabled, gridStep));
-      const nz = clampToGroundZ(snapValue(o.position[2] + dz, snapEnabled, gridStep));
-      updateWorldObjectH(o.id, { position: [nx, o.position[1] ?? 0, nz] });
+      updateWorldObjectH(o.id, { position: [placeX(o.position[0] + dx), o.position[1] ?? 0, placeZ(o.position[2] + dz)] });
     });
   };
   // Group — assigns every currently multi-selected object the same fresh
@@ -2576,8 +2713,8 @@ export default function WorldEditor() {
     if (!selected) return;
     setScale(selected.scale * factor);
   };
-  const growHold = useHoldRepeat(() => nudgeScale(1.1));
-  const shrinkHold = useHoldRepeat(() => nudgeScale(1 / 1.1));
+  const growHold = useHoldRepeat(() => nudgeScale(1 + sizeStep / 100));
+  const shrinkHold = useHoldRepeat(() => nudgeScale(1 / (1 + sizeStep / 100)));
   const rotateCwFine = useTapOrHold(() => rotateBy(90), () => rotateBy(15));
   const rotateCcwFine = useTapOrHold(() => rotateBy(-90), () => rotateBy(-15));
   // Direct teacher instruction: dragging to move a placed object is hard
@@ -2586,12 +2723,33 @@ export default function WorldEditor() {
   // position by one grid step per tap without needing a drag gesture at
   // all. Fixed world axes (not camera-relative), so a direction always
   // means the same thing regardless of how the camera's been orbited.
+  // Moves exactly by the step (teacher 2026-10-10: arrows were "buggy at best"). Only the Grid
+  // step with Snap on lands on grid lines; every other step is an exact distance and never jumps.
+  const stepValue = moveStep === 'grid' ? gridStep : moveStep;
+  const stepSnaps = moveStep === 'grid' && snapEnabled;
+  const placeX = (v: number) => clampToGroundX(stepSnaps ? snapValue(v, true, gridStep) : round3(v));
+  const placeZ = (v: number) => clampToGroundZ(stepSnaps ? snapValue(v, true, gridStep) : round3(v));
   const nudgePosition = (dx: number, dz: number) => {
     if (multiSelectIds.length >= 2) { moveGroupBy(dx, dz); return; }
     if (!selected) return;
-    const nx = clampToGroundX(snapValue(selected.position[0] + dx, snapEnabled, gridStep));
-    const nz = clampToGroundZ(snapValue(selected.position[2] + dz, snapEnabled, gridStep));
-    updateSelected({ position: [nx, selected.position[1] ?? 0, nz] });
+    updateSelected({ position: [placeX(selected.position[0] + dx), selected.position[1] ?? 0, placeZ(selected.position[2] + dz)] });
+  };
+  // The arrows follow the camera, turned to the nearest side of the grid: ↑ always moves away
+  // from you on screen, however the view has been spun (it used to stay fixed to north, so after
+  // turning the camera ↑ could move things sideways or toward you).
+  const nudgeScreen = (fwd: number, right: number, fine = false) => {
+    const az = controlsRef.current?.getAzimuthalAngle?.() ?? 0;
+    const q = Math.round(az / (Math.PI / 2)) * (Math.PI / 2);
+    const st = stepValue * (fine ? 0.1 : 1);
+    nudgePosition(round3((-Math.sin(q) * fwd + Math.cos(q) * right) * st), round3((-Math.cos(q) * fwd - Math.sin(q) * right) * st));
+  };
+  const nudgeScreenRef = useRef(nudgeScreen);
+  nudgeScreenRef.current = nudgeScreen;
+  arrowsMoveSelection.current = !!selection || multiSelectIds.length >= 2;
+  const heightMin = selDrawnHeight > 0 ? -round3(Math.max(0, selDrawnHeight - SINK_KEEP)) : 0;
+  const setSelectedPosition = (x: number, y: number, z: number) => {
+    if (!selected) return;
+    updateSelected({ position: [clampToGroundX(round3(x)), round3(THREE.MathUtils.clamp(y, heightMin, HEIGHT_MAX)), clampToGroundZ(round3(z))] });
   };
   // Height (direct teacher request: "if i press the 9 key, the object
   // should decrease in height and if i press 0 it should raise in height
@@ -2600,20 +2758,21 @@ export default function WorldEditor() {
   // below the ground.
   const nudgeHeight = (dir: number, fine = false) => {
     const step = (fine ? HEIGHT_FINE_STEP : HEIGHT_STEP) * dir;
-    const clampY = (y: number) => Math.round(THREE.MathUtils.clamp(y, 0, HEIGHT_MAX) * 100) / 100;
-    if (armedAsset) { setGhostHeight((h) => clampY(h + step)); return; }
+    // Below the ground is allowed now, down to a sliver left showing (see SINK_KEEP).
+    const clampY = (y: number, lowest: number) => round3(THREE.MathUtils.clamp(y, lowest, HEIGHT_MAX));
+    if (armedAsset) { const low = ghostDrawnHeight > 0 ? -Math.max(0, ghostDrawnHeight - SINK_KEEP) : 0; setGhostHeight((h) => clampY(h + step, low)); return; }
     if (multiSelectIds.length >= 2) {
-      groupMembers.forEach((o) => updateWorldObjectH(o.id, { position: [o.position[0], clampY((o.position[1] ?? 0) + step), o.position[2]] }));
+      groupMembers.forEach((o) => updateWorldObjectH(o.id, { position: [o.position[0], clampY((o.position[1] ?? 0) + step, Math.min(0, o.position[1] ?? 0)), o.position[2]] }));
       return;
     }
     if (!selected || selection?.kind !== 'placed') return;
-    updateSelected({ position: [selected.position[0], clampY((selected.position[1] ?? 0) + step), selected.position[2]] });
+    updateSelected({ position: [selected.position[0], clampY((selected.position[1] ?? 0) + step, heightMin), selected.position[2]] });
   };
   nudgeHeightRef.current = nudgeHeight;
-  const nudgeNorthHold = useHoldRepeat(() => nudgePosition(0, -gridStep));
-  const nudgeSouthHold = useHoldRepeat(() => nudgePosition(0, gridStep));
-  const nudgeEastHold = useHoldRepeat(() => nudgePosition(gridStep, 0));
-  const nudgeWestHold = useHoldRepeat(() => nudgePosition(-gridStep, 0));
+  const nudgeNorthHold = useHoldRepeat(() => nudgeScreen(1, 0));
+  const nudgeSouthHold = useHoldRepeat(() => nudgeScreen(-1, 0));
+  const nudgeEastHold = useHoldRepeat(() => nudgeScreen(0, 1));
+  const nudgeWestHold = useHoldRepeat(() => nudgeScreen(0, -1));
   // The Lot panel's own arrows — direct teacher request: "use arrows to
   // expand each lot." Same press-and-hold pattern as the object-move arrows
   // above, just pushing a wall of groundBounds instead of a selected
@@ -2650,11 +2809,14 @@ export default function WorldEditor() {
       // Unsnapped — a pond or patch of dirt reads more natural free-form
       // than grid-locked, unlike every other placed object in Build Mode.
       paintGroundAt(clampToGroundX(e.point.x), clampToGroundZ(e.point.z));
-    } else if (dragObjectId) {
-      e.stopPropagation();
-      setDragPos({ x, z });
     }
+    // Moving a placed object is handled by PlaneDragger (a plane through the object), not here.
   };
+  const dragMoveTo = (x: number, z: number) => {
+    const free = optionHeld || moveModeActive;
+    setDragPos({ x: clampToGroundX(snapValue(x, snapEnabled && !free, gridStep)), z: clampToGroundZ(snapValue(z, snapEnabled && !free, gridStep)) });
+  };
+  const cancelDrag = () => { dragInfoRef.current = null; setDragObjectId(null); setDragPos(null); setDragGroupOrigin(null); };
 
   // Commits a drag-to-move gesture on release, wherever the pointer lets go
   // (mirrors the wall-draw commit effect below it) — so letting go off the
@@ -2667,7 +2829,9 @@ export default function WorldEditor() {
   useEffect(() => {
     if (!dragObjectId) return;
     const commit = () => {
-      if (dragPos) {
+      // A tap on an already-selected object (no real drag) ends here too: keep it selected.
+      dragEndedAtRef.current = performance.now();
+      if (dragPos && dragInfoRef.current?.moved) {
         // The object is inert mid-drag (so it can be dropped on top of
         // another one), which means the release's click lands on the
         // ground. Without this, that click deselected the object the
@@ -2684,6 +2848,7 @@ export default function WorldEditor() {
           updateWorldObjectH(dragObjectId, { position: [dragPos.x, worldObjects.find((w) => w.id === dragObjectId)?.position[1] ?? 0, dragPos.z] });
         }
       }
+      dragInfoRef.current = null;
       setDragObjectId(null);
       setDragPos(null);
       setDragGroupOrigin(null);
@@ -3463,6 +3628,11 @@ export default function WorldEditor() {
               mouseButtons={{ MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE }}
             />
             <CameraPanner controlsRef={controlsRef} />
+            <PlaneDragger active={!!dragObjectId} info={dragInfoRef} onMove={dragMoveTo} onCancel={cancelDrag} />
+            <Suspense fallback={null}>
+              {selected && selection?.kind === 'placed' && <ModelHeightProbe key={selected.id} path={selected.modelPath} scale={selected.scale} onHeight={setSelDrawnHeight} />}
+              {armedAsset && <ModelHeightProbe key={armedAsset.path} path={armedAsset.path} scale={armedDefaultScale * ghostScaleAdjust} onHeight={setGhostDrawnHeight} />}
+            </Suspense>
             <TrackpadRotate controlsRef={controlsRef} />
 
             <mesh
@@ -3518,7 +3688,6 @@ export default function WorldEditor() {
                     section 4) — never just a guess-and-see. */}
                 <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
                 <HeightMarker x={ghostPos.x} y={ghostHeight} z={ghostPos.z} />
-                <FootprintOutline modelPath={armedAsset.path} x={ghostPos.x} y={ghostHeight} z={ghostPos.z} scale={armedDefaultScale * ghostScaleAdjust} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} />
               </>
             )}
 
@@ -3545,6 +3714,7 @@ export default function WorldEditor() {
                 <group key={item.id}>
                   <WorldObjectRenderer
                     obj={renderObj}
+                    highlight={isSelected ? BUILD_ACCENT : isHovered ? HOVER_GLOW : undefined}
                     inert={!!armedAsset || !!dragObjectId}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
@@ -3578,12 +3748,7 @@ export default function WorldEditor() {
                       }
                     }}
                   />
-                  {isSelected && (
-                    <FootprintOutline modelPath={item.modelPath} x={livePos[0]} z={livePos[2]} rotationY={rotationY} scale={scale} color={BUILD_ACCENT} lineWidth={2.5} />
-                  )}
-                  {isHovered && (
-                    <FootprintOutline modelPath={item.modelPath} x={basePos[0]} z={basePos[1]} rotationY={rotationY} scale={scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
-                  )}
+
                 </group>
               );
             })}
@@ -3628,6 +3793,7 @@ export default function WorldEditor() {
                 <group key={obj.id}>
                   <WorldObjectRenderer
                     obj={liveObj}
+                    highlight={isSelected ? BUILD_ACCENT : isHovered ? HOVER_GLOW : undefined}
                     townBounds={isDragging || isGroupDragMember ? undefined : groundBounds}
                     onOutOfTown={reportDrawnOut}
                     inert={!!armedAsset || !!dragObjectId}
@@ -3694,6 +3860,7 @@ export default function WorldEditor() {
                           if (m) origins[id] = [m.position[0], m.position[2]];
                         });
                         setDragGroupOrigin(origins);
+                        dragInfoRef.current = grabOffset(e, obj.position[0], obj.position[1] ?? 0, obj.position[2]);
                         setDragObjectId(obj.id);
                         setDragPos({ x: obj.position[0], z: obj.position[2] });
                         return;
@@ -3716,6 +3883,7 @@ export default function WorldEditor() {
                       if (isSelected || optionHeld) {
                         e.stopPropagation();
                         if (!isSelected) { setSelection({ kind: 'placed', id: obj.id }); setMultiSelectIds([]); }
+                        dragInfoRef.current = grabOffset(e, obj.position[0], obj.position[1] ?? 0, obj.position[2]);
                         setDragObjectId(obj.id);
                         setDragPos({ x: obj.position[0], z: obj.position[2] });
                       }
@@ -3726,15 +3894,7 @@ export default function WorldEditor() {
                       indicator of what's selected anywhere but the side
                       panel, which this closes. Color is reinforcement, the
                       outline geometry itself is the primary signal. */}
-                  {isSelected && (
-                    <>
-                      <FootprintOutline modelPath={obj.modelPath} x={livePos[0]} y={livePos[1] ?? 0} z={livePos[2]} rotationY={obj.rotationY} scale={obj.scale} color={BUILD_ACCENT} lineWidth={2.5} />
-                      <HeightMarker x={livePos[0]} y={livePos[1] ?? 0} z={livePos[2]} />
-                    </>
-                  )}
-                  {isHovered && (
-                    <FootprintOutline modelPath={obj.modelPath} x={obj.position[0]} y={obj.position[1] ?? 0} z={obj.position[2]} rotationY={obj.rotationY} scale={obj.scale} color="#fef08a" opacity={0.7} lineWidth={1.5} />
-                  )}
+                  {isSelected && <HeightMarker x={livePos[0]} y={livePos[1] ?? 0} z={livePos[2]} />}
                 </group>
               );
             })}
@@ -3845,6 +4005,13 @@ export default function WorldEditor() {
                   onDuplicate={duplicateSelected}
                   deselect={() => setSelection(null)}
                   onMoveModeChange={setMoveModeActive}
+                  moveStep={moveStep}
+                  setMoveStep={setMoveStep}
+                  stepValue={stepValue}
+                  heightMin={heightMin}
+                  onSetPosition={setSelectedPosition}
+                  sizeStep={sizeStep}
+                  setSizeStep={setSizeStep}
                 />
               )}
             </Suspense>

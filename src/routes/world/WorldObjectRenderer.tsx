@@ -1,6 +1,8 @@
 import { useMemo, forwardRef, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
+import type { ThreeEvent } from '@react-three/fiber';
+import { acceleratedRaycast, computeBoundsTree } from 'three-mesh-bvh';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { GroundBounds, WorldObject } from '../../types';
 import { useTownSizeContext } from './townSize';
@@ -173,6 +175,48 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number, 
   }, [scene, tintColor, opacity, normalize]);
 }
 
+// Picking (teacher 2026-10-10: "a large box surrounds the object and its difficult to move objects
+// that have been trapped behind this box. change it so assets have boundaries only around the
+// object itself"). Taps now hit the model's real triangles, the way Blender, Unity, Unreal and
+// the Sims pick objects: a tap that misses the model's own shape goes straight through to
+// whatever is behind it. Each model's triangles get a BVH (three-mesh-bvh, the standard fast
+// raycast index for three.js) built once per geometry and shared by every copy, so picking stays
+// fast with many objects on screen. Animated (skinned) meshes keep three's own skinned raycast.
+function accelerate(root: THREE.Object3D) {
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || (o as THREE.SkinnedMesh).isSkinnedMesh) return;
+    const g = m.geometry as THREE.BufferGeometry & { boundsTree?: unknown; computeBoundsTree?: typeof computeBoundsTree };
+    if (!g.boundsTree) { g.computeBoundsTree = computeBoundsTree; try { g.computeBoundsTree(); } catch { return; } }
+    m.raycast = acceleratedRaycast;
+  });
+}
+
+// Selection and hover feedback sits on the model itself (a soft glow on its own surfaces), not a
+// box around it. Materials are swapped for glowing copies while highlighted and put back after.
+function useHighlight(root: THREE.Object3D, color?: string) {
+  useEffect(() => {
+    if (!color) return;
+    const c = new THREE.Color(color);
+    const saved: [THREE.Mesh, THREE.Material | THREE.Material[]][] = [];
+    const made: THREE.Material[] = [];
+    root.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      saved.push([m, m.material]);
+      const glow = (mat: THREE.Material) => {
+        const k = mat.clone();
+        if ((k as THREE.MeshStandardMaterial).emissive) { (k as THREE.MeshStandardMaterial).emissive = c.clone(); (k as THREE.MeshStandardMaterial).emissiveIntensity = 0.45; }
+        else if ((k as THREE.MeshBasicMaterial).color) (k as THREE.MeshBasicMaterial).color = (k as THREE.MeshBasicMaterial).color.clone().lerp(c, 0.4);
+        made.push(k);
+        return k;
+      };
+      m.material = Array.isArray(m.material) ? m.material.map(glow) : glow(m.material);
+    });
+    return () => { saved.forEach(([m, mat]) => { m.material = mat; }); made.forEach((k) => k.dispose()); };
+  }, [root, color]);
+}
+
 // A minimum comfortable hit-target size (world units) for the invisible
 // click/hover proxy below — Claudia's focus-group audit: without this, a
 // thin fence post or a "Tiny" (0.25×) prop has only its raw, easy-to-miss
@@ -181,7 +225,6 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number, 
 // at minimum a full block). 0.6 units is comfortably tap-sized without
 // making adjacent small objects overlap-select each other.
 const MIN_HIT_SIZE = 0.6;
-const HIT_PADDING = 1.3;
 
 export const WorldObjectRenderer = forwardRef<THREE.Group, {
   obj: WorldObject;
@@ -189,8 +232,10 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   onDoubleClick?: () => void;
   onPointerOver?: () => void;
   onPointerOut?: () => void;
-  onPointerDown?: (e: { stopPropagation: () => void; nativeEvent: PointerEvent }) => void;
+  onPointerDown?: (e: ThreeEvent<PointerEvent>) => void;
   opacity?: number;
+  // Build Mode: a glow color on the model's own surfaces (selected or hovered).
+  highlight?: string;
   // Build Mode: while a catalog item is armed for placing, existing objects
   // stop catching taps so the ghost can slide over (and be dropped on top
   // of) them, e.g. a chess set onto a table.
@@ -200,12 +245,17 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   // goes past them (see drawnOutOfTown), and onOutOfTown reports it.
   townBounds?: GroundBounds;
   onOutOfTown?: (id: string, out: boolean) => void;
-}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown }, ref) {
+}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown, highlight }, ref) {
   const ctx = useTownSizeContext();
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity, (normalize ?? ctx) && !obj.studentId);
   const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
   const inner = useRef<THREE.Group | null>(null);
   const scale = safeScale(size, obj.scale);
+  useEffect(() => { if (interactive) accelerate(recentered); }, [interactive, recentered]);
+  useHighlight(recentered, highlight);
+  // Only a really small model (smaller than a fingertip on screen) keeps an invisible tap pad,
+  // sized to the minimum and no bigger, so it never covers a neighbor.
+  const tiny = Math.max(size.x, size.y, size.z) * scale < MIN_HIT_SIZE;
   const [px, py, pz] = obj.position;
   useEffect(() => {
     if (!townBounds) return;
@@ -228,21 +278,21 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
     else if (ref) ref.current = g;
   };
   return (
-    <group ref={setRef} position={obj.position} rotation={[0, obj.rotationY, 0]} scale={scale}>
+    <group
+      ref={setRef}
+      position={obj.position}
+      rotation={[0, obj.rotationY, 0]}
+      scale={scale}
+      onClick={interactive && onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
+      onDoubleClick={interactive && onDoubleClick ? (e) => { e.stopPropagation(); onDoubleClick(); } : undefined}
+      onPointerOver={interactive && onPointerOver ? (e) => { e.stopPropagation(); onPointerOver(); } : undefined}
+      onPointerOut={interactive && onPointerOut ? () => onPointerOut() : undefined}
+      onPointerDown={interactive && onPointerDown ? (e) => { e.stopPropagation(); onPointerDown(e); } : undefined}
+    >
       <primitive object={recentered} />
-      {interactive && (
-        <mesh
-          // No extra padding above the top of the model: a padded box used
-          // to poke up past a table's surface and steal taps meant for
-          // something sitting on it (e.g. a chess set on a table).
-          position={[0, Math.max(size.y, MIN_HIT_SIZE) / 2, 0]}
-          onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
-          onDoubleClick={onDoubleClick ? (e) => { e.stopPropagation(); onDoubleClick(); } : undefined}
-          onPointerOver={onPointerOver ? (e) => { e.stopPropagation(); onPointerOver(); } : undefined}
-          onPointerOut={onPointerOut}
-          onPointerDown={onPointerDown ? (e) => { e.stopPropagation(); onPointerDown(e); } : undefined}
-        >
-          <boxGeometry args={[Math.max(size.x * HIT_PADDING, MIN_HIT_SIZE), Math.max(size.y, MIN_HIT_SIZE), Math.max(size.z * HIT_PADDING, MIN_HIT_SIZE)]} />
+      {interactive && tiny && (
+        <mesh position={[0, MIN_HIT_SIZE / scale / 2, 0]}>
+          <boxGeometry args={[MIN_HIT_SIZE / scale, MIN_HIT_SIZE / scale, MIN_HIT_SIZE / scale]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
       )}
