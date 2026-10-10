@@ -14,7 +14,7 @@ import { HomeLots } from '../world/HomeLots';
 import { RegionBorders, regionColor } from '../world/RegionBorders';
 import { hideCatalogItem, restoreCatalogItem, useHiddenCatalog } from '../../lib/catalogHidden';
 import { TerrainMesh, WaterSurface, WaterAmbience, BrushRing, useTerrainSync } from '../world/TerrainMesh';
-import { TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
+import { TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain, heightAt, isTerrainWater, makeTerrain, regrid, setTerrain, terrainChanged, type TerrainTool } from '../world/terrain';
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
@@ -1088,6 +1088,45 @@ const TERRAIN_TOOLS: { id: TerrainTool; icon: string; name: string; tip: string 
   { id: 'water', icon: '💧', name: 'Water', tip: 'Digs below the sea level so it fills with water: drag a line for a river, circle for a lake, along an edge for an ocean.' },
 ];
 
+// 🌿 Plants brush (from the terrain research, 2026-10-10): paint her hand-painted grass, flowers,
+// weeds, bushes and trees across the ground with a brush, the way Unity's and Planet Coaster's
+// foliage painters scatter plants, instead of placing each one by hand. Every plant gets a random
+// turn and a size inside the set's range, plants keep a little space between them, and nothing
+// lands in water. Shift erases that set's plants under the brush.
+const N = (f: string) => `/world/models/nature/${f}.glb`;
+type PlantSet = { id: string; icon: string; name: string; models: string[]; h: [number, number]; gap: number; collides: boolean };
+const PLANT_SETS: PlantSet[] = [
+  { id: 'grass', icon: '🌱', name: 'Grass', models: ['painted-grass-001', 'painted-grass-002', 'painted-grass-003', 'painted-grass-004', 'tiny-weed-1', 'tiny-weed-2', 'tiny-weed-3', 'tiny-weed-4', 'painted-clovers'].map(N), h: [0.25, 0.55], gap: 0.45, collides: false },
+  { id: 'flowers', icon: '🌼', name: 'Flowers', models: ['painted-flower-1', 'painted-flower-2', 'painted-flower-3', 'painted-flower-4', 'blocky-flowers-01', 'blocky-flowers-02', 'blocky-flowertulipan-01', 'blocky-flowertulipan-03', 'blocky-flower-krokus-01'].map(N), h: [0.3, 0.6], gap: 0.5, collides: false },
+  { id: 'weeds', icon: '🌾', name: 'Weeds', models: ['painted-weed-011', 'painted-weed-021', 'painted-weed-031', 'painted-weed-041', 'painted-weed-051', 'painted-weed-061', 'painted-weed-071', 'painted-weed-081', 'thistle'].map(N), h: [0.4, 0.8], gap: 0.55, collides: false },
+  { id: 'bushes', icon: '🥬', name: 'Bushes', models: ['painted-bush-011', 'painted-bush-021', 'painted-bush-031', 'painted-bush-040', 'vegetation-bush01', 'vegetation-bush02', 'blocky-bush-01', 'blocky-bush-02'].map(N), h: [0.8, 1.4], gap: 1.1, collides: false },
+  { id: 'ferns', icon: '🪴', name: 'Ferns', models: ['fern', 'fern-plant', 'tropical-plant', 'strange-vegetation'].map(N), h: [0.7, 1.3], gap: 0.9, collides: false },
+  { id: 'pines', icon: '🌲', name: 'Pine forest', models: ['painted-pine-1', 'painted-pine-2', 'painted-pine-3', 'painted-pine-4', 'painted-pine-big-1', 'painted-pine-big-2', 'painted-pine-big-3', 'pine-tree'].map(N), h: [4, 7.5], gap: 2.4, collides: true },
+  { id: 'trees', icon: '🌳', name: 'Leafy trees', models: ['shaped-tree-round', 'shaped-tree-oval', 'shaped-tree-spreading', 'shaped-tree-conical', 'strange-tree', 'strange-tree-young'].map(N), h: [3.5, 6], gap: 2.6, collides: true },
+  { id: 'mushrooms', icon: '🍄', name: 'Mushrooms', models: ['blocky-mushroom-01', 'blocky-mushroom-02'].map(N), h: [0.3, 0.8], gap: 0.5, collides: false },
+  { id: 'rocks', icon: '🪨', name: 'Rocks', models: ['rock-cluster', 'blocky-stone-01', 'blocky-stone-02', 'blocky-stone-03', 'blocky-stone-04'].map(N), h: [0.3, 1.0], gap: 0.9, collides: false },
+];
+type PlantStroke = { active: boolean; x: number; z: number; lastX: number; lastZ: number; t: number };
+// Measures each model in the chosen set once (as drawn in Town Square), so a brushed plant can be
+// sized to a real height.
+function PlantSizeProbe({ path, onSize }: { path: string; onSize: (path: string, h: number) => void }) {
+  const size = useModelSize(path);
+  useEffect(() => { if (size.y > 0 && isFinite(size.y)) onSize(path, size.y); }, [path, size.y]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+// While the brush is held, drops a handful of plants each time it has moved a little (and a few
+// more while held still), so a drag paints a trail and a hold fills an area.
+function PlantBrushDriver({ stroke, onDab }: { stroke: React.MutableRefObject<PlantStroke>; onDab: (x: number, z: number) => void }) {
+  useFrame((_, dt) => {
+    const st = stroke.current;
+    if (!st.active) return;
+    st.t += dt;
+    const moved = !isFinite(st.lastX) || Math.hypot(st.x - st.lastX, st.z - st.lastZ) > 0.6;
+    if (moved || st.t > 0.35) { st.t = 0; st.lastX = st.x; st.lastZ = st.z; onDab(st.x, st.z); }
+  });
+  return null;
+}
+
 // Drag-to-move on a flat plane at the object's own height (teacher 2026-10-10: "the dragging/
 // placement ... are buggy at best"). The old drag followed the ground mesh under the pointer, so
 // the object's middle jumped to the pointer, and it stopped following whenever the pointer passed
@@ -2113,6 +2152,11 @@ export default function WorldEditor() {
   const [confirmFlatAll, setConfirmFlatAll] = useState(false);
   const [waterSoundOff, setWaterSoundOff] = useState(() => { try { return localStorage.getItem('water-sound-off') === '1'; } catch { return false; } });
   const strokeRef = useRef<TerrainStroke>({ active: false, x: 0, z: 0, target: 0 });
+  // Plants brush.
+  const [plantSetId, setPlantSetId] = useState<string | null>(null);
+  const [plantDensity, setPlantDensity] = useState(4);
+  const plantStroke = useRef<PlantStroke>({ active: false, x: 0, z: 0, lastX: NaN, lastZ: NaN, t: 0 });
+  const plantHeights = useRef<Record<string, number>>({});
   const terrainUndo = useRef<Float32Array[]>([]);
   const [seaLevel, setSeaLevel] = useState(() => getTerrain()?.water ?? -0.35);
   const [sizeStep, setSizeStep] = useState(10);
@@ -2898,6 +2942,47 @@ export default function WorldEditor() {
     window.addEventListener('pointercancel', end);
     return () => { window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const plantSet = PLANT_SETS.find((ps) => ps.id === plantSetId) ?? null;
+  const plantModels = useMemo(() => (plantSet ? plantSet.models.filter((m) => !hiddenCatalog.has(m)) : []), [plantSet, hiddenCatalog]);
+  const plantDab = (cx: number, cz: number) => {
+    if (!plantSet) return;
+    const st = useStore.getState();
+    const r = brushSize;
+    const near = st.worldObjects.filter((o) => !o.studentId && !o.roomId && Math.abs(o.position[0] - cx) < r + 3 && Math.abs(o.position[2] - cz) < r + 3);
+    if (shiftHeld) {
+      // Erase: this set's plants under the brush.
+      const set = new Set(plantSet.models);
+      near.filter((o) => set.has(o.modelPath) && Math.hypot(o.position[0] - cx, o.position[2] - cz) < r).forEach((o) => st.deleteWorldObject(o.id));
+      return;
+    }
+    const ready = plantModels.filter((m) => plantHeights.current[m]);
+    if (!ready.length) return;
+    const taken: [number, number][] = near.map((o) => [o.position[0], o.position[2]]);
+    const count = Math.max(1, Math.round(plantDensity * Math.min(3, (r * r) / 9)));
+    for (let k = 0; k < count; k++) {
+      for (let tries = 0; tries < 6; tries++) {
+        const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r;
+        const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+        if (clampToGroundX(x) !== x || clampToGroundZ(z) !== z || isTerrainWater(x, z)) continue;
+        if (taken.some(([px, pz]) => Math.hypot(px - x, pz - z) < plantSet.gap)) continue;
+        const m = ready[Math.floor(Math.random() * ready.length)];
+        const h = plantSet.h[0] + Math.random() * (plantSet.h[1] - plantSet.h[0]);
+        const label = manifestAll.find((e) => e.path === m)?.label ?? 'Plant';
+        st.addWorldObject({ modelPath: m, label, position: [round3(x), 0, round3(z)], rotationY: Math.random() * Math.PI * 2, scale: Math.round((h / plantHeights.current[m]) * 10000) / 10000, collides: plantSet.collides });
+        taken.push([x, z]);
+        break;
+      }
+    }
+    flashSaved();
+  };
+  useEffect(() => {
+    const end = () => { plantStroke.current.active = false; };
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => { window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end); };
+  }, []);
+  useEffect(() => { if (plantSetId) { setTerrainTool(null); setArmedAsset(null); setPaintMode(null); setHammerMode(false); setWallMode(false); setRegionsOpen(false); } }, [plantSetId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (terrainTool || armedAsset || paintMode || hammerMode || wallMode || regionsOpen) setPlantSetId(null); }, [terrainTool, armedAsset, paintMode, hammerMode, wallMode, regionsOpen]);
   const undoTerrain = () => {
     const t = getTerrain(); const prev = terrainUndo.current.pop();
     if (!t || !prev || prev.length !== t.h.length) return;
@@ -3016,6 +3101,11 @@ export default function WorldEditor() {
   const expandWestHold = useHoldRepeat(() => expandGroundBounds('west', GROUND_BOUNDS_STEP));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (plantSetId) {
+      setTerrainCursor({ x: e.point.x, z: e.point.z });
+      if (plantStroke.current.active) { plantStroke.current.x = e.point.x; plantStroke.current.z = e.point.z; }
+      return;
+    }
     if (terrainTool) {
       setTerrainCursor({ x: e.point.x, z: e.point.z });
       if (strokeRef.current.active) { strokeRef.current.x = e.point.x; strokeRef.current.z = e.point.z; }
@@ -3099,6 +3189,12 @@ export default function WorldEditor() {
   }, [dragObjectId, dragPos, dragGroupOrigin]);
 
   const handleGroundPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (plantSetId) {
+      if (e.nativeEvent.button > 0) return;
+      e.stopPropagation();
+      plantStroke.current = { active: true, x: e.point.x, z: e.point.z, lastX: NaN, lastZ: NaN, t: 0 };
+      return;
+    }
     if (terrainTool) {
       if (e.nativeEvent.button > 0) return; // right/middle drag still turns and pans the camera
       e.stopPropagation();
@@ -3590,6 +3686,29 @@ export default function WorldEditor() {
           </div>
         </div>
         )}
+        {plantSetId && (
+        <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 14, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
+          <strong style={{ fontSize: '0.85rem' }}>🌿 Plants brush</strong>
+          <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>Press and hold on the ground, then drag to paint plants. Hold Shift to erase this kind of plant. Plants never land in water.</span>
+          <div className="row-wrap" style={{ gap: 4 }} role="group" aria-label="Kind of plant">
+            {PLANT_SETS.map((ps) => (
+              <button key={ps.id} className="btn btn-sm" aria-pressed={plantSetId === ps.id}
+                style={{ minHeight: 44, flex: '1 1 45%', background: plantSetId === ps.id ? BUILD_ACCENT : undefined, color: plantSetId === ps.id ? '#fff' : undefined, borderColor: plantSetId === ps.id ? BUILD_ACCENT : undefined }}
+                onClick={() => setPlantSetId(ps.id)}>{ps.icon} {ps.name}</button>
+            ))}
+          </div>
+          <div className="stack" style={{ gap: 4 }}>
+            <label htmlFor="plant-size" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Brush size: {brushSize.toFixed(1)} units</label>
+            <input id="plant-size" type="range" min={0.5} max={12} step={0.5} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} style={{ width: '100%', minHeight: 44 }} />
+          </div>
+          <div className="stack" style={{ gap: 4 }}>
+            <label htmlFor="plant-density" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Density: {plantDensity} {plantDensity === 1 ? 'plant' : 'plants'} at a time</label>
+            <input id="plant-density" type="range" min={1} max={12} step={1} value={plantDensity} onChange={(e) => setPlantDensity(Number(e.target.value))} style={{ width: '100%', minHeight: 44 }} />
+          </div>
+          <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Each plant is a normal placed object: tap one later to move, turn, resize or delete it.</span>
+          <button className="btn" style={{ minHeight: 44 }} onClick={() => setPlantSetId(null)}>Done</button>
+        </div>
+        )}
         {terrainTool && (
         <div className="stack" style={{ width: 300, flexShrink: 0, padding: 12, overflowY: 'auto', gap: 14, background: 'var(--content-bg)', borderRight: '2px solid var(--content-border)' }}>
           <strong style={{ fontSize: '0.85rem' }}>⛰️ Terrain</strong>
@@ -4056,6 +4175,11 @@ export default function WorldEditor() {
             <WaterAmbience off={waterSoundOff} listener={() => controlsRef.current?.target ?? null} />
             <TerrainBrushDriver stroke={strokeRef} tool={terrainTool} size={brushSize} strength={brushStrength} invert={shiftHeld} />
             {terrainTool && <BrushRing at={terrainCursor} radius={brushSize} color={shiftHeld && (terrainTool === 'raise' || terrainTool === 'lower') ? '#f97316' : '#ffffff'} />}
+            <PlantBrushDriver stroke={plantStroke} onDab={plantDab} />
+            {plantSetId && <BrushRing at={terrainCursor} radius={brushSize} color={shiftHeld ? '#ef4444' : '#4ade80'} />}
+            <Suspense fallback={null}>
+              {plantModels.map((m) => <PlantSizeProbe key={m} path={m} onSize={(path, h) => { plantHeights.current[path] = h; }} />)}
+            </Suspense>
             <Suspense fallback={null}>
               {groundPatches.map((p) => <GroundPatchMesh key={p.id} patch={p} />)}
             </Suspense>
@@ -4463,6 +4587,15 @@ export default function WorldEditor() {
               aria-pressed={!!terrainTool}
             >
               ⛰️ Terrain
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{ ...TOOLBAR_BTN, background: plantSetId ? BUILD_ACCENT : undefined, color: plantSetId ? '#fff' : undefined, borderColor: plantSetId ? BUILD_ACCENT : undefined }}
+              onClick={() => { if (plantSetId) { setPlantSetId(null); return; } setSelection(null); setMultiSelectIds([]); setPlantSetId('grass'); }}
+              title="Plants brush: paint grass, flowers, bushes and trees across the ground"
+              aria-pressed={!!plantSetId}
+            >
+              🌿 Plants
             </button>
             <button
               className="btn btn-sm"
