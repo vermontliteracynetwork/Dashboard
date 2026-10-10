@@ -812,6 +812,9 @@ const GROUND_TEXTURE_OPTIONS: { label: string; path: string | null }[] = [
   // From her Unknown Horizons mines pack (2026-10-10).
   { label: 'Mountain Rock', path: '/world/textures/terrain/mountain-rock.jpg' },
   { label: 'Meadow', path: '/world/textures/terrain/meadow.jpg' },
+  // Her pasted pictures (2026-10-10): frosted ice and fresh snow.
+  { label: 'Ice', path: '/world/textures/terrain/ice.jpg' },
+  { label: 'Fresh Snow', path: '/world/textures/terrain/fresh-snow.jpg' },
 ];
 // Her 100 hand-painted textures (pdtextures upload, 2026-10-10), behind a "More" fold so the
 // main picker stays short. Each has a small thumbnail so the grid loads fast.
