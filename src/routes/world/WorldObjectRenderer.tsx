@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { heightAt, isTerrainWater, terrainVersion, waterLevel } from './terrain';
+import { isFishModel } from './townLayout';
 import { acceleratedRaycast, computeBoundsTree } from 'three-mesh-bvh';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { GroundBounds, WorldObject } from '../../types';
@@ -195,7 +196,7 @@ function accelerate(root: THREE.Object3D) {
 
 // Selection and hover feedback sits on the model itself (a soft glow on its own surfaces), not a
 // box around it. Materials are swapped for glowing copies while highlighted and put back after.
-function useHighlight(root: THREE.Object3D, color?: string) {
+function useHighlight(root: THREE.Object3D, color?: string, strength = 0.45) {
   useEffect(() => {
     if (!color) return;
     const c = new THREE.Color(color);
@@ -207,7 +208,7 @@ function useHighlight(root: THREE.Object3D, color?: string) {
       saved.push([m, m.material]);
       const glow = (mat: THREE.Material) => {
         const k = mat.clone();
-        if ((k as THREE.MeshStandardMaterial).emissive) { (k as THREE.MeshStandardMaterial).emissive = c.clone(); (k as THREE.MeshStandardMaterial).emissiveIntensity = 0.45; }
+        if ((k as THREE.MeshStandardMaterial).emissive) { (k as THREE.MeshStandardMaterial).emissive = c.clone(); (k as THREE.MeshStandardMaterial).emissiveIntensity = strength; }
         else if ((k as THREE.MeshBasicMaterial).color) (k as THREE.MeshBasicMaterial).color = (k as THREE.MeshBasicMaterial).color.clone().lerp(c, 0.4);
         made.push(k);
         return k;
@@ -215,13 +216,15 @@ function useHighlight(root: THREE.Object3D, color?: string) {
       m.material = Array.isArray(m.material) ? m.material.map(glow) : glow(m.material);
     });
     return () => { saved.forEach(([m, mat]) => { m.material = mat; }); made.forEach((k) => k.dispose()); };
-  }, [root, color]);
+  }, [root, color, strength]);
 }
 
 // Where an object stands on the shaped ground (terrain.ts). A floating thing (a boat) sits on
 // the water when it is over a lake, river or ocean.
-function groundUnder(x: number, z: number, floats: boolean): number {
+// A fish (tall = its drawn height) swims fully under the surface of dug water, never in the mud.
+function groundUnder(x: number, z: number, floats: boolean, fishTall = 0): number {
   if (floats && isTerrainWater(x, z)) return waterLevel() - 0.03;
+  if (fishTall > 0 && isTerrainWater(x, z)) return Math.max(heightAt(x, z) + 0.05, waterLevel() - fishTall - 0.08);
   return heightAt(x, z);
 }
 
@@ -235,9 +238,9 @@ const ANIMAL_NAME = /(^animal|(chicken|hen|rooster|cow|duck|pig|sheep|goat|hor
 const NOT_ANIMAL = /(coop|house|tank|rod|lure|bait|bath|box|bowl|feed|statue|sign|toy|bed|food|barn|kennel|cage|plush)/i;
 const BAD_CLIP = /(death|attack|hit|out_of_water|static|punch|weapon|bite|no$|yes$)/i;
 const pickClip = (clips: THREE.AnimationClip[], re: RegExp) => clips.find((c) => re.test(c.name) && !BAD_CLIP.test(c.name));
-function AnimalLife({ root, clips, label, path, home, rotationY, scale, tall, children }: {
+function AnimalLife({ root, clips, label, path, home, rotationY, scale, tall, baseGround, children }: {
   root: THREE.Object3D; clips: THREE.AnimationClip[]; label: string; path: string;
-  home: [number, number, number]; rotationY: number; scale: number; tall: number; children: React.ReactNode;
+  home: [number, number, number]; rotationY: number; scale: number; tall: number; baseGround: number; children: React.ReactNode;
 }) {
   const life = useRef<THREE.Group>(null);
   const fish = useMemo(() => clips.some((c) => /swim/i.test(c.name)) || (/aquarium/.test(path) && /fish|shark|tang|koi|betta|tuna|puffer|snapper|grouper|goby|gramma|idol|tetra|turbot|humphead|horn|blob/i.test(label)), [clips, path, label]);
@@ -264,7 +267,7 @@ function AnimalLife({ root, clips, label, path, home, rotationY, scale, tall, ch
     const g = life.current; if (!g) return;
     const s = st.current;
     s.t += dt;
-    const baseY = home[1] + heightAt(home[0], home[2]);
+    const baseY = home[1] + baseGround; // where the parent already stands (swim depth for a fish in water)
     let wx = home[0], wz = home[2], wy = baseY, face = rotationY;
     if (fish) {
       // Slow loops around its spot; at mid-depth when it lives in a lake.
@@ -323,7 +326,8 @@ const MIN_HIT_SIZE = 0.6;
 
 export const WorldObjectRenderer = forwardRef<THREE.Group, {
   obj: WorldObject;
-  onClick?: () => void;
+  // The click event comes along, so Build Mode can read whether Shift was really held.
+  onClick?: (e?: ThreeEvent<MouseEvent>) => void;
   onDoubleClick?: () => void;
   onPointerOver?: () => void;
   onPointerOut?: () => void;
@@ -331,6 +335,7 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   opacity?: number;
   // Build Mode: a glow color on the model's own surfaces (selected or hovered).
   highlight?: string;
+  highlightStrength?: number;
   // Stands on the shaped ground (Town Square and its Build Mode); the stored height is above it.
   onTerrain?: boolean;
   // Sits on the water over a lake, river or ocean (boats).
@@ -346,14 +351,14 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   // goes past them (see drawnOutOfTown), and onOutOfTown reports it.
   townBounds?: GroundBounds;
   onOutOfTown?: (id: string, out: boolean) => void;
-}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown, highlight, onTerrain, floats, live }, ref) {
+}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown, highlight, highlightStrength, onTerrain, floats, live }, ref) {
   const ctx = useTownSizeContext();
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity, (normalize ?? ctx) && !obj.studentId);
   const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);
   const inner = useRef<THREE.Group | null>(null);
   const scale = safeScale(size, obj.scale);
   useEffect(() => { if (interactive) accelerate(recentered); }, [interactive, recentered]);
-  useHighlight(recentered, highlight);
+  useHighlight(recentered, highlight, highlightStrength);
   // Only a really small model (smaller than a fingertip on screen) keeps an invisible tap pad,
   // sized to the minimum and no bigger, so it never covers a neighbor.
   const tiny = Math.max(size.x, size.y, size.z) * scale < MIN_HIT_SIZE;
@@ -361,12 +366,13 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   const { animations: clips } = useGLTF(obj.modelPath);
   const isAnimal = !!live && !floats && (clips.length > 0 || (ANIMAL_NAME.test(obj.label) && !NOT_ANIMAL.test(obj.label)));
   // Follow the ground when it is reshaped (checked each frame, updated only when it changed).
-  const ground = onTerrain ? groundUnder(px, pz, !!floats) : 0;
+  const fishTall = isFishModel(obj.modelPath, obj.label) ? size.y * scale : 0;
+  const ground = onTerrain ? groundUnder(px, pz, !!floats, fishTall) : 0;
   const seenVersion = useRef(terrainVersion());
   useFrame(() => {
     if (!onTerrain || !inner.current || seenVersion.current === terrainVersion()) return;
     seenVersion.current = terrainVersion();
-    inner.current.position.y = (py ?? 0) + groundUnder(px, pz, !!floats);
+    inner.current.position.y = (py ?? 0) + groundUnder(px, pz, !!floats, fishTall);
   });
   useEffect(() => {
     if (!townBounds) return;
@@ -394,14 +400,14 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
       position={[px, (py ?? 0) + ground, pz]}
       rotation={[0, obj.rotationY, 0]}
       scale={scale}
-      onClick={interactive && onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
+      onClick={interactive && onClick ? (e) => { e.stopPropagation(); onClick(e); } : undefined}
       onDoubleClick={interactive && onDoubleClick ? (e) => { e.stopPropagation(); onDoubleClick(); } : undefined}
       onPointerOver={interactive && onPointerOver ? (e) => { e.stopPropagation(); onPointerOver(); } : undefined}
       onPointerOut={interactive && onPointerOut ? () => onPointerOut() : undefined}
       onPointerDown={interactive && onPointerDown ? (e) => { e.stopPropagation(); onPointerDown(e); } : undefined}
     >
       {isAnimal
-        ? <AnimalLife root={recentered} clips={clips} label={obj.label} path={obj.modelPath} home={[px, py ?? 0, pz]} rotationY={obj.rotationY} scale={scale} tall={size.y * scale}><primitive object={recentered} /></AnimalLife>
+        ? <AnimalLife root={recentered} clips={clips} label={obj.label} path={obj.modelPath} home={[px, py ?? 0, pz]} rotationY={obj.rotationY} scale={scale} tall={size.y * scale} baseGround={ground}><primitive object={recentered} /></AnimalLife>
         : <primitive object={recentered} />}
       {interactive && tiny && (
         <mesh position={[0, MIN_HIT_SIZE / scale / 2, 0]}>

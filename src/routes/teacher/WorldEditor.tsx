@@ -14,7 +14,7 @@ import { useTerrainVersion, TERRAIN_OWNER, applyBrush, encodeTerrain, getTerrain
 import { WallMesh } from '../../components/WallMesh';
 import { nearestWall, wallMidpoint } from '../../lib/wallGeometry';
 import {
-  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, ROLE_VIEWS, isSignModel, isBoatModel, isWaterAt, SKY_TEXTURE_OPTIONS,
+  BUILDINGS, MARKET_STALLS, MARKET_SCALE, ROAD_TILES, ROAD_SCALE, DECOR_PROPS, CITY_PROPS, ROLE_VIEWS, isSignModel, isBoatModel, isFloatingModel, isFishModel, isWaterAt, SKY_TEXTURE_OPTIONS,
   groundBoundsMaxExtent, GROUND_BOUNDS_STEP, GROUND_BOUNDS_MAX,
   isChessSetModel, isOutsideTown,
 } from '../world/townLayout';
@@ -3028,7 +3028,12 @@ export default function WorldEditor() {
             updateWorldObjectH(id, { position: [mx + dx, worldObjects.find((w) => w.id === id)?.position[1] ?? 0, mz + dz] });
           });
         } else {
-          updateWorldObjectH(dragObjectId, { position: [dragPos.x, worldObjects.find((w) => w.id === dragObjectId)?.position[1] ?? 0, dragPos.z] });
+          const moving = worldObjects.find((w) => w.id === dragObjectId);
+          if (moving && isFishModel(moving.modelPath, moving.label) && !isWaterAt(dragPos.x, dragPos.z, groundPatches)) {
+            setWallPlacementError('Fish live in water, so it went back. Drag it to a lake, river, ocean or painted water.');
+          } else {
+            updateWorldObjectH(dragObjectId, { position: [dragPos.x, moving?.position[1] ?? 0, dragPos.z] });
+          }
         }
       }
       dragInfoRef.current = null;
@@ -3115,6 +3120,10 @@ export default function WorldEditor() {
       let x = ghostPos ? ghostPos.x : clampToGroundX(snapValue(e.point.x, snapEnabled, gridStep));
       let z = ghostPos ? ghostPos.z : clampToGroundZ(snapValue(e.point.z, snapEnabled, gridStep));
       let rotationY = (ghostPos?.rotationY ?? 0) + ghostRotationAdjust;
+      if (isFishModel(armedAsset.path, armedAsset.label) && !isWaterAt(x, z, groundPatches)) {
+        setWallPlacementError('Fish live in water. Put it in a lake, river or ocean (⛰️ Terrain, 💧 Water) or on painted water.');
+        return;
+      }
       if (DOOR_WINDOW_RE.test(armedAsset.label) && !ghostPos?.wallSnapped) {
         const snap = nearestWall(x, z, wallSegments, WALL_SNAP_DISTANCE);
         if (!snap) {
@@ -3162,6 +3171,9 @@ export default function WorldEditor() {
   // water on purpose, e.g. staging a boat before painting the pond around
   // it; this never hard-blocks the click).
   const placementNeedsWater = !!(armedAsset && ghostPos && isBoatModel(armedAsset.path) && !isWaterAt(ghostPos.x, ghostPos.z, groundPatches));
+  // Fish only go in water (teacher 2026-10-10: "ensure all fish hare placed in water"): a lake,
+  // river or ocean dug with ⛰️ Terrain, or painted 💧 water. Unlike boats, this blocks the click.
+  const fishNeedsWater = !!(armedAsset && ghostPos && isFishModel(armedAsset.path, armedAsset.label) && !isWaterAt(ghostPos.x, ghostPos.z, groundPatches));
   // Trains (docs/TRANSPORTATION.md §2 Trains, §3 placement rules): track
   // pieces validate against every OTHER already-placed track piece's own
   // connector points, green "Connects"/grey-striped "Won't connect" per
@@ -3808,6 +3820,7 @@ export default function WorldEditor() {
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#fff', borderRadius: 10, padding: '8px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>
               Tap to place "{armedAsset.label}". <button className="btn btn-sm" style={{ minHeight: 44, marginLeft: 8 }} onClick={() => setArmedAsset(null)}>Cancel</button>
               <div style={{ marginTop: 4, fontWeight: 600, fontSize: 12 }}>Height: 0 raises, 9 lowers (Shift for tiny steps)</div>
+              {fishNeedsWater && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>🐟 Fish live in water: move over a lake, river, ocean or painted water to place it</div>}
               {placementNeedsWater && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Needs water to actually drive — paint some with the ground brush</div>}
               {placementTrackFeedback === 'connects' && <div style={{ color: BUILD_ACCENT, fontWeight: 600, fontSize: 12, marginTop: 4 }}>✅ Connects</div>}
               {placementTrackInvalid && <div style={{ color: OVERLAP_COLOR, fontWeight: 600, fontSize: 12, marginTop: 4 }}>⚠ Won't connect — line it up with the open end of the nearby track</div>}
@@ -3940,17 +3953,17 @@ export default function WorldEditor() {
                     rotationY: ghostPos.rotationY + ghostRotationAdjust,
                     scale: armedDefaultScale * ghostScaleAdjust,
                     createdAt: '',
-                    tintColor: placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : undefined,
+                    tintColor: placementNeedsWall || placementNeedsWater || fishNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : undefined,
                   }}
                   onTerrain
-                  floats={isBoatModel(armedAsset.path)}
+                  floats={isFloatingModel(armedAsset.path, armedAsset.label)}
                   opacity={0.55}
                 />
                 {/* Minecraft's own placement clarity: a highlighted target
                     cell plus a crisp wireframe cage on the exact footprint,
                     layered on the translucent ghost above (Claudia's spec
                     section 4) — never just a guess-and-see. */}
-                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementNeedsWall || placementNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
+                <GroundCellOutline x={ghostPos.x} z={ghostPos.z} color={placementNeedsWall || placementNeedsWater || fishNeedsWater || placementTrackInvalid ? OVERLAP_COLOR : BUILD_ACCENT} size={gridStep} />
                 <HeightMarker x={ghostPos.x} y={ghostHeight} z={ghostPos.z} />
               </>
             )}
@@ -3980,6 +3993,7 @@ export default function WorldEditor() {
                     obj={renderObj}
                     onTerrain
                     highlight={isSelected ? BUILD_ACCENT : isHovered ? HOVER_GLOW : undefined}
+                    highlightStrength={isSelected ? 0.45 : 0.15}
                     inert={!!armedAsset || !!dragObjectId || !!terrainTool}
                     onClick={() => {
                       if (paintMode === 'bucket') { paintAllOfModel(item.modelPath, paintColor); return; }
@@ -4059,12 +4073,13 @@ export default function WorldEditor() {
                   <WorldObjectRenderer
                     obj={liveObj}
                     onTerrain
-                    floats={isBoatModel(obj.modelPath)}
+                    floats={isFloatingModel(obj.modelPath, obj.label)}
                     highlight={isSelected ? BUILD_ACCENT : isHovered ? HOVER_GLOW : undefined}
+                    highlightStrength={isSelected ? 0.45 : 0.15}
                     townBounds={isDragging || isGroupDragMember ? undefined : groundBounds}
                     onOutOfTown={reportDrawnOut}
                     inert={!!armedAsset || !!dragObjectId || !!terrainTool}
-                    onClick={() => {
+                    onClick={(ev) => {
                       if (paintMode === 'bucket') { paintAllOfModel(obj.modelPath, paintColor); return; }
                       if (paintMode) return; // brush: painting happens on pointer down/over below, not click
                       if (hammerMode) { deleteWorldObjectH(obj.id); return; }
@@ -4077,7 +4092,11 @@ export default function WorldEditor() {
                       // group together in the pending selection too.
                       // Direct teacher instruction: more than one object is
                       // only ever selected by holding Shift while clicking.
-                      const addMode = shiftHeld;
+                      // Read Shift from this very click (teacher 2026-10-10: "never select two
+                      // objects at a time unless i explcoictly slect them both and hold the shift
+                      // key"). The old held-key flag could stay stuck on after a missed key-up
+                      // (switching windows mid-press), which silently added objects.
+                      const addMode = !!ev?.nativeEvent?.shiftKey;
                       if (addMode) {
                         const idsForClick = obj.groupId
                           ? worldObjects.filter((o) => o.groupId === obj.groupId).map((o) => o.id)

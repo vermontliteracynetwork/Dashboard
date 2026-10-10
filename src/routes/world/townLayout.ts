@@ -301,6 +301,21 @@ export function isBoatModel(modelPath: string): boolean {
   return /\/vehicles\/boat(-[^/]+)?\.glb$/i.test(modelPath);
 }
 
+// Things that sit on top of water (teacher 2026-10-10: "allow boats and docs to be placed on top
+// of water"): boats, docks, piers, boarding planks, buoys, boat houses and stands, rafts. Over a
+// lake, river or ocean dug in Build Mode they rest on the water surface, not the lake bottom.
+// Live fish (teacher 2026-10-10: "ensure all fish hare placed in water and are animated"): the
+// aquarium pack's fish and the fish creatures. Every one of them carries a swim or idle animation
+// (checked 2026-10-10). Fish can only be placed in water, and they swim below the surface.
+export function isFishModel(modelPath: string, label = ''): boolean {
+  if (/\/aquarium\//.test(modelPath)) return !/boat|dock|tank|rod|lure|worm/i.test(`${modelPath} ${label}`);
+  return /\/creatures\/(big-fish|blob-fish)|\/pets\/animal-fish/i.test(modelPath);
+}
+
+export function isFloatingModel(modelPath: string, label = ''): boolean {
+  return isBoatModel(modelPath) || /dock|pier|jetty|boarding[-_ ]?plank|buoy|boat[-_ ]?(house|stand|wash)|raft|bollard|canoe|kayak/i.test(`${modelPath} ${label}`);
+}
+
 // Driveable planes and the drone — Phase 4 of docs/TRANSPORTATION.md's
 // transportation system, last in the recommended build order, "added
 // alongside Planes, per direct teacher instruction," sharing the exact

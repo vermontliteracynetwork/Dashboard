@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import DailySpinWheel from '../../components/DailySpinWheel';
 import BawkGuide from '../../components/BawkGuide';
@@ -44,6 +44,8 @@ import { WorldObjectRenderer, useModelSize, isFlatModelSize, safeScale } from '.
 import { TownSizeContext, useTownSizeRule } from './townSize';
 import { TerrainMesh, WaterSurface, WaterAmbience, useTerrainSync } from './TerrainMesh';
 import { regionAt, useRegions } from './regions';
+import { homeBlock, isHomeBlocked, layoutLots, lotArrival, setLotLocked, useHomes, useLockedLots, type Lot } from './homeLots';
+import { HomeLots } from './HomeLots';
 import { getTerrain, heightAt, isTerrainWater, useTerrainVersion, waterLevel } from './terrain';
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
@@ -580,10 +582,12 @@ function blockObstacles(x: number, z: number): [number, number] {
 // Lakes, rivers and oceans dug in Build Mode (terrain.ts) are not walkable or drivable: a step
 // into water slides along the shore instead, the same bump-and-slide feel as every obstacle.
 function blockObstaclesSlide(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
+  // Also: houses on the home lots are solid, and a locked home lot keeps other students out.
+  const blocked = (px: number, pz: number) => isTerrainWater(px, pz) || isHomeBlocked(px, pz);
   const [x, z] = blockObstaclesSlideLand(curX, curZ, targetX, targetZ);
-  if (!isTerrainWater(x, z) || isTerrainWater(curX, curZ)) return [x, z];
-  if (!isTerrainWater(x, curZ)) return [x, curZ];
-  if (!isTerrainWater(curX, z)) return [curX, z];
+  if (!blocked(x, z) || blocked(curX, curZ)) return [x, z];
+  if (!blocked(x, curZ)) return [x, curZ];
+  if (!blocked(curX, z)) return [curX, z];
   return [curX, curZ];
 }
 function blockObstaclesSlideLand(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
@@ -3195,6 +3199,16 @@ export default function TownSquare() {
   const regionName = regionAt(regions, playerPos.x, playerPos.z);
   const playerPosRef = useRef(playerPos);
   playerPosRef.current = playerPos;
+  // Home lots (2026-10-10): every student's lot in the Neighborhood, the lock rules for walking,
+  // and the mailbox / house card.
+  const homes = useHomes();
+  const lockedLots = useLockedLots();
+  const homeLots = useMemo(() => (homes ? layoutLots(homes, students) : []), [homes, students]);
+  homeBlock.lots = homeLots; homeBlock.locked = lockedLots; homeBlock.me = currentStudentId ?? null;
+  const myLot = homeLots.find((l) => l.student.id === currentStudentId) ?? null;
+  const [lotCard, setLotCard] = useState<{ lot: Lot; kind: 'mailbox' | 'house' } | null>(null);
+  const routeLocation = useLocation();
+  const arrivedFromHome = useRef(false);
   const [waterSoundOff] = useState(() => { try { return localStorage.getItem('water-sound-off') === '1'; } catch { return false; } });
   const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);
   // Direct teacher instruction (2026-10-01): talking to a Neighbor you've
@@ -3705,6 +3719,12 @@ export default function TownSquare() {
   // Direct teacher request: double-clicking a grid square in Map view
   // instantly teleports the student there and drops back into live view.
   const teleportTarget = useRef<{ x: number; z: number; facing?: number; trainArc?: number } | null>(null);
+  // Walking out of the yard gate at home lands on the street in front of your own lot.
+  useEffect(() => {
+    if (arrivedFromHome.current || !myLot || !(routeLocation.state as { fromHome?: boolean } | null)?.fromHome) return;
+    arrivedFromHome.current = true;
+    teleportTarget.current = lotArrival(myLot);
+  }, [myLot, routeLocation.state]);
   const cameraLook = useRef(0);
   const cameraPitch = useRef(0);
   // Mouse press-and-drag look, desktop only (mirrors the ↺/↻ buttons but
@@ -4740,6 +4760,30 @@ export default function TownSquare() {
           Not set up yet. Ask your teacher!
         </div>
       )}
+      {lotCard && (() => {
+        const { lot, kind } = lotCard;
+        const mine = lot.student.id === currentStudentId;
+        const isLocked = lockedLots.has(lot.student.id);
+        const btn: React.CSSProperties = { minHeight: 44, padding: '8px 14px', borderRadius: 12, border: '2px solid #1f4238', background: '#fff', fontWeight: 800, fontFamily: 'system-ui, sans-serif', cursor: 'pointer' };
+        return (
+          <div role="dialog" aria-label={mine ? 'My home' : `${lot.student.name}'s home`} style={{ position: 'fixed', bottom: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 70, background: '#fff', border: '3px solid #1f4238', borderRadius: 16, padding: 14, boxShadow: '0 6px 18px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', color: '#1f4238', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', maxWidth: 'calc(100vw - 32px)' }}>
+            <strong>{kind === 'mailbox' ? '📬' : '🏠'} {mine ? (kind === 'mailbox' ? 'My mailbox' : 'My house') : `${lot.student.name}'s ${kind === 'mailbox' ? 'mailbox' : 'house'}`}</strong>
+            {mine ? (
+              <>
+                <span style={{ fontSize: 13 }}>{isLocked ? '🔒 Your lot is locked. Only you can come in.' : '🔓 Your lot is open. Others can walk into your yard.'}</span>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {kind === 'mailbox' && <button type="button" style={btn} onClick={() => { setLotCard(null); navigate('/student/mailbox'); }}>📬 Open my mail</button>}
+                  <button type="button" style={btn} onClick={() => navigate('/world/home-room')}>🚪 Go inside</button>
+                  <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(lot.student.id, !isLocked)}>{isLocked ? '🔓 Open my lot' : '🔒 Lock my lot'}</button>
+                </div>
+              </>
+            ) : (
+              <span style={{ fontSize: 13, textAlign: 'center' }}>{isLocked ? `🔒 ${lot.student.name}'s lot is locked right now.` : `🔓 ${lot.student.name}'s lot is open. You can visit their yard.`}</span>
+            )}
+            <button type="button" style={btn} onClick={() => setLotCard(null)}>Close</button>
+          </div>
+        );
+      })()}
       {closedBuildingName && (
         <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 65, background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, padding: '8px 16px', fontFamily: 'system-ui, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', textAlign: 'center' }}>
           😴 {closedBuildingName} is closed. Come back later!
@@ -4882,6 +4926,16 @@ export default function TownSquare() {
           />
           {mapView && <CoordinateGrid />}
           <WalkTargetMarker walkTarget={walkTarget} />
+          {homeLots.length > 0 && (
+            <HomeLots
+              lots={homeLots}
+              locked={lockedLots}
+              live
+              meId={currentStudentId}
+              onHouse={(lot) => setLotCard({ lot, kind: 'house' })}
+              onMailbox={(lot) => setLotCard({ lot, kind: 'mailbox' })}
+            />
+          )}
           <HoverPreviewMarker hoverTarget={hoverTarget} />
           <Player
             touchDir={touchDir}
