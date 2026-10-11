@@ -1,81 +1,83 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, useAnimations } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ModelBoundary } from '../routes/world/WorldObjectRenderer';
+import { setupPoseRig, filterClip, markAnimated, applyPose, lowestFootY, trickFrame, trickSeconds } from '../lib/petPoses';
 
 // One pet standing on a round platform, for 2D screens (Buff Doge's Gym, Check on your pet).
-// Tricks play as whole-body moves from her Buff Doge's Gym prototype; Build Queue 19d adds
-// real leg poses on each breed's skeleton.
+// Tricks are real poses on each breed's skeleton (src/lib/petPoses.ts, Build Queue 19d) plus the
+// whole-body moves from her Buff Doge's Gym prototype (spins, rolls, jumps, the fetch ball).
 
 export interface TrickCue { name: string; at: number }
-const D = 1.8; // seconds a trick takes
-const ease = (x: number) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+
+// Exported so Town Square and the Home Room can show the same tricks on a walking pet.
+export function usePetPoser(scene: THREE.Object3D, animations: THREE.AnimationClip[]) {
+  return useMemo(() => {
+    const c = cloneSkinned(scene) as THREE.Object3D;
+    c.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.frustumCulled = false; });
+    const { rig, dropTracks } = setupPoseRig(c);
+    const clips = animations.filter((a) => a.tracks.length);
+    const idle = clips.find((a) => a.name === 'Idle') ?? clips.find((a) => a.name.toLowerCase().includes('idle')) ?? clips[0] ?? null;
+    const clip = idle ? filterClip(idle, dropTracks) : null;
+    if (rig) markAnimated(rig, clip);
+    const mixer = new THREE.AnimationMixer(c);
+    if (clip) mixer.clipAction(clip).play();
+    const restFoot = rig ? lowestFootY(rig, c) : 0;
+    return { model: c, rig, mixer, restFoot };
+  }, [scene, animations]);
+}
 
 function PetModel({ path, ageScale, trick, idleSpin }: { path: string; ageScale: number; trick?: TrickCue | null; idleSpin?: boolean }) {
   const { scene, animations } = useGLTF(path);
-  const model = useMemo(() => {
-    const c = cloneSkinned(scene) as THREE.Object3D;
-    c.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.frustumCulled = false; });
-    c.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(c), size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+  const { model, rig, mixer, restFoot } = usePetPoser(scene, animations);
+  // Fit the pet to about 1 unit long, standing on the floor.
+  const fitT = useMemo(() => {
+    model.position.set(0, 0, 0); model.scale.setScalar(1); model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
     const k = 1 / Math.max(size.x, size.z, 0.0001);
-    c.position.set(-ctr.x * k, -box.min.y * k, -ctr.z * k);
-    c.scale.multiplyScalar(k);
-    return c;
-  }, [scene]);
+    return { k, pos: new THREE.Vector3(-ctr.x * k, -box.min.y * k, -ctr.z * k) };
+  }, [model]);
   const holder = useRef<THREE.Group>(null);
   const motion = useRef<THREE.Group>(null);
   const ball = useRef<THREE.Mesh>(null);
-  const { actions } = useAnimations(animations, holder);
-  useEffect(() => {
-    const idle = Object.keys(actions).find((k) => k.toLowerCase().includes('idle')) ?? Object.keys(actions)[0];
-    const a = idle ? actions[idle] : null;
-    a?.reset().play();
-    return () => { a?.stop(); };
-  }, [actions]);
-  const t = useRef({ spin: 0, trickT: 0, cueAt: 0, grow: ageScale });
+  useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
+  const t = useRef({ spin: 0, trickT: 99, cueAt: 0, grow: ageScale });
   useFrame((_, dtRaw) => {
-    const dt = Math.min(dtRaw, 0.05), g = motion.current;
-    if (!g) return;
+    const dt = Math.min(dtRaw, 0.05), g = motion.current, h = holder.current;
+    if (!g || !h) return;
+    mixer.update(dt);
     const st = t.current;
     st.grow += (ageScale - st.grow) * Math.min(1, dt * 2.5);
-    let px = 0, py = 0, pz = 0, rx = 0, ry = 0, rz = 0, s = 1, sy = 1;
     if (trick && trick.at !== st.cueAt) { st.cueAt = trick.at; st.trickT = 0; }
-    const active = trick && st.trickT < D;
-    if (idleSpin && !active) { st.spin += dt * 0.5; ry = Math.sin(st.spin) * 0.6; }
-    if (ball.current) ball.current.visible = false;
-    if (active && trick) {
-      st.trickT += dt;
-      const u = Math.min(1, st.trickT / D), e = Math.sin(Math.PI * u), w = st.trickT;
-      switch (trick.name) {
-        case 'Sit': rx = -0.35 * e; py = 0.09 * e; break;
-        case 'Come': pz = 0.3 * e; py = Math.abs(Math.sin(w * 9)) * 0.05 * e; break;
-        case 'Down': sy = 1 - 0.3 * e; s = 1 + 0.06 * e; break;
-        case 'Spin': ry = Math.PI * 2 * ease(u); break;
-        case 'Shake a Paw': rz = 0.14 * Math.sin(w * 18) * e; break;
-        case 'Roll Over': rz = Math.PI * 2 * ease(u); py = 0.25 * e; break;
-        case 'Jump': py = 0.55 * e; break;
-        case 'Dance': ry = 0.5 * Math.sin(w * 9) * e; py = 0.07 * Math.abs(Math.sin(w * 9)) * e; break;
-        case 'High Five': rx = -0.5 * e; py = 0.14 * e; break;
-        case 'Speak': s = 1 + 0.05 * Math.sin(w * 26) * e; break;
-        case 'Backflip': rx = -Math.PI * 2 * ease(u); py = 0.6 * e; break;
-        case 'Fetch':
-          pz = 0.35 * e;
-          if (ball.current) { const b = Math.min(1, u * 1.6); ball.current.visible = true; ball.current.position.set(0, 0.1 + 0.6 * Math.sin(Math.PI * b), 0.9 - 0.55 * b); }
-          break;
-        default: py = 0.03 * e;
-      }
+    const D = trick ? trickSeconds(trick.name) : 1;
+    const active = !!trick && st.trickT < D;
+    if (active) st.trickT += dt;
+    const f = active && trick ? trickFrame(trick.name, Math.min(1, st.trickT / D), st.trickT) : trickFrame('', 0, 0);
+    if (idleSpin && !active) { st.spin += dt * 0.5; f.body.ry = Math.sin(st.spin) * 0.6; }
+    if (rig) applyPose(rig, f.angles);
+    let lift = 0;
+    if (rig && f.ground && active) lift = (restFoot - lowestFootY(rig, model)) * fitT.k;
+    h.position.set(fitT.pos.x, fitT.pos.y + lift, fitT.pos.z);
+    // Pets without a skeleton fall back to her prototype's whole-body moves for the leg tricks.
+    if (!rig && active && trick) {
+      const e = Math.sin(Math.PI * Math.min(1, st.trickT / D));
+      if (trick.name === 'Sit' || trick.name === 'Shake a Paw' || trick.name === 'High Five') { f.body.rx -= 0.35 * e; f.body.py += 0.09 * e; }
+      if (trick.name === 'Down') f.body.py -= 0.05 * e;
     }
-    const k = st.grow;
-    g.position.set(px * k, py * k, pz * k);
-    g.rotation.set(rx, ry, rz);
-    g.scale.set(s * k, s * sy * k, s * k);
+    if (ball.current) {
+      ball.current.visible = !!f.ball;
+      if (f.ball) ball.current.position.set(f.ball.x, f.ball.y, f.ball.z);
+    }
+    const k = st.grow, b = f.body;
+    g.position.set(b.px * k, b.py * k, b.pz * k);
+    g.rotation.set(b.rx, b.ry, b.rz);
+    g.scale.setScalar(b.s * k);
   });
   return (
     <group ref={motion}>
-      <group ref={holder}><primitive object={model} /></group>
+      <group ref={holder} scale={fitT.k}><primitive object={model} /></group>
       <mesh ref={ball} visible={false}><sphereGeometry args={[0.07, 16, 12]} /><meshStandardMaterial color="#e2574c" roughness={0.6} /></mesh>
     </group>
   );

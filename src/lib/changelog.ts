@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-real-tricks',
+    date: '2026-10-11',
+    icon: '🐕',
+    title: 'Pets really sit, lie down and give high fives',
+    body: "At Buff Doge's Gym your pet now really bends its legs: it sits, lies down, shakes a paw, gives a high five, dances and more. Trained an Adult pet in every Adult trick? Try the new Backflip!",
+  },
+  {
     id: '2026-10-11-buff-doge-gym',
     date: '2026-10-11',
     icon: '🏋️',

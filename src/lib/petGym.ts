@@ -20,6 +20,9 @@ export const TRICKS: TrickDef[] = [
   { name: 'Fetch', age: 'adult', sessions: 4, costCents: 10000, cue: 'Fetch!', move: 'Fetch', icon: '🎾' },
   { name: 'Dance', age: 'adult', sessions: 4, costCents: 10000, cue: 'Dance!', move: 'Dance', icon: '💃' },
   { name: 'High Five', age: 'adult', sessions: 4, costCents: 10000, cue: 'High five!', move: 'High Five', icon: '🙌' },
+  // Her spec: "backflip (advanced only if possible)": an advanced Adult trick, open once the
+  // other Adult tricks are learned.
+  { name: 'Backflip', age: 'adult', sessions: 4, costCents: 10000, cue: 'Backflip!', move: 'Backflip', icon: '🤸' },
   { name: 'Speak', age: 'speak', sessions: 5, costCents: 25000, cue: 'Speak!', move: 'Speak', icon: '🗣️' },
 ];
 export const STAND_STAY = { name: 'Stand/Stay', move: 'Stand and Stay', icon: '🧍' };
@@ -47,7 +50,8 @@ export function learnedTricks(sessions: Record<string, number>): string[] {
 // Tricks this pet can work on now: its own age and younger, plus Speak once everything else is learned.
 export function trainable(pet: StudentPet, sessions: Record<string, number>): TrickDef[] {
   const ai = AGE_ORDER.indexOf(ageForTraining(pet.trainingProgress));
-  return TRICKS.filter((t) => (t.age === 'speak' ? speakOpen(sessions) : AGE_ORDER.indexOf(t.age) <= ai) && !isLearned(sessions, t.name));
+  const adultDone = ['Fetch', 'Dance', 'High Five'].every((n) => isLearned(sessions, n));
+  return TRICKS.filter((t) => (t.age === 'speak' ? speakOpen(sessions) : t.name === 'Backflip' ? adultDone && ai >= 2 : AGE_ORDER.indexOf(t.age) <= ai) && !isLearned(sessions, t.name));
 }
 // Buff Doge recommends a random trick from the pet's own level (her spec).
 export function recommend(pet: StudentPet, sessions: Record<string, number>): TrickDef | null {
