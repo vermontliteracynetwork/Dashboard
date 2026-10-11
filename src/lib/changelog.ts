@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-buff-doge-gym',
+    date: '2026-10-11',
+    icon: '🏋️',
+    title: "Buff Doge's Gym is open!",
+    body: "Sign your pet in with Buff Doge to train tricks like Sit, Spin, Roll Over and High Five. Pay for a session and pick your pet up later, or answer questions with Buff Doge to finish now. Every 5 questions you roll the training dice for bonus treats. When your pet learns a trick, everyone hears about it!",
+  },
+  {
     id: '2026-10-11-pet-talk',
     date: '2026-10-11',
     icon: '💬',

@@ -17,6 +17,7 @@ import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFol
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import PetTalk from '../../components/PetTalk';
 import { petFeeling } from '../../lib/petsV2';
+import { useGym } from '../../lib/petGym';
 import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import type { PetDef } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
@@ -485,6 +486,7 @@ function PetCareCard({
   onCue: (kind: string) => void;
   onTrain?: () => void;
 }) {
+  const navigate = useNavigate();
   const carePet = useStore((s) => s.carePet);
   const renamePet = useStore((s) => s.renamePet);
   const setFollowingPet = useStore((s) => s.setFollowingPet);
@@ -602,9 +604,9 @@ function PetCareCard({
         </button>
       )}
       {/* Pets v2 (her spec 2026-10-11): tricks are trained at Buff Doge's Gym, not here. */}
-      <div style={{ fontSize: 13, fontWeight: 800, background: '#fff3d6', border: '2px solid #f0a030', borderRadius: 10, padding: '8px 10px', marginBottom: 6 }}>
-        🏋️ Tricks are trained at Buff Doge's Gym in Town Square. It opens soon!
-      </div>
+      <button className="btn" style={{ width: '100%', minHeight: 52, fontSize: 14, fontWeight: 800, background: '#fff3d6', border: '2px solid #f0a030', marginBottom: 6 }} onClick={() => navigate('/student/gym')}>
+        🏋️ Train tricks at Buff Doge's Gym
+      </button>
       <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>⭐ Knows {learnedCount} of {PET_TRICKS.length} tricks</div>
       {/* Pet paint-brush customization (Part B backlog item, directly
           requested) — same swatch/tint mechanism Build Mode already uses
@@ -989,9 +991,11 @@ export default function HomeRoom() {
     return exteriorObstacle ? [...base, exteriorObstacle] : base;
   }, [roomObjects, exteriorObstacle, marketplaceFurniture]);
 
+  // A pet signed in at Buff Doge's Gym is away training until it is picked up.
+  const gymRow = useGym(student?.id);
   const myPets = useMemo(
-    () => (student && !PETS_PAUSED ? pets.filter((p) => p.studentId === student.id) : []),
-    [pets, student]
+    () => (student && !PETS_PAUSED ? pets.filter((p) => p.studentId === student.id && p.id !== gymRow.petId) : []),
+    [pets, student, gymRow.petId]
   );
   // Pets review (2026-10-06): care/trick moves the 3D pet plays, and the
   // pet whose training session is open.

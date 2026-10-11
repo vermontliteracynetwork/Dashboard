@@ -169,6 +169,8 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   'computer-desk': '/student/home',
   home: '/world/home-room',
   'pet-shelter': '/student/pet-shelter',
+  // Buff Doge's Gym (her Pets v2 spec, 2026-10-11).
+  'pet-gym': '/student/gym',
   'island-dock': '/world/island',
   cinema: '/student/cinema',
   arcade: '/student/arcade',

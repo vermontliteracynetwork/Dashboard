@@ -14,6 +14,7 @@ import PiggyBank from './components/PiggyBank';
 import Mailbox from './components/Mailbox';
 import Passport from './components/Passport';
 import PetFinder from './routes/student/PetFinder';
+import BuffDogeGym from './routes/student/BuffDogeGym';
 import PetJournal from './routes/student/PetJournal';
 import Cinema from './routes/student/Cinema';
 import Arcade from './routes/student/Arcade';
@@ -23,6 +24,7 @@ import GamesHub from './routes/student/GamesHub';
 import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
 import PetTrainedToast from './components/PetTrainedToast';
+import GymWatcher from './components/GymWatcher';
 import { usePetOverhaulRefunds } from './lib/petOverhaul';
 import CastleDefense from './routes/student/CastleDefense';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
@@ -131,6 +133,7 @@ export default function App() {
         <CoinDropOverlay />
         <StreakLayer />
         <PetTrainedToast />
+        <GymWatcher />
         <SyncTroubleAlert />
         </NotOnBoard>
         {/* Direct teacher instruction: music keeps playing across every
@@ -203,6 +206,7 @@ export default function App() {
           />
           <Route path="/student/pet-shelter" element={<PetFinder />} />
           <Route path="/student/pet-finder" element={<PetFinder />} />
+          <Route path="/student/gym" element={<BuffDogeGym />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />
           <Route path="/student/arcade" element={<Arcade />} />

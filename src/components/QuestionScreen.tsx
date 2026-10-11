@@ -49,6 +49,8 @@ export interface QuestionScreenProps {
   imageUrl?: string;
   imageAlt?: string;
   onCorrectAnswer: () => void;
+  // Optional: told about each wrong pick (Buff Doge's Gym counts first-try answers for its dice).
+  onWrongAnswer?: () => void;
   onExit: () => void;
   // Direct teacher report (2026-09-30): a student who genuinely doesn't
   // know a question's answer had no way forward except guessing among the
@@ -106,6 +108,7 @@ export default function QuestionScreen({
   imageUrl,
   imageAlt,
   onCorrectAnswer,
+  onWrongAnswer,
   onExit,
   onSkip,
   ttsSettings,
@@ -178,6 +181,7 @@ export default function QuestionScreen({
     } else {
       setWrongIndices((prev) => new Set(prev).add(i));
       setFeedback('wrong');
+      onWrongAnswer?.();
     }
   };
 

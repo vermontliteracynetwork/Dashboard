@@ -59,6 +59,7 @@ import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackP
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { useCouponUsed } from '../../lib/petsV2';
+import { useGym } from '../../lib/petGym';
 import PetTalk from '../../components/PetTalk';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PET_TRICKS, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
@@ -3160,7 +3161,8 @@ export default function TownSquare() {
     vehicleSoundRef.current?.setEnabled(student?.vehicleSoundEnabled !== false);
   }, [student?.vehicleSoundEnabled]);
   useEffect(() => () => { vehicleSoundRef.current?.stop(); }, []);
-  const ownedPets = student && !PETS_PAUSED ? pets.filter((p) => p.studentId === student.id) : [];
+  const gymRow = useGym(student?.id);
+  const ownedPets = student && !PETS_PAUSED ? pets.filter((p) => p.studentId === student.id && p.id !== gymRow.petId) : [];
   const followingPet = ownedPets.find((p) => p.following);
   // Pets Phase 6 (docs/DEVELOPMENT_PLAN.md Part B) — a gentle, non-punitive
   // companion check-in nudge: no popup or interruption, just the same

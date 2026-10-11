@@ -60,6 +60,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'computer-desk', label: `Computer Desk (task list) → ${ROLE_VIEWS['computer-desk']}` },
   { value: 'home', label: `Home (their room) → ${ROLE_VIEWS.home}` },
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
+  { value: 'pet-gym', label: `Buff Doge's Gym → ${ROLE_VIEWS['pet-gym']}` },
   { value: 'island-dock', label: `Island Dock (boat to Creative Island) → ${ROLE_VIEWS['island-dock']}` },
   { value: 'cinema', label: `Cinema (watch videos) → ${ROLE_VIEWS.cinema}` },
   { value: 'arcade', label: `Arcade (play Scratch games) → ${ROLE_VIEWS.arcade}` },
