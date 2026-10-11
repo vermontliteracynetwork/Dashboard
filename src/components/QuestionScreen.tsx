@@ -4,6 +4,10 @@ import type { TTSSettings } from '../types';
 import { speak } from './ReadAloud';
 import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
 import ZoomableImage from './ZoomableImage';
+import { openCheckOnPet } from './CheckOnPet';
+
+// Quick misses (under 3 seconds since the question or the last try), across questions.
+const FAST_MISSES: number[] = [];
 
 // Shared "question screen" UI — direct teacher instruction: a single visual
 // design (approved through several mockup rounds) for every question-set-
@@ -136,6 +140,7 @@ export default function QuestionScreen({
   };
   const toggleMark = (i: number) => setMarked((prev) => { const next = new Set(prev); if (next.has(i)) next.delete(i); else next.add(i); return next; });
   const advanceTimer = useRef<number | null>(null);
+  const shownAt = useRef(Date.now());
 
   // A fresh random answer order per question — teacher report: the
   // correct choice kept landing in the same authored-order slot (usually
@@ -163,6 +168,7 @@ export default function QuestionScreen({
     setAnsweredCorrectly(false);
     setShowExitConfirm(false);
     setMarked(new Set());
+    shownAt.current = Date.now();
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
   }, [prompt]);
 
@@ -181,6 +187,15 @@ export default function QuestionScreen({
     } else {
       setWrongIndices((prev) => new Set(prev).add(i));
       setFeedback('wrong');
+      // Her spec: a student answering in 2 to 3 seconds and missing again and again is guessing,
+      // not reading. Four quick misses within 90 seconds opens "Check on your pet".
+      const now = Date.now();
+      if (now - shownAt.current < 3000) {
+        FAST_MISSES.push(now);
+        while (FAST_MISSES.length && now - FAST_MISSES[0] > 90000) FAST_MISSES.shift();
+        if (FAST_MISSES.length >= 4) { FAST_MISSES.length = 0; openCheckOnPet('spam'); }
+      }
+      shownAt.current = now;
       onWrongAnswer?.();
     }
   };
@@ -282,6 +297,8 @@ export default function QuestionScreen({
                 { icon: '📝', label: 'Scratchpad', active: showPad, onClick: () => { setShowPad((v) => !v); setShowToolbox(false); } },
                 { icon: '🔤', label: `Text Size ${['A', 'A+', 'A++'][sizeIdx]}`, active: sizeIdx > 0, onClick: nextSize },
                 { icon: '🖍️', label: highlightOn ? 'Highlight: on' : 'Highlight', active: highlightOn, onClick: () => { setHighlightOn((v) => !v); setShowToolbox(false); } },
+                // Pets v2 (her spec): "Questions set function needs to have a break in the tools".
+                { icon: '🐾', label: 'Take a break', active: false, onClick: () => { setShowToolbox(false); openCheckOnPet('break'); } },
               ].map((tool) => (
                 <button
                   key={tool.icon}

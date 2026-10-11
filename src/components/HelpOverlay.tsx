@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import ChatPanel from './ChatPanel';
 import ReadAloud from './ReadAloud';
+import { openCheckOnPet } from './CheckOnPet';
 
 interface Props {
   studentId: string;
@@ -17,7 +17,6 @@ interface Props {
 }
 
 export default function HelpOverlay({ studentId, onClose, aboveLock }: Props) {
-  const navigate = useNavigate();
   const pingHelp = useStore((s) => s.pingHelp);
   const pets = useStore((s) => s.pets);
   const [pinged, setPinged] = useState(false);
@@ -56,7 +55,7 @@ export default function HelpOverlay({ studentId, onClose, aboveLock }: Props) {
             <button
               className="btn btn-sm"
               style={{ minHeight: 44 }}
-              onClick={() => { onClose(); navigate('/world/home-room'); }}
+              onClick={() => { onClose(); openCheckOnPet('help'); }}
             >
               🐾 Check on your pet
             </button>

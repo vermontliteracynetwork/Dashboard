@@ -25,6 +25,7 @@ import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
 import PetTrainedToast from './components/PetTrainedToast';
 import GymWatcher from './components/GymWatcher';
+import CheckOnPetHost from './components/CheckOnPet';
 import { usePetOverhaulRefunds } from './lib/petOverhaul';
 import CastleDefense from './routes/student/CastleDefense';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
@@ -134,6 +135,7 @@ export default function App() {
         <StreakLayer />
         <PetTrainedToast />
         <GymWatcher />
+        <CheckOnPetHost />
         <SyncTroubleAlert />
         </NotOnBoard>
         {/* Direct teacher instruction: music keeps playing across every

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-check-on-pet',
+    date: '2026-10-11',
+    icon: '🐾',
+    title: 'Take a break with your pet',
+    body: 'Need a break during questions? Open the toolbox and tap Take a break. Your pet will ask how you are feeling, and you can listen to music together. If your pet knows Dance, it dances along!',
+  },
+  {
     id: '2026-10-11-stray-pets',
     date: '2026-10-11',
     icon: '🏠',
