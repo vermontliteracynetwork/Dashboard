@@ -327,7 +327,10 @@ const MIN_HIT_SIZE = 0.6;
 // One model that fails to load (a dropped connection, a missing file) shows nothing instead of
 // taking the whole 3D view down with it (teacher report 2026-10-11: Build Mode went blank when a
 // building's model could not be fetched). It tries again a few seconds later.
-class ModelBoundary extends Component<{ path: string; children: ReactNode }, { failed: boolean }> {
+// Exported so every other place that loads a saved model path (size probes, props, Build Mode's
+// selected-object toolbar) gets the same guard: a model deleted from the project (teacher report
+// 2026-10-11: the deleted pet models left Town Square blank) must never take the page down.
+export class ModelBoundary extends Component<{ path: string; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   private timer: number | null = null;
   private tries = 0;

@@ -40,7 +40,7 @@ import { Icon } from '../../components/Icon';
 import QuestionScreen from '../../components/QuestionScreen';
 import { todayISO } from '../../lib/dates';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
-import { WorldObjectRenderer, useModelSize, isFlatModelSize, safeScale } from './WorldObjectRenderer';
+import { WorldObjectRenderer, ModelBoundary, useModelSize, isFlatModelSize, safeScale } from './WorldObjectRenderer';
 import { TownSizeContext, useTownSizeRule } from './townSize';
 import { TerrainMesh, WaterSurface, WaterAmbience, useTerrainSync } from './TerrainMesh';
 import { boundsWithRegions, regionAt, useRegions, walkBounds } from './regions';
@@ -660,9 +660,11 @@ function ObjectFootprintTracker({ modelPaths, onSize }: { modelPaths: string[]; 
   return (
     <>
       {modelPaths.map((path) => (
-        <Suspense key={path} fallback={null}>
-          <ObjectFootprintProbe path={path} onSize={onSize} />
-        </Suspense>
+        <ModelBoundary key={path} path={path}>
+          <Suspense fallback={null}>
+            <ObjectFootprintProbe path={path} onSize={onSize} />
+          </Suspense>
+        </ModelBoundary>
       ))}
     </>
   );
@@ -1269,7 +1271,10 @@ function WanderingNPC({
 // Generic loader for the small self-contained prop GLBs (each one ships
 // its own embedded textures, unlike the character/forest packs above, so
 // there's no shared-folder collision risk and no per-pack subfolder needed).
-function Prop({
+function Prop(props: Parameters<typeof PropInner>[0]) {
+  return <ModelBoundary key={props.path} path={props.path}><PropInner {...props} /></ModelBoundary>;
+}
+function PropInner({
   path,
   position,
   scale = 1,
@@ -1290,7 +1295,10 @@ function Prop({
 // drops the model to sit on y=0 before the outer group's position/
 // rotation/scale apply, so it actually renders where it's placed instead
 // of far off in the distance at the model's own uncorrected local offset.
-function CityProp({
+function CityProp(props: Parameters<typeof CityPropInner>[0]) {
+  return <ModelBoundary key={props.path} path={props.path}><CityPropInner {...props} /></ModelBoundary>;
+}
+function CityPropInner({
   path,
   position,
   scale = 1,

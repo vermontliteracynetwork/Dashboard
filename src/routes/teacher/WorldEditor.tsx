@@ -5,7 +5,7 @@ import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import { WorldObjectRenderer, useModelSize, safeScale, townSizeFactor } from '../world/WorldObjectRenderer';
+import { WorldObjectRenderer, ModelBoundary, useModelSize, safeScale, townSizeFactor } from '../world/WorldObjectRenderer';
 import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule, measureModel } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
 import { REGION_NAME_SUGGESTIONS, REGION_SIZES, regionRect, saveRegions, useRegions, type Side } from '../world/regions';
@@ -4295,8 +4295,8 @@ export default function WorldEditor() {
             <CameraPanner controlsRef={controlsRef} />
             <PlaneDragger active={!!dragObjectId} info={dragInfoRef} onMove={dragMoveTo} onCancel={cancelDrag} />
             <Suspense fallback={null}>
-              {selected && selection?.kind === 'placed' && <ModelHeightProbe key={selected.id} path={selected.modelPath} scale={selected.scale} onHeight={setSelDrawnHeight} />}
-              {armedAsset && <ModelHeightProbe key={armedAsset.path} path={armedAsset.path} scale={armedDefaultScale * ghostScaleAdjust} onHeight={setGhostDrawnHeight} />}
+              {selected && selection?.kind === 'placed' && <ModelBoundary key={selected.id} path={selected.modelPath}><ModelHeightProbe path={selected.modelPath} scale={selected.scale} onHeight={setSelDrawnHeight} /></ModelBoundary>}
+              {armedAsset && <ModelBoundary key={armedAsset.path} path={armedAsset.path}><ModelHeightProbe path={armedAsset.path} scale={armedDefaultScale * ghostScaleAdjust} onHeight={setGhostDrawnHeight} /></ModelBoundary>}
             </Suspense>
             <TrackpadRotate controlsRef={controlsRef} />
 
@@ -4336,13 +4336,13 @@ export default function WorldEditor() {
             <PlantBrushDriver stroke={plantStroke} onDab={plantDab} />
             {plantSetId && <BrushRing at={terrainCursor} radius={brushSize} color={shiftHeld ? '#ef4444' : '#4ade80'} />}
             <Suspense fallback={null}>
-              {plantModels.map((m) => <PlantSizeProbe key={m} path={m} onSize={(path, h) => { plantHeights.current[path] = h; }} />)}
+              {plantModels.map((m) => <ModelBoundary key={m} path={m}><PlantSizeProbe path={m} onSize={(path, h) => { plantHeights.current[path] = h; }} /></ModelBoundary>)}
             </Suspense>
             <Suspense fallback={null}>
               {groundPatches.map((p) => <GroundPatchMesh key={p.id} patch={p} />)}
             </Suspense>
 
-            {armedAsset && <GhostScaleReporter path={armedAsset.path} category={armedAsset.category} label={armedAsset.label} onScale={setArmedDefaultScale} />}
+            {armedAsset && <ModelBoundary key={'g' + armedAsset.path} path={armedAsset.path}><GhostScaleReporter path={armedAsset.path} category={armedAsset.category} label={armedAsset.label} onScale={setArmedDefaultScale} /></ModelBoundary>}
 
             {armedAsset && ghostPos && (
               <>
@@ -4675,7 +4675,7 @@ export default function WorldEditor() {
                   onMoveModeChange={setMoveModeActive}
                 />
               ) : selected && selection && (
-                <SelectedObjectToolbar
+                <ModelBoundary key={selected.modelPath} path={selected.modelPath}><SelectedObjectToolbar
                   selected={selected}
                   allowNameRole={selection.kind === 'placed'}
                   rotateCwFine={rotateCwFine}
@@ -4700,7 +4700,7 @@ export default function WorldEditor() {
                   onSetPosition={setSelectedPosition}
                   sizeStep={sizeStep}
                   setSizeStep={setSizeStep}
-                />
+                /></ModelBoundary>
               )}
             </Suspense>
           )}
