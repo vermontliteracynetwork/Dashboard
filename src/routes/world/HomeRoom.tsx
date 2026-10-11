@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -11,7 +11,8 @@ import { nearestWall } from '../../lib/wallGeometry';
 import { PICTURE_PREFIX, isPicturePath, usePictures, removePicture } from '../../lib/myPictures';
 import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { MAILBOX_MODEL } from './HomeLots';
-import { MAILBOX_LOCAL, setLotLocked, useLockedLots } from './homeLots';
+import { MAILBOX_LOCAL, setLotLocked, useLockedLots, useMyInvites } from './homeLots';
+import { KnockListener } from './HomeVisits';
 import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, trickUnlocked, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import PetTrainingSession from '../../components/PetTrainingSession';
@@ -793,7 +794,12 @@ export default function HomeRoom() {
   const updateHomeRoom = useStore((s) => s.updateHomeRoom);
   const deleteHomeRoom = useStore((s) => s.deleteHomeRoom);
   const pets = useStore((s) => s.pets);
-  const student = students.find((s) => s.id === currentStudentId);
+  // Visiting a friend who invited you in (`?visit=<their id>`): their home, look only.
+  const [searchParams] = useSearchParams();
+  const visitId = searchParams.get('visit');
+  const myInvites = useMyInvites(currentStudentId);
+  const visiting = !!visitId && visitId !== currentStudentId && myInvites.has(visitId);
+  const student = students.find((s) => s.id === (visiting ? visitId : currentStudentId));
 
   useEffect(() => {
     if (!currentStudentId) navigate('/student/login');
@@ -805,7 +811,7 @@ export default function HomeRoom() {
   // The mailbox or door card (lock my lot, mail, yard, town).
   const [homeCard, setHomeCard] = useState<'mailbox' | 'door' | null>(null);
   const lockedLots = useLockedLots();
-  const goToTown = () => navigate('/world/town', { state: { fromHome: true } });
+  const goToTown = () => navigate('/world/town', { state: visiting ? { fromLot: visitId } : { fromHome: true } });
   const [scales, setScales] = useState<Record<string, number>>({});
   const [armedId, setArmedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -892,6 +898,8 @@ export default function HomeRoom() {
   // invoke (or a slow round-trip render) from creating two default rooms.
   useEffect(() => {
     if (!student) return;
+    // A visitor never creates or changes anything in someone else's home.
+    if (visiting) { if (!activeRoomId && interiorRooms[0]) setActiveRoomId(interiorRooms[0].id); return; }
     if (interiorRooms.length === 0 && !ensuredDefaultRoomRef.current) {
       ensuredDefaultRoomRef.current = true;
       const legacyObjectIds = worldObjects.filter((o) => o.studentId === student.id && !o.roomId).map((o) => o.id);
@@ -1340,18 +1348,19 @@ export default function HomeRoom() {
           </button>
         )}
       </div>
+      {!visiting && <KnockListener />}
       {homeCard && (() => {
         const isLocked = lockedLots.has(student.id);
         const btn: React.CSSProperties = { minHeight: 44, padding: '8px 14px', borderRadius: 12, border: '2px solid #1f4238', background: '#fff', fontWeight: 800, fontFamily: 'system-ui, sans-serif', cursor: 'pointer' };
         return (
           <div role="dialog" aria-label={homeCard === 'mailbox' ? 'My mailbox' : 'My door'} style={{ position: 'fixed', bottom: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 70, background: '#fff', border: '3px solid #1f4238', borderRadius: 16, padding: 14, boxShadow: '0 6px 18px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', color: '#1f4238', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', maxWidth: 'calc(100vw - 32px)' }}>
             <strong>{homeCard === 'mailbox' ? '📬 My mailbox' : '🚪 My door'}</strong>
-            <span style={{ fontSize: 13 }}>{isLocked ? '🔒 Your lot is locked. Only you can come in.' : '🔓 Your lot is open. Others can walk into your yard.'}</span>
+            {!visiting && <span style={{ fontSize: 13 }}>{isLocked ? '🔒 Your lot is locked. Only you can come in.' : '🔓 Your lot is open. Others can walk into your yard.'}</span>}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
               {homeCard === 'mailbox' && <button type="button" style={btn} onClick={() => { setHomeCard(null); navigate('/student/mailbox'); }}>📬 Open my mail</button>}
               {homeCard === 'door' && yardRoom && <button type="button" style={btn} onClick={() => { setHomeCard(null); switchRoom(yardRoom.id); }}>🌳 Go out to the yard</button>}
               <button type="button" style={btn} onClick={() => { setHomeCard(null); goToTown(); }}>🏘️ Walk to town</button>
-              <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(student.id, !isLocked)}>{isLocked ? '🔓 Open my lot' : '🔒 Lock my lot'}</button>
+              {!visiting && <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(student.id, !isLocked)}>{isLocked ? '🔓 Open my lot' : '🔒 Lock my lot'}</button>}
             </div>
             <button type="button" style={btn} onClick={() => setHomeCard(null)}>Close</button>
           </div>
@@ -1368,7 +1377,7 @@ export default function HomeRoom() {
       )}
 
       <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: 8 }}>
-        {!PETS_PAUSED && (
+        {!PETS_PAUSED && !visiting && (
           <button
             className="btn btn-sm"
             style={{ minHeight: 44, background: petPanelOpen ? '#a855f7' : '#fff', color: petPanelOpen ? '#fff' : undefined, fontWeight: 800 }}
@@ -1377,7 +1386,9 @@ export default function HomeRoom() {
             🐾 Pets{myPets.length > 0 ? ` (${myPets.length})` : ''}
           </button>
         )}
-        {mode === 'view' ? (
+        {visiting ? (
+          <span style={{ background: 'rgba(255,255,255,0.95)', padding: '10px 14px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 800, color: '#1f4238' }}>👀 Visiting: look only</span>
+        ) : mode === 'view' ? (
           <button
             className="btn btn-sm"
             style={{ minHeight: 44, background: '#3e7c6b', color: '#fff', fontWeight: 800 }}
@@ -1480,7 +1491,7 @@ export default function HomeRoom() {
               <WorldObjectRenderer
                 obj={{ id: '__mailbox__', modelPath: MAILBOX_MODEL, label: 'Mailbox', position: [MAILBOX_LOCAL[0], 0, MAILBOX_LOCAL[1]], rotationY: 0, scale: 0.003, createdAt: '' }}
                 normalize={false}
-                onClick={mode === 'view' ? () => setHomeCard('mailbox') : undefined}
+                onClick={mode === 'view' && !visiting ? () => setHomeCard('mailbox') : undefined}
               />
             </Suspense>
             <YardGate z={halfD + 0.9} onWalk={mode === 'view' ? goToTown : undefined} />
@@ -1496,7 +1507,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, 0, -(halfD + EXTERIOR_CLEARANCE) + 2.2]}
                     cue={petCues[pet.id]}
-                    onTap={mode === 'view' ? () => setTrainingPetId(pet.id) : undefined}
+                    onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
                 );
               })}
@@ -1534,7 +1545,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, def.category === 'aquatic' || def.category === 'bird' ? 0.6 : 0, Math.max(0, halfD - 1.4)]}
                     cue={petCues[pet.id]}
-                    onTap={mode === 'view' ? () => setTrainingPetId(pet.id) : undefined}
+                    onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
                 );
               })}

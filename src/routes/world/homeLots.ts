@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useStore } from '../../store/store';
 import type { GroundBounds, Student } from '../../types';
 
@@ -104,12 +105,12 @@ export function homesRect(b: GroundBounds, side: 'north' | 'south', depth: numbe
 
 // Walking rules in Town Square, kept here so the movement code can ask one question: houses are
 // solid, and a locked lot keeps every student but its owner out.
-export const homeBlock: { lots: Lot[]; locked: Set<string>; me: string | null } = { lots: [], locked: new Set(), me: null };
+export const homeBlock: { lots: Lot[]; locked: Set<string>; me: string | null; invitedBy: Set<string> } = { lots: [], locked: new Set(), me: null, invitedBy: new Set() };
 export function isHomeBlocked(x: number, z: number): boolean {
   for (const l of homeBlock.lots) {
     const [hx, hz] = lotToWorld(l, HOUSE_LOCAL[0], HOUSE_LOCAL[1]);
     if ((x - hx) ** 2 + (z - hz) ** 2 < HOUSE_RADIUS * HOUSE_RADIUS) return true;
-    if (l.student.id !== homeBlock.me && homeBlock.locked.has(l.student.id) && insideLot(l, x, z)) return true;
+    if (l.student.id !== homeBlock.me && !homeBlock.invitedBy.has(l.student.id) && homeBlock.locked.has(l.student.id) && insideLot(l, x, z)) return true;
   }
   return false;
 }
@@ -118,4 +119,79 @@ export function isHomeBlocked(x: number, z: number): boolean {
 export function rowsNeeded(width: number, students: number): number {
   const per = Math.max(1, Math.floor((width - 2) / LOT_W));
   return Math.max(1, Math.ceil(students / per));
+}
+
+// ───── Lots placed by hand (teacher 2026-10-11: "add a way for me to have in teacher build mode
+// the ability to put a lot foot print that represents each studnets home and yard and that will
+// show their lot in the town mode based on where i put the foot print") ─────
+// Saved as the `town-lots` row: each student's lot center and turn. A student placed by hand is
+// drawn there; any student not placed by hand still gets an automatic lot if a Neighborhood exists.
+export const PLACED_OWNER = 'town-lots';
+export type PlacedLot = { x: number; z: number; rot: number };
+export function usePlacedLots(): Record<string, PlacedLot> {
+  const lots = useStore((s) => (s.styleLooks.find((r) => r.ownerId === PLACED_OWNER)?.look as { lots?: Record<string, PlacedLot | null> } | undefined)?.lots);
+  return useMemo(() => {
+    const out: Record<string, PlacedLot> = {};
+    for (const [id, p] of Object.entries(lots ?? {})) if (p && typeof p.x === 'number') out[id] = p;
+    return out;
+  }, [lots]);
+}
+export function savePlacedLot(studentId: string, p: PlacedLot | null) {
+  const cur = (useStore.getState().styleLooks.find((r) => r.ownerId === PLACED_OWNER)?.look as { lots?: Record<string, PlacedLot | null> } | undefined)?.lots ?? {};
+  const next = { ...cur };
+  if (p) next[studentId] = p; else delete next[studentId];
+  useStore.getState().mergeStyleRow(PLACED_OWNER, { lots: next });
+}
+export function allLots(homes: HomesRow | null, students: Student[], placed: Record<string, PlacedLot>): Lot[] {
+  const manual = students.filter((s) => placed[s.id]).map((s) => ({ student: s, cx: placed[s.id].x, cz: placed[s.id].z, rot: placed[s.id].rot }));
+  const auto = homes ? layoutLots(homes, students.filter((s) => !placed[s.id])) : [];
+  return [...manual, ...auto];
+}
+export function useAllLots(students: Student[]): Lot[] {
+  const homes = useHomes();
+  const placed = usePlacedLots();
+  return useMemo(() => allLots(homes, students, placed), [homes, students, placed]);
+}
+
+// ───── Visiting another student's home (teacher 2026-10-11: "the other student should have view
+// only access to the yard with no ability to enter the other students house without a
+// conversational invite between students similarlly to how the pie menu conversations happen
+// with NPC neightbors") ─────
+// A visitor taps the house and knocks (`knock:<host>` row); the host gets a pie menu, "Come in!"
+// or "Not now"; "Come in!" adds the visitor to `invite:<host>` for an hour, and the visitor can
+// then go inside, look only (no building, no pets, no lock).
+export const knockOwner = (host: string) => `knock:${host}`;
+export const inviteOwner = (host: string) => `invite:${host}`;
+export const INVITE_MS = 60 * 60 * 1000;
+export const KNOCK_MS = 3 * 60 * 1000;
+export interface KnockRow { from?: string | null; fromName?: string | null; at?: string | null; answer?: 'yes' | 'no' | null; answeredAt?: string | null }
+export function sendKnock(host: string, from: string, fromName: string) {
+  useStore.getState().mergeStyleRow(knockOwner(host), { from, fromName, at: new Date().toISOString(), answer: null, answeredAt: null });
+}
+export function answerKnock(host: string, yes: boolean) {
+  const st = useStore.getState();
+  const k = st.styleLooks.find((r) => r.ownerId === knockOwner(host))?.look as KnockRow | undefined;
+  st.mergeStyleRow(knockOwner(host), { answer: yes ? 'yes' : 'no', answeredAt: new Date().toISOString() });
+  if (yes && k?.from) {
+    const guests = (st.styleLooks.find((r) => r.ownerId === inviteOwner(host))?.look as { guests?: Record<string, string> } | undefined)?.guests ?? {};
+    st.mergeStyleRow(inviteOwner(host), { guests: { ...guests, [k.from]: new Date().toISOString() } });
+  }
+}
+export function useKnock(host: string | null | undefined): KnockRow | undefined {
+  return useStore((s) => (host ? (s.styleLooks.find((r) => r.ownerId === knockOwner(host))?.look as KnockRow | undefined) : undefined));
+}
+// The hosts who invited this student in within the last hour.
+export function useMyInvites(me: string | null | undefined): Set<string> {
+  const rows = useStore((s) => s.styleLooks);
+  return useMemo(() => {
+    const out = new Set<string>();
+    if (!me) return out;
+    const now = Date.now();
+    for (const r of rows) {
+      if (!r.ownerId.startsWith('invite:')) continue;
+      const t = (r.look as { guests?: Record<string, string> } | undefined)?.guests?.[me];
+      if (t && now - Date.parse(t) < INVITE_MS) out.add(r.ownerId.slice(7));
+    }
+    return out;
+  }, [rows, me]);
 }

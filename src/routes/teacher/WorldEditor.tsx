@@ -9,7 +9,7 @@ import { WorldObjectRenderer, useModelSize, safeScale, townSizeFactor } from '..
 import { TownSizeContext, setTownSizeRule, useTownSizeContext, useTownSizeRule, measureModel } from '../world/townSize';
 import { SkyDome } from '../world/SkyDome';
 import { REGION_NAME_SUGGESTIONS, REGION_SIZES, regionRect, saveRegions, useRegions, type Side } from '../world/regions';
-import { ROW_PITCH, depthForRows, homesRect, layoutLots, lotCapacity, removeHomes, rowsNeeded, saveHomes, useHomes, useLockedLots } from '../world/homeLots';
+import { LOT_BACK, LOT_D, LOT_FRONT, LOT_W, ROW_PITCH, depthForRows, homesRect, lotCapacity, removeHomes, rowsNeeded, saveHomes, savePlacedLot, useAllLots, useHomes, useLockedLots, usePlacedLots } from '../world/homeLots';
 import { HomeLots } from '../world/HomeLots';
 import { RegionBorders, regionColor } from '../world/RegionBorders';
 import { hideCatalogItem, restoreCatalogItem, useHiddenCatalog } from '../../lib/catalogHidden';
@@ -2316,6 +2316,7 @@ export default function WorldEditor() {
   // toggle rather than a one-way jump.
   const TOP_VIEW_HEIGHT = 46;
   const flightGoal = useRef<THREE.Vector3 | null>(null);
+  const [placeChoice, setPlaceChoice] = useState('base');
   const flyTo = (x: number, z: number) => { flightGoal.current = new THREE.Vector3(x, heightAt(x, z), z); };
   const [isTopView, setIsTopView] = useState(false);
   const preTopViewCamera = useRef<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
@@ -3029,7 +3030,11 @@ export default function WorldEditor() {
   const homes = useHomes();
   const students = useStore((s) => s.students);
   const lockedLots = useLockedLots();
-  const homeLots = useMemo(() => (homes ? layoutLots(homes, students) : []), [homes, students]);
+  const homeLots = useAllLots(students);
+  // Placing a student's lot by hand: pick the student, then tap the ground where the lot goes.
+  const placedLots = usePlacedLots();
+  const [lotPlacingId, setLotPlacingId] = useState<string | null>(null);
+  const [lotGhostRot, setLotGhostRot] = useState(0);
   const addNeighborhood = () => {
     const width = groundBounds.west + groundBounds.east;
     const depth = depthForRows(rowsNeeded(width, students.length)) + 1;
@@ -3078,6 +3083,13 @@ export default function WorldEditor() {
       .finally(() => { setRemakeProgress(null); remakeStarted.current = false; flashSaved(); });
   };
   const groundPaths = usePaths();
+  // A region past the town's walls would be cut off for students: push the walls out to take it in.
+  useEffect(() => {
+    for (const r of regions.list) {
+      const need: [keyof typeof groundBounds, number][] = [['west', -Math.min(r.x1, r.x2)], ['east', Math.max(r.x1, r.x2)], ['north', -Math.min(r.z1, r.z2)], ['south', Math.max(r.z1, r.z2)]];
+      for (const [edge, v] of need) if (v > groundBounds[edge] + 0.01 && v <= GROUND_BOUNDS_MAX) expandGroundBounds(edge, Math.ceil(v - groundBounds[edge]));
+    }
+  }, [regions.list, groundBounds]); // eslint-disable-line react-hooks/exhaustive-deps
   const renameRegion = (id: string, name: string) => saveRegions({ ...regions, list: regions.list.map((r) => (r.id === id ? { ...r, name } : r)) });
   const removeRegion = (id: string) => saveRegions({ ...regions, list: regions.list.filter((r) => r.id !== id) });
   useEffect(() => { if (regionsOpen) { setTerrainTool(null); setPaintMode(null); setArmedAsset(null); setHammerMode(false); setWallMode(false); } }, [regionsOpen]);
@@ -3121,6 +3133,7 @@ export default function WorldEditor() {
   const expandWestHold = useHoldRepeat(() => expandGroundBounds('west', GROUND_BOUNDS_STEP));
 
   const handleGroundPointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (lotPlacingId) { setTerrainCursor({ x: e.point.x, z: e.point.z }); return; }
     if (plantSetId) {
       setTerrainCursor({ x: e.point.x, z: e.point.z });
       if (plantStroke.current.active) { plantStroke.current.x = e.point.x; plantStroke.current.z = e.point.z; }
@@ -3273,6 +3286,11 @@ export default function WorldEditor() {
 
   const handleGroundClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    if (lotPlacingId) {
+      savePlacedLot(lotPlacingId, { x: Math.round(clampToGroundX(e.point.x) * 2) / 2, z: Math.round(clampToGroundZ(e.point.z) * 2) / 2, rot: lotGhostRot });
+      setLotPlacingId(null); setTerrainCursor(null); flashSaved();
+      return;
+    }
     if (terrainTool) return; // sculpting happens on press and hold
     if (wallMode) return; // the wall itself is placed by the pointerdown/up drag above, not a click
     if (paintMode === 'groundPatch') return; // already painted on pointer-down above
@@ -3366,7 +3384,27 @@ export default function WorldEditor() {
           redesign — each Sims 4 mode gets its own color) replaces this
           screen's earlier purple; nowhere else in the app changes. */}
       <div className="subject-header space-between" style={{ background: `linear-gradient(120deg, ${BUILD_ACCENT}, ${BUILD_ACCENT_DARK})`, flexShrink: 0, padding: '8px 16px' }}>
-        <h2 style={{ margin: 0, color: '#fff', fontSize: '1.05rem' }}>🏗️ Town Square Build Mode</h2>
+        {/* Where am I building: the main town and every region, as a menu in the header (teacher
+            2026-10-11: "moving the town names to a drop down menu on the top header bar replacing
+            the words 'Town Square Build Mode'", so the toolbar at the bottom is never covered).
+            Choosing one flies the camera there. */}
+        <label className="row" style={{ gap: 6, alignItems: 'center', margin: 0 }}>
+          <span aria-hidden style={{ fontSize: '1.05rem' }}>🏗️</span>
+          <select
+            aria-label="Fly to a place in the world"
+            value={placeChoice}
+            onChange={(e) => {
+              const v = e.target.value; setPlaceChoice(v);
+              if (v === 'base') { flyTo(0, 0); return; }
+              const r = regions.list.find((x) => x.id === v);
+              if (r) flyTo((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2);
+            }}
+            style={{ minHeight: 40, borderRadius: 10, border: '2px solid #fff', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 800, fontSize: '1rem', padding: '4px 10px', cursor: 'pointer' }}
+          >
+            <option value="base" style={{ color: '#111' }}>{regions.base}</option>
+            {regions.list.map((r) => <option key={r.id} value={r.id} style={{ color: '#111' }}>📍 {r.name}</option>)}
+          </select>
+        </label>
         <div className="row-wrap" style={{ gap: 5 }}>
           <button
             className="btn btn-sm btn-flat"
@@ -3686,6 +3724,21 @@ export default function WorldEditor() {
           <div className="stack" style={{ gap: 8, padding: 10, borderRadius: 12, border: '2px dashed var(--content-border)' }}>
             <strong style={{ fontSize: '0.8rem' }}>🏡 Home lots (Neighborhood)</strong>
             <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>Every student gets a lot in the open world: their yard (with what they placed in it at home), their house and a mailbox. Students tap their mailbox to lock or open their lot.</span>
+            <strong style={{ fontSize: '0.75rem' }}>📍 Place each lot yourself</strong>
+            <span style={{ fontSize: '0.7rem', opacity: 0.75 }}>Tap 📍 next to a student, then tap the ground where their lot goes (the green footprint shows it; the dark arrow is the front, where the mailbox and gate are). ↻ turns it.</span>
+            {lotPlacingId && <span role="status" style={{ fontSize: '0.75rem', fontWeight: 700, color: BUILD_ACCENT_DARK }}>Tap the ground to place {students.find((s) => s.id === lotPlacingId)?.name}'s lot. <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setLotGhostRot((r) => (r + Math.PI / 2) % (2 * Math.PI))}>↻ Turn</button> <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setLotPlacingId(null)}>Cancel</button></span>}
+            {students.map((st) => {
+              const p = placedLots[st.id];
+              return (
+                <div key={st.id} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                  <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 700 }}>{st.name}{p ? '' : ' (not placed)'}</span>
+                  <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44, background: lotPlacingId === st.id ? BUILD_ACCENT : undefined, color: lotPlacingId === st.id ? '#fff' : undefined }} title={p ? `Move ${st.name}'s lot` : `Place ${st.name}'s lot`} aria-label={p ? `Move ${st.name}'s lot` : `Place ${st.name}'s lot`} onClick={() => { setLotGhostRot(p?.rot ?? 0); setLotPlacingId(lotPlacingId === st.id ? null : st.id); }}>📍</button>
+                  {p && <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title={`Turn ${st.name}'s lot`} aria-label={`Turn ${st.name}'s lot`} onClick={() => { savePlacedLot(st.id, { ...p, rot: (p.rot + Math.PI / 2) % (2 * Math.PI) }); flashSaved(); }}>↻</button>}
+                  {p && <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title={`Remove ${st.name}'s lot`} aria-label={`Remove ${st.name}'s lot`} onClick={() => { savePlacedLot(st.id, null); flashSaved(); }}>✕</button>}
+                </div>
+              );
+            })}
+            <strong style={{ fontSize: '0.75rem' }}>…or a whole Neighborhood at once</strong>
             {homes ? (
               <>
                 <span style={{ fontSize: '0.75rem' }}>{lotCapacity(homes)} lots for {students.length} student{students.length === 1 ? '' : 's'}, on the {homes.side} side.</span>
@@ -4156,14 +4209,6 @@ export default function WorldEditor() {
               {<button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label="Close" onClick={() => { setRestoreArmed(false); useStore.getState().mergeStyleRow(REMAKE_OWNER, { bannerClosed: true }); }}>✕</button>}
             </div>
           )}
-          {regions.list.length > 0 && (
-            <div role="group" aria-label="Fly to a region" style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100% - 24px)', fontFamily: 'system-ui, sans-serif' }}>
-              <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} title="Fly to the main town" onClick={() => flyTo(0, 0)}>🧭 {regions.base}</button>
-              {regions.list.map((r, k) => (
-                <button key={r.id} className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800, border: `3px solid ${regionColor(k)}` }} title={`Fly to ${r.name}`} onClick={() => flyTo((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2)}>📍 {r.name}</button>
-              ))}
-            </div>
-          )}
           {showSaved && (
             <div style={{ position: 'absolute', bottom: 70, right: 16, zIndex: 6, background: BUILD_ACCENT, color: '#fff', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'system-ui, sans-serif', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', pointerEvents: 'none' }}>
               ✓ Saved
@@ -4258,6 +4303,18 @@ export default function WorldEditor() {
             <Suspense fallback={null}><GroundPaths /></Suspense>
             <CameraFlight controlsRef={controlsRef} goal={flightGoal} />
             {homeLots.length > 0 && <HomeLots lots={homeLots} locked={lockedLots} />}
+            {lotPlacingId && terrainCursor && (
+              <group position={[terrainCursor.x, heightAt(terrainCursor.x, terrainCursor.z) + 0.12, terrainCursor.z]} rotation={[0, lotGhostRot, 0]}>
+                <mesh position={[0, 0, (LOT_FRONT + LOT_BACK) / 2]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+                  <planeGeometry args={[LOT_W, LOT_D]} />
+                  <meshBasicMaterial color="#22c55e" transparent opacity={0.3} depthWrite={false} />
+                </mesh>
+                <mesh position={[0, 0.02, LOT_FRONT - 1]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+                  <circleGeometry args={[0.9, 3]} />
+                  <meshBasicMaterial color="#166534" />
+                </mesh>
+              </group>
+            )}
             <WaterAmbience off={waterSoundOff} listener={() => controlsRef.current?.target ?? null} />
             <TerrainBrushDriver stroke={strokeRef} tool={terrainTool} size={brushSize} strength={brushStrength} invert={shiftHeld} />
             {terrainTool && <BrushRing at={terrainCursor} radius={brushSize} color={shiftHeld && (terrainTool === 'raise' || terrainTool === 'lower') ? '#f97316' : '#ffffff'} />}

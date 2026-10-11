@@ -44,3 +44,27 @@ export function regionRect(b: GroundBounds, side: Side, depth: number): { x1: nu
   if (side === 'east') return { x1: b.east, x2: b.east + depth, z1: -b.north, z2: b.south };
   return { x1: -(b.west + depth), x2: -b.west, z1: -b.north, z2: b.south };
 }
+
+// The walkable world: the town's walls, pushed out to take in every region (teacher 2026-10-11:
+// "allow students to move between worlds like the enchanted forest and town square without a
+// wall blocking them"), so a region is never cut off by an old wall.
+export function boundsWithRegions(b: GroundBounds, list: Region[]): GroundBounds {
+  const out = { ...b };
+  for (const r of list) {
+    out.west = Math.max(out.west, -Math.min(r.x1, r.x2));
+    out.east = Math.max(out.east, Math.max(r.x1, r.x2));
+    out.north = Math.max(out.north, -Math.min(r.z1, r.z2));
+    out.south = Math.max(out.south, Math.max(r.z1, r.z2));
+  }
+  return out;
+}
+// Same, read straight from the store (for movement code running every frame).
+let cacheKey: unknown = null, cacheIn: GroundBounds | null = null, cacheOut: GroundBounds | null = null;
+export function walkBounds(): GroundBounds {
+  const st = useStore.getState();
+  const look = st.styleLooks.find((r) => r.ownerId === REGIONS_OWNER)?.look;
+  if (cacheKey === look && cacheIn === st.groundBounds && cacheOut) return cacheOut;
+  const list = Array.isArray((look as Partial<RegionsRow> | undefined)?.list) ? (look as RegionsRow).list : [];
+  cacheKey = look; cacheIn = st.groundBounds; cacheOut = boundsWithRegions(st.groundBounds, list);
+  return cacheOut;
+}

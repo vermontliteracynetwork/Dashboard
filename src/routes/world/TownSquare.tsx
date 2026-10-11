@@ -43,10 +43,11 @@ import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
 import { WorldObjectRenderer, useModelSize, isFlatModelSize, safeScale } from './WorldObjectRenderer';
 import { TownSizeContext, useTownSizeRule } from './townSize';
 import { TerrainMesh, WaterSurface, WaterAmbience, useTerrainSync } from './TerrainMesh';
-import { regionAt, useRegions } from './regions';
+import { boundsWithRegions, regionAt, useRegions, walkBounds } from './regions';
 import { RegionBorders } from './RegionBorders';
 import { GroundPaths } from './GroundPaths';
-import { homeBlock, isHomeBlocked, layoutLots, lotArrival, setLotLocked, useHomes, useLockedLots, type Lot } from './homeLots';
+import { homeBlock, isHomeBlocked, lotArrival, sendKnock, setLotLocked, useAllLots, useKnock, useLockedLots, useMyInvites, type Lot } from './homeLots';
+import { KnockListener } from './HomeVisits';
 import { HomeLots } from './HomeLots';
 import { getTerrain, heightAt, isTerrainWater, useTerrainVersion, waterLevel } from './terrain';
 import { SkyDome } from './SkyDome';
@@ -121,11 +122,11 @@ const GROUND_VISUAL_RADIUS = Math.max(GROUND_HALF * 4, 2000);
 // existing building/prop/NPC keeps its own literal x/z coordinate; nothing
 // already placed moves when a wall is pushed out.
 function clampGroundX(v: number): number {
-  const b = useStore.getState().groundBounds;
+  const b = walkBounds();
   return THREE.MathUtils.clamp(v, -b.west + 1, b.east - 1);
 }
 function clampGroundZ(v: number): number {
-  const b = useStore.getState().groundBounds;
+  const b = walkBounds();
   return THREE.MathUtils.clamp(v, -b.north + 1, b.south - 1);
 }
 const TALK_RADIUS = 1.8;
@@ -2066,7 +2067,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       // chosen to match CoordinateGrid's own documented convention that
       // "up on screen" is north/-Z in this view.
       camera.up.set(0, 0, -1);
-      const mapHeight = mapHeightFor(groundBoundsMaxExtent(useStore.getState().groundBounds));
+      const mapHeight = mapHeightFor(groundBoundsMaxExtent(walkBounds()));
       camera.position.lerp(new THREE.Vector3(0, mapHeight, 0.01), 1 - Math.pow(0.001, dt));
       camera.lookAt(0, 0, 0);
     } else {
@@ -2964,7 +2965,10 @@ export default function TownSquare() {
   // holding a half-finished edit back until the teacher hits Publish.
   const [searchParams, setSearchParams] = useSearchParams();
   const previewDraft = searchParams.get('previewDraft') === '1';
-  const groundBounds = useStore((s) => s.groundBounds);
+  // The town's walls taken out to every region, so nothing in a region is cut off.
+  const rawGroundBounds = useStore((s) => s.groundBounds);
+  const regionsForBounds = useRegions();
+  const groundBounds = useMemo(() => boundsWithRegions(rawGroundBounds, regionsForBounds.list), [rawGroundBounds, regionsForBounds.list]);
   const storeWorldObjects = useStore((s) => s.worldObjects);
   const allWorldObjects = useMemo(() => withDefaultRoles(storeWorldObjects), [storeWorldObjects]);
   const worldObjects = useMemo(
@@ -3229,10 +3233,14 @@ export default function TownSquare() {
   playerPosRef.current = playerPos;
   // Home lots (2026-10-10): every student's lot in the Neighborhood, the lock rules for walking,
   // and the mailbox / house card.
-  const homes = useHomes();
+  // Lots placed by hand in Build Mode first, then the automatic Neighborhood for anyone not placed.
   const lockedLots = useLockedLots();
-  const homeLots = useMemo(() => (homes ? layoutLots(homes, students) : []), [homes, students]);
-  homeBlock.lots = homeLots; homeBlock.locked = lockedLots; homeBlock.me = currentStudentId ?? null;
+  const homeLots = useAllLots(students);
+  const myInvites = useMyInvites(currentStudentId);
+  homeBlock.lots = homeLots; homeBlock.locked = lockedLots; homeBlock.me = currentStudentId ?? null; homeBlock.invitedBy = myInvites;
+  // A knock this student sent, while waiting for the answer.
+  const [knockingAt, setKnockingAt] = useState<{ host: string; name: string; at: number } | null>(null);
+  const sentKnock = useKnock(knockingAt?.host);
   const myLot = homeLots.find((l) => l.student.id === currentStudentId) ?? null;
   const [lotCard, setLotCard] = useState<{ lot: Lot; kind: 'mailbox' | 'house' } | null>(null);
   const routeLocation = useLocation();
@@ -3749,10 +3757,14 @@ export default function TownSquare() {
   const teleportTarget = useRef<{ x: number; z: number; facing?: number; trainArc?: number } | null>(null);
   // Walking out of the yard gate at home lands on the street in front of your own lot.
   useEffect(() => {
-    if (arrivedFromHome.current || !myLot || !(routeLocation.state as { fromHome?: boolean } | null)?.fromHome) return;
+    if (arrivedFromHome.current) return;
+    const st = routeLocation.state as { fromHome?: boolean; fromLot?: string } | null;
+    // Back from your own home, or from visiting a friend's: on the street in front of that lot.
+    const lot = st?.fromLot ? homeLots.find((l) => l.student.id === st.fromLot) : st?.fromHome ? myLot : null;
+    if (!lot) return;
     arrivedFromHome.current = true;
-    teleportTarget.current = lotArrival(myLot);
-  }, [myLot, routeLocation.state]);
+    teleportTarget.current = lotArrival(lot);
+  }, [myLot, homeLots, routeLocation.state]);
   const cameraLook = useRef(0);
   const cameraPitch = useRef(0);
   // Mouse press-and-drag look, desktop only (mirrors the ↺/↻ buttons but
@@ -4788,7 +4800,32 @@ export default function TownSquare() {
           Not set up yet. Ask your teacher!
         </div>
       )}
-      {lotCard && (() => {
+      {lotCard && lotCard.kind === 'house' && lotCard.lot.student.id !== currentStudentId && (() => {
+        const host = lotCard.lot.student;
+        const invited = myInvites.has(host.id);
+        return (
+          <NpcPieMenu
+            name={`${host.name}'s house`}
+            title={invited ? 'You are invited in!' : lockedLots.has(host.id) ? '🔒 Their lot is locked' : 'Knock to ask to come in'}
+            wedges={invited
+              ? [{ id: 'in', icon: '🏠', label: 'Go inside', bg: '#bbf7d0', onSelect: () => navigate(`/world/home-room?visit=${host.id}`) }]
+              : [{ id: 'knock', icon: '🚪', label: 'Knock', bg: '#fde68a', onSelect: () => { if (!student) return; sendKnock(host.id, student.id, student.name); setKnockingAt({ host: host.id, name: host.name, at: Date.now() }); } }]}
+            onClose={() => setLotCard(null)}
+          />
+        );
+      })()}
+      {knockingAt && (() => {
+        const answer = sentKnock?.from === currentStudentId ? sentKnock?.answer : null;
+        const text = answer === 'yes' ? `🎉 ${knockingAt.name} says come in! Tap their house to go inside.` : answer === 'no' ? `${knockingAt.name} can't have visitors right now.` : `🚪 You knocked. Waiting for ${knockingAt.name}...`;
+        return (
+          <div role="status" style={{ position: 'fixed', top: 84, left: '50%', transform: 'translateX(-50%)', zIndex: 66, background: '#fff', border: '3px solid #1f4238', borderRadius: 999, padding: '8px 12px 8px 16px', fontWeight: 800, fontFamily: 'system-ui, sans-serif', color: '#1f4238', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', display: 'flex', gap: 8, alignItems: 'center', maxWidth: 'calc(100vw - 32px)' }}>
+            <span>{text}</span>
+            <button type="button" aria-label="Close" onClick={() => setKnockingAt(null)} style={{ minHeight: 44, minWidth: 44, borderRadius: 999, border: '2px solid #1f4238', background: '#fff', fontWeight: 800, cursor: 'pointer' }}>✕</button>
+          </div>
+        );
+      })()}
+      <KnockListener />
+      {lotCard && !(lotCard.kind === 'house' && lotCard.lot.student.id !== currentStudentId) && (() => {
         const { lot, kind } = lotCard;
         const mine = lot.student.id === currentStudentId;
         const isLocked = lockedLots.has(lot.student.id);

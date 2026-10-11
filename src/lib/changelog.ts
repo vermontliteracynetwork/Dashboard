@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-knock',
+    date: '2026-10-11',
+    icon: '🚪',
+    title: 'Visit your friends',
+    body: "Tap a friend's house and knock on the door. If they say come in, you can go inside and look around their home. When someone knocks on your door, you choose: come in, or not now.",
+  },
+  {
     id: '2026-10-11-smooth-walking',
     date: '2026-10-11',
     icon: '🚶',
