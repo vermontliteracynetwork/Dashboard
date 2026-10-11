@@ -48,6 +48,16 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 16. ~~🐱 Five new cat breeds~~ SHIPPED 2026-10-11 (see Done). Her words (verbatim): "add these to the pets" (with bicolor_cat.glb, black_cat.glb, maine_coon.glb, ragdoll_cat.glb and bengal_cat.glb).
 17. ~~🦴 Skeletons for the 4 pets that could not bend~~ SHIPPED 2026-10-11 (see Done and Part A, A4). Her question (verbatim): "can all pet breeds do all 12 with your adjustments". Claudia's answer: 8 breeds could (they have skeletons), the Tabby Cat, Poodle, Beagle and Great Dane could only do the 8 whole-body tricks. Her pick (verbatim): "Swap in rigged models so all can do all 12".
 18. ~~🩹 Fix: Town Square blank after the pets cleanup~~ SHIPPED 2026-10-11 (see Done and Part A, A4). Her report: a screenshot of a blank Town Square with the console showing 404s for `/world/models/pets/animal-deer.glb`, `animal-dog.glb`, `animal-cat.glb` and `animal-bunny.glb`, then "Uncaught Error: Could not load /world/models/pets/animal-dog.glb" and "WebGL context lost".
+19. 🐾 **Pets v2, her full spec (2026-10-11).** She sent four files with no other words: her Pets v2 spec as a document (verbatim under "Pets v2 overhaul" below, "Her Pets v2 spec"), her own **Buff Doge's Gym** prototype (a full web page: gym floor with Buff Doge, sign-in, trick menu by age, pay $100 or answer 50 questions, polyhedral dice bonus every 5 questions, Pokemon style "Azalea uses Sit!" announcements, the drop-off fee barter on return, and the gym building outside), `buff_doge_gym_building.glb` and `pet_store.glb`. Built in this order, each shipped on its own:
+   - 19a. **Foundation + Pet Finder:** every breed $300; Baby, Juvenile and Adult ages from training (milestones 5, 10, 15, 25); fur colors; 10 pets per student; the shared daily shelter (20 pets: 10 dogs and 10 cats, each 2 adult, 4 juvenile, 4 baby; even breed mix; each stays 1 to 5 days; the same for every student; adopted pets leave for everyone and show a heart circle frame with buttons blocked); the 2D **Pet Finder** app on the Computer and the shelter building in Town Square (her `pet_store.glb`); filters for age, cat or dog, and fur color; Webkinz style cards; rename at adoption; the adoption ceremony and certificate; one free pet coupon for everyone at launch; the 🎁 Mystery Adoption Box ($200) with the wiggling gift box reveal (top bursts off after about 5 seconds, anticipation music, cheer, confetti, fireworks). Pets reopen.
+   - 19b. **Care:** Food, Social and Health bars that drop slowly and never let a pet die; Feed, Pet and Play; Social fills from talking with your pet (pie menu) or playing games; pets have the same Zones of Regulation feelings as players.
+   - 19c. **Buff Doge's Gym:** her prototype rebuilt as a real screen with her art (Buff Doge, the gym, the sign, the dice), the gym building in Town Square (her `buff_doge_gym_building.glb`), real pets, real money and real question sets; one pet signed in per student; pay $100 and wait 30 minutes or answer 50 questions; Baby tricks (Sit, Come, Down, Spin) 2 sessions each, Juvenile (Shake a Paw, Roll Over, Jump) 3, Adult (Fetch, Dance, High Five) 4; Buff Doge recommends a random trick from the pet's level; leaving mid-session means Buff Doge drops the pet home and the barter message on return (pay $100 or answer 25 questions); growth from every finished assignment and every 10 right answers.
+   - 19d. **Tricks you can see:** Stand/Stay (default), Sit, Down, Come, Spin, Shake a Paw, Roll Over, Jump, Fetch with a ball, Dance, High Five and a Backflip for advanced pets, posed on all 12 breeds' skeletons, with Pokemon style announcements ("Azalea uses Sit!", "Yoga uses Down Low, Too Slow!").
+   - 19e. **Pets in the world:** pets roam every Home Room room and the yard; two companions walk on your left and right (assigned); from Juvenile a companion walks beside you in Town Square and does its tricks on command.
+   - 19f. **Speak:** unlocked when every other trick is learned; $250 a session, 5 sessions, or read Grammar Gus passages aloud into a recorder (scored 1 to 3 stars; every 2 passages is one session); the pet then talks back like Talking Ben (random responses, repeats the student's voice).
+   - 19g. **Stray pets:** cats and dogs she places in Build Mode get a pie menu and conversations; after 10 interactions the pet offers "Adopt a stray pet" for free.
+   - 19h. **Check on your pet:** question sets get a Break tool, and when a student is spamming answers (answering in 2 to 3 seconds and missing again and again) a full screen "Check on your pet" freeze in Take a Moment: the pet large on the left with arrows to switch pets, its bars and skills, and a Zones of Regulation check-in on the right asked by the pet; after 1 minute the pet asks if they are ready to go back or want to stay; a boom box for music, and pets who know Dance dance along.
+   - 19i. **Extras and removals:** Pet Journal (every breed adopted), a Pet Book tab in My Stuff; REMOVE shelter donations, pet-for-pet trades at the Farmer's Market and the saved "welcome back" pet archive. Her answers to the old 12 questions are in the spec.
 7. ~~🧭 Fluid view and build between regions~~ SHIPPED 2026-10-10 (see Done and Part A, A4). Her words (verbatim): "allow me to fluidly view and build between regions".
 8. ~~🟩 Region color borders on the map~~ SHIPPED 2026-10-10 (see Done and Part A, A4). Her words (verbatim): "regions should be defined by color border boundary on map".
 9. ~~🗑️ Right-click to delete a catalog item for good~~ SHIPPED 2026-10-10 (see Done and Part A, A4). Her words (verbatim): "as a teacher, allow me to right click and delete object sperminetly from the catelog".
@@ -2311,6 +2321,182 @@ These come from `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md`, Part 3. Every
 - **Not verified on an iPad:** one desktop screenshot only (the machine, Gus's pop-up and a sepia "yesterday" black cat video rendered correctly).
 
 ### Pets v2 overhaul (cats and dogs, grammar-powered training). CLAUDIA'S OVERVIEW 2026-10-06, waiting on her answers
+
+**Her Pets v2 spec (2026-10-11, verbatim, from the document she uploaded; Build Queue item 19).** Two reference pictures were in it: a Webkinz "Certificate of Adoption" (by the adoption ceremony) and the Webkinz "My Pets" card grid (her words: "lets have a similar view to this for adoptable pets"). She also uploaded her **Buff Doge's Gym** prototype (`Buff_Doges_Gym.html`), `buff_doge_gym_building.glb` and `pet_store.glb`.
+
+```
+Getting and Earning Pets:
+- Certain pets earnable only through quest or achievement
+- Regular cats/dogs for purchase in marketplace
+- On launch of new pet version, students receive one free pet coupon to choose a pet of
+their choosing
+- The Mystery Adoption Box ($200).
+- Standard pet cost is $300 for both cats and dogs. all pets should be the same.
+- Pets are adopted (changing language from purchased) in the pet shelter
+- Pet adoption is a ceremony and a big deal in the game.
+  - Mystery adoptions have a secret reveal where the pet should emerge from a big
+gift/present box with a bow on top (the animation should be a wiggling box and
+the top bursting off after about 5 seconds, with anticipatory music followed by
+cheering/announcement sound, confetti effects, fireworks).
+
+- The pet shelter should be a 2D screen similar to pet finder and other online pet apps. it
+should be an app in the students computer. Students can click “Pet Finder” an app in their
+computer, or a pet shelter building in live mode.
+- In pet finder, pets should be sortable in a filters spot for age (Baby, Juvenile, Adult),
+animal (cat/dog), and color (fur color). Pet availability should change daily but should
+always be roughly the following:
+  - Total pets available daily: 20 (10 dogs, 10 cats)
+  - For both cats and dogs: 2/10 adult, 4/10 juvenile, 4/10 baby.
+
+  - keep an even distribution of pet breeds in availability, showing about 60-80% of
+total breed availability in each daily pets available.
+  - pets should remain available for a random 1-5 days. For example, pet Rue could
+be available for 2 days at random if the student hadn’t adopted it. Pet Sprinkles
+could be in the shelter for 5 days before being adopted. If a student adopts Pickles
+after 1 day, they’d obviously no longer be available. All students should see the
+same daily availability. if a student adopts a pet, it is no longer available for the
+other students.
+  - when a pet is adopted, they should have a circle frame around their face with
+hearts and any buttons should be blocked off as they are adopted.
+  - pets can be renamed at adoption.
+-
+lets have a
+similar view to this for adoptable pets
+- Pet Breeds:
+  - Cats:
+    - tabby cat
+    - bicolor cat
+    - black cat
+    - ragdoll
+    - bengal
+    - maine coon
+  - Dogs:
+
+    - Pug
+    - husky
+    - poodle
+    - beagle
+    - great dane
+    - shiba inu
+
+
+
+General:
+- Students can have a total of 10 pets
+- Pets can free roam student home when not acting as active companion
+- Two companions can walk with students on either side (right and left) as assigned
+
+- Care:
+  - Food, Social and Health bars that drop slowly and never let a pet die.
+  - Social bar can be filled by having conversations with your pet (pie menu) or
+playing games.
+  - Feed, Pet and Play.
+  - Pets have same ABA/zones of regulation emotion system as players
+
+- Growth from real work: every finished assignment and every 10 right answers raises
+training.
+  - Baby, Juvenile, then Adult.
+  - Milestones at 5, 10, 15 and 25 training.
+  - Animation tricks are: sit, lay down, stand/stay, backflip (advanced only if
+possible)
+  - All animations have to be trained (the only default is stand/stay)
+
+  - Pokemon style animation announcements “Azalea uses sit” “Yoga uses down low,
+too slow” (i.e., lay down)
+- Training:
+  - Buff Doge is a pet personal trainer and can be found at Buff Doge’s Gym
+    - Players’ pets can be dropped off at the gym and can be picked up at a
+certain time when training is completed. Personal trainer drops off pet at
+home if student leaves the game otherwise the student must pick the pet
+home. Personal trainer charges a drop off at home fee. a conversation
+message should pop up on relaunch for students for bartering message
+(pay $100 fee or answer 25 questions in quiz mode)
+    - Conversation between buff doge and the player should be about which
+skill they would like to work on with what pet. pets need to be signed in.
+only one pet can be left in Buff Doge’s care at a time (on per player). Buff
+doge can recommend a skill to work on, but it would be random within the
+level the pet is at.
+general training game: something with polyhedral dice that has question sets intermittently
+added. one training session equates to the cost of the session or 50 questions answered.
+Age
+Tricks that can be trained
+Baby
+($100 per session. 2 sessions are required to gain each skill. a session is 30
+minutes of wait time or 50 questions answered.)
+Sit
+Come
+Down
+Spin
+Juvenile
+($100 per session. 3 sessions are required to gain each skill. a session is 30
+minutes of wait time or 50 questions answered.)
+Shake a Paw
+Roll Over
+Jump
+Adult
+($100 per session. 4 sessions are required to gain each skill. a session is 30
+minutes of wait time or 50 questions answered.)
+Fetch (using a ball)
+Dance
+High Five
+
+(Speak is $250 per session and requires 5 sessions in training. Training for
+speak skill can be expedited by the student recording themselves reading
+passages. This system needs to be aded to the current grammar gus passages.
+the same viewer should be there, an audio recorder should record as the student
+
+reads the passage. Only a score out of three stars should be give to the student -
+1 star equals poorest quality, unrecognizable speech, no sound - 2 stars equals
+heard it and it was okay, some words out of order or incorrect - 3 stars is great
+quality reading- on average, students will likely receive 2 stars. Every two
+passages read equates to one session of training.) *Speak is only unlocked
+when all other tricks are unlocked. “Speak” is a trick the students can teach
+their pets. It should be like Talking pets, Talking Ben the dog - randomize
+responses, repeating the voices, echolalia
+
+- Pets in the world:
+  - Pets in every Home Room room and the yard.
+  - When they are juvenile, a companion can walk beside you in Town Square and
+other places, and do its tricks on command.
+- Extras:
+  - Pet Journal (every species adopted).
+  - A Pet Book tab in My Stuff.
+  - REMOVE: shelter donations ($5, $10 or $25, no reward). they are not needed.
+  - REMOVE: Pet-for-pet trades at the Farmer’s Market.
+- REMOVE – Saved for relaunch: every refunded pet, so a “welcome back” is possible.
+- The other 12:
+  - a new free-pet coupon for everyone;
+  - pets bought, earned, or both, and the price;
+  - growth from any schoolwork - NO
+  - the “Lonely” and “Not feeling well” wording;
+  - whether training pays cash; - no
+  - keeping what was earned if a student leaves mid-session (recommended yes); - no
+  - a vet-notes grammar spot; - no
+  - which question sets fuel training; - focus
+  - Trainer License rank names; - no
+
+
+
+
+Interacting with NPC pets:
+- NPC cats and dogs that have been placed in teacher build mode can be interacted with by
+students similarly to neighbors: a pie menu and conversations. Pets should have a
+conversation after 10 different interactions with the students that shows “Adopt a stray
+pet”. Stray pets can be adopted for free.
+
+
+Questions set function needs to have a break in the tools. it also needs to pop up if the students
+have been spamming answers looking for correct but not reading the questions, answering within
+2-3 seconds and getting things incorrect repetitively, guessing etc. So we are going to add a full
+screen freeze “Check on your pet” button in Take a Moment. pet should pop up large on the left
+side of the screen. options on the sides of the pet should show arros that can rotate though the
+pets. they can see the full pet bars like social and health and all their skills. it should show an
+SEL check in (same as initial login) on the right hand side but present it like the pet shown is
+asking the student how they feel. it should be an aba style conversation checking in with the kid.
+zones of regulation. after 1 min, the pet should check in and ask if they are ready to return with
+what they are doing. they can also say stay with pet. they can listen to music with the boom box
+after check in. if the pet can dance (skill unlocked) they can dance along to the music
+```
 
 **Trainable skills you can see (her question, verbatim, 2026-10-11): "what trainable skills could the oets have in visable animation (ex. a dog sitting once the sit skill is earned)".** Claudia's answer, from checking every pet model's real animation clips:
 - **What the 12 breeds can do today:** the Husky and Shiba Inu ship a full set of clips (Idle, a second idle, Head Low, Eating, Walk, Gallop, Gallop Jump, Jump to Idle, Attack, Hit React, Death); the Pug has Idle and Jump; the 5 new cats have one idle each (the Black Cat's idle is a sit and groom); the Beagle, Poodle, Great Dane and Tabby Cat have no skeleton and no clips (they can only move as a whole).
