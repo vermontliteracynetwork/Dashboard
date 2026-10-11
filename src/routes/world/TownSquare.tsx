@@ -58,6 +58,7 @@ import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, R
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
+import { useCouponUsed } from '../../lib/petsV2';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PET_TRICKS, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import type { PetDef } from '../../lib/petCatalog';
@@ -3210,7 +3211,9 @@ export default function TownSquare() {
   // (direct teacher spec: "announced with a confirmation message... only
   // the first time"). Re-shows once per browser session for as long as the
   // coupon is unredeemed — never again once petCouponRedeemed flips true.
-  const petCouponStorageKey = student ? `homeplot-pet-coupon-announced-${student.id}` : null;
+  // Pets v2 (2026-10-11): everyone gets a new free coupon for the Pet Finder.
+  const petCouponUsed = useCouponUsed(student?.id);
+  const petCouponStorageKey = student ? `homeplot-pet-coupon2-announced-${student.id}` : null;
   const [showPetCoupon, setShowPetCoupon] = useState(() => {
     if (!petCouponStorageKey) return false;
     try { return !sessionStorage.getItem(petCouponStorageKey); } catch { return false; }
@@ -4362,16 +4365,16 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {!showArrival && showPetCoupon && !student.petCouponRedeemed && !PETS_PAUSED && (
+      {!showArrival && showPetCoupon && !petCouponUsed && !PETS_PAUSED && (
         <div className="overlay-backdrop" onClick={dismissPetCoupon}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
               <span style={{ fontSize: '2.4rem' }}>🎁</span>
               <h2 style={{ margin: 0 }}>You have a free pet coupon!</h2>
-              <p style={{ margin: 0 }}>Pick ANY pet in the Marketplace, totally free. This only works once, so choose your favorite!</p>
+              <p style={{ margin: 0 }}>Pets are back! Adopt ANY pet in the Pet Finder, totally free. This only works once, so choose your favorite!</p>
               <button
                 className="btn btn-primary btn-lg"
-                onClick={() => { dismissPetCoupon(); navigate('/student/marketplace', { state: { tab: 'pets' } }); }}
+                onClick={() => { dismissPetCoupon(); navigate('/student/pet-finder'); }}
               >
                 🐾 Pick your pet →
               </button>

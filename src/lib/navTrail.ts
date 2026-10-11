@@ -39,7 +39,8 @@ const LABELS: Record<string, string> = {
   '/student/chess': '♟️ Slime Chess',
   '/student/quiz-mode': '❓ Quiz Mode',
   '/student/farmers-market': '🌾 Farmers Market',
-  '/student/pet-shelter': '🐾 Pet Shelter',
+  '/student/pet-shelter': '🐾 Pet Finder',
+  '/student/pet-finder': '🐾 Pet Finder',
   '/student/pet-journal': '📓 Pet Journal',
   '/student/passport': '🛂 Passport',
 };

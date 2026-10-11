@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-pet-finder',
+    date: '2026-10-11',
+    icon: '🐾',
+    title: 'Pets are back! Meet the Pet Finder',
+    body: 'Open the new Pet Finder app on your Computer (or visit the Pet Shelter in Town Square) to meet 20 cats and dogs looking for a home. New pets arrive every day. Everyone gets a free pet coupon! Name your pet and get your very own Certificate of Adoption, or try the Mystery Adoption Box for a surprise.',
+  },
+  {
     id: '2026-10-11-farm-animals',
     date: '2026-10-11',
     icon: '🐓',

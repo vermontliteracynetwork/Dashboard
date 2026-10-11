@@ -13,6 +13,7 @@ import { todayISO } from '../lib/dates';
 import { playCashRegister } from '../lib/chime';
 import WebpageFrame from './WebpageFrame';
 import { petDefById, thumbnailFor, PETS_PAUSED } from '../lib/petCatalog';
+import { useCouponUsed } from '../lib/petsV2';
 import type { PetDef } from '../lib/petCatalog';
 import type { MarketplaceItem, MarketplaceItemKind } from '../types';
 import { Icon } from './Icon';
@@ -244,6 +245,7 @@ export default function Marketplace() {
   const furnitureFilter = useItemFilter(furnitureItems);
 
   const student = students.find((s) => s.id === currentStudentId);
+  const petCouponUsed = useCouponUsed(currentStudentId);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const streakRow = useStreak(currentStudentId);
   if (!student) return null;
@@ -829,17 +831,17 @@ export default function Marketplace() {
             {tab === 'pets' && !PETS_PAUSED && (
               <div className="stack" style={{ gap: 16, alignItems: 'center', textAlign: 'center', maxWidth: 420, margin: '0 auto' }}>
                 <span style={{ fontSize: '2.4rem' }}>🐾</span>
-                <h3 style={{ margin: 0 }}>Pets moved to the Pet Shelter!</h3>
-                {!student.petCouponRedeemed && (
+                <h3 style={{ margin: 0 }}>Pets are adopted in the Pet Finder!</h3>
+                {!petCouponUsed && (
                   <div className="content-well" style={{ background: 'linear-gradient(120deg, var(--yellow), var(--orange))', textAlign: 'center' }}>
-                    <strong><Icon name="gift" size={14} fallback="🎁" /> You still have a free pet coupon. Pick any pet at the Shelter to redeem it.</strong>
+                    <strong><Icon name="gift" size={14} fallback="🎁" /> You have a free pet coupon. Adopt any pet in the Pet Finder for free.</strong>
                   </div>
                 )}
                 <p style={{ opacity: 0.75, margin: 0 }}>
-                  Adopt a pet, meet the animals up for adoption, or try a Mystery Adoption Box, all at the Pet Shelter in Town Square.
+                  Meet the pets up for adoption, or try a Mystery Adoption Box, in the Pet Finder app on your Computer or at the Pet Shelter in Town Square.
                 </p>
-                <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/pet-shelter')}>
-                  🏠 Visit the Shelter →
+                <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/pet-finder')}>
+                  🐾 Open the Pet Finder →
                 </button>
               </div>
             )}

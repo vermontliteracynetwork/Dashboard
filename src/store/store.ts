@@ -301,6 +301,8 @@ interface AppState {
   // Small per-student game stats kept as a style_looks row (e.g. Space
   // Bowling's `sb:<studentId>` right-answer count), merged into what's saved.
   mergeStyleRow: (ownerId: string, patch: Record<string, unknown>) => void;
+  // Pets v2 adoption (Pet Finder, Mystery Box, free coupon). Returns the new pet's id, or null.
+  adoptPetV2: (studentId: string, opts: { defId: string; name: string; age: 'baby' | 'juvenile' | 'adult'; sex: string; via: 'shelter' | 'mystery' | 'coupon' | 'stray'; priceCents: number; shelterId?: string }) => string | null;
   // A Neighbor/Townsperson's Style look, name and facts (src/style/npcs.ts),
   // saved as the `npc:<id>` row. Merges into what is already saved.
   saveNpcProfile: (npcId: string, patch: { look?: StyleLook; name?: string; facts?: string[] }) => void;
@@ -2738,6 +2740,28 @@ export const useStore = create<AppState>()(
         const row = { ownerId, look, updatedAt: new Date().toISOString() };
         set((s) => ({ styleLooks: [row, ...s.styleLooks.filter((r) => r.ownerId !== ownerId)] }));
         pushStyleLook(ownerId, look);
+      },
+      adoptPetV2: (studentId, opts) => {
+        const student = get().students.find((st) => st.id === studentId);
+        const def = petDefById(opts.defId);
+        if (!student || !def) return null;
+        if (get().pets.filter((p) => p.studentId === studentId).length >= PET_OWNERSHIP_CAP) return null;
+        if (opts.priceCents > 0 && student.coins < opts.priceCents) return null;
+        if (opts.shelterId && get().styleLooks.some((r) => r.ownerId === `shelter:${opts.shelterId}`)) return null;
+        const now = new Date().toISOString();
+        const pet: StudentPet = {
+          id: makeId(), studentId, petDefId: def.id, customName: opts.name.trim() || def.name, acquiredAt: now, following: false,
+          trainingProgress: opts.age === 'adult' ? 25 : opts.age === 'juvenile' ? 10 : 0, food: 100, social: 100, health: 100,
+        };
+        set((s) => ({ pets: [...s.pets, pet] }));
+        pushStudentPet(pet);
+        const label = opts.via === 'mystery' ? `🎁 Mystery Adoption Box: ${pet.customName} the ${def.name}` : `🐾 Adopted ${pet.customName} the ${def.name}`;
+        if (opts.priceCents > 0) get().recordTransaction(studentId, -opts.priceCents, label, opts.via === 'mystery' ? '🎁' : '🐾', 'purchase-pet');
+        if (opts.shelterId) get().mergeStyleRow(`shelter:${opts.shelterId}`, { studentId, petId: pet.id, at: now });
+        if (opts.via === 'coupon') get().mergeStyleRow(`petcoupon2:${studentId}`, { used: true, petId: pet.id, at: now });
+        get().mergeStyleRow(`petcert:${pet.id}`, { petId: pet.id, studentName: student.name, petName: pet.customName, breed: def.name, sex: opts.sex, date: now, via: opts.via });
+        if (!student.discoveredPetDefIds?.includes(def.id)) get().updateStudent(studentId, { discoveredPetDefIds: [...(student.discoveredPetDefIds ?? []), def.id] });
+        return pet.id;
       },
       mergeStyleRow: (ownerId, patch) => {
         const cur = (get().styleLooks.find((r) => r.ownerId === ownerId)?.look ?? {}) as Record<string, unknown>;

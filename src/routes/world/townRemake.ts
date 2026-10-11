@@ -122,7 +122,7 @@ function townItems(): Item[] {
   T('water/Bait_Box_A.glb', 7.2, 14.2, { h: 0.5 });
   T('city/bench2.glb', 11.2, 24.2, { w: 2, r: PI });
   T('buildings/house.glb', 21.8, 12.6, { w: 4.6, r: -PI / 2, role: 'home', name: 'My Home', solid: true });
-  T('farm/small-barn.glb', 6.4, 22.3, { w: 4.4, r: PI, role: 'pet-shelter', name: 'Pet Shelter', solid: true });
+  T('buildings/pet-store.glb', 6.4, 22.3, { w: 6.5, r: PI, role: 'pet-shelter', name: 'Pet Shelter', solid: true });
   for (let k = 0; k < 14; k++) {
     const a = (k / 14) * 2 * PI + 0.2;
     const x = POND.x + Math.cos(a) * POND.rx * 1.08, z = POND.z + Math.sin(a) * POND.rz * 1.1;

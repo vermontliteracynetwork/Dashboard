@@ -13,7 +13,7 @@ import { HOUSE_EXTERIOR_OPTIONS } from './townLayout';
 import { MAILBOX_MODEL } from './HomeLots';
 import { MAILBOX_LOCAL, setLotLocked, useLockedLots, useMyInvites } from './homeLots';
 import { KnockListener } from './HomeVisits';
-import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, trickUnlocked, PETS_PAUSED } from '../../lib/petCatalog';
+import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import PetTrainingSession from '../../components/PetTrainingSession';
 import type { PetDef } from '../../lib/petCatalog';
@@ -474,14 +474,13 @@ function PetCareCard({
   studentId,
   flashSaved,
   onCue,
-  onTrain,
 }: {
   pet: StudentPet;
   def: PetDef | undefined;
   studentId: string;
   flashSaved: () => void;
   onCue: (kind: string) => void;
-  onTrain: () => void;
+  onTrain?: () => void;
 }) {
   const carePet = useStore((s) => s.carePet);
   const renamePet = useStore((s) => s.renamePet);
@@ -497,7 +496,6 @@ function PetCareCard({
   const canFollow = canPetFollow(pet.trainingProgress);
   const name = pet.customName || def?.name || 'Your pet';
   const learnedCount = (pet.tricksLearned ?? []).length;
-  const teachable = PET_TRICKS.filter((t) => !(pet.tricksLearned ?? []).includes(t.id) && trickUnlocked(t, pet.trainingProgress)).length;
   const next = nextMilestone(pet.trainingProgress);
   const prevThreshold = [...PET_MILESTONES].reverse().find((m) => m.threshold <= pet.trainingProgress)?.threshold ?? 0;
 
@@ -589,14 +587,10 @@ function PetCareCard({
           ))}
         </div>
       )}
-      {/* Teach a Trick, now a real training session (PetTrainingSession). */}
-      <button
-        className="btn btn-primary"
-        style={{ width: '100%', minHeight: 52, fontSize: 15, fontWeight: 900, marginBottom: 6 }}
-        onClick={onTrain}
-      >
-        🎪 Train {name}{teachable > 0 ? ` (${teachable} new trick${teachable === 1 ? '' : 's'})` : ''}
-      </button>
+      {/* Pets v2 (her spec 2026-10-11): tricks are trained at Buff Doge's Gym, not here. */}
+      <div style={{ fontSize: 13, fontWeight: 800, background: '#fff3d6', border: '2px solid #f0a030', borderRadius: 10, padding: '8px 10px', marginBottom: 6 }}>
+        🏋️ Tricks are trained at Buff Doge's Gym in Town Square. It opens soon!
+      </div>
       <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>⭐ Knows {learnedCount} of {PET_TRICKS.length} tricks</div>
       {/* Pet paint-brush customization (Part B backlog item, directly
           requested) — same swatch/tint mechanism Build Mode already uses
@@ -1507,7 +1501,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, 0, -(halfD + EXTERIOR_CLEARANCE) + 2.2]}
                     cue={petCues[pet.id]}
-                    onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
+                    onTap={undefined}
                   />
                 );
               })}
@@ -1545,7 +1539,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, def.category === 'aquatic' || def.category === 'bird' ? 0.6 : 0, Math.max(0, halfD - 1.4)]}
                     cue={petCues[pet.id]}
-                    onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
+                    onTap={undefined}
                   />
                 );
               })}

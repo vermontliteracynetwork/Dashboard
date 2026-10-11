@@ -64,14 +64,14 @@ export function thumbnailFor(pet: PetDef): string {
 // daily spin pet wedge, trading, companions, training and the care card
 // are all off, and every existing pet was refunded at its catalog price
 // and removed (src/lib/petOverhaul.ts). Flip to false when v2 ships.
-export const PETS_PAUSED = true;
+export const PETS_PAUSED = false; // Pets v2 reopened 2026-10-11 (her spec, Build Queue 19a)
 
-export const PET_OWNERSHIP_CAP = 4; // direct teacher spec: "Students can have up to 4 pets each"
+export const PET_OWNERSHIP_CAP = 10; // her Pets v2 spec (2026-10-11): "Students can have a total of 10 pets"
 
 // Task completions logged (via trainingProgress) before a pet unlocks
 // "walk beside you" — direct teacher spec: training comes from finishing
 // assignments/question sets, not from care actions.
-export const PET_FOLLOW_TRAINING_THRESHOLD = 5;
+export const PET_FOLLOW_TRAINING_THRESHOLD = 10; // Pets v2: a pet walks beside you once it is a Juvenile
 
 // Soft-decay tuning: stats only fall while a student is actively in Town
 // Square (a real setInterval there, never a background/away timer — see
@@ -96,21 +96,21 @@ export const PET_DECAY_AMOUNT = 4;
 const PET_CATALOG_ALL: PetDef[] = [
   // Dogs — player-relative ratio scale (player = 1): Great Dane 0.8, the others 0.6.
   // targetHeight = ratio * CHARACTER_HEIGHT (1.745).
-  { id: 'pet-pug', name: 'Pug', modelPath: '/world/models/pets/animal-pug.glb', priceCents: 18000, category: 'dog', targetHeight: 0.8725 },
-  { id: 'pet-husky', name: 'Husky', modelPath: '/world/models/pets/animal-husky.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
-  { id: 'pet-poodle', name: 'Poodle', modelPath: '/world/models/pets/animal-poodle.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
-  { id: 'pet-beagle', name: 'Beagle', modelPath: '/world/models/pets/animal-beagle.glb', priceCents: 18000, category: 'dog', targetHeight: 1.047 },
-  { id: 'pet-great-dane', name: 'Great Dane', modelPath: '/world/models/pets/animal-great-dane.glb', priceCents: 22000, category: 'dog', targetHeight: 1.396 },
-  { id: 'pet-shiba-inu', name: 'Shiba Inu', modelPath: '/world/models/pets/animal-shiba-inu.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-pug', name: 'Pug', modelPath: '/world/models/pets/animal-pug.glb', priceCents: 30000, category: 'dog', targetHeight: 0.8725 },
+  { id: 'pet-husky', name: 'Husky', modelPath: '/world/models/pets/animal-husky.glb', priceCents: 30000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-poodle', name: 'Poodle', modelPath: '/world/models/pets/animal-poodle.glb', priceCents: 30000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-beagle', name: 'Beagle', modelPath: '/world/models/pets/animal-beagle.glb', priceCents: 30000, category: 'dog', targetHeight: 1.047 },
+  { id: 'pet-great-dane', name: 'Great Dane', modelPath: '/world/models/pets/animal-great-dane.glb', priceCents: 30000, category: 'dog', targetHeight: 1.396 },
+  { id: 'pet-shiba-inu', name: 'Shiba Inu', modelPath: '/world/models/pets/animal-shiba-inu.glb', priceCents: 30000, category: 'dog', targetHeight: 1.047 },
   // Cats — 0.5 of the player.
-  { id: 'pet-cat-2', name: 'Tabby Cat', modelPath: '/world/models/pets/animal-cat-2.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-2', name: 'Tabby Cat', modelPath: '/world/models/pets/animal-cat-2.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
   // Her uploads 2026-10-11 ("add these to the pets"): five realistic cats, each with its own idle
   // animation (the black cat sits and grooms). Shrunk from 33 MB to 11 MB for iPads.
-  { id: 'pet-cat-bicolor', name: 'Bicolor Cat', modelPath: '/world/models/pets/animal-cat-bicolor.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
-  { id: 'pet-cat-black', name: 'Black Cat', modelPath: '/world/models/pets/animal-cat-black.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
-  { id: 'pet-cat-maine-coon', name: 'Maine Coon', modelPath: '/world/models/pets/animal-cat-maine-coon.glb', priceCents: 20000, category: 'cat', targetHeight: 0.95 },
-  { id: 'pet-cat-ragdoll', name: 'Ragdoll', modelPath: '/world/models/pets/animal-cat-ragdoll.glb', priceCents: 20000, category: 'cat', targetHeight: 0.8725 },
-  { id: 'pet-cat-bengal', name: 'Bengal', modelPath: '/world/models/pets/animal-cat-bengal.glb', priceCents: 22000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-bicolor', name: 'Bicolor Cat', modelPath: '/world/models/pets/animal-cat-bicolor.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-black', name: 'Black Cat', modelPath: '/world/models/pets/animal-cat-black.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-maine-coon', name: 'Maine Coon', modelPath: '/world/models/pets/animal-cat-maine-coon.glb', priceCents: 30000, category: 'cat', targetHeight: 0.95 },
+  { id: 'pet-cat-ragdoll', name: 'Ragdoll', modelPath: '/world/models/pets/animal-cat-ragdoll.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-bengal', name: 'Bengal', modelPath: '/world/models/pets/animal-cat-bengal.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
   // A future pet (her words: "keep as future pets: hamster"), not adoptable yet.
   { id: 'pet-hamster', name: 'Hamster', modelPath: '/world/models/pets/animal-hamster.glb', priceCents: 13000, category: 'small', targetHeight: 0.09 },
 ];
@@ -257,13 +257,13 @@ export function speakWordFor(pet: PetDef): string {
 // pet's own real targetHeight — no new stored field, no schema change.
 export type PetGrowthStage = 'baby' | 'juvenile' | 'adult';
 const GROWTH_STAGE_SCALE: Record<PetGrowthStage, number> = {
-  baby: 0.5,
-  juvenile: 0.75,
+  baby: 0.55,
+  juvenile: 0.78,
   adult: 1,
 };
 const GROWTH_STAGE_LABEL: Record<PetGrowthStage, string> = {
   baby: 'Baby',
-  juvenile: 'Growing up',
+  juvenile: 'Juvenile',
   adult: 'Adult',
 };
 const GROWTH_STAGE_ICON: Record<PetGrowthStage, string> = {
@@ -272,8 +272,9 @@ const GROWTH_STAGE_ICON: Record<PetGrowthStage, string> = {
   adult: '⭐',
 };
 export function growthStageFor(trainingProgress: number): PetGrowthStage {
-  if (trainingProgress >= 10) return 'adult';
-  if (trainingProgress >= PET_FOLLOW_TRAINING_THRESHOLD) return 'juvenile';
+  // Pets v2 (her Buff Doge's Gym prototype): Juvenile from 10 training, Adult from 25.
+  if (trainingProgress >= 25) return 'adult';
+  if (trainingProgress >= 10) return 'juvenile';
   return 'baby';
 }
 export function growthScaleFactor(stage: PetGrowthStage): number {

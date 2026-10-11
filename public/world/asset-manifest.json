@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-11T16:05:00.307Z",
+  "generatedAt": "2026-10-11T17:56:55.527Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -292,6 +292,11 @@
       "category": "buildings"
     },
     {
+      "path": "/world/models/buildings/buff-doge-gym.glb",
+      "label": "Buff Doge Gym",
+      "category": "buildings"
+    },
+    {
       "path": "/world/models/buildings/building-extra.glb",
       "label": "Building Extra",
       "category": "buildings"
@@ -359,6 +364,11 @@
     {
       "path": "/world/models/buildings/office-building.glb",
       "label": "Office Building",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/pet-store.glb",
+      "label": "Pet Store",
       "category": "buildings"
     },
     {

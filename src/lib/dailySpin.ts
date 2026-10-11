@@ -2,7 +2,7 @@ import { EMOTE_CATALOG } from './emoteCatalog';
 import { formatMoney } from './money';
 import { marketplaceItemDisplayName } from './marketplaceDisplay';
 import { itemEarnsVia } from './marketplaceSeed';
-import { PET_CATALOG, PETS_PAUSED } from './petCatalog';
+import { PET_CATALOG } from './petCatalog';
 import type { MarketplaceItem } from '../types';
 import { getEconomy, type EconomySettings } from './economy';
 
@@ -71,11 +71,13 @@ export function getDailySpinSegments(dateISO: string, marketplaceItems: Marketpl
   // kind) if they were just mixed into the general item pool below.
   // Pets overhaul 2026-10-06: while pets are paused the pet wedge is a
   // fifth cash wedge instead, so the wheel keeps its shape.
-  const pet = PET_CATALOG[Math.floor(rand() * PET_CATALOG.length)];
-  if (!PETS_PAUSED) segments.push({ id: `pet-${pet.id}`, kind: 'pet', itemId: pet.id, label: `🐾 ${pet.name}` });
+  // Pets v2 (her spec 2026-10-11): pets come from the Pet Finder, the Mystery Box, quests and
+  // strays, not the wheel, so this stays a fifth cash wedge. The roll is kept so the wheel's other
+  // wedges land the same as before.
+  void PET_CATALOG[Math.floor(rand() * PET_CATALOG.length)];
 
   const cashPool = [...econ.spinCashCents];
-  for (let i = 0; i < (PETS_PAUSED ? 5 : 4) && cashPool.length > 0; i++) {
+  for (let i = 0; i < 5 && cashPool.length > 0; i++) {
     const idx = Math.floor(rand() * cashPool.length);
     const amount = cashPool.splice(idx, 1)[0];
     segments.push({ id: `cash-${amount}`, kind: 'cents', amountCents: amount, label: formatMoney(amount) });

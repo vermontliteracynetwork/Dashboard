@@ -13,7 +13,7 @@ import Marketplace from './components/Marketplace';
 import PiggyBank from './components/PiggyBank';
 import Mailbox from './components/Mailbox';
 import Passport from './components/Passport';
-import PetShelter from './routes/student/PetShelter';
+import PetFinder from './routes/student/PetFinder';
 import PetJournal from './routes/student/PetJournal';
 import Cinema from './routes/student/Cinema';
 import Arcade from './routes/student/Arcade';
@@ -201,7 +201,8 @@ export default function App() {
               </Suspense>
             }
           />
-          <Route path="/student/pet-shelter" element={<PetShelter />} />
+          <Route path="/student/pet-shelter" element={<PetFinder />} />
+          <Route path="/student/pet-finder" element={<PetFinder />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />
           <Route path="/student/arcade" element={<Arcade />} />

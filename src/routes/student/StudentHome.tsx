@@ -393,6 +393,15 @@ export default function StudentHome() {
           <span className="widget-icon">📚</span>
           <span className="widget-label">Library</span>
         </button>
+        {/* Pet Finder (her Pets v2 spec, 2026-10-11: "Students can click "Pet Finder" an app in their computer"). */}
+        <button
+          className="widget-card widget-icon-card widget-grammar-gus"
+          onClick={() => navigate('/student/pet-finder')}
+          aria-label="Pet Finder"
+        >
+          <span className="widget-icon">🐾</span>
+          <span className="widget-label">Pet Finder</span>
+        </button>
         {/* Alchemy (teacher 2026-10-08: "lets get the alchemy game going. make an app in the computer"). */}
         <button
           className="widget-card widget-icon-card widget-grammar-gus"

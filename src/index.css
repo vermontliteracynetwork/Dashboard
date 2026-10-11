@@ -6362,3 +6362,83 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .animal-poke { background: #fff; border: 3px solid #1f4238; border-radius: 18px; padding: 6px 14px; font: 800 16px system-ui, sans-serif; color: #1f4238; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: animalPoke 0.35s cubic-bezier(.3,1.6,.6,1) both; }
 @keyframes animalPoke { from { transform: scale(0.4) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .animal-poke { animation: none; } }
+
+/* ---------- Pet Finder (Pets v2, her spec 2026-10-11; Webkinz "My Pets" card look) ---------- */
+.pf { min-height: 100vh; background: linear-gradient(#bfe6ff 0, #e9f7ff 260px, #fdf3e3 260px); padding: 12px 16px 40px; color: #4a3428; font-family: inherit; }
+.pf-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: #a855c7; border: 4px solid #6d2a8c; border-radius: 18px; padding: 8px 12px; box-shadow: 0 5px 0 #6d2a8c; }
+.pf-title { margin: 0 auto 0 4px; color: #fff; font-size: clamp(1.4rem, 3vw, 2rem); text-shadow: 0 3px 0 #6d2a8c; }
+.pf-back { min-height: 44px; }
+.pf-chip { background: #fff7d6; border: 3px solid #f0a030; border-radius: 999px; padding: 6px 14px; font-weight: 800; min-height: 44px; display: inline-flex; align-items: center; }
+.pf-coupon { margin-top: 12px; background: linear-gradient(120deg, #ffe066, #ffb347); border: 3px solid #e08a1e; border-radius: 14px; padding: 12px 16px; font-weight: 800; font-size: 1.05rem; text-align: center; }
+.pf-note { margin-top: 10px; background: #fff; border: 2px dashed #c9a27a; border-radius: 12px; padding: 10px 14px; text-align: center; }
+.pf-box-card { margin-top: 14px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: #fff; border: 4px solid #f0a030; border-radius: 20px; padding: 12px 16px; box-shadow: 0 5px 0 #c97f1a; }
+.pf-box-text { flex: 1 1 220px; }
+.pf-box-text h2 { margin: 0 0 4px; font-size: 1.3rem; }
+.pf-box-text p { margin: 0; opacity: 0.8; }
+.pf-box-btn { min-height: 56px; }
+/* The gift box: a body, a lid and a bow, all CSS. */
+.pf-gift { position: relative; width: 84px; height: 84px; flex: none; }
+.pf-gift.big { width: 200px; height: 200px; margin: 10px auto 0; }
+.pf-gift i { position: absolute; display: block; }
+.pf-gift-body { left: 8%; right: 8%; bottom: 0; height: 66%; background: linear-gradient(90deg, transparent 43%, #ffd23f 43%, #ffd23f 57%, transparent 57%), #e84a6b; border-radius: 6px; box-shadow: inset 0 -8px 0 rgba(0,0,0,0.12); }
+.pf-gift-lid { left: 0; right: 0; top: 22%; height: 20%; background: linear-gradient(90deg, transparent 43%, #ffd23f 43%, #ffd23f 57%, transparent 57%), #f2607e; border-radius: 6px; z-index: 2; }
+.pf-gift-bow { left: 50%; top: 2%; width: 44%; height: 26%; transform: translateX(-50%); z-index: 3; background: radial-gradient(circle at 25% 60%, #ffd23f 0 30%, transparent 31%), radial-gradient(circle at 75% 60%, #ffd23f 0 30%, transparent 31%), radial-gradient(circle at 50% 75%, #f5b700 0 14%, transparent 15%); }
+.pf-gift.idle { animation: pf-bob 2.4s ease-in-out infinite; }
+.pf-gift.wiggle { animation: pf-wiggle 5s ease-in forwards; }
+.pf-gift.burst .pf-gift-lid, .pf-gift.burst .pf-gift-bow { animation: pf-lid 0.9s ease-out forwards; }
+.pf-gift-pet { position: absolute; left: 50%; bottom: 30%; transform: translateX(-50%); z-index: 1; animation: pf-pop 0.9s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes pf-bob { 50% { transform: translateY(-6px) rotate(-2deg); } }
+@keyframes pf-wiggle { 0% { transform: rotate(0); } 10% { transform: rotate(-4deg); } 20% { transform: rotate(4deg); } 30% { transform: rotate(-6deg) scale(1.02); } 40% { transform: rotate(6deg); } 50% { transform: rotate(-8deg) scale(1.04); } 60% { transform: rotate(8deg); } 70% { transform: rotate(-10deg) scale(1.06); } 80% { transform: rotate(10deg) translateY(-6px); } 90% { transform: rotate(-12deg) scale(1.1); } 100% { transform: rotate(0) scale(1.12); } }
+@keyframes pf-lid { to { transform: translate(-30px, -220px) rotate(-60deg); opacity: 0; } }
+@keyframes pf-pop { from { transform: translate(-50%, 60%) scale(0.2); opacity: 0; } to { transform: translate(-50%, -10%) scale(1); opacity: 1; } }
+.pf-filters { margin-top: 14px; display: grid; gap: 8px; background: #fff; border-radius: 16px; padding: 10px 12px; border: 3px solid #e7cfa8; }
+.pf-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pf-filter-row > span { font-weight: 800; min-width: 74px; }
+.pf-pill { min-height: 44px; padding: 6px 16px; border-radius: 999px; border: 3px solid #e7cfa8; background: #fffaf0; font: inherit; font-weight: 700; color: inherit; cursor: pointer; }
+.pf-pill.on { background: #a855c7; border-color: #6d2a8c; color: #fff; }
+.pf-count { margin: 12px 4px 6px; font-weight: 700; opacity: 0.8; }
+.pf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.pf-card { position: relative; background: #ffe08a; border: 4px solid #f0a030; border-radius: 16px; box-shadow: 0 5px 0 #c97f1a; padding: 8px 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.pf-card::before, .pf-card::after { content: ''; position: absolute; top: 6px; width: 12px; height: 12px; background: #f0a030; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.pf-card::before { left: 6px; } .pf-card::after { right: 6px; transform: scaleX(-1); }
+.pf-card-name { margin: 0; font-size: 1.15rem; }
+.pf-card-portrait { position: relative; width: 150px; height: 150px; border-radius: 12px; border: 3px solid #f0a030; background: #fff; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.pf-card-portrait:disabled { cursor: default; }
+.pf-card.adopted .pf-card-portrait { border-radius: 50%; border-color: #f06292; box-shadow: 0 0 0 6px #ffd6e7; }
+.pf-hearts { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.pf-hearts i { position: absolute; left: -10px; top: -10px; font-style: normal; font-size: 18px; }
+.pf-card.adopted .pf-adopt, .pf-card.adopted .pf-card-facts { opacity: 0.6; }
+.pf-badge { position: absolute; top: 6px; left: 6px; font-size: 0.75rem; font-weight: 800; border-radius: 999px; padding: 2px 8px; color: #fff; }
+.pf-badge.new { background: #2fa36b; } .pf-badge.last { background: #e2574c; }
+.pf-card-facts { display: flex; flex-direction: column; gap: 2px; font-size: 0.9rem; align-items: center; }
+.pf-age { display: inline-block; font-weight: 800; font-size: 0.8rem; border-radius: 999px; padding: 2px 10px; color: #fff; background: #5b8def; }
+.pf-age.baby { background: #f06292; } .pf-age.juvenile { background: #2fa36b; } .pf-age.adult { background: #7a4fd1; }
+.pf-adopt { min-height: 48px; width: 100%; }
+.pf-adopted-stamp { min-height: 48px; display: grid; place-items: center; font-weight: 800; color: #c2185b; }
+.pf-empty { grid-column: 1 / -1; text-align: center; opacity: 0.8; }
+.pf-overlay { position: fixed; inset: 0; background: rgba(40, 20, 50, 0.55); display: grid; place-items: center; z-index: 60; padding: 16px; overflow-y: auto; }
+.pf-panel { background: #fffaf0; border: 5px solid #f0a030; border-radius: 22px; box-shadow: 0 8px 0 #c97f1a; padding: 18px; width: min(760px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
+.pf-detail { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.pf-detail-portrait { flex: none; width: 240px; height: 240px; display: grid; place-items: center; background: #fff; border: 4px solid #f0a030; border-radius: 18px; margin: 0 auto; }
+.pf-detail-text { flex: 1 1 260px; }
+.pf-detail-text h2 { margin: 0 0 6px; }
+.pf-detail-stay { opacity: 0.8; font-size: 0.95rem; }
+.pf-detail-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+.pf-detail-actions .btn { min-height: 52px; }
+.pf-name { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+.pf-name h2 { margin: 6px 0; }
+.pf-name-input { font: inherit; font-size: 1.6rem; font-weight: 800; text-align: center; width: min(360px, 100%); min-height: 56px; border: 4px solid #a855c7; border-radius: 14px; padding: 4px 12px; background: #fff; color: #4a3428; }
+.pf-celebrate { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 80; }
+/* The certificate: her Webkinz picture (purple ribbon, sky panel, gold oval frame). */
+.pf-cert { background: linear-gradient(#bfe8ff, #e6f6ff); border: 6px solid #6d2a8c; border-radius: 20px; padding: 0 16px 16px; text-align: center; overflow: hidden; }
+.pf-cert-ribbon { margin: 0 -16px 12px; background: linear-gradient(#b469d6, #7d3aa3); color: #ffe066; font-size: clamp(1.5rem, 4vw, 2.3rem); font-weight: 900; padding: 10px 8px; text-shadow: 0 3px 0 #4b1e66; letter-spacing: 0.5px; }
+.pf-cert-body { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px; }
+.pf-cert-frame { width: 190px; height: 230px; border-radius: 50%; border: 10px solid #e9b949; box-shadow: 0 0 0 4px #b8862a, inset 0 0 0 4px #fff3c4; background: radial-gradient(#fff, #d8f0ff); display: grid; place-items: center; }
+.pf-cert-text { flex: 1 1 240px; font-weight: 700; color: #2c3e6b; }
+.pf-cert-text p { margin: 4px 0; }
+.pf-cert-name { color: #2fa36b; }
+.pf-cert-pet { font-size: 1.8rem; font-weight: 900; color: #1f6fd1; }
+.pf-cert-sign { font-family: 'Brush Script MT', 'Segoe Script', cursive; font-size: 1.7rem; color: #3a3a8c; margin-top: 10px !important; }
+.pf-cert-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 12px; }
+.pf-cert-actions .btn { min-height: 52px; }
+@media (prefers-reduced-motion: reduce) { .pf-gift.idle, .pf-gift.wiggle, .pf-gift-pet, .pf-gift.burst .pf-gift-lid, .pf-gift.burst .pf-gift-bow { animation: none; } .pf-gift.burst .pf-gift-lid, .pf-gift.burst .pf-gift-bow { opacity: 0; } }
