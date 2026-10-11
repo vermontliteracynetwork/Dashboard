@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-stray-pets',
+    date: '2026-10-11',
+    icon: '🏠',
+    title: 'Stray pets in Town Square',
+    body: 'See a cat or dog wandering in town? Tap it to pet it, play, talk or give it a treat. After 10 visits it trusts you, and you can adopt the stray pet for free! Your Pet Book now shows each pet\'s tricks and its adoption certificate.',
+  },
+  {
     id: '2026-10-11-two-companions',
     date: '2026-10-11',
     icon: '🐾',

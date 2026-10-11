@@ -58,7 +58,13 @@ import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, R
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import { useCouponUsed, useCompanions } from '../../lib/petsV2';
+import { useCouponUsed, useCompanions, randomPetName, type PetCertificate } from '../../lib/petsV2';
+import { AdoptionCertificate, Celebration } from '../student/PetFinder';
+import { playCheer } from '../../lib/petSounds';
+import { PET_CATALOG } from '../../lib/petCatalog';
+
+// A placed cat or dog from the pets catalog is a stray (her Pets v2 spec).
+const strayDefFor = (modelPath: string) => PET_CATALOG.find((p) => p.modelPath === modelPath);
 import { useGym, useTrickSessions, learnedTricks, trickDef, STAND_STAY } from '../../lib/petGym';
 import PetTalk from '../../components/PetTalk';
 import { usePoseSetup, usePetTricks } from '../../lib/usePetTricks';
@@ -2990,9 +2996,12 @@ export default function TownSquare() {
   const groundBounds = useMemo(() => boundsWithRegions(rawGroundBounds, regionsForBounds.list), [rawGroundBounds, regionsForBounds.list]);
   const storeWorldObjects = useStore((s) => s.worldObjects);
   const allWorldObjects = useMemo(() => withDefaultRoles(storeWorldObjects), [storeWorldObjects]);
+  // Pets v2: a stray cat or dog a student adopted is gone from town for everyone.
+  const styleLooksAll = useStore((s) => s.styleLooks);
+  const adoptedStrays = useMemo(() => new Set(styleLooksAll.filter((r) => r.ownerId.startsWith('strayadopted:')).map((r) => r.ownerId.slice(13))), [styleLooksAll]);
   const worldObjects = useMemo(
-    () => resolveDraftRows(allWorldObjects.filter((o) => !o.studentId), previewDraft),
-    [allWorldObjects, previewDraft]
+    () => resolveDraftRows(allWorldObjects.filter((o) => !o.studentId && !adoptedStrays.has(o.id)), previewDraft),
+    [allWorldObjects, previewDraft, adoptedStrays]
   );
   const allWallSegments = useStore((s) => s.wallSegments);
   const wallSegments = useMemo(
@@ -3179,6 +3188,12 @@ export default function TownSquare() {
   const leftTricks = learnedTricks(useTrickSessions(leftPet?.id));
   const rightTricks = learnedTricks(useTrickSessions(rightPet?.id));
   const [petAnnounce, setPetAnnounce] = useState<string | null>(null);
+  // Stray pets (her spec): cats and dogs she places in Build Mode get a pie menu; after 10
+  // interactions they ask to be adopted, for free.
+  const [strayMenu, setStrayMenu] = useState<{ objId: string; defId: string; name: string; x: number; z: number } | null>(null);
+  const [strayCert, setStrayCert] = useState<{ petId: string; defId: string; cert: PetCertificate } | null>(null);
+  const adoptPetV2 = useStore((s) => s.adoptPetV2);
+  const strayCount = (objId: string) => ((styleLooksAll.find((r) => r.ownerId === `stray:${student?.id}:${objId}`)?.look as { n?: number } | undefined)?.n ?? 0);
   // Pets Phase 6 (docs/DEVELOPMENT_PLAN.md Part B) — a gentle, non-punitive
   // companion check-in nudge: no popup or interruption, just the same
   // "(count)" label the Tasks wedge already uses when something needs
@@ -4538,6 +4553,45 @@ export default function TownSquare() {
         </div>
       )}
       {petAnnounce && <div className="pet-announce" role="status" aria-live="polite">{petAnnounce}</div>}
+      {strayMenu && student && (() => {
+        const n = strayCount(strayMenu.objId);
+        const def = petDefById(strayMenu.defId);
+        const sound = def?.category === 'cat' ? 'Mew?' : 'Woof?';
+        const interact = (line: string) => {
+          const next = n + 1;
+          useStore.getState().mergeStyleRow(`stray:${student.id}:${strayMenu.objId}`, { n: next });
+          setAnimalPoke({ id: strayMenu.objId, text: next >= 10 ? `${line} 💕` : `${line} (${next} of 10)`, x: strayMenu.x, z: strayMenu.z, at: Date.now() });
+        };
+        const full = ownedPets.length >= 10;
+        const wedges = [
+          { id: 'pet', icon: '🤗', label: 'Pet', bg: '#e0709a', onSelect: () => interact(`${sound} *leans into your hand*`) },
+          { id: 'play', icon: '🎾', label: 'Play', bg: '#3e9bd6', onSelect: () => interact(def?.category === 'cat' ? 'Pounce! *bats at the ball*' : '*chases the ball and wags*') },
+          { id: 'talk', icon: '💬', label: 'Talk', bg: '#7c5cff', onSelect: () => interact(n >= 6 ? `${sound} I like you. I feel safe in the Green Zone with you.` : `${sound} I feel a little nervous. I am in the Yellow Zone.`) },
+          { id: 'treat', icon: '🦴', label: 'Treat', bg: '#d98c1e', onSelect: () => interact('*munch munch* Thank you!') },
+          ...(n >= 10 ? [{ id: 'adopt', icon: '🏠', label: full ? 'Home full' : 'Adopt a stray pet', bg: '#2fa36b', onSelect: () => {
+            if (full) return;
+            const sex = Math.random() < 0.5 ? 'Boy' : 'Girl';
+            const name = strayMenu.name.replace(/^Stray /, '') === def?.name ? randomPetName() : strayMenu.name.replace(/^Stray /, '');
+            const id = adoptPetV2(student.id, { defId: strayMenu.defId, name, age: 'juvenile', sex, via: 'stray', priceCents: 0 });
+            if (!id) return;
+            useStore.getState().mergeStyleRow(`strayadopted:${strayMenu.objId}`, { studentId: student.id, petId: id, at: new Date().toISOString() });
+            playCheer();
+            setStrayCert({ petId: id, defId: strayMenu.defId, cert: { petId: id, studentName: student.name, petName: name, breed: def?.name ?? 'Pet', sex, date: new Date().toISOString(), via: 'stray' } });
+          } }] : []),
+        ];
+        return <NpcPieMenu name={strayMenu.name} title={n >= 10 ? 'Wants a home!' : `Trust ${Math.min(n, 10)} of 10`} wedges={wedges} onClose={() => setStrayMenu(null)} />;
+      })()}
+      {strayCert && (
+        <div className="pf-overlay" onClick={() => setStrayCert(null)}>
+          <Celebration />
+          <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
+            <AdoptionCertificate cert={strayCert.cert} defId={strayCert.defId}>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { setStrayCert(null); navigate('/world/home-room'); }}>🏠 Take {strayCert.cert.petName} home</button>
+              <button type="button" className="btn btn-lg" onClick={() => setStrayCert(null)}>Stay in town</button>
+            </AdoptionCertificate>
+          </div>
+        </div>
+      )}
       {/* Direct teacher instruction: "Pie menu format should be adopted
           for all buttons on the right hand side," including Tasks and
           Help/break — only Tools and Menu stay as standalone buttons,
@@ -5298,6 +5352,8 @@ export default function TownSquare() {
                     ? () => setShowMusicPicker(true)
                   : animalSound && !obj.role && !mapView && !wasDraggingLook.current
                     ? () => setAnimalPoke({ id: obj.id, text: animalSound, x: obj.position[0], z: obj.position[2], at: Date.now() })
+                  : strayDefFor(obj.modelPath) && !obj.role && !mapView && !wasDraggingLook.current && student
+                    ? () => setStrayMenu({ objId: obj.id, defId: strayDefFor(obj.modelPath)!.id, name: obj.customName || 'Stray ' + strayDefFor(obj.modelPath)!.name, x: obj.position[0], z: obj.position[2] })
                   : undefined
                 }
                 // Direct teacher instruction: a role-having building should

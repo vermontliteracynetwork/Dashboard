@@ -8,6 +8,9 @@ import { petDefById, thumbnailFor, bioFor, nextMilestone, milestonesReached, gro
 import { BookPanel } from './BookPanel';
 import type { Student } from '../types';
 import { Icon } from './Icon';
+import { learnedTricks } from '../lib/petGym';
+import type { PetCertificate } from '../lib/petsV2';
+import { AdoptionCertificate } from '../routes/student/PetFinder';
 
 // Direct teacher instruction: pets should be viewable in a book in the
 // backpack — same real-book-you-page-through treatment the Joke Book
@@ -29,6 +32,8 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
   const equipEmote = useStore((s) => s.equipEmote);
   const allPets = useStore((s) => s.pets);
   const [tab, setTab] = useState<'stuff' | 'jokes' | 'friends' | 'pets'>('stuff');
+  const [certPetId, setCertPetId] = useState<string | null>(null);
+  const styleLooks = useStore((s) => s.styleLooks);
   // Direct instruction: the Joke Book should look like an actual book a
   // student pages through (Minecraft book&quill / Sims 4 spellbook), not a
   // flat clickable list — see BookPanel.tsx. Turning to the next page IS
@@ -174,6 +179,17 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
           </div>
         </div>
       )}
+      {certPetId && (() => {
+        const cert = styleLooks.find((r) => r.ownerId === `petcert:${certPetId}`)?.look as unknown as PetCertificate | undefined;
+        const cp = myPets.find((p) => p.id === certPetId);
+        return cert && cp ? (
+          <div className="pf-overlay" onClick={() => setCertPetId(null)}>
+            <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
+              <AdoptionCertificate cert={{ ...cert, petName: cp.customName }} defId={cp.petDefId} onClose={() => setCertPetId(null)} />
+            </div>
+          </div>
+        ) : null;
+      })()}
       {tab === 'pets' && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 220, background: 'rgba(31, 17, 71, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, pointerEvents: 'auto' }}
@@ -191,7 +207,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
               title="Pet Book"
               pageIndex={petPageIndex}
               onPageChange={setPetPageIndex}
-              emptyMessage="No pets yet. Visit the Pet Shelter or Marketplace to adopt one!"
+              emptyMessage="No pets yet. Open the Pet Finder on your Computer to adopt one!"
               pages={myPets.map((pet) => {
                 const def = petDefById(pet.petDefId);
                 const next = nextMilestone(pet.trainingProgress);
@@ -217,6 +233,14 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
                         <span><Icon name="heart" size={13} fallback="❤️" /> {Math.round(pet.health)}</span>
                       </div>
                       {pet.following && <p style={{ margin: '0 0 4px', fontSize: '0.8rem', fontWeight: 800, color: '#3e7c6b' }}>🚶 Walking beside you</p>}
+                      {(() => {
+                        const sess = (styleLooks.find((r) => r.ownerId === `pettricks:${pet.id}`)?.look as { sessions?: Record<string, number> } | undefined)?.sessions ?? {};
+                        const tricks = learnedTricks(sess);
+                        return <p style={{ margin: '0 0 6px', fontSize: '0.8rem' }}>🎪 Tricks: Stand/Stay{tricks.length ? `, ${tricks.join(', ')}` : ''}</p>;
+                      })()}
+                      {styleLooks.some((r) => r.ownerId === `petcert:${pet.id}`) && (
+                        <button type="button" className="btn btn-sm" style={{ minHeight: 44, marginBottom: 6 }} onClick={() => setCertPetId(pet.id)}>📜 Adoption certificate</button>
+                      )}
                       {reached.length > 0 && (
                         <p style={{ margin: 0, fontSize: '0.78rem' }}>{reached.map((m) => `${m.icon} ${m.label}`).join('  ')}</p>
                       )}
