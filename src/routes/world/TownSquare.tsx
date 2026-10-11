@@ -430,6 +430,7 @@ let STATIC_WALLS: WallSegment[] = [];
 // object whose model hasn't finished measuring yet just doesn't block
 // until it has (a frame or two), rather than guessing a size.
 const SOLID_MAX_LIFT = 1.5;
+const isTreeModel = (path: string) => { const f = path.split('/').pop() ?? ''; return /tree|pine|palm|birch/i.test(f) && !/street|treasure/i.test(f); };
 function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, worldObjects: WorldObject[], _wallSegments: WallSegment[]) {
   BUILDING_FOOTPRINTS = BUILDINGS.filter((b) => !overrides[b.id]?.deleted).map((b) => {
     const raw = BUILDING_RAW_HALF_EXTENTS[b.id];
@@ -447,6 +448,13 @@ function recomputeCollisionLayout(overrides: Record<string, LayoutOverride>, wor
     // three.js's rotation.y, so a placed object's own rotation is negated
     // here to line its footprint up with what is actually drawn.
     const k = safeScale({ x: size.hx * 2, y: size.hy, z: size.hz * 2 }, o.scale);
+    // A tree is solid at its trunk, not its whole canopy, so students walk between trees in a
+    // forest instead of being walled off by the leaves above their heads.
+    if (isTreeModel(o.modelPath)) {
+      const t = Math.max(0.15, Math.min(0.6, Math.min(size.hx, size.hz) * k * 0.18));
+      solid.push({ x: o.position[0], z: o.position[2], rotationY: 0, hx: t, hz: t });
+      continue;
+    }
     solid.push({ x: o.position[0], z: o.position[2], rotationY: -o.rotationY, hx: size.hx * k, hz: size.hz * k });
   }
   RECT_FOOTPRINTS = solid.length ? [...BUILDING_FOOTPRINTS, ...solid] : BUILDING_FOOTPRINTS;
@@ -488,157 +496,119 @@ const BUILDING_COLLISION_MARGIN = 0.55;
 // part of a step going into the wall is dropped and the part along it is
 // kept, so they glide along the side (see slideRects below for corners and
 // head-on bumps).
-function insideRect(f: RectFootprint, x: number, z: number): { lx: number; lz: number; ex: number; ez: number; c: number; s: number } | null {
-  const c = Math.cos(f.rotationY);
-  const s = Math.sin(f.rotationY);
-  const dx = x - f.x;
-  const dz = z - f.z;
-  const lx = dx * c + dz * s;
-  const lz = -dx * s + dz * c;
-  const ex = f.hx + BUILDING_COLLISION_MARGIN;
-  const ez = f.hz + BUILDING_COLLISION_MARGIN;
-  if (Math.abs(lx) >= ex || Math.abs(lz) >= ez) return null;
-  return { lx, lz, ex, ez, c, s };
+// Collide and slide (teacher 2026-10-11: "allow student players to move smothly around the
+// edge/border of seamless objects instead of stopping them completely and having the camera view
+// glitch because the player is stuck. they should instead be able to proceed smothly around the
+// edge of the asset and continue moving forward"). The mover is a round body (radius
+// BUILDING_COLLISION_MARGIN) and every solid object is its real rectangle. Each step goes where
+// the input says, then is pushed straight out of anything it overlaps, along the line from the
+// nearest point of that object's outline to the mover. That keeps the part of the step that
+// runs along a wall and drops the part that goes into it, so:
+//  - along a row of objects placed edge to edge (hedges, fences, stalls) the push is always
+//    straight out from the row's face, never sideways back from the seam between two pieces,
+//    which is what used to stop players dead at every seam;
+//  - corners are round for the body, so walking past one glides around it;
+//  - walking head-on into something turns the step along its face toward the nearer end (and
+//    keeps going the same way while still blocked, so it never flips back and forth), so
+//    holding forward walks around the object and on past it.
+// The old point-in-box push picked "the shallower side" of each box separately, so at a seam two
+// boxes pushed the player back and forth every frame: the stop and the shaking camera.
+type Contact = { nx: number; nz: number; pen: number; f?: RectFootprint; ox?: number; oz?: number };
+function rectContact(f: RectFootprint, x: number, z: number, r: number): Contact | null {
+  const c = Math.cos(f.rotationY), s = Math.sin(f.rotationY);
+  const dx = x - f.x, dz = z - f.z;
+  const lx = dx * c + dz * s, lz = -dx * s + dz * c;
+  if (Math.abs(lx) >= f.hx + r || Math.abs(lz) >= f.hz + r) return null;
+  let nlx: number, nlz: number, pen: number;
+  if (Math.abs(lx) < f.hx && Math.abs(lz) < f.hz) {
+    // Center inside the rectangle: out through the nearest face.
+    const ox = f.hx - Math.abs(lx), oz = f.hz - Math.abs(lz);
+    if (ox < oz) { nlx = Math.sign(lx || 1); nlz = 0; pen = ox + r; } else { nlx = 0; nlz = Math.sign(lz || 1); pen = oz + r; }
+  } else {
+    const qx = Math.max(-f.hx, Math.min(f.hx, lx)), qz = Math.max(-f.hz, Math.min(f.hz, lz));
+    const ex = lx - qx, ez = lz - qz, d = Math.hypot(ex, ez);
+    if (d >= r) return null;
+    nlx = d > 1e-6 ? ex / d : 1; nlz = d > 1e-6 ? ez / d : 0; pen = r - d;
+  }
+  return { nx: nlx * c - nlz * s, nz: nlx * s + nlz * c, pen, f };
+}
+function contactsAt(x: number, z: number): Contact[] {
+  const out: Contact[] = [];
+  for (const f of RECT_FOOTPRINTS) { const k = rectContact(f, x, z, BUILDING_COLLISION_MARGIN); if (k) out.push(k); }
+  for (const o of STATIC_OBSTACLES) {
+    const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz);
+    if (d < o.radius) out.push({ nx: d > 1e-6 ? dx / d : 1, nz: d > 1e-6 ? dz / d : 0, pen: o.radius - d + 0.001, ox: o.x, oz: o.z });
+  }
+  return out;
+}
+// Pushes a point clear of every solid object (a few rounds, for tight spots between several).
+function resolveSolid(x: number, z: number): { x: number; z: number; hit: Contact | null } {
+  let hit: Contact | null = null;
+  // One push per round, out of the deepest overlap, then look again: at a seam between two
+  // pieces both report the same face, and pushing for both would bounce the mover off the wall.
+  for (let it = 0; it < 6; it++) {
+    const cs = contactsAt(x, z);
+    if (!cs.length) break;
+    let k = cs[0];
+    for (const c of cs) if (c.pen > k.pen) k = c;
+    x += k.nx * (k.pen + 0.001); z += k.nz * (k.pen + 0.001);
+    if (!hit || k.pen > hit.pen) hit = k;
+  }
+  return { x, z, hit };
 }
 function blockBuildings(x: number, z: number): [number, number] {
-  let [bx, bz] = [x, z];
-  for (const f of RECT_FOOTPRINTS) {
-    const h = insideRect(f, bx, bz);
-    if (!h) continue;
-    const penX = h.ex - Math.abs(h.lx);
-    const penZ = h.ez - Math.abs(h.lz);
-    const pushedLocalX = penX < penZ ? Math.sign(h.lx || 1) * (h.ex + 0.001) : h.lx;
-    const pushedLocalZ = penX < penZ ? h.lz : Math.sign(h.lz || 1) * (h.ez + 0.001);
-    bx = f.x + pushedLocalX * h.c - pushedLocalZ * h.s;
-    bz = f.z + pushedLocalX * h.s + pushedLocalZ * h.c;
-  }
-  return [bx, bz];
+  const r = resolveSolid(x, z);
+  return [r.x, r.z];
 }
-
-// One movement step against the solid rectangles. A step that runs along a
-// wall just slides. A step that runs nearly straight into one (which would
-// otherwise stop dead) is turned to follow the wall toward its nearer
-// corner, using the rest of the step, so holding "forward" walks the
-// student, a car or a Neighbor smoothly around the object and on past it.
-function slideRects(curX: number, curZ: number, tx: number, tz: number): [number, number] {
-  const stepLen = Math.hypot(tx - curX, tz - curZ);
-  const [bx, bz] = blockBuildings(tx, tz);
-  if (stepLen < 1e-5) return [bx, bz];
-  const moved = Math.hypot(bx - curX, bz - curZ);
-  if (moved >= stepLen * 0.5) return [bx, bz];
-  const f = RECT_FOOTPRINTS.find((r) => insideRect(r, tx, tz));
-  if (!f) return [bx, bz];
-  const h = insideRect(f, tx, tz)!;
-  const blockedOnX = h.ex - Math.abs(h.lx) < h.ez - Math.abs(h.lz);
-  // Local position of where they are now, to pick the nearer corner.
-  const cl = { x: (curX - f.x) * h.c + (curZ - f.z) * h.s, z: -(curX - f.x) * h.s + (curZ - f.z) * h.c };
-  const stepL = { x: (tx - curX) * h.c + (tz - curZ) * h.s, z: -(tx - curX) * h.s + (tz - curZ) * h.c };
-  const along = blockedOnX ? cl.z : cl.x;
-  const stepAlong = blockedOnX ? stepL.z : stepL.x;
-  const dir = Math.abs(stepAlong) > stepLen * 0.15 ? Math.sign(stepAlong) : Math.sign(along || 1);
+// Which way a blocked mover keeps going around an object, so it never dithers between the two
+// ends (the player's own; Neighbors and cars pass none and just pick the nearer end each time).
+export type SlideMemory = { sign: number; until: number };
+const PLAYER_SLIDE: SlideMemory = { sign: 0, until: 0 };
+function moveAndSlide(curX: number, curZ: number, tx: number, tz: number, mem?: SlideMemory): [number, number] {
+  const start = resolveSolid(curX, curZ);
+  const sx = tx - curX, sz = tz - curZ;
+  const stepLen = Math.hypot(sx, sz);
+  const first = resolveSolid(start.x + sx, start.z + sz);
+  if (stepLen < 1e-5 || !first.hit) return [first.x, first.z];
+  const moved = Math.hypot(first.x - start.x, first.z - start.z);
+  if (moved >= stepLen * 0.4) return [first.x, first.z];
+  // Nearly head-on: follow the face of what is in the way.
+  const n = first.hit;
+  const txn = -n.nz, tzn = n.nx; // along the face
+  const along = sx * txn + sz * tzn;
+  const now = performance.now();
+  let sign: number;
+  if (Math.abs(along) > stepLen * 0.2) sign = Math.sign(along);
+  else if (mem && mem.until > now && mem.sign) sign = mem.sign;
+  else {
+    // Toward the nearer end of the object.
+    const cx = n.f ? n.f.x : n.ox ?? start.x, cz = n.f ? n.f.z : n.oz ?? start.z;
+    sign = Math.sign((start.x - cx) * txn + (start.z - cz) * tzn) || 1;
+  }
+  if (mem) { mem.sign = sign; mem.until = now + 600; }
   const rest = stepLen - moved;
-  const tlx = blockedOnX ? 0 : dir * rest;
-  const tlz = blockedOnX ? dir * rest : 0;
-  return blockBuildings(bx + tlx * h.c - tlz * h.s, bz + tlx * h.s + tlz * h.c);
+  const second = resolveSolid(first.x + txn * sign * rest, first.z + tzn * sign * rest);
+  return [second.x, second.z];
 }
 
 function blockObstacles(x: number, z: number): [number, number] {
-  let [bx, bz] = blockBuildings(x, z);
-  for (const o of STATIC_OBSTACLES) {
-    const dx = bx - o.x;
-    const dz = bz - o.z;
-    const dist = Math.hypot(dx, dz);
-    // Direct instruction: a player/Neighbor must never end up caught
-    // inside an asset. The old `dist > 0` guard meant a position landing
-    // EXACTLY on an obstacle's center (e.g. an object placed right where
-    // someone is already standing) skipped the push-out entirely — dist
-    // was 0, so dx/dist was a NaN direction, and the branch was simply
-    // never taken, leaving them stuck dead center forever. Now any
-    // dist-0 case still gets pushed clear, just along an arbitrary fixed
-    // direction (+x) since there's no real direction to push exactly
-    // from a shared center point.
-    if (dist < o.radius) {
-      const ux = dist > 0 ? dx / dist : 1;
-      const uz = dist > 0 ? dz / dist : 0;
-      bx = o.x + ux * o.radius;
-      bz = o.z + uz * o.radius;
-    }
-  }
-  [bx, bz] = blockWallSegments(bx, bz, STATIC_WALLS);
-  return [bx, bz];
+  const [bx, bz] = blockBuildings(x, z);
+  return blockWallSegments(bx, bz, STATIC_WALLS);
 }
 
-// Direct teacher report: walking close to a placed asset (a bed, say) —
-// already correctly solid, never walkable-through — could visibly "glitch"
-// right at its edge, especially moving diagonally past it. The cause is
-// blockObstacles' own radial push-out chained with blockBuildings/ground-
-// clamp/blockBuildings-again right after (each pass can re-violate what the
-// previous one just fixed, near a tight corner). Every per-frame MOVEMENT
-// call site (not the one-shot "is this random wander target valid" check,
-// which still wants the plain radial version above) uses this instead:
-// try the real diagonal step, and if that lands inside an obstacle, slide
-// along just one axis, or — if even that's blocked — don't move at all
-// this frame. Same "move the player slightly over or stop all movement"
-// shape as a platformer's own wall-slide, and only ever changes position
-// by an amount the player's own input already implied, so it can't glitch.
-// Lakes, rivers and oceans dug in Build Mode (terrain.ts) are not walkable or drivable: a step
-// into water slides along the shore instead, the same bump-and-slide feel as every obstacle.
-// `swimmer`: the student on foot can walk into water (see SWIM_DEPTH); cars and townspeople can't.
+// Every per-frame movement goes through here: solid objects first (collide and slide above),
+// then the softer limits. Lakes, rivers and oceans dug in Build Mode (terrain.ts) are not
+// walkable or drivable for cars and townspeople: a step into water slides along the shore.
+// `swimmer`: the student on foot can walk into water (see SWIM_DEPTH); it is also the player, so
+// the player keeps a steady way around things (PLAYER_SLIDE).
 function blockObstaclesSlide(curX: number, curZ: number, targetX: number, targetZ: number, swimmer = false): [number, number] {
   // Also: houses on the home lots are solid, and a locked home lot keeps other students out.
   const blocked = (px: number, pz: number) => (!swimmer && isTerrainWater(px, pz)) || isHomeBlocked(px, pz);
-  const [x, z] = blockObstaclesSlideLand(curX, curZ, targetX, targetZ);
+  const [x, z] = blockWallSegments(...moveAndSlide(curX, curZ, targetX, targetZ, swimmer ? PLAYER_SLIDE : undefined), STATIC_WALLS);
   if (!blocked(x, z) || blocked(curX, curZ)) return [x, z];
   if (!blocked(x, curZ)) return [x, curZ];
   if (!blocked(curX, z)) return [curX, z];
   return [curX, curZ];
-}
-function blockObstaclesSlideLand(curX: number, curZ: number, targetX: number, targetZ: number): [number, number] {
-  const insideObstacle = (x: number, z: number) => STATIC_OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
-  // Direct teacher report: "students can go through them a little bit and
-  // get stuck." Root cause: the old version only ever checked whether the
-  // TARGET point was inside an obstacle — if the CURRENT point ever ended
-  // up inside one (a fast car covering more ground in one frame than a
-  // walking student, a frame-rate hiccup, two obstacle circles placed
-  // close enough to overlap), every fallback path bottomed out at
-  // `[curX, curZ]`, i.e. "don't move," with no way to ever get back out —
-  // a permanent stuck-touching-the-obstacle state. Same fix pattern
-  // blockBuildings already uses for rectangles (always resolves to a
-  // valid point, stateless): push straight back out to the nearest
-  // circle's edge first, then evaluate the requested move from there, so
-  // "current position" is never itself an invalid one to fall back to.
-  // Also runs the CURRENT position through blockBuildings first, now that
-  // RECT_FOOTPRINTS includes placed objects (not just fixed buildings) —
-  // a fixed building never moved under a standing player mid-session, so
-  // the old version never needed this, but a Build Mode object can now be
-  // dragged/resized/rotated onto a student's exact current spot live
-  // (Supabase realtime), and the last-resort `[sx, sz]` fallback further
-  // down needs to already be clear of THAT too, not just circle obstacles,
-  // for the "never stuck" guarantee to still hold for the merged rect set.
-  let [sx, sz] = blockBuildings(curX, curZ);
-  for (const o of STATIC_OBSTACLES) {
-    const dx = sx - o.x;
-    const dz = sz - o.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist < o.radius) {
-      const push = o.radius - dist + 0.02;
-      if (dist > 0.0001) {
-        sx += (dx / dist) * push;
-        sz += (dz / dist) * push;
-      } else {
-        sx += o.radius + 0.02;
-      }
-    }
-  }
-  let [bx, bz] = slideRects(sx, sz, targetX, targetZ);
-  if (insideObstacle(bx, bz)) {
-    const slideX = blockBuildings(targetX, sz);
-    const slideZ = blockBuildings(sx, targetZ);
-    if (!insideObstacle(slideX[0], slideX[1])) [bx, bz] = slideX;
-    else if (!insideObstacle(slideZ[0], slideZ[1])) [bx, bz] = slideZ;
-    else [bx, bz] = [sx, sz];
-  }
-  return blockWallSegments(bx, bz, STATIC_WALLS);
 }
 
 // Boats (docs/BOATS_DESIGN.md §1/§4): bump-and-slide against the water

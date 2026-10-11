@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-smooth-walking',
+    date: '2026-10-11',
+    icon: '🚶',
+    title: 'Town Square: smoother walking',
+    body: 'When you walk into a building, a hedge or a tree, you now glide along it and around the corner instead of getting stuck. Keep walking forward and you will go right around it.',
+  },
+  {
     id: '2026-10-10-new-town',
     date: '2026-10-10',
     icon: '🏘️',
