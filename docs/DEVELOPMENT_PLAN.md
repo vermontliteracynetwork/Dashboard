@@ -64,6 +64,8 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 
 **Still owed by her for the line:** the grass strip picture she pasted (a waving grass fringe) came in as a picture in the chat, not a file, so it could not be saved into the project; upload it as a file to use it (for example as waving grass tufts along paths).
 
+**From her Pets v2 spec, waiting on her:** (1) "Certain pets earnable only through quest or achievement": which pets (a 13th breed such as her Black Lab, or a special coat of an existing breed) and which quests or achievements unlock them? (2) Fur colors: each breed has one coat in the present; should the Pet Finder also offer color variations of a breed (for example a black Pug or a cream Husky)?
+
 **From her gym prototype, waiting on her:** it carries two pet models the game does not have: a realistic, rigged **Torbie tabby** cat ("Azalea"), which looks more like a tabby than the game's gray low-poly Tabby Cat, and a **Black Lab mix** ("Yoga"). Should the Torbie replace the Tabby Cat's model, and should the Black Lab become a 13th breed? Both are saved in `assets/held/` (`torbie-tabby.glb`, `black-lab.glb`), ready to add.
 
 **Not in the line (waiting on her):** Space Bowling's venue and bowling lane models and the Kenney Sports pack (they were never saved into the project, so they need to be uploaded again; her Bowling GUI pack still waits on her rights answer). Gus Daily Challenge (on hold), Pets v2 Phase 1 (3 questions), Alchemy discovery book, Town Square home and Gus nouns, the next joke frameworks, Tappy Plane (her "go"). See "Waiting on the teacher".
