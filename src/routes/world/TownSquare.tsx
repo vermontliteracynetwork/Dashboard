@@ -58,10 +58,11 @@ import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, R
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
-import { useCouponUsed } from '../../lib/petsV2';
-import { useGym } from '../../lib/petGym';
+import { useCouponUsed, useCompanions } from '../../lib/petsV2';
+import { useGym, useTrickSessions, learnedTricks, trickDef, STAND_STAY } from '../../lib/petGym';
 import PetTalk from '../../components/PetTalk';
-import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PET_TRICKS, PETS_PAUSED } from '../../lib/petCatalog';
+import { usePoseSetup, usePetTricks } from '../../lib/usePetTricks';
+import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import type { PetDef } from '../../lib/petCatalog';
 import type { LayoutOverride, FocusSubject, WorldObject, WallSegment, GroundPatch, MCQuestion, Task } from '../../types';
@@ -844,7 +845,9 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
     return THREE.MathUtils.clamp(targetHeight / size.y, PET_SCALE_MIN, PET_SCALE_MAX);
   }, [scene, targetHeight]);
   const group = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(animations, group);
+  // Pets v2: real trick poses on the pet's skeleton (Buff Doge's tricks, on command).
+  const poseSetup = usePoseSetup(cloned, animations);
+  const { actions } = useAnimations(poseSetup.clips, group);
   // Direct teacher instruction: a pet with legs should actually WALK beside
   // the student, not just idle-glide into position — same case-insensitive
   // "contains idle/walk" clip lookup PetCompanion's own header comment
@@ -912,6 +915,7 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
   // from the Companion menu.
   const trickGroup = useRef<THREE.Group>(null);
   usePetMove(trickGroup, cue, targetHeight);
+  usePetTricks(poseSetup, cloned, trickGroup, cue, targetHeight * 1.2, scale);
   return (
     <group ref={group}>
       <group ref={trickGroup}>
@@ -923,7 +927,7 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
   );
 }
 
-function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef, tintColor, cue }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number; facingRef: React.RefObject<number>; tintColor?: string; cue?: PetMoveCue | null }) {
+function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef, tintColor, cue, side = 1 }: { playerPos: THREE.Vector3; modelPath: string; floating: boolean; targetHeight: number; facingRef: React.RefObject<number>; tintColor?: string; cue?: PetMoveCue | null; side?: 1 | -1 }) {
   const groupRef = useRef<THREE.Group>(null);
   const pos = useRef(new THREE.Vector3(playerPos.x - PET_FOLLOW_OFFSET, 0, playerPos.z - PET_FOLLOW_OFFSET));
   const elapsed = useRef(0);
@@ -936,8 +940,11 @@ function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef,
     // (both x and z shifted), so a target right at the edge could compute
     // just past the boundary without this — the one place in the file that
     // was still unclamped.
-    const targetX = clampGroundX(playerPos.x - PET_FOLLOW_OFFSET);
-    const targetZ = clampGroundZ(playerPos.z - PET_FOLLOW_OFFSET);
+    // Pets v2: one companion walks on the student's left (side 1) and one on the right (side -1),
+    // a little behind, turning with the student.
+    const fy = facingRef.current ?? 0;
+    const targetX = clampGroundX(playerPos.x + side * Math.cos(fy) * PET_FOLLOW_OFFSET * 0.8 - Math.sin(fy) * 0.5);
+    const targetZ = clampGroundZ(playerPos.z - side * Math.sin(fy) * PET_FOLLOW_OFFSET * 0.8 - Math.cos(fy) * 0.5);
     const t = 1 - Math.pow(0.0005, dt);
     const prevX = pos.current.x;
     const prevZ = pos.current.z;
@@ -3151,7 +3158,7 @@ export default function TownSquare() {
   const progress = useStore((s) => s.progress);
   const pets = useStore((s) => s.pets);
   const tickPetDecay = useStore((s) => s.tickPetDecay);
-  const setFollowingPet = useStore((s) => s.setFollowingPet);
+  const setCompanions = useStore((s) => s.setCompanions);
   const student = students.find((s) => s.id === currentStudentId);
   // Live-toggle the vehicle sound controller if the student flips Settings'
   // new "Vehicle sound" checkbox while still mounted, and make sure it's
@@ -3163,7 +3170,15 @@ export default function TownSquare() {
   useEffect(() => () => { vehicleSoundRef.current?.stop(); }, []);
   const gymRow = useGym(student?.id);
   const ownedPets = student && !PETS_PAUSED ? pets.filter((p) => p.studentId === student.id && p.id !== gymRow.petId) : [];
-  const followingPet = ownedPets.find((p) => p.following);
+  // Pets v2 (her spec): two companions, one on each side, assigned in the Companion menu.
+  const companions = useCompanions(student?.id);
+  const legacyOnly = companions.left === null && companions.right === null;
+  const leftPet = ownedPets.find((p) => canPetFollow(p.trainingProgress) && (legacyOnly ? p.following : p.id === companions.left));
+  const rightPet = legacyOnly ? undefined : ownedPets.find((p) => canPetFollow(p.trainingProgress) && p.id === companions.right && p.id !== leftPet?.id);
+  const followingPet = leftPet ?? rightPet;
+  const leftTricks = learnedTricks(useTrickSessions(leftPet?.id));
+  const rightTricks = learnedTricks(useTrickSessions(rightPet?.id));
+  const [petAnnounce, setPetAnnounce] = useState<string | null>(null);
   // Pets Phase 6 (docs/DEVELOPMENT_PLAN.md Part B) — a gentle, non-punitive
   // companion check-in nudge: no popup or interruption, just the same
   // "(count)" label the Tasks wedge already uses when something needs
@@ -3182,7 +3197,7 @@ export default function TownSquare() {
   // call that same action, not new following-limit logic.
   const [showCompanionMenu, setShowCompanionMenu] = useState(false);
   const [talkPetId, setTalkPetId] = useState<string | null>(null);
-  const [companionCue, setCompanionCue] = useState<PetMoveCue | null>(null);
+  const [companionCue, setCompanionCue] = useState<(PetMoveCue & { petId?: string }) | null>(null);
   const [showSelfMenu, setShowSelfMenu] = useState(false);
   const { released: styleReleased } = useStyleSettings();
   // Claudia's audit (H3): the pie menu had grown to 7-8 wedges, past her
@@ -4440,24 +4455,33 @@ export default function TownSquare() {
               const r = 92;
               const x = Math.cos(angle) * r;
               const y = Math.sin(angle) * r;
+              const isL = leftPet?.id === pet.id, isR = rightPet?.id === pet.id;
+              // Tap a pet to walk it on the first free side (left, then right); tap again to send it home.
+              const assign = () => {
+                const L = leftPet?.id ?? null, R = rightPet?.id ?? null;
+                if (isL) setCompanions(student.id, null, R);
+                else if (isR) setCompanions(student.id, L, null);
+                else if (!L) setCompanions(student.id, pet.id, R);
+                else setCompanions(student.id, L, pet.id);
+              };
               return (
                 <button
                   key={pet.id}
                   disabled={!eligible}
-                  title={eligible ? (needsAttention ? `${pet.customName} could use some care at home` : pet.customName) : `${pet.customName} isn't trained enough to follow yet`}
-                  onClick={() => { setFollowingPet(student.id, pet.following ? null : pet.id); setShowCompanionMenu(false); }}
+                  title={eligible ? (needsAttention ? `${pet.customName} could use some care at home` : pet.customName) : `${pet.customName} can walk with you once it is a Juvenile`}
+                  aria-label={`${pet.customName}${isL ? ', walking on your left' : isR ? ', walking on your right' : ''}`}
+                  onClick={assign}
                   style={{
                     position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)',
                     width: 60, height: 60, borderRadius: '50%',
-                    border: pet.following ? '3px solid var(--success)' : '2px solid var(--ink)',
+                    border: isL || isR ? '3px solid var(--success)' : '2px solid var(--ink)',
                     background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: eligible ? 'pointer' : 'not-allowed', opacity: eligible ? 1 : 0.4,
                     boxShadow: '0 3px 10px rgba(0,0,0,0.35)', padding: 4,
                   }}
                 >
                   <CompanionThumb pet={def} size={40} />
-                  {/* Icon, not just a color dot (Part D: color is never the
-                      only signal) — paired with the title above too. */}
+                  {(isL || isR) && <span style={{ position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--success)', color: '#fff', borderRadius: 999, fontSize: 11, fontWeight: 800, padding: '1px 6px', whiteSpace: 'nowrap' }}>{isL ? '⬅ Left' : 'Right ➡'}</span>}
                   {needsAttention && (
                     <span style={{ position: 'absolute', top: -4, right: -4, fontSize: 15, lineHeight: 1 }} aria-hidden>💛</span>
                   )}
@@ -4465,8 +4489,8 @@ export default function TownSquare() {
               );
             })}
             <button
-              title="No companion"
-              onClick={() => { setFollowingPet(student.id, null); setShowCompanionMenu(false); }}
+              title="No companions"
+              onClick={() => { setCompanions(student.id, null, null); setShowCompanionMenu(false); }}
               style={{
                 position: 'absolute', left: '50%', top: 'calc(50% + 155px)', transform: 'translate(-50%, -50%)',
                 minHeight: 44, borderRadius: 20, border: '2px solid var(--ink)', background: '#fff',
@@ -4476,35 +4500,44 @@ export default function TownSquare() {
               🚫 None
             </button>
           </div>
+          <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: 16, right: 16, top: 16, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+            {[leftPet, rightPet].filter((p): p is NonNullable<typeof p> => !!p).map((p) => (
+              <button key={p.id} className="btn btn-primary" onClick={() => { setTalkPetId(p.id); setShowCompanionMenu(false); }} style={{ minHeight: 52, fontSize: '1rem', fontWeight: 800, borderRadius: 14 }}>
+                💬 Talk with {p.customName}
+              </button>
+            ))}
+          </div>
           {followingPet && (
-            <button
-              className="btn btn-primary"
-              onClick={(e) => { e.stopPropagation(); setTalkPetId(followingPet.id); setShowCompanionMenu(false); }}
-              style={{ position: 'absolute', left: '50%', top: 16, transform: 'translateX(-50%)', minHeight: 52, fontSize: '1rem', fontWeight: 800, borderRadius: 14 }}
-            >
-              💬 Talk with {followingPet.customName}
-            </button>
-          )}
-          {followingPet && (followingPet.tricksLearned ?? []).length > 0 && (
             <div
               onClick={(e) => e.stopPropagation()}
-              style={{ position: 'absolute', left: 16, right: 16, bottom: 'max(24px, env(safe-area-inset-bottom))', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', alignItems: 'center' }}
+              style={{ position: 'absolute', left: 16, right: 16, bottom: 'max(24px, env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}
             >
-              <span style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', width: '100%', textAlign: 'center' }}>Ask {followingPet.customName} to:</span>
-              {PET_TRICKS.filter((t) => (followingPet.tricksLearned ?? []).includes(t.id)).map((t) => (
-                <button
-                  key={t.id}
-                  className="btn"
-                  style={{ minHeight: 52, fontSize: '1rem', fontWeight: 800, background: '#fff', borderRadius: 14 }}
-                  onClick={() => { setCompanionCue({ kind: t.id, at: Date.now() }); setShowCompanionMenu(false); }}
-                >
-                  {t.icon} {t.label}
-                </button>
-              ))}
+              {([[leftPet, leftTricks], [rightPet, rightTricks]] as const).map(([p, tricks]) => p ? (
+                <div key={p.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+                  <span style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', width: '100%', textAlign: 'center' }}>Ask {p.customName} to:</span>
+                  {[STAND_STAY.name, ...tricks].map((t) => (
+                    <button
+                      key={t}
+                      className="btn"
+                      style={{ minHeight: 52, fontSize: '1rem', fontWeight: 800, background: '#fff', borderRadius: 14 }}
+                      onClick={() => {
+                        setCompanionCue({ kind: t, at: Date.now(), petId: p.id });
+                        setPetAnnounce(`${p.customName} uses ${t === STAND_STAY.name ? STAND_STAY.move : trickDef(t)?.move ?? t}!`);
+                        window.setTimeout(() => setPetAnnounce(null), 3400);
+                        setShowCompanionMenu(false);
+                      }}
+                    >
+                      {t === STAND_STAY.name ? STAND_STAY.icon : trickDef(t)?.icon} {t}
+                    </button>
+                  ))}
+                  {tricks.length === 0 && <span style={{ color: '#fff', fontSize: '0.85rem', width: '100%', textAlign: 'center' }}>Train tricks at Buff Doge's Gym!</span>}
+                </div>
+              ) : null)}
             </div>
           )}
         </div>
       )}
+      {petAnnounce && <div className="pet-announce" role="status" aria-live="polite">{petAnnounce}</div>}
       {/* Direct teacher instruction: "Pie menu format should be adopted
           for all buttons on the right hand side," including Tasks and
           Help/break — only Tools and Menu stay as standalone buttons,
@@ -5113,17 +5146,23 @@ export default function TownSquare() {
               pets grow from baby to adult with real engagement — the same
               growth-stage scale multiplier every other pet render site
               (Pet Book, care panel) uses. */}
-          {followingPet && followingPetDef && (
-            <PetCompanion
-              playerPos={playerPos}
-              modelPath={followingPetDef.modelPath}
-              floating={followingPetDef.category === 'aquatic' || followingPetDef.category === 'bird'}
-              targetHeight={followingPetDef.targetHeight * growthScaleFactor(growthStageFor(followingPet.trainingProgress))}
-              facingRef={playerFacingRef}
-              tintColor={followingPet.tintColor}
-              cue={companionCue}
-            />
-          )}
+          {([[leftPet, 1], [rightPet, -1]] as const).map(([p, side]) => {
+            const d = p ? petDefById(p.petDefId) : undefined;
+            if (!p || !d) return null;
+            return (
+              <PetCompanion
+                key={p.id}
+                side={side}
+                playerPos={playerPos}
+                modelPath={d.modelPath}
+                floating={d.category === 'aquatic' || d.category === 'bird'}
+                targetHeight={d.targetHeight * growthScaleFactor(growthStageFor(p.trainingProgress))}
+                facingRef={playerFacingRef}
+                tintColor={p.tintColor}
+                cue={companionCue && (companionCue.petId ?? leftPet?.id) === p.id ? companionCue : null}
+              />
+            );
+          })}
           {QUEST1_NEIGHBORS.map((n) => (
             <Neighbor
               key={n.id}

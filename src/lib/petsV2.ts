@@ -194,3 +194,10 @@ export const PET_REPLY: Record<SelZone, string[]> = {
   blue: ['Thanks for telling me. I am right here with you. A drink of water and a stretch can help.', 'I will sit with you for a bit. Want to think of a happy memory together?'],
   red: ['Thank you for telling me. Let us stop and breathe. In, and out. I am not going anywhere.', 'Big feelings are okay. Squeeze your hands tight, then let go, with me.'],
 };
+
+// ---- companions on the left and right (her spec: "Two companions can walk with students on either
+// side (right and left) as assigned") ----
+export function useCompanions(studentId: string | null | undefined): { left: string | null; right: string | null } {
+  const row = useStore((s) => (studentId ? (s.styleLooks.find((r) => r.ownerId === `companions:${studentId}`)?.look as { left?: string | null; right?: string | null } | undefined) : undefined));
+  return useMemo(() => ({ left: row?.left ?? null, right: row?.right ?? null }), [row]);
+}

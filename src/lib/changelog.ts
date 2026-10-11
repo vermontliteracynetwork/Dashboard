@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-two-companions',
+    date: '2026-10-11',
+    icon: '🐾',
+    title: 'Two pets can walk with you',
+    body: "Pick Companion in Town Square and tap two pets: one walks on your left and one on your right. Ask them to do the tricks they learned at Buff Doge's Gym! At home, your pets now wander around every room and the yard.",
+  },
+  {
     id: '2026-10-11-real-tricks',
     date: '2026-10-11',
     icon: '🐕',

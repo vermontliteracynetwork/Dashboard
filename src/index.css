@@ -6521,3 +6521,4 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .gym-ready-toast { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 250; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: calc(100vw - 32px); background: #FFF2D4; border: 5px solid #D98C1E; border-radius: 18px; box-shadow: 0 6px 0 #A9650F; padding: 8px 12px; font-weight: 800; color: #5A3E36; }
 .gym-ready-toast img { width: 56px; height: 56px; object-fit: contain; }
 .gym-ready-toast .btn { min-height: 44px; }
+.pet-announce { position: fixed; left: 50%; bottom: max(110px, calc(env(safe-area-inset-bottom) + 110px)); transform: translateX(-50%); z-index: 235; width: min(680px, calc(100vw - 32px)); background: #fff; border: 6px solid #3a3550; border-radius: 14px; box-shadow: inset 0 0 0 4px #E8E4F4, 0 8px 0 rgba(0,0,0,.18); padding: 14px 22px; font-size: 1.5rem; font-weight: 800; color: #3a3550; pointer-events: none; }

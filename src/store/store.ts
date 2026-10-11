@@ -483,6 +483,8 @@ interface AppState {
   trainPets: (studentId: string, amount: number, source: 'assignment' | 'answers') => void;
   // petId: null unsets whichever pet was following (goes back to no companion).
   setFollowingPet: (studentId: string, petId: string | null) => void;
+  // Pets v2 (her spec): "Two companions can walk with students on either side (right and left) as assigned".
+  setCompanions: (studentId: string, left: string | null, right: string | null) => void;
   sellPet: (petId: string) => void;
   // Pets overhaul 2026-10-06: refund a pet at its catalog price (a bank
   // register row) and remove it. See src/lib/petOverhaul.ts.
@@ -1594,6 +1596,14 @@ export const useStore = create<AppState>()(
         const updated: StudentPet = { ...pet, tricksLearned: [...(pet.tricksLearned ?? []), trickId] };
         set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
         pushStudentPet(updated);
+      },
+
+      setCompanions: (studentId, left, right) => {
+        const ok = (id: string | null) => !!id && get().pets.some((p) => p.id === id && p.studentId === studentId && canPetFollow(p.trainingProgress));
+        const l = ok(left) ? left : null, r = ok(right) && right !== l ? right : null;
+        set((s) => ({ pets: s.pets.map((p) => (p.studentId === studentId ? { ...p, following: p.id === l || p.id === r } : p)) }));
+        get().pets.filter((p) => p.studentId === studentId).forEach((p) => pushStudentPet(p));
+        get().mergeStyleRow(`companions:${studentId}`, { left: l, right: r });
       },
 
       setFollowingPet: (studentId, petId) => {

@@ -81,6 +81,7 @@ export function usePetMove(ref: React.RefObject<THREE.Group | null>, cue: PetMov
   useFrame((state) => {
     const g = ref.current;
     if (!g) return;
+    if (cue && !(cue.kind.startsWith('trick-') || cue.kind === 'hop' || cue.kind === 'wiggle')) return; // Buff Doge tricks play as real poses (usePetTricks)
     if (cue && started.current?.at !== cue.at && Date.now() - cue.at < 1500) started.current = { at: cue.at, t0: state.clock.elapsedTime };
     if (!cue || !started.current) return;
     const t = (state.clock.elapsedTime - started.current.t0) / PET_MOVE_SECONDS;

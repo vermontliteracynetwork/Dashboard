@@ -679,7 +679,7 @@ const HOME_PET_SCALE_MAX = 3;
 // heavy code, see this file's own bundle-splitting concerns above), so a
 // student's pet color and a teacher's asset tint always look consistent.
 const PET_TINT_SWATCHES = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#78350f', '#64748b', '#ffffff'];
-function HomePetPresence({ pet, def, position, cue, onTap }: { pet: StudentPet; def: PetDef; position: [number, number, number]; cue?: PetMoveCue; onTap?: () => void }) {
+function HomePetPresence({ pet, def, position, cue, onTap, roam }: { pet: StudentPet; def: PetDef; position: [number, number, number]; cue?: PetMoveCue; onTap?: () => void; roam?: { hx: number; hz: number } }) {
   const { scene, animations } = useGLTF(def.modelPath);
   const cloned = useMemo(() => {
     const c = cloneSkinned(scene);
@@ -712,18 +712,44 @@ function HomePetPresence({ pet, def, position, cue, onTap }: { pet: StudentPet; 
   }, [scene, def, stage]);
   const group = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
+  const clipKeys = useMemo(() => {
+    const keys = Object.keys(actions);
+    return { idle: keys.find((k) => k.toLowerCase().includes('idle')), walk: keys.find((k) => k.toLowerCase().includes('walk')) };
+  }, [actions]);
   useEffect(() => {
-    const idleKey = Object.keys(actions).find((k) => k.toLowerCase().includes('idle'));
-    const idle = idleKey ? actions[idleKey] : undefined;
+    const idle = clipKeys.idle ? actions[clipKeys.idle] : undefined;
     idle?.reset().play();
     return () => { idle?.stop(); };
-  }, [actions]);
+  }, [actions, clipKeys]);
+  // Pets v2 (her spec): "Pets can free roam student home when not acting as active companion".
+  // Each pet strolls to a random spot in the room or yard, rests a few seconds, and goes again.
+  const root = useRef<THREE.Group>(null);
+  const wander = useRef({ x: position[0], z: position[2], tx: position[0], tz: position[2], wait: 1 + Math.random() * 4, walking: false, yaw: 0 });
+  useFrame((_, dtRaw) => {
+    const g = root.current; if (!g) return;
+    const dt = Math.min(dtRaw, 0.05), w = wander.current;
+    if (roam) {
+      if (!w.walking) {
+        w.wait -= dt;
+        if (w.wait <= 0) { w.tx = (Math.random() * 2 - 1) * roam.hx; w.tz = (Math.random() * 2 - 1) * roam.hz; w.walking = true; }
+      } else {
+        const dx = w.tx - w.x, dz = w.tz - w.z, d = Math.hypot(dx, dz), step = 0.6 * dt;
+        if (d <= step) { w.x = w.tx; w.z = w.tz; w.walking = false; w.wait = 3 + Math.random() * 6; }
+        else { w.x += (dx / d) * step; w.z += (dz / d) * step; w.yaw = Math.atan2(dx, dz); }
+      }
+      const walkA = clipKeys.walk ? actions[clipKeys.walk] : undefined, idleA = clipKeys.idle ? actions[clipKeys.idle] : undefined;
+      if (walkA && w.walking && !walkA.isRunning()) { idleA?.fadeOut(0.2); walkA.reset().fadeIn(0.2).play(); }
+      if (walkA && !w.walking && walkA.isRunning()) { walkA.fadeOut(0.2); idleA?.reset().fadeIn(0.2).play(); }
+      g.rotation.y += (((w.yaw - g.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 6);
+    }
+    g.position.set(w.x, position[1] + (roam && w.walking && !clipKeys.walk ? Math.abs(Math.sin(performance.now() / 120)) * 0.04 : 0), w.z);
+  });
   // Pets review (2026-10-06): care taps and tricks play here too, and a
   // tap on the pet itself opens its training session.
   const move = useRef<THREE.Group>(null);
   usePetMove(move, cue, def.targetHeight * growthScaleFactor(stage));
   return (
-    <group position={position}>
+    <group ref={root} position={position}>
       <group
         ref={move}
         onClick={onTap ? (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onTap(); } : undefined}
@@ -1517,6 +1543,7 @@ export default function HomeRoom() {
                     pet={pet}
                     def={def}
                     position={[spread, 0, -(halfD + EXTERIOR_CLEARANCE) + 2.2]}
+                    roam={{ hx: Math.max(1, halfW - 1.2), hz: Math.max(1, halfD - 1.2) }}
                     cue={petCues[pet.id]}
                     onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
@@ -1555,6 +1582,7 @@ export default function HomeRoom() {
                     pet={pet}
                     def={def}
                     position={[spread, def.category === 'aquatic' || def.category === 'bird' ? 0.6 : 0, Math.max(0, halfD - 1.4)]}
+                    roam={{ hx: Math.max(0.8, roomW / 2 - 1), hz: Math.max(0.8, halfD - 1) }}
                     cue={petCues[pet.id]}
                     onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
