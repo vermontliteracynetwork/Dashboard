@@ -221,7 +221,7 @@ export default function PetFinder() {
                 <PetPortrait defId={p.defId} size={118} alt={p.name} />
                 {isAdopted && <span className="pf-hearts" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ transform: `rotate(${i * 36}deg) translateY(-70px) rotate(${-i * 36}deg)` }}>💗</i>)}</span>}
                 {!isAdopted && isNew && <span className="pf-badge new">New!</span>}
-                {!isAdopted && !isNew && lastDay && <span className="pf-badge last">Last day</span>}
+                {!isAdopted && !isNew && lastDay && <span className="pf-badge last">Pending adoption</span>}
               </button>
               <div className="pf-card-facts">
                 <span className={`pf-age ${p.age}`}>{AGE_LABEL[p.age]}</span>
@@ -251,7 +251,7 @@ export default function PetFinder() {
                     <h2>Meet {p.name}!</h2>
                     <p className="pf-detail-facts"><span className={`pf-age ${p.age}`}>{AGE_LABEL[p.age]}</span> {p.sex} {def?.name}, {coatFor(p.defId).label.toLowerCase()}</p>
                     {def && <p>{p.name} {bioFor(def).slice(def.name.length + 1)}</p>}
-                    <p className="pf-detail-stay">{p.leavesDay - day === 1 ? `This is ${p.name}'s last day at the shelter.` : `${p.name} will be at the shelter for ${p.leavesDay - day} more days.`}</p>
+                    <p className="pf-detail-stay">{p.leavesDay - day === 1 ? `${p.name} has an adoption pending. Adopt ${p.name} soon if you want this pet!` : `${p.name} will be at the shelter for ${p.leavesDay - day} more days.`}</p>
                     <div className="pf-detail-actions">
                       <button type="button" className="btn btn-primary btn-lg" disabled={full || (!hasCoupon && student.coins < PET_PRICE_CENTS)} onClick={() => startAdopt(p)}>{hasCoupon ? `🎟️ Adopt ${p.name} free` : `Adopt ${p.name} for ${formatMoney(PET_PRICE_CENTS)}`}</button>
                       <button type="button" className="btn btn-lg" onClick={() => setFlow(null)}>Keep looking</button>

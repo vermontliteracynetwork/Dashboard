@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-new-map',
+    date: '2026-10-11',
+    icon: '🗺️',
+    title: 'A brand new map, and a closer camera',
+    body: 'The map now shows the whole town up close, with a pin for every place. Tap a pin or a place in the list, then tap Go there to jump right to it. Turn on Grid to see the coordinate plane. In town, the camera is closer behind you, and building names pop up when you point at or tap a building.',
+  },
+  {
     id: '2026-10-11-speak',
     date: '2026-10-11',
     icon: '🗣️',

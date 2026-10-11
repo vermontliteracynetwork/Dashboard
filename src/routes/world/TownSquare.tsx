@@ -69,6 +69,7 @@ const strayDefFor = (modelPath: string) => PET_CATALOG.find((p) => p.modelPath =
 import { useGym, useTrickSessions, learnedTricks, trickDef, STAND_STAY } from '../../lib/petGym';
 import PetTalk from '../../components/PetTalk';
 import { usePoseSetup, usePetTricks } from '../../lib/usePetTricks';
+import { MapPins, ROLE_ICON, setHoveredBuilding, useHoveredBuilding, hoveredNow } from './MapPins';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import type { PetDef } from '../../lib/petCatalog';
@@ -234,8 +235,12 @@ const PLANE_CRUISE_SPEED = BASE_MOVE_SPEED * 2.2;
 const PLANE_GLIDE_SPEED = PLANE_CRUISE_SPEED * 0.5; // forward speed while landing
 const PLANE_TURN_RATE = 1.6; // rad/s
 const PLANE_ALTITUDE_RATE = 3.5; // units/s, student-controlled while flying
-const CAMERA_HEIGHT = 2.9;
-const CAMERA_DISTANCE = 5.2;
+// Teacher 2026-10-11: "zoom in closer on the player so its more from their pov". The normal
+// camera now sits closer and lower behind the student (it was 5.2 back and 2.9 up); zooming out
+// (k up to 1.6) still reaches the old wider view.
+const CAMERA_HEIGHT = 2.1;
+const CAMERA_DISTANCE = 3.3;
+const ZOOM_MAX = 1.6;
 // Camera zoom (teacher direction 2026-10-04: "give me ability to zoom in on
 // my student camera view so im closer to the back of the character if i
 // want"). k = 1 is the normal chase camera; smaller k pulls the camera in
@@ -246,7 +251,7 @@ const ZOOM_MIN = 0.3;
 const OVER_SHOULDER_HEIGHT = 1.35;
 const CAMERA_ZOOM = { k: 1, key: '' };
 function setCameraZoom(k: number) {
-  CAMERA_ZOOM.k = THREE.MathUtils.clamp(k, ZOOM_MIN, 1);
+  CAMERA_ZOOM.k = THREE.MathUtils.clamp(k, ZOOM_MIN, ZOOM_MAX);
   if (CAMERA_ZOOM.key) { try { localStorage.setItem(CAMERA_ZOOM.key, String(CAMERA_ZOOM.k)); } catch { /* private mode */ } }
 }
 const CAMERA_LOOK_CAP = Math.PI * 0.6;
@@ -270,6 +275,8 @@ const DRAG_PITCH_SENSITIVITY = 0.01;
 // the old fixed GROUND_HALF — see mapHeightFor's call site (the map-view
 // camera lerp in Player's useFrame) for why an expanded wall must still fit
 // in frame.
+// The built part of the world, for framing the map (set from Town Square's objects and regions).
+const MAP_FRAME = { cx: 0, cz: 0, w: 0, d: 0 };
 function mapHeightFor(maxExtent: number): number {
   return 46 * (maxExtent / 14);
 }
@@ -1425,6 +1432,19 @@ function CoordinateGrid() {
   );
 }
 
+// A building's name tag: only while the pointer is over it or after it is tapped (teacher
+// 2026-10-11: "dont have the tags of the buildigns and such always present. only on hover or tap").
+function BuildingTag({ id, x, z, label, shown }: { id: string; x: number; z: number; label: string; shown: boolean }) {
+  const hover = useHoveredBuilding();
+  if (!shown && hover !== id) return null;
+  return (
+    <Html center position={[x, 3.2, z]} style={{ pointerEvents: 'none' }}>
+      <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>{label}</div>
+    </Html>
+  );
+}
+
+
 // A small ring on the ground at the current click/tap-to-walk destination
 // — same "never a surprise, always visible feedback" principle as
 // everything else in this plan. Disappears once the player arrives
@@ -2093,9 +2113,14 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       // chosen to match CoordinateGrid's own documented convention that
       // "up on screen" is north/-Z in this view.
       camera.up.set(0, 0, -1);
-      const mapHeight = mapHeightFor(groundBoundsMaxExtent(walkBounds()));
-      camera.position.lerp(new THREE.Vector3(0, mapHeight, 0.01), 1 - Math.pow(0.001, dt));
-      camera.lookAt(0, 0, 0);
+      // Teacher 2026-10-11 ("you can do much better. on this map"): frame what is actually built
+      // (every placed object and region), not the whole empty field around it.
+      const f = MAP_FRAME;
+      const persp = camera as THREE.PerspectiveCamera;
+      const t = Math.tan(THREE.MathUtils.degToRad((persp.fov ?? 50) / 2));
+      const mapHeight = f.w > 0 ? Math.max(f.d / 2 / t, f.w / 2 / (t * (persp.aspect || 1))) * 1.08 : mapHeightFor(groundBoundsMaxExtent(walkBounds()));
+      camera.position.lerp(new THREE.Vector3(f.cx, mapHeight, f.cz + 0.01), 1 - Math.pow(0.001, dt));
+      camera.lookAt(f.cx, 0, f.cz);
     } else {
       // Restore the standard world-up every frame the normal third-person
       // camera is active — must never stay at the map view's (0,0,-1) once
@@ -3282,6 +3307,19 @@ export default function TownSquare() {
   useTerrainSync();
   // Regions (2026-10-10): the top-left name follows the region the student is standing in.
   const regions = useRegions();
+  // Map framing: the built part of the world (every placed object and region), with a margin.
+  useEffect(() => {
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    const add = (x: number, z: number) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); };
+    for (const o of worldObjects) if (!isOutsideTown(o.position[0], o.position[2], groundBounds)) add(o.position[0], o.position[2]);
+    for (const r of regions.list) { add(r.x1, r.z1); add(r.x2, r.z2); }
+    if (!isFinite(x0)) { MAP_FRAME.w = 0; return; }
+    MAP_FRAME.cx = (x0 + x1) / 2; MAP_FRAME.cz = (z0 + z1) / 2;
+    MAP_FRAME.w = x1 - x0 + 10; MAP_FRAME.d = z1 - z0 + 10;
+  }, [worldObjects, regions.list, groundBounds]);
+  const [mapPick, setMapPick] = useState<string | null>(null);
+  // The coordinate plane (her graphing lessons) is a toggle on the map now, off at first.
+  const [mapGrid, setMapGrid] = useState(false);
   const regionName = regionAt(regions, playerPos.x, playerPos.z);
   const playerPosRef = useRef(playerPos);
   playerPosRef.current = playerPos;
@@ -4554,6 +4592,41 @@ export default function TownSquare() {
           )}
         </div>
       )}
+      {mapView && (() => {
+        const places = worldObjects.filter((o) => o.role && !isOutsideTown(o.position[0], o.position[2], groundBounds)).sort((x, y) => (x.customName || x.label).localeCompare(y.customName || y.label));
+        const picked = places.find((o) => o.id === mapPick);
+        return (
+          <>
+            <div className="map-head">
+              <span>🗺️ Map of {regions.base}</span>
+              <button type="button" className={`btn btn-sm${mapGrid ? ' btn-primary' : ''}`} onClick={() => setMapGrid((g) => !g)} aria-pressed={mapGrid}>📐 Grid</button>
+              <button type="button" className="btn btn-sm btn-primary" onClick={() => { setMapView(false); setMapPick(null); }}>✕ Close map</button>
+            </div>
+            <div className="map-places" aria-label="Places">
+              <h3>📍 Places</h3>
+              {places.map((o) => (
+                <button key={o.id} type="button" className={mapPick === o.id ? 'on' : ''} onClick={() => setMapPick(o.id)}>
+                  <span aria-hidden>{ROLE_ICON[o.role!] ?? '📍'}</span>{o.customName || o.label}
+                </button>
+              ))}
+            </div>
+            {picked && (
+              <div className="map-card" role="dialog" aria-label={picked.customName || picked.label}>
+                <strong>{ROLE_ICON[picked.role!] ?? '📍'} {picked.customName || picked.label}</strong>
+                <button type="button" className="btn btn-primary" onClick={() => {
+                  const dx = MAP_FRAME.cx - picked.position[0], dz = MAP_FRAME.cz - picked.position[2], d = Math.hypot(dx, dz) || 1;
+                  const [bx, bz] = blockBuildings(clampGroundX(picked.position[0] + (dx / d) * 4), clampGroundZ(picked.position[2] + (dz / d) * 4));
+                  walkTarget.current = null; pendingApproach.current = null; hoverTarget.current = null;
+                  teleportTarget.current = { x: bx, z: bz, facing: Math.atan2(-dx, -dz) };
+                  setMapView(false); setMapPick(null);
+                }}>🚶 Go there</button>
+                <button type="button" className="btn" onClick={() => { setMapView(false); setMapPick(null); openRoleObject(picked); }}>🚪 Open</button>
+                <button type="button" className="btn" onClick={() => setMapPick(null)}>Close</button>
+              </div>
+            )}
+          </>
+        );
+      })()}
       {petAnnounce && <div className="pet-announce" role="status" aria-live="polite">{petAnnounce}</div>}
       {strayMenu && student && (() => {
         const n = strayCount(strayMenu.objId);
@@ -5111,7 +5184,15 @@ export default function TownSquare() {
             }}
             onBuildingClick={handleApproachBuilding}
           />
-          {mapView && <CoordinateGrid />}
+          {mapView && mapGrid && <CoordinateGrid />}
+          {mapView && (
+            <MapPins
+              places={worldObjects.filter((o) => o.role && !isOutsideTown(o.position[0], o.position[2], groundBounds)).map((o) => ({ id: o.id, name: o.customName || o.label, icon: ROLE_ICON[o.role!] ?? '📍', x: o.position[0], z: o.position[2] }))}
+              picked={mapPick}
+              onPick={setMapPick}
+              player={{ x: playerPos.x, z: playerPos.z, facing: playerFacingRef.current ?? 0 }}
+            />
+          )}
           {animalPoke && !mapView && (
             <Html key={animalPoke.at} position={[animalPoke.x, heightAt(animalPoke.x, animalPoke.z) + 1.9, animalPoke.z]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
               <div className="animal-poke">{animalPoke.text}</div>
@@ -5309,7 +5390,9 @@ export default function TownSquare() {
             const isMusicSource = isMusicSourceModel(obj.modelPath);
             const animalSound = animalSoundFor(obj.modelPath);
             return (
-            <group key={obj.id}>
+            <group key={obj.id}
+              onPointerOver={obj.role ? (e) => { e.stopPropagation(); setHoveredBuilding(obj.id); } : undefined}
+              onPointerOut={obj.role ? () => { if (hoveredNow() === obj.id) setHoveredBuilding(null); } : undefined}>
               {/* Fish and sea life are look only (teacher 2026-10-11): never caught by a tap. */}
               <WorldObjectRenderer
                 obj={liveObj}
@@ -5367,13 +5450,7 @@ export default function TownSquare() {
                 // Confirm card, per the existing "never auto-open" rule.
                 onDoubleClick={obj.role && mapView ? () => openRoleObject(obj) : undefined}
               />
-              {obj.role && (
-                <Html center position={[obj.position[0], 3.2, obj.position[2]]} style={{ pointerEvents: 'none' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-                    {obj.customName || obj.label}
-                  </div>
-                </Html>
-              )}
+              {obj.role && !mapView && <BuildingTag id={obj.id} x={obj.position[0]} z={obj.position[2]} label={obj.customName || obj.label} shown={selectedRoleObjectId === obj.id} />}
               {/* Teacher's "Glow/label the computer desk when tasks are
                   waiting" setting (StudentManager) — same always-visible "!"
                   badge already used for Neighbors' focus indicator, so a
