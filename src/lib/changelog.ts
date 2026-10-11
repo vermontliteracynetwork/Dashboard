@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-why-questions',
+    date: '2026-10-11',
+    icon: '🤔',
+    title: 'Grammar Gus: why, where, when and how',
+    body: 'Tap the ❓ button on the Question Crane to ask why, where, when or how questions. Try the new Why Did the...? blueprint in Jobs to build a silly question and a silly answer.',
+  },
+  {
     id: '2026-10-11-knock',
     date: '2026-10-11',
     icon: '🚪',

@@ -140,7 +140,7 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
     }
   }
   const draft: Draft = { tokens, tense: tenseOf(line), level, marks };
-  if (crane && question && tokens.every((t) => t.word) && !questionOf(draft)) problems.push({ code: 'CRANE_ONE_IDEA', itemId: crane.id });
+  if (crane && question && tokens.every((t) => t.word) && !questionOf(draft, crane.word)) problems.push({ code: 'CRANE_ONE_IDEA', itemId: crane.id });
   return { draft, tokenIds, problems, hasTV, question, appositives };
 }
 
@@ -149,8 +149,9 @@ export function readLine(line: BoardLine, level: HelpLevel, requireFinish = true
 // wraps it in quotation marks.
 export function lineText(line: BoardLine, rd: LineRead, plain = false): string {
   if (!rd.draft.tokens.some((t) => t.word)) return '';
-  const crane = line.items.some((i) => i.kind === 'crane');
-  let text = (rd.question && crane ? questionOf(rd.draft) : null) ?? withAppositives(rd, plain);
+  const craneItem = line.items.find((i) => i.kind === 'crane');
+  const crane = !!craneItem;
+  let text = (rd.question && crane ? questionOf(rd.draft, craneItem?.word) : null) ?? withAppositives(rd, plain);
   if (rd.question && !crane) text = text.replace(/[.!]$/, '?');
   const bubble = line.items.find((i) => i.kind === 'bubble');
   if (bubble?.word && /[.!?]$/.test(text)) {

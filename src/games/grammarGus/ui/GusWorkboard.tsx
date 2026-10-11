@@ -1000,7 +1000,14 @@ export default function GusWorkboard({ host = false, board }: { host?: boolean; 
     logAttempt(rd.draft, r.composed.text, r.rubric!.stars, r.rubric!.verdicts.map((x) => x.code));
     const review = reviewSentence(rd.draft, r, quizRound.current++, ['robot', 'pizza', 'dragon']);
     // A question machine: the quick question is answering it.
-    const sa = rd.question ? shortAnswers(rd.draft) : null;
+    // A why, where, when or how question asks for a reason, a place, a time or a way, not a yes or no.
+    const wh = line.items.find((i) => i.kind === 'crane')?.word;
+    const WANTS: Record<string, string> = { why: 'a reason', where: 'a place', when: 'a time', how: 'the way it happens' };
+    const sa = rd.question && !wh ? shortAnswers(rd.draft) : null;
+    if (rd.question && wh && WANTS[wh]) {
+      const others = Object.entries(WANTS).filter(([k]) => k !== wh).map(([, v]) => v).slice(0, 2);
+      review.quiz = { q: `What does a "${wh.charAt(0).toUpperCase()}${wh.slice(1)}" question ask for?`, choices: [others[0], WANTS[wh], others[1]], answer: WANTS[wh], why: wh === 'why' ? 'Why asks for a reason. The answer often starts with because.' : `${wh.charAt(0).toUpperCase()}${wh.slice(1)} asks for ${WANTS[wh]}.` };
+    }
     if (sa) review.quiz = { q: `Answer it: ${lineText(line, rd)}`, choices: [sa.wrong[0], sa.right, sa.wrong[1]], answer: sa.right, why: 'A short answer uses the same helper word as the question.' };
     record(review);
     setPulse(gFlags);
@@ -1904,6 +1911,17 @@ export default function GusWorkboard({ host = false, board }: { host?: boolean; 
                           <span className="gwb-clock-btns" onPointerDown={(e) => e.stopPropagation()}>
                             <button type="button" className={item.word !== 'big' ? 'on' : ''} onClick={() => { setItem(line.id, item.id, { word: 'calm' }); gusSound.steam(); say('Calm. A calm sentence ends with a period.', 'Mood Meter'); }} aria-label="Calm: a period">😌 .</button>
                             <button type="button" className={item.word === 'big' ? 'on' : ''} onClick={() => { setItem(line.id, item.id, { word: 'big' }); gusSound.honk(); say('BIG FEELING! A big feeling ends with an exclamation point!', 'Mood Meter'); }} aria-label="Big feeling: an exclamation point">😲 !</button>
+                          </span>
+                        )}
+                        {item.kind === 'crane' && (
+                          <span className="gwb-clock-btns" onPointerDown={(e) => e.stopPropagation()}>
+                            <button type="button" onClick={() => {
+                              const order = [null, 'why', 'where', 'when', 'how'] as const;
+                              const next = order[(order.indexOf((item.word ?? null) as (typeof order)[number]) + 1) % order.length];
+                              setItem(line.id, item.id, { word: next });
+                              gusSound.steam();
+                              say(next === null ? 'Yes or no. The crane asks a question you answer with yes or no.' : next === 'why' ? 'Why asks for a reason. The answer often starts with because.' : next === 'where' ? 'Where asks for a place.' : next === 'when' ? 'When asks for a time: past, present or future.' : 'How asks the way something happens.', 'Question Crane');
+                            }} aria-label="Change the question word on the crane's hook">❓ {item.word ? `${item.word.charAt(0).toUpperCase()}${item.word.slice(1)}?` : 'Yes or no'}</button>
                           </span>
                         )}
                         {item.kind === 'clock' && (

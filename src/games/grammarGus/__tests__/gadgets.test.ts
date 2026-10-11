@@ -154,6 +154,22 @@ describe('LATER parts', () => {
     expect(lineText(past, readLine(past, 'full', false))).toBe('Did the dog run?');
     expect(readLine(line([part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('ask')]), 'full', false).problems.map((p) => p.code)).toEqual(['NEED_CRANE']);
   });
+  it('the Question Crane with why on its hook asks a why question (Build Queue 2026-10-11)', async () => {
+    const { lineText } = await import('../engine/board');
+    const why = line([part('clock', 'past'), part('crane', 'why'), part('cap'), part('A', 'the'), part('N', 'cow'), part('V', 'jump'), part('P', 'over'), part('A', 'the'), part('N', 'van'), part('ask')]);
+    const r = readLine(why, 'full', false);
+    expect(r.problems).toEqual([]);
+    expect(lineText(why, r)).toBe('Why did the cow jump over the van?');
+    const where = line([part('crane', 'where'), part('cap'), part('A', 'the'), part('N', 'cat'), part('V', 'jump'), part('ask')]);
+    expect(lineText(where, readLine(where, 'full', false))).toBe('Where does the cat jump?');
+    const { makeBlueprint } = await import('../engine/jobs');
+    let n = 0;
+    const bp = makeBlueprint('why-did', () => `w${n++}`);
+    expect(bp.length).toBe(2);
+    expect(bp[0].items.some((i) => i.kind === 'crane' && i.word === 'why')).toBe(true);
+    expect(bp[0].items.some((i) => i.kind === 'ask')).toBe(true);
+    expect(bp[1].items.some((i) => i.kind === 'R' && i.word === 'it')).toBe(true);
+  });
   it("the Possessive Tag Gun: the dog's bone", () => {
     const dog = { ...part('N', 'dog'), bottom: part('taggun') };
     expect(text(line([part('cap'), part('A', 'the'), dog, part('N', 'robot'), part('V', 'jump'), part('stop')]))).toBe("The dog's robot jumps.");

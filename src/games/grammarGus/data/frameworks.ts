@@ -11,11 +11,13 @@ export type FrameworkLine =
   | { id: string; kind: 'fixed'; text: string }
   | { id: string; kind: 'word'; accepts: Pos[]; label: string; lead?: string; tail?: string }
   | { id: string; kind: 'echo'; from: string; suffix: string }
-  | { id: string; kind: 'build'; shapes: Pos[][]; label: string; lead?: string; locks?: Record<string, string>; echoStart?: string; expandable?: boolean };
+  | { id: string; kind: 'build'; shapes: Pos[][]; label: string; lead?: string; locks?: Record<string, string>; echoStart?: string; expandable?: boolean; ask?: 'why' | 'where' | 'when' | 'how' };
 export type LinkRule = 'usesSetupWord' | 'characterConnects' | 'sameTime';
 export interface Framework {
   id: string; name: string; icon: string; teaches: string; video: 'compact' | 'perLine';
   tense?: Tense; lines: FrameworkLine[]; links: LinkRule[]; example: string;
+  // Only on the Workboard (it needs a Workboard part, like the Question Crane), not the classic machine.
+  workboardOnly?: boolean;
 }
 
 const S = (s: string) => s.split(' ') as Pos[];
@@ -94,6 +96,17 @@ export const FRAMEWORKS: Framework[] = [
       { id: 'l1', kind: 'build', label: 'What I brought', shapes: [S('R V A J N')], locks: { 'who.pron': 'I' }, expandable: true },
       { id: 'l2', kind: 'build', label: 'What it does', shapes: [S('R V D')], locks: { 'who.pron': 'it' }, expandable: true },
       { id: 'l3', kind: 'build', label: 'Where it goes', shapes: [S('R V P A N')], locks: { 'who.pron': 'it' }, expandable: true },
+    ],
+    links: ['sameTime'],
+  },
+  {
+    // Build Queue 2026-10-11 (the last of the plan's blueprints that needed new grammar): a silly
+    // why question lifted by the Question Crane with "why" on its hook, and a silly answer.
+    id: 'why-did', name: 'Why Did the...?', icon: '🤔', teaches: 'A why question and its answer', video: 'perLine', tense: 'past', workboardOnly: true,
+    example: 'Why did the cow jump over the moon? It wanted a giant cookie.',
+    lines: [
+      { id: 'l1', kind: 'build', label: 'The silly question', shapes: [S('A N V P A N')], ask: 'why' },
+      { id: 'l2', kind: 'build', label: 'The silly answer', shapes: [S('R V A J N')], locks: { 'who.pron': 'it' } },
     ],
     links: ['sameTime'],
   },

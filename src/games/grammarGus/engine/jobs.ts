@@ -72,7 +72,7 @@ export function makeTeacherOrderJob(key: SceneKey, text: string, uid: () => stri
 // Blueprints on the Workboard: a paragraph plan delivered as linked
 // machines, one per sentence, each with its empty word machines in a
 // working order, its label (Beginning, Middle, End) and any fixed lines.
-export const WORKBOARD_BLUEPRINTS = ['silly-story', 'news', 'day-in-the-life', 'rescue', 'knock-knock', 'show-and-tell'];
+export const WORKBOARD_BLUEPRINTS = ['silly-story', 'news', 'day-in-the-life', 'rescue', 'knock-knock', 'show-and-tell', 'why-did'];
 export function makeBlueprint(id: string, uid: () => string): { items: BoardItem[]; job: BoardJob; connector?: string }[] {
   const fw = frameworkById.get(id);
   if (!fw) return [];
@@ -88,7 +88,9 @@ export function makeBlueprint(id: string, uid: () => string): { items: BoardItem
     words[0] = { ...words[0], bottom: { id: uid(), kind: 'cap', word: null } };
     const k = builds.indexOf(l);
     const last = k === builds.length - 1;
-    const items: BoardItem[] = [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: fw.tense ?? 'present' }, ...words, { id: uid(), kind: 'stop', word: null }, { id: uid(), kind: 'tv', word: null }, ...(last ? [] : [{ id: uid(), kind: 'link' as const, word: null }])];
+    // A question line gets the Question Crane (with its question word) and a question mark.
+    const crane: BoardItem[] = l.ask ? [{ id: uid(), kind: 'crane', word: l.ask }] : [];
+    const items: BoardItem[] = [{ id: uid(), kind: 'lever', word: null }, { id: uid(), kind: 'clock', word: fw.tense ?? 'present' }, ...crane, ...words, { id: uid(), kind: l.ask ? 'ask' : 'stop', word: null }, { id: uid(), kind: 'tv', word: null }, ...(last ? [] : [{ id: uid(), kind: 'link' as const, word: null }])];
     out.push({ items, job: { id: uid(), kind: 'blueprint', text: pending.join(' '), group, label: l.label, part: k + 1, of: builds.length, blueprint: fw.id }, connector: l.lead?.replace(/,$/, '') });
     pending = [];
   });

@@ -79,7 +79,7 @@ export const FUN_ROLE: Record<ContraptionKind, FunRole> = {
   pastpress: { pos: 'V', words: VERBS.filter((v) => v.past !== regularPast(v.base) && !v.base.includes(' ')).map((v) => v.base), pop: 'STAMP!', does: 'Stamps out the true past form', grammar: 'irregular past verbs' },
   listtrain: { mark: 'comma', pop: 'CHOO-CHOO!', does: 'Hooks a list of three together with commas', grammar: 'commas in a list' },
   turnstile: { tool: true, pop: 'CLICK-CLICK', does: 'Sends he and him through the right door', grammar: 'subject and object pronouns' },
-  crane: { tool: true, pop: 'CREAK... SWING!', does: 'Lifts a helper word to the front to ask a question', grammar: 'yes or no questions (do, does, did, will)' },
+  crane: { tool: true, pop: 'CREAK... SWING!', does: 'Lifts a helper word to the front to ask a question; tap its hook for why, where, when or how', grammar: 'yes or no questions (do, does, did, will) and why, where, when and how questions' },
   taggun: { mark: 'poss', pop: 'THWIP! TAG!', does: "Snaps under a noun and tags what it owns: the dog's bone", grammar: 'possessive nouns' },
   inflator: { mark: 'size', preset: 'est', pop: 'PUMP PUMP!', does: 'Snaps under a describing word: tall, taller, tallest', grammar: 'comparing describing words' },
   seesaw: { pos: 'C', words: SUBORD, pop: 'TIP... TAP!', does: 'Hangs one idea on another: because, when, after, before, while', grammar: 'joining words for an idea that depends on another' },

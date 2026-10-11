@@ -14,8 +14,12 @@ import { pronounFor } from './remix';
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // The question form of a one-idea sentence, or null when the crane cannot
-// lift it (two ideas joined, or a shout at the front).
-export function questionOf(draft: Draft): string | null {
+// lift it (two ideas joined, or a shout at the front). With a question word
+// on the crane's hook (Build Queue 2026-10-11, for the "Why Did the...?"
+// blueprint) the same lifted question gets that word in front: "The cow
+// jumped over the moon." becomes "Why did the cow jump over the moon?"
+export const QUESTION_WORDS = ['why', 'where', 'when', 'how'] as const;
+export function questionOf(draft: Draft, wh?: string | null): string | null {
   const a = analyze(draft.tokens);
   if (a.clauses.length !== 1 || a.shout !== undefined || !a.parse.viable) return null;
   const cl = a.clauses[0]; const v = cl.verbs[0];
@@ -29,7 +33,8 @@ export function questionOf(draft: Draft): string | null {
   const keepCap = (i: number) => { const t = draft.tokens[i]; const w = normWord(t.word ?? ''); return w === 'I' || !!nounByWord.get(w.replace(/'s?$/, ''))?.proper; };
   const before = words.slice(0, vi).map((w, k) => (k === 0 && !keepCap(w.index) ? w.text.charAt(0).toLowerCase() + w.text.slice(1) : w.text));
   const after = words.slice(vi).flatMap((w) => (w.index === v && isBe ? (draft.tense === 'future' ? ['be'] : []) : [w.pos === 'V' ? normWord(draft.tokens[w.index].word ?? w.text) + (w.text.endsWith(',') ? ',' : '') : w.text]));
-  return `${cap(aux)} ${[...before, ...after].join(' ').replace(/[.!?]$/, '')}?`;
+  const lead = wh && (QUESTION_WORDS as readonly string[]).includes(wh) ? `${cap(wh)} ${aux}` : cap(aux);
+  return `${lead} ${[...before, ...after].join(' ').replace(/[.!?]$/, '')}?`;
 }
 
 // A short answer to a yes-or-no question: "Yes, it does." "No, they did not."

@@ -881,7 +881,7 @@ export default function GrammarGusMachine() {
             <h2>📜 Blueprint Library</h2>
             <p className="gus-library-sub">Pick a blueprint. Gus sets up a machine for every line. You fill in the symbols with silly words.</p>
             <div className="gus-library-grid">
-              {FRAMEWORKS.map((f) => (
+              {FRAMEWORKS.filter((f) => !f.workboardOnly).map((f) => (
                 <button key={f.id} type="button" className={`gus-blueprint-card${bp?.id === f.id ? ' on' : ''}`} onClick={() => startBlueprint(f.id)}>
                   <span className="gus-bp-card-head"><span className="gus-bp-icon" aria-hidden>{f.icon}</span><strong>{f.name}</strong></span>
                   <small>{f.teaches}</small>

@@ -35,7 +35,7 @@ describe('paragraph frameworks', { timeout: 120000 }, () => {
     expect(matchesBlueprint(d('I A N V', 'Eek! The pig fell.').tokens, line)).toBe(true);
     expect(matchesBlueprint(d('A N V', 'The pig fell.').tokens, line)).toBe(false);
   });
-  for (const fw of FRAMEWORKS) {
+  for (const fw of FRAMEWORKS.filter((f) => !f.workboardOnly)) {
     it(`${fw.name}: the Hopper completes every line with 3 stars, and the video plays`, () => {
       const rng = makeRng(7);
       const setup = fw.lines.some((l) => l.kind === 'word') ? (fw.id === 'riddle' ? 'rabbit' : 'zebra') : undefined;

@@ -345,7 +345,7 @@ function Contraption({ kind, w, color, word, status }: { kind: Kind; w: number; 
         <rect x={14} y={10} width={w - 26} height={9} fill={color} stroke={INK} strokeWidth={2.4} />
         <line x1={w - 22} y1={19} x2={w - 22} y2={58} stroke="#6b7383" strokeWidth={2} />
         <path d={`M${w - 28} 58 q 6 12 12 0`} fill="none" stroke={INK} strokeWidth={3} />
-        <rect x={w - 46} y={66} width={44} height={22} rx={4} fill="#f3cf6b" stroke={INK} strokeWidth={2} /><text x={w - 24} y={81} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill={INK}>does?</text>
+        <rect x={w - 46} y={66} width={44} height={22} rx={4} fill={word ? '#9fd8f5' : '#f3cf6b'} stroke={INK} strokeWidth={2} /><text x={w - 24} y={81} textAnchor="middle" fontFamily="Lexend, sans-serif" fontWeight={900} fontSize={11} fill={INK}>{word ? `${word}?` : 'does?'}</text>
       </g>
       <rect x={4} y={120} width={36} height={8} rx={2} fill="#8f98a8" stroke={INK} strokeWidth={2} />
     </g>;
