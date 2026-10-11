@@ -2306,6 +2306,14 @@ These come from `docs/grammar-gus/CLAUDIA_AUDIT_AND_SCAFFOLDS.md`, Part 3. Every
 
 ### Pets v2 overhaul (cats and dogs, grammar-powered training). CLAUDIA'S OVERVIEW 2026-10-06, waiting on her answers
 
+**Trainable skills you can see (her question, verbatim, 2026-10-11): "what trainable skills could the oets have in visable animation (ex. a dog sitting once the sit skill is earned)".** Claudia's answer, from checking every pet model's real animation clips:
+- **What the 12 breeds can do today:** the Husky and Shiba Inu ship a full set of clips (Idle, a second idle, Head Low, Eating, Walk, Gallop, Gallop Jump, Jump to Idle, Attack, Hit React, Death); the Pug has Idle and Jump; the 5 new cats have one idle each (the Black Cat's idle is a sit and groom); the Beagle, Poodle, Great Dane and Tabby Cat have no skeleton and no clips (they can only move as a whole).
+- **Tricks every pet can show now (whole body moves, no new art):** Spin, Hop, Roll Over, Play Dead (tips onto its side and stays), Bow (tilts forward), Speak (a bounce with its sound in a bubble), Stay (stays put while the student walks away), Come and Heel (runs to the student and follows), Fetch (runs to a tossed ball and brings it back).
+- **Tricks that use clips the Husky and Shiba Inu already have:** Jump and Hurdle (Gallop Jump), Race (Gallop), Treat or Eat (Eating), Down (Head Low), Pounce or Play Bow (Attack), Shake Off (Hit React), Play Dead (Death, a real lie down). The Pug can Jump.
+- **Real Sit, Lie Down, Beg, Shake a Paw, High Five:** no pet model has these clips. Two ways: Claudia poses the skeleton in code for the pets that have one (Husky, Shiba Inu and the 5 new cats; sit = hips down and back legs folded, beg = sit plus front paws up, shake = one front paw up), or new pet models that come with these animations are uploaded (several animal packs include sit, lie and beg). The 4 pets with no skeleton (Beagle, Poodle, Great Dane, Tabby Cat) can never bend a leg; they would need rigged replacements to sit.
+- **Suggested ladder for Pets v2 (one new trick per training level, matching today's PET_TRICKS):** Sit, Come, Spin, Speak, Down, Shake a Paw, Play Dead, Roll Over, Jump, Fetch, Dance, High Five, with the learned trick shown on the pet the moment it is earned and playable any time from the pet's menu. In Pets v2 the command is a sentence the student builds ("Sit, Max!", "Max, roll over slowly."), so the trick is the grammar reward.
+- **Waiting on her:** which tricks she wants, whether to pose the skeletons in code or upload pets with sit and lie animations, and what to do about the 4 pets that cannot bend.
+
 Prepared by Claudia, 2026-10-06, for Kayden. Also delivered to her as `docs/PETS_V2_OVERVIEW.pdf`. Nothing in v2 is built yet; Phase 0 (the pause) shipped. Her answers to the open questions at the end decide Phase 1.
 
 Sourcing notes, so nothing here is overstated:
