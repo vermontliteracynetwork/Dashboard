@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-pet-talk',
+    date: '2026-10-11',
+    icon: '💬',
+    title: 'Talk with your pet',
+    body: 'Tap your pet at home (or use Companion in Town Square) to talk. Your pet tells you how it feels with the Zones of Regulation, and you can tell it how you feel too. Talking and playing games fill its Social bar.',
+  },
+  {
     id: '2026-10-11-pet-finder',
     date: '2026-10-11',
     icon: '🐾',

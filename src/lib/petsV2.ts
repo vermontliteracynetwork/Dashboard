@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useStore } from '../store/store';
 import { PET_CATALOG, petDefById, type PetDef } from './petCatalog';
 import { todayISO } from './dates';
+import type { SelZone } from '../types';
 
 // Pets v2 (her spec, 2026-10-11, dev plan Build Queue 19): the shared daily shelter behind the
 // Pet Finder app, pet ages, coats and the adoption records. Every student sees the same shelter
@@ -174,3 +175,22 @@ export function randomPetName(): string {
 export function breedName(defId: string): string {
   return petDefById(defId)?.name ?? 'Pet';
 }
+
+// ---- feelings (her spec: "Pets have same ABA/zones of regulation emotion system as players") ----
+export interface PetFeeling { zone: SelZone; emotion: string; face: string; says: string; need?: 'feed' | 'pet' | 'play' }
+// Worked out from the pet's bars, using the same Zones of Regulation words students use.
+export function petFeeling(p: { food: number; social: number; health: number; customName: string }): PetFeeling {
+  if (p.health < 40) return { zone: 'blue', emotion: 'Sick', face: '🤒', says: `I feel sick. I am in the Blue Zone. A cuddle and a snack would help me feel better.`, need: 'pet' };
+  if (p.food < 40) return { zone: 'yellow', emotion: 'Frustrated', face: '😤', says: `My tummy is rumbling and I feel frustrated. I am in the Yellow Zone. Can I have a snack?`, need: 'feed' };
+  if (p.social < 40) return { zone: 'blue', emotion: 'Lonely', face: '🥺', says: `I feel lonely. I am in the Blue Zone. Can we talk or play together?`, need: 'play' };
+  if (p.food < 60 || p.social < 60) return { zone: 'blue', emotion: 'Bored', face: '😑', says: `I feel a little bored. I am in the Blue Zone. Want to play?`, need: p.food < p.social ? 'feed' : 'play' };
+  if (p.food >= 85 && p.social >= 85 && p.health >= 85) return { zone: 'green', emotion: 'Happy', face: '😃', says: `I feel happy! I am in the Green Zone. Thanks for taking care of me.` };
+  return { zone: 'green', emotion: 'Calm', face: '😌', says: `I feel calm. I am in the Green Zone.` };
+}
+// What the pet says back when the student tells it how they feel.
+export const PET_REPLY: Record<SelZone, string[]> = {
+  green: ['Yay! We are both ready to learn and play.', 'The Green Zone is a great place to be. Let us keep it going!'],
+  yellow: ['Thanks for telling me. When I feel wiggly, I take 5 deep breaths. Want to try with me?', 'I get that way too. Let us count to 10 together, slowly.'],
+  blue: ['Thanks for telling me. I am right here with you. A drink of water and a stretch can help.', 'I will sit with you for a bit. Want to think of a happy memory together?'],
+  red: ['Thank you for telling me. Let us stop and breathe. In, and out. I am not going anywhere.', 'Big feelings are okay. Squeeze your hands tight, then let go, with me.'],
+};

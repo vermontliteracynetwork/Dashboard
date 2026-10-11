@@ -14,7 +14,11 @@ export function recordPetTrainingAnswer(studentId: string) {
   const row = st.styleLooks.find((r) => r.ownerId === owner(studentId))?.look as { answers?: number } | undefined;
   const answers = (row?.answers ?? 0) + 1;
   st.mergeStyleRow(owner(studentId), { answers: answers % PET_ANSWERS_PER_TRAINING });
-  if (answers >= PET_ANSWERS_PER_TRAINING) st.trainPets(studentId, 1, 'answers');
+  if (answers >= PET_ANSWERS_PER_TRAINING) {
+    st.trainPets(studentId, 1, 'answers');
+    // Pets v2: playing games also fills every pet's Social bar a little.
+    st.pets.filter((p) => p.studentId === studentId).forEach((p) => st.carePet(p.id, 'game'));
+  }
 }
 
 export function usePetTrainingAnswers(studentId: string | null | undefined): number {

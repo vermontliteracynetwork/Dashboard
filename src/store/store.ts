@@ -451,7 +451,7 @@ interface AppState {
   // wins. Every action here fails harmlessly (false/no-op) rather than
   // throwing, since they're all called straight from click handlers.
   adoptPet: (studentId: string, petDefId: string, charge?: boolean) => boolean;
-  carePet: (petId: string, action: 'feed' | 'pet' | 'play') => void;
+  carePet: (petId: string, action: 'feed' | 'pet' | 'play' | 'talk' | 'game') => void;
   // Bakery Match's question-answered tracker — every submitted answer
   // counts, right or wrong. Crossing 100 unlocks 'cake' in
   // unlockedCharacterIds and bumps lastCharacterUnlock once.
@@ -1503,8 +1503,14 @@ export const useStore = create<AppState>()(
         const pet = get().pets.find((p) => p.id === petId);
         if (!pet) return;
         const clamp = (n: number) => Math.max(0, Math.min(100, n));
+        // Pets v2 (her spec): "Social bar can be filled by having conversations with your pet
+        // (pie menu) or playing games."
         const updated: StudentPet =
-          action === 'feed'
+          action === 'talk'
+            ? { ...pet, social: clamp(pet.social + 15), health: clamp(pet.health + 3) }
+            : action === 'game'
+            ? { ...pet, social: clamp(pet.social + 10) }
+            : action === 'feed'
             ? { ...pet, food: clamp(pet.food + 25) }
             : action === 'pet'
               ? { ...pet, social: clamp(pet.social + 20), health: clamp(pet.health + 5) }

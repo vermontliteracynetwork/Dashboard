@@ -15,7 +15,9 @@ import { MAILBOX_LOCAL, setLotLocked, useLockedLots, useMyInvites } from './home
 import { KnockListener } from './HomeVisits';
 import { petDefById, PET_OWNERSHIP_CAP, PET_FOLLOW_TRAINING_THRESHOLD, canPetFollow, milestonesReached, nextMilestone, growthStageFor, growthStageLabel, growthStageIcon, growthScaleFactor, PET_TRICKS, PET_MILESTONES, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
-import PetTrainingSession from '../../components/PetTrainingSession';
+import PetTalk from '../../components/PetTalk';
+import { petFeeling } from '../../lib/petsV2';
+import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import type { PetDef } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
 import { useLockBodyScroll } from '../../lib/useLockBodyScroll';
@@ -474,6 +476,7 @@ function PetCareCard({
   studentId,
   flashSaved,
   onCue,
+  onTrain,
 }: {
   pet: StudentPet;
   def: PetDef | undefined;
@@ -547,7 +550,7 @@ function PetCareCard({
       {([
         ['🍗 Food', pet.food, 'Hungry', 'Full'],
         ['💞 Social', pet.social, 'Lonely', 'Loved'],
-        ['❤️ Health', pet.health, 'Not feeling well', 'Healthy'],
+        ['❤️ Health', pet.health, 'Sick', 'Healthy'],
       ] as const).map(([label, value, lowFeeling, highFeeling]) => (
         <div key={label} style={{ marginBottom: 4 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
@@ -558,6 +561,11 @@ function PetCareCard({
           </div>
         </div>
       ))}
+      {(() => { const f = petFeeling(pet); return (
+        <div style={{ display: 'inline-block', margin: '4px 0', padding: '3px 10px', borderRadius: 999, color: '#fff', fontWeight: 800, fontSize: 12, background: SEL_ZONE_COLORS[f.zone] }}>
+          {f.face} {name} feels {f.emotion.toLowerCase()} ({SEL_ZONE_LABELS[f.zone]} Zone)
+        </div>
+      ); })()}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, margin: '6px 0' }}>
         <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('feed')}>🍗 Feed</button>
         <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('pet')}>🤗 Pet</button>
@@ -586,6 +594,12 @@ function PetCareCard({
             <span key={m.label} className="tag-pill" style={{ fontSize: 11, background: '#f1eafe' }}>{m.icon} {m.label}</span>
           ))}
         </div>
+      )}
+      {/* Pets v2 (her spec 2026-10-11): talking with your pet fills its Social bar. */}
+      {onTrain && (
+        <button className="btn btn-primary" style={{ width: '100%', minHeight: 52, fontSize: 15, fontWeight: 900, marginBottom: 6 }} onClick={onTrain}>
+          💬 Talk with {name}
+        </button>
       )}
       {/* Pets v2 (her spec 2026-10-11): tricks are trained at Buff Doge's Gym, not here. */}
       <div style={{ fontSize: 13, fontWeight: 800, background: '#fff3d6', border: '2px solid #f0a030', borderRadius: 10, padding: '8px 10px', marginBottom: 6 }}>
@@ -985,7 +999,6 @@ export default function HomeRoom() {
   const cuePet = (petId: string, kind: string) => setPetCues((c) => ({ ...c, [petId]: { kind, at: Date.now() } }));
   const [trainingPetId, setTrainingPetId] = useState<string | null>(null);
   const trainingPet = trainingPetId ? myPets.find((p) => p.id === trainingPetId) : undefined;
-  const trainingPetDef = trainingPet ? petDefById(trainingPet.petDefId) : undefined;
 
   // Direct instruction: "Build mode must save if the student toggles
   // between tabs or apps. It must have an auto save, but there must
@@ -1501,7 +1514,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, 0, -(halfD + EXTERIOR_CLEARANCE) + 2.2]}
                     cue={petCues[pet.id]}
-                    onTap={undefined}
+                    onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
                 );
               })}
@@ -1539,7 +1552,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, def.category === 'aquatic' || def.category === 'bird' ? 0.6 : 0, Math.max(0, halfD - 1.4)]}
                     cue={petCues[pet.id]}
-                    onTap={undefined}
+                    onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
                 );
               })}
@@ -1573,13 +1586,8 @@ export default function HomeRoom() {
           />
         ))}
       </Canvas>
-      {trainingPet && trainingPetDef && (
-        <PetTrainingSession
-          pet={trainingPet}
-          def={trainingPetDef}
-          onClose={() => setTrainingPetId(null)}
-          onCue={(k) => cuePet(trainingPet.id, k)}
-        />
+      {trainingPet && (
+        <PetTalk pet={trainingPet} onClose={() => setTrainingPetId(null)} onCue={(k) => cuePet(trainingPet.id, k)} />
       )}
 
       {mode === 'build' && (

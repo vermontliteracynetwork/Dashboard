@@ -59,6 +59,7 @@ import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackP
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
 import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { useCouponUsed } from '../../lib/petsV2';
+import PetTalk from '../../components/PetTalk';
 import { petDefById, PET_DECAY_TICK_MS, canPetFollow, thumbnailFor, growthStageFor, growthScaleFactor, PET_TRICKS, PETS_PAUSED } from '../../lib/petCatalog';
 import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import type { PetDef } from '../../lib/petCatalog';
@@ -3178,6 +3179,7 @@ export default function TownSquare() {
   // to false in the same write), so this menu is purely a faster way to
   // call that same action, not new following-limit logic.
   const [showCompanionMenu, setShowCompanionMenu] = useState(false);
+  const [talkPetId, setTalkPetId] = useState<string | null>(null);
   const [companionCue, setCompanionCue] = useState<PetMoveCue | null>(null);
   const [showSelfMenu, setShowSelfMenu] = useState(false);
   const { released: styleReleased } = useStyleSettings();
@@ -4417,6 +4419,7 @@ export default function TownSquare() {
           owned pet's `following` off in the same write), so picking a
           new one here automatically drops whichever pet was following
           before. */}
+      {talkPetId && (() => { const tp = ownedPets.find((p) => p.id === talkPetId); return tp ? <PetTalk pet={tp} onClose={() => setTalkPetId(null)} /> : null; })()}
       {showCompanionMenu && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -4471,6 +4474,15 @@ export default function TownSquare() {
               🚫 None
             </button>
           </div>
+          {followingPet && (
+            <button
+              className="btn btn-primary"
+              onClick={(e) => { e.stopPropagation(); setTalkPetId(followingPet.id); setShowCompanionMenu(false); }}
+              style={{ position: 'absolute', left: '50%', top: 16, transform: 'translateX(-50%)', minHeight: 52, fontSize: '1rem', fontWeight: 800, borderRadius: 14 }}
+            >
+              💬 Talk with {followingPet.customName}
+            </button>
+          )}
           {followingPet && (followingPet.tricksLearned ?? []).length > 0 && (
             <div
               onClick={(e) => e.stopPropagation()}
