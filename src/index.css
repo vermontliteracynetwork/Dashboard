@@ -6350,3 +6350,10 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .region-chip { display: inline-block; animation: regionIn 0.5s ease-out; }
 @keyframes regionIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .region-chip { animation: none; } }
+
+/* Castle Defense: shots and hit bursts from the Foozle packs (2026-10-11). */
+.castle-projectile.cd-shot { width: 0; height: 0; margin: 0; background: none; box-shadow: none; overflow: visible; }
+.cd-shot-art { position: absolute; left: 0; top: 0; display: block; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated; animation-name: cdFrames; animation-iteration-count: infinite; }
+.cd-impact { position: absolute; width: 0; height: 0; z-index: 151; pointer-events: none; }
+.cd-shot-art.cd-once { animation-iteration-count: 1; animation-fill-mode: both; }
+@media (prefers-reduced-motion: reduce) { .cd-shot-art { animation: none !important; } .cd-impact { display: none; } }

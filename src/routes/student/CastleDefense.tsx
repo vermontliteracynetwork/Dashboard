@@ -19,7 +19,7 @@ import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt, MapAnimations } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
 import { drawQuestion } from '../../lib/questionPick';
-import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, TOWER_POOF, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId } from '../../games/castleDefense/catalog';
+import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, TOWER_POOF, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId, SHOT_ART, type ShotArt } from '../../games/castleDefense/catalog';
 import SheetSprite from '../../games/castleDefense/SheetSprite';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
@@ -230,6 +230,21 @@ interface Projectile {
   slot: number; // the firing tower's slot index
   targetProgress: number; // the target's road progress at the moment of firing
   towerType: TowerType; // drives the shot's color (CSS only — no new art), so a wave reads as "who's firing" at a glance
+  tier: 1 | 2 | 3; // which level's shot and hit art (SHOT_ART)
+}
+// A hit burst where a shot landed (SHOT_ART's impact sheets).
+interface Impact { id: string; targetProgress: number; towerType: TowerType; tier: 1 | 2 | 3 }
+
+// The style for one shot or hit sheet: its size, the frame strip, and its turn toward the target.
+function shotStyle(a: ShotArt, deg: number): CSSProperties {
+  const w = (a.size * a.cellW) / a.cellH;
+  return {
+    width: w, height: a.size, marginLeft: -w / 2, marginTop: -a.size / 2,
+    backgroundImage: `url("${a.src}")`,
+    backgroundSize: a.still ? 'auto 100%' : `${a.frames * 100}% 100%`,
+    transform: deg ? `rotate(${deg}deg)` : undefined,
+    ...(a.still || a.frames < 2 ? { animation: 'none' } : { ['--fx-end' as string]: `${(a.frames / (a.frames - 1)) * 100}%`, animationDuration: `${a.frames * 60}ms`, animationTimingFunction: `steps(${a.frames})` }),
+  } as CSSProperties;
 }
 
 function playSfx(name: 'match' | 'combo' | 'fail' | 'pop') {
@@ -304,6 +319,7 @@ export default function CastleDefense() {
 
   const [enemiesView, setEnemiesView] = useState<SimEnemy[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
+  const [impacts, setImpacts] = useState<Impact[]>([]);
   const [waveResult, setWaveResult] = useState<string | null>(null);
   const [waveCleared, setWaveCleared] = useState(false);
   const [castleShake, setCastleShake] = useState(false);
@@ -540,7 +556,7 @@ export default function CastleDefense() {
       targets.forEach((t, k) => {
         const dmg = def.splashAll || k === 0 ? dps : Math.max(1, Math.round(dps * (def.cleaveMult ?? 0.5)));
         hit(t.idx, dmg);
-        newProjectiles.push({ id: `${i}-${now}-${k}`, slot: i, targetProgress: t.e.progress, towerType: slot.type });
+        newProjectiles.push({ id: `${i}-${now}-${k}`, slot: i, targetProgress: t.e.progress, towerType: slot.type, tier: slot.tier });
       });
       if (def.slowTicks && arr[primary.idx].status !== 'dead') {
         arr[primary.idx] = { ...arr[primary.idx], slowTicksRemaining: def.slowTicks };
@@ -558,7 +574,14 @@ export default function CastleDefense() {
     if (newProjectiles.length > 0) {
       setProjectiles((prev) => [...prev, ...newProjectiles]);
       newProjectiles.forEach((p) => {
-        window.setTimeout(() => setProjectiles((prev) => prev.filter((x) => x.id !== p.id)), PROJECTILE_TRAVEL_MS);
+        window.setTimeout(() => {
+          setProjectiles((prev) => prev.filter((x) => x.id !== p.id));
+          const art = SHOT_ART[p.towerType]?.(p.tier).hit;
+          if (art) {
+            setImpacts((prev) => [...prev.slice(-24), { id: p.id, targetProgress: p.targetProgress, towerType: p.towerType, tier: p.tier }]);
+            window.setTimeout(() => setImpacts((prev) => prev.filter((x) => x.id !== p.id)), art.frames * 60 + 40);
+          }
+        }, PROJECTILE_TRAVEL_MS);
       });
       playSfx('pop');
     }
@@ -856,12 +879,31 @@ export default function CastleDefense() {
                 const to = pointAlongPath(p.targetProgress);
                 const start = toPct({ x: from.x, y: from.y - 9 });
                 const end = toPct({ x: to.x, y: to.y - 3 });
+                const art = SHOT_ART[p.towerType]?.(p.tier).shot;
+                if (art) {
+                  const angle = (Math.atan2(to.y - 3 - (from.y - 9), to.x - from.x) * 180) / Math.PI;
+                  return (
+                    <span key={p.id} className="castle-projectile cd-shot" style={{ '--x0': start.left, '--y0': start.top, '--x1': end.left, '--y1': end.top } as CSSProperties} aria-hidden>
+                      <span className="cd-shot-art" style={shotStyle(art, art.turn === null ? 0 : angle + art.turn)} />
+                    </span>
+                  );
+                }
                 return (
                   <span
                     key={p.id}
                     className={`castle-projectile castle-projectile-${p.towerType}`}
                     style={{ '--x0': start.left, '--y0': start.top, '--x1': end.left, '--y1': end.top } as CSSProperties}
                   />
+                );
+              })}
+              {impacts.map((h) => {
+                const art = SHOT_ART[h.towerType]?.(h.tier).hit;
+                if (!art) return null;
+                const at = toPct((() => { const q = pointAlongPath(h.targetProgress); return { x: q.x, y: q.y - 3 }; })());
+                return (
+                  <span key={`hit-${h.id}`} className="cd-impact" style={{ left: at.left, top: at.top }} aria-hidden>
+                    <span className="cd-shot-art cd-once" style={shotStyle(art, 0)} />
+                  </span>
                 );
               })}
 

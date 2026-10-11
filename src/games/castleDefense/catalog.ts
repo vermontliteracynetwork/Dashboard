@@ -152,3 +152,35 @@ export const MAPS: { id: MapId; label: string; icon: string }[] = [
   { id: 'field', label: 'Stone road field', icon: '⛺' },
   { id: 'village', label: 'Market village', icon: '🏘️' },
 ];
+
+// Shots and hits from the Foozle tower packs (Build Queue 2026-10-11; the roadmap's "Not yet:
+// projectile/impact sprites"). Each tower that has its own art fires it: the Crossbow and Bolt
+// towers shoot arrows (the first arrow of the sheet, pointing up, turned toward the target), the
+// Frost Orb an icy orb, the Crystal Tower lightning sparks and the Spark Lamp a fireball, and each
+// hit plays the pack's impact burst. Towers without art keep their colored dot.
+export interface ShotArt { src: string; frames: number; cellW: number; cellH: number; size: number; turn: number | null; still?: boolean }
+const W = (dir: string, n: string, file: string) => `${CD}/foozle/${dir}/towers-weapons/tower-${n}/spritesheets/tower-${n}---${file}.png`;
+const strip = (src: string, imgW: number, h: number, size: number, turn: number | null): ShotArt => ({ src, frames: Math.max(1, Math.round(imgW / h)), cellW: h, cellH: h, size, turn });
+const arrow = (src: string, imgW: number, h: number, n: number, size: number): ShotArt => ({ src, frames: 1, cellW: imgW / n, cellH: h, size, turn: 90, still: true });
+export const SHOT_ART: Partial<Record<string, (tier: 1 | 2 | 3) => { shot: ShotArt; hit?: ShotArt }>> = {
+  crossbow: (t) => ({
+    shot: [arrow(W('towers', '01', 'level-01---projectile'), 24, 40, 3, 22), arrow(W('towers', '01', 'level-02---projectile'), 45, 40, 5, 24), arrow(W('towers', '01', 'level-03---projectile'), 66, 40, 8, 26)][t - 1],
+    hit: strip(W('towers', '01', 'weapon---impact'), 384, 64, 34, null),
+  }),
+  bolt: (t) => ({
+    shot: [arrow(W('towers-3', '06', 'level-01---projectile'), 18, 26, 3, 20), arrow(W('towers-3', '06', 'level-02---projectile'), 32, 34, 4, 24), arrow(W('towers-3', '06', 'level-03---projectile'), 40, 37, 4, 28)][t - 1],
+    hit: strip(W('towers-3', '06', 'weapon---impact'), 384, 64, 40, null),
+  }),
+  orb: (t) => ({
+    shot: [strip(W('towers-3', '05', 'level-01---projectile'), 384, 32, 22, null), strip(W('towers-3', '05', 'level-02---projectile'), 768, 64, 28, null), strip(W('towers-3', '05', 'level-03---projectile'), 1152, 96, 34, null)][t - 1],
+    hit: [strip(W('towers-3', '05', 'level-01---projectile---impact'), 640, 64, 34, null), strip(W('towers-3', '05', 'level-02---projectile---impact'), 768, 64, 40, null), strip(W('towers-3', '05', 'level-03---projectile---impact'), 1152, 96, 46, null)][t - 1],
+  }),
+  crystal: (t) => ({
+    shot: strip(W('towers', '02', `level-0${t}---projectile`), 160, 32, 22, null),
+    hit: [strip(W('towers', '02', 'level-01---projectile---impact'), 320, 64, 34, null), strip(W('towers', '02', 'level-02---projectile---impact'), 384, 64, 38, null), strip(W('towers', '02', 'level-03---projectile---impact'), 448, 64, 42, null)][t - 1],
+  }),
+  zap: () => ({
+    shot: strip(W('towers-4', '07', 'level-x---projectile'), 256, 32, 24, -90),
+    hit: strip(W('towers-4', '07', 'level-x---projectile---impact'), 576, 64, 40, null),
+  }),
+};

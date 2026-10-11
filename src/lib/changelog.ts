@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-castle-shots',
+    date: '2026-10-11',
+    icon: '🏹',
+    title: 'Castle Defense: real arrows and blasts',
+    body: 'Towers now shoot real arrows, icy orbs, lightning sparks and fireballs, with a burst where each one hits.',
+  },
+  {
     id: '2026-10-11-why-questions',
     date: '2026-10-11',
     icon: '🤔',
