@@ -104,6 +104,13 @@ const PET_CATALOG_ALL: PetDef[] = [
   { id: 'pet-shiba-inu', name: 'Shiba Inu', modelPath: '/world/models/pets/animal-shiba-inu.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
   // Cats — 0.5 of the player.
   { id: 'pet-cat-2', name: 'Tabby Cat', modelPath: '/world/models/pets/animal-cat-2.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
+  // Her uploads 2026-10-11 ("add these to the pets"): five realistic cats, each with its own idle
+  // animation (the black cat sits and grooms). Shrunk from 33 MB to 11 MB for iPads.
+  { id: 'pet-cat-bicolor', name: 'Bicolor Cat', modelPath: '/world/models/pets/animal-cat-bicolor.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-black', name: 'Black Cat', modelPath: '/world/models/pets/animal-cat-black.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-maine-coon', name: 'Maine Coon', modelPath: '/world/models/pets/animal-cat-maine-coon.glb', priceCents: 20000, category: 'cat', targetHeight: 0.95 },
+  { id: 'pet-cat-ragdoll', name: 'Ragdoll', modelPath: '/world/models/pets/animal-cat-ragdoll.glb', priceCents: 20000, category: 'cat', targetHeight: 0.8725 },
+  { id: 'pet-cat-bengal', name: 'Bengal', modelPath: '/world/models/pets/animal-cat-bengal.glb', priceCents: 22000, category: 'cat', targetHeight: 0.8725 },
   // A future pet (her words: "keep as future pets: hamster"), not adoptable yet.
   { id: 'pet-hamster', name: 'Hamster', modelPath: '/world/models/pets/animal-hamster.glb', priceCents: 13000, category: 'small', targetHeight: 0.09 },
 ];

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-11T15:51:04.693Z",
+  "generatedAt": "2026-10-11T16:05:00.307Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3804,6 +3804,31 @@
     {
       "path": "/world/models/pets/animal-cat-2.glb",
       "label": "Animal Cat 2",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat-bengal.glb",
+      "label": "Animal Cat Bengal",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat-bicolor.glb",
+      "label": "Animal Cat Bicolor",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat-black.glb",
+      "label": "Animal Cat Black",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat-maine-coon.glb",
+      "label": "Animal Cat Maine Coon",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat-ragdoll.glb",
+      "label": "Animal Cat Ragdoll",
       "category": "pets"
     },
     {
