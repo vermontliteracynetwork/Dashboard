@@ -7,6 +7,7 @@ import { TERRAIN_OWNER, decodeTerrain, encodeTerrain, makeTerrain, setTerrain } 
 import { REGIONS_OWNER, saveRegions, type RegionsRow } from './regions';
 import { HOMES_OWNER, removeHomes, saveHomes, type HomesRow } from './homeLots';
 import { PATHS_OWNER, savePaths, type GroundPath } from './GroundPaths';
+import { syncBacklog } from '../../lib/sync';
 
 // The new Town Square and the Enchanted Forest (teacher 2026-10-10: "turn both mockups into
 // reality for the town square and forrest, replacing all current design"). The two mockups
@@ -19,7 +20,7 @@ import { PATHS_OWNER, savePaths, type GroundPath } from './GroundPaths';
 
 export const REMAKE_OWNER = 'town-remake';
 export const BACKUP_OWNER = 'town-backup';
-export interface RemakeRow { state?: 'built' | 'restored'; at?: string; bannerClosed?: boolean }
+export interface RemakeRow { state?: 'building' | 'built' | 'restored'; at?: string; bannerClosed?: boolean }
 interface BackupRow {
   objects: Omit<WorldObject, 'id' | 'createdAt'>[];
   patches: { x: number; z: number; radius: number; texturePath: string }[];
@@ -292,9 +293,13 @@ function setTerrainFrom(fn: (x: number, z: number) => number, ext: number) {
 }
 
 // Build the new town. `onProgress` gets 0..1.
-export async function buildNewTown(onProgress: (f: number) => void): Promise<void> {
+export async function buildNewTown(onProgress: (f: number) => void, onSaving: (left: number) => void = () => {}): Promise<void> {
   const st = useStore.getState();
-  // 1. Save everything the old design had.
+  // 1. Save everything the old design had. Only the old town is ever saved: building again over
+  // a new (or half-built) town keeps the saved old town as it is.
+  const state = (look(REMAKE_OWNER) as RemakeRow | null)?.state;
+  const haveBackup = Array.isArray((look(BACKUP_OWNER) as BackupRow | null)?.objects);
+  const saveOld = !haveBackup || state === 'restored';
   const published = resolveDraftRows(st.worldObjects.filter(isTown), false);
   const backup: BackupRow = {
     objects: published.map(strip),
@@ -302,7 +307,9 @@ export async function buildNewTown(onProgress: (f: number) => void): Promise<voi
     terrain: look(TERRAIN_OWNER), regions: look(REGIONS_OWNER), homes: look(HOMES_OWNER), paths: look(PATHS_OWNER),
     bounds: { ...st.groundBounds }, groundTexture: st.groundTexture, at: new Date().toISOString(),
   };
-  st.mergeStyleRow(BACKUP_OWNER, backup as unknown as Record<string, unknown>);
+  if (saveOld) st.mergeStyleRow(BACKUP_OWNER, backup as unknown as Record<string, unknown>);
+  st.mergeStyleRow(REMAKE_OWNER, { state: 'building', at: new Date().toISOString(), bannerClosed: false });
+  await waitForSaves(() => {});
   onProgress(0.05);
   // 2. Size every model to its real height.
   const items = [...townItems(), ...forestItems()];
@@ -349,7 +356,19 @@ export async function buildNewTown(onProgress: (f: number) => void): Promise<voi
   // 6. Students see it right away.
   useStore.getState().publishWorldDraft();
   useStore.getState().mergeStyleRow(REMAKE_OWNER, { state: 'built', at: new Date().toISOString(), bannerClosed: false });
+  onProgress(0.97);
+  await waitForSaves(onSaving);
   onProgress(1);
+}
+
+// Waits until every save has reached the cloud, reporting how many are left.
+export async function waitForSaves(onLeft: (left: number) => void) {
+  for (;;) {
+    const left = syncBacklog();
+    onLeft(left);
+    if (left === 0) return;
+    await new Promise((r) => setTimeout(r, 400));
+  }
 }
 
 // Put the old design back exactly as it was saved.

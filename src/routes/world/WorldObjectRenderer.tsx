@@ -1,4 +1,4 @@
-import { useMemo, forwardRef, useEffect, useRef } from 'react';
+import { Component, useMemo, forwardRef, useEffect, useRef, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
@@ -324,7 +324,27 @@ function AnimalLife({ root, clips, label, path, home, rotationY, scale, tall, ba
 // making adjacent small objects overlap-select each other.
 const MIN_HIT_SIZE = 0.6;
 
-export const WorldObjectRenderer = forwardRef<THREE.Group, {
+// One model that fails to load (a dropped connection, a missing file) shows nothing instead of
+// taking the whole 3D view down with it (teacher report 2026-10-11: Build Mode went blank when a
+// building's model could not be fetched). It tries again a few seconds later.
+class ModelBoundary extends Component<{ path: string; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  private timer: number | null = null;
+  private tries = 0;
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err: unknown) {
+    console.warn('[world] a model could not load:', this.props.path, err);
+    if (this.tries++ < 3) this.timer = window.setTimeout(() => { useGLTF.clear(this.props.path); this.setState({ failed: false }); }, 4000 * this.tries);
+  }
+  componentWillUnmount() { if (this.timer) window.clearTimeout(this.timer); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+type RendererProps = Parameters<typeof WorldObjectRendererInner>[0];
+export const WorldObjectRenderer = forwardRef<THREE.Group, Omit<RendererProps, 'ref'>>(function WorldObjectRenderer(props, ref) {
+  return <ModelBoundary key={props.obj.modelPath} path={props.obj.modelPath}><WorldObjectRendererInner {...props} ref={ref} /></ModelBoundary>;
+});
+
+const WorldObjectRendererInner = forwardRef<THREE.Group, {
   obj: WorldObject;
   // The click event comes along, so Build Mode can read whether Shift was really held.
   onClick?: (e?: ThreeEvent<MouseEvent>) => void;
@@ -351,7 +371,7 @@ export const WorldObjectRenderer = forwardRef<THREE.Group, {
   // goes past them (see drawnOutOfTown), and onOutOfTown reports it.
   townBounds?: GroundBounds;
   onOutOfTown?: (id: string, out: boolean) => void;
-}>(function WorldObjectRenderer({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown, highlight, highlightStrength, onTerrain, floats, live }, ref) {
+}>(function WorldObjectRendererInner({ obj, onClick, onDoubleClick, onPointerOver, onPointerOut, onPointerDown, opacity, inert, normalize, townBounds, onOutOfTown, highlight, highlightStrength, onTerrain, floats, live }, ref) {
   const ctx = useTownSizeContext();
   const { scene: recentered, size } = useRecenteredScene(obj.modelPath, obj.tintColor, opacity, (normalize ?? ctx) && !obj.studentId);
   const interactive = !inert && !!(onClick || onDoubleClick || onPointerOver || onPointerOut || onPointerDown);

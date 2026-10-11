@@ -3064,6 +3064,7 @@ export default function WorldEditor() {
   // Only ever runs when she taps the button and confirms; the old town is saved first.
   const remake = useStore((s) => s.styleLooks.find((r) => r.ownerId === REMAKE_OWNER)?.look) as RemakeRow | undefined;
   const [remakeProgress, setRemakeProgress] = useState<number | null>(null);
+  const [savesLeft, setSavesLeft] = useState(0);
   const [remakeAsk, setRemakeAsk] = useState(false);
   const [restoreArmed, setRestoreArmed] = useState(false);
   const remakeStarted = useRef(false);
@@ -3072,7 +3073,7 @@ export default function WorldEditor() {
     remakeStarted.current = true;
     setRemakeAsk(false);
     setRemakeProgress(0);
-    buildNewTown((f) => setRemakeProgress(f))
+    buildNewTown((f) => setRemakeProgress(f), (n) => setSavesLeft(n))
       .catch(() => {})
       .finally(() => { setRemakeProgress(null); remakeStarted.current = false; flashSaved(); });
   };
@@ -3705,9 +3706,8 @@ export default function WorldEditor() {
           </div>
           <div className="stack" style={{ gap: 6, padding: 10, borderRadius: 12, border: '2px dashed var(--content-border)' }}>
             <strong style={{ fontSize: '0.8rem' }}>🖼️ Town design</strong>
-            {remake?.state === 'built'
-              ? <button className="btn" style={{ minHeight: 44, background: restoreArmed ? '#fee2e2' : undefined }} onClick={() => { if (!restoreArmed) { setRestoreArmed(true); return; } setRestoreArmed(false); restoreOldTown(); flashSaved(); }}>{restoreArmed ? 'Tap again to bring back the old town' : '↩ Bring back the old town'}</button>
-              : <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(true)}>🏗️ Build the new Town Square and Forest</button>}
+            <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(true)}>🏗️ {remake?.state === 'built' || remake?.state === 'building' ? 'Build the new town again (clean)' : 'Build the new Town Square and Forest'}</button>
+            {(remake?.state === 'built' || remake?.state === 'building') && <button className="btn" style={{ minHeight: 44, background: restoreArmed ? '#fee2e2' : undefined }} onClick={() => { if (!restoreArmed) { setRestoreArmed(true); return; } setRestoreArmed(false); if (!restoreOldTown()) window.alert('The saved copy of the old town was not found, so it could not come back.'); else flashSaved(); }}>{restoreArmed ? 'Tap again to bring back the old town' : '↩ Bring back the old town'}</button>}
           </div>
           {groundPaths.length > 0 && (
             <div className="stack" style={{ gap: 6, padding: 10, borderRadius: 12, border: '2px dashed var(--content-border)' }}>
@@ -4112,7 +4112,7 @@ export default function WorldEditor() {
               <div className="stack" style={{ gap: 10, background: '#fff', borderRadius: 16, padding: 20, maxWidth: 380, width: '100%', fontFamily: 'system-ui, sans-serif', textAlign: 'center' }}>
                 <strong>🏗️ Building the new Town Square and the Enchanted Forest</strong>
                 <div style={{ height: 14, borderRadius: 999, background: '#e5e7eb', overflow: 'hidden' }}><div style={{ width: `${Math.round(remakeProgress * 100)}%`, height: '100%', background: BUILD_ACCENT, transition: 'width 0.3s' }} /></div>
-                <span style={{ fontSize: '0.8rem' }}>{Math.round(remakeProgress * 100)}%. The old town was saved first, so it can come back.</span>
+                <span style={{ fontSize: '0.8rem' }}>{remakeProgress >= 0.97 && savesLeft > 0 ? `Saving to the cloud: ${savesLeft} left. Keep this page open.` : `${Math.round(remakeProgress * 100)}%. The old town was saved first, so it can come back.`}</span>
               </div>
             </div>
           )}
@@ -4129,9 +4129,15 @@ export default function WorldEditor() {
               </div>
             </div>
           )}
-          {remakeProgress === null && !remakeAsk && !remake?.bannerClosed && (
+          {remakeProgress === null && !remakeAsk && (!remake?.bannerClosed || remake?.state === 'building') && (
             <div role="status" style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 7, background: '#fff', border: `3px solid ${BUILD_ACCENT}`, borderRadius: 14, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100% - 24px)', fontFamily: 'system-ui, sans-serif', fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-              {!remake?.state ? (
+              {remake?.state === 'building' ? (
+                <>
+                  <span>⚠️ The new town did not finish building last time.</span>
+                  <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(true)}>🏗️ Finish building</button>
+                  <button className="btn btn-sm" style={{ minHeight: 44, background: restoreArmed ? '#fee2e2' : undefined }} onClick={() => { if (!restoreArmed) { setRestoreArmed(true); return; } setRestoreArmed(false); if (!restoreOldTown()) window.alert('The saved copy of the old town was not found, so it could not come back.'); else flashSaved(); }}>{restoreArmed ? 'Tap again to bring back the old town' : '↩ Bring back the old town'}</button>
+                </>
+              ) : !remake?.state ? (
                 <>
                   <span>🖼️ The Town Square and Enchanted Forest mockups are ready to build.</span>
                   <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => setRemakeAsk(true)}>🏗️ Build the new town</button>
@@ -4139,7 +4145,7 @@ export default function WorldEditor() {
               ) : remake.state === 'built' ? (
                 <>
                   <span>✨ The new Town Square and the Enchanted Forest (west street) are built and live for students.</span>
-                  <button className="btn btn-sm" style={{ minHeight: 44, background: restoreArmed ? '#fee2e2' : undefined }} onClick={() => { if (!restoreArmed) { setRestoreArmed(true); return; } setRestoreArmed(false); restoreOldTown(); flashSaved(); }}>{restoreArmed ? 'Tap again to bring back the old town' : '↩ Bring back the old town'}</button>
+                  <button className="btn btn-sm" style={{ minHeight: 44, background: restoreArmed ? '#fee2e2' : undefined }} onClick={() => { if (!restoreArmed) { setRestoreArmed(true); return; } setRestoreArmed(false); if (!restoreOldTown()) window.alert('The saved copy of the old town was not found, so it could not come back.'); else flashSaved(); }}>{restoreArmed ? 'Tap again to bring back the old town' : '↩ Bring back the old town'}</button>
                 </>
               ) : (
                 <>

@@ -1163,9 +1163,35 @@ function isPermanentSchemaError(error: { code?: string; message: string }): bool
   return error.code === 'PGRST204' || /could not find the .* column/i.test(error.message);
 }
 
+// At most a few saves travel at once (teacher report 2026-10-11, a blank Build Mode after building
+// the new town: hundreds of saves sent at the same moment ran the browser out of connections,
+// "net::ERR_INSUFFICIENT_RESOURCES", so saves failed and even the 3D models stopped loading).
+// The rest wait their turn in order.
+const MAX_IN_FLIGHT = 6;
+let inFlight = 0;
+const waiting: (() => void)[] = [];
+let backlog = 0;
+async function limited<T>(run: () => PromiseLike<T>): Promise<T> {
+  if (inFlight >= MAX_IN_FLIGHT) await new Promise<void>((resolve) => waiting.push(resolve));
+  inFlight++;
+  try { return await run(); }
+  catch (e) { return { error: { message: String(e) } } as unknown as T; }
+  finally { inFlight--; waiting.shift()?.(); }
+}
+// How many saves are still on their way (or waiting to retry); 0 when everything is saved.
+export const syncBacklog = () => backlog + pendingWrites.length;
+if (typeof window !== 'undefined') {
+  // Leaving with saves still on their way would lose them, so the browser asks first.
+  window.addEventListener('beforeunload', (e) => { if (syncBacklog() > 0) { e.preventDefault(); e.returnValue = ''; } });
+}
+
 async function pushWithRetry(run: () => PromiseLike<{ error: { code?: string; message: string } | null }>, label: string) {
+  backlog++;
+  try { await pushWithRetryInner(run, label); } finally { backlog--; }
+}
+async function pushWithRetryInner(run: () => PromiseLike<{ error: { code?: string; message: string } | null }>, label: string) {
   for (let attempt = 0; ; attempt++) {
-    const res = await run();
+    const res = await limited(run);
     if (!res.error) return;
     if (isPermanentSchemaError(res.error)) {
       console.error(`[sync] ${label} hit a permanent schema mismatch, not retrying:`, res.error.message);
