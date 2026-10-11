@@ -53,6 +53,7 @@ import { getTerrain, heightAt, isTerrainWater, useTerrainVersion, waterLevel } f
 import { SkyDome } from './SkyDome';
 import { WallMesh } from '../../components/WallMesh';
 import { blockWallSegments } from '../../lib/wallGeometry';
+import { animalSoundFor, isFishModel } from './townLayout';
 import { withDefaultRoles, BUILDINGS, ROLE_VIEWS, MARKET_STALLS, MARKET_SCALE, ROAD_SCALE, ROAD_TILES, DECOR_PROPS, CITY_PROPS, GROUND_HALF, resolveDraftRows, isSignModel, isCarModel, isBoatModel, isWaterAt, isMusicSourceModel, isPlaneModel, isDroneModel, HOUSE_EXTERIOR_OPTIONS, SKY_TEXTURE_OPTIONS, groundBoundsMaxExtent, isOutsideTown } from './townLayout';
 import { isTrackModel, isTrainModel, findTrainPath, sampleTrackPath, type TrackPath } from './trainTrack';
 import { getCurrentFocus, maybeAppendFocusLine } from '../../lib/focus';
@@ -3053,6 +3054,13 @@ export default function TownSquare() {
   // screen panel in this file (showTodayTasks, the self pie menu, ...).
   const musicTracks = useStore((s) => s.musicTracks);
   const [showMusicPicker, setShowMusicPicker] = useState(false);
+  // A tapped farm animal's answer (animalSoundFor), shown in a bubble over it for a moment.
+  const [animalPoke, setAnimalPoke] = useState<{ id: string; text: string; x: number; z: number; at: number } | null>(null);
+  useEffect(() => {
+    if (!animalPoke) return;
+    const t = window.setTimeout(() => setAnimalPoke((p) => (p?.at === animalPoke.at ? null : p)), 1800);
+    return () => window.clearTimeout(t);
+  }, [animalPoke]);
   // Teacher's tags sort the library into categories for students too, not
   // just on the teacher's own management screen — direct teacher request.
   const [musicTagFilter, setMusicTagFilter] = useState<string | null>(null);
@@ -4990,6 +4998,11 @@ export default function TownSquare() {
             onBuildingClick={handleApproachBuilding}
           />
           {mapView && <CoordinateGrid />}
+          {animalPoke && !mapView && (
+            <Html key={animalPoke.at} position={[animalPoke.x, heightAt(animalPoke.x, animalPoke.z) + 1.9, animalPoke.z]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
+              <div className="animal-poke">{animalPoke.text}</div>
+            </Html>
+          )}
           {/* Each region's own color border and name on the map (teacher 2026-10-10). */}
           {mapView && <RegionBorders list={regions.list} width={1.4} />}
           <WalkTargetMarker walkTarget={walkTarget} />
@@ -5174,13 +5187,16 @@ export default function TownSquare() {
             const isTrain = isTrainModel(obj.modelPath);
             const isVehicle = isCar || isBoat || isTrain || isPlane || isDrone;
             const isMusicSource = isMusicSourceModel(obj.modelPath);
+            const animalSound = animalSoundFor(obj.modelPath);
             return (
             <group key={obj.id}>
+              {/* Fish and sea life are look only (teacher 2026-10-11): never caught by a tap. */}
               <WorldObjectRenderer
                 obj={liveObj}
                 onTerrain
                 floats={isBoat}
                 live={!isVehicle}
+                inert={isFishModel(obj.modelPath, obj.label)}
                 townBounds={isDriving ? undefined : groundBounds}
                 onClick={
                   // A car/boat model always drives, even if it was also
@@ -5216,6 +5232,8 @@ export default function TownSquare() {
                   : isSignModel(obj.modelPath) && !mapView && !wasDraggingLook.current ? () => setViewingSignId(obj.id)
                   : isMusicSource && !mapView && !wasDraggingLook.current
                     ? () => setShowMusicPicker(true)
+                  : animalSound && !obj.role && !mapView && !wasDraggingLook.current
+                    ? () => setAnimalPoke({ id: obj.id, text: animalSound, x: obj.position[0], z: obj.position[2], at: Date.now() })
                   : undefined
                 }
                 // Direct teacher instruction: a role-having building should

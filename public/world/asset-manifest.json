@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T20:22:48.477Z",
+  "generatedAt": "2026-10-11T15:51:04.693Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -792,18 +792,8 @@
       "category": "creatures"
     },
     {
-      "path": "/world/models/creatures/blob-cat.glb",
-      "label": "Blob Cat",
-      "category": "creatures"
-    },
-    {
       "path": "/world/models/creatures/blob-chicken.glb",
       "label": "Blob Chicken",
-      "category": "creatures"
-    },
-    {
-      "path": "/world/models/creatures/blob-dog.glb",
-      "label": "Blob Dog",
       "category": "creatures"
     },
     {
@@ -3807,23 +3797,8 @@
       "category": "pets"
     },
     {
-      "path": "/world/models/pets/animal-beaver.glb",
-      "label": "Animal Beaver",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-bee.glb",
-      "label": "Animal Bee",
-      "category": "pets"
-    },
-    {
       "path": "/world/models/pets/animal-bunny-2.glb",
       "label": "Animal Bunny 2",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-bunny.glb",
-      "label": "Animal Bunny",
       "category": "pets"
     },
     {
@@ -3832,68 +3807,13 @@
       "category": "pets"
     },
     {
-      "path": "/world/models/pets/animal-cat.glb",
-      "label": "Animal Cat",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-caterpillar.glb",
-      "label": "Animal Caterpillar",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-chick.glb",
-      "label": "Animal Chick",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-cow.glb",
-      "label": "Animal Cow",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-crab.glb",
-      "label": "Animal Crab",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-deer.glb",
-      "label": "Animal Deer",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-dog-pink.glb",
-      "label": "Animal Dog Pink",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-dog.glb",
-      "label": "Animal Dog",
-      "category": "pets"
-    },
-    {
       "path": "/world/models/pets/animal-duck.glb",
       "label": "Animal Duck",
       "category": "pets"
     },
     {
-      "path": "/world/models/pets/animal-elephant.glb",
-      "label": "Animal Elephant",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-fish.glb",
-      "label": "Animal Fish",
-      "category": "pets"
-    },
-    {
       "path": "/world/models/pets/animal-fox.glb",
       "label": "Animal Fox",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-giraffe.glb",
-      "label": "Animal Giraffe",
       "category": "pets"
     },
     {
@@ -3907,58 +3827,13 @@
       "category": "pets"
     },
     {
-      "path": "/world/models/pets/animal-hog.glb",
-      "label": "Animal Hog",
-      "category": "pets"
-    },
-    {
       "path": "/world/models/pets/animal-husky.glb",
       "label": "Animal Husky",
       "category": "pets"
     },
     {
-      "path": "/world/models/pets/animal-koala.glb",
-      "label": "Animal Koala",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-lion.glb",
-      "label": "Animal Lion",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-monkey.glb",
-      "label": "Animal Monkey",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-panda.glb",
-      "label": "Animal Panda",
-      "category": "pets"
-    },
-    {
       "path": "/world/models/pets/animal-parrot-2.glb",
       "label": "Animal Parrot 2",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-parrot.glb",
-      "label": "Animal Parrot",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-penguin.glb",
-      "label": "Animal Penguin",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-pig.glb",
-      "label": "Animal Pig",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-polar.glb",
-      "label": "Animal Polar",
       "category": "pets"
     },
     {
@@ -3974,11 +3849,6 @@
     {
       "path": "/world/models/pets/animal-shiba-inu.glb",
       "label": "Animal Shiba Inu",
-      "category": "pets"
-    },
-    {
-      "path": "/world/models/pets/animal-tiger.glb",
-      "label": "Animal Tiger",
       "category": "pets"
     },
     {

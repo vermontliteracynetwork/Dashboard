@@ -2630,6 +2630,10 @@ export default function WorldEditor() {
   const clampToGroundZ = (v: number) => THREE.MathUtils.clamp(v, -groundBounds.north + 1, groundBounds.south - 1);
   // Objects sitting past the town's edge: never drawn in Town Square (flat,
   // empty horizon), listed here so she can clear them out.
+  // Placed things whose model is no longer in the catalog files (removed from the game).
+  const manifestPaths = useMemo(() => new Set(manifestAll.map((a) => a.path)), [manifestAll]);
+  const removedModelObjects = manifestAll.length ? worldObjects.filter((o) => !o.studentId && !o.pendingDelete && o.modelPath.startsWith('/world/models/') && !manifestPaths.has(o.modelPath)) : [];
+  const [removedArmed, setRemovedArmed] = useState(false);
   const outsideTownObjects = worldObjects.filter((o) => !o.pendingDelete && (isOutsideTown(o.position[0], o.position[2], groundBounds) || drawnOutIds.has(o.id)));
 
   // Generalized edit/delete for whichever kind is selected — a placed
@@ -3456,6 +3460,17 @@ export default function WorldEditor() {
               onClick={() => { oversized.forEach((o) => updateWorldObjectH(o.id, { scale: o.scale })); flashSaved(); }}
             >
               📐 Fix {oversized.length} giant {oversized.length === 1 ? 'object' : 'objects'}
+            </button>
+          )}
+          {removedModelObjects.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-flat"
+              style={{ minHeight: 34, padding: '4px 10px', fontSize: '0.8rem', background: removedArmed ? 'rgba(239,68,68,0.6)' : 'rgba(255,176,32,0.35)', color: '#fff', border: '2px solid #fff', boxShadow: 'none' }}
+              title="Placed things whose model was taken out of the game (like the pets removed 2026-10-11). They no longer show. Tap twice to remove them."
+              onClick={() => { if (!removedArmed) { setRemovedArmed(true); return; } removedModelObjects.forEach((o) => deleteWorldObjectH(o.id)); setRemovedArmed(false); flashSaved(); }}
+            >
+              🧹 {removedArmed ? `Tap again to remove ${removedModelObjects.length}` : `${removedModelObjects.length} removed ${removedModelObjects.length === 1 ? 'model' : 'models'}`}
             </button>
           )}
           {outsideTownObjects.length > 0 && (

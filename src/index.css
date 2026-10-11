@@ -6357,3 +6357,8 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .cd-impact { position: absolute; width: 0; height: 0; z-index: 151; pointer-events: none; }
 .cd-shot-art.cd-once { animation-iteration-count: 1; animation-fill-mode: both; }
 @media (prefers-reduced-motion: reduce) { .cd-shot-art { animation: none !important; } .cd-impact { display: none; } }
+
+/* Town Square: a tapped farm animal answers (2026-10-11). */
+.animal-poke { background: #fff; border: 3px solid #1f4238; border-radius: 18px; padding: 6px 14px; font: 800 16px system-ui, sans-serif; color: #1f4238; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: animalPoke 0.35s cubic-bezier(.3,1.6,.6,1) both; }
+@keyframes animalPoke { from { transform: scale(0.4) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .animal-poke { animation: none; } }

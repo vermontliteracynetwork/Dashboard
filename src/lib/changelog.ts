@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-farm-animals',
+    date: '2026-10-11',
+    icon: '🐓',
+    title: 'Town Square: say hi to the animals',
+    body: 'Tap a cow, chicken, hen, rooster, duck or parrot in Town Square and it will answer you!',
+  },
+  {
     id: '2026-10-11-castle-shots',
     date: '2026-10-11',
     icon: '🏹',

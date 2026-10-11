@@ -486,3 +486,17 @@ export const SKY_TEXTURE_OPTIONS: { id: string; category: string; label: string;
   { id: 'wispy-sky-sunset-03', category: 'Wispy Sky', label: 'Wispy Sky: Sunset 03', path: '/world/textures/sky/wispy-sky-sunset-03.png' },
   { id: 'wispy-sky-sunset-04', category: 'Wispy Sky', label: 'Wispy Sky: Sunset 04', path: '/world/textures/sky/wispy-sky-sunset-04.png' },
 ];
+
+// Animals she keeps as placeable, live-mode animals that are not pets (teacher 2026-10-11: "keep for
+// non-pet animals that can be placed by teacher and interacted with in live mode though not
+// available as pets; tropical parrot, duck, chicken, cow (cartoon and low poly), hen, rooster").
+// Tapping one in Town Square makes it answer with its sound.
+export function animalSoundFor(modelPath: string): string | null {
+  const f = modelPath.split('/').pop() ?? '';
+  if (/^animal-parrot-2\./.test(f)) return 'Squawk! Hello!';
+  if (/^animal-duck\./.test(f)) return 'Quack quack!';
+  if (/^rooster\./.test(f)) return 'Cock-a-doodle-doo!';
+  if (/^(chicken|hen)\./.test(f)) return 'Cluck cluck!';
+  if (/^cow-(poly|quaternius)\./.test(f)) return 'Moooo!';
+  return null;
+}

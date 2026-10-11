@@ -86,86 +86,30 @@ export const PET_DECAY_AMOUNT = 4;
 // petDefById below) so a pet a student already owns from before this
 // restriction shipped still resolves correctly in Home Room/My Stuff —
 // nothing already adopted disappears or breaks.
+// Teacher cleanup 2026-10-11 (verbatim): "Pet Breeds: Cats: tabby cat. Dogs: Pug, husky, poodle,
+// beagle, great dane, shiba inu. keep as future pets: hamster ... delete all other pets from
+// catelog entirely. lets clean things up". The pets are these 7 breeds. The Hamster stays defined
+// as a future pet but is not adoptable. Every other pet was removed from the catalog (their models
+// are deleted; the ones she kept for future Neighbors or as placeable animals live on in the
+// Build Mode catalog, see the dev plan). Pets were all refunded and removed on 2026-10-06, so no
+// student owns a removed pet.
 const PET_CATALOG_ALL: PetDef[] = [
-  // Dogs — direct teacher spec, a precise player-relative ratio scale
-  // (player character = 1): Great Dane = 0.8, other (medium) dogs = 0.6,
-  // small dogs = 0.5. targetHeight = ratio * CHARACTER_HEIGHT (1.745).
-  // Supersedes an earlier, much-more-compressed pass at these same
-  // numbers — this is the real scale now. (Teacher also gave a Horse
-  // ratio of 2.0 for future reference; no horse pet exists in this
-  // catalog yet, so it's not applied to anything today.)
-  { id: 'pet-dog', name: 'Dog', modelPath: '/world/models/pets/animal-dog.glb', priceCents: 15000, category: 'dog', targetHeight: 1.047 },
+  // Dogs — player-relative ratio scale (player = 1): Great Dane 0.8, the others 0.6.
+  // targetHeight = ratio * CHARACTER_HEIGHT (1.745).
   { id: 'pet-pug', name: 'Pug', modelPath: '/world/models/pets/animal-pug.glb', priceCents: 18000, category: 'dog', targetHeight: 0.8725 },
   { id: 'pet-husky', name: 'Husky', modelPath: '/world/models/pets/animal-husky.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
   { id: 'pet-poodle', name: 'Poodle', modelPath: '/world/models/pets/animal-poodle.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
   { id: 'pet-beagle', name: 'Beagle', modelPath: '/world/models/pets/animal-beagle.glb', priceCents: 18000, category: 'dog', targetHeight: 1.047 },
   { id: 'pet-great-dane', name: 'Great Dane', modelPath: '/world/models/pets/animal-great-dane.glb', priceCents: 22000, category: 'dog', targetHeight: 1.396 },
   { id: 'pet-shiba-inu', name: 'Shiba Inu', modelPath: '/world/models/pets/animal-shiba-inu.glb', priceCents: 20000, category: 'dog', targetHeight: 1.047 },
-  { id: 'pet-blob-dog', name: 'Blob Dog', modelPath: '/world/models/creatures/blob-dog.glb', priceCents: 15000, category: 'dog', targetHeight: 1.047 },
-  { id: 'pet-dog-pink', name: 'Pink Dog', modelPath: '/world/models/pets/animal-dog-pink.glb', priceCents: 16000, category: 'dog', targetHeight: 1.047 },
-
-  // Cats — direct teacher spec, same ratio scale as small dogs: 0.5.
-  { id: 'pet-cat', name: 'Cat', modelPath: '/world/models/pets/animal-cat.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
+  // Cats — 0.5 of the player.
   { id: 'pet-cat-2', name: 'Tabby Cat', modelPath: '/world/models/pets/animal-cat-2.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
-  { id: 'pet-blob-cat', name: 'Blob Cat', modelPath: '/world/models/creatures/blob-cat.glb', priceCents: 15000, category: 'cat', targetHeight: 0.8725 },
-
-  // Small critters — genuinely tiny, per direct teacher spec ("fish should
-  // be small," applied consistently to the rest of this tier too).
+  // A future pet (her words: "keep as future pets: hamster"), not adoptable yet.
   { id: 'pet-hamster', name: 'Hamster', modelPath: '/world/models/pets/animal-hamster.glb', priceCents: 13000, category: 'small', targetHeight: 0.09 },
-  { id: 'pet-bunny', name: 'Bunny', modelPath: '/world/models/pets/animal-bunny.glb', priceCents: 15000, category: 'small', targetHeight: 0.22 },
-  { id: 'pet-bunny-2', name: 'Fluffy Bunny', modelPath: '/world/models/pets/animal-bunny-2.glb', priceCents: 15000, category: 'small', targetHeight: 0.22 },
-  { id: 'pet-beaver', name: 'Beaver', modelPath: '/world/models/pets/animal-beaver.glb', priceCents: 17000, category: 'small', targetHeight: 0.26 },
-  { id: 'pet-bee', name: 'Bee', modelPath: '/world/models/pets/animal-bee.glb', priceCents: 12000, category: 'small', targetHeight: 0.07 },
-  { id: 'pet-caterpillar', name: 'Caterpillar', modelPath: '/world/models/pets/animal-caterpillar.glb', priceCents: 12000, category: 'small', targetHeight: 0.06 },
-  { id: 'pet-crab', name: 'Crab', modelPath: '/world/models/pets/animal-crab.glb', priceCents: 14000, category: 'small', targetHeight: 0.09 },
-  { id: 'pet-chick', name: 'Chick', modelPath: '/world/models/pets/animal-chick.glb', priceCents: 14000, category: 'small', targetHeight: 0.12 },
-
-  // Farm
-  { id: 'pet-cow', name: 'Cow', modelPath: '/world/models/pets/animal-cow.glb', priceCents: 25000, category: 'farm', targetHeight: 0.9 },
-  { id: 'pet-pig', name: 'Pig', modelPath: '/world/models/pets/animal-pig.glb', priceCents: 20000, category: 'farm', targetHeight: 0.5 },
-  { id: 'pet-hog', name: 'Hog', modelPath: '/world/models/pets/animal-hog.glb', priceCents: 22000, category: 'farm', targetHeight: 0.55 },
-
-  // Birds
-  { id: 'pet-parrot', name: 'Parrot', modelPath: '/world/models/pets/animal-parrot.glb', priceCents: 22000, category: 'bird', targetHeight: 0.24 },
-  { id: 'pet-parrot-2', name: 'Tropical Parrot', modelPath: '/world/models/pets/animal-parrot-2.glb', priceCents: 22000, category: 'bird', targetHeight: 0.24 },
-  { id: 'pet-duck', name: 'Duck', modelPath: '/world/models/pets/animal-duck.glb', priceCents: 14000, category: 'bird', targetHeight: 0.26 },
-  { id: 'pet-penguin', name: 'Penguin', modelPath: '/world/models/pets/animal-penguin.glb', priceCents: 24000, category: 'bird', targetHeight: 0.38 },
-
-  // Aquatic — direct teacher spec: small, and floats (no walk animation).
-  { id: 'pet-fish', name: 'Fish', modelPath: '/world/models/pets/animal-fish.glb', priceCents: 12000, category: 'aquatic', targetHeight: 0.16 },
-
-  // Wild (pricier — a stretch goal for the economy, not starter-tier).
-  // Real-world giants (elephant/giraffe) are still the biggest companions
-  // here but capped well below their real scale ("ensure the pets are
-  // small" — a literal-scale elephant would tower over the avatar).
-  { id: 'pet-fox', name: 'Fox', modelPath: '/world/models/pets/animal-fox.glb', priceCents: 30000, category: 'wild', targetHeight: 0.42 },
-  { id: 'pet-deer', name: 'Deer', modelPath: '/world/models/pets/animal-deer.glb', priceCents: 30000, category: 'wild', targetHeight: 0.6 },
-  { id: 'pet-elephant', name: 'Elephant', modelPath: '/world/models/pets/animal-elephant.glb', priceCents: 45000, category: 'wild', targetHeight: 1.0 },
-  { id: 'pet-giraffe', name: 'Giraffe', modelPath: '/world/models/pets/animal-giraffe.glb', priceCents: 42000, category: 'wild', targetHeight: 1.0 },
-  { id: 'pet-koala', name: 'Koala', modelPath: '/world/models/pets/animal-koala.glb', priceCents: 35000, category: 'wild', targetHeight: 0.35 },
-  { id: 'pet-lion', name: 'Lion', modelPath: '/world/models/pets/animal-lion.glb', priceCents: 45000, category: 'wild', targetHeight: 0.58 },
-  { id: 'pet-monkey', name: 'Monkey', modelPath: '/world/models/pets/animal-monkey.glb', priceCents: 32000, category: 'wild', targetHeight: 0.35 },
-  { id: 'pet-panda', name: 'Panda', modelPath: '/world/models/pets/animal-panda.glb', priceCents: 40000, category: 'wild', targetHeight: 0.5 },
-  { id: 'pet-polar-bear', name: 'Polar Bear', modelPath: '/world/models/pets/animal-polar.glb', priceCents: 40000, category: 'wild', targetHeight: 0.65 },
-  { id: 'pet-tiger', name: 'Tiger', modelPath: '/world/models/pets/animal-tiger.glb', priceCents: 45000, category: 'wild', targetHeight: 0.58 },
-
-  // Fun / novelty (silliest tier, priced like the wild animals) — humanoid-
-  // ish characters, kept modest/companion-scale rather than avatar-scale.
-  { id: 'pet-banana-guy', name: 'Banana Guy', modelPath: '/world/models/creatures/banana-guy.glb', priceCents: 35000, category: 'fun', targetHeight: 0.55 },
-  { id: 'pet-potato-character', name: 'Potato Pal', modelPath: '/world/models/creatures/potato-character.glb', priceCents: 35000, category: 'fun', targetHeight: 0.55 },
-  { id: 'pet-butter-character', name: 'Butter Buddy', modelPath: '/world/models/creatures/butter-character.glb', priceCents: 35000, category: 'fun', targetHeight: 0.55 },
-  { id: 'pet-cactoro', name: 'Cactoro', modelPath: '/world/models/creatures/cactoro-quaternius.glb', priceCents: 35000, category: 'fun', targetHeight: 0.55 },
-  { id: 'pet-sussy-imposter', name: 'Sus Buddy', modelPath: '/world/models/creatures/sussy-imposter.glb', priceCents: 35000, category: 'fun', targetHeight: 0.55 },
-  { id: 'pet-wizardus', name: 'Wizardus', modelPath: '/world/models/creatures/wizardus-maximus.glb', priceCents: 35000, category: 'fun', targetHeight: 0.55 },
 ];
 
-// Direct teacher instruction: "all animals can be pets" — every real-
-// animal category is adoptable now (dogs, cats, small critters, farm,
-// birds, aquatic, wild). The novelty "fun" characters (Butter Buddy,
-// Potato Pal, Wizardus, etc.) are food/humanoid props, not animals, and
-// stay held back per the literal instruction — still defined in
-// PET_CATALOG_ALL above, ready to re-enable the same way if ever asked.
-const ADOPTABLE_CATEGORIES: PetCategory[] = ['dog', 'cat', 'small', 'farm', 'bird', 'aquatic', 'wild'];
+// Only the 7 breeds can be adopted; the Hamster waits as a future pet.
+const ADOPTABLE_CATEGORIES: PetCategory[] = ['dog', 'cat'];
 
 // The adoptable roster — what students can actually adopt, see in the Pet
 // Shelter/Journal, and pull from the Mystery Box or daily spin wheel.

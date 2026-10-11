@@ -111,8 +111,8 @@ function townItems(): Item[] {
   T('interior/chess-set.glb', -8, 21.5, { w: 0.9, role: 'chess', name: 'Slime Chess', onPrev: true });
   T('props/park/park-picnic-table.glb', -12.5, 22.5, { w: 2.4, r: 0.4, solid: true });
   T('props/park-info-board.glb', -3.4, 10, { h: 1.8, r: PI / 2, role: 'welcome-center', name: 'Welcome Center' });
-  T('pets/animal-dog.glb', -9, 12.5, { h: 0.6, r: 0.8 });
-  T('pets/animal-cat.glb', -15.6, 19.4, { h: 0.45, r: -2 });
+  T('pets/animal-beagle.glb', -9, 12.5, { h: 0.6, r: 0.8 });
+  T('pets/animal-cat-2.glb', -15.6, 19.4, { h: 0.45, r: -2 });
   // Pond (south-east): dock to the island, a rowboat, ducks on the shore
   T('camping/Fishing_Dock_A.glb', 8.6, 16.5, { w: 4.5, r: PI / 2, role: 'island-dock', name: 'Island Dock' });
   T('pirate/boat-row-small.glb', 15, 16.5, { w: 2.6, r: 0.6 });
@@ -200,9 +200,8 @@ function forestItems(): Item[] {
   F('props/bridge.glb', -0.3, 1.4, { w: 6, r: PI / 2 + 0.25 });
   for (const [x, z] of [[2.6, 12], [-2.2, 7.5], [1.6, -1.8], [-1, -10.4], [5.6, -9.6], [8.4, -13.6]] as const) F('halloween/post_lantern.gltf', x, z, { h: 2.3, r: x });
   // Animals
-  F('pets/animal-deer.glb', 9.5, 4.3, { h: 1.3, r: -2.6 });
+  F('pets/animal-duck.glb', 9.5, 4.3, { h: 0.45, r: -2.6 });
   F('pets/animal-fox.glb', -10.5, 6.5, { h: 0.6, r: 0.6 });
-  F('pets/animal-bunny.glb', 4.5, 9.5, { h: 0.35, r: 2 });
   F('creatures/blob-mushnub.glb', 9.6, 6.6, { h: 0.6, r: -1.5 });
   // The woods
   const rnd = rng(42);
