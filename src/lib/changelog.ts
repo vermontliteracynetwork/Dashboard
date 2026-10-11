@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-11-speak',
+    date: '2026-10-11',
+    icon: '🗣️',
+    title: 'Teach your pet to Speak',
+    body: "Once your pet knows every other trick, it can learn Speak! Train it at Buff Doge's Gym, or read Library passages out loud to your pet: you get 1 to 3 stars, and every 2 readings is a training session. A pet that knows Speak talks back when you talk to it, just like a talking pet app!",
+  },
+  {
     id: '2026-10-11-check-on-pet',
     date: '2026-10-11',
     icon: '🐾',

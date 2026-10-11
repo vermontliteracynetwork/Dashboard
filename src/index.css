@@ -6550,3 +6550,9 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .cop-tracks .btn { min-height: 48px; }
 .cop-ready { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); background: #fff; border: 5px solid #2fa36b; border-radius: 20px; box-shadow: 0 8px 0 #1f7a4f; padding: 14px; z-index: 410; }
 .cop-ready p { margin: 0 0 10px; font-size: 1.2rem; font-weight: 800; }
+.rtp { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; width: 100%; }
+.rtp-btn { min-height: 52px; border-radius: 14px; border: 3px solid #a855c7; background: #fff; color: #4a2a63; font: inherit; font-weight: 800; padding: 6px 14px; cursor: pointer; }
+.rtp-btn.rec { background: #e2574c; border-color: #a83a31; color: #fff; }
+.rtp-live { font-weight: 800; color: #a83a31; }
+.rtp-result { flex-basis: 100%; background: #fff7d6; border: 3px solid #f0a030; border-radius: 12px; padding: 8px 12px; font-weight: 700; color: #4a3428; }
+.rtp-stars { font-size: 1.3rem; letter-spacing: 2px; }

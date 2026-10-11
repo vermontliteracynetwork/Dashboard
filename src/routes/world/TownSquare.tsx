@@ -61,6 +61,7 @@ import { emoteById, ambientEmoteFor } from '../../lib/emoteCatalog';
 import { useCouponUsed, useCompanions, randomPetName, type PetCertificate } from '../../lib/petsV2';
 import { AdoptionCertificate, Celebration } from '../student/PetFinder';
 import { playCheer } from '../../lib/petSounds';
+import { sayInPetVoice, petVoiceLine } from '../../lib/petSpeak';
 import { PET_CATALOG } from '../../lib/petCatalog';
 
 // A placed cat or dog from the pets catalog is a stray (her Pets v2 spec).
@@ -4537,6 +4538,7 @@ export default function TownSquare() {
                       style={{ minHeight: 52, fontSize: '1rem', fontWeight: 800, background: '#fff', borderRadius: 14 }}
                       onClick={() => {
                         setCompanionCue({ kind: t, at: Date.now(), petId: p.id });
+                        if (t === 'Speak') window.setTimeout(() => sayInPetVoice(petVoiceLine(p.petDefId)), 400);
                         setPetAnnounce(`${p.customName} uses ${t === STAND_STAY.name ? STAND_STAY.move : trickDef(t)?.move ?? t}!`);
                         window.setTimeout(() => setPetAnnounce(null), 3400);
                         setShowCompanionMenu(false);

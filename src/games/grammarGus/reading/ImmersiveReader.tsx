@@ -1,3 +1,4 @@
+import ReadToPet from '../../../components/ReadToPet';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import '@fontsource/opendyslexic/400.css';
 import '@fontsource/opendyslexic/700.css';
@@ -248,6 +249,7 @@ export default function ImmersiveReader({ article, onClose, onAnswer, calm = fal
           <span className="rdr-thumbs" aria-hidden>{images.slice(0, 4).map((im) => <img key={im.src} src={im.src} alt="" referrerPolicy="no-referrer" />)}</span>
           <span>🖼️ Pictures ({images.length}) ▲</span>
         </button>
+        {content && <ReadToPet passage={content.blocks.map((b) => b.text).join(' ')} />}
         {onAnswer && <button type="button" className={`rdr-answer${done ? ' ready' : ''}`} onClick={() => { pause(); onAnswer(); }}>✍️ Answer it: {article.question}</button>}
       </footer>
 

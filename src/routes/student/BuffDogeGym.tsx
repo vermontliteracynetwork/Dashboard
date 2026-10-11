@@ -13,6 +13,7 @@ import { drawQuestion, pickableSets } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { playCashRegister } from '../../lib/chime';
 import { playCheer } from '../../lib/petSounds';
+import { sayInPetVoice, petVoiceLine } from '../../lib/petSpeak';
 import { useBack } from '../../lib/navTrail';
 import QuestionScreen from '../../components/QuestionScreen';
 import PetStage3D, { type TrickCue } from '../../components/PetStage3D';
@@ -83,6 +84,7 @@ export default function BuffDogeGym() {
     const move = trick === STAND_STAY.name ? STAND_STAY.move : trickDef(trick)?.move ?? trick;
     setAnnounce(`${pet.customName} uses ${move}!`);
     setCue({ name: trick, at: Date.now() });
+    if (trick === 'Speak') window.setTimeout(() => sayInPetVoice(petVoiceLine(pet.petDefId)), 400);
     if (annTimer.current) window.clearTimeout(annTimer.current);
     annTimer.current = window.setTimeout(() => setAnnounce(null), 3400);
   };
@@ -139,7 +141,9 @@ export default function BuffDogeGym() {
         window.setTimeout(() => desk(pet.id), 50);
       } },
       { label: `Answer ${SESSION_QUESTIONS} questions`, sub: 'Finish the session now', go: () => startQuiz({ kind: 'train', petId: pet.id, trick, target: SESSION_QUESTIONS }) },
-    ], true);
+      // Her spec: Speak "can be expedited by the student recording themselves reading passages".
+      ...(trick === 'Speak' ? [{ label: '🎙️ Read 2 passages aloud', sub: 'In the Library, for free', go: () => navigate('/student/library') }] : []),
+    ], trick !== 'Speak');
   };
   const desk = (petIdArg?: string) => {
     const g = gymRowOf(studentId ?? '');

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore } from '../store/store';
 import type { StudentPet, SelZone } from '../types';
 import { petDefById } from '../lib/petCatalog';
@@ -6,6 +6,8 @@ import { petFeeling, PET_REPLY, ageForTraining, AGE_LABEL } from '../lib/petsV2'
 import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../lib/selZones';
 import SelZoneEmotionPicker from './SelZoneEmotionPicker';
 import { PetPortrait } from '../routes/student/PetFinder';
+import { useTrickSessions, isLearned } from '../lib/petGym';
+import { startRecording, playSqueaky, sayInPetVoice, petVoiceLine, type Recording } from '../lib/petSpeak';
 
 // Talking with your pet (her Pets v2 spec, 2026-10-11): "Social bar can be filled by having
 // conversations with your pet (pie menu)" and "Pets have same ABA/zones of regulation emotion
@@ -21,6 +23,24 @@ export default function PetTalk({ pet, onClose, onCue }: { pet: StudentPet; onCl
   const [step, setStep] = useState<Step>('menu');
   const [said, setSaid] = useState<string>(`Hi! It's me, ${name}!`);
   const [talked, setTalked] = useState(false);
+  // Talking Ben (her spec): a pet that learned Speak repeats what you say in a squeaky voice, or
+  // answers with something silly of its own.
+  const canSpeak = isLearned(useTrickSessions(pet.id), 'Speak');
+  const rec = useRef<Recording | null>(null);
+  const [recording, setRecording] = useState(false);
+  const talkToPet = async () => {
+    if (recording && rec.current) {
+      setRecording(false);
+      const r = await rec.current.stop(); rec.current = null;
+      counted();
+      if (r.blob && r.voiced > 0.4 && Math.random() < 0.65) { setSaid('🎤 ...'); await playSqueaky(r.blob); setSaid(`*${name} says it right back to you!*`); }
+      else { const line = petVoiceLine(pet.petDefId); setSaid(line); sayInPetVoice(line); }
+      onCue?.('wiggle');
+      return;
+    }
+    try { rec.current = await startRecording(false); setRecording(true); setSaid(`I'm listening! Say something to me...`); }
+    catch { setSaid(`I can't hear you. The microphone is not on.`); }
+  };
 
   // One conversation fills Social once.
   const counted = () => { if (!talked) { carePet(pet.id, 'talk'); setTalked(true); } };
@@ -44,6 +64,7 @@ export default function PetTalk({ pet, onClose, onCue }: { pet: StudentPet; onCl
               <button type="button" className="btn btn-lg" onClick={() => act('feed', `Yum! Thank you for the snack!`)}>🍗 Feed</button>
               <button type="button" className="btn btn-lg" onClick={() => act('pet', `That feels so nice. I love you!`)}>🤗 Pet</button>
               <button type="button" className="btn btn-lg" onClick={() => act('play', `Woohoo! That was so much fun!`)}>🎾 Play</button>
+              {canSpeak && <button type="button" className={`btn btn-lg${recording ? ' btn-primary' : ''}`} onClick={talkToPet}>{recording ? '⏹ Done talking' : `🎤 Talk to ${name}`}</button>}
             </div>
           )}
           {step === 'feeling' && (
