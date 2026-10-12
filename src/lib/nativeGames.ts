@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow';
   title: string;
   route: string;
   cover: string;
@@ -27,6 +27,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   // Teacher 2026-10-08: "alchemy can be selected from main native game window". Opened from here it
   // always plays with question breaks; from the Computer it also offers Just explore.
   { id: 'alchemy', title: 'Alchemy', route: '/student/alchemy?mode=game', cover: '/games/covers/alchemy.svg', blurb: 'Mix elements, discover a dragon!', versus: false, cabinet: { marquee: '#3b2a6b', panel: '#5b3f9a', trim: '#7ef0c8', icon: '⚗️' } },
+  // Teacher 2026-10-12: "build the pet show ring next".
+  { id: 'petShow', title: 'Pet Show Ring', route: '/student/pet-show', cover: '/games/covers/pet-show-ring.svg', blurb: 'Your pet runs a trick course!', versus: false, cabinet: { marquee: '#2f7d45', panel: '#4caf6a', trim: '#ffd23f', icon: '🏅' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

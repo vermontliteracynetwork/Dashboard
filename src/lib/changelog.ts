@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-12-pet-show-ring',
+    date: '2026-10-12',
+    icon: '🏅',
+    title: 'New game: Pet Show Ring',
+    body: "Bring your pet to the show ring! Your pet runs an obstacle course made from the tricks it learned at Buff Doge's Gym: hurdles, spin pads, pause tables and more. Answer a question at each obstacle and your pet clears it. Finish the course to win a rosette!",
+  },
+  {
     id: '2026-10-12-steering-pets',
     date: '2026-10-12',
     icon: '🕹️',
