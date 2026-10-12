@@ -36,7 +36,7 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   // Her native game list (2026-09-30), built in Claudia's four-hour queue 2026-10-12.
   { id: 'fishingDock', added: '2026-10-12', title: "Doc Fishing", route: '/student/fishing-dock', cover: '/games/covers/doc-fishing.jpg', blurb: "Cast, wait, reel! Fill your Fish Book.", versus: false, cabinet: { marquee: '#1f6fa8', panel: '#5bb0e0', trim: '#ffd23f', icon: '🎣' } },
   // Farm Grow (Build Queue 30, her list: farm plots; answers plant and tend crops through growth stages; harvest for currency).
-  { id: 'farmGrow', added: '2026-10-12', title: "Farm Grow", route: '/student/farm-grow', cover: '/games/covers/farm-grow.svg', blurb: "Answer to plant, water and tend crops, then harvest them at the farm stand.", versus: false, cabinet: { marquee: '#3d7a1e', panel: '#8fd16a', trim: '#ffd23f', icon: '🌱' } },
+  { id: 'farmGrow', added: '2026-10-12', title: "Farm Grow", route: '/student/farm-grow', cover: '/games/covers/farm-grow.svg', blurb: "A pixel farm: give the farmer jobs, watch the sun cross the sky, and grow crops overnight.", versus: false, cabinet: { marquee: '#3d7a1e', panel: '#8fd16a', trim: '#ffd23f', icon: '🌱' } },
   // Post Office Sort (Build Queue 31, her list: post office; sort letters and parcels into the right bins by answering).
   // Lighthouse Signal (Build Queue 32, her list: lighthouse; answers light the beam to guide boats safely in).
   { id: 'lighthouse', added: '2026-10-12', title: "Lighthouse Signal", route: '/student/lighthouse', cover: '/games/covers/lighthouse-signal.svg', blurb: "Answer to light the lamp, then guide boats home through the fog.", versus: false, cabinet: { marquee: '#23386b', panel: '#3f5fa8', trim: '#ffec96', icon: '🗼' } },

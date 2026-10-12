@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-farm-pixel",
+    date: "2026-10-12",
+    icon: "🌱",
+    title: "A brand new pixel farm",
+    body: "Farm Grow is a pixel farm with a little farmer. Tap plots to plant, water and harvest, and the farmer does each job. Watch the sun cross the sky. At night the farmer goes home and your watered crops grow!",
+  },
+  {
     id: "2026-10-12-tycoon-empire",
     date: "2026-10-12",
     icon: "🧁",

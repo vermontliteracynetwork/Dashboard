@@ -19,7 +19,7 @@ export function gameProgressLabels(rows: Rows, studentId: string | undefined): P
     if (n > 0) out[id] = fmt(n);
   };
   of('fishingDock', 'fishbook', 'caught', 44, 'fish');
-  of('farmGrow', 'farm', 'harvested', 8, 'crops');
+  of('farmGrow', 'farm', 'harvested', 7, 'crops');
   of('lighthouse', 'lighthouse', 'seen', 9, 'boats');
   of('kitchenCookOff', 'kitchen', 'cooked', 8, 'recipes');
   of('gemMine', 'gemmine', 'gems', 18, 'gems');
