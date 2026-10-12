@@ -59,7 +59,7 @@ export function asInventory(x: unknown): StyleInventory {
   };
 }
 
-export const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+export const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
 
 export type Lock =
   | { kind: 'buy'; price: number }

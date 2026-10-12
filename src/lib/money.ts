@@ -7,7 +7,8 @@ export const DEFAULT_BADGE_REWARD_CENTS = 200; // $2.00, used when an achievemen
 export function formatMoney(cents: number): string {
   const sign = cents < 0 ? '-' : '';
   const abs = Math.abs(Math.round(cents));
-  return `${sign}$${(abs / 100).toFixed(2)}`;
+  // Commas in every total (teacher 2026-10-12: "ensure we are adding commas to total money in all spaces").
+  return `${sign}$${(abs / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function dollarsToCents(dollars: number): number {
