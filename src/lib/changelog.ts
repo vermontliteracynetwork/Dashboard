@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-gym-form",
+    date: "2026-10-12",
+    icon: "🏋️",
+    title: "Sign your pet in at the gym",
+    body: "At Buff Doge's Gym you fill in a real sign-in form: type your name and your pet's name, pick a trick, pick how to pay, agree to the gym rules, and get a receipt. The big button at the top takes you back to Town Square.",
+  },
+  {
     id: "2026-10-12-game-start-cards",
     date: "2026-10-12",
     icon: "⚙️",

@@ -19,6 +19,7 @@ import { speak } from '../../components/ReadAloud';
 import { recordStreakCorrect } from '../../lib/streak';
 import { openCheckOnPet } from '../../components/CheckOnPet';
 import PetStage3D, { type TrickCue } from '../../components/PetStage3D';
+import GymSignInForm, { type PayWay } from './GymSignInForm';
 
 // Buff Doge's Gym (her Pets v2 spec and her own prototype, 2026-10-11). Rebuilt from her
 // Buff_Doges_Gym.html with her art (the gym, the sign, Buff Doge, the dice and the bone treat):
@@ -33,7 +34,7 @@ const W = 1920, H = 1080;
 const ART = '/pets/gym/';
 const DICE = [4, 6, 8, 10, 12, 20];
 type Opt = { label: string; sub?: string; disabled?: boolean; go: () => void; tone?: 'right' | 'wrong' };
-type Mode = 'lobby' | 'picker' | 'tricks' | 'pay' | 'desk' | 'result' | 'barter' | 'nopets';
+type Mode = 'lobby' | 'picker' | 'desk' | 'result' | 'barter' | 'nopets';
 interface Quiz { kind: 'train' | 'fee'; petId: string; trick: string; target: number; n: number; block: number; blockWrong: boolean; q: MCQuestion; paid?: boolean }
 
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -127,30 +128,24 @@ export default function BuffDogeGym() {
   const sessionsFor = (petId: string) => (useStore.getState().styleLooks.find((r) => r.ownerId === `pettricks:${petId}`)?.look as { sessions?: Record<string, number> } | undefined)?.sessions ?? {};
   const petName = (id: string) => pets.find((p) => p.id === id)?.customName ?? 'your pet';
 
+  // Signing in is a real form the student walks through (her words, 2026-10-12; see GymSignInForm).
+  const [form, setForm] = useState(false);
   const signIn = () => {
     if (!pet) return;
-    const s = sessionsFor(pet.id), rec = recommend(pet, s), list = trainable(pet, s);
-    setMode('tricks'); setDogeBig(true);
-    talk(rec ? `${pet.customName} is signed in! I recommend ${rec.name}. Which trick should we work on?` : `${pet.customName} knows every trick for now!`, true);
-    list.sort((a, b) => Number(b.name === rec?.name) - Number(a.name === rec?.name));
-    options(list.map((t) => ({ label: `${t.icon} ${t.name}`, sub: `${t.name === rec?.name ? 'Recommended, ' : ''}${s[t.name] ?? 0} of ${t.sessions} sessions`, go: () => payMenu(t.name) })));
+    setForm(true); setDogeBig(false);
+    talk(`Fill in the sign-in form for ${pet.customName}, one step at a time.`);
   };
-  const payMenu = (trick: string) => {
+  const formDone = (trick: string, pay: PayWay) => {
+    setForm(false);
     if (!pet || !student) return;
     const t = trickDef(trick)!;
-    setMode('pay'); setDogeBig(true);
-    talk(`${trick} takes ${t.sessions} sessions. How do you want to do this session? Pay ${formatMoney(t.costCents)} and pick ${pet.customName} up in ${SESSION_MINUTES} minutes, or answer ${SESSION_QUESTIONS} questions with me now.`, true);
-    options([
-      { label: `Pay ${formatMoney(t.costCents)}`, sub: student.coins < t.costCents ? `You have ${formatMoney(student.coins)}` : `Ready in ${SESSION_MINUTES} minutes`, disabled: student.coins < t.costCents, go: () => {
-        recordTransaction(student.id, -t.costCents, `🏋️ Buff Doge's Gym: ${pet.customName}, ${trick} session`, '🏋️', 'purchase-pet');
-        playCashRegister();
-        setGym(student.id, { petId: pet.id, trick, readyAt: Date.now() + SESSION_MINUTES * 60000, paid: true });
-        window.setTimeout(() => desk(pet.id), 50);
-      } },
-      { label: `Answer ${SESSION_QUESTIONS} questions`, sub: 'Finish the session now', go: () => startQuiz({ kind: 'train', petId: pet.id, trick, target: SESSION_QUESTIONS }) },
-      // Her spec: Speak "can be expedited by the student recording themselves reading passages".
-      ...(trick === 'Speak' ? [{ label: '🎙️ Read 2 passages aloud', sub: 'In the Library, for free', go: () => navigate('/student/library') }] : []),
-    ], trick !== 'Speak');
+    if (pay === 'money') {
+      recordTransaction(student.id, -t.costCents, `🏋️ Buff Doge's Gym: ${pet.customName}, ${trick} session`, '🏋️', 'purchase-pet');
+      playCashRegister();
+      setGym(student.id, { petId: pet.id, trick, readyAt: Date.now() + SESSION_MINUTES * 60000, paid: true });
+      window.setTimeout(() => desk(pet.id), 50);
+    } else if (pay === 'questions') startQuiz({ kind: 'train', petId: pet.id, trick, target: SESSION_QUESTIONS });
+    else navigate('/student/library');
   };
   const desk = (petIdArg?: string) => {
     const g = gymRowOf(studentId ?? '');
@@ -338,12 +333,14 @@ export default function BuffDogeGym() {
           </div>
         )}
 
-        <button type="button" className="bdg-btn bdg-arrow bdg-back" aria-label={quiz ? 'Stop answering' : mode === 'picker' || mode === 'nopets' || mode === 'lobby' ? `Leave the gym, back to ${back.label}` : 'Back to my pets'} onClick={() => {
-          if (quiz) { setQuitAsk(true); return; }
-          if (mode === 'picker' || mode === 'nopets' || mode === 'barter' || mode === 'lobby') { back.go(); return; }
-          if (mode === 'pay') { signIn(); return; }
-          picker();
-        }}>{quiz ? '✕' : mode === 'picker' || mode === 'nopets' || mode === 'barter' || mode === 'lobby' ? '⏏' : '◀'}</button>
+        {/* Leaving the gym is the big Town Square button (her words: "make sure the buff doge screens has a very
+            clear exit back to towns quare"); this corner arrow only stops a quiz or goes back to the pets. */}
+        {(quiz || mode === 'desk' || mode === 'result') && (
+          <button type="button" className="bdg-btn bdg-arrow bdg-back" aria-label={quiz ? 'Stop answering' : 'Back to my pets'} onClick={() => {
+            if (quiz) { setQuitAsk(true); return; }
+            picker();
+          }}>{quiz ? '✕' : '◀'}</button>
+        )}
 
         <div className="bdg-hud"><span className="bdg-cash" aria-label="Money">{formatMoney(student.coins)}</span><img src={`${ART}bone.png`} alt="Treats" /><span>{treats}</span></div>
 
@@ -360,6 +357,13 @@ export default function BuffDogeGym() {
         )}
       </div>
 
+      {!quiz && !form && <button type="button" className="btn btn-lg bdg-exit" onClick={() => navigate('/world/town')}>← Back to Town Square</button>}
+      {form && pet && (
+        <GymSignInForm ownerName={student.name} coins={student.coins} pet={pet} sessions={sessionsFor(pet.id)}
+          tricks={(() => { const s2 = sessionsFor(pet.id), rec = recommend(pet, s2); const list = trainable(pet, s2); return list.sort((a, b) => Number(b.name === rec?.name) - Number(a.name === rec?.name)); })()}
+          recommended={recommend(pet, sessionsFor(pet.id))?.name} tts={student.ttsSettings}
+          onCancel={() => { setForm(false); picker(); }} onDone={formDone} />
+      )}
       {quitAsk && quiz && (
         <div className="bdg-modal-back">
           <div className="bdg-modal">
