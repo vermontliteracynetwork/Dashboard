@@ -18,7 +18,7 @@ import {
   type ShotResult,
 } from '../../games/bubbleShooter/engine';
 import { sfx as SFX, startMusic, stopMusic } from '../../games/bubbleShooter/audio';
-import PlinkoBonus, { POWER_INFO, zonesForRound, type PowerId } from '../../games/bubbleShooter/PlinkoBonus';
+import { POWER_INFO, type PowerId } from '../../games/bubbleShooter/PlinkoBonus';
 import { noteGameStart } from '../../lib/gameReports';
 
 // Bubble Shooter (teacher 2026-10-08: "lets make a bubble shooter native game", with two classic
@@ -33,7 +33,7 @@ import { noteGameStart } from '../../lib/gameReports';
 // add a power up that would add a mystery gray bubble that explodes as 3x xp (keep track of xp).
 // this should be a one player game. claudia can anser and predict my answers for the rest").
 // Claudia's predicted answers: every right answer reveals a surprise power-up (Baamboozle style), a
-// big pop earns one too, a Plinko bonus drop after every board, combos that climb in pitch and XP,
+// big pop earns one too, combos that climb in pitch and XP,
 // bouncy music that speeds up near the danger line, confetti when a board clears, nothing that
 // takes points away.
 
@@ -62,7 +62,7 @@ const PALETTE = [
 ];
 const RAINBOW_COLORS = ['#ff4d4d', '#ffb02e', '#f7e01d', '#3ccf4e', '#40a8f6', '#a05cf5'];
 
-type Phase = 'launch' | 'question' | 'reveal' | 'play' | 'boardDone' | 'plinko' | 'over';
+type Phase = 'launch' | 'question' | 'reveal' | 'play' | 'boardDone' | 'over';
 type Shot = 'ball' | 'bomb' | 'rbomb' | 'laser';
 type Bit = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: number | string; size: number; kind: 'bubble' | 'spark' | 'confetti' };
 type Ring = { x: number; y: number; r: number; life: number; color: string };
@@ -224,10 +224,9 @@ export default function BubbleShooter() {
     pay.current();
     setPhase('over');
   };
-  // Plinko XP is only XP: it counts toward the personal leaderboard, never toward cash (her rule).
-  const collectPlinko = (xp: number) => {
-    g.current.xp += xp;
-    syncHud();
+  // The Plinko bonus drop between rounds is gone (her words, 2026-10-12: "remove plinko bonus from
+  // bubble shooter game"); a cleared board goes straight on to the next round.
+  const nextRound = () => {
     if (round < roundSet.rounds) { const n = round + 1; setRound(n); newBoard(n); askQuestions(); } else finishGame();
   };
 
@@ -350,7 +349,7 @@ export default function BubbleShooter() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const scaleRef = useRef(20);
-  const onBoard = phase === 'play' || phase === 'boardDone' || phase === 'plinko';
+  const onBoard = phase === 'play' || phase === 'boardDone';
   useEffect(() => {
     if (!onBoard) return;
     const wrap = wrapRef.current, cv = cvRef.current; if (!wrap || !cv) return;
@@ -599,13 +598,12 @@ export default function BubbleShooter() {
         <div className="bs-modal-back">
           <div className="bs-modal">
             <h2>{timeUp ? `⏰ Round ${round} is over!` : `🎉 Round ${round} cleared!`}</h2>
-            <p>⭐ {g.current.xp} XP. Time for your Plinko bonus drop!</p>
-            <button type="button" className="bs-play" onClick={() => setPhase('plinko')} autoFocus>Plinko bonus</button>
+            <p>⭐ {g.current.xp} XP so far.</p>
+            <button type="button" className="bs-play" onClick={nextRound} autoFocus>{round < roundSet.rounds ? 'Next round' : 'See my score'}</button>
           </div>
         </div>
       )}
 
-      {phase === 'plinko' && <PlinkoBonus zones={zonesForRound(round)} calm={calm} sound={sound} onDone={collectPlinko} />}
 
       {phase === 'over' && (
         <div className="bs-modal-back">

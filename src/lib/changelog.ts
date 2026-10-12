@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-farm-fresh",
+    date: "2026-10-12",
+    icon: "🌱",
+    title: "A fresh farm every game",
+    body: "Farm Grow starts with a fresh field and an empty Harvest Book each time you play, and it has a new pixel cover. In Bubble Shooter, you go straight to the next round after clearing a board.",
+  },
+  {
     id: "2026-10-12-pet-food",
     date: "2026-10-12",
     icon: "🍎",

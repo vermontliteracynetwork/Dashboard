@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
-import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import LeaveButton from '../../components/LeaveButton';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -60,7 +59,6 @@ const cropOf = (id: string) => CROPS.find((c) => c.id === id) ?? CROPS[0];
 const STAGE_NAME = ['Seeds', 'Sprout', 'Growing', 'Ripe'];
 
 interface Plot { crop: string; stage: 0 | 1 | 2 | 3; watered: boolean }
-interface Farm { plots9?: (Plot | null)[]; cells?: [number, number][]; harvested?: Record<string, number> }
 type Kind = 'plant' | 'water' | 'harvest' | 'dig';
 interface Job { plot: number; kind: Kind; crop?: string; cell?: [number, number] }
 const JOB_ICON: Record<Kind, string> = { plant: 'seeds', water: 'can', harvest: 'hoe', dig: 'hoe' };
@@ -85,10 +83,6 @@ export default function FarmGrow() {
   const ranges = { rounds: { min: 1, max: 20, def: 5 }, per: { min: 5, max: 10, def: 5 } };
   const rs = useRoundSettings('farmGrow', ranges, assignment?.task);
   const visit = useVisitScore('farmGrow');
-  const styleLooks = useStore((s) => s.styleLooks);
-  const mergeStyleRow = useStore((s) => s.mergeStyleRow);
-  const owner = student ? `farm:${student.id}` : '';
-  const farm = (styleLooks.find((r) => r.ownerId === owner)?.look as Farm | undefined) ?? {};
   const [, setFrame] = useState(0);
   const [say, setSay] = useState('Pick how many days to farm and how many questions come between days.');
   const [picker, setPicker] = useState<number | null>(null);
@@ -97,19 +91,20 @@ export default function FarmGrow() {
   const [fit, setFit] = useState(2);
   const G = useRef({
     stage: 'start' as Stage, round: 1, dayT: 0, paused: false,
-    cells: (farm.cells ?? PLOT_CELLS).map(([c, r]) => [c, r]) as [number, number][],
-    plots: (farm.cells ?? PLOT_CELLS).map((_, i) => farm.plots9?.[i] ?? null) as (Plot | null)[],
+    // Her rule (2026-10-12): "farm game should start plant progress over each time" "and harvest book".
+    // Every game starts with the plain 3 by 3 field and an empty Harvest Book; nothing carries over.
+    cells: PLOT_CELLS.map(([c, r]) => [c, r]) as [number, number][],
+    plots: PLOT_CELLS.map(() => null) as (Plot | null)[],
     total: 1, lastTap: { key: '', at: 0 },
-    harvested: { ...(farm.harvested ?? {}) } as Record<string, number>,
+    harvested: {} as Record<string, number>,
     queue: [] as Job[], cur: null as null | { job: Job; phase: 'walk' | 'work'; t: number },
     me: { x: HOME.x, y: HOME.y, face: 1, walking: false, inside: true, anim: 0 },
-    stats: { harvested: 0, right: 0, days: 0 }, unpaid: 0, loaded: !!farm.plots9,
+    stats: { harvested: 0, right: 0, days: 0 }, unpaid: 0,
   });
   const g = G.current;
   // A saved farm that arrives after the screen opened replaces the empty one.
-  if (!g.loaded && farm.plots9) { g.cells = (farm.cells ?? PLOT_CELLS).map(([c, r]) => [c, r]); g.plots = g.cells.map((_, i) => farm.plots9?.[i] ?? null); g.harvested = { ...(farm.harvested ?? {}) }; g.loaded = true; }
 
-  const save = () => { if (owner) mergeStyleRow(owner, { plots9: g.plots, cells: g.cells, harvested: g.harvested }); };
+  const save = () => {}; // nothing is kept between games (her rule 2026-10-12)
   const spot = (i: number) => iso(G.current.cells[i][0], G.current.cells[i][1]);
   const pay = () => { if (student && g.unpaid > 0) payForAnswers(student.id, g.unpaid, 'Farm Grow', '🌱'); g.unpaid = 0; };
   const tell = (text: string) => setSay(text);
@@ -195,7 +190,7 @@ export default function FarmGrow() {
   if (!student) return null;
 
   const startDay = (first: boolean) => {
-    if (first) { g.round = 1; g.total = rs.rounds; g.stats = { harvested: 0, right: 0, days: 0 }; }
+    if (first) { g.round = 1; g.total = rs.rounds; g.stats = { harvested: 0, right: 0, days: 0 }; g.cells = PLOT_CELLS.map(([c, r]) => [c, r]); g.plots = PLOT_CELLS.map(() => null); g.harvested = {}; }
     g.stage = 'day'; g.dayT = 0; g.queue = []; g.cur = null;
     g.me = { ...g.me, x: HOME.x, y: HOME.y, inside: false, face: 1 };
     sfx.chime();
