@@ -5,6 +5,7 @@ import { useAsk } from '../../games/mini/useAsk';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Word Search (her student-favorite genres list, 2026-09-30: "library or post office; answers reveal
 // hidden words"). An 8 by 8 letter grid hides six themed words. The word list starts as blanks
@@ -54,6 +55,7 @@ function build(theme: Theme) {
 export default function WordSearch() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Word Search', '🔤', 'wordSearch');
+  const visit = useVisitScore('wordSearch');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [themeIdx, setThemeIdx] = useState(() => Math.floor(Math.random() * THEMES.length));
@@ -91,6 +93,7 @@ export default function WordSearch() {
       setFound(f); setHint(null); playCheer(); sfx.chime();
       setNote(`✨ You found ${hit.word}!`);
       if (f.size === board.placed.length) {
+        visit.add();
         mergeStyleRow(owner, { themes: { ...doneThemes, [theme.id]: (doneThemes[theme.id] ?? 0) + 1 } });
         pay();
         window.setTimeout(() => setWon(true), 600);
@@ -112,6 +115,7 @@ export default function WordSearch() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🔤 Word Search</h1>
         <SfxToggle />
+        <MyBest game="wordSearch" unit="puzzles finished" />
         <span className="mc-hud">{theme.icon} {theme.name} · {found.size} / {board.placed.length}</span>
       </header>
       <div className="ws-main">

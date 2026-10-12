@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Train Station Dispatch (her native game list, 2026-09-30: "train station; answers route trains to
 // the right platforms"). A small track map with three track switches and four platforms. The
@@ -48,6 +49,7 @@ const newTrain = (n: number) => ({ n, dest: Math.floor(Math.random() * DESTS.len
 export default function TrainDispatch() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Train Station Dispatch', '🚉', 'trainDispatch');
+  const visit = useVisitScore('trainDispatch');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [train, setTrain] = useState(() => newTrain(1));
@@ -88,7 +90,7 @@ export default function TrainDispatch() {
         setNote({ ok: true, text: `All aboard! The passengers made it to ${dest.name}. 🎉` });
         const isNew = !seen[train.kind.id];
         mergeStyleRow(owner, { seen: { ...seen, [train.kind.id]: (seen[train.kind.id] ?? 0) + 1 }, total: (saved.total ?? 0) + 1 });
-        const d = delivered + 1;
+        const d = delivered + 1; visit.add();
         setDelivered(d);
         timers.current.push(window.setTimeout(() => {
           if (isNew) setNote({ ok: true, text: `✨ New in your Train Spotter Book: the ${train.kind.name}! ${train.kind.fact}` });
@@ -123,6 +125,7 @@ export default function TrainDispatch() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🚉 Train Dispatch</h1>
         <SfxToggle />
+        <MyBest game="trainDispatch" unit="trains routed" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📗 Train Spotter Book ({Object.keys(seen).length} / {TRAINS.length})</button>
       </header>
       <div className="td-main">

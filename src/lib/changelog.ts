@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-my-best",
+    date: "2026-10-12",
+    icon: "🏆",
+    title: "My best in every new game",
+    body: "Every new game has a My best button now. See your biggest fish, your best mine cart ride, your fewest flips in Memory Match and more. Only you can see your best!",
+  },
+  {
     id: "2026-10-12-game-sounds",
     date: "2026-10-12",
     icon: "🔊",

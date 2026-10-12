@@ -4,6 +4,8 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest } from '../../components/MyBest';
+import { recordBestGame } from '../../lib/personalBoard';
 
 // Mine Cart Run (her native game list, 2026-09-30: "mine entrance; a Mario-style auto-runner where
 // answers choose the track switch"). The cart rolls on its own; tap anywhere (or Space) to hop over
@@ -113,6 +115,7 @@ export default function MineCartRun() {
           const best = g.gems > (savedRef.current.best ?? 0);
           mergeStyleRow(owner, { best: Math.max(g.gems, savedRef.current.best ?? 0), runs: (savedRef.current.runs ?? 0) + 1, total: (savedRef.current.total ?? 0) + g.gems });
           pay(); if (best) playCheer();
+          if (student) recordBestGame(student.id, 'mineCart', g.gems, 'in one ride');
           setResult({ gems: g.gems, best }); setPhase('end');
           return;
         }
@@ -192,6 +195,7 @@ export default function MineCartRun() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🛤️ Mine Cart Run</h1>
         <SfxToggle />
+        <MyBest game="mineCart" unit="gems" />
         <span className="mc-hud" aria-live="polite">💎 {hud.gems} · 🔀 {hud.switches} / {SWITCHES}{hud.cave ? ' · ✨ Gem Cave!' : ''}</span>
       </header>
       {phase === 'run' && <button type="button" className="btn btn-primary btn-lg mc-jump" onClick={jump} aria-label="Jump">⬆️ Jump</button>}

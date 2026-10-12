@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Post Office Sort (her native game list, 2026-09-30: "post office; sort letters and parcels into
 // the right bins by answering"). Mail rides in on the conveyor belt. A right answer stamps it, then
@@ -37,6 +38,7 @@ const newMail = (id: number): Mail => ({
 export default function PostOfficeSort() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Post Office Sort', '📮', 'postOffice');
+  const visit = useVisitScore('postOffice');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [mail, setMail] = useState<Mail>(() => newMail(1));
@@ -57,7 +59,7 @@ export default function PostOfficeSort() {
   const drop = (b: Bin) => {
     if (!stamped || flying) return;
     if (b.id !== mail.bin.id) { sfx.boing(); setOops(b.id); timers.current.push(window.setTimeout(() => setOops(null), 700)); return; }
-    setFlying(b.id); sfx.whoosh();
+    setFlying(b.id); sfx.whoosh(); visit.add();
     timers.current.push(window.setTimeout(() => {
       setFlying(null); setStamped(false);
       const n = loaded + 1;
@@ -80,6 +82,7 @@ export default function PostOfficeSort() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>📮 Post Office Sort</h1>
         <SfxToggle />
+        <MyBest game="postOffice" unit="pieces of mail sorted" />
         <button type="button" className="btn" onClick={() => setAlbum(true)}>📒 Stamp Album ({Object.keys(stamps).length} / {STAMPS.length})</button>
       </header>
       <div className="po-main">

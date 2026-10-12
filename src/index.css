@@ -7184,3 +7184,10 @@ body.calm-games .pf-overlay .fd-fish { animation-duration: 0.01ms !important; an
 
 /* Sound effects on/off in the native games' headers (Build Queue 53) */
 .sfx-toggle { min-width: 48px; min-height: 44px; font-size: 1.2rem; padding: 0 10px; }
+
+/* Personal "My best" boards in the native games from her 2026-09-30 lists (Build Queue 54) */
+.my-best-btn { min-height: 44px; }
+.my-best ol { margin: 0 0 14px; padding-left: 1.6em; display: flex; flex-direction: column; gap: 8px; font-size: 1.15rem; }
+.my-best li { padding: 6px 10px; background: #fff3c4; border-radius: 10px; }
+.my-best li small { margin-left: 10px; color: #6b5a3a; font-weight: 700; }
+.my-best li:first-child { background: #ffe08a; }

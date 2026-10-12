@@ -4,6 +4,8 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest } from '../../components/MyBest';
+import { recordBestGame } from '../../lib/personalBoard';
 
 // Time-Management Diner (her student-favorite genres list, 2026-09-30: "restaurant; answers serve
 // customers in order"). Customers sit at the counter with numbered tickets and an order. The student
@@ -69,6 +71,7 @@ export default function DinerDash() {
         const sv = (useStore.getState().styleLooks.find((r) => r.ownerId === owner)?.look as { served?: number; shifts?: number; bestTips?: number } | undefined) ?? {};
         mergeStyleRow(owner, { served: (sv.served ?? 0) + served, shifts: (sv.shifts ?? 0) + 1, bestTips: Math.max(sv.bestTips ?? 0, tips) });
       }
+      if (student) recordBestGame(student.id, 'dinerDash', tips, `${served} served`);
       pay(); playCheer(); setPhase('end');
     }
   }, [arrived, served, left, phase, tips, student, mergeStyleRow, pay]);
@@ -104,6 +107,7 @@ export default function DinerDash() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🍔 Diner Dash</h1>
         <SfxToggle />
+        <MyBest game="dinerDash" unit="tip stars" />
         <span className="mc-hud">🧾 {served} served · ⭐ {tips}</span>
       </header>
       <div className="dd-main">

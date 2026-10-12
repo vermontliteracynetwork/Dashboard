@@ -4,6 +4,8 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest } from '../../components/MyBest';
+import { recordBestGame } from '../../lib/personalBoard';
 
 // Fishing Dock (her native game list, 2026-09-30: "Fishing Dock: pier or boat asset; answers power
 // a timing-based cast; fish go in a collection book"). A right answer baits the hook; then the
@@ -78,6 +80,7 @@ export default function FishingDock() {
     const isNew = !got[fish.id];
     mergeStyleRow(owner, { caught: { ...got, [fish.id]: (got[fish.id] ?? 0) + 1 }, biggest: { ...(caught.biggest ?? {}), [fish.id]: Math.max(size, caught.biggest?.[fish.id] ?? 0) } });
     if (isNew || tier >= 2) playCheer();
+    recordBestGame(student.id, 'fishingDock', size, fish.name);
     sfx.coin(); setCatch({ fish, size, isNew }); setPhase('caught');
   };
   const bobberX = 30 + cast * 55; // percent across the water
@@ -93,6 +96,7 @@ export default function FishingDock() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🎣 Fishing Dock</h1>
         <SfxToggle />
+        <MyBest game="fishingDock" unit="cm" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📖 Fish Book ({Object.keys(got).length} / {FISH.length})</button>
       </header>
       <div className="fd-panel">

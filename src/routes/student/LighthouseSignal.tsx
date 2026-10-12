@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Lighthouse Signal (her native game list, 2026-09-30: "lighthouse; answers light the beam to guide
 // boats safely in"). A calm night sea. Boats wait out in the fog (they never crash; nothing is lost).
@@ -32,6 +33,7 @@ interface Boat { id: number; kind: BoatKind; spot: number; safe?: boolean }
 export default function LighthouseSignal() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Lighthouse Signal', '🗼', 'lighthouse');
+  const visit = useVisitScore('lighthouse');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const nextId = useRef(4);
@@ -64,7 +66,7 @@ export default function LighthouseSignal() {
       const isNew = !seen[b.kind.id];
       mergeStyleRow(owner, { seen: { ...seen, [b.kind.id]: (seen[b.kind.id] ?? 0) + 1 }, total: (saved.total ?? 0) + 1 });
       if (isNew) { playCheer(); setNews({ kind: b.kind, isNew }); }
-      sfx.horn(); setLit(false); setAim(null);
+      sfx.horn(); setLit(false); setAim(null); visit.add();
       const used = new Set(boats.filter((x) => x.id !== b.id).map((x) => x.spot));
       const free = SPOTS.map((_, i) => i).filter((i) => !used.has(i));
       const spot = free[Math.floor(Math.random() * free.length)];
@@ -100,6 +102,7 @@ export default function LighthouseSignal() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🗼 Lighthouse Signal</h1>
         <SfxToggle />
+        <MyBest game="lighthouse" unit="boats guided" />
         <button type="button" className="btn" onClick={() => setLog(true)}>📘 Harbor Log ({Object.keys(seen).length} / {BOATS.length})</button>
       </header>
       <div className="fd-panel">

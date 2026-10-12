@@ -8,6 +8,7 @@ import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Plinko Drop (her student-favorite genres list, 2026-09-30: "a carnival or arcade building; answers
 // choose where the ball drops"). The answer choices label the drop chutes at the top of a carnival
@@ -31,6 +32,7 @@ export default function PlinkoDrop() {
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const { next, right: countRight, notice } = useGameQuestions('plinkoDrop');
+  const visit = useVisitScore('plinkoDrop');
   const [q, setQ] = useState<MCQuestion>(() => next());
   const [ball, setBall] = useState<{ x: number; y: number } | null>(null);
   const [bad, setBad] = useState<number | null>(null);
@@ -70,7 +72,7 @@ export default function PlinkoDrop() {
       const won = SLOTS[slot];
       mergeStyleRow(owner, { tickets: tickets + won, drops: (saved.drops ?? 0) + 1 });
       if (won >= 5) playCheer();
-      sfx.coin(); setWin(slot); setNote(`🎟️ ${won} ticket${won === 1 ? '' : 's'}!`);
+      visit.add(won); sfx.coin(); setWin(slot); setNote(`🎟️ ${won} ticket${won === 1 ? '' : 's'}!`);
       if (unpaid.current >= 10) pay();
     }, path.length * 170 + 100));
     timers.current.push(window.setTimeout(() => { setBall(null); setWin(null); setNote(null); setQ((old) => next(old.id)); }, path.length * 170 + 1600));
@@ -88,6 +90,7 @@ export default function PlinkoDrop() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🎯 Plinko Drop</h1>
         <SfxToggle />
+        <MyBest game="plinkoDrop" unit="tickets won" />
         <button type="button" className="btn" onClick={() => setCounter(true)}>🎟️ {tickets} · Prize Counter</button>
       </header>
       <div className="pk-main">

@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Library Quest (her native game list, 2026-09-30: "library; answers reveal hidden books on shelves,
 // completing a shelf fills the Finds Book"). A dusty bookcase with three themed shelves of hidden
@@ -43,6 +44,7 @@ const newCase = () => {
 export default function LibraryQuest() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Library Quest', '📚', 'libraryQuest');
+  const visit = useVisitScore('libraryQuest');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [bc, setBc] = useState(newCase);
@@ -72,7 +74,7 @@ export default function LibraryQuest() {
     setBc({ ...bc, shelves });
     const key = `${b.theme}:${b.title}`;
     const patch: Record<string, unknown> = { found: { ...found, [key]: (found[key] ?? 0) + 1 } };
-    say(`📖 You found "${b.title}"!`); sfx.whoosh();
+    say(`📖 You found "${b.title}"!`); sfx.whoosh(); visit.add();
     if (b.secret) {
       const s = SECRETS.find((x) => x.id === b.secret)!;
       patch.secrets = { ...secrets, [s.id]: (secrets[s.id] ?? 0) + 1 };
@@ -93,6 +95,7 @@ export default function LibraryQuest() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>📚 Library Quest</h1>
         <SfxToggle />
+        <MyBest game="libraryQuest" unit="books found" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📓 Finds Book ({THEMES.filter((t) => shelvesDone[t.id]).length} / {THEMES.length})</button>
       </header>
       <div className="lq-main">

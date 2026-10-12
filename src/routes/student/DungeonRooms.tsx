@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Dungeon Rooms (her native game list, 2026-09-30: "castle cellar or ruins; each door is a puzzle
 // locked by a question set, with item-gated progress"). A 3 by 3 dungeon under the castle. Most
@@ -59,6 +60,7 @@ function makeDungeon(n: number): Dungeon {
 export default function DungeonRooms() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Dungeon Rooms', '🏰', 'dungeonRooms');
+  const visit = useVisitScore('dungeonRooms');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [dg, setDg] = useState(() => makeDungeon(1));
@@ -86,7 +88,7 @@ export default function DungeonRooms() {
       const relic = (fresh.length ? fresh : RELICS)[Math.floor(Math.random() * (fresh.length || RELICS.length))];
       mergeStyleRow(owner, { relics: { ...relics, [relic.id]: (relics[relic.id] ?? 0) + 1 }, cleared: (saved.cleared ?? 0) + 1 });
       pay(); playCheer();
-      setWon({ relic, isNew: !relics[relic.id] });
+      setWon({ relic, isNew: !relics[relic.id] }); visit.add();
     } else setMsg('Keep exploring! Tap another door.');
   };
   const tryDoor = (d: Door) => {
@@ -107,6 +109,7 @@ export default function DungeonRooms() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🏰 Dungeon Rooms</h1>
         <SfxToggle />
+        <MyBest game="dungeonRooms" unit="dungeons cleared" />
         <button type="button" className="btn" onClick={() => setShelf(true)}>🏺 Relic Shelf ({Object.keys(relics).length} / {RELICS.length})</button>
       </header>
       <div className="dg-main">

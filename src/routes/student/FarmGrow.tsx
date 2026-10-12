@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Farm Grow (her native game list, 2026-09-30: "farm plots; answers plant and tend crops through
 // growth stages; harvest for currency"). Six garden plots. A right answer plants a seed, the next
@@ -35,6 +36,7 @@ interface Farm { plots?: (Plot | null)[]; harvested?: Record<string, number> }
 export default function FarmGrow() {
   const back = useBack();
   const { ask, element, pay, rightSoFar, student } = useAsk('Farm Grow', '🌱', 'farmGrow');
+  const visit = useVisitScore('farmGrow');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [picking, setPicking] = useState<number | null>(null);
@@ -83,7 +85,7 @@ export default function FarmGrow() {
       const next = [...plots]; next[i] = null;
       const isNew = !harvested[crop.id];
       const h = { ...harvested, [crop.id]: (harvested[crop.id] ?? 0) + 1 };
-      save(next, h); burst(i, 'harvest'); sfx.coin();
+      save(next, h); burst(i, 'harvest'); sfx.coin(); visit.add();
       if (rightSoFar() > 0) pay();
       playCheer();
       setSold({ crop, isNew });
@@ -104,6 +106,7 @@ export default function FarmGrow() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🌱 Farm Grow</h1>
         <SfxToggle />
+        <MyBest game="farmGrow" unit="crops harvested" />
         <button type="button" className="btn" onClick={() => setBook(true)}>🧺 Harvest Book ({kinds} / {CROPS.length})</button>
       </header>
       <div className="fg-main">

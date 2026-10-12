@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Gem Mine (her native game list, 2026-09-30: "cave or shop; answers dig up gems that fill
 // collection pages"). A cave wall of dirt and rock tiles with gems hidden inside. Each right answer
@@ -65,6 +66,7 @@ export function GemIcon({ color, size = 48 }: { color: string; size?: number }) 
 export default function GemMine() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Gem Mine', '💎', 'gemMine');
+  const visit = useVisitScore('gemMine');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [wall, setWall] = useState<Tile[]>(newWall);
@@ -95,7 +97,7 @@ export default function GemMine() {
       const gem = GEMS.find((g) => g.id === t.gem)!;
       const isNew = !have[gem.id];
       mergeStyleRow(owner, { gems: { ...have, [gem.id]: (have[gem.id] ?? 0) + 1 } });
-      sfx.chime(); if (isNew || gem.tier > 0) playCheer();
+      sfx.chime(); visit.add(); if (isNew || gem.tier > 0) playCheer();
       setFound({ gem, isNew });
     }
   };
@@ -108,6 +110,7 @@ export default function GemMine() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>💎 Gem Mine</h1>
         <SfxToggle />
+        <MyBest game="gemMine" unit="gems found" />
         <button type="button" className="btn" onClick={() => setPages(true)}>📔 Gem Pages ({Object.keys(have).length} / {GEMS.length})</button>
       </header>
       <div className="gm-main">

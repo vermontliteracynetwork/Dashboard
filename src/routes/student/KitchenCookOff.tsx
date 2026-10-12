@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Kitchen Cook-Off (her native game list, 2026-09-30: "restaurant; answers pick ingredients in order
 // to cook recipes (sequencing practice)"). A customer orders a dish. The recipe card shows four
@@ -46,6 +47,7 @@ const newOrder = (n: number) => {
 export default function KitchenCookOff() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Kitchen Cook-Off', '🍳', 'kitchenCookOff');
+  const visit = useVisitScore('kitchenCookOff');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [order, setOrder] = useState(() => newOrder(1));
@@ -82,7 +84,7 @@ export default function KitchenCookOff() {
         const isNew = !cooked[order.recipe.id];
         mergeStyleRow(owner, { cooked: { ...cooked, [order.recipe.id]: (cooked[order.recipe.id] ?? 0) + 1 } });
         pay(); playCheer();
-        setCooking(false); setServed({ isNew });
+        setCooking(false); setServed({ isNew }); visit.add();
       }, 2200));
     }
   };
@@ -95,6 +97,7 @@ export default function KitchenCookOff() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🍳 Kitchen Cook-Off</h1>
         <SfxToggle />
+        <MyBest game="kitchenCookOff" unit="dishes served" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📕 Recipe Book ({Object.keys(cooked).length} / {RECIPES.length})</button>
       </header>
       <div className="kc-main">

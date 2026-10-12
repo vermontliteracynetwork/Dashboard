@@ -8,6 +8,8 @@ import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest } from '../../components/MyBest';
+import { recordBestGame } from '../../lib/personalBoard';
 
 // Whack-a-Mole (her student-favorite genres list, 2026-09-30: "garden or farm; answers pop out of the
 // ground"). The question sits on a garden sign (with 🔊 Listen); moles pop out of six holes, each
@@ -85,6 +87,7 @@ export default function WhackAMole() {
         lock.current = false; setNote(null); setMoles([]); sinceRight.current = 0;
         if (d >= ROUND) {
           mergeStyleRow(owner, { perfect: (saved.perfect ?? 0) + (miss === 0 ? 1 : 0), rounds: (saved.rounds ?? 0) + 1, total: (saved.total ?? 0) + ROUND });
+          recordBestGame(student.id, 'whackAMole', -miss);
           pay(); playCheer(); setDone(d); setPhase('end');
         } else { setDone(d); setQ((old) => next(old.id)); }
       }, 1100);
@@ -103,6 +106,7 @@ export default function WhackAMole() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🔨 Whack-a-Mole</h1>
         <SfxToggle />
+        <MyBest game="whackAMole" format={(e) => (e.score === 0 ? 'Perfect round, no misses' : `${-e.score} wrong mole${e.score === -1 ? '' : 's'} in a round`)} />
         <span className="mc-hud">⭐ {done} / {ROUND}</span>
       </header>
       <div className="wm-main">

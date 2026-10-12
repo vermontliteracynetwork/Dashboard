@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Idle Tycoon (her student-favorite genres list, 2026-09-30: "the farm or bakery shop; answers boost a
 // running business"). A cupcake shop that runs by itself: the oven bakes, cupcakes fill the display
@@ -30,6 +31,7 @@ const rates = (s: Shop) => ({ bake: 0.5 * (1 + s.oven * 0.5), cap: 6 + s.display
 export default function IdleTycoon() {
   const back = useBack();
   const { ask, element, pay, student } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon');
+  const visit = useVisitScore('idleTycoon');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';
@@ -83,7 +85,7 @@ export default function IdleTycoon() {
         if (n > 0) {
           queueRef.current = queueRef.current.slice(n); stockRef.current -= n;
           const next = { ...shopRef.current, coins: shopRef.current.coins + n * PRICE, total: shopRef.current.total + n * PRICE };
-          shopRef.current = next; setShop(next); setPop((p) => p + 1); sfx.tick();
+          shopRef.current = next; setShop(next); setPop((p) => p + 1); sfx.tick(); visit.add(n);
         }
       }
       setBake(bakeRef.current); setStock(stockRef.current); setQueue(queueRef.current);
@@ -110,6 +112,7 @@ export default function IdleTycoon() {
         <button type="button" className="btn" onClick={() => { save(); pay(); back.go(); }}>✕ Leave</button>
         <h1>🧁 Cupcake Tycoon</h1>
         <SfxToggle />
+        <MyBest game="idleTycoon" unit="cupcakes sold" />
         <span className="mc-hud"><span key={pop} className="ty-coin">🪙</span> {shop.coins} shop coins</span>
       </header>
       <div className="ty-main">

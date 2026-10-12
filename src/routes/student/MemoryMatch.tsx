@@ -8,6 +8,8 @@ import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { MyBest } from '../../components/MyBest';
+import { recordBestGame } from '../../lib/personalBoard';
 
 // Memory Match (her student-favorite genres list, 2026-09-30: "library or curio shop; questions pair
 // with answers"). Twelve face-down cards: six question cards (blue) and six answer cards (green).
@@ -69,6 +71,7 @@ export default function MemoryMatch() {
       if (next.every((x) => x.matched)) {
         const f = flips + 1;
         mergeStyleRow(owner, { best: saved.best ? Math.min(saved.best, f) : f, boards: (saved.boards ?? 0) + 1 });
+        recordBestGame(student.id, 'memoryMatch', -f, `${cards.length / 2} pairs`);
         pay(); playCheer();
         window.setTimeout(() => setWon(true), 700);
       }
@@ -92,6 +95,7 @@ export default function MemoryMatch() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🃏 Memory Match</h1>
         <SfxToggle />
+        <MyBest game="memoryMatch" format={(e) => `${-e.score} flips${e.detail ? ` (${e.detail})` : ''}`} />
         <span className="mc-hud">✨ {matched} / {pairs} · 🔄 {flips}</span>
       </header>
       <div className="mm-main">
