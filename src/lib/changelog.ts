@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-farm-grow",
+    date: "2026-10-12",
+    icon: "🌱",
+    title: "New game: Farm Grow",
+    body: "Plant seeds on your own farm! Answer questions to plant, water and take care of your crops, then harvest them and sell them at the farm stand. Can you grow all 8 crops for your Harvest Book?",
+  },
+  {
     id: "2026-10-12-fishing-dock",
     date: "2026-10-12",
     icon: "🎣",

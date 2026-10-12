@@ -6663,3 +6663,48 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .fd-page.locked { background: #f0f0f0; border-color: #ccc; }
 .fd-page-icon { font-size: 40px; }
 @media (prefers-reduced-motion: reduce) { .fd-water i, .fd-bobber, .fd-pulse { animation: none; } }
+
+/* Farm Grow (native game, Build Queue 30) */
+.fg { position: fixed; inset: 0; overflow: hidden auto; color: #2f3a12; background: #8fd16a; }
+.fg-sky { position: absolute; inset: 0 0 62% 0; background: linear-gradient(#8fd3ff, #d9f2ff); }
+.fg-sun { position: absolute; right: 8%; top: 22%; font-size: 64px; animation: fg-spin 18s linear infinite; }
+.fg-cloud { position: absolute; left: -10%; top: 30%; font-size: 56px; opacity: 0.9; animation: fg-drift 40s linear infinite; }
+.fg-barn { position: absolute; left: 6%; bottom: -6px; font-size: 72px; }
+.fg-field { position: absolute; left: 0; right: 0; bottom: 0; top: 38%; background: repeating-linear-gradient(90deg, #8fd16a 0 40px, #84c75f 40px 80px); }
+.fg-head h1 { color: #3d7a1e; }
+.fg-main { position: relative; z-index: 2; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding: 96px 16px max(24px, env(safe-area-inset-bottom)); box-sizing: border-box; }
+.fg-msg { text-align: center; max-width: 560px; }
+.fg-plots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; width: min(720px, 100%); }
+.fg-plot { position: relative; min-height: 150px; border: 4px solid #6b4423; border-radius: 18px; background: #8a5a2b; padding: 8px 8px 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; cursor: pointer; overflow: hidden; color: #fff; font: inherit; touch-action: manipulation; }
+.fg-plot:active { transform: scale(0.97); }
+.fg-plot:focus-visible { outline: 4px solid #ffd23f; outline-offset: 2px; }
+.fg-soil { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #7a4d22 0 14px, #8a5a2b 14px 28px); }
+.fg-plot.s1 .fg-soil, .fg-plot.s2 .fg-soil, .fg-plot.ready .fg-soil { background: repeating-linear-gradient(0deg, #5e3a18 0 14px, #6e4520 14px 28px); }
+.fg-plot.ready { border-color: #ffd23f; box-shadow: 0 0 0 4px rgba(255,210,63,0.45); }
+.fg-crop { position: relative; font-size: 54px; line-height: 1; animation: fg-pop 0.6s cubic-bezier(.2,1.6,.4,1) both; }
+.fg-plot.s2 .fg-crop { animation: fg-pop 0.6s cubic-bezier(.2,1.6,.4,1) both, fg-sway 2.4s ease-in-out 0.6s infinite; transform-origin: bottom center; }
+.fg-plot.ready .fg-crop { font-size: 64px; animation: fg-pop 0.6s cubic-bezier(.2,1.6,.4,1) both, fg-wiggle 1.2s ease-in-out 0.6s infinite; }
+.fg-steps { position: relative; display: flex; gap: 4px; }
+.fg-steps i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.35); }
+.fg-steps i.on { background: #ffd23f; }
+.fg-label { position: relative; background: rgba(0,0,0,0.38); border-radius: 999px; padding: 4px 10px; font-weight: 800; font-size: 0.95rem; text-align: center; }
+.fg-fx { position: absolute; left: 0; right: 0; top: 8px; display: flex; justify-content: center; gap: 10px; font-size: 28px; pointer-events: none; }
+.fg-rain i { font-style: normal; animation: fg-drop 0.7s ease-in 2 both; }
+.fg-rain i:nth-child(2) { animation-delay: 0.15s; } .fg-rain i:nth-child(3) { animation-delay: 0.3s; }
+.fg-shine { font-size: 44px; animation: fg-shine 1.2s ease-out both; }
+.fg-dig { font-size: 34px; top: auto; bottom: 40px; animation: fg-shine 1s ease-out both; }
+.fg-fly { font-size: 44px; animation: fg-fly 1.2s ease-out both; }
+.fg-seeds { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.fg-seed { min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 3px solid #6fbf4a; border-radius: 16px; background: #f1fbe9; font: inherit; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.fg-seed span { font-size: 38px; }
+.fg-page { background: #f1fbe9; border-color: #6fbf4a; }
+@keyframes fg-pop { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes fg-sway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes fg-wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes fg-drop { from { transform: translateY(-20px); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(70px); opacity: 0; } }
+@keyframes fg-shine { from { transform: scale(0.3) rotate(0); opacity: 0; } 40% { opacity: 1; } to { transform: scale(1.4) rotate(90deg); opacity: 0; } }
+@keyframes fg-fly { from { transform: translateY(40px); opacity: 1; } to { transform: translateY(-80px); opacity: 0; } }
+@keyframes fg-spin { to { transform: rotate(360deg); } }
+@keyframes fg-drift { from { transform: translateX(0); } to { transform: translateX(130vw); } }
+@media (max-width: 560px) { .fg-plots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .fg *, .fg *::before { animation: none !important; } }

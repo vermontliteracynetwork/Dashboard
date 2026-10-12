@@ -16,6 +16,7 @@ import Passport from './components/Passport';
 import PetFinder from './routes/student/PetFinder';
 import BuffDogeGym from './routes/student/BuffDogeGym';
 import PetShowRing from './routes/student/PetShowRing';
+import FarmGrow from './routes/student/FarmGrow';
 import FishingDock from './routes/student/FishingDock';
 import RescueShelter from './routes/student/RescueShelter';
 import PetJournal from './routes/student/PetJournal';
@@ -213,6 +214,7 @@ export default function App() {
           <Route path="/student/pet-finder" element={<PetFinder />} />
           <Route path="/student/gym" element={<BuffDogeGym />} />
           <Route path="/student/pet-show" element={<PetShowRing />} />
+          <Route path="/student/farm-grow" element={<FarmGrow />} />
           <Route path="/student/fishing-dock" element={<FishingDock />} />
           <Route path="/student/rescue-shelter" element={<RescueShelter />} />
           <Route path="/student/pet-journal" element={<PetJournal />} />

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd3ff"/><stop offset="1" stop-color="#d9f2ff"/></linearGradient></defs>
+  <rect width="640" height="170" fill="url(#s)"/><circle cx="560" cy="60" r="38" fill="#ffd23f"/>
+  <rect y="160" width="640" height="200" fill="#8fd16a"/>
+  <g fill="#7a4d22" stroke="#5e3a18" stroke-width="5"><rect x="40" y="200" width="170" height="120" rx="16"/><rect x="235" y="200" width="170" height="120" rx="16"/><rect x="430" y="200" width="170" height="120" rx="16"/></g>
+  <g stroke="#5e3a18" stroke-width="4" opacity="0.6"><path d="M50 240h150M50 280h150M245 240h150M245 280h150M440 240h150M440 280h150"/></g>
+  <text x="125" y="300" text-anchor="middle" font-size="60">🌱</text><text x="320" y="305" text-anchor="middle" font-size="70">🥕</text><text x="515" y="305" text-anchor="middle" font-size="70">🌽</text>
+  <text x="320" y="110" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="66" font-weight="900" fill="#fff" stroke="#3d7a1e" stroke-width="10" paint-order="stroke">FARM GROW</text>
+</svg>
