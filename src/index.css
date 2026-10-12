@@ -6655,7 +6655,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .fd-sweet { position: absolute; left: 72%; width: 20%; top: 0; bottom: 0; background: #2fa36b; }
 .fd-meter b { position: absolute; top: -2px; bottom: -2px; width: 8px; margin-left: -4px; background: #12324a; border-radius: 4px; }
 .fd-catch { text-align: center; }
-.fd-fish { font-size: 96px; animation: pf-pop 0.8s cubic-bezier(.2,1.6,.4,1) both; }
+.fd-fish { font-size: 96px; line-height: 1.1; animation: fg-pop 0.8s cubic-bezier(.2,1.6,.4,1) both; }
 .fd-new { display: inline-block; background: #ffd23f; border-radius: 999px; padding: 4px 12px; font-weight: 900; }
 .fd-tier { display: inline-block; color: #fff; font-weight: 900; border-radius: 999px; padding: 3px 12px; }
 .fd-book { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
@@ -6794,7 +6794,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 /* Kitchen Cook-Off (native game, Build Queue 33) */
 .kc { position: fixed; inset: 0; overflow: hidden auto; color: #3a2414; background: repeating-linear-gradient(45deg, #fff6e6 0 24px, #ffeccc 24px 48px); }
 .kc-head h1 { color: #d2553a; }
-.kc-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 96px 16px max(24px, env(safe-area-inset-bottom)); }
+.kc-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 96px 16px max(24px, env(safe-area-inset-bottom)); }
 .kc-top { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: stretch; width: min(760px, 100%); }
 .kc-guest { flex: 1 1 260px; display: flex; align-items: center; gap: 10px; animation: po-in 0.6s cubic-bezier(.2,1.2,.4,1) both; }
 .kc-guest-face { font-size: 64px; }
@@ -6805,19 +6805,19 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .kc-card li span { font-size: 26px; }
 .kc-card li.done { opacity: 0.55; }
 .kc-card li.now { background: #ffe9a8; outline: 3px solid #ffd23f; }
-.kc-pot { position: relative; width: 220px; height: 120px; display: flex; align-items: flex-end; justify-content: center; }
-.kc-bowl { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(#9aa4b5, #6c7688); border-radius: 0 0 110px 110px; border-top: 8px solid #c3cad6; }
-.kc-in { position: absolute; bottom: 48px; display: flex; gap: 2px; font-size: 34px; z-index: 1; }
+.kc-pot { position: relative; width: 220px; height: 92px; display: flex; align-items: flex-end; justify-content: center; }
+.kc-bowl { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(#9aa4b5, #6c7688); border-radius: 0 0 110px 110px; border-top: 8px solid #c3cad6; }
+.kc-in { position: absolute; bottom: 40px; display: flex; gap: 2px; font-size: 34px; z-index: 1; }
 .kc-in i { font-style: normal; animation: kc-drop 0.5s cubic-bezier(.2,1.4,.4,1) both; }
 .kc-pot.cooking .kc-in { animation: kc-sizzle 0.25s ease-in-out infinite; }
-.kc-steam { position: absolute; bottom: 100px; display: flex; gap: 22px; z-index: 2; }
+.kc-steam { position: absolute; bottom: 80px; display: flex; gap: 22px; z-index: 2; }
 .kc-steam i { width: 14px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.85); animation: kc-steam 1.2s ease-out infinite; }
 .kc-steam i:nth-child(2) { animation-delay: 0.3s; } .kc-steam i:nth-child(3) { animation-delay: 0.6s; }
 .kc-msg { text-align: center; max-width: 620px; }
 .kc-go { width: min(560px, 100%); }
 .kc-pantry { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: min(760px, 100%); }
-.kc-item { min-height: 92px; border: 3px solid #e8c9a0; border-radius: 16px; background: #fff; font: inherit; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; touch-action: manipulation; }
-.kc-item span { font-size: 40px; }
+.kc-item { min-height: 80px; border: 3px solid #e8c9a0; border-radius: 16px; background: #fff; font: inherit; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; touch-action: manipulation; }
+.kc-item span { font-size: 34px; }
 .kc-item:disabled { opacity: 0.6; cursor: default; }
 .kc-pantry.live .kc-item { border-color: #ffd23f; }
 .kc-item.oops { animation: po-shake 0.5s ease-in-out both; }
@@ -6911,7 +6911,7 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .lq-spine-icon { font-size: 26px; }
 .lq-secret { position: absolute; top: -18px; right: -8px; font-size: 26px; animation: fg-pop 0.6s cubic-bezier(.2,1.6,.4,1) both; }
 .lq-go { width: min(560px, 100%); }
-.lq-toast { position: fixed; left: 50%; bottom: max(110px, calc(env(safe-area-inset-bottom) + 100px)); transform: translateX(-50%); background: #2e1f12; color: #fff; border-radius: 14px; padding: 10px 18px; font-weight: 800; font-size: 1.15rem; z-index: 5; max-width: calc(100vw - 32px); text-align: center; animation: fg-pop 0.3s ease-out both; }
+.lq-toast { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; bottom: max(110px, calc(env(safe-area-inset-bottom) + 100px)); background: #2e1f12; color: #fff; border-radius: 14px; padding: 10px 18px; font-weight: 800; font-size: 1.15rem; z-index: 5; max-width: calc(100vw - 32px); text-align: center; animation: fg-pop 0.3s ease-out both; }
 .lq-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .lq-page { background: #fbf4e4; border: 3px solid #c9a46a; border-radius: 12px; padding: 8px 10px; }
 .lq-page.full { border-color: #d6a21e; background: #fff6d6; }

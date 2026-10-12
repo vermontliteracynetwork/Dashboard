@@ -30,7 +30,7 @@ const TRAINS: TrainKind[] = [
   { id: 'railcar', name: 'Rail Car', icon: '🚃', fact: 'Rail cars hook together to make one long train.' },
 ];
 const PY = [50, 150, 210, 310]; // platform track heights in the 800 x 360 map
-const routeFor = (p: number): [number, number][] => [[20, 180], [200, 180], p < 2 ? [320, 100] : [320, 260], [400, PY[p]], [690, PY[p]]];
+const routeFor = (p: number): [number, number][] => [[44, 180], [200, 180], p < 2 ? [320, 100] : [320, 260], [400, PY[p]], [690, PY[p]]];
 const SHIFT = 6;
 
 const lerpPath = (pts: [number, number][], u: number): [number, number] => {
@@ -52,7 +52,7 @@ export default function TrainDispatch() {
   const [train, setTrain] = useState(() => newTrain(1));
   const [sw, setSw] = useState({ A: 0, B: 0, C: 0 });
   const [green, setGreen] = useState(false);
-  const [pos, setPos] = useState<[number, number]>([20, 180]);
+  const [pos, setPos] = useState<[number, number]>([44, 180]);
   const [moving, setMoving] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [delivered, setDelivered] = useState(0);
@@ -92,7 +92,7 @@ export default function TrainDispatch() {
         timers.current.push(window.setTimeout(() => {
           if (isNew) setNote({ ok: true, text: `✨ New in your Train Spotter Book: the ${train.kind.name}! ${train.kind.fact}` });
           if (d % SHIFT === 0) { pay(); setShiftDone(true); }
-          setTrain((t) => newTrain(t.n + 1)); setGreen(false); setMoving(false); setPos([20, 180]);
+          setTrain((t) => newTrain(t.n + 1)); setGreen(false); setMoving(false); setPos([44, 180]);
         }, 1600));
       } else {
         setNote({ ok: false, text: `Oops! This is the ${DESTS[p].name} platform. These passengers want ${dest.name}. Fix the switches and send it again!` });
