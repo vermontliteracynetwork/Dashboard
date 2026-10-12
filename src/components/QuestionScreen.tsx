@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { recordStreakCorrect } from '../lib/streak';
 import type { TTSSettings } from '../types';
 import { speak } from './ReadAloud';
+import type { NpcVoiceProfile } from '../lib/npcVoices';
 import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
 import ZoomableImage from './ZoomableImage';
 import { openCheckOnPet } from './CheckOnPet';
@@ -80,6 +81,8 @@ export interface QuestionScreenProps {
   // Read the question and choices aloud as soon as it appears (her rule: text to speech is the
   // default in storytelling games).
   autoRead?: boolean;
+  // A game host's own voice for reading the question (Doc Fishing reads the Fishing Dock).
+  voice?: NpcVoiceProfile;
   whoIcon?: string;
 }
 
@@ -127,6 +130,7 @@ export default function QuestionScreen({
   whoIcon,
   compact = false,
   autoRead = false,
+  voice,
 }: QuestionScreenProps) {
   const lockAfterWrong = !!onSkip;
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -213,7 +217,7 @@ export default function QuestionScreen({
     const optionLines = order
       .map((origIdx, i) => `Option ${LETTERS[i] ?? i + 1}, ${choices[origIdx]}.`)
       .join(' ');
-    speak(`${prompt} ${optionLines}`, ttsSettings);
+    speak(`${prompt} ${optionLines}`, ttsSettings, undefined, voice);
   };
   // Read aloud on its own when the game asks for it (storytelling games read by default).
   useEffect(() => {

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-fishing-dock-v2",
+    date: "2026-10-12",
+    icon: "🎣",
+    title: "Meet Doc Fishing!",
+    body: "The Fishing Dock has a host, Doc Fishing, who reads everything to you. Watch your rod cast, then answer to hook the fish. There are 44 fish to find, new rods and bobbers to earn, and power-up potions to catch, like the Diamond Rod with no questions for 30 seconds.",
+  },
+  {
     id: "2026-10-12-gym-lobby",
     date: "2026-10-12",
     icon: "🏋️",

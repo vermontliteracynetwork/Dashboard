@@ -18,7 +18,7 @@ export function gameProgressLabels(rows: Rows, studentId: string | undefined): P
     const n = Number(get(prefix)?.[key] ?? 0);
     if (n > 0) out[id] = fmt(n);
   };
-  of('fishingDock', 'fishbook', 'caught', 16, 'fish');
+  of('fishingDock', 'fishbook', 'caught', 44, 'fish');
   of('farmGrow', 'farm', 'harvested', 8, 'crops');
   of('postOffice', 'postoffice', 'stamps', 12, 'stamps');
   of('lighthouse', 'lighthouse', 'seen', 9, 'boats');

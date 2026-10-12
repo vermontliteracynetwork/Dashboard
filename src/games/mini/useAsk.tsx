@@ -1,3 +1,4 @@
+import type { NpcVoiceProfile } from '../../lib/npcVoices';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import type { MCQuestion, NativeGameId } from '../../types';
@@ -64,7 +65,7 @@ export function useGameQuestions(gameId: NativeGameId) {
 // Her rule for every native game (2026-10-08): kids choose the rounds (where a game has them) and
 // the questions per round, and an assignment's own numbers lock them. Here "questions per round" is
 // how many questions each action asks (1 to 5); `settings` is the ⚙️ button for the game's header.
-export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: { rounds?: RoundRange; roundsLabel?: string; perLabel?: string; compact?: boolean; autoRead?: boolean }) {
+export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: { rounds?: RoundRange; roundsLabel?: string; perLabel?: string; compact?: boolean; autoRead?: boolean; voice?: NpcVoiceProfile }) {
   const { next, right: countRight, notice, assignment, student } = useGameQuestions(gameId);
   const ranges = { rounds: opts?.rounds, per: { min: 1, max: 5, def: 1 } };
   const rs = useRoundSettings(gameId, ranges, assignment?.task);
@@ -99,6 +100,7 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
           ttsSettings={student.ttsSettings}
           compact={opts?.compact}
           autoRead={opts?.autoRead}
+          voice={opts?.voice}
         />
       )}
       {notice}
