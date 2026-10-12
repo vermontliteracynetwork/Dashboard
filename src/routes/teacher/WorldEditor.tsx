@@ -51,6 +51,10 @@ import type { WorldObject, WorldObjectRole, LayoutOverride, WallSegment } from '
 // edit is real, not just a preview. "Reset to the original town" is always
 // just clearing the overrides.
 type AssetManifestEntry = { path: string; label: string; category: string };
+// A role no building in the shared town has yet (so she can see which games still need a building
+// after new ones ship, Build Queue 60). Read straight from the store when the list draws.
+const notInTown = (role: WorldObjectRole | '') => !!role && role !== 'custom' && role !== 'closed' && !useStore.getState().worldObjects.some((o) => !o.studentId && o.role === role);
+
 const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: '', label: 'No role (just decoration)' },
   { value: 'bank', label: `Bank → ${ROLE_VIEWS.bank}` },
@@ -1388,7 +1392,7 @@ function RosterTab() {
                   onChange={(e) => updateWorldObject(obj.id, { role: (e.target.value || undefined) as WorldObjectRole | undefined })}
                   style={{ minHeight: 44 }}
                 >
-                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}{notInTown(r.value) ? ' · not in town yet' : ''}</option>)}
                 </select>
                 <label className="row" style={{ gap: 4, alignItems: 'center', fontSize: '0.8rem' }} title="Whether students/NPCs can walk through this object">
                   <input
@@ -1771,6 +1775,7 @@ function SelectedObjectToolbar({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 210, overflowY: 'auto' }}>
                   {ROLE_OPTIONS.map((r) => {
                     const isActive = (selected.role ?? '') === r.value;
+                    const unplaced = notInTown(r.value);
                     return (
                       <button
                         key={r.value}
@@ -1788,7 +1793,7 @@ function SelectedObjectToolbar({
                           background: isActive ? 'rgba(0,0,0,0.04)' : '#fff',
                         }}
                       >
-                        {isActive ? '✓ ' : ''}{r.label}
+                        {isActive ? '✓ ' : ''}{r.label}{unplaced ? ' · not in town yet' : ''}
                       </button>
                     );
                   })}
