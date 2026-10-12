@@ -173,6 +173,7 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   'pet-gym': '/student/gym',
   // Pet Show Ring (teacher 2026-10-12).
   'pet-show': '/student/pet-show',
+  'plinko-drop': '/student/plinko',
   'word-search': '/student/word-search',
   'memory-match': '/student/memory-match',
   'whack-a-mole': '/student/whack-a-mole',

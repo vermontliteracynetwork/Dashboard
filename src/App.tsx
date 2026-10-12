@@ -16,6 +16,7 @@ import Passport from './components/Passport';
 import PetFinder from './routes/student/PetFinder';
 import BuffDogeGym from './routes/student/BuffDogeGym';
 import PetShowRing from './routes/student/PetShowRing';
+import PlinkoDrop from './routes/student/PlinkoDrop';
 import WordSearch from './routes/student/WordSearch';
 import MemoryMatch from './routes/student/MemoryMatch';
 import WhackAMole from './routes/student/WhackAMole';
@@ -226,6 +227,7 @@ export default function App() {
           <Route path="/student/pet-finder" element={<PetFinder />} />
           <Route path="/student/gym" element={<BuffDogeGym />} />
           <Route path="/student/pet-show" element={<PetShowRing />} />
+          <Route path="/student/plinko" element={<PlinkoDrop />} />
           <Route path="/student/word-search" element={<WordSearch />} />
           <Route path="/student/memory-match" element={<MemoryMatch />} />
           <Route path="/student/whack-a-mole" element={<WhackAMole />} />

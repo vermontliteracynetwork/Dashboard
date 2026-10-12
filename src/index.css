@@ -7062,3 +7062,26 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .ws-go { width: 100%; }
 .ws-hint { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) { .ws * { animation: none !important; } }
+
+/* Plinko Drop (native game, Build Queue 44) */
+.pk { position: fixed; inset: 0; overflow: hidden auto; color: #2a1630; background: repeating-linear-gradient(90deg, #ffe9f0 0 40px, #fff6f9 40px 80px); }
+.pk-head h1 { color: #d63a6a; text-shadow: 0 2px 0 #fff; }
+.pk-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 88px 16px max(20px, env(safe-area-inset-bottom)); }
+.pk-sign { background: #fff3c4; border-color: #d63a6a; box-shadow: 0 6px 0 #a02550; }
+.pk-msg { text-align: center; }
+.pk-board { position: relative; width: min(620px, 100%, calc((100vh - 300px) * 0.95)); min-width: 300px; background: #3a1f5c; border: 8px solid #d63a6a; border-radius: 22px; padding: 0 8px 8px; box-sizing: border-box; }
+.pk-chutes { position: relative; height: 92px; }
+.pk-chute { position: absolute; top: 6px; transform: translateX(-50%); width: 21%; min-height: 80px; border: 4px solid #ffd23f; border-radius: 12px 12px 4px 4px; background: #fff; font: inherit; font-weight: 900; font-size: 1rem; line-height: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; cursor: pointer; touch-action: manipulation; overflow-wrap: anywhere; color: #2a1630; }
+.pk-chute i { font-style: normal; font-size: 16px; }
+.pk-chute:disabled { opacity: 0.6; cursor: default; }
+.pk-chute.oops { animation: po-shake 0.5s ease-in-out both; border-color: #e2574c; }
+.pk-chute:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+.pk-pegs { position: relative; aspect-ratio: 1 / 0.9; }
+.pk-pegs i { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #f6d27a; box-shadow: 0 0 6px rgba(246,210,122,0.7); }
+.pk-ball { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #ff5a8a 45%, #a02550); transition: left 0.17s ease-out, top 0.17s ease-in; z-index: 2; }
+.pk-slots { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
+.pk-slots span { background: #5b3a8a; color: #fff; border-radius: 0 0 10px 10px; text-align: center; font-weight: 900; padding: 8px 0; font-size: 1.1rem; }
+.pk-slots span.mid { background: #2fa36b; } .pk-slots span.big { background: #d6a21e; }
+.pk-slots span.win { animation: kc-glow 0.7s ease-in-out 3; outline: 3px solid #fff; }
+.pk-prize .btn { min-height: 44px; }
+@media (prefers-reduced-motion: reduce) { .pk-ball { transition: none; } .pk * { animation: none !important; } }

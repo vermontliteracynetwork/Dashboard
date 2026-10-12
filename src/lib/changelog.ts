@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-plinko",
+    date: "2026-10-12",
+    icon: "🎯",
+    title: "New game: Plinko Drop",
+    body: "Step right up! Each chute on the Plinko board has an answer on it. Drop the ball down the right one and watch it bounce into a ticket slot. Trade your tickets for plushies at the Prize Counter!",
+  },
+  {
     id: "2026-10-12-word-search",
     date: "2026-10-12",
     icon: "🔤",
