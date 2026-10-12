@@ -34,7 +34,7 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   // Teacher 2026-10-12: "build the rescue shelter game next".
   { id: 'rescueShelter', added: '2026-10-12', title: "Rescue Shelter", route: '/student/rescue-shelter', cover: '/games/covers/rescue-shelter.svg', blurb: "Help a scared stray learn to trust you.", versus: false, cabinet: { marquee: '#d9534f', panel: '#f4a6a0', trim: '#ffe9b0', icon: '🐶' } },
   // Her native game list (2026-09-30), built in Claudia's four-hour queue 2026-10-12.
-  { id: 'fishingDock', added: '2026-10-12', title: "Fishing Dock", route: '/student/fishing-dock', cover: '/games/covers/fishing-dock.svg', blurb: "Cast, wait, reel! Fill your Fish Book.", versus: false, cabinet: { marquee: '#1f6fa8', panel: '#5bb0e0', trim: '#ffd23f', icon: '🎣' } },
+  { id: 'fishingDock', added: '2026-10-12', title: "Doc Fishing", route: '/student/fishing-dock', cover: '/games/covers/doc-fishing.jpg', blurb: "Cast, wait, reel! Fill your Fish Book.", versus: false, cabinet: { marquee: '#1f6fa8', panel: '#5bb0e0', trim: '#ffd23f', icon: '🎣' } },
   // Farm Grow (Build Queue 30, her list: farm plots; answers plant and tend crops through growth stages; harvest for currency).
   { id: 'farmGrow', added: '2026-10-12', title: "Farm Grow", route: '/student/farm-grow', cover: '/games/covers/farm-grow.svg', blurb: "Answer to plant, water and tend crops, then harvest them at the farm stand.", versus: false, cabinet: { marquee: '#3d7a1e', panel: '#8fd16a', trim: '#ffd23f', icon: '🌱' } },
   // Post Office Sort (Build Queue 31, her list: post office; sort letters and parcels into the right bins by answering).

@@ -83,7 +83,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'lighthouse-signal', label: `Lighthouse Signal → ${ROLE_VIEWS['lighthouse-signal']}` },
   { value: 'post-office-sort', label: `Post Office Sort → ${ROLE_VIEWS['post-office-sort']}` },
   { value: 'farm-grow', label: `Farm Grow → ${ROLE_VIEWS['farm-grow']}` },
-  { value: 'fishing-dock', label: `Fishing Dock → ${ROLE_VIEWS['fishing-dock']}` },
+  { value: 'fishing-dock', label: `Doc Fishing (fishing dock) → ${ROLE_VIEWS['fishing-dock']}` },
   { value: 'rescue-shelter', label: `Rescue Shelter → ${ROLE_VIEWS['rescue-shelter']}` },
   { value: 'island-dock', label: `Island Dock (boat to Creative Island) → ${ROLE_VIEWS['island-dock']}` },
   { value: 'cinema', label: `Cinema (watch videos) → ${ROLE_VIEWS.cinema}` },

@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: "2026-10-12",
     icon: "🎣",
     title: "Meet Doc Fishing!",
-    body: "The Fishing Dock has a host, Doc Fishing, who reads everything to you. Watch your rod cast, then answer to hook the fish. There are 44 fish to find, new rods and bobbers to earn, and power-up potions to catch, like the Diamond Rod with no questions for 30 seconds.",
+    body: "The Fishing Dock is now called Doc Fishing, and it is all pixel art! Doc Fishing is your host, and he reads everything to you. Watch your rod cast, then answer to hook the fish. There are 44 fish to find, new rods and bobbers to earn, and power-up potions to catch, like the Diamond Rod with no questions for 30 seconds.",
   },
   {
     id: "2026-10-12-gym-lobby",

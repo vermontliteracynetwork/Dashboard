@@ -60,7 +60,7 @@ const LABELS: Record<string, string> = {
   '/student/lighthouse': "🗼 Lighthouse Signal",
   '/student/post-office': "📮 Post Office Sort",
   '/student/farm-grow': "🌱 Farm Grow",
-  '/student/fishing-dock': "🎣 Fishing Dock",
+  '/student/fishing-dock': "🎣 Doc Fishing",
   '/student/rescue-shelter': "🐶 Rescue Shelter",
   '/student/pet-journal': '📓 Pet Journal',
   '/student/passport': '🛂 Passport',

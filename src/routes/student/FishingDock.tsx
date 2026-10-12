@@ -9,7 +9,9 @@ import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import { MyBest } from '../../components/MyBest';
 import { recordBestGame } from '../../lib/personalBoard';
 
-// Fishing Dock (her native game list, 2026-09-30: "Fishing Dock: pier or boat asset; answers power
+// Doc Fishing, first called Fishing Dock (renamed and made all pixel art at her request, 2026-10-12:
+// "the whole fishing dock game should become pixel theme. the game should have this cover and be renamed
+// to Doc Fishing"). From her native game list, 2026-09-30: "Fishing Dock: pier or boat asset; answers power
 // a timing-based cast; fish go in a collection book"). Her 2026-10-12 update, with her fishing art
 // and sound packs: Doc Fishing hosts the dock and reads the game aloud in a slow, deep drawl; the rod
 // casts first ("make sure the fishing poles cast in animation before the question pops up") and the
@@ -129,7 +131,7 @@ export default function FishingDock() {
   const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('story-tts') !== '0'; } catch { return true; } });
   const readRef = useRef(readAloud);
   readRef.current = readAloud;
-  const { settings, ask, element, pay, student, asking } = useAsk('Fishing Dock', '🎣', 'fishingDock', { compact: true, autoRead: readAloud, voice: DOC_VOICE });
+  const { settings, ask, element, pay, student, asking } = useAsk('Doc Fishing', '🎣', 'fishingDock', { compact: true, autoRead: readAloud, voice: DOC_VOICE, cardClass: 'qs-pixel' });
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [phase, setPhase] = useState<Phase>('ready');
@@ -290,7 +292,8 @@ export default function FishingDock() {
 
   return (
     <div className={`fd fdk${rainbow ? ' rainbow' : ''}`}>
-      <div className="fd-sky" />
+      <div className="fd-sky"><i className="fdk-sun" /><i className="fdk-cloud c1" /><i className="fdk-cloud c2" /></div>
+      <div className="fdk-hills"><i className="far" /><i className="near" /></div>
       <div className="fd-water"><i /><i /><i />
         {shadows.map((s, i) => <img key={s} src={`${ART}fish/${s}.png`} alt="" className={`fdk-px fdk-shadow s${i}`} />)}
       </div>
@@ -303,7 +306,7 @@ export default function FishingDock() {
           </div>
         )}
         <div className="fdk-doc">
-          {docArt ? <img src={`${ART}doc-fishing.png`} alt="Doc Fishing" onError={() => setDocArt(false)} /> : <span className="fdk-doc-emoji" aria-hidden>🐶</span>}
+          {docArt ? <img src={`${ART}doc-fishing.jpg`} alt="Doc Fishing" onError={() => setDocArt(false)} /> : <span className="fdk-doc-emoji" aria-hidden>🐶</span>}
           <span className="fdk-doc-name">Doc Fishing</span>
         </div>
       </div>
@@ -338,7 +341,7 @@ export default function FishingDock() {
       )}
       <header className="fd-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>🎣 Fishing Dock</h1>
+        <h1 className="fdk-title">Doc Fishing</h1>
         <button type="button" className="btn" onClick={flipRead} aria-pressed={readAloud} aria-label={readAloud ? 'Doc Fishing reads aloud. Tap to turn it off.' : 'Reading aloud is off. Tap to turn it on.'}>{readAloud ? '🔊 Doc reads' : '🔇 Reading off'}</button>
         <SfxToggle />
         {settings}

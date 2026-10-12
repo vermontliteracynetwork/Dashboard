@@ -545,7 +545,7 @@ export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   bubbleShooter: '🫧 Bubble Shooter',
   petShow: '🏅 Pet Show Ring',
   rescueShelter: '🐶 Rescue Shelter',
-  fishingDock: '🎣 Fishing Dock',
+  fishingDock: '🎣 Doc Fishing',
   farmGrow: '🌱 Farm Grow',
   postOffice: '📮 Post Office Sort',
   lighthouse: '🗼 Lighthouse Signal',
