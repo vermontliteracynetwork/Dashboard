@@ -8,6 +8,7 @@ import { sfxOn, SfxToggle } from '../../lib/miniSfx';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import { MyBest } from '../../components/MyBest';
 import { recordBestGame } from '../../lib/personalBoard';
+import { addPetFood } from '../../lib/petFood';
 
 // Doc Fishing, first called Fishing Dock (renamed and made all pixel art at her request, 2026-10-12:
 // "the whole fishing dock game should become pixel theme. the game should have this cover and be renamed
@@ -315,6 +316,8 @@ export default function FishingDock() {
     const cx = (fish.junk ? 5 : CATCH_XP[tier]) + (isNew ? 25 : 0);
     const newRod = gainXp(cx, isNew ? 'New kind!' : 'Nice catch!', false);
     recordBestGame(student.id, 'fishingDock', size, fish.name);
+    // A real fish is also a fish snack for pets (her rule 2026-10-12: earn pet food in games).
+    if (!fish.junk && tier <= 1) addPetFood(student.id, 'fish');
     setCaught({ kind: 'fish', fish, size, isNew, xp: cx, newBobber: newBobber?.name });
     setPhase('leap');
     later(() => {

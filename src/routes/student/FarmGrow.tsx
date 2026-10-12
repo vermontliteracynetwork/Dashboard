@@ -13,6 +13,7 @@ import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
 import { MyBest, useVisitScore } from '../../components/MyBest';
 import type { MCQuestion } from '../../types';
+import { addPetFood, foodById } from '../../lib/petFood';
 
 // Farm Grow, rebuilt 2026-10-12 as an isometric pixel farm on her art packs (Isometric Farm tiles and
 // house, the autumn harvest crop sprites, Pixel Farm tools, the Septembit seed bag). Her words:
@@ -139,7 +140,11 @@ export default function FarmGrow() {
     else if (job.kind === 'water' && p && !p.watered) { g.plots[job.plot] = { ...p, watered: true }; sfx.splash(); tell(`Watered the ${cropOf(p.crop).name}. It will grow tonight.`); }
     else if (job.kind === 'harvest' && p && p.stage === 3) {
       g.plots[job.plot] = null; g.harvested[p.crop] = (g.harvested[p.crop] ?? 0) + 1; g.stats.harvested += 1; visit.add();
-      sfx.coin(); playCheer(); tell(`Harvested ${cropOf(p.crop).name}! ${cropOf(p.crop).fact}`);
+      sfx.coin(); playCheer();
+      // Harvests become pet food when it is a food pets eat (her rule 2026-10-12: earn pet food in games).
+      const petFood = foodById(p.crop);
+      if (petFood && student) addPetFood(student.id, petFood.id);
+      tell(`Harvested ${cropOf(p.crop).name}! ${cropOf(p.crop).fact}${petFood ? ` It went into your pet food too.` : ''}`);
     }
     save();
   };

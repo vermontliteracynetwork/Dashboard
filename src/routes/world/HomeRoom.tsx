@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { feedFromInventory } from '../../lib/petFood';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
@@ -506,7 +507,14 @@ function PetCareCard({
   const prevThreshold = [...PET_MILESTONES].reverse().find((m) => m.threshold <= pet.trainingProgress)?.threshold ?? 0;
 
   const care = (action: 'feed' | 'pet' | 'play') => {
-    carePet(pet.id, action);
+    // Food comes from the student's own pet food (her rule 2026-10-12: buy it or earn it).
+    if (action === 'feed' && !feedFromInventory(pet.studentId, pet.id)) {
+      if (reactionTimerRef.current) window.clearTimeout(reactionTimerRef.current);
+      setReaction(`No pet food yet. Buy some in the Marketplace, or earn it in Farm Grow and Doc Fishing.`);
+      reactionTimerRef.current = window.setTimeout(() => setReaction(null), 3500);
+      return;
+    }
+    if (action !== 'feed') carePet(pet.id, action);
     flashSaved();
     onCue(action === 'pet' ? 'wiggle' : 'hop');
     const said = action === 'feed' ? `😋 ${name}: Yum, thank you!` : action === 'pet' ? `💞 ${name} feels loved!` : `🎾 ${name} had so much fun!`;

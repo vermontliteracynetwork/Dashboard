@@ -8,6 +8,7 @@ import { SEL_STARTER_TOOLS, SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../lib/selZ
 import { extractYouTubeId } from '../lib/youtube';
 import SelZoneEmotionPicker from './SelZoneEmotionPicker';
 import PetStage3D, { type TrickCue } from './PetStage3D';
+import { PET_FOODS, feedFromInventory, foodById, usePetFood } from '../lib/petFood';
 
 // "Check on your pet" (her Pets v2 spec, 2026-10-11): "Questions set function needs to have a
 // break in the tools. it also needs to pop up if the students have been spamming answers ...
@@ -45,6 +46,20 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
   const [track, setTrack] = useState<string | null>(null);
   const [cue, setCue] = useState<TrickCue | null>(null);
   const timer = useRef<number | null>(null);
+  // Her rule (2026-10-12): a small pet food bag under the bars; drag a food onto the pet to feed it
+  // (a tap on a food works too).
+  const food = usePetFood(student?.id);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number } | null>(null);
+  const dropFood = (id: string, x: number, y: number, tap: boolean) => {
+    if (!pet || !student) return;
+    const r = stageRef.current?.getBoundingClientRect();
+    const onPet = tap || (!!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+    if (!onPet) return;
+    if (pet.food >= 100) { setSaid(`I'm full, thank you! Save that ${foodById(id)?.name.toLowerCase()} for later.`); return; }
+    const f = feedFromInventory(student.id, pet.id, id);
+    if (f) { setSaid(`Yum! Thank you for the ${f.name.toLowerCase()}! My food bar went up.`); setCue({ name: 'Sit', at: Date.now() }); }
+  };
   const armReadyCheck = () => { if (timer.current) window.clearTimeout(timer.current); setAskReady(false); timer.current = window.setTimeout(() => setAskReady(true), 60000); };
   useEffect(() => { armReadyCheck(); return () => { if (timer.current) window.clearTimeout(timer.current); }; }, []);
   useEffect(() => {
@@ -72,7 +87,7 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
       <div className="cop-left">
         {pet && def ? (
           <>
-            <div className="cop-stage">
+            <div className="cop-stage" ref={stageRef}>
               <PetStage3D modelPath={def.modelPath} ageScale={AGE_SCALE[ageForTraining(pet.trainingProgress)]} trick={cue} idleSpin={!track} yaw={-0.4} />
               {pets.length > 1 && <button type="button" className="cop-arrow prev" aria-label="Previous pet" onClick={() => setI((i + pets.length - 1) % pets.length)}>◀</button>}
               {pets.length > 1 && <button type="button" className="cop-arrow next" aria-label="Next pet" onClick={() => setI((i + 1) % pets.length)}>▶</button>}
@@ -84,6 +99,23 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
               {([['🍗 Food', pet.food, '#D98C1E'], ['💞 Social', pet.social, '#3E9BD6'], ['❤️ Health', pet.health, '#E2574C']] as const).map(([l, v, c]) => (
                 <div key={l} className="cop-stat"><b><span>{l}</span><span>{Math.round(v)} / 100</span></b><div className="cop-bar"><i style={{ width: `${v}%`, background: c }} /></div></div>
               ))}
+              <div className="cop-food" aria-label="Pet food bag">
+                <b>Pet food</b>
+                {PET_FOODS.some((f) => (food[f.id] ?? 0) > 0) ? (
+                  <div className="cop-food-row">
+                    {PET_FOODS.filter((f) => (food[f.id] ?? 0) > 0).map((f) => (
+                      <button key={f.id} type="button" className="cop-food-item" aria-label={`${f.name}, ${food[f.id]} left. Drag to ${pet.customName} or tap to feed.`}
+                        onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setDrag({ id: f.id, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY }); }}
+                        onPointerMove={(e) => setDrag((d) => (d && d.id === f.id ? { ...d, x: e.clientX, y: e.clientY } : d))}
+                        onPointerUp={(e) => { const d = drag; setDrag(null); if (d) dropFood(f.id, e.clientX, e.clientY, Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 8); }}
+                        onPointerCancel={() => setDrag(null)}>
+                        <img src={f.img} alt="" draggable={false} /><span>{food[f.id]}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : <small>No food yet. Buy some in the Marketplace, or earn it in Farm Grow and Doc Fishing.</small>}
+                {PET_FOODS.some((f) => (food[f.id] ?? 0) > 0) && <small>Drag food to {pet.customName}, or tap it.</small>}
+              </div>
               <div className="cop-skills">🎪 Tricks: Stand/Stay{learnedTricks(sessions).length ? `, ${learnedTricks(sessions).join(', ')}` : ''}</div>
             </div>
           </>
@@ -139,6 +171,7 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
           </div>
         )}
       </div>
+      {drag && Math.hypot(drag.x - drag.sx, drag.y - drag.sy) >= 8 && <img className="cop-food-ghost" src={foodById(drag.id)?.img} alt="" style={{ left: drag.x, top: drag.y }} />}
       {askReady && (
         <div className="cop-ready" role="dialog" aria-label="Ready to go back?">
           <p>{pet ? `${pet.customName}: ` : ''}Are you ready to go back to what you were doing?</p>

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-pet-food",
+    date: "2026-10-12",
+    icon: "🍎",
+    title: "Pet food",
+    body: "Pets eat food from your pet food bag. Buy food in the Marketplace, or earn it: harvests in Farm Grow and fish in Doc Fishing go into your bag. On the pet break screen, drag food to your pet to fill the Food bar.",
+  },
+  {
     id: "2026-10-12-pets-own-training",
     date: "2026-10-12",
     icon: "🐾",

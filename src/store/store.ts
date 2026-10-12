@@ -482,6 +482,7 @@ interface AppState {
   // real work only: a finished assignment, or every 10 right answers.
   trainPets: (studentId: string, amount: number, source: 'assignment' | 'answers') => void;
   trainPet: (petId: string, amount: number) => void;
+  feedPet: (petId: string, amount: number) => void;
   // petId: null unsets whichever pet was following (goes back to no companion).
   setFollowingPet: (studentId: string, petId: string | null) => void;
   // Pets v2 (her spec): "Two companions can walk with students on either side (right and left) as assigned".
@@ -1598,6 +1599,15 @@ export const useStore = create<AppState>()(
         const after = Math.min(PET_TRAINING_CAP, pet.trainingProgress + amount);
         const updated: StudentPet = { ...pet, trainingProgress: after };
         set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)), lastPetTraining: { id: makeId(), studentId: pet.studentId, source: 'answers', pets: [{ petId, name: pet.customName, before: pet.trainingProgress, after }] } }));
+        pushStudentPet(updated);
+      },
+
+      // Feeding with a food from the student's inventory (lib/petFood.ts); each food fills its own amount.
+      feedPet: (petId, amount) => {
+        const pet = get().pets.find((p) => p.id === petId);
+        if (!pet) return;
+        const updated: StudentPet = { ...pet, food: Math.max(0, Math.min(100, pet.food + amount)) };
+        set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)) }));
         pushStudentPet(updated);
       },
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { PET_FOODS, addPetFood, usePetFood } from '../lib/petFood';
 import { freezePriceCents, buyFreeze, freezesOf, useStreak } from '../lib/streak';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
@@ -21,7 +22,7 @@ import { Icon } from './Icon';
 // Teacher, 2026-10-08: the old Characters tab is replaced by Style (the
 // Seamstress animals, patterns and clothes), Writing and Whiteboard are one
 // tab, and in-game power-ups, real-life prizes and every home item are in.
-type Tab = 'style' | 'emotes' | 'writing' | 'voices' | 'prizes' | 'powerups' | 'furniture' | 'pets' | 'mystuff' | 'receipts';
+type Tab = 'style' | 'emotes' | 'writing' | 'voices' | 'prizes' | 'powerups' | 'furniture' | 'pets' | 'petfood' | 'mystuff' | 'receipts';
 const OLD_TABS: Record<string, Tab> = { characters: 'style', whiteboard: 'writing' };
 
 interface CartEntry {
@@ -246,6 +247,8 @@ export default function Marketplace() {
 
   const student = students.find((s) => s.id === currentStudentId);
   const petCouponUsed = useCouponUsed(currentStudentId);
+  const petFood = usePetFood(currentStudentId);
+  const recordTx = useStore((s) => s.recordTransaction);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const streakRow = useStreak(currentStudentId);
   if (!student) return null;
@@ -585,6 +588,11 @@ export default function Marketplace() {
                   🐾 Pets
                 </button>
               )}
+              {!PETS_PAUSED && (
+                <button className={`shop-sidebar-btn ${tab === 'petfood' ? 'active' : ''}`} onClick={() => setTab('petfood')}>
+                  Pet food
+                </button>
+              )}
               <button className={`shop-sidebar-btn ${tab === 'mystuff' ? 'active' : ''}`} onClick={() => setTab('mystuff')}>
                 🎒 My Stuff
               </button>
@@ -843,6 +851,24 @@ export default function Marketplace() {
                 <button className="btn btn-primary btn-lg" onClick={() => navigate('/student/pet-finder')}>
                   🐾 Open the Pet Finder →
                 </button>
+              </div>
+            )}
+
+            {tab === 'petfood' && !PETS_PAUSED && (
+              <div className="stack" style={{ gap: 12 }}>
+                <p style={{ margin: 0 }}>Pets eat food from your pet food bag. Buy food here, or earn it: harvests in Farm Grow and fish in Doc Fishing go into your bag too. Then drag food to your pet on the break screen, or feed them at home.</p>
+                <div className="petfood-grid">
+                  {PET_FOODS.map((f) => (
+                    <div key={f.id} className="petfood-card">
+                      <img src={f.img} alt="" className="petfood-img" />
+                      <b>{f.name}</b>
+                      <small>Fills {f.fills} food · You have {petFood[f.id] ?? 0}</small>
+                      <button type="button" className="btn btn-primary" disabled={student.coins < f.priceCents} onClick={() => { recordTx(studentId, -f.priceCents, `Pet food: ${f.name}`, '🍎', 'purchase-pet'); addPetFood(studentId, f.id); playCashRegister(); }}>
+                        Buy for {formatMoney(f.priceCents)}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { feedFromInventory } from '../lib/petFood';
 import { useStore } from '../store/store';
 import type { StudentPet, SelZone } from '../types';
 import { petDefById } from '../lib/petCatalog';
@@ -44,7 +45,15 @@ export default function PetTalk({ pet, onClose, onCue }: { pet: StudentPet; onCl
 
   // One conversation fills Social once.
   const counted = () => { if (!talked) { carePet(pet.id, 'talk'); setTalked(true); } };
-  const act = (kind: 'feed' | 'pet' | 'play', line: string) => { carePet(pet.id, kind); onCue?.(kind === 'pet' ? 'wiggle' : 'hop'); setSaid(line); setStep('done'); };
+  const act = (kind: 'feed' | 'pet' | 'play', line: string) => {
+    // Food comes from the student's own pet food (her rule 2026-10-12: buy it or earn it).
+    if (kind === 'feed') {
+      const food = feedFromInventory(pet.studentId, pet.id);
+      if (!food) { setSaid(`I'm hungry, but we don't have any pet food. You can buy some in the Marketplace, or earn it in Farm Grow and Doc Fishing.`); return; }
+      line = `Yum! Thank you for the ${food.name.toLowerCase()}!`;
+    } else carePet(pet.id, kind);
+    onCue?.(kind === 'pet' ? 'wiggle' : 'hop'); setSaid(line); setStep('done');
+  };
 
   return (
     <div className="pet-talk-backdrop" role="dialog" aria-modal="true" aria-label={`Talk with ${name}`} onClick={onClose}>
