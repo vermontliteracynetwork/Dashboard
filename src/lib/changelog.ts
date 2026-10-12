@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-mine-cart",
+    date: "2026-10-12",
+    icon: "🛤️",
+    title: "New game: Mine Cart Run",
+    body: "Ride a mine cart through a dark cave! Tap to hop over rocks and grab gems. At every track switch, answer a question to zoom into the sparkly Gem Cave. How many gems can you collect?",
+  },
+  {
     id: "2026-10-12-kitchen",
     date: "2026-10-12",
     icon: "🍳",

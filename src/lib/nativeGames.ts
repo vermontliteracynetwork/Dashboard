@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -41,6 +41,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'lighthouse', title: "Lighthouse Signal", route: '/student/lighthouse', cover: '/games/covers/lighthouse-signal.svg', blurb: "Answer to light the lamp, then guide boats home through the fog.", versus: false, cabinet: { marquee: '#23386b', panel: '#3f5fa8', trim: '#ffec96', icon: '🗼' } },
   // Kitchen Cook-Off (Build Queue 33, her list: restaurant; answers pick ingredients in order to cook recipes, sequencing practice).
   { id: 'kitchenCookOff', title: "Kitchen Cook-Off", route: '/student/kitchen', cover: '/games/covers/kitchen-cook-off.svg', blurb: "Answer to get each ingredient, then cook recipes in the right order: first, next, then, last.", versus: false, cabinet: { marquee: '#d2553a', panel: '#f08a5d', trim: '#ffe14d', icon: '🍳' } },
+  // Mine Cart Run (Build Queue 34, her list: mine entrance; a Mario-style auto-runner where answers choose the track switch).
+  { id: 'mineCart', title: "Mine Cart Run", route: '/student/mine-cart', cover: '/games/covers/mine-cart-run.svg', blurb: "Tap to hop rocks and grab gems. Answer at each switch to ride into the Gem Cave!", versus: false, cabinet: { marquee: '#3b2a1e', panel: '#7a5a3a', trim: '#ffd27a', icon: '🛤️' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

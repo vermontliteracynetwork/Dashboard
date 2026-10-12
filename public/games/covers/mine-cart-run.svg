@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d140e"/><stop offset="1" stop-color="#5a2a8a"/></linearGradient></defs>
+  <rect width="640" height="360" fill="url(#b)"/>
+  <g fill="#2a1d14"><path d="M0 0l30 50 30-50zM120 0l30 70 30-70zM260 0l30 45 30-45zM400 0l30 65 30-65zM540 0l30 50 30-50z"/></g>
+  <circle cx="500" cy="150" r="30" fill="#ffd27a" opacity="0.25"/><circle cx="500" cy="150" r="8" fill="#ffd27a"/>
+  <rect y="284" width="640" height="76" fill="#4a3424"/><g fill="#7a5a3a"><rect x="10" y="276" width="16" height="12"/><rect x="60" y="276" width="16" height="12"/><rect x="110" y="276" width="16" height="12"/><rect x="160" y="276" width="16" height="12"/><rect x="210" y="276" width="16" height="12"/><rect x="260" y="276" width="16" height="12"/><rect x="310" y="276" width="16" height="12"/><rect x="360" y="276" width="16" height="12"/><rect x="410" y="276" width="16" height="12"/><rect x="460" y="276" width="16" height="12"/><rect x="510" y="276" width="16" height="12"/><rect x="560" y="276" width="16" height="12"/><rect x="610" y="276" width="16" height="12"/></g>
+  <rect y="270" width="640" height="7" fill="#b8bcc6"/>
+  <path d="M120 200h120l-12 50h-96z" fill="#6b6f7a" stroke="#3a3d45" stroke-width="6"/><circle cx="150" cy="258" r="14" fill="#2b2d33"/><circle cx="210" cy="258" r="14" fill="#2b2d33"/>
+  <text x="180" y="190" text-anchor="middle" font-size="56">👷</text>
+  <g font-size="40"><text x="330" y="200">💎</text><text x="380" y="170">💎</text><text x="430" y="200">💎</text></g>
+  <rect x="540" y="190" width="10" height="80" fill="#8a6a3a"/><rect x="510" y="160" width="70" height="40" fill="#ffd23f"/><text x="545" y="190" text-anchor="middle" font-size="28">🔀</text>
+  <text x="320" y="110" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="60" font-weight="900" fill="#ffd27a" stroke="#1d140e" stroke-width="10" paint-order="stroke">MINE CART RUN</text>
+</svg>
