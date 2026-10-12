@@ -6863,3 +6863,32 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .td-go { width: min(560px, 100%); }
 .td-page { background: #eef6ff; border-color: #2a5d8f; }
 @media (prefers-reduced-motion: reduce) { .td * { transition: none !important; } }
+
+/* Gem Mine (native game, Build Queue 36) */
+.gm { position: fixed; inset: 0; overflow: hidden auto; color: #2a1d14; background: radial-gradient(ellipse at 50% 30%, #5a4232, #24180f 75%); }
+.gm-head h1 { color: #ffd27a; text-shadow: 0 2px 0 #000; }
+.gm-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 96px 16px max(24px, env(safe-area-inset-bottom)); }
+.gm-msg { text-align: center; max-width: 640px; }
+.gm-wall { display: grid; gap: 6px; width: min(760px, 100%); padding: 10px; background: #3a2a1e; border-radius: 18px; box-shadow: inset 0 0 0 4px #24180f; box-sizing: border-box; }
+.gm-tile { position: relative; aspect-ratio: 1; min-height: 52px; border: 0; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; touch-action: manipulation; overflow: visible; padding: 0; }
+.gm-tile.dirt { background: radial-gradient(circle at 30% 30%, #a0703c 0 8%, transparent 9%), radial-gradient(circle at 70% 65%, #7a5226 0 7%, transparent 8%), #8a5e33; box-shadow: inset 0 -5px 0 rgba(0,0,0,0.2); }
+.gm-tile.rock { background: radial-gradient(circle at 35% 30%, #9a97a2 0 10%, transparent 11%), radial-gradient(circle at 65% 70%, #5d5a66 0 9%, transparent 10%), #77747f; box-shadow: inset 0 -5px 0 rgba(0,0,0,0.25); }
+.gm-tile.cracked::after { content: ''; position: absolute; inset: 18%; background: linear-gradient(45deg, transparent 46%, #2a2730 47% 53%, transparent 54%), linear-gradient(-30deg, transparent 46%, #2a2730 47% 52%, transparent 53%); }
+.gm-tile.open { background: #1a110b; box-shadow: inset 0 4px 10px rgba(0,0,0,0.6); cursor: default; }
+.gm-tile:disabled:not(.open) { cursor: default; }
+.gm-wall.live .gm-tile:not(.open) { outline: 2px solid rgba(255,210,122,0.5); }
+.gm-tile:focus-visible { outline: 4px solid #ffd23f !important; outline-offset: 1px; }
+.gm-tile.hit { animation: po-shake 0.3s ease-in-out both; }
+.gm-tile.open .gm-gem { animation: fg-pop 0.6s cubic-bezier(.2,1.6,.4,1) both; filter: drop-shadow(0 0 6px rgba(255,255,255,0.6)); }
+.gm-pebble { color: #5a4232; font-size: 30px; }
+.gm-chips { position: absolute; inset: 0; pointer-events: none; }
+.gm-chips i { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; background: #b8a48c; border-radius: 2px; animation: gm-chip 0.4s ease-out both; }
+.gm-chips i:nth-child(1) { --dx: -26px; --dy: -24px; } .gm-chips i:nth-child(2) { --dx: 24px; --dy: -30px; } .gm-chips i:nth-child(3) { --dx: 4px; --dy: -40px; }
+.gm-go { width: min(560px, 100%); }
+.gm-big { animation: fg-pop 0.8s cubic-bezier(.2,1.6,.4,1) both; }
+.gm-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.gm-tabs .btn { min-height: 44px; }
+.gm-page { background: #f6f2ff; border-color: #8a4fd0; }
+.gm-full { font-weight: 900; text-align: center; }
+@keyframes gm-chip { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .gm * { animation: none !important; } }

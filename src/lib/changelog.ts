@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-gem-mine",
+    date: "2026-10-12",
+    icon: "💎",
+    title: "New game: Gem Mine",
+    body: "Grab a pickaxe! Answer questions to get swings, then dig through dirt and rock to find hidden gems. Find all 18 gems to fill your Gem Pages, from Quartz to the Legendary Star Ruby.",
+  },
+  {
     id: "2026-10-12-train-dispatch",
     date: "2026-10-12",
     icon: "🚉",

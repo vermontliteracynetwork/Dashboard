@@ -16,6 +16,7 @@ import Passport from './components/Passport';
 import PetFinder from './routes/student/PetFinder';
 import BuffDogeGym from './routes/student/BuffDogeGym';
 import PetShowRing from './routes/student/PetShowRing';
+import GemMine from './routes/student/GemMine';
 import TrainDispatch from './routes/student/TrainDispatch';
 import MineCartRun from './routes/student/MineCartRun';
 import KitchenCookOff from './routes/student/KitchenCookOff';
@@ -219,6 +220,7 @@ export default function App() {
           <Route path="/student/pet-finder" element={<PetFinder />} />
           <Route path="/student/gym" element={<BuffDogeGym />} />
           <Route path="/student/pet-show" element={<PetShowRing />} />
+          <Route path="/student/gem-mine" element={<GemMine />} />
           <Route path="/student/train-dispatch" element={<TrainDispatch />} />
           <Route path="/student/mine-cart" element={<MineCartRun />} />
           <Route path="/student/kitchen" element={<KitchenCookOff />} />

@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -45,6 +45,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'mineCart', title: "Mine Cart Run", route: '/student/mine-cart', cover: '/games/covers/mine-cart-run.svg', blurb: "Tap to hop rocks and grab gems. Answer at each switch to ride into the Gem Cave!", versus: false, cabinet: { marquee: '#3b2a1e', panel: '#7a5a3a', trim: '#ffd27a', icon: '🛤️' } },
   // Train Station Dispatch (Build Queue 35, her list: train station; answers route trains to the right platforms).
   { id: 'trainDispatch', title: "Train Dispatch", route: '/student/train-dispatch', cover: '/games/covers/train-dispatch.svg', blurb: "Flip the track switches, answer to turn the signal green, and send each train to the right platform.", versus: false, cabinet: { marquee: '#2a5d8f', panel: '#5b8def', trim: '#ffd23f', icon: '🚉' } },
+  // Gem Mine (Build Queue 36, her list: cave or shop; answers dig up gems that fill collection pages).
+  { id: 'gemMine', title: "Gem Mine", route: '/student/gem-mine', cover: '/games/covers/gem-mine.svg', blurb: "Answer for pickaxe swings, dig the cave wall, and fill your Gem Pages with 18 gems.", versus: false, cabinet: { marquee: '#3a2a1e', panel: '#8a4fd0', trim: '#ffd27a', icon: '💎' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 
