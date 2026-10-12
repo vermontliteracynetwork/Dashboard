@@ -7192,3 +7192,13 @@ body.calm-games .pf-overlay .fd-fish { animation-duration: 0.01ms !important; an
 .my-best li small { margin-left: 10px; color: #6b5a3a; font-weight: 700; }
 .my-best li:first-child { background: #ffe08a; }
 .game-settings-btn { min-width: 48px; min-height: 44px; font-size: 1.2rem; padding: 0 10px; }
+
+/* iPad portrait (Build Queue 57): the new games' headers wrap to two rows there, so their play area
+   starts lower and nothing sits under the header; Word Search's list goes in three columns under
+   the grid so the Reveal button stays on screen. */
+@media (max-width: 1000px) {
+  :is(.fg-main, .po-main, .kc-main, .td-main, .gm-main, .lq-main, .dg-main, .cs-main, .wm-main, .mm-main, .ws-main, .pk-main, .cr-main, .ty-main, .dd-main) { padding-top: 140px; }
+  .ws-side { width: min(560px, 100%); }
+  .ws-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ws-list li { font-size: 1.05rem; }
+}
