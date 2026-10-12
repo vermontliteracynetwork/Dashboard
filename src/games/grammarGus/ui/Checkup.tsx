@@ -25,7 +25,7 @@ export default function Checkup({ onClose, onDone, speak }: { onClose: () => voi
   return (
     <div className="gus-journal-backdrop">
       <div className="gus-journal gwb-mini" role="dialog" aria-label="Gus's Checkup">
-        <h2>🩺 Gus's Checkup</h2>
+        <h2>Gus's Checkup</h2>
         {k < 0 ? <>
           <p>Gus wants to see what you already know. There are {items.length} quick questions. Pick the one that is right. There are no hints this time, and that is okay: just try your best.</p>
           <button type="button" className="gus-btn gus-btn-primary" onClick={() => { setK(0); gusSound.ding(); }}>Start the checkup</button>

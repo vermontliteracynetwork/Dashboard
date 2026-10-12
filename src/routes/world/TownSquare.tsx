@@ -4896,7 +4896,7 @@ export default function TownSquare() {
                 style={{ width: 120, height: 120, objectFit: 'contain' }}
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
               />
-              <h2 style={{ margin: 0 }}>⚡ Wizard ThunderSword says: hold on!</h2>
+              <h2 style={{ margin: 0 }}>Wizard ThunderSword says: hold on!</h2>
               <p style={{ margin: 0 }}>
                 You still have {totalTasksLeft} thing{totalTasksLeft === 1 ? '' : 's'} to do today. Pick one below to keep exploring.
               </p>
@@ -4928,7 +4928,7 @@ export default function TownSquare() {
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
               <div className="space-between">
-                <h2 style={{ margin: 0 }}>📋 Today</h2>
+                <h2 style={{ margin: 0 }}>Today</h2>
                 <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} onClick={() => setShowTodayTasks(false)}><Icon name="close" size={16} fallback="✕" /></button>
               </div>
               <div className="stack" style={{ gap: 8 }}>
@@ -5729,7 +5729,7 @@ export default function TownSquare() {
         <div className="overlay-backdrop" role="dialog" aria-modal="true" onClick={() => setCarSettingsOpen(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ gap: 14 }}>
-              <h2 style={{ margin: 0 }}>⚙️ Car settings</h2>
+              <h2 style={{ margin: 0 }}>Car settings</h2>
               <label className="row" style={{ gap: 10, alignItems: 'center', fontWeight: 700, minHeight: 44 }}>
                 <input type="checkbox" style={{ width: 24, height: 24 }} checked={student.vehicleSoundEnabled !== false} onChange={(e) => updateStudent(student.id, { vehicleSoundEnabled: e.target.checked })} />
                 Engine sound (the rumbly car noise)

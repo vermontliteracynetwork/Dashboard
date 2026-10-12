@@ -2,7 +2,7 @@ export default function SetupNeeded() {
   return (
     <div className="center-screen">
       <div className="chrome-frame stack" style={{ padding: 32, maxWidth: 620 }}>
-        <h1 style={{ marginTop: 0, color: 'var(--purple)' }}>🔌 Almost there!</h1>
+        <h1 style={{ marginTop: 0, color: 'var(--purple)' }}>Almost there!</h1>
         <p>
           This app needs to be connected to its Supabase backend before it can be used. That's what makes it work
           across devices (teacher tablet, student Chromebooks, etc.) instead of just on one browser.

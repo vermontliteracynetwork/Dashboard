@@ -114,7 +114,7 @@ export default function IdleTycoon() {
     <div className={`ty${boost > 0 ? ' boosted' : ''}`}>
       <header className="fd-head ty-head">
         <LeaveButton onLeave={() => { save(); pay(); back.go(); }} />
-        <h1>🧁 Cupcake Tycoon</h1>
+        <h1>Cupcake Tycoon</h1>
         <SfxToggle />
         {settings}
         <MyBest game="idleTycoon" unit="shop coins earned" />

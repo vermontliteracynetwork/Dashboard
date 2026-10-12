@@ -391,7 +391,7 @@ export default function Marketplace() {
           <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack">
               <div className="row space-between">
-                <h2 style={{ margin: 0 }}>🛒 Your Cart</h2>
+                <h2 style={{ margin: 0 }}>Your Cart</h2>
                 <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setShowCart(false)}><Icon name="close" size={14} fallback="✕" /> Close</button>
               </div>
               {cart.length === 0 ? (

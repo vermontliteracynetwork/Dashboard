@@ -573,7 +573,7 @@ export default function BubbleShooter() {
       {showSettings && (
         <div className="bs-modal-back" onClick={() => setShowSettings(false)}>
           <div className="bs-modal" role="dialog" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
-            <h2>⚙️ Settings</h2>
+            <h2>Settings</h2>
             <div className="bs-row">
               <button type="button" className={`bs-chip${sound ? ' on' : ''}`} onClick={() => setSound((v) => !v)} aria-pressed={sound}>{sound ? '🔊 Sounds on' : '🔇 Sounds off'}</button>
               <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? '🎵 Music on' : '🎵 Music off'}</button>

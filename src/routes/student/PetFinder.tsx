@@ -176,7 +176,7 @@ export default function PetFinder() {
       {celebrate > 0 && <Celebration key={celebrate} />}
       <header className="pf-head">
         <button type="button" className="btn pf-back" onClick={back.go} aria-label={`Back to ${back.label}`}>← {back.label}</button>
-        <h1 className="pf-title">🐾 Pet Finder</h1>
+        <h1 className="pf-title">Pet Finder</h1>
         <span className="pf-chip" title="Your money">💵 {formatMoney(student.coins)}</span>
         <span className="pf-chip" title="Your pets">🏠 {mine.length} / {PET_CAP} pets</span>
       </header>

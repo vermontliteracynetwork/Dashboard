@@ -818,7 +818,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
     return (
       <div className="quiz-fullview">
         <div className="quiz-fullview-card content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-          <h2 style={{ margin: 0 }}>🎮 {task.title || 'Platformer Game'}</h2>
+          <h2 style={{ margin: 0 }}>{task.title || 'Platformer Game'}</h2>
           <p style={{ opacity: 0.75, margin: 0 }}>Choose your character to start!</p>
           <div className="row-wrap" style={{ justifyContent: 'center' }}>
             {CHARACTERS.map((c) => (

@@ -51,7 +51,7 @@ export default function GusSettingsPanel() {
   );
   return (
     <section className="chrome-frame stack" style={{ padding: 16, gap: 12 }}>
-      <h2 style={{ margin: 0 }}>🧪 Grammar Gus's Contraption</h2>
+      <h2 style={{ margin: 0 }}>Grammar Gus's Contraption</h2>
       <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
         <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => navigate('/teacher/grammar-gus')}>🖥️ Open my Workboard (share live with a code)</button>
         <span style={{ opacity: 0.8 }}>Use it on your screen, or tap 📡 Share to give students a 4-number code. You can lock their screens to view only.</span>

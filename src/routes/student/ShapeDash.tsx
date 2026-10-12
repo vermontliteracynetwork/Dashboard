@@ -333,7 +333,7 @@ export default function ShapeDash() {
           {phase === 'ready' && <div className="sd-ready">{game.current.r.invulnerable > 50 ? '🛡️ Shield on! ' : ''}Tap to go!</div>}
           {phase === 'levelDone' && (
             <div className="sd-modal" onPointerDown={(e) => e.stopPropagation()}>
-              <h2>🎉 Level {hud.level} done!</h2>
+              <h2>Level {hud.level} done!</h2>
               <p>⭐ {hud.stars} stars so far. Next level is a little faster.</p>
               <div className="sd-row">
                 <button type="button" className="sd-btn sd-go" onClick={() => beginLevel(hud.level + 1, true)}>▶ Next level</button>

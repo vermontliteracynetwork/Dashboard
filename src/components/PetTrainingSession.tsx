@@ -117,7 +117,7 @@ export default function PetTrainingSession({ pet, def, onClose, onCue }: { pet: 
     <div className="pet-train-backdrop" role="dialog" aria-modal="true" aria-label={`Train ${name}`}>
       <div className="pet-train-panel">
         <div className="pet-train-head">
-          <h2>🎪 Training time with {name}</h2>
+          <h2>Training time with {name}</h2>
           <button className="btn pet-train-close" onClick={onClose}>✕ Close</button>
         </div>
         <div className="pet-train-body">

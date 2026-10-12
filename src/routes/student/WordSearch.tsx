@@ -114,7 +114,7 @@ export default function WordSearch() {
     <div className="ws">
       <header className="fd-head ws-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>🔤 Word Search</h1>
+        <h1>Word Search</h1>
         <SfxToggle />
         {settings}
         <MyBest game="wordSearch" unit="puzzles finished" />

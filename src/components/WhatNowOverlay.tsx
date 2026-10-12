@@ -18,7 +18,7 @@ export default function WhatNowOverlay({ tasks, completedIds, activeTaskId, onCl
       <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack">
           <div className="space-between">
-            <h2 style={{ margin: 0 }}>❓ What do I do?</h2>
+            <h2 style={{ margin: 0 }}>What do I do?</h2>
             <button className="btn btn-sm" onClick={onClose}>✕</button>
           </div>
 

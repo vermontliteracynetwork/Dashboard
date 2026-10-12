@@ -246,7 +246,7 @@ export default function PetShowRing() {
       <div className="psr psr-pick">
         <header className="psr-head">
           <button type="button" className="btn" onClick={back.go}>← {back.label}</button>
-          <h1>🏅 Pet Show Ring</h1>
+          <h1>Pet Show Ring</h1>
         </header>
         <RoundSettings ranges={PER_OBSTACLE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions at each obstacle" />
         <p className="psr-intro">Pick a pet for the show! Your pet runs an obstacle course using the tricks it learned at Buff Doge's Gym. Answer a question at each obstacle and your pet clears it. Every finished course earns a rosette.</p>

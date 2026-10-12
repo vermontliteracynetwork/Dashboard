@@ -519,7 +519,7 @@ export default function BakeryMatch3() {
             </div>
 
             <div className="bakery-menu-card">
-              <h1 className="bakery-title">🥐 Bakery Match</h1>
+              <h1 className="bakery-title">Bakery Match</h1>
               {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
               <p className="bakery-blurb">Match treats. Answer to advance. Spin for a prize at the end!</p>
               <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>

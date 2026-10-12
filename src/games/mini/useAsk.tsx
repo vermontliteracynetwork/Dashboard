@@ -124,7 +124,7 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
       {showSettings && (
         <div className="pf-overlay" onClick={() => setShowSettings(false)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>⚙️ Game settings</h2>
+            <h2 style={{ marginTop: 0 }}>Game settings</h2>
             <RoundSettings ranges={ranges} rounds={rs.rounds} perRound={rs.perRound} onRounds={rs.setRounds} onPerRound={rs.setPerRound} locked={rs.locked}
               roundsLabel={opts?.roundsLabel} perLabel={opts?.perLabel ?? 'Questions each time'} />
             <button type="button" className="btn btn-primary btn-lg" onClick={() => setShowSettings(false)}>Done</button>

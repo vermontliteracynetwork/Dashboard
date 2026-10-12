@@ -96,7 +96,7 @@ export default function LabelMaker({ calm, level, onClose, onEarn, say, speak }:
   return (
     <div className="gus-journal-backdrop" onClick={finish}>
       <div className="gus-journal gwb-mini gwb-labels" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Label and Unit Maker">
-        <h2>🏷️ Label and Unit Maker</h2>
+        <h2>Label and Unit Maker</h2>
         {done ? <>
           <p className="gwb-mini-big">{firsts} of {items.length} diagrams with no wrong picks!</p>
           <p>Scientists label every part, and every measurement needs a number and a unit.</p>

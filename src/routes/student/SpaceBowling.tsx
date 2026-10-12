@@ -434,7 +434,7 @@ export default function SpaceBowling() {
         <div className="sb-launch">
           <header className="sb-top">
             <button className="sb-btn ghost" onClick={leave}>← {backLabel}</button>
-            <h1 className="sb-title">🪐 Space Bowling</h1>
+            <h1 className="sb-title">Space Bowling</h1>
             <button className="sb-btn ghost" onClick={() => setShowSettings(true)} aria-label="Sound settings">⚙️ Sound</button>
           </header>
           <div className="sb-launch-grid">
@@ -456,7 +456,7 @@ export default function SpaceBowling() {
                 </>
               )}
               <div className="sb-board">
-                <h2>🏆 My best games</h2>
+                <h2>My best games</h2>
                 {bestGames.length === 0 ? (
                   <p className="sb-board-empty">Finish a game to see your best scores here. Just for you!</p>
                 ) : (
@@ -645,7 +645,7 @@ export default function SpaceBowling() {
       {showSettings && (
         <div className="sb-modal-back" onClick={() => setShowSettings(false)}>
           <div className="sb-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>⚙️ Sound</h2>
+            <h2>Sound</h2>
             {([['Music', music, setMusic], ['Sound effects', effects, setEffects]] as const).map(([label, value, set]) => (
               <div key={label} className="sb-level">
                 <span>{label}</span>
@@ -675,7 +675,7 @@ export default function SpaceBowling() {
       {costumeWin && (
         <div className="sb-modal-back">
           <div className="sb-modal">
-            <h2>👽 You earned the Space Alien costume!</h2>
+            <h2>You earned the Space Alien costume!</h2>
             <p>{COSTUME_GOAL} right answers! Wear it at the Seamstress any time.</p>
             <button className="sb-btn big" onClick={() => setCostumeWin(false)}>Awesome!</button>
           </div>

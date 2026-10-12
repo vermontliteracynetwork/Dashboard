@@ -75,7 +75,7 @@ export default function GusReportPanel() {
   };
   return (
     <section className="chrome-frame stack" style={{ padding: 16, gap: 12 }}>
-      <h2 style={{ margin: 0 }}>📈 Grammar Gus report</h2>
+      <h2 style={{ margin: 0 }}>Grammar Gus report</h2>
       <p style={{ margin: 0, opacity: 0.8 }}>Every time a student pulls START, the machine notes how it went. Fixes are the grammar rules the machine or Gus's star review flagged.</p>
       {students.length === 0 && <p style={{ margin: 0, opacity: 0.7 }}>No students yet.</p>}
       {students.map((st) => {

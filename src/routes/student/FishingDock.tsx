@@ -516,7 +516,7 @@ export default function FishingDock() {
       {panel === 'book' && (
         <div className="pf-overlay" onClick={() => setPanel(null)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>📖 Fish Book</h2>
+            <h2 style={{ marginTop: 0 }}>Fish Book</h2>
             <div className="fd-book">
               {FISH.filter((x) => !x.legacy || got[x.id]).map((x) => (
                 <button type="button" key={x.id} className={`fd-page${got[x.id] ? '' : ' locked'}`} onClick={() => got[x.id] && doc(`${x.name}. ${x.fact}`)} aria-label={got[x.id] ? `${x.name}. Tap to hear about it.` : 'Not caught yet'}>
@@ -534,7 +534,7 @@ export default function FishingDock() {
       {panel === 'tackle' && (
         <div className="pf-overlay" onClick={() => setPanel(null)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>🧰 Tackle box</h2>
+            <h2 style={{ marginTop: 0 }}>Tackle box</h2>
             <h3 className="fdk-sub">Rods <small>(fill your XP meter for the next rod; a better rod has a bigger green spot)</small></h3>
             <div className="fdk-tackle">
               {RODS.map((r) => {

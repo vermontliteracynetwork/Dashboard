@@ -142,7 +142,7 @@ export default function BakeryTreatWheel({ studentId, onClose }: Props) {
     <div className="overlay-backdrop" onClick={spinning ? undefined : onClose}>
       <div className="overlay-panel chrome-frame" style={{ padding: 28, maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-          <h2 style={{ margin: 0 }}>🎡 Bakery Treat Wheel</h2>
+          <h2 style={{ margin: 0 }}>Bakery Treat Wheel</h2>
 
           {won && wonArt ? (
             gaveToPetId ? (

@@ -21,7 +21,7 @@ export default function Passport() {
   return (
     <div className="container stack">
       <div className="subject-header space-between" style={{ background: 'linear-gradient(120deg, var(--purple), var(--purple-dark))' }}>
-        <h2 style={{ margin: 0, color: '#fff' }}>🛂 Passport</h2>
+        <h2 style={{ margin: 0, color: '#fff' }}>Passport</h2>
         {/* Same fix as Mailbox.tsx: reached by walking up to the Welcome
             Center, so it needs a direct way back to Town Square, not just
             the 2D task list. */}

@@ -98,7 +98,7 @@ export default function PiggyBank() {
           Computer — direct teacher instruction that the frame be applied
           everywhere, replacing the old bespoke Town Square/Home buttons. */}
       <WebpageFrame url="bank" />
-      <h2 style={{ margin: 0 }}>🐷 Piggy Bank</h2>
+      <h2 style={{ margin: 0 }}>Piggy Bank</h2>
 
       <FocusBanner subjects={['math']} />
 

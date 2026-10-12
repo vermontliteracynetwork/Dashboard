@@ -76,7 +76,7 @@ export default function GusLibraryPanel() {
   );
   return (
     <section className="chrome-frame stack" style={{ padding: 16, gap: 12 }}>
-      <h2 style={{ margin: 0 }}>📚 Gus's Library: Read and Respond</h2>
+      <h2 style={{ margin: 0 }}>Gus's Library: Read and Respond</h2>
       <p style={{ margin: 0, opacity: 0.8 }}>Students read an article in the immersive reader, then answer your question with Gus's machines, starting from your sentence starter. Articles show up in Gus's Jobs menu and in the Library app on their computer.</p>
       <div className="stack" style={{ gap: 8 }}>
         {all.map((a) => (

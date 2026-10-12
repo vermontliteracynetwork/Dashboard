@@ -9,8 +9,7 @@ export default function RoleSelect() {
   return (
     <div className="center-screen">
       <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-        <h1 className="display" style={{ fontSize: '2.4rem', color: 'var(--purple)' }}>
-          🏠 Independent Work Dashboard
+        <h1 className="display" style={{ fontSize: '2.4rem', color: 'var(--purple)' }}>Independent Work Dashboard
         </h1>
         <div className="row-wrap" style={{ justifyContent: 'center' }}>
           <button

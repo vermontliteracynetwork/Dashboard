@@ -1608,7 +1608,7 @@ export default function GrammarSandbox() {
         <div className="overlay-backdrop" onClick={() => setShowSaveModal(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h2 style={{ margin: 0 }}>💾 Save this board</h2>
+              <h2 style={{ margin: 0 }}>Save this board</h2>
               <input
                 value={saveNameInput}
                 onChange={(e) => setSaveNameInput(e.target.value)}
@@ -1628,7 +1628,7 @@ export default function GrammarSandbox() {
         <div className="overlay-backdrop" onClick={() => setShowLoadModal(false)}>
           <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 460, maxHeight: '80vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div className="space-between" style={{ marginBottom: 12 }}>
-              <h2 style={{ margin: 0 }}>📂 My Saved Boards</h2>
+              <h2 style={{ margin: 0 }}>My Saved Boards</h2>
               <button className="btn btn-sm" onClick={() => setShowLoadModal(false)}>✕</button>
             </div>
             {myBoards.length === 0 ? (

@@ -93,7 +93,7 @@ export default function CrossyHopper() {
     <div className="cr">
       <header className="fd-head cr-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>🐔 Crossy Road Hopper</h1>
+        <h1>Crossy Road Hopper</h1>
         <SfxToggle />
         {settings}
         <MyBest game="crossyHopper" unit="crossings" />

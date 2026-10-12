@@ -41,7 +41,7 @@ export function HomophoneSorter({ calm, onClose, onEarn, say, speak }: Props) {
   return (
     <div className="gus-journal-backdrop" onClick={finish}>
       <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Homophone Sorter">
-        <h2>🎯 Homophone Sorter</h2>
+        <h2>Homophone Sorter</h2>
         {done ? <>
           <p className="gwb-mini-big">All sorted! {firsts} of {items.length} on the first try.</p>
           <p>Words that sound the same can mean different things. The clue tells you which one.</p>
@@ -99,7 +99,7 @@ export function TransitionTrack({ calm, onClose, onEarn, say, speak }: Props) {
   return (
     <div className="gus-journal-backdrop" onClick={finish}>
       <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Transition Track">
-        <h2>🚂 Transition Track</h2>
+        <h2>Transition Track</h2>
         {done ? <>
           <p className="gwb-mini-big">The train made it! {firsts} of {items.length} couplings on the first try.</p>
           <p>Transition words show how ideas connect: more, a difference, a result, an example, or time order.</p>
@@ -168,7 +168,7 @@ export function FusionReactor({ calm, onClose, onEarn, say, speak, level }: Prop
   return (
     <div className="gus-journal-backdrop" onClick={finish}>
       <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Fusion Reactor">
-        <h2>⚛️ Fusion Reactor</h2>
+        <h2>Fusion Reactor</h2>
         {done ? <>
           <p className="gwb-mini-big">Reactor cooled! {firsts} of {items.length} fusions on the first try.</p>
           <p>Writers combine short sentences so the words do not repeat. One smooth sentence says it all.</p>
@@ -269,7 +269,7 @@ export function RevisionWorkshop({ calm, onClose, onEarn, say, speak, level }: P
   return (
     <div className="gus-journal-backdrop" onClick={finish}>
       <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Revision Workshop">
-        <h2>🛠️ Revision Workshop</h2>
+        <h2>Revision Workshop</h2>
         {done ? <>
           <p className="gwb-mini-big">Workshop closed! {firsts} of {items.length} repairs on the first try.</p>
           <p>Writers revise with four tools: Add a detail, Remove a repeat, Move a sentence, Swap a dull word.</p>
@@ -362,7 +362,7 @@ export function NounBoilerPairs({ calm, onClose, onEarn, say, speak, level }: Pr
   return (
     <div className="gus-journal-backdrop" onClick={finish}>
       <div className="gus-journal gwb-mini" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Noun Boiler Pairs">
-        <h2>♨️ Noun Boiler Pairs</h2>
+        <h2>Noun Boiler Pairs</h2>
         {done ? <>
           <p className="gwb-mini-big">{firsts} of {items.length} matched on the first try!</p>
           <p>One thing: a or an, and the action word gets an s. More than one: some, the plural noun, and no s on the action word.</p>

@@ -859,7 +859,7 @@ export default function GrammarGusMachine() {
       {garageOpen && (
         <div className="gus-journal-backdrop" onClick={() => setGarageOpen(false)}>
           <div className="gus-journal gus-library" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Machine Garage">
-            <h2>🎨 Gus's Machine Garage</h2>
+            <h2>Gus's Machine Garage</h2>
             <p className="gus-library-sub">Paint your machine. A new look never changes the grammar.</p>
             <div className="gus-library-grid">
               {SKINS.map((k) => (
@@ -878,7 +878,7 @@ export default function GrammarGusMachine() {
       {libOpen && (
         <div className="gus-journal-backdrop" onClick={() => setLibOpen(false)}>
           <div className="gus-journal gus-library" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Blueprint Library">
-            <h2>📜 Blueprint Library</h2>
+            <h2>Blueprint Library</h2>
             <p className="gus-library-sub">Pick a blueprint. Gus sets up a machine for every line. You fill in the symbols with silly words.</p>
             <div className="gus-library-grid">
               {FRAMEWORKS.filter((f) => !f.workboardOnly).map((f) => (
@@ -906,7 +906,7 @@ export default function GrammarGusMachine() {
       {journalOpen && (
         <div className="gus-journal-backdrop" onClick={() => setJournalOpen(false)}>
           <div className="gus-journal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Silly Journal">
-            <h2>📓 Gus's Silly Journal</h2>
+            <h2>Gus's Silly Journal</h2>
             {(saved.journal ?? []).length === 0 ? <p>No sentences yet. Make a 3-star sentence and tap Save it.</p> : (
               <ul>{saved.journal!.map((j, i) => <li key={i}>{j.drafts?.length ? <button type="button" className="gus-btn gus-journal-play" onClick={() => replayEntry(j)} aria-label="Play">▶</button> : null}{j.kind === 'story' && <strong>🎞️ Story </strong>}{j.kind === 'blueprint' && <strong>📜 {frameworkById.get(j.fwId ?? '')?.name ?? 'Blueprint'} </strong>}<span className="gus-guide-stars">{[1, 2, 3].map((k) => <img key={k} src={k <= j.stars ? '/games/ui-kit/gold-star.png' : '/games/ui-kit/gold-star-empty.png'} alt="" />)}</span> {j.text}</li>)}</ul>
             )}

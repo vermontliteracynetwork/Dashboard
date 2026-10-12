@@ -18,7 +18,7 @@ export default function Library() {
     <div className="lib">
       <header className="lib-top">
         <button type="button" className="rdr-btn" onClick={back.go}>⬅ {back.label.replace(/^\S+\s/, '')}</button>
-        <h1>📚 Library</h1>
+        <h1>Library</h1>
         <button type="button" className="rdr-btn" onClick={() => navigate('/student/grammar-gus')}>🧪 Gus's Workboard</button>
       </header>
       <main className="lib-shelf">

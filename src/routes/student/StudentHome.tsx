@@ -463,7 +463,7 @@ export default function StudentHome() {
 
       {bothDone && (
         <div className="chrome-frame stack" style={{ padding: 28, alignItems: 'center', textAlign: 'center' }}>
-          <h1 style={{ color: 'var(--purple)' }}>🎉 All done for today!</h1>
+          <h1 style={{ color: 'var(--purple)' }}>All done for today!</h1>
           <p>You finished Math and Literacy. Great work today.</p>
           <p style={{ fontSize: '1.4rem' }}>👋 See you tomorrow!</p>
           <button className="btn btn-primary btn-lg" onClick={() => { logoutStudent(); navigate('/'); }}>

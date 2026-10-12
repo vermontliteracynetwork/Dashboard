@@ -102,7 +102,7 @@ export default function FeedbackTool({ student, onClose }: { student: Student; o
     <div className="overlay-backdrop" onClick={onClose}>
       <div className="overlay-panel chrome-frame" style={{ padding: 20, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
         <div className="row space-between" style={{ alignItems: 'center', marginBottom: 10 }}>
-          <h2 style={{ margin: 0 }}>💬 Feedback</h2>
+          <h2 style={{ margin: 0 }}>Feedback</h2>
           <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose} aria-label="Close"><Icon name="close" size={16} fallback="✕" /></button>
         </div>
 

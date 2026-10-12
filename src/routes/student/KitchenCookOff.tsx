@@ -96,7 +96,7 @@ export default function KitchenCookOff() {
     <div className="kc">
       <header className="fd-head kc-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>🍳 Kitchen Cook-Off</h1>
+        <h1>Kitchen Cook-Off</h1>
         <SfxToggle />
         {settings}
         <MyBest game="kitchenCookOff" unit="dishes served" />
@@ -149,7 +149,7 @@ export default function KitchenCookOff() {
       {book && (
         <div className="pf-overlay" onClick={() => setBook(false)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>📕 Recipe Book</h2>
+            <h2 style={{ marginTop: 0 }}>Recipe Book</h2>
             <div className="fd-book">
               {RECIPES.map((r) => (
                 <div key={r.id} className={`fd-page kc-page${cooked[r.id] ? '' : ' locked'}`}>

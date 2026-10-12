@@ -75,7 +75,7 @@ export default function CerLab({ calm, level, onClose, onEarn, say, speak }: Pro
   return (
     <div className="gus-journal-backdrop" onClick={finish}>
       <div className="gus-journal gwb-mini gwb-cer" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="CER Lab Report">
-        <h2>🔬 CER Lab Report</h2>
+        <h2>CER Lab Report</h2>
         {done ? <>
           <p className="gwb-mini-big">{reports.length} lab report{reports.length === 1 ? '' : 's'} written! They are saved in your Journal.</p>
           <p>Scientists explain with a Claim (the answer), Evidence (the data, a number and a unit) and Reasoning (why the data proves it).</p>

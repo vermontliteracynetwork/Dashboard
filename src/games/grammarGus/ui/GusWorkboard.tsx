@@ -2267,7 +2267,7 @@ export default function GusWorkboard({ host = false, board }: { host?: boolean; 
         return (
           <div className="gus-journal-backdrop" onClick={() => setMachinesOpen(false)}>
             <div className="gus-journal gwb-mini gwb-paint" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="My saved machines">
-              <h2>💾 My saved machines</h2>
+              <h2>My saved machines</h2>
               <p>{!studentId ? 'Saved machines are for signed-in students.' : sel ? <>Save the machine you tapped: <strong>"{machineText(sel)}"</strong></> : 'Tap a machine on the board first to save it here. Tap a saved one to build it again.'}</p>
               <div className="gwb-paint-grid">{Array.from({ length: MACHINE_SLOTS }, (_, k) => {
                 const m = list[k];
@@ -2290,7 +2290,7 @@ export default function GusWorkboard({ host = false, board }: { host?: boolean; 
         return (
           <div className="gus-journal-backdrop" onClick={() => setPaintOpen(false)}>
             <div className="gus-journal gwb-mini gwb-paint" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Paint Shop">
-              <h2>🎨 Gus's Paint Shop</h2>
+              <h2>Gus's Paint Shop</h2>
               <p>You have <strong>{have}</strong> sticker{have === 1 ? '' : 's'} from finished jobs. More stickers unlock more looks. It is just for fun: your machines work the same in every look.</p>
               <h3>Floors</h3>
               <div className="gwb-paint-grid">{FLOORS.map((f) => {
@@ -2356,7 +2356,7 @@ export default function GusWorkboard({ host = false, board }: { host?: boolean; 
       {connectorFor && (() => { const l = lines.find((x) => x.id === connectorFor); if (!l) return null; return (
         <div className="gus-journal-backdrop" onClick={() => setConnectorFor(null)}>
           <div className="gus-journal gwb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Pick a time word">
-            <h2>🔗 Transition word</h2>
+            <h2>Transition word</h2>
             <p>Pick a word that shows how this sentence connects to the one before it.</p>
             {(Object.keys(TRANS_KINDS) as TransKind[]).map((tk) => (
               <div key={tk} className="gwb-trans-group">
@@ -2375,7 +2375,7 @@ export default function GusWorkboard({ host = false, board }: { host?: boolean; 
       {confirmClear && (
         <div className="gus-journal-backdrop" onClick={() => setConfirmClear(false)}>
           <div className="gus-journal gwb-confirm" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label="Clear all">
-            <h2>🧹 Clear all?</h2>
+            <h2>Clear all?</h2>
             <p>Every machine on the floor goes back in the parts menu. Your Journal stays.</p>
             <div className="gwb-confirm-btns">
               <button type="button" className="gus-btn gus-btn-primary" onClick={clearAll}>Yes, clear all</button>
@@ -2398,7 +2398,7 @@ export default function GusWorkboard({ host = false, board }: { host?: boolean; 
       {journalOpen && (
         <div className="gus-journal-backdrop" onClick={() => setJournalOpen(false)}>
           <div className="gus-journal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Gus's Silly Journal">
-            <h2>📓 Gus's Silly Journal</h2>
+            <h2>Gus's Silly Journal</h2>
             {(saved.journal ?? []).length === 0 ? <p>Nothing saved yet. Run a machine to 3 stars, then tap Save under it.</p> : (
               <ul>{saved.journal!.map((j, i) => <li key={i}>{j.drafts?.length ? <button type="button" className="gus-btn gus-journal-play" onClick={() => replayEntry(j)}>▶ Play</button> : null} {j.kind === 'cer' && <strong>🔬 Lab report: </strong>}{j.text}</li>)}</ul>
             )}

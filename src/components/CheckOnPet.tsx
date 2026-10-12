@@ -120,7 +120,7 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
             </div>
           </>
         ) : (
-          <div className="cop-card"><h2>🧘 Take a Moment</h2><div className="breathe-circle" /><p>Breathe in as the circle grows. Breathe out as it shrinks.</p></div>
+          <div className="cop-card"><h2>Take a Moment</h2><div className="breathe-circle" /><p>Breathe in as the circle grows. Breathe out as it shrinks.</p></div>
         )}
       </div>
       <div className="cop-right">

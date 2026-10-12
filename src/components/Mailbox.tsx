@@ -35,7 +35,7 @@ export default function Mailbox() {
           Computer, replacing the old bespoke purple header — direct
           teacher instruction that the frame be applied everywhere. */}
       <WebpageFrame url="mail" />
-      <h2 style={{ margin: 0 }}>📬 Mailbox</h2>
+      <h2 style={{ margin: 0 }}>Mailbox</h2>
 
       <div className="chrome-frame stack" style={{ padding: 24, maxWidth: 480, alignSelf: 'center', width: '100%' }}>
         {received.length === 0 ? (

@@ -107,7 +107,7 @@ export default function DinerDash() {
     <div className="dd">
       <header className="fd-head dd-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} note="This shift stops here. Your right answers are paid." />
-        <h1>🍔 Diner Dash</h1>
+        <h1>Diner Dash</h1>
         <SfxToggle />
         {settings}
         <MyBest game="dinerDash" unit="tip stars" />

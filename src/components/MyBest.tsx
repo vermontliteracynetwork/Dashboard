@@ -29,7 +29,7 @@ export function MyBest({ game, unit, format }: { game: string; unit?: string; fo
       {open && (
         <div className="pf-overlay" onClick={() => setOpen(false)}>
           <div className="pf-panel my-best" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>🏆 My best</h2>
+            <h2 style={{ marginTop: 0 }}>My best</h2>
             {games.length ? (
               <ol>{games.slice(0, 5).map((e, i) => <li key={i}><b>{show(e)}</b><small>{boardDate(e.at)}</small></li>)}</ol>
             ) : <p>Play to set your first record! Only you can see your best.</p>}

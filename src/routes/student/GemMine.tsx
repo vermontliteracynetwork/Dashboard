@@ -109,7 +109,7 @@ export default function GemMine() {
     <div className="gm">
       <header className="fd-head gm-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>💎 Gem Mine</h1>
+        <h1>Gem Mine</h1>
         <SfxToggle />
         {settings}
         <MyBest game="gemMine" unit="gems found" />
@@ -149,7 +149,7 @@ export default function GemMine() {
       {pages && (
         <div className="pf-overlay" onClick={() => setPages(false)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>📔 Gem Pages</h2>
+            <h2 style={{ marginTop: 0 }}>Gem Pages</h2>
             <div className="gm-tabs" role="tablist">
               {TIER_NAME.map((n, i) => (
                 <button key={n} type="button" role="tab" aria-selected={page === i} className={`btn${page === i ? ' btn-primary' : ''}`} onClick={() => setPage(i)}>

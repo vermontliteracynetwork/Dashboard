@@ -42,7 +42,7 @@ export default function HelpOverlay({ studentId, onClose, aboveLock }: Props) {
       <div className="overlay-panel chrome-frame" style={{ padding: 24 }} onClick={(e) => e.stopPropagation()}>
         <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
           <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
-            <h2 style={{ margin: 0 }}>🧘 Take a Moment</h2>
+            <h2 style={{ margin: 0 }}>Take a Moment</h2>
             <ReadAloud text="Take a moment. Breathe in as the circle grows. Breathe out as it shrinks. No rush. Stay here as long as you'd like." small />
           </div>
           <p>Breathe in as the circle grows. Breathe out as it shrinks.</p>

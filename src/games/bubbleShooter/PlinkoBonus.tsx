@@ -58,7 +58,7 @@ export default function PlinkoBonus({ zones, calm, sound, onDone }: { zones: num
   return (
     <div className="bs-modal-back">
       <div className="bs-modal bs-plinko-card" role="dialog" aria-label="Plinko bonus drop">
-        <h2>🎯 Plinko bonus!</h2>
+        <h2>Plinko bonus!</h2>
         <p>{ballNo < BALLS ? `Ball ${ballNo + 1} of ${BALLS}: tap an arrow to drop it.` : `All ${BALLS} balls dropped!`}</p>
         <div className="bs-plinko-drops" style={{ gridTemplateColumns: `repeat(${zones}, 1fr)` }}>
           {Array.from({ length: zones }, (_, i) => <button key={i} type="button" className="bs-plinko-drop" onClick={() => go(i)} disabled={dropping || ballNo >= BALLS} aria-label={`Drop above zone ${i + 1}`}>▼</button>)}

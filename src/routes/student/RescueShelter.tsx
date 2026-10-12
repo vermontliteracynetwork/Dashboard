@@ -210,7 +210,7 @@ export default function RescueShelter() {
   if (phase === 'intro') {
     return (
       <div className="rs rs-intro">
-        <header className="psr-head"><button type="button" className="btn" onClick={back.go}>← {back.label}</button><h1>🐶 Rescue Shelter</h1><button type="button" className="btn rs-read" onClick={flipRead} aria-pressed={readAloud}>{readAloud ? '🔊 Reading aloud' : '🔇 Read aloud off'}</button></header>
+        <header className="psr-head"><button type="button" className="btn" onClick={back.go}>← {back.label}</button><h1>Rescue Shelter</h1><button type="button" className="btn rs-read" onClick={flipRead} aria-pressed={readAloud}>{readAloud ? '🔊 Reading aloud' : '🔇 Read aloud off'}</button></header>
         <div className="rs-card">
           <p className="rs-big">A new stray just arrived at the Yoglandia Rescue! <b>{stray.name}</b> the {def.name} is scared and hiding behind a box.</p>
           <p>You are a rescue volunteer. Pick a gentle way to help, answer a question, and watch {stray.name} learn to trust you. Watch how {stray.name} feels: the right kind of help builds trust fastest.</p>
@@ -251,7 +251,7 @@ export default function RescueShelter() {
       {phase === 'done' && (
         <div className="pf-overlay">
           <div className="pf-panel" style={{ textAlign: 'center' }}>
-            <h2>🎉 {stray.name} trusts you! <button type="button" className="btn rs-listen" onClick={() => read(`${stray.name} trusts you! ${stray.name} went from scared to happy because of your kindness, and is ready for a forever home.`)}>🔊 Listen</button></h2>
+            <h2>{stray.name} trusts you! <button type="button" className="btn rs-listen" onClick={() => read(`${stray.name} trusts you! ${stray.name} went from scared to happy because of your kindness, and is ready for a forever home.`)}>🔊 Listen</button></h2>
             <p>{stray.name} the {def.name} went from scared to happy because of your kindness. {stray.name} is ready for a forever home.</p>
             <div className="pf-detail-actions">
               {canAdopt && <button type="button" className="btn btn-primary btn-lg" onClick={() => {

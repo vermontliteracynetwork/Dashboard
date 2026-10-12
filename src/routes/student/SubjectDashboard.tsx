@@ -174,7 +174,7 @@ export default function SubjectDashboard() {
           if (task.completionMode === 'specificGame' && only.length === 0) {
             return (
               <div className="chrome-frame stack" style={{ padding: 24, alignItems: 'center', textAlign: 'center', gap: 12 }}>
-                <h2 style={{ margin: 0 }}>⛽ Answer these at the Gas Pump</h2>
+                <h2 style={{ margin: 0 }}>Answer these at the Gas Pump</h2>
                 <p style={{ margin: 0 }}>Drive a car in Town Square and fill up at the Gas Pump. Answer {need} question{need === 1 ? '' : 's'} there to finish.</p>
                 <div className="row" style={{ gap: 10 }}>
                   <button className="btn btn-lg" onClick={() => setSelectedTaskId(null)}>Back</button>

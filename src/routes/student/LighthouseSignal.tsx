@@ -101,7 +101,7 @@ export default function LighthouseSignal() {
       })}
       <header className="fd-head lh-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>🗼 Lighthouse Signal</h1>
+        <h1>Lighthouse Signal</h1>
         <SfxToggle />
         {settings}
         <MyBest game="lighthouse" unit="boats guided" />
@@ -137,7 +137,7 @@ export default function LighthouseSignal() {
       {log && (
         <div className="pf-overlay" onClick={() => setLog(false)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>📘 Harbor Log</h2>
+            <h2 style={{ marginTop: 0 }}>Harbor Log</h2>
             <p style={{ marginTop: 0 }}>Boats guided home: {saved.total ?? 0}</p>
             <div className="fd-book">
               {BOATS.map((k) => (

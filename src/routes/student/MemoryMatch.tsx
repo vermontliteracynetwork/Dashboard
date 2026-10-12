@@ -102,7 +102,7 @@ export default function MemoryMatch() {
     <div className="mm">
       <header className="fd-head mm-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} note="This board stops here. Your matches so far are paid." />
-        <h1>🃏 Memory Match</h1>
+        <h1>Memory Match</h1>
         <SfxToggle />
         <button type="button" className="btn game-settings-btn" onClick={() => setGear(true)} aria-label="Game settings">⚙️</button>
         <MyBest game="memoryMatch" format={(e) => `${-e.score} flips${e.detail ? ` (${e.detail})` : ''}`} />
@@ -144,7 +144,7 @@ export default function MemoryMatch() {
       {gear && (
         <div className="pf-overlay" onClick={() => setGear(false)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>⚙️ Game settings</h2>
+            <h2 style={{ marginTop: 0 }}>Game settings</h2>
             <RoundSettings ranges={PAIR_RANGE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions on each board" />
             <p>The new number starts with your next board.</p>
             <div className="pf-detail-actions"><button type="button" className="btn btn-lg" onClick={() => setGear(false)}>Done</button><button type="button" className="btn btn-primary btn-lg" onClick={() => { setGear(false); again(); }}>🃏 Start a new board</button></div>

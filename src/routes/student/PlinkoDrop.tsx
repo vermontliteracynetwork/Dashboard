@@ -100,7 +100,7 @@ export default function PlinkoDrop() {
     <div className="pk">
       <header className="fd-head pk-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>🎯 Plinko Drop</h1>
+        <h1>Plinko Drop</h1>
         <SfxToggle />
         <MyBest game="plinkoDrop" unit="tickets won" />
         <button type="button" className="btn" onClick={() => setCounter(true)}>🎟️ {tickets} · Prize Counter</button>
@@ -134,7 +134,7 @@ export default function PlinkoDrop() {
       {counter && (
         <div className="pf-overlay" onClick={() => setCounter(false)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>🎟️ Prize Counter</h2>
+            <h2 style={{ marginTop: 0 }}>Prize Counter</h2>
             <p style={{ marginTop: 0 }}>You have <b>{tickets}</b> tickets. Tickets come from Plinko drops and only buy prizes here.</p>
             <div className="fd-book">
               {PRIZES.map((p) => (

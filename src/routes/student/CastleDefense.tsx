@@ -677,7 +677,7 @@ export default function CastleDefense() {
 
           <div className="bakery-menu">
             <div className="bakery-menu-card">
-              <h1 className="bakery-title">🏰 Castle Defense</h1>
+              <h1 className="bakery-title">Castle Defense</h1>
               {buddy && <p className="bakery-blurb">🏡 Playing with {buddy.name}! They're cheering you on.</p>}
               <p className="bakery-blurb">Answer to earn gems. Build towers to defend the castle!</p>
               <RoundSettings ranges={CD_RANGES} roundsLabel="Waves" perLabel="Questions before each wave" rounds={TOTAL_WAVES} perRound={QUESTIONS_PER_GATE} onRounds={roundSet.setRounds} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />

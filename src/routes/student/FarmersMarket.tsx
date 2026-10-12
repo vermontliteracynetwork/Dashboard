@@ -114,7 +114,7 @@ export default function FarmersMarket() {
       <div className="laptop-screen">
     <div className="container stack">
       <WebpageFrame url="farmers-market" />
-      <h2 style={{ margin: 0, textAlign: 'center' }}>🧺 Farmer's Market</h2>
+      <h2 style={{ margin: 0, textAlign: 'center' }}>Farmer's Market</h2>
 
       <p style={{ textAlign: 'center', fontWeight: 700 }}>Trade with other students, no coins needed! ✨</p>
 
