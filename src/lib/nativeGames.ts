@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'whackAMole' | 'constructionSite' | 'dungeonRooms' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'whackAMole' | 'constructionSite' | 'dungeonRooms' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -61,6 +61,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'wordSearch', title: "Word Search", route: '/student/word-search', cover: '/games/covers/word-search.svg', blurb: "Answer to reveal each hidden word, then find it in the letter grid.", versus: false, cabinet: { marquee: '#2a5d8f', panel: '#5b8def', trim: '#ffd23f', icon: '🔤' } },
   // Plinko Drop (Build Queue 44, her genres list: a carnival or arcade building; answers choose where the ball drops).
   { id: 'plinkoDrop', title: "Plinko Drop", route: '/student/plinko', cover: '/games/covers/plinko-drop.svg', blurb: "Drop the ball down the right answer's chute, win tickets, and pick a prize.", versus: false, cabinet: { marquee: '#d63a6a', panel: '#3a1f5c', trim: '#ffd23f', icon: '🎯' } },
+  // Crossy Road Hopper (Build Queue 45, her genres list: town roads; correct answers hop you across).
+  { id: 'crossyHopper', title: "Crossy Road Hopper", route: '/student/crossy', cover: '/games/covers/crossy-hopper.svg', blurb: "Answer to earn hops, then cross the busy roads when the way is clear.", versus: false, cabinet: { marquee: '#2f6b12', panel: '#8fd16a', trim: '#ffd23f', icon: '🐔' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

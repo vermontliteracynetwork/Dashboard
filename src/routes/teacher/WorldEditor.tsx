@@ -62,6 +62,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
   { value: 'pet-gym', label: `Buff Doge's Gym → ${ROLE_VIEWS['pet-gym']}` },
   { value: 'pet-show', label: `Pet Show Ring → ${ROLE_VIEWS['pet-show']}` },
+  { value: 'crossy-hopper', label: `Crossy Road Hopper → ${ROLE_VIEWS['crossy-hopper']}` },
   { value: 'plinko-drop', label: `Plinko Drop → ${ROLE_VIEWS['plinko-drop']}` },
   { value: 'word-search', label: `Word Search → ${ROLE_VIEWS['word-search']}` },
   { value: 'memory-match', label: `Memory Match → ${ROLE_VIEWS['memory-match']}` },

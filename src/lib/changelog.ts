@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-crossy",
+    date: "2026-10-12",
+    icon: "🐔",
+    title: "New game: Crossy Road Hopper",
+    body: "Help the chicken cross the busy roads to the park! Answer questions to earn hops, then hop when the button turns green and the road is clear. Every crossing brings a new animal friend to the park.",
+  },
+  {
     id: "2026-10-12-plinko",
     date: "2026-10-12",
     icon: "🎯",

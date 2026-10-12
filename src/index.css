@@ -7085,3 +7085,27 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .pk-slots span.win { animation: kc-glow 0.7s ease-in-out 3; outline: 3px solid #fff; }
 .pk-prize .btn { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) { .pk-ball { transition: none; } .pk * { animation: none !important; } }
+
+/* Crossy Road Hopper (native game, Build Queue 45) */
+.cr { position: fixed; inset: 0; overflow: hidden auto; color: #1f2a12; background: #8fd16a; }
+.cr-head h1 { color: #2f6b12; text-shadow: 0 2px 0 #fff; }
+.cr-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 86px 16px max(20px, env(safe-area-inset-bottom)); }
+.cr-town { width: min(720px, 100%); border-radius: 16px; overflow: hidden; border: 5px solid #2f6b12; }
+.cr-lane { position: relative; height: clamp(46px, calc((100vh - 290px) / 9), 70px); overflow: hidden; }
+.cr-lane.park { background: #6cc24a; }
+.cr-lane.grass { background: repeating-linear-gradient(90deg, #8fd16a 0 30px, #84c75f 30px 60px); }
+.cr-lane.walk { background: repeating-linear-gradient(90deg, #cfc8bb 0 58px, #b9b2a5 58px 60px); }
+.cr-lane.road { background: linear-gradient(transparent 47%, #f6f3ea 47% 53%, transparent 53%), #4a4d56; background-size: 60px 100%, auto; }
+.cr-friends { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; letter-spacing: 4px; }
+.cr-car { position: absolute; top: 50%; transform: translate(-50%, -50%) scaleX(-1); font-size: clamp(30px, 5vh, 46px); will-change: left; }
+.cr-car.left { transform: translate(-50%, -50%); }
+.cr-chick { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: clamp(32px, 5.4vh, 48px); z-index: 2; animation: cr-hop 0.35s ease-out both; }
+.cr-chick.bump { animation: cr-bump 0.5s ease-out both; }
+.cr-msg { text-align: center; max-width: 640px; }
+.cr-controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; width: min(720px, 100%); }
+.cr-btn { flex: 1 1 220px; min-height: 64px; font-size: 1.2rem; }
+.cr-hop.safe { background: #2fa36b; color: #fff; border-color: #1f7a4d; }
+.cr-hop.wait { background: #e2574c; color: #fff; border-color: #a83a31; }
+@keyframes cr-hop { 0% { transform: translate(-50%, 40%) scale(0.9); } 60% { transform: translate(-50%, -80%) scale(1.1); } 100% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes cr-bump { 0% { transform: translate(-50%, -50%); } 30% { transform: translate(-50%, -110%) rotate(-12deg); } 60% { transform: translate(-50%, -40%) rotate(8deg); } 100% { transform: translate(-50%, -50%); } }
+@media (prefers-reduced-motion: reduce) { .cr-chick { animation: none !important; } }
