@@ -5,5 +5,5 @@
   <rect y="290" width="640" height="70" fill="#cfc8bb"/>
   <text x="140" y="158" font-size="46">🚕</text><text x="470" y="158" font-size="46">🚌</text><text x="80" y="278" font-size="46">🚗</text><text x="400" y="278" font-size="46">🚚</text>
   <text x="300" y="218" font-size="56">🐔</text><text x="560" y="220" font-size="40">🌳</text><text x="40" y="220" font-size="40">🦆</text>
-  <text x="320" y="78" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="54" font-weight="900" fill="#fff" stroke="#2f6b12" stroke-width="10" paint-order="stroke">CROSSY ROAD HOPPER</text>
+  <text x="320" y="78" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="46" font-weight="900" fill="#fff" stroke="#2f6b12" stroke-width="10" paint-order="stroke">CROSSY ROAD HOPPER</text>
 </svg>
