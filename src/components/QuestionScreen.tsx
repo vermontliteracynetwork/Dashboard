@@ -83,8 +83,6 @@ export interface QuestionScreenProps {
   autoRead?: boolean;
   // A game host's own voice for reading the question (Doc Fishing reads the Fishing Dock).
   voice?: NpcVoiceProfile;
-  // A game's own look for the card (Doc Fishing's pixel theme).
-  cardClass?: string;
   whoIcon?: string;
 }
 
@@ -133,7 +131,6 @@ export default function QuestionScreen({
   compact = false,
   autoRead = false,
   voice,
-  cardClass,
 }: QuestionScreenProps) {
   const lockAfterWrong = !!onSkip;
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -344,7 +341,6 @@ export default function QuestionScreen({
 
   return (
     <div
-      className={cardClass}
       style={{
         position: 'fixed',
         inset: 0,

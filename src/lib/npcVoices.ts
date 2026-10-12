@@ -19,6 +19,10 @@ export interface NpcVoiceProfile {
   pitch: number;
   rate: number;
   hints: string[];
+  // Pick the most human-sounding male voice on the device (Premium, Enhanced or Natural voices first)
+  // instead of the first name match; used for Doc Fishing (teacher 2026-10-12: "can we have a more
+  // human voice").
+  human?: boolean;
 }
 
 export const NPC_VOICE_PRESETS: Record<string, NpcVoiceProfile> = {
@@ -34,9 +38,11 @@ export const NPC_VOICE_PRESETS: Record<string, NpcVoiceProfile> = {
   // Browsers ship no true Southern accent, so this picks the deepest US
   // male voice available and slows it into a easy drawl.
   'country-drawl': { label: '🤠 Country Drawl', pitch: 0.78, rate: 0.86, hints: ['aaron', 'evan', 'fred', 'tom', 'us english male', 'male'] },
-  // Doc Fishing, host of the Fishing Dock (teacher 2026-10-12: "a slighly southern, slow deep human
-  // voice for all voice overs and TTS"). Same idea as Bawk's drawl, deeper and slower.
-  'doc-drawl': { label: '🎣 Slow Southern Drawl', pitch: 0.62, rate: 0.78, hints: ['aaron', 'evan', 'tom', 'fred', 'us english male', 'male'] },
+  // Doc Fishing (teacher 2026-10-12: "a slighly southern, slow deep human voice for all voice overs and
+  // TTS", then "can we have a more human voice"). Pitch shifting is what makes a voice sound like a
+  // robot, so this keeps the pitch close to natural and gets the slow, easy feel from the rate, on the
+  // most human male voice the device has.
+  'doc-drawl': { label: '🎣 Slow Southern Drawl', pitch: 0.9, rate: 0.84, hints: ['evan', 'nathan', 'tom', 'aaron', 'christopher', 'guy', 'davis', 'eric', 'andrew', 'brian', 'roger', 'steffan'], human: true },
   // Grammar Gus (teacher 2026-10-07: "silly but a little pretentious"):
   // a small, prim, slightly posh voice, British where the device has one.
   'gus-posh': { label: '🧐 Prim & Proper', pitch: 1.35, rate: 0.95, hints: ['daniel', 'arthur', 'oliver', 'uk english male', 'en-gb', 'male'] },

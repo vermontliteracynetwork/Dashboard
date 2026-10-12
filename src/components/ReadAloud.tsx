@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TTSSettings } from '../types';
-import { pickSystemVoice } from '../lib/voiceCatalog';
+import { pickHumanVoice, pickSystemVoice } from '../lib/voiceCatalog';
 import { useStore } from '../store/store';
 import type { NpcVoiceProfile } from '../lib/npcVoices';
 
@@ -48,7 +48,7 @@ export function buildUtterance(text: string, settings?: TTSSettings, voiceSkinId
   if (npcVoiceProfile) {
     utter.rate = npcVoiceProfile.rate;
     utter.pitch = npcVoiceProfile.pitch;
-    const npcVoice = pickSystemVoice(npcVoiceProfile.hints);
+    const npcVoice = npcVoiceProfile.human ? pickHumanVoice(npcVoiceProfile.hints) : pickSystemVoice(npcVoiceProfile.hints);
     if (npcVoice) utter.voice = npcVoice;
     return utter;
   }

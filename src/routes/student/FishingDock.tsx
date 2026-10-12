@@ -87,14 +87,21 @@ const CATCHABLE = FISH.filter((x) => !x.legacy);
 const TIER_NAME = ['Common', 'Uncommon', 'Rare', 'Super rare'];
 const TIER_COLOR = ['#7a8a99', '#2fa36b', '#5b8def', '#c77dff'];
 
-// Her rod pack: each better rod widens the green part of the cast meter.
+// Her rod pack: each better rod widens the green part of the cast meter. Rods upgrade by XP (her idea,
+// 2026-10-12: "rate the casts with XP have an xp chart like a growing meter, fill the meter and it
+// upgrades your pole. xp from correct questions and catches too"). `xp` is the total XP that earns it.
 const RODS = [
-  { id: 'wooden', name: 'Wooden', need: 0, sweet: 0.2 },
-  { id: 'copper', name: 'Copper', need: 4, sweet: 0.24 },
-  { id: 'iron', name: 'Iron', need: 8, sweet: 0.28 },
-  { id: 'gold', name: 'Gold', need: 14, sweet: 0.32 },
-  { id: 'diamond', name: 'Diamond', need: 22, sweet: 0.36 },
+  { id: 'wooden', name: 'Wooden', xp: 0, sweet: 0.2 },
+  { id: 'copper', name: 'Copper', xp: 150, sweet: 0.24 },
+  { id: 'iron', name: 'Iron', xp: 400, sweet: 0.28 },
+  { id: 'gold', name: 'Gold', xp: 800, sweet: 0.32 },
+  { id: 'diamond', name: 'Diamond', xp: 1400, sweet: 0.36 },
 ];
+type Rod = (typeof RODS)[number];
+const rodAt = (xp: number): Rod => [...RODS].reverse().find((r) => xp >= r.xp) ?? RODS[0];
+// XP: cast ratings (Perfect 30, Great 20, Good 10, Short 5), 10 for each right answer, and catches by
+// rarity (10, 20, 35, 60; junk 5) with 25 more for a new kind and 15 for a power-up.
+const CATCH_XP = [10, 20, 35, 60];
 const BOBBERS = [
   { id: 'standard', name: 'Red and White', need: 0 }, { id: 'redbutton', name: 'Red Button', need: 2 }, { id: 'bluecork', name: 'Blue Cork', need: 3 },
   { id: 'striped-redwhiteblue', name: 'Stars and Stripes', need: 5 }, { id: 'clover', name: 'Lucky Clover', need: 7 }, { id: 'donut', name: 'Donut', need: 9 },
@@ -117,8 +124,8 @@ const DIAMOND_SECONDS = 30;
 const SCHOOL = ['bluegill', 'yellowperch', 'mackerel', 'crappie', 'rainbowtrout', 'sunfish', 'cod', 'carp', 'pinksalmon', 'redsnapper', 'dorado', 'clownfish'];
 
 type Phase = 'ready' | 'power' | 'casting' | 'ask' | 'wait' | 'bite' | 'leap' | 'caught' | 'away';
-interface Book { caught?: Record<string, number>; biggest?: Record<string, number>; rod?: string; bobber?: string; met?: boolean }
-type Catch = { kind: 'fish'; fish: Fish; size: number; isNew: boolean; newRod?: string; newBobber?: string } | { kind: 'power'; power: (typeof POWERS)[number] };
+interface Book { caught?: Record<string, number>; biggest?: Record<string, number>; rod?: string; bobber?: string; met?: boolean; xp?: number; minutes?: number }
+type Catch = { kind: 'fish'; fish: Fish; size: number; isNew: boolean; xp: number; newBobber?: string } | { kind: 'power'; power: (typeof POWERS)[number]; xp: number };
 
 function Sprite({ fish, size }: { fish: Fish; size: number }) {
   return fish.img
@@ -131,7 +138,7 @@ export default function FishingDock() {
   const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('story-tts') !== '0'; } catch { return true; } });
   const readRef = useRef(readAloud);
   readRef.current = readAloud;
-  const { settings, ask, element, pay, student, asking } = useAsk('Doc Fishing', '🎣', 'fishingDock', { compact: true, autoRead: readAloud, voice: DOC_VOICE, cardClass: 'qs-pixel' });
+  const { ask, element, pay, student, asking, rightSoFar } = useAsk('Doc Fishing', '🎣', 'fishingDock', { autoRead: readAloud, voice: DOC_VOICE });
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [phase, setPhase] = useState<Phase>('ready');
@@ -145,6 +152,15 @@ export default function FishingDock() {
   const [freeCasts, setFreeCasts] = useState(0);
   const [show, setShow] = useState<{ kind: 'school' | 'bubbles'; at: number } | null>(null);
   const [rainbow, setRainbow] = useState(false);
+  const [xpPop, setXpPop] = useState<{ n: number; why: string; at: number } | null>(null);
+  const [rodUp, setRodUp] = useState<{ rod: Rod; at: number } | null>(null);
+  const xpRef = useRef(0);
+  // Her rule (2026-10-12): "make sure there is a time that the game ends. when they login it needs to have
+  // instead of rounds, game time. min 1 minute max 10 min. no questions or round settings".
+  const [stage, setStage] = useState<'start' | 'play' | 'end'>('start');
+  const [minutes, setMinutes] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState(0); // seconds
+  const run = useRef({ catches: 0, kinds: 0, xp: 0, best: null as null | { name: string; size: number } });
   const raf = useRef(0);
   const t0 = useRef(0);
   const timers = useRef<number[]>([]);
@@ -166,6 +182,17 @@ export default function FishingDock() {
     }, 1000);
     return () => clearTimeout(id);
   }, [diamondLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The game clock.
+  useEffect(() => {
+    if (stage !== 'play' || timeLeft <= 0) return;
+    const id = window.setTimeout(() => setTimeLeft((t) => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [stage, timeLeft]);
+  // Time is up: end at the next calm moment, so a cast already in the water gets to finish.
+  const endRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (stage === 'play' && timeLeft <= 0 && (phase === 'ready' || phase === 'away' || phase === 'power')) endRef.current();
+  }, [stage, timeLeft, phase]);
   // The fishing line runs from the rod tip to the bobber, following it as it flies and floats.
   const lineOn = phase === 'casting' || phase === 'ask' || phase === 'wait' || phase === 'bite';
   useEffect(() => {
@@ -182,20 +209,37 @@ export default function FishingDock() {
   const greeted = useRef(false);
   const owner = student ? `fishbook:${student.id}` : '';
   const saved = ((styleLooks.find((r) => r.ownerId === owner)?.look as Book | undefined) ?? {});
+  xpRef.current = Math.max(xpRef.current, saved.xp ?? 0);
   useEffect(() => {
     if (!student || greeted.current) return;
     greeted.current = true;
     if (!saved.met) mergeStyleRow(owner, { met: true });
     doc(saved.met
-      ? 'Howdy again, partner! The fish are biting today. Tap Cast your line when you are ready.'
-      : 'Well, howdy there, partner! I am Doc Fishing. Grab a rod and let us catch us some fish. Tap Cast your line to start.');
+      ? 'Howdy again, partner! The fish are biting today. How long do you want to fish? Pick your time, then tap Start fishing.'
+      : 'Well, howdy there, partner! I am Doc Fishing. Let us catch us some fish. Pick how long you want to fish, then tap Start fishing.');
   }, [student]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!student) return null;
 
   const got = saved.caught ?? {};
   const kinds = Object.keys(got).length;
-  const ownedRods = RODS.filter((r) => kinds >= r.need);
+  const xpNow = xpRef.current;
+  const ownedRods = RODS.filter((r) => xpNow >= r.xp);
   const myRod = diamondLeft > 0 ? RODS[4] : (ownedRods.find((r) => r.id === saved.rod) ?? ownedRods[ownedRods.length - 1]);
+  const topRod = rodAt(xpNow), nextRod = RODS[RODS.indexOf(topRod) + 1];
+  // Returns the new rod when this XP fills the meter.
+  const gainXp = (n: number, why: string, speakUp = true): Rod | null => {
+    const before = rodAt(xpRef.current);
+    xpRef.current += n; run.current.xp += n;
+    const now = rodAt(xpRef.current);
+    const up = now.id !== before.id ? now : null;
+    mergeStyleRow(owner, up ? { xp: xpRef.current, rod: up.id } : { xp: xpRef.current });
+    setXpPop({ n, why, at: Date.now() });
+    if (up) {
+      setRodUp({ rod: up, at: Date.now() }); later(() => setRodUp(null), 4500);
+      if (speakUp) { play('legend'); doc(`Yee haw! Your XP meter filled up, and your rod upgraded to the ${up.name} Rod. Its green spot is bigger!`); }
+    }
+    return up;
+  };
   const myBobber = BOBBERS.find((b) => b.id === saved.bobber && kinds >= b.need) ?? BOBBERS[0];
   const sweetLo = Math.max(0, 0.82 - myRod.sweet / 2), sweetHi = Math.min(1, 0.82 + myRod.sweet / 2);
   const noQuestion = diamondLeft > 0 || freeCasts > 0;
@@ -223,14 +267,20 @@ export default function FishingDock() {
   const release = () => {
     cancelAnimationFrame(raf.current); play('cast');
     const p = power; setCast(p); setPhase('casting'); setSay('');
+    const mid = (sweetLo + sweetHi) / 2, green = p >= sweetLo && p <= sweetHi;
+    const [why, xp]: [string, number] = green && Math.abs(p - mid) <= myRod.sweet * 0.2 ? ['Perfect cast!', 30] : green ? ['Great cast!', 20] : p > 0.45 ? ['Good cast', 10] : ['Short cast', 5];
     // Her rule: the rod casts first, then the question pops up while the bobber floats.
     later(() => {
-      play('plunk');
+      play('plunk'); gainXp(xp, why);
       if (diamondLeft > 0) { waitForBite(); return; }
       if (freeCasts > 0) { setFreeCasts((n) => n - 1); doc('No question this cast. That potion is working!'); waitForBite(); return; }
       setPhase('ask');
       setSay('Ooh, a fish is sniffing around your bobber! Answer the question to hook it.');
-      ask('🐟 A fish is sniffing your bobber! Answer to hook it!', () => { play('hook'); waitForBite(); }, () => {
+      const rightBefore = rightSoFar();
+      ask('🐟 A fish is sniffing your bobber! Answer to hook it!', () => {
+        const n = Math.max(1, rightSoFar() - rightBefore);
+        play('hook'); gainXp(10 * n, n > 1 ? `${n} right answers` : 'Right answer'); waitForBite();
+      }, () => {
         play('reel'); setPhase('ready'); doc('No worries. I will reel your line back in.');
       });
     }, quick() ? 250 : 950);
@@ -240,8 +290,9 @@ export default function FishingDock() {
     // Sometimes one of her potions comes up instead of a fish (never during a Diamond Rod).
     if (diamondLeft <= 0 && Math.random() < 0.14) {
       const pw = POWERS[Math.floor(Math.random() * POWERS.length)];
-      setCaught({ kind: 'power', power: pw }); setPhase('leap');
-      later(() => { setPhase('caught'); play('legend'); doc(`Well, what do you know! You fished up a ${pw.name}. ${pw.blurb}`); }, quick() ? 200 : 1000);
+      const up = gainXp(15, 'Power-up!', false);
+      setCaught({ kind: 'power', power: pw, xp: 15 }); setPhase('leap');
+      later(() => { setPhase('caught'); play('legend'); doc(`Well, what do you know! You fished up a ${pw.name}. ${pw.blurb}${up ? ` And your rod upgraded to the ${up.name} Rod!` : ''}`); }, quick() ? 200 : 1000);
       return;
     }
     // The sweet spot (the green part of the meter) reaches the rare fish.
@@ -254,21 +305,23 @@ export default function FishingDock() {
     const size = Math.round(fish.min + Math.random() * (fish.max - fish.min));
     const isNew = !got[fish.id];
     const after = kinds + (isNew ? 1 : 0);
-    const newRod = isNew ? RODS.find((x) => x.need > 0 && x.need === after) : undefined;
     const newBobber = isNew ? BOBBERS.find((x) => x.need > 0 && x.need === after) : undefined;
     mergeStyleRow(owner, {
       caught: { ...got, [fish.id]: (got[fish.id] ?? 0) + 1 },
       biggest: { ...(saved.biggest ?? {}), [fish.id]: Math.max(size, saved.biggest?.[fish.id] ?? 0) },
-      ...(newRod ? { rod: newRod.id } : {}),
     });
+    run.current.catches += 1; if (isNew) run.current.kinds += 1;
+    if (!fish.junk && size > (run.current.best?.size ?? 0)) run.current.best = { name: fish.name, size };
+    const cx = (fish.junk ? 5 : CATCH_XP[tier]) + (isNew ? 25 : 0);
+    const newRod = gainXp(cx, isNew ? 'New kind!' : 'Nice catch!', false);
     recordBestGame(student.id, 'fishingDock', size, fish.name);
-    setCaught({ kind: 'fish', fish, size, isNew, newRod: newRod?.name, newBobber: newBobber?.name });
+    setCaught({ kind: 'fish', fish, size, isNew, xp: cx, newBobber: newBobber?.name });
     setPhase('leap');
     later(() => {
       setPhase('caught');
       play(fish.junk ? 'boot' : tier >= 2 || isNew ? 'legend' : 'catch');
       const line = fish.junk ? `Ha! You reeled in ${fish.name === 'Mussels' ? 'some mussels' : `a ${fish.name}`}. ${fish.fact}` : `Well, look at that! A ${size} centimeter ${fish.name}. ${fish.fact}`;
-      doc(`${line}${newRod ? ` And you earned the ${newRod.name} Rod! It has a bigger green spot.` : ''}${newBobber ? ` You also got a new bobber for your tackle box.` : ''}`);
+      doc(`${line}${newRod ? ` And your XP meter filled up! Your rod upgraded to the ${newRod.name} Rod.` : ''}${newBobber ? ` You also got a new bobber for your tackle box.` : ''}`);
     }, quick() ? 200 : 1000);
   };
   const closeCatch = () => {
@@ -282,6 +335,21 @@ export default function FishingDock() {
     else if (id === 'rainbow') { setRainbow(true); later(() => setRainbow(false), 20000); doc('Would you look at that water! Every color of the rainbow.'); }
     else { setShow({ kind: id, at: Date.now() }); play(id === 'school' ? 'thrash' : 'plunk'); later(() => setShow(null), 4200); doc(id === 'school' ? 'Here they come! A whole school of fish, jumping to say hello!' : 'Bubbles, bubbles, everywhere!'); }
   };
+  const chosen = minutes ?? saved.minutes ?? 5;
+  const startGame = () => {
+    run.current = { catches: 0, kinds: 0, xp: 0, best: null };
+    if (saved.minutes !== chosen) mergeStyleRow(owner, { minutes: chosen });
+    setTimeLeft(chosen * 60); setStage('play'); setPhase('ready'); play('tackle');
+    doc(`Alrighty, ${chosen} ${chosen === 1 ? 'minute' : 'minutes'} on the clock. Tap Cast your line!`);
+  };
+  const endGame = () => {
+    cancelAnimationFrame(raf.current); timers.current.forEach(clearTimeout); timers.current = [];
+    setStage('end'); setPhase('ready'); setDiamondLeft(0); setFreeCasts(0); pay(); play('legend');
+    const r = run.current;
+    doc(`Time is up, partner! You caught ${r.catches} ${r.catches === 1 ? 'thing' : 'things'}${r.best ? `, and your biggest was a ${r.best.size} centimeter ${r.best.name}` : ''}. You earned ${r.xp} XP. Mighty fine fishing!`);
+  };
+  endRef.current = endGame;
+  const clock = `${Math.floor(Math.max(0, timeLeft) / 60)}:${String(Math.max(0, timeLeft) % 60).padStart(2, '0')}`;
   const equip = (patch: Partial<Book>) => { play('lure'); mergeStyleRow(owner, patch); };
   const flipRead = () => { const v = !readAloud; setReadAloud(v); try { localStorage.setItem('story-tts', v ? '1' : '0'); } catch { /* fine */ } if (!v) window.speechSynthesis?.cancel(); };
   const bobberX = 34 + cast * 54; // percent across the water
@@ -291,6 +359,7 @@ export default function FishingDock() {
   const mm = `${Math.floor(diamondLeft / 60)}:${String(diamondLeft % 60).padStart(2, '0')}`;
 
   return (
+    <>
     <div className={`fd fdk${rainbow ? ' rainbow' : ''}`}>
       <div className="fd-sky"><i className="fdk-sun" /><i className="fdk-cloud c1" /><i className="fdk-cloud c2" /></div>
       <div className="fdk-hills"><i className="far" /><i className="near" /></div>
@@ -334,6 +403,42 @@ export default function FishingDock() {
           {Array.from({ length: 18 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 96 + 2}%`, animationDelay: `${(i % 6) * 0.3}s`, width: 14 + (i % 4) * 10, height: 14 + (i % 4) * 10 }} />)}
         </div>
       )}
+      {stage === 'play' && (
+        <div className={`fdk-clock${timeLeft <= 15 ? ' low' : ''}`} role="timer" aria-label={`Game time left: ${clock}`}>⏰ {clock}</div>
+      )}
+      {stage === 'start' && (
+        <div className="pf-overlay fdk-start">
+          <div className="pf-panel fdk-start-card">
+            <h2>Doc Fishing</h2>
+            <img src={`${ART}doc-fishing.jpg`} alt="Doc Fishing" className="fdk-start-doc" />
+            <p className="fdk-start-say">{say}</p>
+            <label className="fdk-time" htmlFor="fdk-minutes">
+              <span>Game time: <b>{chosen} {chosen === 1 ? 'minute' : 'minutes'}</b></span>
+              <input id="fdk-minutes" type="range" min={1} max={10} step={1} value={chosen} onChange={(e) => setMinutes(Number(e.target.value))} />
+              <small><span>1 min</span><span>10 min</span></small>
+            </label>
+            <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startGame}>🎣 Start fishing</button>
+          </div>
+        </div>
+      )}
+      {stage === 'end' && (
+        <div className="pf-overlay">
+          <div className="pf-panel fd-catch">
+            <button type="button" className="btn fdk-card-listen" onClick={() => doc(say)} aria-label="Listen">🔊</button>
+            <h2>Time is up!</h2>
+            <div className="fdk-end-stats">
+              <p>🐟 Caught: <b>{run.current.catches}</b></p>
+              <p>✨ New kinds: <b>{run.current.kinds}</b></p>
+              <p>⭐ XP earned: <b>{run.current.xp}</b></p>
+              {run.current.best && <p>📏 Biggest: <b>{run.current.best.size} cm {run.current.best.name}</b></p>}
+            </div>
+            <div className="pf-detail-actions">
+              <button type="button" className="btn btn-lg" onClick={() => back.go()}>🏠 Leave</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { setStage('start'); doc('Want to fish some more? Pick your time and tap Start fishing.'); }}>🎣 Fish again</button>
+            </div>
+          </div>
+        </div>
+      )}
       {diamondLeft > 0 && (
         <div className="fdk-timer" role="timer" aria-label={`Diamond Rod, ${diamondLeft} seconds left, no questions`}>
           <img src={`${ART}rods/diamond.png`} alt="" className="fdk-px" /><span>{mm}</span><small>NO QUESTIONS</small>
@@ -342,16 +447,30 @@ export default function FishingDock() {
       <header className="fd-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
         <h1 className="fdk-title">Doc Fishing</h1>
-        <button type="button" className="btn" onClick={flipRead} aria-pressed={readAloud} aria-label={readAloud ? 'Doc Fishing reads aloud. Tap to turn it off.' : 'Reading aloud is off. Tap to turn it on.'}>{readAloud ? '🔊 Doc reads' : '🔇 Reading off'}</button>
+        <button type="button" className="btn fdk-icon" onClick={flipRead} aria-pressed={readAloud} aria-label={readAloud ? 'Doc Fishing reads aloud. Tap to turn it off.' : 'Reading aloud is off. Tap to turn it on.'}>{readAloud ? '🗣️' : '🤐'}</button>
         <SfxToggle />
-        {settings}
         <MyBest game="fishingDock" unit="cm" />
         <button type="button" className="btn fdk-hbtn" onClick={() => { play('tackle'); setPanel('tackle'); doc('Here is your tackle box. Pick a rod and a bobber.'); }}><img src={`${ART}ui/chest.png`} alt="" className="fdk-px" /> Tackle box</button>
         <button type="button" className="btn fdk-hbtn" onClick={() => { play('tackle'); setPanel('book'); }}><img src={`${ART}ui/bucket.png`} alt="" className="fdk-px" /> Fish Book ({kinds} / {CATCHABLE.length})</button>
       </header>
+      {xpPop && <div key={xpPop.at} className="fdk-xp-pop" aria-live="polite">+{xpPop.n} XP <small>{xpPop.why}</small></div>}
+      {rodUp && (
+        <div key={rodUp.at} className="fdk-rodup" role="status">
+          <img src={`${ART}rods/${rodUp.rod.id}.png`} alt="" className="fdk-px" /><span>ROD UPGRADE!</span><b>{rodUp.rod.name} Rod</b>
+        </div>
+      )}
       <div className="fd-panel">
-        {(freeCasts > 0 && diamondLeft <= 0 && phase === 'ready') && <p className="fd-msg">🧪 Free casts with no question: {freeCasts}</p>}
-        {phase === 'ready' && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startPower}>🎣 Cast your line</button>}
+        <div className="fdk-xp" role="meter" aria-valuemin={topRod.xp} aria-valuemax={nextRod?.xp ?? xpNow} aria-valuenow={xpNow} aria-label={nextRod ? `XP meter: ${xpNow - topRod.xp} of ${nextRod.xp - topRod.xp}. Fill it to upgrade to the ${nextRod.name} Rod.` : `${xpNow} XP. You have the top rod.`}>
+          <img src={`${ART}rods/${topRod.id}.png`} alt="" className="fdk-px" />
+          <div className="fdk-xp-bar">
+            <i style={{ width: `${nextRod ? ((xpNow - topRod.xp) / (nextRod.xp - topRod.xp)) * 100 : 100}%` }} />
+            <span>{nextRod ? `XP ${xpNow - topRod.xp} / ${nextRod.xp - topRod.xp}` : `XP ${xpNow} · Top rod!`}</span>
+          </div>
+          {nextRod && <img src={`${ART}rods/${nextRod.id}.png`} alt="" className="fdk-px fdk-xp-next" />}
+        </div>
+        {stage === 'play' && freeCasts > 0 && diamondLeft <= 0 && phase === 'ready' && <p className="fd-msg">🧪 Free casts with no question: {freeCasts}</p>}
+        {stage === 'play' && timeLeft <= 0 && phase !== 'ready' && <p className="fd-msg">⏰ Time is up! Finish this cast.</p>}
+        {stage === 'play' && phase === 'ready' && timeLeft > 0 && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startPower}>🎣 Cast your line</button>}
         {phase === 'power' && (
           <>
             <div className="fd-meter" aria-label="Cast power"><i className="fd-sweet" style={{ left: `${sweetLo * 100}%`, width: `${(sweetHi - sweetLo) * 100}%` }} /><b style={{ left: `${power * 100}%` }} /></div>
@@ -365,6 +484,7 @@ export default function FishingDock() {
       {phase === 'caught' && caughtNow && (
         <div className="pf-overlay">
           <div className="pf-panel fd-catch">
+            <button type="button" className="btn fdk-card-listen" onClick={() => doc(say)} aria-label="Listen">🔊</button>
             {caughtNow.kind === 'fish' ? (
               <>
                 {caughtNow.isNew && <span className="fd-new">✨ New for your Fish Book!</span>}
@@ -372,7 +492,7 @@ export default function FishingDock() {
                 <h2>You caught {caughtNow.fish.id === 'mussels' ? 'some Mussels' : `a ${caughtNow.fish.name}`}!</h2>
                 <span className="fd-tier" style={{ background: TIER_COLOR[caughtNow.fish.tier] }}>{TIER_NAME[caughtNow.fish.tier]}</span>
                 <p><b>{caughtNow.size} cm</b> long. {caughtNow.fish.fact}</p>
-                {caughtNow.newRod && <p className="fdk-unlock"><img src={`${ART}rods/${caughtNow.newRod.toLowerCase()}.png`} alt="" className="fdk-px" /> New rod: <b>{caughtNow.newRod} Rod</b>. Its green spot is bigger!</p>}
+                <p className="fdk-xpline">+{caughtNow.xp} XP</p>
                 {caughtNow.newBobber && <p className="fdk-unlock">🎈 New bobber: <b>{caughtNow.newBobber}</b>. Find it in your tackle box.</p>}
               </>
             ) : (
@@ -381,10 +501,10 @@ export default function FishingDock() {
                 <div className="fd-fish fdk-catch-img" aria-hidden><img src={`${ART}potions/${caughtNow.power.id}.png`} alt="" className="fdk-px" style={{ width: 128, height: 128 }} /></div>
                 <h2>You fished up a {caughtNow.power.name}!</h2>
                 <p>{caughtNow.power.blurb}</p>
+                <p className="fdk-xpline">+{caughtNow.xp} XP</p>
               </>
             )}
             <div className="pf-detail-actions">
-              <button type="button" className="btn btn-lg" onClick={() => doc(say)}>🔊 Listen</button>
               <button type="button" className="btn btn-primary btn-lg" onClick={closeCatch}>{caughtNow.kind === 'power' ? '🧪 Use it!' : '🎣 Fish again'}</button>
             </div>
           </div>
@@ -412,14 +532,14 @@ export default function FishingDock() {
         <div className="pf-overlay" onClick={() => setPanel(null)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0 }}>🧰 Tackle box</h2>
-            <h3 className="fdk-sub">Rods <small>(a better rod has a bigger green spot)</small></h3>
+            <h3 className="fdk-sub">Rods <small>(fill your XP meter for the next rod; a better rod has a bigger green spot)</small></h3>
             <div className="fdk-tackle">
               {RODS.map((r) => {
-                const has = kinds >= r.need;
+                const has = xpNow >= r.xp;
                 return (
                   <button key={r.id} type="button" className={`fdk-item${myRod.id === r.id ? ' on' : ''}`} disabled={!has} onClick={() => equip({ rod: r.id })}>
                     <img src={`${ART}rods/${r.id}.png`} alt="" className="fdk-px" style={{ opacity: has ? 1 : 0.3 }} />
-                    <b>{r.name}</b><small>{has ? `Green spot ${Math.round(r.sweet * 100)}%` : `Catch ${r.need} kinds`}</small>
+                    <b>{r.name}</b><small>{has ? `Green spot ${Math.round(r.sweet * 100)}%` : `Reach ${r.xp} XP`}</small>
                   </button>
                 );
               })}
@@ -440,7 +560,9 @@ export default function FishingDock() {
           </div>
         </div>
       )}
-      {element}
     </div>
+    {/* Her rule (2026-10-12): the question is the normal full screen in regular type, outside the pixel theme. */}
+    {element}
+    </>
   );
 }

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-doc-fishing-xp",
+    date: "2026-10-12",
+    icon: "⭐",
+    title: "Doc Fishing XP and game time",
+    body: "In Doc Fishing you pick how long you want to fish, from 1 to 10 minutes. Every cast, right answer and catch earns XP. Fill your XP meter to upgrade your fishing rod!",
+  },
+  {
     id: "2026-10-12-fishing-dock-v2",
     date: "2026-10-12",
     icon: "🎣",

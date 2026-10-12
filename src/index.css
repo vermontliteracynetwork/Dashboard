@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Lexend:wght@400;600;700&family=Press+Start+2P&family=Pixelify+Sans:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Lexend:wght@400;600;700&family=Press+Start+2P&display=swap');
 
 /* Full-screen 3D world views (Town Square, Home Room, Creative Island) set
    an inline 100vh as a fallback for browsers with no dvh support, then this
@@ -7310,8 +7310,9 @@ body.calm-games .fdk-shadow, body.calm-games .fdk-ring { display: none; }
 @media (max-width: 820px) and (orientation: portrait) { .fdk-timer { top: max(128px, calc(env(safe-area-inset-top) + 120px)); } }
 
 /* Doc Fishing: the whole game in pixel art (her request, 2026-10-12: "the whole fishing dock game should
-   become pixel theme"). Palette from her cover: banded lake sky and water, wood dock, cream and ink. */
-.fdk { font-family: 'Pixelify Sans', 'Lexend', system-ui, sans-serif; color: #2a2018; }
+   become pixel theme"). Palette from her cover: banded lake sky and water, wood dock, cream and ink.
+   Pixel type only for titles and headers; everything else is regular Lexend (her request the same day). */
+.fdk { font-family: 'Lexend', system-ui, sans-serif; color: #2a2018; }
 .fdk .fd-sky { inset: 0 0 45% 0; background: linear-gradient(#8fb8c9 0 16%, #9fc4cf 16% 33%, #b3cfd2 33% 50%, #c9d9cf 50% 66%, #e0e2c8 66% 83%, #efe6c2 83%); overflow: hidden; }
 .fdk-sun { position: absolute; left: 50%; bottom: 4%; width: 14vh; height: 14vh; margin-left: -7vh; background: #fbf1cf; clip-path: polygon(30% 0, 70% 0, 70% 10%, 90% 10%, 90% 30%, 100% 30%, 100% 70%, 90% 70%, 90% 90%, 70% 90%, 70% 100%, 30% 100%, 30% 90%, 10% 90%, 10% 70%, 0 70%, 0 30%, 10% 30%, 10% 10%, 30% 10%); }
 .fdk-cloud { position: absolute; height: 3vh; width: 16vw; background: #f6f0e0; animation: fdk-drift 90s linear infinite; }
@@ -7328,30 +7329,62 @@ body.calm-games .fdk-shadow, body.calm-games .fdk-ring { display: none; }
 .fdk-dock { background: repeating-linear-gradient(90deg, #8a5e30 0 30px, #6b4520 30px 36px); border-top: 4px solid #a8763f; box-shadow: 0 6px 0 #4a2f15; }
 .fdk-dock i { background: #5a3a1a; box-shadow: inset -4px 0 0 #4a2f15; }
 .fdk .fd-head h1.fdk-title { font-family: 'Press Start 2P', ui-monospace, monospace; font-size: clamp(1rem, 2.4vw, 1.6rem); color: #fbf3dc; text-shadow: 3px 3px 0 #2a2018, -2px 0 0 #2a2018, 0 -2px 0 #2a2018, 2px 0 0 #2a2018, 0 2px 0 #2a2018; letter-spacing: 1px; }
-.fdk .btn { border-radius: 0 !important; border: 3px solid #2a2018; box-shadow: 4px 4px 0 #2a2018; font-family: 'Pixelify Sans', 'Lexend', sans-serif; font-weight: 600; background: #fbf3dc; color: #2a2018; }
+.fdk .btn { border-radius: 0 !important; border: 3px solid #2a2018; box-shadow: 4px 4px 0 #2a2018; font-family: 'Lexend', system-ui, sans-serif; font-weight: 600; background: #fbf3dc; color: #2a2018; }
 .fdk .btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #2a2018; }
 .fdk .btn-primary { background: #c0392b; color: #fbf3dc; }
 .fdk .fd-big { font-size: 1.4rem; }
 .fdk .fd-msg { border-radius: 0; border: 3px solid #2a2018; background: #fbf3dc; font-weight: 600; }
 .fdk-doc-name { border-radius: 0; font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 0.55rem; padding: 6px 8px; box-shadow: 3px 3px 0 #2a2018; }
-.fdk-say { border-radius: 0; border: 4px solid #2a2018; box-shadow: 6px 6px 0 rgba(42, 32, 24, 0.35); background: #fbf3dc; font-family: 'Pixelify Sans', 'Lexend', sans-serif; }
+.fdk-say { border-radius: 0; border: 4px solid #2a2018; box-shadow: 6px 6px 0 rgba(42, 32, 24, 0.35); background: #fbf3dc; font-family: 'Lexend', system-ui, sans-serif; }
 .fdk-say::after { border-top-color: #2a2018; }
 .fdk-say p { font-weight: 500; font-size: 1.15rem; color: #2a2018; }
 .fdk .fd-meter { border-radius: 0; border: 4px solid #2a2018; background: repeating-linear-gradient(90deg, #efe6c2 0 12px, #e0d5a8 12px 24px); }
 .fdk .fd-sweet { background: repeating-linear-gradient(90deg, #5f9a45 0 12px, #4f8a3a 12px 24px); }
 .fdk .fd-meter b { border-radius: 0; background: #c0392b; box-shadow: 0 0 0 2px #2a2018; }
 .fdk .pf-overlay { background: rgba(26, 40, 52, 0.55); }
-.fdk .pf-panel { border-radius: 0; border: 5px solid #2a2018; box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.35); background: #fbf3dc; font-family: 'Pixelify Sans', 'Lexend', sans-serif; }
+.fdk .pf-panel { border-radius: 0; border: 5px solid #2a2018; box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.35); background: #fbf3dc; font-family: 'Lexend', system-ui, sans-serif; }
 .fdk .pf-panel h2 { font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 1rem; line-height: 1.6; }
 .fdk .fd-page, .fdk .fdk-item { border-radius: 0; border: 3px solid #2a2018; background: #eef4ee; }
 .fdk .fd-page.locked { background: #ddd6c6; border-color: #8a8070; }
 .fdk .fdk-item.on { background: #d8efc8; box-shadow: inset 0 0 0 3px #5f9a45; }
 .fdk .fd-new, .fdk .fd-tier, .fdk-unlock { border-radius: 0; }
-/* The question card in Doc Fishing's pixel look (QuestionScreen cardClass). */
-.qs-pixel, .qs-pixel * { font-family: 'Pixelify Sans', 'Lexend', system-ui, sans-serif !important; }
-.qs-pixel > div > div { border-radius: 0 !important; border: 5px solid #2a2018 !important; box-shadow: 8px 8px 0 rgba(42, 32, 24, 0.4) !important; background: #fbf3dc !important; }
-.qs-pixel button, .qs-pixel button span, .qs-pixel > div > div > div { border-radius: 0 !important; }
-.qs-pixel > div > div button { border-width: 3px !important; }
 body.calm-games .fdk-cloud { animation: none; }
 @media (prefers-reduced-motion: reduce) { .fdk-cloud { animation: none; } }
 .fdk-doc img { border: 4px solid #2a2018; box-shadow: 4px 4px 0 rgba(42, 32, 24, 0.4); background: #fbf3dc; image-rendering: auto; }
+
+/* Doc Fishing: icon-only read toggle, the catch card's corner 🔊, one-line unlocks, the XP meter (2026-10-12). */
+.fdk .fdk-icon { min-width: 44px; padding: 0 8px; font-size: 1.2rem; }
+.fdk .pf-panel { position: relative; }
+.fdk .fdk-card-listen { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; min-height: 44px; padding: 0; font-size: 1.1rem; box-shadow: 3px 3px 0 #2a2018; }
+.fdk .fdk-unlock { display: block; text-align: center; }
+.fdk-unlock img { vertical-align: middle; }
+.fdk-xpline { margin: 4px 0; font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 0.85rem; color: #2f7a3a; }
+.fdk-xp { display: flex; align-items: center; gap: 8px; width: 100%; background: #fbf3dc; border: 3px solid #2a2018; box-shadow: 4px 4px 0 #2a2018; padding: 6px 8px; }
+.fdk-xp img { width: 36px; height: 36px; flex: none; }
+.fdk-xp-next { opacity: 0.55; }
+.fdk-xp-bar { position: relative; flex: 1; height: 26px; background: repeating-linear-gradient(90deg, #d8cfb4 0 12px, #cfc5a6 12px 24px); border: 3px solid #2a2018; overflow: hidden; }
+.fdk-xp-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: repeating-linear-gradient(90deg, #f0b429 0 12px, #e09f1a 12px 24px); transition: width 0.6s steps(12); }
+.fdk-xp-bar span { position: relative; display: block; text-align: center; line-height: 20px; font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 0.6rem; color: #2a2018; }
+.fdk-xp-pop { position: absolute; left: 50%; bottom: calc(max(24px, env(safe-area-inset-bottom)) + 150px); transform: translateX(-50%); z-index: 6; pointer-events: none; font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 1.1rem; color: #f0b429; text-shadow: 3px 3px 0 #2a2018, -2px 0 0 #2a2018, 0 -2px 0 #2a2018; white-space: nowrap; animation: fdk-xp-rise 1.8s ease-out forwards; }
+.fdk-xp-pop small { display: block; text-align: center; font-size: 0.6rem; color: #fbf3dc; margin-top: 6px; }
+@keyframes fdk-xp-rise { 0% { opacity: 0; transform: translate(-50%, 10px); } 15% { opacity: 1; transform: translate(-50%, 0); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50px); } }
+.fdk-rodup { position: absolute; left: 50%; top: max(150px, calc(env(safe-area-inset-top) + 140px)); transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 10px; background: #2a2018; color: #f0b429; border: 4px solid #f0b429; box-shadow: 0 0 0 4px #2a2018; padding: 10px 16px; font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 0.9rem; animation: fg-pop 0.5s cubic-bezier(.2,1.6,.4,1) both; }
+.fdk-rodup img { width: 48px; height: 48px; }
+.fdk-rodup b { color: #fbf3dc; font-weight: 400; }
+body.calm-games .fdk-xp-pop { animation-duration: 1.8s !important; }
+
+/* Doc Fishing game time (her rule 2026-10-12: game time from 1 to 10 minutes in place of rounds). */
+.fdk-clock { position: absolute; top: max(70px, calc(env(safe-area-inset-top) + 64px)); left: 50%; transform: translateX(-50%); z-index: 5; background: #fbf3dc; color: #2a2018; border: 4px solid #2a2018; box-shadow: 4px 4px 0 #2a2018; padding: 6px 14px; font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 1.1rem; }
+.fdk-clock.low { background: #c0392b; color: #fbf3dc; }
+.fdk-timer { top: max(126px, calc(env(safe-area-inset-top) + 120px)); }
+.fdk-start { z-index: 50; }
+.fdk-start-card { width: min(520px, 100%); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.fdk-start-card h2 { margin: 0; font-size: 1.4rem !important; }
+.fdk-start-doc { width: 140px; height: 140px; border: 4px solid #2a2018; box-shadow: 4px 4px 0 rgba(42, 32, 24, 0.4); }
+.fdk-start-say { margin: 0; font-size: 1.1rem; line-height: 1.4; }
+.fdk-time { width: 100%; display: flex; flex-direction: column; gap: 6px; font-size: 1.15rem; text-align: left; }
+.fdk-time input { width: 100%; height: 44px; accent-color: #c0392b; }
+.fdk-time small { display: flex; justify-content: space-between; color: #6b6355; }
+.fdk-end-stats { display: grid; gap: 4px; font-size: 1.15rem; margin: 6px 0 10px; }
+.fdk-end-stats p { margin: 0; }
+@media (max-width: 820px) and (orientation: portrait) { .fdk-clock { top: max(128px, calc(env(safe-area-inset-top) + 120px)); } .fdk-timer { top: max(186px, calc(env(safe-area-inset-top) + 178px)); } }
