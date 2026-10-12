@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-game-start-cards",
+    date: "2026-10-12",
+    icon: "⚙️",
+    title: "Pick your game settings first",
+    body: "Every game opens on a start screen where you choose how long or how many rounds to play, then tap Start. Plinko Drop and Quiz Mode now have an ending too.",
+  },
+  {
     id: "2026-10-12-arcade-shelves",
     date: "2026-10-12",
     icon: "🕹️",

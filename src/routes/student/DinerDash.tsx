@@ -26,7 +26,7 @@ const food = (id: string) => FOODS.find((f) => f.id === id)!;
 
 export default function DinerDash() {
   const back = useBack();
-  const { settings, rounds, ask, element, pay, asking, student } = useAsk('Diner Dash', '🍔', 'dinerDash', { rounds: { min: 4, max: 12, def: 8 }, roundsLabel: 'Customers each shift' });
+  const { settings, settingsPanel, rounds, ask, element, pay, asking, student } = useAsk('Diner Dash', '🍔', 'dinerDash', { startCard: false, rounds: { min: 4, max: 12, def: 8 }, roundsLabel: 'Customers each shift' });
   const SHIFT = rounds; // her rounds setting (kids choose; an assignment locks it)
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -153,6 +153,7 @@ export default function DinerDash() {
             <h2>Welcome to the diner!</h2>
             <p>Customers sit at the counter with a ticket number and an order. Tap a food to cook it onto your tray. Then tap the customer with the lowest ticket number and answer a question to serve them. First come, first served!</p>
             <p>Customers served so far: {saved.served ?? 0} · Best tips: ⭐ {saved.bestTips ?? 0}</p>
+            {settingsPanel}
             <button type="button" className="btn btn-primary btn-lg" onClick={start}>🔔 Open the diner</button>
           </div>
         </div>

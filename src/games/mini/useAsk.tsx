@@ -8,6 +8,8 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { findActiveGameplayTask, gameplayQuestionPool, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import QuestionScreen from '../../components/QuestionScreen';
 import RoundSettings from '../../components/RoundSettings';
+import GameStartCard from '../../components/GameStartCard';
+import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
 import { useRoundSettings, type RoundRange } from '../../lib/gameRounds';
 
 // Where a native game's questions come from, shared by every game built from her 2026-09-30 lists.
@@ -65,12 +67,22 @@ export function useGameQuestions(gameId: NativeGameId) {
 // Her rule for every native game (2026-10-08): kids choose the rounds (where a game has them) and
 // the questions per round, and an assignment's own numbers lock them. Here "questions per round" is
 // how many questions each action asks (1 to 5); `settings` is the ⚙️ button for the game's header.
-export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: { rounds?: RoundRange; roundsLabel?: string; perLabel?: string; compact?: boolean; autoRead?: boolean; voice?: NpcVoiceProfile }) {
+export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: { rounds?: RoundRange; roundsLabel?: string; perLabel?: string; compact?: boolean; autoRead?: boolean; voice?: NpcVoiceProfile; startCard?: boolean }) {
   const { next, right: countRight, notice, assignment, student } = useGameQuestions(gameId);
   const ranges = { rounds: opts?.rounds, per: { min: 1, max: 5, def: 1 } };
   const rs = useRoundSettings(gameId, ranges, assignment?.task);
   const [open, setOpen] = useState<{ q: MCQuestion; label: string; onRight: () => void; onCancel?: () => void; left: number; total: number } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  // Every game opens on its settings screen (teacher 2026-10-12); a game with its own start screen
+  // passes startCard: false and shows `settingsPanel` there instead.
+  const [started, setStarted] = useState(opts?.startCard === false);
+  const settingsPanel = (
+    <>
+      <RoundSettings ranges={ranges} rounds={rs.rounds} perRound={rs.perRound} onRounds={rs.setRounds} onPerRound={rs.setPerRound} locked={rs.locked}
+        roundsLabel={opts?.roundsLabel} perLabel={opts?.perLabel ?? 'Questions each time'} />
+      {rs.locked && <p className="game-start-note">Your teacher set these numbers for your assignment.</p>}
+    </>
+  );
   const right = useRef(0);
   const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void) => setOpen({ q: next(), label, onRight, onCancel, left: rs.perRound, total: rs.perRound }), [next, rs.perRound]);
   const pay = useCallback(() => {
@@ -104,6 +116,11 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
         />
       )}
       {notice}
+      {!started && student && (
+        <GameStartCard title={game} intro={NATIVE_GAME_CARDS.find((c) => c.id === gameId)?.blurb} onStart={() => setStarted(true)} ttsSettings={student.ttsSettings}>
+          {settingsPanel}
+        </GameStartCard>
+      )}
       {showSettings && (
         <div className="pf-overlay" onClick={() => setShowSettings(false)}>
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
@@ -117,5 +134,5 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
     </>
   );
   const settings = <button type="button" className="btn game-settings-btn" onClick={() => setShowSettings(true)} aria-label="Game settings">⚙️</button>;
-  return { ask, element, pay, settings, rounds: rs.rounds, rightSoFar: () => right.current, asking: !!open, student };
+  return { ask, element, pay, settings, settingsPanel, started, rounds: rs.rounds, rightSoFar: () => right.current, asking: !!open, student };
 }

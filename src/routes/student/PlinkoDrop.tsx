@@ -10,6 +10,13 @@ import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
 import { MyBest, useVisitScore } from '../../components/MyBest';
+import GameStartCard from '../../components/GameStartCard';
+import RoundSettings from '../../components/RoundSettings';
+import { useRoundSettings } from '../../lib/gameRounds';
+
+// Her rule (2026-10-12): every game opens on its settings screen. Plinko's setting is how many drops a
+// game has; the game ends after that many.
+const DROP_RANGE = { per: { min: 5, max: 20, def: 10 } };
 
 // Plinko Drop (her student-favorite genres list, 2026-09-30: "a carnival or arcade building; answers
 // choose where the ball drops"). The answer choices label the drop chutes at the top of a carnival
@@ -32,7 +39,10 @@ export default function PlinkoDrop() {
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
-  const { next, right: countRight, notice } = useGameQuestions('plinkoDrop');
+  const { next, right: countRight, notice, assignment } = useGameQuestions('plinkoDrop');
+  const rs = useRoundSettings('plinkoDrop', DROP_RANGE, assignment?.task);
+  const [started, setStarted] = useState(false);
+  const [run, setRun] = useState({ drops: 0, tickets: 0 });
   const visit = useVisitScore('plinkoDrop');
   const [q, setQ] = useState<MCQuestion>(() => next());
   const [ball, setBall] = useState<{ x: number; y: number } | null>(null);
@@ -74,6 +84,7 @@ export default function PlinkoDrop() {
       mergeStyleRow(owner, { tickets: tickets + won, drops: (saved.drops ?? 0) + 1 });
       if (won >= 5) playCheer();
       visit.add(won); sfx.coin(); setWin(slot); setNote(`🎟️ ${won} ticket${won === 1 ? '' : 's'}!`);
+      setRun((r) => ({ drops: r.drops + 1, tickets: r.tickets + won }));
       if (unpaid.current >= 10) pay();
     }, path.length * 170 + 100));
     timers.current.push(window.setTimeout(() => { setBall(null); setWin(null); setNote(null); setQ((old) => next(old.id)); }, path.length * 170 + 1600));
@@ -136,6 +147,23 @@ export default function PlinkoDrop() {
               ))}
             </div>
             <button type="button" className="btn btn-lg" onClick={() => setCounter(false)}>Close</button>
+          </div>
+        </div>
+      )}
+      {!started && (
+        <GameStartCard title="Plinko Drop" intro="Drop the ball down the chute with the right answer. It bounces into a ticket slot. Spend tickets at the Prize Counter." ttsSettings={student.ttsSettings} onStart={() => { setRun({ drops: 0, tickets: 0 }); setStarted(true); }}>
+          <RoundSettings ranges={DROP_RANGE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Drops this game" />
+        </GameStartCard>
+      )}
+      {started && run.drops >= rs.perRound && !ball && (
+        <div className="pf-overlay">
+          <div className="pf-panel fd-catch">
+            <h2>Game over!</h2>
+            <p>You finished {run.drops} drops and won <b>{run.tickets}</b> tickets.</p>
+            <div className="pf-detail-actions">
+              <button type="button" className="btn btn-lg" onClick={() => { pay(); back.go(); }}>Leave</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { pay(); setStarted(false); }}>Play again</button>
+            </div>
           </div>
         </div>
       )}

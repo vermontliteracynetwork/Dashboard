@@ -7483,3 +7483,15 @@ body.calm-games .fgx-crop.ripe, body.calm-games .fgx-work { animation: none; }
 .arcade-slider.row .arcade-play { min-height: 44px; font-size: 1rem; }
 @media (orientation: portrait) and (min-width: 601px) { .arcade-slider.row .arcade-cab { width: clamp(180px, 30vw, 240px); } }
 @media (max-width: 600px) { .arcade-slider.row .arcade-cab { width: 70%; } }
+
+/* The settings screen every game opens on (2026-10-12). */
+.game-start { z-index: 58; }
+.game-start-card { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.game-start-card h2 { margin: 0; font: 900 clamp(1.4rem, 3vw, 1.9rem) 'Baloo 2', system-ui, sans-serif; }
+.game-start-intro { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; }
+.game-start-intro p { margin: 0; flex: 1; font-size: 1.1rem; line-height: 1.4; }
+.game-start-listen { min-width: 44px; min-height: 44px; padding: 0; flex: none; }
+.game-start-go { width: 100%; min-height: 60px; font-size: 1.3rem; }
+.game-start-back { min-height: 44px; }
+.game-start-note { margin: 0; font-weight: 700; color: #6b4a00; }
+.quiz-mode-bg { position: fixed; inset: 0; background: linear-gradient(#5b45c4, #2b1a6b); }

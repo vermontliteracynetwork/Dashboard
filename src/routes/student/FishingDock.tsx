@@ -138,7 +138,7 @@ export default function FishingDock() {
   const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('story-tts') !== '0'; } catch { return true; } });
   const readRef = useRef(readAloud);
   readRef.current = readAloud;
-  const { ask, element, pay, student, asking, rightSoFar } = useAsk('Doc Fishing', '🎣', 'fishingDock', { autoRead: readAloud, voice: DOC_VOICE });
+  const { ask, element, pay, student, asking, rightSoFar } = useAsk('Doc Fishing', '🎣', 'fishingDock', { autoRead: readAloud, voice: DOC_VOICE, startCard: false });
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [phase, setPhase] = useState<Phase>('ready');

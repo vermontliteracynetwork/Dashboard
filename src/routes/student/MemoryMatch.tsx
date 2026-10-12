@@ -6,6 +6,7 @@ import type { MCQuestion } from '../../types';
 import { useGameQuestions } from '../../games/mini/useAsk';
 import { useRoundSettings } from '../../lib/gameRounds';
 import RoundSettings from '../../components/RoundSettings';
+import GameStartCard from '../../components/GameStartCard';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
@@ -32,6 +33,7 @@ export default function MemoryMatch() {
   const rs = useRoundSettings('memoryMatch', PAIR_RANGE, assignment?.task);
   const PAIRS = rs.perRound;
   const [gear, setGear] = useState(false);
+  const [started, setStarted] = useState(false);
   const pairQ = useRef<Record<string, MCQuestion>>({});
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -148,6 +150,11 @@ export default function MemoryMatch() {
             <div className="pf-detail-actions"><button type="button" className="btn btn-lg" onClick={() => setGear(false)}>Done</button><button type="button" className="btn btn-primary btn-lg" onClick={() => { setGear(false); again(); }}>🃏 Start a new board</button></div>
           </div>
         </div>
+      )}
+      {!started && (
+        <GameStartCard title="Memory Match" intro="Flip two cards at a time. Match each question card with its answer card." ttsSettings={student.ttsSettings} onStart={() => { setStarted(true); again(); }}>
+          <RoundSettings ranges={PAIR_RANGE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions on each board" />
+        </GameStartCard>
       )}
       {notice}
     </div>
