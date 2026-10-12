@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-rescue-arcade",
+    date: "2026-10-12",
+    icon: "🕹️",
+    title: "One Arcade, and a friendlier Rescue Shelter",
+    body: "Every game, including the Scratch games, is in one place called the Arcade, and you can open it from your menu in Town Square. In the Rescue Shelter, the story is read to you, the pet walks and does tricks, and you can see the pet while you answer.",
+  },
+  {
     id: "2026-10-12-computer-games-card",
     date: "2026-10-12",
     icon: "🖥️",

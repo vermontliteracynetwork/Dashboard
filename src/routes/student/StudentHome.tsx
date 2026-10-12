@@ -386,9 +386,9 @@ export default function StudentHome() {
         <button
           className="widget-card widget-card-tall widget-webpage widget-games"
           onClick={() => navigate('/student/games')}
-          aria-label="Games"
+          aria-label="Arcade"
         >
-          <div className="widget-webpage-titlebar">🎮 Games</div>
+          <div className="widget-webpage-titlebar">🕹️ Arcade</div>
           <div className="widget-webpage-body widget-games-covers" style={{ padding: 4 }}>
             <GamesCoverCycle calm={!!student.worldReduceMotion} />
           </div>

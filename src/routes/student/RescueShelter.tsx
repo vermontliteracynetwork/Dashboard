@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -13,6 +13,7 @@ import { playCheer } from '../../lib/petSounds';
 import { useBack } from '../../lib/navTrail';
 import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
+import { speak } from '../../components/ReadAloud';
 import { ModelBoundary } from '../world/WorldObjectRenderer';
 import { AdoptionCertificate, Celebration } from './PetFinder';
 import type { SelZone } from '../../types';
@@ -44,60 +45,102 @@ const FEELS: Feel[] = [
 const feelFor = (t: number) => FEELS[t >= 75 ? 3 : t >= 50 ? 2 : t >= 25 ? 1 : 0];
 const TOO_SOON: Record<string, string> = { ball: 'It is too soon to play. Help it feel safe first.', brush: 'It is too soon to touch its fur. Help it feel safe first.' };
 
-function RescuePet({ path, trust, cue }: { path: string; trust: number; cue: { kind: string; at: number } | null }) {
+// Act -> the pet's move when an action lands just right (no move when it was too soon).
+const ACT_MOVE: Record<Act, string> = { sit: 'Down', talk: 'Sit', water: 'Come', treat: 'Shake a Paw', ball: 'Fetch', brush: 'Roll Over' };
+
+// The pet, sized by its own real height (petCatalog targetHeight, the same scale as the
+// furniture below, teacher 2026-10-12: "make sure the furniture is relative size"). It walks
+// with its own walk animation (or a leg trot) when it moves, faces where it is going, then turns
+// to the student; no head-only twitching (teacher: "make sure pet is not moving stragely").
+function RescuePet({ path, height, trust, cue }: { path: string; height: number; trust: number; cue: { kind: string; at: number } | null }) {
   const { scene, animations } = useGLTF(path);
   const model = useMemo(() => { const c = cloneSkinned(scene); c.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.frustumCulled = false; }); return c; }, [scene]);
   const fit = useMemo(() => {
     const box = new THREE.Box3().setFromObject(scene), size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
-    const k = 0.9 / Math.max(size.x, size.z, 0.0001);
-    return { k, off: new THREE.Vector3(-ctr.x * k, -box.min.y * k, -ctr.z * k) };
-  }, [scene]);
+    const k = height / Math.max(size.y, 0.0001);
+    return { k, off: new THREE.Vector3(-ctr.x * k, -box.min.y * k, -ctr.z * k), len: Math.max(size.x, size.z) * k };
+  }, [scene, height]);
   const mixer = useMemo(() => new THREE.AnimationMixer(model), [model]);
-  useMemo(() => { const idle = animations.find((a) => /idle/i.test(a.name)) ?? animations[0]; if (idle) mixer.clipAction(idle).play(); }, [mixer, animations]);
+  const acts = useMemo(() => {
+    const clips = animations.filter((a) => a.tracks.length);
+    const idle = clips.find((a) => /idle/i.test(a.name)) ?? null;
+    const walk = clips.find((a) => /walk/i.test(a.name)) ?? clips.find((a) => /run|gallop|trot/i.test(a.name)) ?? null;
+    const i = idle ? mixer.clipAction(idle) : null, w = walk ? mixer.clipAction(walk) : null;
+    if (i) i.play();
+    return { idle: i, walk: w };
+  }, [mixer, animations]);
   const setup = usePoseSetup(model, animations);
   const root = useRef<THREE.Group>(null);
   const trick = useRef<THREE.Group>(null);
   const moving = useRef(false);
-  usePetTricks(setup, model, trick, cue, 0.9, fit.k, moving);
-  useFrame((st, dtRaw) => {
+  const walking = useRef(false);
+  usePetTricks(setup, model, trick, cue, fit.len, fit.k, moving);
+  useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     mixer.update(dt);
     const g = root.current; if (!g) return;
-    // Far behind the box when scared, out in the middle of the room when it trusts you.
+    // Behind the crate when scared, out on the rug near the student when it trusts you.
     const u = trust / 100;
-    const tx = THREE.MathUtils.lerp(1.5, 0, u), tz = THREE.MathUtils.lerp(-3.4, -0.6, u);
-    const dx = tx - g.position.x, dz = tz - g.position.z;
-    moving.current = Math.hypot(dx, dz) > 0.02;
-    g.position.x += dx * Math.min(1, dt * 1.2);
-    g.position.z += dz * Math.min(1, dt * 1.2);
-    // Facing the student more as it trusts them; a little tremble while scared.
-    g.rotation.y = THREE.MathUtils.lerp(-2.2, -0.35, u);
-    const shake = u < 0.25 ? Math.sin(st.clock.elapsedTime * 40) * 0.012 : 0;
-    g.position.y = shake;
-    g.scale.setScalar(u < 0.25 ? 0.92 : 1);
+    const tx = THREE.MathUtils.lerp(1.2, 0.1, u), tz = THREE.MathUtils.lerp(-3.15, -0.4, u);
+    const dx = tx - g.position.x, dz = tz - g.position.z, dist = Math.hypot(dx, dz);
+    const isMoving = dist > 0.04;
+    moving.current = isMoving;
+    const speed = 0.9 * dt;
+    if (isMoving) { const step = Math.min(dist, speed); g.position.x += (dx / dist) * step; g.position.z += (dz / dist) * step; }
+    // Walk animation on while moving (crossfade), idle otherwise.
+    if (acts.walk && isMoving !== walking.current) {
+      walking.current = isMoving;
+      if (isMoving) { acts.walk.reset().fadeIn(0.25).play(); acts.idle?.fadeOut(0.25); }
+      else { acts.idle?.reset().fadeIn(0.3).play(); acts.walk.fadeOut(0.3); }
+    }
+    // Face the way it walks; once there, turn to look at the student (a shy pet looks away a little).
+    const want = isMoving ? Math.atan2(dx, dz) : THREE.MathUtils.lerp(-1.1, -0.15, u);
+    let d = want - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
+    g.rotation.y += d * Math.min(1, dt * 4);
   });
   return (
-    <group ref={root} position={[1.5, 0, -3.4]}>
+    <group ref={root} position={[1.2, 0, -3.15]} rotation={[0, -1.1, 0]}>
       <group ref={trick}><group position={fit.off}><primitive object={model} scale={fit.k} /></group></group>
     </group>
   );
 }
 
+// A catalog model (the same furniture as Build Mode) sized in meters, standing on the floor.
+function Furniture({ path, fit, size, position, rotation = 0 }: { path: string; fit: 'height' | 'width'; size: number; position: [number, number, number]; rotation?: number }) {
+  const { scene } = useGLTF(path);
+  const { obj, k, off } = useMemo(() => {
+    const c = scene.clone(true);
+    const box = new THREE.Box3().setFromObject(c), sz = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+    const kk = size / Math.max(fit === 'height' ? sz.y : Math.max(sz.x, sz.z), 0.0001);
+    return { obj: c, k: kk, off: new THREE.Vector3(-ctr.x * kk, -box.min.y * kk, -ctr.z * kk) };
+  }, [scene, fit, size]);
+  return <group position={position} rotation={[0, rotation, 0]}><group position={off}><primitive object={obj} scale={k} /></group></group>;
+}
+const F = (p: string) => `/world/models/${p}`;
+
+// The shelter's play room, furnished from the Build Mode catalog at real sizes (a person is about
+// 1.75 m in this world, so a crate is under a meter and a couch about 2 m wide).
 function Room() {
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[12, 10]} /><meshStandardMaterial color="#d9b88f" /></mesh>
-      <mesh position={[0, 2, -4.6]}><planeGeometry args={[12, 4]} /><meshStandardMaterial color="#cfe8f6" /></mesh>
-      <mesh position={[-4.2, 2, -0.5]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[10, 4]} /><meshStandardMaterial color="#e6f2fa" /></mesh>
-      {/* the hiding box */}
-      <mesh position={[0.6, 0.45, -2.6]}><boxGeometry args={[1.2, 0.9, 0.9]} /><meshStandardMaterial color="#b98552" /></mesh>
-      <mesh position={[0.6, 0.91, -2.6]}><boxGeometry args={[1.22, 0.04, 0.92]} /><meshStandardMaterial color="#a8763f" /></mesh>
-      {/* a bed, bowls and a window */}
-      <mesh position={[-2.4, 0.08, -3]}><cylinderGeometry args={[0.8, 0.9, 0.16, 28]} /><meshStandardMaterial color="#e2574c" /></mesh>
-      <mesh position={[-2.4, 0.12, -3]}><cylinderGeometry args={[0.6, 0.6, 0.1, 28]} /><meshStandardMaterial color="#ffe0d8" /></mesh>
-      <mesh position={[2.6, 0.06, -1.4]}><cylinderGeometry args={[0.25, 0.2, 0.12, 20]} /><meshStandardMaterial color="#5b8def" /></mesh>
-      <mesh position={[3.2, 0.06, -1.4]}><cylinderGeometry args={[0.25, 0.2, 0.12, 20]} /><meshStandardMaterial color="#f0a030" /></mesh>
-      <mesh position={[-1.5, 2.3, -4.55]}><planeGeometry args={[1.8, 1.2]} /><meshStandardMaterial color="#8fd3ff" /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[9, 8]} /><meshStandardMaterial color="#d9b88f" /></mesh>
+      <mesh position={[0, 1.6, -3.6]}><planeGeometry args={[9, 3.2]} /><meshStandardMaterial color="#cfe8f6" /></mesh>
+      <mesh position={[-4.2, 1.6, 0]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[8, 3.2]} /><meshStandardMaterial color="#e6f2fa" /></mesh>
+      <Suspense fallback={null}>
+        {/* the crate the stray hides behind */}
+        <Furniture path={F('japan/WoodenCrate_L.gltf')} fit="height" size={0.95} position={[0.8, 0, -2.1]} rotation={0.1} />
+        <Furniture path={F('interior/window-large1.glb')} fit="width" size={1.5} position={[-1.3, 0.9, -3.55]} />
+        <Furniture path={F('interior/couch-small1.glb')} fit="width" size={1.7} position={[-2.6, 0, -2.6]} rotation={0.35} />
+        <Furniture path={F('interior/houseplant-3.glb')} fit="height" size={1.1} position={[2.9, 0, -3.1]} />
+        <Furniture path={F('interior/shelf-small1.glb')} fit="width" size={0.9} position={[2.3, 1.2, -3.55]} />
+        <Furniture path={F('interior/houseplant-6.glb')} fit="height" size={0.6} position={[-3.6, 0, -1.2]} />
+      </Suspense>
+      {/* a round rug where a trusting pet comes to play */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.1, 0.006, -0.5]}><circleGeometry args={[1, 40]} /><meshStandardMaterial color="#e9a8a0" /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.1, 0.008, -0.5]}><ringGeometry args={[0.82, 0.9, 40]} /><meshStandardMaterial color="#fff3e6" /></mesh>
+      {/* water and food bowls, about 20 cm across */}
+      <mesh position={[2.05, 0.04, -1.3]}><cylinderGeometry args={[0.12, 0.1, 0.08, 20]} /><meshStandardMaterial color="#5b8def" /></mesh>
+      <mesh position={[2.35, 0.04, -1.3]}><cylinderGeometry args={[0.12, 0.1, 0.08, 20]} /><meshStandardMaterial color="#f0a030" /></mesh>
     </group>
   );
 }
@@ -105,8 +148,16 @@ function Room() {
 export default function RescueShelter() {
   const navigate = useNavigate();
   const back = useBack();
-  const { settings, ask, element, pay } = useAsk('Rescue Shelter', '🐶', 'rescueShelter');
+  // Her rule (2026-10-12): every screen has text to speech, and in storytelling games like this one
+  // it is on by default. The 🔊 toggle turns the automatic reading off for this iPad.
+  const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('story-tts') !== '0'; } catch { return true; } });
+  const flipRead = () => { const v = !readAloud; setReadAloud(v); try { localStorage.setItem('story-tts', v ? '1' : '0'); } catch { /* fine */ } if (!v) window.speechSynthesis?.cancel(); };
+  // Teacher 2026-10-12: "make the question view only the main white box and have it shown on the
+  // pet screen where the students can still see the pet".
+  const { settings, ask, element, pay, asking } = useAsk('Rescue Shelter', '🐶', 'rescueShelter', { compact: true, autoRead: readAloud });
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
+  const tts = student?.ttsSettings;
+  const read = (t: string) => speak(t, tts);
   const pets = useStore((s) => s.pets);
   const styleLooks = useStore((s) => s.styleLooks);
   const adoptPetV2 = useStore((s) => s.adoptPetV2);
@@ -122,6 +173,15 @@ export default function RescueShelter() {
   const [tip, setTip] = useState(false);
   const [cue, setCue] = useState<{ kind: string; at: number } | null>(null);
   const [certPetId, setCertPetId] = useState<string | null>(null);
+  const sayRef = useRef('');
+  useEffect(() => { if (readAloud && say && say !== sayRef.current) { sayRef.current = say; speak(say, tts); } }, [say, readAloud, tts]);
+  useEffect(() => {
+    if (!readAloud || !student) return;
+    const d = petDefById(stray.defId);
+    if (phase === 'done') speak(`${stray.name} trusts you! ${stray.name} went from scared to happy because of your kindness, and is ready for a forever home.`, tts);
+    if (phase === 'intro' && d) speak(`A new stray just arrived at the Yoglandia Rescue! ${stray.name} the ${d.name} is scared and hiding behind a box. You are a rescue volunteer. Pick a gentle way to help, answer a question, and watch ${stray.name} learn to trust you.`, tts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, stray.name]);
   if (!student) return null;
   const def = petDefById(stray.defId)!;
   const feel = feelFor(trust);
@@ -137,7 +197,8 @@ export default function RescueShelter() {
       const after = Math.min(100, trust + gain);
       setTrust(after);
       setSay(gain >= 25 ? `${a.done(stray.name)} That was just what ${stray.name} needed!` : gain >= 12 ? a.done(stray.name) : `${stray.name} backed away a little. ${TOO_SOON[a.id] ?? 'Try something gentler.'}`);
-      setCue({ kind: after >= 100 ? 'Dance' : gain >= 25 ? (after >= 50 ? 'Come' : 'Sit') : 'Stand/Stay', at: Date.now() });
+      if (after >= 100) setCue({ kind: 'Dance', at: Date.now() });
+      else if (gain >= 12) setCue({ kind: ACT_MOVE[a.id], at: Date.now() });
       if (after >= 100) {
         playCheer();
         mergeStyleRow(`rescue:${student.id}`, { rescued: (row.rescued ?? 0) + 1 });
@@ -149,11 +210,12 @@ export default function RescueShelter() {
   if (phase === 'intro') {
     return (
       <div className="rs rs-intro">
-        <header className="psr-head"><button type="button" className="btn" onClick={back.go}>← {back.label}</button><h1>🐶 Rescue Shelter</h1></header>
+        <header className="psr-head"><button type="button" className="btn" onClick={back.go}>← {back.label}</button><h1>🐶 Rescue Shelter</h1><button type="button" className="btn rs-read" onClick={flipRead} aria-pressed={readAloud}>{readAloud ? '🔊 Reading aloud' : '🔇 Read aloud off'}</button></header>
         <div className="rs-card">
           <p className="rs-big">A new stray just arrived at the Yoglandia Rescue! <b>{stray.name}</b> the {def.name} is scared and hiding behind a box.</p>
           <p>You are a rescue volunteer. Pick a gentle way to help, answer a question, and watch {stray.name} learn to trust you. Watch how {stray.name} feels: the right kind of help builds trust fastest.</p>
           <p>🐾 Animals rescued by you: {row.rescued ?? 0}</p>
+          <button type="button" className="btn rs-listen" onClick={() => read(`A new stray just arrived at the Yoglandia Rescue! ${stray.name} the ${def.name} is scared and hiding behind a box. You are a rescue volunteer. Pick a gentle way to help, answer a question, and watch ${stray.name} learn to trust you.`)}>🔊 Listen</button>
           <button type="button" className="btn btn-primary btn-lg" onClick={() => setPhase('play')}>Meet {stray.name}</button>
         </div>
       </div>
@@ -163,32 +225,33 @@ export default function RescueShelter() {
   return (
     <div className="rs">
       {phase === 'done' && <Celebration />}
-      <Canvas dpr={[1, 2]} camera={{ fov: 45, position: [0, 2.2, 3.2] }} onCreated={({ camera }) => camera.lookAt(0, 0.4, -1.8)} style={{ position: 'absolute', inset: 0, background: '#cfe8f6' }}>
+      <Canvas dpr={[1, 2]} camera={{ fov: 48, position: [0.6, 2.1, 3.4] }} onCreated={({ camera }) => camera.lookAt(0.6, 0.55, -1.4)} style={{ position: 'absolute', inset: 0, background: '#cfe8f6' }}>
         <hemisphereLight args={['#ffffff', '#8a6a4a', 1.0]} />
         <directionalLight position={[3, 6, 4]} intensity={1.0} />
         <Room />
-        <ModelBoundary path={def.modelPath}><Suspense fallback={null}><RescuePet path={def.modelPath} trust={trust} cue={cue} /></Suspense></ModelBoundary>
+        <ModelBoundary path={def.modelPath}><Suspense fallback={null}><RescuePet path={def.modelPath} height={def.targetHeight * 0.75} trust={trust} cue={cue} /></Suspense></ModelBoundary>
       </Canvas>
       <div className="rs-hud">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
         {settings}
+        <button type="button" className="btn rs-read" onClick={flipRead} aria-pressed={readAloud} aria-label={readAloud ? 'Reading aloud is on' : 'Reading aloud is off'}>{readAloud ? '🔊' : '🔇'}</button>
         <div className="rs-trust" aria-label={`Trust ${trust} of 100`}>
           <span>💗 Trust</span><div className="rs-bar"><i style={{ width: `${trust}%` }} /></div><b>{trust}%</b>
         </div>
         <span className="rs-feel" style={{ background: SEL_ZONE_COLORS[feel.zone] }}>{feel.face} {stray.name} feels {feel.word.toLowerCase()}</span>
       </div>
-      {say && <div className="rs-say" role="status" aria-live="polite">{say}</div>}
-      {phase === 'play' && (
+      {say && <div className="rs-say" role="status" aria-live="polite">{say}<button type="button" className="rs-say-listen" onClick={() => read(say)} aria-label="Listen">🔊</button></div>}
+      {phase === 'play' && !asking && (
         <div className="rs-acts">
           {ACTS.map((a) => <button key={a.id} type="button" className="rs-act" onClick={() => doAct(a)}><span aria-hidden>{a.icon}</span>{a.label}</button>)}
-          <button type="button" className="rs-act tip" onClick={() => setTip((t) => !t)}><span aria-hidden>💡</span>What does {stray.name} need?</button>
+          <button type="button" className="rs-act tip" onClick={() => { if (!tip) read(feel.tip); setTip((t) => !t); }}><span aria-hidden>💡</span>What does {stray.name} need?</button>
           {tip && <div className="rs-tip">{feel.tip}</div>}
         </div>
       )}
       {phase === 'done' && (
         <div className="pf-overlay">
           <div className="pf-panel" style={{ textAlign: 'center' }}>
-            <h2>🎉 {stray.name} trusts you!</h2>
+            <h2>🎉 {stray.name} trusts you! <button type="button" className="btn rs-listen" onClick={() => read(`${stray.name} trusts you! ${stray.name} went from scared to happy because of your kindness, and is ready for a forever home.`)}>🔊 Listen</button></h2>
             <p>{stray.name} the {def.name} went from scared to happy because of your kindness. {stray.name} is ready for a forever home.</p>
             <div className="pf-detail-actions">
               {canAdopt && <button type="button" className="btn btn-primary btn-lg" onClick={() => {

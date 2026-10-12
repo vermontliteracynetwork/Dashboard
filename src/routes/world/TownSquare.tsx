@@ -4734,6 +4734,8 @@ export default function TownSquare() {
           { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
           { id: 'whatnow', icon: '❓', iconName: 'question', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
           { id: 'home', icon: '🏠', iconName: 'home', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
+          // Teacher 2026-10-12: "add games to main pie menue" (and every game lives in the Arcade).
+          { id: 'arcade', icon: '🕹️', label: 'Arcade', bg: '#7c3aed', onSelect: () => navigate('/student/games', { state: { from: 'town' } }) },
           { id: 'piggybank', icon: '🐷', label: 'Piggy Bank', bg: '#e0709a', onSelect: () => navigate('/student/piggy-bank', { state: { from: 'town' } }) },
           ...(styleReleased ? [{ id: 'style', icon: '👗', label: 'Style', bg: '#b0559a', onSelect: () => navigate('/student/style', { state: { from: 'town' } }) }] : []),
           ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
@@ -4743,6 +4745,7 @@ export default function TownSquare() {
           { id: 'streak', icon: '🔥', label: 'My Streak', bg: '#e0611a', onSelect: () => openStreakView() },
           { id: 'todo', icon: '📋', label: totalTasksLeft + (seamstressDue ? 1 : 0) > 0 ? `To-Do List (${totalTasksLeft + (seamstressDue ? 1 : 0)})` : 'To-Do List', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
           { id: 'computer', icon: '💻', label: 'Computer', bg: '#3e6b7c', onSelect: () => navigate('/student/home') },
+          ...(ownedPets.length > 0 ? [{ id: 'gym', icon: '🏋️', label: "Buff Doge's Gym", bg: '#d98c1e', onSelect: () => navigate('/student/gym', { state: { from: 'town' } }) }] : []),
           { id: 'settings', icon: '⚙️', iconName: 'settingsAlt', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },
           { id: 'map', icon: '🗺️', label: mapView ? 'Close Map' : 'Map', bg: '#8a6b5b', onSelect: () => setMapView((v) => !v) },
           { id: 'mystuff', icon: '🎒', label: showInventory ? 'Close My Stuff' : 'My Stuff', bg: '#6b5b8a', onSelect: () => setShowInventory((v) => !v) },

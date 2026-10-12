@@ -12,7 +12,9 @@ import WebpageFrame from '../../components/WebpageFrame';
 // modeled directly on Cinema.tsx (same shelf/search/favorite/embed
 // pattern), swapping a video player for Scratch's own officially-supported
 // project embed.
-export default function Arcade() {
+// `embedded`: just the Scratch shelf, shown inside the Arcade page with every native game (teacher
+// 2026-10-12: "make sure game dashboard and arcade are the same thing (all should be called arcade)").
+export default function Arcade({ embedded = false }: { embedded?: boolean }) {
   const scratchGames = useStore((s) => s.scratchGames);
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
@@ -65,14 +67,7 @@ export default function Arcade() {
     rowRef.current?.scrollBy({ left: dir * 320, behavior: 'smooth' });
   };
 
-  return (
-    // Direct teacher instruction: every "webpage" screen reads as displayed
-    // inside a physical laptop now — same .laptop-frame/.laptop-screen/
-    // .laptop-deck StudentHome.tsx already uses.
-    <div className="laptop-frame">
-      <div className="laptop-screen">
-    <div className="container stack">
-      <WebpageFrame url="arcade" onBack={playingId ? () => setConfirmLeave(() => () => back.go()) : undefined} />
+  const body = (
       <div className="stack" style={{ minHeight: 460, background: 'linear-gradient(160deg, #2b1055, #7597de)', borderRadius: 14, padding: 20, boxSizing: 'border-box' }}>
       {playing && (
         <button className="btn btn-sm" style={{ minHeight: 44, alignSelf: 'flex-start' }} onClick={() => setConfirmLeave(() => () => setPlayingId(null))}>
@@ -211,10 +206,9 @@ export default function Arcade() {
         </div>
       )}
       </div>
-    </div>
-      </div>
-      <div className="laptop-deck" />
-      {confirmLeave && (
+  );
+  const confirm = (
+    confirmLeave && (
         <div className="overlay-backdrop" onClick={() => setConfirmLeave(null)}>
           <div className="overlay-panel chrome-frame" role="dialog" aria-modal="true" style={{ padding: 24, maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
             <div className="content-well stack" style={{ alignItems: 'center', textAlign: 'center' }}>
@@ -227,7 +221,23 @@ export default function Arcade() {
             </div>
           </div>
         </div>
-      )}
+      )
+  );
+  if (embedded) return <>{body}{confirm}</>;
+
+  return (
+    // Direct teacher instruction: every "webpage" screen reads as displayed
+    // inside a physical laptop now — same .laptop-frame/.laptop-screen/
+    // .laptop-deck StudentHome.tsx already uses.
+    <div className="laptop-frame">
+      <div className="laptop-screen">
+    <div className="container stack">
+      <WebpageFrame url="arcade" onBack={playingId ? () => setConfirmLeave(() => () => back.go()) : undefined} />
+      {body}
+    </div>
+      </div>
+      <div className="laptop-deck" />
+      {confirm}
     </div>
   );
 }

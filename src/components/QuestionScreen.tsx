@@ -73,6 +73,13 @@ export interface QuestionScreenProps {
   // Whose question this is, shown as a pill on the question card (two
   // players sharing one iPad, e.g. Slime Chess: "Blueberry's question").
   whoLabel?: string;
+  // Card mode (teacher 2026-10-12, Rescue Shelter: "lets make teh question view only the main white
+  // box and have it shown on the pet screen where the students can still see the pet"): only the
+  // white question card, on the left, over the game; the close and tools buttons move into the card.
+  compact?: boolean;
+  // Read the question and choices aloud as soon as it appears (her rule: text to speech is the
+  // default in storytelling games).
+  autoRead?: boolean;
   whoIcon?: string;
 }
 
@@ -118,6 +125,8 @@ export default function QuestionScreen({
   ttsSettings,
   whoLabel,
   whoIcon,
+  compact = false,
+  autoRead = false,
 }: QuestionScreenProps) {
   const lockAfterWrong = !!onSkip;
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -206,23 +215,17 @@ export default function QuestionScreen({
       .join(' ');
     speak(`${prompt} ${optionLines}`, ttsSettings);
   };
+  // Read aloud on its own when the game asks for it (storytelling games read by default).
+  useEffect(() => {
+    if (!autoRead) return;
+    const t = window.setTimeout(handleListen, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRead, prompt]);
 
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 200,
-        background: '#FFF6E9',
-        fontFamily: "'Lexend', system-ui, sans-serif",
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Top bar */}
+  const topBar = (
       <div
-        style={{
+        style={compact ? { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 } : {
           height: 92,
           minHeight: 92,
           background: '#fff',
@@ -330,11 +333,41 @@ export default function QuestionScreen({
           )}
         </div>
       </div>
+  );
 
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        background: compact ? 'transparent' : '#FFF6E9',
+        pointerEvents: compact ? 'none' : undefined,
+        fontFamily: "'Lexend', system-ui, sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {!compact && topBar}
       {/* Main content */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflow: 'auto' }}>
+      <div style={compact
+        ? { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: 'max(84px, env(safe-area-inset-top)) 16px 96px', overflow: 'auto', pointerEvents: 'none' }
+        : { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflow: 'auto' }}>
         <div
-          style={{
+          style={compact ? {
+            background: '#fff',
+            maxWidth: 470,
+            width: 'min(470px, 100%)',
+            borderRadius: 24,
+            border: '4px solid #F2E8D6',
+            boxShadow: '0 16px 40px rgba(46,42,36,0.28)',
+            padding: '16px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            pointerEvents: 'auto',
+          } : {
             background: '#fff',
             maxWidth: 760,
             width: '100%',
@@ -346,6 +379,7 @@ export default function QuestionScreen({
             gap: 26,
           }}
         >
+          {compact && topBar}
           {whoLabel && (
             <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, background: '#EFE4FF', border: '2px solid #C9B8FF', borderRadius: 999, padding: '4px 16px 4px 6px', fontWeight: 800, fontSize: 18, color: '#2B1452' }}>
               {whoIcon && <img src={whoIcon} alt="" style={{ width: 36, height: 36 }} />}
@@ -374,7 +408,7 @@ export default function QuestionScreen({
                 flexGrow: 1,
                 fontFamily: "'Baloo 2', sans-serif",
                 fontWeight: 700,
-                fontSize: 34 * scale,
+                fontSize: (compact ? 24 : 34) * scale,
                 lineHeight: 1.25,
                 color: '#3A342A',
               }}
@@ -420,7 +454,7 @@ export default function QuestionScreen({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 14,
-                    padding: '18px 20px',
+                    padding: compact ? '12px 14px' : '18px 20px',
                     borderRadius: 20,
                     border: `2px solid ${border}`,
                     background: bg,
@@ -446,7 +480,7 @@ export default function QuestionScreen({
                   >
                     {LETTERS[i] ?? i + 1}
                   </span>
-                  <span style={{ fontSize: 21 * scale, fontWeight: 600, color: '#3A342A' }}>{choice}</span>
+                  <span style={{ fontSize: (compact ? 18 : 21) * scale, fontWeight: 600, color: '#3A342A' }}>{choice}</span>
                 </button>
               );
             })}

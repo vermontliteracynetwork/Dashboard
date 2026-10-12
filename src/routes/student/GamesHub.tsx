@@ -7,6 +7,7 @@ import { GameCardGrid } from '../../components/GameDashboard';
 import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from '../../lib/nativeGames';
 import { findActiveGameplayTask, gameplayProgress, gameplayTarget } from '../../lib/gameplayAssignment';
 import { useBestGames } from '../../lib/personalBoard';
+import Arcade from './Arcade';
 import { gameProgressLabels } from '../../lib/gameProgressLabels';
 import type { NativeGameId } from '../../types';
 
@@ -42,6 +43,7 @@ export default function GamesHub() {
   const chessBest = Math.max(0, ...chessGames.filter((g) => g.studentId === student?.id).map((g) => g.xp));
   const bakeryBest = Math.max(0, ...(student?.bakeryLeaderboard ?? []).map((e) => e.xp));
   const styleLooks = useStore((s) => s.styleLooks);
+  const scratchCount = useStore((s) => s.scratchGames.length);
   const bests = {
     ...gameProgressLabels(styleLooks, student?.id),
     ...(bowling[0] ? { spaceBowling: `${bowling[0].score} pins` } : {}),
@@ -57,7 +59,7 @@ export default function GamesHub() {
     <div className="games-hub">
       <header className="games-hub-top">
         <button type="button" className="btn btn-lg" onClick={back.go}>← {back.label.replace(/^\S+\s/, '')}</button>
-        <h1>🎮 Game Dashboard</h1>
+        <h1>🕹️ Arcade</h1>
         <span />
       </header>
       <div className="crumbs-bar"><Breadcrumbs dark /></div>
@@ -67,6 +69,12 @@ export default function GamesHub() {
         </p>
       )}
       <GameCardGrid games={[...NATIVE_GAME_CARDS, QUIZ_MODE_CARD]} bests={bests} onPick={(g) => navigate(g.route, { state: { from } })} />
+      {scratchCount > 0 && (
+        <section className="games-hub-scratch">
+          <h2>🐱 Scratch games</h2>
+          <Arcade embedded />
+        </section>
+      )}
     </div>
   );
 }

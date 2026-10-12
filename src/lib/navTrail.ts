@@ -17,7 +17,7 @@ const LABELS: Record<string, string> = {
   '/world/town': '🌳 Town Square',
   '/world/home-room': '🏠 My Home',
   '/world/island': '🏝️ Creative Island',
-  '/student/games': '🎮 Games',
+  '/student/games': '🕹️ Arcade',
   '/student/marketplace': '🛍️ Marketplace',
   '/student/piggy-bank': '🏦 Bank',
   '/student/mailbox': '📬 Mail',

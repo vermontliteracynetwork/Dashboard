@@ -7208,3 +7208,10 @@ body.calm-games .pf-overlay .fd-fish { animation-duration: 0.01ms !important; an
   .ws-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ws-list li { font-size: 1.05rem; }
 }
+/* Rescue Shelter read-aloud (teacher 2026-10-12: text to speech on every screen, on by default in story games) */
+.rs-read, .rs-listen { min-height: 44px; }
+.rs-intro .psr-head .rs-read { margin-left: auto; }
+.rs-say { display: flex; gap: 10px; align-items: flex-start; }
+.rs-say-listen { margin-left: auto; flex: none; min-width: 44px; min-height: 44px; border-radius: 12px; border: 2px solid #f0a030; background: #fff3d6; font-size: 20px; cursor: pointer; }
+/* Scratch games inside the Arcade (2026-10-12: the Game Dashboard and the Arcade are one page) */
+.games-hub-scratch h2 { margin: 6px 0 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.35); }

@@ -17,7 +17,6 @@ import PetFinder from './routes/student/PetFinder';
 import BuffDogeGym from './routes/student/BuffDogeGym';
 import PetJournal from './routes/student/PetJournal';
 import Cinema from './routes/student/Cinema';
-import Arcade from './routes/student/Arcade';
 import FarmersMarket from './routes/student/FarmersMarket';
 import BakeryMatch3 from './routes/student/BakeryMatch3';
 import GamesHub from './routes/student/GamesHub';
@@ -252,7 +251,7 @@ export default function App() {
           <Route path="/student/rescue-shelter" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><RescueShelter /></Suspense>} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />
-          <Route path="/student/arcade" element={<Arcade />} />
+          <Route path="/student/arcade" element={<GamesHub />} />
           <Route path="/student/grammar" element={<LiteracyManipulativesEmbed />} />
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>
