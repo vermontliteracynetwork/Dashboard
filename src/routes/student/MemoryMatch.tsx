@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import type { MCQuestion } from '../../types';
 import { useGameQuestions } from '../../games/mini/useAsk';
 import { useRoundSettings } from '../../lib/gameRounds';
@@ -98,7 +99,7 @@ export default function MemoryMatch() {
   return (
     <div className="mm">
       <header className="fd-head mm-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} note="This board stops here. Your matches so far are paid." />
         <h1>🃏 Memory Match</h1>
         <SfxToggle />
         <button type="button" className="btn game-settings-btn" onClick={() => setGear(true)} aria-label="Game settings">⚙️</button>

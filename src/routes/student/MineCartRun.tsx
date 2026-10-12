@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
@@ -193,7 +194,7 @@ export default function MineCartRun() {
     <div className="mc" onPointerDown={(e) => { if (!(e.target as HTMLElement).closest('button, .pf-overlay')) jump(); }}>
       <canvas ref={canvas} className="mc-canvas" aria-label="Mine cart track. Tap to jump." />
       <header className="fd-head mc-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} note="Your best rides are saved. This ride stops here, and your right answers are paid." />
         <h1>🛤️ Mine Cart Run</h1>
         <SfxToggle />
         {settings}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import type { MCQuestion } from '../../types';
 import { useGameQuestions } from '../../games/mini/useAsk';
 import { payForAnswers } from '../../lib/gameEarnings';
@@ -87,7 +88,7 @@ export default function PlinkoDrop() {
   return (
     <div className="pk">
       <header className="fd-head pk-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} />
         <h1>🎯 Plinko Drop</h1>
         <SfxToggle />
         <MyBest game="plinkoDrop" unit="tickets won" />

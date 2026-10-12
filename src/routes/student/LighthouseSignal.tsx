@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
@@ -99,7 +100,7 @@ export default function LighthouseSignal() {
         );
       })}
       <header className="fd-head lh-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} />
         <h1>🗼 Lighthouse Signal</h1>
         <SfxToggle />
         {settings}

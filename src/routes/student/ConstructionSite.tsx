@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
@@ -78,7 +79,7 @@ export default function ConstructionSite() {
   return (
     <div className="cs">
       <header className="fd-head cs-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} note="This building is not saved until it is finished. Your right answers are paid." />
         <h1>🏗️ Construction Site</h1>
         <SfxToggle />
         {settings}

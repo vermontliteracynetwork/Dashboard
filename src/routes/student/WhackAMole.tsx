@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import type { MCQuestion } from '../../types';
 import { useGameQuestions } from '../../games/mini/useAsk';
 import { useRoundSettings } from '../../lib/gameRounds';
@@ -109,7 +110,7 @@ export default function WhackAMole() {
   return (
     <div className="wm">
       <header className="fd-head wm-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} note="This round stops here. Your right answers are paid." />
         <h1>🔨 Whack-a-Mole</h1>
         <SfxToggle />
         <MyBest game="whackAMole" format={(e) => (e.score === 0 ? 'Perfect round, no misses' : `${-e.score} wrong mole${e.score === -1 ? '' : 's'} in a round`)} />

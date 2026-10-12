@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
@@ -92,7 +93,7 @@ export default function LibraryQuest() {
   return (
     <div className="lq">
       <header className="fd-head lq-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} />
         <h1>📚 Library Quest</h1>
         <SfxToggle />
         {settings}

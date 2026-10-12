@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
@@ -112,7 +113,7 @@ export default function WordSearch() {
   return (
     <div className="ws">
       <header className="fd-head ws-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} />
         <h1>🔤 Word Search</h1>
         <SfxToggle />
         {settings}

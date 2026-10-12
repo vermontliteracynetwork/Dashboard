@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
@@ -106,7 +107,7 @@ export default function DungeonRooms() {
   return (
     <div className="dg">
       <header className="fd-head dg-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} note="Your Relic Shelf is saved. This dungeon starts fresh next time, and your right answers are paid." />
         <h1>🏰 Dungeon Rooms</h1>
         <SfxToggle />
         {settings}

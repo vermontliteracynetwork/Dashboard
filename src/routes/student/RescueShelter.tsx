@@ -11,6 +11,7 @@ import { usePoseSetup, usePetTricks } from '../../lib/usePetTricks';
 import { SEL_ZONE_COLORS } from '../../lib/selZones';
 import { playCheer } from '../../lib/petSounds';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { ModelBoundary } from '../world/WorldObjectRenderer';
 import { AdoptionCertificate, Celebration } from './PetFinder';
@@ -169,7 +170,7 @@ export default function RescueShelter() {
         <ModelBoundary path={def.modelPath}><Suspense fallback={null}><RescuePet path={def.modelPath} trust={trust} cue={cue} /></Suspense></ModelBoundary>
       </Canvas>
       <div className="rs-hud">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} />
         {settings}
         <div className="rs-trust" aria-label={`Trust ${trust} of 100`}>
           <span>💗 Trust</span><div className="rs-bar"><i style={{ width: `${trust}%` }} /></div><b>{trust}%</b>

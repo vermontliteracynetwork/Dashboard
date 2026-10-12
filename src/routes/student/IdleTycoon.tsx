@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
@@ -109,7 +110,7 @@ export default function IdleTycoon() {
   return (
     <div className={`ty${boost > 0 ? ' boosted' : ''}`}>
       <header className="fd-head ty-head">
-        <button type="button" className="btn" onClick={() => { save(); pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { save(); pay(); back.go(); }} />
         <h1>🧁 Cupcake Tycoon</h1>
         <SfxToggle />
         {settings}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
+import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
@@ -103,7 +104,7 @@ export default function FarmGrow() {
       <div className="fg-sky"><span className="fg-sun" aria-hidden>☀️</span><span className="fg-cloud" aria-hidden>☁️</span><span className="fg-barn" aria-hidden>🏡</span></div>
       <div className="fg-field" />
       <header className="fd-head fg-head">
-        <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        <LeaveButton onLeave={() => { pay(); back.go(); }} />
         <h1>🌱 Farm Grow</h1>
         <SfxToggle />
         {settings}
