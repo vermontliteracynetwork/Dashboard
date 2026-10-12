@@ -15,26 +15,6 @@ import Mailbox from './components/Mailbox';
 import Passport from './components/Passport';
 import PetFinder from './routes/student/PetFinder';
 import BuffDogeGym from './routes/student/BuffDogeGym';
-import PetShowRing from './routes/student/PetShowRing';
-import DinerDash from './routes/student/DinerDash';
-import IdleTycoon from './routes/student/IdleTycoon';
-import CrossyHopper from './routes/student/CrossyHopper';
-import PlinkoDrop from './routes/student/PlinkoDrop';
-import WordSearch from './routes/student/WordSearch';
-import MemoryMatch from './routes/student/MemoryMatch';
-import WhackAMole from './routes/student/WhackAMole';
-import ConstructionSite from './routes/student/ConstructionSite';
-import DungeonRooms from './routes/student/DungeonRooms';
-import LibraryQuest from './routes/student/LibraryQuest';
-import GemMine from './routes/student/GemMine';
-import TrainDispatch from './routes/student/TrainDispatch';
-import MineCartRun from './routes/student/MineCartRun';
-import KitchenCookOff from './routes/student/KitchenCookOff';
-import LighthouseSignal from './routes/student/LighthouseSignal';
-import PostOfficeSort from './routes/student/PostOfficeSort';
-import FarmGrow from './routes/student/FarmGrow';
-import FishingDock from './routes/student/FishingDock';
-import RescueShelter from './routes/student/RescueShelter';
 import PetJournal from './routes/student/PetJournal';
 import Cinema from './routes/student/Cinema';
 import Arcade from './routes/student/Arcade';
@@ -78,6 +58,27 @@ const HomeRoom = lazyFresh(() => import('./routes/world/HomeRoom'));
 const IslandBuild = lazyFresh(() => import('./routes/world/IslandBuild'));
 const SlimeChess = lazyFresh(() => import('./routes/student/SlimeChess'));
 const SpaceBowling = lazyFresh(() => import('./routes/student/SpaceBowling'));
+// The native games from her 2026-09-30 lists load on demand, like the other big games (Build Queue 61).
+const RescueShelter = lazyFresh(() => import('./routes/student/RescueShelter'));
+const FishingDock = lazyFresh(() => import('./routes/student/FishingDock'));
+const FarmGrow = lazyFresh(() => import('./routes/student/FarmGrow'));
+const PostOfficeSort = lazyFresh(() => import('./routes/student/PostOfficeSort'));
+const LighthouseSignal = lazyFresh(() => import('./routes/student/LighthouseSignal'));
+const KitchenCookOff = lazyFresh(() => import('./routes/student/KitchenCookOff'));
+const MineCartRun = lazyFresh(() => import('./routes/student/MineCartRun'));
+const TrainDispatch = lazyFresh(() => import('./routes/student/TrainDispatch'));
+const GemMine = lazyFresh(() => import('./routes/student/GemMine'));
+const LibraryQuest = lazyFresh(() => import('./routes/student/LibraryQuest'));
+const DungeonRooms = lazyFresh(() => import('./routes/student/DungeonRooms'));
+const ConstructionSite = lazyFresh(() => import('./routes/student/ConstructionSite'));
+const WhackAMole = lazyFresh(() => import('./routes/student/WhackAMole'));
+const MemoryMatch = lazyFresh(() => import('./routes/student/MemoryMatch'));
+const WordSearch = lazyFresh(() => import('./routes/student/WordSearch'));
+const PlinkoDrop = lazyFresh(() => import('./routes/student/PlinkoDrop'));
+const CrossyHopper = lazyFresh(() => import('./routes/student/CrossyHopper'));
+const IdleTycoon = lazyFresh(() => import('./routes/student/IdleTycoon'));
+const DinerDash = lazyFresh(() => import('./routes/student/DinerDash'));
+const PetShowRing = lazyFresh(() => import('./routes/student/PetShowRing'));
 const GrammarGusMachine = lazyFresh(() => import('./games/grammarGus/ui/GrammarGusMachine'));
 const GusWorkboard = lazyFresh(() => import('./games/grammarGus/ui/GusWorkboard'));
 const GusLibrary = lazyFresh(() => import('./games/grammarGus/reading/Library'));
@@ -229,26 +230,26 @@ export default function App() {
           <Route path="/student/pet-shelter" element={<PetFinder />} />
           <Route path="/student/pet-finder" element={<PetFinder />} />
           <Route path="/student/gym" element={<BuffDogeGym />} />
-          <Route path="/student/pet-show" element={<PetShowRing />} />
-          <Route path="/student/diner" element={<DinerDash />} />
-          <Route path="/student/cupcake-tycoon" element={<IdleTycoon />} />
-          <Route path="/student/crossy" element={<CrossyHopper />} />
-          <Route path="/student/plinko" element={<PlinkoDrop />} />
-          <Route path="/student/word-search" element={<WordSearch />} />
-          <Route path="/student/memory-match" element={<MemoryMatch />} />
-          <Route path="/student/whack-a-mole" element={<WhackAMole />} />
-          <Route path="/student/construction" element={<ConstructionSite />} />
-          <Route path="/student/dungeon" element={<DungeonRooms />} />
-          <Route path="/student/library-quest" element={<LibraryQuest />} />
-          <Route path="/student/gem-mine" element={<GemMine />} />
-          <Route path="/student/train-dispatch" element={<TrainDispatch />} />
-          <Route path="/student/mine-cart" element={<MineCartRun />} />
-          <Route path="/student/kitchen" element={<KitchenCookOff />} />
-          <Route path="/student/lighthouse" element={<LighthouseSignal />} />
-          <Route path="/student/post-office" element={<PostOfficeSort />} />
-          <Route path="/student/farm-grow" element={<FarmGrow />} />
-          <Route path="/student/fishing-dock" element={<FishingDock />} />
-          <Route path="/student/rescue-shelter" element={<RescueShelter />} />
+          <Route path="/student/pet-show" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><PetShowRing /></Suspense>} />
+          <Route path="/student/diner" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><DinerDash /></Suspense>} />
+          <Route path="/student/cupcake-tycoon" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><IdleTycoon /></Suspense>} />
+          <Route path="/student/crossy" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><CrossyHopper /></Suspense>} />
+          <Route path="/student/plinko" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><PlinkoDrop /></Suspense>} />
+          <Route path="/student/word-search" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><WordSearch /></Suspense>} />
+          <Route path="/student/memory-match" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><MemoryMatch /></Suspense>} />
+          <Route path="/student/whack-a-mole" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><WhackAMole /></Suspense>} />
+          <Route path="/student/construction" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><ConstructionSite /></Suspense>} />
+          <Route path="/student/dungeon" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><DungeonRooms /></Suspense>} />
+          <Route path="/student/library-quest" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><LibraryQuest /></Suspense>} />
+          <Route path="/student/gem-mine" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><GemMine /></Suspense>} />
+          <Route path="/student/train-dispatch" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><TrainDispatch /></Suspense>} />
+          <Route path="/student/mine-cart" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><MineCartRun /></Suspense>} />
+          <Route path="/student/kitchen" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><KitchenCookOff /></Suspense>} />
+          <Route path="/student/lighthouse" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><LighthouseSignal /></Suspense>} />
+          <Route path="/student/post-office" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><PostOfficeSort /></Suspense>} />
+          <Route path="/student/farm-grow" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><FarmGrow /></Suspense>} />
+          <Route path="/student/fishing-dock" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><FishingDock /></Suspense>} />
+          <Route path="/student/rescue-shelter" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><RescueShelter /></Suspense>} />
           <Route path="/student/pet-journal" element={<PetJournal />} />
           <Route path="/student/cinema" element={<Cinema />} />
           <Route path="/student/arcade" element={<Arcade />} />
