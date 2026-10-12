@@ -7168,3 +7168,12 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .dd-cook { position: absolute; left: 0; bottom: 0; height: 6px; background: #f0a030; }
 @media (max-width: 640px) { .dd-kitchen { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .dd * { animation: none !important; } }
+
+/* The student's own Reduce motion setting in the native games from her 2026-09-30 lists (Build Queue
+   51): animations jump straight to their end state, so everything still appears, just without motion.
+   Gameplay motion that is the game itself (Crossy Road cars, the mine cart, the Plinko ball's path)
+   is driven by script and keeps going. */
+body.calm-games :is(.fd, .fg, .po, .lh, .kc, .mc, .td, .gm, .lq, .dg, .cs, .wm, .mm, .ws, .pk, .cr, .ty, .dd) *,
+body.calm-games :is(.fd, .fg, .po, .lh, .kc, .mc, .td, .gm, .lq, .dg, .cs, .wm, .mm, .ws, .pk, .cr, .ty, .dd) *::before,
+body.calm-games :is(.fd, .fg, .po, .lh, .kc, .mc, .td, .gm, .lq, .dg, .cs, .wm, .mm, .ws, .pk, .cr, .ty, .dd) *::after,
+body.calm-games .pf-overlay .fd-fish { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }

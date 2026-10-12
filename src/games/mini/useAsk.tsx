@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import type { MCQuestion, NativeGameId } from '../../types';
 import { drawQuestion, pickableSets } from '../../lib/questionPick';
@@ -27,6 +27,14 @@ export function useGameQuestions(gameId: NativeGameId) {
     );
   }, [student, rotations, progress, gameId]);
   const [finished, setFinished] = useState<string | null>(null);
+  // The student's own Reduce motion setting (the same one Shape Dash and Bubble Shooter use) stills
+  // these games' decorative animations; see body.calm-games in index.css.
+  const calm = !!student?.worldReduceMotion;
+  useEffect(() => {
+    if (!calm) return;
+    document.body.classList.add('calm-games');
+    return () => document.body.classList.remove('calm-games');
+  }, [calm]);
   const next = useCallback((avoid?: string): MCQuestion => {
     if (assignment) { const g = pickGameplayQuestion(assignment.task, avoid); if (g) return g; }
     return drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
