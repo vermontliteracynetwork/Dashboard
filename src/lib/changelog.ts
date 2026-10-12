@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-game-settings",
+    date: "2026-10-12",
+    icon: "⚙️",
+    title: "Choose your rounds in the new games",
+    body: "Tap the gear button in a new game to choose how many questions you answer each time and how long a round is. If your teacher picked the numbers for an assignment, they are locked in.",
+  },
+  {
     id: "2026-10-12-my-best",
     date: "2026-10-12",
     icon: "🏆",

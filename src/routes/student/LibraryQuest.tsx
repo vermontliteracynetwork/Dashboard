@@ -43,7 +43,7 @@ const newCase = () => {
 
 export default function LibraryQuest() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Library Quest', '📚', 'libraryQuest');
+  const { settings, ask, element, pay, student } = useAsk('Library Quest', '📚', 'libraryQuest');
   const visit = useVisitScore('libraryQuest');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -95,6 +95,7 @@ export default function LibraryQuest() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>📚 Library Quest</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="libraryQuest" unit="books found" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📓 Finds Book ({THEMES.filter((t) => shelvesDone[t.id]).length} / {THEMES.length})</button>
       </header>

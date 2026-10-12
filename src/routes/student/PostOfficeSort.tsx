@@ -25,7 +25,6 @@ const KINDS = [
 ];
 const TO = ['Grandma', 'Mr. Bear', 'Captain Fin', 'Dr. Owl', 'Aunt Rosa', 'the Mayor', 'Pip the Fox', 'Coach Moose'];
 const STAMPS = ['🦋', '🌈', '🚀', '🦖', '🍩', '🐳', '🌋', '🎸', '🦉', '🍕', '🏰', '🌙'];
-const TRUCK = 8;
 
 interface Mail { kind: { icon: string; name: string }; to: string; bin: Bin; id: number }
 const newMail = (id: number): Mail => ({
@@ -37,7 +36,8 @@ const newMail = (id: number): Mail => ({
 
 export default function PostOfficeSort() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Post Office Sort', '📮', 'postOffice');
+  const { settings, rounds, ask, element, pay, student } = useAsk('Post Office Sort', '📮', 'postOffice', { rounds: { min: 4, max: 12, def: 8 }, roundsLabel: 'Pieces of mail in each truck' });
+  const TRUCK = rounds; // her rounds setting (kids choose; an assignment locks it)
   const visit = useVisitScore('postOffice');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -82,6 +82,7 @@ export default function PostOfficeSort() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>📮 Post Office Sort</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="postOffice" unit="pieces of mail sorted" />
         <button type="button" className="btn" onClick={() => setAlbum(true)}>📒 Stamp Album ({Object.keys(stamps).length} / {STAMPS.length})</button>
       </header>

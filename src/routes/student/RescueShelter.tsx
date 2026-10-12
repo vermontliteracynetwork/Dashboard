@@ -104,7 +104,7 @@ function Room() {
 export default function RescueShelter() {
   const navigate = useNavigate();
   const back = useBack();
-  const { ask, element, pay } = useAsk('Rescue Shelter', '🐶', 'rescueShelter');
+  const { settings, ask, element, pay } = useAsk('Rescue Shelter', '🐶', 'rescueShelter');
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const pets = useStore((s) => s.pets);
   const styleLooks = useStore((s) => s.styleLooks);
@@ -170,6 +170,7 @@ export default function RescueShelter() {
       </Canvas>
       <div className="rs-hud">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
+        {settings}
         <div className="rs-trust" aria-label={`Trust ${trust} of 100`}>
           <span>💗 Trust</span><div className="rs-bar"><i style={{ width: `${trust}%` }} /></div><b>{trust}%</b>
         </div>

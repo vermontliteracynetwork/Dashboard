@@ -17,7 +17,7 @@ import { recordBestGame } from '../../lib/personalBoard';
 const GROUND = 300; // logical units, the canvas is 400 tall
 const CART_X = 130;
 const GRAV = 1800, JUMP = 720, SPEED = 260;
-const SWITCH_EVERY = 3400, SWITCHES = 5;
+const SWITCH_EVERY = 3400;
 
 interface Thing { x: number; kind: 'rock' | 'gem' | 'switch'; h?: number; done?: boolean }
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; icon: string }
@@ -26,7 +26,8 @@ const fresh = (): Game => ({ dist: 0, cy: 0, vy: 0, things: [], nextRock: 700, n
 
 export default function MineCartRun() {
   const back = useBack();
-  const { ask, element, pay, asking, student } = useAsk('Mine Cart Run', '🛤️', 'mineCart');
+  const { settings, rounds, ask, element, pay, asking, student } = useAsk('Mine Cart Run', '🛤️', 'mineCart', { rounds: { min: 3, max: 10, def: 5 }, roundsLabel: 'Track switches each ride' });
+  const SWITCHES = rounds; // her rounds setting (kids choose; an assignment locks it)
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -195,6 +196,7 @@ export default function MineCartRun() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🛤️ Mine Cart Run</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="mineCart" unit="gems" />
         <span className="mc-hud" aria-live="polite">💎 {hud.gems} · 🔀 {hud.switches} / {SWITCHES}{hud.cave ? ' · ✨ Gem Cave!' : ''}</span>
       </header>

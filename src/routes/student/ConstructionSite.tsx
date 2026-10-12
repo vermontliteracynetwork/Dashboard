@@ -37,7 +37,7 @@ function Mini({ plan, done }: { plan: Plan; done: boolean }) {
 
 export default function ConstructionSite() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Construction Site', '🏗️', 'constructionSite');
+  const { settings, ask, element, pay, student } = useAsk('Construction Site', '🏗️', 'constructionSite');
   const visit = useVisitScore('constructionSite');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -81,6 +81,7 @@ export default function ConstructionSite() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🏗️ Construction Site</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="constructionSite" unit="blocks placed" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📐 Town Plans ({Object.keys(built).length} / {PLANS.length})</button>
       </header>

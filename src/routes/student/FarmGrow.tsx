@@ -35,7 +35,7 @@ interface Farm { plots?: (Plot | null)[]; harvested?: Record<string, number> }
 
 export default function FarmGrow() {
   const back = useBack();
-  const { ask, element, pay, rightSoFar, student } = useAsk('Farm Grow', '🌱', 'farmGrow');
+  const { settings, ask, element, pay, rightSoFar, student } = useAsk('Farm Grow', '🌱', 'farmGrow');
   const visit = useVisitScore('farmGrow');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -106,6 +106,7 @@ export default function FarmGrow() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🌱 Farm Grow</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="farmGrow" unit="crops harvested" />
         <button type="button" className="btn" onClick={() => setBook(true)}>🧺 Harvest Book ({kinds} / {CROPS.length})</button>
       </header>

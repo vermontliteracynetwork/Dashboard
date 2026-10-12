@@ -3,6 +3,8 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import type { MCQuestion } from '../../types';
 import { useGameQuestions } from '../../games/mini/useAsk';
+import { useRoundSettings } from '../../lib/gameRounds';
+import RoundSettings from '../../components/RoundSettings';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
@@ -18,14 +20,18 @@ import { recordBestGame } from '../../lib/personalBoard';
 // question. A wrong mole just giggles and ducks. Ten questions make a round. $1 per right answer.
 
 interface Mole { id: number; hole: number; choice: number; until: number; state: 'up' | 'bonk' | 'duck' }
-const HOLES = 6, ROUND = 10, UP_MS = 3500, MAX_UP = 3;
+const HOLES = 6, UP_MS = 3500, MAX_UP = 3;
+// Her rule (2026-10-08): kids choose the questions in a round; an assignment locks it.
+const ROUND_RANGE = { per: { min: 5, max: 20, def: 10 } };
 
 export default function WhackAMole() {
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
-  const { next, right: countRight, notice } = useGameQuestions('whackAMole');
+  const { next, right: countRight, notice, assignment } = useGameQuestions('whackAMole');
+  const rs = useRoundSettings('whackAMole', ROUND_RANGE, assignment?.task);
+  const ROUND = rs.perRound;
   const [q, setQ] = useState<MCQuestion>(() => next());
   const [moles, setMoles] = useState<Mole[]>([]);
   const [done, setDone] = useState(0);
@@ -143,6 +149,7 @@ export default function WhackAMole() {
             <h2>Whack-a-Mole!</h2>
             <p>Read the question on the garden sign. Moles pop up holding answers. Bonk the mole with the right answer! Take your time, the right mole keeps coming back.</p>
             <p>Rounds played: {saved.rounds ?? 0} · Perfect rounds: 🏅 {saved.perfect ?? 0}</p>
+            <RoundSettings ranges={ROUND_RANGE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions in a round" />
             <button type="button" className="btn btn-primary btn-lg" onClick={start}>🔨 Start</button>
           </div>
         </div>

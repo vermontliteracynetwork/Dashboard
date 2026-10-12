@@ -7191,3 +7191,4 @@ body.calm-games .pf-overlay .fd-fish { animation-duration: 0.01ms !important; an
 .my-best li { padding: 6px 10px; background: #fff3c4; border-radius: 10px; }
 .my-best li small { margin-left: 10px; color: #6b5a3a; font-weight: 700; }
 .my-best li:first-child { background: #ffe08a; }
+.game-settings-btn { min-width: 48px; min-height: 44px; font-size: 1.2rem; padding: 0 10px; }

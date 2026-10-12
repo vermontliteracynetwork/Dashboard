@@ -19,13 +19,14 @@ const FOODS = [
   { id: 'hotdog', icon: '🌭', name: 'Hot Dog' }, { id: 'pizza', icon: '🍕', name: 'Pizza' }, { id: 'icecream', icon: '🍦', name: 'Ice Cream' },
 ];
 const FACES = ['🐻', '🐰', '🦊', '🐸', '🐼', '🐵', '🐨', '🐯', '🐷', '🐮'];
-const SEATS = 3, SHIFT = 8, PATIENCE = 75, COOK = 1.5, TRAY = 3;
+const SEATS = 3, PATIENCE = 75, COOK = 1.5, TRAY = 3;
 interface Guest { ticket: number; face: string; order: string[]; patience: number }
 const food = (id: string) => FOODS.find((f) => f.id === id)!;
 
 export default function DinerDash() {
   const back = useBack();
-  const { ask, element, pay, asking, student } = useAsk('Diner Dash', '🍔', 'dinerDash');
+  const { settings, rounds, ask, element, pay, asking, student } = useAsk('Diner Dash', '🍔', 'dinerDash', { rounds: { min: 4, max: 12, def: 8 }, roundsLabel: 'Customers each shift' });
+  const SHIFT = rounds; // her rounds setting (kids choose; an assignment locks it)
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   // The diner's moving parts live in one ref (so the timer never double-counts) and are copied into
@@ -107,6 +108,7 @@ export default function DinerDash() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🍔 Diner Dash</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="dinerDash" unit="tip stars" />
         <span className="mc-hud">🧾 {served} served · ⭐ {tips}</span>
       </header>

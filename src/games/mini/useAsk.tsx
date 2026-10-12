@@ -6,6 +6,8 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { findActiveGameplayTask, gameplayQuestionPool, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import QuestionScreen from '../../components/QuestionScreen';
+import RoundSettings from '../../components/RoundSettings';
+import { useRoundSettings, type RoundRange } from '../../lib/gameRounds';
 
 // Where a native game's questions come from, shared by every game built from her 2026-09-30 lists.
 // If the teacher has an open gameplay assignment for this game (a "specific game" task) or for any
@@ -59,11 +61,17 @@ export function useGameQuestions(gameId: NativeGameId) {
 // Shared question plumbing for the native mini games built from her 2026-09-30 game list
 // (Rescue Shelter, Fishing Dock, Farm Grow...). A game calls ask(label, onRight) when its action
 // needs a question; wrong answers just try again, and pay() at the end gives $1 per right answer.
-export function useAsk(game: string, icon: string, gameId: NativeGameId) {
+// Her rule for every native game (2026-10-08): kids choose the rounds (where a game has them) and
+// the questions per round, and an assignment's own numbers lock them. Here "questions per round" is
+// how many questions each action asks (1 to 5); `settings` is the ⚙️ button for the game's header.
+export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: { rounds?: RoundRange; roundsLabel?: string; perLabel?: string }) {
   const { next, right: countRight, notice, assignment, student } = useGameQuestions(gameId);
-  const [open, setOpen] = useState<{ q: MCQuestion; label: string; onRight: () => void; onCancel?: () => void } | null>(null);
+  const ranges = { rounds: opts?.rounds, per: { min: 1, max: 5, def: 1 } };
+  const rs = useRoundSettings(gameId, ranges, assignment?.task);
+  const [open, setOpen] = useState<{ q: MCQuestion; label: string; onRight: () => void; onCancel?: () => void; left: number; total: number } | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const right = useRef(0);
-  const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void) => setOpen({ q: next(), label, onRight, onCancel }), [next]);
+  const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void) => setOpen({ q: next(), label, onRight, onCancel, left: rs.perRound, total: rs.perRound }), [next, rs.perRound]);
   const pay = useCallback(() => {
     if (student && right.current > 0) payForAnswers(student.id, right.current, game, icon);
     right.current = 0;
@@ -72,23 +80,38 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId) {
     <>
       {open && student && (
         <QuestionScreen
-          key={open.q.id}
+          key={`${open.q.id}-${open.left}`}
           whoLabel={assignment ? `${open.label} · 📋 counts for your assignment` : open.label}
           prompt={open.q.prompt}
           choices={open.q.choices}
           correctIndex={open.q.correctIndex}
           imageUrl={open.q.imageUrl}
           imageAlt={open.q.imageAlt}
-          done={0}
-          total={1}
-          onCorrectAnswer={() => { right.current += 1; countRight(open.q); const cb = open.onRight; setOpen(null); cb(); }}
+          done={open.total - open.left}
+          total={open.total}
+          onCorrectAnswer={() => {
+            right.current += 1; countRight(open.q);
+            if (open.left > 1) { setOpen({ ...open, q: next(open.q.id), left: open.left - 1 }); return; }
+            const cb = open.onRight; setOpen(null); cb();
+          }}
           onSkip={() => setOpen((o) => (o ? { ...o, q: next(o.q.id) } : o))}
           onExit={() => { const c = open.onCancel; setOpen(null); c?.(); }}
           ttsSettings={student.ttsSettings}
         />
       )}
       {notice}
+      {showSettings && (
+        <div className="pf-overlay" onClick={() => setShowSettings(false)}>
+          <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>⚙️ Game settings</h2>
+            <RoundSettings ranges={ranges} rounds={rs.rounds} perRound={rs.perRound} onRounds={rs.setRounds} onPerRound={rs.setPerRound} locked={rs.locked}
+              roundsLabel={opts?.roundsLabel} perLabel={opts?.perLabel ?? 'Questions each time'} />
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => setShowSettings(false)}>Done</button>
+          </div>
+        </div>
+      )}
     </>
   );
-  return { ask, element, pay, rightSoFar: () => right.current, asking: !!open, student };
+  const settings = <button type="button" className="btn game-settings-btn" onClick={() => setShowSettings(true)} aria-label="Game settings">⚙️</button>;
+  return { ask, element, pay, settings, rounds: rs.rounds, rightSoFar: () => right.current, asking: !!open, student };
 }

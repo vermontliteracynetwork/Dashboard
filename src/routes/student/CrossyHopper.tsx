@@ -27,7 +27,7 @@ const clearAt = (cars: Car[], lane: number, t: number) => cars.every((c) => c.la
 
 export default function CrossyHopper() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Crossy Road Hopper', '🐔', 'crossyHopper');
+  const { settings, ask, element, pay, student } = useAsk('Crossy Road Hopper', '🐔', 'crossyHopper');
   const visit = useVisitScore('crossyHopper');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -94,6 +94,7 @@ export default function CrossyHopper() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🐔 Crossy Road Hopper</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="crossyHopper" unit="crossings" />
         <span className="mc-hud">🏞️ {crossings} crossing{crossings === 1 ? '' : 's'}</span>
       </header>

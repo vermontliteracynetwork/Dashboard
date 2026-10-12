@@ -33,7 +33,6 @@ const TRAINS: TrainKind[] = [
 ];
 const PY = [50, 150, 210, 310]; // platform track heights in the 800 x 360 map
 const routeFor = (p: number): [number, number][] => [[44, 180], [200, 180], p < 2 ? [320, 100] : [320, 260], [400, PY[p]], [690, PY[p]]];
-const SHIFT = 6;
 
 const lerpPath = (pts: [number, number][], u: number): [number, number] => {
   const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
@@ -48,7 +47,8 @@ const newTrain = (n: number) => ({ n, dest: Math.floor(Math.random() * DESTS.len
 
 export default function TrainDispatch() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Train Station Dispatch', '🚉', 'trainDispatch');
+  const { settings, rounds, ask, element, pay, student } = useAsk('Train Station Dispatch', '🚉', 'trainDispatch', { rounds: { min: 3, max: 12, def: 6 }, roundsLabel: 'Trains each shift' });
+  const SHIFT = rounds; // her rounds setting (kids choose; an assignment locks it)
   const visit = useVisitScore('trainDispatch');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -125,6 +125,7 @@ export default function TrainDispatch() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🚉 Train Dispatch</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="trainDispatch" unit="trains routed" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📗 Train Spotter Book ({Object.keys(seen).length} / {TRAINS.length})</button>
       </header>

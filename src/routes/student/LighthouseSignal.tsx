@@ -26,13 +26,13 @@ const BOATS: BoatKind[] = [
 const LAMP = { x: 15, y: 30 }; // lamp position in the 100 x 100 scene
 const HARBOR = { x: 26, y: 88 };
 const SPOTS = [{ x: 48, y: 58 }, { x: 70, y: 66 }, { x: 88, y: 56 }, { x: 60, y: 80 }, { x: 84, y: 82 }];
-const ROUND = 5;
 
 interface Boat { id: number; kind: BoatKind; spot: number; safe?: boolean }
 
 export default function LighthouseSignal() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Lighthouse Signal', '🗼', 'lighthouse');
+  const { settings, rounds, ask, element, pay, student } = useAsk('Lighthouse Signal', '🗼', 'lighthouse', { rounds: { min: 3, max: 10, def: 5 }, roundsLabel: 'Boats each night' });
+  const ROUND = rounds; // her rounds setting (kids choose; an assignment locks it)
   const visit = useVisitScore('lighthouse');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -102,6 +102,7 @@ export default function LighthouseSignal() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🗼 Lighthouse Signal</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="lighthouse" unit="boats guided" />
         <button type="button" className="btn" onClick={() => setLog(true)}>📘 Harbor Log ({Object.keys(seen).length} / {BOATS.length})</button>
       </header>

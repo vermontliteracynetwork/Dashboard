@@ -3,6 +3,8 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import type { MCQuestion } from '../../types';
 import { useGameQuestions } from '../../games/mini/useAsk';
+import { useRoundSettings } from '../../lib/gameRounds';
+import RoundSettings from '../../components/RoundSettings';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
@@ -18,13 +20,17 @@ import { recordBestGame } from '../../lib/personalBoard';
 // $1 per matched pair (each match is a right answer).
 
 interface Card { id: number; kind: 'q' | 'a'; text: string; img?: string; key: string; matched: boolean }
-const PAIRS = 6;
+// Her rule (2026-10-08): kids choose how many questions a board holds; an assignment locks it.
+const PAIR_RANGE = { per: { min: 3, max: 8, def: 6 } };
 const shuffle = <T,>(a: T[]) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
 export default function MemoryMatch() {
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
-  const { next, right: countRight, notice } = useGameQuestions('memoryMatch');
+  const { next, right: countRight, notice, assignment } = useGameQuestions('memoryMatch');
+  const rs = useRoundSettings('memoryMatch', PAIR_RANGE, assignment?.task);
+  const PAIRS = rs.perRound;
+  const [gear, setGear] = useState(false);
   const pairQ = useRef<Record<string, MCQuestion>>({});
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -95,6 +101,7 @@ export default function MemoryMatch() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🃏 Memory Match</h1>
         <SfxToggle />
+        <button type="button" className="btn game-settings-btn" onClick={() => setGear(true)} aria-label="Game settings">⚙️</button>
         <MyBest game="memoryMatch" format={(e) => `${-e.score} flips${e.detail ? ` (${e.detail})` : ''}`} />
         <span className="mc-hud">✨ {matched} / {pairs} · 🔄 {flips}</span>
       </header>
@@ -128,6 +135,16 @@ export default function MemoryMatch() {
             <h2>You matched them all!</h2>
             <p>All {pairs} questions found their answers in {flips} flips. {saved.best && saved.best <= flips ? `Your best is ${saved.best} flips.` : 'That is your best board yet!'}</p>
             <button type="button" className="btn btn-primary btn-lg" onClick={again}>🃏 New cards</button>
+          </div>
+        </div>
+      )}
+      {gear && (
+        <div className="pf-overlay" onClick={() => setGear(false)}>
+          <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>⚙️ Game settings</h2>
+            <RoundSettings ranges={PAIR_RANGE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions on each board" />
+            <p>The new number starts with your next board.</p>
+            <div className="pf-detail-actions"><button type="button" className="btn btn-lg" onClick={() => setGear(false)}>Done</button><button type="button" className="btn btn-primary btn-lg" onClick={() => { setGear(false); again(); }}>🃏 New board now</button></div>
           </div>
         </div>
       )}

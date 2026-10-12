@@ -54,7 +54,7 @@ function build(theme: Theme) {
 
 export default function WordSearch() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Word Search', '🔤', 'wordSearch');
+  const { settings, ask, element, pay, student } = useAsk('Word Search', '🔤', 'wordSearch');
   const visit = useVisitScore('wordSearch');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -115,6 +115,7 @@ export default function WordSearch() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🔤 Word Search</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="wordSearch" unit="puzzles finished" />
         <span className="mc-hud">{theme.icon} {theme.name} · {found.size} / {board.placed.length}</span>
       </header>

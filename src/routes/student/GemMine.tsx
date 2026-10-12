@@ -65,7 +65,7 @@ export function GemIcon({ color, size = 48 }: { color: string; size?: number }) 
 
 export default function GemMine() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Gem Mine', '💎', 'gemMine');
+  const { settings, ask, element, pay, student } = useAsk('Gem Mine', '💎', 'gemMine');
   const visit = useVisitScore('gemMine');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -110,6 +110,7 @@ export default function GemMine() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>💎 Gem Mine</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="gemMine" unit="gems found" />
         <button type="button" className="btn" onClick={() => setPages(true)}>📔 Gem Pages ({Object.keys(have).length} / {GEMS.length})</button>
       </header>

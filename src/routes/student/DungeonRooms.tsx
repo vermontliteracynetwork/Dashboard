@@ -59,7 +59,7 @@ function makeDungeon(n: number): Dungeon {
 
 export default function DungeonRooms() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Dungeon Rooms', '🏰', 'dungeonRooms');
+  const { settings, ask, element, pay, student } = useAsk('Dungeon Rooms', '🏰', 'dungeonRooms');
   const visit = useVisitScore('dungeonRooms');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -109,6 +109,7 @@ export default function DungeonRooms() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🏰 Dungeon Rooms</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="dungeonRooms" unit="dungeons cleared" />
         <button type="button" className="btn" onClick={() => setShelf(true)}>🏺 Relic Shelf ({Object.keys(relics).length} / {RELICS.length})</button>
       </header>

@@ -38,7 +38,7 @@ type Phase = 'ready' | 'power' | 'wait' | 'bite' | 'caught' | 'away';
 
 export default function FishingDock() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Fishing Dock', '🎣', 'fishingDock');
+  const { settings, ask, element, pay, student } = useAsk('Fishing Dock', '🎣', 'fishingDock');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [phase, setPhase] = useState<Phase>('ready');
@@ -96,6 +96,7 @@ export default function FishingDock() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🎣 Fishing Dock</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="fishingDock" unit="cm" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📖 Fish Book ({Object.keys(got).length} / {FISH.length})</button>
       </header>

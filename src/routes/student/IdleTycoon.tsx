@@ -30,7 +30,7 @@ const rates = (s: Shop) => ({ bake: 0.5 * (1 + s.oven * 0.5), cap: 6 + s.display
 
 export default function IdleTycoon() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon');
+  const { settings, ask, element, pay, student } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon');
   const visit = useVisitScore('idleTycoon');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -112,6 +112,7 @@ export default function IdleTycoon() {
         <button type="button" className="btn" onClick={() => { save(); pay(); back.go(); }}>✕ Leave</button>
         <h1>🧁 Cupcake Tycoon</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="idleTycoon" unit="cupcakes sold" />
         <span className="mc-hud"><span key={pop} className="ty-coin">🪙</span> {shop.coins} shop coins</span>
       </header>

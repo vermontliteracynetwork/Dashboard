@@ -46,7 +46,7 @@ const newOrder = (n: number) => {
 
 export default function KitchenCookOff() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Kitchen Cook-Off', '🍳', 'kitchenCookOff');
+  const { settings, ask, element, pay, student } = useAsk('Kitchen Cook-Off', '🍳', 'kitchenCookOff');
   const visit = useVisitScore('kitchenCookOff');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
@@ -97,6 +97,7 @@ export default function KitchenCookOff() {
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🍳 Kitchen Cook-Off</h1>
         <SfxToggle />
+        {settings}
         <MyBest game="kitchenCookOff" unit="dishes served" />
         <button type="button" className="btn" onClick={() => setBook(true)}>📕 Recipe Book ({Object.keys(cooked).length} / {RECIPES.length})</button>
       </header>
