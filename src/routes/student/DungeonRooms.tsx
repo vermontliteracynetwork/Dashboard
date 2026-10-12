@@ -83,7 +83,7 @@ export default function DungeonRooms() {
     if (it && !bag.has(it)) {
       setBag((b) => new Set(b).add(it));
       playCheer(); sfx.chime();
-      setMsg(`You opened a chest and found the ${ITEM[it].icon} ${ITEM[it].name}! Now find the door it opens.`);
+      setMsg(`You opened a chest and found the ${ITEM[it].icon} ${ITEM[it].name}! Next, find the door it opens.`);
     } else if (r === TREASURE) {
       const fresh = RELICS.filter((x) => !relics[x.id]);
       const relic = (fresh.length ? fresh : RELICS)[Math.floor(Math.random() * (fresh.length || RELICS.length))];

@@ -146,7 +146,7 @@ export default function FarmGrow() {
                 </button>
               ))}
             </div>
-            <button type="button" className="btn btn-lg" onClick={() => setPicking(null)}>Not now</button>
+            <button type="button" className="btn btn-lg" onClick={() => setPicking(null)}>Close</button>
           </div>
         </div>
       )}

@@ -67,7 +67,7 @@ export default function MemoryMatch() {
     if (busy.current || c.matched || up.includes(c.id)) return;
     const now = [...up, c.id];
     setUp(now); setFlips((f) => f + 1); sfx.pop();
-    if (now.length < 2) { setNote(c.kind === 'q' ? 'Now find the answer card for this question.' : 'Now find the question this answers.'); return; }
+    if (now.length < 2) { setNote(c.kind === 'q' ? 'Next, find the answer card for this question.' : 'Next, find the question this answers.'); return; }
     const [a, b] = now.map((id) => cards.find((x) => x.id === id)!);
     if (a.kind !== b.kind && a.key === b.key) {
       unpaid.current += 1; recordStreakCorrect(student.id);
@@ -145,7 +145,7 @@ export default function MemoryMatch() {
             <h2 style={{ marginTop: 0 }}>⚙️ Game settings</h2>
             <RoundSettings ranges={PAIR_RANGE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions on each board" />
             <p>The new number starts with your next board.</p>
-            <div className="pf-detail-actions"><button type="button" className="btn btn-lg" onClick={() => setGear(false)}>Done</button><button type="button" className="btn btn-primary btn-lg" onClick={() => { setGear(false); again(); }}>🃏 New board now</button></div>
+            <div className="pf-detail-actions"><button type="button" className="btn btn-lg" onClick={() => setGear(false)}>Done</button><button type="button" className="btn btn-primary btn-lg" onClick={() => { setGear(false); again(); }}>🃏 Start a new board</button></div>
           </div>
         </div>
       )}

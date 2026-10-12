@@ -83,7 +83,7 @@ export default function WordSearch() {
     speak(w.word.toLowerCase(), student.ttsSettings);
   });
   const tap = (i: number) => {
-    if (start === null) { setStart(i); sfx.pop(); setNote('Now tap the last letter of the word.'); return; }
+    if (start === null) { setStart(i); sfx.pop(); setNote('Next, tap the last letter of the word.'); return; }
     if (start === i) { setStart(null); setNote(null); return; }
     const a = start, b = i;
     setStart(null);
