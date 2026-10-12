@@ -61,7 +61,8 @@ export function recommend(pet: StudentPet, sessions: Record<string, number>): Tr
   const pool = own.length ? own : all;
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
 }
-// One finished session: +1 toward the trick, and a little Health (her prototype).
+// One finished session: +1 toward the trick, a little Health (her prototype), and 2 training for this pet
+// only (her rule 2026-10-12: pets grow from their own training, never from other questions).
 export function creditSession(petId: string, trick: string): { done: number; need: number; learned: boolean } {
   const st = useStore.getState();
   const cur = trickSessionsOf(petId);
@@ -69,7 +70,7 @@ export function creditSession(petId: string, trick: string): { done: number; nee
   const done = Math.min(need, (cur[trick] ?? 0) + 1);
   st.mergeStyleRow(tricksOwner(petId), { sessions: { ...cur, [trick]: done } });
   const pet = st.pets.find((p) => p.id === petId);
-  if (pet) st.carePet(petId, 'talk');
+  if (pet) { st.carePet(petId, 'talk'); st.trainPet(petId, 2); }
   return { done, need, learned: done >= need };
 }
 

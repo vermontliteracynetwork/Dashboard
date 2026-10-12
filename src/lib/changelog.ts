@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-pets-own-training",
+    date: "2026-10-12",
+    icon: "🐾",
+    title: "Pets grow from their own training",
+    body: "Your pet grows up by training at Buff Doge's Gym. Every finished training session helps that pet grow. The Boom Box plays music without a video now, and tapping a Neighbor once opens their menu.",
+  },
+  {
     id: "2026-10-12-gym-form",
     date: "2026-10-12",
     icon: "🏋️",

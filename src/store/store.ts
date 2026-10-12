@@ -481,6 +481,7 @@ interface AppState {
   // +amount training to every owned pet below the top of the ladder, from
   // real work only: a finished assignment, or every 10 right answers.
   trainPets: (studentId: string, amount: number, source: 'assignment' | 'answers') => void;
+  trainPet: (petId: string, amount: number) => void;
   // petId: null unsets whichever pet was following (goes back to no companion).
   setFollowingPet: (studentId: string, petId: string | null) => void;
   // Pets v2 (her spec): "Two companions can walk with students on either side (right and left) as assigned".
@@ -1589,6 +1590,17 @@ export const useStore = create<AppState>()(
         if (trained.length) set({ lastPetTraining: { id: makeId(), studentId, source, pets: trained } });
       },
 
+      // One pet's own training (her rule 2026-10-12: pets gain only from things they do themselves).
+      trainPet: (petId, amount) => {
+        if (PETS_PAUSED) return;
+        const pet = get().pets.find((p) => p.id === petId);
+        if (!pet || pet.trainingProgress >= PET_TRAINING_CAP) return;
+        const after = Math.min(PET_TRAINING_CAP, pet.trainingProgress + amount);
+        const updated: StudentPet = { ...pet, trainingProgress: after };
+        set((s) => ({ pets: s.pets.map((p) => (p.id === petId ? updated : p)), lastPetTraining: { id: makeId(), studentId: pet.studentId, source: 'answers', pets: [{ petId, name: pet.customName, before: pet.trainingProgress, after }] } }));
+        pushStudentPet(updated);
+      },
+
       teachTrick: (petId, trickId) => {
         const pet = get().pets.find((p) => p.id === petId);
         const trick = PET_TRICKS.find((t) => t.id === trickId);
@@ -2393,7 +2405,9 @@ export const useStore = create<AppState>()(
         // unlock) instead of the ladder's actual top threshold froze
         // trainingProgress at 5 forever, silently killing the later
         // "Best Friends"/"Bonded for Life" milestones.
-        get().trainPets(studentId, 1, 'assignment');
+        // Her rule (2026-10-12): "make sure pets are not gaining anything by questions that arent directly
+        // related to them (IE player playing a game while they are in training)". Assignments no longer
+        // train pets; pets grow from their own gym sessions (creditSession in lib/petGym.ts).
 
         const student = get().students.find((st) => st.id === studentId);
 

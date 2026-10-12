@@ -4,10 +4,9 @@ import { useGLTF, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { useStore } from '../store/store';
-import { PET_TRICKS, TRICK_REPS_TO_LEARN, trickUnlocked, speakWordFor, nextMilestone, PET_ANSWERS_PER_TRAINING } from '../lib/petCatalog';
+import { PET_TRICKS, TRICK_REPS_TO_LEARN, trickUnlocked, speakWordFor, nextMilestone } from '../lib/petCatalog';
 import type { PetDef, PetTrick } from '../lib/petCatalog';
 import { usePetMove, PET_MOVE_SECONDS, type PetMoveCue } from '../lib/petMoves';
-import { usePetTrainingAnswers } from '../lib/petTraining';
 import type { StudentPet } from '../types';
 
 // Pet training session (pets review, teacher 2026-10-06: "lets review the
@@ -71,7 +70,6 @@ type Phase = { trick: PetTrick; reps: number; step: 'cue' | 'doing' | 'treat' } 
 export default function PetTrainingSession({ pet, def, onClose, onCue }: { pet: StudentPet; def: PetDef; onClose: () => void; onCue?: (kind: string) => void }) {
   const teachTrick = useStore((s) => s.teachTrick);
   const carePet = useStore((s) => s.carePet);
-  const answersTowardNext = usePetTrainingAnswers(pet.studentId);
   const [cue, setCue] = useState<PetMoveCue | null>(null);
   const [phase, setPhase] = useState<Phase>(null);
   const [bubble, setBubble] = useState<string | null>(null);
@@ -183,7 +181,7 @@ export default function PetTrainingSession({ pet, def, onClose, onCue }: { pet: 
             )}
             <div className="pet-train-progress">
               <div>🎓 Training: <strong>{pet.trainingProgress}</strong>{next ? ` (next: ${next.icon} ${next.label} at ${next.threshold})` : ' (all milestones reached!)'}</div>
-              <div className="pet-train-how">Every finished assignment = 1 training. Every {PET_ANSWERS_PER_TRAINING} right answers in games and quizzes = 1 training ({answersTowardNext}/{PET_ANSWERS_PER_TRAINING} so far).</div>
+              <div className="pet-train-how">Pets grow from their own training: every finished session at Buff Doge's Gym = 2 training for that pet.</div>
             </div>
           </div>
         </div>
