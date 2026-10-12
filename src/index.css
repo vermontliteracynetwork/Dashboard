@@ -6629,3 +6629,37 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .rs-act span { font-size: 22px; }
 .rs-act.tip { border-color: #f0a030; box-shadow: 0 4px 0 #c97f1a; }
 .rs-tip { flex-basis: 100%; max-width: 640px; background: #fff3d6; border: 3px solid #f0a030; border-radius: 12px; padding: 8px 12px; font-weight: 700; text-align: center; }
+
+/* ---------- Fishing Dock (native game, 2026-10-12) ---------- */
+.fd { position: fixed; inset: 0; overflow: hidden; color: #12324a; }
+.fd-sky { position: absolute; inset: 0 0 45% 0; background: linear-gradient(#ffd59a, #ffefd4); }
+.fd-water { position: absolute; left: 0; right: 0; bottom: 0; height: 47%; background: linear-gradient(#4fb3e8, #1f6fa8); overflow: hidden; }
+.fd-water i { position: absolute; left: -10%; width: 120%; height: 30px; border-top: 4px solid rgba(255,255,255,0.45); border-radius: 50%; animation: fd-wave 4s ease-in-out infinite; }
+.fd-water i:nth-child(1) { top: 12%; } .fd-water i:nth-child(2) { top: 40%; animation-delay: -1.3s; } .fd-water i:nth-child(3) { top: 70%; animation-delay: -2.6s; }
+@keyframes fd-wave { 50% { transform: translateX(4%); } }
+.fd-dock { position: absolute; left: 0; bottom: 42%; width: 28%; height: 5%; background: #a0703c; box-shadow: 0 6px 0 #7a5226; }
+.fd-rod { position: absolute; left: 20%; bottom: 46%; width: 22%; height: 6px; background: #5a3a1a; transform-origin: left center; transform: rotate(-28deg); border-radius: 3px; }
+.fd-bobber { position: absolute; bottom: 38%; width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #fff 0 30%, #e2574c 32%); border: 3px solid #fff; transform: translateX(-50%); animation: fd-bob 1.6s ease-in-out infinite; }
+.fd-bobber.bite { animation: fd-bite 0.25s ease-in-out infinite; }
+@keyframes fd-bob { 50% { transform: translate(-50%, 4px); } }
+@keyframes fd-bite { 50% { transform: translate(-50%, 14px); } }
+.fd-head { position: absolute; top: 0; left: 0; right: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: max(12px, env(safe-area-inset-top)) 16px 8px; z-index: 3; }
+.fd-head h1 { margin: 0 auto 0 0; color: #1f6fa8; text-shadow: 0 2px 0 #fff; }
+.fd-head .btn { min-height: 44px; }
+.fd-panel { position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; align-items: center; z-index: 3; }
+.fd-big { min-height: 64px; width: 100%; font-size: 1.25rem; }
+.fd-pulse { animation: fd-pulse 0.5s ease-in-out infinite; }
+@keyframes fd-pulse { 50% { transform: scale(1.05); } }
+.fd-msg { background: rgba(255,255,255,0.9); border-radius: 14px; padding: 10px 16px; font-weight: 800; font-size: 1.15rem; margin: 0; }
+.fd-meter { position: relative; width: 100%; height: 30px; border-radius: 16px; background: linear-gradient(90deg, #f6d6c2, #ffd23f 60%, #f0a030); border: 4px solid #fff; overflow: hidden; }
+.fd-sweet { position: absolute; left: 72%; width: 20%; top: 0; bottom: 0; background: #2fa36b; }
+.fd-meter b { position: absolute; top: -2px; bottom: -2px; width: 8px; margin-left: -4px; background: #12324a; border-radius: 4px; }
+.fd-catch { text-align: center; }
+.fd-fish { font-size: 96px; animation: pf-pop 0.8s cubic-bezier(.2,1.6,.4,1) both; }
+.fd-new { display: inline-block; background: #ffd23f; border-radius: 999px; padding: 4px 12px; font-weight: 900; }
+.fd-tier { display: inline-block; color: #fff; font-weight: 900; border-radius: 999px; padding: 3px 12px; }
+.fd-book { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.fd-page { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #eaf6ff; border: 3px solid #5bb0e0; border-radius: 14px; padding: 8px; text-align: center; }
+.fd-page.locked { background: #f0f0f0; border-color: #ccc; }
+.fd-page-icon { font-size: 40px; }
+@media (prefers-reduced-motion: reduce) { .fd-water i, .fd-bobber, .fd-pulse { animation: none; } }

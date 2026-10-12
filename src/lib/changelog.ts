@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-fishing-dock",
+    date: "2026-10-12",
+    icon: "🎣",
+    title: "New game: Fishing Dock",
+    body: "Answer a question to bait your hook, cast into the lake (stop the meter in the green for rare fish!), then reel in when you get a bite. Catch all 16 and fill your Fish Book!",
+  },
+  {
     id: "2026-10-12-rescue-shelter",
     date: "2026-10-12",
     icon: "🐶",
