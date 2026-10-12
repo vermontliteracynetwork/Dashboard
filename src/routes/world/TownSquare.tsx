@@ -3357,6 +3357,9 @@ export default function TownSquare() {
   const myLot = homeLots.find((l) => l.student.id === currentStudentId) ?? null;
   const [lotCard, setLotCard] = useState<{ lot: Lot; kind: 'mailbox' | 'house' } | null>(null);
   const routeLocation = useLocation();
+  // The Arcade's ☰ Menu button (teacher 2026-10-12: "add a main pie menu button to the top right hand
+  // corner") comes back here and opens this menu.
+  useEffect(() => { if ((routeLocation.state as { openMenu?: boolean } | null)?.openMenu) setShowSelfMenu(true); }, [routeLocation.state]);
   const arrivedFromHome = useRef(false);
   const [waterSoundOff] = useState(() => { try { return localStorage.getItem('water-sound-off') === '1'; } catch { return false; } });
   const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-arcade-shelves",
+    date: "2026-10-12",
+    icon: "🕹️",
+    title: "A new Arcade",
+    body: "The Arcade has rows of games you can swipe through, like a TV app. Find your top favorites, games you have not played in a while, new games, food games, pet games and more.",
+  },
+  {
     id: "2026-10-12-farm-pixel",
     date: "2026-10-12",
     icon: "🌱",

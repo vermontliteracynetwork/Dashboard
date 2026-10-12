@@ -11,7 +11,8 @@ import { useEffect, useRef, useState } from 'react';
 // /student/games) and pick-your-game assignments.
 const NEW_FOR_MS = 14 * 24 * 3600 * 1000; // a new game's ribbon shows for two weeks
 
-export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick, bests }: { games?: NativeGameCard[]; onPick: (g: NativeGameCard) => void; bests?: Partial<Record<NativeGameCard['id'], string>> }) {
+// `row`: the smaller cabinets of an Arcade shelf (teacher 2026-10-12: rows like a Netflix page).
+export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick, bests, row = false }: { games?: NativeGameCard[]; onPick: (g: NativeGameCard) => void; bests?: Partial<Record<NativeGameCard['id'], string>>; row?: boolean }) {
   const track = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState({ start: true, end: games.length <= 1, index: 0 });
   const update = () => {
@@ -31,26 +32,26 @@ export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick, bests }: { gam
     el.scrollBy({ left: dir * (card ? card.offsetWidth + 16 : el.clientWidth * 0.8), behavior: 'smooth' });
   };
   return (
-    <div className="arcade-slider">
+    <div className={`arcade-slider${row ? ' row' : ''}`}>
       <button type="button" className="arcade-arrow left" onClick={() => go(-1)} disabled={edge.start} aria-label="Previous games" />
       <div className="arcade-track" ref={track}>
         {games.map((g) => (
           <button key={g.id} type="button" className="arcade-cab" onClick={() => onPick(g)} aria-label={`Play ${g.title}`}
             style={{ ['--cab-marquee' as string]: g.cabinet.marquee, ['--cab-panel' as string]: g.cabinet.panel, ['--cab-trim' as string]: g.cabinet.trim }}>
-            {g.added && Date.now() - Date.parse(g.added) < NEW_FOR_MS && <span className="arcade-new">✨ New</span>}
-            <span className="arcade-marquee"><span aria-hidden>{g.cabinet.icon}</span> {g.title}</span>
+            {g.added && Date.now() - Date.parse(g.added) < NEW_FOR_MS && <span className="arcade-new">New</span>}
+            <span className="arcade-marquee">{g.title}</span>
             <span className="arcade-screen"><img src={g.cover} alt="" draggable={false} /></span>
             <span className="arcade-panel" aria-hidden><span className="arcade-stick" /><span className="arcade-btns"><i /><i /><i /></span></span>
             <span className="arcade-base">
-              <span className="arcade-blurb">{g.blurb}</span>
-              {bests?.[g.id] && <span className="game-dash-best">🏆 My best: {bests[g.id]}</span>}
+              {!row && <span className="arcade-blurb">{g.blurb}</span>}
+              {bests?.[g.id] && <span className="game-dash-best arcade-best">My best: {bests[g.id]}</span>}
               <span className="arcade-play">▶ Play</span>
             </span>
           </button>
         ))}
       </div>
       <button type="button" className="arcade-arrow right" onClick={() => go(1)} disabled={edge.end} aria-label="More games" />
-      <div className="arcade-dots" aria-hidden>{games.map((g, i) => <i key={g.id} className={i === edge.index ? 'on' : ''} />)}</div>
+      {!row && <div className="arcade-dots" aria-hidden>{games.map((g, i) => <i key={g.id} className={i === edge.index ? 'on' : ''} />)}</div>}
     </div>
   );
 }

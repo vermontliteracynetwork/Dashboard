@@ -7465,3 +7465,21 @@ body.calm-games .fdk-xp-pop { animation-duration: 1.8s !important; }
 .fgx-seed small { font-weight: 500; font-size: 0.8rem; }
 @media (prefers-reduced-motion: reduce) { .fgx-crop.ripe, .fgx-work { animation: none; } }
 body.calm-games .fgx-crop.ripe, body.calm-games .fgx-work { animation: none; }
+
+/* The Arcade as a Netflix-style page (teacher 2026-10-12). */
+.games-hub { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+.games-hub-menu { justify-self: end; }
+.games-hub-shelf { display: flex; flex-direction: column; gap: 6px; }
+.games-hub-shelf h2 { margin: 6px 0 0; font: 900 clamp(1.2rem, 2.6vw, 1.6rem) 'Baloo 2', system-ui, sans-serif; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.games-hub-shelf h2 small { font: 600 0.95rem 'Lexend', system-ui, sans-serif; opacity: 0.85; }
+.arcade-best { align-self: center; }
+.arcade-track { scroll-snap-type: x proximity; touch-action: pan-x pan-y; }
+.arcade-slider.row { grid-template-columns: 48px minmax(0, 1fr) 48px; }
+.arcade-slider.row .arcade-arrow { width: 44px; height: 56px; }
+.arcade-slider.row .arcade-cab { width: clamp(180px, 22vw, 240px); scroll-snap-align: start; }
+.arcade-slider.row .arcade-marquee { font-size: 0.95rem; padding: 6px 8px; }
+.arcade-slider.row .arcade-panel { display: none; }
+.arcade-slider.row .arcade-base { padding: 8px; }
+.arcade-slider.row .arcade-play { min-height: 44px; font-size: 1rem; }
+@media (orientation: portrait) and (min-width: 601px) { .arcade-slider.row .arcade-cab { width: clamp(180px, 30vw, 240px); } }
+@media (max-width: 600px) { .arcade-slider.row .arcade-cab { width: 70%; } }
