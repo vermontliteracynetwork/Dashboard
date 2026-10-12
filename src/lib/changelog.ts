@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-assignments-in-games",
+    date: "2026-10-12",
+    icon: "📋",
+    title: "Assignments count in every game",
+    body: "When your teacher lets you finish an assignment by playing a game, every new game counts now! Look for \"counts for your assignment\" at the top of the question.",
+  },
+  {
     id: "2026-10-12-diner",
     date: "2026-10-12",
     icon: "🍔",

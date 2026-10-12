@@ -22,7 +22,7 @@ const food = (id: string) => FOODS.find((f) => f.id === id)!;
 
 export default function DinerDash() {
   const back = useBack();
-  const { ask, element, pay, asking, student } = useAsk('Diner Dash', '🍔');
+  const { ask, element, pay, asking, student } = useAsk('Diner Dash', '🍔', 'dinerDash');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   // The diner's moving parts live in one ref (so the timer never double-counts) and are copied into

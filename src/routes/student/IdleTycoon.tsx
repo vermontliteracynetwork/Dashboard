@@ -28,7 +28,7 @@ const rates = (s: Shop) => ({ bake: 0.5 * (1 + s.oven * 0.5), cap: 6 + s.display
 
 export default function IdleTycoon() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Cupcake Tycoon', '🧁');
+  const { ask, element, pay, student } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';

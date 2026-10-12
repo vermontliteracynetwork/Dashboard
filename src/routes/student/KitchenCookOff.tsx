@@ -44,7 +44,7 @@ const newOrder = (n: number) => {
 
 export default function KitchenCookOff() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Kitchen Cook-Off', '🍳');
+  const { ask, element, pay, student } = useAsk('Kitchen Cook-Off', '🍳', 'kitchenCookOff');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [order, setOrder] = useState(() => newOrder(1));

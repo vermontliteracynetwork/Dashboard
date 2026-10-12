@@ -63,7 +63,7 @@ export function GemIcon({ color, size = 48 }: { color: string; size?: number }) 
 
 export default function GemMine() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Gem Mine', '💎');
+  const { ask, element, pay, student } = useAsk('Gem Mine', '💎', 'gemMine');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [wall, setWall] = useState<Tile[]>(newWall);

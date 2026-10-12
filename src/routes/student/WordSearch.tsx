@@ -52,7 +52,7 @@ function build(theme: Theme) {
 
 export default function WordSearch() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Word Search', '🔤');
+  const { ask, element, pay, student } = useAsk('Word Search', '🔤', 'wordSearch');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [themeIdx, setThemeIdx] = useState(() => Math.floor(Math.random() * THEMES.length));

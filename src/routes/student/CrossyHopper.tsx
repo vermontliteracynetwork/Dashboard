@@ -25,7 +25,7 @@ const clearAt = (cars: Car[], lane: number, t: number) => cars.every((c) => c.la
 
 export default function CrossyHopper() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Crossy Road Hopper', '🐔');
+  const { ask, element, pay, student } = useAsk('Crossy Road Hopper', '🐔', 'crossyHopper');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [cars, setCars] = useState<Car[]>(makeCars);

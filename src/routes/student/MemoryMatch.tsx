@@ -2,8 +2,7 @@ import { useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import type { MCQuestion } from '../../types';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
-import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { useGameQuestions } from '../../games/mini/useAsk';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
@@ -22,19 +21,21 @@ const shuffle = <T,>(a: T[]) => { const b = [...a]; for (let i = b.length - 1; i
 export default function MemoryMatch() {
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
-  const questionSets = useStore((s) => s.questionSets);
+  const { next, right: countRight, notice } = useGameQuestions('memoryMatch');
+  const pairQ = useRef<Record<string, MCQuestion>>({});
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const deal = (): Card[] => {
     // Six questions with different prompts and different right answers, so every match is clear.
     const qs: MCQuestion[] = [];
     for (let tries = 0; qs.length < PAIRS && tries < 60; tries++) {
-      const q = drawQuestion(pickableSets(questionSets)) ?? generateAutoQuestion();
+      const q = next();
       const ans = q.choices[q.correctIndex];
       if (!ans || qs.some((x) => x.prompt === q.prompt || x.choices[x.correctIndex] === ans)) continue;
       qs.push(q);
     }
     let id = 0;
+    pairQ.current = Object.fromEntries(qs.map((q, i) => [`p${i}`, q]));
     return shuffle(qs.flatMap((q, i) => [
       { id: id++, kind: 'q' as const, text: q.prompt, img: q.imageUrl, key: `p${i}`, matched: false },
       { id: id++, kind: 'a' as const, text: q.choices[q.correctIndex], key: `p${i}`, matched: false },
@@ -60,6 +61,7 @@ export default function MemoryMatch() {
     const [a, b] = now.map((id) => cards.find((x) => x.id === id)!);
     if (a.kind !== b.kind && a.key === b.key) {
       unpaid.current += 1; recordStreakCorrect(student.id);
+      if (pairQ.current[a.key]) countRight(pairQ.current[a.key]);
       const next = cards.map((x) => (x.key === a.key ? { ...x, matched: true } : x));
       setCards(next); setUp([]);
       setNote('✨ A match! The answer goes with the question.');
@@ -123,6 +125,7 @@ export default function MemoryMatch() {
           </div>
         </div>
       )}
+      {notice}
     </div>
   );
 }

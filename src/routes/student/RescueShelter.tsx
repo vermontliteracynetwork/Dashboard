@@ -104,7 +104,7 @@ function Room() {
 export default function RescueShelter() {
   const navigate = useNavigate();
   const back = useBack();
-  const { ask, element, pay } = useAsk('Rescue Shelter', '🐶');
+  const { ask, element, pay } = useAsk('Rescue Shelter', '🐶', 'rescueShelter');
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const pets = useStore((s) => s.pets);
   const styleLooks = useStore((s) => s.styleLooks);

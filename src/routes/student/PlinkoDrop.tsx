@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import type { MCQuestion } from '../../types';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
-import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { useGameQuestions } from '../../games/mini/useAsk';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
@@ -28,10 +27,9 @@ const PRIZES = [
 export default function PlinkoDrop() {
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
-  const questionSets = useStore((s) => s.questionSets);
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
-  const next = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const { next, right: countRight, notice } = useGameQuestions('plinkoDrop');
   const [q, setQ] = useState<MCQuestion>(() => next());
   const [ball, setBall] = useState<{ x: number; y: number } | null>(null);
   const [bad, setBad] = useState<number | null>(null);
@@ -58,7 +56,7 @@ export default function PlinkoDrop() {
       timers.current.push(window.setTimeout(() => setBad(null), 600));
       return;
     }
-    unpaid.current += 1; recordStreakCorrect(student.id);
+    unpaid.current += 1; recordStreakCorrect(student.id); countRight(q);
     setNote('✅ Right! Watch it bounce...');
     // A Galton board path: each peg row nudges the ball half a column left or right.
     let x = chutes[choice];
@@ -135,6 +133,7 @@ export default function PlinkoDrop() {
           </div>
         </div>
       )}
+      {notice}
     </div>
   );
 }

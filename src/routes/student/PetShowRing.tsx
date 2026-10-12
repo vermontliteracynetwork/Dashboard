@@ -11,8 +11,7 @@ import { ageForTraining, AGE_LABEL, AGE_SCALE } from '../../lib/petsV2';
 import { useGym, learnedTricks, trickDef, STAND_STAY } from '../../lib/petGym';
 import { usePoseSetup, usePetTricks } from '../../lib/usePetTricks';
 import { trickSeconds } from '../../lib/petPoses';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
-import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { useGameQuestions } from '../../games/mini/useAsk';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { playCheer } from '../../lib/petSounds';
 import { sayInPetVoice, petVoiceLine } from '../../lib/petSpeak';
@@ -185,7 +184,6 @@ export default function PetShowRing() {
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const allPets = useStore((s) => s.pets);
   const styleLooks = useStore((s) => s.styleLooks);
-  const questionSets = useStore((s) => s.questionSets);
   const carePet = useStore((s) => s.carePet);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const gym = useGym(student?.id);
@@ -201,7 +199,7 @@ export default function PetShowRing() {
   const [cheer, setCheer] = useState(0);
   const sessionsOf = (id: string) => (styleLooks.find((r) => r.ownerId === `pettricks:${id}`)?.look as { sessions?: Record<string, number> } | undefined)?.sessions ?? {};
   const ribbonsOf = (id: string) => (styleLooks.find((r) => r.ownerId === `petshow:${id}`)?.look as { ribbons?: number } | undefined)?.ribbons ?? 0;
-  const next = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const { next, right: countRight, notice } = useGameQuestions('petShow');
 
   const start = (p: StudentPet) => {
     setPet(p); setCourse(buildCourse(learnedTricks(sessionsOf(p.id)))); setAt(0); right.current = 0; setPhase('walk');
@@ -210,6 +208,7 @@ export default function PetShowRing() {
   const answered = () => {
     if (!pet) return;
     right.current += 1;
+    if (q) countRight(q);
     setQ(null);
     const st = course[at];
     const name = st.trick === 'Weave' ? null : st.trick;
@@ -324,6 +323,7 @@ export default function PetShowRing() {
           </div>
         </div>
       )}
+      {notice}
     </div>
   );
 }

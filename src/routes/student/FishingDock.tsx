@@ -35,7 +35,7 @@ type Phase = 'ready' | 'power' | 'wait' | 'bite' | 'caught' | 'away';
 
 export default function FishingDock() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Fishing Dock', '🎣');
+  const { ask, element, pay, student } = useAsk('Fishing Dock', '🎣', 'fishingDock');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [phase, setPhase] = useState<Phase>('ready');

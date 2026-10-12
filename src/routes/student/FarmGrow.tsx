@@ -33,7 +33,7 @@ interface Farm { plots?: (Plot | null)[]; harvested?: Record<string, number> }
 
 export default function FarmGrow() {
   const back = useBack();
-  const { ask, element, pay, rightSoFar, student } = useAsk('Farm Grow', '🌱');
+  const { ask, element, pay, rightSoFar, student } = useAsk('Farm Grow', '🌱', 'farmGrow');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [picking, setPicking] = useState<number | null>(null);

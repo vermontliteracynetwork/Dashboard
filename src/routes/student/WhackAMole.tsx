@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import type { MCQuestion } from '../../types';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
-import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { useGameQuestions } from '../../games/mini/useAsk';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
@@ -21,10 +20,9 @@ const HOLES = 6, ROUND = 10, UP_MS = 3500, MAX_UP = 3;
 export default function WhackAMole() {
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
-  const questionSets = useStore((s) => s.questionSets);
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
-  const next = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const { next, right: countRight, notice } = useGameQuestions('whackAMole');
   const [q, setQ] = useState<MCQuestion>(() => next());
   const [moles, setMoles] = useState<Mole[]>([]);
   const [done, setDone] = useState(0);
@@ -77,7 +75,7 @@ export default function WhackAMole() {
     if (m.state !== 'up' || lock.current) return;
     if (m.choice === q.correctIndex) {
       lock.current = true;
-      right.current += 1; unpaid.current += 1;
+      right.current += 1; unpaid.current += 1; countRight(q);
       recordStreakCorrect(student.id);
       setMoles((ms) => ms.map((x) => (x.id === m.id ? { ...x, state: 'bonk', until: Date.now() + 700 } : { ...x, state: 'duck', until: Date.now() })));
       setNote('🔨 Bonk! That is right!');
@@ -153,6 +151,7 @@ export default function WhackAMole() {
           </div>
         </div>
       )}
+      {notice}
     </div>
   );
 }

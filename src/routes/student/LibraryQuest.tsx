@@ -41,7 +41,7 @@ const newCase = () => {
 
 export default function LibraryQuest() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Library Quest', '📚');
+  const { ask, element, pay, student } = useAsk('Library Quest', '📚', 'libraryQuest');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [bc, setBc] = useState(newCase);

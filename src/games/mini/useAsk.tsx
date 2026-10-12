@@ -1,42 +1,86 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
-import type { MCQuestion } from '../../types';
+import type { MCQuestion, NativeGameId } from '../../types';
 import { drawQuestion, pickableSets } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { payForAnswers } from '../../lib/gameEarnings';
+import { findActiveGameplayTask, gameplayQuestionPool, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import QuestionScreen from '../../components/QuestionScreen';
+
+// Where a native game's questions come from, shared by every game built from her 2026-09-30 lists.
+// If the teacher has an open gameplay assignment for this game (a "specific game" task) or for any
+// game (an "any game" task), its questions come first and every right answer counts toward it, the
+// same way Shape Dash and Bakery Match do it (src/lib/gameplayAssignment.ts). Otherwise questions
+// come from her starred (focus) sets. `notice` shows "Assignment complete!" once it is finished.
+export function useGameQuestions(gameId: NativeGameId) {
+  const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
+  const questionSets = useStore((s) => s.questionSets);
+  const rotations = useStore((s) => s.rotations);
+  const progress = useStore((s) => s.progress);
+  const submitGameplayAnswer = useStore((s) => s.submitGameplayAnswer);
+  const assignment = useMemo(() => {
+    if (!student) return null;
+    return findActiveGameplayTask(
+      { math: rotations[student.id]?.math ?? [], literacy: rotations[student.id]?.literacy ?? [] },
+      { math: progress[student.id]?.math?.completedTaskIds ?? [], literacy: progress[student.id]?.literacy?.completedTaskIds ?? [] },
+      gameId,
+    );
+  }, [student, rotations, progress, gameId]);
+  const [finished, setFinished] = useState<string | null>(null);
+  const next = useCallback((avoid?: string): MCQuestion => {
+    if (assignment) { const g = pickGameplayQuestion(assignment.task, avoid); if (g) return g; }
+    return drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  }, [assignment, questionSets]);
+  const right = useCallback((q: MCQuestion) => {
+    if (!student || !assignment || !gameplayQuestionPool(assignment.task).some((x) => x.id === q.id)) return;
+    if (submitGameplayAnswer(student.id, assignment.subject, assignment.task, q.id, true)) setFinished(assignment.task.studentTitle || assignment.task.title);
+  }, [student, assignment, submitGameplayAnswer]);
+  const notice = finished ? (
+    <div className="pf-overlay" style={{ zIndex: 60 }}>
+      <div className="pf-panel fd-catch">
+        <div className="fd-fish" aria-hidden>📋</div>
+        <h2>Assignment complete!</h2>
+        <p>You finished <b>{finished}</b> by playing. It is checked off. You can keep playing as long as you like.</p>
+        <button type="button" className="btn btn-primary btn-lg" onClick={() => setFinished(null)}>Keep playing</button>
+      </div>
+    </div>
+  ) : null;
+  return { next, right, notice, assignment, student };
+}
 
 // Shared question plumbing for the native mini games built from her 2026-09-30 game list
 // (Rescue Shelter, Fishing Dock, Farm Grow...). A game calls ask(label, onRight) when its action
-// needs a question; the question comes from her starred (focus) sets like every native game, wrong
-// answers just try again, and pay() at the end gives $1 per right answer.
-export function useAsk(game: string, icon: string) {
-  const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
-  const questionSets = useStore((s) => s.questionSets);
+// needs a question; wrong answers just try again, and pay() at the end gives $1 per right answer.
+export function useAsk(game: string, icon: string, gameId: NativeGameId) {
+  const { next, right: countRight, notice, assignment, student } = useGameQuestions(gameId);
   const [open, setOpen] = useState<{ q: MCQuestion; label: string; onRight: () => void; onCancel?: () => void } | null>(null);
   const right = useRef(0);
-  const next = useCallback((avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion(), [questionSets]);
   const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void) => setOpen({ q: next(), label, onRight, onCancel }), [next]);
   const pay = useCallback(() => {
     if (student && right.current > 0) payForAnswers(student.id, right.current, game, icon);
     right.current = 0;
   }, [student, game, icon]);
-  const element = open && student ? (
-    <QuestionScreen
-      key={open.q.id}
-      whoLabel={open.label}
-      prompt={open.q.prompt}
-      choices={open.q.choices}
-      correctIndex={open.q.correctIndex}
-      imageUrl={open.q.imageUrl}
-      imageAlt={open.q.imageAlt}
-      done={0}
-      total={1}
-      onCorrectAnswer={() => { right.current += 1; const cb = open.onRight; setOpen(null); cb(); }}
-      onSkip={() => setOpen((o) => (o ? { ...o, q: next(o.q.id) } : o))}
-      onExit={() => { const c = open.onCancel; setOpen(null); c?.(); }}
-      ttsSettings={student.ttsSettings}
-    />
-  ) : null;
+  const element = (
+    <>
+      {open && student && (
+        <QuestionScreen
+          key={open.q.id}
+          whoLabel={assignment ? `${open.label} · 📋 counts for your assignment` : open.label}
+          prompt={open.q.prompt}
+          choices={open.q.choices}
+          correctIndex={open.q.correctIndex}
+          imageUrl={open.q.imageUrl}
+          imageAlt={open.q.imageAlt}
+          done={0}
+          total={1}
+          onCorrectAnswer={() => { right.current += 1; countRight(open.q); const cb = open.onRight; setOpen(null); cb(); }}
+          onSkip={() => setOpen((o) => (o ? { ...o, q: next(o.q.id) } : o))}
+          onExit={() => { const c = open.onCancel; setOpen(null); c?.(); }}
+          ttsSettings={student.ttsSettings}
+        />
+      )}
+      {notice}
+    </>
+  );
   return { ask, element, pay, rightSoFar: () => right.current, asking: !!open, student };
 }

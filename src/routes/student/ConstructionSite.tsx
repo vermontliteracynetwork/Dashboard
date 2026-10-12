@@ -35,7 +35,7 @@ function Mini({ plan, done }: { plan: Plan; done: boolean }) {
 
 export default function ConstructionSite() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Construction Site', '🏗️');
+  const { ask, element, pay, student } = useAsk('Construction Site', '🏗️', 'constructionSite');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [plan, setPlan] = useState<Plan | null>(null);

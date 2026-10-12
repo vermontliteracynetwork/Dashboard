@@ -46,7 +46,7 @@ const newTrain = (n: number) => ({ n, dest: Math.floor(Math.random() * DESTS.len
 
 export default function TrainDispatch() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Train Station Dispatch', '🚉');
+  const { ask, element, pay, student } = useAsk('Train Station Dispatch', '🚉', 'trainDispatch');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [train, setTrain] = useState(() => newTrain(1));

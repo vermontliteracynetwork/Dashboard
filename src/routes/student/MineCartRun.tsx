@@ -23,7 +23,7 @@ const fresh = (): Game => ({ dist: 0, cy: 0, vy: 0, things: [], nextRock: 700, n
 
 export default function MineCartRun() {
   const back = useBack();
-  const { ask, element, pay, asking, student } = useAsk('Mine Cart Run', '🛤️');
+  const { ask, element, pay, asking, student } = useAsk('Mine Cart Run', '🛤️', 'mineCart');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const canvas = useRef<HTMLCanvasElement>(null);

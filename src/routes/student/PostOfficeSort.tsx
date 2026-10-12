@@ -35,7 +35,7 @@ const newMail = (id: number): Mail => ({
 
 export default function PostOfficeSort() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Post Office Sort', '📮');
+  const { ask, element, pay, student } = useAsk('Post Office Sort', '📮', 'postOffice');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [mail, setMail] = useState<Mail>(() => newMail(1));

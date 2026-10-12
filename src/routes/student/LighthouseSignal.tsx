@@ -30,7 +30,7 @@ interface Boat { id: number; kind: BoatKind; spot: number; safe?: boolean }
 
 export default function LighthouseSignal() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Lighthouse Signal', '🗼');
+  const { ask, element, pay, student } = useAsk('Lighthouse Signal', '🗼', 'lighthouse');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const nextId = useRef(4);

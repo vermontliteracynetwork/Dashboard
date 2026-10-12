@@ -57,7 +57,7 @@ function makeDungeon(n: number): Dungeon {
 
 export default function DungeonRooms() {
   const back = useBack();
-  const { ask, element, pay, student } = useAsk('Dungeon Rooms', '🏰');
+  const { ask, element, pay, student } = useAsk('Dungeon Rooms', '🏰', 'dungeonRooms');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [dg, setDg] = useState(() => makeDungeon(1));
