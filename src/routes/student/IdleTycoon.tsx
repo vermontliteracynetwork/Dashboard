@@ -59,50 +59,46 @@ export default function IdleTycoon() {
     const secs = Math.min(AWAY_MAX_S, Math.max(0, (Date.now() - s.savedAt) / 1000));
     const r = rates(s);
     const sold = Math.floor(Math.min(r.bake, r.buyers * r.sell) * secs * 0.5);
-    if (sold > 0) { setShop((x) => ({ ...x, coins: x.coins + sold * PRICE, total: x.total + sold * PRICE })); setAway(sold * PRICE); }
+    if (sold > 0) { const next = { ...s, coins: s.coins + sold * PRICE, total: s.total + sold * PRICE }; shopRef.current = next; setShop(next); setAway(sold * PRICE); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The running business, four ticks a second.
+  // The running business, four ticks a second. Stock, the line and the serving clock live in refs so
+  // the timer never resets (an earlier version restarted its serving timer on every tick during a
+  // boost and stopped selling).
+  const stockRef = useRef(0), queueRef = useRef<string[]>([]), serveRef = useRef(0);
   useEffect(() => {
     const dt = 0.25;
     const t = window.setInterval(() => {
       const s = shopRef.current, r = rates(s);
-      setBoost((b) => Math.max(0, b - dt));
-      const k = boostRef.current > 0 ? 3 : 1;
+      const boosted = boostRef.current > 0, k = boosted ? 3 : 1;
+      if (boosted) setBoost((b) => Math.max(0, b - dt));
       bakeRef.current += r.bake * k * dt;
-      if (bakeRef.current >= 1) {
-        const n = Math.floor(bakeRef.current);
-        bakeRef.current -= n;
-        setStock((st) => Math.min(r.cap, st + n));
+      if (bakeRef.current >= 1) { const n = Math.floor(bakeRef.current); bakeRef.current -= n; stockRef.current = Math.min(r.cap, stockRef.current + n); }
+      if (Math.random() < r.buyers * k * dt && queueRef.current.length < 5) queueRef.current = [...queueRef.current, FACES[Math.floor(Math.random() * FACES.length)]];
+      serveRef.current += dt * k;
+      if (serveRef.current >= 0.9) {
+        serveRef.current = 0;
+        const n = Math.min(r.sell, queueRef.current.length, stockRef.current);
+        if (n > 0) {
+          queueRef.current = queueRef.current.slice(n); stockRef.current -= n;
+          const next = { ...shopRef.current, coins: shopRef.current.coins + n * PRICE, total: shopRef.current.total + n * PRICE };
+          shopRef.current = next; setShop(next); setPop((p) => p + 1);
+        }
       }
-      setBake(bakeRef.current);
-      if (Math.random() < r.buyers * k * dt) setQueue((q) => (q.length < 5 ? [...q, FACES[Math.floor(Math.random() * FACES.length)]] : q));
+      setBake(bakeRef.current); setStock(stockRef.current); setQueue(queueRef.current);
     }, 250);
     const autosave = window.setInterval(() => { if (owner) mergeStyleRow(owner, { ...shopRef.current, savedAt: Date.now() }); }, 20000);
     return () => { clearInterval(t); clearInterval(autosave); if (owner) mergeStyleRow(owner, { ...shopRef.current, savedAt: Date.now() }); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Serve the line whenever there are cupcakes and customers.
-  useEffect(() => {
-    if (!queue.length || !stock) return;
-    const r = rates(shop);
-    const t = window.setTimeout(() => {
-      const n = Math.min(r.sell, queue.length, stock);
-      setQueue((q) => q.slice(n)); setStock((s) => s - n);
-      setShop((x) => ({ ...x, coins: x.coins + n * PRICE, total: x.total + n * PRICE }));
-      setPop((p) => p + 1);
-    }, boost > 0 ? 300 : 900);
-    return () => clearTimeout(t);
-  }, [queue, stock, shop, boost]);
 
   if (!student) return null;
   const r = rates(shop);
   const stars = STAR_AT.filter((x) => shop.total >= x).length;
   const nextStar = STAR_AT.find((x) => shop.total < x);
   const buy = (key: UpKey, base: number) => {
-    const c = cost(base, shop[key]);
-    if (shop.coins < c) return;
-    const next = { ...shop, coins: shop.coins - c, [key]: shop[key] + 1 };
+    const cur = shopRef.current, c = cost(base, cur[key]);
+    if (cur.coins < c) return;
+    const next = { ...cur, coins: cur.coins - c, [key]: cur[key] + 1 };
     setShop(next); shopRef.current = next; save(); playCheer();
   };
   const getBoost = () => ask('⭐ Answer for a Golden Whisk boost!', () => { setBoost(BOOST_S); playCheer(); });
