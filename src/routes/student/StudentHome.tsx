@@ -20,6 +20,26 @@ import { Icon } from '../../components/Icon';
 // time as a prop rather than running its own interval so it stays in sync
 // with the single 1s tick StudentHome already runs, instead of a second
 // independent timer.
+// The Games app shows one game at a time, cycling through the covers (teacher 2026-10-12:
+// "condence playground view to just one game at a time, cycling through cover photos").
+function GamesCoverCycle({ calm }: { calm: boolean }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setI((n) => (n + 1) % NATIVE_GAME_CARDS.length), 3000);
+    return () => clearInterval(t);
+  }, []);
+  const g = NATIVE_GAME_CARDS[i];
+  return (
+    <div className="widget-games-cycle">
+      <div className="widget-games-stage">
+        {NATIVE_GAME_CARDS.map((c, k) => <img key={c.id} src={c.cover} alt="" className={k === i ? 'on' : ''} style={calm ? { transition: 'none' } : undefined} />)}
+      </div>
+      <span className="widget-games-name">{g.cabinet.icon} {g.title}</span>
+      <span className="widget-games-count">{NATIVE_GAME_CARDS.length} games</span>
+    </div>
+  );
+}
+
 function AnalogClock({ now }: { now: Date }) {
   const s = now.getSeconds() * 6;
   const m = now.getMinutes() * 6 + now.getSeconds() * 0.1;
@@ -370,7 +390,7 @@ export default function StudentHome() {
         >
           <div className="widget-webpage-titlebar">🎮 Games</div>
           <div className="widget-webpage-body widget-games-covers" style={{ padding: 4 }}>
-            {NATIVE_GAME_CARDS.map((g) => <img key={g.id} src={g.cover} alt="" />)}
+            <GamesCoverCycle calm={!!student.worldReduceMotion} />
           </div>
         </button>
         {/* Grammar Gus's Contraption (teacher 2026-10-07: "students can

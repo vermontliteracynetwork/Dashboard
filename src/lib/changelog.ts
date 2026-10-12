@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-computer-games-card",
+    date: "2026-10-12",
+    icon: "🖥️",
+    title: "A tidier computer",
+    body: "Your Mail is at the top of your computer now, and the Games card shows one game at a time so you can see each cover big and clear.",
+  },
+  {
     id: "2026-10-12-game-settings",
     date: "2026-10-12",
     icon: "⚙️",
