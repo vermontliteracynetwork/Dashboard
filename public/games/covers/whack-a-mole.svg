@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <rect width="640" height="110" fill="#a8dcff"/><rect y="110" width="640" height="250" fill="#7cc45a"/>
+  <g><ellipse cx="160" cy="300" rx="80" ry="24" fill="#3a2410"/><ellipse cx="480" cy="300" rx="80" ry="24" fill="#3a2410"/><ellipse cx="320" cy="250" rx="70" ry="20" fill="#3a2410"/></g>
+  <g transform="translate(160 240)"><path d="M-52 60 v-60 a52 52 0 0 1 104 0 v60z" fill="#8a5a3a"/><ellipse cx="0" cy="8" rx="26" ry="18" fill="#c99a6b"/><circle cx="-16" cy="-14" r="6" fill="#1d1208"/><circle cx="16" cy="-14" r="6" fill="#1d1208"/><ellipse cx="0" cy="0" rx="9" ry="6" fill="#f28aa0"/><rect x="-46" y="-96" width="92" height="44" rx="8" fill="#fff" stroke="#8a5a2b" stroke-width="4"/><text x="0" y="-64" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="30" font-weight="900" fill="#2f2410">12</text></g>
+  <g transform="translate(480 250)"><path d="M-52 50 v-50 a52 52 0 0 1 104 0 v50z" fill="#8a5a3a"/><circle cx="-16" cy="-14" r="6" fill="#1d1208"/><circle cx="16" cy="-14" r="6" fill="#1d1208"/><ellipse cx="0" cy="0" rx="9" ry="6" fill="#f28aa0"/></g>
+  <ellipse cx="160" cy="300" rx="80" ry="22" fill="#6b4423"/><ellipse cx="480" cy="300" rx="80" ry="22" fill="#6b4423"/>
+  <text x="250" y="200" font-size="70">🔨</text>
+  <text x="320" y="80" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="62" font-weight="900" fill="#fff" stroke="#6b3f1f" stroke-width="10" paint-order="stroke">WHACK-A-MOLE</text>
+</svg>

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-whack",
+    date: "2026-10-12",
+    icon: "🔨",
+    title: "New game: Whack-a-Mole",
+    body: "Moles are popping up in the garden, and each one is holding an answer! Read the question on the sign, then bonk the mole with the right answer. Tap Listen to hear the question.",
+  },
+  {
     id: "2026-10-12-construction",
     date: "2026-10-12",
     icon: "🏗️",

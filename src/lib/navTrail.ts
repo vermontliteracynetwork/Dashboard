@@ -43,6 +43,7 @@ const LABELS: Record<string, string> = {
   '/student/pet-finder': '🐾 Pet Finder',
   '/student/gym': "🏋️ Buff Doge's Gym",
   '/student/pet-show': '🏅 Pet Show Ring',
+  '/student/whack-a-mole': "🔨 Whack-a-Mole",
   '/student/construction': "🏗️ Construction Site",
   '/student/dungeon': "🏰 Dungeon Rooms",
   '/student/library-quest': "📚 Library Quest",
